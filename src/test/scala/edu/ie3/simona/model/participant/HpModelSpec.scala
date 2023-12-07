@@ -29,7 +29,6 @@ class HpModelSpec
         val cases = Table(
           (
             "state",
-            "expectedTick",
             "expectedRunningState",
             "expectedActivePower",
             "expectedInnerTemperature"
@@ -42,7 +41,6 @@ class HpModelSpec
               Kilowatts(0d),
               thermalState(Celsius(17d))
             ),
-            7200,
             true,
             95,
             15.6
@@ -55,7 +53,6 @@ class HpModelSpec
               Kilowatts(0d),
               thermalState(Celsius(18))
             ),
-            7200,
             true,
             95,
             16.4
@@ -68,7 +65,6 @@ class HpModelSpec
               Kilowatts(0d),
               thermalState(Celsius(20))
             ),
-            7200,
             true,
             95,
             18.0
@@ -81,7 +77,6 @@ class HpModelSpec
               Kilowatts(0d),
               thermalState(Celsius(22))
             ),
-            7200,
             false,
             0,
             19.6
@@ -94,7 +89,6 @@ class HpModelSpec
               Kilowatts(0d),
               thermalState(Celsius(23))
             ),
-            7200,
             false,
             0,
             20.4
@@ -107,7 +101,6 @@ class HpModelSpec
               Kilowatts(80d),
               thermalState(Celsius(17))
             ),
-            7200,
             true,
             95,
             15.6
@@ -120,7 +113,6 @@ class HpModelSpec
               Kilowatts(80d),
               thermalState(Celsius(18))
             ),
-            7200,
             true,
             95,
             16.4
@@ -133,7 +125,6 @@ class HpModelSpec
               Kilowatts(80d),
               thermalState(Celsius(20))
             ),
-            7200,
             true,
             95,
             18.0
@@ -146,7 +137,6 @@ class HpModelSpec
               Kilowatts(80d),
               thermalState(Celsius(22))
             ),
-            7200,
             true,
             95,
             19.6
@@ -159,7 +149,6 @@ class HpModelSpec
               Kilowatts(80d),
               thermalState(Celsius(25))
             ),
-            7200,
             false,
             0,
             22.0
@@ -169,7 +158,6 @@ class HpModelSpec
         forAll(cases) {
           (
               state,
-              expectedTick,
               expectedRunningState,
               expectedActivePower,
               expectedInnerTemperature
