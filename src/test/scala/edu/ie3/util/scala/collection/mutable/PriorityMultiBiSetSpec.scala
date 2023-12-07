@@ -19,6 +19,7 @@ class PriorityMultiBiSetSpec extends UnitSpec {
   private val item3: Value = "test3"
   private val item4: Value = "test4"
   private val item5: Value = "test5"
+  private val item6: Value = "test6"
 
   "A PriorityMultiBiSet" should {
     "be created correctly emptily" in {
@@ -126,14 +127,14 @@ class PriorityMultiBiSetSpec extends UnitSpec {
       prioSet.getKeyOf(item5) shouldBe Some(5)
 
       // does not exist
-      prioSet.remove(2, item1) shouldBe false
+      prioSet.remove(item6) shouldBe false
 
       prioSet.isEmpty shouldBe false
       prioSet.nonEmpty shouldBe true
       prioSet.headKeyOption shouldBe Some(1)
       prioSet.keySet shouldBe SortedSet(1, 2, 3, 5)
 
-      prioSet.remove(2, item4) shouldBe true
+      prioSet.remove(item4) shouldBe true
 
       prioSet.isEmpty shouldBe false
       prioSet.nonEmpty shouldBe true
@@ -147,7 +148,7 @@ class PriorityMultiBiSetSpec extends UnitSpec {
       prioSet.headKeyOption shouldBe Some(3)
       prioSet.keySet shouldBe SortedSet(3, 5)
 
-      prioSet.remove(3, item3) shouldBe true
+      prioSet.remove(item3) shouldBe true
 
       prioSet.isEmpty shouldBe false
       prioSet.nonEmpty shouldBe true
@@ -161,7 +162,7 @@ class PriorityMultiBiSetSpec extends UnitSpec {
       prioSet.headKeyOption shouldBe Some(5)
       prioSet.keySet shouldBe SortedSet(5)
 
-      prioSet.remove(5, item5) shouldBe true
+      prioSet.remove(item5) shouldBe true
 
       prioSet.isEmpty shouldBe true
       prioSet.nonEmpty shouldBe false
