@@ -21,18 +21,34 @@ import edu.ie3.simona.agent.participant.em.EmAgent._
 import edu.ie3.simona.agent.participant.em.EmAgentTyped.EmMessage
 import edu.ie3.simona.agent.participant.em.EmSchedulerStateData.TriggerData
 import edu.ie3.simona.agent.participant.em.FlexCorrespondenceStore2.FlexCorrespondence
-import edu.ie3.simona.agent.participant.statedata.BaseStateData.{FlexStateData, ModelBaseStateData}
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{ParticipantInitializeStateData, ParticipantUninitializedStateData}
-import edu.ie3.simona.agent.participant.statedata.{InitializeStateData, ParticipantStateData}
+import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
+  FlexStateData,
+  ModelBaseStateData
+}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
+  ParticipantInitializeStateData,
+  ParticipantUninitializedStateData
+}
+import edu.ie3.simona.agent.participant.statedata.{
+  InitializeStateData,
+  ParticipantStateData
+}
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
-import edu.ie3.simona.event.ResultEvent.{FlexOptionsResultEvent, ParticipantResultEvent}
+import edu.ie3.simona.event.ResultEvent.{
+  FlexOptionsResultEvent,
+  ParticipantResultEvent
+}
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.em.EmModel.EmRelevantData
-import edu.ie3.simona.model.participant.em.{EmAggregateFlex, EmModel, EmModelStrat}
+import edu.ie3.simona.model.participant.em.{
+  EmAggregateFlex,
+  EmModel,
+  EmModelStrat
+}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.ontology.messages.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation

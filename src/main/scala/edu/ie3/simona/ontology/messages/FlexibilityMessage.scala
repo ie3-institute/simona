@@ -24,8 +24,8 @@ object FlexibilityMessage {
   }
 
   final case class ScheduleFlexRequest(
-    override val participant: ActorRef[FlexRequest],
-    tick: Long
+      override val participant: ActorRef[FlexRequest],
+      tick: Long
   ) extends FlexResponse
 
   /** EmAgent requests flexibility options from connected agents
@@ -64,10 +64,10 @@ object FlexibilityMessage {
     *   the maximum power that the system participant allows
     */
   final case class ProvideMinMaxFlexOptions(
-                                             override val participant: ActorRef[FlexRequest],
-                                             referencePower: squants.Power,
-                                             minPower: squants.Power,
-                                             maxPower: squants.Power
+      override val participant: ActorRef[FlexRequest],
+      referencePower: squants.Power,
+      minPower: squants.Power,
+      maxPower: squants.Power
   ) extends ProvideFlexOptions
 
   /** Message sent by [[edu.ie3.simona.agent.participant.em.EmAgent]] that
@@ -97,10 +97,10 @@ object FlexibilityMessage {
     *   tick at which flex options are foreseen to have changed
     */
   final case class FlexCtrlCompletion(
-                                       override val participant: ActorRef[FlexRequest],
-                                       result: ApparentPower,
-                                       requestAtNextActivation: Boolean = false,
-                                       requestAtTick: Option[Long] = None
+      override val participant: ActorRef[FlexRequest],
+      result: ApparentPower,
+      requestAtNextActivation: Boolean = false,
+      requestAtTick: Option[Long] = None
   ) extends FlexResponse
 
 }

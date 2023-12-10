@@ -246,9 +246,11 @@ object BaseStateData {
     *   always requested.
     */
   final case class FlexStateData(
-                                  emAgent: ActorRef,
-                                  lastFlexOptions: Option[ProvideFlexOptions],
-                                  scheduledRequest: Option[Long] = Some(0L) // FIXME remove, only used for revoking
+      emAgent: ActorRef,
+      lastFlexOptions: Option[ProvideFlexOptions],
+      scheduledRequest: Option[Long] = Some(
+        0L
+      ) // FIXME remove, only used for revoking
   )
 
   /** Updates the base state data with the given value stores
