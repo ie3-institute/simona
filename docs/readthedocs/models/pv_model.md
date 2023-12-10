@@ -202,11 +202,11 @@ $$
 Calculating the air mass ratio by dividing the radius of the earth with approx. effective height of the atmosphere (each in kilometer)
 
 $$
-airmassratio = (\frac{6371 km}{9 km}) = 707.8\overline{8}
+\airmassratio = (\frac{6371 km}{9 km}) = 707.8\overline{8}
 $$
 
 $$
-airmass = \sqrt{(707.8\overline{8} \cdot \cos({\theta_z}))^2 +2 \cdot 707.8\overline{8} +1)} - 707.8\overline{8} \cdot \cos{(\theta_z)})
+\airmass = \sqrt{(707.8\overline{8} \cdot \cos({\theta_z}))^2 +2 \cdot 707.8\overline{8} +1)} - 707.8\overline{8} \cdot \cos{(\theta_z)})
 $$
 
 **References:**
@@ -264,7 +264,7 @@ From here on, formulas from given reference below are used:
 
 $$
 \begin{eqnarray*}
-a = (\sin(\delta) \cdot \sin(\phi) \cdot \cos(\gamma_{e})
+a = (\sin(\delta) \cdot \sin(\phi) \cdot \cos(\gamma_{e}) - 
 \sin(\delta) \cdot \cos(\phi) \cdot \sin(\gamma_{e}) \cdot
 \cos(\alpha_{e})) \cdot (\omega_{2} - \omega_{1}) \\ + (\cos(\delta) \cdot \cos(\phi) \cdot \cos(\gamma_{e}) +
 \cos(\delta) \cdot \sin(\phi) \cdot \sin(\gamma_{e}) \cdot
@@ -286,10 +286,10 @@ $$
 *with*\
 **$\delta$** = the declination angle\
 **$\phi$** = observer's latitude\
-**$\gamma$** = slope angle of the surface\
+**$\gamma_{e}$** = slope angle of the surface\
 **$\omega_1$** = hour angle $\omega$\
 **$\omega_2$** = hour angle $\omega$ + 1 hour\
-**$\alpha_e$** = sun azimuth\
+**$\alpha_e$** = surface azimuth angle\
 **$E_{dir,H}$** = beam radiation (horizontal surface)
 
 **Reference:**
@@ -398,7 +398,6 @@ $$
 **$\theta_{z}$** = zenith angle\
 **$\theta_{g}$** = angle of incidence\
 **$\alpha_{s}$** = solar altitude angle\
-**$\alpha_{z}$** = sun azimuth\
 **$\gamma_{e}$** = slope angle of the surface\
 **$I_{0}$** = Extraterrestrial Radiation\
 **$m$** = air mass\
