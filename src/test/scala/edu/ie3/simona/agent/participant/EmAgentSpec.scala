@@ -12,7 +12,7 @@ import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.result.system.{EmResult, EvcsResult, PvResult}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.em.EmAgent
-import edu.ie3.simona.agent.participant.em.EmAgent.EmAgentInitializeStateData
+import edu.ie3.simona.agent.participant.em.EmAgent.Create
 import edu.ie3.simona.agent.participant.statedata.InitializeStateData
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
@@ -107,7 +107,7 @@ class EmAgentSpec
         TriggerWithIdMessage(
           InitializeParticipantAgentTrigger[
             ApparentPower,
-            EmAgentInitializeStateData
+            Create
           ](
             EmAgentInitializeStateData(
               inputModel = emInput,
@@ -450,7 +450,7 @@ class EmAgentSpec
         TriggerWithIdMessage(
           InitializeParticipantAgentTrigger[
             ApparentPower,
-            EmAgentInitializeStateData
+            Create
           ](
             EmAgentInitializeStateData(
               inputModel = emInput,
@@ -827,7 +827,7 @@ class EmAgentSpec
         TriggerWithIdMessage(
           InitializeParticipantAgentTrigger[
             ApparentPower,
-            EmAgentInitializeStateData
+            Create
           ](
             EmAgentInitializeStateData(
               inputModel = emInput,
@@ -1209,7 +1209,7 @@ class EmAgentSpec
         TriggerWithIdMessage(
           InitializeParticipantAgentTrigger[
             ApparentPower,
-            EmAgentInitializeStateData
+            Create
           ](
             EmAgentInitializeStateData(
               inputModel = emInput,

@@ -32,7 +32,7 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
   ActorWeatherService
 }
 import edu.ie3.simona.agent.participant.em.EmAgent
-import edu.ie3.simona.agent.participant.em.EmAgent.EmAgentInitializeStateData
+import edu.ie3.simona.agent.participant.em.EmAgent.Create
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
 import edu.ie3.simona.agent.participant.fixedfeedin.FixedFeedInAgent
 import edu.ie3.simona.agent.participant.hp.HpAgent

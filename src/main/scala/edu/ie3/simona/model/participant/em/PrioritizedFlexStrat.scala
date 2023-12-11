@@ -44,7 +44,9 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
     *   Power set points for devices, if applicable
     */
   override def determineDeviceControl(
-      flexOptions: Seq[(_ <: SystemParticipantInput, ProvideMinMaxFlexOptions)],
+      flexOptions: Iterable[
+        (_ <: SystemParticipantInput, ProvideMinMaxFlexOptions)
+      ],
       target: squants.Power
   ): Seq[(UUID, squants.Power)] = {
 

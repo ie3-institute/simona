@@ -17,10 +17,6 @@ object SchedulerMessage {
       actor: ActorRef[Activation],
       newTick: Option[Long] = None
   ) extends SchedulerMessage
-      with Trigger {
-    // FIXME this currently only works as intended for triggers scheduled for the current tick
-    override def tick: Long = trigger.tick
-  }
 
   final case class ScheduleActivation(
       actor: ActorRef[Activation],

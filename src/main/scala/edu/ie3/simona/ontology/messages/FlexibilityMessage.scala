@@ -6,11 +6,12 @@
 
 package edu.ie3.simona.ontology.messages
 
+import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import edu.ie3.simona.agent.participant.em.EmAgentTyped.EmMessage
+import edu.ie3.simona.agent.participant.em.EmAgent.EmMessage
 import org.apache.pekko.actor.typed.ActorRef
-
-import java.util.UUID
+import squants.Power
 
 // TODO adapt scaladoc
 // TODO split off min-max flex options into separate file
@@ -19,13 +20,20 @@ object FlexibilityMessage {
   sealed trait FlexRequest {
     val tick: Long
   }
+
   sealed trait FlexResponse extends EmMessage {
     val participant: ActorRef[FlexRequest]
   }
 
+  final case class RegisterParticipant(
+      override val participant: ActorRef[FlexRequest],
+      spi: SystemParticipantInput
+  ) extends FlexResponse
+
   final case class ScheduleFlexRequest(
       override val participant: ActorRef[FlexRequest],
-      tick: Long
+      tick: Long,
+      scheduleKey: Option[ScheduleKey] = None
   ) extends FlexResponse
 
   /** EmAgent requests flexibility options from connected agents
@@ -40,7 +48,7 @@ object FlexibilityMessage {
   object ProvideFlexOptions {
     def noFlexOption(
         actor: ActorRef[FlexRequest],
-        power: squants.Power
+        power: Power
     ): ProvideMinMaxFlexOptions =
       ProvideMinMaxFlexOptions(actor, power, power, power)
   }
@@ -65,10 +73,14 @@ object FlexibilityMessage {
     */
   final case class ProvideMinMaxFlexOptions(
       override val participant: ActorRef[FlexRequest],
-      referencePower: squants.Power,
-      minPower: squants.Power,
-      maxPower: squants.Power
-  ) extends ProvideFlexOptions
+      referencePower: Power,
+      minPower: Power,
+      maxPower: Power
+  ) extends ProvideFlexOptions {
+
+    def fits(power: Power): Boolean =
+      minPower <= power && power <= maxPower
+  }
 
   /** Message sent by [[edu.ie3.simona.agent.participant.em.EmAgent]] that
     * specifies a power target that needs to be produced/consumed by the system
@@ -79,7 +91,7 @@ object FlexibilityMessage {
     */
   final case class IssuePowerCtrl(
       override val tick: Long,
-      setPower: squants.Power
+      setPower: Power
   ) extends IssueFlexControl
 
   /** Message sent by [[edu.ie3.simona.agent.participant.em.EmAgent]] indicating

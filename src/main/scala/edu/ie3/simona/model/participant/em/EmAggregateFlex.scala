@@ -10,7 +10,7 @@ import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
 
 /** Offers method for aggregating flex options from connected agents which will
-  * then be provided to a superior EmAgent
+  * then be provided to a superior EmAgent or sent out as a flex result
   */
 trait EmAggregateFlex {
 

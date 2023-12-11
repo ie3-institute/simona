@@ -8,17 +8,15 @@ package edu.ie3.simona.agent.participant.em
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import edu.ie3.simona.agent.participant.em.EmAgentTyped.Actor
+import edu.ie3.simona.agent.participant.em.EmAgent.Actor
 import edu.ie3.simona.agent.participant.em.FlexCorrespondenceStore2.{
   FlexCorrespondence,
   WithTime
 }
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
-  FlexRequest,
   IssueFlexControl,
   ProvideFlexOptions
 }
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 
 import java.time.ZonedDateTime
 

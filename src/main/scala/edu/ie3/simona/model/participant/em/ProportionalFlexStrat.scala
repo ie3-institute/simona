@@ -28,16 +28,16 @@ object ProportionalFlexStrat extends EmModelStrat {
     *   Power set points for devices, if applicable
     */
   override def determineDeviceControl(
-      spiFlexOptions: Seq[
+      spiFlexOptions: Iterable[
         (_ <: SystemParticipantInput, ProvideMinMaxFlexOptions)
       ],
       target: squants.Power
-  ): Seq[(UUID, squants.Power)] = {
+  ): Iterable[(UUID, squants.Power)] = {
 
     // SPIs are not needed here
     val flexOptions = spiFlexOptions
-      .map { case (_, flexOptions) =>
-        flexOptions
+      .map { case (spi, flexOptions) =>
+        spi.getUuid -> flexOptions
       }
 
     // sum up reference, minimum and maximum power of all connected devices
@@ -47,7 +47,7 @@ object ProportionalFlexStrat extends EmModelStrat {
       ) {
         case (
               (sumRef, sumMin, sumMax),
-              ProvideMinMaxFlexOptions(_, addRef, addMin, addMax)
+              (_, ProvideMinMaxFlexOptions(_, addRef, addMin, addMax))
             ) =>
           (
             sumRef + addRef,
@@ -60,14 +60,14 @@ object ProportionalFlexStrat extends EmModelStrat {
       Seq.empty
     } else if (target < totalRef) {
       val reducedOptions = flexOptions.map {
-        case ProvideMinMaxFlexOptions(uuid, refPower, minPower, _) =>
+        case (uuid, ProvideMinMaxFlexOptions(_, refPower, minPower, _)) =>
           (uuid, refPower, minPower)
       }
 
       distributeFlexibility(target, totalRef, totalMin, reducedOptions)
     } else {
       val reducedOptions = flexOptions.map {
-        case ProvideMinMaxFlexOptions(uuid, refPower, _, maxPower) =>
+        case (uuid, ProvideMinMaxFlexOptions(_, refPower, _, maxPower)) =>
           (uuid, refPower, maxPower)
       }
 
@@ -92,8 +92,8 @@ object ProportionalFlexStrat extends EmModelStrat {
       target: squants.Power,
       totalRef: squants.Power,
       totalLimit: squants.Power,
-      options: Seq[(UUID, squants.Power, squants.Power)]
-  ): Seq[(UUID, squants.Power)] = {
+      options: Iterable[(UUID, squants.Power, squants.Power)]
+  ): Iterable[(UUID, squants.Power)] = {
     // filter out options with ref == limit because they're useless here
     val filteredOptions = options.filterNot { case (_, refPower, limitPower) =>
       refPower.~=(limitPower)(tolerance)

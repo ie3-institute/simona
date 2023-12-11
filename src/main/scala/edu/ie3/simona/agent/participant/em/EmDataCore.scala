@@ -6,35 +6,33 @@
 
 package edu.ie3.simona.agent.participant.em
 
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.em.EmAgent.Actor
 import edu.ie3.simona.agent.participant.em.FlexCorrespondenceStore2.WithTime
-import edu.ie3.simona.agent.participant.em.EmAgentTyped.Actor
-import edu.ie3.simona.ontology.messages.{Activation, FlexibilityMessage}
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
-  FlexRequest,
-  IssueFlexControl,
-  IssueNoCtrl,
-  IssuePowerCtrl,
-  ProvideFlexOptions
-}
-import edu.ie3.simona.scheduler.core.Core.{ActiveCore, InactiveCore}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage._
 import edu.ie3.util.scala.collection.mutable.PriorityMultiBiSet
-import org.apache.pekko.actor.typed.ActorRef
 import squants.Power
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 
-import java.util.UUID
-import scala.collection.immutable
+import java.time.ZonedDateTime
 
 /** Data related to participant scheduling and flex correspondences
   */
 object EmDataCore {
+
+  def create(implicit startDate: ZonedDateTime): Inactive =
+    Inactive(
+      PriorityMultiBiSet.empty,
+      Set.empty,
+      FlexCorrespondenceStore2(),
+      None
+    )
 
   /** @param activationQueue
     * @param flexWithNext
     *   to be activated with next activation, whatever tick that is going to be
     * @param lastActiveTick
     */
-  final case class SchedulerInactive private (
+  final case class Inactive private (
       private val activationQueue: PriorityMultiBiSet[Long, Actor],
       private val flexWithNext: Set[Actor],
       private val correspondenceStore: FlexCorrespondenceStore2,
@@ -65,7 +63,7 @@ object EmDataCore {
     def handleSchedule(
         participant: Actor,
         newTick: Long
-    ): (Option[Long], SchedulerInactive) = {
+    ): (Option[Long], Inactive) = {
       val oldEarliestTick = activationQueue.headKeyOption
 
       activationQueue.set(newTick, participant)
@@ -211,41 +209,39 @@ object EmDataCore {
     def checkCompletion(participant: Actor): Boolean =
       awaitedResults.contains(participant)
 
-    def handleCompletion(
-        participant: Actor,
-        result: ApparentPower,
-        withNext: Boolean
-    ): AwaitingResults = {
-      val updatedCorrespondence =
-        correspondenceStore
-          .getOrElse(
-            participant,
-            throw new RuntimeException(
-              s"No flex correspondence store found for $participant"
-            )
-          )
-          .copy(receivedResult = Some(WithTime(result, activeTick)))
+    def handleCompletion(completion: FlexCtrlCompletion): AwaitingResults = {
 
-      val updatedActivateWithNext =
-        if (withNext) flexWithNext.incl(participant)
+      // mutable queue
+      completion.requestAtTick
+        .foreach { activationQueue.set(_, completion.participant) }
+
+      val updatedCorrespondence =
+        correspondenceStore.updateResult(
+          completion.participant,
+          completion.result,
+          activeTick
+        )
+
+      val updatedFlexWithNext =
+        if (completion.requestAtNextActivation)
+          flexWithNext.incl(completion.participant)
         else flexWithNext
 
       copy(
-        correspondenceStore =
-          correspondenceStore.updated(participant, updatedCorrespondence),
-        flexWithNext = updatedActivateWithNext,
-        awaitedResults = awaitedResults.excl(participant)
+        correspondenceStore = updatedCorrespondence,
+        flexWithNext = updatedFlexWithNext,
+        awaitedResults = awaitedResults.excl(completion.participant)
       )
     }
 
-    def maybeComplete(): Option[(Option[Long], InactiveCore)] =
+    def maybeComplete(): Option[(Option[Long], Inactive)] =
       Option.when(
         awaitedResults.isEmpty &&
           !activationQueue.headKeyOption.contains(activeTick)
       ) {
         (
           activationQueue.headKeyOption,
-          SchedulerInactive(
+          Inactive(
             activationQueue,
             flexWithNext,
             correspondenceStore,
@@ -254,54 +250,10 @@ object EmDataCore {
         )
       }
 
+    def getResults: Iterable[ApparentPower] = {
+      correspondenceStore.store.values.flatMap(_.receivedResult.map(_.get))
+    }
+
   }
 
-  /*
-  -- core so far --
-
-  inactive:
-  - checkActivation
-  - activate
-  - checkSchedule
-  - handleSchedule
-
-  active:
-  - activeTick
-  - checkCompletion
-  - handleCompletion
-  - maybeComplete
-  - checkSchedule
-  - handleSchedule
-  - takeNewActivations
-   */
-
-  /*
-  -- em core --
-
-  handling all transient data: concerning scheduling and flex correspondence
-
-  inactive:
-  - checkActivation
-  - activate
-  - checkSchedule
-  - handleSchedule
-
-  awaitingFlex:
-  - activeTick
-  - checkSchedule
-  - handleSchedule
-  - takeNewActivations
-  - addFlexOption
-  - isComplete
-  - getLatestOptions // for all participants
-  - getLastIssueCtrl
-
-  awaitingResults:
-  - checkCompletion
-  - handleCompletion(participant, result)
-  - maybeComplete
-
-
-  only have uuids in model? thus model translates actorref -> uuid or actorref -> spi
-   */
 }

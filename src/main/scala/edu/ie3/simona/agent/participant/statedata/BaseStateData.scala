@@ -6,7 +6,8 @@
 
 package edu.ie3.simona.agent.participant.statedata
 
-import org.apache.pekko.actor.ActorRef
+import org.apache.pekko.actor.{ActorRef => ClassicActorRef}
+import org.apache.pekko.actor.typed.ActorRef
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
@@ -17,7 +18,11 @@ import edu.ie3.simona.model.participant.{
   ModelState,
   SystemParticipant
 }
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  FlexRequest,
+  FlexResponse,
+  ProvideFlexOptions
+}
 import squants.Dimensionless
 
 import java.time.ZonedDateTime
@@ -56,7 +61,7 @@ trait BaseStateData[+PD <: PrimaryDataWithApparentPower[PD]]
   /** A mapping from service reference to it's foreseen next availability of
     * data
     */
-  val foreseenDataTicks: Map[ActorRef, Option[Long]]
+  val foreseenDataTicks: Map[ClassicActorRef, Option[Long]]
 
   /** A store, holding a map from tick to active / reactive power
     */
@@ -109,7 +114,7 @@ object BaseStateData {
     /** Stores all data that are relevant to model calculation
       */
     val receivedSecondaryDataStore: ValueStore[
-      Map[ActorRef, _ <: SecondaryData]
+      Map[ClassicActorRef, _ <: SecondaryData]
     ]
 
     val stateDataStore: ValueStore[MS]
@@ -156,7 +161,7 @@ object BaseStateData {
       override val endDate: ZonedDateTime,
       override val outputConfig: NotifierConfig,
       override val additionalActivationTicks: SortedSet[Long],
-      override val foreseenDataTicks: Map[ActorRef, Option[Long]],
+      override val foreseenDataTicks: Map[ClassicActorRef, Option[Long]],
       fillUpReactivePowerWithModelFunc: Boolean = false,
       requestVoltageDeviationThreshold: Double,
       override val voltageValueStore: ValueStore[
@@ -214,7 +219,7 @@ object BaseStateData {
       ],
       override val outputConfig: NotifierConfig,
       override val additionalActivationTicks: SortedSet[Long],
-      override val foreseenDataTicks: Map[ActorRef, Option[Long]],
+      override val foreseenDataTicks: Map[ClassicActorRef, Option[Long]],
       requestVoltageDeviationThreshold: Double,
       override val voltageValueStore: ValueStore[
         Dimensionless
@@ -222,7 +227,7 @@ object BaseStateData {
       override val resultValueStore: ValueStore[PD],
       override val requestValueStore: ValueStore[PD],
       override val receivedSecondaryDataStore: ValueStore[
-        Map[ActorRef, _ <: SecondaryData]
+        Map[ClassicActorRef, _ <: SecondaryData]
       ],
       override val stateDataStore: ValueStore[MS],
       override val flexStateData: Option[FlexStateData]
@@ -240,17 +245,11 @@ object BaseStateData {
     *   The parent EmAgent that is controlling this agent.
     * @param lastFlexOptions
     *   Last flex options that have been calculated for this agent.
-    * @param scheduledRequest
-    *   Tick of a request that is currently scheduled with the parent EmAgent.
-    *   There can only only be one scheduled tick at a time. First tick (0) is
-    *   always requested.
     */
   final case class FlexStateData(
-      emAgent: ActorRef,
-      lastFlexOptions: Option[ProvideFlexOptions],
-      scheduledRequest: Option[Long] = Some(
-        0L
-      ) // FIXME remove, only used for revoking
+      emAgent: ActorRef[FlexResponse],
+      flexAdapter: ActorRef[FlexRequest],
+      lastFlexOptions: Option[ProvideFlexOptions] = None
   )
 
   /** Updates the base state data with the given value stores
@@ -266,7 +265,7 @@ object BaseStateData {
     * @param updatedAdditionalActivationTicks
     *   Additional activation ticks
     * @param updatedForeseenTicks
-    *   Mapping from [[ActorRef]] to foreseen ticks
+    *   Mapping from [[ClassicActorRef]] to foreseen ticks
     * @tparam PD
     *   Type of primary data, that is result of model calculation
     * @return
@@ -278,7 +277,7 @@ object BaseStateData {
       updatedRequestValueStore: ValueStore[PD],
       updatedVoltageValueStore: ValueStore[Dimensionless],
       updatedAdditionalActivationTicks: SortedSet[Long],
-      updatedForeseenTicks: Map[ActorRef, Option[Long]]
+      updatedForeseenTicks: Map[ClassicActorRef, Option[Long]]
   ): BaseStateData[PD] = {
     baseStateData match {
       case external: FromOutsideBaseStateData[_, PD] =>

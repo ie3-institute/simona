@@ -53,7 +53,7 @@ final case class EmModel private (
   def determineDeviceControl(
       flexOptions: Seq[(_ <: SystemParticipantInput, ProvideMinMaxFlexOptions)],
       target: squants.Power
-  ): Seq[(UUID, squants.Power)] = // TODO switch to actorref?
+  ): Iterable[(UUID, squants.Power)] = // TODO switch to actorref?
     modelStrategy.determineDeviceControl(flexOptions, target)
 
   override def calculatePower(

@@ -25,9 +25,11 @@ trait EmModelStrat {
     *   Power set points for devices, if applicable
     */
   def determineDeviceControl(
-      flexOptions: Seq[(_ <: SystemParticipantInput, ProvideMinMaxFlexOptions)],
+      flexOptions: Iterable[
+        (_ <: SystemParticipantInput, ProvideMinMaxFlexOptions)
+      ],
       target: squants.Power
-  ): Seq[(UUID, squants.Power)]
+  ): Iterable[(UUID, squants.Power)]
 
   def adaptFlexOptions(
       spi: SystemParticipantInput,
