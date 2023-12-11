@@ -389,10 +389,7 @@ protected trait EvcsAgentFundamentals
     updateValueStoresInformListeners(
       modelBaseStateData,
       tick,
-      ApparentPower(
-        Kilowatts(result.p.value.doubleValue),
-        Kilovars(result.q.value.doubleValue)
-      ),
+      AccompaniedSimulationResult(result),
       updatedRelevantData
     )
   }
@@ -463,10 +460,7 @@ protected trait EvcsAgentFundamentals
         updateValueStoresInformListeners(
           modelBaseStateData,
           tick,
-          ApparentPower(
-            Kilowatts(result.p.value.doubleValue),
-            Kilovars(result.q.value.doubleValue)
-          ),
+          AccompaniedSimulationResult(result),
           updatedRelevantData
         )
       } else {
@@ -516,7 +510,7 @@ protected trait EvcsAgentFundamentals
         EvcsModel
       ],
       tick: Long,
-      result: ApparentPower,
+      result: AccompaniedSimulationResult[ApparentPower],
       relevantData: EvcsRelevantData
   ): ParticipantModelBaseStateData[
     ApparentPower,
@@ -528,7 +522,7 @@ protected trait EvcsAgentFundamentals
       ValueStore.updateValueStore(
         baseStateData.resultValueStore,
         tick,
-        result
+        result.primaryData
       )
     val updatedRelevantDataStore =
       ValueStore.updateValueStore(
@@ -541,7 +535,7 @@ protected trait EvcsAgentFundamentals
     announceSimulationResult(
       baseStateData,
       tick,
-      AccompaniedSimulationResult(result)
+      result
     )(baseStateData.outputConfig)
 
     /* Update the base state data */

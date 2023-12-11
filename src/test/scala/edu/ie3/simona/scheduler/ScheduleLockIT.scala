@@ -16,7 +16,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.test.common.TestSpawnerTyped
-import edu.ie3.simona.util.ActorUtils.RichTriggeredAgent
+import edu.ie3.simona.util.ActorUtils.RichActivatedActor
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -70,11 +70,11 @@ class ScheduleLockIT
       timeAdvancer.expectNoMessage()
 
       // completing agent activations
-      agent1.expectTriggerAndComplete(
+      agent1.expectActivationAndComplete(
         childScheduler,
         30
       )
-      agent2.expectTriggerAndComplete(
+      agent2.expectActivationAndComplete(
         childScheduler,
         30
       )
@@ -110,7 +110,7 @@ class ScheduleLockIT
       lockActivation ! Activation(30)
 
       // completing the agent activation
-      agent.expectTriggerAndComplete(
+      agent.expectActivationAndComplete(
         childScheduler,
         30
       )

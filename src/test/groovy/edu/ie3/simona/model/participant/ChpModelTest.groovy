@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.util.scala.quantities.KilowattHoursPerKelvinCubicMeters$
-
 import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static tech.units.indriya.quantity.Quantities.getQuantity
 import static tech.units.indriya.unit.Units.PERCENT
@@ -19,16 +17,21 @@ import edu.ie3.datamodel.models.input.system.ChpInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.system.type.ChpTypeInput
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
+import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
+import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.participant.ChpModel.ChpState
 import edu.ie3.simona.model.thermal.CylindricalThermalStorage
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.KilowattHoursPerKelvinCubicMeters$
 import edu.ie3.util.scala.quantities.Sq
 import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Unroll
-import squants.energy.*
+import squants.energy.KilowattHours$
+import squants.energy.Kilowatts$
 import squants.space.CubicMeters$
 import squants.thermal.Celsius$
+import testutils.TestObjectFactory
 
 class ChpModelTest extends Specification {
 
@@ -44,10 +47,12 @@ class ChpModelTest extends Specification {
   ChpInput chpInput
 
   def setupSpec() {
+    def thermalBus =  new ThermalBusInput(UUID.randomUUID(), "thermal bus")
+
     storageInput = new CylindricalStorageInput(
         UUID.randomUUID(),
         "ThermalStorage",
-        null,
+        thermalBus,
         getQuantity(100, StandardUnits.VOLUME),
         getQuantity(20, StandardUnits.VOLUME),
         getQuantity(30, StandardUnits.TEMPERATURE),
@@ -57,8 +62,8 @@ class ChpModelTest extends Specification {
     def chpTypeInput = new ChpTypeInput(
         UUID.randomUUID(),
         "ChpTypeInput",
-        null,
-        null,
+        getQuantity(10000d, EURO),
+        getQuantity(200d, EURO_PER_MEGAWATTHOUR),
         getQuantity(19, PERCENT),
         getQuantity(76, PERCENT),
         getQuantity(100, KILOVOLTAMPERE),
@@ -71,8 +76,8 @@ class ChpModelTest extends Specification {
         "ChpInput",
         OperatorInput.NO_OPERATOR_ASSIGNED,
         OperationTime.notLimited(),
-        null,
-        null,
+        TestObjectFactory.buildNodeInput(false, GermanVoltageLevelUtils.MV_10KV, 0),
+        thermalBus,
         new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
         chpTypeInput,
         null,
@@ -170,23 +175,21 @@ class ChpModelTest extends Specification {
 
     when:
     chpModel.calculateNextState(chpData)
-    def storageLevel = CylindricalThermalStorage.energyToVolume(thermalStorage._storedEnergy(), thermalStorage.c(), thermalStorage.inletTemp(), thermalStorage.returnTemp())
-    def resStorageLvl = Sq.create(storageLevel.toCubicMeters(), CubicMeters$.MODULE$)
 
     then:
-    storageLevel - resStorageLvl < Sq.create(TOLERANCE, CubicMeters$.MODULE$)
+    thermalStorage._storedEnergy() =~ expectedStoredEnergy
 
     where:
-    chpState           | storageLvl | heatDemand | expectedStorageLevel
-    chpStateNotRunning | 90d         | 0         || 90d                    // tests case (false, false, true)
-    chpStateNotRunning | 90d         | 8 * 115   || 20d                // tests case (false, true, false)
-    chpStateNotRunning | 90d         | 10        || 89.1304d                // tests case (false, true, true)
-    chpStateRunning    | 90d         | 0         || 98.6956d                    // tests case (true, false, true)
-    chpStateRunning    | 90d         | 8 * 115   || 20d                // tests case (true, true, false)
-    chpStateRunning    | 90d         | 10        || 97.8260d                // tests case (true, true, true)
-    chpStateRunning    | 90d         | 806       || 28.6086d                // test case (_, true, false) and demand covered together with chp
-    chpStateRunning    | 90d         | 9 * 115   || 20d                // test case (_, true, false) and demand not covered together with chp
-    chpStateRunning    | 92d         | 1         || 100d                        // test case (true, true, true) and storage volume exceeds maximum
+    chpState           | storageLvl | heatDemand | expectedStoredEnergy
+    chpStateNotRunning | 90d         | 0d        || 1035d                    // tests case (false, false, true)
+    chpStateNotRunning | 90d         | 8d * 115d || 230d                // tests case (false, true, false)
+    chpStateNotRunning | 90d         | 10d       || 1025d                // tests case (false, true, true)
+    chpStateRunning    | 90d         | 0d        || 1135d                    // tests case (true, false, true)
+    chpStateRunning    | 90d         | 8d * 115d || 230d                // tests case (true, true, false)
+    chpStateRunning    | 90d         | 10d       || 1125d               // tests case (true, true, true)
+    chpStateRunning    | 90d         | 806d      || 329d                // test case (_, true, false) and demand covered together with chp
+    chpStateRunning    | 90d         | 9d * 115d || 230d                // test case (_, true, false) and demand not covered together with chp
+    chpStateRunning    | 92d         | 1d        || 1150d                        // test case (true, true, true) and storage volume exceeds maximum
     /* The following tests do not exist: (false, false, false), (true, false, false) */
   }
 
