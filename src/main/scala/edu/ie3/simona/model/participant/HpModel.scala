@@ -293,7 +293,7 @@ case object HpModel {
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       qControl: QControl,
-    scalingFactor: Double,
+      scalingFactor: Double,
       thermalGrid: ThermalGrid
   ): HpModel = {
     val operationInterval = SystemComponent.determineOperationInterval(
