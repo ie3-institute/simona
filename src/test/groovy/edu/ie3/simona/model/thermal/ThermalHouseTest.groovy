@@ -49,21 +49,21 @@ class ThermalHouseTest extends Specification {
     when:
     Temperature innerTemp = Sq.create(innerTemperature, Celsius$.MODULE$)
     def isHigher = thermalHouse.isInnerTemperatureTooHigh(innerTemp)
-    def isLower = thermalHouse.isInnerTemperatureTooLow(innerTemp, thermalHouse.lowerBoundaryTemperature())
+    def isLower = thermalHouse.isInnerTemperatureTooLow(innerTemp)
 
     then:
     isHigher == isTooHigh
     isLower == isTooLow
 
     where:
-    innerTemperature  || isTooHigh | isTooLow
-    17d               || false     | true
-    17.98d            || false     | true
-    18d               || false     | false
-    20d               || false     | false
-    22d               || false     | false
-    22.02d            || true      | false
-    23d               || true      | false
+    innerTemperature         || isTooHigh | isTooLow
+    17d                      || false     | true
+    17.98d                   || false     | true
+    18d                      || false     | true
+    20d                      || false     | false
+    22d                      || true      | false
+    22.02d                   || true      | false
+    23d                      || true      | false
   }
 
   def "Calculation of thermal energy change and new inner temperature is performed correctly"() {

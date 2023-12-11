@@ -14,9 +14,8 @@ import edu.ie3.simona.model.thermal.{MutableStorage, ThermalStorage}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
-
-import squants.{Energy, Power, Seconds, Time}
 import squants.energy.{KilowattHours, Kilowatts}
+import squants.{Energy, Power, Seconds, Time}
 
 import java.util.UUID
 

@@ -6,25 +6,25 @@
 
 package edu.ie3.simona.service.weather
 
+import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.factory.timeseries.{
   CosmoIdCoordinateFactory,
   IconIdCoordinateFactory,
   IdCoordinateFactory,
   SqlIdCoordinateFactory
 }
-import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.datamodel.io.source.csv.CsvIdCoordinateSource
 import edu.ie3.datamodel.io.source.sql.SqlIdCoordinateSource
 import edu.ie3.datamodel.models.value.WeatherValue
 import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource._
 import edu.ie3.simona.exceptions.{
   InvalidConfigParameterException,
   ServiceException
 }
-import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
@@ -40,11 +40,11 @@ import edu.ie3.simona.util.ParsableEnumeration
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.io.CsvDataSourceAdapter
-import org.locationtech.jts.geom.{Coordinate, Point}
-import tech.units.indriya.ComparableQuantity
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
+import org.locationtech.jts.geom.{Coordinate, Point}
 import squants.motion.MetersPerSecond
 import squants.thermal.Kelvin
+import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 

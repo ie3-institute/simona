@@ -1713,7 +1713,7 @@ case object ParticipantAgentFundamentals {
   ): ApparentPower = {
     val p = QuantityUtil.average[Power, Energy](
       tickToResults.map { case (tick, pd) =>
-        tick -> Megawatts(pd.p.toMegawatts)
+        tick -> pd.p
       },
       windowStart,
       windowEnd
