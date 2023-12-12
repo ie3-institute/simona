@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.participant.statedata
 
-import org.apache.pekko.actor.ActorRef
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
@@ -14,6 +13,9 @@ import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.FlexResponse
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.{ActorRef => ClassicActorRef}
 
 import java.time.ZonedDateTime
 
@@ -77,7 +79,7 @@ object ParticipantStateData {
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeEmAgent: Option[ActorRef]
+      maybeEmAgent: Option[ClassicActorRef]
   ) extends ParticipantStateData[PD]
 
   /** State data to use, when initializing the participant agent
@@ -115,7 +117,7 @@ object ParticipantStateData {
   ](
       inputModel: InputModelContainer[I],
       modelConfig: C,
-      primaryServiceProxy: ActorRef,
+      primaryServiceProxy: ClassicActorRef,
       secondaryDataServices: Option[
         Vector[SecondaryDataService[_ <: SecondaryData]]
       ],
@@ -124,7 +126,7 @@ object ParticipantStateData {
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeEmAgent: Option[ActorRef] = None
+      maybeEmAgent: Option[ActorRef[FlexResponse]] = None
   ) extends InitializeStateData[PD]
 
   object ParticipantInitializeStateData {
@@ -136,7 +138,7 @@ object ParticipantStateData {
     ](
         inputModel: I,
         modelConfig: C,
-        primaryServiceProxy: ActorRef,
+        primaryServiceProxy: ClassicActorRef,
         secondaryDataServices: Option[
           Vector[SecondaryDataService[_ <: SecondaryData]]
         ],
@@ -165,7 +167,7 @@ object ParticipantStateData {
     ](
         inputModel: I,
         modelConfig: C,
-        primaryServiceProxy: ActorRef,
+        primaryServiceProxy: ClassicActorRef,
         secondaryDataServices: Option[
           Vector[SecondaryDataService[_ <: SecondaryData]]
         ],
@@ -174,7 +176,7 @@ object ParticipantStateData {
         resolution: Long,
         requestVoltageDeviationThreshold: Double,
         outputConfig: NotifierConfig,
-        maybeEmAgent: Option[ActorRef]
+        maybeEmAgent: Option[ActorRef[FlexResponse]]
     ): ParticipantInitializeStateData[I, C, PD] =
       new ParticipantInitializeStateData[I, C, PD](
         SimpleInputContainer(inputModel),
@@ -197,7 +199,7 @@ object ParticipantStateData {
         inputModel: I,
         thermalGrid: ThermalGrid,
         modelConfig: C,
-        primaryServiceProxy: ActorRef,
+        primaryServiceProxy: ClassicActorRef,
         secondaryDataServices: Option[
           Vector[SecondaryDataService[_ <: SecondaryData]]
         ],
@@ -228,7 +230,7 @@ object ParticipantStateData {
         inputModel: I,
         thermalGrid: ThermalGrid,
         modelConfig: C,
-        primaryServiceProxy: ActorRef,
+        primaryServiceProxy: ClassicActorRef,
         secondaryDataServices: Option[
           Vector[SecondaryDataService[_ <: SecondaryData]]
         ],
@@ -237,7 +239,7 @@ object ParticipantStateData {
         resolution: Long,
         requestVoltageDeviationThreshold: Double,
         outputConfig: NotifierConfig,
-        maybeEmAgent: Option[ActorRef]
+        maybeEmAgent: Option[ActorRef[FlexResponse]]
     ): ParticipantInitializeStateData[I, C, PD] =
       new ParticipantInitializeStateData[I, C, PD](
         WithHeatInputContainer(inputModel, thermalGrid),
@@ -270,8 +272,8 @@ object ParticipantStateData {
       +PD <: PrimaryDataWithApparentPower[PD]
   ](
       baseStateData: BaseStateData[PD],
-      pendingResponses: Seq[ActorRef],
-      foreseenNextDataTicks: Map[ActorRef, Long] = Map.empty
+      pendingResponses: Seq[ClassicActorRef],
+      foreseenNextDataTicks: Map[ClassicActorRef, Long] = Map.empty
   ) extends ParticipantStateData[PD]
 
   sealed trait InputModelContainer[+I <: SystemParticipantInput] {

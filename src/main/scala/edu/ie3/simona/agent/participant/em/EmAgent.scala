@@ -6,9 +6,12 @@
 
 package edu.ie3.simona.agent.participant.em
 
+import edu.ie3.datamodel.models.input.system.EmInput
 import edu.ie3.simona.actor.ActorUtil.stopOnError
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.FlexStateData
+import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.em.{EmModelShell, FlexTimeSeries}
 import edu.ie3.simona.ontology.messages.FlexibilityMessage._
@@ -17,12 +20,14 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.util.scala.quantities.Megavars
+import org.apache.pekko.actor.{ActorRef => ClassicActorRef}
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import squants.Power
-import edu.ie3.util.scala.quantities.Megavars
 import squants.energy.{Kilowatts, Megawatts}
 
+import java.time.ZonedDateTime
 import scala.util.{Failure, Success, Try}
 
 // TODO move package em out of participant
@@ -36,28 +41,16 @@ object EmAgent {
 
   private final case class Flex(msg: FlexRequest) extends EmMessage
 
-  private final case class Create(
+  def apply(
       inputModel: EmInput,
       modelConfig: EmRuntimeConfig,
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
-      resolution: Long,
       outputConfig: NotifierConfig,
-      modelStrategy: EmModelStrat,
-      connectedAgents: Seq[
-        (
-            CActorRef,
-            SystemParticipantInput
-        )
-      ],
-      maybeParentEmAgent: Option[EmMessage] = None,
+      modelStrategy: String,
+      simulationStartDate: ZonedDateTime,
+      maybeParentEmAgent: Option[ActorRef[FlexResponse]] = None,
       maybeRootEmConfig: Option[SimonaConfig.Simona.Runtime.RootEm] = None,
-      aggregateFlex: EmAggregateFlex
-  )
-
-  def apply(
       scheduler: ActorRef[SchedulerMessage],
-      initStateData: Create
+      listener: ClassicActorRef
   ): Behavior[EmMessage] = Behaviors.setup { ctx =>
     val activationAdapter = ctx.messageAdapter[Activation] { msg =>
       EmActivation(msg.tick)
@@ -66,27 +59,28 @@ object EmAgent {
     val stateData = EmModelBaseStateData(
       scheduler,
       activationAdapter,
-      initStateData.outputConfig,
-      initStateData.maybeParentEmAgent.map { parentEm =>
+      outputConfig,
+      maybeParentEmAgent.map { parentEm =>
         val flexAdapter = ctx.messageAdapter[FlexRequest] { msg =>
           Flex(msg)
         }
         FlexStateData(parentEm, flexAdapter)
       },
-      initStateData.maybeRootEmConfig.map(
-        FlexTimeSeries(_)(initStateData.simulationStartDate)
+      maybeRootEmConfig.map(
+        FlexTimeSeries(_)(simulationStartDate)
       )
     )
 
     val modelShell = EmModelShell(
-      initStateData.modelStrategy,
-      initStateData.aggregateFlex
+      inputModel.getId(),
+      modelStrategy,
+      modelConfig
     )
 
     inactive(
       stateData,
       modelShell,
-      EmDataCore.create(initStateData.simulationStartDate)
+      EmDataCore.create(simulationStartDate)
     )
   }
 

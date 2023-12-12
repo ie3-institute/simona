@@ -8,6 +8,7 @@ package edu.ie3.simona.model.participant.em
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.participant.em.EmAgent.Actor
+import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   ProvideFlexOptions,
   ProvideMinMaxFlexOptions
@@ -22,6 +23,7 @@ import java.util.UUID
   */
 // TODO move package em out of participant
 final case class EmModelShell(
+    id: String,
     modelStrategy: EmModelStrat,
     aggregateFlex: EmAggregateFlex,
     actorToParticipant: Map[Actor, SystemParticipantInput] = Map.empty,
@@ -99,4 +101,26 @@ final case class EmModelShell(
 
   }
 
+}
+
+object EmModelShell {
+  def apply(
+      id: String,
+      modelStrat: String,
+      modelConfig: EmRuntimeConfig
+  ): EmModelShell = {
+
+    val modelStrategy = modelStrat match {
+      case "PROPORTIONAL" => ProportionalFlexStrat
+      case "PRIORITIZED"  => PrioritizedFlexStrat(modelConfig.pvFlex)
+    }
+
+    val aggregateFlex = modelConfig.aggregateFlex match {
+      case "SELF_OPT_EXCL_PV" => EmAggregateSelfOptExclPv
+      case "SELF_OPT"         => EmAggregateSelfOpt
+      case "SIMPLE_SUM"       => EmAggregateSimpleSum
+    }
+
+    EmModelShell(id, modelStrategy, aggregateFlex)
+  }
 }
