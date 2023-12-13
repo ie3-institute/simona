@@ -254,6 +254,8 @@ $$
 \end{eqnarray*}
 $$
 
+Additionally, the condition $$\theta_{g} < 90°$$ must be met (sun must not be behind the surface).
+
 *with*\
 **$\omega$** = hour angle\
 **$\omega_{SS}$** = hour angle $\omega$ at sunset\
