@@ -30,7 +30,7 @@ To calculate the overall feed in of the pv unit, the sum of the direct radiation
 
 **Caution:** all angles are given in radian!
 
-The surface azimuth angle $\alpha_{E}$ starts at negative values in the East and moves over 0° (South) towards positive values in the West. [Source](https://www.photovoltaik.org/wissen/azimutwinkel)
+The surface azimuth angle $\alpha_{E}$ starts at negative values in the East and moves over 0° (South) towards positive values in the West. [(Source)](https://www.photovoltaik.org/wissen/azimutwinkel)
 
 ### Declination Angle
 
@@ -123,7 +123,7 @@ $$
 $$
 
 *with*\
-**$\delta$** = the declination angle
+**$\delta$** = the declination angle\
 **$\phi$** = observer's latitude
 
 **References:**
