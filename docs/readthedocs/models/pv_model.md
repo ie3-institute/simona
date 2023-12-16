@@ -202,11 +202,11 @@ $$
 Calculating the air mass ratio by dividing the radius of the earth with approx. effective height of the atmosphere (each in kilometer)
 
 $$
-\airmassratio = (\frac{6371 km}{9 km}) = 707.8\overline{8}
+airmassratio = (\frac{6371 km}{9 km}) = 707.8\overline{8}
 $$
 
 $$
-\airmass = \sqrt{(707.8\overline{8} \cdot \cos({\theta_z}))^2 +2 \cdot 707.8\overline{8} +1)} - 707.8\overline{8} \cdot \cos{(\theta_z)})
+airmass = \sqrt{(707.8\overline{8} \cdot \cos({\theta_z}))^2 +2 \cdot 707.8\overline{8} +1)} - 707.8\overline{8} \cdot \cos{(\theta_z)})
 $$
 
 **References:**
