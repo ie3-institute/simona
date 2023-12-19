@@ -30,7 +30,7 @@ To calculate the overall feed in of the pv unit, the sum of the direct radiation
 
 **Caution:** all angles are given in radian!
 
-The azimuth angle $\alpha_{E}$ starts at negative values in the East and moves over 0° (South) towards positive values in the West. [Source](https://www.photovoltaik.org/wissen/azimutwinkel)
+The surface azimuth angle $\alpha_{E}$ starts at negative values in the East and moves over 0° (South) towards positive values in the West. [(Source)](https://www.photovoltaik.org/wissen/azimutwinkel)
 
 ### Declination Angle
 
@@ -46,8 +46,8 @@ $$
 Based on $J$ the declination angle $\delta$ (in radian!) can be calculated as follows:
 
 $$
-\begin{eqnarray*}\delta = 0.006918 - 0.399912 \cdot cos(J) + 0.070257 \cdot
-sin(J) \\ - 0.006758 \cdot cos(2\cdot J) + 0.000907 \cdot sin(2 \cdot J) \\ - 0.002697 \cdot cos(3 \cdot J) + 0.00148 \cdot sin(3 \cdot J)
+\begin{eqnarray*}\delta = 0.006918 - 0.399912 \cdot \cos(J) + 0.070257 \cdot
+\sin(J) \\ - 0.006758 \cdot \cos(2\cdot J) + 0.000907 \cdot \sin(2 \cdot J) \\ - 0.002697 \cdot \cos(3 \cdot J) + 0.00148 \cdot \sin(3 \cdot J)
 \end{eqnarray*}
 $$
 
@@ -92,8 +92,8 @@ $$
 **λ** = longitude of the location of the PV panel
 
 $$
-\begin{eqnarray*}ET = 0.0066 + 7.3525 \cdot cos(J + 1.4992378274631293) \\ +
-9.9359 \cdot cos(2 \cdot J + 1.9006635554218247) \\ + 0.3387 \cdot cos(3 \cdot J + 1.8360863730980346)
+\begin{eqnarray*}ET = 0.0066 + 7.3525 \cdot \cos(J + 1.4992378274631293) \\ +
+9.9359 \cdot \cos(2 \cdot J + 1.9006635554218247) \\ + 0.3387 \cdot \cos(3 \cdot J + 1.8360863730980346)
 \end{eqnarray*}
 $$
 
@@ -112,18 +112,19 @@ $$
 
 ### Sunrise Angle
 
-The hour angles at sunrise and sunset are very useful quantities to know. These two values have the same absolute value, however the sunrise angle ($\omega_{SR}$) is positive and the sunset angle ($\omega_{S}$) is negative. Both can be calculated from:
+The hour angles at sunrise and sunset are very useful quantities to know. These two values have the same absolute value, however the sunset angle ($\omega_{SS}$) is positive and the sunrise angle ($\omega_{SR}$) is negative. Both can be calculated from:
 
 $$
-\omega_{SR}=\cos^{-1}(-\tan (\phi) \cdot \tan (\delta))
+\omega_{SS}=\cos^{-1}(-\tan (\phi) \cdot \tan (\delta))
 $$
 
 $$
-\omega_{SS}=-\omega_{SR}
+\omega_{SR}=-\omega_{SS}
 $$
 
 *with*\
-**$\delta$** = the declination angle
+**$\delta$** = the declination angle\
+**$\phi$** = observer's latitude
 
 **References:**
 ```{eval-rst}
@@ -136,7 +137,7 @@ $$
 Represents the angle between the horizontal and the line to the sun, that is, the complement of the zenith angle.
 
 $$
-sin(\alpha_{s}) = sin (\phi) \cdot sin (\delta) + cos (\delta) \cdot cos (\omega) \cdot cos (\phi)
+\sin(\alpha_{s}) = \sin (\phi) \cdot \sin (\delta) + \cos (\delta) \cdot \cos (\omega) \cdot \cos (\phi)
 $$
 
 *with*\
@@ -177,14 +178,13 @@ $$
 \cos(\delta) \cdot \cos(\phi) \cdot \cos(\gamma_{e}) \cdot
 \cos(\omega) \\ + \cos(\delta) \cdot \sin(\phi) \cdot \sin(\gamma_{e})
 \cdot \cos(\alpha_{e}) \cdot \cos(\omega) \\ +
-cos(\delta) \cdot sin(\gamma_{e}) \cdot sin(\alpha_{e}) \cdot
-sin(\omega))
+\cos(\delta) \cdot \sin(\gamma_{e}) \cdot \sin(\alpha_{e}) \cdot
+\sin(\omega))
 \end{eqnarray*}
 $$
 
 *with*\
-**$\alpha_e$** = sun azimuth\
-**$\alpha_s$** = solar altitude angle\
+**$\alpha_e$** = surface azimuth angle\
 **$\gamma_e$** = slope angle of the surface\
 **$\delta$** = the declination angle\
 **$\phi$** = observer's latitude\
@@ -254,6 +254,8 @@ $$
 \end{eqnarray*}
 $$
 
+Additionally, the condition $$\theta_{g} < 90°$$ must be met (sun must not be behind the surface).
+
 *with*\
 **$\omega$** = hour angle\
 **$\omega_{SS}$** = hour angle $\omega$ at sunset\
@@ -264,10 +266,10 @@ From here on, formulas from given reference below are used:
 
 $$
 \begin{eqnarray*}
-a = (\sin(\delta) \cdot \sin(\phi) \cdot \cos(\gamma_{e})
+a = (\sin(\delta) \cdot \sin(\phi) \cdot \cos(\gamma_{e}) - 
 \sin(\delta) \cdot \cos(\phi) \cdot \sin(\gamma_{e}) \cdot
 \cos(\alpha_{e})) \cdot (\omega_{2} - \omega_{1}) \\ + (\cos(\delta) \cdot \cos(\phi) \cdot \cos(\gamma_{e}) +
-\cos(\delta) \cdot \sin(\phi) \cdot \sin(\gamma\_{e}) \cdot
+\cos(\delta) \cdot \sin(\phi) \cdot \sin(\gamma_{e}) \cdot
 \cos(\alpha_{e})) \cdot (\sin(\omega_{2}) \\ -
 \sin(\omega_{1}))  - (\cos(\delta) \cdot \sin(\gamma_{e}) \cdot \sin(\alpha_{e})) \cdot (\cos(\omega_{2}) - \cos(\omega_{1}))
 \end{eqnarray*}
@@ -286,10 +288,10 @@ $$
 *with*\
 **$\delta$** = the declination angle\
 **$\phi$** = observer's latitude\
-**$\gamma$** = slope angle of the surface\
+**$\gamma_{e}$** = slope angle of the surface\
 **$\omega_1$** = hour angle $\omega$\
 **$\omega_2$** = hour angle $\omega$ + 1 hour\
-**$\alpha_e$** = sun azimuth\
+**$\alpha_e$** = surface azimuth angle\
 **$E_{dir,H}$** = beam radiation (horizontal surface)
 
 **Reference:**
@@ -398,7 +400,6 @@ $$
 **$\theta_{z}$** = zenith angle\
 **$\theta_{g}$** = angle of incidence\
 **$\alpha_{s}$** = solar altitude angle\
-**$\alpha_{z}$** = sun azimuth\
 **$\gamma_{e}$** = slope angle of the surface\
 **$I_{0}$** = Extraterrestrial Radiation\
 **$m$** = air mass\
