@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
 - Removed version number "2.0" from the logo printed to console [#642](https://github.com/ie3-institute/simona/issues/642)
+- Fixed PV Model documentation [#684](https://github.com/ie3-institute/simona/issues/684), [#686](https://github.com/ie3-institute/simona/issues/686)
 
 ## [3.0.0] - 2023-08-07
 
