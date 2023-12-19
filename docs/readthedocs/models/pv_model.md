@@ -254,7 +254,7 @@ $$
 \end{eqnarray*}
 $$
 
-Additionally, the condition $$\theta_{g} < 90°$$ must be met (sun must not be behind the surface).
+Additionally, the condition $\theta_{g} < 90°$ must be met (the sun must not be behind the surface).
 
 *with*\
 **$\omega$** = hour angle\
@@ -280,7 +280,7 @@ b = (\cos(\phi) \cdot \cos(\delta)) \cdot (\sin(\omega_{2}) - \sin(\omega_{1})) 
 $$
 
 $$
-E_{dir,S} = E_{dir,H} \cdot \frac{a}{b}
+E_{beam,S} = E_{beam,H} \cdot \frac{a}{b}
 $$
 
 **Please note:** $\frac{1}{180}\pi$ is omitted from these formulas, as we are already working with data in *radians*.
@@ -292,7 +292,7 @@ $$
 **$\omega_1$** = hour angle $\omega$\
 **$\omega_2$** = hour angle $\omega$ + 1 hour\
 **$\alpha_e$** = surface azimuth angle\
-**$E_{dir,H}$** = beam radiation (horizontal surface)
+**$E_{beam,H}$** = beam radiation (horizontal surface)
 
 **Reference:**
 
@@ -307,7 +307,7 @@ The diffuse radiation is computed using the Perez model, which divides the radia
 A cloud index is defined by
 
 $$
-\epsilon = \frac{\frac{E_{dif,H} + E_{dir,H}}{E_{dif,H}} + 5.535 \cdot 10^{-6} \cdot \theta_{z}^3}{1 + 5.535 \cdot 10^{-6} \cdot \theta_{z}^3}
+\epsilon = \frac{\frac{E_{dif,H} + E_{beam,H}}{E_{dif,H}} + 5.535 \cdot 10^{-6} \cdot \theta_{z}^3}{1 + 5.535 \cdot 10^{-6} \cdot \theta_{z}^3}
 $$
 
 Calculating a brightness index
@@ -403,7 +403,7 @@ $$
 **$\gamma_{e}$** = slope angle of the surface\
 **$I_{0}$** = Extraterrestrial Radiation\
 **$m$** = air mass\
-**$E_{dir,H}$** = direct radiation (horizontal surface)\
+**$E_{beam,H}$** = beam radiation (horizontal surface)\
 **$E_{dif,H}$** = diffuse radiation (horizontal surface)
 
 **References:**
@@ -422,7 +422,7 @@ E_{ref,S} = E_{Ges,H} \cdot \frac{\rho}{2} \cdot (1-
 $$
 
 *with*\
-**$E_{Ges,H}$** = total horizontal radiation ($E_{dir,H} + E_{dif,H})$\
+**$E_{Ges,H}$** = total horizontal radiation ($E_{beam,H} + E_{dif,H})$\
 **$\gamma_e$** = slope angle of the surface\
 **$\rho$** = albedo
 
@@ -437,11 +437,11 @@ $$
 Received energy is calculated as the sum of all three types of irradiation.
 
 $$
-E_{total} = E_{dir,S} + E_{dif,S} + E_{ref,S}
+E_{total} = E_{beam,S} + E_{dif,S} + E_{ref,S}
 $$
 
 *with*\
-**$E_{dir,S}$** = Beam radiation\
+**$E_{beam,S}$** = Beam radiation\
 **$E_{dif,S}$** = Diffuse radiation\
 **$E_{ref,S}$** = Reflected radiation
 
