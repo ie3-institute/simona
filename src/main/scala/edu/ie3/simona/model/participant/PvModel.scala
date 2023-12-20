@@ -405,32 +405,27 @@ final case class PvModel private (
       omegaSS: Angle,
       omegaSR: Angle
   ): Option[(Angle, Angle)] = {
-    val thetaGInRad = thetaG.toRadians
     val omegaSSInRad = omegaSS.toRadians
     val omegaSRInRad = omegaSR.toRadians
 
     val omegaOneHour = toRadians(15d)
-    val omegaHalfHour = omegaOneHour / 2d
 
     val omega1InRad = omega.toRadians // requested hour
     val omega2InRad = omega1InRad + omegaOneHour // requested hour plus 1 hour
 
-    // (thetaG < 90°): sun is visible
-    // (thetaG > 90°), otherwise: sun is behind the surface  -> no direct radiation
     if (
-      thetaGInRad < toRadians(90)
-      // omega1 and omega2: sun has risen and has not set yet
-      && omega2InRad > omegaSRInRad + omegaHalfHour
-      && omega1InRad < omegaSSInRad - omegaHalfHour
+      // requested time is between sunrise and sunset (+/- one hour)
+      omega1InRad > omegaSRInRad - omegaOneHour
+      && omega1InRad < omegaSSInRad
     ) {
 
       val (finalOmega1, finalOmega2) =
         if (omega1InRad < omegaSRInRad) {
           // requested time earlier than sunrise
-          (omegaSRInRad, omegaSRInRad + omegaOneHour)
-        } else if (omega2InRad > omegaSSInRad) {
-          // sunset earlier than requested time
-          (omegaSSInRad - omegaOneHour, omegaSSInRad)
+          (omegaSRInRad, omega2InRad)
+        } else if (omega1InRad > omegaSSInRad - omegaOneHour) {
+          // requested time is less than one hour before sunset
+          (omega1InRad, omegaSSInRad)
         } else {
           (omega1InRad, omega2InRad)
         }
@@ -478,6 +473,7 @@ final case class PvModel private (
 
         val omega1InRad = omega1.toRadians
         val omega2InRad = omega2.toRadians
+        val timeFrame = (omega2 - omega1) / 15d
 
         val a = ((sin(deltaInRad) * sin(latInRad) * cos(gammaEInRad)
           - sin(deltaInRad) * cos(latInRad) * sin(gammaEInRad) * cos(
@@ -499,7 +495,7 @@ final case class PvModel private (
 
         // in rare cases (close to sunrise) r can become negative (although very small)
         val r = max(a / b, 0d)
-        eBeamH * r
+        eBeamH * r * timeFrame
       case None => WattHoursPerSquareMeter(0d)
     }
   }
