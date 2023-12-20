@@ -322,7 +322,7 @@ class PvModelTest extends Specification {
     Angle omegaRad = Sq.create(Math.toRadians(omegaDeg), Radians$.MODULE$)
     //Inclination Angle of the surface
     Angle gammaERad = Sq.create(Math.toRadians(gammaEDeg), Radians$.MODULE$)
-    //Sun's azimuth
+    //Surface azimuth
     Angle alphaERad = Sq.create(Math.toRadians(alphaEDeg), Radians$.MODULE$)
 
     when:
