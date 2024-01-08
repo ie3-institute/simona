@@ -8,6 +8,7 @@ package edu.ie3.simona.model.participant.em
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
+import squants.energy.Kilowatts
 import tech.units.indriya.ComparableQuantity
 
 import java.util.UUID
@@ -35,4 +36,8 @@ trait EmModelStrat {
       spi: SystemParticipantInput,
       flexOptions: ProvideMinMaxFlexOptions
   ): ProvideMinMaxFlexOptions
+}
+
+object EmModelStrat {
+  val tolerance: squants.Power = Kilowatts(1e-6d)
 }

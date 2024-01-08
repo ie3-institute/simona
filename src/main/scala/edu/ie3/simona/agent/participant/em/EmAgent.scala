@@ -310,7 +310,7 @@ object EmAgent {
   ): Behavior[EmMessage] = {
     // Completions and results
     case (ctx, completion: FlexCtrlCompletion) =>
-      val a = Either
+      Either
         .cond(
           core.checkCompletion(completion.model),
           core.handleCompletion(completion),
@@ -391,7 +391,7 @@ object EmAgent {
 
       case unknownFlexOpt =>
         Failure(
-          new RuntimeException()(
+          new RuntimeException(
             s"Unknown/unfitting flex messages $unknownFlexOpt"
           )
         )

@@ -17,8 +17,9 @@ import squants.energy.Kilowatts
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import scala.util.{Failure, Success}
-import scala.jdk.CollectionConverters._
 import edu.ie3.util.quantities.PowerSystemUnits
+
+import scala.jdk.OptionConverters.RichOptional
 
 final case class FlexTimeSeries(
     timeSeries: IndividualTimeSeries[PValue],
@@ -42,7 +43,7 @@ final case class FlexTimeSeries(
 
     timeSeries
       .getTimeBasedValue(roundedDateTime)
-      .asScala
+      .toScala
       .getOrElse(
         throw new RuntimeException(
           s"Could not retrieve value for $roundedDateTime"
@@ -50,7 +51,7 @@ final case class FlexTimeSeries(
       )
       .getValue
       .getP
-      .asScala
+      .toScala
       .map(p => Kilowatts(p.to(PowerSystemUnits.KILOWATT).getValue.doubleValue))
       .getOrElse(
         throw new RuntimeException(

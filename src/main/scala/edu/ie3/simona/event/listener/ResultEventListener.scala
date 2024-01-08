@@ -316,7 +316,7 @@ object ResultEventListener extends Transformer3wResultSupport {
         idle(updatedBaseData)
 
       case (ctx, FlexOptionsResultEvent(flexOptionsResult)) =>
-        val updateBaseData = handleResult(flexOptionsResult, baseData, ctx.log)
+        val updatedBaseData = handleResult(flexOptionsResult, baseData, ctx.log)
         idle(updatedBaseData)
 
       case (ctx, _: StopMessage) =>

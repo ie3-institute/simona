@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.participant.em
 
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.em.EmAgent.Actor
-import edu.ie3.simona.agent.participant.em.FlexCorrespondenceStore2.WithTime
+import edu.ie3.simona.agent.participant.em.FlexCorrespondenceStore.WithTime
 import edu.ie3.simona.ontology.messages.FlexibilityMessage._
 import edu.ie3.util.scala.collection.mutable.PriorityMultiBiSet
 import squants.Power
@@ -25,7 +25,7 @@ object EmDataCore {
       Map.empty,
       PriorityMultiBiSet.empty,
       Set.empty,
-      FlexCorrespondenceStore2(),
+      FlexCorrespondenceStore(),
       None
     )
 
@@ -38,7 +38,7 @@ object EmDataCore {
       private val modelToActor: Map[UUID, Actor],
       private val activationQueue: PriorityMultiBiSet[Long, UUID],
       private val flexWithNext: Set[UUID],
-      private val correspondenceStore: FlexCorrespondenceStore2,
+      private val correspondenceStore: FlexCorrespondenceStore,
       private val lastActiveTick: Option[Long]
   ) {
     def addParticipant(actor: Actor, model: UUID): Inactive =
@@ -93,7 +93,7 @@ object EmDataCore {
   final case class AwaitingFlexOptions(
       private val modelToActor: Map[UUID, Actor],
       private val activationQueue: PriorityMultiBiSet[Long, UUID],
-      private val correspondenceStore: FlexCorrespondenceStore2,
+      private val correspondenceStore: FlexCorrespondenceStore,
       private val awaitedFlexOptions: Set[UUID] = Set.empty,
       activeTick: Long
   ) {
@@ -220,7 +220,7 @@ object EmDataCore {
       private val modelToActor: Map[UUID, Actor],
       private val activationQueue: PriorityMultiBiSet[Long, UUID],
       private val flexWithNext: Set[UUID] = Set.empty,
-      private val correspondenceStore: FlexCorrespondenceStore2,
+      private val correspondenceStore: FlexCorrespondenceStore,
       private val awaitedResults: Set[UUID],
       activeTick: Long
   ) {
