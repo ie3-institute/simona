@@ -8,7 +8,6 @@ package edu.ie3.simona.agent.participant.em
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import edu.ie3.simona.agent.participant.em.EmAgent.Actor
 import edu.ie3.simona.agent.participant.em.FlexCorrespondenceStore2.{
   FlexCorrespondence,
   WithTime
@@ -19,11 +18,12 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
 }
 
 import java.time.ZonedDateTime
+import java.util.UUID
 
 /** TODO use own type of exceptions
   */
 final case class FlexCorrespondenceStore2(
-    store: Map[Actor, FlexCorrespondence] = Map.empty
+    store: Map[UUID, FlexCorrespondence] = Map.empty
 )(implicit val startDate: ZonedDateTime) {
 
   def updateFlexOptions(
@@ -35,42 +35,42 @@ final case class FlexCorrespondenceStore2(
         Some(WithTime(flexOptions, tick))
       )
 
-    updateCorrespondence(flexOptions.participant, update)
+    updateCorrespondence(flexOptions.model, update)
   }
 
   def updateFlexControl(
-      participant: Actor,
+      model: UUID,
       flexControl: IssueFlexControl,
       tick: Long
   ): FlexCorrespondenceStore2 = {
     val update: FlexCorrespondence => FlexCorrespondence = correspondence =>
       correspondence.copy(issuedCtrlMsg = Some(WithTime(flexControl, tick)))
 
-    updateCorrespondence(participant, update)
+    updateCorrespondence(model, update)
   }
 
   def updateResult(
-      participant: Actor,
+      model: UUID,
       result: ApparentPower,
       tick: Long
   ): FlexCorrespondenceStore2 = {
     val update: FlexCorrespondence => FlexCorrespondence = correspondence =>
       correspondence.copy(receivedResult = Some(WithTime(result, tick)))
 
-    updateCorrespondence(participant, update)
+    updateCorrespondence(model, update)
   }
 
   def correspondences: Iterable[FlexCorrespondence] =
     store.values
 
   def latestFlexData(
-      participantInput: Map[Actor, SystemParticipantInput]
+      participantInput: Map[UUID, SystemParticipantInput]
   ): Iterable[(SystemParticipantInput, FlexCorrespondence)] = {
-    store.map { case (participant, correspondence) =>
+    store.map { case (model, correspondence) =>
       val spi = participantInput.getOrElse(
-        participant,
+        model,
         throw new RuntimeException(
-          s"There's no participant input model for $participant whatsoever"
+          s"There's no participant input model for $model whatsoever"
         )
       )
 
@@ -79,17 +79,17 @@ final case class FlexCorrespondenceStore2(
   }
 
   private def updateCorrespondence(
-      participant: Actor,
+      model: UUID,
       update: FlexCorrespondence => FlexCorrespondence
   ): FlexCorrespondenceStore2 =
-    copy(store = store.updated(participant, update(get(participant))))
+    copy(store = store.updated(model, update(get(model))))
 
-  private def get(participant: Actor): FlexCorrespondence =
+  private def get(model: UUID): FlexCorrespondence =
     store
       .getOrElse(
-        participant,
+        model,
         throw new RuntimeException(
-          s"No flex correspondences found for $participant"
+          s"No flex correspondences found for $model"
         )
       )
 }
@@ -113,7 +113,7 @@ object FlexCorrespondenceStore2 {
   }
 
   def apply(
-      allParticipants: Set[Actor]
+      allParticipants: Set[UUID]
   )(implicit simulationStartDate: ZonedDateTime): FlexCorrespondenceStore2 = {
     val store = allParticipants.map { participant =>
       participant -> FlexCorrespondence()

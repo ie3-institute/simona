@@ -6,14 +6,15 @@
 
 package edu.ie3.simona.agent.participant.em
 
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.em.EmAgent.Actor
 import edu.ie3.simona.agent.participant.em.FlexCorrespondenceStore2.WithTime
 import edu.ie3.simona.ontology.messages.FlexibilityMessage._
 import edu.ie3.util.scala.collection.mutable.PriorityMultiBiSet
 import squants.Power
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 
 import java.time.ZonedDateTime
+import java.util.UUID
 
 /** Data related to participant scheduling and flex correspondences
   */
@@ -21,6 +22,7 @@ object EmDataCore {
 
   def create(implicit startDate: ZonedDateTime): Inactive =
     Inactive(
+      Map.empty,
       PriorityMultiBiSet.empty,
       Set.empty,
       FlexCorrespondenceStore2(),
@@ -33,11 +35,17 @@ object EmDataCore {
     * @param lastActiveTick
     */
   final case class Inactive private (
-      private val activationQueue: PriorityMultiBiSet[Long, Actor],
-      private val flexWithNext: Set[Actor],
+      private val modelToActor: Map[UUID, Actor],
+      private val activationQueue: PriorityMultiBiSet[Long, UUID],
+      private val flexWithNext: Set[UUID],
       private val correspondenceStore: FlexCorrespondenceStore2,
       private val lastActiveTick: Option[Long]
   ) {
+    def addParticipant(actor: Actor, model: UUID): Inactive =
+      copy(
+        modelToActor = modelToActor.updated(model, actor)
+      )
+
     def checkActivation(newTick: Long): Boolean =
       activationQueue.headKeyOption.contains(newTick)
 
@@ -46,11 +54,12 @@ object EmDataCore {
         throw new RuntimeException("Nothing scheduled, cannot activate.")
       )
       val updatedQueue = flexWithNext.foldLeft(activationQueue) {
-        case (currentQueue, participant) =>
-          currentQueue.set(newActiveTick, participant)
+        case (currentQueue, model) =>
+          currentQueue.set(newActiveTick, model)
           currentQueue
       }
       AwaitingFlexOptions(
+        modelToActor,
         updatedQueue,
         correspondenceStore,
         activeTick = newActiveTick
@@ -61,12 +70,12 @@ object EmDataCore {
       lastActiveTick.forall(newTick >= _ + 1)
 
     def handleSchedule(
-        participant: Actor,
+        model: UUID,
         newTick: Long
     ): (Option[Long], Inactive) = {
       val oldEarliestTick = activationQueue.headKeyOption
 
-      activationQueue.set(newTick, participant)
+      activationQueue.set(newTick, model)
       val newEarliestTick = activationQueue.headKeyOption
 
       val maybeScheduleTick =
@@ -82,27 +91,30 @@ object EmDataCore {
     * @param activeTick
     */
   final case class AwaitingFlexOptions(
-      private val activationQueue: PriorityMultiBiSet[Long, Actor],
+      private val modelToActor: Map[UUID, Actor],
+      private val activationQueue: PriorityMultiBiSet[Long, UUID],
       private val correspondenceStore: FlexCorrespondenceStore2,
-      private val awaitedFlexOptions: Set[Actor] = Set.empty,
+      private val awaitedFlexOptions: Set[UUID] = Set.empty,
       activeTick: Long
   ) {
     def checkSchedule( // TODO needed here?
-        participant: Actor,
+        participant: UUID,
         newTick: Long
     ): Boolean =
       newTick >= activeTick
 
     def handleSchedule(
-        participant: Actor,
+        model: UUID,
         newTick: Long
     ): AwaitingFlexOptions = {
-      activationQueue.set(newTick, participant)
+      activationQueue.set(newTick, model)
       this
     }
 
     def takeNewActivations(): (Iterable[Actor], AwaitingFlexOptions) = {
-      val toActivate = activationQueue.getAndRemoveSet(activeTick)
+      val toActivate = activationQueue
+        .getAndRemoveSet(activeTick)
+        .map(modelToActor.getOrElse(_, throw new RuntimeException("")))
       val newActiveCore =
         copy(awaitedFlexOptions = awaitedFlexOptions.concat(toActivate))
       (toActivate, newActiveCore)
@@ -117,18 +129,18 @@ object EmDataCore {
 
     def isComplete: Boolean = awaitedFlexOptions.isEmpty
 
-    def getFlexOptions: Iterable[(Actor, ProvideFlexOptions)] =
-      correspondenceStore.store.flatMap { case (actor, correspondence) =>
-        correspondence.receivedFlexOptions.map(actor -> _.get)
+    def getFlexOptions: Iterable[(UUID, ProvideFlexOptions)] =
+      correspondenceStore.store.flatMap { case (model, correspondence) =>
+        correspondence.receivedFlexOptions.map(model -> _.get)
       }
 
     def handleFlexCtrl(
-        ctrlMsgs: Iterable[(Actor, Power)]
+        ctrlMsgs: Iterable[(UUID, Power)]
     ): AwaitingFlexOptions = {
       val updatedStore = ctrlMsgs.foldLeft(correspondenceStore) {
-        case (store, (actor, power)) =>
+        case (store, (model, power)) =>
           val ctrlMsg = IssuePowerCtrl(activeTick, power)
-          store.updateFlexControl(actor, ctrlMsg, activeTick)
+          store.updateFlexControl(model, ctrlMsg, activeTick)
       }
       copy(correspondenceStore = updatedStore)
     }
@@ -169,17 +181,23 @@ object EmDataCore {
     def complete(): (Iterable[(Actor, IssueFlexControl)], AwaitingResults) = {
 
       val currentCtrlMessages = correspondenceStore.store.flatMap {
-        case (participant, correspondence) =>
+        case (model, correspondence) =>
           correspondence.issuedCtrlMsg.flatMap {
             case WithTime(issueCtrl, tick) if tick == activeTick =>
-              Some(participant -> issueCtrl)
+              Some(model -> issueCtrl)
             case _ => None
           }
       }
 
       (
-        currentCtrlMessages,
+        currentCtrlMessages.map { case (model, issueCtrl) =>
+          (
+            modelToActor.getOrElse(model, throw new RuntimeException("")),
+            issueCtrl
+          )
+        },
         AwaitingResults(
+          modelToActor,
           activationQueue = activationQueue,
           correspondenceStore = correspondenceStore,
           awaitedResults = currentCtrlMessages.map { case (participant, _) =>
@@ -199,38 +217,39 @@ object EmDataCore {
     * @param lastActiveTick
     */
   final case class AwaitingResults(
-      private val activationQueue: PriorityMultiBiSet[Long, Actor],
-      private val flexWithNext: Set[Actor] = Set.empty,
+      private val modelToActor: Map[UUID, Actor],
+      private val activationQueue: PriorityMultiBiSet[Long, UUID],
+      private val flexWithNext: Set[UUID] = Set.empty,
       private val correspondenceStore: FlexCorrespondenceStore2,
-      private val awaitedResults: Set[Actor],
+      private val awaitedResults: Set[UUID],
       activeTick: Long
   ) {
 
-    def checkCompletion(participant: Actor): Boolean =
-      awaitedResults.contains(participant)
+    def checkCompletion(model: UUID): Boolean =
+      awaitedResults.contains(model)
 
     def handleCompletion(completion: FlexCtrlCompletion): AwaitingResults = {
 
       // mutable queue
       completion.requestAtTick
-        .foreach { activationQueue.set(_, completion.participant) }
+        .foreach { activationQueue.set(_, completion.model) }
 
       val updatedCorrespondence =
         correspondenceStore.updateResult(
-          completion.participant,
+          completion.model,
           completion.result,
           activeTick
         )
 
       val updatedFlexWithNext =
         if (completion.requestAtNextActivation)
-          flexWithNext.incl(completion.participant)
+          flexWithNext.incl(completion.model)
         else flexWithNext
 
       copy(
         correspondenceStore = updatedCorrespondence,
         flexWithNext = updatedFlexWithNext,
-        awaitedResults = awaitedResults.excl(completion.participant)
+        awaitedResults = awaitedResults.excl(completion.model)
       )
     }
 
@@ -242,6 +261,7 @@ object EmDataCore {
         (
           activationQueue.headKeyOption,
           Inactive(
+            modelToActor,
             activationQueue,
             flexWithNext,
             correspondenceStore,

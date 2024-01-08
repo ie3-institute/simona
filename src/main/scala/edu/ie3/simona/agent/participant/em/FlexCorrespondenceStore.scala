@@ -87,8 +87,8 @@ final case class FlexCorrespondenceStore(
     val addToCorrespondence: FlexCorrespondence => FlexCorrespondence = _ =>
       FlexCorrespondence(flexOptions)
 
-    addData(flexOptions.modelUuid, tick, addToCorrespondence).copy(
-      expectedParticipants = expectedParticipants.excl(flexOptions.modelUuid)
+    addData(flexOptions.model, tick, addToCorrespondence).copy(
+      expectedParticipants = expectedParticipants.excl(flexOptions.model)
     )
   }
 

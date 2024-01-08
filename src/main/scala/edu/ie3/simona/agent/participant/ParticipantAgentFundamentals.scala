@@ -6,11 +6,6 @@
 
 package edu.ie3.simona.agent.participant
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{ActorRef, FSM, PoisonPill}
-import org.apache.pekko.event.LoggingAdapter
-import org.apache.pekko.util
-import org.apache.pekko.util.Timeout
 import breeze.numerics.{ceil, floor, pow, sqrt}
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.ResultEntity
@@ -70,9 +65,8 @@ import edu.ie3.simona.model.participant.{
   ModelState,
   SystemParticipant
 }
-import edu.ie3.simona.ontology.messages.FlexibilityMessage._
-import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.ontology.messages.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage
@@ -85,10 +79,15 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ProvisionMessage,
   RegistrationResponseMessage
 }
-import edu.ie3.simona.service.ServiceStateData.ServiceActivationBaseStateData
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorRef, FSM, PoisonPill}
+import org.apache.pekko.event.LoggingAdapter
+import org.apache.pekko.util
+import org.apache.pekko.util.Timeout
 import squants.energy.Megawatts
 import squants.{Dimensionless, Each, Energy, Power}
 
@@ -276,11 +275,17 @@ protected trait ParticipantAgentFundamentals[
           maybeEmAgent.nonEmpty
         )
 
-      // always request flex options for first sim tick
-      maybeEmAgent.foreach {
-        _ ! ScheduleTriggerMessage(
-          RequestFlexOptions(0L),
-          self
+      // register with EM if applicable
+      maybeEmAgent.foreach { emAgent =>
+        emAgent ! RegisterParticipant(
+          inputModel.electricalInputModel.getUuid,
+          self.toTyped[FlexRequest],
+          inputModel.electricalInputModel
+        )
+        // for now, participant is always scheduled for tick 0
+        emAgent ! ScheduleFlexRequest(
+          inputModel.electricalInputModel.getUuid,
+          0
         )
       }
 
@@ -646,8 +651,7 @@ protected trait ParticipantAgentFundamentals[
       throw new InconsistentStateException("Flex state data is missing!")
     )
 
-    val (_, newestFlexOptions) = updatedFlexData.lastFlexOptions
-      .last()
+    val newestFlexOptions = updatedFlexData.lastFlexOptions
       .getOrElse(
         throw new RuntimeException(
           s"Flex options have not been calculated by agent ${participantStateData.modelUuid}"
@@ -678,7 +682,7 @@ protected trait ParticipantAgentFundamentals[
       baseStateData.model.determineFlexOptions(relevantData, lastState)
 
     // announce flex options (we can do this right away, since this
-    // does not include reactive power which could change later
+    // does not include reactive power which could change later)
     if (baseStateData.outputConfig.flexResult) {
       val flexResult = flexOptions match {
         case ProvideMinMaxFlexOptions(
@@ -701,13 +705,7 @@ protected trait ParticipantAgentFundamentals[
 
     baseStateData.copy(
       flexStateData = baseStateData.flexStateData.map(data =>
-        data.copy(lastFlexOptions =
-          ValueStore.updateValueStore(
-            data.lastFlexOptions,
-            tick,
-            flexOptions
-          )
-        )
+        data.copy(lastFlexOptions = Some(flexOptions))
       )
     )
   }
@@ -729,8 +727,7 @@ protected trait ParticipantAgentFundamentals[
     )
     val lastState = getLastOrInitialStateData(baseStateData, flexCtrl.tick)
 
-    val (_, flexOptions) = flexStateData.lastFlexOptions
-      .last()
+    val flexOptions = flexStateData.lastFlexOptions
       .getOrElse(
         throw new IllegalStateException(
           "Flex options have not been calculated before."
@@ -759,37 +756,9 @@ protected trait ParticipantAgentFundamentals[
       case _ =>
     }
 
-    // revoke old tick and remove it from state data, if applicable
-    val revokeRequest =
-      flexStateData.scheduledRequest
-        .filter {
-          // revoke old tick if it exists and is placed in the future
-          _ > flexCtrl.tick
-        }
-
-    // remove from additionalTicks and from flex state data
-    val clearedBaseStateData =
-      if (revokeRequest.nonEmpty)
-        baseStateData.copy(
-          flexStateData = Some(
-            flexStateData.copy(scheduledRequest = None)
-          )
-        )
-      else
-        baseStateData
-
     // add new tick and updated relevant data, if applicable
     val updatedStateData: ParticipantModelBaseStateData[PD, CD, MS, M] =
-      flexChangeIndicator.changesAtTick
-        .map { requestTick =>
-          // save new tick
-          clearedBaseStateData.copy(
-            flexStateData = clearedBaseStateData.flexStateData.map(
-              _.copy(scheduledRequest = Some(requestTick))
-            )
-          )
-        }
-        .getOrElse(clearedBaseStateData)
+      baseStateData
         .copy(
           stateDataStore = ValueStore.updateValueStore(
             baseStateData.stateDataStore,
@@ -805,29 +774,14 @@ protected trait ParticipantAgentFundamentals[
       flexCtrl.tick
     )
 
-    // announce current result to EmAgent before completion,
-    // since time could advance once all completions in
-    flexStateData.emAgent ! buildResultEvent(
-      stateDataWithResults,
-      flexCtrl.tick,
-      result
-    )
-
     flexStateData.emAgent ! FlexCtrlCompletion(
       baseStateData.modelUuid,
-      revokeRequest,
+      result.toApparentPower,
       flexChangeIndicator.changesAtNextActivation,
       flexChangeIndicator.changesAtTick
     )
 
-    if (currentTickDefined) {
-      // if we've received ActivityStartTrigger, send completion
-      goToIdleReplyCompletionAndScheduleTriggerForNextAction(
-        stateDataWithResults,
-        scheduler
-      )
-    } else
-      stay() using stateDataWithResults
+    stay() using stateDataWithResults
   }
 
   protected def determineResultingFlexPower(
@@ -861,12 +815,12 @@ protected trait ParticipantAgentFundamentals[
   ): Unit = {
     if (setPower < flexOptions.minPower)
       throw new RuntimeException(
-        s"The set power $setPower for ${flexOptions.modelUuid} must not be lower than the minimum power ${flexOptions.minPower}!"
+        s"The set power $setPower for ${flexOptions.model} must not be lower than the minimum power ${flexOptions.minPower}!"
       )
 
     if (setPower > flexOptions.maxPower)
       throw new RuntimeException(
-        s"The set power $setPower for ${flexOptions.modelUuid} must not be greater than the maximum power ${flexOptions.maxPower}!"
+        s"The set power $setPower for ${flexOptions.model} must not be greater than the maximum power ${flexOptions.maxPower}!"
       )
   }
 
@@ -2097,53 +2051,31 @@ case object ParticipantAgentFundamentals {
       ] = None,
       log: LoggingAdapter
   ): ApparentPowerAndHeat = {
-    val p = QuantityUtil.average[Power, Energy](
+
+    val tickToResultsApparentPower: Map[Long, ApparentPower] =
       tickToResults.map { case (tick, pd) =>
-        tick -> pd.p
-      },
-      windowStart,
-      windowEnd
-    ) match {
-      case Success(pSuccess) =>
-        pSuccess
-      case Failure(exception) =>
-        log.warning(
-          "Unable to determine average active power. Apply 0 instead. Cause:\n\t{}",
-          exception
+        (
+          tick,
+          ApparentPower(Megawatts(pd.p.toMegawatts), Megavars(pd.q.toMegavars))
         )
-        Megawatts(0d)
-    }
-    val q = QuantityUtil.average[Power, Energy](
-      tickToResults.map { case (tick, pd) =>
-        activeToReactivePowerFuncOpt match {
-          case Some(qFunc) =>
-            // NOTE: The type conversion to Megawatts is done to satisfy the methods type constraints
-            // and is undone after unpacking the results
-            tick -> Megawatts(qFunc(pd.toApparentPower.p).toMegavars)
-          case None => tick -> Megawatts(pd.toApparentPower.q.toMegavars)
-        }
-      },
+      }
+
+    val apparentPower = averageApparentPower(
+      tickToResultsApparentPower,
       windowStart,
-      windowEnd
-    ) match {
-      case Success(pSuccess) =>
-        Megavars(pSuccess.toMegawatts)
-      case Failure(exception) =>
-        log.warning(
-          "Unable to determine average reactive power. Apply 0 instead. Cause:\n\t{}",
-          exception
-        )
-        Megavars(0d)
-    }
+      windowEnd,
+      activeToReactivePowerFuncOpt,
+      log
+    )
+
     val qDot = QuantityUtil.average[Power, Energy](
       tickToResults.map { case (tick, pd) =>
-        tick -> pd.qDot
+        tick -> Megawatts(pd.qDot.toMegawatts)
       },
       windowStart,
       windowEnd
     ) match {
-      case Success(qDotSuccess) =>
-        qDotSuccess
+      case Success(qDotSuccess) => qDotSuccess
       case Failure(exception) =>
         log.warning(
           "Unable to determine average thermal power. Apply 0 instead. Cause:\n\t{}",

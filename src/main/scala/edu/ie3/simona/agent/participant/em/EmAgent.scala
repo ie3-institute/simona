@@ -72,7 +72,8 @@ object EmAgent {
     )
 
     val modelShell = EmModelShell(
-      inputModel.getId(),
+      inputModel.getUuid,
+      inputModel.getId,
       modelStrategy,
       modelConfig
     )
@@ -90,9 +91,10 @@ object EmAgent {
       core: EmDataCore.Inactive
   ): Behavior[EmMessage] = Behaviors.receive {
 
-    case (_, RegisterParticipant(actor, spi)) =>
-      val updatedModelShell = modelShell.addParticipant(actor, spi)
-      inactive(stateData, updatedModelShell, core)
+    case (_, RegisterParticipant(model, actor, spi)) =>
+      val updatedModelShell = modelShell.addParticipant(model, spi)
+      val updatedCore = core.addParticipant(actor, model)
+      inactive(stateData, updatedModelShell, updatedCore)
 
     case (ctx, ScheduleFlexRequest(participant, newTick, scheduleKey)) =>
       if (core.checkSchedule(newTick)) {
@@ -107,7 +109,7 @@ object EmAgent {
             stateData.flexStateData
               .map { flexData =>
                 flexData.emAgent ! ScheduleFlexRequest(
-                  flexData.flexAdapter,
+                  modelShell.uuid,
                   scheduleTick,
                   scheduleKey
                 )
@@ -189,7 +191,7 @@ object EmAgent {
               modelShell.aggregateFlexOptions(allFlexOptions)
 
             val flexMessage = ProvideMinMaxFlexOptions(
-              flexStateData.flexAdapter,
+              modelShell.uuid,
               ref,
               min,
               max
@@ -310,9 +312,9 @@ object EmAgent {
     case (ctx, completion: FlexCtrlCompletion) =>
       val a = Either
         .cond(
-          core.checkCompletion(completion.participant),
+          core.checkCompletion(completion.model),
           core.handleCompletion(completion),
-          s"Participant ${completion.participant} is not part of the expected completing participants"
+          s"Participant ${completion.model} is not part of the expected completing participants"
         )
         .map {
           _.maybeComplete()
@@ -334,7 +336,7 @@ object EmAgent {
               stateData.flexStateData
                 .map { flexData =>
                   flexData.emAgent ! FlexCtrlCompletion(
-                    flexData.flexAdapter,
+                    modelShell.uuid,
                     result,
                     requestAtNextActivation = false,
                     maybeScheduleTick
@@ -402,13 +404,13 @@ object EmAgent {
     if (setPower < flexOptions.minPower)
       Failure(
         new RuntimeException(
-          s"The set power $setPower for ${flexOptions.participant} must not be lower than the minimum power ${flexOptions.minPower}!"
+          s"The set power $setPower for ${flexOptions.model} must not be lower than the minimum power ${flexOptions.minPower}!"
         )
       )
     else if (setPower > flexOptions.maxPower)
       Failure(
         new RuntimeException(
-          s"The set power $setPower for ${flexOptions.participant} must not be greater than the maximum power ${flexOptions.maxPower}!"
+          s"The set power $setPower for ${flexOptions.model} must not be greater than the maximum power ${flexOptions.maxPower}!"
         )
       )
     else

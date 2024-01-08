@@ -13,6 +13,8 @@ import edu.ie3.simona.agent.participant.em.EmAgent.EmMessage
 import org.apache.pekko.actor.typed.ActorRef
 import squants.Power
 
+import java.util.UUID
+
 // TODO adapt scaladoc
 // TODO split off min-max flex options into separate file
 object FlexibilityMessage {
@@ -22,16 +24,17 @@ object FlexibilityMessage {
   }
 
   sealed trait FlexResponse extends EmMessage {
-    val participant: ActorRef[FlexRequest]
+    val model: UUID
   }
 
   final case class RegisterParticipant(
-      override val participant: ActorRef[FlexRequest],
+      override val model: UUID,
+      participant: ActorRef[FlexRequest],
       spi: SystemParticipantInput
   ) extends FlexResponse
 
   final case class ScheduleFlexRequest(
-      override val participant: ActorRef[FlexRequest],
+      override val model: UUID,
       tick: Long,
       scheduleKey: Option[ScheduleKey] = None
   ) extends FlexResponse
@@ -47,10 +50,10 @@ object FlexibilityMessage {
 
   object ProvideFlexOptions {
     def noFlexOption(
-        actor: ActorRef[FlexRequest],
+        model: UUID,
         power: Power
     ): ProvideMinMaxFlexOptions =
-      ProvideMinMaxFlexOptions(actor, power, power, power)
+      ProvideMinMaxFlexOptions(model, power, power, power)
   }
 
   /** EmAgent issues flexibility control
@@ -61,7 +64,7 @@ object FlexibilityMessage {
     * minimum and maximum power. All powers can be negative, signifying a
     * feed-in
     *
-    * @param modelUuid
+    * @param model
     *   the uuid of the input model that references the system participant
     * @param referencePower
     *   the active power that the system participant would produce/consume
@@ -72,7 +75,7 @@ object FlexibilityMessage {
     *   the maximum power that the system participant allows
     */
   final case class ProvideMinMaxFlexOptions(
-      override val participant: ActorRef[FlexRequest],
+      override val model: UUID,
       referencePower: Power,
       minPower: Power,
       maxPower: Power
@@ -109,7 +112,7 @@ object FlexibilityMessage {
     *   tick at which flex options are foreseen to have changed
     */
   final case class FlexCtrlCompletion(
-      override val participant: ActorRef[FlexRequest],
+      override val model: UUID,
       result: ApparentPower,
       requestAtNextActivation: Boolean = false,
       requestAtTick: Option[Long] = None

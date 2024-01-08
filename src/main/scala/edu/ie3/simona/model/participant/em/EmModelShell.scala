@@ -7,7 +7,6 @@
 package edu.ie3.simona.model.participant.em
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
-import edu.ie3.simona.agent.participant.em.EmAgent.Actor
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   ProvideFlexOptions,
@@ -23,27 +22,26 @@ import java.util.UUID
   */
 // TODO move package em out of participant
 final case class EmModelShell(
+    uuid: UUID,
     id: String,
     modelStrategy: EmModelStrat,
     aggregateFlex: EmAggregateFlex,
-    actorToParticipant: Map[Actor, SystemParticipantInput] = Map.empty,
-    uuidToActor: Map[UUID, Actor] = Map.empty
+    modelToParticipantInput: Map[UUID, SystemParticipantInput] = Map.empty
 ) {
 
-  def addParticipant(actor: Actor, spi: SystemParticipantInput): EmModelShell =
+  def addParticipant(model: UUID, spi: SystemParticipantInput): EmModelShell =
     copy(
-      actorToParticipant = actorToParticipant.updated(actor, spi),
-      uuidToActor = uuidToActor.updated(spi.getUuid, actor)
+      modelToParticipantInput = modelToParticipantInput.updated(model, spi)
     )
 
   def aggregateFlexOptions(
       allFlexOptions: Iterable[
-        (Actor, ProvideFlexOptions)
+        (UUID, ProvideFlexOptions)
       ]
   ): (Power, Power, Power) = {
     val updatedAllFlexOptions = allFlexOptions.map {
       case (actor, flexOptions) =>
-        val spi = actorToParticipant.getOrElse(
+        val spi = modelToParticipantInput.getOrElse(
           actor,
           throw new RuntimeException()
         ) // TODO
@@ -63,9 +61,9 @@ final case class EmModelShell(
   }
 
   def determineDeviceControl(
-      allFlexOptions: Iterable[(Actor, ProvideFlexOptions)],
+      allFlexOptions: Iterable[(UUID, ProvideFlexOptions)],
       target: Power
-  ): Iterable[(Actor, Power)] = {
+  ): Iterable[(UUID, Power)] = {
     // TODO sanity checks before strat calculation
 
     val minMaxFlexOptions = allFlexOptions.toMap.view.mapValues {
@@ -74,7 +72,7 @@ final case class EmModelShell(
     }.toMap
 
     val uuidToFlexOptions = minMaxFlexOptions.map { case (actor, flexOptions) =>
-      val spi = actorToParticipant.getOrElse(
+      val spi = modelToParticipantInput.getOrElse(
         actor,
         throw new RuntimeException()
       ) // TODO
@@ -84,16 +82,13 @@ final case class EmModelShell(
     val setPoints =
       modelStrategy.determineDeviceControl(uuidToFlexOptions, target)
 
-    setPoints.map { case (uuid, power) =>
-      val actor =
-        uuidToActor.getOrElse(uuid, throw new RuntimeException()) // TODO
-
+    setPoints.map { case (model, power) =>
       val flexOptions =
-        minMaxFlexOptions.getOrElse(actor, throw new RuntimeException())
+        minMaxFlexOptions.getOrElse(model, throw new RuntimeException())
       if (!flexOptions.fits(power))
         throw new RuntimeException() // TODO
 
-      actor -> power
+      model -> power
     }
 
     // sanity checks after strat calculation
@@ -105,6 +100,7 @@ final case class EmModelShell(
 
 object EmModelShell {
   def apply(
+      uuid: UUID,
       id: String,
       modelStrat: String,
       modelConfig: EmRuntimeConfig
@@ -121,6 +117,6 @@ object EmModelShell {
       case "SIMPLE_SUM"       => EmAggregateSimpleSum
     }
 
-    EmModelShell(id, modelStrategy, aggregateFlex)
+    EmModelShell(uuid, id, modelStrategy, aggregateFlex)
   }
 }
