@@ -560,29 +560,6 @@ object WeatherSource extends LazyLogging {
     MetersPerSecond(0d)
   )
 
-  def toWeatherData(
-      weatherValue: WeatherValue
-  ): WeatherData = {
-    WeatherData(
-      weatherValue.getSolarIrradiance.getDiffuseIrradiance.toScala match {
-        case Some(irradiance) => irradiance.toSquants
-        case None             => EMPTY_WEATHER_DATA.diffIrr
-      },
-      weatherValue.getSolarIrradiance.getDirectIrradiance.toScala match {
-        case Some(irradiance) => irradiance.toSquants
-        case None             => EMPTY_WEATHER_DATA.dirIrr
-      },
-      weatherValue.getTemperature.getTemperature.toScala match {
-        case Some(temperature) => temperature.toSquants
-        case None              => EMPTY_WEATHER_DATA.temp
-      },
-      weatherValue.getWind.getVelocity.toScala match {
-        case Some(windVel) => windVel.toSquants
-        case None          => EMPTY_WEATHER_DATA.windVel
-      }
-    )
-  }
-
   /** Methode to get weather data from a time series. This method automatically
     * interpolates missing values.
     *
