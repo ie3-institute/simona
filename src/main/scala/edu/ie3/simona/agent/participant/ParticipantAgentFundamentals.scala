@@ -85,6 +85,7 @@ import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.{ActorRef, FSM, PoisonPill}
+import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import org.apache.pekko.event.LoggingAdapter
 import org.apache.pekko.util
 import org.apache.pekko.util.Timeout
@@ -264,7 +265,7 @@ protected trait ParticipantAgentFundamentals[
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
       scheduler: ActorRef,
-      maybeEmAgent: Option[ActorRef]
+      maybeEmAgent: Option[TypedActorRef[FlexResponse]]
   ): FSM.State[AgentState, ParticipantStateData[PD]] =
     try {
       /* Register for services */
@@ -338,7 +339,7 @@ protected trait ParticipantAgentFundamentals[
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeEmAgent: Option[ActorRef]
+      maybeEmAgent: Option[TypedActorRef[FlexResponse]]
   ): ParticipantModelBaseStateData[PD, CD, MS, M]
 
   /** Determine all ticks between the operation start and end of the

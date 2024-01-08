@@ -114,10 +114,12 @@ object EmDataCore {
     def takeNewActivations(): (Iterable[Actor], AwaitingFlexOptions) = {
       val toActivate = activationQueue
         .getAndRemoveSet(activeTick)
-        .map(modelToActor.getOrElse(_, throw new RuntimeException("")))
       val newActiveCore =
         copy(awaitedFlexOptions = awaitedFlexOptions.concat(toActivate))
-      (toActivate, newActiveCore)
+      val participants = toActivate.map(
+        modelToActor.getOrElse(_, throw new RuntimeException(""))
+      )
+      (participants, newActiveCore)
     }
 
     def handleFlexOptions(

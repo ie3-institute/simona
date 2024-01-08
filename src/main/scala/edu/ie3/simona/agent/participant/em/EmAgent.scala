@@ -50,7 +50,7 @@ object EmAgent {
       maybeParentEmAgent: Option[ActorRef[FlexResponse]] = None,
       maybeRootEmConfig: Option[SimonaConfig.Simona.Runtime.RootEm] = None,
       scheduler: ActorRef[SchedulerMessage],
-      listener: ClassicActorRef
+      listener: Iterable[ClassicActorRef]
   ): Behavior[EmMessage] = Behaviors.setup { ctx =>
     val activationAdapter = ctx.messageAdapter[Activation] { msg =>
       EmActivation(msg.tick)
@@ -307,7 +307,7 @@ object EmAgent {
       stateData: EmModelBaseStateData,
       modelShell: EmModelShell,
       core: EmDataCore.AwaitingResults
-  ): Behavior[EmMessage] = {
+  ): Behavior[EmMessage] = Behaviors.receive {
     // Completions and results
     case (ctx, completion: FlexCtrlCompletion) =>
       Either

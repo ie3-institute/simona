@@ -8,6 +8,7 @@ package edu.ie3.simona.agent.participant
 
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.{ActorRef, FSM}
+import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.SimonaAgent
 import edu.ie3.simona.agent.grid.GridAgent.FinishGridSimulationTrigger
@@ -48,6 +49,7 @@ import edu.ie3.simona.model.participant.{
   SystemParticipant
 }
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  FlexResponse,
   IssueFlexControl,
   ProvideMinMaxFlexOptions,
   RequestFlexOptions
@@ -588,7 +590,7 @@ abstract class ParticipantAgent[
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
       scheduler: ActorRef,
-      maybeEmAgent: Option[ActorRef]
+      maybeEmAgent: Option[TypedActorRef[FlexResponse]]
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
   /** Handles the responses from service providers, this actor has registered

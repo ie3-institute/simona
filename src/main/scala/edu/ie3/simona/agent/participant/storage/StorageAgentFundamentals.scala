@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.participant.storage
 
-import akka.actor.ActorRef
 import edu.ie3.datamodel.models.input.system.StorageInput
 import edu.ie3.datamodel.models.result.system.{
   StorageResult,
@@ -42,11 +41,18 @@ import edu.ie3.simona.model.participant.StorageModel.{
   StorageState
 }
 import edu.ie3.simona.model.participant.{FlexChangeIndicator, StorageModel}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  FlexRequest,
+  FlexResponse
+}
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.ReactivePower
+import org.apache.pekko.actor.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import squants.Each
 import squants.energy.Kilowatts
 
@@ -83,7 +89,7 @@ trait StorageAgentFundamentals
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeEmAgent: Option[ActorRef]
+      maybeEmAgent: Option[TypedActorRef[FlexResponse]]
   ): BaseStateData.ParticipantModelBaseStateData[
     ApparentPower,
     StorageRelevantData,
@@ -133,7 +139,7 @@ trait StorageAgentFundamentals
       ValueStore(resolution),
       ValueStore(resolution),
       maybeEmAgent.map(
-        FlexStateData(_, ValueStore(resolution))
+        FlexStateData(_, self.toTyped[FlexRequest])
       )
     )
   }

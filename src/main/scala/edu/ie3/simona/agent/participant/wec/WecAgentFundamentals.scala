@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent.participant.wec
 
 import org.apache.pekko.actor.{ActorRef, FSM}
+import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import edu.ie3.datamodel.models.input.system.WecInput
 import edu.ie3.datamodel.models.result.system.{
   SystemParticipantResult,
@@ -46,10 +47,15 @@ import edu.ie3.simona.model.participant.{
   ModelState,
   WecModel
 }
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  FlexRequest,
+  FlexResponse
+}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.ReactivePower
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import squants.{Dimensionless, Each, Power}
 
 import java.time.ZonedDateTime
@@ -105,7 +111,7 @@ protected trait WecAgentFundamentals
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeEmAgent: Option[ActorRef]
+      maybeEmAgent: Option[TypedActorRef[FlexResponse]]
   ): ParticipantModelBaseStateData[
     ApparentPower,
     WecRelevantData,
@@ -159,7 +165,7 @@ protected trait WecAgentFundamentals
       ValueStore(resolution),
       ValueStore(resolution),
       ValueStore(resolution),
-      maybeEmAgent.map(FlexStateData(_, ValueStore(resolution)))
+      maybeEmAgent.map(FlexStateData(_, self.toTyped[FlexRequest]))
     )
   }
 

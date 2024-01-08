@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.participant.evcs
 
-import org.apache.pekko.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.result.system.{
   EvcsResult,
@@ -45,6 +44,10 @@ import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsRelevantData,
   EvcsState
 }
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  FlexRequest,
+  FlexResponse
+}
 import edu.ie3.simona.ontology.messages.PowerMessage.AssetPowerChangedMessage
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.util.SimonaConstants
@@ -52,10 +55,11 @@ import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVAR, MEGAWATT, PU}
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.Megavars
-import squants.{Dimensionless, Each}
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
+import org.apache.pekko.actor.{ActorRef, FSM}
 import squants.energy.Megawatts
-import edu.ie3.util.scala.quantities.Kilovars
-import squants.energy.Kilowatts
+import squants.{Dimensionless, Each}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -109,7 +113,7 @@ protected trait EvcsAgentFundamentals
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeEmAgent: Option[ActorRef]
+      maybeEmAgent: Option[TypedActorRef[FlexResponse]]
   ): ParticipantModelBaseStateData[
     ApparentPower,
     EvcsRelevantData,
@@ -170,7 +174,7 @@ protected trait EvcsAgentFundamentals
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeEmAgent: Option[ActorRef]
+      maybeEmAgent: Option[TypedActorRef[FlexResponse]]
   ): ParticipantModelBaseStateData[
     ApparentPower,
     EvcsRelevantData,
@@ -215,7 +219,7 @@ protected trait EvcsAgentFundamentals
       ValueStore(resolution),
       ValueStore(resolution),
       ValueStore(resolution),
-      maybeEmAgent.map(FlexStateData(_, ValueStore(resolution)))
+      maybeEmAgent.map(FlexStateData(_, self.toTyped[FlexRequest]))
     )
   }
 

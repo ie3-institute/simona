@@ -26,7 +26,7 @@ object CsvGridSource {
       fileNamingStrategy: FileNamingStrategy
   ): Map[ThermalBusInput, ThermalGrid] = {
     val dataSource =
-      new CsvDataSource(csvSep, Path.of(baseFolder), fileNamingStrategy)
+      new CsvDataSource(csvSep, baseFolder, fileNamingStrategy)
     val typeSource = new TypeSource(dataSource)
     val thermalSource = new ThermalSource(
       typeSource,

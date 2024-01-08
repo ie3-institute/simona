@@ -6,27 +6,18 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.FlexResponse
-import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{ActorContext, ActorRef => ClassicActorRef}
-import org.apache.pekko.event.LoggingAdapter
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.ControlStrategy
-import edu.ie3.datamodel.models.input.{AssetInput, NodeInput}
 import edu.ie3.datamodel.models.input.container.{
   SubGridContainer,
-  SystemParticipants
+  SystemParticipants,
+  ThermalGrid
 }
-import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.datamodel.models.input.system._
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
+import edu.ie3.datamodel.models.input.{AssetInput, NodeInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
-import edu.ie3.simona.actor.SimonaActorNaming._
-import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
+import edu.ie3.simona.actor.SimonaActorNaming
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
@@ -47,18 +38,21 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
-import edu.ie3.simona.model.participant.em.{
-  EmAggregateSelfOpt,
-  EmAggregateSelfOptExclPv,
-  EmAggregateSimpleSum,
-  PrioritizedFlexStrat,
-  ProportionalFlexStrat
-}
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.FlexResponse
+import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
+  ClassicActorContextOps,
+  ClassicActorRefOps,
+  TypedActorRefOps
+}
+import org.apache.pekko.actor.{ActorContext, ActorRef => ClassicActorRef}
+import org.apache.pekko.event.LoggingAdapter
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
 
 import java.time.ZonedDateTime
@@ -291,19 +285,13 @@ class GridAgentController(
           pvFlex = false,
           aggregateFlex = "SIMPLE_SUM"
         ),
-        environmentRefs.primaryServiceProxy,
-        environmentRefs.weather,
-        participantsConfig.requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
-        completeEmParticipantMap,
-        participantConfigUtil,
-        outputConfigUtil,
-        thermalIslandGridsByBusId,
-        rootEmConfig = rootEmConfig
+        None,
+        rootEmConfig
       )
 
       // introduce to environment
-      introduceAgentToEnvironment(actorRef)
+      introduceAgentToEnvironment(actorRef.toClassic)
     }
 
     rootEmConfig
@@ -904,18 +892,21 @@ class GridAgentController(
       maybeParentEm: Option[ActorRef[FlexResponse]] = None,
       rootEmConfig: Option[SimonaConfig.Simona.Runtime.RootEm] = None
   ): ActorRef[EmMessage] =
-    gridAgentContext.simonaActorOf(
+    gridAgentContext.spawn(
       EmAgent(
         emInput,
         modelConfiguration,
         outputConfig,
-        modelStrat,
+        rootEmConfig
+          .map(_ => "PROPORTIONAL")
+          .getOrElse("PRIORITIZED"),
         simulationStartDate,
         maybeParentEm,
-        environmentRefs.scheduler,
+        rootEmConfig,
+        environmentRefs.scheduler.toTyped[SchedulerMessage],
         listener
       ),
-      emInput.getId
+      SimonaActorNaming.actorName(classOf[EmAgent.type], emInput.getId)
     )
 
   /** Introduces the given agent to scheduler
@@ -933,32 +924,4 @@ class GridAgentController(
     )
   }
 
-  /** @param participantRef
-    *   a [[ClassicActorRef]] to the participant agent
-    * @param emAgentHierarchy
-    *   EmAgents in their hierarchy from bottom (controlling agents directly) to
-    *   top (root EmAgent)
-    * @return
-    *   A function that creates a [[ScheduleTriggerMessage]] for some trigger
-    */
-  private def scheduleTriggerFunc(
-      participantRef: ClassicActorRef,
-      emAgentHierarchy: Seq[ClassicActorRef]
-  ): Trigger => ScheduleTriggerMessage = {
-    val scheduleTriggerFunc = (trigger: Trigger) =>
-      ScheduleTriggerMessage(
-        trigger,
-        participantRef
-      )
-
-    // when using EmAgent(s), activation schedules have to be stacked
-    emAgentHierarchy.foldLeft(scheduleTriggerFunc) { case (lastFunc, emAgent) =>
-      (trigger: Trigger) =>
-        ScheduleTriggerMessage(
-          lastFunc(trigger),
-          emAgent,
-          priority = true // this just works on SimScheduler
-        )
-    }
-  }
 }

@@ -79,7 +79,7 @@ object ParticipantStateData {
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeEmAgent: Option[ClassicActorRef]
+      maybeEmAgent: Option[ActorRef[FlexResponse]]
   ) extends ParticipantStateData[PD]
 
   /** State data to use, when initializing the participant agent

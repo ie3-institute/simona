@@ -24,10 +24,8 @@ import edu.ie3.simona.model.participant.{
   ModelState,
   SystemParticipant
 }
-import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
 import edu.ie3.simona.ontology.messages.services.EvMessage.RegisterForEvDataMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
-import edu.ie3.simona.ontology.trigger.Trigger
 
 trait ServiceRegistration[
     PD <: PrimaryDataWithApparentPower[PD],
@@ -106,8 +104,7 @@ trait ServiceRegistration[
     case ActorEvMovementsService(serviceRef) =>
       registerForEvMovements(
         serviceRef,
-        inputModel,
-        emControlled
+        inputModel
       )
       Some(serviceRef)
   }
@@ -146,20 +143,12 @@ trait ServiceRegistration[
     *   Actor reference of the EV movements service
     * @param inputModel
     *   Input model of the simulation mode
-    * @param scheduleTriggerFunc
-    *   function providing the proper ScheduleTriggerMessage for a given trigger
-    * @param emControlled
-    *   whether the agent is em-controlled or not
     * @return
     */
   private def registerForEvMovements(
       serviceRef: ActorRef,
-      inputModel: I,
-      emControlled: Boolean
+      inputModel: I
   ): Unit =
-    serviceRef ! RegisterForEvDataMessage(
-      inputModel.getUuid,
-      emControlled
-    )
+    serviceRef ! RegisterForEvDataMessage(inputModel.getUuid)
 
 }

@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent.participant.hp
 
 import org.apache.pekko.actor.{ActorRef, FSM}
+import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.datamodel.models.result.system.{
   HpResult,
@@ -44,6 +45,10 @@ import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.participant.{FlexChangeIndicator, HpModel}
 import edu.ie3.simona.model.thermal.ThermalGrid
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  FlexRequest,
+  FlexResponse
+}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -54,6 +59,7 @@ import squants.Each
 import squants.energy.Megawatts
 import squants.thermal.Celsius
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import squants.energy.Megawatts
 import squants.{Dimensionless, Each, Power, Temperature}
 import tech.units.indriya.quantity.Quantities
@@ -301,7 +307,7 @@ trait HpAgentFundamentals
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeEmAgent: Option[ActorRef]
+      maybeEmAgent: Option[TypedActorRef[FlexResponse]]
   ): BaseStateData.ParticipantModelBaseStateData[
     ApparentPowerAndHeat,
     HpRelevantData,
@@ -359,7 +365,7 @@ trait HpAgentFundamentals
           ValueStore(resolution),
           ValueStore(resolution),
           stateDataStore,
-          maybeEmAgent.map(FlexStateData(_, ValueStore(resolution)))
+          maybeEmAgent.map(FlexStateData(_, self.toTyped[FlexRequest]))
         )
       case unsupported =>
         throw new AgentInitializationException(
