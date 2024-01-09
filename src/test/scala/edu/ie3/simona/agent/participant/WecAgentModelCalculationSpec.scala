@@ -142,8 +142,7 @@ class WecAgentModelCalculationSpec
         simulationResultInfo = false,
         powerRequestReply = false,
         flexResult = false
-      ),
-      scheduleTriggerFunc = scheduleTriggerFunc(wecAgent)
+      )
     )
 
     "be instantiated correctly" in {
@@ -208,8 +207,7 @@ class WecAgentModelCalculationSpec
         simulationResultInfo = false,
         powerRequestReply = false,
         flexResult = false
-      ),
-      scheduleTriggerFunc = scheduleTriggerFunc(wecAgent)
+      )
     )
 
     "be instantiated correctly" in {

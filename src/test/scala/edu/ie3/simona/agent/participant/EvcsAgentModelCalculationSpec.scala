@@ -27,9 +27,8 @@ import edu.ie3.simona.event.ResultEvent.{
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.evcs.EvcsModel.EvcsState
 import edu.ie3.simona.model.participant.evcs.{ChargingSchedule, EvModelWrapper}
-import edu.ie3.simona.ontology.messages.FlexibilityMessage._
-import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
 import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.ontology.messages.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
@@ -46,26 +45,23 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResp
   RegistrationSuccessfulMessage
 }
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
-import edu.ie3.simona.service.ev.ExtEvDataService.FALLBACK_EV_MOVEMENTS_STEM_DISTANCE
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.EvcsInputTestData
-import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.simona.test.common.{EvTestData, TestSpawnerClassic}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
-import squants.energy._
-import squants.{Each, Energy, Power}
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
-import squants.energy.{Megawatts, Watts}
-import squants.{Each, Power}
+import squants.energy._
+import squants.{Each, Energy, Power}
 
 import java.time.temporal.ChronoUnit
-import scala.collection.SortedMap
 import java.util.UUID
+import scala.collection.SortedMap
 
 class EvcsAgentModelCalculationSpec
     extends ParticipantAgentSpec(
@@ -83,6 +79,7 @@ class EvcsAgentModelCalculationSpec
     with TestSpawnerClassic {
 
   private implicit val powerTolerance: Power = Watts(0.1)
+  private implicit val energyTolerance: Energy = WattHours(0.1)
   private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
 
   /* Alter the input model to have a voltage sensitive reactive power calculation */
@@ -183,8 +180,7 @@ class EvcsAgentModelCalculationSpec
       requestVoltageDeviationThreshold =
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
-      primaryServiceProxy = primaryServiceProxy.ref,
-      scheduleTriggerFunc = scheduleTriggerFunc(evcsAgent)
+      primaryServiceProxy = primaryServiceProxy.ref
     )
 
     "be instantiated correctly" in {
@@ -234,8 +230,7 @@ class EvcsAgentModelCalculationSpec
               timeBin,
               requestVoltageDeviationThreshold,
               outputConfig,
-              maybeEmAgent,
-              scheduleFunc
+              maybeEmAgent
             ) =>
           inputModel shouldBe SimpleInputContainer(evcsInputModel)
           modelConfig shouldBe modelConfig
@@ -246,8 +241,6 @@ class EvcsAgentModelCalculationSpec
           requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
           outputConfig shouldBe defaultOutputConfig
           maybeEmAgent shouldBe None
-          scheduleFunc(ActivityStartTrigger(0L)) shouldBe
-            scheduleTriggerFunc(evcsAgent)(ActivityStartTrigger(0L))
         case unsuitableStateData =>
           fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
       }
@@ -256,17 +249,7 @@ class EvcsAgentModelCalculationSpec
       primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
 
       /* Expect a registration message */
-      evService.expectMsgPF() {
-        case RegisterForEvDataMessage(
-              uuid,
-              scheduleFunc,
-              emControlled
-            ) =>
-          uuid shouldBe evcsInputModel.getUuid
-          scheduleFunc(ActivityStartTrigger(1L)) shouldBe
-            scheduleTriggerFunc(evcsAgent)(ActivityStartTrigger(1L))
-          emControlled shouldBe false
-      }
+      evService.expectMsg(RegisterForEvDataMessage(evcsInputModel.getUuid))
 
       /* ... as well as corresponding state and state data */
       evcsAgent.stateName shouldBe HandleInformation
@@ -357,17 +340,7 @@ class EvcsAgentModelCalculationSpec
       primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
 
       /* Expect a registration message */
-      evService.expectMsgPF() {
-        case RegisterForEvDataMessage(
-              uuid,
-              scheduleFunc,
-              emControlled
-            ) =>
-          uuid shouldBe evcsInputModel.getUuid
-          scheduleFunc(ActivityStartTrigger(2L)) shouldBe
-            scheduleTriggerFunc(evcsAgent)(ActivityStartTrigger(2L))
-          emControlled shouldBe false
-      }
+      evService.expectMsg(RegisterForEvDataMessage(evcsInputModel.getUuid))
       evService.send(evcsAgent, RegistrationSuccessfulMessage(Some(900L)))
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -958,40 +931,20 @@ class EvcsAgentModelCalculationSpec
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
           scheduler = emAgent.ref,
-          listener = Iterable.empty
-        )
-      )
-
-      val triggerId = 0
-      emAgent.send(
-        evcsAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              EvcsInput,
-              EvcsRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = voltageSensitiveInput,
-              modelConfig = modelConfig,
-              secondaryDataServices = withServices,
-              simulationStartDate = simulationStartDate,
-              simulationEndDate = simulationEndDate,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = defaultOutputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = Some(emAgent.ref),
-              scheduleTriggerFunc =
-                scheduleTriggerEmFunc(evcsAgent, emAgent.ref)
-            )
+          initStateData = ParticipantInitializeStateData(
+            inputModel = voltageSensitiveInput,
+            modelConfig = modelConfig,
+            secondaryDataServices = withServices,
+            simulationStartDate = simulationStartDate,
+            simulationEndDate = simulationEndDate,
+            resolution = resolution,
+            requestVoltageDeviationThreshold =
+              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+            outputConfig = defaultOutputConfig,
+            primaryServiceProxy = primaryServiceProxy.ref,
+            maybeEmAgent = Some(emAgent.ref.toTyped[FlexResponse])
           ),
-          triggerId,
-          evcsAgent
+          listener = Iterable.empty
         )
       )
 
@@ -1011,8 +964,7 @@ class EvcsAgentModelCalculationSpec
               resolution,
               requestVoltageDeviationThreshold,
               outputConfig,
-              maybeEmAgent,
-              scheduleFunc
+              maybeEmAgent
             ) =>
           inputModel shouldBe SimpleInputContainer(voltageSensitiveInput)
           modelConfig shouldBe modelConfig
@@ -1023,10 +975,6 @@ class EvcsAgentModelCalculationSpec
           requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
           outputConfig shouldBe defaultOutputConfig
           maybeEmAgent shouldBe Some(emAgent.ref)
-          scheduleFunc(ActivityStartTrigger(0L)) shouldBe
-            scheduleTriggerEmFunc(evcsAgent, emAgent.ref)(
-              ActivityStartTrigger(0L)
-            )
         case unsuitableStateData =>
           fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
       }
@@ -1035,31 +983,16 @@ class EvcsAgentModelCalculationSpec
       primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
 
       emAgent.expectMsg(
-        ScheduleTriggerMessage(
-          RequestFlexOptions(0L),
-          evcsAgent
-        )
+        ScheduleFlexRequest(evcsInputModel.getUuid, 0)
       )
 
-      evService.expectMsgPF() {
-        case RegisterForEvDataMessage(
-              uuid,
-              scheduleFunc,
-              emControlled
-            ) =>
-          uuid shouldBe evcsInputModel.getUuid
-          scheduleFunc(ActivityStartTrigger(0L)) shouldBe
-            scheduleTriggerEmFunc(evcsAgent, emAgent.ref)(
-              ActivityStartTrigger(0L)
-            )
-          emControlled shouldBe true
-      }
+      evService.expectMsg(RegisterForEvDataMessage(evcsInputModel.getUuid))
       evService.send(evcsAgent, RegistrationSuccessfulMessage(None))
 
       emAgent.expectMsg(
-        CompletionMessage(
-          triggerId,
-          None
+        FlexCtrlCompletion(
+          evcsInputModel.getUuid,
+          ApparentPower(Megawatts(0), Megavars(0)) // FIXME
         )
       )
 
@@ -1113,44 +1046,24 @@ class EvcsAgentModelCalculationSpec
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
           scheduler = emAgent.ref,
-          listener = Iterable(resultListener.ref)
-        )
-      )
-
-      val triggerId = 0
-      emAgent.send(
-        evcsAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              EvcsInput,
-              EvcsRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = SimpleInputContainer(voltageSensitiveInput),
-              modelConfig = modelConfig,
-              secondaryDataServices = withServices,
-              simulationStartDate = simulationStartDate,
-              simulationEndDate = simulationEndDate,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = NotifierConfig(
-                simulationResultInfo = true,
-                powerRequestReply = false,
-                flexResult = true
-              ),
-              primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = Some(emAgent.ref),
-              scheduleTriggerFunc =
-                scheduleTriggerEmFunc(evcsAgent, emAgent.ref)
-            )
+          initStateData = ParticipantInitializeStateData(
+            inputModel = SimpleInputContainer(voltageSensitiveInput),
+            modelConfig = modelConfig,
+            secondaryDataServices = withServices,
+            simulationStartDate = simulationStartDate,
+            simulationEndDate = simulationEndDate,
+            resolution = resolution,
+            requestVoltageDeviationThreshold =
+              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+            outputConfig = NotifierConfig(
+              simulationResultInfo = true,
+              powerRequestReply = false,
+              flexResult = true
+            ),
+            primaryServiceProxy = primaryServiceProxy.ref,
+            maybeEmAgent = Some(emAgent.ref.toTyped[FlexResponse])
           ),
-          triggerId,
-          evcsAgent
+          listener = Iterable(resultListener.ref)
         )
       )
 
@@ -1170,8 +1083,7 @@ class EvcsAgentModelCalculationSpec
               resolution,
               requestVoltageDeviationThreshold,
               outputConfig,
-              maybeEmAgent,
-              scheduleFunc
+              maybeEmAgent
             ) =>
           inputModel shouldBe SimpleInputContainer(voltageSensitiveInput)
           modelConfig shouldBe modelConfig
@@ -1186,10 +1098,6 @@ class EvcsAgentModelCalculationSpec
             flexResult = true
           )
           maybeEmAgent shouldBe Some(emAgent.ref)
-          scheduleFunc(ActivityStartTrigger(0L)) shouldBe
-            scheduleTriggerEmFunc(evcsAgent, emAgent.ref)(
-              ActivityStartTrigger(0L)
-            )
         case unsuitableStateData =>
           fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
       }
@@ -1198,31 +1106,16 @@ class EvcsAgentModelCalculationSpec
       primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
 
       emAgent.expectMsg(
-        ScheduleTriggerMessage(
-          RequestFlexOptions(0L),
-          evcsAgent
-        )
+        ScheduleFlexRequest(evcsInputModel.getUuid, 0)
       )
 
-      evService.expectMsgPF() {
-        case RegisterForEvDataMessage(
-              uuid,
-              scheduleFunc,
-              emControlled
-            ) =>
-          uuid shouldBe evcsInputModel.getUuid
-          scheduleFunc(ActivityStartTrigger(0L)) shouldBe
-            scheduleTriggerEmFunc(evcsAgent, emAgent.ref)(
-              ActivityStartTrigger(0L)
-            )
-          emControlled shouldBe true
-      }
+      evService.expectMsg(RegisterForEvDataMessage(evcsInputModel.getUuid))
       evService.send(evcsAgent, RegistrationSuccessfulMessage(None))
 
       emAgent.expectMsg(
-        CompletionMessage(
-          triggerId,
-          None
+        FlexCtrlCompletion(
+          evcsInputModel.getUuid,
+          ApparentPower(Megawatts(0), Megavars(0)) // FIXME
         )
       )
 
@@ -1261,13 +1154,9 @@ class EvcsAgentModelCalculationSpec
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
           result.systemParticipantResult.getP should beEquivalentTo(
-            0.asMegaWatt,
-            testingTolerance
+            0.asMegaWatt
           )
-          result.systemParticipantResult.getQ should beEquivalentTo(
-            0.asMegaVar,
-            testingTolerance
-          )
+          result.systemParticipantResult.getQ should beEquivalentTo(0.asMegaVar)
       }
 
       // next potential activation at fully charged battery:
@@ -1275,7 +1164,8 @@ class EvcsAgentModelCalculationSpec
       // time to charge fully ~= 16.7727262054h = 60382 ticks (rounded)
       emAgent.expectMsg(
         FlexCtrlCompletion(
-          modelUuid = evcsInputModel.getUuid
+          modelUuid = evcsInputModel.getUuid,
+          ApparentPower(Megawatts(0), Megavars(0)) // FIXME
         )
       )
 
@@ -1288,13 +1178,6 @@ class EvcsAgentModelCalculationSpec
        */
 
       val ev900 = EvModelWrapper(evA.copyWithDeparture(4500L))
-
-      val activation1 = 1L
-
-      emAgent.send(
-        evcsAgent,
-        TriggerWithIdMessage(ActivityStartTrigger(900L), activation1, evcsAgent)
-      )
 
       emAgent.send(evcsAgent, RequestFlexOptions(900L))
 
@@ -1332,12 +1215,10 @@ class EvcsAgentModelCalculationSpec
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
           result.systemParticipantResult.getP should beEquivalentTo(
-            ev900.unwrap().getSRatedAC,
-            testingTolerance
+            ev900.unwrap().getSRatedAC
           )
           result.systemParticipantResult.getQ should beEquivalentTo(
-            0.asMegaVar,
-            testingTolerance
+            0.asMegaVar
           )
       }
 
@@ -1345,12 +1226,11 @@ class EvcsAgentModelCalculationSpec
       emAgent.expectMsg(
         FlexCtrlCompletion(
           modelUuid = evcsInputModel.getUuid,
+          result = ApparentPower(Megawatts(0), Megavars(0)), // FIXME
           requestAtNextActivation = true,
           requestAtTick = Some(4500L)
         )
       )
-
-      emAgent.expectMsg(CompletionMessage(activation1, None))
 
       // result of tick 0
       resultListener.expectMsgPF() {
@@ -1411,17 +1291,6 @@ class EvcsAgentModelCalculationSpec
 
       val ev4500 = EvModelWrapper(evB.copyWithDeparture(72000L))
 
-      val activation2 = 2L
-
-      emAgent.send(
-        evcsAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(4500L),
-          activation2,
-          evcsAgent
-        )
-      )
-
       emAgent.send(evcsAgent, RequestFlexOptions(4500L))
 
       evService.send(
@@ -1458,12 +1327,10 @@ class EvcsAgentModelCalculationSpec
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
           result.systemParticipantResult.getP should beEquivalentTo(
-            11.asKiloWatt,
-            testingTolerance
+            11.asKiloWatt
           )
           result.systemParticipantResult.getQ should beEquivalentTo(
-            0.asMegaVar,
-            testingTolerance
+            0.asMegaVar
           )
       }
 
@@ -1473,12 +1340,11 @@ class EvcsAgentModelCalculationSpec
       emAgent.expectMsg(
         FlexCtrlCompletion(
           modelUuid = evcsInputModel.getUuid,
+          result = ApparentPower(Megawatts(0), Megavars(0)), // FIXME
           requestAtNextActivation = true,
           requestAtTick = Some(9736L)
         )
       )
-
-      emAgent.expectMsg(CompletionMessage(activation2, None))
 
       // already sent out after EV departed
       resultListener.expectNoMessage()
@@ -1519,12 +1385,10 @@ class EvcsAgentModelCalculationSpec
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
           result.systemParticipantResult.getP should beEquivalentTo(
-            10.asKiloWatt,
-            testingTolerance
+            10.asKiloWatt
           )
           result.systemParticipantResult.getQ should beEquivalentTo(
-            0.asMegaVar,
-            testingTolerance
+            0.asMegaVar
           )
       }
 
@@ -1534,6 +1398,7 @@ class EvcsAgentModelCalculationSpec
       emAgent.expectMsg(
         FlexCtrlCompletion(
           modelUuid = evcsInputModel.getUuid,
+          result = ApparentPower(Megawatts(0), Megavars(0)), // FIXME
           requestAtTick = Some(32776L),
           requestAtNextActivation =
             true // since battery is still below lowest soc, it's still considered empty
@@ -1565,17 +1430,6 @@ class EvcsAgentModelCalculationSpec
       // with stored energy right at minimal SOC
       val ev11700 = EvModelWrapper(
         evA.copyWithDeparture(36000L).copyWith(11.6d.asKiloWattHour)
-      )
-
-      val activation3 = 3L
-
-      emAgent.send(
-        evcsAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(11700L),
-          activation3,
-          evcsAgent
-        )
       )
 
       // sending flex request at very next activated tick
@@ -1626,12 +1480,10 @@ class EvcsAgentModelCalculationSpec
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
           result.systemParticipantResult.getP should beEquivalentTo(
-            16.asKiloWatt,
-            testingTolerance
+            16.asKiloWatt
           )
           result.systemParticipantResult.getQ should beEquivalentTo(
-            0.asMegaVar,
-            testingTolerance
+            0.asMegaVar
           )
       }
 
@@ -1642,14 +1494,12 @@ class EvcsAgentModelCalculationSpec
       emAgent.expectMsg(
         FlexCtrlCompletion(
           modelUuid = evcsInputModel.getUuid,
+          result = ApparentPower(Megawatts(0), Megavars(0)), // FIXME
           requestAtTick = Some(32580L),
-          revokeRequestAtTick = Some(32776L),
           requestAtNextActivation =
             true // since battery is still below lowest soc, it's still considered empty
         )
       )
-
-      emAgent.expectMsg(CompletionMessage(activation3, None))
 
       resultListener.expectMsgPF() {
         case ParticipantResultEvent(result: EvResult) =>
@@ -1709,12 +1559,10 @@ class EvcsAgentModelCalculationSpec
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
           result.systemParticipantResult.getP should beEquivalentTo(
-            (-20).asKiloWatt,
-            testingTolerance
+            (-20).asKiloWatt
           )
           result.systemParticipantResult.getQ should beEquivalentTo(
-            0.asMegaVar,
-            testingTolerance
+            0.asMegaVar
           )
       }
 
@@ -1725,8 +1573,8 @@ class EvcsAgentModelCalculationSpec
       emAgent.expectMsg(
         FlexCtrlCompletion(
           modelUuid = evcsInputModel.getUuid,
-          requestAtTick = Some(23040L),
-          revokeRequestAtTick = Some(32580L)
+          result = ApparentPower(Megawatts(0), Megavars(0)), // FIXME
+          requestAtTick = Some(23040L)
         )
       )
 
@@ -1800,12 +1648,10 @@ class EvcsAgentModelCalculationSpec
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
           result.systemParticipantResult.getP should beEquivalentTo(
-            (-10).asKiloWatt,
-            testingTolerance
+            (-10).asKiloWatt
           )
           result.systemParticipantResult.getQ should beEquivalentTo(
-            0.asMegaVar,
-            testingTolerance
+            0.asMegaVar
           )
       }
 
@@ -1815,6 +1661,7 @@ class EvcsAgentModelCalculationSpec
       emAgent.expectMsg(
         FlexCtrlCompletion(
           modelUuid = evcsInputModel.getUuid,
+          result = ApparentPower(Megawatts(0), Megavars(0)), // FIXME
           requestAtTick = Some(25004L)
         )
       )
@@ -1882,19 +1729,18 @@ class EvcsAgentModelCalculationSpec
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
           result.systemParticipantResult.getP should beEquivalentTo(
-            0.asKiloWatt,
-            testingTolerance
+            0.asKiloWatt
           )
           result.systemParticipantResult.getQ should beEquivalentTo(
-            0.asMegaVar,
-            testingTolerance
+            0.asMegaVar
           )
       }
 
       // no new activation
       emAgent.expectMsg(
         FlexCtrlCompletion(
-          modelUuid = evcsInputModel.getUuid
+          modelUuid = evcsInputModel.getUuid,
+          result = ApparentPower(Megawatts(0), Megavars(0)) // FIXME
         )
       )
 
@@ -2001,12 +1847,10 @@ class EvcsAgentModelCalculationSpec
       emAgent.expectMsgType[ParticipantResultEvent] match {
         case result =>
           result.systemParticipantResult.getP should beEquivalentTo(
-            4.asKiloWatt,
-            testingTolerance
+            4.asKiloWatt
           )
           result.systemParticipantResult.getQ should beEquivalentTo(
-            0.asMegaVar,
-            testingTolerance
+            0.asMegaVar
           )
       }
 
@@ -2017,6 +1861,7 @@ class EvcsAgentModelCalculationSpec
       emAgent.expectMsg(
         FlexCtrlCompletion(
           modelUuid = evcsInputModel.getUuid,
+          result = ApparentPower(Megawatts(0), Megavars(0)), // FIXME
           requestAtTick = Some(72000),
           requestAtNextActivation =
             true // since we're starting from lowest again

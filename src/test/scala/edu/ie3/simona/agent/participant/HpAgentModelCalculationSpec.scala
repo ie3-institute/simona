@@ -6,10 +6,6 @@
 
 package edu.ie3.simona.agent.participant
 
-import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
-import org.apache.pekko.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.agent.ValueStore
@@ -25,8 +21,8 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.integration.common.IntegrationSpecCommon
+import edu.ie3.simona.model.participant.HpModel.HpState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
-import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
@@ -47,12 +43,6 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.model.participant.HpTestData
 import edu.ie3.simona.util.ConfigUtil
-import edu.ie3.util.scala.quantities.{
-  Megavars,
-  ReactivePower,
-  Vars,
-  WattsPerSquareMeter
-}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.{
   Megavars,
@@ -60,15 +50,15 @@ import edu.ie3.util.scala.quantities.{
   Vars,
   WattsPerSquareMeter
 }
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
+import org.apache.pekko.util.Timeout
 import org.scalatest.PrivateMethodTester
 import squants.energy.{Kilowatts, Megawatts, Watts}
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
 import squants.{Dimensionless, Each}
-import squants.energy.{Kilowatts, Megawatts, Watts}
-import squants.motion.MetersPerSecond
-import squants.thermal.Celsius
-import squants.{Dimensionless, Each, Power, Temperature}
 
 import java.io.File
 import java.time.ZonedDateTime
@@ -92,10 +82,14 @@ class HpAgentModelCalculationSpec
   implicit val simulationStart: ZonedDateTime = defaultSimulationStart
   implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
-  implicit val powerTolerance: Power = Watts(1e-3)
-  implicit val reactivepowerTolerance: ReactivePower = Vars(1e-3)
-  implicit val temperatureTolerance: Temperature = Celsius(1e-10)
-  implicit val dimensionlessTolerance: Dimensionless = Each(1e-10)
+
+  private implicit val powerTolerance: squants.Power = Watts(0.1)
+  private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
+  private implicit val temperatureTolerance: squants.Temperature = Celsius(
+    1e-10
+  )
+  private implicit val dimensionlessTolerance: Dimensionless = Each(1e-10)
+
   /* Alter the input model to have a voltage sensitive reactive power calculation */
   val hpInput: HpInput = hpInputModel
 
@@ -124,12 +118,6 @@ class HpAgentModelCalculationSpec
     )
   )
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
-
-  private implicit val powerTolerance: squants.Power = Watts(0.1)
-  private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
-  private implicit val temperatureTolerance: squants.Temperature = Celsius(
-    1e-10
-  )
 
   "A heat pump agent depending on no services" should {
     val initStateData = ParticipantInitializeStateData[
@@ -210,8 +198,7 @@ class HpAgentModelCalculationSpec
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
       primaryServiceProxy = primaryServiceProxy.ref,
-      maybeEmAgent = None,
-      scheduleTriggerFunc = scheduleTriggerFunc(hpAgent)
+      maybeEmAgent = None
     )
 
     "be instantiated correctly" in {
@@ -261,7 +248,6 @@ class HpAgentModelCalculationSpec
               resolution,
               requestVoltageDeviationThreshold,
               outputConfig,
-              _,
               _
             ) =>
           inputModel shouldBe WithHeatInputContainer(hpInput, thermalGrid)

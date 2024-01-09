@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.{TestFSMRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.StorageInput
 import edu.ie3.datamodel.models.input.system.characteristic.QV
@@ -25,31 +23,21 @@ import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.StorageRuntimeConfig
-import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.event.ResultEvent.{
   FlexOptionsResultEvent,
   ParticipantResultEvent
 }
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
-  FlexCtrlCompletion,
-  IssuePowerCtrl,
-  ProvideFlexOptions,
-  ProvideMinMaxFlexOptions,
-  RequestFlexOptions
-}
+import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.ontology.messages.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   RequestAssetPowerMessage
 }
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
-import edu.ie3.simona.ontology.trigger.Trigger.InitializeParticipantAgentTrigger
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.StorageInputTestData
 import edu.ie3.simona.util.ConfigUtil
@@ -58,6 +46,9 @@ import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.Megavars
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
 import squants.Each
 import squants.energy.{Kilowatts, Megawatts, Watts}
 
@@ -113,47 +104,32 @@ class StorageAgentModelCalculationSpec
   private implicit val powerTolerance: squants.Power = Watts(0.1)
 
   "A storage agent with model calculation depending on no secondary data service" should {
+    val emAgent = TestProbe("EmAgent")
+
+    val initStateData = ParticipantInitializeStateData[
+      StorageInput,
+      StorageRuntimeConfig,
+      ApparentPower
+    ](
+      inputModel = voltageSensitiveInput,
+      modelConfig = modelConfig,
+      secondaryDataServices = services,
+      simulationStartDate = simulationStartDate,
+      simulationEndDate = simulationEndDate,
+      resolution = resolution,
+      requestVoltageDeviationThreshold =
+        simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+      outputConfig = outputConfig,
+      primaryServiceProxy = primaryServiceProxy.ref,
+      maybeEmAgent = Some(emAgent.ref.toTyped[FlexResponse])
+    )
 
     "end in correct state with correct state data after initialisation" in {
-      val emAgent = TestProbe("EmAgentProbe")
-
       val storageAgent = TestFSMRef(
         new StorageAgent(
           scheduler = emAgent.ref,
+          initStateData = initStateData,
           listener = Iterable.empty
-        )
-      )
-
-      val triggerId = 0
-      emAgent.send(
-        storageAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              StorageInput,
-              StorageRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = voltageSensitiveInput,
-              modelConfig = modelConfig,
-              secondaryDataServices = services,
-              simulationStartDate = simulationStartDate,
-              simulationEndDate = simulationEndDate,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = outputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = Some(emAgent.ref),
-              scheduleTriggerFunc =
-                scheduleTriggerEmFunc(storageAgent, emAgent.ref)
-            )
-          ),
-          triggerId,
-          storageAgent
         )
       )
 
@@ -173,8 +149,7 @@ class StorageAgentModelCalculationSpec
               resolution,
               requestVoltageDeviationThreshold,
               outputConfig,
-              maybeEmAgent,
-              _
+              maybeEmAgent
             ) =>
           inputModel shouldBe SimpleInputContainer(voltageSensitiveInput)
           modelConfig shouldBe modelConfig
@@ -193,15 +168,12 @@ class StorageAgentModelCalculationSpec
       primaryServiceProxy.send(storageAgent, RegistrationFailedMessage)
 
       emAgent.expectMsg(
-        ScheduleTriggerMessage(
-          RequestFlexOptions(0L),
-          storageAgent
-        )
+        ScheduleFlexRequest(storageInput.getUuid, 0)
       )
 
-      emAgent.expectMsg(
-        CompletionMessage(
-          triggerId,
+      scheduler.expectMsg(
+        Completion(
+          storageAgent.toTyped[Activation],
           None
         )
       )
@@ -250,45 +222,11 @@ class StorageAgentModelCalculationSpec
     }
 
     "answer with zero power, if asked directly after initialisation" in {
-      val emAgent = TestProbe("EmAgentProbe")
-
       val storageAgent = TestFSMRef(
         new StorageAgent(
           scheduler = emAgent.ref,
+          initStateData = initStateData,
           listener = Iterable.empty
-        )
-      )
-
-      val triggerId = 0
-      emAgent.send(
-        storageAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              StorageInput,
-              StorageRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = voltageSensitiveInput,
-              modelConfig = modelConfig,
-              secondaryDataServices = services,
-              simulationStartDate = simulationStartDate,
-              simulationEndDate = simulationEndDate,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = outputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = Some(emAgent.ref),
-              scheduleTriggerFunc =
-                scheduleTriggerEmFunc(storageAgent, emAgent.ref)
-            )
-          ),
-          triggerId,
-          storageAgent
         )
       )
 
@@ -297,14 +235,11 @@ class StorageAgentModelCalculationSpec
       primaryServiceProxy.send(storageAgent, RegistrationFailedMessage)
 
       emAgent.expectMsg(
-        ScheduleTriggerMessage(
-          RequestFlexOptions(0L),
-          storageAgent
-        )
+        ScheduleFlexRequest(storageInput.getUuid, 0)
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
-      emAgent.expectMsgType[CompletionMessage]
+      /* I'm not interested in the content of the Completion */
+      emAgent.expectMsgType[Completion]
 
       storageAgent.stateName shouldBe Idle
       /* State data has already been tested */
@@ -348,40 +283,8 @@ class StorageAgentModelCalculationSpec
       val storageAgent = TestFSMRef(
         new StorageAgent(
           scheduler = emAgent.ref,
+          initStateData = initStateData,
           listener = Iterable(resultListener.ref)
-        )
-      )
-
-      val triggerId = 0
-      emAgent.send(
-        storageAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              StorageInput,
-              StorageRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = SimpleInputContainer(voltageSensitiveInput),
-              modelConfig = modelConfig,
-              secondaryDataServices = services,
-              simulationStartDate = simulationStartDate,
-              simulationEndDate = simulationEndDate,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              outputConfig = outputConfig,
-              primaryServiceProxy = primaryServiceProxy.ref,
-              maybeEmAgent = Some(emAgent.ref),
-              scheduleTriggerFunc =
-                scheduleTriggerEmFunc(storageAgent, emAgent.ref)
-            )
-          ),
-          triggerId,
-          storageAgent
         )
       )
 
@@ -390,14 +293,11 @@ class StorageAgentModelCalculationSpec
       primaryServiceProxy.send(storageAgent, RegistrationFailedMessage)
 
       emAgent.expectMsg(
-        ScheduleTriggerMessage(
-          RequestFlexOptions(0L),
-          storageAgent
-        )
+        ScheduleFlexRequest(storageInput.getUuid, 0)
       )
 
-      /* I am not interested in the CompletionMessage */
-      emAgent.expectMsgType[CompletionMessage]
+      /* I am not interested in the Completion */
+      emAgent.expectMsgType[Completion]
       awaitAssert(storageAgent.stateName shouldBe Idle)
       /* State data is tested in another test */
 
@@ -456,6 +356,7 @@ class StorageAgentModelCalculationSpec
       emAgent.expectMsg(
         FlexCtrlCompletion(
           modelUuid = storageInput.getUuid,
+          result = ApparentPower(Megawatts(0), Megavars(0)), // FIXME
           requestAtNextActivation = true,
           requestAtTick = Some(60382L)
         )
@@ -516,7 +417,7 @@ class StorageAgentModelCalculationSpec
       emAgent.expectMsg(
         FlexCtrlCompletion(
           modelUuid = storageInput.getUuid,
-          revokeRequestAtTick = Some(60382L),
+          result = ApparentPower(Megawatts(0), Megavars(0)), // FIXME
           requestAtTick = Some(74281L)
         )
       )
@@ -560,7 +461,7 @@ class StorageAgentModelCalculationSpec
       emAgent.expectMsg(
         FlexCtrlCompletion(
           modelUuid = storageInput.getUuid,
-          revokeRequestAtTick = Some(74281L),
+          result = ApparentPower(Megawatts(0), Megavars(0)), // FIXME
           requestAtTick = Some(57723L)
         )
       )
@@ -596,7 +497,7 @@ class StorageAgentModelCalculationSpec
       emAgent.expectMsg(
         FlexCtrlCompletion(
           modelUuid = storageInput.getUuid,
-          revokeRequestAtTick = Some(57723L),
+          result = ApparentPower(Megawatts(0), Megavars(0)), // FIXME
           requestAtTick = Some(79688L)
         )
       )
@@ -656,6 +557,7 @@ class StorageAgentModelCalculationSpec
       emAgent.expectMsg(
         FlexCtrlCompletion(
           modelUuid = storageInput.getUuid,
+          result = ApparentPower(Megawatts(0), Megavars(0)), // FIXME
           requestAtNextActivation = true,
           requestAtTick = Some(131862L)
         )
@@ -710,7 +612,8 @@ class StorageAgentModelCalculationSpec
       // we're not charging or discharging, no new expected tick
       emAgent.expectMsg(
         FlexCtrlCompletion(
-          modelUuid = storageInput.getUuid
+          modelUuid = storageInput.getUuid,
+          result = ApparentPower(Megawatts(0), Megavars(0)) // FIXME
         )
       )
 

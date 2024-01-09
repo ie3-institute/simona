@@ -39,7 +39,6 @@ import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
@@ -189,8 +188,7 @@ class ParticipantAgentExternalSourceSpec
               resolution,
               requestVoltageDeviationThreshold,
               outputConfig,
-              maybeEmAgent,
-              _
+              maybeEmAgent
             ) =>
           inputModel shouldBe SimpleInputContainer(mockInputModel)
           modelConfig shouldBe modelConfig

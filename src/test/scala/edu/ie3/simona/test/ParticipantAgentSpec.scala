@@ -6,11 +6,9 @@
 
 package edu.ie3.simona.test
 
-import org.apache.pekko.actor.{ActorRef, ActorSystem}
-import org.apache.pekko.testkit.TestProbe
-import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleTriggerMessage
-import edu.ie3.simona.ontology.trigger.Trigger
 import edu.ie3.simona.test.common.AgentSpec
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.testkit.TestProbe
 
 /** Class to help building tests for
   * [[edu.ie3.simona.agent.participant.ParticipantAgent]]s

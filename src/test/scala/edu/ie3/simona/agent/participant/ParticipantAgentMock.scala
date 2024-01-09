@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent.participant
 
 import org.apache.pekko.actor.{ActorRef, FSM, Props}
+import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.ValueStore
@@ -40,6 +41,7 @@ import edu.ie3.simona.model.participant.{
   ModelState,
   SystemParticipant
 }
+import edu.ie3.simona.ontology.messages.FlexibilityMessage.FlexResponse
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{Kilovars, Megavars, ReactivePower}
 import org.mockito.ArgumentMatchers.any
@@ -190,7 +192,7 @@ class ParticipantAgentMock(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeEmAgent: Option[ActorRef]
+      maybeEmAgent: Option[TypedActorRef[FlexResponse]]
   ): ParticipantModelBaseStateData[
     ApparentPower,
     FixedRelevantData.type,

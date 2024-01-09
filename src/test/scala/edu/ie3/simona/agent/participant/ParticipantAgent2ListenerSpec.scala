@@ -157,7 +157,8 @@ class ParticipantAgent2ListenerSpec
       /* Let the agent send announcements, when there is anew request reply */
       val outputConfig = NotifierConfig(
         simulationResultInfo = false,
-        powerRequestReply = false
+        powerRequestReply = false,
+        flexResult = false
       )
 
       val mockAgent = TestFSMRef(
@@ -247,7 +248,8 @@ class ParticipantAgent2ListenerSpec
       /* Let the agent send announcements, when there is anew request reply */
       val outputConfig = NotifierConfig(
         simulationResultInfo = false,
-        powerRequestReply = false
+        powerRequestReply = false,
+        flexResult = false
       )
 
       val mockAgent = TestFSMRef(

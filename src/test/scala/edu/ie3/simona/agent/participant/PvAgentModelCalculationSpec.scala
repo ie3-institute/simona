@@ -196,8 +196,7 @@ class PvAgentModelCalculationSpec
       requestVoltageDeviationThreshold =
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
-      primaryServiceProxy = primaryServiceProxy.ref,
-      scheduleTriggerFunc = scheduleTriggerFunc(pvAgent)
+      primaryServiceProxy = primaryServiceProxy.ref
     )
 
     "be instantiated correctly" in {
@@ -247,8 +246,7 @@ class PvAgentModelCalculationSpec
               resolution,
               requestVoltageDeviationThreshold,
               outputConfig,
-              maybeEmAgent,
-              _
+              maybeEmAgent
             ) =>
           inputModel shouldBe SimpleInputContainer(voltageSensitiveInput)
           modelConfig shouldBe modelConfig

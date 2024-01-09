@@ -101,7 +101,6 @@ class DBFSAlgorithmParticipantSpec
       val gridAgentInitData = GridAgentInitData(
         hvGridContainer,
         Seq.empty,
-        Seq.empty[ThermalGrid],
         subGridGateToActorRef,
         RefSystem("2000 MVA", "110 kV")
       )

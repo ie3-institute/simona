@@ -16,7 +16,7 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
-import squants.Each
+import squants.{Each, Power}
 import squants.energy.{Kilowatts, Megawatts, Watts}
 
 import java.util.UUID
