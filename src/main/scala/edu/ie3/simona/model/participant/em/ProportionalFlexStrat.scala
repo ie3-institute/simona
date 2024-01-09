@@ -9,6 +9,7 @@ package edu.ie3.simona.model.participant.em
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.model.participant.em.EmModelStrat.tolerance
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
+import squants.Power
 import squants.energy.Kilowatts
 
 import java.util.UUID
@@ -31,13 +32,13 @@ object ProportionalFlexStrat extends EmModelStrat {
       modelFlexOptions: Iterable[
         (_ <: AssetInput, ProvideMinMaxFlexOptions)
       ],
-      target: squants.Power
-  ): Iterable[(UUID, squants.Power)] = {
+      target: Power
+  ): Iterable[(UUID, Power)] = {
 
     // Input models are not needed here
     val flexOptions = modelFlexOptions
-      .map { case (inputModel, flexOptions) =>
-        inputModel.getUuid -> flexOptions
+      .map { case (_, flexOptions) =>
+        flexOptions
       }
 
     // sum up reference, minimum and maximum power of all connected devices
@@ -47,7 +48,7 @@ object ProportionalFlexStrat extends EmModelStrat {
       ) {
         case (
               (sumRef, sumMin, sumMax),
-              (_, ProvideMinMaxFlexOptions(_, addRef, addMin, addMax))
+              ProvideMinMaxFlexOptions(_, addRef, addMin, addMax)
             ) =>
           (
             sumRef + addRef,
@@ -60,14 +61,14 @@ object ProportionalFlexStrat extends EmModelStrat {
       Seq.empty
     } else if (target < totalRef) {
       val reducedOptions = flexOptions.map {
-        case (uuid, ProvideMinMaxFlexOptions(_, refPower, minPower, _)) =>
+        case ProvideMinMaxFlexOptions(uuid, refPower, minPower, _) =>
           (uuid, refPower, minPower)
       }
 
       distributeFlexibility(target, totalRef, totalMin, reducedOptions)
     } else {
       val reducedOptions = flexOptions.map {
-        case (uuid, ProvideMinMaxFlexOptions(_, refPower, _, maxPower)) =>
+        case ProvideMinMaxFlexOptions(uuid, refPower, _, maxPower) =>
           (uuid, refPower, maxPower)
       }
 
@@ -89,11 +90,11 @@ object ProportionalFlexStrat extends EmModelStrat {
     *   Power set points for devices, if applicable
     */
   private def distributeFlexibility(
-      target: squants.Power,
-      totalRef: squants.Power,
-      totalLimit: squants.Power,
-      options: Iterable[(UUID, squants.Power, squants.Power)]
-  ): Iterable[(UUID, squants.Power)] = {
+      target: Power,
+      totalRef: Power,
+      totalLimit: Power,
+      options: Iterable[(UUID, Power, Power)]
+  ): Iterable[(UUID, Power)] = {
     // filter out options with ref == limit because they're useless here
     val filteredOptions = options.filterNot { case (_, refPower, limitPower) =>
       refPower.~=(limitPower)(tolerance)

@@ -15,6 +15,7 @@ import edu.ie3.datamodel.models.input.system.{
 }
 import edu.ie3.simona.model.participant.em.EmModelStrat.tolerance
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
+import squants.Power
 import squants.energy.Kilowatts
 
 import java.util.UUID
@@ -47,8 +48,8 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
       flexOptions: Iterable[
         (_ <: AssetInput, ProvideMinMaxFlexOptions)
       ],
-      target: squants.Power
-  ): Seq[(UUID, squants.Power)] = {
+      target: Power
+  ): Seq[(UUID, Power)] = {
 
     val totalRefPower =
       flexOptions
@@ -87,7 +88,7 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
         Seq(evcsOpt, storageOpt, heatPumpOpt, pvOpt).flatten
 
       orderedParticipants.foldLeft(
-        (Seq.empty[(UUID, squants.Power)], Option(targetDelta))
+        (Seq.empty[(UUID, Power)], Option(targetDelta))
       ) {
         case (
               (issueCtrlMsgs, Some(remainingExcessPower)),
@@ -137,7 +138,7 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
       val orderedParticipants = Seq(storageOpt, evcsOpt, heatPumpOpt).flatten
 
       orderedParticipants.foldLeft(
-        (Seq.empty[(UUID, squants.Power)], Option(targetDelta))
+        (Seq.empty[(UUID, Power)], Option(targetDelta))
       ) {
         case (
               (issueCtrlMsgs, Some(remainingExcessPower)),

@@ -6,12 +6,13 @@
 
 package edu.ie3.simona.model.participant.em
 
-import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.helper.TableDrivenHelper
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatestplus.mockito.MockitoSugar
+import squants.Power
 import squants.energy.{Kilowatts, Watts}
 
 import java.util.UUID
@@ -22,13 +23,13 @@ class ProportionalFlexStratSpec
     with TableDrivenHelper
     with MockitoSugar {
 
-  private implicit val powerTolerance: squants.Power = Watts(0.1)
+  private implicit val powerTolerance: Power = Watts(0.1)
 
   "The proportional flex model" should {
 
     "determine flex control dependent on flex options" in {
 
-      val spi = mock[SystemParticipantInput] // is not used
+      val spi = mock[AssetInput] // is not used
 
       val cases = Table(
         (
