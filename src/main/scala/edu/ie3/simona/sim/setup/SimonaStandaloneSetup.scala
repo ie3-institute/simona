@@ -6,12 +6,6 @@
 
 package edu.ie3.simona.sim.setup
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.{
-  ClassicActorContextOps,
-  ClassicActorRefOps,
-  TypedActorRefOps
-}
-import org.apache.pekko.actor.{ActorContext, ActorRef, ActorSystem}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.graph.SubGridTopologyGraph
@@ -19,7 +13,7 @@ import edu.ie3.datamodel.models.input.container.{GridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.agent.grid.{GridAgent, ReceivedValues}
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.data.ExtData
 import edu.ie3.simona.api.data.ev.{ExtEvData, ExtEvSimulation}
@@ -42,6 +36,12 @@ import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.TimeUtil
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
+  ClassicActorContextOps,
+  ClassicActorRefOps,
+  TypedActorRefOps
+}
+import org.apache.pekko.actor.{ActorContext, ActorRef, ActorSystem}
 
 import java.util.concurrent.LinkedBlockingQueue
 import scala.jdk.CollectionConverters._
@@ -129,7 +129,7 @@ class SimonaStandaloneSetup(
           thermalGrids
         )
 
-        currentActorRef ! GridAgent.Create(gridAgentInitData, key)
+        currentActorRef ! ReceivedValues.Create(gridAgentInitData, key)
 
         currentActorRef
       }
@@ -326,15 +326,15 @@ class SimonaStandaloneSetup(
       .asScala
       .map(subGridContainer => {
         val gridAgentRef =
-          context.simonaActorOf(
-            GridAgent.props(
+          context.spawn(
+            GridAgent(
               environmentRefs,
               simonaConfig,
               systemParticipantListener
             ),
             subGridContainer.getSubnet.toString
           )
-        subGridContainer.getSubnet -> gridAgentRef
+        subGridContainer.getSubnet -> gridAgentRef.toClassic
       })
       .toMap
   }

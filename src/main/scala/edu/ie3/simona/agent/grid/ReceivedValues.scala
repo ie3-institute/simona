@@ -6,9 +6,12 @@
 
 package edu.ie3.simona.agent.grid
 
-import org.apache.pekko.actor.ActorRef
+import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.ontology.messages.PowerMessage.PowerResponseMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.{ActorRef => classicRef}
 
 /** Serves as a wrapper class that allows for matches against received values in
   * [[DBFSAlgorithm]]
@@ -17,8 +20,11 @@ sealed trait ReceivedValues
 
 object ReceivedValues {
 
-  type ActorPowerRequestResponse = (ActorRef, PowerResponseMessage)
-  type ActorSlackVoltageRequestResponse = (ActorRef, ProvideSlackVoltageMessage)
+  type ActorPowerRequestResponse = (classicRef, PowerResponseMessage)
+  type ActorSlackVoltageRequestResponse =
+    (ActorRef[GridAgentMessage], ProvideSlackVoltageMessage)
+
+  sealed trait ReceivedTickValues extends ReceivedValues
 
   sealed trait ReceivedPowerValues extends ReceivedValues {
     def values: Vector[ActorPowerRequestResponse]
@@ -51,4 +57,53 @@ object ReceivedValues {
       values: Vector[ActorSlackVoltageRequestResponse]
   ) extends ReceivedValues
 
+  /** GridAgent initialization data can only be constructed once all GridAgent
+    * actors are created. Thus, we need an extra initialization message.
+    *
+    * @param gridAgentInitData
+    *   The initialization data
+    */
+  final case class Create(
+      gridAgentInitData: GridAgentInitData,
+      unlockKey: ScheduleKey
+  ) extends ReceivedTickValues
+
+  /** Trigger used inside of [[edu.ie3.simona.agent.grid.DBFSAlgorithm]] to
+    * execute a power flow calculation
+    *
+    * @param tick
+    *   current tick
+    */
+  final case class DoPowerFlowTrigger(tick: Long, currentSweepNo: Int)
+      extends ReceivedTickValues
+
+  /** Trigger used inside of [[edu.ie3.simona.agent.grid.DBFSAlgorithm]] to
+    * activate the superior grid agent to check for deviation after two sweeps
+    * and see if the power flow converges
+    *
+    * @param tick
+    *   current tick
+    */
+  final case class CheckPowerDifferencesTrigger(tick: Long)
+      extends ReceivedTickValues
+
+  /** Trigger used inside of [[edu.ie3.simona.agent.grid.DBFSAlgorithm]] to
+    * trigger the [[edu.ie3.simona.agent.grid.GridAgent]] s to prepare
+    * themselves for a new sweep
+    *
+    * @param tick
+    *   current tick
+    */
+  final case class PrepareNextSweepTrigger(tick: Long)
+      extends ReceivedTickValues
+
+  /** Trigger used inside of [[edu.ie3.simona.agent.grid.DBFSAlgorithm]] to
+    * indicate that a result has been found and each
+    * [[edu.ie3.simona.agent.grid.GridAgent]] should do it's cleanup work
+    *
+    * @param tick
+    *   current tick
+    */
+  final case class FinishGridSimulationTrigger(tick: Long)
+      extends ReceivedTickValues
 }

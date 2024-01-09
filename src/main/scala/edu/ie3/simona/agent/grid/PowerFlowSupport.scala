@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import org.apache.pekko.event.LoggingAdapter
 import breeze.math.Complex
 import edu.ie3.powerflow.NewtonRaphsonPF
 import edu.ie3.powerflow.model.NodeData.{PresetData, StateData}
@@ -20,6 +19,7 @@ import edu.ie3.simona.model.grid._
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvidePowerMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 import edu.ie3.util.scala.quantities.Kilovars
+import org.slf4j.Logger
 import squants.electro.ElectricPotential
 import squants.energy.Kilowatts
 
@@ -31,8 +31,6 @@ import scala.util.{Failure, Success, Try}
   * [[edu.ie3.powerflow]]
   */
 trait PowerFlowSupport {
-
-  protected val log: LoggingAdapter
 
   /** Composes the current operation point needed by
     * [[edu.ie3.powerflow.NewtonRaphsonPF.calculate()]]
@@ -561,7 +559,7 @@ trait PowerFlowSupport {
       maxIterations: Int,
       operatingPoint: Array[PresetData],
       slackVoltages: WithForcedStartVoltages
-  )(epsilons: Vector[Double]): PowerFlowResult = {
+  )(epsilons: Vector[Double])(implicit log: Logger): PowerFlowResult = {
     epsilons.headOption match {
       case Some(epsilon) =>
         val admittanceMatrix =
