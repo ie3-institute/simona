@@ -19,8 +19,6 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
 import java.time.ZonedDateTime
 import java.util.UUID
 
-/** TODO use own type of exceptions
-  */
 final case class FlexCorrespondenceStore(
     store: Map[UUID, FlexCorrespondence] = Map.empty
 )(implicit val startDate: ZonedDateTime) {
@@ -62,17 +60,14 @@ final case class FlexCorrespondenceStore(
   private def updateCorrespondence(
       modelUuid: UUID,
       update: FlexCorrespondence => FlexCorrespondence
-  ): FlexCorrespondenceStore =
-    copy(store = store.updated(modelUuid, update(get(modelUuid))))
+  ): FlexCorrespondenceStore = {
+    val correspondence = store.getOrElse(
+      modelUuid,
+      FlexCorrespondence()
+    )
+    copy(store = store.updated(modelUuid, update(correspondence)))
+  }
 
-  private def get(modelUuid: UUID): FlexCorrespondence =
-    store
-      .getOrElse(
-        modelUuid,
-        throw new RuntimeException(
-          s"No flex correspondences found for $modelUuid"
-        )
-      )
 }
 
 object FlexCorrespondenceStore {

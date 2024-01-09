@@ -125,8 +125,10 @@ object EmDataCore {
     def handleFlexOptions(
         flexOptions: ProvideFlexOptions
     ): AwaitingFlexOptions =
-      copy(correspondenceStore =
-        correspondenceStore.updateFlexOptions(flexOptions, activeTick)
+      copy(
+        correspondenceStore =
+          correspondenceStore.updateFlexOptions(flexOptions, activeTick),
+        awaitedFlexOptions = awaitedFlexOptions.excl(flexOptions.modelUuid)
       )
 
     def isComplete: Boolean = awaitedFlexOptions.isEmpty
@@ -202,9 +204,10 @@ object EmDataCore {
           modelToActor,
           activationQueue = activationQueue,
           correspondenceStore = correspondenceStore,
-          awaitedResults = currentCtrlMessages.map { case (participant, _) =>
-            participant
-          }.toSet,
+          awaitedCompletions =
+            currentCtrlMessages.map { case (participant, _) =>
+              participant
+            }.toSet,
           activeTick = activeTick
         )
       )
@@ -216,19 +219,19 @@ object EmDataCore {
     * @param flexWithNext
     *   to be asked for flex options with the following active tick, whatever
     *   that tick is going to be (not with the currently active tick though!)
-    * @param lastActiveTick
+    * @param activeTick
     */
   final case class AwaitingResults(
       private val modelToActor: Map[UUID, Actor],
       private val activationQueue: PriorityMultiBiSet[Long, UUID],
       private val flexWithNext: Set[UUID] = Set.empty,
       private val correspondenceStore: FlexCorrespondenceStore,
-      private val awaitedResults: Set[UUID],
+      private val awaitedCompletions: Set[UUID],
       activeTick: Long
   ) {
 
     def checkCompletion(model: UUID): Boolean =
-      awaitedResults.contains(model)
+      awaitedCompletions.contains(model)
 
     def handleCompletion(completion: FlexCtrlCompletion): AwaitingResults = {
 
@@ -251,13 +254,13 @@ object EmDataCore {
       copy(
         correspondenceStore = updatedCorrespondence,
         flexWithNext = updatedFlexWithNext,
-        awaitedResults = awaitedResults.excl(completion.modelUuid)
+        awaitedCompletions = awaitedCompletions.excl(completion.modelUuid)
       )
     }
 
     def maybeComplete(): Option[(Option[Long], Inactive)] =
       Option.when(
-        awaitedResults.isEmpty &&
+        awaitedCompletions.isEmpty &&
           !activationQueue.headKeyOption.contains(activeTick)
       ) {
         (
