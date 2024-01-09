@@ -11,6 +11,7 @@ import static edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.system.type.evcslocation.EvcsLocationType
 import edu.ie3.simona.api.data.ev.model.EvModel
+import edu.ie3.simona.model.participant.evcs.EvcsModel
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.test.common.model.MockEvModel
 import edu.ie3.util.scala.OperationInterval

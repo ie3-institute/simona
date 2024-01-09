@@ -317,7 +317,7 @@ protected trait ParticipantAgentFundamentals[
         releaseTick()
 
         log.debug(s"Going to {}, using {}", Idle, baseStateData)
-        scheduler ! Completion(self.toTyped, newTick)
+        scheduler ! Completion(self.toTyped, newTick) // FIXME em controlled
         goto(Idle) using nextBaseStateData
       }
     } catch {
