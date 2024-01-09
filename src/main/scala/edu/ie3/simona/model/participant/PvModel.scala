@@ -54,7 +54,7 @@ final case class PvModel private (
   /** Override sMax as the power output of a pv unit could become easily up to
     * 10% higher than the sRated value found in the technical sheets
     */
-  override protected val sMax: Power = sRated * 1.1
+  override val sMax: Power = sRated * 1.1
 
   /** Permissible maximum active power feed in (therefore negative) */
   protected val pMax: Power = sMax * cosPhiRated * -1d
