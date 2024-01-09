@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.participant.em
 
-import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
 
 /** Offers method for aggregating flex options from connected agents which will
@@ -23,7 +23,7 @@ trait EmAggregateFlex {
     */
   def aggregateFlexOptions(
       flexOptions: Iterable[
-        (_ <: SystemParticipantInput, ProvideMinMaxFlexOptions)
+        (_ <: AssetInput, ProvideMinMaxFlexOptions)
       ]
   ): (squants.Power, squants.Power, squants.Power)
 }

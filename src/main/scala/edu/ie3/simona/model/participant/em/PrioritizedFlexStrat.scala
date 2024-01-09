@@ -6,12 +6,12 @@
 
 package edu.ie3.simona.model.participant.em
 
+import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.datamodel.models.input.system.{
   EvcsInput,
   HpInput,
   PvInput,
-  StorageInput,
-  SystemParticipantInput
+  StorageInput
 }
 import edu.ie3.simona.model.participant.em.EmModelStrat.tolerance
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
@@ -25,7 +25,7 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
     * are controlled by this strategy
     */
   // TODO configurable
-  private val controllableAssets: Seq[Class[_ <: SystemParticipantInput]] =
+  private val controllableAssets: Seq[Class[_ <: AssetInput]] =
     Seq(classOf[HpInput], classOf[StorageInput], classOf[EvcsInput]) ++ Option
       .when(pvFlex)(Seq(classOf[PvInput]))
       .getOrElse(Seq.empty)
@@ -45,7 +45,7 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
     */
   override def determineDeviceControl(
       flexOptions: Iterable[
-        (_ <: SystemParticipantInput, ProvideMinMaxFlexOptions)
+        (_ <: AssetInput, ProvideMinMaxFlexOptions)
       ],
       target: squants.Power
   ): Seq[(UUID, squants.Power)] = {
@@ -91,7 +91,7 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
       ) {
         case (
               (issueCtrlMsgs, Some(remainingExcessPower)),
-              (spi, flexOption: ProvideMinMaxFlexOptions)
+              (inputModel, flexOption: ProvideMinMaxFlexOptions)
             ) =>
           // potential for decreasing feed-in/increasing load (negative)
           val flexPotential =
@@ -107,7 +107,7 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
             // we cannot cover the excess feed-in with just this flexibility,
             // thus use all of the available flexibility and continue
             (
-              issueCtrlMsgs :+ (spi.getUuid, flexOption.maxPower),
+              issueCtrlMsgs :+ (inputModel.getUuid, flexOption.maxPower),
               Some(remainingExcessPower - flexPotential)
             )
           } else {
@@ -119,7 +119,7 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
             )
 
             (
-              issueCtrlMsgs :+ (spi.getUuid, powerCtrl),
+              issueCtrlMsgs :+ (inputModel.getUuid, powerCtrl),
               None
             )
           }
@@ -141,7 +141,7 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
       ) {
         case (
               (issueCtrlMsgs, Some(remainingExcessPower)),
-              (spi, flexOption: ProvideMinMaxFlexOptions)
+              (inputModel, flexOption: ProvideMinMaxFlexOptions)
             ) =>
           // potential for decreasing load/increasing feed-in
           val flexPotential =
@@ -157,7 +157,7 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
             // we cannot cover the excess load with just this flexibility,
             // thus use all of the available flexibility and continue
             (
-              issueCtrlMsgs :+ (spi.getUuid, flexOption.minPower),
+              issueCtrlMsgs :+ (inputModel.getUuid, flexOption.minPower),
               Some(remainingExcessPower - flexPotential)
             )
           } else {
@@ -169,7 +169,7 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
             )
 
             (
-              issueCtrlMsgs :+ (spi.getUuid, powerCtrl),
+              issueCtrlMsgs :+ (inputModel.getUuid, powerCtrl),
               None
             )
           }
@@ -185,10 +185,10 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
 
   // TODO provide test
   override def adaptFlexOptions(
-      spi: SystemParticipantInput,
+      inputModel: AssetInput,
       flexOptions: ProvideMinMaxFlexOptions
   ): ProvideMinMaxFlexOptions = {
-    if (controllableAssets.contains(spi.getClass))
+    if (controllableAssets.contains(inputModel.getClass))
       flexOptions
     else {
       // device is not controllable by this EmAgent

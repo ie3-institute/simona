@@ -816,12 +816,12 @@ protected trait ParticipantAgentFundamentals[
   ): Unit = {
     if (setPower < flexOptions.minPower)
       throw new RuntimeException(
-        s"The set power $setPower for ${flexOptions.model} must not be lower than the minimum power ${flexOptions.minPower}!"
+        s"The set power $setPower for ${flexOptions.modelUuid} must not be lower than the minimum power ${flexOptions.minPower}!"
       )
 
     if (setPower > flexOptions.maxPower)
       throw new RuntimeException(
-        s"The set power $setPower for ${flexOptions.model} must not be greater than the maximum power ${flexOptions.maxPower}!"
+        s"The set power $setPower for ${flexOptions.modelUuid} must not be greater than the maximum power ${flexOptions.maxPower}!"
       )
   }
 

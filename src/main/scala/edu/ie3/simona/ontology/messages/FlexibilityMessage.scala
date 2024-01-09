@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.ontology.messages
 
-import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.em.EmAgent.EmMessage
@@ -24,17 +24,17 @@ object FlexibilityMessage {
   }
 
   sealed trait FlexResponse extends EmMessage {
-    val model: UUID
+    val modelUuid: UUID
   }
 
   final case class RegisterParticipant(
-      override val model: UUID,
+      override val modelUuid: UUID,
       participant: ActorRef[FlexRequest],
-      spi: SystemParticipantInput
+      inputModel: AssetInput
   ) extends FlexResponse
 
   final case class ScheduleFlexRequest(
-      override val model: UUID,
+      override val modelUuid: UUID,
       tick: Long,
       scheduleKey: Option[ScheduleKey] = None
   ) extends FlexResponse
@@ -50,10 +50,10 @@ object FlexibilityMessage {
 
   object ProvideFlexOptions {
     def noFlexOption(
-        model: UUID,
+        modelUuid: UUID,
         power: Power
     ): ProvideMinMaxFlexOptions =
-      ProvideMinMaxFlexOptions(model, power, power, power)
+      ProvideMinMaxFlexOptions(modelUuid, power, power, power)
   }
 
   /** EmAgent issues flexibility control
@@ -64,7 +64,7 @@ object FlexibilityMessage {
     * minimum and maximum power. All powers can be negative, signifying a
     * feed-in
     *
-    * @param model
+    * @param modelUuid
     *   the uuid of the input model that references the system participant
     * @param referencePower
     *   the active power that the system participant would produce/consume
@@ -75,7 +75,7 @@ object FlexibilityMessage {
     *   the maximum power that the system participant allows
     */
   final case class ProvideMinMaxFlexOptions(
-      override val model: UUID,
+      override val modelUuid: UUID,
       referencePower: Power,
       minPower: Power,
       maxPower: Power
@@ -112,7 +112,7 @@ object FlexibilityMessage {
     *   tick at which flex options are foreseen to have changed
     */
   final case class FlexCtrlCompletion(
-      override val model: UUID,
+      override val modelUuid: UUID,
       result: ApparentPower,
       requestAtNextActivation: Boolean = false,
       requestAtTick: Option[Long] = None

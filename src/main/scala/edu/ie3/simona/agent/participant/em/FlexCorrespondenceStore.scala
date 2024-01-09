@@ -34,43 +34,43 @@ final case class FlexCorrespondenceStore(
         Some(WithTime(flexOptions, tick))
       )
 
-    updateCorrespondence(flexOptions.model, update)
+    updateCorrespondence(flexOptions.modelUuid, update)
   }
 
   def updateFlexControl(
-      model: UUID,
+      modelUuid: UUID,
       flexControl: IssueFlexControl,
       tick: Long
   ): FlexCorrespondenceStore = {
     val update: FlexCorrespondence => FlexCorrespondence = correspondence =>
       correspondence.copy(issuedCtrlMsg = Some(WithTime(flexControl, tick)))
 
-    updateCorrespondence(model, update)
+    updateCorrespondence(modelUuid, update)
   }
 
   def updateResult(
-      model: UUID,
+      modelUuid: UUID,
       result: ApparentPower,
       tick: Long
   ): FlexCorrespondenceStore = {
     val update: FlexCorrespondence => FlexCorrespondence = correspondence =>
       correspondence.copy(receivedResult = Some(WithTime(result, tick)))
 
-    updateCorrespondence(model, update)
+    updateCorrespondence(modelUuid, update)
   }
 
   private def updateCorrespondence(
-      model: UUID,
+      modelUuid: UUID,
       update: FlexCorrespondence => FlexCorrespondence
   ): FlexCorrespondenceStore =
-    copy(store = store.updated(model, update(get(model))))
+    copy(store = store.updated(modelUuid, update(get(modelUuid))))
 
-  private def get(model: UUID): FlexCorrespondence =
+  private def get(modelUuid: UUID): FlexCorrespondence =
     store
       .getOrElse(
-        model,
+        modelUuid,
         throw new RuntimeException(
-          s"No flex correspondences found for $model"
+          s"No flex correspondences found for $modelUuid"
         )
       )
 }

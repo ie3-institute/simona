@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.participant.em
 
-import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.model.participant.em.EmModelStrat.tolerance
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
 import squants.energy.Kilowatts
@@ -20,7 +20,7 @@ object ProportionalFlexStrat extends EmModelStrat {
     * set to use the same share of their respective flexibility to reach target
     * power.
     *
-    * @param spiFlexOptions
+    * @param modelFlexOptions
     *   The flex options per connected system participant
     * @param target
     *   The target power to aim for when utilizing flexibility
@@ -28,16 +28,16 @@ object ProportionalFlexStrat extends EmModelStrat {
     *   Power set points for devices, if applicable
     */
   override def determineDeviceControl(
-      spiFlexOptions: Iterable[
-        (_ <: SystemParticipantInput, ProvideMinMaxFlexOptions)
+      modelFlexOptions: Iterable[
+        (_ <: AssetInput, ProvideMinMaxFlexOptions)
       ],
       target: squants.Power
   ): Iterable[(UUID, squants.Power)] = {
 
-    // SPIs are not needed here
-    val flexOptions = spiFlexOptions
-      .map { case (spi, flexOptions) =>
-        spi.getUuid -> flexOptions
+    // Input models are not needed here
+    val flexOptions = modelFlexOptions
+      .map { case (inputModel, flexOptions) =>
+        inputModel.getUuid -> flexOptions
       }
 
     // sum up reference, minimum and maximum power of all connected devices
@@ -126,7 +126,7 @@ object ProportionalFlexStrat extends EmModelStrat {
   }
 
   override def adaptFlexOptions(
-      spi: SystemParticipantInput,
+      inputModel: AssetInput,
       flexOptions: ProvideMinMaxFlexOptions
   ): ProvideMinMaxFlexOptions =
     flexOptions

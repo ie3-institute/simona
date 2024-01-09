@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.participant.em
 
-import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   ProvideFlexOptions,
@@ -26,12 +26,13 @@ final case class EmModelShell(
     id: String,
     modelStrategy: EmModelStrat,
     aggregateFlex: EmAggregateFlex,
-    modelToParticipantInput: Map[UUID, SystemParticipantInput] = Map.empty
+    modelToParticipantInput: Map[UUID, AssetInput] = Map.empty
 ) {
 
-  def addParticipant(model: UUID, spi: SystemParticipantInput): EmModelShell =
+  def addParticipant(modelUuid: UUID, inputModel: AssetInput): EmModelShell =
     copy(
-      modelToParticipantInput = modelToParticipantInput.updated(model, spi)
+      modelToParticipantInput =
+        modelToParticipantInput.updated(modelUuid, inputModel)
     )
 
   def aggregateFlexOptions(

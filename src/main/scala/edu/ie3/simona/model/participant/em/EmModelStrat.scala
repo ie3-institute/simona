@@ -6,13 +6,11 @@
 
 package edu.ie3.simona.model.participant.em
 
-import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
 import squants.energy.Kilowatts
-import tech.units.indriya.ComparableQuantity
 
 import java.util.UUID
-import javax.measure.quantity.Power
 
 trait EmModelStrat {
 
@@ -27,13 +25,13 @@ trait EmModelStrat {
     */
   def determineDeviceControl(
       flexOptions: Iterable[
-        (_ <: SystemParticipantInput, ProvideMinMaxFlexOptions)
+        (_ <: AssetInput, ProvideMinMaxFlexOptions)
       ],
       target: squants.Power
   ): Iterable[(UUID, squants.Power)]
 
   def adaptFlexOptions(
-      spi: SystemParticipantInput,
+      spi: AssetInput,
       flexOptions: ProvideMinMaxFlexOptions
   ): ProvideMinMaxFlexOptions
 }

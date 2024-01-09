@@ -234,24 +234,24 @@ object EmDataCore {
 
       // mutable queue
       completion.requestAtTick
-        .foreach { activationQueue.set(_, completion.model) }
+        .foreach { activationQueue.set(_, completion.modelUuid) }
 
       val updatedCorrespondence =
         correspondenceStore.updateResult(
-          completion.model,
+          completion.modelUuid,
           completion.result,
           activeTick
         )
 
       val updatedFlexWithNext =
         if (completion.requestAtNextActivation)
-          flexWithNext.incl(completion.model)
+          flexWithNext.incl(completion.modelUuid)
         else flexWithNext
 
       copy(
         correspondenceStore = updatedCorrespondence,
         flexWithNext = updatedFlexWithNext,
-        awaitedResults = awaitedResults.excl(completion.model)
+        awaitedResults = awaitedResults.excl(completion.modelUuid)
       )
     }
 

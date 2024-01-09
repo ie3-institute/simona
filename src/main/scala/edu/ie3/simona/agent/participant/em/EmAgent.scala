@@ -64,6 +64,13 @@ object EmAgent {
         val flexAdapter = ctx.messageAdapter[FlexRequest] { msg =>
           Flex(msg)
         }
+
+        parentEm ! RegisterParticipant(
+          inputModel.getUuid,
+          flexAdapter,
+          inputModel
+        )
+
         FlexStateData(parentEm, flexAdapter)
       },
       maybeRootEmConfig.map(
@@ -312,9 +319,9 @@ object EmAgent {
     case (ctx, completion: FlexCtrlCompletion) =>
       Either
         .cond(
-          core.checkCompletion(completion.model),
+          core.checkCompletion(completion.modelUuid),
           core.handleCompletion(completion),
-          s"Participant ${completion.model} is not part of the expected completing participants"
+          s"Participant ${completion.modelUuid} is not part of the expected completing participants"
         )
         .map {
           _.maybeComplete()
@@ -404,13 +411,13 @@ object EmAgent {
     if (setPower < flexOptions.minPower)
       Failure(
         new RuntimeException(
-          s"The set power $setPower for ${flexOptions.model} must not be lower than the minimum power ${flexOptions.minPower}!"
+          s"The set power $setPower for ${flexOptions.modelUuid} must not be lower than the minimum power ${flexOptions.minPower}!"
         )
       )
     else if (setPower > flexOptions.maxPower)
       Failure(
         new RuntimeException(
-          s"The set power $setPower for ${flexOptions.model} must not be greater than the maximum power ${flexOptions.maxPower}!"
+          s"The set power $setPower for ${flexOptions.modelUuid} must not be greater than the maximum power ${flexOptions.maxPower}!"
         )
       )
     else
