@@ -114,12 +114,12 @@ object EmDataCore {
     def takeNewActivations(): (Iterable[Actor], AwaitingFlexOptions) = {
       val toActivate = activationQueue
         .getAndRemoveSet(activeTick)
-      val newActiveCore =
+      val newFlexOptionsCore =
         copy(awaitedFlexOptions = awaitedFlexOptions.concat(toActivate))
       val participants = toActivate.map(
         modelToActor.getOrElse(_, throw new RuntimeException(""))
       )
-      (participants, newActiveCore)
+      (participants, newFlexOptionsCore)
     }
 
     def handleFlexOptions(
@@ -182,7 +182,8 @@ object EmDataCore {
       copy(correspondenceStore = updatedStore)
     }
 
-    def complete(): (Iterable[(Actor, IssueFlexControl)], AwaitingResults) = {
+    def complete()
+        : (Iterable[(Actor, IssueFlexControl)], AwaitingCompletions) = {
 
       val currentCtrlMessages = correspondenceStore.store.flatMap {
         case (model, correspondence) =>
@@ -200,7 +201,7 @@ object EmDataCore {
             issueCtrl
           )
         },
-        AwaitingResults(
+        AwaitingCompletions(
           modelToActor,
           activationQueue = activationQueue,
           correspondenceStore = correspondenceStore,
@@ -221,7 +222,7 @@ object EmDataCore {
     *   that tick is going to be (not with the currently active tick though!)
     * @param activeTick
     */
-  final case class AwaitingResults(
+  final case class AwaitingCompletions(
       private val modelToActor: Map[UUID, Actor],
       private val activationQueue: PriorityMultiBiSet[Long, UUID],
       private val flexWithNext: Set[UUID] = Set.empty,
@@ -233,7 +234,9 @@ object EmDataCore {
     def checkCompletion(modelUuid: UUID): Boolean =
       awaitedCompletions.contains(modelUuid)
 
-    def handleCompletion(completion: FlexCtrlCompletion): AwaitingResults = {
+    def handleCompletion(
+        completion: FlexCtrlCompletion
+    ): AwaitingCompletions = {
 
       // mutable queue
       completion.requestAtTick

@@ -245,7 +245,7 @@ object EmAgent {
               actor ! msg
             }
 
-            awaitingResults(stateData, modelShell, newCore)
+            awaitingCompletions(stateData, modelShell, newCore)
 
         }
 
@@ -304,7 +304,7 @@ object EmAgent {
           actor ! msg
         }
 
-        awaitingResults(stateData, modelShell, newCore)
+        awaitingCompletions(stateData, modelShell, newCore)
       }.getOrElse {
         stopOnError(ctx, "") // TODO
       }
@@ -314,10 +314,10 @@ object EmAgent {
 
   }
 
-  private def awaitingResults(
+  private def awaitingCompletions(
       stateData: EmData,
       modelShell: EmModelShell,
-      core: EmDataCore.AwaitingResults
+      core: EmDataCore.AwaitingCompletions
   ): Behavior[EmMessage] = Behaviors.receive {
     // Completions and results
     case (ctx, completion: FlexCtrlCompletion) =>
@@ -376,7 +376,7 @@ object EmAgent {
             }
             .getOrElse {
               // more flex options expected
-              awaitingResults(
+              awaitingCompletions(
                 stateData,
                 modelShell,
                 updatedCore
