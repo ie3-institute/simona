@@ -230,8 +230,8 @@ object EmDataCore {
       activeTick: Long
   ) {
 
-    def checkCompletion(model: UUID): Boolean =
-      awaitedCompletions.contains(model)
+    def checkCompletion(modelUuid: UUID): Boolean =
+      awaitedCompletions.contains(modelUuid)
 
     def handleCompletion(completion: FlexCtrlCompletion): AwaitingResults = {
 

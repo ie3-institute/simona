@@ -7,12 +7,14 @@
 package edu.ie3.simona.agent.participant.em
 
 import edu.ie3.datamodel.models.input.system.EmInput
+import edu.ie3.datamodel.models.result.system.EmResult
 import edu.ie3.simona.actor.ActorUtil.stopOnError
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.FlexStateData
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
+import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.em.{EmModelShell, FlexTimeSeries}
 import edu.ie3.simona.ontology.messages.FlexibilityMessage._
@@ -21,6 +23,8 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.Megavars
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
@@ -56,15 +60,14 @@ object EmAgent {
       EmActivation(msg.tick)
     }
 
-    val stateData = EmModelBaseStateData(
+    val stateData = EmData(
       scheduler,
       listener,
       activationAdapter,
       outputConfig,
+      simulationStartDate,
       maybeParentEmAgent.map { parentEm =>
-        val flexAdapter = ctx.messageAdapter[FlexRequest] { msg =>
-          Flex(msg)
-        }
+        val flexAdapter = ctx.messageAdapter[FlexRequest](Flex)
 
         parentEm ! RegisterParticipant(
           inputModel.getUuid,
@@ -94,7 +97,7 @@ object EmAgent {
   }
 
   private def inactive(
-      stateData: EmModelBaseStateData,
+      stateData: EmData,
       modelShell: EmModelShell,
       core: EmDataCore.Inactive
   ): Behavior[EmMessage] = Behaviors.receive {
@@ -162,26 +165,26 @@ object EmAgent {
   }
 
   private def activate(
-      stateData: EmModelBaseStateData,
+      stateData: EmData,
       modelShell: EmModelShell,
       core: EmDataCore.Inactive,
       tick: Long,
       ctx: ActorContext[EmMessage]
   ): Behavior[EmMessage] =
     if (core.checkActivation(tick)) {
-      val (toActivate, activeCore) = core.activate().takeNewActivations()
+      val (toActivate, flexOptionsCore) = core.activate().takeNewActivations()
 
       toActivate.foreach {
         _ ! RequestFlexOptions(tick)
       }
 
-      awaitingFlexOptions(stateData, modelShell, activeCore)
+      awaitingFlexOptions(stateData, modelShell, flexOptionsCore)
     } else {
       stopOnError(ctx, s"Cannot activate with new tick $tick")
     }
 
   private def awaitingFlexOptions(
-      stateData: EmModelBaseStateData,
+      stateData: EmData,
       modelShell: EmModelShell,
       flexOptionsCore: EmDataCore.AwaitingFlexOptions
   ): Behavior[EmMessage] = Behaviors.receive {
@@ -233,7 +236,7 @@ object EmAgent {
             val ctrlSetPoints =
               modelShell.determineDeviceControl(allFlexOptions, setPower)
 
-            val (allFlexMsgs, newCore) = flexOptionsCore
+            val (allFlexMsgs, newCore) = updatedCore
               .handleFlexCtrl(ctrlSetPoints)
               .fillInMissingIssueCtrl()
               .complete()
@@ -265,7 +268,7 @@ object EmAgent {
     * TODO move to trait or object?
     */
   private def awaitingFlexCtrl(
-      stateData: EmModelBaseStateData,
+      stateData: EmData,
       modelShell: EmModelShell,
       flexOptionsCore: EmDataCore.AwaitingFlexOptions
   ): Behavior[EmMessage] = Behaviors.receive {
@@ -312,7 +315,7 @@ object EmAgent {
   }
 
   private def awaitingResults(
-      stateData: EmModelBaseStateData,
+      stateData: EmData,
       modelShell: EmModelShell,
       core: EmDataCore.AwaitingResults
   ): Behavior[EmMessage] = Behaviors.receive {
@@ -324,11 +327,12 @@ object EmAgent {
           core.handleCompletion(completion),
           s"Participant ${completion.modelUuid} is not part of the expected completing participants"
         )
-        .map {
-          _.maybeComplete()
+        .map { updatedCore =>
+          updatedCore
+            .maybeComplete()
             .map { case (maybeScheduleTick, inactiveCore) =>
               // calc result
-              val result = core.getResults
+              val result = updatedCore.getResults
                 .reduceOption { (power1, power2) =>
                   ApparentPower(power1.p + power2.p, power1.q + power2.q)
                 }
@@ -339,7 +343,17 @@ object EmAgent {
                   )
                 )
 
-              // TODO inform listeners
+              stateData.listener.foreach {
+                _ ! ParticipantResultEvent(
+                  new EmResult(
+                    updatedCore.activeTick
+                      .toDateTime(stateData.simulationStartDate),
+                    modelShell.uuid,
+                    result.p.toMegawatts.asMegaWatt,
+                    result.q.toMegavars.asMegaVar
+                  )
+                )
+              }
 
               stateData.flexStateData
                 .map { flexData =>
@@ -365,7 +379,7 @@ object EmAgent {
               awaitingResults(
                 stateData,
                 modelShell,
-                core
+                updatedCore
               )
             }
         }
@@ -425,11 +439,14 @@ object EmAgent {
       Success(())
   }
 
-  private final case class EmModelBaseStateData(
+  /** Data that is supposed to stay constant during simulation
+    */
+  private final case class EmData(
       scheduler: ActorRef[SchedulerMessage],
       listener: Iterable[ActorRef[ResultEvent]],
       activationAdapter: ActorRef[Activation],
       outputConfig: NotifierConfig,
+      simulationStartDate: ZonedDateTime,
       flexStateData: Option[FlexStateData],
       flexTimeSeries: Option[FlexTimeSeries]
   )
