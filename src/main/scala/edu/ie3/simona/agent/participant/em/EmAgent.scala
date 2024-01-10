@@ -12,6 +12,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.FlexStateData
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
+import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.em.{EmModelShell, FlexTimeSeries}
 import edu.ie3.simona.ontology.messages.FlexibilityMessage._
@@ -21,7 +22,6 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.util.scala.quantities.Megavars
-import org.apache.pekko.actor.{ActorRef => ClassicActorRef}
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import squants.Power
@@ -50,7 +50,7 @@ object EmAgent {
       maybeParentEmAgent: Option[ActorRef[FlexResponse]] = None,
       maybeRootEmConfig: Option[SimonaConfig.Simona.Runtime.RootEm] = None,
       scheduler: ActorRef[SchedulerMessage],
-      listener: Iterable[ClassicActorRef]
+      listener: Iterable[ActorRef[ResultEvent]]
   ): Behavior[EmMessage] = Behaviors.setup { ctx =>
     val activationAdapter = ctx.messageAdapter[Activation] { msg =>
       EmActivation(msg.tick)
@@ -58,6 +58,7 @@ object EmAgent {
 
     val stateData = EmModelBaseStateData(
       scheduler,
+      listener,
       activationAdapter,
       outputConfig,
       maybeParentEmAgent.map { parentEm =>
@@ -426,6 +427,7 @@ object EmAgent {
 
   private final case class EmModelBaseStateData(
       scheduler: ActorRef[SchedulerMessage],
+      listener: Iterable[ActorRef[ResultEvent]],
       activationAdapter: ActorRef[Activation],
       outputConfig: NotifierConfig,
       flexStateData: Option[FlexStateData],

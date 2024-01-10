@@ -81,7 +81,7 @@ class EmAgentSpec
           maybeParentEmAgent = None,
           maybeRootEmConfig = None,
           scheduler.ref,
-          listener = Iterable(resultListener.ref.toClassic)
+          listener = Iterable(resultListener.ref)
         )
       )
 
@@ -219,7 +219,7 @@ class EmAgentSpec
           maybeParentEmAgent = None,
           maybeRootEmConfig = None,
           scheduler.ref,
-          listener = Iterable(resultListener.ref.toClassic)
+          listener = Iterable(resultListener.ref)
         )
       )
 
@@ -370,7 +370,7 @@ class EmAgentSpec
           maybeParentEmAgent = None,
           maybeRootEmConfig = None,
           scheduler.ref,
-          listener = Iterable(resultListener.ref.toClassic)
+          listener = Iterable(resultListener.ref)
         )
       )
 
@@ -534,7 +534,7 @@ class EmAgentSpec
           maybeParentEmAgent = Some(parentEmAgent.ref),
           maybeRootEmConfig = None,
           scheduler.ref,
-          listener = Iterable(resultListener.ref.toClassic)
+          listener = Iterable(resultListener.ref)
         )
       )
 

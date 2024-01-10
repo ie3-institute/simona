@@ -92,7 +92,7 @@ class EmAgentIT
     pvFlex = false
   )
 
-  private val tolerance = 1e-10d
+  private implicit val quantityTolerance: Double = 1e-10d
 
   private implicit val classicSystem: ActorSystem = system.toClassic
 
@@ -115,7 +115,7 @@ class EmAgentIT
             maybeParentEmAgent = None,
             maybeRootEmConfig = None,
             scheduler.ref,
-            listener = Iterable(resultListener.ref.toClassic)
+            listener = Iterable(resultListener.ref)
           ),
           "EmAgent"
         )
@@ -383,7 +383,7 @@ class EmAgentIT
             maybeParentEmAgent = None,
             maybeRootEmConfig = None,
             scheduler.ref,
-            listener = Iterable(resultListener.ref.toClassic)
+            listener = Iterable(resultListener.ref)
           ),
           "EmAgent1"
         )
