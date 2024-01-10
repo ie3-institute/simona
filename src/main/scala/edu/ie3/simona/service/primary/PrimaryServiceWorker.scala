@@ -171,6 +171,7 @@ final case class PrimaryServiceWorker[V <: Value](
   ): Try[PrimaryServiceInitializedStateData[V]] = registrationMessage match {
     case ServiceMessage.WorkerRegistrationMessage(requestingActor) =>
       requestingActor ! RegistrationSuccessfulMessage(
+        self,
         serviceStateData.maybeNextActivationTick
       )
       val subscribers = serviceStateData.subscribers :+ requestingActor

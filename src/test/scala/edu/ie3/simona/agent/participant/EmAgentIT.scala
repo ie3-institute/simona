@@ -204,9 +204,7 @@ class EmAgentIT
         primaryServiceProxy.expectMessage(
           PrimaryServiceRegistrationMessage(loadInput.getUuid)
         )
-        loadAgent ! RegistrationFailedMessage
-
-        scheduler.expectMessage(Completion(loadAgent))
+        loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
         // em agent schedules itself
         val sa1 = scheduler.expectMessageType[ScheduleActivation]
@@ -214,13 +212,15 @@ class EmAgentIT
         sa1.unlockKey shouldBe None
         val emAgentActivation = sa1.actor
 
+        scheduler.expectMessage(Completion(loadAgent))
+
         // pv
         pvAgent ! Activation(INIT_SIM_TICK)
 
         primaryServiceProxy.expectMessage(
           PrimaryServiceRegistrationMessage(pvInput.getUuid)
         )
-        pvAgent ! RegistrationFailedMessage
+        pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
         // deal with weather service registration
         weatherService.expectMessage(
@@ -230,7 +230,10 @@ class EmAgentIT
           )
         )
 
-        pvAgent ! RegistrationSuccessfulMessage(Some(0L))
+        pvAgent ! RegistrationSuccessfulMessage(
+          weatherService.ref.toClassic,
+          Some(0L)
+        )
 
         scheduler.expectMessage(Completion(pvAgent))
 
@@ -240,7 +243,9 @@ class EmAgentIT
         primaryServiceProxy.expectMessage(
           PrimaryServiceRegistrationMessage(householdStorageInput.getUuid)
         )
-        storageAgent ! RegistrationFailedMessage
+        storageAgent ! RegistrationFailedMessage(
+          primaryServiceProxy.ref.toClassic
+        )
 
         scheduler.expectMessage(Completion(storageAgent))
 
@@ -471,9 +476,7 @@ class EmAgentIT
         primaryServiceProxy.expectMessage(
           PrimaryServiceRegistrationMessage(loadInput.getUuid)
         )
-        loadAgent ! RegistrationFailedMessage
-
-        scheduler.expectMessage(Completion(loadAgent))
+        loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
         // em agent schedules itself
         val sa1 = scheduler.expectMessageType[ScheduleActivation]
@@ -481,13 +484,15 @@ class EmAgentIT
         sa1.unlockKey shouldBe None
         val emAgentActivation = sa1.actor
 
+        scheduler.expectMessage(Completion(loadAgent))
+
         // pv
         pvAgent ! Activation(INIT_SIM_TICK)
 
         primaryServiceProxy.expectMessage(
           PrimaryServiceRegistrationMessage(pvInput.getUuid)
         )
-        pvAgent ! RegistrationFailedMessage
+        pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
         // deal with weather service registration
         weatherService.expectMessage(
@@ -497,7 +502,10 @@ class EmAgentIT
           )
         )
 
-        pvAgent ! RegistrationSuccessfulMessage(Some(0L))
+        pvAgent ! RegistrationSuccessfulMessage(
+          weatherService.ref.toClassic,
+          Some(0L)
+        )
 
         scheduler.expectMessage(Completion(pvAgent))
 
@@ -507,7 +515,9 @@ class EmAgentIT
         primaryServiceProxy.expectMessage(
           PrimaryServiceRegistrationMessage(adaptedHpInputModel.getUuid)
         )
-        heatPumpAgent ! RegistrationFailedMessage
+        heatPumpAgent ! RegistrationFailedMessage(
+          primaryServiceProxy.ref.toClassic
+        )
 
         weatherService.expectMessage(
           RegisterForWeatherMessage(

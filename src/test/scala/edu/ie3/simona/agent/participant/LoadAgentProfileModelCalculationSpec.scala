@@ -175,7 +175,10 @@ class LoadAgentProfileModelCalculationSpec
       }
 
       /* Refuse registration */
-      primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        loadAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* Expect a completion notification */
       scheduler.expectMsg(Completion(loadAgent.toTyped, Some(0)))
@@ -235,7 +238,10 @@ class LoadAgentProfileModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        loadAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -288,7 +294,10 @@ class LoadAgentProfileModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        loadAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I am not interested in the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -337,7 +346,10 @@ class LoadAgentProfileModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        loadAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       scheduler.expectMsg(Completion(loadAgent.toTyped, Some(0)))
 

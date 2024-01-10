@@ -159,7 +159,10 @@ class EvcsAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        evcsAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       deathProbe.expectTerminated(evcsAgent.ref)
     }
@@ -246,7 +249,10 @@ class EvcsAgentModelCalculationSpec
       }
 
       /* Refuse registration */
-      primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        evcsAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* Expect a registration message */
       evService.expectMsg(RegisterForEvDataMessage(evcsInputModel.getUuid))
@@ -306,7 +312,10 @@ class EvcsAgentModelCalculationSpec
       }
 
       /* Reply, that registration was successful */
-      evService.send(evcsAgent, RegistrationSuccessfulMessage(None))
+      evService.send(
+        evcsAgent,
+        RegistrationSuccessfulMessage(evService.ref, None)
+      )
 
       /* Expect a completion message */
       scheduler.expectMsg(Completion(evcsAgent.toTyped, None))
@@ -337,11 +346,17 @@ class EvcsAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        evcsAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* Expect a registration message */
       evService.expectMsg(RegisterForEvDataMessage(evcsInputModel.getUuid))
-      evService.send(evcsAgent, RegistrationSuccessfulMessage(Some(900L)))
+      evService.send(
+        evcsAgent,
+        RegistrationSuccessfulMessage(evService.ref, Some(900L))
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -399,11 +414,17 @@ class EvcsAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        evcsAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       evService.expectMsgType[RegisterForEvDataMessage]
-      evService.send(evcsAgent, RegistrationSuccessfulMessage(Some(0L)))
+      evService.send(
+        evcsAgent,
+        RegistrationSuccessfulMessage(evService.ref, Some(0L))
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -529,11 +550,17 @@ class EvcsAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        evcsAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       evService.expectMsgType[RegisterForEvDataMessage]
-      evService.send(evcsAgent, RegistrationSuccessfulMessage(None))
+      evService.send(
+        evcsAgent,
+        RegistrationSuccessfulMessage(evService.ref, None)
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -654,11 +681,17 @@ class EvcsAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        evcsAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       evService.expectMsgType[RegisterForEvDataMessage]
-      evService.send(evcsAgent, RegistrationSuccessfulMessage(None))
+      evService.send(
+        evcsAgent,
+        RegistrationSuccessfulMessage(evService.ref, None)
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -695,11 +728,17 @@ class EvcsAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        evcsAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       evService.expectMsgType[RegisterForEvDataMessage]
-      evService.send(evcsAgent, RegistrationSuccessfulMessage(None))
+      evService.send(
+        evcsAgent,
+        RegistrationSuccessfulMessage(evService.ref, None)
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -781,11 +820,17 @@ class EvcsAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        evcsAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       evService.expectMsgType[RegisterForEvDataMessage]
-      evService.send(evcsAgent, RegistrationSuccessfulMessage(None))
+      evService.send(
+        evcsAgent,
+        RegistrationSuccessfulMessage(evService.ref, None)
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -980,14 +1025,20 @@ class EvcsAgentModelCalculationSpec
       }
 
       /* Refuse registration */
-      primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        evcsAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       emAgent.expectMsg(
         ScheduleFlexRequest(evcsInputModel.getUuid, 0)
       )
 
       evService.expectMsg(RegisterForEvDataMessage(evcsInputModel.getUuid))
-      evService.send(evcsAgent, RegistrationSuccessfulMessage(None))
+      evService.send(
+        evcsAgent,
+        RegistrationSuccessfulMessage(evService.ref, None)
+      )
 
       emAgent.expectMsg(
         FlexCtrlCompletion(
@@ -1103,14 +1154,20 @@ class EvcsAgentModelCalculationSpec
       }
 
       /* Refuse registration */
-      primaryServiceProxy.send(evcsAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        evcsAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       emAgent.expectMsg(
         ScheduleFlexRequest(evcsInputModel.getUuid, 0)
       )
 
       evService.expectMsg(RegisterForEvDataMessage(evcsInputModel.getUuid))
-      evService.send(evcsAgent, RegistrationSuccessfulMessage(None))
+      evService.send(
+        evcsAgent,
+        RegistrationSuccessfulMessage(evService.ref, None)
+      )
 
       emAgent.expectMsg(
         FlexCtrlCompletion(

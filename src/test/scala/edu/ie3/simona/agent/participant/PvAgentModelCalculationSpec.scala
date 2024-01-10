@@ -175,7 +175,10 @@ class PvAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(pvAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        pvAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       deathProbe.expectTerminated(pvAgent.ref)
     }
@@ -262,7 +265,10 @@ class PvAgentModelCalculationSpec
       }
 
       /* Refuse registration */
-      primaryServiceProxy.send(pvAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        pvAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* Expect a registration message */
       weatherService.expectMsg(
@@ -324,7 +330,10 @@ class PvAgentModelCalculationSpec
       }
 
       /* Reply, that registration was successful */
-      weatherService.send(pvAgent, RegistrationSuccessfulMessage(Some(4711L)))
+      weatherService.send(
+        pvAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(4711L))
+      )
 
       /* Expect a completion message */
       scheduler.expectMsg(Completion(pvAgent.toTyped, Some(4711L)))
@@ -357,13 +366,19 @@ class PvAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(pvAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        pvAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* Expect a registration message */
       weatherService.expectMsg(
         RegisterForWeatherMessage(52.02083574, 7.40110716)
       )
-      weatherService.send(pvAgent, RegistrationSuccessfulMessage(Some(900L)))
+      weatherService.send(
+        pvAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(900L))
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -416,11 +431,17 @@ class PvAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(pvAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        pvAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(pvAgent, RegistrationSuccessfulMessage(Some(0L)))
+      weatherService.send(
+        pvAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(0L))
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -517,11 +538,17 @@ class PvAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(pvAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        pvAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(pvAgent, RegistrationSuccessfulMessage(Some(0L)))
+      weatherService.send(
+        pvAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(0L))
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -616,11 +643,17 @@ class PvAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(pvAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        pvAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(pvAgent, RegistrationSuccessfulMessage(Some(3600L)))
+      weatherService.send(
+        pvAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(3600L))
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -676,11 +709,17 @@ class PvAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(pvAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        pvAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(pvAgent, RegistrationSuccessfulMessage(Some(0L)))
+      weatherService.send(
+        pvAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(0L))
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]

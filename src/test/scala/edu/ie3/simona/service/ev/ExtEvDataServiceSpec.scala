@@ -123,7 +123,7 @@ class ExtEvDataServiceSpec
       scheduler.send(evService, Activation(INIT_SIM_TICK))
       scheduler.expectMsg(Completion(evService.toTyped))
 
-      evcs1.expectMsg(RegistrationSuccessfulMessage(None))
+      evcs1.expectMsg(RegistrationSuccessfulMessage(evService.ref, None))
     }
   }
 
@@ -153,10 +153,10 @@ class ExtEvDataServiceSpec
       val evcs2 = TestProbe("evcs2")
 
       evcs1.send(evService, RegisterForEvDataMessage(evcs1UUID))
-      evcs1.expectMsg(RegistrationSuccessfulMessage(None))
+      evcs1.expectMsg(RegistrationSuccessfulMessage(evService.ref, None))
 
       evcs2.send(evService, RegisterForEvDataMessage(evcs2UUID))
-      evcs2.expectMsg(RegistrationSuccessfulMessage(None))
+      evcs2.expectMsg(RegistrationSuccessfulMessage(evService.ref, None))
 
       // register first one again
       evcs1.send(evService, RegisterForEvDataMessage(evcs1UUID))

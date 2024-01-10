@@ -14,7 +14,6 @@ import org.apache.pekko.actor.{ActorRef, ActorSystem}
 import org.apache.pekko.testkit.{ImplicitSender, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.graph.SubGridGate
-import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent.FinishGridSimulationTrigger
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
@@ -144,7 +143,10 @@ class DBFSAlgorithmParticipantSpec
         PrimaryServiceRegistrationMessage(load1.getUuid)
       )
 
-      primaryService.send(loadAgent.toClassic, RegistrationFailedMessage)
+      primaryService.send(
+        loadAgent.toClassic,
+        RegistrationFailedMessage(primaryService.ref)
+      )
 
       scheduler.expectMsg(Completion(loadAgent, Some(0)))
 

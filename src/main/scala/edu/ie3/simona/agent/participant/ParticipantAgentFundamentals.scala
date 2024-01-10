@@ -316,8 +316,14 @@ protected trait ParticipantAgentFundamentals[
         )
         releaseTick()
 
+        // important: if we are EM-managed, there is no new tick for the
+        // scheduler, since we are activated by the EmAgent from now on
+        scheduler ! Completion(
+          self.toTyped,
+          newTick.filterNot(_ => baseStateData.isEmManaged)
+        )
+
         log.debug(s"Going to {}, using {}", Idle, baseStateData)
-        scheduler ! Completion(self.toTyped, newTick) // FIXME em controlled
         goto(Idle) using nextBaseStateData
       }
     } catch {
@@ -427,14 +433,15 @@ protected trait ParticipantAgentFundamentals[
   ): FSM.State[AgentState, ParticipantStateData[PD]] =
     registrationResponse match {
       case RegistrationResponseMessage.RegistrationSuccessfulMessage(
+            serviceRef,
             maybeNextTick
           ) =>
         val remainingResponses =
-          stateData.pendingResponses.filter(_ != sender())
+          stateData.pendingResponses.filter(_ != serviceRef)
 
         /* If the sender announces a new next tick, add it to the list of expected ticks, else remove the current entry */
         val foreseenDataTicks =
-          stateData.baseStateData.foreseenDataTicks + (sender() -> maybeNextTick)
+          stateData.baseStateData.foreseenDataTicks + (serviceRef -> maybeNextTick)
 
         if (remainingResponses.isEmpty) {
           /* All agent have responded. Determine the next to be used state data and reply completion to scheduler. */
@@ -462,10 +469,10 @@ protected trait ParticipantAgentFundamentals[
             foreseenNextDataTicks = foreseenDataTicksFlattened
           )
         }
-      case RegistrationResponseMessage.RegistrationFailedMessage =>
+      case RegistrationResponseMessage.RegistrationFailedMessage(serviceRef) =>
         self ! PoisonPill
         throw new ActorNotRegisteredException(
-          s"Registration of actor $actorName for ${sender()} failed."
+          s"Registration of actor $actorName for $serviceRef failed."
         )
     }
 
@@ -1066,7 +1073,20 @@ protected trait ParticipantAgentFundamentals[
       popNextActivationTrigger(baseStateData)
 
     releaseTick()
-    scheduler ! Completion(self.toTyped, maybeNextTick)
+
+    // important: if we are EM-managed, there is no new tick for the
+    // scheduler, since we are activated by the EmAgent from now on
+    scheduler ! Completion(
+      self.toTyped,
+      maybeNextTick.filterNot { _ =>
+        baseStateData match {
+          case modelStateData: ParticipantModelBaseStateData[_, _, _, _] =>
+            modelStateData.isEmManaged
+          case _ =>
+            false
+        }
+      }
+    )
     unstashAll()
     goto(Idle) using updatedBaseStateData
   }

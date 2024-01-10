@@ -232,7 +232,10 @@ class StorageAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(storageAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        storageAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       emAgent.expectMsg(
         ScheduleFlexRequest(storageInput.getUuid, 0)
@@ -290,7 +293,10 @@ class StorageAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(storageAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        storageAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       emAgent.expectMsg(
         ScheduleFlexRequest(storageInput.getUuid, 0)

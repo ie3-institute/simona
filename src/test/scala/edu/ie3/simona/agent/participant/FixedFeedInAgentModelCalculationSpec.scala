@@ -182,7 +182,10 @@ class FixedFeedInAgentModelCalculationSpec
       }
 
       /* Refuse registration */
-      primaryServiceProxy.send(fixedFeedAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        fixedFeedAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* Expect a completion notification */
       scheduler.expectMsg(Completion(fixedFeedAgent.toTyped, Some(0)))
@@ -241,7 +244,10 @@ class FixedFeedInAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(fixedFeedAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        fixedFeedAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -294,7 +300,10 @@ class FixedFeedInAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(fixedFeedAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        fixedFeedAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I am not interested in the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -343,7 +352,10 @@ class FixedFeedInAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(fixedFeedAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        fixedFeedAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       scheduler.expectMsg(Completion(fixedFeedAgent.toTyped, Some(0)))
 
@@ -383,7 +395,10 @@ class FixedFeedInAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(fixedFeedAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        fixedFeedAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       scheduler.expectMsg(Completion(fixedFeedAgent.toTyped, Some(0)))
 

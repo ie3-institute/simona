@@ -180,7 +180,9 @@ class PrimaryServiceWorkerSpec
       serviceRef ! WorkerRegistrationMessage(systemParticipant.ref)
 
       /* Wait for request approval */
-      systemParticipant.expectMsg(RegistrationSuccessfulMessage(Some(0L)))
+      systemParticipant.expectMsg(
+        RegistrationSuccessfulMessage(serviceRef, Some(0L))
+      )
 
       /* We cannot directly check, if the requesting actor is among the subscribers, therefore we ask the actor to
        * provide data to all subscribed actors and check, if the subscribed probe gets one */

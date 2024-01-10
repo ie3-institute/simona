@@ -125,7 +125,10 @@ class ParticipantAgent2ListenerSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(mockAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        mockAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped))
 
@@ -174,7 +177,10 @@ class ParticipantAgent2ListenerSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(mockAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        mockAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped))
 
@@ -207,7 +213,10 @@ class ParticipantAgent2ListenerSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(mockAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        mockAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped))
 
@@ -265,7 +274,10 @@ class ParticipantAgent2ListenerSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(mockAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        mockAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped))
 

@@ -284,7 +284,7 @@ abstract class ParticipantAgent[
   when(HandleInformation) {
     /* Receive registration confirm from primary data service -> Set up actor for replay of data */
     case Event(
-          RegistrationSuccessfulMessage(maybeNextDataTick),
+          RegistrationSuccessfulMessage(serviceRef, maybeNextDataTick),
           ParticipantInitializingStateData(
             inputModel: InputModelContainer[I],
             modelConfig: MC,
@@ -307,13 +307,13 @@ abstract class ParticipantAgent[
         resolution,
         requestVoltageDeviationThreshold,
         outputConfig,
-        sender() -> maybeNextDataTick,
+        serviceRef -> maybeNextDataTick,
         scheduler
       )
 
     /* Receive registration refuse from primary data service -> Set up actor for model calculation */
     case Event(
-          RegistrationResponseMessage.RegistrationFailedMessage,
+          RegistrationResponseMessage.RegistrationFailedMessage(_),
           ParticipantInitializingStateData(
             inputModel: InputModelContainer[I],
             modelConfig: MC,

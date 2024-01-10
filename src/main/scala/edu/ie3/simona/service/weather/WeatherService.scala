@@ -226,6 +226,7 @@ final case class WeatherService(
         ) match {
           case Success(weightedCoordinates) =>
             agentToBeRegistered ! RegistrationSuccessfulMessage(
+              self,
               serviceStateData.maybeNextActivationTick
             )
 
@@ -244,13 +245,14 @@ final case class WeatherService(
               exception,
               s"Unable to obtain necessary information to register for coordinate $agentCoord."
             )
-            sender() ! RegistrationFailedMessage
+            sender() ! RegistrationFailedMessage(self)
             serviceStateData
         }
 
       case Some(actorRefs) if !actorRefs.contains(agentToBeRegistered) =>
         // coordinate is already known (= we have data for it), but this actor is not registered yet
         agentToBeRegistered ! RegistrationSuccessfulMessage(
+          self,
           serviceStateData.maybeNextActivationTick
         )
 
@@ -270,7 +272,7 @@ final case class WeatherService(
       case _ =>
         // actor is not registered and we don't have data for it
         // inform the agentToBeRegistered that the registration failed as we don't have data for it
-        agentToBeRegistered ! RegistrationFailedMessage
+        agentToBeRegistered ! RegistrationFailedMessage(self)
         serviceStateData
     }
   }

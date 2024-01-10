@@ -146,7 +146,7 @@ class WeatherServiceSpec
           )
         }
 
-      expectMsg(RegistrationFailedMessage)
+      expectMsg(RegistrationFailedMessage(weatherActor))
     }
 
     "announce, that a valid coordinate is registered" in {
@@ -156,7 +156,7 @@ class WeatherServiceSpec
         validCoordinate.longitude
       )
 
-      expectMsg(RegistrationSuccessfulMessage(Some(0L)))
+      expectMsg(RegistrationSuccessfulMessage(weatherActor.ref, Some(0L)))
     }
 
     "recognize, that a valid coordinate yet is registered" in {

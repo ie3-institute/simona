@@ -182,7 +182,10 @@ class WecAgentModelCalculationSpec
 
       /* Agent attempts to register with primary data service -- refuse this */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(wecAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        wecAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       deathProbe.expectTerminated(wecAgent.ref)
     }
@@ -243,7 +246,10 @@ class WecAgentModelCalculationSpec
 
       /* Agent attempts to register with primary data service -- refuse this */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(wecAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        wecAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* Expect a registration message */
       weatherService.expectMsg(RegisterForWeatherMessage(51.4843281, 7.4116482))
@@ -299,7 +305,10 @@ class WecAgentModelCalculationSpec
       }
 
       /* Reply, that registration was successful */
-      weatherService.send(wecAgent, RegistrationSuccessfulMessage(Some(4711L)))
+      weatherService.send(
+        wecAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(4711L))
+      )
 
       /* Expect a completion message */
       scheduler.expectMsg(Completion(wecAgent.toTyped, Some(4711L)))
@@ -337,11 +346,17 @@ class WecAgentModelCalculationSpec
 
       /* Agent attempts to register with primary data service -- refuse this */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(wecAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        wecAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* Expect a registration message */
       weatherService.expectMsg(RegisterForWeatherMessage(51.4843281, 7.4116482))
-      weatherService.send(wecAgent, RegistrationSuccessfulMessage(Some(900L)))
+      weatherService.send(
+        wecAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(900L))
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -399,11 +414,17 @@ class WecAgentModelCalculationSpec
 
       /* Agent attempts to register with primary data service -- refuse this */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(wecAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        wecAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(wecAgent, RegistrationSuccessfulMessage(Some(900L)))
+      weatherService.send(
+        wecAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(900L))
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -510,11 +531,17 @@ class WecAgentModelCalculationSpec
 
       /* Agent attempts to register with primary data service -- refuse this */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(wecAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        wecAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(wecAgent, RegistrationSuccessfulMessage(Some(900L)))
+      weatherService.send(
+        wecAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(900L))
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -619,11 +646,17 @@ class WecAgentModelCalculationSpec
 
       /* Agent attempts to register with primary data service -- refuse this */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(wecAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        wecAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(wecAgent, RegistrationSuccessfulMessage(Some(900L)))
+      weatherService.send(
+        wecAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(900L))
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -679,11 +712,17 @@ class WecAgentModelCalculationSpec
 
       /* Agent attempts to register with primary data service -- refuse this */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(wecAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        wecAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(wecAgent, RegistrationSuccessfulMessage(Some(900L)))
+      weatherService.send(
+        wecAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(900L))
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]

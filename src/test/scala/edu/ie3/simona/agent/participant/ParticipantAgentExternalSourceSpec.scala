@@ -206,7 +206,7 @@ class ParticipantAgentExternalSourceSpec
       /* Reply, that registration was successful */
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(Some(4711L))
+        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(4711L))
       )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped, Some(4711L)))
@@ -244,7 +244,7 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(Some(900L))
+        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L))
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -309,7 +309,7 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(Some(900L))
+        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L))
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -409,7 +409,7 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(Some(900L))
+        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L))
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -503,7 +503,7 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(Some(900L))
+        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L))
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -618,7 +618,7 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(Some(900L))
+        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L))
       )
 
       /* I'm not interested in the content of the CompletionMessage */

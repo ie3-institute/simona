@@ -88,7 +88,6 @@ class HpAgentModelCalculationSpec
   private implicit val temperatureTolerance: squants.Temperature = Celsius(
     1e-10
   )
-  private implicit val dimensionlessTolerance: Dimensionless = Each(1e-10)
 
   /* Alter the input model to have a voltage sensitive reactive power calculation */
   val hpInput: HpInput = hpInputModel
@@ -175,7 +174,10 @@ class HpAgentModelCalculationSpec
 
       /* Agent attempts to register with primary data service -- refuse this */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(hpAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        hpAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       deathProbe.expectTerminated(hpAgent)
     }
@@ -263,7 +265,10 @@ class HpAgentModelCalculationSpec
       }
 
       /* Refuse registration */
-      primaryServiceProxy.send(hpAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        hpAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* Expect a registration message */
       weatherService.expectMsg(
@@ -327,7 +332,10 @@ class HpAgentModelCalculationSpec
       }
 
       /* Reply, that registration was successful */
-      weatherService.send(hpAgent, RegistrationSuccessfulMessage(Some(4711L)))
+      weatherService.send(
+        hpAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(4711L))
+      )
 
       /* Expect a completion message */
       scheduler.expectMsg(Completion(hpAgent.toTyped, Some(4711L)))
@@ -360,13 +368,19 @@ class HpAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(hpAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        hpAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* Expect a registration message */
       weatherService.expectMsg(
         RegisterForWeatherMessage(51.4843281, 7.4116482)
       )
-      weatherService.send(hpAgent, RegistrationSuccessfulMessage(Some(900L)))
+      weatherService.send(
+        hpAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(900L))
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -420,11 +434,17 @@ class HpAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(hpAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        hpAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(hpAgent, RegistrationSuccessfulMessage(Some(0L)))
+      weatherService.send(
+        hpAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(0L))
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -545,11 +565,17 @@ class HpAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(hpAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        hpAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(hpAgent, RegistrationSuccessfulMessage(Some(0L)))
+      weatherService.send(
+        hpAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(0L))
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -668,11 +694,17 @@ class HpAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(hpAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        hpAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(hpAgent, RegistrationSuccessfulMessage(Some(3600L)))
+      weatherService.send(
+        hpAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(3600L))
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -728,11 +760,17 @@ class HpAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(hpAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        hpAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(hpAgent, RegistrationSuccessfulMessage(Some(0L)))
+      weatherService.send(
+        hpAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(0L))
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
