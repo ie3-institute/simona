@@ -29,7 +29,6 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe
 }
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.mockito.MockitoSugar
@@ -106,7 +105,7 @@ class EmAgentSpec
 
       // expect flex requests
       pvAgent.expectMessage(RequestFlexOptions(0))
-      evcsAgent.expectMessage(RequestFlexOptions(0L))
+      evcsAgent.expectMessage(RequestFlexOptions(0))
 
       // send flex options
       emAgent ! ProvideMinMaxFlexOptions(
@@ -129,19 +128,21 @@ class EmAgentSpec
       // receive flex control messages
       pvAgent.expectMessage(IssueNoCtrl(0L))
       emAgent ! FlexCtrlCompletion(
-        pvInput.getUuid,
-        ApparentPower(Kilowatts(-5d), Kilovars(-0.5d))
+        modelUuid = pvInput.getUuid,
+        result = ApparentPower(Kilowatts(-5d), Kilovars(-0.5d)),
+        requestAtTick = Some(600)
       )
 
       scheduler.expectNoMessage()
 
       evcsAgent.expectMessageType[IssuePowerCtrl] match {
-        case IssuePowerCtrl(0L, setPower) =>
+        case IssuePowerCtrl(0, setPower) =>
           (setPower ~= Kilowatts(5.0)) shouldBe true
       }
       emAgent ! FlexCtrlCompletion(
-        evcsInput.getUuid,
-        ApparentPower(Kilowatts(5d), Kilovars(0.1d))
+        modelUuid = evcsInput.getUuid,
+        result = ApparentPower(Kilowatts(5d), Kilovars(0.1d)),
+        requestAtTick = Some(300)
       )
 
       // expect correct results
@@ -179,7 +180,7 @@ class EmAgentSpec
       )
 
       // receive flex control messages
-      evcsAgent.expectMessage(IssueNoCtrl(300L))
+      evcsAgent.expectMessage(IssueNoCtrl(300))
 
       pvAgent.expectNoMessage()
 
@@ -193,7 +194,7 @@ class EmAgentSpec
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe 300L.toDateTime(simulationStartDate)
+          emResult.getTime shouldBe 300.toDateTime(simulationStartDate)
           emResult.getP should equalWithTolerance((-0.005d).asMegaWatt)
           emResult.getQ should equalWithTolerance((-0.0005d).asMegaVar)
         case unexpected =>
@@ -201,7 +202,7 @@ class EmAgentSpec
       }
 
       // expect completion from EmAgent
-      scheduler.expectMessage(Completion(emAgentActivation))
+      scheduler.expectMessage(Completion(emAgentActivation, Some(600)))
 
     }
 
@@ -265,24 +266,25 @@ class EmAgentSpec
       )
 
       // receive flex control messages
+      pvAgent.expectMessage(IssueNoCtrl(0))
       evcsAgent.expectMessageType[IssuePowerCtrl] match {
-        case IssuePowerCtrl(0L, setPower) =>
+        case IssuePowerCtrl(0, setPower) =>
           (setPower ~= Kilowatts(5.0)) shouldBe true
       }
 
       // send completions
       emAgent ! FlexCtrlCompletion(
-        pvInput.getUuid,
-        ApparentPower(Kilowatts(-5d), Kilovars(-0.5d)),
+        modelUuid = pvInput.getUuid,
+        result = ApparentPower(Kilowatts(-5d), Kilovars(-0.5d)),
         requestAtTick = Some(300)
       )
 
       scheduler.expectNoMessage()
 
       emAgent ! FlexCtrlCompletion(
-        evcsInput.getUuid,
-        ApparentPower(Kilowatts(5d), Kilovars(0.1d)),
-        requestAtTick = Some(600L)
+        modelUuid = evcsInput.getUuid,
+        result = ApparentPower(Kilowatts(5d), Kilovars(0.1d)),
+        requestAtTick = Some(600)
       )
 
       // expect correct results
@@ -307,7 +309,7 @@ class EmAgentSpec
       // thus evcs does not get activated
       evcsAgent.expectNoMessage()
 
-      pvAgent.expectMessage(RequestFlexOptions(300L))
+      pvAgent.expectMessage(RequestFlexOptions(300))
 
       // send flex options again, now there's a cloud and thus less feed-in
       emAgent ! ProvideMinMaxFlexOptions(
@@ -327,7 +329,7 @@ class EmAgentSpec
 
       // evcs is now sent control too
       evcsAgent.expectMessageType[IssuePowerCtrl] match {
-        case IssuePowerCtrl(300L, setPower) =>
+        case IssuePowerCtrl(300, setPower) =>
           (setPower ~= Kilowatts(3.0)) shouldBe true
       }
 
@@ -336,7 +338,7 @@ class EmAgentSpec
       emAgent ! FlexCtrlCompletion(
         evcsInput.getUuid,
         ApparentPower(Kilowatts(3d), Kilovars(0.06d)),
-        requestAtTick = Some(800L) // should overwrite tick 600
+        requestAtTick = Some(800) // should overwrite tick 600
       )
 
       // expect correct results
