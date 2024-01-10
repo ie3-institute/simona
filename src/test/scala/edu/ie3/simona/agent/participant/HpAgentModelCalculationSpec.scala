@@ -461,7 +461,7 @@ class HpAgentModelCalculationSpec
 
       weatherService.send(
         hpAgent,
-        ProvideWeatherMessage(0L, weatherData, Some(3600L))
+        ProvideWeatherMessage(0L, weatherService.ref, weatherData, Some(3600L))
       )
 
       /* Find yourself in corresponding state and state data */
@@ -618,7 +618,7 @@ class HpAgentModelCalculationSpec
 
       weatherService.send(
         hpAgent,
-        ProvideWeatherMessage(0L, weatherData, Some(3600L))
+        ProvideWeatherMessage(0L, weatherService.ref, weatherData, Some(3600L))
       )
 
       /* Expect confirmation */
@@ -728,7 +728,12 @@ class HpAgentModelCalculationSpec
       )
       weatherService.send(
         hpAgent,
-        ProvideWeatherMessage(3600L, weatherData, Some(7200L))
+        ProvideWeatherMessage(
+          3600L,
+          weatherService.ref,
+          weatherData,
+          Some(7200L)
+        )
       )
 
       /* Trigger the agent */
@@ -782,6 +787,7 @@ class HpAgentModelCalculationSpec
         hpAgent,
         ProvideWeatherMessage(
           0L,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(0),
             WattsPerSquareMeter(0),
@@ -799,6 +805,7 @@ class HpAgentModelCalculationSpec
         hpAgent,
         ProvideWeatherMessage(
           3600L,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(0),
             WattsPerSquareMeter(0),
@@ -816,6 +823,7 @@ class HpAgentModelCalculationSpec
         hpAgent,
         ProvideWeatherMessage(
           7200L,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(0),
             WattsPerSquareMeter(0),

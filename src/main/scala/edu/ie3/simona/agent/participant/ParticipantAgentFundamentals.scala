@@ -500,11 +500,11 @@ protected trait ParticipantAgentFundamentals[
         optTick match {
           case Some(tick) if msg.tick == tick =>
             // expected data
-            if (actorRef == sender())
+            if (actorRef == msg.serviceRef)
               Some(actorRef -> Some(msg.data))
             else
               Some(actorRef -> None)
-          case None if actorRef == sender() =>
+          case None if actorRef == msg.serviceRef =>
             // unexpected data
             Some(actorRef -> Some(msg.data))
           case _ =>
@@ -513,12 +513,12 @@ protected trait ParticipantAgentFundamentals[
       }
 
     val unexpectedSender = baseStateData.foreseenDataTicks.exists {
-      case (ref, None) => sender() == ref
+      case (ref, None) => msg.serviceRef == ref
       case _           => false
     }
 
     /* If we have received unexpected data, we also have not been scheduled before */
-    if (unexpectedSender)
+    if (unexpectedSender) // FIXME em
       scheduler ! ScheduleActivation(
         self.toTyped,
         msg.tick,
@@ -527,7 +527,7 @@ protected trait ParticipantAgentFundamentals[
 
     /* If the sender announces a new next tick, add it to the list of expected ticks, else remove the current entry */
     val foreseenDataTicks =
-      baseStateData.foreseenDataTicks + (sender() -> msg.nextDataTick)
+      baseStateData.foreseenDataTicks + (msg.serviceRef -> msg.nextDataTick)
 
     /* Go over to handling these information */
     val nextStateData = DataCollectionStateData(
@@ -867,8 +867,8 @@ protected trait ParticipantAgentFundamentals[
   }
 
   /** Calculate the power output of the participant without needing any
-    * secondary data. The next state is [[Idle]], sending a
-    * [[CompletionMessage]] to scheduler and using update result values.
+    * secondary data. The next state is [[Idle]], sending a [[Completion]] to
+    * scheduler and using update result values.
     *
     * @param baseStateData
     *   Base state data to update

@@ -312,7 +312,12 @@ final case class WeatherService(
           .get(coordinate)
           .foreach(recipients =>
             recipients.foreach(
-              _ ! ProvideWeatherMessage(tick, weatherResult, maybeNextTick)
+              _ ! ProvideWeatherMessage(
+                tick,
+                self,
+                weatherResult,
+                maybeNextTick
+              )
             )
           )
       }

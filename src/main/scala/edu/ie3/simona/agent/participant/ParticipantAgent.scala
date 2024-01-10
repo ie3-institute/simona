@@ -372,13 +372,13 @@ abstract class ParticipantAgent[
       /* We yet have received at least one data provision message. Handle all messages, that follow up for this tick, by
        * adding the received data to the collection state data and checking, if everything is at its place */
       val unexpectedSender = baseStateData.foreseenDataTicks.exists {
-        case (ref, None) => sender() == ref
+        case (ref, None) => msg.serviceRef == ref
         case _           => false
       }
 
-      if (data.contains(sender()) || unexpectedSender) {
+      if (data.contains(msg.serviceRef) || unexpectedSender) {
         /* Update the yet received information */
-        val updatedData = data + (sender() -> Some(msg.data))
+        val updatedData = data + (msg.serviceRef -> Some(msg.data))
 
         /* If we have received unexpected data, we also have not been scheduled before */
         if (unexpectedSender)
@@ -391,7 +391,7 @@ abstract class ParticipantAgent[
         /* Depending on if a next data tick can be foreseen, either update the entry in the base state data or remove
          * it */
         val foreSeenDataTicks =
-          baseStateData.foreseenDataTicks + (sender() -> msg.nextDataTick)
+          baseStateData.foreseenDataTicks + (msg.serviceRef -> msg.nextDataTick)
         val updatedBaseStateData = BaseStateData.updateBaseStateData(
           baseStateData,
           baseStateData.resultValueStore,
@@ -413,7 +413,7 @@ abstract class ParticipantAgent[
         )(updatedBaseStateData.outputConfig)
       } else
         throw new IllegalStateException(
-          s"Did not expect message from ${sender()} at tick $currentTick"
+          s"Did not expect message from ${msg.serviceRef} at tick $currentTick"
         )
 
     case Event(

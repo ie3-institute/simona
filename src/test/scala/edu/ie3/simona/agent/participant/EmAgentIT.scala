@@ -261,6 +261,7 @@ class EmAgentIT
 
         pvAgent ! ProvideWeatherMessage(
           0,
+          weatherService.ref.toClassic,
           WeatherData(
             WattsPerSquareMeter(400d),
             WattsPerSquareMeter(200d),
@@ -294,6 +295,7 @@ class EmAgentIT
 
         pvAgent ! ProvideWeatherMessage(
           7200,
+          weatherService.ref.toClassic,
           WeatherData(
             WattsPerSquareMeter(300d),
             WattsPerSquareMeter(500d),
@@ -348,6 +350,7 @@ class EmAgentIT
         // it got cloudy now...
         pvAgent ! ProvideWeatherMessage(
           14400,
+          weatherService.ref.toClassic,
           WeatherData(
             WattsPerSquareMeter(5d),
             WattsPerSquareMeter(5d),
@@ -543,6 +546,7 @@ class EmAgentIT
         weatherDependentAgents.foreach {
           _ ! ProvideWeatherMessage(
             0,
+            weatherService.ref.toClassic,
             WeatherData(
               WattsPerSquareMeter(400d),
               WattsPerSquareMeter(200d),
@@ -578,6 +582,7 @@ class EmAgentIT
         weatherDependentAgents.foreach {
           _ ! ProvideWeatherMessage(
             7200,
+            weatherService.ref.toClassic,
             WeatherData(
               WattsPerSquareMeter(300d),
               WattsPerSquareMeter(500d),
@@ -612,6 +617,7 @@ class EmAgentIT
         weatherDependentAgents.foreach {
           _ ! ProvideWeatherMessage(
             14400L,
+            weatherService.ref.toClassic,
             WeatherData(
               WattsPerSquareMeter(5d),
               WattsPerSquareMeter(5d),
@@ -642,6 +648,7 @@ class EmAgentIT
         weatherDependentAgents.foreach {
           _ ! ProvideWeatherMessage(
             21600L,
+            weatherService.ref.toClassic,
             WeatherData(
               WattsPerSquareMeter(5d),
               WattsPerSquareMeter(5d),

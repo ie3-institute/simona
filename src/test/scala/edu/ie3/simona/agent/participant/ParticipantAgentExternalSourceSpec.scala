@@ -321,6 +321,7 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         ProvidePrimaryDataMessage(
           900L,
+          primaryServiceProxy.ref,
           ApparentPower(
             Kilowatts(0.0),
             Kilovars(900.0)
@@ -452,6 +453,7 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         ProvidePrimaryDataMessage(
           900L,
+          primaryServiceProxy.ref,
           ApparentPower(
             Kilowatts(0.0),
             Kilovars(900.0)
@@ -524,6 +526,7 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         ProvidePrimaryDataMessage(
           900L,
+          primaryServiceProxy.ref,
           ApparentPower(
             Kilowatts(0.0),
             Kilovars(900.0)
@@ -631,6 +634,7 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         ProvidePrimaryDataMessage(
           900L,
+          primaryServiceProxy.ref,
           ApparentPower(
             Kilowatts(100.0),
             Kilovars(33.0)
@@ -646,6 +650,7 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         ProvidePrimaryDataMessage(
           1800L,
+          primaryServiceProxy.ref,
           ApparentPower(
             Kilowatts(150.0),
             Kilovars(49.0)
@@ -661,6 +666,7 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         ProvidePrimaryDataMessage(
           2700L,
+          primaryServiceProxy.ref,
           ApparentPower(
             Kilowatts(200.0),
             Kilovars(66.0)

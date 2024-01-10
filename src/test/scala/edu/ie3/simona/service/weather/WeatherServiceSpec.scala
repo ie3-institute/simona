@@ -6,14 +6,6 @@
 
 package edu.ie3.simona.service.weather
 
-import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.testkit.{
-  EventFilter,
-  ImplicitSender,
-  TestActorRef,
-  TestProbe
-}
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.config.SimonaConfig
@@ -39,6 +31,14 @@ import edu.ie3.simona.test.common.{
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.testkit.{
+  EventFilter,
+  ImplicitSender,
+  TestActorRef,
+  TestProbe
+}
 import org.scalatest.PrivateMethodTester
 import org.scalatest.wordspec.AnyWordSpecLike
 import squants.motion.MetersPerSecond
@@ -184,6 +184,7 @@ class WeatherServiceSpec
       expectMsg(
         ProvideWeatherMessage(
           0,
+          weatherActor,
           WeatherData(
             WattsPerSquareMeter(0d),
             WattsPerSquareMeter(0d),
@@ -205,6 +206,7 @@ class WeatherServiceSpec
       expectMsg(
         ProvideWeatherMessage(
           3600,
+          weatherActor,
           WeatherData(
             WattsPerSquareMeter(0d),
             WattsPerSquareMeter(0d),

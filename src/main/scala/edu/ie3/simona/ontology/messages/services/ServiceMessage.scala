@@ -73,6 +73,7 @@ case object ServiceMessage {
     */
   trait ProvisionMessage[D <: Data] extends ServiceMessage {
     val tick: Long
+    val serviceRef: ActorRef
     val data: D
     val nextDataTick: Option[Long]
     val unlockKey: Option[ScheduleKey]

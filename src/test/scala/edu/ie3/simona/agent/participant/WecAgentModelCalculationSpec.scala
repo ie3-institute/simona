@@ -441,7 +441,12 @@ class WecAgentModelCalculationSpec
 
       weatherService.send(
         wecAgent,
-        ProvideWeatherMessage(900L, weatherData, Some(1800L))
+        ProvideWeatherMessage(
+          900L,
+          weatherService.ref,
+          weatherData,
+          Some(1800L)
+        )
       )
 
       /* Find yourself in corresponding state and state data */
@@ -589,7 +594,12 @@ class WecAgentModelCalculationSpec
 
       weatherService.send(
         wecAgent,
-        ProvideWeatherMessage(900L, weatherData, Some(1800L))
+        ProvideWeatherMessage(
+          900L,
+          weatherService.ref,
+          weatherData,
+          Some(1800L)
+        )
       )
 
       /* Expect confirmation */
@@ -680,7 +690,12 @@ class WecAgentModelCalculationSpec
       )
       weatherService.send(
         wecAgent,
-        ProvideWeatherMessage(900L, weatherData, Some(1800L))
+        ProvideWeatherMessage(
+          900L,
+          weatherService.ref,
+          weatherData,
+          Some(1800L)
+        )
       )
 
       /* Trigger the agent */
@@ -734,6 +749,7 @@ class WecAgentModelCalculationSpec
         wecAgent,
         ProvideWeatherMessage(
           900L,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(50d),
             WattsPerSquareMeter(100d),
@@ -751,6 +767,7 @@ class WecAgentModelCalculationSpec
         wecAgent,
         ProvideWeatherMessage(
           1800L,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(50d),
             WattsPerSquareMeter(100d),
@@ -768,6 +785,7 @@ class WecAgentModelCalculationSpec
         wecAgent,
         ProvideWeatherMessage(
           2700L,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(50d),
             WattsPerSquareMeter(100d),

@@ -13,6 +13,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ServiceRegistrationMessage
 }
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
+import org.apache.pekko.actor.ActorRef
 
 import java.util.UUID
 
@@ -45,6 +46,7 @@ object EvMessage {
     */
   final case class ProvideEvDataMessage(
       override val tick: Long,
+      override val serviceRef: ActorRef,
       override val data: EvData,
       override val nextDataTick: Option[Long] = None,
       override val unlockKey: Option[ScheduleKey] = None

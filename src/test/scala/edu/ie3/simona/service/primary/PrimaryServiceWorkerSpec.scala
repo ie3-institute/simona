@@ -245,11 +245,13 @@ class PrimaryServiceWorkerSpec
       expectMsgClass(classOf[ProvidePrimaryDataMessage]) match {
         case ProvidePrimaryDataMessage(
               actualTick,
+              actualServiceRef,
               actualData,
               actualNextDataTick,
               unlockKey
             ) =>
           actualTick shouldBe 0L
+          actualServiceRef shouldBe serviceRef
           actualData shouldBe primaryData
           actualNextDataTick shouldBe Some(900L)
           unlockKey shouldBe None
@@ -324,6 +326,7 @@ class PrimaryServiceWorkerSpec
       expectMsg(
         ProvidePrimaryDataMessage(
           tick,
+          serviceRef,
           ActivePower(Kilowatts(50.0)),
           Some(900L)
         )
@@ -344,15 +347,23 @@ class PrimaryServiceWorkerSpec
 
       inside(
         systemParticipant.expectMsgClass(classOf[ProvidePrimaryDataMessage])
-      ) { case ProvidePrimaryDataMessage(tick, data, nextDataTick, unlockKey) =>
-        tick shouldBe 900L
-        inside(data) {
-          case ActivePower(p) =>
-            (p ~= Kilowatts(1250.0)) shouldBe true
-          case _ => fail("Expected to get active power only.")
-        }
-        nextDataTick shouldBe None
-        unlockKey shouldBe None
+      ) {
+        case ProvidePrimaryDataMessage(
+              tick,
+              actualServiceRef,
+              data,
+              nextDataTick,
+              unlockKey
+            ) =>
+          tick shouldBe 900L
+          actualServiceRef shouldBe serviceRef
+          inside(data) {
+            case ActivePower(p) =>
+              (p ~= Kilowatts(1250.0)) shouldBe true
+            case _ => fail("Expected to get active power only.")
+          }
+          nextDataTick shouldBe None
+          unlockKey shouldBe None
       }
     }
   }

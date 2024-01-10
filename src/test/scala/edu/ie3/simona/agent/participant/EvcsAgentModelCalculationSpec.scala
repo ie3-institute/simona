@@ -438,7 +438,12 @@ class EvcsAgentModelCalculationSpec
       val key1 = Some(ScheduleKey(lock.ref.toTyped, UUID.randomUUID()))
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(0L, arrivingEvsData, unlockKey = key1)
+        ProvideEvDataMessage(
+          0L,
+          evService.ref,
+          arrivingEvsData,
+          unlockKey = key1
+        )
       )
       scheduler.expectMsg(ScheduleActivation(evcsAgent.toTyped, 0, key1))
 
@@ -602,7 +607,12 @@ class EvcsAgentModelCalculationSpec
       val key1 = Some(ScheduleKey(lock.ref.toTyped, UUID.randomUUID()))
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(0L, arrivingEvsData, unlockKey = key1)
+        ProvideEvDataMessage(
+          0L,
+          evService.ref,
+          arrivingEvsData,
+          unlockKey = key1
+        )
       )
       scheduler.expectMsg(ScheduleActivation(evcsAgent.toTyped, 0, key1))
 
@@ -765,6 +775,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           0L,
+          evService.ref,
           ArrivingEvsData(Seq(EvModelWrapper(evA))),
           unlockKey = key1
         )
@@ -843,6 +854,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           0L,
+          evService.ref,
           ArrivingEvsData(Seq(EvModelWrapper(evA.copyWithDeparture(3600L)))),
           unlockKey = key1
         )
@@ -876,6 +888,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           3600L,
+          evService.ref,
           ArrivingEvsData(Seq(EvModelWrapper(evB.copyWithDeparture(7200L)))),
           unlockKey = key2
         )
@@ -909,6 +922,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           7200L,
+          evService.ref,
           ArrivingEvsData(Seq(EvModelWrapper(evA.copyWithDeparture(10800L)))),
           unlockKey = key3
         )
@@ -1242,6 +1256,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           900L,
+          evService.ref,
           ArrivingEvsData(Seq(ev900))
         )
       )
@@ -1354,6 +1369,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           4500L,
+          evService.ref,
           ArrivingEvsData(Seq(ev4500))
         )
       )
@@ -1496,6 +1512,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           11700L,
+          evService.ref,
           ArrivingEvsData(Seq(ev11700))
         )
       )

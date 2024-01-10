@@ -458,7 +458,7 @@ class PvAgentModelCalculationSpec
 
       weatherService.send(
         pvAgent,
-        ProvideWeatherMessage(0L, weatherData, Some(3600L))
+        ProvideWeatherMessage(0L, weatherService.ref, weatherData, Some(3600L))
       )
 
       /* Find yourself in corresponding state and state data */
@@ -591,7 +591,7 @@ class PvAgentModelCalculationSpec
 
       weatherService.send(
         pvAgent,
-        ProvideWeatherMessage(0L, weatherData, Some(3600L))
+        ProvideWeatherMessage(0L, weatherService.ref, weatherData, Some(3600L))
       )
 
       /* Expect confirmation */
@@ -677,7 +677,12 @@ class PvAgentModelCalculationSpec
       )
       weatherService.send(
         pvAgent,
-        ProvideWeatherMessage(3600L, weatherData, Some(7200L))
+        ProvideWeatherMessage(
+          3600L,
+          weatherService.ref,
+          weatherData,
+          Some(7200L)
+        )
       )
 
       /* Trigger the agent */
@@ -731,6 +736,7 @@ class PvAgentModelCalculationSpec
         pvAgent,
         ProvideWeatherMessage(
           0L,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(0d),
             WattsPerSquareMeter(0d),
@@ -748,6 +754,7 @@ class PvAgentModelCalculationSpec
         pvAgent,
         ProvideWeatherMessage(
           3600L,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(0d),
             WattsPerSquareMeter(0d),
@@ -765,6 +772,7 @@ class PvAgentModelCalculationSpec
         pvAgent,
         ProvideWeatherMessage(
           7200L,
+          weatherService.ref,
           WeatherData(
             WattsPerSquareMeter(0d),
             WattsPerSquareMeter(0d),
