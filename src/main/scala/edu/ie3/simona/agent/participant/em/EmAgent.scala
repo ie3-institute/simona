@@ -272,7 +272,7 @@ object EmAgent {
       modelShell: EmModelShell,
       flexOptionsCore: EmDataCore.AwaitingFlexOptions
   ): Behavior[EmMessage] = Behaviors.receive {
-    case (ctx, flexCtrl: IssueFlexControl) =>
+    case (ctx, Flex(flexCtrl: IssueFlexControl)) =>
       val flexParticipantData = stateData.flexStateData.getOrElse(
         throw new RuntimeException(
           s"EmAgent is not EM-controlled."

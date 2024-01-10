@@ -24,7 +24,7 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityMatchers.equalWithTolerance
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.Kilovars
+import edu.ie3.util.scala.quantities.{Kilovars, ReactivePower}
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe
@@ -32,6 +32,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.mockito.MockitoSugar
+import squants.Power
 import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
@@ -63,7 +64,8 @@ class EmAgentSpec
     pvFlex = false
   )
 
-  private implicit val powerTolerance: squants.Power = Kilowatts(1e-10)
+  private implicit val activePowerTolerance: Power = Kilowatts(1e-10)
+  private implicit val reactivePowerTolerance: ReactivePower = Kilovars(1e-10)
 
   "A self-optimizing EM agent" should {
     "be initialized correctly and run through some activations" in {
@@ -152,8 +154,6 @@ class EmAgentSpec
           emResult.getTime shouldBe simulationStartDate
           emResult.getP should equalWithTolerance(0d.asMegaWatt)
           emResult.getQ should equalWithTolerance((-.0004d).asMegaVar)
-        case unexpected =>
-          fail(s"Received unexpected result $unexpected")
       }
 
       // expect completion from EmAgent
@@ -197,8 +197,6 @@ class EmAgentSpec
           emResult.getTime shouldBe 300.toDateTime(simulationStartDate)
           emResult.getP should equalWithTolerance((-0.005d).asMegaWatt)
           emResult.getQ should equalWithTolerance((-0.0005d).asMegaVar)
-        case unexpected =>
-          fail(s"Received unexpected result $unexpected")
       }
 
       // expect completion from EmAgent
@@ -294,8 +292,6 @@ class EmAgentSpec
           emResult.getTime shouldBe simulationStartDate
           emResult.getP should equalWithTolerance(0d.asMegaWatt)
           emResult.getQ should equalWithTolerance((-.0004d).asMegaVar)
-        case unexpected =>
-          fail(s"Received unexpected result $unexpected")
       }
 
       // expect completion from EmAgent
@@ -348,8 +344,6 @@ class EmAgentSpec
           emResult.getTime shouldBe 300L.toDateTime(simulationStartDate)
           emResult.getP should equalWithTolerance(0d.asMegaWatt)
           emResult.getQ should equalWithTolerance(0d.asMegaVar)
-        case unexpected =>
-          fail(s"Received unexpected result $unexpected")
       }
 
       // expect completion from EmAgent with new tick (800) instead of revoked tick (600)
@@ -447,8 +441,6 @@ class EmAgentSpec
           emResult.getTime shouldBe simulationStartDate
           emResult.getP should equalWithTolerance(0d.asMegaWatt)
           emResult.getQ should equalWithTolerance((-.0004d).asMegaVar)
-        case unexpected =>
-          fail(s"Received unexpected result $unexpected")
       }
 
       // expect completion from EmAgent
@@ -499,7 +491,7 @@ class EmAgentSpec
 
       emAgent ! FlexCtrlCompletion(
         evcsInput.getUuid, // revoking tick 600
-        ApparentPower(Kilowatts(-3d), Kilovars(0.06d))
+        ApparentPower(Kilowatts(3d), Kilovars(0.06d))
       )
 
       // expect correct results
@@ -509,8 +501,6 @@ class EmAgentSpec
           emResult.getTime shouldBe 300L.toDateTime(simulationStartDate)
           emResult.getP should equalWithTolerance(0d.asMegaWatt)
           emResult.getQ should equalWithTolerance(0d.asMegaVar)
-        case unexpected =>
-          fail(s"Received unexpected result $unexpected")
       }
 
       // no more activation, since evcs activation got revoked
@@ -629,19 +619,23 @@ class EmAgentSpec
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
           emResult.getTime shouldBe simulationStartDate
-          emResult.getP should equalWithTolerance(6d.asKiloWatt)
-          emResult.getQ should equalWithTolerance(0.6d.asKiloVar)
-        case unexpected =>
-          fail(s"Received unexpected result $unexpected")
+          emResult.getP should equalWithTolerance(0.006d.asMegaWatt)
+          emResult.getQ should equalWithTolerance(0.0006d.asMegaVar)
       }
 
-      parentEmAgent.expectMessage(
-        FlexCtrlCompletion(
-          emInput.getUuid,
-          ApparentPower(Kilowatts(6), Kilovars(0.6)),
-          requestAtTick = Some(300L)
-        )
-      )
+      parentEmAgent.expectMessageType[FlexCtrlCompletion] match {
+        case FlexCtrlCompletion(
+              modelUuid,
+              result,
+              requestAtNextActivation,
+              requestAtTick
+            ) =>
+          modelUuid shouldBe emInput.getUuid
+          (result.p ~= Kilowatts(6)) shouldBe true
+          (result.q ~= Kilovars(0.6)) shouldBe true
+          requestAtNextActivation shouldBe false
+          requestAtTick shouldBe Some(300L)
+      }
 
     }
   }
