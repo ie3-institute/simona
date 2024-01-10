@@ -48,6 +48,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 }
 import org.apache.pekko.actor.typed.scaladsl.adapter._
 import org.apache.pekko.testkit.TestActorRef
+import org.scalatest.OptionValues._
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.mockito.MockitoSugar
@@ -206,13 +207,24 @@ class EmAgentIT
         )
         loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
-        // em agent schedules itself
-        val sa1 = scheduler.expectMessageType[ScheduleActivation]
-        sa1.tick shouldBe 0
-        sa1.unlockKey shouldBe None
-        val emAgentActivation = sa1.actor
-
-        scheduler.expectMessage(Completion(loadAgent))
+        // the order of the two messages is not given
+        val emAgentActivation = scheduler
+          .receiveMessages(2)
+          .flatMap {
+            case Completion(ref, maybeNewTick) =>
+              ref shouldBe loadAgent.toTyped
+              maybeNewTick shouldBe None
+              None
+            case ScheduleActivation(ref, tick, unlockKey) =>
+              // em agent schedules itself
+              tick shouldBe 0
+              unlockKey shouldBe None
+              Some(ref)
+            case unexpected =>
+              fail(s"Received unexpected message $unexpected")
+          }
+          .headOption
+          .value
 
         // pv
         pvAgent ! Activation(INIT_SIM_TICK)
@@ -481,13 +493,24 @@ class EmAgentIT
         )
         loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
-        // em agent schedules itself
-        val sa1 = scheduler.expectMessageType[ScheduleActivation]
-        sa1.tick shouldBe 0
-        sa1.unlockKey shouldBe None
-        val emAgentActivation = sa1.actor
-
-        scheduler.expectMessage(Completion(loadAgent))
+        // the order of the two messages is not given
+        val emAgentActivation = scheduler
+          .receiveMessages(2)
+          .flatMap {
+            case Completion(ref, maybeNewTick) =>
+              ref shouldBe loadAgent.toTyped
+              maybeNewTick shouldBe None
+              None
+            case ScheduleActivation(ref, tick, unlockKey) =>
+              // em agent schedules itself
+              tick shouldBe 0
+              unlockKey shouldBe None
+              Some(ref)
+            case unexpected =>
+              fail(s"Received unexpected message $unexpected")
+          }
+          .headOption
+          .value
 
         // pv
         pvAgent ! Activation(INIT_SIM_TICK)
