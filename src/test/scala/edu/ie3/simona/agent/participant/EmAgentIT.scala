@@ -635,9 +635,8 @@ class EmAgentIT
         /* TICK 14400
          LOAD: 0.000269 MW (unchanged)
          PV:  -0.000066 MW
-         Heat pump: Is running, can still run or be turned off
+         Heat pump: Is not running, can still run or be turned off
          -> flex signal is 0 MW: Heat pump is turned off
-         -> remaining 0 MW
          */
 
         emAgentActivation ! Activation(14400)
@@ -645,7 +644,7 @@ class EmAgentIT
         // it got cloudy now...
         weatherDependentAgents.foreach {
           _ ! ProvideWeatherMessage(
-            14400L,
+            14400,
             weatherService.ref.toClassic,
             WeatherData(
               WattsPerSquareMeter(5d),
@@ -653,7 +652,7 @@ class EmAgentIT
               Celsius(0d),
               MetersPerSecond(0d)
             ),
-            Some(21600L)
+            Some(21600)
           )
         }
 
@@ -668,15 +667,17 @@ class EmAgentIT
         scheduler.expectMessage(Completion(emAgentActivation, Some(21600)))
 
         /* TICK 21600
-         TODO description
+         LOAD: 0.000269 MW (unchanged)
+         PV:  -0.000032 MW
+         Heat pump: Is not running, can run or be turned off
+         -> flex signal is 0 MW: Heat pump is turned off
          */
 
         emAgentActivation ! Activation(21600)
 
-        // it got cloudy now...
         weatherDependentAgents.foreach {
           _ ! ProvideWeatherMessage(
-            21600L,
+            21600,
             weatherService.ref.toClassic,
             WeatherData(
               WattsPerSquareMeter(5d),
@@ -684,27 +685,33 @@ class EmAgentIT
               Celsius(0d),
               MetersPerSecond(0d)
             ),
-            Some(28800L)
+            Some(28800)
           )
         }
-
-        resultListener.expectMessageType[ParticipantResultEvent]
-
-        scheduler.expectMessage(Completion(emAgentActivation, Some(28666)))
-
-        /* TICK 28612 FIXME what?
-         LOAD: 0.000269 MW (unchanged)
-         PV:  -0.000066 MW (unchanged)
-         Heat pump: Is turned off and has to be turned on
-         -> flex signal is no control
-         */
-
-        emAgentActivation ! Activation(28612)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
-            emResult.getTime shouldBe 28612L.toDateTime
+            emResult.getTime shouldBe 21600.toDateTime
+            emResult.getP should equalWithTolerance(0.0002367679996.asMegaWatt)
+            emResult.getQ should equalWithTolerance(0.000088285537.asMegaVar)
+        }
+
+        scheduler.expectMessage(Completion(emAgentActivation, Some(28666)))
+
+        /* TICK 28666
+         LOAD: 0.000269 MW (unchanged)
+         PV:  -0.000032 MW (unchanged)
+         Heat pump: Is turned off and has to be turned on
+         -> flex signal is no control -> 0.00485 MW
+         */
+
+        emAgentActivation ! Activation(28666)
+
+        resultListener.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 28666.toDateTime
             emResult.getP should equalWithTolerance(0.0050867679996.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.001073120040.asMegaVar)
         }
