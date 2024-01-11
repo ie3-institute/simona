@@ -234,6 +234,12 @@ abstract class ParticipantAgent[
       // These data have to be always provided _before_ flex request is received here.
 
       if (expectedSenders.nonEmpty) {
+        val nextStateData = DataCollectionStateData(
+          baseStateData,
+          expectedSenders,
+          yetTriggered = true
+        )
+
         /* Do await provision messages in HandleInformation */
         goto(HandleInformation) using nextStateData
       } else {
@@ -388,12 +394,12 @@ abstract class ParticipantAgent[
         checkForExpectedDataAndChangeState(
           updatedStateData,
           isYetTriggered,
-          currentTick,
+          msg.tick,
           scheduler
         )(updatedBaseStateData.outputConfig)
       } else
         throw new IllegalStateException(
-          s"Did not expect message from ${msg.serviceRef} at tick $currentTick"
+          s"Did not expect message from ${msg.serviceRef} at tick ${msg.tick}"
         )
 
     case Event(
