@@ -186,10 +186,10 @@ object EmDataCore {
         : (Iterable[(Actor, IssueFlexControl)], AwaitingCompletions) = {
 
       val currentCtrlMessages = correspondenceStore.store.flatMap {
-        case (model, correspondence) =>
+        case (modelUuid, correspondence) =>
           correspondence.issuedCtrlMsg.flatMap {
             case WithTime(issueCtrl, tick) if tick == activeTick =>
-              Some(model -> issueCtrl)
+              Some(modelUuid -> issueCtrl)
             case _ => None
           }
       }

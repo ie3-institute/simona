@@ -168,7 +168,7 @@ protected trait ParticipantAgentFundamentals[
     * @return
     *   [[FromOutsideBaseStateData]] with required information
     */
-  def determineFromOutsideBaseStateData(
+  private def determineFromOutsideBaseStateData(
       inputModel: InputModelContainer[I],
       modelConfig: MC,
       simulationStartDate: ZonedDateTime,
@@ -2037,7 +2037,7 @@ protected trait ParticipantAgentFundamentals[
       .actorRef
 }
 
-case object ParticipantAgentFundamentals {
+object ParticipantAgentFundamentals {
 
   /** Hold all necessary information for later averaging of participant
     * simulations' results.

@@ -246,7 +246,6 @@ object EmAgent {
             }
 
             awaitingCompletions(stateData, modelShell, newCore)
-
         }
 
       } else {
@@ -296,7 +295,7 @@ object EmAgent {
           modelShell.determineDeviceControl(flexOptions, setPointActivePower)
 
         val (allFlexMsgs, newCore) = flexOptionsCore
-          .handleFlexCtrl(ctrlSetPoints)
+          .handleFlexCtrl(ctrlSetPoints) // TODO combine methods
           .fillInMissingIssueCtrl()
           .complete()
 
