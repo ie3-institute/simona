@@ -270,11 +270,7 @@ protected trait ParticipantAgentFundamentals[
     try {
       /* Register for services */
       val awaitRegistrationResponsesFrom =
-        registerForServices(
-          inputModel.electricalInputModel,
-          services,
-          maybeEmAgent.nonEmpty
-        )
+        registerForServices(inputModel.electricalInputModel, services)
 
       // register with EM if applicable
       maybeEmAgent.foreach { emAgent =>
@@ -282,11 +278,6 @@ protected trait ParticipantAgentFundamentals[
           inputModel.electricalInputModel.getUuid,
           self.toTyped[FlexRequest],
           inputModel.electricalInputModel
-        )
-        // for now, participant is always scheduled for tick 0
-        emAgent ! ScheduleFlexRequest(
-          inputModel.electricalInputModel.getUuid,
-          0
         )
       }
 
@@ -315,6 +306,14 @@ protected trait ParticipantAgentFundamentals[
           baseStateData
         )
         releaseTick()
+
+        maybeEmAgent.foreach { emAgent =>
+          // flex is scheduled for tick 0, if no first tick available
+          emAgent ! ScheduleFlexRequest(
+            inputModel.electricalInputModel.getUuid,
+            newTick.getOrElse(0)
+          )
+        }
 
         // important: if we are EM-managed, there is no new tick for the
         // scheduler, since we are activated by the EmAgent from now on
@@ -518,12 +517,31 @@ protected trait ParticipantAgentFundamentals[
     }
 
     /* If we have received unexpected data, we also have not been scheduled before */
-    if (unexpectedSender) // FIXME em
-      scheduler ! ScheduleActivation(
-        self.toTyped,
-        msg.tick,
-        msg.unlockKey
-      )
+    if (unexpectedSender) {
+      val emManaged = baseStateData match {
+        case modelStateData: ParticipantModelBaseStateData[_, _, _, _] =>
+          val maybeEmAgent = modelStateData.flexStateData.map(_.emAgent)
+
+          maybeEmAgent.foreach {
+            _ ! ScheduleFlexRequest(
+              modelStateData.model.getUuid,
+              msg.tick,
+              msg.unlockKey
+            )
+          }
+
+          maybeEmAgent.isDefined
+        case _ =>
+          false
+      }
+
+      if (!emManaged)
+        scheduler ! ScheduleActivation(
+          self.toTyped,
+          msg.tick,
+          msg.unlockKey
+        )
+    }
 
     /* If the sender announces a new next tick, add it to the list of expected ticks, else remove the current entry */
     val foreseenDataTicks =
@@ -542,16 +560,7 @@ protected trait ParticipantAgentFundamentals[
       expectedSenders,
       yetTriggered = false
     )
-
-    baseStateData match {
-      case modelStateData: ParticipantModelBaseStateData[_, _, _, _]
-          if modelStateData.isEmManaged =>
-        // We're em-managed. Go to Idle and wait
-        goto(Idle) using nextStateData
-      case _ =>
-        // Make a shortcut to Calculate
-        goto(HandleInformation) using nextStateData
-    }
+    goto(HandleInformation) using nextStateData
   }
 
   /** Checks, if all data is available and change state accordingly. Three cases
@@ -610,7 +619,7 @@ protected trait ParticipantAgentFundamentals[
               val resultValueStore = fromOutsideBaseStateData.resultValueStore
               val updatedResultValueStore = ValueStore.updateValueStore(
                 resultValueStore,
-                currentTick,
+                tick,
                 mostRecentData
               )
               val baseStateDataWithUpdatedResults =
@@ -635,14 +644,32 @@ protected trait ParticipantAgentFundamentals[
               throw exception
           }
 
-        case modelStateData: BaseStateData.ModelBaseStateData[_, _, _, _]
-            if modelStateData.isEmManaged =>
-          // if we're managed by EM, go to Idle and wait for further messages
-          unstashAll()
-          goto(Idle) using stateData
+        case modelStateData: BaseStateData.ParticipantModelBaseStateData[
+              PD,
+              CD,
+              MS,
+              M
+            ] if modelStateData.isEmManaged =>
+          val updatedReceivedSecondaryData = ValueStore.updateValueStore(
+            modelStateData.receivedSecondaryDataStore,
+            tick,
+            stateData.data.map { case (actorRef, Some(data: SecondaryData)) =>
+              actorRef -> data
+            }
+          )
+
+          // we don't go to calculate state, but return to idle directly
+          val updatedStateData = handleFlexRequest(
+            modelStateData.copy(
+              receivedSecondaryDataStore = updatedReceivedSecondaryData
+            ),
+            tick
+          )
+          goto(Idle) using updatedStateData
+
         case _: BaseStateData.ModelBaseStateData[_, _, _, _] =>
           /* Go to calculation state and send a trigger for this to myself as well */
-          self ! StartCalculationTrigger(currentTick)
+          self ! StartCalculationTrigger(tick)
           goto(Calculate) using stateData
         case x =>
           throw new IllegalStateException(
@@ -773,7 +800,7 @@ protected trait ParticipantAgentFundamentals[
       case _ =>
     }
 
-    // add new tick and updated relevant data, if applicable
+    // store new state data
     val updatedStateData: ParticipantModelBaseStateData[PD, CD, MS, M] =
       baseStateData
         .copy(
@@ -791,16 +818,25 @@ protected trait ParticipantAgentFundamentals[
       flexCtrl.tick
     )
 
+    // determine next tick
+    val expectedDataComesNext =
+      pollNextActivationTrigger(stateDataWithResults).exists { dataTick =>
+        flexChangeIndicator.changesAtTick.forall(_ >= dataTick)
+      }
+    val (nextActivation, stateDataFinal) = Option
+      .when(expectedDataComesNext)(
+        popNextActivationTrigger(stateDataWithResults)
+      )
+      .getOrElse((flexChangeIndicator.changesAtTick, stateDataWithResults))
+
     flexStateData.emAgent ! FlexCtrlCompletion(
       baseStateData.modelUuid,
       result.toApparentPower,
       flexChangeIndicator.changesAtNextActivation,
-      flexChangeIndicator.changesAtTick
+      nextActivation
     )
 
-    releaseTick()
-
-    stay() using stateDataWithResults
+    stay() using stateDataFinal
   }
 
   protected def determineResultingFlexPower(
@@ -1085,21 +1121,53 @@ protected trait ParticipantAgentFundamentals[
 
     releaseTick()
 
-    // important: if we are EM-managed, there is no new tick for the
+    val emManaged = baseStateData match {
+      case modelStateData: ParticipantModelBaseStateData[_, _, _, _] =>
+        val maybeEmAgent = modelStateData.flexStateData.map(_.emAgent)
+
+        maybeEmAgent.foreach {
+          _ ! ScheduleFlexRequest(
+            modelStateData.model.getUuid,
+            maybeNextTick.getOrElse(0)
+          )
+        }
+
+        maybeEmAgent.isDefined
+      case _ =>
+        false
+    }
+
+    // Only after init:
+    // if we are EM-managed, there is no new tick for the
     // scheduler, since we are activated by the EmAgent from now on
     scheduler ! Completion(
       self.toTyped,
-      maybeNextTick.filterNot { _ =>
-        baseStateData match {
-          case modelStateData: ParticipantModelBaseStateData[_, _, _, _] =>
-            modelStateData.isEmManaged
-          case _ =>
-            false
-        }
-      }
+      maybeNextTick.filterNot(_ => emManaged)
     )
     unstashAll()
     goto(Idle) using updatedBaseStateData
+  }
+
+  def pollNextActivationTrigger(
+      baseStateData: BaseStateData[PD]
+  ): Option[Long] = {
+    /* Determine what comes next: An additional activation or new data - or both at once */
+    val nextAdditionalActivation =
+      baseStateData.additionalActivationTicks.headOption
+    val nextDataTick =
+      baseStateData.foreseenDataTicks.values.toSeq.sorted.headOption.flatten
+
+    (nextAdditionalActivation, nextDataTick) match {
+      case (None, Some(dataTick)) =>
+        Some(dataTick)
+      case (Some(additionalTick), Some(dataTick))
+          if dataTick < additionalTick =>
+        Some(dataTick)
+      case (Some(additionalTick), _) =>
+        Some(additionalTick)
+      case (None, None) =>
+        None
+    }
   }
 
   /** Pop the next tick, in which the agent wishes to get triggered, build a
@@ -1212,10 +1280,7 @@ protected trait ParticipantAgentFundamentals[
       stash()
       stay() using baseStateData
     } else {
-      log.debug(
-        s"Received power request for tick '{}' and I'm able to answer it.",
-        requestTick
-      )
+
       /* Update the voltage value store */
       val nodalVoltage = Each(
         sqrt(
@@ -1238,7 +1303,6 @@ protected trait ParticipantAgentFundamentals[
         baseStateData.requestValueStore.last(requestTick)
 
       /* === Check if this request has already been answered with same tick and nodal voltage === */
-      log.debug("Answering the power request for tick {}.", requestTick)
       determineFastReply(
         baseStateData,
         mostRecentRequest,

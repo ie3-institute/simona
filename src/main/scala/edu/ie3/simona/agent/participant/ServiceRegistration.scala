@@ -7,7 +7,7 @@
 package edu.ie3.simona.agent.participant
 
 import org.apache.pekko.actor.ActorRef
-import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.datamodel.models.input.system.{EvcsInput, SystemParticipantInput}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
@@ -54,17 +54,12 @@ trait ServiceRegistration[
     */
   def registerForServices(
       inputModel: I,
-      services: Option[Seq[SecondaryDataService[_ <: SecondaryData]]],
-      emControlled: Boolean
+      services: Option[Seq[SecondaryDataService[_ <: SecondaryData]]]
   ): Seq[ActorRef] =
     services
       .map(sources =>
         sources.flatMap(service =>
-          registerForSecondaryService(
-            service,
-            inputModel,
-            emControlled
-          )
+          registerForSecondaryService(service, inputModel)
         )
       )
       .getOrElse(Seq.empty[ActorRef])
@@ -75,10 +70,6 @@ trait ServiceRegistration[
     *   Definition of the service
     * @param inputModel
     *   Input model that is interested in the information
-    * @param scheduleTriggerFunc
-    *   function providing the proper ScheduleTriggerMessage for a given trigger
-    * @param emControlled
-    *   whether the agent is em-controlled or not
     * @tparam S
     *   Type of the secondary data, that is awaited
     * @return
@@ -89,8 +80,7 @@ trait ServiceRegistration[
       S <: SecondaryData
   ](
       serviceDefinition: SecondaryDataService[S],
-      inputModel: I,
-      emControlled: Boolean
+      inputModel: I
   ): Option[ActorRef] = serviceDefinition match {
     case SecondaryDataService.ActorPriceService(_) =>
       log.debug(
@@ -102,10 +92,7 @@ trait ServiceRegistration[
       registerForWeather(serviceRef, inputModel)
       Some(serviceRef)
     case ActorEvMovementsService(serviceRef) =>
-      registerForEvMovements(
-        serviceRef,
-        inputModel
-      )
+      registerForEvMovements(serviceRef, inputModel)
       Some(serviceRef)
   }
 
@@ -148,7 +135,16 @@ trait ServiceRegistration[
   private def registerForEvMovements(
       serviceRef: ActorRef,
       inputModel: I
-  ): Unit =
-    serviceRef ! RegisterForEvDataMessage(inputModel.getUuid)
+  ): Unit = {
+    inputModel match {
+      case evcsInput: EvcsInput =>
+        serviceRef ! RegisterForEvDataMessage(evcsInput.getUuid)
+      case _ =>
+        throw new ServiceRegistrationException(
+          s"Cannot register for EV movements information at node ${inputModel.getNode.getId} " +
+            s"(${inputModel.getNode.getUuid}) of type ${inputModel.getClass.getName}, because only Evcs can register for this."
+        )
+    }
+  }
 
 }

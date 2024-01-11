@@ -357,8 +357,7 @@ class EmAgentIT
          -> remaining 0 MW
          */
 
-        emAgentActivation ! Activation(14400)
-
+        // send weather data before activation, which can happen
         // it got cloudy now...
         pvAgent ! ProvideWeatherMessage(
           14400,
@@ -371,6 +370,8 @@ class EmAgentIT
           ),
           Some(21600)
         )
+
+        emAgentActivation ! Activation(14400)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>

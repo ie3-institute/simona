@@ -631,6 +631,7 @@ protected trait EvcsAgentFundamentals
         stateDataStore = updatedStateDataStore
       )
 
+    // FIXME no completion anymore with flex
     goToIdleReplyCompletionAndScheduleTriggerForNextAction(
       updatedBaseStateData,
       scheduler

@@ -6,11 +6,8 @@
 
 package edu.ie3.simona.agent.participant
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{ActorRef, FSM}
-import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
-import edu.ie3.simona.agent.SimonaAgent
+import edu.ie3.simona.agent.{SimonaAgent, ValueStore}
 import edu.ie3.simona.agent.grid.GridAgent.FinishGridSimulationTrigger
 import edu.ie3.simona.agent.participant.ParticipantAgent.{
   StartCalculationTrigger,
@@ -22,7 +19,6 @@ import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FromOutsideBaseStateData,
-  ModelBaseStateData,
   ParticipantModelBaseStateData
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData._
@@ -37,7 +33,6 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.{
   Calculate,
   HandleInformation
 }
-import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
@@ -48,13 +43,13 @@ import edu.ie3.simona.model.participant.{
   ModelState,
   SystemParticipant
 }
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   FlexResponse,
   IssueFlexControl,
   ProvideMinMaxFlexOptions,
   RequestFlexOptions
 }
-import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
@@ -65,6 +60,9 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.ReactivePower
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
+import org.apache.pekko.actor.{ActorRef, FSM}
 import squants.{Dimensionless, Power}
 
 import java.time.ZonedDateTime
@@ -226,57 +224,29 @@ abstract class ParticipantAgent[
           RequestFlexOptions(tick),
           baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M]
         ) =>
-      holdTick(tick)
-      val updatedStateData = handleFlexRequest(baseStateData, tick)
-
-      stay() using updatedStateData
-
-    case Event(
-          RequestFlexOptions(tick),
-          DataCollectionStateData(baseStateData, data, _)
-        ) =>
-      holdTick(tick)
-
-      val participantStateData =
-        baseStateData match {
-          case participantStateData: ParticipantModelBaseStateData[
-                PD,
-                CD,
-                MS,
-                M
-              ] =>
-            participantStateData
-          case otherStateData =>
-            throw new IllegalStateException(
-              s"Unexpected state data $otherStateData"
-            )
+      val expectedSenders = baseStateData.foreseenDataTicks
+        .collect {
+          case (actorRef, Some(expectedTick)) if expectedTick == tick =>
+            actorRef -> None
         }
 
-      val updatedReceivedSecondaryData = ValueStore.updateValueStore(
-        participantStateData.receivedSecondaryDataStore,
-        currentTick,
-        data.map { case (actorRef, Some(data: SecondaryData)) =>
-          actorRef -> data
-        }
-      )
+      // Unexpected data provisions (e.g. by ExtEvDataService) are not possible when EM-managed.
+      // These data have to be always provided _before_ flex request is received here.
 
-      val updatedStateData = handleFlexRequest(
-        participantStateData.copy(
-          receivedSecondaryDataStore = updatedReceivedSecondaryData
-        ),
-        tick
-      )
+      if (expectedSenders.nonEmpty) {
+        /* Do await provision messages in HandleInformation */
+        goto(HandleInformation) using nextStateData
+      } else {
+        /* I don't expect any data. Calculate right away */
+        val updatedStateData = handleFlexRequest(baseStateData, tick)
 
-      stay() using updatedStateData
+        stay() using updatedStateData
+      }
 
     case Event(
           flexCtrl: IssueFlexControl,
           baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M]
         ) =>
-      // flex request can be skipped
-      if (!currentTickDefined)
-        holdTick(flexCtrl.tick)
-
       handleFlexCtrl(baseStateData, flexCtrl, scheduler)
   }
 
@@ -357,6 +327,17 @@ abstract class ParticipantAgent[
         stateData,
         isYetTriggered = true,
         currentTick,
+        scheduler
+      )(stateData.baseStateData.outputConfig)
+
+    case Event(
+          RequestFlexOptions(tick),
+          stateData: DataCollectionStateData[PD]
+        ) =>
+      checkForExpectedDataAndChangeState(
+        stateData,
+        isYetTriggered = true,
+        tick,
         scheduler
       )(stateData.baseStateData.outputConfig)
 
