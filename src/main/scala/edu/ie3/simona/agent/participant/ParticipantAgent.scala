@@ -162,8 +162,7 @@ abstract class ParticipantAgent[
       /* Remove this tick from the array of foreseen activation ticks */
       val additionalActivationTicks =
         modelBaseStateData.additionalActivationTicks.rangeFrom(currentTick + 1)
-
-      val updatedBaseStateData = BaseStateData.updateBaseStateData(
+      goto(Calculate) using BaseStateData.updateBaseStateData(
         modelBaseStateData,
         modelBaseStateData.resultValueStore,
         modelBaseStateData.requestValueStore,
@@ -171,13 +170,6 @@ abstract class ParticipantAgent[
         additionalActivationTicks,
         modelBaseStateData.foreseenDataTicks
       )
-
-      if (modelBaseStateData.isEmManaged)
-        goto(Idle) using updatedBaseStateData
-      else {
-        self ! StartCalculationTrigger(currentTick)
-        goto(Calculate) using updatedBaseStateData
-      }
 
     case Event(
           Activation(currentTick),
@@ -234,6 +226,7 @@ abstract class ParticipantAgent[
           RequestFlexOptions(tick),
           baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M]
         ) =>
+      holdTick(tick)
       val updatedStateData = handleFlexRequest(baseStateData, tick)
 
       stay() using updatedStateData
@@ -242,6 +235,8 @@ abstract class ParticipantAgent[
           RequestFlexOptions(tick),
           DataCollectionStateData(baseStateData, data, _)
         ) =>
+      holdTick(tick)
+
       val participantStateData =
         baseStateData match {
           case participantStateData: ParticipantModelBaseStateData[
@@ -278,6 +273,10 @@ abstract class ParticipantAgent[
           flexCtrl: IssueFlexControl,
           baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M]
         ) =>
+      // flex request can be skipped
+      if (!currentTickDefined)
+        holdTick(flexCtrl.tick)
+
       handleFlexCtrl(baseStateData, flexCtrl, scheduler)
   }
 
@@ -648,18 +647,9 @@ abstract class ParticipantAgent[
       /* Do await provision messages in HandleInformation */
       goto(HandleInformation) using nextStateData
     } else {
-      // I don't expect new data.
-      baseStateData match {
-        case modelStateData: ModelBaseStateData[_, _, _, _]
-            if modelStateData.isEmManaged =>
-          // We're em-managed. Go to Idle and wait
-          goto(Idle) using nextStateData
-        case _ =>
-          // Make a shortcut to Calculate
-          self ! StartCalculationTrigger(currentTick)
-          goto(Calculate) using nextStateData
-      }
-
+      /* I don't expect new data. Do a shortcut to Calculate */
+      self ! StartCalculationTrigger(currentTick)
+      goto(Calculate) using nextStateData
     }
   }
 

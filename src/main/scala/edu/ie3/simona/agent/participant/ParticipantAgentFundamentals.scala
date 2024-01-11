@@ -542,7 +542,16 @@ protected trait ParticipantAgentFundamentals[
       expectedSenders,
       yetTriggered = false
     )
-    goto(HandleInformation) using nextStateData
+
+    baseStateData match {
+      case modelStateData: ParticipantModelBaseStateData[_, _, _, _]
+          if modelStateData.isEmManaged =>
+        // We're em-managed. Go to Idle and wait
+        goto(Idle) using nextStateData
+      case _ =>
+        // Make a shortcut to Calculate
+        goto(HandleInformation) using nextStateData
+    }
   }
 
   /** Checks, if all data is available and change state accordingly. Three cases
@@ -788,6 +797,8 @@ protected trait ParticipantAgentFundamentals[
       flexChangeIndicator.changesAtNextActivation,
       flexChangeIndicator.changesAtTick
     )
+
+    releaseTick()
 
     stay() using stateDataWithResults
   }
