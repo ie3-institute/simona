@@ -468,7 +468,7 @@ class EmAgentIT
                 List.empty[String]
               ),
               primaryServiceProxy.ref.toClassic,
-              None,
+              Some(Vector(ActorWeatherService(weatherService.ref.toClassic))),
               simulationStartDate,
               simulationEndDate,
               resolution,
@@ -550,6 +550,11 @@ class EmAgentIT
             hpInputModel.getNode.getGeoPosition.getY,
             hpInputModel.getNode.getGeoPosition.getX
           )
+        )
+
+        heatPumpAgent ! RegistrationSuccessfulMessage(
+          weatherService.ref.toClassic,
+          Some(0L)
         )
 
         scheduler.expectMessage(Completion(heatPumpAgent))
