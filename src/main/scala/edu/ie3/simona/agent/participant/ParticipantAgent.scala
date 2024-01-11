@@ -148,18 +148,20 @@ abstract class ParticipantAgent[
 
   when(Idle) {
     case Event(
-          Activation(currentTick),
+          Activation(tick),
           modelBaseStateData: ParticipantModelBaseStateData[PD, CD, MS, M]
         ) if modelBaseStateData.services.isEmpty =>
       /* An activity start trigger is sent and no data is awaited (neither secondary nor primary). Therefore go straight
        * ahead to calculations */
 
       /* Hold tick, as state transition is needed */
-      holdTick(currentTick)
+      holdTick(tick)
+
+      self ! StartCalculationTrigger(tick)
 
       /* Remove this tick from the array of foreseen activation ticks */
       val additionalActivationTicks =
-        modelBaseStateData.additionalActivationTicks.rangeFrom(currentTick + 1)
+        modelBaseStateData.additionalActivationTicks.rangeFrom(tick + 1)
       goto(Calculate) using BaseStateData.updateBaseStateData(
         modelBaseStateData,
         modelBaseStateData.resultValueStore,
@@ -421,13 +423,6 @@ abstract class ParticipantAgent[
           if (yetTriggered) "" else "NOT"
         )
       }
-      stash()
-      stay()
-
-    case Event(
-          _: RequestFlexOptions,
-          _: DataCollectionStateData[PD]
-        ) =>
       stash()
       stay()
   }
