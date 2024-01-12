@@ -53,13 +53,14 @@ class SystemParticipantTest extends Specification {
 
   def "Test calculateQ for a load unit with cosphi_p"() {
     given: "the mocked load model"
+
     def loadMock = new MockParticipant(
         UUID.fromString("3d28b9f7-929a-48e3-8696-ad2330a04225"),
         "Load calculateQ Test",
         OperationInterval.apply(0L, 86400L),
         1d,
         QControl.apply(new CosPhiP(varCharacteristicString)),
-        Sq.create(102d, Kilowatts$.MODULE$),
+        Sq.create(102, Kilowatts$.MODULE$),
         1d)
     Dimensionless adjustedVoltage = Sq.create(1, Each$.MODULE$) // needed for method call but not applicable for cosphi_p
 
@@ -88,7 +89,7 @@ class SystemParticipantTest extends Specification {
         OperationInterval.apply(0L, 86400L),
         1d,
         QControl.apply(new CosPhiP(varCharacteristicString)),
-        Sq.create(101d, Kilowatts$.MODULE$),
+        Sq.create(101, Kilowatts$.MODULE$),
         1d)
 
     Dimensionless adjustedVoltage = Sq.create(1, Each$.MODULE$) // needed for method call but not applicable for cosphi_p
@@ -120,7 +121,7 @@ class SystemParticipantTest extends Specification {
         OperationInterval.apply(0L, 86400L),
         1d,
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
-        Sq.create(200d, Kilowatts$.MODULE$),
+        Sq.create(200, Kilowatts$.MODULE$),
         0.98)
 
     when: "the reactive power is calculated"
@@ -154,7 +155,7 @@ class SystemParticipantTest extends Specification {
         OperationInterval.apply(0L, 86400L),
         1d,
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
-        Sq.create(200d, Kilowatts$.MODULE$),
+        Sq.create(200, Kilowatts$.MODULE$),
         1d)
 
     when: "the reactive power is calculated"
@@ -188,7 +189,7 @@ class SystemParticipantTest extends Specification {
         OperationInterval.apply(0L, 86400L),
         1d,
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
-        Sq.create(200d, Kilowatts$.MODULE$),
+        Sq.create(200, Kilowatts$.MODULE$),
         0.95)
 
     when: "the reactive power is calculated"
@@ -222,7 +223,7 @@ class SystemParticipantTest extends Specification {
         OperationInterval.apply(0L, 86400L),
         1d,
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
-        Sq.create(200d, Kilowatts$.MODULE$),
+        Sq.create(200, Kilowatts$.MODULE$),
         0.95)
 
     when: "the reactive power is calculated"

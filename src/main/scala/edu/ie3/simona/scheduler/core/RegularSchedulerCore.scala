@@ -6,14 +6,13 @@
 
 package edu.ie3.simona.scheduler.core
 
-import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.scheduler.core.Core.{
   ActiveCore,
+  Actor,
   CoreFactory,
   InactiveCore
 }
 import edu.ie3.util.scala.collection.mutable.PriorityMultiBiSet
-import org.apache.pekko.actor.typed.ActorRef
 
 /** A regular scheduler core that activates all actors for the current tick and
   * waits for all actors to complete before advancing.
@@ -24,9 +23,7 @@ object RegularSchedulerCore extends CoreFactory {
     SchedulerInactive(PriorityMultiBiSet.empty, None)
 
   final case class SchedulerInactive private (
-      private val activationQueue: PriorityMultiBiSet[Long, ActorRef[
-        Activation
-      ]],
+      private val activationQueue: PriorityMultiBiSet[Long, Actor],
       private val lastActiveTick: Option[Long]
   ) extends InactiveCore {
     override def checkActivation(newTick: Long): Boolean =
@@ -43,7 +40,7 @@ object RegularSchedulerCore extends CoreFactory {
       lastActiveTick.forall(newTick >= _ + 1)
 
     override def handleSchedule(
-        actor: ActorRef[Activation],
+        actor: Actor,
         newTick: Long
     ): (Option[Long], InactiveCore) = {
       val oldEarliestTick = activationQueue.headKeyOption
@@ -60,16 +57,14 @@ object RegularSchedulerCore extends CoreFactory {
   }
 
   private final case class SchedulerActive(
-      private val activationQueue: PriorityMultiBiSet[Long, ActorRef[
-        Activation
-      ]],
-      private val activeActors: Set[ActorRef[Activation]] = Set.empty,
+      private val activationQueue: PriorityMultiBiSet[Long, Actor],
+      private val activeActors: Set[Actor] = Set.empty,
       activeTick: Long
   ) extends ActiveCore {
-    override def checkCompletion(actor: ActorRef[Activation]): Boolean =
+    override def checkCompletion(actor: Actor): Boolean =
       activeActors.contains(actor)
 
-    override def handleCompletion(actor: ActorRef[Activation]): ActiveCore =
+    override def handleCompletion(actor: Actor): ActiveCore =
       copy(activeActors = activeActors.excl(actor))
 
     override def maybeComplete(): Option[(Option[Long], InactiveCore)] =
@@ -83,22 +78,15 @@ object RegularSchedulerCore extends CoreFactory {
         )
       }
 
-    override def checkSchedule(
-        actor: ActorRef[Activation],
-        newTick: Long
-    ): Boolean =
+    override def checkSchedule(actor: Actor, newTick: Long): Boolean =
       newTick >= activeTick
 
-    override def handleSchedule(
-        actor: ActorRef[Activation],
-        newTick: Long
-    ): ActiveCore = {
+    override def handleSchedule(actor: Actor, newTick: Long): ActiveCore = {
       activationQueue.set(newTick, actor)
       this
     }
 
-    override def takeNewActivations()
-        : (Iterable[ActorRef[Activation]], ActiveCore) = {
+    override def takeNewActivations(): (Iterable[Actor], ActiveCore) = {
       val toActivate = activationQueue.getAndRemoveSet(activeTick)
       val newActiveCore = copy(activeActors = activeActors.concat(toActivate))
       (toActivate, newActiveCore)

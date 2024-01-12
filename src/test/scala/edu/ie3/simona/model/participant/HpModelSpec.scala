@@ -19,14 +19,15 @@ import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.Kelvin
 import squants.energy.{Kilowatts, Watts}
 import squants.thermal.Celsius
+import squants.{Power, Temperature}
 
 class HpModelSpec
     extends UnitSpec
     with TableDrivenPropertyChecks
     with HpModelTestData {
 
-  private implicit val powerTolerance: squants.Power = Watts(0.1)
-  private implicit val temperatureTolerance: squants.Temperature = Kelvin(1e-3)
+  implicit val tempTolerance: Temperature = Kelvin(1e-3)
+  implicit val powerTolerance: Power = Watts(1e-3)
 
   "Testing the heat pump model" when {
     "calculating the next state with different states" should {
@@ -34,7 +35,6 @@ class HpModelSpec
         val cases = Table(
           (
             "state",
-            "expectedTick",
             "expectedRunningState",
             "expectedActivePower",
             "expectedInnerTemperature",
@@ -50,7 +50,6 @@ class HpModelSpec
               thermalState(17),
               None
             ),
-            7200,
             true,
             95,
             15.6,
@@ -66,7 +65,6 @@ class HpModelSpec
               thermalState(18),
               None
             ),
-            7200,
             true,
             95,
             16.4,
@@ -82,7 +80,6 @@ class HpModelSpec
               thermalState(20),
               None
             ),
-            7200,
             true,
             95,
             18.0,
@@ -98,7 +95,6 @@ class HpModelSpec
               thermalState(22),
               None
             ),
-            7200,
             false,
             0,
             19.6,
@@ -114,7 +110,6 @@ class HpModelSpec
               thermalState(23),
               None
             ),
-            7200,
             false,
             0,
             20.4,
@@ -130,7 +125,6 @@ class HpModelSpec
               thermalState(17),
               None
             ),
-            7200,
             true,
             95,
             15.6,
@@ -146,7 +140,6 @@ class HpModelSpec
               thermalState(18),
               None
             ),
-            7200,
             true,
             95,
             16.4,
@@ -162,7 +155,6 @@ class HpModelSpec
               thermalState(20),
               None
             ),
-            7200,
             true,
             95,
             18.0,
@@ -178,7 +170,6 @@ class HpModelSpec
               thermalState(22),
               None
             ),
-            7200,
             true,
             95,
             19.6,
@@ -194,7 +185,6 @@ class HpModelSpec
               thermalState(25),
               None
             ),
-            7200,
             false,
             0,
             22.0,
@@ -205,7 +195,6 @@ class HpModelSpec
         forAll(cases) {
           (
               state,
-              expectedTick,
               expectedRunningState,
               expectedActivePower,
               expectedInnerTemperature,

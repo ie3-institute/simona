@@ -6,14 +6,13 @@
 
 package edu.ie3.simona.scheduler.core
 
-import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.scheduler.core.Core.{
   ActiveCore,
+  Actor,
   CoreFactory,
   InactiveCore
 }
 import edu.ie3.util.scala.collection.immutable.PrioritySwitchBiSet
-import org.apache.pekko.actor.typed.ActorRef
 
 /** A scheduler core that activates actors in phases when active. This means
   * that only one actor at any given time is activated and the completion of
@@ -32,9 +31,7 @@ object PhaseSwitchCore extends CoreFactory {
     PhaseSwitchInactive(PrioritySwitchBiSet.empty, None)
 
   final case class PhaseSwitchInactive private (
-      private val activationQueue: PrioritySwitchBiSet[Long, ActorRef[
-        Activation
-      ]],
+      private val activationQueue: PrioritySwitchBiSet[Long, Actor],
       private val lastActiveTick: Option[Long]
   ) extends InactiveCore {
     override def checkActivation(newTick: Long): Boolean =
@@ -51,7 +48,7 @@ object PhaseSwitchCore extends CoreFactory {
       lastActiveTick.forall(newTick >= _ + 1)
 
     override def handleSchedule(
-        actor: ActorRef[Activation],
+        actor: Actor,
         newTick: Long
     ): (Option[Long], InactiveCore) = {
       val oldEarliestTick = activationQueue.headKeyOption
@@ -68,18 +65,16 @@ object PhaseSwitchCore extends CoreFactory {
   }
 
   private final case class PhaseSwitchActive(
-      private val activationQueue: PrioritySwitchBiSet[Long, ActorRef[
-        Activation
-      ]],
+      private val activationQueue: PrioritySwitchBiSet[Long, Actor],
       activeTick: Long,
       private val phase: Int = 0,
-      private val activeActors: Set[ActorRef[Activation]] = Set.empty
+      private val activeActors: Set[Actor] = Set.empty
   ) extends ActiveCore {
 
-    override def checkCompletion(actor: ActorRef[Activation]): Boolean =
+    override def checkCompletion(actor: Actor): Boolean =
       activeActors.contains(actor)
 
-    override def handleCompletion(actor: ActorRef[Activation]): ActiveCore =
+    override def handleCompletion(actor: Actor): ActiveCore =
       copy(activeActors = activeActors.excl(actor))
 
     override def maybeComplete(): Option[(Option[Long], InactiveCore)] = {
@@ -95,10 +90,7 @@ object PhaseSwitchCore extends CoreFactory {
       }
     }
 
-    override def checkSchedule(
-        actor: ActorRef[Activation],
-        newTick: Long
-    ): Boolean = {
+    override def checkSchedule(actor: Actor, newTick: Long): Boolean = {
       if (newTick == activeTick) {
         // what's done, is done: old phases are completed,
         // thus they cannot handle new activation schedulings
@@ -107,14 +99,10 @@ object PhaseSwitchCore extends CoreFactory {
         newTick > activeTick
     }
 
-    override def handleSchedule(
-        actor: ActorRef[Activation],
-        newTick: Long
-    ): ActiveCore =
+    override def handleSchedule(actor: Actor, newTick: Long): ActiveCore =
       copy(activationQueue = activationQueue.set(newTick, actor))
 
-    override def takeNewActivations()
-        : (Iterable[ActorRef[Activation]], ActiveCore) = {
+    override def takeNewActivations(): (Iterable[Actor], ActiveCore) = {
       Option
         .when(activeActors.isEmpty) {
           // only one actor can be active at a time, and only

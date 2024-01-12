@@ -9,8 +9,9 @@ package edu.ie3.simona.model.participant
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.participant.HpModel._
+import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.participant.control.QControl
+<<<<<<< HEAD
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.{
   ThermalGrid,
@@ -21,16 +22,25 @@ import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   ProvideFlexOptions,
   ProvideMinMaxFlexOptions
 }
+=======
+import edu.ie3.simona.model.thermal.ThermalGrid
+import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
+>>>>>>> dev
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
 import squants.energy.Kilowatts
+<<<<<<< HEAD
 import squants.{Power, Temperature, Time}
+=======
+import squants.{Power, Temperature}
+>>>>>>> dev
 
 import java.time.ZonedDateTime
 import java.util.UUID
 
-/** Model of a heat pump (HP) with a [[ThermalHouse]] medium and its current
+/** Model of a heat pump (HP) with a
+  * [[edu.ie3.simona.model.thermal.ThermalHouse]] medium and its current
   * [[HpState]].
   *
   * @param uuid
@@ -66,8 +76,12 @@ final case class HpModel(
     thermalGrid: ThermalGrid
 ) extends SystemParticipant[
       HpRelevantData,
+<<<<<<< HEAD
       ApparentPowerAndHeat,
       HpState
+=======
+      ApparentPowerAndHeat
+>>>>>>> dev
     ](
       uuid,
       id,
@@ -88,17 +102,28 @@ final case class HpModel(
     * [[HpModel.calculateNextState]]. This state then is fed into the power
     * calculation logic by <i>hpData</i>.
     *
+<<<<<<< HEAD
     * @param modelState
     *   Current state of the heat pump
+=======
+>>>>>>> dev
     * @param relevantData
     *   data of heat pump including state of the heat pump
     * @return
     *   active power
     */
   override protected def calculateActivePower(
+<<<<<<< HEAD
       modelState: HpState,
       relevantData: HpRelevantData
   ): Power = modelState.activePower
+=======
+      relevantData: HpRelevantData
+  ): Power = {
+    relevantData.hpState = calculateNextState(relevantData)
+    relevantData.hpState.activePower
+  }
+>>>>>>> dev
 
   /** "Calculate" the heat output of the heat pump. The hp's state is already
     * updated, because the calculation of apparent power in
@@ -152,12 +177,18 @@ final case class HpModel(
     * @return
     *   boolean defining if heat pump runs in next time step
     */
+<<<<<<< HEAD
   def operatesInNextState(
       state: HpState,
       relevantData: HpRelevantData
   ): Boolean =
     relevantData match {
       case HpRelevantData(currentTimeTick, ambientTemperature) =>
+=======
+  private def operatesInNextState(hpData: HpRelevantData): Boolean =
+    hpData match {
+      case HpRelevantData(hpState, currentTimeTick, ambientTemperature) =>
+>>>>>>> dev
         val demand = thermalGrid.energyDemand(
           currentTimeTick,
           ambientTemperature,
@@ -188,7 +219,10 @@ final case class HpModel(
       if (isRunning)
         (pRated, pThermal * scalingFactor)
       else (DefaultQuantities.zeroKW, DefaultQuantities.zeroKW)
+<<<<<<< HEAD
 
+=======
+>>>>>>> dev
     /* Push thermal energy to the thermal grid and get it's updated state in return */
     val (thermalGridState, maybeThreshold) = relevantData match {
       case HpRelevantData(currentTimeTick, _) =>
@@ -353,12 +387,19 @@ object HpModel {
   final case class HpState(
       isRunning: Boolean,
       lastTimeTick: Long,
+<<<<<<< HEAD
       ambientTemperature: Temperature,
       activePower: Power,
       qDot: Power,
       thermalGridState: ThermalGridState,
       maybeThermalThreshold: Option[ThermalThreshold]
   ) extends ModelState
+=======
+      activePower: Power,
+      qDot: Power,
+      thermalGridState: ThermalGridState
+  )
+>>>>>>> dev
 
   /** Main data required for simulation/calculation, containing a [[HpState]]
     * and the current time tick. <p> [[HpRelevantData.currentTimeTick]] and

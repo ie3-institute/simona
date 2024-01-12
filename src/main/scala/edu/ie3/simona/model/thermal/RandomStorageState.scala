@@ -7,6 +7,7 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
+import squants.Energy
 import squants.energy.Kilowatts
 
 import scala.util.Random
@@ -17,7 +18,7 @@ trait RandomStorageState {
 
   override def startingState: ThermalStorage.ThermalStorageState = {
     def rnd: Double = new Random(seed).nextDouble()
-    def storedEnergy: squants.Energy = getMinEnergyThreshold + (
+    def storedEnergy: Energy = getMinEnergyThreshold + (
       getMaxEnergyThreshold - (getMinEnergyThreshold * rnd)
     )
 

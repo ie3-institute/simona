@@ -602,7 +602,7 @@ abstract class ParticipantAgent[
     *   Transition to [[HandleInformation]] utilising appropriate new
     *   [[DataCollectionStateData]]
     */
-  def handleActivationAndGoToHandleInformation(
+  private def handleActivationAndGoToHandleInformation(
       tick: Long,
       baseStateData: BaseStateData[PD]
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {

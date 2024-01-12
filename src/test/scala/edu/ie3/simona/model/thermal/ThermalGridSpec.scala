@@ -8,9 +8,16 @@ package edu.ie3.simona.model.thermal
 
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalEnergyDemand
 import edu.ie3.simona.test.common.UnitSpec
-import squants.energy.MegawattHours
+import squants.energy.{MegawattHours, WattHours, Watts}
+import squants.thermal.Celsius
+import squants.{Energy, Power, Temperature}
 
 class ThermalGridSpec extends UnitSpec {
+
+  implicit val tempTolerance: Temperature = Celsius(1e-3)
+  implicit val powerTolerance: Power = Watts(1e-3)
+  implicit val energyTolerance: Energy = WattHours(1e-3)
+
   "Testing the thermal energy demand" when {
     "instantiating it from given values" should {
       "correct non-sensible input" in {
@@ -19,8 +26,8 @@ class ThermalGridSpec extends UnitSpec {
 
         val energyDemand = ThermalEnergyDemand(required, possible)
 
-        energyDemand.required shouldBe possible
-        energyDemand.possible shouldBe possible
+        (energyDemand.required =~ possible) shouldBe true
+        (energyDemand.possible =~ possible) shouldBe true
       }
 
       "set the correct values, if they are sensible" in {
@@ -29,8 +36,8 @@ class ThermalGridSpec extends UnitSpec {
 
         val energyDemand = ThermalEnergyDemand(required, possible)
 
-        energyDemand.required shouldBe required
-        energyDemand.possible shouldBe possible
+        (energyDemand.required =~ required) shouldBe true
+        (energyDemand.possible =~ possible) shouldBe true
       }
     }
 
@@ -38,8 +45,8 @@ class ThermalGridSpec extends UnitSpec {
       "actually have no demand" in {
         val energyDemand = ThermalEnergyDemand.noDemand
 
-        energyDemand.required shouldBe MegawattHours(0d)
-        energyDemand.possible shouldBe MegawattHours(0d)
+        (energyDemand.required =~ MegawattHours(0d)) shouldBe true
+        (energyDemand.possible =~ MegawattHours(0d)) shouldBe true
       }
     }
 
@@ -85,10 +92,8 @@ class ThermalGridSpec extends UnitSpec {
 
         val totalDemand = energyDemand1 + energyDemand2
 
-        implicit val energyTolerance: squants.Energy = MegawattHours(1e-10)
-
-        (totalDemand.required ~= MegawattHours(68d)) shouldBe true
-        (totalDemand.possible ~= MegawattHours(75d)) shouldBe true
+        (totalDemand.required =~ MegawattHours(68d)) shouldBe true
+        (totalDemand.possible =~ MegawattHours(75d)) shouldBe true
       }
     }
   }

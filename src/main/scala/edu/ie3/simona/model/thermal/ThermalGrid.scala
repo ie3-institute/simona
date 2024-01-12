@@ -23,6 +23,10 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import squants.energy.{Kilowatts, MegawattHours, Megawatts}
+import edu.ie3.util.quantities.PowerSystemUnits
+import squants.{Energy, Power, Temperature}
+import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import scala.jdk.CollectionConverters.SetHasAsScala
@@ -53,7 +57,7 @@ final case class ThermalGrid(
     */
   def energyDemand(
       tick: Long,
-      ambientTemperature: squants.Temperature,
+      ambientTemperature: Temperature,
       state: ThermalGridState
   ): ThermalEnergyDemand = {
     /* First get the energy demand of the houses */
@@ -113,8 +117,8 @@ final case class ThermalGrid(
   def updateState(
       tick: Long,
       state: ThermalGridState,
-      ambientTemperature: squants.Temperature,
-      qDot: squants.Power
+      ambientTemperature: Temperature,
+      qDot: Power
   ): (ThermalGridState, Option[ThermalThreshold]) = if (qDot > Kilowatts(0d))
     handleInfeed(tick, ambientTemperature, state, qDot)
   else
@@ -135,9 +139,9 @@ final case class ThermalGrid(
     */
   private def handleInfeed(
       tick: Long,
-      ambientTemperature: squants.Temperature,
+      ambientTemperature: Temperature,
       state: ThermalGridState,
-      qDot: squants.Power
+      qDot: Power
   ): (ThermalGridState, Option[ThermalThreshold]) =
     house.zip(state.houseState) match {
       case Some((thermalHouse, lastHouseState)) =>
@@ -255,9 +259,9 @@ final case class ThermalGrid(
     */
   private def handleConsumption(
       tick: Long,
-      ambientTemperature: squants.Temperature,
+      ambientTemperature: Temperature,
       state: ThermalGridState,
-      qDot: squants.Power
+      qDot: Power
   ): (ThermalGridState, Option[ThermalThreshold]) = {
     /* House will be left with no influx in all cases. Determine if and when a threshold is reached */
     val maybeUpdatedHouseState =
@@ -330,8 +334,8 @@ final case class ThermalGrid(
       ],
       formerHouseState: Option[ThermalHouseState],
       formerStorageState: Option[ThermalStorageState],
-      ambientTemperature: squants.Temperature,
-      qDot: squants.Power
+      ambientTemperature: Temperature,
+      qDot: Power
   ): (
       Option[(ThermalHouseState, Option[ThermalThreshold])],
       Option[(ThermalStorageState, Option[ThermalThreshold])]
@@ -469,8 +473,8 @@ object ThermalGrid {
     *   The maximum possible energy, that can be handled
     */
   final case class ThermalEnergyDemand private (
-      required: squants.Energy,
-      possible: squants.Energy
+      required: Energy,
+      possible: Energy
   ) {
     def +(rhs: ThermalEnergyDemand): ThermalEnergyDemand = ThermalEnergyDemand(
       required + rhs.required,
@@ -494,8 +498,8 @@ object ThermalGrid {
       *   Thermal energy demand container class, that meets all specifications
       */
     def apply(
-        required: squants.Energy,
-        possible: squants.Energy
+        required: Energy,
+        possible: Energy
     ): ThermalEnergyDemand = {
       if (possible < required)
         new ThermalEnergyDemand(possible, possible)

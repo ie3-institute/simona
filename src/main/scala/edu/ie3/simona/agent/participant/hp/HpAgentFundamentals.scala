@@ -61,9 +61,8 @@ import squants.thermal.Celsius
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import squants.energy.Megawatts
-import squants.{Dimensionless, Each, Power, Temperature}
+import squants.{Dimensionless, Each, Power}
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import java.util.UUID

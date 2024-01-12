@@ -8,27 +8,17 @@ package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
-import edu.ie3.datamodel.models.input.thermal.{
-  CylindricalStorageInput,
-  ThermalBusInput
-}
+import edu.ie3.datamodel.models.input.thermal.{CylindricalStorageInput, ThermalBusInput}
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
-  StorageEmpty,
-  StorageFull
-}
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{StorageEmpty, StorageFull}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.SquantsUtils.RichEnergy
-import edu.ie3.util.scala.quantities.{
-  DefaultQuantities,
-  KilowattHoursPerKelvinCubicMeters,
-  SpecificHeatCapacity
-}
+import edu.ie3.util.scala.quantities.{DefaultQuantities, KilowattHoursPerKelvinCubicMeters, SpecificHeatCapacity}
 import squants.energy.{Kilowatts, Megawatts}
-import squants.space.CubicMeters
+import squants.space.{CubicMeters, Volume}
 import squants.thermal.Celsius
 import squants.time.{Hours, Seconds}
-import squants.{Energy, Power, Temperature, Volume}
+import squants.{Energy, Power, Temperature}
 import tech.units.indriya.unit.Units
 
 import java.util.UUID
@@ -92,7 +82,7 @@ final case class CylindricalThermalStorage(
     */
   override def updateState(
       tick: Long,
-      qDot: squants.Power,
+      qDot: Power,
       lastState: ThermalStorageState
   ): (ThermalStorageState, Option[ThermalThreshold]) = {
     /* Determine new state based on time difference and given state */
@@ -125,6 +115,8 @@ final case class CylindricalThermalStorage(
       } else {
         return (ThermalStorageState(tick, updatedEnergy, qDot), None)
       }
+
+    }
     (ThermalStorageState(tick, updatedEnergy, qDot), nextThreshold)
   }
 
@@ -182,40 +174,38 @@ case object CylindricalThermalStorage {
       input: CylindricalStorageInput,
       initialStoredEnergy: Energy = DefaultQuantities.zeroKWH
   ): CylindricalThermalStorage = {
-    val minEnergyThreshold: squants.Energy =
-      CylindricalThermalStorage
-        .volumeToEnergy(
-          CubicMeters(
-            input.getStorageVolumeLvlMin
-              .to(Units.CUBIC_METRE)
-              .getValue
-              .doubleValue
-          ),
-          KilowattHoursPerKelvinCubicMeters(
-            input.getC
-              .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
-              .getValue
-              .doubleValue()
-          ),
-          Celsius(input.getInletTemp.to(Units.CELSIUS).getValue.doubleValue()),
-          Celsius(input.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue())
-        )
+    val minEnergyThreshold: Energy =
+      CylindricalThermalStorage.volumeToEnergy(
+        CubicMeters(
+          input.getStorageVolumeLvlMin
+            .to(Units.CUBIC_METRE)
+            .getValue
+            .doubleValue
+        ),
+        KilowattHoursPerKelvinCubicMeters(
+          input.getC
+            .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
+            .getValue
+            .doubleValue
+        ),
+        Celsius(input.getInletTemp.to(Units.CELSIUS).getValue.doubleValue()),
+        Celsius(input.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue())
+      )
 
-    val maxEnergyThreshold: squants.Energy =
-      CylindricalThermalStorage
-        .volumeToEnergy(
-          CubicMeters(
-            input.getStorageVolumeLvl.to(Units.CUBIC_METRE).getValue.doubleValue
-          ),
-          KilowattHoursPerKelvinCubicMeters(
-            input.getC
-              .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
-              .getValue
-              .doubleValue()
-          ),
-          Celsius(input.getInletTemp.to(Units.CELSIUS).getValue.doubleValue()),
-          Celsius(input.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue())
-        )
+    val maxEnergyThreshold: Energy =
+      CylindricalThermalStorage.volumeToEnergy(
+        CubicMeters(
+          input.getStorageVolumeLvl.to(Units.CUBIC_METRE).getValue.doubleValue
+        ),
+        KilowattHoursPerKelvinCubicMeters(
+          input.getC
+            .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
+            .getValue
+            .doubleValue
+        ),
+        Celsius(input.getInletTemp.to(Units.CELSIUS).getValue.doubleValue()),
+        Celsius(input.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue())
+      )
 
     /* TODO: Currently, the input model does not define any maximum charge power. Assume, that the usable energy can
      *   be charged / discharged within the interval of an hour */

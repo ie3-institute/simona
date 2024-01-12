@@ -44,7 +44,7 @@ abstract class ThermalStorage(
     maxEnergyThreshold: Energy,
     chargingPower: Power
 ) {
-  protected val zeroEnergy: squants.Energy =
+  protected val zeroEnergy: Energy =
     KilowattHours(0d)
 
   /** In order to avoid faulty flexibility options, we want to avoid offering

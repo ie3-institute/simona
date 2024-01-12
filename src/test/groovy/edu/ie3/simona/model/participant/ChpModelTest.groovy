@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.util.scala.quantities.KilowattHoursPerKelvinCubicMeters$
-
 import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static tech.units.indriya.quantity.Quantities.getQuantity
 import static tech.units.indriya.unit.Units.PERCENT
@@ -19,9 +17,12 @@ import edu.ie3.datamodel.models.input.system.ChpInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.system.type.ChpTypeInput
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
+import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
+import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.participant.ChpModel.ChpState
 import edu.ie3.simona.model.thermal.CylindricalThermalStorage
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.KilowattHoursPerKelvinCubicMeters$
 import edu.ie3.util.scala.quantities.Sq
 import spock.lang.Shared
 import spock.lang.Specification
@@ -44,10 +45,12 @@ class ChpModelTest extends Specification {
   ChpInput chpInput
 
   def setupSpec() {
+    def thermalBus =  new ThermalBusInput(UUID.randomUUID(), "thermal bus")
+
     storageInput = new CylindricalStorageInput(
         UUID.randomUUID(),
         "ThermalStorage",
-        null,
+        thermalBus,
         getQuantity(100, StandardUnits.VOLUME),
         getQuantity(20, StandardUnits.VOLUME),
         getQuantity(30, StandardUnits.TEMPERATURE),
@@ -57,8 +60,8 @@ class ChpModelTest extends Specification {
     def chpTypeInput = new ChpTypeInput(
         UUID.randomUUID(),
         "ChpTypeInput",
-        null,
-        null,
+        getQuantity(10000d, EURO),
+        getQuantity(200d, EURO_PER_MEGAWATTHOUR),
         getQuantity(19, PERCENT),
         getQuantity(76, PERCENT),
         getQuantity(100, KILOVOLTAMPERE),
@@ -71,8 +74,8 @@ class ChpModelTest extends Specification {
         "ChpInput",
         OperatorInput.NO_OPERATOR_ASSIGNED,
         OperationTime.notLimited(),
-        null,
-        null,
+        TestObjectFactory.buildNodeInput(false, GermanVoltageLevelUtils.MV_10KV, 0),
+        thermalBus,
         new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
         chpTypeInput,
         null,
@@ -174,7 +177,7 @@ class ChpModelTest extends Specification {
     def resStorageLvl = Sq.create(storageLevel.toCubicMeters(), CubicMeters$.MODULE$)
 
     then:
-    storageLevel - resStorageLvl < Sq.create(TOLERANCE, CubicMeters$.MODULE$)
+    storageLevel ~= resStorageLvl
 
     where:
     chpState           | storageLvl | heatDemand || expectedStorageLevel

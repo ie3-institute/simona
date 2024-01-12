@@ -15,6 +15,8 @@ import org.apache.pekko.actor.typed.ActorRef
   */
 object Core {
 
+  private[scheduler] type Actor = ActorRef[Activation]
+
   /** Factory for cores used by [[edu.ie3.simona.scheduler.Scheduler]].
     */
   trait CoreFactory {
@@ -73,7 +75,7 @@ object Core {
       *   scheduled for with its parent, and the changed [[InactiveCore]]
       */
     def handleSchedule(
-        actor: ActorRef[Activation],
+        actor: Actor,
         newTick: Long
     ): (Option[Long], InactiveCore)
   }
@@ -99,7 +101,7 @@ object Core {
       * @return
       *   true if the completion is allowed, false if not
       */
-    def checkCompletion(actor: ActorRef[Activation]): Boolean
+    def checkCompletion(actor: Actor): Boolean
 
     /** Handles the completion of an activation of given actor for the currently
       * active tick.
@@ -109,7 +111,7 @@ object Core {
       * @return
       *   The changed [[ActiveCore]]
       */
-    def handleCompletion(actor: ActorRef[Activation]): ActiveCore
+    def handleCompletion(actor: Actor): ActiveCore
 
     /** Checks whether the current activation of the scheduler can be completed,
       * which is usually the case when all activated actors have completed and
@@ -133,7 +135,7 @@ object Core {
       * @return
       *   true if scheduling the activation is allowed, false if not
       */
-    def checkSchedule(actor: ActorRef[Activation], newTick: Long): Boolean
+    def checkSchedule(actor: Actor, newTick: Long): Boolean
 
     /** Handles the scheduling of an activation of given actor for given tick.
       *
@@ -144,7 +146,7 @@ object Core {
       * @return
       *   The changed [[ActiveCore]]
       */
-    def handleSchedule(actor: ActorRef[Activation], newTick: Long): ActiveCore
+    def handleSchedule(actor: Actor, newTick: Long): ActiveCore
 
     /** Removes and returns activations scheduled for the current tick, which
       * can be sent out at the current moment.
@@ -153,7 +155,7 @@ object Core {
       *   A tuple of a collection of actors scheduled for the current tick, and
       *   the changed [[ActiveCore]]
       */
-    def takeNewActivations(): (Iterable[ActorRef[Activation]], ActiveCore)
+    def takeNewActivations(): (Iterable[Actor], ActiveCore)
   }
 
 }
