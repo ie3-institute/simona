@@ -6,12 +6,19 @@
 
 package edu.ie3.simona.sim.setup
 
-import org.apache.pekko.actor.{ActorContext, ActorRef, ActorSystem}
+import org.apache.pekko.actor.{
+  ActorContext,
+  ActorSystem,
+  ActorRef => classicRef
+}
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.connector.Transformer3WInput
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.agent.grid.GridAgentMessage
+import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.scheduler.TimeAdvancer
+import org.apache.pekko.actor.typed.ActorRef
 
 /** Trait that can be used to setup a customized simona simulation by providing
   * implementations for all setup information required by a
@@ -55,7 +62,7 @@ trait SimonaSetup {
     */
   def systemParticipantsListener(
       context: ActorContext
-  ): Seq[ActorRef]
+  ): Seq[classicRef]
 
   /** Creates a primary service proxy. The proxy is the first instance to ask
     * for primary data. If necessary, it delegates the registration request to
@@ -70,8 +77,8 @@ trait SimonaSetup {
     */
   def primaryServiceProxy(
       context: ActorContext,
-      scheduler: ActorRef
-  ): ActorRef
+      scheduler: classicRef
+  ): classicRef
 
   /** Creates a weather service
     *
@@ -85,8 +92,8 @@ trait SimonaSetup {
     */
   def weatherService(
       context: ActorContext,
-      scheduler: ActorRef
-  ): ActorRef
+      scheduler: classicRef
+  ): classicRef
 
   /** Loads external simulations and provides corresponding actors and init data
     *
@@ -99,7 +106,7 @@ trait SimonaSetup {
     */
   def extSimulations(
       context: ActorContext,
-      scheduler: ActorRef
+      scheduler: classicRef
   ): ExtSimSetupData
 
   /** Creates the time advancer
@@ -115,7 +122,7 @@ trait SimonaSetup {
     */
   def timeAdvancer(
       context: ActorContext,
-      simulation: ActorRef,
+      simulation: classicRef,
       runtimeEventListener: org.apache.pekko.actor.typed.ActorRef[RuntimeEvent]
   ): org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming]
 
@@ -131,7 +138,7 @@ trait SimonaSetup {
   def scheduler(
       context: ActorContext,
       timeAdvancer: org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming]
-  ): ActorRef
+  ): classicRef
 
   /** Creates all the needed grid agents
     *
@@ -148,8 +155,8 @@ trait SimonaSetup {
   def gridAgents(
       context: ActorContext,
       environmentRefs: EnvironmentRefs,
-      systemParticipantListener: Seq[ActorRef]
-  ): Iterable[ActorRef]
+      systemParticipantListener: Seq[classicRef]
+  ): Iterable[ActorRef[GridAgentMessage]]
 
   /** SIMONA links sub grids connected by a three winding transformer a bit
     * different. Therefore, the internal node has to be set as superior node.

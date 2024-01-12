@@ -13,7 +13,9 @@ import edu.ie3.datamodel.models.input.container.{GridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.{GridAgent, ReceivedValues}
+import edu.ie3.simona.agent.grid.GridAgentMessage.ValuesAdapter
+import edu.ie3.simona.agent.grid.ReceivedValues.CreateGridAgent
+import edu.ie3.simona.agent.grid.{GridAgent, GridAgentMessage}
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.data.ExtData
 import edu.ie3.simona.api.data.ev.{ExtEvData, ExtEvSimulation}
@@ -36,12 +38,17 @@ import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.TimeUtil
+import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.adapter.{
   ClassicActorContextOps,
   ClassicActorRefOps,
   TypedActorRefOps
 }
-import org.apache.pekko.actor.{ActorContext, ActorRef, ActorSystem}
+import org.apache.pekko.actor.{
+  ActorContext,
+  ActorSystem,
+  ActorRef => classicRef
+}
 
 import java.util.concurrent.LinkedBlockingQueue
 import scala.jdk.CollectionConverters._
@@ -63,8 +70,8 @@ class SimonaStandaloneSetup(
   override def gridAgents(
       context: ActorContext,
       environmentRefs: EnvironmentRefs,
-      systemParticipantListener: Seq[ActorRef]
-  ): Iterable[ActorRef] = {
+      systemParticipantListener: Seq[classicRef]
+  ): Iterable[ActorRef[GridAgentMessage]] = {
 
     /* get the grid */
     val subGridTopologyGraph = GridProvider
@@ -129,7 +136,7 @@ class SimonaStandaloneSetup(
           thermalGrids
         )
 
-        currentActorRef ! ReceivedValues.Create(gridAgentInitData, key)
+        currentActorRef ! ValuesAdapter(CreateGridAgent(gridAgentInitData, key))
 
         currentActorRef
       }
@@ -137,8 +144,8 @@ class SimonaStandaloneSetup(
 
   override def primaryServiceProxy(
       context: ActorContext,
-      scheduler: ActorRef
-  ): ActorRef = {
+      scheduler: classicRef
+  ): classicRef = {
     val simulationStart = TimeUtil.withDefaults.toZonedDateTime(
       simonaConfig.simona.time.startDateTime
     )
@@ -159,8 +166,8 @@ class SimonaStandaloneSetup(
 
   override def weatherService(
       context: ActorContext,
-      scheduler: ActorRef
-  ): ActorRef = {
+      scheduler: classicRef
+  ): classicRef = {
     val weatherService = context.simonaActorOf(
       WeatherService.props(
         scheduler,
@@ -182,7 +189,7 @@ class SimonaStandaloneSetup(
 
   override def extSimulations(
       context: ActorContext,
-      scheduler: ActorRef
+      scheduler: classicRef
   ): ExtSimSetupData = {
     val jars = ExtSimLoader.scanInputFolder()
 
@@ -206,7 +213,7 @@ class SimonaStandaloneSetup(
         // setup data services that belong to this external simulation
         val (extData, extDataInit): (
             Iterable[ExtData],
-            Iterable[(Class[_ <: SimonaService[_]], ActorRef)]
+            Iterable[(Class[_ <: SimonaService[_]], classicRef)]
         ) =
           extLink.getExtDataSimulations.asScala.zipWithIndex.map {
             case (_: ExtEvSimulation, dIndex) =>
@@ -245,7 +252,7 @@ class SimonaStandaloneSetup(
 
   override def timeAdvancer(
       context: ActorContext,
-      simulation: ActorRef,
+      simulation: classicRef,
       runtimeEventListener: org.apache.pekko.actor.typed.ActorRef[RuntimeEvent]
   ): org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming] = {
     val startDateTime = TimeUtil.withDefaults.toZonedDateTime(
@@ -269,7 +276,7 @@ class SimonaStandaloneSetup(
   override def scheduler(
       context: ActorContext,
       timeAdvancer: org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming]
-  ): ActorRef =
+  ): classicRef =
     context
       .spawn(
         Scheduler(
@@ -294,7 +301,7 @@ class SimonaStandaloneSetup(
 
   override def systemParticipantsListener(
       context: ActorContext
-  ): Seq[ActorRef] = {
+  ): Seq[classicRef] = {
     // append ResultEventListener as well to write raw output files
     ArgsParser
       .parseListenerConfigOption(simonaConfig.simona.event.listener)
@@ -319,8 +326,8 @@ class SimonaStandaloneSetup(
       subGridTopologyGraph: SubGridTopologyGraph,
       context: ActorContext,
       environmentRefs: EnvironmentRefs,
-      systemParticipantListener: Seq[ActorRef]
-  ): Map[Int, ActorRef] = {
+      systemParticipantListener: Seq[classicRef]
+  ): Map[Int, ActorRef[GridAgentMessage]] = {
     subGridTopologyGraph
       .vertexSet()
       .asScala
@@ -334,7 +341,7 @@ class SimonaStandaloneSetup(
             ),
             subGridContainer.getSubnet.toString
           )
-        subGridContainer.getSubnet -> gridAgentRef.toClassic
+        subGridContainer.getSubnet -> gridAgentRef
       })
       .toMap
   }

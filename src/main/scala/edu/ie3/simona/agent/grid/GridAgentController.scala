@@ -11,6 +11,7 @@ import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.input.system._
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
   ActorEvMovementsService,
   ActorWeatherService
@@ -31,11 +32,11 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.adapter.{
   ClassicActorRefOps,
   TypedActorRefOps
 }
-import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.{ActorContext, ActorRef => classicRef}
 import org.slf4j.Logger
 
@@ -80,7 +81,7 @@ class GridAgentController(
   def buildSystemParticipants(
       subGridContainer: SubGridContainer,
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid]
-  ): Map[UUID, Set[classicRef]] = {
+  ): Map[UUID, Set[ActorRef[ParticipantMessage]]] = {
 
     val systemParticipants =
       filterSysParts(subGridContainer, environmentRefs)
@@ -175,7 +176,7 @@ class GridAgentController(
       participants: Vector[SystemParticipantInput],
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
       environmentRefs: EnvironmentRefs
-  ): Map[UUID, Set[classicRef]] = {
+  ): Map[UUID, Set[ActorRef[ParticipantMessage]]] = {
     /* Prepare the config util for the participant models, which (possibly) utilizes as map to speed up the initialization
      * phase */
     val participantConfigUtil =
@@ -195,11 +196,11 @@ class GridAgentController(
             thermalIslandGridsByBusId,
             environmentRefs
           )
-        introduceAgentToEnvironment(actorRef)
+        introduceAgentToEnvironment(actorRef.toClassic)
         // return uuid to actorRef
         node.getUuid -> actorRef
       })
-      .toSet[(UUID, classicRef)]
+      .toSet[(UUID, ActorRef[ParticipantMessage])]
       .groupMap(entry => entry._1)(entry => entry._2)
   }
 
@@ -210,7 +211,7 @@ class GridAgentController(
       participantInputModel: SystemParticipantInput,
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
       environmentRefs: EnvironmentRefs
-  ): classicRef = participantInputModel match {
+  ): ActorRef[ParticipantMessage] = participantInputModel match {
     case input: FixedFeedInInput =>
       buildFixedFeedIn(
         input,
@@ -341,25 +342,27 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig
-  ): classicRef =
-    gridAgentContext.simonaActorOf(
-      FixedFeedInAgent.props(
-        environmentRefs.scheduler,
-        ParticipantInitializeStateData(
-          fixedFeedInInput,
-          modelConfiguration,
-          primaryServiceProxy,
-          None,
-          simulationStartDate,
-          simulationEndDate,
-          resolution,
-          requestVoltageDeviationThreshold,
-          outputConfig
+  ): ActorRef[ParticipantMessage] =
+    gridAgentContext
+      .simonaActorOf(
+        FixedFeedInAgent.props(
+          environmentRefs.scheduler,
+          ParticipantInitializeStateData(
+            fixedFeedInInput,
+            modelConfiguration,
+            primaryServiceProxy,
+            None,
+            simulationStartDate,
+            simulationEndDate,
+            resolution,
+            requestVoltageDeviationThreshold,
+            outputConfig
+          ),
+          listener.map(_.toClassic)
         ),
-        listener.map(_.toClassic)
-      ),
-      fixedFeedInInput.getId
-    )
+        fixedFeedInInput.getId
+      )
+      .toTyped[ParticipantMessage]
 
   /** Creates a load agent and determines the needed additional information for
     * later initialization of the agent.
@@ -392,25 +395,27 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig
-  ): classicRef =
-    gridAgentContext.simonaActorOf(
-      LoadAgent.props(
-        environmentRefs.scheduler,
-        ParticipantInitializeStateData(
-          loadInput,
-          modelConfiguration,
-          primaryServiceProxy,
-          None,
-          simulationStartDate,
-          simulationEndDate,
-          resolution,
-          requestVoltageDeviationThreshold,
-          outputConfig
+  ): ActorRef[ParticipantMessage] =
+    gridAgentContext
+      .simonaActorOf(
+        LoadAgent.props(
+          environmentRefs.scheduler,
+          ParticipantInitializeStateData(
+            loadInput,
+            modelConfiguration,
+            primaryServiceProxy,
+            None,
+            simulationStartDate,
+            simulationEndDate,
+            resolution,
+            requestVoltageDeviationThreshold,
+            outputConfig
+          ),
+          listener.map(_.toClassic)
         ),
-        listener.map(_.toClassic)
-      ),
-      loadInput.getId
-    )
+        loadInput.getId
+      )
+      .toTyped[ParticipantMessage]
 
   /** Creates a pv agent and determines the needed additional information for
     * later initialization of the agent.
@@ -446,25 +451,27 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig
-  ): classicRef =
-    gridAgentContext.simonaActorOf(
-      PvAgent.props(
-        environmentRefs.scheduler,
-        ParticipantInitializeStateData(
-          pvInput,
-          modelConfiguration,
-          primaryServiceProxy,
-          Some(Vector(ActorWeatherService(weatherService))),
-          simulationStartDate,
-          simulationEndDate,
-          resolution,
-          requestVoltageDeviationThreshold,
-          outputConfig
+  ): ActorRef[ParticipantMessage] =
+    gridAgentContext
+      .simonaActorOf(
+        PvAgent.props(
+          environmentRefs.scheduler,
+          ParticipantInitializeStateData(
+            pvInput,
+            modelConfiguration,
+            primaryServiceProxy,
+            Some(Vector(ActorWeatherService(weatherService))),
+            simulationStartDate,
+            simulationEndDate,
+            resolution,
+            requestVoltageDeviationThreshold,
+            outputConfig
+          ),
+          listener.map(_.toClassic)
         ),
-        listener.map(_.toClassic)
-      ),
-      pvInput.getId
-    )
+        pvInput.getId
+      )
+      .toTyped[ParticipantMessage]
 
   /** Creates an Evcs agent and determines the needed additional information for
     * later initialization of the agent.
@@ -500,7 +507,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig
-  ): classicRef = {
+  ): ActorRef[ParticipantMessage] = {
     val sources = Some(
       Vector(
         ActorEvMovementsService(
@@ -508,23 +515,25 @@ class GridAgentController(
         )
       )
     )
-    gridAgentContext.simonaActorOf(
-      EvcsAgent.props(
-        environmentRefs.scheduler,
-        ParticipantInitializeStateData(
-          evcsInput,
-          modelConfiguration,
-          primaryServiceProxy,
-          sources,
-          simulationStartDate,
-          simulationEndDate,
-          resolution,
-          requestVoltageDeviationThreshold,
-          outputConfig
-        ),
-        listener.map(_.toClassic)
+    gridAgentContext
+      .simonaActorOf(
+        EvcsAgent.props(
+          environmentRefs.scheduler,
+          ParticipantInitializeStateData(
+            evcsInput,
+            modelConfiguration,
+            primaryServiceProxy,
+            sources,
+            simulationStartDate,
+            simulationEndDate,
+            resolution,
+            requestVoltageDeviationThreshold,
+            outputConfig
+          ),
+          listener.map(_.toClassic)
+        )
       )
-    )
+      .toTyped[ParticipantMessage]
   }
 
   /** Builds an [[HpAgent]] from given input
@@ -553,26 +562,28 @@ class GridAgentController(
       weatherService: classicRef,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig
-  ): classicRef =
-    gridAgentContext.simonaActorOf(
-      HpAgent.props(
-        environmentRefs.scheduler,
-        ParticipantInitializeStateData(
-          hpInput,
-          thermalGrid,
-          modelConfiguration,
-          primaryServiceProxy,
-          Some(Vector(ActorWeatherService(weatherService))),
-          simulationStartDate,
-          simulationEndDate,
-          resolution,
-          requestVoltageDeviationThreshold,
-          outputConfig
+  ): ActorRef[ParticipantMessage] =
+    gridAgentContext
+      .simonaActorOf(
+        HpAgent.props(
+          environmentRefs.scheduler,
+          ParticipantInitializeStateData(
+            hpInput,
+            thermalGrid,
+            modelConfiguration,
+            primaryServiceProxy,
+            Some(Vector(ActorWeatherService(weatherService))),
+            simulationStartDate,
+            simulationEndDate,
+            resolution,
+            requestVoltageDeviationThreshold,
+            outputConfig
+          ),
+          listener.map(_.toClassic)
         ),
-        listener.map(_.toClassic)
-      ),
-      hpInput.getId
-    )
+        hpInput.getId
+      )
+      .toTyped[ParticipantMessage]
 
   /** Creates a pv agent and determines the needed additional information for
     * later initialization of the agent.
@@ -608,25 +619,27 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig
-  ): classicRef =
-    gridAgentContext.simonaActorOf(
-      WecAgent.props(
-        environmentRefs.scheduler,
-        ParticipantInitializeStateData(
-          wecInput,
-          modelConfiguration,
-          primaryServiceProxy,
-          Some(Vector(ActorWeatherService(weatherService))),
-          simulationStartDate,
-          simulationEndDate,
-          resolution,
-          requestVoltageDeviationThreshold,
-          outputConfig
+  ): ActorRef[ParticipantMessage] =
+    gridAgentContext
+      .simonaActorOf(
+        WecAgent.props(
+          environmentRefs.scheduler,
+          ParticipantInitializeStateData(
+            wecInput,
+            modelConfiguration,
+            primaryServiceProxy,
+            Some(Vector(ActorWeatherService(weatherService))),
+            simulationStartDate,
+            simulationEndDate,
+            resolution,
+            requestVoltageDeviationThreshold,
+            outputConfig
+          ),
+          listener.map(_.toClassic)
         ),
-        listener.map(_.toClassic)
-      ),
-      wecInput.getId
-    )
+        wecInput.getId
+      )
+      .toTyped[ParticipantMessage]
 
   /** Introduces the given agent to scheduler
     *
@@ -638,7 +651,7 @@ class GridAgentController(
   ): Unit = {
     gridAgentContext.watch(actorRef)
     environmentRefs.scheduler ! ScheduleActivation(
-      actorRef.toTyped,
+      actorRef.toTyped, // TODO: Add participant adapter
       INIT_SIM_TICK
     )
   }

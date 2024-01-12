@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import org.apache.pekko.actor.{ActorRef => classicRef}
-import org.apache.pekko.actor.typed.ActorRef
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.powerflow.model.PowerFlowResult
@@ -17,6 +15,7 @@ import edu.ie3.simona.agent.grid.ReceivedValues.{
   ReceivedSlackVoltageValues
 }
 import edu.ie3.simona.agent.grid.ReceivedValuesStore.NodeToReceivedPower
+import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.model.grid.{GridModel, RefSystem}
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   FailedPowerFlow,
@@ -24,6 +23,7 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
   ProvideGridPowerMessage,
   ProvidePowerMessage
 }
+import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 
 import java.util.UUID
@@ -99,7 +99,7 @@ object GridAgentData {
     def apply(
         gridModel: GridModel,
         subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgentMessage]],
-        nodeToAssetAgents: Map[UUID, Set[classicRef]],
+        nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]],
         superiorGridNodeUuids: Vector[UUID],
         inferiorGridGates: Vector[SubGridGate],
         powerFlowParams: PowerFlowParams,
@@ -298,7 +298,7 @@ object GridAgentData {
     private def updateNodalReceivedPower(
         powerResponse: PowerResponseMessage,
         nodeToReceived: NodeToReceivedPower,
-        senderRef: classicRef,
+        senderRef: ActorRef[_],
         replace: Boolean
     ): NodeToReceivedPower = {
       // extract the nodeUuid that corresponds to the sender's actorRef and check if we expect a message from the sender
@@ -356,7 +356,7 @@ object GridAgentData {
       */
     private def getNodeUuidForSender(
         nodeToReceivedPower: NodeToReceivedPower,
-        senderRef: classicRef,
+        senderRef: ActorRef[_],
         replace: Boolean
     ): Option[UUID] =
       nodeToReceivedPower

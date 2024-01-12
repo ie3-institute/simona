@@ -19,24 +19,26 @@ sealed trait GridAgentMessage
 
 object GridAgentMessage {
 
+  /** Message that should be send by the
+    */
+  final object StopGridAgent extends GridAgentMessage
+
   /** Wrapper for activation values
     *
     * @param activation
     *   the tick
     */
-  private[grid] final case class ActivationAdapter(activation: Activation)
+  final case class ActivationAdapter(activation: Activation)
       extends GridAgentMessage
 
-  private[grid] final case class PMAdapter(msg: PowerMessage)
+  final case class PMAdapter(msg: PowerMessage) extends GridAgentMessage
+
+  final case class VMAdapter(msg: VoltageMessage) extends GridAgentMessage
+
+  final case class ValuesAdapter(values: ReceivedValues)
       extends GridAgentMessage
 
-  private[grid] final case class VMAdapter(msg: VoltageMessage)
-      extends GridAgentMessage
-
-  private[grid] final case class ValuesAdapter(values: ReceivedValues)
-      extends GridAgentMessage
-
-  private[grid] final case class ResultMessageAdapter(msg: ResultMessage)
+  final case class ResultMessageAdapter(msg: ResultMessage)
       extends GridAgentMessage
 
 }

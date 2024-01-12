@@ -11,13 +11,13 @@ import edu.ie3.simona.agent.grid.ReceivedValuesStore.{
   NodeToReceivedPower,
   NodeToReceivedSlackVoltage
 }
+import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   PowerResponseMessage,
   ProvidePowerMessage
 }
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.{ActorRef => classicRef}
 
 import java.util.UUID
 
@@ -48,7 +48,7 @@ final case class ReceivedValuesStore private (
 object ReceivedValuesStore {
 
   type NodeToReceivedPower =
-    Map[UUID, Map[classicRef, Option[PowerResponseMessage]]]
+    Map[UUID, Map[ActorRef[_], Option[PowerResponseMessage]]]
   type NodeToReceivedSlackVoltage =
     Map[UUID, Option[ExchangeVoltage]]
 
@@ -58,7 +58,7 @@ object ReceivedValuesStore {
     * [[ReceivedValuesStore]] for details)
     *
     * @param nodeToAssetAgents
-    *   mapping of node uuids to [[classicRef]] s of the asset agents that are
+    *   mapping of node uuids to [[ActorRef]] s of the asset agents that are
     *   located at the specific node
     * @param inferiorSubGridGateToActorRef
     *   mapping of all inferior [[SubGridGate]] s to the [[ActorRef]] of the
@@ -69,7 +69,7 @@ object ReceivedValuesStore {
     *   `empty` [[ReceivedValuesStore]] with pre-initialized options as `None`
     */
   def empty(
-      nodeToAssetAgents: Map[UUID, Set[classicRef]],
+      nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]],
       inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef[
         GridAgentMessage
       ]],
@@ -88,7 +88,7 @@ object ReceivedValuesStore {
     * to `None`
     *
     * @param nodeToAssetAgents
-    *   mapping of node uuids to [[classicRef]] s of the asset agents that are
+    *   mapping of node uuids to [[ActorRef]] s of the asset agents that are
     *   located at the specific node
     * @param inferiorSubGridGateToActorRef
     *   mapping of all inferior [[SubGridGate]] s to the [[ActorRef]] of the
@@ -97,14 +97,14 @@ object ReceivedValuesStore {
     *   `empty` [[NodeToReceivedPower]] with pre-initialized options as `None`
     */
   private def buildEmptyNodeToReceivedPowerMap(
-      nodeToAssetAgents: Map[UUID, Set[classicRef]],
+      nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]],
       inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef[
         GridAgentMessage
       ]]
   ): NodeToReceivedPower = {
     /* Collect everything, that I expect from my asset agents */
     val assetsToReceivedPower: NodeToReceivedPower = nodeToAssetAgents.collect {
-      case (uuid: UUID, actorRefs: Set[classicRef]) =>
+      case (uuid: UUID, actorRefs: Set[ActorRef[_]]) =>
         (uuid, actorRefs.map(actorRef => actorRef -> None).toMap)
     }
 
@@ -123,7 +123,7 @@ object ReceivedValuesStore {
           val actorRefToMessage = subordinateToReceivedPower
             .getOrElse(
               couplingNodeUuid,
-              Map.empty[classicRef, Option[ProvidePowerMessage]]
+              Map.empty[ActorRef[_], Option[ProvidePowerMessage]]
             ) + (inferiorSubGridRef -> None)
 
           /* Update the existing map */
@@ -161,7 +161,7 @@ object ReceivedValuesStore {
     *   `empty` [[NodeToReceivedSlackVoltage]] and [[NodeToReceivedPower]]
     */
   private def buildEmptyReceiveMaps(
-      nodeToAssetAgents: Map[UUID, Set[classicRef]],
+      nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]],
       inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef[
         GridAgentMessage
       ]],

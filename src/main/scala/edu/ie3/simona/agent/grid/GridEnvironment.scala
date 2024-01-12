@@ -7,9 +7,9 @@
 package edu.ie3.simona.agent.grid
 
 import edu.ie3.datamodel.graph.SubGridGate
+import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.model.grid.GridModel
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.{ActorRef => classicRef}
 
 import java.util.UUID
 
@@ -21,11 +21,11 @@ import java.util.UUID
   * @param subgridGateToActorRef
   *   a mapping of all [[SubGridGate]] s to their corresponding [[ActorRef]] s
   * @param nodeToAssetAgents
-  *   a mapping of all node uuids to a set of asset [[classicRef]] s at those
+  *   a mapping of all node uuids to a set of asset [[ActorRef]] s at those
   *   nodes
   */
 final case class GridEnvironment(
     gridModel: GridModel,
     subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgentMessage]],
-    nodeToAssetAgents: Map[UUID, Set[classicRef]]
+    nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]]
 )
