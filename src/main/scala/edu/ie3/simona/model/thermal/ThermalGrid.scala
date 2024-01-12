@@ -23,10 +23,7 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import squants.energy.{Kilowatts, MegawattHours, Megawatts}
-import edu.ie3.util.quantities.PowerSystemUnits
 import squants.{Energy, Power, Temperature}
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import scala.jdk.CollectionConverters.SetHasAsScala

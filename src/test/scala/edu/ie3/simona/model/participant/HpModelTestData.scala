@@ -6,22 +6,20 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.datamodel.models.input.system.`type`.HpTypeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
-import edu.ie3.datamodel.models.input.thermal.ThermalHouseInput
 import edu.ie3.datamodel.models.input.thermal.{
   ThermalBusInput,
   ThermalHouseInput
 }
+import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
-import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
+import edu.ie3.simona.model.participant.HpModel.HpRelevantData
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal.{
   CylindricalThermalStorage,
   ThermalGrid,
@@ -29,9 +27,9 @@ import edu.ie3.simona.model.thermal.{
   ThermalStorage
 }
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.scala.OperationInterval
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.thermal.Celsius
-import edu.ie3.util.scala.OperationInterval
 import squants.{Power, Temperature}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
@@ -133,42 +131,20 @@ trait HpModelTestData {
   )
 
   protected def thermalState(
-                              temperature: Double,
-                              qDot: Double = 0d
+      temperature: Temperature,
+      qDot: Power = Kilowatts(0d)
   ): ThermalGridState = ThermalGridState(
     Some(
       ThermalHouseState(
         0L,
-        Celsius(temperature),
-        Kilowatts(qDot)
+        temperature,
+        qDot
       )
     ),
     None
   )
 
-  protected def thermalState(
-      temperature: Double,
-      qDotHouse: Double,
-      storedEnergy: Double,
-      qDotStorage: Double
-  ): ThermalGridState = ThermalGridState(
-    Some(
-      ThermalHouseState(
-        0L,
-        Celsius(temperature),
-        Kilowatts(qDotHouse)
-      )
-    ),
-    Some(
-      ThermalStorageState(
-        0L,
-        KilowattHours(storedEnergy),
-        Kilowatts(qDotStorage)
-      )
-    )
-  )
-
   protected def hpData: HpRelevantData =
-    HpRelevantData(7200, Celsius(10.0))
+    HpRelevantData(7200, Celsius(10d))
 
 }

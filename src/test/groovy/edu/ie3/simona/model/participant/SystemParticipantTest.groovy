@@ -62,6 +62,7 @@ class SystemParticipantTest extends Specification {
         QControl.apply(new CosPhiP(varCharacteristicString)),
         Sq.create(102, Kilowatts$.MODULE$),
         1d)
+
     Dimensionless adjustedVoltage = Sq.create(1, Each$.MODULE$) // needed for method call but not applicable for cosphi_p
 
     when: "the reactive power is calculated"

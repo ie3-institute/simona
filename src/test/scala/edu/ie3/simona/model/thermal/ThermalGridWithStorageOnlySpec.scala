@@ -17,8 +17,8 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageFull
 }
 import edu.ie3.simona.test.common.UnitSpec
-import squants.thermal.{Celsius, Kelvin}
 import squants.energy._
+import squants.thermal.Celsius
 import squants.{Energy, Power, Temperature}
 
 import scala.jdk.CollectionConverters._
@@ -57,9 +57,6 @@ class ThermalGridWithStorageOnlySpec
         Set[ThermalStorageInput](thermalStorageInput).asJava
       )
     )
-    val ambientTemperature = Celsius(12.0)
-    val qDotInfeed = Kilowatts(15.0)
-    val qDotConsumption = Kilowatts(-200.0)
 
     "requesting the starting state" should {
       "deliver proper results" in {
@@ -69,8 +66,9 @@ class ThermalGridWithStorageOnlySpec
                 Some(ThermalStorageState(tick, storedEnergy, qDot))
               ) =>
             tick shouldBe expectedStorageStartingState.tick
-            (storedEnergy ~= expectedStorageStartingState.storedEnergy) shouldBe true
-            (qDot ~= expectedStorageStartingState.qDot) shouldBe true
+            (storedEnergy =~ expectedStorageStartingState.storedEnergy) shouldBe true
+            (qDot =~ expectedStorageStartingState.qDot) shouldBe true
+
           case _ => fail("Determination of starting state failed")
         }
       }
@@ -126,7 +124,7 @@ class ThermalGridWithStorageOnlySpec
               ) =>
             tick shouldBe 0L
             (storedEnergy =~ KilowattHours(430d)) shouldBe true
-            (qDot =~ qDotConsumption) shouldBe true
+            (qDot =~ testGridQDotConsumptionHigh) shouldBe true
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(StorageEmpty(3600L))
@@ -157,8 +155,8 @@ class ThermalGridWithStorageOnlySpec
                 Some(ThermalStorageState(tick, storedEnergy, qDot))
               ) =>
             tick shouldBe 0L
-            (storedEnergy ~= KilowattHours(230d)) shouldBe true
-            (qDot ~= qDotInfeed) shouldBe true
+            (storedEnergy =~ KilowattHours(230d)) shouldBe true
+            (qDot =~ testGridQDotInfeed) shouldBe true
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(StorageFull(220800L))
@@ -182,8 +180,8 @@ class ThermalGridWithStorageOnlySpec
                 Some(ThermalStorageState(tick, storedEnergy, qDot))
               ) =>
             tick shouldBe 0L
-            (storedEnergy ~= KilowattHours(230d)) shouldBe true
-            (qDot ~= qDotInfeed) shouldBe true
+            (storedEnergy =~ KilowattHours(230d)) shouldBe true
+            (qDot =~ testGridQDotInfeed) shouldBe true
           case _ => fail("Thermal grid state updated failed")
         }
       }
@@ -213,8 +211,9 @@ class ThermalGridWithStorageOnlySpec
                 Some(StorageEmpty(thresholdTick))
               ) =>
             tick shouldBe 0L
-            (storedEnergy ~= KilowattHours(430d)) shouldBe true
-            (qDot ~= qDotConsumption) shouldBe true
+            (storedEnergy =~ KilowattHours(430d)) shouldBe true
+
+            (qDot =~ testGridQDotConsumptionHigh) shouldBe true
             thresholdTick shouldBe 3600L
           case _ => fail("Thermal grid state updated failed")
         }
@@ -224,8 +223,8 @@ class ThermalGridWithStorageOnlySpec
         val updatedState = thermalGrid.updateState(
           0L,
           ThermalGrid.startingState(thermalGrid),
-          ambientTemperature,
-          Megawatts(0d)
+          testGridambientTemperature,
+          Kilowatts(0d)
         )
         updatedState match {
           case (
@@ -236,8 +235,8 @@ class ThermalGridWithStorageOnlySpec
                 None
               ) =>
             tick shouldBe 0L
-            (storedEnergy ~= KilowattHours(230d)) shouldBe true
-            (qDot ~= Megawatts(0d)) shouldBe true
+            (storedEnergy =~ KilowattHours(230d)) shouldBe true
+            (qDot =~ Megawatts(0d)) shouldBe true
           case _ => fail("Thermal grid state updated failed")
         }
       }

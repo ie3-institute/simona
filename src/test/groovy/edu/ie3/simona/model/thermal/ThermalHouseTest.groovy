@@ -6,6 +6,11 @@
 
 package edu.ie3.simona.model.thermal
 
+import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR_PER_KELVIN
+import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATT_PER_KELVIN
+import static tech.units.indriya.quantity.Quantities.getQuantity
+import static tech.units.indriya.unit.Units.CELSIUS
+
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.ThermalHouseInput
 import edu.ie3.util.scala.quantities.Sq
@@ -15,10 +20,6 @@ import squants.energy.*
 import squants.thermal.*
 import squants.time.*
 
-import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR_PER_KELVIN
-import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATT_PER_KELVIN
-import static tech.units.indriya.quantity.Quantities.getQuantity
-import static tech.units.indriya.unit.Units.CELSIUS
 
 class ThermalHouseTest extends Specification {
 
@@ -47,21 +48,21 @@ class ThermalHouseTest extends Specification {
     when:
     Temperature innerTemp = Sq.create(innerTemperature, Celsius$.MODULE$)
     def isHigher = thermalHouse.isInnerTemperatureTooHigh(innerTemp)
-    def isLower = thermalHouse.isInnerTemperatureTooLow(innerTemp)
+    def isLower = thermalHouse.isInnerTemperatureTooLow(innerTemp, thermalHouse.lowerBoundaryTemperature())
 
     then:
     isHigher == isTooHigh
     isLower == isTooLow
 
     where:
-    innerTemperature         || isTooHigh | isTooLow
-    17d                      || false     | true
-    17.98d                   || false     | true
-    18d                      || false     | true
-    20d                      || false     | false
-    22d                      || true      | false
-    22.02d                   || true      | false
-    23d                      || true      | false
+    innerTemperature || isTooHigh | isTooLow
+    17d              || false     | true
+    17.98d           || false     | true
+    18d              || false     | true
+    20d              || false     | false
+    22d              || true      | false
+    22.02d           || true      | false
+    23d              || true      | false
   }
 
   def "Calculation of thermal energy change and new inner temperature is performed correctly"() {
@@ -120,8 +121,8 @@ class ThermalHouseTest extends Specification {
     thermalHouse.operatorInput() == thermalHouseInput.operator
     thermalHouse.operationTime() == thermalHouseInput.operationTime
     thermalHouse.bus() == thermalHouseInput.thermalBus
-    thermalHouse.ethLosses().toKilowatts() == thermalHouseInput.ethLosses.to(KILOWATT_PER_KELVIN).getValue().doubleValue()
-    (thermalHouse.ethCapa().$times(Sq.create(1d, Kelvin$.MODULE$))).toKilowattHours() == thermalHouseInput.ethCapa.to(KILOWATTHOUR_PER_KELVIN).getValue().doubleValue()
+    thermalHouse.ethLosses().toWattsPerKelvin() == thermalHouseInput.ethLosses.to(KILOWATT_PER_KELVIN).value.doubleValue() * 1000
+    (thermalHouse.ethCapa().$times(Sq.create(1d, Kelvin$.MODULE$))).toKilowattHours() == thermalHouseInput.ethCapa.to(KILOWATTHOUR_PER_KELVIN).value.doubleValue()
     thermalHouse.lowerBoundaryTemperature() == Sq.create(18, Celsius$.MODULE$)
     thermalHouse.upperBoundaryTemperature() == Sq.create(22, Celsius$.MODULE$)
   }

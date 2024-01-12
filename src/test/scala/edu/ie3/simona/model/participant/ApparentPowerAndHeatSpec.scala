@@ -29,14 +29,14 @@ class ApparentPowerAndHeatSpec extends UnitSpec {
       "return zero result" in {
         ApparentPowerAndHeatMock.calculatePower(
           50L,
-          Each(1.0),
+          Each(1.0d),
           ConstantState,
           FixedRelevantData
         ) match {
           case ApparentPowerAndHeat(p, q, qDot) =>
-            (p ~= Megawatts(0.0)) shouldBe true
-            (q ~= Megavars(0.0)) shouldBe true
-            (qDot ~= Megawatts(0.0)) shouldBe true
+            (p =~ Megawatts(0d)) shouldBe true
+            (q =~ Megavars(0d)) shouldBe true
+            (qDot =~ Megawatts(0d)) shouldBe true
         }
       }
     }
@@ -44,14 +44,14 @@ class ApparentPowerAndHeatSpec extends UnitSpec {
       "return the correct values" in {
         ApparentPowerAndHeatMock.calculatePower(
           10L,
-          Each(1.0),
+          Each(1.0d),
           ConstantState,
           FixedRelevantData
         ) match {
           case ApparentPowerAndHeat(p, q, qDot) =>
-            (p ~= Megawatts(43.0)) shouldBe true
-            (q ~= Megavars(0.0)) shouldBe true
-            (qDot ~= Megawatts(42.0)) shouldBe true
+            (p =~ Megawatts(43d)) shouldBe true
+            (q =~ Megavars(0d)) shouldBe true
+            (qDot =~ Megawatts(42d)) shouldBe true
         }
       }
     }
@@ -70,7 +70,7 @@ object ApparentPowerAndHeatSpec {
         OperationInterval.apply(0L, 42L),
         1.0,
         CosPhiFixed(0.97),
-        Kilowatts(42.0),
+        Kilowatts(42d),
         0.97
       )
       with ApparentPowerAndHeatParticipant[
@@ -93,7 +93,7 @@ object ApparentPowerAndHeatSpec {
         tick: Long,
         modelState: ConstantState.type,
         data: CalcRelevantData.FixedRelevantData.type
-    ): squants.Power = Megawatts(42.0)
+    ): Power = Megawatts(42d)
 
     /** Calculate the active power behaviour of the model
       *
@@ -105,7 +105,7 @@ object ApparentPowerAndHeatSpec {
     override protected def calculateActivePower(
         modelState: ConstantState.type,
         data: CalcRelevantData.FixedRelevantData.type
-    ): squants.Power = Megawatts(43.0)
+    ): Power = Megawatts(43d)
 
     /** @param data
       * @param lastState
@@ -132,7 +132,7 @@ object ApparentPowerAndHeatSpec {
     override def handleControlledPowerChange(
         data: CalcRelevantData.FixedRelevantData.type,
         lastState: ModelState.ConstantState.type,
-        setPower: squants.Power
+        setPower: Power
     ): (ModelState.ConstantState.type, FlexChangeIndicator) =
       (lastState, FlexChangeIndicator())
   }

@@ -21,18 +21,12 @@ import edu.ie3.simona.model.thermal.ThermalHouse.{
   ThermalHouseState,
   temperatureTolerance
 }
-import edu.ie3.simona.model.thermal.ThermalHouse.temperatureTolerance
-import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.{ThermalConductance, WattsPerKelvin}
-import squants.energy.{KilowattHours, MegawattHours, Megawatts}
-import squants.thermal.{Celsius, JoulesPerKelvin, Kelvin, ThermalCapacity}
-import squants.time.Hours
-import squants.{Energy, Power, Temperature, Time}
 import squants.energy.{KilowattHours, Kilowatts, MegawattHours, Megawatts}
-import squants.thermal.ThermalCapacity
+import squants.thermal.{Kelvin, ThermalCapacity}
 import squants.time.{Hours, Seconds}
-import squants.{Energy, Kelvin, Power, Temperature, Time}
+import squants.{Energy, Power, Temperature, Time}
 import tech.units.indriya.unit.Units
 
 import java.util.UUID
@@ -113,9 +107,8 @@ final case class ThermalHouse(
     /* Determine, which temperature boundary triggers a needed energy to reach the temperature constraints */
     val temperatureToTriggerRequiredEnergy =
       if (
-        innerTemperature <= state.innerTemperature && state.qDot <= Kilowatts(
-          0d
-        )
+        innerTemperature <= state.innerTemperature &&
+        state.qDot <= Kilowatts(0d)
       )
         lowerBoundaryTemperature
       else targetTemperature
@@ -164,7 +157,9 @@ final case class ThermalHouse(
   def isInnerTemperatureTooHigh(
       innerTemperature: Temperature
   ): Boolean =
-    innerTemperature > (upperBoundaryTemperature - temperatureTolerance)
+    innerTemperature > Kelvin(
+      upperBoundaryTemperature.toKelvinScale - temperatureTolerance.toKelvinScale
+    )
 
   /** Check if inner temperature is lower than preferred minimum temperature
     *
@@ -172,9 +167,12 @@ final case class ThermalHouse(
     *   true, if inner temperature is too low
     */
   def isInnerTemperatureTooLow(
-      innerTemperature: Temperature
+      innerTemperature: Temperature,
+      boundaryTemperature: Temperature = lowerBoundaryTemperature
   ): Boolean =
-    innerTemperature < (lowerBoundaryTemperature + temperatureTolerance)
+    innerTemperature < Kelvin(
+      boundaryTemperature.toKelvinScale + temperatureTolerance.toKelvinScale
+    )
 
   /** Calculate the new inner temperature of the thermal house.
     *
@@ -343,7 +341,6 @@ final case class ThermalHouse(
     * @return
     *   The next threshold, that will be reached
     */
-
   private def nextThreshold(
       tick: Long,
       qDotExternal: Power,
