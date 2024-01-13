@@ -12,7 +12,7 @@ import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.simona.model.participant.PvModel
 import edu.ie3.util.quantities.PowerSystemUnits._
 import tech.units.indriya.quantity.Quantities.getQuantity
-import squants.Dimensionless
+import squants.{Dimensionless, Each}
 import squants.space.{Degrees, Radians, SquareMeters}
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
@@ -43,7 +43,7 @@ import java.util.UUID
  *
  */
 
-class PvModelSpec extends UnitSpec with DefaultTestData {
+class PvModelSpec extends UnitSpec {
 
   // build the NodeInputModel (which defines the location of the pv input model)
   // the NodeInputModel needs a GeoReference for the Pv to work
@@ -62,11 +62,12 @@ class PvModelSpec extends UnitSpec with DefaultTestData {
   )
 
 
+  // build the PvInputModel
   val pvInput = new PvInput(
     UUID.fromString("adb4eb23-1dd6-4406-a5e7-02e1e4c9dead"),
     "Pv Model Test",
     OperatorInput.NO_OPERATOR_ASSIGNED,
-    OperationTime.notLimited(),
+    OperationTime.notLimited,
     nodeInput,
     new CosPhiFixed("cosPhiFixed:{(0.0,0.9)}"),
     0.20000000298023224,
@@ -81,32 +82,26 @@ class PvModelSpec extends UnitSpec with DefaultTestData {
   )
 
 
-
+  // build the PvModel
+  val scalingFactor = 1.0d
   val pvModel: PvModel = PvModel(
     pvInput.getUuid,
-    pvInput.id,
+    pvInput.getId,
     OperationInterval(0L, 86400L),
     scalingFactor,
-    QControl(pvInput.qCharacteristics),
+    QControl(pvInput.getqCharacteristics),
     Kilowatts(pvInput.getsRated.to(KILOWATT).getValue.doubleValue),
     pvInput.getCosPhiRated,
-    Sq(pvInput.node.geoPosition.y, Degrees),
-    Sq(pvInput.node.geoPosition.x, Degrees),
-    pvInput.albedo,
-    Sq(pvInput.etaConv.to(PU).value.doubleValue(), Each),
-    Sq(pvInput.azimuth.to(RADIAN).value.doubleValue(), Radians),
-    Sq(pvInput.elevationAngle.value.doubleValue(), Radians),
-    Sq(1d, SquareMeters)
+    pvInput.getNode.getGeoPosition.getY, Degrees,
+    pvInput.getNode.getGeoPosition.getX, Degrees,
+    pvInput.getAlbedo,
+    pvInput.getEtaConv.to(PU).getValue.doubleValue, Each,
+    pvInput.getAzimuth.to(RADIAN).getValue.doubleValue, Radians,
+    pvInput.getElevationAngle.getValue.doubleValue, Radians,
+    1d, SquareMeters
   )
 
   def setupSpec(): Unit = {
-
-
-    // build the PvInputModel
-
-
-    // build the PvModel
-    val scalingFactor = 1.0d
 
   }
 
