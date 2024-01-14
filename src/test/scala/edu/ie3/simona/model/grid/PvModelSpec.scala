@@ -361,14 +361,22 @@ class PvModelSpec extends UnitSpec {
 
 
     val testCases11 = Table(
-      ("latitudeInDeg", "deltaIn", "omegaIn", "slope", "azimuth", "thetaGOut"),
+      ("latitudeDeg", "deltaDeg", "omegaDeg", "gammaEDeg", "alphaEDeg", "thetaGOut"),
       (45d, -7.15, -82.5d, 60d, 0d, 80.94904834048776d), // thetaG
       (15d, -7.15, -82.5d, 30d, 0d, 80.94904834048776d), // same test but 30° South with 30° less sloped surface
       (0d, -7.15, -82.5d, 15d, 0d, 80.94904834048776d), // same test but 15° South with 15° less sloped surface
+      (-15d, -7.15, -82.5d, 0d, 0d, 80.94904834048776d), // same test but 15° South with 15° less sloped surface
+      (-30d, -7.15, -82.5d, 15d, 180d, 80.94904834048776d), // same test but 15° South with 15° more sloped surface (Surface is now facing north, since it is in the southern hemisphere, therefore the surface azimuth is 180°)
       (52.3d, 23.4337425, 2.15114395d, 0d, 0d, 28.91315041538251d), // Berlin 21.06. 12:00 => thetaG = 90 - alphaS
       (70.3d, 23.4337425, 2.15114395d, 18d, 0d, 28.91315041538251d) // same test but 18° North with 18° sloped surface
     )
-
+    "deliver equal angles of incidence for special case" in {
+      /* Iqbal Figure 1.6.2 - the angle of incidence of a surface sloped by angle beta (gammaE) at latitude phi
+       should be same as the angle of incidence of an unsloped (horizontal) surface (where the angle of incidence is
+       equal to the zenith angle of the sun) positioned at latitude phi - beta. Note that this is only true if the surface
+       is facing directly north or south.
+      */
+    }
   }
 }
 
