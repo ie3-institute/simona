@@ -152,7 +152,7 @@ final case class PvModel private (
     * @return
     *   day angle J
     */
-  private def calcAngleJ(time: ZonedDateTime): Angle = {
+  def calcAngleJ(time: ZonedDateTime): Angle = {
     val day = time.getDayOfYear // day of the year
     val j = 2d * Math.PI * ((day - 1d) / 365)
     Radians(j)
@@ -168,7 +168,7 @@ final case class PvModel private (
     * @return
     *   declination angle
     */
-  private def calcSunDeclinationDelta(
+  def calcSunDeclinationDelta(
       angleJ: Angle
   ): Angle = {
     val jInRad = angleJ.toRadians
@@ -196,7 +196,7 @@ final case class PvModel private (
     * @return
     *   hour angle omega
     */
-  private def calcHourAngleOmega(
+  def calcHourAngleOmega(
       time: ZonedDateTime,
       angleJ: Angle,
       longitude: Angle
@@ -226,7 +226,7 @@ final case class PvModel private (
     * @return
     *   sunset angle omegaSS
     */
-  private def calcSunsetAngleOmegaSS(
+  def calcSunsetAngleOmegaSS(
       latitude: Angle,
       delta: Angle
   ): Angle = {
@@ -254,7 +254,7 @@ final case class PvModel private (
     * @return
     *   solar altitude angle alphaS
     */
-  private def calcSolarAltitudeAngleAlphaS(
+  def calcSolarAltitudeAngleAlphaS(
       omega: Angle,
       delta: Angle,
       latitude: Angle
@@ -283,7 +283,7 @@ final case class PvModel private (
     * @return
     *   the zenith angle
     */
-  private def calcZenithAngleThetaZ(
+  def calcZenithAngleThetaZ(
       alphaS: Angle
   ): Angle = {
     val alphaSInRad = alphaS.toRadians
@@ -301,7 +301,7 @@ final case class PvModel private (
     * @return
     *   air mass
     */
-  private def calcAirMass(thetaZ: Angle): Double = {
+  def calcAirMass(thetaZ: Angle): Double = {
     val thetaZInRad = thetaZ.toRadians
 
     // radius of the earth in kilometers
@@ -324,7 +324,7 @@ final case class PvModel private (
     * @return
     *   extraterrestrial radiation I0
     */
-  private def calcExtraterrestrialRadiationI0(
+  def calcExtraterrestrialRadiationI0(
       angleJ: Angle
   ): Irradiation = {
     val jInRad = angleJ.toRadians
@@ -359,7 +359,7 @@ final case class PvModel private (
     * @return
     *   angle of incidence thetaG
     */
-  private def calcAngleOfIncidenceThetaG(
+  def calcAngleOfIncidenceThetaG(
       delta: Angle,
       latitude: Angle,
       gammaE: Angle,
