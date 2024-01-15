@@ -11,13 +11,14 @@ import edu.ie3.simona.agent.grid.ReceivedValuesStore.{
   NodeToReceivedPower,
   NodeToReceivedSlackVoltage
 }
-import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   PowerResponseMessage,
   ProvidePowerMessage
 }
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorRef => classicRef}
 
 import java.util.UUID
 
@@ -69,7 +70,7 @@ object ReceivedValuesStore {
     *   `empty` [[ReceivedValuesStore]] with pre-initialized options as `None`
     */
   def empty(
-      nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]],
+      nodeToAssetAgents: Map[UUID, Set[classicRef]],
       inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef[
         GridAgentMessage
       ]],
@@ -97,7 +98,7 @@ object ReceivedValuesStore {
     *   `empty` [[NodeToReceivedPower]] with pre-initialized options as `None`
     */
   private def buildEmptyNodeToReceivedPowerMap(
-      nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]],
+      nodeToAssetAgents: Map[UUID, Set[ActorRef[_]]],
       inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef[
         GridAgentMessage
       ]]
@@ -161,7 +162,7 @@ object ReceivedValuesStore {
     *   `empty` [[NodeToReceivedSlackVoltage]] and [[NodeToReceivedPower]]
     */
   private def buildEmptyReceiveMaps(
-      nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]],
+      nodeToAssetAgents: Map[UUID, Set[classicRef]],
       inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef[
         GridAgentMessage
       ]],
@@ -169,7 +170,7 @@ object ReceivedValuesStore {
   ): (NodeToReceivedPower, NodeToReceivedSlackVoltage) = {
     (
       buildEmptyNodeToReceivedPowerMap(
-        nodeToAssetAgents,
+        nodeToAssetAgents.map { case (k, v) => (k, v.map(_.toTyped)) },
         inferiorSubGridGateToActorRef
       ),
       buildEmptyNodeToReceivedSlackVoltageValuesMap(superiorGridNodeUuids)

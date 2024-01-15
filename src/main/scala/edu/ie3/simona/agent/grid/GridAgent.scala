@@ -14,7 +14,6 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
 }
 import edu.ie3.simona.agent.grid.GridAgentMessage._
 import edu.ie3.simona.agent.grid.ReceivedValues.CreateGridAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.Notifier
@@ -30,7 +29,8 @@ import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.scaladsl.adapter.{
   ClassicActorRefOps,
-  TypedActorContextOps
+  TypedActorContextOps,
+  TypedActorRefOps
 }
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.actor.{ActorRef => classicRef}
@@ -101,7 +101,7 @@ final case class GridAgent(
 ) extends DBFSAlgorithm
     with Notifier {
 
-  def uninitialized: Behavior[GridAgentMessage] =
+  protected def uninitialized: Behavior[GridAgentMessage] =
     Behaviors.receiveMessage[GridAgentMessage] {
       case ValuesAdapter(CreateGridAgent(gridAgentInitData, unlockKey)) =>
         environmentRefs.scheduler ! ScheduleActivation(
@@ -119,7 +119,7 @@ final case class GridAgent(
         Behaviors.unhandled
     }
 
-  def initializing(
+  protected def initializing(
       gridAgentInitData: GridAgentInitData
   ): Behavior[GridAgentMessage] = Behaviors.receive[GridAgentMessage] {
     case (ctx, ActivationAdapter(Activation(INIT_SIM_TICK))) =>
@@ -161,7 +161,7 @@ final case class GridAgent(
       )
 
       /* Reassure, that there are also calculation models for the given uuids */
-      val nodeToAssetAgentsMap: Map[UUID, Set[ActorRef[ParticipantMessage]]] =
+      val nodeToAssetAgentsMap: Map[UUID, Set[classicRef]] =
         gridAgentController
           .buildSystemParticipants(subGridContainer, thermalGridsByBusId)
           .map { case (uuid: UUID, actorSet) =>
@@ -173,7 +173,7 @@ final case class GridAgent(
                 )
               )
               .uuid
-            nodeUuid -> actorSet
+            nodeUuid -> actorSet.map(_.toClassic)
           }
 
       // create the GridAgentBaseData
@@ -210,7 +210,7 @@ final case class GridAgent(
       Behaviors.unhandled
   }
 
-  def idle(
+  protected def idle(
       gridAgentBaseData: GridAgentBaseData
   ): Behavior[GridAgentMessage] = Behaviors.withStash(100) { buffer =>
     Behaviors.receive[GridAgentMessage] {
@@ -231,7 +231,7 @@ final case class GridAgent(
         // shutdown children
         gridAgentBaseData.gridEnv.nodeToAssetAgents.foreach {
           case (_, actors) =>
-            actors.foreach(a => ctx.stop(a))
+            actors.foreach(a => ctx.stop(a.toTyped))
         }
 
         // we are done

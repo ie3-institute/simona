@@ -19,20 +19,8 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
   PowerFlowDoneData
 }
-import edu.ie3.simona.agent.grid.GridAgentMessage.{
-  ActivationAdapter,
-  PMAdapter,
-  StopGridAgent,
-  VMAdapter,
-  ValuesAdapter
-}
+import edu.ie3.simona.agent.grid.GridAgentMessage._
 import edu.ie3.simona.agent.grid.ReceivedValues._
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  ParticipantMessage,
-  PowerRequestAdapter,
-  PowerResponseAdapter,
-  TickMessageAdapter
-}
 import edu.ie3.simona.event.RuntimeEvent.PowerFlowFailed
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid.{NodeModel, RefSystem}
@@ -48,9 +36,11 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.scala.quantities.Megavars
 import edu.ie3.util.scala.quantities.SquantsUtils.RichElectricPotential
 import org.apache.pekko.actor.typed.scaladsl.AskPattern._
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior, Scheduler}
 import org.apache.pekko.actor.{ActorRef => classicRef}
+import org.apache.pekko.pattern.ask
 import org.apache.pekko.util.{Timeout => PekkoTimeout}
 import org.slf4j.Logger
 import squants.Each
@@ -80,7 +70,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     * @return
     *   a [[Behavior]]
     */
-  def simulateGrid(
+  protected def simulateGrid(
       gridAgentBaseData: GridAgentBaseData,
       currentTick: Long
   ): Behavior[GridAgentMessage] = Behaviors.withStash(100) { buffer =>
@@ -350,7 +340,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         gridAgentBaseData.gridEnv.nodeToAssetAgents.foreach {
           case (_, actors) =>
             actors.foreach(
-              _ ! TickMessageAdapter(FinishGridSimulationTrigger(currentTick))
+              _ ! FinishGridSimulationTrigger(currentTick)
             )
         }
 
@@ -400,7 +390,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     * @return
     *   a [[Behavior]]
     */
-  def simulateGrid(
+  protected def simulateGrid(
       powerFlowDoneData: PowerFlowDoneData,
       currentTick: Long
   ): Behavior[GridAgentMessage] = Behaviors.receive[GridAgentMessage] {
@@ -534,7 +524,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     * @return
     *   a [[Behavior]]
     */
-  def handlePowerFlowCalculations(
+  protected def handlePowerFlowCalculations(
       gridAgentBaseData: GridAgentBaseData,
       currentTick: Long
   ): Behavior[GridAgentMessage] = Behaviors.withStash(100) { buffer =>
@@ -767,7 +757,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     * @return
     *   a [[Behavior]]
     */
-  def handlePowerFlowCalculations(
+  protected def handlePowerFlowCalculations(
       powerFlowDoneData: PowerFlowDoneData,
       currentTick: Long
   ): Behavior[GridAgentMessage] = Behaviors.withStash(100) { buffer =>
@@ -859,7 +849,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     * @return
     *   a [[Behavior]]
     */
-  def checkPowerDifferences(
+  private def checkPowerDifferences(
       gridAgentBaseData: GridAgentBaseData
   ): Behavior[GridAgentMessage] = Behaviors.receive[GridAgentMessage] {
 
@@ -1221,20 +1211,19 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   private def askForAssetPowers(
       currentTick: Long,
       sweepValueStore: Option[SweepValueStore],
-      nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]],
+      nodeToAssetAgents: Map[UUID, Set[classicRef]],
       refSystem: RefSystem,
       askTimeout: Duration
   )(implicit
       ctx: ActorContext[GridAgentMessage]
-  ): Option[Future[ValuesAdapter]] = {
+  ): Option[Future[_]] = {
     implicit val timeout: PekkoTimeout = PekkoTimeout.create(askTimeout)
     implicit val ec: ExecutionContext = ctx.executionContext
-    implicit val scheduler: Scheduler = ctx.system.scheduler
 
     ctx.log.debug(s"asking assets for power values: {}", nodeToAssetAgents)
 
     if (nodeToAssetAgents.values.flatten.nonEmpty) {
-      val result = Future
+      val future = Future
         .sequence(
           nodeToAssetAgents.flatten { case (nodeUuid, assetActorRefs) =>
             assetActorRefs.map(assetAgent => {
@@ -1264,36 +1253,24 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                     )
                 }
 
-              assetAgent
-                .ask[ParticipantMessage](_ =>
-                  PowerRequestAdapter(
-                    RequestAssetPowerMessage(
-                      currentTick,
-                      eInPu,
-                      fInPU
-                    )
-                  )
-                )
-                .map {
-                  case PowerResponseAdapter(
-                        providedPowerValuesMessage: AssetPowerChangedMessage
-                      ) =>
-                    (assetAgent, providedPowerValuesMessage)
-                  case PowerResponseAdapter(
-                        assetPowerUnchangedMessage: AssetPowerUnchangedMessage
-                      ) =>
-                    (assetAgent, assetPowerUnchangedMessage)
-                }
+              (assetAgent ? RequestAssetPowerMessage(
+                currentTick,
+                eInPu,
+                fInPU
+              )).map {
+                case providedPowerValuesMessage: AssetPowerChangedMessage =>
+                  (assetAgent.toTyped, providedPowerValuesMessage)
+                case assetPowerUnchangedMessage: AssetPowerUnchangedMessage =>
+                  (assetAgent.toTyped, assetPowerUnchangedMessage)
+              }
             })
           }.toVector
         )
         .map(res => ValuesAdapter(ReceivedAssetPowerValues(res)))
 
-      ctx.pipeToSelf[GridAgentMessage](result) _
-
-      Some(result)
-    } else
-      None
+      ctx.pipeToSelf[GridAgentMessage](future) _
+      Some(future)
+    } else None
   }
 
   /** Triggers an execution of the pekko `ask` pattern for all power values @
@@ -1439,7 +1416,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     * @param currentTimestamp
     *   the current time stamp
     */
-  def createAndSendPowerFlowResults(
+  protected def createAndSendPowerFlowResults(
       gridAgentBaseData: GridAgentBaseData,
       currentTimestamp: ZonedDateTime
   )(implicit log: Logger): Unit = {

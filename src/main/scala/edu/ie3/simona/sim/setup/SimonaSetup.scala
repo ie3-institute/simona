@@ -15,7 +15,6 @@ import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.connector.Transformer3WInput
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentMessage
-import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.scheduler.TimeAdvancer
 import org.apache.pekko.actor.typed.ActorRef

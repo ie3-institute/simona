@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.grid
 
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.ontology.messages.PowerMessage.PowerResponseMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
@@ -22,7 +21,7 @@ object ReceivedValues {
 
   type ParticipantPowerRequestResponse =
     (
-        ActorRef[ParticipantMessage],
+        ActorRef[_],
         PowerResponseMessage
     ) // necessary, because participants are still classic actors
   type GridPowerRequestResponse =

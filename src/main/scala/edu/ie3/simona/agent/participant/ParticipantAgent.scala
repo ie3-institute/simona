@@ -727,15 +727,6 @@ abstract class ParticipantAgent[
 
 object ParticipantAgent {
 
-  trait ParticipantMessage
-
-  final case class TickMessageAdapter(tickMessage: ReceivedTickValues)
-      extends ParticipantMessage
-  final case class PowerRequestAdapter(powerRequest: RequestAssetPowerMessage)
-      extends ParticipantMessage
-  final case class PowerResponseAdapter(powerResponse: ProvidePowerMessage)
-      extends ParticipantMessage
-
   final case class StartCalculationTrigger(tick: Long)
 
   /** Verifies that a nodal voltage value has been provided in the model
