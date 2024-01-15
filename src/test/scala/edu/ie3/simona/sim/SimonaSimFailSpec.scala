@@ -13,13 +13,15 @@ import org.apache.pekko.actor.typed.scaladsl.adapter.{
 import org.apache.pekko.actor.{
   Actor,
   ActorContext,
-  ActorRef,
   ActorSystem,
-  Props
+  Props,
+  ActorRef => classicRef
 }
+import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.agent.grid.GridAgentMessage
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.TimeAdvancer.StartSimMessage
@@ -77,10 +79,10 @@ object SimonaSimFailSpec {
           timeAdvancer
         )
       ) {
-    val child: ActorRef = context.actorOf(Props(new Loser))
+    val child: classicRef = context.actorOf(Props(new Loser))
     context.watch(child)
 
-    def getChild: ActorRef = child
+    def getChild: classicRef = child
   }
 
   class Loser extends Actor {
@@ -108,23 +110,23 @@ object SimonaSimFailSpec {
 
     override def systemParticipantsListener(
         context: ActorContext
-    ): Seq[ActorRef] = Seq.empty[ActorRef]
+    ): Seq[classicRef] = Seq.empty[classicRef]
 
     override def primaryServiceProxy(
         context: ActorContext,
-        scheduler: ActorRef
-    ): ActorRef =
+        scheduler: classicRef
+    ): classicRef =
       TestProbe("primaryService")(actorSystem).ref
 
     override def weatherService(
         context: ActorContext,
-        scheduler: ActorRef
-    ): ActorRef =
+        scheduler: classicRef
+    ): classicRef =
       TestProbe("weatherService")(actorSystem).ref
 
     override def timeAdvancer(
         context: ActorContext,
-        simulation: ActorRef,
+        simulation: classicRef,
         runtimeEventListener: org.apache.pekko.actor.typed.ActorRef[
           RuntimeEvent
         ]
@@ -136,17 +138,17 @@ object SimonaSimFailSpec {
         timeAdvancer: org.apache.pekko.actor.typed.ActorRef[
           TimeAdvancer.Incoming
         ]
-    ): ActorRef = TestProbe("scheduler")(actorSystem).ref
+    ): classicRef = TestProbe("scheduler")(actorSystem).ref
 
     override def gridAgents(
         context: ActorContext,
         environmentRefs: EnvironmentRefs,
-        systemParticipantListener: Seq[ActorRef]
-    ): Iterable[ActorRef] = Iterable.empty
+        systemParticipantListener: Seq[classicRef]
+    ): Iterable[ActorRef[GridAgentMessage]] = Iterable.empty
 
     override def extSimulations(
         context: ActorContext,
-        scheduler: ActorRef
+        scheduler: classicRef
     ): ExtSimSetupData =
       ExtSimSetupData(Iterable.empty, Map.empty)
   }

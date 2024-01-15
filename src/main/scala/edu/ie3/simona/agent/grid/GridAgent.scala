@@ -14,6 +14,7 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
 }
 import edu.ie3.simona.agent.grid.GridAgentMessage._
 import edu.ie3.simona.agent.grid.ReceivedValues.CreateGridAgent
+import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.Notifier
@@ -161,7 +162,7 @@ final case class GridAgent(
       )
 
       /* Reassure, that there are also calculation models for the given uuids */
-      val nodeToAssetAgentsMap: Map[UUID, Set[classicRef]] =
+      val nodeToAssetAgentsMap: Map[UUID, Set[ActorRef[ParticipantMessage]]] =
         gridAgentController
           .buildSystemParticipants(subGridContainer, thermalGridsByBusId)
           .map { case (uuid: UUID, actorSet) =>
@@ -173,7 +174,7 @@ final case class GridAgent(
                 )
               )
               .uuid
-            nodeUuid -> actorSet.map(_.toClassic)
+            nodeUuid -> actorSet
           }
 
       // create the GridAgentBaseData
@@ -231,7 +232,7 @@ final case class GridAgent(
         // shutdown children
         gridAgentBaseData.gridEnv.nodeToAssetAgents.foreach {
           case (_, actors) =>
-            actors.foreach(a => ctx.stop(a.toTyped))
+            actors.foreach(a => ctx.stop(a))
         }
 
         // we are done

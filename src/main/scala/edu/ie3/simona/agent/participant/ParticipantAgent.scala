@@ -727,6 +727,8 @@ abstract class ParticipantAgent[
 
 object ParticipantAgent {
 
+  trait ParticipantMessage
+
   final case class StartCalculationTrigger(tick: Long)
 
   /** Verifies that a nodal voltage value has been provided in the model

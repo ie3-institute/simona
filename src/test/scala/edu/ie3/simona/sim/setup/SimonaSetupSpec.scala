@@ -6,13 +6,19 @@
 
 package edu.ie3.simona.sim.setup
 
-import org.apache.pekko.actor.{ActorContext, ActorRef, ActorSystem}
+import org.apache.pekko.actor.{
+  ActorContext,
+  ActorRef => classicRef,
+  ActorSystem
+}
+import org.apache.pekko.actor.typed.ActorRef
 import edu.ie3.datamodel.exceptions.NotImplementedException
 import edu.ie3.datamodel.models.input.connector.{
   ConnectorPort,
   Transformer3WInput
 }
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.agent.grid.GridAgentMessage
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.test.common.UnitSpec
@@ -29,48 +35,50 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
 
   override def runtimeEventListener(
       context: ActorContext
-  ): org.apache.pekko.actor.typed.ActorRef[RuntimeEvent] =
+  ): ActorRef[RuntimeEvent] =
     throw new NotImplementedException("This is a dummy setup")
 
   override def systemParticipantsListener(
       context: ActorContext
-  ): Seq[ActorRef] = throw new NotImplementedException("This is a dummy setup")
+  ): Seq[classicRef] = throw new NotImplementedException(
+    "This is a dummy setup"
+  )
 
   override def primaryServiceProxy(
       context: ActorContext,
-      scheduler: ActorRef
-  ): ActorRef =
+      scheduler: classicRef
+  ): classicRef =
     throw new NotImplementedException("This is a dummy setup")
 
   override def weatherService(
       context: ActorContext,
-      scheduler: ActorRef
-  ): ActorRef =
+      scheduler: classicRef
+  ): classicRef =
     throw new NotImplementedException("This is a dummy setup")
 
   override def extSimulations(
       context: ActorContext,
-      scheduler: ActorRef
+      scheduler: classicRef
   ): ExtSimSetupData =
     throw new NotImplementedException("This is a dummy setup")
 
   override def timeAdvancer(
       context: ActorContext,
-      simulation: ActorRef,
-      runtimeEventListener: org.apache.pekko.actor.typed.ActorRef[RuntimeEvent]
-  ): org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming] =
+      simulation: classicRef,
+      runtimeEventListener: ActorRef[RuntimeEvent]
+  ): ActorRef[TimeAdvancer.Incoming] =
     throw new NotImplementedException("This is a dummy setup")
 
   override def scheduler(
       context: ActorContext,
-      timeAdvancer: org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming]
-  ): ActorRef = throw new NotImplementedException("This is a dummy setup")
+      timeAdvancer: ActorRef[TimeAdvancer.Incoming]
+  ): classicRef = throw new NotImplementedException("This is a dummy setup")
 
   override def gridAgents(
       context: ActorContext,
       environmentRefs: EnvironmentRefs,
-      systemParticipantListener: Seq[ActorRef]
-  ): Iterable[ActorRef] =
+      systemParticipantListener: Seq[classicRef]
+  ): Iterable[ActorRef[GridAgentMessage]] =
     throw new NotImplementedException("This is a dummy setup")
 
   "Attempting to modify a sub grid gate" should {

@@ -15,6 +15,7 @@ import edu.ie3.simona.agent.grid.ReceivedValues.{
   ReceivedSlackVoltageValues
 }
 import edu.ie3.simona.agent.grid.ReceivedValuesStore.NodeToReceivedPower
+import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.model.grid.{GridModel, RefSystem}
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   FailedPowerFlow,
@@ -23,8 +24,6 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
   ProvidePowerMessage
 }
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{ActorRef => classicRef}
 import org.slf4j.Logger
 
 import java.util.UUID
@@ -100,7 +99,7 @@ object GridAgentData {
     def apply(
         gridModel: GridModel,
         subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgentMessage]],
-        nodeToAssetAgents: Map[UUID, Set[classicRef]],
+        nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]],
         superiorGridNodeUuids: Vector[UUID],
         inferiorGridGates: Vector[SubGridGate],
         powerFlowParams: PowerFlowParams,

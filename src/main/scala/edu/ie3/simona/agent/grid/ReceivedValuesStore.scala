@@ -11,6 +11,7 @@ import edu.ie3.simona.agent.grid.ReceivedValuesStore.{
   NodeToReceivedPower,
   NodeToReceivedSlackVoltage
 }
+import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   PowerResponseMessage,
   ProvidePowerMessage
@@ -70,7 +71,7 @@ object ReceivedValuesStore {
     *   `empty` [[ReceivedValuesStore]] with pre-initialized options as `None`
     */
   def empty(
-      nodeToAssetAgents: Map[UUID, Set[classicRef]],
+      nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]],
       inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef[
         GridAgentMessage
       ]],
@@ -98,14 +99,14 @@ object ReceivedValuesStore {
     *   `empty` [[NodeToReceivedPower]] with pre-initialized options as `None`
     */
   private def buildEmptyNodeToReceivedPowerMap(
-      nodeToAssetAgents: Map[UUID, Set[ActorRef[_]]],
+      nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]],
       inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef[
         GridAgentMessage
       ]]
   ): NodeToReceivedPower = {
     /* Collect everything, that I expect from my asset agents */
     val assetsToReceivedPower: NodeToReceivedPower = nodeToAssetAgents.collect {
-      case (uuid: UUID, actorRefs: Set[ActorRef[_]]) =>
+      case (uuid: UUID, actorRefs: Set[ActorRef[ParticipantMessage]]) =>
         (uuid, actorRefs.map(actorRef => actorRef -> None).toMap)
     }
 
@@ -162,7 +163,7 @@ object ReceivedValuesStore {
     *   `empty` [[NodeToReceivedSlackVoltage]] and [[NodeToReceivedPower]]
     */
   private def buildEmptyReceiveMaps(
-      nodeToAssetAgents: Map[UUID, Set[classicRef]],
+      nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]],
       inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef[
         GridAgentMessage
       ]],
@@ -170,7 +171,7 @@ object ReceivedValuesStore {
   ): (NodeToReceivedPower, NodeToReceivedSlackVoltage) = {
     (
       buildEmptyNodeToReceivedPowerMap(
-        nodeToAssetAgents.map { case (k, v) => (k, v.map(_.toTyped)) },
+        nodeToAssetAgents,
         inferiorSubGridGateToActorRef
       ),
       buildEmptyNodeToReceivedSlackVoltageValuesMap(superiorGridNodeUuids)

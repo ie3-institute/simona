@@ -6,20 +6,20 @@
 
 package edu.ie3.simona.agent.grid
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.{
-  ClassicActorRefOps,
-  TypedActorRefOps
-}
-import org.apache.pekko.actor.{ActorRef, ActorSystem}
-import org.apache.pekko.testkit.{ImplicitSender, TestProbe}
-import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgent.FinishGridSimulationTrigger
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.agent.state.GridAgentState.SimulateGrid
+import edu.ie3.simona.agent.grid.GridAgentMessage.{
+  ActivationAdapter,
+  VMAdapter,
+  ValuesAdapter
+}
+import edu.ie3.simona.agent.grid.ReceivedValues.{
+  CreateGridAgent,
+  FinishGridSimulationTrigger
+}
+import edu.ie3.simona.event.listener.ResultEventListener.ResultMessage
 import edu.ie3.simona.model.grid.RefSystem
-import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
@@ -27,53 +27,50 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.test.common.model.grid.DbfsTestGridWithParticipants
-import edu.ie3.simona.test.common.{
-  ConfigTestData,
-  TestKitWithShutdown,
-  TestSpawnerClassic
-}
+import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.Megavars
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ScalaTestWithActorTestKit,
+  TestProbe
+}
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
 
 import scala.language.postfixOps
 
 class DBFSAlgorithmParticipantSpec
-    extends TestKitWithShutdown(
-      ActorSystem(
-        "DBFSAlgorithmSpec",
-        ConfigFactory
-          .parseString("""
-            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
-            |pekko.loglevel="OFF"
-        """.stripMargin)
-      )
-    )
+    extends ScalaTestWithActorTestKit
     with DBFSMockGridAgents
     with ConfigTestData
-    with ImplicitSender
     with DbfsTestGridWithParticipants
-    with TestSpawnerClassic {
+    with TestSpawnerTyped {
 
-  private val scheduler = TestProbe("scheduler")
+  private val scheduler: TestProbe[SchedulerMessage] =
+    TestProbe[SchedulerMessage]("scheduler")
   private val runtimeEvents = TestProbe("runtimeEvents")
-  private val primaryService = TestProbe("primaryService")
+  private val primaryService: TestProbe[ServiceMessage] =
+    TestProbe[ServiceMessage]("primaryService")
   private val weatherService = TestProbe("weatherService")
 
   private val environmentRefs = EnvironmentRefs(
-    scheduler = scheduler.ref,
-    runtimeEventListener = runtimeEvents.ref,
-    primaryServiceProxy = primaryService.ref,
-    weather = weatherService.ref,
+    scheduler = scheduler.ref.toClassic,
+    runtimeEventListener = runtimeEvents.ref.toClassic,
+    primaryServiceProxy = primaryService.ref.toClassic,
+    weather = weatherService.ref.toClassic,
     evDataService = None
   )
 
-  protected val resultListener: TestProbe = TestProbe("resultListener")
+  protected val resultListener: TestProbe[ResultMessage] =
+    TestProbe[ResultMessage]("resultListener")
 
   private val superiorGridAgent = SuperiorGA(
     TestProbe("superiorGridAgent_1000"),
@@ -81,18 +78,18 @@ class DBFSAlgorithmParticipantSpec
   )
 
   "Test participant" should {
-    val gridAgentWithParticipants = system.actorOf(
-      GridAgent.props(
+    val gridAgentWithParticipants = testKit.spawn(
+      GridAgent(
         environmentRefs,
         simonaConfig,
-        Iterable(resultListener.ref)
+        Iterable(resultListener.ref.toClassic)
       )
     )
 
     s"initialize itself when it receives an init activation" in {
 
       // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
-      val subGridGateToActorRef: Map[SubGridGate, ActorRef] =
+      val subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgentMessage]] =
         hvSubGridGates.map { gate =>
           gate -> superiorGridAgent.ref
         }.toMap
@@ -105,74 +102,60 @@ class DBFSAlgorithmParticipantSpec
       )
 
       val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
-      scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
+        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      scheduler
+        .expectMessageType[ScheduleActivation] // lock activation scheduled
 
-      gridAgentWithParticipants ! GridAgent.Create(gridAgentInitData, key)
-      scheduler.expectMsg(
-        ScheduleActivation(
-          gridAgentWithParticipants.toTyped,
-          INIT_SIM_TICK,
-          Some(key)
-        )
+      gridAgentWithParticipants ! ValuesAdapter(
+        CreateGridAgent(gridAgentInitData, key)
       )
+
+      val msg = scheduler.expectMessageType[ScheduleActivation]
+      msg shouldBe ScheduleActivation(msg.actor, INIT_SIM_TICK, Some(key))
 
       // send init data to agent and expect a CompletionMessage
-      scheduler.send(gridAgentWithParticipants, Activation(INIT_SIM_TICK))
+      gridAgentWithParticipants ! ActivationAdapter(Activation(INIT_SIM_TICK))
 
-      val loadAgent =
-        scheduler.expectMsgPF() {
-          case ScheduleActivation(
-                loadAgent,
-                INIT_SIM_TICK,
-                _
-              ) =>
-            loadAgent
-        }
+      val message = scheduler.expectMessageType[ScheduleActivation]
 
-      scheduler.expectMsg(
-        Completion(
-          gridAgentWithParticipants.toTyped,
-          Some(3600)
-        )
-      )
+      val loadAgent: ActorRef[Activation] = message match {
+        case ScheduleActivation(
+              loadAgent,
+              INIT_SIM_TICK,
+              _
+            ) =>
+          loadAgent
+      }
 
-      scheduler.send(loadAgent.toClassic, Activation(INIT_SIM_TICK))
+      val completionMessage = scheduler.expectMessageType[Completion]
+      completionMessage shouldBe Completion(completionMessage.actor, Some(3600))
 
-      primaryService.expectMsg(
+      loadAgent ! Activation(INIT_SIM_TICK)
+
+      primaryService.expectMessage(
         PrimaryServiceRegistrationMessage(load1.getUuid)
       )
 
-      primaryService.send(loadAgent.toClassic, RegistrationFailedMessage)
+      loadAgent.toClassic ! RegistrationFailedMessage
 
-      scheduler.expectMsg(Completion(loadAgent, Some(0)))
+      scheduler.expectMessage(Completion(loadAgent, Some(0)))
 
       // triggering the loadAgent's calculation
-      scheduler.send(
-        loadAgent.toClassic,
-        Activation(0)
-      )
+      loadAgent ! Activation(0)
+
       // the load agent should send a CompletionMessage
-      scheduler.expectMsg(Completion(loadAgent, None))
+      scheduler.expectMessage(Completion(loadAgent, None))
 
     }
 
-    s"go to $SimulateGrid when it receives an activity start trigger" in {
+    s"go to SimulateGrid when it receives an activity start trigger" in {
 
       // send init data to agent
-      scheduler.send(
-        gridAgentWithParticipants,
-        Activation(3600)
-      )
+      gridAgentWithParticipants ! ActivationAdapter(Activation(3600))
 
       // we expect a completion message
-      scheduler.expectMsg(
-        Completion(
-          gridAgentWithParticipants.toTyped,
-          Some(3600)
-        )
-      )
-
+      val message = scheduler.expectMessageType[Completion]
+      message shouldBe Completion(message.actor, Some(3600))
     }
 
     s"check the request asset power message indirectly" in {
@@ -181,7 +164,7 @@ class DBFSAlgorithmParticipantSpec
 
       // send the start grid simulation trigger
       // the gird agent should send a RequestAssetPowerMessage to the load agent
-      scheduler.send(gridAgentWithParticipants, Activation(3600))
+      gridAgentWithParticipants ! ActivationAdapter(Activation(3600))
 
       // we expect a request for voltage values of our slack node
       // (voltages are requested by our agent under test from the superior grid)
@@ -190,8 +173,7 @@ class DBFSAlgorithmParticipantSpec
 
       // we now answer the request of our gridAgentsWithParticipants
       // with a fake slack voltage message
-      superiorGridAgent.gaProbe.send(
-        firstSlackVoltageRequestSender,
+      firstSlackVoltageRequestSender ! VMAdapter(
         ProvideSlackVoltageMessage(
           firstSweepNo,
           Seq(
@@ -238,8 +220,7 @@ class DBFSAlgorithmParticipantSpec
         superiorGridAgent.expectSlackVoltageRequest(secondSweepNo)
 
       // the superior grid would answer with updated slack voltage values
-      superiorGridAgent.gaProbe.send(
-        secondSlackAskSender,
+      secondSlackAskSender ! VMAdapter(
         ProvideSlackVoltageMessage(
           secondSweepNo,
           Seq(
@@ -266,17 +247,12 @@ class DBFSAlgorithmParticipantSpec
 
       // normally the superior grid agent would send a FinishGridSimulationTrigger to the inferior grid agent after the convergence
       // (here we do it by hand)
-      superiorGridAgent.gaProbe.send(
-        gridAgentWithParticipants,
+      gridAgentWithParticipants ! ValuesAdapter(
         FinishGridSimulationTrigger(3600L)
       )
 
-      scheduler.expectMsg(
-        Completion(
-          gridAgentWithParticipants.toTyped,
-          Some(7200)
-        )
-      )
+      val message = scheduler.expectMessageType[Completion]
+      message shouldBe Completion(message.actor, Some(7200))
     }
   }
 }

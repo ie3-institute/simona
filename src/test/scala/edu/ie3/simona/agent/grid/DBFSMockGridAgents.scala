@@ -53,28 +53,29 @@ trait DBFSMockGridAgents extends UnitSpec {
   ) extends GAActorAndModel {
 
     def expectGridPowerRequest(): ActorRef[GridAgentMessage] = {
-      gaProbe
-        .expectMessage {
-          case PMAdapter(requestGridPowerMessage: RequestGridPowerMessage) =>
-            requestGridPowerMessage.nodeUuids should contain allElementsOf nodeUuids
+      val message = gaProbe.expectMessageType[GridAgentMessage]
 
-            requestGridPowerMessage.sender
-        }
+      message match {
+        case PMAdapter(requestGridPowerMessage: RequestGridPowerMessage) =>
+          requestGridPowerMessage.nodeUuids should contain allElementsOf nodeUuids
+
+          requestGridPowerMessage.sender
+      }
     }
 
     def expectSlackVoltageProvision(
         expectedSweepNo: Int,
         expectedExchangedVoltages: Seq[ExchangeVoltage]
     ): Unit = {
-      gaProbe.expectMessage[GridAgentMessage] {
-        case VMAdapter(
-              ProvideSlackVoltageMessage(sweepNo, exchangedVoltages)
-            ) =>
-          sweepNo shouldBe expectedSweepNo
+      val message = gaProbe.expectMessageType[GridAgentMessage]
 
-          exchangedVoltages.size shouldBe expectedExchangedVoltages.size
+      message match {
+        case VMAdapter(msg: ProvideSlackVoltageMessage) =>
+          msg.currentSweepNo shouldBe expectedSweepNo
+
+          msg.nodalSlackVoltages.size shouldBe expectedExchangedVoltages.size
           expectedExchangedVoltages.foreach { expectedVoltage =>
-            exchangedVoltages.find(
+            msg.nodalSlackVoltages.find(
               _.nodeUuid == expectedVoltage.nodeUuid
             ) match {
               case Some(ExchangeVoltage(_, actualE, actualF)) =>
@@ -94,8 +95,8 @@ trait DBFSMockGridAgents extends UnitSpec {
         receiver: ActorRef[GridAgentMessage],
         sweepNo: Int
     ): Unit =
-      gaProbe ! VMAdapter(
-        RequestSlackVoltageMessage(sweepNo, nodeUuids, receiver)
+      receiver ! VMAdapter(
+        RequestSlackVoltageMessage(sweepNo, nodeUuids, gaProbe.ref)
       )
   }
 
@@ -107,7 +108,9 @@ trait DBFSMockGridAgents extends UnitSpec {
     def expectSlackVoltageRequest(
         expectedSweepNo: Int
     ): ActorRef[GridAgentMessage] = {
-      gaProbe.expectMessage {
+      val message = gaProbe.expectMessageType[GridAgentMessage]
+
+      message match {
         case VMAdapter(
               requestSlackVoltageMessage: RequestSlackVoltageMessage
             ) =>
@@ -123,9 +126,10 @@ trait DBFSMockGridAgents extends UnitSpec {
         expectedExchangedPowers: Seq[ExchangePower],
         maxDuration: FiniteDuration = 30 seconds
     ): Unit = {
-      gaProbe.expectMessage[GridAgentMessage](
-        maxDuration,
-        { case PMAdapter(msg: ProvideGridPowerMessage) =>
+      val message = gaProbe.expectMessageType[PMAdapter](maxDuration)
+
+      message match {
+        case PMAdapter(msg: ProvideGridPowerMessage) =>
           msg.nodalResidualPower should have size expectedExchangedPowers.size
 
           expectedExchangedPowers.foreach { expectedPower =>
@@ -142,16 +146,16 @@ trait DBFSMockGridAgents extends UnitSpec {
                 )
             }
           }
-
-        }
-      )
+      }
     }
 
     def requestGridPower(
         receiver: ActorRef[GridAgentMessage],
         sweepNo: Int
     ): Unit = {
-      gaProbe ! PMAdapter(RequestGridPowerMessage(sweepNo, nodeUuids, receiver))
+      receiver ! PMAdapter(
+        RequestGridPowerMessage(sweepNo, nodeUuids, gaProbe.ref)
+      )
     }
   }
 }

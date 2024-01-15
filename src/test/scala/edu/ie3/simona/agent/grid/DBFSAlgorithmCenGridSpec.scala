@@ -98,7 +98,7 @@ class DBFSAlgorithmCenGridSpec
 
     val centerGridAgent =
       testKit.spawn(
-        GridAgent.apply(
+        GridAgent(
           environmentRefs,
           simonaConfig,
           listener = Iterable(resultListener.ref.toClassic)
@@ -130,8 +130,9 @@ class DBFSAlgorithmCenGridSpec
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
+      val activationMessage =
+        scheduler
+          .expectMessageType[ScheduleActivation] // lock activation scheduled
 
       centerGridAgent ! ValuesAdapter(
         CreateGridAgent(
@@ -139,24 +140,21 @@ class DBFSAlgorithmCenGridSpec
           key
         )
       )
-      scheduler.expectMessage[SchedulerMessage] {
-        case ScheduleActivation(_, INIT_SIM_TICK, Some(receivedKey)) =>
-          receivedKey shouldBe key
-      }
+
+      val msg = scheduler.expectMessageType[ScheduleActivation]
+      msg shouldBe ScheduleActivation(msg.actor, INIT_SIM_TICK, Some(key))
 
       centerGridAgent ! ActivationAdapter(Activation(INIT_SIM_TICK))
-      scheduler.expectMessage { case Completion(_, Some(nextTick)) =>
-        nextTick shouldBe 3600
-      }
+      val completionMessage = scheduler.expectMessageType[Completion]
+      completionMessage shouldBe Completion(completionMessage.actor, Some(3600))
     }
 
     s"go to SimulateGrid when it receives an activity start trigger" in {
 
       centerGridAgent ! ActivationAdapter(Activation(3600))
 
-      scheduler.expectMessage { case Completion(_, Some(tick)) =>
-        tick shouldBe 3600
-      }
+      val msg = scheduler.expectMessageType[Completion]
+      msg shouldBe Completion(msg.actor, Some(3600))
     }
 
     s"start the simulation when activation is sent" in {
@@ -470,11 +468,11 @@ class DBFSAlgorithmCenGridSpec
       )
 
       // after all grids have received a FinishGridSimulationTrigger, the scheduler should receive a CompletionMessage
-      scheduler.expectMessage { case Completion(_, Some(tick)) =>
-        tick shouldBe 7200
-      }
+      val ref = scheduler.expectMessageType[Completion].actor
+      scheduler.expectMessage(Completion(ref, Some(3600)))
 
-      resultListener.expectMessage[ResultMessage] {
+      val resultMessage = resultListener.expectMessageType[ResultMessage]
+      resultMessage match {
         case powerFlowResultEvent: PowerFlowResultEvent =>
           // we expect results for 4 nodes, 5 lines and 2 transformer2ws
           powerFlowResultEvent.nodeResults.size shouldBe 4

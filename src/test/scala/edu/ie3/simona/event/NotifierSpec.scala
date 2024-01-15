@@ -7,7 +7,13 @@
 package edu.ie3.simona.event
 
 import java.util.{Calendar, Date}
-import org.apache.pekko.actor.{ActorLogging, ActorRef, ActorSystem, Props}
+import org.apache.pekko.actor.{
+  Actor,
+  ActorLogging,
+  ActorRef,
+  ActorSystem,
+  Props
+}
 import org.apache.pekko.testkit.ImplicitSender
 import org.apache.pekko.util.Timeout
 import com.typesafe.config.ConfigFactory
@@ -40,6 +46,7 @@ class NotifierSpec
   // test listenerActor
   class NotifierActor(override val listener: Iterable[ActorRef])
       extends Notifier
+      with Actor
       with ActorLogging {
     override def preStart(): Unit = {
       log.debug(s"{} started!", self)
