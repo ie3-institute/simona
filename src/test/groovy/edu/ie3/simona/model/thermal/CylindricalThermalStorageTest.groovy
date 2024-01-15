@@ -40,17 +40,10 @@ class CylindricalThermalStorageTest extends Specification {
   }
 
   static def buildThermalStorage(CylindricalStorageInput storageInput, Double volume) {
-    def storedEnergy =
-        Sq.create(
-        CylindricalThermalStorage.volumeToEnergy(Sq.create(volume, CubicMeters$.MODULE$),
+    def storedEnergy = CylindricalThermalStorage.volumeToEnergy(Sq.create(volume, CubicMeters$.MODULE$),
         Sq.create(storageInput.c.value.doubleValue(), KilowattHoursPerKelvinCubicMeters$.MODULE$),
         Sq.create(storageInput.inletTemp.value.doubleValue(), Celsius$.MODULE$),
         Sq.create(storageInput.returnTemp.value.doubleValue(), Celsius$.MODULE$))
-        .to(KILOWATTHOUR)
-        .getValue()
-        .doubleValue(),
-        KilowattHours$.MODULE$
-        )
     def thermalStorage = CylindricalThermalStorage.apply(storageInput, storedEnergy)
     return thermalStorage
   }
@@ -124,7 +117,7 @@ class CylindricalThermalStorageTest extends Specification {
     def result = storage.updateState(newTick, Sq.create(newQDot, Kilowatts$.MODULE$), lastState)
 
     then:
-    Math.abs(result._1().storedEnergy().toKilowattHours() - expectedStoredEnergy.doubleValue()) < TOLERANCE
+    Math.abs(result._1().storedEnergy().toKilowattHours() - expectedStoredEnergy.doubleValue()) < TESTING_TOLERANCE
     result._2.defined
     result._2.get() == expectedThreshold
 
@@ -146,7 +139,7 @@ class CylindricalThermalStorageTest extends Specification {
     def result = storage.updateState(newTick, Sq.create(newQDot, Kilowatts$.MODULE$), lastState)
 
     then:
-    Math.abs(result._1().storedEnergy().toKilowattHours() - expectedStoredEnergy.doubleValue()) < TOLERANCE
+    Math.abs(result._1().storedEnergy().toKilowattHours() - expectedStoredEnergy.doubleValue()) < TESTING_TOLERANCE
     result._2.empty
 
     where:
