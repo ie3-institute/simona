@@ -16,10 +16,16 @@ import squants.Power
 import java.time.ZonedDateTime
 import java.util.UUID
 
-/** Data related to participant scheduling and flex correspondences
+/** Data related to participant scheduling and flex correspondences within an
+  * [[EmAgent]]. Depending on the state of the EmAgent, different data is stored
+  * and retrieved.
   */
 object EmDataCore {
 
+  /** Creates a new instance of an (inactive) EmAgent data core.
+    * @param startDate
+    *   The start date of the simulation
+    */
   def create(implicit startDate: ZonedDateTime): Inactive =
     Inactive(
       Map.empty,
@@ -29,16 +35,25 @@ object EmDataCore {
       None
     )
 
-  /** @param activationQueue
+  /** @param modelToActor
+    *   Map of model uuid to corresponding model actor
+    * @param activationQueue
+    *   Queue of flex request activations per tick
     * @param flexWithNext
-    *   to be activated with next activation, whatever tick that is going to be
+    *   UUIDs of agents to be activated with next activation, whatever tick that
+    *   is going to be (the next tick can be changed when agents are
+    *   (re-)scheduled)
+    * @param correspondences
+    *   The data structure storing received and sent flex messages with the
+    *   corresponding tick
     * @param lastActiveTick
+    *   The last active tick, if applicable
     */
   final case class Inactive private (
       private val modelToActor: Map[UUID, Actor],
       private val activationQueue: PriorityMultiBiSet[Long, UUID],
       private val flexWithNext: Set[UUID],
-      private val correspondenceStore: FlexCorrespondenceStore,
+      private val correspondences: FlexCorrespondenceStore,
       private val lastActiveTick: Option[Long]
   ) {
     def addParticipant(actor: Actor, model: UUID): Inactive =
@@ -61,7 +76,7 @@ object EmDataCore {
       AwaitingFlexOptions(
         modelToActor,
         updatedQueue,
-        correspondenceStore,
+        correspondences,
         activeTick = newActiveTick
       )
     }
@@ -86,30 +101,25 @@ object EmDataCore {
 
   }
 
-  /** @param activationQueue
-    * @param activeActors
+  /** @param modelToActor
+    *   Map of model uuid to corresponding model actor
+    * @param activationQueue
+    *   Queue of flex request activations per tick
+    * @param correspondences
+    *   The data structure storing received and sent flex messages with the
+    *   corresponding tick
+    * @param awaitedFlexOptions
+    *   The set of model uuids, from which flex options are still expected
     * @param activeTick
+    *   The currently active tick
     */
   final case class AwaitingFlexOptions(
       private val modelToActor: Map[UUID, Actor],
       private val activationQueue: PriorityMultiBiSet[Long, UUID],
-      private val correspondenceStore: FlexCorrespondenceStore,
+      private val correspondences: FlexCorrespondenceStore,
       private val awaitedFlexOptions: Set[UUID] = Set.empty,
       activeTick: Long
   ) {
-    def checkSchedule( // TODO needed here?
-        participant: UUID,
-        newTick: Long
-    ): Boolean =
-      newTick >= activeTick
-
-    def handleSchedule(
-        model: UUID,
-        newTick: Long
-    ): AwaitingFlexOptions = {
-      activationQueue.set(newTick, model)
-      this
-    }
 
     def takeNewActivations(): (Iterable[Actor], AwaitingFlexOptions) = {
       val toActivate = activationQueue
@@ -126,31 +136,31 @@ object EmDataCore {
         flexOptions: ProvideFlexOptions
     ): AwaitingFlexOptions =
       copy(
-        correspondenceStore =
-          correspondenceStore.updateFlexOptions(flexOptions, activeTick),
+        correspondences =
+          correspondences.updateFlexOptions(flexOptions, activeTick),
         awaitedFlexOptions = awaitedFlexOptions.excl(flexOptions.modelUuid)
       )
 
     def isComplete: Boolean = awaitedFlexOptions.isEmpty
 
     def getFlexOptions: Iterable[(UUID, ProvideFlexOptions)] =
-      correspondenceStore.store.flatMap { case (model, correspondence) =>
+      correspondences.store.flatMap { case (model, correspondence) =>
         correspondence.receivedFlexOptions.map(model -> _.get)
       }
 
     def handleFlexCtrl(
         ctrlMsgs: Iterable[(UUID, Power)]
     ): AwaitingFlexOptions = {
-      val updatedStore = ctrlMsgs.foldLeft(correspondenceStore) {
+      val updatedStore = ctrlMsgs.foldLeft(correspondences) {
         case (store, (model, power)) =>
           val ctrlMsg = IssuePowerCtrl(activeTick, power)
           store.updateFlexControl(model, ctrlMsg, activeTick)
       }
-      copy(correspondenceStore = updatedStore)
+      copy(correspondences = updatedStore)
     }
 
     def fillInMissingIssueCtrl(): AwaitingFlexOptions = {
-      val updatedStore = correspondenceStore.store
+      val updatedStore = correspondences.store
         .filter { case (_, correspondence) =>
           // let's get those correspondences that have not received a ctrl msg at this tick
           correspondence.issuedCtrlMsg.forall(_.tick < activeTick)
@@ -175,17 +185,17 @@ object EmDataCore {
             participant -> IssueNoCtrl(activeTick)
           )
         }
-        .foldLeft(correspondenceStore) {
+        .foldLeft(correspondences) {
           case (updatedStore, (participant, flexCtrl)) =>
             updatedStore.updateFlexControl(participant, flexCtrl, activeTick)
         }
-      copy(correspondenceStore = updatedStore)
+      copy(correspondences = updatedStore)
     }
 
     def complete()
         : (Iterable[(Actor, IssueFlexControl)], AwaitingCompletions) = {
 
-      val currentCtrlMessages = correspondenceStore.store.flatMap {
+      val currentCtrlMessages = correspondences.store.flatMap {
         case (modelUuid, correspondence) =>
           correspondence.issuedCtrlMsg.flatMap {
             case WithTime(issueCtrl, tick) if tick == activeTick =>
@@ -204,7 +214,7 @@ object EmDataCore {
         AwaitingCompletions(
           modelToActor,
           activationQueue = activationQueue,
-          correspondenceStore = correspondenceStore,
+          correspondences = correspondences,
           awaitedCompletions =
             currentCtrlMessages.map { case (participant, _) =>
               participant
@@ -216,17 +226,26 @@ object EmDataCore {
 
   }
 
-  /** @param activationQueue
+  /** @param modelToActor
+    *   Map of model uuid to corresponding model actor
+    * @param activationQueue
+    *   Queue of flex request activations per tick
     * @param flexWithNext
     *   to be asked for flex options with the following active tick, whatever
     *   that tick is going to be (not with the currently active tick though!)
+    * @param correspondences
+    *   The data structure storing received and sent flex messages with the
+    *   corresponding tick
+    * @param awaitedCompletions
+    *   The set of model uuids, from which flex completions are still expected
     * @param activeTick
+    *   The currently active tick
     */
   final case class AwaitingCompletions(
       private val modelToActor: Map[UUID, Actor],
       private val activationQueue: PriorityMultiBiSet[Long, UUID],
       private val flexWithNext: Set[UUID] = Set.empty,
-      private val correspondenceStore: FlexCorrespondenceStore,
+      private val correspondences: FlexCorrespondenceStore,
       private val awaitedCompletions: Set[UUID],
       activeTick: Long
   ) {
@@ -243,7 +262,7 @@ object EmDataCore {
         .foreach { activationQueue.set(_, completion.modelUuid) }
 
       val updatedCorrespondence =
-        correspondenceStore.updateResult(
+        correspondences.updateResult(
           completion.modelUuid,
           completion.result,
           activeTick
@@ -255,7 +274,7 @@ object EmDataCore {
         else flexWithNext
 
       copy(
-        correspondenceStore = updatedCorrespondence,
+        correspondences = updatedCorrespondence,
         flexWithNext = updatedFlexWithNext,
         awaitedCompletions = awaitedCompletions.excl(completion.modelUuid)
       )
@@ -272,14 +291,14 @@ object EmDataCore {
             modelToActor,
             activationQueue,
             flexWithNext,
-            correspondenceStore,
+            correspondences,
             Some(activeTick)
           )
         )
       }
 
     def getResults: Iterable[ApparentPower] = {
-      correspondenceStore.store.values.flatMap(_.receivedResult.map(_.get))
+      correspondences.store.values.flatMap(_.receivedResult.map(_.get))
     }
 
   }

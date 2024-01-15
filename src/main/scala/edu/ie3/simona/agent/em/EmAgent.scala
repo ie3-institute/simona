@@ -256,6 +256,11 @@ object EmAgent {
         )
       }
 
+    /* We do not need to handle ScheduleFlexRequests here, since active agents
+       can schedule themselves with there completions and inactive agents should
+       be sleeping right now
+     */
+
     case _ =>
       Behaviors.unhandled
   }
