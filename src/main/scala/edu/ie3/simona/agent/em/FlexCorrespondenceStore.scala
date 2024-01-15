@@ -4,13 +4,13 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.participant.em
+package edu.ie3.simona.agent.em
 
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import edu.ie3.simona.agent.participant.em.FlexCorrespondenceStore.{
+import edu.ie3.simona.agent.em.FlexCorrespondenceStore.{
   FlexCorrespondence,
   WithTime
 }
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
   IssueFlexControl,
   ProvideFlexOptions

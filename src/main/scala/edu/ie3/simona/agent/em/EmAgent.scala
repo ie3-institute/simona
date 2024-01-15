@@ -4,7 +4,7 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.participant.em
+package edu.ie3.simona.agent.em
 
 import edu.ie3.datamodel.models.input.system.EmInput
 import edu.ie3.datamodel.models.result.system.EmResult
@@ -34,7 +34,6 @@ import squants.energy.{Kilowatts, Megawatts}
 import java.time.ZonedDateTime
 import scala.util.{Failure, Success, Try}
 
-// TODO move package em out of participant
 object EmAgent {
 
   type Actor = ActorRef[FlexRequest]

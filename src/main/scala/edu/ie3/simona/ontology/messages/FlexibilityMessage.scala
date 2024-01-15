@@ -7,9 +7,10 @@
 package edu.ie3.simona.ontology.messages
 
 import edu.ie3.datamodel.models.input.AssetInput
-import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
+import edu.ie3.simona.agent.em.EmAgent
+import edu.ie3.simona.agent.em.EmAgent.EmMessage
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import edu.ie3.simona.agent.participant.em.EmAgent.EmMessage
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import org.apache.pekko.actor.typed.ActorRef
 import squants.Power
 
@@ -85,9 +86,9 @@ object FlexibilityMessage {
       minPower <= power && power <= maxPower
   }
 
-  /** Message sent by [[edu.ie3.simona.agent.participant.em.EmAgent]] that
-    * specifies a power target that needs to be produced/consumed by the system
-    * participant.
+  /** Message sent by [[EmAgent]] that specifies a power target that needs to be
+    * produced/consumed by the system participant.
+    *
     * @param setPower
     *   the power that the system participant has to set. Positive: consuming,
     *   negative: producing
@@ -97,9 +98,8 @@ object FlexibilityMessage {
       setPower: Power
   ) extends IssueFlexControl
 
-  /** Message sent by [[edu.ie3.simona.agent.participant.em.EmAgent]] indicating
-    * that no power target is set and the reference power shall be
-    * produced/consumed.
+  /** Message sent by [[EmAgent]] indicating that no power target is set and the
+    * reference power shall be produced/consumed.
     */
   final case class IssueNoCtrl(tick: Long) extends IssueFlexControl
 

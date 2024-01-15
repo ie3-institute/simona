@@ -4,11 +4,11 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.participant.em
+package edu.ie3.simona.agent.em
 
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import edu.ie3.simona.agent.participant.em.EmAgent.Actor
-import edu.ie3.simona.agent.participant.em.FlexCorrespondenceStore.WithTime
+import EmAgent.Actor
+import FlexCorrespondenceStore.WithTime
 import edu.ie3.simona.ontology.messages.FlexibilityMessage._
 import edu.ie3.util.scala.collection.mutable.PriorityMultiBiSet
 import squants.Power
