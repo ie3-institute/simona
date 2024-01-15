@@ -123,7 +123,7 @@ class StorageAgentModelCalculationSpec
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = outputConfig,
       primaryServiceProxy = primaryServiceProxy.ref,
-      maybeEmAgent = Some(emAgent.ref.toTyped[FlexResponse])
+      maybeEmAgent = Some(emAgent.ref.toTyped)
     )
 
     "end in correct state with correct state data after initialisation" in {
