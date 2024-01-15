@@ -32,7 +32,6 @@ import squants.Power
 import squants.energy.{Kilowatts, Megawatts}
 
 import java.time.ZonedDateTime
-import scala.util.{Failure, Success, Try}
 
 object EmAgent {
 
@@ -99,7 +98,7 @@ object EmAgent {
       stateData: EmData,
       modelShell: EmModelShell,
       core: EmDataCore.Inactive
-  ): Behavior[EmMessage] = Behaviors.receive {
+  ): Behavior[EmMessage] = Behaviors.receivePartial {
 
     case (_, RegisterParticipant(model, actor, spi)) =>
       val updatedModelShell = modelShell.addParticipant(model, spi)
@@ -186,7 +185,7 @@ object EmAgent {
       stateData: EmData,
       modelShell: EmModelShell,
       flexOptionsCore: EmDataCore.AwaitingFlexOptions
-  ): Behavior[EmMessage] = Behaviors.receive {
+  ): Behavior[EmMessage] = Behaviors.receivePartial {
     case (_, flexOptions: ProvideFlexOptions) =>
       val updatedCore = flexOptionsCore.handleFlexOptions(flexOptions)
 
@@ -260,21 +259,16 @@ object EmAgent {
        can schedule themselves with there completions and inactive agents should
        be sleeping right now
      */
-
-    case _ =>
-      Behaviors.unhandled
   }
 
   /** If this EmAgent is itself controlled by a parent EmAgent, we wait for flex
     * control here
-    *
-    * TODO move to trait or object?
     */
   private def awaitingFlexCtrl(
       stateData: EmData,
       modelShell: EmModelShell,
       flexOptionsCore: EmDataCore.AwaitingFlexOptions
-  ): Behavior[EmMessage] = Behaviors.receive {
+  ): Behavior[EmMessage] = Behaviors.receivePartial {
     case (ctx, Flex(flexCtrl: IssueFlexControl)) =>
       val flexParticipantData = stateData.flexStateData.getOrElse(
         throw new RuntimeException(
@@ -299,7 +293,7 @@ object EmAgent {
           modelShell.determineDeviceControl(flexOptions, setPointActivePower)
 
         val (allFlexMsgs, newCore) = flexOptionsCore
-          .handleFlexCtrl(ctrlSetPoints) // TODO combine methods
+          .handleFlexCtrl(ctrlSetPoints)
           .fillInMissingIssueCtrl()
           .complete()
 
@@ -308,12 +302,10 @@ object EmAgent {
         }
 
         awaitingCompletions(stateData, modelShell, newCore)
-      }.getOrElse {
-        stopOnError(ctx, "") // TODO
-      }
-
-    case _ =>
-      Behaviors.unhandled
+      }.fold(
+        stopOnError(ctx, _),
+        identity
+      )
 
   }
 
@@ -321,7 +313,7 @@ object EmAgent {
       stateData: EmData,
       modelShell: EmModelShell,
       core: EmDataCore.AwaitingCompletions
-  ): Behavior[EmMessage] = Behaviors.receive {
+  ): Behavior[EmMessage] = Behaviors.receivePartial {
     // Completions and results
     case (ctx, completion: FlexCtrlCompletion) =>
       Either
@@ -391,14 +383,12 @@ object EmAgent {
           identity
         )
 
-    case _ =>
-      Behaviors.unhandled
   }
 
   protected def determineResultingFlexPower(
       flexOptionsMsg: ProvideFlexOptions,
       flexCtrl: IssueFlexControl
-  ): Try[Power] =
+  ): Either[String, Power] =
     flexOptionsMsg match {
       case flexOptions: ProvideMinMaxFlexOptions =>
         flexCtrl match {
@@ -411,35 +401,29 @@ object EmAgent {
 
           case IssueNoCtrl(_) =>
             // no override, take reference power
-            Success(flexOptions.referencePower)
+            Right(flexOptions.referencePower)
         }
 
       case unknownFlexOpt =>
-        Failure(
-          new RuntimeException(
-            s"Unknown/unfitting flex messages $unknownFlexOpt"
-          )
+        Left(
+          s"Unknown/unfitting flex messages $unknownFlexOpt"
         )
     }
 
   protected def checkSetPower(
       flexOptions: ProvideMinMaxFlexOptions,
       setPower: squants.Power
-  ): Try[Unit] = {
+  ): Either[String, Unit] = {
     if (setPower < flexOptions.minPower)
-      Failure(
-        new RuntimeException(
-          s"The set power $setPower for ${flexOptions.modelUuid} must not be lower than the minimum power ${flexOptions.minPower}!"
-        )
+      Left(
+        s"The set power $setPower for ${flexOptions.modelUuid} must not be lower than the minimum power ${flexOptions.minPower}!"
       )
     else if (setPower > flexOptions.maxPower)
-      Failure(
-        new RuntimeException(
-          s"The set power $setPower for ${flexOptions.modelUuid} must not be greater than the maximum power ${flexOptions.maxPower}!"
-        )
+      Left(
+        s"The set power $setPower for ${flexOptions.modelUuid} must not be greater than the maximum power ${flexOptions.maxPower}!"
       )
     else
-      Success(())
+      Right(())
   }
 
   /** Data that is supposed to stay constant during simulation
