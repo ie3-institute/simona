@@ -322,7 +322,7 @@ protected trait ParticipantAgentFundamentals[
           newTick.filterNot(_ => baseStateData.isEmManaged)
         )
 
-        log.debug(s"Going to {}, using {}", Idle, baseStateData)
+        log.debug(s"Going to {}, using {}", Idle, nextBaseStateData)
         goto(Idle) using nextBaseStateData
       }
     } catch {
@@ -518,29 +518,27 @@ protected trait ParticipantAgentFundamentals[
 
     /* If we have received unexpected data, we also have not been scheduled before */
     if (unexpectedSender) {
-      val emManaged = baseStateData match {
+      baseStateData match {
         case modelStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           val maybeEmAgent = modelStateData.flexStateData.map(_.emAgent)
 
-          maybeEmAgent.foreach {
-            _ ! ScheduleFlexRequest(
-              modelStateData.model.getUuid,
-              msg.tick,
-              msg.unlockKey
-            )
+          maybeEmAgent match {
+            case Some(emAgent) =>
+              emAgent ! ScheduleFlexRequest(
+                modelStateData.model.getUuid,
+                msg.tick,
+                msg.unlockKey
+              )
+            case None =>
+              scheduler ! ScheduleActivation(
+                self.toTyped,
+                msg.tick,
+                msg.unlockKey
+              )
           }
-
-          maybeEmAgent.isDefined
         case _ =>
           false
       }
-
-      if (!emManaged)
-        scheduler ! ScheduleActivation(
-          self.toTyped,
-          msg.tick,
-          msg.unlockKey
-        )
     }
 
     /* If the sender announces a new next tick, add it to the list of expected ticks, else remove the current entry */
