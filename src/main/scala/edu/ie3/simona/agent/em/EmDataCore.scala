@@ -64,22 +64,22 @@ object EmDataCore {
     def checkActivation(newTick: Long): Boolean =
       activationQueue.headKeyOption.contains(newTick)
 
-    def activate(): AwaitingFlexOptions = {
-      val newActiveTick = activationQueue.headKeyOption.getOrElse(
-        throw new RuntimeException("Nothing scheduled, cannot activate.")
-      )
-      val updatedQueue = flexWithNext.foldLeft(activationQueue) {
-        case (currentQueue, model) =>
-          currentQueue.set(newActiveTick, model)
-          currentQueue
-      }
-      AwaitingFlexOptions(
-        modelToActor,
-        updatedQueue,
-        correspondences,
-        activeTick = newActiveTick
-      )
-    }
+    def activate(): Either[String, AwaitingFlexOptions] =
+      activationQueue.headKeyOption
+        .toRight("Nothing scheduled, cannot activate.")
+        .map { newActiveTick =>
+          val updatedQueue = flexWithNext.foldLeft(activationQueue) {
+            case (currentQueue, model) =>
+              currentQueue.set(newActiveTick, model)
+              currentQueue
+          }
+          AwaitingFlexOptions(
+            modelToActor,
+            updatedQueue,
+            correspondences,
+            activeTick = newActiveTick
+          )
+        }
 
     def checkSchedule(newTick: Long): Boolean =
       lastActiveTick.forall(newTick >= _ + 1)
@@ -121,15 +121,23 @@ object EmDataCore {
       activeTick: Long
   ) {
 
-    def takeNewActivations(): (Iterable[Actor], AwaitingFlexOptions) = {
-      val toActivate = activationQueue
-        .getAndRemoveSet(activeTick)
+    def takeNewActivations()
+        : Either[String, (Iterable[Actor], AwaitingFlexOptions)] = {
+      val toActivate = activationQueue.getAndRemoveSet(activeTick)
       val newFlexOptionsCore =
         copy(awaitedFlexOptions = awaitedFlexOptions.concat(toActivate))
-      val participants = toActivate.map(
-        modelToActor.getOrElse(_, throw new RuntimeException(""))
+      val (missingActors, participants) = toActivate.toSeq
+        .partitionMap { modelUuid =>
+          modelToActor
+            .get(modelUuid)
+            .toRight(modelUuid)
+        }
+
+      Either.cond(
+        missingActors.isEmpty,
+        (participants, newFlexOptionsCore),
+        s"Could not find actor(s) for model uuid(s) ${missingActors.mkString(",")}"
       )
-      (participants, newFlexOptionsCore)
     }
 
     def handleFlexOptions(
@@ -192,10 +200,12 @@ object EmDataCore {
       copy(correspondences = updatedStore)
     }
 
-    def complete()
-        : (Iterable[(Actor, IssueFlexControl)], AwaitingCompletions) = {
+    def complete(): Either[
+      String,
+      (Iterable[(Actor, IssueFlexControl)], AwaitingCompletions)
+    ] = {
 
-      val currentCtrlMessages = correspondences.store.flatMap {
+      val modelUuidToMsg = correspondences.store.flatMap {
         case (modelUuid, correspondence) =>
           correspondence.issuedCtrlMsg.flatMap {
             case WithTime(issueCtrl, tick) if tick == activeTick =>
@@ -204,23 +214,29 @@ object EmDataCore {
           }
       }
 
-      (
-        currentCtrlMessages.map { case (model, issueCtrl) =>
-          (
-            modelToActor.getOrElse(model, throw new RuntimeException("")),
-            issueCtrl
-          )
-        },
-        AwaitingCompletions(
-          modelToActor,
-          activationQueue = activationQueue,
-          correspondences = correspondences,
-          awaitedCompletions =
-            currentCtrlMessages.map { case (participant, _) =>
+      val (missingActors, actorToMsg) = modelUuidToMsg.toSeq
+        .partitionMap { case (modelUuid, issueCtrl) =>
+          modelToActor
+            .get(modelUuid)
+            .map((_, issueCtrl))
+            .toRight(modelUuid)
+        }
+
+      Either.cond(
+        missingActors.isEmpty,
+        (
+          actorToMsg,
+          AwaitingCompletions(
+            modelToActor,
+            activationQueue = activationQueue,
+            correspondences = correspondences,
+            awaitedCompletions = modelUuidToMsg.map { case (participant, _) =>
               participant
             }.toSet,
-          activeTick = activeTick
-        )
+            activeTick = activeTick
+          )
+        ),
+        s"Could not find actor(s) for model uuid(s) ${missingActors.mkString(",")}"
       )
     }
 

@@ -156,7 +156,12 @@ object EmAgent {
         // forward message to proper behavior
         ctx.self ! issueCtrl
 
-        awaitingFlexCtrl(stateData, modelShell, core.activate())
+        core
+          .activate()
+          .fold(
+            stopOnError(ctx, _),
+            awaitingFlexCtrl(stateData, modelShell, _)
+          )
       } else {
         stopOnError(ctx, s"There should be no flex requests scheduled at all.")
       }
@@ -170,13 +175,20 @@ object EmAgent {
       ctx: ActorContext[EmMessage]
   ): Behavior[EmMessage] =
     if (core.checkActivation(tick)) {
-      val (toActivate, flexOptionsCore) = core.activate().takeNewActivations()
+      core
+        .activate()
+        .flatMap(_.takeNewActivations())
+        .map { case (toActivate, flexOptionsCore) =>
+          toActivate.foreach {
+            _ ! RequestFlexOptions(tick)
+          }
 
-      toActivate.foreach {
-        _ ! RequestFlexOptions(tick)
-      }
-
-      awaitingFlexOptions(stateData, modelShell, flexOptionsCore)
+          awaitingFlexOptions(stateData, modelShell, flexOptionsCore)
+        }
+        .fold(
+          stopOnError(ctx, _),
+          identity
+        )
     } else {
       stopOnError(ctx, s"Cannot activate with new tick $tick")
     }
@@ -186,7 +198,7 @@ object EmAgent {
       modelShell: EmModelShell,
       flexOptionsCore: EmDataCore.AwaitingFlexOptions
   ): Behavior[EmMessage] = Behaviors.receivePartial {
-    case (_, flexOptions: ProvideFlexOptions) =>
+    case (ctx, flexOptions: ProvideFlexOptions) =>
       val updatedCore = flexOptionsCore.handleFlexOptions(flexOptions)
 
       if (updatedCore.isComplete) {
@@ -234,16 +246,21 @@ object EmAgent {
             val ctrlSetPoints =
               modelShell.determineDeviceControl(allFlexOptions, setPower)
 
-            val (allFlexMsgs, newCore) = updatedCore
+            updatedCore
               .handleFlexCtrl(ctrlSetPoints)
               .fillInMissingIssueCtrl()
               .complete()
+              .map { case (allFlexMsgs, newCore) =>
+                allFlexMsgs.foreach { case (actor, msg) =>
+                  actor ! msg
+                }
 
-            allFlexMsgs.foreach { case (actor, msg) =>
-              actor ! msg
-            }
-
-            awaitingCompletions(stateData, modelShell, newCore)
+                awaitingCompletions(stateData, modelShell, newCore)
+              }
+              .fold(
+                stopOnError(ctx, _),
+                identity
+              )
         }
 
       } else {
@@ -270,42 +287,48 @@ object EmAgent {
       flexOptionsCore: EmDataCore.AwaitingFlexOptions
   ): Behavior[EmMessage] = Behaviors.receivePartial {
     case (ctx, Flex(flexCtrl: IssueFlexControl)) =>
-      val flexParticipantData = stateData.flexStateData.getOrElse(
-        throw new RuntimeException(
+      stateData.flexStateData
+        .toRight(
           s"EmAgent is not EM-controlled."
         )
-      )
-
-      val flexOptions = flexParticipantData.lastFlexOptions
-        .getOrElse(
-          throw new RuntimeException(
+        .flatMap(
+          // flex options calculated by this EmAgent
+          _.lastFlexOptions.toRight(
             s"Flex options have not been calculated by EmAgent."
           )
         )
+        .flatMap(flexOptions =>
+          determineResultingFlexPower(
+            flexOptions,
+            flexCtrl
+          )
+        )
+        .flatMap { setPointActivePower =>
+          // flex options calculated by connected agents
+          val receivedFlexOptions = flexOptionsCore.getFlexOptions
 
-      determineResultingFlexPower(
-        flexOptions,
-        flexCtrl
-      ).map { setPointActivePower =>
-        val flexOptions = flexOptionsCore.getFlexOptions
+          val ctrlSetPoints =
+            modelShell.determineDeviceControl(
+              receivedFlexOptions,
+              setPointActivePower
+            )
 
-        val ctrlSetPoints =
-          modelShell.determineDeviceControl(flexOptions, setPointActivePower)
+          flexOptionsCore
+            .handleFlexCtrl(ctrlSetPoints)
+            .fillInMissingIssueCtrl()
+            .complete()
+            .map { case (allFlexMsgs, newCore) =>
+              allFlexMsgs.foreach { case (actor, msg) =>
+                actor ! msg
+              }
 
-        val (allFlexMsgs, newCore) = flexOptionsCore
-          .handleFlexCtrl(ctrlSetPoints)
-          .fillInMissingIssueCtrl()
-          .complete()
-
-        allFlexMsgs.foreach { case (actor, msg) =>
-          actor ! msg
+              awaitingCompletions(stateData, modelShell, newCore)
+            }
         }
-
-        awaitingCompletions(stateData, modelShell, newCore)
-      }.fold(
-        stopOnError(ctx, _),
-        identity
-      )
+        .fold(
+          stopOnError(ctx, _),
+          identity
+        )
 
   }
 
