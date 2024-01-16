@@ -149,6 +149,17 @@ object EmDataCore {
       (maybeScheduleTick, this)
     }
 
+    /** Returns the tick that will be activated next (if applicable) at the
+      * current state.
+      */
+    def nextActiveTick: Option[Long] =
+      activationQueue.headKeyOption
+
+    /** Returns relevant results for all connected agents.
+      */
+    def getResults: Iterable[ApparentPower] =
+      correspondences.store.values.flatMap(_.receivedResult.map(_.get))
+
   }
 
   /** Data structure holding relevant data and providing methods that handle
@@ -429,34 +440,23 @@ object EmDataCore {
       * for the current tick.
       *
       * @return
-      *   If the current activation of the EM agent can be completed, a tuple is
-      *   returned of an optional tick that the EM agent should be scheduled for
-      *   again, and the [[Inactive]] data core that should be used in the
+      *   If the current activation of the EM agent can be completed, the
+      *   [[Inactive]] data core is returned that should be used in the
       *   following inactive state.
       */
-    def maybeComplete(): Option[(Option[Long], Inactive)] =
+    def maybeComplete(): Option[Inactive] =
       Option.when(
         awaitedCompletions.isEmpty &&
           !activationQueue.headKeyOption.contains(activeTick)
       ) {
-        (
-          activationQueue.headKeyOption,
-          Inactive(
-            modelToActor,
-            activationQueue,
-            flexWithNext,
-            correspondences,
-            Some(activeTick)
-          )
+        Inactive(
+          modelToActor,
+          activationQueue,
+          flexWithNext,
+          correspondences,
+          Some(activeTick)
         )
       }
-
-    /** Returns relevant results for all connected agents.
-      * @return
-      *   The results for all agents
-      */
-    def getResults: Iterable[ApparentPower] =
-      correspondences.store.values.flatMap(_.receivedResult.map(_.get))
 
   }
 

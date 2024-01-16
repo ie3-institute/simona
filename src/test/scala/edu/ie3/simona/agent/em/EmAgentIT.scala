@@ -716,5 +716,7 @@ class EmAgentIT
         scheduler.expectMessage(Completion(emAgentActivation, Some(28800)))
       }
     }
+
+    // TODO test stacked EmAgents
   }
 }

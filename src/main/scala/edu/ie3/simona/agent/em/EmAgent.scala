@@ -134,6 +134,9 @@ object EmAgent {
     )
   }
 
+  /** Behavior of an inactive [[EmAgent]], which waits for an activation or flex
+    * request to be activated.
+    */
   private def inactive(
       constantData: ConstantEmData,
       modelShell: EmModelShell,
@@ -155,7 +158,6 @@ object EmAgent {
             // also potentially schedule with parent if the new earliest tick is
             // different from the old earliest tick (including if nothing had
             // been scheduled before)
-
             constantData.parentData.fold(
               schedulerData =>
                 schedulerData.scheduler ! ScheduleActivation(
@@ -170,7 +172,8 @@ object EmAgent {
               )
             )
           case None =>
-            // we don't need to escalate to the parent, this means that we can release the lock (if applicable)
+            // we don't need to escalate to the parent, this means that we can
+            // release the lock (if applicable)
             scheduleKey.foreach {
               _.unlock()
             }
@@ -186,26 +189,29 @@ object EmAgent {
     case (ctx, Flex(RequestFlexOptions(tick))) =>
       activate(constantData, modelShell, core, tick, ctx)
 
-    case (ctx, issueCtrl: IssueFlexControl) =>
-      // we receive issueFlexCtrl by the parent without being asked for flex options before
+    case (ctx, Flex(issueCtrl: IssueFlexControl)) =>
+      // Since there has been no flex request received since we
+      // last received an IssueFlexControl message, the former
+      // flexibilities should also be still valid now, and the same
+      // result should be valid
 
-      // there should be no scheduled flex requests at all,
-      // because we would have received a flex request before
-      if (core.checkActivation(issueCtrl.tick)) {
-        // forward message to proper behavior
-        ctx.self ! issueCtrl
+      sendCompletionCommunication(
+        constantData,
+        modelShell,
+        core,
+        issueCtrl.tick
+      )
 
-        core
-          .activate()
-          .fold(
-            stopOnError(ctx, _),
-            awaitingFlexCtrl(constantData, modelShell, _)
-          )
-      } else {
-        stopOnError(ctx, s"There should be no flex requests scheduled at all.")
-      }
+      inactive(constantData, modelShell, core)
+
   }
 
+  /** Activates this EmAgent and sends out appropriate flex requests
+    * @param tick
+    *   The current tick
+    * @param ctx
+    *   The actor context
+    */
   private def activate(
       constantData: ConstantEmData,
       modelShell: EmModelShell,
@@ -232,6 +238,9 @@ object EmAgent {
       stopOnError(ctx, s"Cannot activate with new tick $tick")
     }
 
+  /** Behavior of an [[EmAgent]] waiting for flex options to be received in
+    * order to transition to the next behavior.
+    */
   private def awaitingFlexOptions(
       constantData: ConstantEmData,
       modelShell: EmModelShell,
@@ -333,8 +342,9 @@ object EmAgent {
      */
   }
 
-  /** If this EmAgent is itself controlled by a parent EmAgent, we wait for flex
-    * control here
+  /** Behavior of an [[EmAgent]] waiting for a flex control message to be
+    * received in order to transition to the next behavior. This behavior should
+    * only be used by EmAgents that are themselves EM-controlled.
     */
   private def awaitingFlexCtrl(
       stateData: ConstantEmData,
@@ -385,6 +395,9 @@ object EmAgent {
 
   }
 
+  /** Behavior of an [[EmAgent]] waiting for completions messages to be received
+    * in order to transition to the inactive behavior.
+    */
   private def awaitingCompletions(
       constantData: ConstantEmData,
       modelShell: EmModelShell,
@@ -401,45 +414,13 @@ object EmAgent {
         .map { updatedCore =>
           updatedCore
             .maybeComplete()
-            .map { case (maybeScheduleTick, inactiveCore) =>
-              // calc result
-              val result = updatedCore.getResults
-                .reduceOption { (power1, power2) =>
-                  ApparentPower(power1.p + power2.p, power1.q + power2.q)
-                }
-                .getOrElse(
-                  ApparentPower(
-                    Megawatts(0d),
-                    Megavars(0d)
-                  )
-                )
-
-              constantData.listener.foreach {
-                _ ! ParticipantResultEvent(
-                  new EmResult(
-                    updatedCore.activeTick
-                      .toDateTime(constantData.simulationStartDate),
-                    modelShell.uuid,
-                    result.p.toMegawatts.asMegaWatt,
-                    result.q.toMegavars.asMegaVar
-                  )
-                )
-              }
-
-              constantData.parentData.fold(
-                schedulerData =>
-                  schedulerData.scheduler ! Completion(
-                    schedulerData.activationAdapter,
-                    maybeScheduleTick
-                  ),
-                _.emAgent ! FlexCtrlCompletion(
-                  modelShell.uuid,
-                  result,
-                  requestAtNextActivation = false,
-                  maybeScheduleTick
-                )
+            .map { inactiveCore =>
+              sendCompletionCommunication(
+                constantData,
+                modelShell,
+                inactiveCore,
+                lastActiveTick = updatedCore.activeTick
               )
-
               inactive(constantData, modelShell, inactiveCore)
             }
             .getOrElse {
@@ -456,6 +437,52 @@ object EmAgent {
           identity
         )
 
+  }
+
+  private def sendCompletionCommunication(
+      constantData: ConstantEmData,
+      modelShell: EmModelShell,
+      inactiveCore: EmDataCore.Inactive,
+      lastActiveTick: Long
+  ): Unit = {
+    // calc result
+    val result = inactiveCore.getResults
+      .reduceOption { (power1, power2) =>
+        ApparentPower(power1.p + power2.p, power1.q + power2.q)
+      }
+      .getOrElse(
+        ApparentPower(
+          Megawatts(0d),
+          Megavars(0d)
+        )
+      )
+
+    constantData.listener.foreach {
+      _ ! ParticipantResultEvent(
+        new EmResult(
+          lastActiveTick
+            .toDateTime(constantData.simulationStartDate),
+          modelShell.uuid,
+          result.p.toMegawatts.asMegaWatt,
+          result.q.toMegavars.asMegaVar
+        )
+      )
+    }
+
+    constantData.parentData.fold(
+      schedulerData =>
+        schedulerData.scheduler ! Completion(
+          schedulerData.activationAdapter,
+          inactiveCore.nextActiveTick
+        ),
+      // no activation at next tick (requestAtNextActivation) for speedier execution
+      _.emAgent ! FlexCtrlCompletion(
+        modelShell.uuid,
+        result,
+        requestAtNextActivation = false,
+        inactiveCore.nextActiveTick
+      )
+    )
   }
 
   /** Data that is supposed to stay constant during simulation
