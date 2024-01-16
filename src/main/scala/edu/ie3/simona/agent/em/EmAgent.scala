@@ -105,8 +105,9 @@ object EmAgent {
       inactive(stateData, updatedModelShell, updatedCore)
 
     case (ctx, ScheduleFlexRequest(participant, newTick, scheduleKey)) =>
-      if (core.checkSchedule(newTick)) {
-        val (maybeSchedule, newCore) = core.handleSchedule(participant, newTick)
+      if (core.checkScheduleRequest(newTick)) {
+        val (maybeSchedule, newCore) =
+          core.handleScheduleRequest(participant, newTick)
 
         maybeSchedule match {
           case Some(scheduleTick) =>
@@ -176,7 +177,7 @@ object EmAgent {
     if (core.checkActivation(tick)) {
       core
         .activate()
-        .flatMap(_.takeNewActivations())
+        .flatMap(_.takeNewFlexRequests())
         .map { case (toActivate, flexOptionsCore) =>
           toActivate.foreach {
             _ ! RequestFlexOptions(tick)
