@@ -130,9 +130,8 @@ class DBFSAlgorithmCenGridSpec
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      val activationMessage =
-        scheduler
-          .expectMessageType[ScheduleActivation] // lock activation scheduled
+      scheduler
+        .expectMessageType[ScheduleActivation] // lock activation scheduled
 
       centerGridAgent ! ValuesAdapter(
         CreateGridAgent(
@@ -179,7 +178,6 @@ class DBFSAlgorithmCenGridSpec
 
       // normally the inferior grid agents ask for the slack voltage as well to do their power flow calculations
       // we simulate this behaviour now by doing the same for our three inferior grid agents
-
       inferiorGrid11.requestSlackVoltage(centerGridAgent, firstSweepNo)
 
       inferiorGrid12.requestSlackVoltage(centerGridAgent, firstSweepNo)

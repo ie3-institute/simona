@@ -12,6 +12,7 @@ import edu.ie3.simona.ontology.messages.{
   PowerMessage,
   VoltageMessage
 }
+import org.apache.pekko.actor.typed.ActorRef
 
 /** Trait for [[GridAgent]] messages.
   */
@@ -22,6 +23,17 @@ object GridAgentMessage {
   /** Message that should be send by the
     */
   final object StopGridAgent extends GridAgentMessage
+
+  /** Wrapper for string messages. NOTICE: Only for internal use.
+    * @param str
+    *   message
+    * @param sender
+    *   of the message
+    */
+  private[grid] final case class StringAdapter(
+      str: String,
+      sender: ActorRef[GridAgentMessage]
+  ) extends GridAgentMessage
 
   /** Wrapper for activation values
     *

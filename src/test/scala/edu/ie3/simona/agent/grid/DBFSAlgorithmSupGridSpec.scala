@@ -44,9 +44,11 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 }
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
+import org.apache.pekko.util.Timeout
 import squants.energy.Megawatts
 
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 
@@ -105,20 +107,20 @@ class DBFSAlgorithmSupGridSpec
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      val adapter =
-        scheduler
-          .expectMessageType[ScheduleActivation]
-          .actor // lock activation scheduled
+      scheduler
+        .expectMessageType[ScheduleActivation] // lock activation scheduled
 
       superiorGridAgentFSM ! ValuesAdapter(
         CreateGridAgent(gridAgentInitData, key)
       )
-      scheduler.expectMessage(
-        ScheduleActivation(adapter, INIT_SIM_TICK, Some(key))
-      )
+
+      val am = scheduler.expectMessageType[ScheduleActivation]
+      am shouldBe ScheduleActivation(am.actor, INIT_SIM_TICK, Some(key))
 
       superiorGridAgentFSM ! ActivationAdapter(Activation(INIT_SIM_TICK))
-      scheduler.expectMessage(Completion(adapter, Some(3600)))
+
+      val cm = scheduler.expectMessageType[Completion]
+      cm shouldBe Completion(cm.actor, Some(3600))
     }
 
     s"go to SimulateGrid when it receives an activity start trigger" in {

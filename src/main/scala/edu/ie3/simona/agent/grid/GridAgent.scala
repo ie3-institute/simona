@@ -27,12 +27,11 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 import edu.ie3.simona.ontology.messages.{Activation, StopMessage}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
-import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.scaladsl.adapter.{
   ClassicActorRefOps,
-  TypedActorContextOps,
-  TypedActorRefOps
+  TypedActorContextOps
 }
+import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.actor.{ActorRef => classicRef}
 
@@ -46,47 +45,50 @@ object GridAgent {
       environmentRefs: EnvironmentRefs,
       simonaConfig: SimonaConfig,
       listener: Iterable[classicRef]
-  ): Behavior[GridAgentMessage] = Behaviors.setup[GridAgentMessage] { context =>
-    context.messageAdapter(values => ValuesAdapter(values))
-    context.messageAdapter(msg => PMAdapter(msg))
-    context.messageAdapter(msg => VMAdapter(msg))
-    val activationAdapter: ActorRef[Activation] =
-      context.messageAdapter[Activation](msg => ActivationAdapter(msg))
+  ): Behavior[GridAgentMessage] = Behaviors.withStash(100) { buffer =>
+    Behaviors.setup[GridAgentMessage] { context =>
+      context.messageAdapter(values => ValuesAdapter(values))
+      context.messageAdapter(msg => PMAdapter(msg))
+      context.messageAdapter(msg => VMAdapter(msg))
+      val activationAdapter: ActorRef[Activation] =
+        context.messageAdapter[Activation](msg => ActivationAdapter(msg))
 
-    // val initialization
-    val resolution: Long = simonaConfig.simona.powerflow.resolution.get(
-      ChronoUnit.SECONDS
-    ) // this determines the agents regular time bin it wants to be triggered e.g one hour
+      // val initialization
+      val resolution: Long = simonaConfig.simona.powerflow.resolution.get(
+        ChronoUnit.SECONDS
+      ) // this determines the agents regular time bin it wants to be triggered e.g one hour
 
-    val simStartTime: ZonedDateTime = TimeUtil.withDefaults
-      .toZonedDateTime(simonaConfig.simona.time.startDateTime)
+      val simStartTime: ZonedDateTime = TimeUtil.withDefaults
+        .toZonedDateTime(simonaConfig.simona.time.startDateTime)
 
-    val gridAgentController =
-      new GridAgentController(
-        context.toClassic,
+      val gridAgentController =
+        new GridAgentController(
+          context.toClassic,
+          environmentRefs,
+          simStartTime,
+          TimeUtil.withDefaults
+            .toZonedDateTime(simonaConfig.simona.time.endDateTime),
+          simonaConfig.simona.runtime.participant,
+          simonaConfig.simona.output.participant,
+          resolution,
+          listener.map(_.toTyped[ResultEvent]),
+          context.log
+        )
+
+      val agent = GridAgent(
         environmentRefs,
-        simStartTime,
-        TimeUtil.withDefaults
-          .toZonedDateTime(simonaConfig.simona.time.endDateTime),
-        simonaConfig.simona.runtime.participant,
-        simonaConfig.simona.output.participant,
+        simonaConfig,
+        listener,
         resolution,
-        listener.map(_.toTyped[ResultEvent]),
-        context.log
+        simStartTime,
+        gridAgentController,
+        buffer,
+        activationAdapter,
+        SimonaActorNaming.actorName(context.self)
       )
 
-    val agent = GridAgent(
-      environmentRefs,
-      simonaConfig,
-      listener,
-      resolution,
-      simStartTime,
-      gridAgentController,
-      activationAdapter,
-      SimonaActorNaming.actorName(context.self)
-    )
-
-    agent.uninitialized
+      agent.uninitialized
+    }
   }
 }
 
@@ -97,6 +99,7 @@ final case class GridAgent(
     resolution: Long,
     simStartTime: ZonedDateTime,
     gridAgentController: GridAgentController,
+    buffer: StashBuffer[GridAgentMessage],
     activationAdapter: ActorRef[Activation],
     actorName: String
 ) extends DBFSAlgorithm
@@ -213,37 +216,34 @@ final case class GridAgent(
 
   protected def idle(
       gridAgentBaseData: GridAgentBaseData
-  ): Behavior[GridAgentMessage] = Behaviors.withStash(100) { buffer =>
-    Behaviors.receive[GridAgentMessage] {
-      case (_, pm: PMAdapter) =>
-        // needs to be set here to handle if the messages arrive too early
-        // before a transition to GridAgentBehaviour took place
-        buffer.stash(pm)
-        Behaviors.same
+  ): Behavior[GridAgentMessage] = Behaviors.receive[GridAgentMessage] {
+    case (_, pm: PMAdapter) =>
+      // needs to be set here to handle if the messages arrive too early
+      // before a transition to GridAgentBehaviour took place
+      buffer.stash(pm)
+      Behaviors.same
 
-      case (_, ActivationAdapter(activation: Activation)) =>
-        environmentRefs.scheduler ! Completion(
-          activationAdapter,
-          Some(activation.tick)
-        )
-        buffer.unstashAll(simulateGrid(gridAgentBaseData, activation.tick))
+    case (_, ActivationAdapter(activation: Activation)) =>
+      environmentRefs.scheduler ! Completion(
+        activationAdapter,
+        Some(activation.tick)
+      )
+      buffer.unstashAll(simulateGrid(gridAgentBaseData, activation.tick))
 
-      case (ctx, ResultMessageAdapter(StopMessage(_))) =>
-        // shutdown children
-        gridAgentBaseData.gridEnv.nodeToAssetAgents.foreach {
-          case (_, actors) =>
-            actors.foreach(a => ctx.stop(a))
-        }
+    case (ctx, ResultMessageAdapter(StopMessage(_))) =>
+      // shutdown children
+      gridAgentBaseData.gridEnv.nodeToAssetAgents.foreach { case (_, actors) =>
+        actors.foreach(a => ctx.stop(a))
+      }
 
-        // we are done
-        Behaviors.stopped
+      // we are done
+      Behaviors.stopped
 
-      case (_, StopGridAgent) =>
-        Behaviors.stopped
+    case (_, StopGridAgent) =>
+      Behaviors.stopped
 
-      case _ =>
-        Behaviors.unhandled
-    }
+    case _ =>
+      Behaviors.unhandled
   }
 
   private def failFast(

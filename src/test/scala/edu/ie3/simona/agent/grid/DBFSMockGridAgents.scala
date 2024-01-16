@@ -126,7 +126,7 @@ trait DBFSMockGridAgents extends UnitSpec {
         expectedExchangedPowers: Seq[ExchangePower],
         maxDuration: FiniteDuration = 30 seconds
     ): Unit = {
-      val message = gaProbe.expectMessageType[PMAdapter](maxDuration)
+      val message = gaProbe.expectMessageType[GridAgentMessage](maxDuration)
 
       message match {
         case PMAdapter(msg: ProvideGridPowerMessage) =>

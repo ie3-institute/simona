@@ -44,7 +44,7 @@ class PowerFlowSupportSpec
   implicit val log: Logger =
     LoggerFactory.getLogger(PowerFlowSupportSpec.super.getClass)
   val actorRef: ActorRef[GridAgentMessage] =
-    TestProbe[GridAgentMessage]("no sender").ref
+    TestProbe[GridAgentMessage]("noSender").ref
 
   /** Setting voltage at slack node to 110 kV and introducing a load of 1 MW at
     * node 1

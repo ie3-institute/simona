@@ -6,29 +6,31 @@
 
 package edu.ie3.simona.agent.grid
 
-import org.apache.pekko.actor.{
-  Actor,
-  ActorIdentity,
-  ActorRef,
-  ActorSystem,
-  Identify,
-  Props
-}
-import org.apache.pekko.testkit.ImplicitSender
-import org.apache.pekko.util.Timeout
-import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.agent.grid.GridAgentMessage.StringAdapter
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
-import edu.ie3.simona.test.common.{
-  ConfigTestData,
-  TestKitWithShutdown,
-  ThreeWindingTestData
-}
+import edu.ie3.simona.test.common.{ConfigTestData, ThreeWindingTestData}
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
+import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import org.apache.pekko.actor.typed.receptionist.Receptionist.{
+  Listing,
+  Register,
+  Subscribe
+}
+import org.apache.pekko.actor.typed.receptionist.ServiceKey
+import org.apache.pekko.actor.typed.scaladsl.AskPattern.Askable
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
+  TypedActorContextOps,
+  TypedActorRefOps
+}
+import org.apache.pekko.actor.typed.{ActorRef, Scheduler}
+import org.apache.pekko.actor.{ActorRef => classicRef}
+import org.apache.pekko.util.Timeout
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.util.concurrent.TimeUnit
@@ -36,17 +38,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
 class GridAgentSetup3WSpec
-    extends TestKitWithShutdown(
-      ActorSystem(
-        "GridAgentSetupSpec",
-        ConfigFactory
-          .parseString("""
-            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
-            |pekko.loglevel="DEBUG"
-        """.stripMargin)
-      )
-    )
-    with ImplicitSender
+    extends ScalaTestWithActorTestKit
     with AnyWordSpecLike
     with ThreeWindingTestData
     with ConfigTestData
@@ -54,18 +46,27 @@ class GridAgentSetup3WSpec
 
   "The setup of grid agents" must {
     "provide three grid agents on presence of a three winding transformer" in {
-      import org.apache.pekko.pattern._
       implicit val timeout: Timeout = Timeout(1, TimeUnit.SECONDS)
+      implicit val scheduler: Scheduler = system.scheduler
 
       // in order to get an actor system we need a tmp actor that calls the corresponding method
-      Await.ready(
-        system.actorOf(Props(new Actor {
-          override def receive: Receive = { case "setup" =>
+      val serviceKey = ServiceKey[GridAgentMessage]("gridAgent")
+
+      val actor = testKit.spawn(Behaviors.setup[GridAgentMessage] { ctx =>
+        ctx.system.receptionist ! Register(serviceKey, ctx.self)
+
+        Behaviors.receive[GridAgentMessage] {
+          case (ctx, StringAdapter("ping", sender)) =>
+            // replying to ping signal
+            sender ! StringAdapter("pong", ctx.self)
+            Behaviors.same
+
+          case (ctx, StringAdapter("setup", _)) =>
             val environmentRefs = EnvironmentRefs(
-              scheduler = self,
-              runtimeEventListener = self,
-              primaryServiceProxy = self,
-              weather = ActorRef.noSender,
+              scheduler = ctx.self.toClassic,
+              runtimeEventListener = ctx.self.toClassic,
+              primaryServiceProxy = ctx.self.toClassic,
+              weather = classicRef.noSender,
               evDataService = None
             )
 
@@ -84,42 +85,45 @@ class GridAgentSetup3WSpec
               )
             ).buildSubGridToActorRefMap(
               threeWindingTestGrid.getSubGridTopologyGraph,
-              context,
+              ctx.toClassic,
               environmentRefs,
-              Seq.empty[ActorRef]
+              Seq.empty[classicRef]
             )
-            sender() ! "done"
-          }
-        })) ? "setup",
-        Duration(1, TimeUnit.SECONDS)
+            ctx.self ! StringAdapter("done", ctx.self)
+            Behaviors.same
+        }
+      })
+
+      Await.ready(
+        actor.ask[GridAgentMessage](ref => StringAdapter("setup", ref)),
+        Duration(10, TimeUnit.SECONDS)
       )
 
-      val sel = system.actorSelection("user/**/GridAgent_*")
-      sel ! Identify(0)
+      testKit.spawn(Behaviors.setup[Listing] { ctx =>
+        logger.debug("Subscribing to the actors.")
+        ctx.system.receptionist ! Subscribe(serviceKey, ctx.self)
 
-      logger.debug("Waiting 500ms to collect all responses")
-      val responses: Seq[ActorIdentity] =
-        receiveWhile(
-          max = Duration.create(500, "ms"),
-          idle = Duration.create(250, "ms")
-        ) { case msg: ActorIdentity =>
-          msg
+        Behaviors.receiveMessagePartial[Listing] {
+          case serviceKey.Listing(listings) =>
+            logger.debug("All responses received. Evaluating...")
+
+            listings.size should be(3)
+            val regex = """GridAgent_\d*""".r
+            val expectedSenders =
+              Vector("GridAgent_1", "GridAgent_2", "GridAgent_3")
+            val actualSenders = listings
+              .collect { case actorId: ActorRef[GridAgentMessage] =>
+                val actorRefString = actorId.toString
+                regex.findFirstIn(actorRefString)
+              }
+              .flatten
+              .toVector
+
+            actualSenders should be(expectedSenders)
+
+            Behaviors.same
         }
-      logger.debug("All responses received. Evaluating...")
-
-      responses.size should be(3)
-      val regex = """GridAgent_\d*""".r
-      val expectedSenders = Vector("GridAgent_1", "GridAgent_2", "GridAgent_3")
-      val actualSenders = responses
-        .collect { case actorId: ActorIdentity =>
-          val actorRefString = actorId.getActorRef.toString
-          regex.findFirstIn(actorRefString)
-        }
-        .flatten
-        .sorted
-        .toVector
-
-      actualSenders should be(expectedSenders)
+      })
     }
   }
 

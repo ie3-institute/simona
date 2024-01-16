@@ -39,14 +39,15 @@ import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.adapter.{
   ClassicActorContextOps,
   ClassicActorRefOps,
   TypedActorRefOps
 }
 import org.apache.pekko.actor.{
-  ActorContext,
   ActorSystem,
+  ActorContext => classicContext,
   ActorRef => classicRef
 }
 
@@ -68,7 +69,7 @@ class SimonaStandaloneSetup(
 ) extends SimonaSetup {
 
   override def gridAgents(
-      context: ActorContext,
+      context: classicContext,
       environmentRefs: EnvironmentRefs,
       systemParticipantListener: Seq[classicRef]
   ): Iterable[ActorRef[GridAgentMessage]] = {
@@ -143,7 +144,7 @@ class SimonaStandaloneSetup(
   }
 
   override def primaryServiceProxy(
-      context: ActorContext,
+      context: classicContext,
       scheduler: classicRef
   ): classicRef = {
     val simulationStart = TimeUtil.withDefaults.toZonedDateTime(
@@ -165,7 +166,7 @@ class SimonaStandaloneSetup(
   }
 
   override def weatherService(
-      context: ActorContext,
+      context: classicContext,
       scheduler: classicRef
   ): classicRef = {
     val weatherService = context.simonaActorOf(
@@ -188,7 +189,7 @@ class SimonaStandaloneSetup(
   }
 
   override def extSimulations(
-      context: ActorContext,
+      context: classicContext,
       scheduler: classicRef
   ): ExtSimSetupData = {
     val jars = ExtSimLoader.scanInputFolder()
@@ -251,10 +252,10 @@ class SimonaStandaloneSetup(
   }
 
   override def timeAdvancer(
-      context: ActorContext,
+      context: classicContext,
       simulation: classicRef,
-      runtimeEventListener: org.apache.pekko.actor.typed.ActorRef[RuntimeEvent]
-  ): org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming] = {
+      runtimeEventListener: ActorRef[RuntimeEvent]
+  ): ActorRef[TimeAdvancer.Incoming] = {
     val startDateTime = TimeUtil.withDefaults.toZonedDateTime(
       simonaConfig.simona.time.startDateTime
     )
@@ -274,8 +275,8 @@ class SimonaStandaloneSetup(
   }
 
   override def scheduler(
-      context: ActorContext,
-      timeAdvancer: org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming]
+      context: classicContext,
+      timeAdvancer: ActorRef[TimeAdvancer.Incoming]
   ): classicRef =
     context
       .spawn(
@@ -287,8 +288,8 @@ class SimonaStandaloneSetup(
       .toClassic
 
   override def runtimeEventListener(
-      context: ActorContext
-  ): org.apache.pekko.actor.typed.ActorRef[RuntimeEvent] =
+      context: classicContext
+  ): ActorRef[RuntimeEvent] =
     context
       .spawn(
         RuntimeEventListener(
@@ -300,7 +301,7 @@ class SimonaStandaloneSetup(
       )
 
   override def systemParticipantsListener(
-      context: ActorContext
+      context: classicContext
   ): Seq[classicRef] = {
     // append ResultEventListener as well to write raw output files
     ArgsParser
@@ -324,7 +325,7 @@ class SimonaStandaloneSetup(
 
   def buildSubGridToActorRefMap(
       subGridTopologyGraph: SubGridTopologyGraph,
-      context: ActorContext,
+      context: classicContext,
       environmentRefs: EnvironmentRefs,
       systemParticipantListener: Seq[classicRef]
   ): Map[Int, ActorRef[GridAgentMessage]] = {

@@ -7,8 +7,8 @@
 package edu.ie3.simona.sim.setup
 
 import org.apache.pekko.actor.{
-  ActorContext,
   ActorSystem,
+  ActorContext => classicContext,
   ActorRef => classicRef
 }
 import edu.ie3.datamodel.graph.SubGridGate
@@ -18,6 +18,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessage
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.scheduler.TimeAdvancer
 import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
 /** Trait that can be used to setup a customized simona simulation by providing
   * implementations for all setup information required by a
@@ -49,8 +50,8 @@ trait SimonaSetup {
     *   An actor reference to the runtime event listener
     */
   def runtimeEventListener(
-      context: ActorContext
-  ): org.apache.pekko.actor.typed.ActorRef[RuntimeEvent]
+      context: classicContext
+  ): ActorRef[RuntimeEvent]
 
   /** Creates a sequence of system participant event listeners
     *
@@ -60,7 +61,7 @@ trait SimonaSetup {
     *   A sequence of actor references to runtime event listeners
     */
   def systemParticipantsListener(
-      context: ActorContext
+      context: classicContext
   ): Seq[classicRef]
 
   /** Creates a primary service proxy. The proxy is the first instance to ask
@@ -75,7 +76,7 @@ trait SimonaSetup {
     *   An actor reference to the service
     */
   def primaryServiceProxy(
-      context: ActorContext,
+      context: classicContext,
       scheduler: classicRef
   ): classicRef
 
@@ -90,7 +91,7 @@ trait SimonaSetup {
     *   the service
     */
   def weatherService(
-      context: ActorContext,
+      context: classicContext,
       scheduler: classicRef
   ): classicRef
 
@@ -104,7 +105,7 @@ trait SimonaSetup {
     *   External simulations and their init data
     */
   def extSimulations(
-      context: ActorContext,
+      context: classicContext,
       scheduler: classicRef
   ): ExtSimSetupData
 
@@ -120,10 +121,10 @@ trait SimonaSetup {
     *   An actor reference to the time advancer
     */
   def timeAdvancer(
-      context: ActorContext,
+      context: classicContext,
       simulation: classicRef,
-      runtimeEventListener: org.apache.pekko.actor.typed.ActorRef[RuntimeEvent]
-  ): org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming]
+      runtimeEventListener: ActorRef[RuntimeEvent]
+  ): ActorRef[TimeAdvancer.Incoming]
 
   /** Creates a scheduler service
     *
@@ -135,8 +136,8 @@ trait SimonaSetup {
     *   An actor reference to the scheduler
     */
   def scheduler(
-      context: ActorContext,
-      timeAdvancer: org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming]
+      context: classicContext,
+      timeAdvancer: ActorRef[TimeAdvancer.Incoming]
   ): classicRef
 
   /** Creates all the needed grid agents
@@ -152,7 +153,7 @@ trait SimonaSetup {
     *   be used when setting up the agents
     */
   def gridAgents(
-      context: ActorContext,
+      context: classicContext,
       environmentRefs: EnvironmentRefs,
       systemParticipantListener: Seq[classicRef]
   ): Iterable[ActorRef[GridAgentMessage]]
