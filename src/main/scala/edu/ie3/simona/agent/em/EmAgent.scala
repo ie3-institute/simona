@@ -7,14 +7,17 @@
 package edu.ie3.simona.agent.em
 
 import edu.ie3.datamodel.models.input.system.EmInput
-import edu.ie3.datamodel.models.result.system.EmResult
+import edu.ie3.datamodel.models.result.system.{EmResult, FlexOptionsResult}
 import edu.ie3.simona.actor.ActorUtil.stopOnError
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.FlexControlledData
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
+import edu.ie3.simona.event.ResultEvent.{
+  FlexOptionsResultEvent,
+  ParticipantResultEvent
+}
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.em.{EmModelShell, FlexTimeSeries}
 import edu.ie3.simona.ontology.messages.FlexibilityMessage._
@@ -246,6 +249,22 @@ object EmAgent {
             // aggregate flex options and provide to parent
             val (ref, min, max) =
               modelShell.aggregateFlexOptions(allFlexOptions)
+
+            if (constantData.outputConfig.flexResult) {
+              val flexResult = new FlexOptionsResult(
+                flexOptionsCore.activeTick.toDateTime(
+                  constantData.simulationStartDate
+                ),
+                modelShell.uuid,
+                ref.toMegawatts.asMegaWatt,
+                min.toMegawatts.asMegaWatt,
+                max.toMegawatts.asMegaWatt
+              )
+
+              constantData.listener.foreach {
+                _ ! FlexOptionsResultEvent(flexResult)
+              }
+            }
 
             val flexMessage = ProvideMinMaxFlexOptions(
               modelShell.uuid,
