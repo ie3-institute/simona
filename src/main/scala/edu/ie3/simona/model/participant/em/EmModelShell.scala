@@ -9,9 +9,13 @@ package edu.ie3.simona.model.participant.em
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+  IssueFlexControl,
+  IssueNoCtrl,
+  IssuePowerCtrl,
   ProvideFlexOptions,
   ProvideMinMaxFlexOptions
 }
+import squants.Power
 import squants.energy.Power
 
 import java.util.UUID
@@ -119,5 +123,46 @@ object EmModelShell {
     }
 
     EmModelShell(uuid, id, modelStrategy, aggregateFlex)
+  }
+
+  def determineResultingFlexPower(
+      flexOptionsMsg: ProvideFlexOptions,
+      flexCtrl: IssueFlexControl
+  ): Either[String, Power] =
+    flexOptionsMsg match {
+      case flexOptions: ProvideMinMaxFlexOptions =>
+        flexCtrl match {
+          case IssuePowerCtrl(_, setPower) =>
+            // sanity check: setPower is in range of latest flex options
+            checkSetPower(flexOptions, setPower).map { _ =>
+              // override, take setPower
+              setPower
+            }
+
+          case IssueNoCtrl(_) =>
+            // no override, take reference power
+            Right(flexOptions.referencePower)
+        }
+
+      case unknownFlexOpt =>
+        Left(
+          s"Unknown/unfitting flex messages $unknownFlexOpt"
+        )
+    }
+
+  def checkSetPower(
+      flexOptions: ProvideMinMaxFlexOptions,
+      setPower: squants.Power
+  ): Either[String, Unit] = {
+    if (setPower < flexOptions.minPower)
+      Left(
+        s"The set power $setPower for ${flexOptions.modelUuid} must not be lower than the minimum power ${flexOptions.minPower}!"
+      )
+    else if (setPower > flexOptions.maxPower)
+      Left(
+        s"The set power $setPower for ${flexOptions.modelUuid} must not be greater than the maximum power ${flexOptions.maxPower}!"
+      )
+    else
+      Right(())
   }
 }

@@ -28,7 +28,6 @@ import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.Megavars
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
-import squants.Power
 import squants.energy.{Kilowatts, Megawatts}
 
 import java.time.ZonedDateTime
@@ -298,7 +297,7 @@ object EmAgent {
           )
         )
         .flatMap(flexOptions =>
-          determineResultingFlexPower(
+          EmModelShell.determineResultingFlexPower(
             flexOptions,
             flexCtrl
           )
@@ -406,47 +405,6 @@ object EmAgent {
           identity
         )
 
-  }
-
-  protected def determineResultingFlexPower(
-      flexOptionsMsg: ProvideFlexOptions,
-      flexCtrl: IssueFlexControl
-  ): Either[String, Power] =
-    flexOptionsMsg match {
-      case flexOptions: ProvideMinMaxFlexOptions =>
-        flexCtrl match {
-          case IssuePowerCtrl(_, setPower) =>
-            // sanity check: setPower is in range of latest flex options
-            checkSetPower(flexOptions, setPower).map { _ =>
-              // override, take setPower
-              setPower
-            }
-
-          case IssueNoCtrl(_) =>
-            // no override, take reference power
-            Right(flexOptions.referencePower)
-        }
-
-      case unknownFlexOpt =>
-        Left(
-          s"Unknown/unfitting flex messages $unknownFlexOpt"
-        )
-    }
-
-  protected def checkSetPower(
-      flexOptions: ProvideMinMaxFlexOptions,
-      setPower: squants.Power
-  ): Either[String, Unit] = {
-    if (setPower < flexOptions.minPower)
-      Left(
-        s"The set power $setPower for ${flexOptions.modelUuid} must not be lower than the minimum power ${flexOptions.minPower}!"
-      )
-    else if (setPower > flexOptions.maxPower)
-      Left(
-        s"The set power $setPower for ${flexOptions.modelUuid} must not be greater than the maximum power ${flexOptions.maxPower}!"
-      )
-    else
-      Right(())
   }
 
   /** Data that is supposed to stay constant during simulation
