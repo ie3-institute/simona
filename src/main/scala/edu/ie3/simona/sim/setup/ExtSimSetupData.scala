@@ -8,6 +8,7 @@ package edu.ie3.simona.sim.setup
 
 import org.apache.pekko.actor.ActorRef
 import edu.ie3.simona.service.ev.ExtEvDataService
+import edu.ie3.simona.service.primary.{ExtPrimaryDataService, ExtPrimaryServiceWorker}
 
 final case class ExtSimSetupData(
     extSimAdapters: Iterable[ActorRef],
@@ -16,4 +17,7 @@ final case class ExtSimSetupData(
 
   def evDataService: Option[ActorRef] =
     extDataServices.get(classOf[ExtEvDataService])
+
+  def extPrimaryDataService: Option[ActorRef] = extDataServices.get(classOf[ExtPrimaryDataService])
+
 }

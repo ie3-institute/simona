@@ -6,11 +6,7 @@
 
 package edu.ie3.simona.sim.setup
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.{
-  ClassicActorContextOps,
-  ClassicActorRefOps,
-  TypedActorRefOps
-}
+import org.apache.pekko.actor.typed.scaladsl.adapter.{ClassicActorContextOps, ClassicActorRefOps, TypedActorRefOps}
 import org.apache.pekko.actor.{ActorContext, ActorRef, ActorSystem}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
@@ -23,6 +19,8 @@ import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.data.ExtData
 import edu.ie3.simona.api.data.ev.{ExtEvData, ExtEvSimulation}
+import edu.ie3.simona.api.data.primarydata.{ExtPrimaryData, ExtPrimaryDataSimulation}
+import edu.ie3.simona.api.data.results.{ExtResultDataSimulation, ExtResultsData}
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.config.{ArgsParser, RefSystemParser, SimonaConfig}
 import edu.ie3.simona.event.RuntimeEvent
@@ -34,8 +32,11 @@ import edu.ie3.simona.scheduler.{ScheduleLock, Scheduler, TimeAdvancer}
 import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
-import edu.ie3.simona.service.primary.PrimaryServiceProxy
+import edu.ie3.simona.service.primary.ExtPrimaryServiceWorker.InitExtPrimaryData
+import edu.ie3.simona.service.primary.{ExtPrimaryServiceWorker, IntPrimaryServiceProxy, PrimaryServiceProxy}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
+import edu.ie3.simona.service.results.ExtResultDataService
+import edu.ie3.simona.service.results.ExtResultDataService.InitExtResultsData
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.util.ResultFileHierarchy
@@ -137,13 +138,14 @@ class SimonaStandaloneSetup(
 
   override def primaryServiceProxy(
       context: ActorContext,
-      scheduler: ActorRef
+      scheduler: ActorRef,
+      extSimSetupData: ExtSimSetupData
   ): ActorRef = {
     val simulationStart = TimeUtil.withDefaults.toZonedDateTime(
       simonaConfig.simona.time.startDateTime
     )
     val primaryServiceProxy = context.simonaActorOf(
-      PrimaryServiceProxy.props(
+      IntPrimaryServiceProxy.props(
         scheduler,
         InitPrimaryServiceProxyStateData(
           simonaConfig.simona.input.primary,
@@ -226,6 +228,42 @@ class SimonaStandaloneSetup(
               )
 
               (extEvData, (classOf[ExtEvDataService], extEvDataService))
+
+            case (_: ExtPrimaryDataSimulation, dIndex) =>
+              val extPrimaryDataService = context.simonaActorOf(
+                ExtPrimaryServiceWorker.props(scheduler),
+                s"$index-$dIndex"
+              )
+              val extPrimaryData = new ExtPrimaryData(extPrimaryDataService, extSimAdapter)
+
+              extPrimaryDataService ! SimonaService.Create(
+                InitExtPrimaryData(extPrimaryData),
+                ScheduleLock.singleKey(
+                  context,
+                  scheduler.toTyped,
+                  INIT_SIM_TICK
+                )
+              )
+
+              (null, (classOf[ExtResultDataService], extPrimaryDataService))
+
+            case (_: ExtResultDataSimulation, dIndex) =>
+              val extResultDataService = context.simonaActorOf(
+                ExtResultDataService.props(scheduler),
+                s"$index-$dIndex"
+              )
+              val extResultsData = new ExtResultsData(extResultDataService, extSimAdapter)
+
+              extResultDataService ! SimonaService.Create(
+                InitExtResultsData(extResultsData),
+                ScheduleLock.singleKey(
+                  context,
+                  scheduler.toTyped,
+                  INIT_SIM_TICK
+                )
+              )
+
+              (extResultsData, (classOf[ExtResultDataService], extResultDataService))
           }.unzip
 
         extLink.getExtSimulation.setup(

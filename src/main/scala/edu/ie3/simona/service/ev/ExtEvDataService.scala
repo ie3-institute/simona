@@ -14,18 +14,13 @@ import edu.ie3.simona.api.data.ev.ontology._
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
+import edu.ie3.simona.ontology.messages.services.{DataMessage, EvMessage}
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.service.ServiceStateData.{
-  InitializeServiceStateData,
-  ServiceBaseStateData
-}
-import edu.ie3.simona.service.ev.ExtEvDataService.{
-  ExtEvStateData,
-  InitExtEvData
-}
+import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
+import edu.ie3.simona.service.ev.ExtEvDataService.{ExtEvStateData, InitExtEvData}
 import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
 
 import java.util.UUID
@@ -308,7 +303,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
     }
 
   override protected def handleDataResponseMessage(
-      extResponseMsg: EvResponseMessage
+      extResponseMsg: DataMessage
   )(implicit serviceStateData: ExtEvStateData): ExtEvStateData = {
     extResponseMsg match {
       case DepartingEvsResponse(evcs, evModels) =>

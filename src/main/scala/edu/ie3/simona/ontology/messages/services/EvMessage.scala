@@ -16,7 +16,7 @@ import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 
 import java.util.UUID
 
-sealed trait EvMessage
+sealed trait EvMessage extends DataMessage
 
 object EvMessage {
 

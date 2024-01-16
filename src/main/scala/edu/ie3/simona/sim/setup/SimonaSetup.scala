@@ -70,7 +70,8 @@ trait SimonaSetup {
     */
   def primaryServiceProxy(
       context: ActorContext,
-      scheduler: ActorRef
+      scheduler: ActorRef,
+      extSimulationData: ExtSimSetupData
   ): ActorRef
 
   /** Creates a weather service

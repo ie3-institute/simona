@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.ontology.messages
 
+import edu.ie3.datamodel.models.result.ResultEntity
 import org.apache.pekko.actor.typed.ActorRef
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.scheduler.{Scheduler, TimeAdvancer}
@@ -24,4 +25,5 @@ object SchedulerMessage {
       unlockKey: Option[ScheduleKey] = None
   ) extends SchedulerMessage
 
+  final case class ResultForExtCompleteMessage(results: Iterable[ResultEntity]) extends SchedulerMessage
 }

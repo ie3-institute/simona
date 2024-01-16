@@ -6,18 +6,17 @@
 
 package edu.ie3.simona.event
 
-import edu.ie3.datamodel.models.result.NodeResult
-import edu.ie3.datamodel.models.result.connector.{
-  LineResult,
-  SwitchResult,
-  Transformer2WResult
-}
+import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
+import edu.ie3.datamodel.models.result.connector.{LineResult, SwitchResult, Transformer2WResult}
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.datamodel.models.result.thermal.ThermalUnitResult
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.event.listener.ResultEventListener.ResultMessage
 
-sealed trait ResultEvent extends ResultMessage
+
+sealed trait ResultEvent extends ResultMessage {
+  def getResults(): Iterable[ResultEntity]
+}
 
 /** Calculation result events
   */
@@ -31,7 +30,9 @@ object ResultEvent {
     */
   final case class ParticipantResultEvent(
       systemParticipantResult: SystemParticipantResult
-  ) extends ResultEvent
+  ) extends ResultEvent {
+    override def getResults(): Iterable[ResultEntity] = Iterable(systemParticipantResult)
+  }
 
   /** Event, that is triggered every time a thermal model has a new result
     * @param thermalResult
@@ -39,7 +40,9 @@ object ResultEvent {
     */
   final case class ThermalResultEvent(
       thermalResult: ThermalUnitResult
-  ) extends ResultEvent
+  ) extends ResultEvent {
+    override def getResults(): Iterable[ResultEntity] = Iterable(thermalResult)
+  }
 
   /** Event that holds all grid calculation results of a power flow calculation.
     * The usage of a type is necessary here, to avoid passing in other instances
@@ -63,6 +66,16 @@ object ResultEvent {
       lineResults: Iterable[LineResult],
       transformer2wResults: Iterable[Transformer2WResult],
       transformer3wResults: Iterable[PartialTransformer3wResult]
-  ) extends ResultEvent
+  ) extends ResultEvent {
+    override def getResults(): Iterable[ResultEntity] = {
+      var results: Iterable[ResultEntity] = Iterable.empty[ResultEntity]
+      results = results ++ nodeResults
+      results = results ++ switchResults
+      results = results ++ lineResults
+      results = results ++ transformer2wResults
+      results = results ++ transformer3wResults
+      results
+    }
+  }
 
 }
