@@ -112,9 +112,8 @@ class EmAgentIT
             outputConfigOn,
             "PRIORITIZED",
             simulationStartDate,
-            maybeParentEmAgent = None,
+            parent = Left(scheduler.ref),
             maybeRootEmConfig = None,
-            scheduler.ref,
             listener = Iterable(resultListener.ref)
           ),
           "EmAgent"
@@ -400,9 +399,8 @@ class EmAgentIT
             outputConfigOn,
             "PRIORITIZED",
             simulationStartDate,
-            maybeParentEmAgent = None,
+            parent = Left(scheduler.ref),
             maybeRootEmConfig = None,
-            scheduler.ref,
             listener = Iterable(resultListener.ref)
           ),
           "EmAgent1"

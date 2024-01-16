@@ -36,7 +36,6 @@ import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
 
-// TODO move to right package
 class EmAgentSpec
     extends ScalaTestWithActorTestKit
     with AnyWordSpecLike
@@ -52,7 +51,7 @@ class EmAgentSpec
   private val outputConfig = NotifierConfig(
     simulationResultInfo = true,
     powerRequestReply = false,
-    flexResult = false
+    flexResult = false // TODO also test FlexOptionsResult
   )
 
   override protected val modelConfig: EmRuntimeConfig = EmRuntimeConfig(
@@ -78,9 +77,8 @@ class EmAgentSpec
           outputConfig,
           "PRIORITIZED",
           simulationStartDate,
-          maybeParentEmAgent = None,
+          parent = Left(scheduler.ref),
           maybeRootEmConfig = None,
-          scheduler.ref,
           listener = Iterable(resultListener.ref)
         )
       )
@@ -214,9 +212,8 @@ class EmAgentSpec
           outputConfig,
           "PRIORITIZED",
           simulationStartDate,
-          maybeParentEmAgent = None,
+          parent = Left(scheduler.ref),
           maybeRootEmConfig = None,
-          scheduler.ref,
           listener = Iterable(resultListener.ref)
         )
       )
@@ -362,9 +359,8 @@ class EmAgentSpec
           outputConfig,
           "PRIORITIZED",
           simulationStartDate,
-          maybeParentEmAgent = None,
+          parent = Left(scheduler.ref),
           maybeRootEmConfig = None,
-          scheduler.ref,
           listener = Iterable(resultListener.ref)
         )
       )
@@ -511,7 +507,6 @@ class EmAgentSpec
   "An EM-controlled EM agent" should {
     "be initialized correctly and run through some activations" in {
       val resultListener = TestProbe[ResultEvent]("ResultListener")
-      val scheduler = TestProbe[SchedulerMessage]("Scheduler")
 
       val parentEmAgent = TestProbe[FlexResponse]("ParentEmAgent")
 
@@ -522,9 +517,8 @@ class EmAgentSpec
           outputConfig,
           "PRIORITIZED",
           simulationStartDate,
-          maybeParentEmAgent = Some(parentEmAgent.ref),
+          parent = Right(parentEmAgent.ref),
           maybeRootEmConfig = None,
-          scheduler.ref,
           listener = Iterable(resultListener.ref)
         )
       )
@@ -547,7 +541,6 @@ class EmAgentSpec
       emAgent ! ScheduleFlexRequest(evcsInput.getUuid, 0)
 
       // no additional scheduling message, since tick 0 has already been scheduled
-      scheduler.expectNoMessage()
       parentEmAgent.expectNoMessage()
 
       /* TICK 0 */
