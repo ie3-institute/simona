@@ -21,7 +21,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHe
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.hp.HpAgent.neededServices
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
-  FlexStateData,
+  FlexControlledData,
   ParticipantModelBaseStateData
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
@@ -364,7 +364,7 @@ trait HpAgentFundamentals
           ValueStore(resolution),
           ValueStore(resolution),
           stateDataStore,
-          maybeEmAgent.map(FlexStateData(_, self.toTyped[FlexRequest]))
+          maybeEmAgent.map(FlexControlledData(_, self.toTyped[FlexRequest]))
         )
       case unsupported =>
         throw new AgentInitializationException(

@@ -165,7 +165,7 @@ protected trait WecAgentFundamentals
       ValueStore(resolution),
       ValueStore(resolution),
       ValueStore(resolution),
-      maybeEmAgent.map(FlexStateData(_, self.toTyped[FlexRequest]))
+      maybeEmAgent.map(FlexControlledData(_, self.toTyped[FlexRequest]))
     )
   }
 

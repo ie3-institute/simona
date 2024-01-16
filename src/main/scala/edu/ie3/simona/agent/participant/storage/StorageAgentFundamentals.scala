@@ -21,7 +21,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
 }
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
-  FlexStateData,
+  FlexControlledData,
   ParticipantModelBaseStateData
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
@@ -139,7 +139,7 @@ trait StorageAgentFundamentals
       ValueStore(resolution),
       ValueStore(resolution),
       maybeEmAgent.map(
-        FlexStateData(_, self.toTyped[FlexRequest])
+        FlexControlledData(_, self.toTyped[FlexRequest])
       )
     )
   }

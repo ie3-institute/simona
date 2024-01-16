@@ -902,9 +902,10 @@ class GridAgentController(
           .map(_ => "PROPORTIONAL")
           .getOrElse("PRIORITIZED"),
         simulationStartDate,
-        maybeParentEm,
+        maybeParentEm.toRight(
+          environmentRefs.scheduler.toTyped[SchedulerMessage]
+        ),
         rootEmConfig,
-        environmentRefs.scheduler.toTyped[SchedulerMessage],
         listener.map(_.toTyped[ResultEvent])
       ),
       SimonaActorNaming.actorName(classOf[EmAgent.type], emInput.getId)

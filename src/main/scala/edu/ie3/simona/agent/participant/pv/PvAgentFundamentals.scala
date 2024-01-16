@@ -24,7 +24,7 @@ import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.pv.PvAgent.neededServices
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
-  FlexStateData,
+  FlexControlledData,
   ParticipantModelBaseStateData
 }
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
@@ -173,7 +173,7 @@ protected trait PvAgentFundamentals
       ValueStore(resolution),
       ValueStore(resolution),
       ValueStore(resolution),
-      maybeEmAgent.map(FlexStateData(_, self.toTyped[FlexRequest]))
+      maybeEmAgent.map(FlexControlledData(_, self.toTyped[FlexRequest]))
     )
   }
 

@@ -119,7 +119,7 @@ object BaseStateData {
 
     val stateDataStore: ValueStore[MS]
 
-    val flexStateData: Option[FlexStateData]
+    val flexStateData: Option[FlexControlledData]
 
     def isEmManaged: Boolean = flexStateData.nonEmpty
   }
@@ -230,7 +230,7 @@ object BaseStateData {
         Map[ClassicActorRef, _ <: SecondaryData]
       ],
       override val stateDataStore: ValueStore[MS],
-      override val flexStateData: Option[FlexStateData]
+      override val flexStateData: Option[FlexControlledData]
   ) extends ModelBaseStateData[PD, CD, MS, M] {
 
     /** Unique identifier of the simulation model
@@ -243,10 +243,12 @@ object BaseStateData {
     *
     * @param emAgent
     *   The parent EmAgent that is controlling this agent.
+    * @param flexAdapter
+    *   The flex adapter handling [[FlexRequest]] messages
     * @param lastFlexOptions
     *   Last flex options that have been calculated for this agent.
     */
-  final case class FlexStateData(
+  final case class FlexControlledData(
       emAgent: ActorRef[FlexResponse],
       flexAdapter: ActorRef[FlexRequest],
       lastFlexOptions: Option[ProvideFlexOptions] = None

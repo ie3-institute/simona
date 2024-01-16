@@ -20,7 +20,7 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorEvMovementsService
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent.neededServices
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
-  FlexStateData,
+  FlexControlledData,
   ParticipantModelBaseStateData
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
@@ -219,7 +219,7 @@ protected trait EvcsAgentFundamentals
       ValueStore(resolution),
       ValueStore(resolution),
       ValueStore(resolution),
-      maybeEmAgent.map(FlexStateData(_, self.toTyped[FlexRequest]))
+      maybeEmAgent.map(FlexControlledData(_, self.toTyped[FlexRequest]))
     )
   }
 
