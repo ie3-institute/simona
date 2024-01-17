@@ -46,8 +46,8 @@ object Core {
     def tryActivate(newTick: Long): Either[String, ActiveCore]
 
     /** Tries to handle the scheduling of an activation of given actor for given
-      * tick. If the activation for the tick is not valid, an error message is
-      * returned. If, on the other hand, the activation scheduling is sucessful
+      * tick. If scheduling for the tick is not valid, an error message is
+      * returned. If, on the other hand, the activation scheduling is successful
       * and makes a separate scheduling of the current scheduler with its parent
       * necessary, the tick that the scheduler needs to be scheduled for is
       * returned.
