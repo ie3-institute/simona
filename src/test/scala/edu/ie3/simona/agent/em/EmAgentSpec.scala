@@ -10,7 +10,10 @@ import edu.ie3.datamodel.models.result.system.EmResult
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
+import edu.ie3.simona.event.ResultEvent.{
+  FlexOptionsResultEvent,
+  ParticipantResultEvent
+}
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
@@ -46,13 +49,11 @@ class EmAgentSpec
 
   protected implicit val simulationStartDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
-  protected val simulationEndDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-02 02:00:00")
 
   private val outputConfig = NotifierConfig(
     simulationResultInfo = true,
     powerRequestReply = false,
-    flexResult = false // TODO also test FlexOptionsResult
+    flexResult = true // also test FlexOptionsResult if EM-controlled
   )
 
   override protected val modelConfig: EmRuntimeConfig = EmRuntimeConfig(
@@ -568,6 +569,15 @@ class EmAgentSpec
         Kilowatts(-11d),
         Kilowatts(11d)
       )
+
+      resultListener.expectMessageType[FlexOptionsResultEvent] match {
+        case FlexOptionsResultEvent(flexResult) =>
+          flexResult.getInputModel shouldBe emInput.getUuid
+          flexResult.getTime shouldBe simulationStartDate
+          flexResult.getpRef() should equalWithTolerance(0d.asMegaWatt)
+          flexResult.getpMin() should equalWithTolerance((-0.016d).asMegaWatt)
+          flexResult.getpMax() should equalWithTolerance(0.006d.asMegaWatt)
+      }
 
       parentEmAgent.expectMessageType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
