@@ -473,7 +473,7 @@ final case class PvModel private (
 
         val omega1InRad = omega1.toRadians
         val omega2InRad = omega2.toRadians
-        val timeFrame = (omega2 - omega1).toRadians * 12 / Math.PI
+        val timeFrame = (omega2 - omega1).toRadians * 12 / Math.PI // original term: (omega2 - omega1).toRadians * 180 / Math.PI / 15, since a one hour difference equals 15°
 
         val a = ((sin(deltaInRad) * sin(latInRad) * cos(gammaEInRad)
           - sin(deltaInRad) * cos(latInRad) * sin(gammaEInRad) * cos(
