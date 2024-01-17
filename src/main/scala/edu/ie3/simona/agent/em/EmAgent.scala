@@ -189,11 +189,12 @@ object EmAgent {
     case (ctx, Flex(RequestFlexOptions(tick))) =>
       activate(constantData, modelShell, core, tick, ctx)
 
-    case (ctx, Flex(issueCtrl: IssueFlexControl)) =>
+    case (_, Flex(issueCtrl: IssueFlexControl)) =>
       // Since there has been no flex request received since we
       // last received an IssueFlexControl message, the former
       // flexibilities should also be still valid now, and the same
       // result should be valid
+      // FIXME only true if no flexWithNext is set, since we currently do not hand this info up to the parent
 
       sendCompletionCommunication(
         constantData,
