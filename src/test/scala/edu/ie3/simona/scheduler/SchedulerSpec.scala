@@ -387,6 +387,32 @@ class SchedulerSpec
 
   "The Scheduler should fail and stop" when {
 
+    "activated if no activation is scheduled" in {
+      val parent = TestProbe[SchedulerMessage]("parent")
+      val scheduler = spawn(
+        Scheduler(parent.ref)
+      )
+
+      val agent1 = TestProbe[Activation]("agent_1")
+
+      scheduler ! ScheduleActivation(agent1.ref, INIT_SIM_TICK)
+
+      val sa1 = parent.expectMessageType[ScheduleActivation]
+      sa1.tick shouldBe INIT_SIM_TICK
+      val schedulerActivation = sa1.actor
+
+      // TICK -1
+      schedulerActivation ! Activation(INIT_SIM_TICK)
+      agent1.expectActivationAndComplete(scheduler, INIT_SIM_TICK, None)
+      parent.expectMessage(Completion(schedulerActivation, None))
+
+      // No activation scheduled, this should fail now
+      schedulerActivation ! Activation(0)
+
+      // scheduler stopped
+      parent.expectTerminated(scheduler)
+    }
+
     "activated with wrong tick" in {
       val parent = TestProbe[SchedulerMessage]("parent")
       val scheduler = spawn(
