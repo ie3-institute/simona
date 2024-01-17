@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Adapting to simonaAPI 0.3.0 (adapted message protocol)
   - Schedule lock [#651](https://github.com/ie3-institute/simona/issues/651)
   - New scheduling protocol [#650](https://github.com/ie3-institute/simona/issues/650)
+  - Small improvements to the code [#696](https://github.com/ie3-institute/simona/issues/696)
 - Replaced akka with pekko [#641](https://github.com/ie3-institute/simona/issues/641)
 - Use `ThermalGrid` to calculate thermal environment of a heat pump [#315](https://github.com/ie3-institute/simona/issues/315)
 
