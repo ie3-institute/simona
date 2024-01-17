@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.em
 
 import edu.ie3.datamodel.models.input.system.EmInput
 import edu.ie3.datamodel.models.result.system.{EmResult, FlexOptionsResult}
-import edu.ie3.simona.actor.ActorUtil.stopOnError
+import edu.ie3.simona.actor.ActorUtil.ActorEither
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.FlexControlledData
 import edu.ie3.simona.config.SimonaConfig
@@ -149,39 +149,37 @@ object EmAgent {
       inactive(constantData, updatedModelShell, updatedCore)
 
     case (ctx, ScheduleFlexRequest(participant, newTick, scheduleKey)) =>
-      if (core.checkScheduleRequest(newTick)) {
-        val (maybeSchedule, newCore) =
-          core.handleScheduleRequest(participant, newTick)
-
-        maybeSchedule match {
-          case Some(scheduleTick) =>
-            // also potentially schedule with parent if the new earliest tick is
-            // different from the old earliest tick (including if nothing had
-            // been scheduled before)
-            constantData.parentData.fold(
-              schedulerData =>
-                schedulerData.scheduler ! ScheduleActivation(
-                  schedulerData.activationAdapter,
+      core
+        .tryHandleSchedule(participant, newTick)
+        .map { case (maybeSchedule, newCore) =>
+          maybeSchedule match {
+            case Some(scheduleTick) =>
+              // also potentially schedule with parent if the new earliest tick is
+              // different from the old earliest tick (including if nothing had
+              // been scheduled before)
+              constantData.parentData.fold(
+                schedulerData =>
+                  schedulerData.scheduler ! ScheduleActivation(
+                    schedulerData.activationAdapter,
+                    scheduleTick,
+                    scheduleKey
+                  ),
+                _.emAgent ! ScheduleFlexRequest(
+                  modelShell.uuid,
                   scheduleTick,
                   scheduleKey
-                ),
-              _.emAgent ! ScheduleFlexRequest(
-                modelShell.uuid,
-                scheduleTick,
-                scheduleKey
+                )
               )
-            )
-          case None =>
-            // we don't need to escalate to the parent, this means that we can
-            // release the lock (if applicable)
-            scheduleKey.foreach {
-              _.unlock()
-            }
+            case None =>
+              // we don't need to escalate to the parent, this means that we can
+              // release the lock (if applicable)
+              scheduleKey.foreach {
+                _.unlock()
+              }
+          }
+          inactive(constantData, modelShell, newCore)
         }
-        inactive(constantData, modelShell, newCore)
-      } else {
-        stopOnError(ctx, s"Cannot schedule an event at tick $newTick")
-      }
+        .stopOnError(ctx)
 
     case (ctx, EmActivation(tick)) =>
       activate(constantData, modelShell, core, tick, ctx)
@@ -220,24 +218,17 @@ object EmAgent {
       tick: Long,
       ctx: ActorContext[EmMessage]
   ): Behavior[EmMessage] =
-    if (core.checkActivation(tick)) {
-      core
-        .activate()
-        .flatMap(_.takeNewFlexRequests())
-        .map { case (toActivate, flexOptionsCore) =>
-          toActivate.foreach {
-            _ ! RequestFlexOptions(tick)
-          }
-
-          awaitingFlexOptions(constantData, modelShell, flexOptionsCore)
+    core
+      .tryActivate(tick)
+      .flatMap(_.tryTakeNewFlexRequests())
+      .map { case (toActivate, flexOptionsCore) =>
+        toActivate.foreach {
+          _ ! RequestFlexOptions(tick)
         }
-        .fold(
-          stopOnError(ctx, _),
-          identity
-        )
-    } else {
-      stopOnError(ctx, s"Cannot activate with new tick $tick")
-    }
+
+        awaitingFlexOptions(constantData, modelShell, flexOptionsCore)
+      }
+      .stopOnError(ctx)
 
   /** Behavior of an [[EmAgent]] waiting for flex options to be received in
     * order to transition to the next behavior.
@@ -322,10 +313,7 @@ object EmAgent {
 
                 awaitingCompletions(constantData, modelShell, newCore)
               }
-              .fold(
-                stopOnError(ctx, _),
-                identity
-              )
+              .stopOnError(ctx)
         }
 
       } else {
@@ -389,10 +377,7 @@ object EmAgent {
               awaitingCompletions(stateData, modelShell, newCore)
             }
         }
-        .fold(
-          stopOnError(ctx, _),
-          identity
-        )
+        .stopOnError(ctx)
 
   }
 
@@ -406,12 +391,8 @@ object EmAgent {
   ): Behavior[EmMessage] = Behaviors.receivePartial {
     // Completions and results
     case (ctx, completion: FlexCtrlCompletion) =>
-      Either
-        .cond(
-          core.checkCompletion(completion.modelUuid),
-          core.handleCompletion(completion),
-          s"Participant ${completion.modelUuid} is not part of the expected completing participants"
-        )
+      core
+        .tryHandleCompletion(completion)
         .map { updatedCore =>
           updatedCore
             .maybeComplete()
@@ -433,10 +414,7 @@ object EmAgent {
               )
             }
         }
-        .fold(
-          stopOnError(ctx, _),
-          identity
-        )
+        .stopOnError(ctx)
 
   }
 

@@ -73,28 +73,28 @@ object EmDataCore {
         modelToActor = modelToActor.updated(model, actor)
       )
 
-    /** Checks whether an activation of the [[EmAgent]] is valid for given tick.
-      * This method does not change the state of the inactive data core.
+    /** Tries to handle an activation of the EmAgent for given tick. If the
+      * activation for the tick is not valid, an error message is returned. If
+      * successful, an [[AwaitingFlexOptions]] data core is returned with the
+      * active tick set to the earliest tick scheduled.
       *
       * @param newTick
-      *   The tick that the EM agent is to be activated with
+      *   The tick that the scheduler is to be activated with
       * @return
-      *   true if activation with given tick is allowed, false if not
+      *   The changed [[AwaitingFlexOptions]] that should be used for the
+      *   activated EM agent in a [[Right]] if successful, otherwise an error
+      *   message in a [[Left]]
       */
-    def checkActivation(newTick: Long): Boolean =
-      activationQueue.headKeyOption.contains(newTick)
-
-    /** This method should be called when the scheduler is activated. An
-      * [[AwaitingFlexOptions]] data core is returned with the active tick set
-      * to the earliest tick scheduled.
-      *
-      * @return
-      *   The [[AwaitingFlexOptions]] data core that should be used for the
-      *   activated [[EmAgent]]
-      */
-    def activate(): Either[String, AwaitingFlexOptions] =
+    def tryActivate(newTick: Long): Either[String, AwaitingFlexOptions] =
       activationQueue.headKeyOption
         .toRight("Nothing scheduled, cannot activate.")
+        .flatMap { nextScheduledTick =>
+          Either.cond(
+            nextScheduledTick == newTick,
+            nextScheduledTick,
+            s"Cannot activate with new tick $newTick because $nextScheduledTick is the next scheduled tick."
+          )
+        }
         .map { newActiveTick =>
           val updatedQueue = flexWithNext.foldLeft(activationQueue) {
             case (currentQueue, model) =>
@@ -109,22 +109,12 @@ object EmDataCore {
           )
         }
 
-    /** Checks whether scheduling a flex request for a connected agent for given
-      * tick is valid. This method does not change the state of the inactive
-      * data core.
-      *
-      * @param newTick
-      *   The tick that the agent wants to be scheduled for
-      * @return
-      *   true if scheduling the activation is allowed, false if not
-      */
-    def checkScheduleRequest(newTick: Long): Boolean =
-      lastActiveTick.forall(newTick >= _ + 1)
-
-    /** Handles the scheduling a flex request for a connected agent for given
-      * tick. If this flex request scheduling makes a separate scheduling of the
-      * current [[EmAgent]] with its parent necessary, the tick that the EM
-      * agent needs to be scheduled for is returned.
+    /** Tries to handle the scheduling a flex request for a connected agent for
+      * given tick. If scheduling for the tick is not valid, an error message is
+      * returned. If, on the other hand, the flex request scheduling is
+      * successful and makes a separate scheduling of the current [[EmAgent]]
+      * with its parent necessary, the tick that the EM agent needs to be
+      * scheduled for is returned.
       *
       * @param model
       *   The model UUID of the agent to be scheduled
@@ -132,22 +122,28 @@ object EmDataCore {
       *   The tick that the agent is scheduled for
       * @return
       *   A tuple of the optional tick that the current EM agent should be
-      *   scheduled for with its parent, and the updated [[Inactive]] core
+      *   scheduled for with its parent, and the changed [[Inactive]] core in a
+      *   [[Right]] if successful, otherwise an error message in a [[Left]]
       */
-    def handleScheduleRequest(
+    def tryHandleSchedule(
         model: UUID,
         newTick: Long
-    ): (Option[Long], Inactive) = {
-      val oldEarliestTick = activationQueue.headKeyOption
+    ): Either[String, (Option[Long], Inactive)] = Either.cond(
+      lastActiveTick.forall(newTick >= _ + 1), {
+        val oldEarliestTick = activationQueue.headKeyOption
 
-      activationQueue.set(newTick, model)
-      val newEarliestTick = activationQueue.headKeyOption
+        activationQueue.set(newTick, model)
+        val newEarliestTick = activationQueue.headKeyOption
 
-      val maybeScheduleTick =
-        Option.when(newEarliestTick != oldEarliestTick)(newEarliestTick).flatten
+        val maybeScheduleTick =
+          Option
+            .when(newEarliestTick != oldEarliestTick)(newEarliestTick)
+            .flatten
 
-      (maybeScheduleTick, this)
-    }
+        (maybeScheduleTick, this)
+      },
+      s"Cannot schedule a flex request for $model at tick $newTick because the last active tick is $lastActiveTick"
+    )
 
     /** Returns the tick that will be activated next (if applicable) at the
       * current state.
@@ -193,7 +189,7 @@ object EmDataCore {
       *   A tuple of a collection of agents scheduled for the current tick, and
       *   the updated [[AwaitingFlexOptions]] core
       */
-    def takeNewFlexRequests()
+    def tryTakeNewFlexRequests()
         : Either[String, (Iterable[Actor], AwaitingFlexOptions)] = {
       val toActivate = activationQueue.getAndRemoveSet(activeTick)
       val newFlexOptionsCore =
@@ -385,32 +381,28 @@ object EmDataCore {
       activeTick: Long
   ) {
 
-    /** Checks whether completing the flex activation (originally initiated by a
-      * [[FlexRequest]]) for the connected agent with given model UUID and the
-      * currently active tick is valid. This method cannot change the state of
-      * the active scheduler core.
-      *
-      * @param modelUuid
-      *   The model UUID of the connected agent that wants to be complete its
-      *   activation
-      * @return
-      *   true if the completion is allowed, false if not
-      */
-    def checkCompletion(modelUuid: UUID): Boolean =
-      awaitedCompletions.contains(modelUuid)
-
-    /** Handles the completion of some connected agent for the currently active
-      * tick.
+    /** Tries to handle the completion of some connected agent for the currently
+      * active tick. If completion is not valid, an error message is returned.
       *
       * @param completion
       *   The completion message that has been received
       * @return
-      *   The updated [[AwaitingCompletions]] core
+      *   The updated [[AwaitingCompletions]] core in a [[Right]] if successful,
+      *   otherwise an error message in a [[Left]]
       */
-    def handleCompletion(
+    def tryHandleCompletion(
+        completion: FlexCtrlCompletion
+    ): Either[String, AwaitingCompletions] = {
+      Either.cond(
+        awaitedCompletions.contains(completion.modelUuid),
+        handleCompletion(completion),
+        s"Participant ${completion.modelUuid} is not part of the expected completing participants"
+      )
+    }
+
+    private def handleCompletion(
         completion: FlexCtrlCompletion
     ): AwaitingCompletions = {
-
       // mutable queue
       completion.requestAtTick
         .foreach { activationQueue.set(_, completion.modelUuid) }
