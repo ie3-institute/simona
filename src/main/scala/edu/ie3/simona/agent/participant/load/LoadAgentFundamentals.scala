@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.agent.participant.load
 
-import org.apache.pekko.actor.{ActorRef, FSM}
-import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.result.system.{
   LoadResult,
@@ -25,12 +23,6 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FlexControlledData,
   ParticipantModelBaseStateData
-}
-import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
-import edu.ie3.simona.agent.participant.statedata.{
-  DataCollectionStateData,
-  ParticipantStateData
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
@@ -70,6 +62,8 @@ import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.ReactivePower
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
+import org.apache.pekko.actor.{ActorRef, FSM}
 import squants.{Dimensionless, Each, Power}
 
 import java.time.ZonedDateTime
@@ -365,6 +359,14 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       result.p.toMegawatts.asMegaWatt,
       result.q.toMegavars.asMegaVar
     )
+
+  override protected def updateState(
+      tick: Long,
+      modelState: ModelState.ConstantState.type,
+      calcRelevantData: LD,
+      nodalVoltage: squants.Dimensionless,
+      model: LM
+  ): ModelState.ConstantState.type = modelState
 }
 
 object LoadAgentFundamentals {
@@ -427,30 +429,6 @@ object LoadAgentFundamentals {
         ConstantState,
         FixedLoadRelevantData
       )
-
-    /** Update the last known model state with the given external, relevant data
-      *
-      * @param tick
-      *   Tick to update state for
-      * @param modelState
-      *   Last known model state
-      * @param calcRelevantData
-      *   Data, relevant for calculation
-      * @param nodalVoltage
-      *   Current nodal voltage of the agent
-      * @param model
-      *   Model for calculation
-      * @return
-      *   The updated state at given tick under consideration of calculation
-      *   relevant data
-      */
-    override protected def updateState(
-        tick: Long,
-        modelState: ModelState.ConstantState.type,
-        calcRelevantData: FixedLoadRelevantData.type,
-        nodalVoltage: squants.Dimensionless,
-        model: FixedLoadModel
-    ): ModelState.ConstantState.type = modelState
   }
 
   trait ProfileLoadAgentFundamentals
@@ -508,30 +486,6 @@ object LoadAgentFundamentals {
         profileRelevantData
       )
     }
-
-    /** Update the last known model state with the given external, relevant data
-      *
-      * @param tick
-      *   Tick to update state for
-      * @param modelState
-      *   Last known model state
-      * @param calcRelevantData
-      *   Data, relevant for calculation
-      * @param nodalVoltage
-      *   Current nodal voltage of the agent
-      * @param model
-      *   Model for calculation
-      * @return
-      *   The updated state at given tick under consideration of calculation
-      *   relevant data
-      */
-    override protected def updateState(
-        tick: Long,
-        modelState: ModelState.ConstantState.type,
-        calcRelevantData: ProfileRelevantData,
-        nodalVoltage: squants.Dimensionless,
-        model: ProfileLoadModel
-    ): ModelState.ConstantState.type = modelState
   }
 
   trait RandomLoadAgentFundamentals
@@ -589,29 +543,5 @@ object LoadAgentFundamentals {
         profileRelevantData
       )
     }
-
-    /** Update the last known model state with the given external, relevant data
-      *
-      * @param tick
-      *   Tick to update state for
-      * @param modelState
-      *   Last known model state
-      * @param calcRelevantData
-      *   Data, relevant for calculation
-      * @param nodalVoltage
-      *   Current nodal voltage of the agent
-      * @param model
-      *   Model for calculation
-      * @return
-      *   The updated state at given tick under consideration of calculation
-      *   relevant data
-      */
-    override protected def updateState(
-        tick: Long,
-        modelState: ModelState.ConstantState.type,
-        calcRelevantData: RandomRelevantData,
-        nodalVoltage: squants.Dimensionless,
-        model: RandomLoadModel
-    ): ModelState.ConstantState.type = modelState
   }
 }
