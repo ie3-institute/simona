@@ -30,26 +30,20 @@ import edu.ie3.simona.model.participant.{
 }
 import edu.ie3.simona.ontology.messages.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.simona.service.market.StaticMarketSource
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.quantities.interfaces.Currency
 import edu.ie3.util.scala.OperationInterval
 import squants.energy
 import squants.energy.{KilowattHours, Kilowatts}
 import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.{PERCENT, SECOND}
+import tech.units.indriya.unit.Units.PERCENT
 
 import java.time.ZonedDateTime
-import java.time.temporal.ChronoUnit
 import java.util.UUID
-import javax.measure.quantity.{Energy, Power}
-import scala.annotation.tailrec
+import javax.measure.quantity.Power
 import scala.collection.SortedMap
 import scala.collection.immutable.SortedSet
-import scala.util.{Failure, Success}
 
 /** EV charging station model
   *
@@ -169,11 +163,11 @@ final case class EvcsModel(
       )
     case ChargingStrategy.GRID_ORIENTED =>
       throw new NotImplementedError(
-        "Grid oriented strategy currently not active"
+        "Grid oriented strategy currently not implemented"
       )
     case ChargingStrategy.MARKET_ORIENTED =>
       throw new NotImplementedError(
-        "Market oriented strategy currently not active"
+        "Market oriented strategy currently not implemented"
       )
 
   }
@@ -491,142 +485,6 @@ final case class EvcsModel(
     scheduleEntry.chargingPower * squants.time.Seconds(
       scheduleEntry.tickStop - scheduleEntry.tickStart
     )
-
-  /** Calculate the charging costs for a schedule entry. The schedule entry is
-    * defined by its start and end time and the charging power. The energy price
-    * might change within this time window. A recursive function is used to
-    * calculate the total costs from start to end considering price changes.
-    * @param startTime
-    *   the start time of the schedule entry
-    * @param stopTime
-    *   the end time of the schedule entry
-    * @param power
-    *   the charging power for the schedule entry
-    * @param costs
-    *   the costs for the schedule entry, which are summed up while recursion
-    * @return
-    *   the total costs for the schedule entry
-    */
-  @tailrec
-  private def getChargingCostsForScheduleEntry(
-      startTime: ZonedDateTime,
-      stopTime: ZonedDateTime,
-      power: ComparableQuantity[Power],
-      costs: ComparableQuantity[Currency]
-  ): ComparableQuantity[Currency] = {
-
-    // FIXME: This is super hacky! The price table only has entries for 2025!!!
-    val marketTimeStart = startTime.withYear(2025)
-    val marketTimeEnd = stopTime.withYear(2025)
-
-    val nextFullHour =
-      startTime.withMinute(0).withSecond(0).withNano(0).plusHours(1L)
-
-    if (nextFullHour.isBefore(marketTimeEnd)) {
-
-      val updatedCosts = costs.add(
-        Quantities
-          .getQuantity(
-            marketTimeStart.until(nextFullHour, ChronoUnit.SECONDS),
-            SECOND
-          )
-          .multiply(power)
-          .asType(classOf[Energy])
-          .to(KILOWATTHOUR)
-          .multiply(
-            StaticMarketSource
-              .price(marketTimeStart)
-              .map(_.to(EURO_PER_KILOWATTHOUR)) match {
-              case Success(value)     => value
-              case Failure(exception) => throw exception
-            }
-          )
-          .asType(classOf[Currency])
-          .to(EURO)
-      )
-
-      getChargingCostsForScheduleEntry(
-        nextFullHour,
-        marketTimeEnd,
-        power,
-        updatedCosts
-      )
-
-    } else {
-      val duration = Quantities
-        .getQuantity(
-          marketTimeStart.until(marketTimeEnd, ChronoUnit.SECONDS),
-          SECOND
-        )
-      val chargedEnergy =
-        duration.multiply(power).asType(classOf[Energy]).to(KILOWATTHOUR)
-      val marketPrice =
-        StaticMarketSource
-          .price(marketTimeStart)
-          .map(_.to(EURO_PER_KILOWATTHOUR)) match {
-          case Success(value)     => value
-          case Failure(exception) => throw exception
-        }
-      val chargingPrice = chargedEnergy
-        .multiply(marketPrice)
-        .asType(classOf[Currency])
-        .to(EURO)
-      costs.add(chargingPrice)
-    }
-
-  }
-
-  /** Calculate a current price signal to communicate to the evs deciding on a
-    * charging session. A high price could influence evs to charge somewhere
-    * else or not charge at all, dependent on the implementation in the mobility
-    * simulation. The price can be determined using different mechanisms. In a
-    * grid-oriented mechanism with the goal to limit the grid impact, the
-    * knowledge of the currently parked evs and their scheduling and the
-    * predicted node voltages for the future are used. In a market-oriented
-    * mechanism, the price is determined using the energy price prediction. Only
-    * public charging stations can have a dynamic price signal. The price signal
-    * is currently designed to be a value between 0 and 1 to allow comparison
-    * also for different mechanism in combination.
-    *
-    * @param currentTick
-    *   current tick of the request
-    * @param state
-    *   the evcs state data including the current parked evs and scheduling
-    * @return
-    *   the current price signal of the evcs
-    */
-  def calculateCurrentPriceSignalToCommunicateToEvs(
-      currentTick: Long,
-      state: EvcsState
-  ): Option[Double] =
-    // Only EvcsLocationType != Home and Work have prices
-    this.locationType match {
-      case EvcsLocationType.HOME | EvcsLocationType.WORK =>
-        /* only public charging stations have dynamic charging prices */
-        None
-
-      case publicLocationType =>
-        val lengthOfRelevantIntervalInSeconds: Int =
-          if (
-            publicLocationType == EvcsLocationType.CUSTOMER_PARKING || publicLocationType == EvcsLocationType.STREET
-          )
-            7200 // 2 hours
-          else 1800 // 30 minutes
-
-        strategy match {
-          case _ => None
-        }
-    }
-
-  /** Return all ticks included in a schedule
-    * @param schedule
-    *   schedule including schedule entries with start and stop ticks
-    * @return
-    *   all ticks in the schedule
-    */
-  def getAllTicksOfSchedule(
-      schedule: Set[ChargingSchedule.Entry]
-  ): Set[Long] = schedule.flatMap(entry => Seq(entry.tickStart, entry.tickStop))
 
   /** Returns the maximum available charging power for an EV, which depends on
     * ev and charging station limits for AC and DC current

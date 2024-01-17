@@ -29,7 +29,6 @@ import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsState
 }
 import edu.ie3.simona.ontology.messages.services.EvMessage.{
-  CurrentPriceRequest,
   DepartingEvsRequest,
   EvFreeLotsRequest
 }
@@ -90,18 +89,6 @@ class EvcsAgent(
           ]
         ) =>
       handleFreeLotsRequest(tick, modelBaseStateData)
-      stay()
-
-    case Event(
-          CurrentPriceRequest(tick),
-          modelBaseStateData: ParticipantModelBaseStateData[
-            ApparentPower,
-            EvcsRelevantData,
-            EvcsState,
-            EvcsModel
-          ]
-        ) =>
-      handleCurrentPriceRequest(tick, modelBaseStateData)
       stay()
 
     case Event(

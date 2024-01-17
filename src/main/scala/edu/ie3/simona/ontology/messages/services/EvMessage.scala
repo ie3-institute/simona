@@ -60,13 +60,6 @@ object EvMessage {
     */
   final case class EvFreeLotsRequest(tick: Long)
 
-  /** Requests the current charging price
-    *
-    * @param tick
-    *   The latest tick that the data is requested for
-    */
-  final case class CurrentPriceRequest(tick: Long)
-
   /** Requests EV models of departing EVs with given UUIDs
     *
     * @param tick
@@ -97,8 +90,4 @@ object EvMessage {
       evModels: Set[EvModelWrapper]
   ) extends EvResponseMessage
 
-  final case class CurrentPriceResponse(
-      evcs: UUID,
-      currentPrice: Double
-  ) extends EvResponseMessage
 }

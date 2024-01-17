@@ -183,8 +183,6 @@ class ExtEvDataService(override val scheduler: ActorRef)
     ) match {
       case _: RequestEvcsFreeLots =>
         requestFreeLots(tick)
-      case _: RequestCurrentPrices =>
-        requestCurrentPrices(tick)
       case departingEvsRequest: RequestDepartingEvs =>
         requestDepartingEvs(tick, departingEvsRequest.departures)
       case arrivingEvsProvision: ProvideArrivingEvs =>
@@ -215,31 +213,6 @@ class ExtEvDataService(override val scheduler: ActorRef)
       serviceStateData.copy(
         extEvMessage = None,
         freeLots = ReceiveDataMap(freeLots)
-      ),
-      None
-    )
-  }
-
-  private def requestCurrentPrices(tick: Long)(implicit
-      serviceStateData: ExtEvStateData
-  ): (ExtEvStateData, Option[Long]) = {
-    serviceStateData.uuidToActorRef.values.foreach { evcsActor =>
-      evcsActor ! CurrentPriceRequest(tick)
-    }
-
-    val awaitedEvcs =
-      serviceStateData.uuidToActorRef.map { case (evcs, _) =>
-        evcs
-      }.toSet
-
-    // if there are no evcs, we're sending response right away
-    if (awaitedEvcs.isEmpty)
-      serviceStateData.extEvData.queueExtResponseMsg(new ProvideCurrentPrices())
-
-    (
-      serviceStateData.copy(
-        extEvMessage = None,
-        currentPrices = ReceiveDataMap(awaitedEvcs)
       ),
       None
     )
@@ -362,30 +335,6 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
           serviceStateData.copy(
             departingEvResponses = ReceiveDataMap.empty
-          )
-        }
-      case CurrentPriceResponse(evcs, currentPrice) =>
-        val updatedCurrentPrices =
-          serviceStateData.currentPrices.addData(evcs, currentPrice)
-
-        if (updatedCurrentPrices.nonComplete) {
-          // responses are still incomplete
-          serviceStateData.copy(
-            currentPrices = updatedCurrentPrices
-          )
-        } else {
-          // all responses received, forward them to external simulation in a bundle
-          val currentPricesResponse = updatedCurrentPrices.receivedData.map {
-            case (evcs, currentPrice) =>
-              evcs -> java.lang.Double.valueOf(currentPrice)
-          }
-
-          serviceStateData.extEvData.queueExtResponseMsg(
-            new ProvideCurrentPrices(currentPricesResponse.asJava)
-          )
-
-          serviceStateData.copy(
-            currentPrices = ReceiveDataMap.empty
           )
         }
       case FreeLotsResponse(evcs, freeLots) =>
