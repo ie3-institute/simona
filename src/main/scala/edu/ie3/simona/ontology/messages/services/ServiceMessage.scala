@@ -10,6 +10,7 @@ import org.apache.pekko.actor.ActorRef
 
 import java.util.UUID
 import edu.ie3.simona.agent.participant.data.Data
+import edu.ie3.simona.ontology.messages.services
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 
 /** Collections of all messages, that are send to and from the different
@@ -41,6 +42,11 @@ case object ServiceMessage {
   final case class WorkerRegistrationMessage(requestingActor: ActorRef)
       extends ServiceRegistrationMessage
 
+  final case class ExtPrimaryDataServiceRegistrationMessage(
+                                                           modelUuid: UUID,
+                                                           requestingActor: ActorRef
+                                                           ) extends ServiceRegistrationMessage
+
   sealed trait RegistrationResponseMessage extends ServiceMessage
 
   case object RegistrationResponseMessage {
@@ -71,4 +77,17 @@ case object ServiceMessage {
     val nextDataTick: Option[Long]
     val unlockKey: Option[ScheduleKey]
   }
+
+  // -=- Subscriber of extPrimaryData -=-
+  trait ExtSubscriberMessage extends ServiceMessage
+
+  final case class RequestExtSubscriberMessage() extends ExtSubscriberMessage
+
+  final case class ProvideExtSubscriberMessage() extends ExtSubscriberMessage
+
+
+
+
+
+
 }

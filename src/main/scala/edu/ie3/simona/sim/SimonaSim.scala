@@ -19,7 +19,7 @@ import edu.ie3.simona.ontology.messages.services.ResultMessage.ResultResponseMes
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.TimeAdvancer.StartSimMessage
 import edu.ie3.simona.sim.SimMessage.{InitSim, SimulationFailure, SimulationSuccessful, StartSimulation}
-import edu.ie3.simona.sim.SimonaSim.{EmergencyShutdownInitiated, PowerFlowResultMessage, ResultMessage, SimonaSimStateData}
+import edu.ie3.simona.sim.SimonaSim.{EmergencyShutdownInitiated, ResultMessage, SimonaSimStateData}
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
 
 import scala.concurrent.duration.DurationInt
@@ -145,11 +145,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
 
     /* ExtSimulation */
     case ResultMessage(res) =>
-      data.initSimSender ! (
-        res.getResults()
-      )
-
-
+      data.initSimSender ! res.getResults()
 
     case EmergencyShutdownInitiated =>
       logger.debug(

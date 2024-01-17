@@ -238,7 +238,8 @@ class PrimaryServiceProxySpec
   val initStateData: InitPrimaryServiceProxyStateData =
     InitPrimaryServiceProxyStateData(
       validPrimaryConfig,
-      simulationStart
+      simulationStart,
+      None
     )
   val proxyRef: TestActorRef[PrimaryServiceProxy] = TestActorRef(
     new PrimaryServiceProxy(scheduler.ref, initStateData, simulationStart)
@@ -300,7 +301,9 @@ class PrimaryServiceProxySpec
                 timeSeriesToSourceRef,
                 simulationStart,
                 primaryConfig,
-                mappingSource
+                mappingSource,
+                extSubscribers,
+                extPrimaryDataService
               )
             ) =>
           modelToTimeSeries shouldBe Map(
@@ -561,7 +564,9 @@ class PrimaryServiceProxySpec
               timeSeriesToSourceRef,
               simulationStart,
               primaryConfig,
-              mappingSource
+              mappingSource,
+              extSubscribers,
+              extPrimaryDataService
             ) =>
           modelToTimeSeries shouldBe proxyStateData.modelToTimeSeries
           timeSeriesToSourceRef shouldBe Map(

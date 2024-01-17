@@ -110,7 +110,7 @@ object ParticipantStateData {
   ](
       inputModel: InputModelContainer[I],
       modelConfig: C,
-      primaryServiceProxies: Option[Vector[ActorRef]],
+      primaryServiceProxy: ActorRef,
       secondaryDataServices: Option[
         Vector[SecondaryDataService[_ <: SecondaryData]]
       ],
@@ -129,7 +129,7 @@ object ParticipantStateData {
     ](
         inputModel: I,
         modelConfig: C,
-        primaryServiceProxies: Option[Vector[ActorRef]],
+        primaryServiceProxy: ActorRef,
         secondaryDataServices: Option[
           Vector[SecondaryDataService[_ <: SecondaryData]]
         ],
@@ -142,7 +142,7 @@ object ParticipantStateData {
       new ParticipantInitializeStateData[I, C, PD](
         SimpleInputContainer(inputModel),
         modelConfig,
-        primaryServiceProxies,
+        primaryServiceProxy,
         secondaryDataServices,
         simulationStartDate,
         simulationEndDate,
@@ -159,7 +159,7 @@ object ParticipantStateData {
         inputModel: I,
         thermalGrid: ThermalGrid,
         modelConfig: C,
-        primaryServiceProxies: Option[Vector[ActorRef]],
+        primaryServiceProxy: ActorRef,
         secondaryDataServices: Option[
           Vector[SecondaryDataService[_ <: SecondaryData]]
         ],
@@ -172,7 +172,7 @@ object ParticipantStateData {
       new ParticipantInitializeStateData[I, C, PD](
         WithHeatInputContainer(inputModel, thermalGrid),
         modelConfig,
-        primaryServiceProxies,
+        primaryServiceProxy,
         secondaryDataServices,
         simulationStartDate,
         simulationEndDate,

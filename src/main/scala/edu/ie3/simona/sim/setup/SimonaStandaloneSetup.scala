@@ -32,8 +32,8 @@ import edu.ie3.simona.scheduler.{ScheduleLock, Scheduler, TimeAdvancer}
 import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
-import edu.ie3.simona.service.primary.ExtPrimaryServiceWorker.InitExtPrimaryData
-import edu.ie3.simona.service.primary.{ExtPrimaryServiceWorker, IntPrimaryServiceProxy, PrimaryServiceProxy}
+import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
+import edu.ie3.simona.service.primary.{ExtPrimaryDataService, PrimaryServiceProxy}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.results.ExtResultDataService
 import edu.ie3.simona.service.results.ExtResultDataService.InitExtResultsData
@@ -145,11 +145,12 @@ class SimonaStandaloneSetup(
       simonaConfig.simona.time.startDateTime
     )
     val primaryServiceProxy = context.simonaActorOf(
-      IntPrimaryServiceProxy.props(
+      PrimaryServiceProxy.props(
         scheduler,
         InitPrimaryServiceProxyStateData(
           simonaConfig.simona.input.primary,
-          simulationStart
+          simulationStart,
+          extSimSetupData.extPrimaryDataService
         ),
         simulationStart
       )
@@ -231,7 +232,7 @@ class SimonaStandaloneSetup(
 
             case (_: ExtPrimaryDataSimulation, dIndex) =>
               val extPrimaryDataService = context.simonaActorOf(
-                ExtPrimaryServiceWorker.props(scheduler),
+                ExtPrimaryDataService.props(scheduler),
                 s"$index-$dIndex"
               )
               val extPrimaryData = new ExtPrimaryData(extPrimaryDataService, extSimAdapter)

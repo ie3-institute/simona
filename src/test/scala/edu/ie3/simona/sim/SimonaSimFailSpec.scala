@@ -112,7 +112,8 @@ object SimonaSimFailSpec {
 
     override def primaryServiceProxy(
         context: ActorContext,
-        scheduler: ActorRef
+        scheduler: ActorRef,
+        extSimSetupData: ExtSimSetupData
     ): ActorRef =
       TestProbe("primaryService")(actorSystem).ref
 

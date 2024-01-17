@@ -98,7 +98,8 @@ class PrimaryServiceProxySqlIT
         None,
         sqlParams = Some(sqlParams)
       ),
-      simulationStart
+      simulationStart,
+      None
     )
 
     TestActorRef(

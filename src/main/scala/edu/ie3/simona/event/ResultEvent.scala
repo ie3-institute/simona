@@ -73,7 +73,7 @@ object ResultEvent {
       results = results ++ switchResults
       results = results ++ lineResults
       results = results ++ transformer2wResults
-      results = results ++ transformer3wResults
+      // results = results ++ transformer3wResults
       results
     }
   }
