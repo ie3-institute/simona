@@ -13,7 +13,7 @@ import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.FlexResponse
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.{ActorRef => ClassicActorRef}
 

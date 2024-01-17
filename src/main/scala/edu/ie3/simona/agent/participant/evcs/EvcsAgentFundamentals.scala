@@ -44,7 +44,7 @@ import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsRelevantData,
   EvcsState
 }
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexRequest,
   FlexResponse
 }

@@ -14,7 +14,7 @@ import edu.ie3.datamodel.models.input.system.{
   StorageInput
 }
 import edu.ie3.simona.model.participant.em.EmModelStrat.tolerance
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import squants.Power
 import squants.energy.Kilowatts
 

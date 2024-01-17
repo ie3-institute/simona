@@ -41,7 +41,7 @@ import edu.ie3.simona.model.participant.StorageModel.{
   StorageState
 }
 import edu.ie3.simona.model.participant.{FlexChangeIndicator, StorageModel}
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexRequest,
   FlexResponse
 }

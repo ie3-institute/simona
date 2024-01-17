@@ -11,7 +11,7 @@ import edu.ie3.simona.agent.em.FlexCorrespondenceStore.{
   WithTime
 }
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssueFlexControl,
   ProvideFlexOptions
 }

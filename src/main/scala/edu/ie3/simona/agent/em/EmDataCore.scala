@@ -9,7 +9,7 @@ package edu.ie3.simona.agent.em
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import EmAgent.Actor
 import FlexCorrespondenceStore.WithTime
-import edu.ie3.simona.ontology.messages.FlexibilityMessage._
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.util.scala.collection.mutable.PriorityMultiBiSet
 import squants.Power
 

@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant.em
 
 import edu.ie3.datamodel.models.input.AssetInput
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 
 /** Offers method for aggregating flex options from connected agents which will
   * then be provided to a superior EmAgent or sent out as a flex result

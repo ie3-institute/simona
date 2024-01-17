@@ -9,10 +9,8 @@ package edu.ie3.simona.model.participant
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.participant.BMModel.{BMCalcRelevantData, BmState}
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
-  ProvideFlexOptions,
-  ProvideMinMaxFlexOptions
-}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.EnergyPrice
 import squants.energy.Megawatts

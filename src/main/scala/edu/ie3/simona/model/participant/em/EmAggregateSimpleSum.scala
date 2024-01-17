@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant.em
 
 import edu.ie3.datamodel.models.input.AssetInput
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import squants.energy.Kilowatts
 
 // TODO provide test

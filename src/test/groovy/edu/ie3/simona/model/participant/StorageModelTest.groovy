@@ -13,7 +13,7 @@ import edu.ie3.datamodel.models.input.system.StorageInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.system.type.StorageTypeInput
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
-import edu.ie3.simona.ontology.messages.FlexibilityMessage
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.Sq
 import scala.Option
@@ -90,7 +90,7 @@ class StorageModelTest extends Specification {
     )
 
     when:
-    def result = (FlexibilityMessage.ProvideMinMaxFlexOptions) storageModel.determineFlexOptions(data, oldState)
+    def result = (ProvideMinMaxFlexOptions) storageModel.determineFlexOptions(data, oldState)
 
     then:
     Math.abs(result.referencePower().toKilowatts() - pRef) < TOLERANCE
@@ -139,7 +139,7 @@ class StorageModelTest extends Specification {
     )
 
     when:
-    def result = (FlexibilityMessage.ProvideMinMaxFlexOptions) storageModel.determineFlexOptions(data, oldState)
+    def result = (ProvideMinMaxFlexOptions) storageModel.determineFlexOptions(data, oldState)
 
     then:
     Math.abs(result.referencePower().toKilowatts() - pRef) < TOLERANCE

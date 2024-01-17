@@ -8,7 +8,7 @@ package edu.ie3.simona.model.participant.em
 
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.datamodel.models.input.system.PvInput
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import squants.energy.Kilowatts
 
 /** Aggregates flex reference power with the target of reaching 0kW, while

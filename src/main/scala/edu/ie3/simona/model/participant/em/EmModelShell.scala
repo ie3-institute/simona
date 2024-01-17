@@ -8,15 +8,15 @@ package edu.ie3.simona.model.participant.em
 
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
-import edu.ie3.simona.ontology.messages.FlexibilityMessage.{
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssueFlexControl,
   IssueNoCtrl,
   IssuePowerCtrl,
-  ProvideFlexOptions,
-  ProvideMinMaxFlexOptions
+  ProvideFlexOptions
 }
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+
 import squants.Power
-import squants.energy.Power
 
 import java.util.UUID
 
