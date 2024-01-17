@@ -845,14 +845,14 @@ protected trait ParticipantAgentFundamentals[
     flexOptionsMsg match {
       case flexOptions: ProvideMinMaxFlexOptions =>
         flexCtrl match {
-          case IssuePowerCtrl(_, setPower) =>
+          case IssuePowerControl(_, setPower) =>
             // sanity check: setPower is in range of latest flex options
             checkSetPower(flexOptions, setPower)
 
             // override, take setPower
             setPower
 
-          case IssueNoCtrl(_) =>
+          case IssueNoControl(_) =>
             // no override, take reference power
             flexOptions.referencePower
         }

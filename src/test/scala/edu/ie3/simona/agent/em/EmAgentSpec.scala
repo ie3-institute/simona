@@ -126,7 +126,7 @@ class EmAgentSpec
       )
 
       // receive flex control messages
-      pvAgent.expectMessage(IssueNoCtrl(0L))
+      pvAgent.expectMessage(IssueNoControl(0L))
       emAgent ! FlexCtrlCompletion(
         modelUuid = pvInput.getUuid,
         result = ApparentPower(Kilowatts(-5d), Kilovars(-0.5d)),
@@ -135,8 +135,8 @@ class EmAgentSpec
 
       scheduler.expectNoMessage()
 
-      evcsAgent.expectMessageType[IssuePowerCtrl] match {
-        case IssuePowerCtrl(0, setPower) =>
+      evcsAgent.expectMessageType[IssuePowerControl] match {
+        case IssuePowerControl(0, setPower) =>
           (setPower ~= Kilowatts(5.0)) shouldBe true
       }
       emAgent ! FlexCtrlCompletion(
@@ -178,7 +178,7 @@ class EmAgentSpec
       )
 
       // receive flex control messages
-      evcsAgent.expectMessage(IssueNoCtrl(300))
+      evcsAgent.expectMessage(IssueNoControl(300))
 
       pvAgent.expectNoMessage()
 
@@ -261,9 +261,9 @@ class EmAgentSpec
       )
 
       // receive flex control messages
-      pvAgent.expectMessage(IssueNoCtrl(0))
-      evcsAgent.expectMessageType[IssuePowerCtrl] match {
-        case IssuePowerCtrl(0, setPower) =>
+      pvAgent.expectMessage(IssueNoControl(0))
+      evcsAgent.expectMessageType[IssuePowerControl] match {
+        case IssuePowerControl(0, setPower) =>
           (setPower ~= Kilowatts(5.0)) shouldBe true
       }
 
@@ -313,7 +313,7 @@ class EmAgentSpec
       )
 
       // receive flex control messages
-      pvAgent.expectMessage(IssueNoCtrl(300))
+      pvAgent.expectMessage(IssueNoControl(300))
 
       emAgent ! FlexCtrlCompletion(
         pvInput.getUuid,
@@ -321,8 +321,8 @@ class EmAgentSpec
       )
 
       // evcs is now sent control too
-      evcsAgent.expectMessageType[IssuePowerCtrl] match {
-        case IssuePowerCtrl(300, setPower) =>
+      evcsAgent.expectMessageType[IssuePowerControl] match {
+        case IssuePowerControl(300, setPower) =>
           (setPower ~= Kilowatts(3.0)) shouldBe true
       }
 
@@ -408,10 +408,10 @@ class EmAgentSpec
       )
 
       // receive flex control messages
-      pvAgent.expectMessage(IssueNoCtrl(0L))
+      pvAgent.expectMessage(IssueNoControl(0L))
 
-      evcsAgent.expectMessageType[IssuePowerCtrl] match {
-        case IssuePowerCtrl(0L, setPower) =>
+      evcsAgent.expectMessageType[IssuePowerControl] match {
+        case IssuePowerControl(0L, setPower) =>
           (setPower ~= Kilowatts(5.0)) shouldBe true
       }
 
@@ -471,15 +471,15 @@ class EmAgentSpec
       )
 
       // FLEX CONTROL
-      pvAgent.expectMessage(IssueNoCtrl(300))
+      pvAgent.expectMessage(IssueNoControl(300))
 
       emAgent ! FlexCtrlCompletion(
         pvInput.getUuid,
         ApparentPower(Kilowatts(-3d), Kilovars(-0.06d))
       )
 
-      evcsAgent.expectMessageType[IssuePowerCtrl] match {
-        case IssuePowerCtrl(300L, setPower) =>
+      evcsAgent.expectMessageType[IssuePowerControl] match {
+        case IssuePowerControl(300L, setPower) =>
           (setPower ~= Kilowatts(3.0)) shouldBe true
       }
 
@@ -583,10 +583,10 @@ class EmAgentSpec
       }
 
       // issue power control and expect EmAgent to distribute it
-      emAgentFlex ! IssuePowerCtrl(0L, Kilowatts(6d))
+      emAgentFlex ! IssuePowerControl(0L, Kilowatts(6d))
 
       // expect issue power control
-      pvAgent.expectMessage(IssueNoCtrl(0L))
+      pvAgent.expectMessage(IssueNoControl(0L))
 
       emAgent ! FlexCtrlCompletion(
         pvInput.getUuid,
@@ -594,8 +594,8 @@ class EmAgentSpec
         requestAtTick = Some(600)
       )
 
-      evcsAgent.expectMessageType[IssuePowerCtrl] match {
-        case IssuePowerCtrl(0L, setPower) =>
+      evcsAgent.expectMessageType[IssuePowerControl] match {
+        case IssuePowerControl(0L, setPower) =>
           (setPower ~= Kilowatts(11.0)) shouldBe true
       }
 

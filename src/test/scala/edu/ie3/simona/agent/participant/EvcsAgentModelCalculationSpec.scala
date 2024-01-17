@@ -1233,7 +1233,7 @@ class EvcsAgentModelCalculationSpec
 
       emAgent.send(
         evcsAgent,
-        IssueNoCtrl(0)
+        IssueNoControl(0)
       )
 
       // next potential activation at fully charged battery:
@@ -1296,7 +1296,7 @@ class EvcsAgentModelCalculationSpec
         flexResult.getpMax should beEquivalentTo(ev900.unwrap().getSRatedAC)
       }
 
-      emAgent.send(evcsAgent, IssueNoCtrl(900))
+      emAgent.send(evcsAgent, IssueNoControl(900))
 
       // at 4500 ev is departing
       emAgent.expectMsgPF() {
@@ -1412,7 +1412,7 @@ class EvcsAgentModelCalculationSpec
         flexResult.getpMax should beEquivalentTo(ev4500.unwrap().getSRatedAC)
       }
 
-      emAgent.send(evcsAgent, IssueNoCtrl(4500))
+      emAgent.send(evcsAgent, IssueNoControl(4500))
 
       // we currently have an empty battery in ev4500
       // time to charge to minimal soc ~= 1.45454545455h = 5236 ticks (rounded) from now
@@ -1463,7 +1463,7 @@ class EvcsAgentModelCalculationSpec
         flexResult.getpMax should beEquivalentTo(ev4500.unwrap().getSRatedAC)
       }
 
-      emAgent.send(evcsAgent, IssuePowerCtrl(9736, Kilowatts(10.0)))
+      emAgent.send(evcsAgent, IssuePowerControl(9736, Kilowatts(10.0)))
 
       evService.expectNoMessage()
 
@@ -1553,7 +1553,7 @@ class EvcsAgentModelCalculationSpec
         flexResult.getpMax should beEquivalentTo(combinedChargingPower)
       }
 
-      emAgent.send(evcsAgent, IssuePowerCtrl(11700, Kilowatts(16)))
+      emAgent.send(evcsAgent, IssuePowerControl(11700, Kilowatts(16)))
 
       // no departing evs here
       evService.expectNoMessage()
@@ -1627,7 +1627,7 @@ class EvcsAgentModelCalculationSpec
         flexResult.getpMax should beEquivalentTo(combinedChargingPower)
       }
 
-      emAgent.send(evcsAgent, IssuePowerCtrl(18000, Kilowatts(-20)))
+      emAgent.send(evcsAgent, IssuePowerControl(18000, Kilowatts(-20)))
 
       // no departing evs here
       evService.expectNoMessage()
@@ -1712,7 +1712,7 @@ class EvcsAgentModelCalculationSpec
         flexResult.getpMax should beEquivalentTo(combinedChargingPower)
       }
 
-      emAgent.send(evcsAgent, IssuePowerCtrl(23040, Kilowatts(-10)))
+      emAgent.send(evcsAgent, IssuePowerControl(23040, Kilowatts(-10)))
 
       // no departing evs here
       evService.expectNoMessage()
@@ -1789,7 +1789,7 @@ class EvcsAgentModelCalculationSpec
         flexResult.getpMax should beEquivalentTo(combinedChargingPower)
       }
 
-      emAgent.send(evcsAgent, IssuePowerCtrl(25004, Kilowatts(0.0)))
+      emAgent.send(evcsAgent, IssuePowerControl(25004, Kilowatts(0.0)))
 
       // no departing evs here
       evService.expectNoMessage()
@@ -1907,7 +1907,7 @@ class EvcsAgentModelCalculationSpec
         flexResult.getpMax should beEquivalentTo(ev4500.unwrap().getSRatedAC)
       }
 
-      emAgent.send(evcsAgent, IssuePowerCtrl(36000, Kilowatts(4.0)))
+      emAgent.send(evcsAgent, IssuePowerControl(36000, Kilowatts(4.0)))
 
       // ev11700 is now at 16 kWh
       // ev11700: time to charge fully = 16 h = 57600 ticks from now

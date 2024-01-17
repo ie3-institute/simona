@@ -11,21 +11,24 @@ import squants.Power
 
 import java.util.UUID
 
+/** Messages that communicate interval-based flexibility with minimum, reference
+  * and maximum power
+  */
 object MinMaxFlexibilityMessage {
 
-  /** Provides flexibility options of a system participant using reference,
-    * minimum and maximum power. All powers can be negative, signifying a
-    * feed-in
+  /** Message that provides flexibility options using reference, minimum and
+    * maximum power. It is possible that the power values are either all
+    * negative or all positive, meaning that feed-in or load is mandatory.
     *
     * @param modelUuid
-    *   the uuid of the input model that references the system participant
+    *   The UUID of the flex provider asset model
     * @param referencePower
-    *   the active power that the system participant would produce/consume
-    *   normally
+    *   The active power that the flex provider would produce/consume regularly
+    *   at the current tick, i.e. if it was not flex-controlled
     * @param minPower
-    *   the minimum power that the system participant allows
+    *   The minimum power that the flex provider allows at the current tick
     * @param maxPower
-    *   the maximum power that the system participant allows
+    *   the maximum power that the flex provider allows at the current tick
     */
   final case class ProvideMinMaxFlexOptions(
       override val modelUuid: UUID,
@@ -34,11 +37,28 @@ object MinMaxFlexibilityMessage {
       maxPower: Power
   ) extends ProvideFlexOptions {
 
+    /** Checks whether given power fits within the min-max interval and thus
+      * would be a feasible solution
+      * @param power
+      *   The active power to check against the flex options
+      * @return
+      *   Whether the given power is within the min-max interval or not
+      */
     def fits(power: Power): Boolean =
       minPower <= power && power <= maxPower
   }
 
   object ProvideMinMaxFlexOptions {
+
+    /** Creates a [[ProvideMinMaxFlexOptions]] message that does not allow any
+      * flexibility, meaning that min = ref = max power.
+      * @param modelUuid
+      *   The UUID of the flex provider asset model
+      * @param power
+      *   The active power that the flex provider requires
+      * @return
+      *   The corresponding [[ProvideMinMaxFlexOptions]] message
+      */
     def noFlexOption(
         modelUuid: UUID,
         power: Power

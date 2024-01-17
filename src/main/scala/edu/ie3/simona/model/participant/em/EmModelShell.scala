@@ -10,8 +10,8 @@ import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssueFlexControl,
-  IssueNoCtrl,
-  IssuePowerCtrl,
+  IssueNoControl,
+  IssuePowerControl,
   ProvideFlexOptions
 }
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
@@ -132,14 +132,14 @@ object EmModelShell {
     flexOptionsMsg match {
       case flexOptions: ProvideMinMaxFlexOptions =>
         flexCtrl match {
-          case IssuePowerCtrl(_, setPower) =>
+          case IssuePowerControl(_, setPower) =>
             // sanity check: setPower is in range of latest flex options
             checkSetPower(flexOptions, setPower).map { _ =>
               // override, take setPower
               setPower
             }
 
-          case IssueNoCtrl(_) =>
+          case IssueNoControl(_) =>
             // no override, take reference power
             Right(flexOptions.referencePower)
         }

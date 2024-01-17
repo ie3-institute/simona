@@ -355,7 +355,7 @@ class StorageAgentModelCalculationSpec
 
       emAgent.send(
         storageAgent,
-        IssuePowerCtrl(
+        IssuePowerControl(
           0,
           Kilowatts(storageInputQv.getType.getpMax().getValue.doubleValue())
         )
@@ -418,7 +418,7 @@ class StorageAgentModelCalculationSpec
         flexResult.getpMax should beEquivalentTo(storageInputQv.getType.getpMax)
       }
 
-      emAgent.send(storageAgent, IssuePowerCtrl(28800, Kilowatts(9)))
+      emAgent.send(storageAgent, IssuePowerControl(28800, Kilowatts(9)))
 
       // after 8 hours, we're at about half full storage: 95.39296 kWh
       // net power = 9kW * 0.92 = 8.28kW
@@ -454,7 +454,7 @@ class StorageAgentModelCalculationSpec
 
       emAgent.send(
         storageAgent,
-        IssuePowerCtrl(
+        IssuePowerControl(
           36000,
           Kilowatts(
             storageInputQv.getType.getpMax().multiply(-1).getValue.doubleValue
@@ -496,7 +496,7 @@ class StorageAgentModelCalculationSpec
          - expecting trigger revoke
        */
 
-      emAgent.send(storageAgent, IssuePowerCtrl(43200, Kilowatts(12)))
+      emAgent.send(storageAgent, IssuePowerControl(43200, Kilowatts(12)))
 
       // after 2 hours, we're at: 88.10472 kWh
       // net power = 12 * 0.92 = 11.04 kW
@@ -556,7 +556,7 @@ class StorageAgentModelCalculationSpec
         flexResult.getpMax should beEquivalentTo(0d.asKiloWatt)
       }
 
-      emAgent.send(storageAgent, IssuePowerCtrl(79688, Kilowatts(-12)))
+      emAgent.send(storageAgent, IssuePowerControl(79688, Kilowatts(-12)))
 
       // we're full now at 200 kWh
       // net power = -12 * 0.92 = -11.04 kW
@@ -614,7 +614,7 @@ class StorageAgentModelCalculationSpec
         flexResult.getpMax should beEquivalentTo(storageInputQv.getType.getpMax)
       }
 
-      emAgent.send(storageAgent, IssuePowerCtrl(131862, Kilowatts(0d)))
+      emAgent.send(storageAgent, IssuePowerControl(131862, Kilowatts(0d)))
 
       // we're not charging or discharging, no new expected tick
       emAgent.expectMsgPF() {

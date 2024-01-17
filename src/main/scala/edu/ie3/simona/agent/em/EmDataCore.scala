@@ -255,7 +255,7 @@ object EmDataCore {
     ): AwaitingFlexOptions = {
       val updatedStore = ctrlMsgs.foldLeft(correspondences) {
         case (store, (model, power)) =>
-          val ctrlMsg = IssuePowerCtrl(activeTick, power)
+          val ctrlMsg = IssuePowerControl(activeTick, power)
           store.updateFlexControl(model, ctrlMsg, activeTick)
       }
       copy(correspondences = updatedStore)
@@ -285,13 +285,14 @@ object EmDataCore {
           // ... or flex control has been issued for this participant
           // at an earlier tick
           val flexControlCancelled = correspondence.issuedCtrlMsg match {
-            case Some(WithTime(_: IssuePowerCtrl, tick)) if tick < activeTick =>
+            case Some(WithTime(_: IssuePowerControl, tick))
+                if tick < activeTick =>
               true
             case _ => false
           }
 
           Option.when(currentlyRequested || flexControlCancelled)(
-            participant -> IssueNoCtrl(activeTick)
+            participant -> IssueNoControl(activeTick)
           )
         }
         .foldLeft(correspondences) {
