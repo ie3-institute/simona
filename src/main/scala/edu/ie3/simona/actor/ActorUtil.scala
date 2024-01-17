@@ -10,6 +10,12 @@ import org.apache.pekko.actor.typed.Behavior
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 
 object ActorUtil {
+
+  implicit class ActorEither[T](either: Either[String, Behavior[T]]) {
+    def stopOnError(ctx: ActorContext[T]): Behavior[T] =
+      either.fold(ActorUtil.stopOnError(ctx, _), identity)
+  }
+
   def stopOnError[M](
       ctx: ActorContext[M],
       msg: String
