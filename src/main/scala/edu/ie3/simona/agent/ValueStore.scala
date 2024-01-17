@@ -54,16 +54,25 @@ final case class ValueStore[+D](
   def last(): Option[(Long, D)] =
     store.lastOption
 
-  // TODO scaladoc
+  /** Optionally returns the entry for given tick
+    * @param tick
+    *   The tick
+    * @return
+    *   The data for the tick if it exists, otherwise [[None]]
+    */
   def get(tick: Long): Option[D] =
     store.get(tick)
 
-  /** TODO scaladoc
-    * @param requestedTick
+  /** Returns the data associated with a tick, or a default value if no data
+    * exists for the tick.
+    * @param tick
+    *   The tick
     * @return
+    *   the data associated with `tick` if it exists, otherwise the result of
+    *   the `default` function.
     */
-  def getOrElse[D2 >: D](requestedTick: Long, default: => D2): D2 =
-    store.getOrElse(requestedTick, default)
+  def getOrElse[D2 >: D](tick: Long, default: => D2): D2 =
+    store.getOrElse(tick, default)
 
   /** Acquires the stored information within the specified tick window
     *
@@ -77,16 +86,6 @@ final case class ValueStore[+D](
     */
   def get(requestStart: Long, requestEnd: Long): Map[Long, D] =
     store.rangeFrom(requestStart).rangeTo(requestEnd).toMap
-
-  /** Checks, if all needed ticks are available in the given value store
-    *
-    * @param neededTicks
-    *   An Array of needed ticks
-    * @return
-    *   true, if everything is there
-    */
-  def allTicksAvailable(neededTicks: Array[Long]): Boolean =
-    store.keySet.toSeq.containsSlice(neededTicks.toSeq.sorted)
 
   def asMap: Map[Long, D] =
     store.toMap

@@ -228,8 +228,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
         ConstantState.type,
         LM
       ]
-  ): ModelState.ConstantState.type =
-    ConstantState // TODO
+  ): ModelState.ConstantState.type = ConstantState
 
   /** Handle an active power change by flex control.
     * @param tick

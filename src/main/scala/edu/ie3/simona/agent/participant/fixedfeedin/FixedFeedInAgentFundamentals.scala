@@ -206,8 +206,7 @@ protected trait FixedFeedInAgentFundamentals
         ConstantState.type,
         FixedFeedInModel
       ]
-  ): ModelState.ConstantState.type =
-    ConstantState // TODO
+  ): ModelState.ConstantState.type = ConstantState
 
   override protected def createCalcRelevantData(
       baseStateData: ParticipantModelBaseStateData[
