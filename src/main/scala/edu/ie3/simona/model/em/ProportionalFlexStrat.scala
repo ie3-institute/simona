@@ -14,6 +14,9 @@ import squants.energy.Kilowatts
 
 import java.util.UUID
 
+/** Proportionally distributes flex control among connected agents, i.e. all
+  * agents contribute the same share of their offered flex options
+  */
 object ProportionalFlexStrat extends EmModelStrat {
 
   /** Determine the power of controllable devices by proportionally distributing
@@ -22,13 +25,13 @@ object ProportionalFlexStrat extends EmModelStrat {
     * power.
     *
     * @param modelFlexOptions
-    *   The flex options per connected system participant
+    *   The flex options per connected agent
     * @param target
     *   The target power to aim for when utilizing flexibility
     * @return
     *   Power set points for devices, if applicable
     */
-  override def determineDeviceControl(
+  override def determineFlexControl(
       modelFlexOptions: Iterable[
         (_ <: AssetInput, ProvideMinMaxFlexOptions)
       ],
@@ -77,6 +80,7 @@ object ProportionalFlexStrat extends EmModelStrat {
   }
 
   /** Proportionally distributes flexibility to given devices
+    *
     * @param target
     *   The target power to aim for when utilizing flexibility
     * @param totalRef
@@ -127,7 +131,7 @@ object ProportionalFlexStrat extends EmModelStrat {
   }
 
   override def adaptFlexOptions(
-      inputModel: AssetInput,
+      assetInput: AssetInput,
       flexOptions: ProvideMinMaxFlexOptions
   ): ProvideMinMaxFlexOptions =
     flexOptions

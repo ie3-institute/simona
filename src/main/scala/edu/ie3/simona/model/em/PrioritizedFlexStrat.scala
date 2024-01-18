@@ -20,6 +20,12 @@ import squants.energy.Kilowatts
 
 import java.util.UUID
 
+/** Determines flex control for connected agents by adhering to a priority
+  * hierarchy, with some devices not controlled at all.
+  *
+  * @param pvFlex
+  *   Whether PV feed-in can be curtailed or not
+  */
 final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
 
   /** Only heat pumps, battery storages, charging stations and PVs (if enabled)
@@ -44,7 +50,7 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
     * @return
     *   Power set points for devices, if applicable
     */
-  override def determineDeviceControl(
+  override def determineFlexControl(
       flexOptions: Iterable[
         (_ <: AssetInput, ProvideMinMaxFlexOptions)
       ],
@@ -186,10 +192,10 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
 
   // TODO provide test
   override def adaptFlexOptions(
-      inputModel: AssetInput,
+      assetInput: AssetInput,
       flexOptions: ProvideMinMaxFlexOptions
   ): ProvideMinMaxFlexOptions = {
-    if (controllableAssets.contains(inputModel.getClass))
+    if (controllableAssets.contains(assetInput.getClass))
       flexOptions
     else {
       // device is not controllable by this EmAgent

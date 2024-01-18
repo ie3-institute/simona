@@ -84,7 +84,7 @@ final case class EmModelShell(
     }
 
     val setPoints =
-      modelStrategy.determineDeviceControl(uuidToFlexOptions, target)
+      modelStrategy.determineFlexControl(uuidToFlexOptions, target)
 
     setPoints.map { case (model, power) =>
       val flexOptions =

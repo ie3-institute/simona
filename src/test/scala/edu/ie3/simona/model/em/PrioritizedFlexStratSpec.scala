@@ -161,7 +161,7 @@ class PrioritizedFlexStratSpec
           )
 
           val actualResults =
-            strat.determineDeviceControl(
+            strat.determineFlexControl(
               flexOptions,
               Kilowatts(target)
             )
@@ -290,7 +290,7 @@ class PrioritizedFlexStratSpec
           )
 
           val actualResults =
-            strat.determineDeviceControl(
+            strat.determineFlexControl(
               flexOptions,
               Kilowatts(0d)
             )

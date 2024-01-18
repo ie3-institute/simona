@@ -104,7 +104,7 @@ class ProportionalFlexStratSpec
           )
 
           val actualResults = ProportionalFlexStrat
-            .determineDeviceControl(
+            .determineFlexControl(
               Seq(
                 (spi, flexOptions1),
                 (spi, flexOptions2)
