@@ -29,7 +29,7 @@ class ProportionalFlexStratSpec
 
     "determine flex control dependent on flex options" in {
 
-      val spi = mock[AssetInput] // is not used
+      val assetInput = mock[AssetInput] // is not used
 
       val cases = Table(
         (
@@ -106,8 +106,8 @@ class ProportionalFlexStratSpec
           val actualResults = ProportionalFlexStrat
             .determineFlexControl(
               Seq(
-                (spi, flexOptions1),
-                (spi, flexOptions2)
+                (assetInput, flexOptions1),
+                (assetInput, flexOptions2)
               ),
               Kilowatts(target)
             )
@@ -136,7 +136,22 @@ class ProportionalFlexStratSpec
           }
 
       }
+    }
 
+    "adapt flex options correctly" in {
+      val assetInput = mock[AssetInput] // is not used
+
+      val flexOptionsIn = ProvideMinMaxFlexOptions(
+        UUID.randomUUID(),
+        Kilowatts(1),
+        Kilowatts(-1),
+        Kilowatts(2)
+      )
+
+      val flexOptionsOut =
+        ProportionalFlexStrat.adaptFlexOptions(assetInput, flexOptionsIn)
+
+      flexOptionsOut shouldBe flexOptionsIn
     }
   }
 }

@@ -30,24 +30,24 @@ class PrioritizedFlexStratSpec
 
   "The prioritized flex model" should {
 
+    val load = UUID.fromString("0-0-0-0-1")
+    val loadInputModel = mock[LoadInput]
+    when(loadInputModel.getUuid).thenReturn(load)
+
+    val pv = UUID.fromString("0-0-0-0-2")
+    val pvInputModel = mock[PvInput]
+    when(pvInputModel.getUuid).thenReturn(pv)
+
+    val ev = UUID.fromString("0-0-0-0-3")
+    val evcsInputModel = mock[EvcsInput]
+    when(evcsInputModel.getUuid).thenReturn(ev)
+
+    val st = UUID.fromString("0-0-0-0-4")
+    val storageInputModel = mock[StorageInput]
+    when(storageInputModel.getUuid).thenReturn(st)
+
     "determine flex control dependent on flex options" in {
       val strat = PrioritizedFlexStrat(pvFlex = false)
-
-      val load = UUID.randomUUID()
-      val loadInputModel = mock[LoadInput]
-      when(loadInputModel.getUuid).thenReturn(load)
-
-      val pv = UUID.randomUUID()
-      val pvInputModel = mock[PvInput]
-      when(pvInputModel.getUuid).thenReturn(pv)
-
-      val evcs = UUID.randomUUID()
-      val evcsInputModel = mock[EvcsInput]
-      when(evcsInputModel.getUuid).thenReturn(evcs)
-
-      val strg = UUID.randomUUID()
-      val storageInputModel = mock[StorageInput]
-      when(storageInputModel.getUuid).thenReturn(strg)
 
       val cases = Table(
         (
@@ -63,50 +63,50 @@ class PrioritizedFlexStratSpec
         ),
 
         /* excess feed-in */
-        // excess is fully covered by parts of evcs flexibility
-        (0d, 0d, -5d, 2d, -11d, 11d, -2d, 2d, L((evcs, 5d))),
-        // excess is fully covered by maximum evcs flexibility
-        (0d, 0d, -11d, 2d, -11d, 11d, -2d, 2d, L((evcs, 11d))),
-        // excess is fully covered by max evcs and parts of storage flex
-        (0d, 1d, -13d, 2d, -11d, 11d, -2d, 2d, L((evcs, 11d), (strg, 1d))),
-        // excess is fully covered by max evcs and max storage flex
-        (0d, 0d, -14d, 2d, -11d, 11d, -2d, 2d, L((evcs, 11d), (strg, 2d))),
+        // excess is fully covered by parts of ev flexibility
+        (0d, 0d, -5d, 2d, -11d, 11d, -2d, 2d, L((ev, 5d))),
+        // excess is fully covered by maximum ev flexibility
+        (0d, 0d, -11d, 2d, -11d, 11d, -2d, 2d, L((ev, 11d))),
+        // excess is fully covered by max ev and parts of storage flex
+        (0d, 1d, -13d, 2d, -11d, 11d, -2d, 2d, L((ev, 11d), (st, 1d))),
+        // excess is fully covered by max ev and max storage flex
+        (0d, 0d, -14d, 2d, -11d, 11d, -2d, 2d, L((ev, 11d), (st, 2d))),
         // excess is fully covered by max storage flex
-        (0d, 0d, -4d, 2d, 0d, 2d, -2d, 2d, L((strg, 2d))),
-        // excess is partly covered by max evcs and max storage flex, -2kW remains
-        (0d, 0d, -15d, 2d, -11d, 11d, -2d, 2d, L((evcs, 11d), (strg, 2d))),
+        (0d, 0d, -4d, 2d, 0d, 2d, -2d, 2d, L((st, 2d))),
+        // excess is partly covered by max ev and max storage flex, -2kW remains
+        (0d, 0d, -15d, 2d, -11d, 11d, -2d, 2d, L((ev, 11d), (st, 2d))),
         // excess is partly covered by max storage flex, -7kW remains
-        (0d, 0d, -14d, 2d, 0d, 2d, -5d, 5d, L((strg, 5d))),
+        (0d, 0d, -14d, 2d, 0d, 2d, -5d, 5d, L((st, 5d))),
         // excess can't be covered because there is no flexibility
         (0d, 0d, -5d, 2d, 2d, 2d, 0d, 0d, Seq.empty),
 
         /* excess load */
         // excess is fully covered by parts of storage flex
-        (0d, 5d, -1d, 0d, -11d, 11d, -5d, 5d, L((strg, -4d))),
+        (0d, 5d, -1d, 0d, -11d, 11d, -5d, 5d, L((st, -4d))),
         // excess is fully covered by min storage flex
-        (0d, 6d, -1d, 0d, -11d, 11d, -5d, 5d, L((strg, -5d))),
-        // excess is fully covered by min storage and parts of evcs flex, charging power reduced
-        (0d, 5d, -1d, 3d, -11d, 11d, -5d, 5d, L((strg, -5d), (evcs, 1d))),
-        // excess is fully covered by min storage and parts of evcs flex, vehicle-to-home
-        (0d, 5d, -1d, 5d, -11d, 11d, -2d, 2d, L((strg, -2d), (evcs, -2d))),
-        // excess is fully covered by min storage and min evcs flex
-        (0d, 14d, -1d, 5d, -11d, 11d, -2d, 2d, L((strg, -2d), (evcs, -11d))),
-        // excess is fully covered by min evcs flex
-        (0d, 12d, -1d, 2d, -11d, 11d, 0d, 0d, L((evcs, -11d))),
-        // excess is partly covered by min evcs and min storage flex, 1kW remains
-        (0d, 15d, -1d, 2d, -11d, 11d, -2d, 2d, L((strg, -2d), (evcs, -11d))),
-        // excess is partly covered by min evcs flex, 2kW remains
-        (0d, 14d, -1d, 4d, -11d, 11d, 0d, 0d, L((evcs, -11d))),
+        (0d, 6d, -1d, 0d, -11d, 11d, -5d, 5d, L((st, -5d))),
+        // excess is fully covered by min storage and parts of ev flex, charging power reduced
+        (0d, 5d, -1d, 3d, -11d, 11d, -5d, 5d, L((st, -5d), (ev, 1d))),
+        // excess is fully covered by min storage and parts of ev flex, vehicle-to-home
+        (0d, 5d, -1d, 5d, -11d, 11d, -2d, 2d, L((st, -2d), (ev, -2d))),
+        // excess is fully covered by min storage and min ev flex
+        (0d, 14d, -1d, 5d, -11d, 11d, -2d, 2d, L((st, -2d), (ev, -11d))),
+        // excess is fully covered by min ev flex
+        (0d, 12d, -1d, 2d, -11d, 11d, 0d, 0d, L((ev, -11d))),
+        // excess is partly covered by min ev and min storage flex, 1kW remains
+        (0d, 15d, -1d, 2d, -11d, 11d, -2d, 2d, L((st, -2d), (ev, -11d))),
+        // excess is partly covered by min ev flex, 2kW remains
+        (0d, 14d, -1d, 4d, -11d, 11d, 0d, 0d, L((ev, -11d))),
         // excess can't be covered because there is no flexibility
         (0d, 5d, 0d, 2d, 2d, 2d, 0d, 0d, Seq.empty),
 
         /* target unequal to zero */
-        // excess feed-in is fully covered by parts of evcs flexibility
-        (2d, 0d, -5d, 2d, -11d, 11d, -2d, 2d, L((evcs, 7d))),
+        // excess feed-in is fully covered by parts of ev flexibility
+        (2d, 0d, -5d, 2d, -11d, 11d, -2d, 2d, L((ev, 7d))),
         // no excess
         (-3d, 0d, -5d, 2d, -11d, 11d, -2d, 2d, L.empty),
-        // excess is fully covered by min storage and parts of evcs flex, vehicle-to-home
-        (-3d, 5d, -1d, 5d, -11d, 11d, -2d, 2d, L((strg, -2d), (evcs, -5d)))
+        // excess is fully covered by min storage and parts of ev flex, vehicle-to-home
+        (-3d, 5d, -1d, 5d, -11d, 11d, -2d, 2d, L((st, -2d), (ev, -5d)))
       )
 
       forAll(cases) {
@@ -143,7 +143,7 @@ class PrioritizedFlexStratSpec
             (
               evcsInputModel,
               ProvideMinMaxFlexOptions(
-                evcs,
+                ev,
                 Kilowatts(evcsSuggested),
                 Kilowatts(evcsMin),
                 Kilowatts(evcsMax)
@@ -152,7 +152,7 @@ class PrioritizedFlexStratSpec
             (
               storageInputModel,
               ProvideMinMaxFlexOptions(
-                strg,
+                st,
                 Kilowatts(0d),
                 Kilowatts(storageMin),
                 Kilowatts(storageMax)
@@ -186,22 +186,6 @@ class PrioritizedFlexStratSpec
     "determine flex control dependent on flex options with PV flex enabled" in {
       val strat = PrioritizedFlexStrat(pvFlex = true)
 
-      val load = UUID.randomUUID()
-      val loadInputModel = mock[LoadInput]
-      when(loadInputModel.getUuid).thenReturn(load)
-
-      val pv = UUID.randomUUID()
-      val pvInputModel = mock[PvInput]
-      when(pvInputModel.getUuid).thenReturn(pv)
-
-      val ev = UUID.randomUUID()
-      val evcsInputModel = mock[EvcsInput]
-      when(evcsInputModel.getUuid).thenReturn(ev)
-
-      val st = UUID.randomUUID()
-      val storageInputModel = mock[StorageInput]
-      when(storageInputModel.getUuid).thenReturn(st)
-
       val cases = Table(
         (
           "loadPower",
@@ -215,17 +199,17 @@ class PrioritizedFlexStratSpec
         ),
 
         /* excess feed-in */
-        // excess is fully covered by parts of evcs flexibility
+        // excess is fully covered by parts of ev flexibility
         (0d, -5d, 2d, -11d, 11d, -2d, 2d, L((ev, 5d))),
-        // excess is fully covered by maximum evcs flexibility
+        // excess is fully covered by maximum ev flexibility
         (0d, -11d, 2d, -11d, 11d, -2d, 2d, L((ev, 11d))),
-        // excess is fully covered by max evcs and parts of storage flex
+        // excess is fully covered by max ev and parts of storage flex
         (1d, -13d, 2d, -11d, 11d, -2d, 2d, L((ev, 11d), (st, 1d))),
-        // excess is fully covered by max evcs and max storage flex, use pv 1kW flex
+        // excess is fully covered by max ev and max storage flex, use pv 1kW flex
         (0d, -14d, 2d, -11d, 11d, -2d, 2d, L((ev, 11d), (st, 2d), (pv, -13d))),
         // excess is fully covered by max storage flex
         (0d, -4d, 2d, 0d, 2d, -2d, 2d, L((st, 2d))),
-        // excess is partly covered by max evcs and max storage flex, use pv 2kW flex
+        // excess is partly covered by max ev and max storage flex, use pv 2kW flex
         (0d, -15d, 2d, -11d, 11d, -2d, 2d, L((ev, 11d), (st, 2d), (pv, -13d))),
         // excess is partly covered by max storage flex, use 7kW pv flex
         (0d, -14d, 2d, 0d, 2d, -5d, 5d, L((st, 5d), (pv, -7d))),
@@ -309,6 +293,45 @@ class PrioritizedFlexStratSpec
 
             power.toKilowatts should ===(expectedRes +- 1e-6d)
           }
+      }
+    }
+
+    "adapt flex options correctly" in {
+
+      // flex options should be changed if corresponding
+      // agent is not controlled by this strategy
+      val cases = Table(
+        ("pvFlex", "inputModel", "expectedAdaptation"),
+        (false, loadInputModel, true),
+        (false, pvInputModel, true),
+        (false, evcsInputModel, false),
+        (false, storageInputModel, false),
+        (true, loadInputModel, true),
+        (true, pvInputModel, false),
+        (true, evcsInputModel, false),
+        (true, storageInputModel, false)
+      )
+
+      forAll(cases) { case (pvFlex, inputModel, expectedAdaptation) =>
+        val flexOptionsIn = ProvideMinMaxFlexOptions(
+          inputModel.getUuid,
+          Kilowatts(1),
+          Kilowatts(-1),
+          Kilowatts(2)
+        )
+
+        val flexOptionsOut = PrioritizedFlexStrat(pvFlex)
+          .adaptFlexOptions(inputModel, flexOptionsIn)
+
+        if (expectedAdaptation) {
+          flexOptionsOut shouldBe ProvideMinMaxFlexOptions
+            .noFlexOption(
+              inputModel.getUuid,
+              Kilowatts(1)
+            )
+        } else {
+          flexOptionsOut shouldBe flexOptionsIn
+        }
       }
     }
 

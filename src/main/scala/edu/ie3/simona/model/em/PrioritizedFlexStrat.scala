@@ -190,7 +190,6 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
 
   }
 
-  // TODO provide test
   override def adaptFlexOptions(
       assetInput: AssetInput,
       flexOptions: ProvideMinMaxFlexOptions
