@@ -87,14 +87,14 @@ object EmDataCore {
       */
     def tryActivate(newTick: Long): Either[String, AwaitingFlexOptions] =
       activationQueue.headKeyOption
-        .toRight("Nothing scheduled, cannot activate.")
-        .flatMap { nextScheduledTick =>
+        .map { nextScheduledTick =>
           Either.cond(
             newTick <= nextScheduledTick,
             (),
             s"Cannot activate with new tick $newTick because the next scheduled tick $nextScheduledTick needs to be activated first."
           )
         }
+        .getOrElse(Right(()))
         .map { _ =>
           // schedule flex requests for those participants which
           // want to be asked at the next active tick, whatever
@@ -146,7 +146,7 @@ object EmDataCore {
 
         (maybeScheduleTick, this)
       },
-      s"Cannot schedule a flex request for $model at tick $newTick because the last active tick is $lastActiveTick"
+      s"Cannot schedule a flex request for $model at tick $newTick because the last active tick was $lastActiveTick"
     )
 
     def hasFlexWithNext: Boolean = flexWithNext.nonEmpty
