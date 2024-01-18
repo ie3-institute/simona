@@ -149,6 +149,8 @@ object EmDataCore {
       s"Cannot schedule a flex request for $model at tick $newTick because the last active tick is $lastActiveTick"
     )
 
+    def hasFlexWithNext: Boolean = flexWithNext.nonEmpty
+
     /** Returns the tick that will be activated next (if applicable) at the
       * current state.
       */

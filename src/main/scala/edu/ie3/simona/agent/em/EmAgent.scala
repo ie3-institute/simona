@@ -452,11 +452,10 @@ object EmAgent {
           schedulerData.activationAdapter,
           inactiveCore.nextActiveTick
         ),
-      // no activation at next tick (requestAtNextActivation) for speedier execution FIXME
       _.emAgent ! FlexCtrlCompletion(
         modelShell.uuid,
         result,
-        requestAtNextActivation = false,
+        inactiveCore.hasFlexWithNext,
         inactiveCore.nextActiveTick
       )
     )
