@@ -7,10 +7,17 @@
 package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
+import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import squants.energy.Kilowatts
 
-object EmAggregateSelfOpt extends EmAggregateFlex {
+/** Aggregates flex reference power with the target of reaching 0kW, while
+  * optionally excluding positive PV potential from the calculation
+  *
+  * @param pvFlex
+  *   Whether to include positive PV flexibility in reference sum calculation
+  */
+final case class EmAggregateSelfOpt(pvFlex: Boolean) extends EmAggregateFlex {
 
   override def aggregateFlexOptions(
       flexOptions: Iterable[
@@ -29,9 +36,25 @@ object EmAggregateSelfOpt extends EmAggregateFlex {
           )
       }
 
-    // take the closest power possible to zero
-    val aggregateRef = minSum.max(maxSum.min(Kilowatts(0d)))
+    val maxRefSum =
+      if (pvFlex)
+        maxSum
+      else
+        flexOptions.foldLeft(Kilowatts(0d)) {
+          case (
+                maxSumExclPv,
+                (inputModel, ProvideMinMaxFlexOptions(_, _, addMin, addMax))
+              ) =>
+            inputModel match {
+              case _: PvInput =>
+                maxSumExclPv + addMin
+              case _ => maxSumExclPv + addMax
+            }
+        }
 
-    (aggregateRef, minSum, maxSum)
+    // take the closest power possible to zero
+    val refAgg = minSum.max(maxRefSum.min(Kilowatts(0d)))
+
+    (refAgg, minSum, maxSum)
   }
 }

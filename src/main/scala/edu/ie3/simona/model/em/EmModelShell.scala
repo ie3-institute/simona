@@ -116,8 +116,8 @@ object EmModelShell {
     }
 
     val aggregateFlex = modelConfig.aggregateFlex match {
-      case "SELF_OPT_EXCL_PV" => EmAggregateSelfOptExclPv
-      case "SELF_OPT"         => EmAggregateSelfOpt
+      case "SELF_OPT_EXCL_PV" => EmAggregateSelfOpt(false)
+      case "SELF_OPT"         => EmAggregateSelfOpt(true)
       case "SIMPLE_SUM"       => EmAggregateSimpleSum
     }
 
