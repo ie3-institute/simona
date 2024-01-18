@@ -9,16 +9,7 @@ package edu.ie3.simona.agent.grid
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.agent.grid.GridAgentMessage.{
-  ActivationAdapter,
-  PMAdapter,
-  VMAdapter,
-  ValuesAdapter
-}
-import edu.ie3.simona.agent.grid.ReceivedValues.{
-  CreateGridAgent,
-  FinishGridSimulationTrigger
-}
+import edu.ie3.simona.agent.grid.GridAgentMessage._
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.event.listener.ResultEventListener.ResultMessage
 import edu.ie3.simona.model.grid.RefSystem
@@ -133,11 +124,9 @@ class DBFSAlgorithmCenGridSpec
       scheduler
         .expectMessageType[ScheduleActivation] // lock activation scheduled
 
-      centerGridAgent ! ValuesAdapter(
-        CreateGridAgent(
-          gridAgentInitData,
-          key
-        )
+      centerGridAgent ! CreateGridAgent(
+        gridAgentInitData,
+        key
       )
 
       val msg = scheduler.expectMessageType[ScheduleActivation]
@@ -410,7 +399,7 @@ class DBFSAlgorithmCenGridSpec
 
       secondPowerRequestSender12 ! PMAdapter(
         ProvideGridPowerMessage(
-          inferiorGrid11.nodeUuids.map(nodeUuid =>
+          inferiorGrid12.nodeUuids.map(nodeUuid =>
             ExchangePower(
               nodeUuid,
               Megawatts(0.0),
@@ -422,7 +411,7 @@ class DBFSAlgorithmCenGridSpec
 
       secondPowerRequestSender13 ! PMAdapter(
         ProvideGridPowerMessage(
-          inferiorGrid11.nodeUuids.map(nodeUuid =>
+          inferiorGrid13.nodeUuids.map(nodeUuid =>
             ExchangePower(
               nodeUuid,
               Megawatts(0.0),
@@ -450,24 +439,20 @@ class DBFSAlgorithmCenGridSpec
 
       // normally the slack node would send a FinishGridSimulationTrigger to all
       // connected inferior grids, because the slack node is just a mock, we imitate this behavior
-      centerGridAgent ! ValuesAdapter(FinishGridSimulationTrigger(3600))
+      centerGridAgent ! FinishGridSimulationTrigger(3600)
 
       // after a FinishGridSimulationTrigger is send the inferior grids, they themselves will send the
       // Trigger forward the trigger to their connected inferior grids. Therefore the inferior grid
       // agent should receive a FinishGridSimulationTrigger
-      inferiorGrid11.gaProbe.expectMessage(
-        ValuesAdapter(FinishGridSimulationTrigger(3600))
-      )
-      inferiorGrid12.gaProbe.expectMessage(
-        ValuesAdapter(FinishGridSimulationTrigger(3600))
-      )
-      inferiorGrid13.gaProbe.expectMessage(
-        ValuesAdapter(FinishGridSimulationTrigger(3600))
-      )
+      inferiorGrid11.gaProbe.expectMessage(FinishGridSimulationTrigger(3600))
+
+      inferiorGrid12.gaProbe.expectMessage(FinishGridSimulationTrigger(3600))
+
+      inferiorGrid13.gaProbe.expectMessage(FinishGridSimulationTrigger(3600))
 
       // after all grids have received a FinishGridSimulationTrigger, the scheduler should receive a CompletionMessage
-      val ref = scheduler.expectMessageType[Completion].actor
-      scheduler.expectMessage(Completion(ref, Some(3600)))
+      val cm = scheduler.expectMessageType[Completion]
+      cm shouldBe Completion(cm.actor, Some(7200))
 
       val resultMessage = resultListener.expectMessageType[ResultMessage]
       resultMessage match {

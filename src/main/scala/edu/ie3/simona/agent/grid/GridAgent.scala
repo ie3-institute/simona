@@ -13,7 +13,6 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentInitData
 }
 import edu.ie3.simona.agent.grid.GridAgentMessage._
-import edu.ie3.simona.agent.grid.ReceivedValues.CreateGridAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
@@ -107,7 +106,7 @@ final case class GridAgent(
 
   protected def uninitialized: Behavior[GridAgentMessage] =
     Behaviors.receiveMessage[GridAgentMessage] {
-      case ValuesAdapter(CreateGridAgent(gridAgentInitData, unlockKey)) =>
+      case CreateGridAgent(gridAgentInitData, unlockKey) =>
         environmentRefs.scheduler ! ScheduleActivation(
           activationAdapter,
           INIT_SIM_TICK,

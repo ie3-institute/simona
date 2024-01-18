@@ -12,9 +12,6 @@ import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessage.{
   ActivationAdapter,
   VMAdapter,
-  ValuesAdapter
-}
-import edu.ie3.simona.agent.grid.ReceivedValues.{
   CreateGridAgent,
   FinishGridSimulationTrigger
 }
@@ -106,9 +103,7 @@ class DBFSAlgorithmParticipantSpec
       scheduler
         .expectMessageType[ScheduleActivation] // lock activation scheduled
 
-      gridAgentWithParticipants ! ValuesAdapter(
-        CreateGridAgent(gridAgentInitData, key)
-      )
+      gridAgentWithParticipants ! CreateGridAgent(gridAgentInitData, key)
 
       val msg = scheduler.expectMessageType[ScheduleActivation]
       msg shouldBe ScheduleActivation(msg.actor, INIT_SIM_TICK, Some(key))
@@ -247,9 +242,7 @@ class DBFSAlgorithmParticipantSpec
 
       // normally the superior grid agent would send a FinishGridSimulationTrigger to the inferior grid agent after the convergence
       // (here we do it by hand)
-      gridAgentWithParticipants ! ValuesAdapter(
-        FinishGridSimulationTrigger(3600L)
-      )
+      gridAgentWithParticipants ! FinishGridSimulationTrigger(3600L)
 
       val message = scheduler.expectMessageType[Completion]
       message shouldBe Completion(message.actor, Some(7200))

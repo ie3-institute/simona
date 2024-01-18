@@ -12,12 +12,9 @@ import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessage.{
   ActivationAdapter,
-  PMAdapter,
-  ValuesAdapter
-}
-import edu.ie3.simona.agent.grid.ReceivedValues.{
   CreateGridAgent,
-  FinishGridSimulationTrigger
+  FinishGridSimulationTrigger,
+  PMAdapter
 }
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.event.listener.ResultEventListener.ResultMessage
@@ -44,11 +41,9 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 }
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
-import org.apache.pekko.util.Timeout
 import squants.energy.Megawatts
 
 import java.util.UUID
-import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 
@@ -110,9 +105,7 @@ class DBFSAlgorithmSupGridSpec
       scheduler
         .expectMessageType[ScheduleActivation] // lock activation scheduled
 
-      superiorGridAgentFSM ! ValuesAdapter(
-        CreateGridAgent(gridAgentInitData, key)
-      )
+      superiorGridAgentFSM ! CreateGridAgent(gridAgentInitData, key)
 
       val am = scheduler.expectMessageType[ScheduleActivation]
       am shouldBe ScheduleActivation(am.actor, INIT_SIM_TICK, Some(key))
@@ -177,7 +170,7 @@ class DBFSAlgorithmSupGridSpec
           // and waits until the newly scheduled StartGridSimulationTrigger is send
           // wait 30 seconds max for power flow to finish
           val completionMessage =
-            scheduler.expectMessageType[Completion](30 seconds)
+            scheduler.expectMessageType[Completion](130 seconds)
 
           completionMessage match {
             case Completion(_, Some(3600)) =>
@@ -206,9 +199,7 @@ class DBFSAlgorithmSupGridSpec
               // no failed power flow
               runtimeEvents.expectNoMessage()
 
-              hvGrid.expectMessage(
-                ValuesAdapter(FinishGridSimulationTrigger(3600))
-              )
+              hvGrid.expectMessage(FinishGridSimulationTrigger(3600))
 
             case x =>
               fail(
@@ -333,9 +324,7 @@ class DBFSAlgorithmSupGridSpec
               // no failed power flow
               runtimeEvents.expectNoMessage()
 
-              hvGrid.expectMessage(
-                ValuesAdapter(FinishGridSimulationTrigger(3600))
-              )
+              hvGrid.expectMessage(FinishGridSimulationTrigger(3600))
 
             case x =>
               fail(

@@ -9,16 +9,7 @@ package edu.ie3.simona.agent.grid
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.agent.grid.GridAgentMessage.{
-  ActivationAdapter,
-  PMAdapter,
-  VMAdapter,
-  ValuesAdapter
-}
-import edu.ie3.simona.agent.grid.ReceivedValues.{
-  CreateGridAgent,
-  FinishGridSimulationTrigger
-}
+import edu.ie3.simona.agent.grid.GridAgentMessage._
 import edu.ie3.simona.event.listener.ResultEventListener.ResultMessage
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
@@ -116,12 +107,11 @@ class DBFSAlgorithmFailedPowerFlowSpec
         ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
       scheduler.expectMessageType[SchedulerMessage] // lock activation scheduled
 
-      centerGridAgent ! ValuesAdapter(
-        CreateGridAgent(
-          gridAgentInitData,
-          key
-        )
+      centerGridAgent ! CreateGridAgent(
+        gridAgentInitData,
+        key
       )
+
       val message = scheduler.expectMessageType[ScheduleActivation]
       message shouldBe ScheduleActivation(
         message.actor,
@@ -216,14 +206,12 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
       // normally the slack node would send a FinishGridSimulationTrigger to all
       // connected inferior grids, because the slack node is just a mock, we imitate this behavior
-      centerGridAgent ! ValuesAdapter(FinishGridSimulationTrigger(3600))
+      centerGridAgent ! FinishGridSimulationTrigger(3600)
 
       // after a FinishGridSimulationTrigger is send to the inferior grids, they themselves will
       // forward the trigger to their connected inferior grids. Therefore the inferior grid agent
       // should receive a FinishGridSimulationTrigger
-      inferiorGridAgent.gaProbe.expectMessage(
-        ValuesAdapter(FinishGridSimulationTrigger(3600))
-      )
+      inferiorGridAgent.gaProbe.expectMessage(FinishGridSimulationTrigger(3600))
 
       // after all grids have received a FinishGridSimulationTrigger, the scheduler should receive a CompletionMessage
       val message = scheduler.expectMessageType[Completion]

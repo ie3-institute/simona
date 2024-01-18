@@ -13,8 +13,7 @@ import edu.ie3.datamodel.models.input.container.{GridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentMessage.ValuesAdapter
-import edu.ie3.simona.agent.grid.ReceivedValues.CreateGridAgent
+import edu.ie3.simona.agent.grid.GridAgentMessage.CreateGridAgent
 import edu.ie3.simona.agent.grid.{GridAgent, GridAgentMessage}
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.data.ExtData
@@ -39,7 +38,6 @@ import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.adapter.{
   ClassicActorContextOps,
   ClassicActorRefOps,
@@ -137,7 +135,7 @@ class SimonaStandaloneSetup(
           thermalGrids
         )
 
-        currentActorRef ! ValuesAdapter(CreateGridAgent(gridAgentInitData, key))
+        currentActorRef ! CreateGridAgent(gridAgentInitData, key)
 
         currentActorRef
       }
