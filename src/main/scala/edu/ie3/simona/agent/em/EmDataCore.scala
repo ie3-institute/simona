@@ -90,22 +90,26 @@ object EmDataCore {
         .toRight("Nothing scheduled, cannot activate.")
         .flatMap { nextScheduledTick =>
           Either.cond(
-            nextScheduledTick == newTick,
-            nextScheduledTick,
-            s"Cannot activate with new tick $newTick because $nextScheduledTick is the next scheduled tick."
+            newTick <= nextScheduledTick,
+            (),
+            s"Cannot activate with new tick $newTick because the next scheduled tick $nextScheduledTick needs to be activated first."
           )
         }
-        .map { newActiveTick =>
+        .map { _ =>
+          // schedule flex requests for those participants which
+          // want to be asked at the next active tick, whatever
+          // that tick is going to be
           val updatedQueue = flexWithNext.foldLeft(activationQueue) {
             case (currentQueue, model) =>
-              currentQueue.set(newActiveTick, model)
+              currentQueue.set(newTick, model)
               currentQueue
           }
+
           AwaitingFlexOptions(
             modelToActor,
             updatedQueue,
             correspondences,
-            activeTick = newActiveTick
+            activeTick = newTick
           )
         }
 

@@ -127,7 +127,7 @@ class EmAgentSpec
       )
 
       // receive flex control messages
-      pvAgent.expectMessage(IssueNoControl(0L))
+      pvAgent.expectMessage(IssueNoControl(0))
       emAgent ! FlexCtrlCompletion(
         modelUuid = pvInput.getUuid,
         result = ApparentPower(Kilowatts(-5d), Kilovars(-0.5d)),
@@ -168,7 +168,7 @@ class EmAgentSpec
       // thus 1 does not get activated
       pvAgent.expectNoMessage()
 
-      evcsAgent.expectMessage(RequestFlexOptions(300L))
+      evcsAgent.expectMessage(RequestFlexOptions(300))
 
       // send flex options again, ev is fully charged
       emAgent ! ProvideMinMaxFlexOptions(
@@ -339,7 +339,7 @@ class EmAgentSpec
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe 300L.toDateTime(simulationStartDate)
+          emResult.getTime shouldBe 300.toDateTime(simulationStartDate)
           emResult.getP should equalWithTolerance(0d.asMegaWatt)
           emResult.getQ should equalWithTolerance(0d.asMegaVar)
       }
@@ -409,10 +409,10 @@ class EmAgentSpec
       )
 
       // receive flex control messages
-      pvAgent.expectMessage(IssueNoControl(0L))
+      pvAgent.expectMessage(IssueNoControl(0))
 
       evcsAgent.expectMessageType[IssuePowerControl] match {
-        case IssuePowerControl(0L, setPower) =>
+        case IssuePowerControl(0, setPower) =>
           (setPower ~= Kilowatts(5.0)) shouldBe true
       }
 
@@ -480,7 +480,7 @@ class EmAgentSpec
       )
 
       evcsAgent.expectMessageType[IssuePowerControl] match {
-        case IssuePowerControl(300L, setPower) =>
+        case IssuePowerControl(300, setPower) =>
           (setPower ~= Kilowatts(3.0)) shouldBe true
       }
 
@@ -495,7 +495,7 @@ class EmAgentSpec
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe 300L.toDateTime(simulationStartDate)
+          emResult.getTime shouldBe 300.toDateTime(simulationStartDate)
           emResult.getP should equalWithTolerance(0d.asMegaWatt)
           emResult.getQ should equalWithTolerance(0d.asMegaVar)
       }
@@ -573,7 +573,7 @@ class EmAgentSpec
       resultListener.expectMessageType[FlexOptionsResultEvent] match {
         case FlexOptionsResultEvent(flexResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
-          flexResult.getTime shouldBe simulationStartDate
+          flexResult.getTime shouldBe 0.toDateTime(simulationStartDate)
           flexResult.getpRef() should equalWithTolerance(0d.asMegaWatt)
           flexResult.getpMin() should equalWithTolerance((-0.016d).asMegaWatt)
           flexResult.getpMax() should equalWithTolerance(0.006d.asMegaWatt)
@@ -593,10 +593,11 @@ class EmAgentSpec
       }
 
       // issue power control and expect EmAgent to distribute it
-      emAgentFlex ! IssuePowerControl(0L, Kilowatts(6d))
+      // we want max power = 6 kW
+      emAgentFlex ! IssuePowerControl(0, Kilowatts(6d))
 
       // expect issue power control
-      pvAgent.expectMessage(IssueNoControl(0L))
+      pvAgent.expectMessage(IssueNoControl(0))
 
       emAgent ! FlexCtrlCompletion(
         pvInput.getUuid,
@@ -605,7 +606,7 @@ class EmAgentSpec
       )
 
       evcsAgent.expectMessageType[IssuePowerControl] match {
-        case IssuePowerControl(0L, setPower) =>
+        case IssuePowerControl(0, setPower) =>
           (setPower ~= Kilowatts(11.0)) shouldBe true
       }
 
@@ -614,14 +615,14 @@ class EmAgentSpec
       emAgent ! FlexCtrlCompletion(
         evcsInput.getUuid,
         ApparentPower(Kilowatts(11), Kilovars(1.1)),
-        requestAtTick = Some(300L)
+        requestAtTick = Some(300)
       )
 
       // expect correct results
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(emResult: EmResult) =>
           emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe simulationStartDate
+          emResult.getTime shouldBe 0.toDateTime(simulationStartDate)
           emResult.getP should equalWithTolerance(0.006d.asMegaWatt)
           emResult.getQ should equalWithTolerance(0.0006d.asMegaVar)
       }
@@ -637,7 +638,54 @@ class EmAgentSpec
           (result.p ~= Kilowatts(6)) shouldBe true
           (result.q ~= Kilovars(0.6)) shouldBe true
           requestAtNextActivation shouldBe false
-          requestAtTick shouldBe Some(300L)
+          requestAtTick shouldBe Some(300)
+      }
+
+      /* TICK 150 */
+      // The mock parent EM now acts as if the situation changed before tick 300,
+      // so that the flex control changes before new flex option calculations are due
+
+      // no control means reference power of the latest flex options = 0 kW
+      emAgentFlex ! IssueNoControl(150)
+
+      // We already sent NoControl at last tick, so we're still at -5 kW
+      pvAgent.expectNoMessage()
+
+      // We need 5 kW to compensate PV feed-in
+      evcsAgent.expectMessageType[IssuePowerControl] match {
+        case IssuePowerControl(150, setPower) =>
+          (setPower ~= Kilowatts(5.0)) shouldBe true
+      }
+
+      parentEmAgent.expectNoMessage()
+
+      emAgent ! FlexCtrlCompletion(
+        evcsInput.getUuid,
+        ApparentPower(Kilowatts(5.0), Kilovars(0.5)),
+        requestAtTick = Some(700)
+      )
+
+      // expect correct results
+      resultListener.expectMessageType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(emResult: EmResult) =>
+          emResult.getInputModel shouldBe emInput.getUuid
+          emResult.getTime shouldBe 150.toDateTime(simulationStartDate)
+          emResult.getP should equalWithTolerance(0d.asMegaWatt)
+          emResult.getQ should equalWithTolerance(0d.asMegaVar)
+      }
+
+      parentEmAgent.expectMessageType[FlexCtrlCompletion] match {
+        case FlexCtrlCompletion(
+              modelUuid,
+              result,
+              requestAtNextActivation,
+              requestAtTick
+            ) =>
+          modelUuid shouldBe emInput.getUuid
+          (result.p ~= Kilowatts(0)) shouldBe true
+          (result.q ~= Kilovars(0)) shouldBe true
+          requestAtNextActivation shouldBe false
+          requestAtTick shouldBe Some(600)
       }
 
     }
