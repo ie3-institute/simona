@@ -301,7 +301,7 @@ final case class PvModel private (
     * @return
     *   air mass
     */
-  def calcAirMass(thetaZ: Angle): Double = {
+  def  calcAirMass(thetaZ: Angle): Double = {
     val thetaZInRad = thetaZ.toRadians
 
     // radius of the earth in kilometers
@@ -399,7 +399,7 @@ final case class PvModel private (
     *   omega1 and omega encapsulated in an Option, if applicable. None
     *   otherwise
     */
-  private def calculateBeamOmegas(
+  def calculateBeamOmegas(
       thetaG: Angle,
       omega: Angle,
       omegaSS: Angle,
@@ -460,7 +460,7 @@ final case class PvModel private (
     * @return
     *   the beam radiation on the sloped surface
     */
-  private def calcBeamRadiationOnSlopedSurface(
+  def calcBeamRadiationOnSlopedSurface(
       eBeamH: Irradiation,
       omegas: Option[(Angle, Angle)],
       delta: Angle,
@@ -529,7 +529,7 @@ final case class PvModel private (
     * @return
     *   the diffuse radiation on the sloped surface
     */
-  private def calcDiffuseRadiationOnSlopedSurfacePerez(
+  def calcDiffuseRadiationOnSlopedSurfacePerez(
       eDifH: Irradiation,
       eBeamH: Irradiation,
       airMass: Double,

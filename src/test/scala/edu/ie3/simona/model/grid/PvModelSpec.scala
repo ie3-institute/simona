@@ -348,7 +348,7 @@ class PvModelSpec extends UnitSpec {
         val deltaRad = math.toRadians(deltaDeg) // Declination Angle delta of the sun at solar noon
         val latitudeRad = math.toRadians(latitudeDeg) // Latitude in Radian
         val omegaRad = math.toRadians(omegaDeg) // Hour Angle
-        val gammaERad = math.toRadians(gammaEDeg) // Slope Angle of the surface
+        val gammaERad = math.toRadians(gammaEDeg) // Slope (Inclination) Angle of the surface
         val alphaERad = math.toRadians(alphaEDeg) // Surface azimuth
 
         // When
@@ -372,11 +372,115 @@ class PvModelSpec extends UnitSpec {
     )
     "deliver equal angles of incidence for special case" in {
       /* Iqbal Figure 1.6.2 - the angle of incidence of a surface sloped by angle beta (gammaE) at latitude phi
-       should be same as the angle of incidence of an unsloped (horizontal) surface (where the angle of incidence is
+       should be same as the angle of incidence of an "unsloped" (horizontal) surface (where the angle of incidence is
        equal to the zenith angle of the sun) positioned at latitude phi - beta. Note that this is only true if the surface
        is facing directly north or south.
       */
+      forAll(testCases11) { (latitudeDeg, deltaDeg, omegaDeg, gammaEDeg, alphaEDeg, thetaGOut) =>
+        // Given
+        val latitudeRad = Math.toRadians(latitudeDeg) // Latitude in radians
+        val deltaRad = Math.toRadians(deltaDeg) // Declination Angle delta of the sun at solar noon
+        val omegaRad = Math.toRadians(omegaDeg) // Hour Angle
+        val gammaERad = Math.toRadians(gammaEDeg) // Slope (Inclination) Angle of the surface
+        val alphaERad = Math.toRadians(alphaEDeg) // Surface azimuth
+
+        // When
+        val thetaG = pvModel.calcAngleOfIncidenceThetaG(deltaRad, latitudeRad, gammaERad, alphaERad, omegaRad)
+
+        // Then
+        thetaG shouldEqual thetaGOut +- 1e-10
+      }
     }
+
+
+    val testCases12 = Table(
+      ("latitudeDeg", "deltaIn", "omegaIn", "slope", "azimuth", "thetaOut"),
+      (45, -7.15, -82.5, 60, 0, 80.94904834048776), // Latitude 45 degrees
+      (45, -7.15, -82.5, 0, 0, 89.79565474295107), // Latitude 45 degrees, slope 0 degrees (zenith angle)
+      (40, -11.6, -82.5, 60, 0, 79.11011928744357),
+      (40, -11.6, 82.5, 60, 0, 79.11011928744357),
+      (40, -11.6, -78.0, 60, 0, 74.92072065185143),
+      (40, -11.6, 78.0, 60, 0, 74.92072065185143)
+    )
+    "calculate Rb (cos(thetaG)/cos(thetaZ)) correctly" in {
+      forAll(testCases12) { (latitudeDeg, deltaDeg, omegaDeg, gammaEDeg, alphaEDeg, thetaGOut) =>
+        // Given
+        val latitudeRad = Math.toRadians(latitudeDeg) // Latitude in Radian
+        val deltaRad = Math.toRadians(deltaDeg) // Declination Angle delta of the sun at solar noon
+        val omegaRad = Math.toRadians(omegaDeg) // Hour Angle
+        val gammaERad = Math.toRadians(gammaEDeg) // Slope (Inclination) Angle of the surface
+        val alphaERad = Math.toRadians(alphaEDeg) // Surface azimuth
+
+        // Im Test wird garnicht Rb ausgerechnet?
+      }
+    }
+
+    val testCases13 = Table(
+      ("latitudeDeg", "gammaEDeg", "alphaEDeg", "deltaDeg", "omegaDeg", "thetaGDeg", "eBeamSSol"),
+      (40d, 0d, 0d, -11.6d, -37.5d, 37.0d, 67.777778d), // flat surface => eBeamS = eBeamH
+      (40d, 60d, 0d, -11.6d, -37.5d, 37.0d, 112.84217113154841369d), // 2011-02-20T09:00:00
+      (40d, 60d, 0d, -11.6d, -78.0d, 75.0d, 210.97937494450755d), // sunrise
+      (40d, 60d, 0d, -11.6d, 62.0d, 76.0d, 199.16566536224116d), // sunset
+      (40d, 60d, 0d, -11.6d, 69.0d, 89.9d, 245.77637766673405d), // sunset, cut off
+      (40d, 60d, 0d, -11.6d, 75.0d, 89.9d, 0d), // no sun
+      (40d, 60d, -90.0d, -11.6d, 60.0d, 91.0d, 0d) // no direct beam
+    )
+    "calculate the estimate beam radiation eBeamS correctly" in {
+      // For a given hour angle, the estimate beam radiation on a sloped surface is calculated
+      // for the next 60 minutes.
+      // Reference p.95
+      // https://www.sku.ac.ir/Datafiles/BookLibrary/45/John%20A.%20Duffie,%20William%20A.%20Beckman(auth.)-Solar%20Engineering%20of%20Thermal%20Processes,%20Fourth%20Edition%20(2013).pdf
+      forAll(testCases13) { (latitudeDeg, gammaEDeg, alphaEDeg, deltaDeg, omegaDeg, thetaGDeg, eBeamSSol) =>
+        // Given
+        val gammaERad = math.toRadians(gammaEDeg) // Slope (Inclination) angle
+        val alphaERad = math.toRadians(alphaEDeg) // Surface azimuth angle
+        val latitudeRad = math.toRadians(latitudeDeg) // Latitude
+        // Beam Radiation on a horizontal surface
+        val eBeamH = 67.777778d // 1 MJ/m^2 = 277,778 Wh/m^2 -> 0.244 MJ/m^2 = 67.777778 Wh/m^2
+        val deltaRad = math.toRadians(deltaDeg) // Declination Angle delta of the sun at solar noon
+        val omegaRad = math.toRadians(omegaDeg) // Hour angle
+        val thetaGRad = math.toRadians(thetaGDeg) // Incidence angle
+        val omegaSS = pvModel.calcSunsetAngleOmegaSS(latitudeRad, deltaRad) //Sunset angle
+        val omegaSR = -omegaSS // Sunrise angle
+        val omegas = pvModel.calculateBeamOmegas(thetaGRad, omegaRad, omegaSS, omegaSR) // omega1 and omega2
+
+        // When
+        val eBeamSCalc = pvModel.calcBeamRadiationOnSlopedSurface(eBeamH, omegas, deltaRad, latitudeRad, gammaERad, alphaERad)
+
+        // Then
+        eBeamSCalc shouldEqual eBeamSSol +- 1e-10
+      }
+    }
+
+
+    val testCases14 = Table(
+      ("thetaGDeg", "thetaZDeg", "gammaEDeg", "airMass", "I0", "eDifSSol"),
+      (37.0, 62.2, 60, 2.13873080095658d, 1399.0077631849722d, 216.46615469650982d)
+    )
+    "calculate the estimate diffuse radiation eDifS correctly" in {
+      forAll(testCases14) { (thetaGDeg, thetaZDeg, gammaEDeg, airMass, I0, eDifSSol) =>
+        // Reference p.95
+        // https://www.sku.ac.ir/Datafiles/BookLibrary/45/John%20A.%20Duffie,%20William%20A.%20Beckman(auth.)-Solar%20Engineering%20of%20Thermal%20Processes,%20Fourth%20Edition%20(2013).pdf
+        // Given
+        val gammaERad = math.toRadians(gammaEDeg) // Slope Angle
+        // Beam Radiation on horizontal surface
+        val eBeamH = 67.777778d // 1 MJ/m^2 = 277,778 Wh/m^2 -> 0.244 MJ/m^2 = 67.777778 Wh/m^2
+        // Diffuse Radiation on a horizontal surface
+        val eDifH = 213.61111d // 0.769 MJ/m^2 = 213,61111 Wh/m^2
+        val thetaGRad = math.toRadians(thetaGDeg) // Incidence Angle
+        val thetaZRad = math.toRadians(thetaZDeg) // Zenith Angle
+        val I0Quantity = I0 // Extraterrestrial radiation
+
+        // When
+        val result = pvModel.calcDiffuseRadiationOnSlopedSurfacePerez(eDifH, eBeamH, airMass, I0Quantity, thetaZRad, thetaGRad, gammaERad)
+
+        // Then
+        result shouldEqual eDifSSol +- 1e-1
+      }
+    }
+
+
+
   }
 }
 
