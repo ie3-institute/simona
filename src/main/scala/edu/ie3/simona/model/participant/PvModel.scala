@@ -632,7 +632,7 @@ final case class PvModel private (
     * @return
     *   the reflected radiation on the sloped surface eRefS
     */
-  private def calcReflectedRadiationOnSlopedSurface(
+  def calcReflectedRadiationOnSlopedSurface(
       eBeamH: Irradiation,
       eDifH: Irradiation,
       gammaE: Angle,

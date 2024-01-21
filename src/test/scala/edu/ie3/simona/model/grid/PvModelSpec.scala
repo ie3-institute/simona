@@ -115,13 +115,13 @@ class PvModelSpec extends UnitSpec {
     }
 
 
-    val testCases = Table(
+    val testCases1 = Table(
       ("pVal", "qSol"),
       (9.5d, 0.004601059995959599d), // above sRated (no q limitation)
       (11d, 0d) // above sMax (limit q becomes active)
     )
     "provide reactive power up to 110% of its rated apparent power" in {
-      forAll(testCases) { (pVal, qSol) =>
+      forAll(testCases1) { (pVal, qSol) =>
         // given
         val adjustedVoltage = 1
 
@@ -165,7 +165,7 @@ class PvModelSpec extends UnitSpec {
     "calculate the declination angle delta correctly" in {
       forAll(testCases3) { (j, deltaSol) =>
         // When
-        val dayAngleQuantity = j.toDegrees
+        val dayAngleQuantity = j.toDegrees // ??
 
         val deltaCalc = pvModel.calcSunDeclinationDelta(dayAngleQuantity)
 
@@ -247,6 +247,7 @@ class PvModelSpec extends UnitSpec {
       (0d, -0.268780705d, -0.616101226d, 1.2234758057948967d), // omega: 0° = Solar noon., Nov 01st, lat/lon: Canberra Australia (35.3 S, 149.1 E)
       (math.toRadians(-37.5d), math.toRadians(-14d), math.toRadians(43d), math.toRadians(23.4529893659531784299686037109330117049955654837550d)), // '2011-02-13T09:30:00' from Duffie
       (math.toRadians(97.5d), math.toRadians(23.1d), math.toRadians(43d), math.toRadians(10.356151317506402829742934977890382350725031728508d)), // '2011-07-01T06:30:00' from Duffie
+      // Reference: Quaschning, Regenerative Energiesysteme figure 2.15 and figure 2.16   // gammaS@Quaschning = alphaS@SIMONA !
       (math.toRadians(-47.15114406), math.toRadians(23.4337425d), math.toRadians(52.3d), math.toRadians(44.12595614280154d)), // Berlin (13.2E 52.3N) '2011-06-21T09:00:00' MEZ
       (math.toRadians(-32.15114394d), math.toRadians(23.4337425d), math.toRadians(52.3d), math.toRadians(52.15790489243239d)), // Berlin (13.2E 52.3N) '2011-06-21T10:00:00' MEZ
       (math.toRadians(-17.15114381d), math.toRadians(23.4337425d), math.toRadians(52.3d), math.toRadians(58.29851278388936d)), // Berlin (13.2E 52.3N) '2011-06-21T11:00:00' MEZ
@@ -476,6 +477,28 @@ class PvModelSpec extends UnitSpec {
 
         // Then
         result shouldEqual eDifSSol +- 1e-1
+      }
+    }
+
+
+    val testCases15 = Table(
+      ("gammaEDeg", "albedo", "eRefSSol"),
+      (60, 0.60, 42.20833319999999155833336d) // '2011-02-20T09:00:00'
+    )
+    "calculate the ground reflection eRefS" in {
+      forAll(testCases15) { (slope, albedo, eRefSSol) =>
+        // Given
+        val gammaERad = math.toRadians(gammaEDeg) // Slope Angle
+        // Beam Radiation on horizontal surface
+        val eBeamH = 67.777778d // 1 MJ/m^2 = 277,778 Wh/m^2 -> 0.244 MJ/m^2 = 67.777778 Wh/m^2
+        // Diffuse Radiation on a horizontal surface
+        val eDifH = 213.61111d // 0.769 MJ/m^2 = 213,61111 Wh/m^2
+
+        // When
+        val eRefS = pvModel.calcReflectedRadiationOnSlopedSurface(eBeamH, eDifH, gammaERad, albedo)
+
+        // Then
+        eRefS shouldEqual eRefSSol +- 1e-10
       }
     }
 
