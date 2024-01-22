@@ -32,7 +32,8 @@ object Core {
   trait InactiveCore {
 
     /** Tries to handle an activation of the scheduler for given tick. If the
-      * activation for the tick is not valid, an error message is returned. If
+      * activation for the tick is not valid, a
+      * [[edu.ie3.simona.exceptions.CriticalFailureException]] is thrown. If
       * successful, an [[ActiveCore]] is returned with the active tick set to
       * the earliest tick scheduled.
       *
@@ -40,17 +41,18 @@ object Core {
       *   The tick that the scheduler is to be activated with
       * @return
       *   The changed [[ActiveCore]] that should be used for the activated
-      *   scheduler in a [[Right]] if successful, otherwise an error message in
-      *   a [[Left]]
+      *   scheduler
+      * @throws edu.ie3.simona.exceptions.CriticalFailureException
+      *   on critical error
       */
-    def tryActivate(newTick: Long): Either[String, ActiveCore]
+    def activate(newTick: Long): ActiveCore
 
     /** Tries to handle the scheduling of an activation of given actor for given
-      * tick. If scheduling for the tick is not valid, an error message is
-      * returned. If, on the other hand, the activation scheduling is successful
-      * and makes a separate scheduling of the current scheduler with its parent
-      * necessary, the tick that the scheduler needs to be scheduled for is
-      * returned.
+      * tick. If scheduling for the tick is not valid, a
+      * [[edu.ie3.simona.exceptions.CriticalFailureException]] is thrown. If, on
+      * the other hand, the activation scheduling is successful and makes a
+      * separate scheduling of the current scheduler with its parent necessary,
+      * the tick that the scheduler needs to be scheduled for is returned.
       *
       * @param actor
       *   The actor to be scheduled
@@ -58,13 +60,14 @@ object Core {
       *   The tick that the actor is scheduled for
       * @return
       *   A tuple of the optional tick that the current scheduler should be
-      *   scheduled for with its parent, and the changed [[InactiveCore]] in a
-      *   [[Right]] if successful, otherwise an error message in a [[Left]]
+      *   scheduled for with its parent and the changed [[InactiveCore]]
+      * @throws edu.ie3.simona.exceptions.CriticalFailureException
+      *   on critical error
       */
-    def tryHandleSchedule(
+    def handleSchedule(
         actor: Actor,
         newTick: Long
-    ): Either[String, (Option[Long], InactiveCore)]
+    ): (Option[Long], InactiveCore)
 
   }
 
@@ -81,16 +84,17 @@ object Core {
     def activeTick: Long
 
     /** Tries to handle the completion of an activation of given actor for the
-      * currently active tick. If the completion is not valid, an error message
-      * is returned.
+      * currently active tick. If the completion is not valid, a
+      * [[edu.ie3.simona.exceptions.CriticalFailureException]] is thrown.
       *
       * @param actor
       *   The actor whose activation should be completed
       * @return
-      *   The changed [[ActiveCore]] in a [[Right]] if successful, otherwise an
-      *   error message in a [[Left]]
+      *   The changed [[ActiveCore]]
+      * @throws edu.ie3.simona.exceptions.CriticalFailureException
+      *   on critical error
       */
-    def tryHandleCompletion(actor: Actor): Either[String, ActiveCore]
+    def handleCompletion(actor: Actor): ActiveCore
 
     /** Checks whether the current activation of the scheduler can be completed,
       * which is usually the case when all activated actors have completed and
@@ -105,20 +109,22 @@ object Core {
     def maybeComplete(): Option[(Option[Long], InactiveCore)]
 
     /** Tries to handle the scheduling of an activation of given actor for given
-      * tick. If the scheduling is not valid, an error message is returned.
+      * tick. If the scheduling is not valid, a
+      * [[edu.ie3.simona.exceptions.CriticalFailureException]] is thrown.
       *
       * @param actor
       *   The actor to be scheduled
       * @param newTick
       *   The tick that the actor is scheduled for
       * @return
-      *   The changed [[ActiveCore]] in a [[Right]] if successful, otherwise an
-      *   error message in a [[Left]]
+      *   The changed [[ActiveCore]]
+      * @throws edu.ie3.simona.exceptions.CriticalFailureException
+      *   on critical error
       */
-    def tryHandleSchedule(
+    def handleSchedule(
         actor: Actor,
         newTick: Long
-    ): Either[String, ActiveCore]
+    ): ActiveCore
 
     /** Removes and returns activations scheduled for the current tick, which
       * can be sent out at the current moment.

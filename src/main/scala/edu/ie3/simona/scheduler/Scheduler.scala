@@ -6,9 +6,7 @@
 
 package edu.ie3.simona.scheduler
 
-import org.apache.pekko.actor.typed.scaladsl.Behaviors
-import org.apache.pekko.actor.typed.{ActorRef, Behavior}
-import edu.ie3.simona.actor.ActorUtil.{ActorEither, stopOnError}
+import edu.ie3.simona.actor.ActorUtil.stopOnError
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation
@@ -20,6 +18,9 @@ import edu.ie3.simona.scheduler.core.Core.{
   InactiveCore
 }
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
+import edu.ie3.util.scala.Scope
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 /** Scheduler that activates actors at specific ticks and keeps them
   * synchronized by waiting for the completions of all activations. Can be
@@ -58,44 +59,38 @@ object Scheduler {
       core: InactiveCore
   ): Behavior[Incoming] =
     Behaviors.receive {
-      case (ctx, WrappedActivation(Activation(tick))) =>
-        core
-          .tryActivate(tick)
-          .map(_.takeNewActivations())
-          .map { case (toActivate, activeCore) =>
-            toActivate.foreach { _ ! Activation(tick) }
+      case (_, WrappedActivation(Activation(tick))) =>
+        val (toActivate, activeCore) = core
+          .activate(tick)
+          .takeNewActivations()
 
-            active(data, activeCore)
-          }
-          .stopOnError(ctx)
+        toActivate.foreach { _ ! Activation(tick) }
+
+        active(data, activeCore)
 
       case (
-            ctx,
+            _,
             ScheduleActivation(actor, newTick, unlockKey)
           ) =>
-        core
-          .tryHandleSchedule(actor, newTick)
-          .map { case (maybeSchedule, newCore) =>
-            maybeSchedule match {
-              case Some(scheduleTick) =>
-                // also potentially schedule with parent if the new earliest tick is
-                // different from the old earliest tick (including if nothing had
-                // been scheduled before)
-                data.parent ! ScheduleActivation(
-                  data.activationAdapter,
-                  scheduleTick,
-                  unlockKey
-                )
-              case None =>
-                // we don't need to escalate to the parent, this means that we can release the lock (if applicable)
-                unlockKey.foreach {
-                  _.unlock()
-                }
+        val (maybeSchedule, newCore) = core.handleSchedule(actor, newTick)
+        maybeSchedule match {
+          case Some(scheduleTick) =>
+            // also potentially schedule with parent if the new earliest tick is
+            // different from the old earliest tick (including if nothing had
+            // been scheduled before)
+            data.parent ! ScheduleActivation(
+              data.activationAdapter,
+              scheduleTick,
+              unlockKey
+            )
+          case None =>
+            // we don't need to escalate to the parent, this means that we can release the lock (if applicable)
+            unlockKey.foreach {
+              _.unlock()
             }
+        }
 
-            inactive(data, newCore)
-          }
-          .stopOnError(ctx)
+        inactive(data, newCore)
 
       case (ctx, unexpected) =>
         stopOnError(
@@ -110,36 +105,32 @@ object Scheduler {
   ): Behavior[Incoming] = Behaviors.receive {
 
     case (
-          ctx,
+          _,
           ScheduleActivation(actor, newTick, unlockKey)
         ) =>
-      core
-        .tryHandleSchedule(actor, newTick)
-        .map(_.takeNewActivations())
-        .map { case (toActivate, newCore) =>
-          // if there's a lock:
-          // since we're active and any scheduled activation can still influence our next activation,
-          // we can directly unlock the lock with the key
-          unlockKey.foreach {
-            _.unlock()
-          }
+      val (toActivate, newCore) = core
+        .handleSchedule(actor, newTick)
+        .takeNewActivations()
 
-          toActivate.foreach {
-            _ ! Activation(newCore.activeTick)
-          }
+      // if there's a lock:
+      // since we're active and any scheduled activation can still influence our next activation,
+      // we can directly unlock the lock with the key
+      unlockKey.foreach {
+        _.unlock()
+      }
 
-          active(data, newCore)
-        }
-        .stopOnError(ctx)
+      toActivate.foreach {
+        _ ! Activation(newCore.activeTick)
+      }
 
-    case (ctx, Completion(actor, maybeNewTick)) =>
-      core
-        .tryHandleCompletion(actor)
-        .flatMap { newCore =>
-          // if successful
+      active(data, newCore)
+
+    case (_, Completion(actor, maybeNewTick)) =>
+      Scope(core.handleCompletion(actor))
+        .map { newCore =>
           maybeNewTick
-            .map(newCore.tryHandleSchedule(actor, _))
-            .getOrElse(Right(newCore))
+            .map(newCore.handleSchedule(actor, _))
+            .getOrElse(newCore)
         }
         .map { newCore =>
           val (toActivate, updatedCore) = newCore.takeNewActivations()
@@ -163,7 +154,7 @@ object Scheduler {
               active(data, newCore)
             }
         }
-        .stopOnError(ctx)
+        .get
 
     case (ctx, unexpected) =>
       stopOnError(ctx, s"Received unexpected message $unexpected when active")
@@ -181,4 +172,5 @@ object Scheduler {
       ],
       activationAdapter: ActorRef[Activation]
   )
+
 }
