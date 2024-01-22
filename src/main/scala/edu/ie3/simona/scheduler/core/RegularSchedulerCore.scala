@@ -47,7 +47,7 @@ object RegularSchedulerCore extends CoreFactory {
         actor: Actor,
         newTick: Long
     ): (Option[Long], InactiveCore) = {
-      lastActiveTick.filter(newTick < _).foreach { lastActive =>
+      lastActiveTick.filter(newTick <= _).foreach { lastActive =>
         throw new CriticalFailureException(
           s"Cannot schedule an activation for $actor at tick $newTick because the last active tick is $lastActive"
         )
