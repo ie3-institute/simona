@@ -60,7 +60,6 @@ import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
 import squants.energy._
 import squants.{Each, Energy, Power}
 
-import java.time.temporal.ChronoUnit
 import java.util.UUID
 import scala.collection.SortedMap
 
@@ -100,12 +99,6 @@ class EvcsAgentModelCalculationSpec
 
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
-  // FIXME: Shall be temp only!
-  /* Adapt start time of simulation to meet requirements of market price source */
-  private val adaptedSimulationStart =
-    simulationStartDate.plus(5, ChronoUnit.YEARS)
-  private val adaptedSimulationEnd = simulationEndDate.plus(5, ChronoUnit.YEARS)
-
   "An evcs agent with model calculation depending on no secondary data service" should {
     val initStateData = ParticipantInitializeStateData[
       EvcsInput,
@@ -115,8 +108,8 @@ class EvcsAgentModelCalculationSpec
       inputModel = evcsInputModel,
       modelConfig = modelConfig,
       secondaryDataServices = noServices,
-      simulationStartDate = adaptedSimulationStart,
-      simulationEndDate = adaptedSimulationEnd,
+      simulationStartDate = simulationStartDate,
+      simulationEndDate = simulationEndDate,
       resolution = resolution,
       requestVoltageDeviationThreshold =
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
@@ -178,8 +171,8 @@ class EvcsAgentModelCalculationSpec
       inputModel = evcsInputModel,
       modelConfig = modelConfig,
       secondaryDataServices = withServices,
-      simulationStartDate = adaptedSimulationStart,
-      simulationEndDate = adaptedSimulationEnd,
+      simulationStartDate = simulationStartDate,
+      simulationEndDate = simulationEndDate,
       resolution = resolution,
       requestVoltageDeviationThreshold =
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
@@ -239,9 +232,9 @@ class EvcsAgentModelCalculationSpec
           inputModel shouldBe SimpleInputContainer(evcsInputModel)
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe withServices
-          simulationStartDate shouldBe this.adaptedSimulationStart
-          simulationEndDate shouldBe this.adaptedSimulationEnd
-          timeBin shouldBe this.resolution
+          simulationStartDate shouldBe simulationStartDate
+          simulationEndDate shouldBe simulationEndDate
+          timeBin shouldBe resolution
           requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
           outputConfig shouldBe defaultOutputConfig
           maybeEmAgent shouldBe None
@@ -282,8 +275,8 @@ class EvcsAgentModelCalculationSpec
               foreseenNextDataTicks
             ) =>
           /* Base state data */
-          startDate shouldBe adaptedSimulationStart
-          endDate shouldBe adaptedSimulationEnd
+          startDate shouldBe simulationStartDate
+          endDate shouldBe simulationEndDate
           services shouldBe Some(
             Vector(
               ActorEvMovementsService(evService.ref)
@@ -813,8 +806,8 @@ class EvcsAgentModelCalculationSpec
           inputModel = evcsInputModelQv,
           modelConfig = modelConfig,
           secondaryDataServices = withServices,
-          simulationStartDate = adaptedSimulationStart,
-          simulationEndDate = adaptedSimulationEnd,
+          simulationStartDate = simulationStartDate,
+          simulationEndDate = simulationEndDate,
           resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
           requestVoltageDeviationThreshold =
             simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
