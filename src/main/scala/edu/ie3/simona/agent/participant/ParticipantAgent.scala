@@ -49,7 +49,6 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssueFlexControl,
   RequestFlexOptions
 }
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
@@ -805,11 +804,6 @@ abstract class ParticipantAgent[
       lastState: MS,
       setPower: squants.Power
   ): (MS, PD, FlexChangeIndicator)
-
-  protected def checkSetPower(
-      flexOptions: ProvideMinMaxFlexOptions,
-      setPower: squants.Power
-  ): Unit
 
   /** Determining the reply to an
     * [[edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage]],

@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.agent.em
 
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import EmAgent.Actor
 import FlexCorrespondenceStore.WithTime
@@ -74,51 +75,49 @@ object EmDataCore {
       )
 
     /** Tries to handle an activation of the EmAgent for given tick. If the
-      * activation for the tick is not valid, an error message is returned. If
-      * successful, an [[AwaitingFlexOptions]] data core is returned with the
-      * active tick set to the earliest tick scheduled.
+      * activation for the tick is not valid, a [[CriticalFailureException]] is
+      * thrown. If successful, an [[AwaitingFlexOptions]] data core is returned
+      * with the active tick set to the earliest tick scheduled.
       *
       * @param newTick
       *   The tick that the scheduler is to be activated with
       * @return
       *   The changed [[AwaitingFlexOptions]] that should be used for the
-      *   activated EM agent in a [[Right]] if successful, otherwise an error
-      *   message in a [[Left]]
+      *   activated EM agent
+      * @throws CriticalFailureException
+      *   on critical error
       */
-    def tryActivate(newTick: Long): Either[String, AwaitingFlexOptions] =
-      activationQueue.headKeyOption
-        .map { nextScheduledTick =>
-          Either.cond(
-            newTick <= nextScheduledTick,
-            (),
+    def activate(newTick: Long): AwaitingFlexOptions = {
+      activationQueue.headKeyOption.foreach { nextScheduledTick =>
+        if (newTick > nextScheduledTick)
+          throw new CriticalFailureException(
             s"Cannot activate with new tick $newTick because the next scheduled tick $nextScheduledTick needs to be activated first."
           )
-        }
-        .getOrElse(Right(()))
-        .map { _ =>
-          // schedule flex requests for those participants which
-          // want to be asked at the next active tick, whatever
-          // that tick is going to be
-          val updatedQueue = flexWithNext.foldLeft(activationQueue) {
-            case (currentQueue, model) =>
-              currentQueue.set(newTick, model)
-              currentQueue
-          }
+      }
 
-          AwaitingFlexOptions(
-            modelToActor,
-            updatedQueue,
-            correspondences,
-            activeTick = newTick
-          )
-        }
+      // schedule flex requests for those participants which
+      // want to be asked at the next active tick, whatever
+      // that tick is going to be
+      val updatedQueue = flexWithNext.foldLeft(activationQueue) {
+        case (currentQueue, model) =>
+          currentQueue.set(newTick, model)
+          currentQueue
+      }
+
+      AwaitingFlexOptions(
+        modelToActor,
+        updatedQueue,
+        correspondences,
+        activeTick = newTick
+      )
+    }
 
     /** Tries to handle the scheduling a flex request for a connected agent for
-      * given tick. If scheduling for the tick is not valid, an error message is
-      * returned. If, on the other hand, the flex request scheduling is
-      * successful and makes a separate scheduling of the current [[EmAgent]]
-      * with its parent necessary, the tick that the EM agent needs to be
-      * scheduled for is returned.
+      * given tick. If scheduling for the tick is not valid, a
+      * [[CriticalFailureException]] is thrown. If, on the other hand, the flex
+      * request scheduling is successful and makes a separate scheduling of the
+      * current [[EmAgent]] with its parent necessary, the tick that the EM
+      * agent needs to be scheduled for is returned.
       *
       * @param model
       *   The model UUID of the agent to be scheduled
@@ -126,28 +125,32 @@ object EmDataCore {
       *   The tick that the agent is scheduled for
       * @return
       *   A tuple of the optional tick that the current EM agent should be
-      *   scheduled for with its parent, and the changed [[Inactive]] core in a
-      *   [[Right]] if successful, otherwise an error message in a [[Left]]
+      *   scheduled for with its parent, and the changed [[Inactive]] core
+      * @throws CriticalFailureException
+      *   on critical error
       */
-    def tryHandleSchedule(
+    def handleSchedule(
         model: UUID,
         newTick: Long
-    ): Either[String, (Option[Long], Inactive)] = Either.cond(
-      lastActiveTick.forall(newTick >= _ + 1), {
-        val oldEarliestTick = activationQueue.headKeyOption
+    ): (Option[Long], Inactive) = {
+      lastActiveTick.filter(newTick <= _).foreach { lastActive =>
+        throw new CriticalFailureException(
+          s"Cannot schedule a flex request for $model at tick $newTick because the last active tick was $lastActive"
+        )
+      }
 
-        activationQueue.set(newTick, model)
-        val newEarliestTick = activationQueue.headKeyOption
+      val oldEarliestTick = activationQueue.headKeyOption
 
-        val maybeScheduleTick =
-          Option
-            .when(newEarliestTick != oldEarliestTick)(newEarliestTick)
-            .flatten
+      activationQueue.set(newTick, model)
+      val newEarliestTick = activationQueue.headKeyOption
 
-        (maybeScheduleTick, this)
-      },
-      s"Cannot schedule a flex request for $model at tick $newTick because the last active tick was $lastActiveTick"
-    )
+      val maybeScheduleTick =
+        Option
+          .when(newEarliestTick != oldEarliestTick)(newEarliestTick)
+          .flatten
+
+      (maybeScheduleTick, this)
+    }
 
     def hasFlexWithNext: Boolean = flexWithNext.nonEmpty
 
@@ -194,24 +197,25 @@ object EmDataCore {
       * @return
       *   A tuple of a collection of agents scheduled for the current tick, and
       *   the updated [[AwaitingFlexOptions]] core
+      * @throws CriticalFailureException
+      *   on critical error
       */
-    def tryTakeNewFlexRequests()
-        : Either[String, (Iterable[Actor], AwaitingFlexOptions)] = {
+    def takeNewFlexRequests(): (Iterable[Actor], AwaitingFlexOptions) = {
       val toActivate = activationQueue.getAndRemoveSet(activeTick)
       val newFlexOptionsCore =
         copy(awaitedFlexOptions = awaitedFlexOptions.concat(toActivate))
 
-      val (missingActors, participants) = toActivate.toSeq
-        .partitionMap { modelUuid =>
-          modelToActor
-            .get(modelUuid)
-            .toRight(modelUuid)
-        }
-      Either.cond(
-        missingActors.isEmpty,
-        (participants, newFlexOptionsCore),
-        s"Could not find actor(s) for model uuid(s) ${missingActors.mkString(",")}"
-      )
+      val actors = toActivate.map { modelUuid =>
+        modelToActor
+          .getOrElse(
+            modelUuid,
+            throw new CriticalFailureException(
+              s"Could not find actor for model uuid $modelUuid"
+            )
+          )
+      }
+
+      (actors, newFlexOptionsCore)
     }
 
     /** Handles the retrieval of flex options sent by some connected agent for
@@ -309,18 +313,17 @@ object EmDataCore {
     }
 
     /** Completes the current state by collecting and returning the control
-      * messages for the current tick if possible, and otherwise returning an
-      * error String
+      * messages for the current tick if possible, and otherwise a
+      * [[CriticalFailureException]] is thrown
       *
       * @return
-      *   A [[Left]] with an error messages on error, otherwise a [[Right]] with
-      *   a collection of agent-and-message pairs and an updated
+      *   A collection of agent-and-message pairs and an updated
       *   [[AwaitingCompletions]] core
+      * @throws CriticalFailureException
+      *   on critical error
       */
-    def complete(): Either[
-      String,
-      (Iterable[(Actor, IssueFlexControl)], AwaitingCompletions)
-    ] = {
+    def complete()
+        : (Iterable[(Actor, IssueFlexControl)], AwaitingCompletions) = {
 
       val modelUuidToMsg = correspondences.store.flatMap {
         case (modelUuid, correspondence) =>
@@ -331,29 +334,27 @@ object EmDataCore {
           }
       }
 
-      val (missingActors, actorToMsg) = modelUuidToMsg.toSeq
-        .partitionMap { case (modelUuid, issueCtrl) =>
-          modelToActor
-            .get(modelUuid)
-            .map((_, issueCtrl))
-            .toRight(modelUuid)
-        }
+      val actorToMsg = modelUuidToMsg.map { case (modelUuid, issueCtrl) =>
+        modelToActor
+          .getOrElse(
+            modelUuid,
+            throw new CriticalFailureException(
+              s"Could not find actor for model uuid $modelUuid"
+            )
+          ) -> issueCtrl
+      }
 
-      Either.cond(
-        missingActors.isEmpty,
-        (
-          actorToMsg,
-          AwaitingCompletions(
-            modelToActor,
-            activationQueue = activationQueue,
-            correspondences = correspondences,
-            awaitedCompletions = modelUuidToMsg.map { case (participant, _) =>
-              participant
-            }.toSet,
-            activeTick = activeTick
-          )
-        ),
-        s"Could not find actor(s) for model uuid(s) ${missingActors.mkString(",")}"
+      (
+        actorToMsg,
+        AwaitingCompletions(
+          modelToActor,
+          activationQueue = activationQueue,
+          correspondences = correspondences,
+          awaitedCompletions = modelUuidToMsg.map { case (participant, _) =>
+            participant
+          }.toSet,
+          activeTick = activeTick
+        )
       )
     }
 
@@ -389,27 +390,24 @@ object EmDataCore {
   ) {
 
     /** Tries to handle the completion of some connected agent for the currently
-      * active tick. If completion is not valid, an error message is returned.
+      * active tick. If completion is not valid, a [[CriticalFailureException]]
+      * is thrown.
       *
       * @param completion
       *   The completion message that has been received
       * @return
-      *   The updated [[AwaitingCompletions]] core in a [[Right]] if successful,
-      *   otherwise an error message in a [[Left]]
+      *   The updated [[AwaitingCompletions]] core
+      * @throws CriticalFailureException
+      *   on critical error
       */
-    def tryHandleCompletion(
-        completion: FlexCtrlCompletion
-    ): Either[String, AwaitingCompletions] = {
-      Either.cond(
-        awaitedCompletions.contains(completion.modelUuid),
-        handleCompletion(completion),
-        s"Participant ${completion.modelUuid} is not part of the expected completing participants"
-      )
-    }
-
-    private def handleCompletion(
+    def handleCompletion(
         completion: FlexCtrlCompletion
     ): AwaitingCompletions = {
+      if (!awaitedCompletions.contains(completion.modelUuid))
+        throw new CriticalFailureException(
+          s"Participant ${completion.modelUuid} is not part of the expected completing participants"
+        )
+
       // mutable queue
       completion.requestAtTick
         .foreach { activationQueue.set(_, completion.modelUuid) }

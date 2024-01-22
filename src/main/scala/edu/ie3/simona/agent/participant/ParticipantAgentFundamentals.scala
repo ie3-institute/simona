@@ -60,14 +60,13 @@ import edu.ie3.simona.exceptions.agent.{
   InvalidRequestException
 }
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
+import edu.ie3.simona.model.em.EmModelTools
 import edu.ie3.simona.model.participant.{
   CalcRelevantData,
   ModelState,
   SystemParticipant
 }
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage
@@ -76,6 +75,8 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation
 }
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ProvisionMessage,
   RegistrationResponseMessage
@@ -85,8 +86,8 @@ import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{ActorRef, FSM, PoisonPill}
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
+import org.apache.pekko.actor.{ActorRef, FSM, PoisonPill}
 import org.apache.pekko.event.LoggingAdapter
 import org.apache.pekko.util
 import org.apache.pekko.util.Timeout
@@ -778,7 +779,7 @@ protected trait ParticipantAgentFundamentals[
       )
 
     val setPointActivePower =
-      determineResultingFlexPower(flexOptions, flexCtrl)
+      EmModelTools.determineFlexPower(flexOptions, flexCtrl)
 
     /* Handle the flex signal */
     val (updatedState, result, flexChangeIndicator) =
@@ -836,46 +837,6 @@ protected trait ParticipantAgentFundamentals[
     )
 
     stay() using stateDataFinal
-  }
-
-  protected def determineResultingFlexPower(
-      flexOptionsMsg: ProvideFlexOptions,
-      flexCtrl: IssueFlexControl
-  ): squants.Power =
-    flexOptionsMsg match {
-      case flexOptions: ProvideMinMaxFlexOptions =>
-        flexCtrl match {
-          case IssuePowerControl(_, setPower) =>
-            // sanity check: setPower is in range of latest flex options
-            checkSetPower(flexOptions, setPower)
-
-            // override, take setPower
-            setPower
-
-          case IssueNoControl(_) =>
-            // no override, take reference power
-            flexOptions.referencePower
-        }
-
-      case unknownFlexOpt =>
-        throw new IllegalStateException(
-          s"Unknown/unfitting flex messages $unknownFlexOpt"
-        )
-    }
-
-  override protected def checkSetPower(
-      flexOptions: ProvideMinMaxFlexOptions,
-      setPower: squants.Power
-  ): Unit = {
-    if (setPower < flexOptions.minPower)
-      throw new RuntimeException(
-        s"The set power $setPower for ${flexOptions.modelUuid} must not be lower than the minimum power ${flexOptions.minPower}!"
-      )
-
-    if (setPower > flexOptions.maxPower)
-      throw new RuntimeException(
-        s"The set power $setPower for ${flexOptions.modelUuid} must not be greater than the maximum power ${flexOptions.maxPower}!"
-      )
   }
 
   /** Additional actions on a new calculated simulation result. Typically: Send

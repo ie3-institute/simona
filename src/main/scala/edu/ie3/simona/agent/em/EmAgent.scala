@@ -8,7 +8,6 @@ package edu.ie3.simona.agent.em
 
 import edu.ie3.datamodel.models.input.system.EmInput
 import edu.ie3.datamodel.models.result.system.{EmResult, FlexOptionsResult}
-import edu.ie3.simona.actor.ActorUtil.ActorEither
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.FlexControlledData
 import edu.ie3.simona.config.SimonaConfig
@@ -19,7 +18,8 @@ import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent
 }
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.model.em.{EmModelShell, FlexTimeSeries}
+import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.model.em.{EmModelShell, EmModelTools, FlexTimeSeries}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation
@@ -164,68 +164,60 @@ object EmAgent {
       val updatedCore = core.addParticipant(actor, model)
       inactive(emData, updatedModelShell, updatedCore)
 
-    case (ctx, ScheduleFlexRequest(participant, newTick, scheduleKey)) =>
-      core
-        .tryHandleSchedule(participant, newTick)
-        .map { case (maybeSchedule, newCore) =>
-          maybeSchedule match {
-            case Some(scheduleTick) =>
-              // also potentially schedule with parent if the new earliest tick is
-              // different from the old earliest tick (including if nothing had
-              // been scheduled before)
-              emData.parentData.fold(
-                schedulerData =>
-                  schedulerData.scheduler ! ScheduleActivation(
-                    schedulerData.activationAdapter,
-                    scheduleTick,
-                    scheduleKey
-                  ),
-                _.emAgent ! ScheduleFlexRequest(
-                  modelShell.uuid,
-                  scheduleTick,
-                  scheduleKey
-                )
-              )
-            case None =>
-              // we don't need to escalate to the parent, this means that we can
-              // release the lock (if applicable)
-              scheduleKey.foreach {
-                _.unlock()
-              }
+    case (_, ScheduleFlexRequest(participant, newTick, scheduleKey)) =>
+      val (maybeSchedule, newCore) = core
+        .handleSchedule(participant, newTick)
+
+      maybeSchedule match {
+        case Some(scheduleTick) =>
+          // also potentially schedule with parent if the new earliest tick is
+          // different from the old earliest tick (including if nothing had
+          // been scheduled before)
+          emData.parentData.fold(
+            schedulerData =>
+              schedulerData.scheduler ! ScheduleActivation(
+                schedulerData.activationAdapter,
+                scheduleTick,
+                scheduleKey
+              ),
+            _.emAgent ! ScheduleFlexRequest(
+              modelShell.uuid,
+              scheduleTick,
+              scheduleKey
+            )
+          )
+        case None =>
+          // we don't need to escalate to the parent, this means that we can
+          // release the lock (if applicable)
+          scheduleKey.foreach {
+            _.unlock()
           }
-          inactive(emData, modelShell, newCore)
-        }
-        .stopOnError(ctx)
+      }
+      inactive(emData, modelShell, newCore)
 
     case (ctx, msg: EmRequest) =>
-      core
-        .tryActivate(msg.tick)
-        .flatMap { flexOptionsCore =>
-          msg match {
+      val flexOptionsCore = core.activate(msg.tick)
 
-            case Flex(_: RequestFlexOptions) | EmActivation(_) =>
-              flexOptionsCore.tryTakeNewFlexRequests().map {
-                case (toActivate, flexOptionsCore) =>
-                  toActivate.foreach {
-                    _ ! RequestFlexOptions(msg.tick)
-                  }
-
-                  awaitingFlexOptions(emData, modelShell, flexOptionsCore)
-              }
-
-            case Flex(_: IssueFlexControl) =>
-              // We got sent a flex control message instead of a flex request,
-              // this means that flex options must have not changed since
-              // they were last calculated
-
-              // Thus, we just jump to the appropriate place and forward the
-              // control message there
-              ctx.self ! msg
-              Right(awaitingFlexCtrl(emData, modelShell, flexOptionsCore))
-
+      msg match {
+        case Flex(_: RequestFlexOptions) | EmActivation(_) =>
+          val (toActivate, newCore) = flexOptionsCore.takeNewFlexRequests()
+          toActivate.foreach {
+            _ ! RequestFlexOptions(msg.tick)
           }
-        }
-        .stopOnError(ctx)
+
+          awaitingFlexOptions(emData, modelShell, newCore)
+
+        case Flex(_: IssueFlexControl) =>
+          // We got sent a flex control message instead of a flex request,
+          // this means that flex options must have not changed since
+          // they were last calculated
+
+          // Thus, we just jump to the appropriate place and forward the
+          // control message there
+          ctx.self ! msg
+
+          awaitingFlexCtrl(emData, modelShell, flexOptionsCore)
+      }
 
   }
 
@@ -236,8 +228,8 @@ object EmAgent {
       emData: EmData,
       modelShell: EmModelShell,
       flexOptionsCore: EmDataCore.AwaitingFlexOptions
-  ): Behavior[EmMessage] = Behaviors.receivePartial {
-    case (ctx, flexOptions: ProvideFlexOptions) =>
+  ): Behavior[EmMessage] = Behaviors.receiveMessagePartial {
+    case flexOptions: ProvideFlexOptions =>
       val updatedCore = flexOptionsCore.handleFlexOptions(flexOptions)
 
       if (updatedCore.isComplete) {
@@ -297,21 +289,19 @@ object EmAgent {
               case None => Kilowatts(0)
             }
 
-            val ctrlSetPoints =
-              modelShell.determineDeviceControl(allFlexOptions, setPower)
+            val flexControl =
+              modelShell.determineFlexControl(allFlexOptions, setPower)
 
-            updatedCore
-              .handleFlexCtrl(ctrlSetPoints)
+            val (allFlexMsgs, newCore) = updatedCore
+              .handleFlexCtrl(flexControl)
               .fillInMissingIssueCtrl()
               .complete()
-              .map { case (allFlexMsgs, newCore) =>
-                allFlexMsgs.foreach { case (actor, msg) =>
-                  actor ! msg
-                }
 
-                awaitingCompletions(emData, modelShell, newCore)
-              }
-              .stopOnError(ctx)
+            allFlexMsgs.foreach { case (actor, msg) =>
+              actor ! msg
+            }
+
+            awaitingCompletions(emData, modelShell, newCore)
         }
 
       } else {
@@ -337,46 +327,44 @@ object EmAgent {
       emData: EmData,
       modelShell: EmModelShell,
       flexOptionsCore: EmDataCore.AwaitingFlexOptions
-  ): Behavior[EmMessage] = Behaviors.receivePartial {
-    case (ctx, Flex(flexCtrl: IssueFlexControl)) =>
-      emData.parentData.left
-        .map(_ => s"EmAgent is not EM-controlled.")
-        .flatMap(
-          // flex options calculated by this EmAgent
-          _.lastFlexOptions.toRight(
-            s"Flex options have not been calculated by EmAgent."
-          )
+  ): Behavior[EmMessage] = Behaviors.receiveMessagePartial {
+    case Flex(flexCtrl: IssueFlexControl) =>
+      val flexData = emData.parentData.getOrElse(
+        throw new CriticalFailureException(s"EmAgent is not EM-controlled.")
+      )
+
+      // flex options calculated by this EmAgent
+      val ownFlexOptions = flexData.lastFlexOptions.getOrElse(
+        throw new CriticalFailureException(
+          s"Flex options have not been calculated by EmAgent."
         )
-        .flatMap(flexOptions =>
-          EmModelShell.determineResultingFlexPower(
-            flexOptions,
-            flexCtrl
-          )
+      )
+
+      val setPointActivePower = EmModelTools
+        .determineFlexPower(
+          ownFlexOptions,
+          flexCtrl
         )
-        .flatMap { setPointActivePower =>
-          // flex options calculated by connected agents
-          val receivedFlexOptions = flexOptionsCore.getFlexOptions
 
-          val ctrlSetPoints =
-            modelShell.determineDeviceControl(
-              receivedFlexOptions,
-              setPointActivePower
-            )
+      // flex options calculated by connected agents
+      val receivedFlexOptions = flexOptionsCore.getFlexOptions
 
-          flexOptionsCore
-            .handleFlexCtrl(ctrlSetPoints)
-            .fillInMissingIssueCtrl()
-            .complete()
-            .map { case (allFlexMsgs, newCore) =>
-              allFlexMsgs.foreach { case (actor, msg) =>
-                actor ! msg
-              }
+      val ctrlSetPoints =
+        modelShell.determineFlexControl(
+          receivedFlexOptions,
+          setPointActivePower
+        )
 
-              awaitingCompletions(emData, modelShell, newCore)
-            }
-        }
-        .stopOnError(ctx)
+      val (allFlexMsgs, newCore) = flexOptionsCore
+        .handleFlexCtrl(ctrlSetPoints)
+        .fillInMissingIssueCtrl()
+        .complete()
 
+      allFlexMsgs.foreach { case (actor, msg) =>
+        actor ! msg
+      }
+
+      awaitingCompletions(emData, modelShell, newCore)
   }
 
   /** Behavior of an [[EmAgent]] waiting for completions messages to be received
@@ -386,33 +374,30 @@ object EmAgent {
       emData: EmData,
       modelShell: EmModelShell,
       core: EmDataCore.AwaitingCompletions
-  ): Behavior[EmMessage] = Behaviors.receivePartial {
+  ): Behavior[EmMessage] = Behaviors.receiveMessagePartial {
     // Completions and results
-    case (ctx, completion: FlexCtrlCompletion) =>
-      core
-        .tryHandleCompletion(completion)
-        .map { updatedCore =>
-          updatedCore
-            .maybeComplete()
-            .map { inactiveCore =>
-              sendCompletionCommunication(
-                emData,
-                modelShell,
-                inactiveCore,
-                lastActiveTick = updatedCore.activeTick
-              )
-              inactive(emData, modelShell, inactiveCore)
-            }
-            .getOrElse {
-              // more flex options expected
-              awaitingCompletions(
-                emData,
-                modelShell,
-                updatedCore
-              )
-            }
+    case completion: FlexCtrlCompletion =>
+      val updatedCore = core.handleCompletion(completion)
+
+      updatedCore
+        .maybeComplete()
+        .map { inactiveCore =>
+          sendCompletionCommunication(
+            emData,
+            modelShell,
+            inactiveCore,
+            lastActiveTick = updatedCore.activeTick
+          )
+          inactive(emData, modelShell, inactiveCore)
         }
-        .stopOnError(ctx)
+        .getOrElse {
+          // more flex options expected
+          awaitingCompletions(
+            emData,
+            modelShell,
+            updatedCore
+          )
+        }
 
   }
 

@@ -8,14 +8,9 @@ package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
-  IssueFlexControl,
-  IssueNoControl,
-  IssuePowerControl,
-  ProvideFlexOptions
-}
+import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
-
 import squants.Power
 
 import java.util.UUID
@@ -44,27 +39,32 @@ final case class EmModelShell(
       ]
   ): (Power, Power, Power) = {
     val updatedAllFlexOptions = allFlexOptions.map {
-      case (actor, flexOptions) =>
-        val spi = modelToParticipantInput.getOrElse(
-          actor,
-          throw new RuntimeException()
-        ) // TODO
+      case (modelUuid, flexOptions) =>
+        val assetInput = modelToParticipantInput.getOrElse(
+          modelUuid,
+          throw new CriticalFailureException(
+            s"Asset input for model with UUID $modelUuid was not found."
+          )
+        )
 
         val minMaxFlexOptions = flexOptions match {
           case flex: ProvideMinMaxFlexOptions => flex
-          case _                              => throw new RuntimeException()
+          case unsupported =>
+            throw new CriticalFailureException(
+              s"Received unsupported flex options $unsupported."
+            )
         }
 
         val updatedFlexOptions =
-          modelStrategy.adaptFlexOptions(spi, minMaxFlexOptions)
+          modelStrategy.adaptFlexOptions(assetInput, minMaxFlexOptions)
 
-        spi -> updatedFlexOptions
+        assetInput -> updatedFlexOptions
     }
 
     aggregateFlex.aggregateFlexOptions(updatedAllFlexOptions)
   }
 
-  def determineDeviceControl(
+  def determineFlexControl(
       allFlexOptions: Iterable[(UUID, ProvideFlexOptions)],
       target: Power
   ): Iterable[(UUID, Power)] = {
@@ -72,15 +72,21 @@ final case class EmModelShell(
 
     val minMaxFlexOptions = allFlexOptions.toMap.view.mapValues {
       case flex: ProvideMinMaxFlexOptions => flex
-      case _                              => throw new RuntimeException()
+      case unsupported =>
+        throw new CriticalFailureException(
+          s"Received unsupported flex options $unsupported."
+        )
     }.toMap
 
-    val uuidToFlexOptions = minMaxFlexOptions.map { case (actor, flexOptions) =>
-      val spi = modelToParticipantInput.getOrElse(
-        actor,
-        throw new RuntimeException()
-      ) // TODO
-      spi -> flexOptions
+    val uuidToFlexOptions = minMaxFlexOptions.map {
+      case (modelUuid, flexOptions) =>
+        val assetInput = modelToParticipantInput.getOrElse(
+          modelUuid,
+          throw new CriticalFailureException(
+            s"Asset input for model with UUID $modelUuid was not found."
+          )
+        )
+        assetInput -> flexOptions
     }
 
     val setPoints =
@@ -90,12 +96,14 @@ final case class EmModelShell(
       val flexOptions =
         minMaxFlexOptions.getOrElse(model, throw new RuntimeException())
       if (!flexOptions.fits(power))
-        throw new RuntimeException() // TODO
+        throw new CriticalFailureException(
+          s"Calculated set point $power does not fit flex option"
+        )
 
       model -> power
     }
 
-    // sanity checks after strat calculation
+    // TODO sanity checks after strat calculation
     // checkSetPower(flexOptions, power)
 
   }
@@ -122,46 +130,5 @@ object EmModelShell {
     }
 
     EmModelShell(uuid, id, modelStrategy, aggregateFlex)
-  }
-
-  def determineResultingFlexPower(
-      flexOptionsMsg: ProvideFlexOptions,
-      flexCtrl: IssueFlexControl
-  ): Either[String, Power] =
-    flexOptionsMsg match {
-      case flexOptions: ProvideMinMaxFlexOptions =>
-        flexCtrl match {
-          case IssuePowerControl(_, setPower) =>
-            // sanity check: setPower is in range of latest flex options
-            checkSetPower(flexOptions, setPower).map { _ =>
-              // override, take setPower
-              setPower
-            }
-
-          case IssueNoControl(_) =>
-            // no override, take reference power
-            Right(flexOptions.referencePower)
-        }
-
-      case unknownFlexOpt =>
-        Left(
-          s"Unknown/unfitting flex messages $unknownFlexOpt"
-        )
-    }
-
-  def checkSetPower(
-      flexOptions: ProvideMinMaxFlexOptions,
-      setPower: squants.Power
-  ): Either[String, Unit] = {
-    if (setPower < flexOptions.minPower)
-      Left(
-        s"The set power $setPower for ${flexOptions.modelUuid} must not be lower than the minimum power ${flexOptions.minPower}!"
-      )
-    else if (setPower > flexOptions.maxPower)
-      Left(
-        s"The set power $setPower for ${flexOptions.modelUuid} must not be greater than the maximum power ${flexOptions.maxPower}!"
-      )
-    else
-      Right(())
   }
 }
