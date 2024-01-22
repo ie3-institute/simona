@@ -438,7 +438,7 @@ class SchedulerSpec
       parent.expectTerminated(scheduler)
     }
 
-    "asked to schedule activation for a past tick while inactive" in {
+    "asked to schedule activation for the last tick while inactive" in {
       val parent = TestProbe[SchedulerMessage]("parent")
       val scheduler = spawn(
         Scheduler(parent.ref)
@@ -464,8 +464,9 @@ class SchedulerSpec
       parent.expectMessage(Completion(schedulerActivation, Some(1800)))
 
       // now inactive again
-      // can't schedule activation with earlier tick than last tick (900) -> error
-      scheduler ! ScheduleActivation(agent1.ref, INIT_SIM_TICK)
+      // can't schedule activation with tick equal to last tick (900) -> error
+      // same result with any other past tick
+      scheduler ! ScheduleActivation(agent1.ref, 900)
 
       // agent does not receive activation
       agent1.expectNoMessage()
