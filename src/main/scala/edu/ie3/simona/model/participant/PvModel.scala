@@ -473,6 +473,7 @@ final case class PvModel private (
 
         val omega1InRad = omega1.toRadians
         val omega2InRad = omega2.toRadians
+        // variable that accounts for cases when the integration interval is shorter than 15° (1 hour equivalent), when the time is close to sunrise or sunset
         val timeFrame = (omega2 - omega1).toRadians * 12 / Math.PI // original term: (omega2 - omega1).toRadians * 180 / Math.PI / 15, since a one hour difference equals 15°
 
         val a = ((sin(deltaInRad) * sin(latInRad) * cos(gammaEInRad)
@@ -547,12 +548,12 @@ final case class PvModel private (
 
     if (eDifH.value.doubleValue > 0) {
       // if we have diffuse radiation on horizontal surface we have to check if we have another epsilon due to clouds get the epsilon
-      var epsilon = ((eDifH + eBeamH) / eDifH +
+      var epsilon = ((eDifH + eBeamH / cos (thetaZInRad)) / eDifH +
         (5.535d * 1.0e-6) * pow(
-          thetaZInRad,
+          thetaZ.toDegrees,
           3
         )) / (1d + (5.535d * 1.0e-6) * pow(
-        thetaZInRad,
+        thetaZ.toDegrees,
         3
       ))
 
