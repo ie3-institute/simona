@@ -16,8 +16,20 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import squants.Power
 
-// TODO scaladoc
-object EmModelTools {
+/** Tools used by agents that engage with energy management and flexibility
+  */
+object EmTools {
+
+  /** Determines the set point given a flex options message and a flex control
+    * message. Also validates the resulting power.
+    *
+    * @param flexOptionsMsg
+    *   The flex options message
+    * @param flexCtrl
+    *   The flex control message
+    * @return
+    *   The resulting power set point
+    */
   def determineFlexPower(
       flexOptionsMsg: ProvideFlexOptions,
       flexCtrl: IssueFlexControl
@@ -42,6 +54,14 @@ object EmModelTools {
         )
     }
 
+  /** Checks whether given setPower fits the provided flex options, i.e. whether
+    * the set point is feasible given the flex options.
+    *
+    * @param flexOptions
+    *   The flex options that the set point has to fit
+    * @param setPower
+    *   The set point
+    */
   def checkSetPower(
       flexOptions: ProvideMinMaxFlexOptions,
       setPower: Power

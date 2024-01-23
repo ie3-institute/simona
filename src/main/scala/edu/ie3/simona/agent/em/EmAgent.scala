@@ -19,7 +19,7 @@ import edu.ie3.simona.event.ResultEvent.{
 }
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.em.{EmModelShell, EmModelTools, FlexTimeSeries}
+import edu.ie3.simona.model.em.{EmModelShell, EmTools, FlexTimeSeries}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation
@@ -340,7 +340,7 @@ object EmAgent {
         )
       )
 
-      val setPointActivePower = EmModelTools
+      val setPointActivePower = EmTools
         .determineFlexPower(
           ownFlexOptions,
           flexCtrl

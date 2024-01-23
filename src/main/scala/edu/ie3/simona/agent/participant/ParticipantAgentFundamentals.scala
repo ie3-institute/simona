@@ -60,7 +60,7 @@ import edu.ie3.simona.exceptions.agent.{
   InvalidRequestException
 }
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
-import edu.ie3.simona.model.em.EmModelTools
+import edu.ie3.simona.model.em.EmTools
 import edu.ie3.simona.model.participant.{
   CalcRelevantData,
   ModelState,
@@ -779,7 +779,7 @@ protected trait ParticipantAgentFundamentals[
       )
 
     val setPointActivePower =
-      EmModelTools.determineFlexPower(flexOptions, flexCtrl)
+      EmTools.determineFlexPower(flexOptions, flexCtrl)
 
     /* Handle the flex signal */
     val (updatedState, result, flexChangeIndicator) =
