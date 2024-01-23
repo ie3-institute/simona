@@ -31,7 +31,6 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
   /** Only heat pumps, battery storages, charging stations and PVs (if enabled)
     * are controlled by this strategy
     */
-  // TODO configurable
   private val controllableAssets: Seq[Class[_ <: AssetInput]] =
     Seq(classOf[HpInput], classOf[StorageInput], classOf[EvcsInput]) ++ Option
       .when(pvFlex)(Seq(classOf[PvInput]))
@@ -89,7 +88,6 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
     } else if (targetDelta < Kilowatts(0d)) {
       // suggested power too low, try to store difference/increase load
 
-      // TODO configurable
       val orderedParticipants =
         Seq(evcsOpt, storageOpt, heatPumpOpt, pvOpt).flatten
 
@@ -140,7 +138,6 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
     } else {
       // excess load, try to cover it with stored energy/by reducing load
 
-      // TODO configurable
       val orderedParticipants = Seq(storageOpt, evcsOpt, heatPumpOpt).flatten
 
       orderedParticipants.foldLeft(
