@@ -69,7 +69,7 @@ class TimeAdvancerSpec
       timeAdvancer ! Completion(scheduler.ref, Some(0))
       listener.expectMessageType[InitComplete] match {
         case InitComplete(duration) =>
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
 
       // tick 0 is activated automatically
@@ -81,17 +81,17 @@ class TimeAdvancerSpec
       listener.expectMessageType[CheckWindowPassed] match {
         case CheckWindowPassed(tick, duration) =>
           tick shouldBe 900
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
       listener.expectMessageType[CheckWindowPassed] match {
         case CheckWindowPassed(tick, duration) =>
           tick shouldBe 1800
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
       listener.expectMessageType[CheckWindowPassed] match {
         case CheckWindowPassed(tick, duration) =>
           tick shouldBe 2700
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
 
       // tick 3600 is activated automatically
@@ -103,22 +103,22 @@ class TimeAdvancerSpec
       listener.expectMessageType[CheckWindowPassed] match {
         case CheckWindowPassed(tick, duration) =>
           tick shouldBe 3600
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
       listener.expectMessageType[CheckWindowPassed] match {
         case CheckWindowPassed(tick, duration) =>
           tick shouldBe 4500
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
       listener.expectMessageType[CheckWindowPassed] match {
         case CheckWindowPassed(tick, duration) =>
           tick shouldBe 5400
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
       listener.expectMessageType[CheckWindowPassed] match {
         case CheckWindowPassed(tick, duration) =>
           tick shouldBe 6300
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
 
       // tick 7200 is activated automatically
@@ -130,7 +130,7 @@ class TimeAdvancerSpec
       listener.expectMessageType[Done] match {
         case Done(tick, duration, errorInSim) =>
           tick shouldBe 7200
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
           errorInSim shouldBe false
       }
 
@@ -162,7 +162,7 @@ class TimeAdvancerSpec
       timeAdvancer ! Completion(scheduler.ref, Some(0))
       listener.expectMessageType[InitComplete] match {
         case InitComplete(duration) =>
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
 
       // tick 0 is activated automatically
@@ -182,7 +182,7 @@ class TimeAdvancerSpec
       listener.expectMessageType[Done] match {
         case Done(tick, duration, errorInSim) =>
           tick shouldBe 3600
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
           errorInSim shouldBe false
       }
 
@@ -219,7 +219,7 @@ class TimeAdvancerSpec
       timeAdvancer ! Completion(scheduler.ref, Some(3600))
       listener.expectMessageType[InitComplete] match {
         case InitComplete(duration) =>
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
       listener.expectMessageType[Ready].tick shouldBe INIT_SIM_TICK
 
@@ -240,23 +240,23 @@ class TimeAdvancerSpec
       listener.expectMessageType[CheckWindowPassed] match {
         case CheckWindowPassed(tick, duration) =>
           tick shouldBe 900
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
       listener.expectMessageType[CheckWindowPassed] match {
         case CheckWindowPassed(tick, duration) =>
           tick shouldBe 1800
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
       listener.expectMessageType[CheckWindowPassed] match {
         case CheckWindowPassed(tick, duration) =>
           tick shouldBe 2700
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
 
       listener.expectMessageType[Done] match {
         case Done(tick, duration, errorInSim) =>
           tick shouldBe 3600
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
           errorInSim shouldBe false
       }
 
@@ -292,7 +292,7 @@ class TimeAdvancerSpec
       timeAdvancer ! Completion(scheduler.ref, Some(0))
       listener.expectMessageType[InitComplete] match {
         case InitComplete(duration) =>
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
 
       // tick 0 is activated automatically
@@ -304,22 +304,22 @@ class TimeAdvancerSpec
       listener.expectMessageType[CheckWindowPassed] match {
         case CheckWindowPassed(tick, duration) =>
           tick shouldBe 900
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
       listener.expectMessageType[CheckWindowPassed] match {
         case CheckWindowPassed(tick, duration) =>
           tick shouldBe 1800
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
       listener.expectMessageType[CheckWindowPassed] match {
         case CheckWindowPassed(tick, duration) =>
           tick shouldBe 2700
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
       listener.expectMessageType[CheckWindowPassed] match {
         case CheckWindowPassed(tick, duration) =>
           tick shouldBe 3600
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
       listener.expectMessageType[Ready].tick shouldBe 3600
 
@@ -339,12 +339,12 @@ class TimeAdvancerSpec
       listener.expectMessageType[CheckWindowPassed] match {
         case CheckWindowPassed(tick, duration) =>
           tick shouldBe 4500
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
       listener.expectMessageType[Done] match {
         case Done(tick, duration, errorInSim) =>
           tick shouldBe 5400
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
           errorInSim shouldBe false
       }
 
@@ -380,7 +380,7 @@ class TimeAdvancerSpec
       timeAdvancer ! Completion(scheduler.ref, Some(0))
       listener.expectMessageType[InitComplete] match {
         case InitComplete(duration) =>
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
 
       // tick 0 is activated automatically
@@ -392,17 +392,17 @@ class TimeAdvancerSpec
       listener.expectMessageType[CheckWindowPassed] match {
         case CheckWindowPassed(tick, duration) =>
           tick shouldBe 900
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
       listener.expectMessageType[CheckWindowPassed] match {
         case CheckWindowPassed(tick, duration) =>
           tick shouldBe 1800
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
       listener.expectMessageType[CheckWindowPassed] match {
         case CheckWindowPassed(tick, duration) =>
           tick shouldBe 2700
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
       listener.expectMessageType[Ready].tick shouldBe 3599
 
@@ -422,7 +422,7 @@ class TimeAdvancerSpec
       listener.expectMessageType[Done] match {
         case Done(tick, duration, errorInSim) =>
           tick shouldBe 3600
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
           errorInSim shouldBe false
       }
 
@@ -458,12 +458,12 @@ class TimeAdvancerSpec
       timeAdvancer ! Completion(scheduler.ref, Some(3601))
       listener.expectMessageType[InitComplete] match {
         case InitComplete(duration) =>
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
       listener.expectMessageType[CheckWindowPassed] match {
         case CheckWindowPassed(tick, duration) =>
           tick shouldBe 1800
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
 
       // tick 3601 should not be activated!
@@ -472,7 +472,7 @@ class TimeAdvancerSpec
       listener.expectMessageType[Done] match {
         case Done(tick, duration, errorInSim) =>
           tick shouldBe 3600
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
           errorInSim shouldBe false
       }
 
@@ -508,22 +508,22 @@ class TimeAdvancerSpec
       timeAdvancer ! Completion(scheduler.ref)
       listener.expectMessageType[InitComplete] match {
         case InitComplete(duration) =>
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
       listener.expectMessageType[CheckWindowPassed] match {
         case CheckWindowPassed(tick, duration) =>
           tick shouldBe 900
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
       listener.expectMessageType[CheckWindowPassed] match {
         case CheckWindowPassed(tick, duration) =>
           tick shouldBe 1800
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
       listener.expectMessageType[CheckWindowPassed] match {
         case CheckWindowPassed(tick, duration) =>
           tick shouldBe 2700
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
 
       // scheduler should not be activated!
@@ -532,7 +532,7 @@ class TimeAdvancerSpec
       listener.expectMessageType[Done] match {
         case Done(tick, duration, errorInSim) =>
           tick shouldBe 3600
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
           errorInSim shouldBe false
       }
 
@@ -568,12 +568,12 @@ class TimeAdvancerSpec
       timeAdvancer ! Completion(scheduler.ref)
       listener.expectMessageType[InitComplete] match {
         case InitComplete(duration) =>
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
       listener.expectMessageType[CheckWindowPassed] match {
         case CheckWindowPassed(tick, duration) =>
           tick shouldBe 1800
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
 
       // scheduler should not be activated!
@@ -582,7 +582,7 @@ class TimeAdvancerSpec
       listener.expectMessageType[Done] match {
         case Done(tick, duration, errorInSim) =>
           tick shouldBe 3600
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
           errorInSim shouldBe false
       }
 
@@ -618,12 +618,12 @@ class TimeAdvancerSpec
       timeAdvancer ! Completion(scheduler.ref)
       listener.expectMessageType[InitComplete] match {
         case InitComplete(duration) =>
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
       listener.expectMessageType[CheckWindowPassed] match {
         case CheckWindowPassed(tick, duration) =>
           tick shouldBe 900
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
       }
 
       // scheduler should not be activated!
@@ -632,7 +632,7 @@ class TimeAdvancerSpec
       listener.expectMessageType[Done] match {
         case Done(tick, duration, errorInSim) =>
           tick shouldBe 1800
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
           errorInSim shouldBe false
       }
 
@@ -673,7 +673,7 @@ class TimeAdvancerSpec
       listener.expectMessageType[Done] match {
         case Done(tick, duration, errorInSim) =>
           tick shouldBe 0
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
           errorInSim shouldBe true
       }
 
@@ -720,7 +720,7 @@ class TimeAdvancerSpec
       listener.expectMessageType[Done] match {
         case Done(tick, duration, errorInSim) =>
           tick shouldBe 1
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
           errorInSim shouldBe true
       }
 
@@ -758,7 +758,7 @@ class TimeAdvancerSpec
       listener.expectMessageType[Done] match {
         case Done(tick, duration, errorInSim) =>
           tick shouldBe 0
-          duration should (be >= 0 and be < maxEventDuration)
+          duration should (be >= 0L and be < maxEventDuration)
           errorInSim shouldBe true
       }
 
