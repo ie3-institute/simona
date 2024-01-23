@@ -100,7 +100,7 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
             ) =>
           // potential for decreasing feed-in/increasing load (negative)
           val flexPotential =
-            flexOption.referencePower - flexOption.maxPower
+            flexOption.ref - flexOption.max
 
           if (Kilowatts(0d).~=(remainingExcessPower)(tolerance)) {
             // we're already there (besides rounding error)
@@ -112,15 +112,15 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
             // we cannot cover the excess feed-in with just this flexibility,
             // thus use all of the available flexibility and continue
             (
-              issueCtrlMsgs :+ (inputModel.getUuid, flexOption.maxPower),
+              issueCtrlMsgs :+ (inputModel.getUuid, flexOption.max),
               Some(remainingExcessPower - flexPotential)
             )
           } else {
 
             // this flexibility covers more than we need to reach zero excess,
             // thus we only use as much as we need
-            val powerCtrl = flexOption.maxPower.min(
-              flexOption.referencePower - remainingExcessPower
+            val powerCtrl = flexOption.max.min(
+              flexOption.ref - remainingExcessPower
             )
 
             (
@@ -149,7 +149,7 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
             ) =>
           // potential for decreasing load/increasing feed-in
           val flexPotential =
-            flexOption.referencePower - flexOption.minPower
+            flexOption.ref - flexOption.min
 
           if (Kilowatts(0d).~=(remainingExcessPower)(tolerance)) {
             // we're already there (besides rounding error)
@@ -161,15 +161,15 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
             // we cannot cover the excess load with just this flexibility,
             // thus use all of the available flexibility and continue
             (
-              issueCtrlMsgs :+ (inputModel.getUuid, flexOption.minPower),
+              issueCtrlMsgs :+ (inputModel.getUuid, flexOption.min),
               Some(remainingExcessPower - flexPotential)
             )
           } else {
 
             // this flexibility covers more than we need to reach zero excess,
             // thus we only use as much as we need
-            val powerCtrl = flexOption.minPower.max(
-              flexOption.referencePower - remainingExcessPower
+            val powerCtrl = flexOption.min.max(
+              flexOption.ref - remainingExcessPower
             )
 
             (
@@ -196,8 +196,8 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
     else {
       // device is not controllable by this EmAgent
       flexOptions.copy(
-        minPower = flexOptions.referencePower,
-        maxPower = flexOptions.referencePower
+        min = flexOptions.ref,
+        max = flexOptions.ref
       )
     }
   }

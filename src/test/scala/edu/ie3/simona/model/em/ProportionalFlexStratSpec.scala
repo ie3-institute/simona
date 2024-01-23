@@ -91,16 +91,16 @@ class ProportionalFlexStratSpec
         ) =>
           val flexOptions1 = ProvideMinMaxFlexOptions(
             modelUuid = UUID.randomUUID(),
-            referencePower = Kilowatts(ref1),
-            minPower = Kilowatts(min1),
-            maxPower = Kilowatts(max1)
+            ref = Kilowatts(ref1),
+            min = Kilowatts(min1),
+            max = Kilowatts(max1)
           )
 
           val flexOptions2 = ProvideMinMaxFlexOptions(
             modelUuid = UUID.randomUUID(),
-            referencePower = Kilowatts(ref2),
-            minPower = Kilowatts(min2),
-            maxPower = Kilowatts(max2)
+            ref = Kilowatts(ref2),
+            min = Kilowatts(min2),
+            max = Kilowatts(max2)
           )
 
           val actualResults = ProportionalFlexStrat

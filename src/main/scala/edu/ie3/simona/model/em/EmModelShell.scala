@@ -68,7 +68,6 @@ final case class EmModelShell(
       allFlexOptions: Iterable[(UUID, ProvideFlexOptions)],
       target: Power
   ): Iterable[(UUID, Power)] = {
-    // TODO sanity checks before strat calculation
 
     val minMaxFlexOptions = allFlexOptions.toMap.view.mapValues {
       case flex: ProvideMinMaxFlexOptions => flex

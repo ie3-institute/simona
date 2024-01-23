@@ -21,16 +21,16 @@ class EmAggregateSimpleSumSpec extends UnitSpec with MockitoSugar {
     "calculate ref, min and max power correctly" in {
       val flexOptions1 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
-        referencePower = Kilowatts(6.0),
-        minPower = Kilowatts(4.0),
-        maxPower = Kilowatts(12.0)
+        ref = Kilowatts(6.0),
+        min = Kilowatts(4.0),
+        max = Kilowatts(12.0)
       )
 
       val flexOptions2 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
-        referencePower = Kilowatts(2.0),
-        minPower = Kilowatts(-2.0),
-        maxPower = Kilowatts(2.0)
+        ref = Kilowatts(2.0),
+        min = Kilowatts(-2.0),
+        max = Kilowatts(2.0)
       )
 
       val actualResult = EmAggregateSimpleSum.aggregateFlexOptions(

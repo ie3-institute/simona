@@ -45,7 +45,7 @@ object EmTools {
 
           case IssueNoControl(_) =>
             // no override, take reference power
-            flexOptions.referencePower
+            flexOptions.ref
         }
 
       case unknownFlexOpt =>
@@ -66,13 +66,13 @@ object EmTools {
       flexOptions: ProvideMinMaxFlexOptions,
       setPower: Power
   ): Unit = {
-    if (setPower < flexOptions.minPower)
+    if (setPower < flexOptions.min)
       throw new CriticalFailureException(
-        s"The set power $setPower for ${flexOptions.modelUuid} must not be lower than the minimum power ${flexOptions.minPower}!"
+        s"The set power $setPower for ${flexOptions.modelUuid} must not be lower than the minimum power ${flexOptions.min}!"
       )
-    else if (setPower > flexOptions.maxPower)
+    else if (setPower > flexOptions.max)
       throw new CriticalFailureException(
-        s"The set power $setPower for ${flexOptions.modelUuid} must not be greater than the maximum power ${flexOptions.maxPower}!"
+        s"The set power $setPower for ${flexOptions.modelUuid} must not be greater than the maximum power ${flexOptions.max}!"
       )
   }
 }

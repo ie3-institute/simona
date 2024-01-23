@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.ontology.messages.flex
 
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
 import squants.Power
 
@@ -22,19 +23,21 @@ object MinMaxFlexibilityMessage {
     *
     * @param modelUuid
     *   The UUID of the flex provider asset model
-    * @param referencePower
-    *   The active power that the flex provider would produce/consume regularly
-    *   at the current tick, i.e. if it was not flex-controlled
-    * @param minPower
-    *   The minimum power that the flex provider allows at the current tick
-    * @param maxPower
-    *   the maximum power that the flex provider allows at the current tick
+    * @param ref
+    *   The reference active power that the flex provider would produce/consume
+    *   regularly at the current tick, i.e. if it was not flex-controlled
+    * @param min
+    *   The minimum active power that the flex provider allows at the current
+    *   tick
+    * @param max
+    *   The maximum active power that the flex provider allows at the current
+    *   tick
     */
-  final case class ProvideMinMaxFlexOptions(
+  final case class ProvideMinMaxFlexOptions private (
       override val modelUuid: UUID,
-      referencePower: Power,
-      minPower: Power,
-      maxPower: Power
+      ref: Power,
+      min: Power,
+      max: Power
   ) extends ProvideFlexOptions {
 
     /** Checks whether given power fits within the min-max interval and thus
@@ -45,10 +48,47 @@ object MinMaxFlexibilityMessage {
       *   Whether the given power is within the min-max interval or not
       */
     def fits(power: Power): Boolean =
-      minPower <= power && power <= maxPower
+      min <= power && power <= max
   }
 
   object ProvideMinMaxFlexOptions {
+
+    /** Creates a [[ProvideMinMaxFlexOptions]] message with sanity checks
+      * regarding the power values
+      *
+      * @param modelUuid
+      *   The UUID of the flex provider asset model
+      * @param ref
+      *   The reference active power that the flex provider would
+      *   produce/consume regularly at the current tick, i.e. if it was not
+      *   flex-controlled
+      * @param min
+      *   The minimum active power that the flex provider allows at the current
+      *   tick
+      * @param max
+      *   The maximum active power that the flex provider allows at the current
+      *   tick
+      * @return
+      *   The [[ProvideMinMaxFlexOptions]] message
+      */
+    def apply(
+        modelUuid: UUID,
+        ref: Power,
+        min: Power,
+        max: Power
+    ): ProvideMinMaxFlexOptions = {
+      if (min > ref)
+        throw new CriticalFailureException(
+          s"Minimum power $min is greater than reference power $ref"
+        )
+
+      if (ref > max)
+        throw new CriticalFailureException(
+          s"Reference power $ref is greater than maximum power $max"
+        )
+
+      new ProvideMinMaxFlexOptions(modelUuid, ref, min, max)
+    }
 
     /** Creates a [[ProvideMinMaxFlexOptions]] message that does not allow any
       * flexibility, meaning that min = ref = max power.
