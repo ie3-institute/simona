@@ -28,7 +28,7 @@ import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
   *   Time in milliseconds when the simulation was last started (before
   *   initialization or after a pause)
   * @param lastCheckWindowTime
-  *   Time when in milliseconds when
+  *   Time in milliseconds when the last check window was passed
   */
 final case class RuntimeNotifier(
     eventListener: ActorRef[RuntimeEvent],
@@ -65,10 +65,15 @@ final case class RuntimeNotifier(
         Simulating(tick, pauseOrEndTick)
     })
 
-    if (tick > 0L)
-      copy(lastStartTime = nowTime)
+    if (simStartTime > -1)
+      // Has been started before: resuming simulation
+      copy(lastStartTime = nowTime, lastCheckWindowTime = nowTime)
     else
-      copy(simStartTime = nowTime, lastStartTime = nowTime)
+      copy(
+        simStartTime = nowTime,
+        lastStartTime = nowTime,
+        lastCheckWindowTime = nowTime
+      )
   }
 
   /** Notifier listeners that simulation is pausing at given tick
