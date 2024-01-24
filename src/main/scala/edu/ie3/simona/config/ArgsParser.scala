@@ -10,7 +10,6 @@ import com.typesafe.config.{ConfigFactory, Config => TypesafeConfig}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.event.listener.SimonaListenerCompanion
 import edu.ie3.util.scala.ReflectionTools
-import org.apache.commons.io.FilenameUtils
 import scopt.{OptionParser => scoptOptionParser}
 
 import java.io.File
@@ -41,11 +40,9 @@ object ArgsParser extends LazyLogging {
     new scoptOptionParser[Arguments]("simona") {
       opt[String]("config")
         .action((value, args) => {
-          val harmonized = FilenameUtils.normalize(value, true)
-
           args.copy(
-            config = Some(parseTypesafeConfig(harmonized)),
-            configLocation = Option(harmonized)
+            config = Some(parseTypesafeConfig(value)),
+            configLocation = Option(value)
           )
         })
         .validate(value =>
@@ -230,7 +227,7 @@ object ArgsParser extends LazyLogging {
 
     val argsConfig =
       ConfigFactory.parseString(
-        s"""config = "${parsedArgs.configLocation.get}"
+        s"""config = "${parsedArgs.configLocation.get.replace("\\", "\\\\")}"
            |simona.runtime_configuration {
            |  selected_subnets = [${parsedArgs.selectedSubnets.getOrElse("")}]
            |  selected_volt_lvls = [${parsedArgs.selectedVoltLvls
