@@ -93,9 +93,9 @@ class StorageModelTest extends Specification {
     def result = (ProvideMinMaxFlexOptions) storageModel.determineFlexOptions(data, oldState)
 
     then:
-    Math.abs(result.referencePower().toKilowatts() - pRef) < TOLERANCE
-    Math.abs(result.minPower().toKilowatts() - pMin) < TOLERANCE
-    Math.abs(result.maxPower().toKilowatts() - pMax) < TOLERANCE
+    Math.abs(result.ref().toKilowatts() - pRef) < TOLERANCE
+    Math.abs(result.min().toKilowatts() - pMin) < TOLERANCE
+    Math.abs(result.max().toKilowatts() - pMax) < TOLERANCE
 
     where:
     lastStored   | lastPower | timeDelta || pRef | pMin | pMax
@@ -142,9 +142,9 @@ class StorageModelTest extends Specification {
     def result = (ProvideMinMaxFlexOptions) storageModel.determineFlexOptions(data, oldState)
 
     then:
-    Math.abs(result.referencePower().toKilowatts() - pRef) < TOLERANCE
-    Math.abs(result.minPower().toKilowatts() - pMin) < TOLERANCE
-    Math.abs(result.maxPower().toKilowatts() - pMax) < TOLERANCE
+    Math.abs(result.ref().toKilowatts() - pRef) < TOLERANCE
+    Math.abs(result.min().toKilowatts() - pMin) < TOLERANCE
+    Math.abs(result.max().toKilowatts() - pMax) < TOLERANCE
 
     where:
     lastStored || pRef | pMin | pMax
