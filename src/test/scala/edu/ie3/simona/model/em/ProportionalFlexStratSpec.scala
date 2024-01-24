@@ -68,7 +68,7 @@ class ProportionalFlexStratSpec
         // target higher than min sum
         (-1d, 1d, -1d, 2d, 0d, -2d, 0d, S(0d), S(-1d)),
         (-2d, 1d, -1d, 2d, 0d, -2d, 0d, S(-0.5d), S(-1.5d)),
-        (-4d, -1d, -2d, 2d, 1d, -3d, 0d, S(-1.8d), S(-2.2d)),
+        (-4d, -1d, -2d, 2d, 1d, -3d, 1d, S(-1.8d), S(-2.2d)),
         (-4d, -2d, -2d, 0d, 0d, -4d, 0d, N, S(-2d)),
         (-4d, 0d, -4d, 0d, -2d, -2d, 0d, S(-2d), N),
         // target lower than min sum
