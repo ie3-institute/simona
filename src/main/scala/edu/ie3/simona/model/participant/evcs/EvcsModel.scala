@@ -517,7 +517,8 @@ final case class EvcsModel(
       voltage: squants.Dimensionless,
       modelState: EvcsState,
       data: EvcsRelevantData
-  ): ApparentPower = ???
+  ): ApparentPower =
+    throw new NotImplementedError("Use calculatePowerAndEvSoc() instead.")
 
   /** Calculate the active power behaviour of the model
     *
