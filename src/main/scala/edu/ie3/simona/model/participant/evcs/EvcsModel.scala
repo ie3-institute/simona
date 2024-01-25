@@ -91,7 +91,7 @@ final case class EvcsModel(
       operationInterval,
       scalingFactor,
       qControl,
-      (sRated * chargingPoints),
+      sRated * chargingPoints,
       cosPhiRated
     )
     with LazyLogging
@@ -946,8 +946,6 @@ object EvcsModel {
     *   The current tick
     * @param arrivals
     *   The evs arriving at the current tick
-    * @param voltages
-    *   Nodal voltage per known time instant
     */
   final case class EvcsRelevantData(
       tick: Long,

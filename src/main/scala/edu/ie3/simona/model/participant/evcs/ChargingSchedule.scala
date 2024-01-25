@@ -18,7 +18,7 @@ import scala.collection.immutable.{SortedSet, TreeSet}
   * @param schedule
   *   Actual schedule
   */
-final case class ChargingSchedule(ev: UUID, schedule: SortedSet[Entry]) {}
+final case class ChargingSchedule(ev: UUID, schedule: SortedSet[Entry])
 
 object ChargingSchedule {
   def apply(ev: EvModelWrapper, entries: Seq[Entry]) =
