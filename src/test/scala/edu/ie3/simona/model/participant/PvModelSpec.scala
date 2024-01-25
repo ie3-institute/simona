@@ -11,13 +11,17 @@ import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
-import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
+import squants.Each
+import squants.energy.Kilowatts
+import squants.space.Radians
 import tech.units.indriya.quantity.Quantities.getQuantity
 import tech.units.indriya.unit.Units._
 
+import scala.math.toRadians
 import java.time.ZonedDateTime
 import java.util.UUID
 
@@ -32,7 +36,7 @@ import java.util.UUID
  *
  */
 
-class PvModelSpec extends UnitSpec {
+class PvModelSpec extends UnitSpec with DefaultTestData {
 
   // build the NodeInputModel (which defines the location of the pv input model)
   // the NodeInputModel needs a GeoReference for the Pv to work
@@ -72,27 +76,12 @@ class PvModelSpec extends UnitSpec {
 
 
   // build the PvModel
-  val scalingFactor = 1.0d
   val pvModel: PvModel = PvModel(
-    pvInput.getUuid,
-    pvInput.getId,
-    OperationInterval(0L, 86400L),
-    scalingFactor,
-    pvInput.getqCharacteristics,
-    pvInput.getsRated.to(KILOWATT).getValue.doubleValue,
-    pvInput.getCosPhiRated,
-    pvInput.getNode.getGeoPosition.getY,
-    pvInput.getNode.getGeoPosition.getX,
-    pvInput.getAlbedo,
-    pvInput.getEtaConv.to(PU).getValue.doubleValue,
-    pvInput.getAzimuth.to(RADIAN).getValue.doubleValue,
-    pvInput.getElevationAngle.getValue.doubleValue,
-    1d
+    pvInput,
+    scalingFactor = 1.0d,
+    defaultSimulationStart,
+    defaultSimulationEnd
   )
-
-  def setupSpec(): Unit = {
-
-  }
 
 
   "A PV Model" should {
@@ -116,7 +105,7 @@ class PvModelSpec extends UnitSpec {
         val adjustedVoltage = 1
 
         // when
-        val qCalc = pvModel.calculateReactivePower(pVal, adjustedVoltage)
+        val qCalc = pvModel.calculateReactivePower(Kilowatts(pVal), Each(adjustedVoltage))
 
         // then
         qCalc shouldEqual qSol // unit MVar ??
@@ -158,9 +147,8 @@ class PvModelSpec extends UnitSpec {
 
       forAll(testCases) { (j, deltaSol) =>
         // When
-        val dayAngleQuantity = j.toDegrees // ??
 
-        val deltaCalc = pvModel.calcSunDeclinationDelta(dayAngleQuantity)
+        val deltaCalc = pvModel.calcSunDeclinationDelta(Radians(j))
 
         // Then
         deltaCalc shouldEqual deltaSol +- 1e-6
@@ -193,7 +181,7 @@ class PvModelSpec extends UnitSpec {
         val dayAngleQuantity = j
         val longitudeQuantity = longitude
 
-        val omegaCalc = pvModel.calcHourAngleOmega(dateTime, dayAngleQuantity, longitudeQuantity)
+        val omegaCalc = pvModel.calcHourAngleOmega(dateTime, Radians(j), longitudeQuantity)
 
         // Then
         omegaCalc shouldEqual omegaSol +- 1e-10
@@ -242,17 +230,17 @@ class PvModelSpec extends UnitSpec {
         (0d, -0.305432619d, 0.518013722d, 0.7473499857948969d), // omega: 0 = Solar Noon, Feb 01st, lat/lon: Gainsville (29.68 N, 82.27 W)
         (-1.374970385d, 0.380755678d, 0.157952297d, 0.2391202791125743d), // omega: -78.78° = 7:00 a.m., June 01st, lat/lon: Tocumen Panama (9.05 N, 79.37 W)
         (0d, -0.268780705d, -0.616101226d, 1.2234758057948967d), // omega: 0° = Solar noon., Nov 01st, lat/lon: Canberra Australia (35.3 S, 149.1 E)
-        (math.toRadians(-37.5d), math.toRadians(-14d), math.toRadians(43d), math.toRadians(23.4529893659531784299686037109330117049955654837550d)), // '2011-02-13T09:30:00' from Duffie
-        (math.toRadians(97.5d), math.toRadians(23.1d), math.toRadians(43d), math.toRadians(10.356151317506402829742934977890382350725031728508d)), // '2011-07-01T06:30:00' from Duffie
+        (toRadians(-37.5d), toRadians(-14d), toRadians(43d), toRadians(23.4529893659531784299686037109330117049955654837550d)), // '2011-02-13T09:30:00' from Duffie
+        (toRadians(97.5d), toRadians(23.1d), toRadians(43d), toRadians(10.356151317506402829742934977890382350725031728508d)), // '2011-07-01T06:30:00' from Duffie
         // Reference: Quaschning, Regenerative Energiesysteme figure 2.15 and figure 2.16   // gammaS@Quaschning = alphaS@SIMONA !
-        (math.toRadians(-47.15114406), math.toRadians(23.4337425d), math.toRadians(52.3d), math.toRadians(44.12595614280154d)), // Berlin (13.2E 52.3N) '2011-06-21T09:00:00' MEZ
-        (math.toRadians(-32.15114394d), math.toRadians(23.4337425d), math.toRadians(52.3d), math.toRadians(52.15790489243239d)), // Berlin (13.2E 52.3N) '2011-06-21T10:00:00' MEZ
-        (math.toRadians(-17.15114381d), math.toRadians(23.4337425d), math.toRadians(52.3d), math.toRadians(58.29851278388936d)), // Berlin (13.2E 52.3N) '2011-06-21T11:00:00' MEZ
-        (math.toRadians(-2.151143686d), math.toRadians(23.4337425d), math.toRadians(52.3d), math.toRadians(61.086849596117524d)), // Berlin (13.2E 52.3N) '2011-06-21T12:00:00' MEZ
-        (math.toRadians(12.84885587d), math.toRadians(23.4337425d), math.toRadians(52.3d), math.toRadians(59.50792770681503d)), // Berlin (13.2E 52.3N) '2011-06-21T13:00:00' MEZ
-        (math.toRadians(27.84885599d), math.toRadians(23.4337425d), math.toRadians(52.3d), math.toRadians(54.170777340509574d)), // Berlin (13.2E 52.3N) '2011-06-21T14:00:00' MEZ
-        (math.toRadians(58.28178946d), math.toRadians(7.79402247d), math.toRadians(52.3d), math.toRadians(25.203526133755485d)), // Berlin (13.2E 52.3N) '2011-09-04T16:00:00' MEZ
-        (math.toRadians(0.948855924d), math.toRadians(23.4337425d), math.toRadians(30.1d), math.toRadians(83.28023248078853d)) // Cairo  (31.3E 30.1N)  '2011-06-21T12:00:00' MEZ+1h
+        (toRadians(-47.15114406), toRadians(23.4337425d), toRadians(52.3d), toRadians(44.12595614280154d)), // Berlin (13.2E 52.3N) '2011-06-21T09:00:00' MEZ
+        (toRadians(-32.15114394d), toRadians(23.4337425d), toRadians(52.3d), toRadians(52.15790489243239d)), // Berlin (13.2E 52.3N) '2011-06-21T10:00:00' MEZ
+        (toRadians(-17.15114381d), toRadians(23.4337425d), toRadians(52.3d), toRadians(58.29851278388936d)), // Berlin (13.2E 52.3N) '2011-06-21T11:00:00' MEZ
+        (toRadians(-2.151143686d), toRadians(23.4337425d), toRadians(52.3d), toRadians(61.086849596117524d)), // Berlin (13.2E 52.3N) '2011-06-21T12:00:00' MEZ
+        (toRadians(12.84885587d), toRadians(23.4337425d), toRadians(52.3d), toRadians(59.50792770681503d)), // Berlin (13.2E 52.3N) '2011-06-21T13:00:00' MEZ
+        (toRadians(27.84885599d), toRadians(23.4337425d), toRadians(52.3d), toRadians(54.170777340509574d)), // Berlin (13.2E 52.3N) '2011-06-21T14:00:00' MEZ
+        (toRadians(58.28178946d), toRadians(7.79402247d), toRadians(52.3d), toRadians(25.203526133755485d)), // Berlin (13.2E 52.3N) '2011-09-04T16:00:00' MEZ
+        (toRadians(0.948855924d), toRadians(23.4337425d), toRadians(30.1d), toRadians(83.28023248078853d)) // Cairo  (31.3E 30.1N)  '2011-06-21T12:00:00' MEZ+1h
       )
 
       forAll(testCases) { (omega, delta, latitude, alphaSSol) =>
@@ -347,11 +335,11 @@ class PvModelSpec extends UnitSpec {
       //        "west of south." ?????
       forAll(testCases) { (latitudeDeg, deltaDeg, omegaDeg, gammaEDeg, alphaEDeg, thetaGOut) =>
         // Given
-        val deltaRad = math.toRadians(deltaDeg) // Declination Angle delta of the sun at solar noon
-        val latitudeRad = math.toRadians(latitudeDeg) // Latitude in Radian
-        val omegaRad = math.toRadians(omegaDeg) // Hour Angle
-        val gammaERad = math.toRadians(gammaEDeg) // Slope (Inclination) Angle of the surface
-        val alphaERad = math.toRadians(alphaEDeg) // Surface azimuth
+        val deltaRad = toRadians(deltaDeg) // Declination Angle delta of the sun at solar noon
+        val latitudeRad = toRadians(latitudeDeg) // Latitude in Radian
+        val omegaRad = toRadians(omegaDeg) // Hour Angle
+        val gammaERad = toRadians(gammaEDeg) // Slope (Inclination) Angle of the surface
+        val alphaERad = toRadians(alphaEDeg) // Surface azimuth
 
         // When
         val thetaG = pvModel.calcAngleOfIncidenceThetaG(deltaRad, latitudeRad, gammaERad, alphaERad, omegaRad)
@@ -381,11 +369,11 @@ class PvModelSpec extends UnitSpec {
       */
       forAll(testCases) { (latitudeDeg, deltaDeg, omegaDeg, gammaEDeg, alphaEDeg, thetaGOut) =>
         // Given
-        val latitudeRad = Math.toRadians(latitudeDeg) // Latitude in radians
-        val deltaRad = Math.toRadians(deltaDeg) // Declination Angle delta of the sun at solar noon
-        val omegaRad = Math.toRadians(omegaDeg) // Hour Angle
-        val gammaERad = Math.toRadians(gammaEDeg) // Slope (Inclination) Angle of the surface
-        val alphaERad = Math.toRadians(alphaEDeg) // Surface azimuth
+        val latitudeRad = toRadians(latitudeDeg) // Latitude in radians
+        val deltaRad = toRadians(deltaDeg) // Declination Angle delta of the sun at solar noon
+        val omegaRad = toRadians(omegaDeg) // Hour Angle
+        val gammaERad = toRadians(gammaEDeg) // Slope (Inclination) Angle of the surface
+        val alphaERad = toRadians(alphaEDeg) // Surface azimuth
 
         // When
         val thetaG = pvModel.calcAngleOfIncidenceThetaG(deltaRad, latitudeRad, gammaERad, alphaERad, omegaRad)
@@ -409,11 +397,11 @@ class PvModelSpec extends UnitSpec {
 
       forAll(testCases) { (latitudeDeg, deltaDeg, omegaDeg, gammaEDeg, alphaEDeg, thetaGOut) =>
         // Given
-        val latitudeRad = Math.toRadians(latitudeDeg) // Latitude in Radian
-        val deltaRad = Math.toRadians(deltaDeg) // Declination Angle delta of the sun at solar noon
-        val omegaRad = Math.toRadians(omegaDeg) // Hour Angle
-        val gammaERad = Math.toRadians(gammaEDeg) // Slope (Inclination) Angle of the surface
-        val alphaERad = Math.toRadians(alphaEDeg) // Surface azimuth
+        val latitudeRad = toRadians(latitudeDeg) // Latitude in Radian
+        val deltaRad = toRadians(deltaDeg) // Declination Angle delta of the sun at solar noon
+        val omegaRad = toRadians(omegaDeg) // Hour Angle
+        val gammaERad = toRadians(gammaEDeg) // Slope (Inclination) Angle of the surface
+        val alphaERad = toRadians(alphaEDeg) // Surface azimuth
 
         // Im Test wird garnicht Rb ausgerechnet?
       }
@@ -438,14 +426,14 @@ class PvModelSpec extends UnitSpec {
       // https://www.sku.ac.ir/Datafiles/BookLibrary/45/John%20A.%20Duffie,%20William%20A.%20Beckman(auth.)-Solar%20Engineering%20of%20Thermal%20Processes,%20Fourth%20Edition%20(2013).pdf
       forAll(testCases) { (latitudeDeg, gammaEDeg, alphaEDeg, deltaDeg, omegaDeg, thetaGDeg, eBeamSSol) =>
         // Given
-        val gammaERad = math.toRadians(gammaEDeg) // Slope (Inclination) angle
-        val alphaERad = math.toRadians(alphaEDeg) // Surface azimuth angle
-        val latitudeRad = math.toRadians(latitudeDeg) // Latitude
+        val gammaERad = toRadians(gammaEDeg) // Slope (Inclination) angle
+        val alphaERad = toRadians(alphaEDeg) // Surface azimuth angle
+        val latitudeRad = toRadians(latitudeDeg) // Latitude
         // Beam Radiation on a horizontal surface
         val eBeamH = 67.777778d // 1 MJ/m^2 = 277,778 Wh/m^2 -> 0.244 MJ/m^2 = 67.777778 Wh/m^2
-        val deltaRad = math.toRadians(deltaDeg) // Declination Angle delta of the sun at solar noon
-        val omegaRad = math.toRadians(omegaDeg) // Hour angle
-        val thetaGRad = math.toRadians(thetaGDeg) // Incidence angle
+        val deltaRad = toRadians(deltaDeg) // Declination Angle delta of the sun at solar noon
+        val omegaRad = toRadians(omegaDeg) // Hour angle
+        val thetaGRad = toRadians(thetaGDeg) // Incidence angle
         val omegaSS = pvModel.calcSunsetAngleOmegaSS(latitudeRad, deltaRad) //Sunset angle
         val omegaSR = -omegaSS // Sunrise angle
         val omegas = pvModel.calculateBeamOmegas(thetaGRad, omegaRad, omegaSS, omegaSR) // omega1 and omega2
@@ -469,13 +457,13 @@ class PvModelSpec extends UnitSpec {
         // Reference p.95
         // https://www.sku.ac.ir/Datafiles/BookLibrary/45/John%20A.%20Duffie,%20William%20A.%20Beckman(auth.)-Solar%20Engineering%20of%20Thermal%20Processes,%20Fourth%20Edition%20(2013).pdf
         // Given
-        val gammaERad = math.toRadians(gammaEDeg) // Slope Angle
+        val gammaERad = toRadians(gammaEDeg) // Slope Angle
         // Beam Radiation on horizontal surface
         val eBeamH = 67.777778d // 1 MJ/m^2 = 277,778 Wh/m^2 -> 0.244 MJ/m^2 = 67.777778 Wh/m^2
         // Diffuse Radiation on a horizontal surface
         val eDifH = 213.61111d // 0.769 MJ/m^2 = 213,61111 Wh/m^2
-        val thetaGRad = math.toRadians(thetaGDeg) // Incidence Angle
-        val thetaZRad = math.toRadians(thetaZDeg) // Zenith Angle
+        val thetaGRad = toRadians(thetaGDeg) // Incidence Angle
+        val thetaZRad = toRadians(thetaZDeg) // Zenith Angle
         val I0Quantity = I0 // Extraterrestrial radiation
 
         // When
@@ -495,7 +483,7 @@ class PvModelSpec extends UnitSpec {
 
       forAll(testCases) { (slope, albedo, eRefSSol) =>
         // Given
-        val gammaERad = math.toRadians(gammaEDeg) // Slope Angle
+        val gammaERad = toRadians(gammaEDeg) // Slope Angle
         // Beam Radiation on horizontal surface
         val eBeamH = 67.777778d // 1 MJ/m^2 = 277,778 Wh/m^2 -> 0.244 MJ/m^2 = 67.777778 Wh/m^2
         // Diffuse Radiation on a horizontal surface
