@@ -63,8 +63,7 @@ class EvcsModelSpec
         val actualSchedule = evcsModel.calculateNewScheduling(
           EvcsRelevantData(
             3600L,
-            Seq.empty,
-            Map.empty // should be irrelevant
+            Seq.empty
           ),
           Set(evModel)
         )
@@ -98,8 +97,7 @@ class EvcsModelSpec
         val actualSchedule = evcsModel.calculateNewScheduling(
           EvcsRelevantData(
             3600L,
-            Seq.empty,
-            Map.empty // should be irrelevant
+            Seq.empty
           ),
           Set(evModel)
         )
@@ -510,8 +508,7 @@ class EvcsModelSpec
 
         val data = EvcsRelevantData(
           currentTick,
-          Seq.empty,
-          Map.empty
+          Seq.empty
         )
 
         val cases = Table(
@@ -653,8 +650,7 @@ class EvcsModelSpec
 
         val data = EvcsRelevantData(
           currentTick,
-          Seq.empty,
-          Map.empty
+          Seq.empty
         )
 
         val ev1 = EvModelWrapper(
@@ -701,8 +697,7 @@ class EvcsModelSpec
 
         val data = EvcsRelevantData(
           currentTick,
-          Seq.empty,
-          Map.empty
+          Seq.empty
         )
 
         val cases = Table(

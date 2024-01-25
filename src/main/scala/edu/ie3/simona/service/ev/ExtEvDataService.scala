@@ -46,7 +46,6 @@ object ExtEvDataService {
       uuidToActorRef: Map[UUID, ActorRef] = Map.empty[UUID, ActorRef],
       extEvMessage: Option[EvDataMessageFromExt] = None,
       freeLots: ReceiveDataMap[UUID, Int] = ReceiveDataMap.empty,
-      currentPrices: ReceiveDataMap[UUID, Double] = ReceiveDataMap.empty,
       departingEvResponses: ReceiveDataMap[UUID, Seq[EvModelWrapper]] =
         ReceiveDataMap.empty
   ) extends ServiceBaseStateData

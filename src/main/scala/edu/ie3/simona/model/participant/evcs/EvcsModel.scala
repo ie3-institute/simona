@@ -123,9 +123,7 @@ final case class EvcsModel(
       scheduleByStrategy(
         strategy,
         data.tick,
-        simulationStartDate,
-        evs,
-        data.voltages
+        evs
       )
   }
 
@@ -135,21 +133,15 @@ final case class EvcsModel(
     *   Chosen charging strategy
     * @param currentTick
     *   Current simulation time
-    * @param simulationStartDate
-    *   The simulation start time
     * @param evs
     *   Collection of currently apparent evs
-    * @param voltages
-    *   Mapping from simulation time to nodal voltage
     * @return
     *   A set of [[ChargingSchedule]]s
     */
   private def scheduleByStrategy(
       strategy: ChargingStrategy.Value,
       currentTick: Long,
-      simulationStartDate: ZonedDateTime,
-      evs: Set[EvModelWrapper],
-      voltages: Map[ZonedDateTime, squants.Dimensionless]
+      evs: Set[EvModelWrapper]
   ): Map[EvModelWrapper, Option[ChargingSchedule]] = strategy match {
     case ChargingStrategy.MAX_POWER =>
       chargeWithMaximumPower(
@@ -959,8 +951,7 @@ object EvcsModel {
     */
   final case class EvcsRelevantData(
       tick: Long,
-      arrivals: Seq[EvModelWrapper],
-      voltages: Map[ZonedDateTime, squants.Dimensionless]
+      arrivals: Seq[EvModelWrapper]
   ) extends CalcRelevantData
 
   /** Class that represents the state of the charging station at a given point

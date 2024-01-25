@@ -51,7 +51,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
 }
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.util.SimonaConstants
-import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
+import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVAR, MEGAWATT, PU}
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.Megavars
@@ -219,11 +219,7 @@ protected trait EvcsAgentFundamentals
       }
       .getOrElse(Seq.empty)
 
-    val voltages = baseStateData.voltageValueStore.asMap
-      .map { case (tick, voltage) =>
-        tick.toDateTime(baseStateData.startDate) -> voltage
-      }
-    EvcsRelevantData(tick, movements, voltages)
+    EvcsRelevantData(tick, movements)
   }
 
   /** Handle an active power change by flex control.
