@@ -282,6 +282,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
       actorToEvs.zip(keys).foreach { case ((actor, arrivingEvs), key) =>
         actor ! ProvideEvDataMessage(
           tick,
+          self,
           ArrivingEvsData(arrivingEvs),
           unlockKey = Some(key)
         )
