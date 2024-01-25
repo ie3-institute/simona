@@ -235,6 +235,4 @@ build
 
 # Remove unwanted input directories
 input/ext_sim
-input/market_price
 input/mobilitySimulator/*
-!input/mobilitySimulator/poi

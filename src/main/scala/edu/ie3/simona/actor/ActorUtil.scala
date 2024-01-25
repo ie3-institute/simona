@@ -10,7 +10,6 @@ import org.apache.pekko.actor.typed.Behavior
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 
 object ActorUtil {
-
   def stopOnError[M](
       ctx: ActorContext[M],
       msg: String

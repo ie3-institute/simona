@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.agent.participant.statedata
 
-import org.apache.pekko.actor.{ActorRef => ClassicActorRef}
-import org.apache.pekko.actor.typed.ActorRef
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
@@ -23,6 +21,8 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexResponse,
   ProvideFlexOptions
 }
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.{ActorRef => ClassicActorRef}
 import squants.Dimensionless
 
 import java.time.ZonedDateTime

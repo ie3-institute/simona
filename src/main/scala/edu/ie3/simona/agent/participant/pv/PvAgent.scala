@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.participant.pv
 
-import org.apache.pekko.actor.{ActorRef, Props}
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
@@ -18,6 +17,7 @@ import edu.ie3.simona.config.SimonaConfig.PvRuntimeConfig
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.PvModel
 import edu.ie3.simona.model.participant.PvModel.PvRelevantData
+import org.apache.pekko.actor.{ActorRef, Props}
 
 object PvAgent {
   def props(
