@@ -14,6 +14,7 @@ import edu.ie3.simona.api.data.ev.ontology._
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
+import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
@@ -27,6 +28,7 @@ import edu.ie3.simona.service.ev.ExtEvDataService.{
   InitExtEvData
 }
 import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
+import edu.ie3.simona.util.ReceiveDataMap
 
 import java.util.UUID
 import scala.jdk.CollectionConverters._
@@ -43,15 +45,16 @@ object ExtEvDataService {
       extEvData: ExtEvData,
       uuidToActorRef: Map[UUID, ActorRef] = Map.empty[UUID, ActorRef],
       extEvMessage: Option[EvDataMessageFromExt] = None,
-      freeLots: Map[UUID, Option[Int]] = Map.empty,
-      departingEvResponses: Map[UUID, Option[Seq[EvModel]]] = Map.empty
+      freeLots: ReceiveDataMap[UUID, Int] = ReceiveDataMap.empty,
+      currentPrices: ReceiveDataMap[UUID, Double] = ReceiveDataMap.empty,
+      departingEvResponses: ReceiveDataMap[UUID, Seq[EvModelWrapper]] =
+        ReceiveDataMap.empty
   ) extends ServiceBaseStateData
 
   final case class InitExtEvData(
       extEvData: ExtEvData
   ) extends InitializeServiceStateData
 
-  val FALLBACK_EV_MOVEMENTS_STEM_DISTANCE: Long = 3600L
 }
 
 class ExtEvDataService(override val scheduler: ActorRef)
@@ -197,10 +200,10 @@ class ExtEvDataService(override val scheduler: ActorRef)
       evcsActor ! EvFreeLotsRequest(tick)
     }
 
-    val freeLots: Map[UUID, Option[Int]] =
+    val freeLots =
       serviceStateData.uuidToActorRef.map { case (evcs, _) =>
-        evcs -> None
-      }
+        evcs
+      }.toSet
 
     // if there are no evcs, we're sending response right away
     if (freeLots.isEmpty)
@@ -209,7 +212,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
     (
       serviceStateData.copy(
         extEvMessage = None,
-        freeLots = freeLots
+        freeLots = ReceiveDataMap(freeLots)
       ),
       None
     )
@@ -222,13 +225,13 @@ class ExtEvDataService(override val scheduler: ActorRef)
       serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Long]) = {
 
-    val departingEvResponses: Map[UUID, Option[Seq[EvModel]]] =
+    val departingEvResponses =
       requestedDepartingEvs.asScala.flatMap { case (evcs, departingEvs) =>
         serviceStateData.uuidToActorRef.get(evcs) match {
           case Some(evcsActor) =>
             evcsActor ! DepartingEvsRequest(tick, departingEvs.asScala.toSeq)
 
-            Some(evcs -> None)
+            Some(evcs)
 
           case None =>
             log.warning(
@@ -238,7 +241,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
             None
         }
-      }.toMap
+      }
 
     // if there are no departing evs during this tick,
     // we're sending response right away
@@ -248,7 +251,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
     (
       serviceStateData.copy(
         extEvMessage = None,
-        departingEvResponses = departingEvResponses
+        departingEvResponses = ReceiveDataMap(departingEvResponses.toSet)
       ),
       None
     )
@@ -265,7 +268,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
       case (evcs, arrivingEvs) =>
         serviceStateData.uuidToActorRef
           .get(evcs)
-          .map((_, arrivingEvs.asScala.toSeq))
+          .map((_, arrivingEvs.asScala.map(EvModelWrapper.apply).toSeq))
           .orElse {
             log.warning(
               "A corresponding actor ref for UUID {} could not be found",
@@ -313,50 +316,51 @@ class ExtEvDataService(override val scheduler: ActorRef)
   )(implicit serviceStateData: ExtEvStateData): ExtEvStateData = {
     extResponseMsg match {
       case DepartingEvsResponse(evcs, evModels) =>
-        val updatedResponses = serviceStateData.departingEvResponses +
-          (evcs -> Some(evModels.toList))
+        val updatedResponses =
+          serviceStateData.departingEvResponses.addData(evcs, evModels.toList)
 
-        if (updatedResponses.values.toSeq.contains(None)) {
+        if (updatedResponses.nonComplete) {
           // responses are still incomplete
           serviceStateData.copy(
             departingEvResponses = updatedResponses
           )
         } else {
           // all responses received, forward them to external simulation in a bundle
-          val departingEvs = updatedResponses.values.flatten.flatten
+          val departingEvs =
+            updatedResponses.receivedData.values.flatten.map(_.unwrap())
 
           serviceStateData.extEvData.queueExtResponseMsg(
             new ProvideDepartingEvs(departingEvs.toList.asJava)
           )
 
           serviceStateData.copy(
-            departingEvResponses = Map.empty
+            departingEvResponses = ReceiveDataMap.empty
           )
         }
       case FreeLotsResponse(evcs, freeLots) =>
-        val updatedFreeLots = serviceStateData.freeLots +
-          (evcs -> Some(freeLots))
+        val updatedFreeLots = serviceStateData.freeLots.addData(evcs, freeLots)
 
-        if (updatedFreeLots.values.toSeq.contains(None)) {
+        if (updatedFreeLots.nonComplete) {
           // responses are still incomplete
           serviceStateData.copy(
             freeLots = updatedFreeLots
           )
         } else {
           // all responses received, forward them to external simulation in a bundle
-          val freeLotsResponse = updatedFreeLots.flatMap {
-            case (evcs, Some(freeLotsCount)) if freeLotsCount > 0 =>
-              Some(evcs -> Integer.valueOf(freeLotsCount))
-            case _ =>
-              None
-          }
+          val freeLotsResponse = updatedFreeLots.receivedData
+            .filter { case (_, freeLotsCount) =>
+              freeLotsCount > 0
+            }
+            .map { case (evcs, freeLotsCount) =>
+              evcs -> Integer.valueOf(freeLotsCount)
+            }
 
           serviceStateData.extEvData.queueExtResponseMsg(
             new ProvideEvcsFreeLots(freeLotsResponse.asJava)
           )
 
           serviceStateData.copy(
-            freeLots = Map.empty
+            freeLots = ReceiveDataMap.empty
           )
         }
     }

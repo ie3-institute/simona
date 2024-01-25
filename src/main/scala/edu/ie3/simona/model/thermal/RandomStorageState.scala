@@ -18,7 +18,9 @@ trait RandomStorageState {
 
   override def startingState: ThermalStorage.ThermalStorageState = {
     def rnd: Double = new Random(seed).nextDouble()
-    def storedEnergy: Energy = getMaxEnergyThreshold * rnd
+    def storedEnergy: Energy = getMinEnergyThreshold + (
+      getMaxEnergyThreshold - (getMinEnergyThreshold * rnd)
+    )
 
     ThermalStorageState(
       -1L,

@@ -46,7 +46,6 @@ class ThermalGridSpec extends UnitSpec {
         val energyDemand = ThermalEnergyDemand.noDemand
 
         (energyDemand.required =~ MegawattHours(0d)) shouldBe true
-
         (energyDemand.possible =~ MegawattHours(0d)) shouldBe true
       }
     }
@@ -94,7 +93,6 @@ class ThermalGridSpec extends UnitSpec {
         val totalDemand = energyDemand1 + energyDemand2
 
         (totalDemand.required =~ MegawattHours(68d)) shouldBe true
-
         (totalDemand.possible =~ MegawattHours(75d)) shouldBe true
       }
     }

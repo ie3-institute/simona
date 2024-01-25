@@ -119,7 +119,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
-          HouseTemperatureLowerBoundaryReached(154284L)
+          HouseTemperatureLowerBoundaryReached(154285L)
         )
       }
 
@@ -146,7 +146,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
-          HouseTemperatureLowerBoundaryReached(154284L)
+          HouseTemperatureLowerBoundaryReached(154285L)
         )
       }
     }
@@ -225,7 +225,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
             tick shouldBe 0L
             (innerTemperature =~ Celsius(18.9999d)) shouldBe true
             (qDot =~ Megawatts(0d)) shouldBe true
-            thresholdTick shouldBe 154284L
+            thresholdTick shouldBe 154285L
           case _ => fail("Thermal grid state updated failed")
         }
       }
@@ -247,7 +247,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
             tick shouldBe 0L
             (innerTemperature =~ Celsius(18.9999d)) shouldBe true
             (qDot =~ Kilowatts(0d)) shouldBe true
-            thresholdTick shouldBe 154284L
+            thresholdTick shouldBe 154285L
           case _ => fail("Thermal grid state updated failed")
         }
       }

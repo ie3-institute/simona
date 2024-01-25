@@ -124,7 +124,6 @@ class ThermalGridWithStorageOnlySpec
               ) =>
             tick shouldBe 0L
             (storedEnergy =~ KilowattHours(430d)) shouldBe true
-
             (qDot =~ testGridQDotConsumptionHigh) shouldBe true
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
@@ -237,9 +236,7 @@ class ThermalGridWithStorageOnlySpec
               ) =>
             tick shouldBe 0L
             (storedEnergy =~ KilowattHours(230d)) shouldBe true
-
             (qDot =~ Megawatts(0d)) shouldBe true
-
           case _ => fail("Thermal grid state updated failed")
         }
       }

@@ -6,10 +6,6 @@
 
 package edu.ie3.simona.agent.participant
 
-import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
-import org.apache.pekko.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.agent.ValueStore
@@ -25,7 +21,7 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.integration.common.IntegrationSpecCommon
-import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
+import edu.ie3.simona.model.participant.HpModel.HpState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.{
@@ -54,15 +50,20 @@ import edu.ie3.util.scala.quantities.{
   Vars,
   WattsPerSquareMeter
 }
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
+import org.apache.pekko.util.Timeout
 import org.scalatest.PrivateMethodTester
 import squants.energy.{Kilowatts, Megawatts, Watts}
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
-import squants.{Dimensionless, Each, Power, Temperature}
+import squants.{Dimensionless, Each}
 
 import java.io.File
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
+import scala.collection.SortedMap
 
 class HpAgentModelCalculationSpec
     extends ParticipantAgentSpec(
@@ -81,12 +82,15 @@ class HpAgentModelCalculationSpec
   implicit val simulationStart: ZonedDateTime = defaultSimulationStart
   implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
-  implicit val powerTolerance: Power = Watts(1e-3)
-  implicit val reactivepowerTolerance: ReactivePower = Vars(1e-3)
-  implicit val temperatureTolerance: Temperature = Celsius(1e-10)
-  implicit val dimensionlessTolerance: Dimensionless = Each(1e-10)
+
+  private implicit val powerTolerance: squants.Power = Watts(0.1)
+  private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
+  private implicit val temperatureTolerance: squants.Temperature = Celsius(
+    1e-10
+  )
+
   /* Alter the input model to have a voltage sensitive reactive power calculation */
-  val hpInput: HpInput = inputModel
+  val hpInput: HpInput = hpInputModel
 
   private val simonaConfig: SimonaConfig = SimonaConfig(
     ConfigFactory
@@ -96,7 +100,8 @@ class HpAgentModelCalculationSpec
   )
   private val defaultOutputConfig = NotifierConfig(
     simonaConfig.simona.output.participant.defaultConfig.simulationResult,
-    simonaConfig.simona.output.participant.defaultConfig.powerRequestReply
+    simonaConfig.simona.output.participant.defaultConfig.powerRequestReply,
+    simonaConfig.simona.output.participant.defaultConfig.flexResult
   )
   private val participantConfigUtil = ConfigUtil.ParticipantConfigUtil(
     simonaConfig.simona.runtime.participant
@@ -128,7 +133,8 @@ class HpAgentModelCalculationSpec
       requestVoltageDeviationThreshold =
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
-      primaryServiceProxy = primaryServiceProxy.ref
+      primaryServiceProxy = primaryServiceProxy.ref,
+      maybeEmAgent = None
     )
 
     "be instantiated correctly" in {
@@ -168,7 +174,10 @@ class HpAgentModelCalculationSpec
 
       /* Agent attempts to register with primary data service -- refuse this */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(hpAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        hpAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       deathProbe.expectTerminated(hpAgent)
     }
@@ -190,7 +199,8 @@ class HpAgentModelCalculationSpec
       requestVoltageDeviationThreshold =
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
-      primaryServiceProxy = primaryServiceProxy.ref
+      primaryServiceProxy = primaryServiceProxy.ref,
+      maybeEmAgent = None
     )
 
     "be instantiated correctly" in {
@@ -239,7 +249,8 @@ class HpAgentModelCalculationSpec
               defaultSimulationEnd,
               resolution,
               requestVoltageDeviationThreshold,
-              outputConfig
+              outputConfig,
+              _
             ) =>
           inputModel shouldBe WithHeatInputContainer(hpInput, thermalGrid)
           modelConfig shouldBe modelConfig
@@ -254,7 +265,10 @@ class HpAgentModelCalculationSpec
       }
 
       /* Refuse registration */
-      primaryServiceProxy.send(hpAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        hpAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* Expect a registration message */
       weatherService.expectMsg(
@@ -277,6 +291,8 @@ class HpAgentModelCalculationSpec
                 voltageValueStore,
                 resultValueStore,
                 requestValueStore,
+                _,
+                _,
                 _
               ),
               awaitRegistrationResponsesFrom,
@@ -292,13 +308,14 @@ class HpAgentModelCalculationSpec
           )
           outputConfig shouldBe NotifierConfig(
             simulationResultInfo = true,
-            powerRequestReply = false
+            powerRequestReply = false,
+            flexResult = false
           )
           additionalActivationTicks shouldBe empty
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
-            Map(0L -> Each(1d))
+            SortedMap(0L -> Each(1.0))
           )
           resultValueStore shouldBe ValueStore(resolution)
           requestValueStore shouldBe ValueStore[ApparentPowerAndHeat](
@@ -315,7 +332,10 @@ class HpAgentModelCalculationSpec
       }
 
       /* Reply, that registration was successful */
-      weatherService.send(hpAgent, RegistrationSuccessfulMessage(Some(4711L)))
+      weatherService.send(
+        hpAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(4711L))
+      )
 
       /* Expect a completion message */
       scheduler.expectMsg(Completion(hpAgent.toTyped, Some(4711L)))
@@ -323,7 +343,7 @@ class HpAgentModelCalculationSpec
       /* ... as well as corresponding state and state data */
       hpAgent.stateName shouldBe Idle
       hpAgent.stateData match {
-        case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
           baseStateData.foreseenDataTicks shouldBe Map(
             weatherService.ref -> Some(4711L)
@@ -348,13 +368,19 @@ class HpAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(hpAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        hpAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* Expect a registration message */
       weatherService.expectMsg(
         RegisterForWeatherMessage(51.4843281, 7.4116482)
       )
-      weatherService.send(hpAgent, RegistrationSuccessfulMessage(Some(900L)))
+      weatherService.send(
+        hpAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(900L))
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -364,27 +390,27 @@ class HpAgentModelCalculationSpec
 
       hpAgent ! RequestAssetPowerMessage(
         0L,
-        Each(1d),
-        Each(0d)
+        Dimensionless.primaryUnit(1.0),
+        Dimensionless.primaryUnit(0.0)
       )
       expectMsg(
         AssetPowerChangedMessage(
-          Megawatts(0d),
-          Megavars(0d)
+          Megawatts(0.0),
+          Megavars(0.0)
         )
       )
 
       inside(hpAgent.stateData) {
-        case modelBaseStateData: ParticipantModelBaseStateData[_, _, _] =>
+        case modelBaseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           modelBaseStateData.requestValueStore shouldBe ValueStore[
             ApparentPowerAndHeat
           ](
             resolution,
-            Map(
+            SortedMap(
               0L -> ApparentPowerAndHeat(
-                Megawatts(0d),
-                Megavars(0d),
-                Megawatts(0d)
+                Megawatts(0.0),
+                Megavars(0.0),
+                Megawatts(0.0)
               )
             )
           )
@@ -408,11 +434,17 @@ class HpAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(hpAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        hpAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(hpAgent, RegistrationSuccessfulMessage(Some(0L)))
+      weatherService.send(
+        hpAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(0L))
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -421,22 +453,22 @@ class HpAgentModelCalculationSpec
 
       /* Send out new data */
       val weatherData = WeatherData(
-        WattsPerSquareMeter(0d),
-        WattsPerSquareMeter(0d),
-        Celsius(1.815d),
-        MetersPerSecond(7.726576d)
+        WattsPerSquareMeter(0),
+        WattsPerSquareMeter(0),
+        Celsius(1.815),
+        MetersPerSecond(7.726576)
       )
 
       weatherService.send(
         hpAgent,
-        ProvideWeatherMessage(0L, weatherData, Some(3600L))
+        ProvideWeatherMessage(0L, weatherService.ref, weatherData, Some(3600L))
       )
 
       /* Find yourself in corresponding state and state data */
       hpAgent.stateName shouldBe HandleInformation
       hpAgent.stateData match {
         case DataCollectionStateData(
-              baseStateData: ParticipantModelBaseStateData[_, _, _],
+              baseStateData: ParticipantModelBaseStateData[_, _, _, _],
               expectedSenders,
               isYetTriggered
             ) =>
@@ -467,48 +499,36 @@ class HpAgentModelCalculationSpec
 
       hpAgent.stateName shouldBe Idle
       hpAgent.stateData match {
-        case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
-          /* The store for calculation relevant data has been extended */
-          baseStateData.calcRelevantDateStore match {
-            case ValueStore(_, store) =>
-              store.get(0L) match {
-                case Some(
-                      HpRelevantData(
-                        HpState(
-                          isRunning,
-                          lastTimeTick,
-                          activePower,
-                          qDot,
-                          thermalGridState
-                        ),
-                        currentTimeTick,
-                        ambientTemperature
-                      )
-                    ) =>
-                  isRunning shouldBe false
-                  lastTimeTick shouldBe 0L
-                  (activePower =~ Kilowatts(0d)) shouldBe true
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
+          baseStateData.stateDataStore.last(0L) match {
+            case Some(
+                  (
+                    _,
+                    HpState(
+                      isRunning,
+                      lastTimeTick,
+                      _,
+                      activePower,
+                      qDot,
+                      thermalGridState,
+                      _
+                    )
+                  )
+                ) =>
+              isRunning shouldBe false
+              lastTimeTick shouldBe 0L
+              (activePower ~= Kilowatts(0.0)) shouldBe true
+              (qDot ~= Kilowatts(0.0)) shouldBe true
 
-                  (qDot =~
-                    Kilowatts(0d)) shouldBe true
-
-                  thermalGridState.houseState match {
-                    case Some(ThermalHouseState(_, innerTemperature, _)) =>
-                      (innerTemperature =~
-                        Celsius(
-                          20.9999769069444444444444444444444
-                        )) shouldBe true
-                    case None =>
-                      fail(
-                        s"Expected to get a result for thermal house '${inputModel.getUuid}'"
-                      )
-                  }
-
-                  currentTimeTick shouldBe 0L
-                  (ambientTemperature =~ Celsius(1.815d)) shouldBe true
+              thermalGridState.houseState match {
+                case Some(ThermalHouseState(_, innerTemperature, _)) =>
+                  (innerTemperature ~= Celsius(20.99998675925926)) shouldBe true
                 case None =>
-                  fail("Did expect to get hp relevant data for tick 0L")
+                  fail(
+                    s"Expected to get a result for thermal house '${hpInputModel.getUuid}'"
+                  )
               }
+            case None => fail("Expected to get a model state")
           }
 
           /* The store for simulation results has been extended */
@@ -520,9 +540,9 @@ class HpAgentModelCalculationSpec
                 fail("Expected a simulation result for tick 900.")
               ) match {
                 case ApparentPowerAndHeat(p, q, qDot) =>
-                  (p =~ Megawatts(0d)) shouldBe true
-                  q =~ Megavars(0d) shouldBe true
-                  qDot =~ Megawatts(0d) shouldBe true
+                  (p ~= Megawatts(0.0)) shouldBe true
+                  (q ~= Megavars(0.0)) shouldBe true
+                  (qDot ~= Megawatts(0.0)) shouldBe true
               }
           }
         case _ =>
@@ -545,11 +565,17 @@ class HpAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(hpAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        hpAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(hpAgent, RegistrationSuccessfulMessage(Some(0L)))
+      weatherService.send(
+        hpAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(0L))
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -562,7 +588,7 @@ class HpAgentModelCalculationSpec
       hpAgent.stateName shouldBe HandleInformation
       hpAgent.stateData match {
         case DataCollectionStateData(
-              baseStateData: ParticipantModelBaseStateData[_, _, _],
+              baseStateData: ParticipantModelBaseStateData[_, _, _, _],
               expectedSenders,
               isYetTriggered
             ) =>
@@ -584,15 +610,15 @@ class HpAgentModelCalculationSpec
 
       /* Providing the awaited data will lead to the foreseen transitions */
       val weatherData = WeatherData(
-        WattsPerSquareMeter(0d),
-        WattsPerSquareMeter(0d),
-        Celsius(1.815d),
-        MetersPerSecond(7.726576d)
+        WattsPerSquareMeter(0),
+        WattsPerSquareMeter(0),
+        Celsius(1.815),
+        MetersPerSecond(7.726576)
       )
 
       weatherService.send(
         hpAgent,
-        ProvideWeatherMessage(0L, weatherData, Some(3600L))
+        ProvideWeatherMessage(0L, weatherService.ref, weatherData, Some(3600L))
       )
 
       /* Expect confirmation */
@@ -601,47 +627,36 @@ class HpAgentModelCalculationSpec
       /* Expect the state change to idle with updated base state data */
       hpAgent.stateName shouldBe Idle
       hpAgent.stateData match {
-        case baseStateData: ParticipantModelBaseStateData[_, _, _] =>
-          /* The store for calculation relevant data has been extended */
-          baseStateData.calcRelevantDateStore match {
-            case ValueStore(_, store) =>
-              store.get(0L) match {
-                case Some(
-                      HpRelevantData(
-                        HpState(
-                          isRunning,
-                          lastTimeTick,
-                          activePower,
-                          qDot,
-                          thermalGridState
-                        ),
-                        currentTimeTick,
-                        ambientTemperature
-                      )
-                    ) =>
-                  isRunning shouldBe false
-                  lastTimeTick shouldBe 0L
-                  (activePower =~ Kilowatts(0d)) shouldBe true
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
+          baseStateData.stateDataStore.last(0L) match {
+            case Some(
+                  (
+                    _,
+                    HpState(
+                      isRunning,
+                      lastTimeTick,
+                      _,
+                      activePower,
+                      qDot,
+                      thermalGridState,
+                      _
+                    )
+                  )
+                ) =>
+              isRunning shouldBe false
+              lastTimeTick shouldBe 0L
+              (activePower ~= Kilowatts(0.0)) shouldBe true
+              (qDot ~= Kilowatts(0.0)) shouldBe true
 
-                  (qDot =~ Kilowatts(0d)) shouldBe true
-
-                  thermalGridState.houseState match {
-                    case Some(ThermalHouseState(_, innerTemperature, _)) =>
-                      (innerTemperature =~ Celsius(
-                        20.9999769069444444444444444444444
-                      )) shouldBe true
-                    case None =>
-                      fail(
-                        s"Expected to get a result for thermal house '${inputModel.getUuid}'"
-                      )
-                  }
-
-                  currentTimeTick shouldBe 0L
-                  (ambientTemperature =~
-                    Celsius(1.815d)) shouldBe true
+              thermalGridState.houseState match {
+                case Some(ThermalHouseState(_, innerTemperature, _)) =>
+                  (innerTemperature ~= Celsius(20.99998675925926)) shouldBe true
                 case None =>
-                  fail("Did expect to get hp relevant data for tick 0L")
+                  fail(
+                    s"Expected to get a result for thermal house '${hpInputModel.getUuid}'"
+                  )
               }
+            case None => fail("Expected to get a model state.")
           }
 
           /* The store for simulation results has been extended */
@@ -653,11 +668,9 @@ class HpAgentModelCalculationSpec
                 fail("Expected a simulation result for tick 0.")
               ) match {
                 case ApparentPowerAndHeat(p, q, qDot) =>
-                  (p =~ Megawatts(0d)) shouldBe true
-                  (q =~ Megavars(0d)) shouldBe true
-                  (
-                    qDot =~ Megawatts(0d)
-                  ) shouldBe true
+                  (p ~= Megawatts(0.0)) shouldBe true
+                  (q ~= Megavars(0.0)) shouldBe true
+                  (qDot ~= Megawatts(0.0)) shouldBe true
               }
           }
         case _ =>
@@ -681,11 +694,17 @@ class HpAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(hpAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        hpAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(hpAgent, RegistrationSuccessfulMessage(Some(3600L)))
+      weatherService.send(
+        hpAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(3600L))
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -694,22 +713,27 @@ class HpAgentModelCalculationSpec
       /* Ask the agent for average power in tick 7200 */
       hpAgent ! RequestAssetPowerMessage(
         7200L,
-        Each(1d),
-        Each(0d)
+        Each(1.0),
+        Each(0.0)
       )
       expectNoMessage(noReceiveTimeOut.duration)
       awaitAssert(hpAgent.stateName == Idle)
 
       /* Send out the expected data and wait for the reply */
       val weatherData = WeatherData(
-        WattsPerSquareMeter(0d),
-        WattsPerSquareMeter(0d),
-        Celsius(1.815d),
-        MetersPerSecond(7.726576d)
+        WattsPerSquareMeter(0),
+        WattsPerSquareMeter(0),
+        Celsius(1.815),
+        MetersPerSecond(7.726576)
       )
       weatherService.send(
         hpAgent,
-        ProvideWeatherMessage(3600L, weatherData, Some(7200L))
+        ProvideWeatherMessage(
+          3600L,
+          weatherService.ref,
+          weatherData,
+          Some(7200L)
+        )
       )
 
       /* Trigger the agent */
@@ -722,8 +746,8 @@ class HpAgentModelCalculationSpec
       /* Appreciate the answer to my previous request */
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          (p =~ Megawatts(0d)) shouldBe true
-          (q =~ Megavars(0d)) shouldBe true
+          (p ~= Megawatts(0.0)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
       }
     }
 
@@ -741,11 +765,17 @@ class HpAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(hpAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        hpAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(hpAgent, RegistrationSuccessfulMessage(Some(0L)))
+      weatherService.send(
+        hpAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(0L))
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -757,11 +787,12 @@ class HpAgentModelCalculationSpec
         hpAgent,
         ProvideWeatherMessage(
           0L,
+          weatherService.ref,
           WeatherData(
-            WattsPerSquareMeter(0d),
-            WattsPerSquareMeter(0d),
-            Celsius(1.815d),
-            MetersPerSecond(7.726576d)
+            WattsPerSquareMeter(0),
+            WattsPerSquareMeter(0),
+            Celsius(1.815),
+            MetersPerSecond(7.726576)
           ),
           Some(3600L)
         )
@@ -774,11 +805,12 @@ class HpAgentModelCalculationSpec
         hpAgent,
         ProvideWeatherMessage(
           3600L,
+          weatherService.ref,
           WeatherData(
-            WattsPerSquareMeter(0d),
-            WattsPerSquareMeter(0d),
-            Celsius(1.815d),
-            MetersPerSecond(7.726576d)
+            WattsPerSquareMeter(0),
+            WattsPerSquareMeter(0),
+            Celsius(1.815),
+            MetersPerSecond(7.726576)
           ),
           Some(7200L)
         )
@@ -791,11 +823,12 @@ class HpAgentModelCalculationSpec
         hpAgent,
         ProvideWeatherMessage(
           7200L,
+          weatherService.ref,
           WeatherData(
-            WattsPerSquareMeter(0d),
-            WattsPerSquareMeter(0d),
-            Celsius(1.815d),
-            MetersPerSecond(7.726576d)
+            WattsPerSquareMeter(0),
+            WattsPerSquareMeter(0),
+            Celsius(1.815),
+            MetersPerSecond(7.726576)
           ),
           None
         )
@@ -806,15 +839,14 @@ class HpAgentModelCalculationSpec
       /* Ask the agent for average power in tick 7500 */
       hpAgent ! RequestAssetPowerMessage(
         7500L,
-        Each(1d),
-        Each(0d)
+        Each(1.0),
+        Each(0.0)
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          (p =~ Megawatts(0d)) shouldBe true
-          (q =~ Megavars(0d)) shouldBe true
-
+          (p ~= Megawatts(0.0)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
         case answer => fail(s"Did not expect to get that answer: $answer")
       }
     }
@@ -825,14 +857,14 @@ class HpAgentModelCalculationSpec
       hpAgent ! RequestAssetPowerMessage(
         7500L,
         Each(1.000000000000001d),
-        Each(0d)
+        Each(0.0)
       )
 
       /* Expect, that nothing has changed */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          (p =~ Megawatts(0d)) shouldBe true
-          (q =~ Megavars(0d)) shouldBe true
+          (p ~= Megawatts(0.0)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
       }
     }
 
@@ -840,16 +872,15 @@ class HpAgentModelCalculationSpec
       /* Ask again with changed information */
       hpAgent ! RequestAssetPowerMessage(
         7500L,
-        Each(0.98d),
-        Each(0d)
+        Each(0.98),
+        Each(0.0)
       )
 
       /* Expect, the correct values (this model has fixed power factor) */
       expectMsgClass(classOf[AssetPowerChangedMessage]) match {
         case AssetPowerChangedMessage(p, q) =>
-          (p =~ Megawatts(0d)) shouldBe true
-          (q =~ Megavars(0d)) shouldBe true
-
+          (p ~= Megawatts(0.0)) shouldBe true
+          (q ~= Megavars(0.0)) shouldBe true
       }
     }
   }
