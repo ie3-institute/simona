@@ -34,14 +34,15 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.OperationInterval
-import squants.energy
+import squants.{Dimensionless, Power, Energy}
+import squants.time.Seconds
 import squants.energy.{KilowattHours, Kilowatts}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.unit.Units.PERCENT
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.Power
+import javax.measure
 import scala.collection.SortedMap
 import scala.collection.immutable.SortedSet
 
@@ -77,7 +78,7 @@ final case class EvcsModel(
     scalingFactor: Double,
     simulationStartDate: ZonedDateTime,
     qControl: QControl,
-    sRated: energy.Power,
+    sRated: Power,
     currentType: ElectricCurrentType,
     cosPhiRated: Double,
     chargingPoints: Int,
@@ -248,7 +249,7 @@ final case class EvcsModel(
   def createResults(
       lastState: EvcsState,
       currentTick: Long,
-      voltageMagnitude: squants.Dimensionless
+      voltageMagnitude: Dimensionless
   ): (Iterable[EvResult], Iterable[EvcsResult]) = {
 
     val lastTick = lastState.tick
@@ -420,8 +421,8 @@ final case class EvcsModel(
   private def createEvResult(
       ev: EvModelWrapper,
       tick: Long,
-      p: squants.Power,
-      voltageMagnitude: squants.Dimensionless
+      p: Power,
+      voltageMagnitude: Dimensionless
   ) = {
     val q = calculateReactivePower(
       p,
@@ -473,8 +474,8 @@ final case class EvcsModel(
     */
   private def chargedEnergyInScheduleEntry(
       scheduleEntry: ChargingSchedule.Entry
-  ): squants.Energy =
-    scheduleEntry.chargingPower * squants.time.Seconds(
+  ): Energy =
+    scheduleEntry.chargingPower * Seconds(
       scheduleEntry.tickStop - scheduleEntry.tickStart
     )
 
@@ -488,7 +489,7 @@ final case class EvcsModel(
     */
   def getMaxAvailableChargingPower(
       ev: EvModelWrapper
-  ): squants.Power = {
+  ): Power = {
     val evPower = currentType match {
       case ElectricCurrentType.AC =>
         ev.sRatedAc
@@ -514,7 +515,7 @@ final case class EvcsModel(
     */
   override def calculatePower(
       tick: Long,
-      voltage: squants.Dimensionless,
+      voltage: Dimensionless,
       modelState: EvcsState,
       data: EvcsRelevantData
   ): ApparentPower =
@@ -532,7 +533,7 @@ final case class EvcsModel(
   override protected def calculateActivePower(
       modelState: EvcsState,
       data: EvcsRelevantData
-  ): squants.Power =
+  ): Power =
     throw new NotImplementedError("Use calculatePowerAndEvSoc() instead.")
 
   override def determineFlexOptions(
@@ -610,7 +611,7 @@ final case class EvcsModel(
   override def handleControlledPowerChange(
       data: EvcsRelevantData,
       lastState: EvcsState,
-      setPower: squants.Power
+      setPower: Power
   ): (EvcsState, FlexChangeIndicator) = {
     val currentEvs = determineCurrentState(data, lastState)
 
@@ -695,10 +696,10 @@ final case class EvcsModel(
   private def createScheduleWithSetPower(
       currentTick: Long,
       evs: Set[EvModelWrapper],
-      setPower: squants.Power
+      setPower: Power
   ): (
       Set[(EvModelWrapper, Option[(ChargingSchedule, Long, Boolean)])],
-      squants.Power
+      Power
   ) = {
 
     if (evs.isEmpty) return (Set.empty, setPower)
@@ -793,7 +794,7 @@ final case class EvcsModel(
 
   private def calculateChargingDuration(
       ev: EvModelWrapper,
-      power: squants.Power
+      power: Power
   ): Long = {
     val timeUntilFullOrEmpty =
       if (power > Kilowatts(0d)) {
@@ -849,8 +850,8 @@ final case class EvcsModel(
     )
   }
 
-  private def calcToleranceMargin(ev: EvModelWrapper): squants.Energy =
-    getMaxAvailableChargingPower(ev) * squants.time.Seconds(1)
+  private def calcToleranceMargin(ev: EvModelWrapper): Energy =
+    getMaxAvailableChargingPower(ev) * Seconds(1)
 
   /** Determines the current state of staying and arriving EVs.
     *
@@ -1042,7 +1043,7 @@ object EvcsModel {
       scalingFactor: Double,
       simulationStartDate: ZonedDateTime,
       qControl: QControl,
-      sRated: ComparableQuantity[Power],
+      sRated: ComparableQuantity[measure.quantity.Power],
       currentType: ElectricCurrentType,
       cosPhiRated: Double,
       chargingPoints: Int,
@@ -1058,7 +1059,7 @@ object EvcsModel {
       scalingFactor,
       simulationStartDate,
       qControl,
-      energy.Kilowatts(sRated.to(KILOWATT).getValue.doubleValue),
+      Kilowatts(sRated.to(KILOWATT).getValue.doubleValue),
       currentType,
       cosPhiRated,
       chargingPoints,
