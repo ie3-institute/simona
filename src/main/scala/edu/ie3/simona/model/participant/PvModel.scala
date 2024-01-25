@@ -455,6 +455,16 @@ final case class PvModel private (
     * @return
     *   the beam radiation on the sloped surface
     */
+
+  def calculateTimeFrame(omegas: Option[(Angle, Angle)]): Unit = {
+    omegas match {
+      case Some((omega1, omega2)) =>
+
+        (omega2 - omega1).toRadians * 12 / Math.PI
+
+      case None => 0d
+    }
+  }
   private def calcBeamRadiationOnSlopedSurface(
       eBeamH: Irradiation,
       omegas: Option[(Angle, Angle)],
@@ -526,6 +536,18 @@ final case class PvModel private (
     * @return
     *   the diffuse radiation on the sloped surface
     */
+
+  private def calcEpsilon(eDifH: Irradiation, eBeamH: Irradiation, thetaZ: Angle): Unit = {
+    ((eDifH + eBeamH) / eDifH +
+      (5.535d * 1.0e-6) * pow(
+        thetaZ.toRadians,
+        3
+      )) / (1d + (5.535d * 1.0e-6) * pow(
+      thetaZ.toRadians,
+      3
+    ))
+  }
+
   private def calcDiffuseRadiationOnSlopedSurfacePerez(
       eDifH: Irradiation,
       eBeamH: Irradiation,
@@ -548,12 +570,12 @@ final case class PvModel private (
 
     if (eDifH.value.doubleValue > 0) {
       // if we have diffuse radiation on horizontal surface we have to check if we have another epsilon due to clouds get the epsilon
-      var epsilon = ((eDifH + eBeamH / cos (thetaZInRad)) / eDifH +
+      var epsilon = ((eDifH + eBeamH) / eDifH +
         (5.535d * 1.0e-6) * pow(
-          thetaZ.toDegrees,
+          thetaZ.toRadians,
           3
         )) / (1d + (5.535d * 1.0e-6) * pow(
-        thetaZ.toDegrees,
+        thetaZ.toRadians,
         3
       ))
 
