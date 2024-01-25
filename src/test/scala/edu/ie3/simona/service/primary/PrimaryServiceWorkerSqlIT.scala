@@ -168,7 +168,9 @@ class PrimaryServiceWorkerSqlIT
             serviceRef,
             WorkerRegistrationMessage(participant.ref)
           )
-          participant.expectMsg(RegistrationSuccessfulMessage(Some(firstTick)))
+          participant.expectMsg(
+            RegistrationSuccessfulMessage(serviceRef, Some(firstTick))
+          )
 
           scheduler.send(serviceRef, Activation(firstTick))
           scheduler.expectMsg(Completion(serviceRef.toTyped, maybeNextTick))

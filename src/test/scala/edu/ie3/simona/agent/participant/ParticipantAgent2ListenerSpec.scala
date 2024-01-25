@@ -108,7 +108,8 @@ class ParticipantAgent2ListenerSpec
       /* Let the agent send announcements, when there is anew request reply */
       val outputConfig = NotifierConfig(
         simulationResultInfo = true,
-        powerRequestReply = false
+        powerRequestReply = false,
+        flexResult = false
       )
 
       val mockAgent = TestFSMRef(
@@ -124,7 +125,10 @@ class ParticipantAgent2ListenerSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(mockAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        mockAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped))
 
@@ -156,7 +160,8 @@ class ParticipantAgent2ListenerSpec
       /* Let the agent send announcements, when there is anew request reply */
       val outputConfig = NotifierConfig(
         simulationResultInfo = false,
-        powerRequestReply = false
+        powerRequestReply = false,
+        flexResult = false
       )
 
       val mockAgent = TestFSMRef(
@@ -172,7 +177,10 @@ class ParticipantAgent2ListenerSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(mockAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        mockAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped))
 
@@ -188,7 +196,8 @@ class ParticipantAgent2ListenerSpec
       /* Let the agent send announcements, when there is anew request reply */
       val outputConfig = NotifierConfig(
         simulationResultInfo = false,
-        powerRequestReply = true
+        powerRequestReply = true,
+        flexResult = false
       )
 
       val mockAgent = TestFSMRef(
@@ -204,7 +213,10 @@ class ParticipantAgent2ListenerSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(mockAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        mockAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped))
 
@@ -245,7 +257,8 @@ class ParticipantAgent2ListenerSpec
       /* Let the agent send announcements, when there is anew request reply */
       val outputConfig = NotifierConfig(
         simulationResultInfo = false,
-        powerRequestReply = false
+        powerRequestReply = false,
+        flexResult = false
       )
 
       val mockAgent = TestFSMRef(
@@ -261,7 +274,10 @@ class ParticipantAgent2ListenerSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(mockAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        mockAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped))
 

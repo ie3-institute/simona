@@ -19,6 +19,7 @@ import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
+import edu.ie3.simona.model.participant.ModelState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
 import edu.ie3.util.TimeUtil
@@ -113,7 +114,7 @@ class ProfileLoadModelTest extends Specification {
 
     when:
     def max = relevantData.stream().mapToDouble({ data ->
-      dut.calculateActivePower(data).toMegawatts().doubleValue()
+      dut.calculateActivePower(ModelState.ConstantState$.MODULE$, data).toMegawatts().doubleValue()
     }).max().getAsDouble()
 
     then:
@@ -147,7 +148,7 @@ class ProfileLoadModelTest extends Specification {
 
     when:
     def max = relevantDatas.stream().mapToDouble({ relevantData ->
-      dut.calculateActivePower(relevantData).toMegawatts().doubleValue()
+      dut.calculateActivePower(ModelState.ConstantState$.MODULE$, relevantData).toMegawatts().doubleValue()
     }).max().asDouble
 
     then:
@@ -191,7 +192,7 @@ class ProfileLoadModelTest extends Specification {
 
     when:
     def annualEnergy = relevantDatas.stream().mapToDouble({ relevantData ->
-      ((dut.calculateActivePower(relevantData).$times(Sq.create(15d, Minutes$.MODULE$)).toKilowattHours()))
+      (dut.calculateActivePower(ModelState.ConstantState$.MODULE$, relevantData).$times(Sq.create(15d, Minutes$.MODULE$))).toKilowattHours()
     }).sum()
 
     then:
@@ -230,7 +231,7 @@ class ProfileLoadModelTest extends Specification {
 
     when:
     def annualEnergy = relevantDatas.stream().mapToDouble({ relevantData ->
-      ((dut.calculateActivePower(relevantData).$times(Sq.create(15d, Minutes$.MODULE$)).toKilowattHours()))
+      (dut.calculateActivePower(ModelState.ConstantState$.MODULE$, relevantData).$times(Sq.create(15d, Minutes$.MODULE$))).toKilowattHours()
     }).sum()
 
     then:

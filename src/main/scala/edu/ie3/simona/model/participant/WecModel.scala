@@ -10,6 +10,7 @@ import edu.ie3.datamodel.models.input.system.WecInput
 import edu.ie3.datamodel.models.input.system.characteristic.WecCharacteristicInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.SystemComponent
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.WecModel.{
   WecCharacteristic,
   WecRelevantData
@@ -17,14 +18,16 @@ import edu.ie3.simona.model.participant.WecModel.{
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.system.Characteristic
 import edu.ie3.simona.model.system.Characteristic.XYPair
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
-import squants.energy.{Kilowatts, Watts}
+import squants._
+import squants.energy.{Kilowatts, Megawatts, Watts}
 import squants.mass.{Kilograms, KilogramsPerCubicMeter}
 import squants.motion.{MetersPerSecond, Pressure}
 import squants.space.SquareMeters
 import squants.thermal.JoulesPerKelvin
-import squants._
 import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
@@ -63,7 +66,7 @@ final case class WecModel(
     cosPhiRated: Double,
     rotorArea: Area,
     betzCurve: WecCharacteristic
-) extends SystemParticipant[WecRelevantData, ApparentPower](
+) extends SystemParticipant[WecRelevantData, ApparentPower, ConstantState.type](
       uuid,
       id,
       operationInterval,
@@ -72,9 +75,9 @@ final case class WecModel(
       sRated,
       cosPhiRated
     )
-    with ApparentPowerParticipant[WecRelevantData] {
+    with ApparentPowerParticipant[WecRelevantData, ConstantState.type] {
 
-  /** Universal gas constant, actually in J/(K * mol)
+  /** Universal gas constant
     */
   private val UniversalGasConstantR = JoulesPerKelvin(8.31446261815324d)
 
@@ -91,6 +94,7 @@ final case class WecModel(
     *   active power output
     */
   override protected def calculateActivePower(
+      modelState: ConstantState.type,
       wecData: WecRelevantData
   ): Power = {
     val activePower = determinePower(wecData)
@@ -188,6 +192,22 @@ final case class WecModel(
         )
     }
   }
+
+  override def determineFlexOptions(
+      data: WecRelevantData,
+      lastState: ConstantState.type
+  ): ProvideFlexOptions = {
+    val power = calculateActivePower(ConstantState, data)
+
+    ProvideMinMaxFlexOptions(uuid, power, power, Megawatts(0d))
+  }
+
+  override def handleControlledPowerChange(
+      data: WecRelevantData,
+      lastState: ConstantState.type,
+      setPower: Power
+  ): (ConstantState.type, FlexChangeIndicator) =
+    (lastState, FlexChangeIndicator())
 }
 
 /** Create valid [[WecModel]] by calling the apply function.

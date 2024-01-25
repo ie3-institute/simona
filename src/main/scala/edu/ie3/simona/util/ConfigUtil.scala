@@ -147,7 +147,7 @@ object ConfigUtil {
         NotifierIdentifier.values -- configs.flatMap {
           case (
                 notifierId,
-                NotifierConfig(resultInfo, _)
+                NotifierConfig(resultInfo, _, _)
               ) if !resultInfo =>
             Some(notifierId)
           case _ => None
@@ -157,7 +157,7 @@ object ConfigUtil {
         configs.flatMap {
           case (
                 notifierId,
-                NotifierConfig(resultInfo, _)
+                NotifierConfig(resultInfo, _, _)
               ) if resultInfo =>
             Some(notifierId)
           case _ => None
@@ -178,19 +178,25 @@ object ConfigUtil {
         case ParticipantBaseOutputConfig(
               _,
               simulationResult,
+              flexResult,
               powerRequestReply
             ) =>
-          NotifierConfig(simulationResult, powerRequestReply)
+          NotifierConfig(simulationResult, powerRequestReply, flexResult)
       }
       val configMap = subConfig.individualConfigs.map {
         case ParticipantBaseOutputConfig(
               notifier,
               simulationResult,
+              flexResult,
               powerRequestReply
             ) =>
           try {
             val id = NotifierIdentifier(notifier)
-            id -> NotifierConfig(simulationResult, powerRequestReply)
+            id -> NotifierConfig(
+              simulationResult,
+              powerRequestReply,
+              flexResult
+            )
           } catch {
             case e: NoSuchElementException =>
               throw new InvalidConfigParameterException(
@@ -207,13 +213,21 @@ object ConfigUtil {
     ): OutputConfigUtil = {
       val defaultConfig = subConfig.defaultConfig match {
         case SimpleOutputConfig(_, simulationResult) =>
-          NotifierConfig(simulationResult, powerRequestReply = false)
+          NotifierConfig(
+            simulationResult,
+            powerRequestReply = false,
+            flexResult = false
+          )
       }
       val configMap = subConfig.individualConfigs.map {
         case SimpleOutputConfig(notifier, simulationResult) =>
           try {
             val id = NotifierIdentifier(notifier)
-            id -> NotifierConfig(simulationResult, powerRequestReply = false)
+            id -> NotifierConfig(
+              simulationResult,
+              powerRequestReply = false,
+              flexResult = false
+            )
           } catch {
             case e: NoSuchElementException =>
               throw new InvalidConfigParameterException(

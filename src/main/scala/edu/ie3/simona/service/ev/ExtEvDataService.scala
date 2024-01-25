@@ -140,7 +140,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
     serviceStateData.uuidToActorRef.get(evcs) match {
       case None =>
         // Actor is not registered yet
-        agentToBeRegistered ! RegistrationSuccessfulMessage(None)
+        agentToBeRegistered ! RegistrationSuccessfulMessage(self, None)
 
         serviceStateData.copy(
           uuidToActorRef =

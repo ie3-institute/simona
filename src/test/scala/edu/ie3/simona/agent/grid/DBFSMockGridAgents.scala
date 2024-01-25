@@ -73,7 +73,7 @@ trait DBFSMockGridAgents extends UnitSpec {
               _.nodeUuid == expectedVoltage.nodeUuid
             ) match {
               case Some(ExchangeVoltage(_, actualE, actualF)) =>
-                actualE ~= Volts(3d)
+                actualE ~= expectedVoltage.e
                 actualF ~= expectedVoltage.f
               case None =>
                 fail(

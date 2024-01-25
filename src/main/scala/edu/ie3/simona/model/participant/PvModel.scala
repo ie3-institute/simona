@@ -9,8 +9,11 @@ package edu.ie3.simona.model.participant
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.SystemComponent
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.PvModel.PvRelevantData
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities._
@@ -40,7 +43,7 @@ final case class PvModel private (
     private val alphaE: Angle,
     private val gammaE: Angle,
     private val moduleSurface: Area = SquareMeters(1d)
-) extends SystemParticipant[PvRelevantData, ApparentPower](
+) extends SystemParticipant[PvRelevantData, ApparentPower, ConstantState.type](
       uuid,
       id,
       operationInterval,
@@ -49,7 +52,7 @@ final case class PvModel private (
       sRated,
       cosPhiRated
     )
-    with ApparentPowerParticipant[PvRelevantData] {
+    with ApparentPowerParticipant[PvRelevantData, ConstantState.type] {
 
   /** Override sMax as the power output of a pv unit could become easily up to
     * 10% higher than the sRated value found in the technical sheets
@@ -72,6 +75,7 @@ final case class PvModel private (
     *   Active power
     */
   override protected def calculateActivePower(
+      modelState: ConstantState.type,
       data: PvRelevantData
   ): Power = {
     // === Weather Base Data  === //
@@ -707,6 +711,22 @@ final case class PvModel private (
       DefaultQuantities.zeroMW
     else proposal
   }
+
+  override def determineFlexOptions(
+      data: PvRelevantData,
+      lastState: ConstantState.type
+  ): ProvideFlexOptions = {
+    val power = calculateActivePower(ConstantState, data)
+
+    ProvideMinMaxFlexOptions(uuid, power, power, DefaultQuantities.zeroMW)
+  }
+
+  override def handleControlledPowerChange(
+      data: PvRelevantData,
+      lastState: ConstantState.type,
+      setPower: squants.Power
+  ): (ConstantState.type, FlexChangeIndicator) =
+    (lastState, FlexChangeIndicator())
 }
 
 object PvModel {

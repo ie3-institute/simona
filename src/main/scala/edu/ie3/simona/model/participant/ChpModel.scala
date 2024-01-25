@@ -9,13 +9,15 @@ package edu.ie3.simona.model.participant
 import edu.ie3.datamodel.models.input.system.ChpInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.participant.ChpModel._
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.{MutableStorage, ThermalStorage}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
-import squants.energy.{KilowattHours, Kilowatts}
 import squants.{Energy, Power, Seconds, Time}
+import squants.energy.{KilowattHours, Kilowatts}
 
 import java.util.UUID
 
@@ -51,7 +53,7 @@ final case class ChpModel(
     cosPhiRated: Double,
     pThermal: Power,
     storage: ThermalStorage with MutableStorage
-) extends SystemParticipant[ChpRelevantData, ApparentPower](
+) extends SystemParticipant[ChpRelevantData, ApparentPower, ConstantState.type](
       uuid,
       id,
       operationInterval,
@@ -60,7 +62,7 @@ final case class ChpModel(
       sRated,
       cosPhiRated
     )
-    with ApparentPowerParticipant[ChpRelevantData] {
+    with ApparentPowerParticipant[ChpRelevantData, ConstantState.type] {
 
   val pRated: Power = sRated * cosPhiRated
 
@@ -76,6 +78,7 @@ final case class ChpModel(
     *   active power
     */
   override protected def calculateActivePower(
+      modelState: ConstantState.type,
       chpData: ChpRelevantData
   ): Power =
     chpData.chpState.activePower
@@ -284,11 +287,23 @@ final case class ChpModel(
 
   private def timeRunning(chpData: ChpRelevantData): Time =
     Seconds(chpData.currentTimeTick - chpData.chpState.lastTimeTick)
+
+  override def determineFlexOptions(
+      data: ChpRelevantData,
+      lastState: ConstantState.type
+  ): ProvideFlexOptions = ??? // TODO actual implementation
+
+  override def handleControlledPowerChange(
+      data: ChpRelevantData,
+      lastState: ConstantState.type,
+      setPower: squants.Power
+  ): (ConstantState.type, FlexChangeIndicator) =
+    ??? // TODO actual implementation
 }
 
 /** Create valid ChpModel by calling the apply function.
   */
-case object ChpModel {
+object ChpModel {
 
   /** As the ChpModel class is a dynamic model, it requires a state for its
     * calculations. The state contains all variables needed, except the storage
@@ -358,7 +373,7 @@ case object ChpModel {
         chpInput.getType.getsRated
           .to(PowerSystemUnits.KILOWATT)
           .getValue
-          .doubleValue()
+          .doubleValue
       ),
       chpInput.getType.getCosPhiRated,
       Kilowatts(

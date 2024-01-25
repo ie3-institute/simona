@@ -240,7 +240,7 @@ class BMModelTest extends Specification {
     bmModel._lastPower = new Some(Sq.create(lastPower, Kilowatts$.MODULE$))
 
     when: "the power from the grid is calculated"
-    def powerCalc = bmModel.calculateActivePower(relevantData)
+    def powerCalc = bmModel.calculateActivePower(new BMModel.BmState(), relevantData)
 
     then: "compare in kilowatts"
     powerCalc - Sq.create(powerSol, Kilowatts$.MODULE$) < Sq.create(1e-12d, Kilowatts$.MODULE$)

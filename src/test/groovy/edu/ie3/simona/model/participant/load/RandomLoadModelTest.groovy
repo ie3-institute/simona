@@ -19,6 +19,7 @@ import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
+import edu.ie3.simona.model.participant.ModelState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel
 import edu.ie3.simona.model.participant.load.random.RandomLoadParameters
@@ -34,7 +35,7 @@ import java.time.temporal.ChronoUnit
 import java.util.stream.Collectors
 
 class RandomLoadModelTest extends Specification {
-  def loadInput =  new LoadInput(
+  def loadInput = new LoadInput(
   UUID.fromString("4eeaf76a-ec17-4fc3-872d-34b7d6004b03"),
   "testLoad",
   OperatorInput.NO_OPERATOR_ASSIGNED,
@@ -142,7 +143,7 @@ class RandomLoadModelTest extends Specification {
     when:
     def avgEnergy = (0..10).parallelStream().mapToDouble( { runCnt ->
       relevantDatas.parallelStream().mapToDouble( { relevantData ->
-        (dut.calculateActivePower(relevantData).$times(Sq.create(15d, Minutes$.MODULE$))).toKilowattHours()
+        (dut.calculateActivePower(ModelState.ConstantState$.MODULE$, relevantData).$times(Sq.create(15d, Minutes$.MODULE$))).toKilowattHours()
       }).sum()
     }).average().orElse(0d)
 
@@ -171,7 +172,7 @@ class RandomLoadModelTest extends Specification {
     when:
     def powers = (0..10).parallelStream().flatMap({ runCnt ->
       relevantDatas.stream().parallel().map({ data ->
-        dut.calculateActivePower(data).toWatts().doubleValue()
+        dut.calculateActivePower(ModelState.ConstantState$.MODULE$, data).toWatts().doubleValue()
       })
     }).sorted().toArray() as Double[]
     def quantilePower = get95Quantile(powers)

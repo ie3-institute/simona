@@ -20,7 +20,7 @@ sealed trait LoadReference {
 
   def getKey: String = key
 }
-case object LoadReference {
+object LoadReference {
 
   /** Scale the load model behaviour to reach the given active power in max
     *
