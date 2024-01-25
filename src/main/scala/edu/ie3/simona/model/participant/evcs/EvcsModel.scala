@@ -543,52 +543,54 @@ final case class EvcsModel(
 
     val preferredScheduling = calculateNewScheduling(data, currentEvs)
 
-    val preferredPower =
-      preferredScheduling.values.flatten.foldLeft(Kilowatts(0d)) {
-        case (sum, ChargingSchedule(_, schedule)) =>
-          val power =
-            schedule
-              .find { case ChargingSchedule.Entry(tickStart, tickStop, _) =>
-                tickStart <= data.tick && tickStop > data.tick
-              }
-              .map(_.chargingPower)
-              .getOrElse(Kilowatts(0d))
-          sum + power
-      }
-
-    val (maxCharging, forcedCharging, maxDischarging) =
+    val (maxCharging, preferredPower, forcedCharging, maxDischarging) =
       preferredScheduling.foldLeft(
-        (Kilowatts(0d), Kilowatts(0d), Kilowatts(0d))
-      ) { case ((chargingSum, forcedSum, dischargingSum), (ev, _)) =>
-        val maxPower = getMaxAvailableChargingPower(ev)
+        (Kilowatts(0d), Kilowatts(0d), Kilowatts(0d), Kilowatts(0d))
+      ) {
+        case (
+              (chargingSum, preferredSum, forcedSum, dischargingSum),
+              (ev, optChargingSchedule)
+            ) =>
+          val maxPower = getMaxAvailableChargingPower(ev)
 
-        val maxCharging =
-          if (!isFull(ev))
-            maxPower
-          else
-            Kilowatts(0d)
+          val preferred = optChargingSchedule
+            .flatMap { case ChargingSchedule(_, schedule) =>
+              schedule
+                .find { case ChargingSchedule.Entry(tickStart, tickStop, _) =>
+                  tickStart <= data.tick && tickStop > data.tick
+                }
+                .map(_.chargingPower)
+            }
+            .getOrElse(Kilowatts(0d))
 
-        val forcedCharging =
-          if (isEmpty(ev) && !isInLowerMargin(ev))
-            maxPower // TODO maybe use preferred power instead
-          else
-            Kilowatts(0d)
+          val maxCharging =
+            if (!isFull(ev))
+              maxPower
+            else
+              Kilowatts(0d)
 
-        val maxDischarging =
-          if (!isEmpty(ev) && vehicle2grid)
-            maxPower * -1
-          else
-            Kilowatts(0d)
+          val forced =
+            if (isEmpty(ev) && !isInLowerMargin(ev))
+              preferred
+            else
+              Kilowatts(0d)
 
-        (
-          chargingSum + maxCharging,
-          forcedSum + forcedCharging,
-          dischargingSum + maxDischarging
-        )
+          val maxDischarging =
+            if (!isEmpty(ev) && vehicle2grid)
+              maxPower * -1
+            else
+              Kilowatts(0d)
+
+          (
+            chargingSum + maxCharging,
+            preferredSum + preferred,
+            forcedSum + forced,
+            dischargingSum + maxDischarging
+          )
       }
 
     // if we need to charge at least one EV, we cannot discharge any other
-    val (adaptedMin, adaptedPreferred) =
+    val (adaptedMaxDischarging, adaptedPreferred) =
       if (forcedCharging > Kilowatts(0d))
         (forcedCharging, preferredPower.max(forcedCharging))
       else
@@ -597,7 +599,7 @@ final case class EvcsModel(
     ProvideMinMaxFlexOptions(
       uuid,
       adaptedPreferred,
-      adaptedMin,
+      adaptedMaxDischarging,
       maxCharging
     )
   }
