@@ -39,7 +39,7 @@ class MaximumPowerChargingSpec
 
       val actualSchedule = evcsModel.chargeWithMaximumPower(
         1800L,
-        Set(ev)
+        Seq(ev)
       )
 
       actualSchedule shouldBe Map(
@@ -77,7 +77,7 @@ class MaximumPowerChargingSpec
 
         val chargingMap = evcsModel.chargeWithMaximumPower(
           offset,
-          Set(ev)
+          Seq(ev)
         )
 
         chargingMap shouldBe Map(
@@ -140,7 +140,7 @@ class MaximumPowerChargingSpec
 
         val chargingMap = evcsModel.chargeWithMaximumPower(
           offset,
-          Set(givenEv, ev)
+          Seq(givenEv, ev)
         )
 
         chargingMap shouldBe Map(

@@ -65,7 +65,7 @@ class EvcsModelSpec
             3600L,
             Seq.empty
           ),
-          Set(evModel)
+          Seq(evModel)
         )
 
         actualSchedule shouldBe Map(
@@ -99,7 +99,7 @@ class EvcsModelSpec
             3600L,
             Seq.empty
           ),
-          Set(evModel)
+          Seq(evModel)
         )
 
         actualSchedule shouldBe Map(
@@ -174,7 +174,7 @@ class EvcsModelSpec
             )
 
             val state = EvcsState(
-              Set(ev),
+              Seq(ev),
               Map(ev -> Some(schedule)),
               lastCalcTick
             )
@@ -265,7 +265,7 @@ class EvcsModelSpec
               lastResultIndex
           ) =>
             val lastState = EvcsState(
-              Set(ev),
+              Seq(ev),
               Map(ev -> Some(schedule)),
               lastTick
             )
@@ -349,7 +349,7 @@ class EvcsModelSpec
         val currentTick = 10800L
 
         val lastState = EvcsState(
-          Set(ev1, ev2),
+          Seq(ev1, ev2),
           Map(ev1 -> Some(schedule1), ev2 -> Some(schedule2)),
           lastTick
         )
@@ -447,7 +447,7 @@ class EvcsModelSpec
         val currentTick = 7200L
 
         val lastState = EvcsState(
-          Set(ev),
+          Seq(ev),
           Map(ev -> Some(schedule)),
           lastTick
         )
@@ -625,7 +625,7 @@ class EvcsModelSpec
             evcsModel.determineFlexOptions(
               data,
               EvcsState(
-                Set(ev1, ev2),
+                Seq(ev1, ev2),
                 Map(ev1 -> Some(schedule1), ev2 -> Some(schedule2)),
                 0L
               )
@@ -765,7 +765,7 @@ class EvcsModelSpec
             evcsModel.determineFlexOptions(
               data,
               EvcsState(
-                Set(ev1, ev2),
+                Seq(ev1, ev2),
                 Map(ev1 -> Some(schedule1), ev2 -> Some(schedule2)),
                 0L
               )
@@ -818,7 +818,7 @@ class EvcsModelSpec
         evcsModel.determineFlexOptions(
           data,
           EvcsState(
-            Set(ev1),
+            Seq(ev1),
             Map(ev1 -> Some(schedule1)),
             0L
           )
@@ -942,7 +942,7 @@ class EvcsModelSpec
             evcsModel.handleControlledPowerChange(
               data,
               EvcsState(
-                Set(ev1, ev2),
+                Seq(ev1, ev2),
                 Map(ev1 -> None, ev2 -> None),
                 0L
               ),

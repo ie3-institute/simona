@@ -316,7 +316,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
     extResponseMsg match {
       case DepartingEvsResponse(evcs, evModels) =>
         val updatedResponses =
-          serviceStateData.departingEvResponses.addData(evcs, evModels.toList)
+          serviceStateData.departingEvResponses.addData(evcs, evModels)
 
         if (updatedResponses.nonComplete) {
           // responses are still incomplete

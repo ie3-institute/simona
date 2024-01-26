@@ -12,6 +12,7 @@ import edu.ie3.simona.model.participant.evcs.{
   EvModelWrapper,
   EvcsModel
 }
+import squants.Seconds
 
 trait MaximumPowerCharging {
   this: EvcsModel =>
@@ -30,12 +31,12 @@ trait MaximumPowerCharging {
     */
   def chargeWithMaximumPower(
       currentTick: Long,
-      evs: Set[EvModelWrapper]
+      evs: Seq[EvModelWrapper]
   ): Map[EvModelWrapper, Option[ChargingSchedule]] = evs.map { ev =>
     ev -> Option.when(ev.storedEnergy < ev.eStorage) {
       val chargingPower = getMaxAvailableChargingPower(ev)
       val remainingParkingTime =
-        squants.Seconds(ev.departureTick - currentTick)
+        Seconds(ev.departureTick - currentTick)
 
       val possibleChargeableEnergyUntilDeparture =
         chargingPower * remainingParkingTime

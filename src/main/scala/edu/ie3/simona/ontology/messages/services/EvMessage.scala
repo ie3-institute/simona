@@ -87,7 +87,7 @@ object EvMessage {
 
   final case class DepartingEvsResponse(
       evcs: UUID,
-      evModels: Set[EvModelWrapper]
+      evModels: Seq[EvModelWrapper]
   ) extends EvResponseMessage
 
 }

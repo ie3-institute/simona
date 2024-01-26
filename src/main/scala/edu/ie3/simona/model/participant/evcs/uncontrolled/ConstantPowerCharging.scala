@@ -31,7 +31,7 @@ trait ConstantPowerCharging {
     */
   def chargeWithConstantPower(
       currentTick: Long,
-      evs: Set[EvModelWrapper]
+      evs: Seq[EvModelWrapper]
   ): Map[EvModelWrapper, Option[ChargingSchedule]] = evs.map { ev =>
     ev -> Option.when(ev.storedEnergy < ev.eStorage) {
       val maxChargingPower = getMaxAvailableChargingPower(ev)

@@ -110,7 +110,7 @@ final case class EvcsModel(
     */
   def calculateNewScheduling(
       data: EvcsRelevantData,
-      evs: Set[EvModelWrapper]
+      evs: Seq[EvModelWrapper]
   ): Map[EvModelWrapper, Option[ChargingSchedule]] = {
     if (
       locationType == EvcsLocationType.CHARGING_HUB_TOWN || locationType == EvcsLocationType.CHARGING_HUB_HIGHWAY
@@ -142,7 +142,7 @@ final case class EvcsModel(
   private def scheduleByStrategy(
       strategy: ChargingStrategy.Value,
       currentTick: Long,
-      evs: Set[EvModelWrapper]
+      evs: Seq[EvModelWrapper]
   ): Map[EvModelWrapper, Option[ChargingSchedule]] = strategy match {
     case ChargingStrategy.MAX_POWER =>
       chargeWithMaximumPower(
@@ -177,7 +177,7 @@ final case class EvcsModel(
   def applySchedule(
       state: EvcsState,
       currentTick: Long
-  ): Set[EvModelWrapper] = if (state.schedule.nonEmpty) {
+  ): Seq[EvModelWrapper] = if (state.schedule.nonEmpty) {
     state.evs
       .map(ev =>
         state
@@ -660,7 +660,7 @@ final case class EvcsModel(
           isEmpty(ev) && !isInLowerMargin(ev)
         }
       else
-        (Set.empty[EvModelWrapper], applicableEvs)
+        (Seq.empty[EvModelWrapper], applicableEvs)
 
     val (forcedSchedules, remainingPower) =
       createScheduleWithSetPower(data.tick, forcedChargingEvs, setPower)
@@ -691,7 +691,7 @@ final case class EvcsModel(
 
     (
       EvcsState(
-        evs = allSchedules.keys.toSet,
+        evs = allSchedules.keys.toSeq,
         schedule = allSchedules,
         tick = data.tick
       ),
@@ -715,14 +715,14 @@ final case class EvcsModel(
     */
   private def createScheduleWithSetPower(
       currentTick: Long,
-      evs: Set[EvModelWrapper],
+      evs: Seq[EvModelWrapper],
       setPower: Power
   ): (
-      Set[(EvModelWrapper, Option[(ChargingSchedule, Long, Boolean)])],
+      Seq[(EvModelWrapper, Option[(ChargingSchedule, Long, Boolean)])],
       Power
   ) = {
 
-    if (evs.isEmpty) return (Set.empty, setPower)
+    if (evs.isEmpty) return (Seq.empty, setPower)
 
     if (setPower.~=(Kilowatts(0d))(Kilowatts(1e-6))) {
       // No power left. Rest is not charging
@@ -756,7 +756,7 @@ final case class EvcsModel(
             isFull(ev) || isEmpty(ev) || isInLowerMargin(ev)
           )
         )
-      }: Set[(EvModelWrapper, Option[(ChargingSchedule, Long, Boolean)])]
+      }: Seq[(EvModelWrapper, Option[(ChargingSchedule, Long, Boolean)])]
 
       (results, Kilowatts(0d))
     } else {
@@ -886,8 +886,7 @@ final case class EvcsModel(
   def determineCurrentState(
       data: EvcsRelevantData,
       lastState: EvcsState
-  ): Set[EvModelWrapper] = {
-    // TODO use Seq instead of Set as return value
+  ): Seq[EvModelWrapper] = {
 
     // if last state is from before current tick, determine current state
     val currentEVs =
@@ -914,7 +913,7 @@ final case class EvcsModel(
     *   Departing EVs at the current tick
     */
   def validateDepartures(
-      lastEvs: Set[EvModelWrapper],
+      lastEvs: Seq[EvModelWrapper],
       departures: Seq[UUID]
   ): Unit = {
     departures.foreach { ev =>
@@ -938,7 +937,7 @@ final case class EvcsModel(
     *   max number of charging points available at this CS
     */
   def validateArrivals(
-      lastEvs: Set[EvModelWrapper],
+      lastEvs: Seq[EvModelWrapper],
       arrivals: Seq[EvModelWrapper],
       chargingPoints: Int
   ): Unit = {
@@ -987,7 +986,7 @@ object EvcsModel {
     *   The tick that the data has been calculated for
     */
   final case class EvcsState(
-      evs: Set[EvModelWrapper],
+      evs: Seq[EvModelWrapper],
       schedule: Map[EvModelWrapper, Option[ChargingSchedule]],
       tick: Long
   ) extends ModelState {

@@ -397,7 +397,7 @@ class ExtEvDataServiceSpec
 
       evcs1.send(
         evService,
-        DepartingEvsResponse(evcs1UUID, Set(EvModelWrapper(updatedEvA)))
+        DepartingEvsResponse(evcs1UUID, Seq(EvModelWrapper(updatedEvA)))
       )
 
       // nothing should happen yet, waiting for second departed ev
@@ -409,7 +409,7 @@ class ExtEvDataServiceSpec
 
       evcs2.send(
         evService,
-        DepartingEvsResponse(evcs2UUID, Set(EvModelWrapper(updatedEvB)))
+        DepartingEvsResponse(evcs2UUID, Seq(EvModelWrapper(updatedEvB)))
       )
 
       // ev service should recognize that all evs that are expected are returned,

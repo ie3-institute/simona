@@ -39,7 +39,7 @@ class ConstantPowerChargingSpec
 
       val actualSchedule = evcsModel.chargeWithConstantPower(
         1800L,
-        Set(ev)
+        Seq(ev)
       )
 
       actualSchedule shouldBe Map(
@@ -79,7 +79,7 @@ class ConstantPowerChargingSpec
 
         val chargingMap = evcsModel.chargeWithConstantPower(
           offset,
-          Set(ev)
+          Seq(ev)
         )
 
         chargingMap shouldBe Map(
@@ -144,7 +144,7 @@ class ConstantPowerChargingSpec
 
         val chargingMap = evcsModel.chargeWithConstantPower(
           offset,
-          Set(givenEv, ev)
+          Seq(givenEv, ev)
         )
 
         chargingMap shouldBe Map(

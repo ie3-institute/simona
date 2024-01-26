@@ -194,7 +194,7 @@ protected trait EvcsAgentFundamentals
       ]
   ): EvcsState =
     EvcsState(
-      Set.empty,
+      Seq.empty,
       Map.empty,
       SimonaConstants.FIRST_TICK_IN_SIMULATION
     )
