@@ -450,7 +450,7 @@ class PvModelTest extends Specification {
     expect:
     "- should calculate the beam contribution,"
     def calculatedsunsetangle = pvModel.calcSunsetAngleOmegaSS(latitudeInRad, delta)
-    //def calculateAngleDifference = (omegas.get(1) - omegas.get(2))
+    def calculateAngleDifference = (omegas.get()._1() - omegas.get()._2())
     def timeframe = pvModel.calculateTimeFrame(omegas)
     def beamradiation = pvModel.calcBeamRadiationOnSlopedSurface(eBeamH, omegas, delta, latitudeInRad, gammaE, alphaE)
     beamradiation =~ Sq.create(eBeamSSol, WattHoursPerSquareMeter$.MODULE$)
@@ -462,8 +462,8 @@ class PvModelTest extends Specification {
     //40d           | 60d   | 0d      | -11.6d  | -37.5d  | 37.0d    || 112.84217113154841369d // 2011-02-20T09:00:00
     //40d           | 60d   | 0d      | -11.6d  | -78.0d  | 75.0d    || 210.97937494450755d    // sunrise
     //40d           | 60d   | 0d      | -11.6d  | 62.0d   | 76.0d    || 199.16566536224116d    // sunset
-    //40d           | 60d   | 0d      | -11.6d  | 69.0d   | 89.9d    || 245.77637766673405d    // sunset, cut off
-    40d           | 60d   | 0d      | -11.6d  | 75.0d   | 89.9d    || 0d                     // no sun
+    40d           | 60d   | 0d      | -11.6d  | 69.0d   | 89.9d    || 245.77637766673405d    // sunset, cut off
+    //40d           | 60d   | 0d      | -11.6d  | 75.0d   | 89.9d    || 0d                     // no sun
     //40d           | 60d   | -90.0d  | -11.6d  | 60.0d   | 91.0d    || 0d                     // no direct beam
   }
 

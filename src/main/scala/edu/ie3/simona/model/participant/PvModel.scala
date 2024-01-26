@@ -456,11 +456,11 @@ final case class PvModel private (
     *   the beam radiation on the sloped surface
     */
 
-  def calculateTimeFrame(omegas: Option[(Angle, Angle)]): Unit = {
+  def calculateTimeFrame(omegas: Option[(Angle, Angle)]): Double = {
     omegas match {
       case Some((omega1, omega2)) =>
 
-        (omega2 - omega1).toRadians * 12 / Math.PI
+        (omega2 - omega1).toDegrees / 15
 
       case None => 0d
     }
@@ -471,7 +471,8 @@ final case class PvModel private (
       delta: Angle,
       latitude: Angle,
       gammaE: Angle,
-      alphaE: Angle
+      alphaE: Angle,
+      duration: Time
   ): Irradiation = {
 
     omegas match {
@@ -484,7 +485,7 @@ final case class PvModel private (
         val omega1InRad = omega1.toRadians
         val omega2InRad = omega2.toRadians
         // variable that accounts for cases when the integration interval is shorter than 15° (1 hour equivalent), when the time is close to sunrise or sunset
-        val timeFrame = (omega2 - omega1).toRadians * 12 / Math.PI // original term: (omega2 - omega1).toRadians * 180 / Math.PI / 15, since a one hour difference equals 15°
+        val timeFrame = (omega2 - omega1).toDegrees * duration.toHours // original term: (omega2 - omega1).toRadians * 180 / Math.PI / 15, since a one hour difference equals 15°
 
         val a = ((sin(deltaInRad) * sin(latInRad) * cos(gammaEInRad)
           - sin(deltaInRad) * cos(latInRad) * sin(gammaEInRad) * cos(
@@ -537,13 +538,15 @@ final case class PvModel private (
     *   the diffuse radiation on the sloped surface
     */
 
-  private def calcEpsilon(eDifH: Irradiation, eBeamH: Irradiation, thetaZ: Angle): Unit = {
-    ((eDifH + eBeamH) / eDifH +
+  private def calcEpsilon(eDifH: Irradiation, eBeamH: Irradiation, thetaZ: Angle): Double = {
+    val thetaZInRad = thetaZ.toRadians
+
+    ((eDifH + eBeamH / cos(thetaZInRad)) / eDifH +
       (5.535d * 1.0e-6) * pow(
-        thetaZ.toRadians,
+        thetaZ.toDegrees,
         3
       )) / (1d + (5.535d * 1.0e-6) * pow(
-      thetaZ.toRadians,
+      thetaZ.toDegrees,
       3
     ))
   }
