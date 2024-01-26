@@ -154,7 +154,7 @@ protected trait EvcsAgentFundamentals
       Map.empty,
       requestVoltageDeviationThreshold,
       ValueStore.forVoltage(
-        resolution, // FIXME probably need to increase this for grid oriented scheduling
+        resolution,
         Each(
           inputModel.electricalInputModel.getNode
             .getvTarget()
