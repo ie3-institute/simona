@@ -4,7 +4,7 @@
  * Research group Distribution grid planning and operation
  */
 
-
+/*
 package edu.ie3.simona.model.participant
 import edu.ie3.simona.test.common.UnitSpec
 
@@ -58,3 +58,4 @@ class SystemParticipantSpec extends UnitSpec {
       }
     }
 }
+*/

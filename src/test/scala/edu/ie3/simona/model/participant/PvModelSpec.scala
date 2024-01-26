@@ -14,10 +14,11 @@ import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.{Irradiation, Megavars, WattHoursPerSquareMeter, WattsPerSquareMeter}
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import squants.Each
 import squants.energy.Kilowatts
-import squants.space.Radians
+import squants.space.{Degrees, Radians}
 import tech.units.indriya.quantity.Quantities.getQuantity
 import tech.units.indriya.unit.Units._
 
@@ -108,7 +109,7 @@ class PvModelSpec extends UnitSpec with DefaultTestData {
         val qCalc = pvModel.calculateReactivePower(Kilowatts(pVal), Each(adjustedVoltage))
 
         // then
-        qCalc shouldEqual qSol // unit MVar ??
+        qCalc shouldEqual Megavars(qSol)
       }
     }
 
@@ -130,7 +131,7 @@ class PvModelSpec extends UnitSpec with DefaultTestData {
         val jCalc = pvModel.calcAngleJ(ZonedDateTime.parse(time))
 
         // Then
-        jCalc shouldEqual jSol +- 1e-10
+        jCalc.toRadians shouldEqual jSol +- 1e-10
       }
     }
 
@@ -147,11 +148,10 @@ class PvModelSpec extends UnitSpec with DefaultTestData {
 
       forAll(testCases) { (j, deltaSol) =>
         // When
-
         val deltaCalc = pvModel.calcSunDeclinationDelta(Radians(j))
 
         // Then
-        deltaCalc shouldEqual deltaSol +- 1e-6
+        deltaCalc.toRadians shouldEqual deltaSol +- 1e-6
       }
     }
 
@@ -177,17 +177,12 @@ class PvModelSpec extends UnitSpec with DefaultTestData {
 
       forAll(testCases) { (time, j, longitude, omegaSol) =>
         // When
-        val dateTime = ZonedDateTime.parse(time)
-        val dayAngleQuantity = j
-        val longitudeQuantity = longitude
-
-        val omegaCalc = pvModel.calcHourAngleOmega(dateTime, Radians(j), longitudeQuantity)
+        val omegaCalc = pvModel.calcHourAngleOmega(ZonedDateTime.parse(time), Radians(j), Radians(longitude))
 
         // Then
-        omegaCalc shouldEqual omegaSol +- 1e-10
+        omegaCalc.toRadians shouldEqual omegaSol +- 1e-10
       }
     }
-
 
 
     "calculate the sunset angle omegaSS correctly" in {
@@ -201,13 +196,10 @@ class PvModelSpec extends UnitSpec with DefaultTestData {
 
       forAll(testCases) { (latitude, delta, omegaSSSol) =>
         // When
-        val latitudeQuantity = latitude
-        val deltaQuantity = delta
-
-        val omegaSSCalc = pvModel.calcSunsetAngleOmegaSS(latitudeQuantity, deltaQuantity)
+        val omegaSSCalc = pvModel.calcSunsetAngleOmegaSS(Radians(latitude), Radians(delta))
 
         // Then
-        omegaSSCalc shouldEqual omegaSSSol +- 1e-10
+        omegaSSCalc.toRadians shouldEqual omegaSSSol +- 1e-10
       }
     }
 
@@ -245,14 +237,10 @@ class PvModelSpec extends UnitSpec with DefaultTestData {
 
       forAll(testCases) { (omega, delta, latitude, alphaSSol) =>
         // When
-        val omegaQuantity = omega
-        val deltaQuantity = delta
-        val latitudeQuantity = latitude
-
-        val alphaSCalc = pvModel.calcSolarAltitudeAngleAlphaS(omegaQuantity, deltaQuantity, latitudeQuantity)
+        val alphaSCalc = pvModel.calcSolarAltitudeAngleAlphaS(Radians(omega), Radians(delta), Radians(latitude))
 
         // Then
-        alphaSCalc shouldEqual alphaSSol +- 1e-10
+        alphaSCalc.toRadians shouldEqual alphaSSol +- 1e-10
       }
     }
 
@@ -267,12 +255,10 @@ class PvModelSpec extends UnitSpec with DefaultTestData {
 
       forAll(testCases) { (alphaS, thetaZSol) =>
         // When
-        val alphaSQuantity = alphaS
-
-        val thetaZCalc = pvModel.calcZenithAngleThetaZ(alphaSQuantity)
+        val thetaZCalc = pvModel.calcZenithAngleThetaZ(Radians(alphaS))
 
         // Then
-        thetaZCalc shouldEqual thetaZSol +- 1e-10
+        thetaZCalc.toRadians shouldEqual thetaZSol +- 1e-10
       }
     }
 
@@ -287,8 +273,7 @@ class PvModelSpec extends UnitSpec with DefaultTestData {
 
       forAll(testCases) { (thetaZ, airMassSol) =>
         // When
-        val thetaZQuantity = thetaZ
-        val airMassCalc = pvModel.calcAirMass(thetaZQuantity)
+        val airMassCalc = pvModel.calcAirMass(Radians(thetaZ))
 
         // Then
         airMassCalc shouldEqual airMassSol +- 1e-10
@@ -306,11 +291,10 @@ class PvModelSpec extends UnitSpec with DefaultTestData {
 
       forAll(testCases) { (j, I0Sol) =>
         // When
-        val dayAngleQuantity = j
-        val I0Calc = pvModel.calcExtraterrestrialRadiationI0(dayAngleQuantity)
+        val I0Calc = pvModel.calcExtraterrestrialRadiationI0(Radians(j))
 
         // Then
-        I0Calc shouldEqual I0Sol +- 1e-5
+        I0Calc.toWattHoursPerSquareMeter shouldEqual (I0Sol) +- 1e-5
       }
     }
 
@@ -329,20 +313,13 @@ class PvModelSpec extends UnitSpec with DefaultTestData {
         (-35.3d, -17.51d, -4.2d, 30d, +170d, 14.882390116876563d) // Goswami Priciples of Solar Engineering Example 2.7b
       )
 
-      // "Calculate the angle of incidence of beam radiation on a surface located at a Latitude" +
-      //        "at a certain hour angle (solar time) on a given declination (date) if the surface " +
-      //        "is tilted by a certain slope from the horizontal and pointed to a certain panel azimuth " +
-      //        "west of south." ?????
+      // Calculate the angle of incidence of beam radiation on a surface located at a Latitude
+      // at a certain hour angle (solar time) on a given declination (date) if the surface
+      // is tilted by a certain slope from the horizontal and pointed to a certain panel azimuth
+      // west of south.
       forAll(testCases) { (latitudeDeg, deltaDeg, omegaDeg, gammaEDeg, alphaEDeg, thetaGOut) =>
-        // Given
-        val deltaRad = toRadians(deltaDeg) // Declination Angle delta of the sun at solar noon
-        val latitudeRad = toRadians(latitudeDeg) // Latitude in Radian
-        val omegaRad = toRadians(omegaDeg) // Hour Angle
-        val gammaERad = toRadians(gammaEDeg) // Slope (Inclination) Angle of the surface
-        val alphaERad = toRadians(alphaEDeg) // Surface azimuth
-
         // When
-        val thetaG = pvModel.calcAngleOfIncidenceThetaG(deltaRad, latitudeRad, gammaERad, alphaERad, omegaRad)
+        val thetaG = pvModel.calcAngleOfIncidenceThetaG(Degrees(deltaDeg), Degrees(latitudeDeg), Degrees(gammaEDeg), Degrees(alphaEDeg), Degrees(omegaDeg))
 
         // Then
         thetaG.toDegrees shouldEqual thetaGOut +- 1e-10
@@ -354,12 +331,15 @@ class PvModelSpec extends UnitSpec with DefaultTestData {
       val testCases = Table(
         ("latitudeDeg", "deltaDeg", "omegaDeg", "gammaEDeg", "alphaEDeg", "thetaGOut"),
         (45d, -7.15, -82.5d, 60d, 0d, 80.94904834048776d), // thetaG
+        (45d, -7.15d, -82.5d, 0d, 0d, 89.79565474295107d), // Latitude 45 degrees, slope 0 degrees (zenith angle)
         (15d, -7.15, -82.5d, 30d, 0d, 80.94904834048776d), // same test but 30° South with 30° less sloped surface
         (0d, -7.15, -82.5d, 15d, 0d, 80.94904834048776d), // same test but 15° South with 15° less sloped surface
         (-15d, -7.15, -82.5d, 0d, 0d, 80.94904834048776d), // same test but 15° South with 15° less sloped surface
         (-30d, -7.15, -82.5d, 15d, 180d, 80.94904834048776d), // same test but 15° South with 15° more sloped surface (Surface is now facing north, since it is in the southern hemisphere, therefore the surface azimuth is 180°)
         (52.3d, 23.4337425, 2.15114395d, 0d, 0d, 28.91315041538251d), // Berlin 21.06. 12:00 => thetaG = 90 - alphaS
-        (70.3d, 23.4337425, 2.15114395d, 18d, 0d, 28.91315041538251d) // same test but 18° North with 18° sloped surface
+        (70.3d, 23.4337425, 2.15114395d, 18d, 0d, 28.91315041538251d), // same test but 18° North with 18° sloped surface(40d, -11.6d, 82.5d, 60d, 0d, 79.11011928744357d),
+        (40d, -11.6d, 82.5d, 60d, 0d, 79.11011928744357d),
+        (40d, -11.6d, -78.0d, 60d, 0d, 74.92072065185143d),
       )
 
       /* Iqbal Figure 1.6.2 - the angle of incidence of a surface sloped by angle beta (gammaE) at latitude phi
@@ -368,42 +348,11 @@ class PvModelSpec extends UnitSpec with DefaultTestData {
        is facing directly north or south.
       */
       forAll(testCases) { (latitudeDeg, deltaDeg, omegaDeg, gammaEDeg, alphaEDeg, thetaGOut) =>
-        // Given
-        val latitudeRad = toRadians(latitudeDeg) // Latitude in radians
-        val deltaRad = toRadians(deltaDeg) // Declination Angle delta of the sun at solar noon
-        val omegaRad = toRadians(omegaDeg) // Hour Angle
-        val gammaERad = toRadians(gammaEDeg) // Slope (Inclination) Angle of the surface
-        val alphaERad = toRadians(alphaEDeg) // Surface azimuth
-
         // When
-        val thetaG = pvModel.calcAngleOfIncidenceThetaG(deltaRad, latitudeRad, gammaERad, alphaERad, omegaRad)
+        val thetaG = pvModel.calcAngleOfIncidenceThetaG(Degrees(deltaDeg), Degrees(latitudeDeg), Degrees(gammaEDeg), Degrees(alphaEDeg), Degrees(omegaDeg))
 
         // Then
-        thetaG shouldEqual thetaGOut +- 1e-10
-      }
-    }
-
-
-    "calculate Rb (cos(thetaG)/cos(thetaZ)) correctly" in {
-      val testCases = Table(
-        ("latitudeDeg", "deltaIn", "omegaIn", "slope", "azimuth", "thetaOut"),
-        (45, -7.15, -82.5, 60, 0, 80.94904834048776), // Latitude 45 degrees
-        (45, -7.15, -82.5, 0, 0, 89.79565474295107), // Latitude 45 degrees, slope 0 degrees (zenith angle)
-        (40, -11.6, -82.5, 60, 0, 79.11011928744357),
-        (40, -11.6, 82.5, 60, 0, 79.11011928744357),
-        (40, -11.6, -78.0, 60, 0, 74.92072065185143),
-        (40, -11.6, 78.0, 60, 0, 74.92072065185143)
-      )
-
-      forAll(testCases) { (latitudeDeg, deltaDeg, omegaDeg, gammaEDeg, alphaEDeg, thetaGOut) =>
-        // Given
-        val latitudeRad = toRadians(latitudeDeg) // Latitude in Radian
-        val deltaRad = toRadians(deltaDeg) // Declination Angle delta of the sun at solar noon
-        val omegaRad = toRadians(omegaDeg) // Hour Angle
-        val gammaERad = toRadians(gammaEDeg) // Slope (Inclination) Angle of the surface
-        val alphaERad = toRadians(alphaEDeg) // Surface azimuth
-
-        // Im Test wird garnicht Rb ausgerechnet?
+        thetaG.toDegrees shouldEqual thetaGOut +- 1e-10
       }
     }
 
@@ -426,23 +375,17 @@ class PvModelSpec extends UnitSpec with DefaultTestData {
       // https://www.sku.ac.ir/Datafiles/BookLibrary/45/John%20A.%20Duffie,%20William%20A.%20Beckman(auth.)-Solar%20Engineering%20of%20Thermal%20Processes,%20Fourth%20Edition%20(2013).pdf
       forAll(testCases) { (latitudeDeg, gammaEDeg, alphaEDeg, deltaDeg, omegaDeg, thetaGDeg, eBeamSSol) =>
         // Given
-        val gammaERad = toRadians(gammaEDeg) // Slope (Inclination) angle
-        val alphaERad = toRadians(alphaEDeg) // Surface azimuth angle
-        val latitudeRad = toRadians(latitudeDeg) // Latitude
         // Beam Radiation on a horizontal surface
         val eBeamH = 67.777778d // 1 MJ/m^2 = 277,778 Wh/m^2 -> 0.244 MJ/m^2 = 67.777778 Wh/m^2
-        val deltaRad = toRadians(deltaDeg) // Declination Angle delta of the sun at solar noon
-        val omegaRad = toRadians(omegaDeg) // Hour angle
-        val thetaGRad = toRadians(thetaGDeg) // Incidence angle
-        val omegaSS = pvModel.calcSunsetAngleOmegaSS(latitudeRad, deltaRad) //Sunset angle
+        val omegaSS = pvModel.calcSunsetAngleOmegaSS(Degrees(latitudeDeg), Degrees(deltaDeg)) //Sunset angle
         val omegaSR = -omegaSS // Sunrise angle
-        val omegas = pvModel.calculateBeamOmegas(thetaGRad, omegaRad, omegaSS, omegaSR) // omega1 and omega2
+        val omegas = pvModel.calculateBeamOmegas(Degrees(thetaGDeg), Degrees(omegaDeg), omegaSS, omegaSR) // omega1 and omega2
 
         // When
-        val eBeamSCalc = pvModel.calcBeamRadiationOnSlopedSurface(eBeamH, omegas, deltaRad, latitudeRad, gammaERad, alphaERad)
+        val eBeamSCalc = pvModel.calcBeamRadiationOnSlopedSurface(WattHoursPerSquareMeter(eBeamH), omegas, Degrees(deltaDeg), Degrees(latitudeDeg), Degrees(gammaEDeg), Degrees(alphaEDeg))
 
         // Then
-        eBeamSCalc shouldEqual eBeamSSol +- 1e-10
+        eBeamSCalc.toWattHoursPerSquareMeter shouldEqual eBeamSSol +- 1e-10
       }
     }
 
@@ -450,27 +393,23 @@ class PvModelSpec extends UnitSpec with DefaultTestData {
     "calculate the estimate diffuse radiation eDifS correctly" in {
       val testCases = Table(
         ("thetaGDeg", "thetaZDeg", "gammaEDeg", "airMass", "I0", "eDifSSol"),
-        (37.0, 62.2, 60, 2.13873080095658d, 1399.0077631849722d, 216.46615469650982d)
+        (37.0d, 62.2d, 60d, 2.13873080095658d, 1399.0077631849722d, 216.46615469650982d)
       )
 
       forAll(testCases) { (thetaGDeg, thetaZDeg, gammaEDeg, airMass, I0, eDifSSol) =>
         // Reference p.95
         // https://www.sku.ac.ir/Datafiles/BookLibrary/45/John%20A.%20Duffie,%20William%20A.%20Beckman(auth.)-Solar%20Engineering%20of%20Thermal%20Processes,%20Fourth%20Edition%20(2013).pdf
         // Given
-        val gammaERad = toRadians(gammaEDeg) // Slope Angle
         // Beam Radiation on horizontal surface
         val eBeamH = 67.777778d // 1 MJ/m^2 = 277,778 Wh/m^2 -> 0.244 MJ/m^2 = 67.777778 Wh/m^2
         // Diffuse Radiation on a horizontal surface
         val eDifH = 213.61111d // 0.769 MJ/m^2 = 213,61111 Wh/m^2
-        val thetaGRad = toRadians(thetaGDeg) // Incidence Angle
-        val thetaZRad = toRadians(thetaZDeg) // Zenith Angle
-        val I0Quantity = I0 // Extraterrestrial radiation
 
         // When
-        val result = pvModel.calcDiffuseRadiationOnSlopedSurfacePerez(eDifH, eBeamH, airMass, I0Quantity, thetaZRad, thetaGRad, gammaERad)
+        val eDifSCalc = pvModel.calcDiffuseRadiationOnSlopedSurfacePerez(WattHoursPerSquareMeter(eDifH), WattHoursPerSquareMeter(eBeamH), airMass, WattHoursPerSquareMeter(I0), Degrees(thetaZDeg), Degrees(thetaGDeg), Degrees(gammaEDeg))
 
         // Then
-        result shouldEqual eDifSSol +- 1e-1
+        eDifSCalc.toWattHoursPerSquareMeter shouldEqual eDifSSol +- 1e-1
       }
     }
 
@@ -478,27 +417,23 @@ class PvModelSpec extends UnitSpec with DefaultTestData {
     "calculate the ground reflection eRefS" in {
       val testCases = Table(
         ("gammaEDeg", "albedo", "eRefSSol"),
-        (60, 0.60, 42.20833319999999155833336d) // '2011-02-20T09:00:00'
+        (60d, 0.60d, 42.20833319999999155833336d) // '2011-02-20T09:00:00'
       )
 
-      forAll(testCases) { (slope, albedo, eRefSSol) =>
+      forAll(testCases) { (gammaEDeg, albedo, eRefSSol) =>
         // Given
-        val gammaERad = toRadians(gammaEDeg) // Slope Angle
         // Beam Radiation on horizontal surface
         val eBeamH = 67.777778d // 1 MJ/m^2 = 277,778 Wh/m^2 -> 0.244 MJ/m^2 = 67.777778 Wh/m^2
         // Diffuse Radiation on a horizontal surface
         val eDifH = 213.61111d // 0.769 MJ/m^2 = 213,61111 Wh/m^2
 
         // When
-        val eRefS = pvModel.calcReflectedRadiationOnSlopedSurface(eBeamH, eDifH, gammaERad, albedo)
+        val eRefSCalc = pvModel.calcReflectedRadiationOnSlopedSurface(WattHoursPerSquareMeter(eBeamH), WattHoursPerSquareMeter(eDifH), Degrees(gammaEDeg), albedo)
 
         // Then
-        eRefS shouldEqual eRefSSol +- 1e-10
+        eRefSCalc.toWattHoursPerSquareMeter shouldEqual eRefSSol +- 1e-10
       }
     }
-
-
-
   }
 }
 
