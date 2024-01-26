@@ -953,7 +953,8 @@ class EvcsModelSpec
                     FlexChangeIndicator(actualNextActivation, actualNextTick)
                   ) =>
                 // evs have not changed here since no schedules were given as input
-                actualEvs shouldBe Set(ev1, ev2)
+                actualEvs should have size 2
+                actualEvs should contain allOf (ev1, ev2)
 
                 actualSchedules.getOrElse(ev1, None).map {
                   case ChargingSchedule(_, entries) =>
