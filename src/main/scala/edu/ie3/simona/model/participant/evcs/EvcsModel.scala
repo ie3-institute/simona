@@ -246,6 +246,21 @@ final case class EvcsModel(
     )
   }
 
+  /** Create [[EvResult]]s and [[EvcsResult]]s for all EVs that have been
+    * connected to this charging station for some time in the time interval from
+    * (and including) the last tick to (and excluding) the current tick.
+    *
+    * As an exception to the rule, for EVs that are departing at current tick,
+    * an [[EvResult]] with 0 kW starting at current tick is created.
+    * @param lastState
+    *   The last EVCS state
+    * @param currentTick
+    *   The current tick
+    * @param voltageMagnitude
+    *   The voltage magnitude used for reactive power calulation
+    * @return
+    *   EV and EVCS results
+    */
   def createResults(
       lastState: EvcsState,
       currentTick: Long,
@@ -277,7 +292,7 @@ final case class EvcsModel(
 
     val entriesByStartTick = prefilteredSchedules
       .flatMap { case ChargingSchedule(evUuid, schedule) =>
-        schedule.unsorted
+        schedule.unsorted // unsorted for speedier execution
           .map { entry =>
             // trim down entries to the currently considered window of the charging schedule
             evUuid -> trimScheduleEntry(
@@ -322,14 +337,19 @@ final case class EvcsModel(
       ) { case ((evMap, lastActiveEntries, evResults, evcsResults), tick) =>
         val time = tick.toDateTime(simulationStartDate)
 
+        // separate into those entries that are still active
+        // and those that have ended before or at tick
         val (stillActive, endedEntries) = lastActiveEntries.partition {
           case (_, entry) =>
             entry.tickStop > tick
         }
-
+        // entries that become active with tick
         val newActiveEntries =
           entriesByStartTick.getOrElse(tick, Iterable.empty).toMap
 
+        // for those entries that ended with tick and that
+        // do not have a directly connected entry after that,
+        // add 0 kW entries
         val noChargingEvResults =
           endedEntries
             .filterNot { case evUuid -> _ =>
@@ -346,6 +366,8 @@ final case class EvcsModel(
               )
             }
 
+        // create result and update EVs with the
+        // newly active entries
         val (updatedEvMap, chargingEvResults) =
           newActiveEntries.foldLeft(evMap, Seq.empty[EvResult]) {
             case ((evMap, results), evUuid -> entry) =>
@@ -371,16 +393,15 @@ final case class EvcsModel(
 
         val currentActiveEntries = stillActive ++ newActiveEntries
 
+        // create the EVCS result with all currently active entries
         val evcsP = currentActiveEntries.foldLeft(Kilowatts(0d)) {
           case (powerSum, _ -> entry) =>
             powerSum + entry.chargingPower
         }
-
         val evcsQ = calculateReactivePower(
           evcsP,
           voltageMagnitude
         )
-
         val evcsResult = new EvcsResult(
           time,
           uuid,
