@@ -499,11 +499,12 @@ class EvcsModelSpec
 
     }
 
-    "handle flexibility correctly" when {
-      val evcsModel =
-        evcsStandardModel.copy(strategy = ChargingStrategy.CONSTANT_POWER)
+    "calculate flex options correctly" when {
 
-      "calculate flex options for two evs correctly" in {
+      "charging with constant power and allowing v2g" in {
+        val evcsModel =
+          evcsStandardModel.copy(strategy = ChargingStrategy.CONSTANT_POWER)
+
         val currentTick = 7200L
 
         val data = EvcsRelevantData(
@@ -526,13 +527,13 @@ class EvcsModelSpec
           (0.0, 0.0, 0.0, 15.0, 15.0, 15.0),
           // 2: at lower margin
           (0.0, 3.0, 0.0, 15.0, 10.0, 15.0),
-          // 2: mid-way full (charged to 7.5 kWh)
-          (0.0, 0.0, 5.0, 15.0, 10.0, 15.0),
-          // 2: mid-way full (set to 7.5 kWh)
-          (0.0, 7.5, 0.0, 15.0, 10.0, 15.0),
-          // 2: almost full (12.5 kWh)
-          (0.0, 5.0, 5.0, 12.5, 10.0, 15.0),
-          // 2: full (set)
+          // 2: mid-way full (charged to 7.5 kWh), forced charging
+          (0.0, 0.0, 5.0, 13.75, 10.0, 15.0),
+          // 2: mid-way full (set to 7.5 kWh), forced charging
+          (0.0, 7.5, 0.0, 13.75, 10.0, 15.0),
+          // 2: almost full (12.5 kWh), forced charging
+          (0.0, 5.0, 5.0, 11.25, 10.0, 15.0),
+          // 2: full (set), forced charging
           (0.0, 15.0, 0.0, 10.0, 10.0, 10.0),
 
           /* 1: at lower margin (set to 2 kWh) */
@@ -541,35 +542,179 @@ class EvcsModelSpec
           // 2: at lower margin
           (2.0, 3.0, 0.0, 13.0, 0.0, 15.0),
           // 2: mid-way full (charged to 7.5 kWh)
-          (2.0, 0.0, 5.0, 13.0, -5.0, 15.0),
+          (2.0, 0.0, 5.0, 11.75, -5.0, 15.0),
           // 2: mid-way full (set to 7.5 kWh)
-          (2.0, 7.5, 0.0, 13.0, -5.0, 15.0),
+          (2.0, 7.5, 0.0, 11.75, -5.0, 15.0),
           // 2: almost full (12.5 kWh)
-          (2.0, 5.0, 5.0, 10.5, -5.0, 15.0),
+          (2.0, 5.0, 5.0, 9.25, -5.0, 15.0),
           // 2: full (set)
           (2.0, 15.0, 0.0, 8.0, -5.0, 10.0),
 
           /* 1: mid-way full (set to 5 kWh) */
-          // 2: empty
+          // 2: empty, forced charging
           (5.0, 0.0, 0.0, 10.0, 5.0, 15.0),
           // 2: mid-way full (charged to 7.5 kWh)
-          (5.0, 0.0, 5.0, 10.0, -15.0, 15.0),
+          (5.0, 0.0, 5.0, 8.75, -15.0, 15.0),
           // 2: mid-way full (set to 7.5 kWh)
-          (5.0, 7.5, 0.0, 10.0, -15.0, 15.0),
+          (5.0, 7.5, 0.0, 8.75, -15.0, 15.0),
           // 2: almost full (12.5 kWh)
-          (5.0, 5.0, 5.0, 7.5, -15.0, 15.0),
+          (5.0, 5.0, 5.0, 6.25, -15.0, 15.0),
           // 2: full (set)
           (5.0, 15.0, 0.0, 5.0, -15.0, 10.0),
 
           /* 1: full (set to 10 kWh) */
+          // 2: empty, forced charging
+          (10.0, 0.0, 0.0, 5.0, 5.0, 5.0),
+          // 2: mid-way full (charged to 7.5 kWh)
+          (10.0, 0.0, 5.0, 3.75, -15.0, 5.0),
+          // 2: mid-way full (set to 7.5 kWh)
+          (10.0, 7.5, 0.0, 3.75, -15.0, 5.0),
+          // 2: almost full (12.5 kWh)
+          (10.0, 5.0, 5.0, 1.25, -15.0, 5.0),
+          // 2: full (set)
+          (10.0, 15.0, 0.0, 0.0, -15.0, 0.0)
+        )
+
+        forAll(cases) {
+          (
+              lastStored1,
+              lastStored2,
+              lastPower2,
+              expectedPRef,
+              expectedPMin,
+              expectedPMax
+          ) =>
+            // stays one more hour
+            val ev1 = EvModelWrapper(
+              new MockEvModel(
+                UUID.randomUUID(),
+                "Mock EV 1",
+                10.0.asKiloWatt, // AC is relevant,
+                20.0.asKiloWatt, // DC is not
+                10.0.asKiloWattHour,
+                lastStored1.asKiloWattHour,
+                10800L
+              )
+            )
+
+            // has not been charging before
+            val schedule1 = ChargingSchedule(
+              ev1,
+              Seq(ChargingSchedule.Entry(3600L, 7200L, Kilowatts(0d)))
+            )
+
+            // stays two more hours
+            val ev2 = EvModelWrapper(
+              new MockEvModel(
+                UUID.randomUUID(),
+                "Mock EV 2",
+                5.0.asKiloWatt, // AC is relevant,
+                10.0.asKiloWatt, // DC is not
+                15.0.asKiloWattHour,
+                lastStored2.asKiloWattHour,
+                14400L
+              )
+            )
+
+            // has been charging for 1.5 hours with given power
+            val schedule2 = ChargingSchedule(
+              ev1,
+              Seq(ChargingSchedule.Entry(0L, 5400L, Kilowatts(lastPower2)))
+            )
+
+            evcsModel.determineFlexOptions(
+              data,
+              EvcsState(
+                Set(ev1, ev2),
+                Map(ev1 -> Some(schedule1), ev2 -> Some(schedule2)),
+                0L
+              )
+            ) match {
+              case ProvideMinMaxFlexOptions(
+                    modelUuid,
+                    refPower,
+                    minPower,
+                    maxPower
+                  ) =>
+                modelUuid shouldBe evcsModel.getUuid
+                (refPower ~= Kilowatts(expectedPRef)) shouldBe true
+                (minPower ~= Kilowatts(expectedPMin)) shouldBe true
+                (maxPower ~= Kilowatts(expectedPMax)) shouldBe true
+            }
+        }
+
+      }
+
+      "charging with maximum power and allowing v2g" in {
+        val evcsModel =
+          evcsStandardModel.copy(strategy = ChargingStrategy.MAX_POWER)
+
+        val currentTick = 7200L
+
+        val data = EvcsRelevantData(
+          currentTick,
+          Seq.empty
+        )
+
+        val cases = Table(
+          (
+            "lastStored1",
+            "lastStored2",
+            "lastPower2",
+            "expectedPRef",
+            "expectedPMin",
+            "expectedPMax"
+          ),
+
+          /* 1: empty */
           // 2: empty
+          (0.0, 0.0, 0.0, 15.0, 15.0, 15.0),
+          // 2: at lower margin
+          (0.0, 3.0, 0.0, 15.0, 10.0, 15.0),
+          // 2: mid-way full (charged to 7.5 kWh), forced charging
+          (0.0, 0.0, 5.0, 15.0, 10.0, 15.0),
+          // 2: mid-way full (set to 7.5 kWh), forced charging
+          (0.0, 7.5, 0.0, 15.0, 10.0, 15.0),
+          // 2: almost full (12.5 kWh), forced charging
+          (0.0, 5.0, 5.0, 15.0, 10.0, 15.0),
+          // 2: full (set)
+          (0.0, 15.0, 0.0, 10.0, 10.0, 10.0),
+
+          /* 1: at lower margin (set to 2 kWh) */
+          // 2: empty
+          (2.0, 0.0, 0.0, 15.0, 5.0, 15.0),
+          // 2: at lower margin
+          (2.0, 3.0, 0.0, 15.0, 0.0, 15.0),
+          // 2: mid-way full (charged to 7.5 kWh)
+          (2.0, 0.0, 5.0, 15.0, -5.0, 15.0),
+          // 2: mid-way full (set to 7.5 kWh)
+          (2.0, 7.5, 0.0, 15.0, -5.0, 15.0),
+          // 2: almost full (12.5 kWh)
+          (2.0, 5.0, 5.0, 15.0, -5.0, 15.0),
+          // 2: full (set)
+          (2.0, 15.0, 0.0, 10.0, -5.0, 10.0),
+
+          /* 1: mid-way full (set to 5 kWh) */
+          // 2: empty, forced charging
+          (5.0, 0.0, 0.0, 15.0, 5.0, 15.0),
+          // 2: mid-way full (charged to 7.5 kWh)
+          (5.0, 0.0, 5.0, 15.0, -15.0, 15.0),
+          // 2: mid-way full (set to 7.5 kWh)
+          (5.0, 7.5, 0.0, 15.0, -15.0, 15.0),
+          // 2: almost full (12.5 kWh)
+          (5.0, 5.0, 5.0, 15.0, -15.0, 15.0),
+          // 2: full (set)
+          (5.0, 15.0, 0.0, 10.0, -15.0, 10.0),
+
+          /* 1: full (set to 10 kWh) */
+          // 2: empty, forced charging
           (10.0, 0.0, 0.0, 5.0, 5.0, 5.0),
           // 2: mid-way full (charged to 7.5 kWh)
           (10.0, 0.0, 5.0, 5.0, -15.0, 5.0),
           // 2: mid-way full (set to 7.5 kWh)
           (10.0, 7.5, 0.0, 5.0, -15.0, 5.0),
           // 2: almost full (12.5 kWh)
-          (10.0, 5.0, 5.0, 2.5, -15.0, 5.0),
+          (10.0, 5.0, 5.0, 5.0, -15.0, 5.0),
           // 2: full (set)
           (10.0, 15.0, 0.0, 0.0, -15.0, 0.0)
         )
@@ -640,7 +785,7 @@ class EvcsModelSpec
 
       }
 
-      "calculate flex options for an evcs without vehicle2grid correctly" in {
+      "disallowing v2g" in {
         val evcsModel = evcsStandardModel.copy(
           vehicle2grid = false,
           strategy = ChargingStrategy.CONSTANT_POWER
@@ -691,6 +836,12 @@ class EvcsModelSpec
         }
 
       }
+
+    }
+
+    "handle flexibility correctly" when {
+      val evcsModel =
+        evcsStandardModel.copy(strategy = ChargingStrategy.CONSTANT_POWER)
 
       "handle controlled power change for two evs correctly" in {
         val currentTick = 3600L

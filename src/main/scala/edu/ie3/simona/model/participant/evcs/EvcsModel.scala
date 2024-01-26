@@ -584,7 +584,6 @@ final case class EvcsModel(
                 }
                 .map(_.chargingPower)
             }
-            .getOrElse(Kilowatts(0d))
 
           val maxCharging =
             if (!isFull(ev))
@@ -594,7 +593,7 @@ final case class EvcsModel(
 
           val forced =
             if (isEmpty(ev) && !isInLowerMargin(ev))
-              preferred
+              preferred.getOrElse(maxPower)
             else
               Kilowatts(0d)
 
@@ -606,7 +605,7 @@ final case class EvcsModel(
 
           (
             chargingSum + maxCharging,
-            preferredSum + preferred,
+            preferredSum + preferred.getOrElse(Kilowatts(0d)),
             forcedSum + forced,
             dischargingSum + maxDischarging
           )
