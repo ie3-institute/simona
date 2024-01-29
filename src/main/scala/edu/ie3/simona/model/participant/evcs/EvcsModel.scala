@@ -221,7 +221,7 @@ final case class EvcsModel(
   ): EvModelWrapper = {
     /* Determine charged energy in the charging interval */
     val chargedEnergySinceLastScheduling =
-      schedule.schedule.toSeq
+      schedule.entries.toSeq
         .filter { case ChargingSchedule.Entry(tickStart, tickStop, _) =>
           /* Filter for entries, that end after the last schedule application (that slice is not yet fully applied)
            * and that start before the current tick */
@@ -248,7 +248,9 @@ final case class EvcsModel(
 
   /** Create [[EvResult]]s and [[EvcsResult]]s for all EVs that have been
     * connected to this charging station for some time in the time interval from
-    * (and including) the last tick to (and excluding) the current tick.
+    * (and including) the last tick to (but excluding) the current tick.
+    * Schedule entries that start at current tick are excluded, but will be
+    * considered in the next interval.
     *
     * As an exception to the rule, for EVs that are departing at current tick,
     * an [[EvResult]] with 0 kW starting at current tick is created.
@@ -285,14 +287,12 @@ final case class EvcsModel(
             tickStop > lastTick && tickStart < currentTick
           }
 
-        schedule.copy(
-          schedule = filteredEntries
-        )
+        schedule.copy(entries = filteredEntries)
       }
 
     val entriesByStartTick = prefilteredSchedules
-      .flatMap { case ChargingSchedule(evUuid, schedule) =>
-        schedule.unsorted // unsorted for speedier execution
+      .flatMap { case ChargingSchedule(evUuid, entries) =>
+        entries.unsorted // unsorted for speedier execution
           .map { entry =>
             // trim down entries to the currently considered window of the charging schedule
             evUuid -> trimScheduleEntry(
@@ -308,8 +308,8 @@ final case class EvcsModel(
       .to(SortedMap)
 
     val startAndStopTicks = prefilteredSchedules
-      .flatMap { case ChargingSchedule(_, schedule) =>
-        schedule.unsorted.flatMap {
+      .flatMap { case ChargingSchedule(_, entries) =>
+        entries.unsorted.flatMap {
           case ChargingSchedule.Entry(start, stop, _) =>
             Iterable(start, stop)
         }
@@ -577,8 +577,8 @@ final case class EvcsModel(
           val maxPower = getMaxAvailableChargingPower(ev)
 
           val preferred = optChargingSchedule
-            .flatMap { case ChargingSchedule(_, schedule) =>
-              schedule
+            .flatMap { case ChargingSchedule(_, entries) =>
+              entries
                 .find { case ChargingSchedule.Entry(tickStart, tickStop, _) =>
                   tickStart <= data.tick && tickStop > data.tick
                 }

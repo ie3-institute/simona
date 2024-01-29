@@ -15,10 +15,10 @@ import scala.collection.immutable.{SortedSet, TreeSet}
   *
   * @param ev
   *   Unique identifier of the car
-  * @param schedule
-  *   Actual schedule
+  * @param entries
+  *   Actual charging schedule entries
   */
-final case class ChargingSchedule(ev: UUID, schedule: SortedSet[Entry])
+final case class ChargingSchedule(ev: UUID, entries: SortedSet[Entry])
 
 object ChargingSchedule {
   def apply(ev: EvModelWrapper, entries: Seq[Entry]) =

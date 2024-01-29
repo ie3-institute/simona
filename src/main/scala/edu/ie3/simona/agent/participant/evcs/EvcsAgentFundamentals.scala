@@ -447,10 +447,11 @@ protected trait EvcsAgentFundamentals
       case (ev, maybeSchedule) if !requestedDepartingEvs.contains(ev.uuid) =>
         Some(
           ev -> maybeSchedule.map(scheduleContainer =>
-            scheduleContainer.copy(schedule =
-              scheduleContainer.schedule.filter(_.tickStop >= tick)
-            // filter(_.tickStop > currentTick)
-            // TODO is it possible to remove also the schedules that ended at currentTick? -> probably yes, test required
+            scheduleContainer.copy(entries =
+              // Remove schedules that ended before or at current tick.
+              // Schedule entries ending at current tick do not have any
+              // impact on the schedule from the current tick on
+              scheduleContainer.entries.filter(_.tickStop > tick)
             )
           )
         )
