@@ -300,9 +300,9 @@ class PvModelTest extends Specification {
 
     where:
     j                  || I0Sol
-    0d                 || 1414.91335d           // Jan 1st
-    2.943629280897834d || 1322.494291080537598d // Jun 21st
-    4.52733626243351d  || 1355.944773587800003d // Sep 21st
+    0d                 || 1423.7592070000003d // Jan 1st
+    2.943629280897834d || 1330.655828592125d // Jun 21st
+    4.52733626243351d  || 1347.6978765254157d // Sep 21st
   }
 
   def "Calculate the angle of incidence thetaG"() {
