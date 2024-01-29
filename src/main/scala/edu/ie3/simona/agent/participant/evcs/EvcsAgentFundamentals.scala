@@ -210,7 +210,7 @@ protected trait EvcsAgentFundamentals
   ): EvcsRelevantData = {
     // always only take arrivals for the current tick
     // or empty sequence if none arrived
-    val movements = baseStateData.receivedSecondaryDataStore
+    val arrivingEvs = baseStateData.receivedSecondaryDataStore
       .getOrElse(tick, Map.empty)
       .collectFirst {
         // filter secondary data for arriving EVs data
@@ -219,10 +219,11 @@ protected trait EvcsAgentFundamentals
       }
       .getOrElse(Seq.empty)
 
-    EvcsRelevantData(tick, movements)
+    EvcsRelevantData(tick, arrivingEvs)
   }
 
   /** Handle an active power change by flex control.
+    *
     * @param tick
     *   Tick, in which control is issued
     * @param baseStateData
@@ -297,7 +298,7 @@ protected trait EvcsAgentFundamentals
     *   The base state data with collected secondary data
     * @param lastModelState
     *   Last model state
-    * @param currentTick
+    * @param tick
     *   Tick, the trigger belongs to
     * @param scheduler
     *   [[ActorRef]] to the scheduler in the simulation
@@ -312,18 +313,18 @@ protected trait EvcsAgentFundamentals
         EvcsModel
       ],
       lastModelState: EvcsState,
-      currentTick: Long,
+      tick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
     /* extract EV data from secondary data, which should have been requested and received before */
     baseStateData.receivedSecondaryDataStore
-      .getOrElse(currentTick, Map.empty)
+      .getOrElse(tick, Map.empty)
       .values
       .collectFirst {
         // filter secondary data for arriving EVs data
         case _: ArrivingEvsData =>
           handleArrivingEvsAndGoIdle(
-            currentTick,
+            tick,
             scheduler,
             baseStateData
           )
@@ -338,6 +339,7 @@ protected trait EvcsAgentFundamentals
 
   /** Returns the number of free parking lots based on the last available state
     * data.
+    *
     * @param tick
     *   The tick that free lots have been requested for
     * @param modelBaseStateData
