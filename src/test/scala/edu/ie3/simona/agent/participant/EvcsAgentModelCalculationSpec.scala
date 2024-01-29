@@ -1921,6 +1921,9 @@ class EvcsAgentModelCalculationSpec
           requestAtTick shouldBe Some(72000)
       }
 
+      // expect no more messages after completion of initialization
+      scheduler.expectNoMessage()
+
     }
 
   }

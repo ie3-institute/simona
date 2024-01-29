@@ -562,7 +562,7 @@ final case class EvcsModel(
       lastState: EvcsState
   ): FlexibilityMessage.ProvideFlexOptions = {
 
-    val currentEvs = determineCurrentState(data, lastState)
+    val currentEvs = determineCurrentEvs(data, lastState)
 
     val preferredScheduling = calculateNewScheduling(data, currentEvs)
 
@@ -633,7 +633,7 @@ final case class EvcsModel(
       lastState: EvcsState,
       setPower: Power
   ): (EvcsState, FlexChangeIndicator) = {
-    val currentEvs = determineCurrentState(data, lastState)
+    val currentEvs = determineCurrentEvs(data, lastState)
 
     if (setPower == Kilowatts(0d))
       return (
@@ -883,12 +883,13 @@ final case class EvcsModel(
     * @return
     *   The EVs currently parked at the EVCS, including the arriving EVs
     */
-  def determineCurrentState(
+  def determineCurrentEvs(
       data: EvcsRelevantData,
       lastState: EvcsState
   ): Seq[EvModelWrapper] = {
 
-    // if last state is from before current tick, determine current state
+    // If last state is outdated, determine
+    // current state for already parked EVs
     val currentEVs =
       if (lastState.tick < data.tick)
         applySchedule(lastState, data.tick)

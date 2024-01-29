@@ -214,8 +214,8 @@ protected trait EvcsAgentFundamentals
       .getOrElse(tick, Map.empty)
       .collectFirst {
         // filter secondary data for arriving EVs data
-        case (_, evcsData: ArrivingEvsData) =>
-          evcsData.arrivals
+        case (_, arrivingEvsData: ArrivingEvsData) =>
+          arrivingEvsData.arrivals
       }
       .getOrElse(Seq.empty)
 
@@ -470,14 +470,13 @@ protected trait EvcsAgentFundamentals
     )
   }
 
-  /** Handles a evcs movements message that contains information on arriving and
-    * departing vehicles. After applying the movements to the last known set of
-    * parked evs, returns departing evs and calculates new scheduling. Sends
-    * completion message to scheduler without scheduling new activations. FIXME
-    * scaladoc
+  /** Handles data message that contains information on arriving EVs. Updates
+    * already parked EVs (if applicable) and adds new arrivals. Also calculates
+    * new schedules for all staying and arriving EVs. Sends completion message
+    * to scheduler without scheduling new activations.
     *
-    * @param currentTick
-    *   The current tick that has been triggered
+    * @param tick
+    *   The current tick that data has arrived for
     * @param scheduler
     *   The scheduler ref
     * @param modelBaseStateData
@@ -486,7 +485,7 @@ protected trait EvcsAgentFundamentals
     *   [[Idle]] with updated relevant data store
     */
   private def handleArrivingEvsAndGoIdle(
-      currentTick: Long,
+      tick: Long,
       scheduler: ActorRef,
       modelBaseStateData: ParticipantModelBaseStateData[
         ApparentPower,
@@ -497,39 +496,36 @@ protected trait EvcsAgentFundamentals
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
 
     val relevantData =
-      createCalcRelevantData(modelBaseStateData, currentTick)
+      createCalcRelevantData(modelBaseStateData, tick)
 
-    val lastState = getLastOrInitialStateData(modelBaseStateData, currentTick)
+    val lastState = getLastOrInitialStateData(modelBaseStateData, tick)
 
-    val currentEvs = modelBaseStateData.model.determineCurrentState(
+    val currentEvs = modelBaseStateData.model.determineCurrentEvs(
       relevantData,
       lastState
     )
 
     // if new EVs arrived, a new scheduling must be calculated.
-    val newSchedule = modelBaseStateData.model
-      .calculateNewScheduling(
-        relevantData,
-        currentEvs
-      )
+    val newSchedule = modelBaseStateData.model.calculateNewScheduling(
+      relevantData,
+      currentEvs
+    )
 
     // create new current state
-    val newState = EvcsState(currentEvs, newSchedule, currentTick)
+    val newState = EvcsState(currentEvs, newSchedule, tick)
 
-    val updatedStateDataStore =
-      ValueStore.updateValueStore(
-        modelBaseStateData.stateDataStore,
-        currentTick,
-        newState
-      )
+    val updatedStateDataStore = ValueStore.updateValueStore(
+      modelBaseStateData.stateDataStore,
+      tick,
+      newState
+    )
 
     /* Update the base state data with the updated result value store and relevant data store */
-    val updatedBaseStateData =
-      modelBaseStateData.copy(
-        stateDataStore = updatedStateDataStore
-      )
+    val updatedBaseStateData = modelBaseStateData.copy(
+      stateDataStore = updatedStateDataStore
+    )
 
-    // FIXME no completion anymore with flex
+    // We're only here if we're not flex-controlled, thus sending a Completion is always right
     goToIdleReplyCompletionAndScheduleTriggerForNextAction(
       updatedBaseStateData,
       scheduler
