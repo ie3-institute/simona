@@ -110,7 +110,8 @@ final case class PvModel private (
       delta,
       lat,
       gammaE,
-      alphaE
+      alphaE,
+      duration
     )
 
     // === Diffuse Radiation Parameters ===//
@@ -485,7 +486,7 @@ final case class PvModel private (
         val omega1InRad = omega1.toRadians
         val omega2InRad = omega2.toRadians
         // variable that accounts for cases when the integration interval is shorter than 15° (1 hour equivalent), when the time is close to sunrise or sunset
-        val timeFrame = (omega2 - omega1).toDegrees * duration.toHours // original term: (omega2 - omega1).toRadians * 180 / Math.PI / 15, since a one hour difference equals 15°
+        val timeFrame = (omega2 - omega1).toDegrees / 15d / duration.toHours // original term: (omega2 - omega1).toRadians * 180 / Math.PI / 15, since a one hour difference equals 15°
 
         val a = ((sin(deltaInRad) * sin(latInRad) * cos(gammaEInRad)
           - sin(deltaInRad) * cos(latInRad) * sin(gammaEInRad) * cos(
@@ -550,6 +551,25 @@ final case class PvModel private (
       3
     ))
   }
+
+  private def calcEpsilonOld(eDifH: Irradiation, eBeamH: Irradiation, thetaZ: Angle): Double = {
+    val thetaZInRad = thetaZ.toRadians
+
+    ((eDifH + eBeamH) / eDifH +
+      (5.535d * 1.0e-6) * pow(
+        thetaZ.toRadians,
+        3
+      )) / (1d + (5.535d * 1.0e-6) * pow(
+      thetaZ.toRadians,
+      3
+    ))
+  }
+
+  private def firstFraction(eDifH: Irradiation, eBeamH: Irradiation, thetaZ: Angle): Double = {
+
+    (eDifH + eBeamH) / eDifH
+  }
+
 
   private def calcDiffuseRadiationOnSlopedSurfacePerez(
       eDifH: Irradiation,

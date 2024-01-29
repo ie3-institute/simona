@@ -491,8 +491,8 @@ class PvModelTest extends Specification {
     // == 0,7792781569074354 MJ/m^2
 
     def epsilon = pvModel.calcEpsilon(eDifH, eBeamH, thetaZ)
-
-
+    def epsilonOld = pvModel.calcEpsilonOld(eDifH, eBeamH, thetaZ)
+    def firstFraction = pvModel.firstFraction(eDifH, eBeamH, thetaZ)
 
     def diffuseradiation = pvModel.calcDiffuseRadiationOnSlopedSurfacePerez(eDifH, eBeamH, airMass, I0Quantity, thetaZ, thetaG, gammaE)
     diffuseradiation =~ Sq.create(eDifSSol, WattHoursPerSquareMeter$.MODULE$)
