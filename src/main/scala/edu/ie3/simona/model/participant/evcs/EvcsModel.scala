@@ -600,7 +600,7 @@ final case class EvcsModel(
     )
   }
 
-  // TODO sometimes we issue too early nextTicks, since remaining power might be added to remaining non-full vehicles
+  // TODO less activations could be possible if after departure of vehicles, the additional power might be added to remaining non-full vehicles
   // (minor) TODO? if IssueNoControl is sent, there might be a different result than anticipated when calculating flex options (strat is not used)
   override def handleControlledPowerChange(
       data: EvcsRelevantData,
