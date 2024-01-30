@@ -15,8 +15,8 @@ import edu.ie3.simona.model.participant.evcs.EvcsModel.{
 }
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.simona.test.common.model.MockEvModel
-import edu.ie3.simona.test.common.model.participant.EvcsTestData
 import edu.ie3.simona.test.helper.TableDrivenHelper
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
@@ -31,7 +31,7 @@ class EvcsModelSpec
     extends UnitSpec
     with TableDrivenPropertyChecks
     with TableDrivenHelper
-    with EvcsTestData {
+    with EvcsInputTestData {
 
   private val simulationStart = evcsStandardModel.simulationStartDate
 

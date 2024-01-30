@@ -9,8 +9,8 @@ package edu.ie3.simona.model.participant.evcs.uncontrolled
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.model.participant.evcs.EvcsModel.ScheduleEntry
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.simona.test.common.model.MockEvModel
-import edu.ie3.simona.test.common.model.participant.EvcsTestData
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.energy.Kilowatts
@@ -21,7 +21,7 @@ import scala.collection.immutable.SortedSet
 class ConstantPowerChargingSpec
     extends UnitSpec
     with TableDrivenPropertyChecks
-    with EvcsTestData {
+    with EvcsInputTestData {
 
   "Calculating constant power charging schedules" should {
     val evcsModel = evcsStandardModel

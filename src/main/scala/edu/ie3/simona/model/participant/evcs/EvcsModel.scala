@@ -14,13 +14,7 @@ import edu.ie3.datamodel.models.result.system.{EvResult, EvcsResult}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.evcs.EvcsModel.{
-  ChargingSchedule,
-  EvcsRelevantData,
-  EvcsState,
-  ScheduleEntry,
-  ScheduleMap
-}
+import edu.ie3.simona.model.participant.evcs.EvcsModel._
 import edu.ie3.simona.model.participant.evcs.uncontrolled.{
   ConstantPowerCharging,
   MaximumPowerCharging
@@ -37,15 +31,13 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.OperationInterval
-import squants.{Dimensionless, Energy, Power}
-import squants.time.Seconds
 import squants.energy.{KilowattHours, Kilowatts}
-import tech.units.indriya.ComparableQuantity
+import squants.time.Seconds
+import squants.{Dimensionless, Energy, Power}
 import tech.units.indriya.unit.Units.PERCENT
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure
 import scala.collection.SortedMap
 import scala.collection.immutable.SortedSet
 
@@ -73,6 +65,8 @@ import scala.collection.immutable.SortedSet
   *   The location type
   * @param strategy
   *   Strategy to follow in oder to determine the charging habits
+  * @param lowestEvSoc
+  *   The lowest SOC possible for EV batteries (inverse of max dod)
   */
 final case class EvcsModel(
     uuid: UUID,
@@ -1030,6 +1024,23 @@ object EvcsModel {
     }
   }
 
+  /** Default factory method to create an EvcsModel instance.
+    *
+    * @param inputModel
+    *   The EVCS input model providing parameters
+    * @param scalingFactor
+    *   The scaling factor of the power output
+    * @param simulationStartDate
+    *   The start date of the simulation
+    * @param simulationEndDate
+    *   The end date of the simulation
+    * @param chargingStrategy
+    *   The charging strategy to use
+    * @param lowestEvSoc
+    *   The lowest SOC possible for EV batteries (inverse of max dod)
+    * @return
+    *   The enabled EvcsModel
+    */
   def apply(
       inputModel: EvcsInput,
       scalingFactor: Double,
@@ -1046,14 +1057,14 @@ object EvcsModel {
         inputModel.getOperationTime
       )
 
-    apply(
+    val model = EvcsModel(
       inputModel.getUuid,
       inputModel.getId,
       operationInterval,
       scalingFactor,
       simulationStartDate,
       QControl(inputModel.getqCharacteristics),
-      inputModel.getType.getsRated,
+      Kilowatts(inputModel.getType.getsRated.to(KILOWATT).getValue.doubleValue),
       inputModel.getType.getElectricCurrentType,
       inputModel.getCosPhiRated,
       inputModel.getChargingPoints,
@@ -1062,70 +1073,10 @@ object EvcsModel {
       ChargingStrategy(chargingStrategy),
       lowestEvSoc
     )
-  }
-
-  /** Default factory method to create an EvcsModel instance.
-    *
-    * @param uuid
-    *   the unique id of the model
-    * @param id
-    *   the human readable id
-    * @param operationInterval
-    *   the operation interval of the model
-    * @param scalingFactor
-    *   the scaling factor of the power output
-    * @param simulationStartDate
-    *   The start date of the simulation
-    * @param qControl
-    *   the q control this model is using
-    * @param sRated
-    *   the rated apparent power of the model
-    * @param cosPhiRated
-    *   the rated cosine phi of the model
-    * @param chargingPoints
-    *   Number of charging points available at this charging station
-    * @param locationType
-    *   The location type
-    * @param chargingStrategy
-    *   The charging strategy to use
-    * @return
-    *   the enabled EvcsModel
-    */
-  def apply(
-      uuid: UUID,
-      id: String,
-      operationInterval: OperationInterval,
-      scalingFactor: Double,
-      simulationStartDate: ZonedDateTime,
-      qControl: QControl,
-      sRated: ComparableQuantity[measure.quantity.Power],
-      currentType: ElectricCurrentType,
-      cosPhiRated: Double,
-      chargingPoints: Int,
-      locationType: EvcsLocationType,
-      vehicle2grid: Boolean,
-      chargingStrategy: ChargingStrategy.Value,
-      lowestEvSoc: Double
-  ): EvcsModel = {
-    val model = new EvcsModel(
-      uuid,
-      id,
-      operationInterval,
-      scalingFactor,
-      simulationStartDate,
-      qControl,
-      Kilowatts(sRated.to(KILOWATT).getValue.doubleValue),
-      currentType,
-      cosPhiRated,
-      chargingPoints,
-      locationType,
-      vehicle2grid,
-      chargingStrategy,
-      lowestEvSoc
-    )
 
     model.enable()
 
     model
   }
+
 }
