@@ -519,7 +519,8 @@ class EvcsAgentModelCalculationSpec
           /* The store for simulation results has been extended */
           baseStateData.resultValueStore match {
             case ValueStore(_, store) =>
-              // FIXME: Please double-check if an empty result store is actually correct here!
+              // Since departures and arrivals are considered separately,
+              // EvcsAgent calculates results only with the next activation
               store.keys shouldBe empty
           }
         case _ =>
@@ -653,7 +654,8 @@ class EvcsAgentModelCalculationSpec
           /* The store for simulation results has been extended */
           baseStateData.resultValueStore match {
             case ValueStore(_, store) =>
-              // FIXME: Please double-check if an empty result store is actually correct here!
+              // Since departures and arrivals are considered separately,
+              // EvcsAgent calculates results only with the next activation
               store shouldBe empty
           }
         case _ =>
