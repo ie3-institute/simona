@@ -225,7 +225,7 @@ class EvcsModelSpec
 
         // tick, p in kW
         val generalEvResults =
-          Seq(
+          IndexedSeq(
             (0L, 0d),
             (3600L, 2d),
             (5400L, 0d),
