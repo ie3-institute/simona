@@ -6,17 +6,14 @@
 
 package edu.ie3.simona.test.helper
 
-// Methods are supposed to be shorthand notations for
-// class constructors, thus uppercase naming is intuitive
-@SuppressWarnings(Array("MethodNames"))
 trait TableDrivenHelper {
 
   /** Shortcut for Some type to make case tables more concise */
-  def S[T](value: T): Some[T] = Some(value)
+  val S: Some.type = Some
 
   /** Shortcut for None type to make case tables more concise */
-  def N: None.type = None
+  val N: None.type = None
 
   /** Shortcut for Seq type to make case tables more concise */
-  def L: Seq.type = Seq
+  val L: Seq.type = Seq
 }

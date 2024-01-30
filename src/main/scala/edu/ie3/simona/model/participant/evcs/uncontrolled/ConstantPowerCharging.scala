@@ -11,7 +11,7 @@ import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   ScheduleEntry
 }
 import edu.ie3.simona.model.participant.evcs.{EvModelWrapper, EvcsModel}
-import squants.time.Seconds
+import squants.Seconds
 
 import scala.collection.immutable.SortedSet
 
