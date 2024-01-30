@@ -38,7 +38,6 @@ class EvcsModelSpec
   private implicit val energyTolerance: squants.Energy = KilowattHours(1e-10)
   private implicit val powerTolerance: squants.Power = Kilowatts(1e-10)
 
-  // TODO some conditions/functions have not been tested yet
   "An EVCS model" should {
 
     "calculate new schedules correctly" when {
