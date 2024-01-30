@@ -764,6 +764,17 @@ final case class EvcsModel(
         (ev, power, endTick)
       }
 
+      val maxChargedResults = maxCharged.map { case (ev, power, endTick) =>
+        (
+          ev.uuid,
+          (
+            SortedSet(ScheduleEntry(currentTick, endTick, power)),
+            endTick,
+            isFull(ev) || isEmpty(ev) || isInLowerMargin(ev)
+          )
+        )
+      }
+
       // sum up allocated power
       val chargingPowerSum = maxCharged.foldLeft(Kilowatts(0d)) {
         case (powerSum, (_, chargingPower, _)) =>
@@ -780,16 +791,7 @@ final case class EvcsModel(
           remainingAfterAllocation
         )
 
-      val combinedResults = maxCharged.map { case (ev, power, endTick) =>
-        (
-          ev.uuid,
-          (
-            SortedSet(ScheduleEntry(currentTick, endTick, power)),
-            endTick,
-            isFull(ev) || isEmpty(ev) || isInLowerMargin(ev)
-          )
-        )
-      } ++ nextIterationResults
+      val combinedResults = maxChargedResults ++ nextIterationResults
 
       (combinedResults, remainingAfterRecursion)
     }
