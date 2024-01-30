@@ -429,19 +429,11 @@ protected trait EvcsAgentFundamentals
       )
     }
 
-    val voltage = baseStateData.voltageValueStore
-      .last(tick)
-      .map { case (_, voltage) =>
-        voltage
-      }
-      .getOrElse(Each(1d))
-
     /* Calculate evcs power for interval since last update, save for updating value store, and inform listeners */
     val updatedResultValueStore =
       determineResultsAnnounceUpdateValueStore(
         lastState,
         tick,
-        voltage,
         baseStateData
       )
 
@@ -619,25 +611,13 @@ protected trait EvcsAgentFundamentals
                   EvcsState,
                   EvcsModel
                 ] =>
-              // FIXME this is still incomplete ?
-
               val lastState =
                 getLastOrInitialStateData(modelBaseStateData, requestTick)
-
-              val voltage = modelBaseStateData.voltageValueStore
-                .last(requestTick)
-                .map { case (_, voltage) =>
-                  voltage
-                }
-                .getOrElse(
-                  Each(1d)
-                )
 
               val updatedResultValueStore =
                 determineResultsAnnounceUpdateValueStore(
                   lastState,
                   requestTick,
-                  voltage,
                   modelBaseStateData
                 )
 
@@ -718,20 +698,10 @@ protected trait EvcsAgentFundamentals
             // Thus, skip recalculating and sending out results.
             baseStateData
           case None =>
-            val voltage = baseStateData.voltageValueStore
-              .last(currentTick - 1)
-              .map { case (_, voltage) =>
-                voltage
-              }
-              .getOrElse(
-                Each(1d)
-              )
-
             val updatedResultValueStore =
               determineResultsAnnounceUpdateValueStore(
                 lastState,
                 currentTick,
-                voltage,
                 baseStateData
               )
 
@@ -756,8 +726,6 @@ protected trait EvcsAgentFundamentals
     *   The state (including schedule) to calculate results for
     * @param currentTick
     *   The tick up to which results should be calculated for
-    * @param voltage
-    *   The voltage magnitude used for reactive power calculation
     * @param modelBaseStateData
     *   Model base state data
     * @return
@@ -766,7 +734,6 @@ protected trait EvcsAgentFundamentals
   private def determineResultsAnnounceUpdateValueStore(
       lastState: EvcsState,
       currentTick: Long,
-      voltage: squants.Dimensionless,
       modelBaseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         EvcsRelevantData,
@@ -774,6 +741,13 @@ protected trait EvcsAgentFundamentals
         EvcsModel
       ]
   ): ValueStore[ApparentPower] = {
+
+    val voltage = modelBaseStateData.voltageValueStore
+      .last(currentTick)
+      .map { case (_, voltage) =>
+        voltage
+      }
+      .getOrElse(Each(1d))
 
     val (evResults, evcsResults) = modelBaseStateData.model.createResults(
       lastState,
