@@ -25,7 +25,7 @@ import java.util.UUID
   * @param original
   *   The wrapped [[EvModel]]
   */
-case class EvModelWrapper(
+final case class EvModelWrapper(
     storedEnergy: squants.Energy,
     private val original: EvModel
 ) {
