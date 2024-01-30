@@ -6,7 +6,8 @@
 
 package edu.ie3.simona.model.participant.evcs.uncontrolled
 
-import edu.ie3.simona.model.participant.evcs.{ChargingSchedule, EvModelWrapper}
+import edu.ie3.simona.model.participant.evcs.EvModelWrapper
+import edu.ie3.simona.model.participant.evcs.EvcsModel.ScheduleEntry
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.MockEvModel
 import edu.ie3.simona.test.common.model.participant.EvcsTestData
@@ -15,6 +16,7 @@ import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.energy.Kilowatts
 
 import java.util.UUID
+import scala.collection.immutable.SortedSet
 
 class MaximumPowerChargingSpec
     extends UnitSpec
@@ -42,9 +44,7 @@ class MaximumPowerChargingSpec
         Seq(ev)
       )
 
-      actualSchedule shouldBe Map(
-        ev -> None
-      )
+      actualSchedule shouldBe Map.empty
     }
 
     "work correctly with one ev" in {
@@ -81,16 +81,11 @@ class MaximumPowerChargingSpec
         )
 
         chargingMap shouldBe Map(
-          ev -> Some(
-            ChargingSchedule(
-              ev,
-              Seq(
-                ChargingSchedule.Entry(
-                  offset,
-                  offset + expectedDuration,
-                  ev.sRatedAc
-                )
-              )
+          ev.uuid -> SortedSet(
+            ScheduleEntry(
+              offset,
+              offset + expectedDuration,
+              ev.sRatedAc
             )
           )
         )
@@ -144,28 +139,18 @@ class MaximumPowerChargingSpec
         )
 
         chargingMap shouldBe Map(
-          givenEv -> Some(
-            ChargingSchedule(
-              givenEv,
-              Seq(
-                ChargingSchedule.Entry(
-                  offset,
-                  offset + 3600L,
-                  Kilowatts(5.0)
-                )
-              )
+          givenEv.uuid -> SortedSet(
+            ScheduleEntry(
+              offset,
+              offset + 3600L,
+              Kilowatts(5.0)
             )
           ),
-          ev -> Some(
-            ChargingSchedule(
-              ev,
-              Seq(
-                ChargingSchedule.Entry(
-                  offset,
-                  offset + expectedDuration,
-                  Kilowatts(5.0)
-                )
-              )
+          ev.uuid -> SortedSet(
+            ScheduleEntry(
+              offset,
+              offset + expectedDuration,
+              Kilowatts(5.0)
             )
           )
         )

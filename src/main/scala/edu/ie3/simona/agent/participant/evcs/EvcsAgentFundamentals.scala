@@ -445,20 +445,17 @@ protected trait EvcsAgentFundamentals
         baseStateData
       )
 
-    val stayingSchedules = lastState.schedule.flatMap {
-      case (ev, maybeSchedule) if !requestedDepartingEvs.contains(ev.uuid) =>
-        Some(
-          ev -> maybeSchedule.map(scheduleContainer =>
-            scheduleContainer.copy(entries =
-              // Remove schedules that ended before or at current tick.
-              // Schedule entries ending at current tick do not have any
-              // impact on the schedule from the current tick on
-              scheduleContainer.entries.filter(_.tickStop > tick)
-            )
-          )
-        )
-      case _ => None
-    }
+    val stayingSchedules =
+      lastState.schedule
+        .filterNot(requestedDepartingEvs.contains)
+        .view
+        .mapValues {
+          // Remove schedules that ended before or at current tick.
+          // Schedule entries ending at current tick do not have any
+          // impact on the schedule from the current tick on
+          _.filter(_.tickStop > tick)
+        }
+        .toMap
 
     val newState = EvcsState(stayingEvs, stayingSchedules, tick)
 

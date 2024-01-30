@@ -25,8 +25,11 @@ import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent
 }
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.model.participant.evcs.EvcsModel.EvcsState
-import edu.ie3.simona.model.participant.evcs.{ChargingSchedule, EvModelWrapper}
+import edu.ie3.simona.model.participant.evcs.EvcsModel.{
+  EvcsState,
+  ScheduleEntry
+}
+import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
@@ -62,6 +65,7 @@ import squants.{Each, Energy, Power}
 
 import java.util.UUID
 import scala.collection.SortedMap
+import scala.collection.immutable.SortedSet
 
 class EvcsAgentModelCalculationSpec
     extends ParticipantAgentSpec(
@@ -490,25 +494,19 @@ class EvcsAgentModelCalculationSpec
                     EvModelWrapper(evB)
                   )
 
-                  schedule.values.flatten should contain allOf (
-                    ChargingSchedule(
-                      EvModelWrapper(evA),
-                      Seq(
-                        ChargingSchedule.Entry(
-                          0,
-                          200,
-                          Kilowatts(11.0)
-                        )
+                  schedule shouldBe Map(
+                    evA.getUuid -> SortedSet(
+                      ScheduleEntry(
+                        0,
+                        200,
+                        Kilowatts(11.0)
                       )
                     ),
-                    ChargingSchedule(
-                      EvModelWrapper(evB),
-                      Seq(
-                        ChargingSchedule.Entry(
-                          0,
-                          200,
-                          Kilowatts(11.0)
-                        )
+                    evB.getUuid -> SortedSet(
+                      ScheduleEntry(
+                        0,
+                        200,
+                        Kilowatts(11.0)
                       )
                     )
                   )
@@ -628,27 +626,23 @@ class EvcsAgentModelCalculationSpec
                     EvModelWrapper(evA),
                     EvModelWrapper(evB)
                   )
-                  schedule.values.flatten should contain allOf (
-                    ChargingSchedule(
-                      EvModelWrapper(evA),
-                      Seq(
-                        ChargingSchedule.Entry(
+                  schedule shouldBe Map(
+                    evA.getUuid ->
+                      SortedSet(
+                        ScheduleEntry(
+                          0,
+                          200,
+                          Kilowatts(11.0)
+                        )
+                      ),
+                    evB.getUuid ->
+                      SortedSet(
+                        ScheduleEntry(
                           0,
                           200,
                           Kilowatts(11.0)
                         )
                       )
-                    ),
-                    ChargingSchedule(
-                      EvModelWrapper(evB),
-                      Seq(
-                        ChargingSchedule.Entry(
-                          0,
-                          200,
-                          Kilowatts(11.0)
-                        )
-                      )
-                    )
                   )
 
                   tick shouldBe 0L

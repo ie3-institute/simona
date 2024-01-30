@@ -6,13 +6,14 @@
 
 package edu.ie3.simona.model.participant.evcs.uncontrolled
 
-import edu.ie3.simona.model.participant.evcs.ChargingSchedule.Entry
-import edu.ie3.simona.model.participant.evcs.{
-  ChargingSchedule,
-  EvModelWrapper,
-  EvcsModel
+import edu.ie3.simona.model.participant.evcs.EvcsModel.{
+  ScheduleMap,
+  ScheduleEntry
 }
+import edu.ie3.simona.model.participant.evcs.{EvModelWrapper, EvcsModel}
 import squants.time.Seconds
+
+import scala.collection.immutable.SortedSet
 
 trait ConstantPowerCharging {
   this: EvcsModel =>
@@ -32,8 +33,9 @@ trait ConstantPowerCharging {
   def chargeWithConstantPower(
       currentTick: Long,
       evs: Seq[EvModelWrapper]
-  ): Map[EvModelWrapper, Option[ChargingSchedule]] = evs.map { ev =>
-    ev -> Option.when(ev.storedEnergy < ev.eStorage) {
+  ): ScheduleMap = evs
+    .filter(ev => ev.storedEnergy < ev.eStorage)
+    .map { ev =>
       val maxChargingPower = getMaxAvailableChargingPower(ev)
       val remainingParkingTime = Seconds(ev.departureTick - currentTick)
 
@@ -45,10 +47,9 @@ trait ConstantPowerCharging {
 
       val chargingPower = actualChargedEnergy / remainingParkingTime
 
-      ChargingSchedule(
-        ev,
-        Seq(Entry(currentTick, ev.departureTick, chargingPower))
+      ev.uuid -> SortedSet(
+        ScheduleEntry(currentTick, ev.departureTick, chargingPower)
       )
     }
-  }.toMap
+    .toMap
 }

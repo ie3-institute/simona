@@ -8,10 +8,10 @@ package edu.ie3.simona.model.participant.evcs
 
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
 import edu.ie3.simona.model.participant.FlexChangeIndicator
-import edu.ie3.simona.model.participant.evcs.ChargingSchedule.Entry
 import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsRelevantData,
-  EvcsState
+  EvcsState,
+  ScheduleEntry
 }
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
@@ -25,6 +25,7 @@ import squants.Each
 import squants.energy.{KilowattHours, Kilowatts}
 
 import java.util.UUID
+import scala.collection.immutable.SortedSet
 
 class EvcsModelSpec
     extends UnitSpec
@@ -69,10 +70,9 @@ class EvcsModelSpec
         )
 
         actualSchedule shouldBe Map(
-          evModel -> Some(
+          evModel.uuid ->
             // ending early at 9000 because of max power charging
-            ChargingSchedule(evModel, Seq(Entry(3600L, 9000L, Kilowatts(10.0))))
-          )
+            SortedSet(ScheduleEntry(3600L, 9000L, Kilowatts(10.0)))
         )
       }
 
@@ -103,10 +103,9 @@ class EvcsModelSpec
         )
 
         actualSchedule shouldBe Map(
-          evModel -> Some(
+          evModel.uuid ->
             // using 2.5 kW with constant power charging
-            ChargingSchedule(evModel, Seq(Entry(3600L, 10800L, Kilowatts(2.5))))
-          )
+            SortedSet(ScheduleEntry(3600L, 10800L, Kilowatts(2.5)))
         )
       }
     }
@@ -168,14 +167,12 @@ class EvcsModelSpec
               )
             )
 
-            val schedule = ChargingSchedule(
-              ev,
-              Seq(Entry(chargeStart, chargeEnd, Kilowatts(power)))
-            )
+            val entry =
+              SortedSet(ScheduleEntry(chargeStart, chargeEnd, Kilowatts(power)))
 
             val state = EvcsState(
               Seq(ev),
-              Map(ev -> Some(schedule)),
+              Map(ev.uuid -> entry),
               lastCalcTick
             )
 
@@ -221,12 +218,9 @@ class EvcsModelSpec
           )
         )
 
-        val schedule = ChargingSchedule(
-          ev,
-          Seq(
-            Entry(3600L, 5400L, Kilowatts(2d)),
-            Entry(7200L, 9000L, Kilowatts(4d))
-          )
+        val schedule = SortedSet(
+          ScheduleEntry(3600L, 5400L, Kilowatts(2d)),
+          ScheduleEntry(7200L, 9000L, Kilowatts(4d))
         )
 
         // tick, p in kW
@@ -266,7 +260,7 @@ class EvcsModelSpec
           ) =>
             val lastState = EvcsState(
               Seq(ev),
-              Map(ev -> Some(schedule)),
+              Map(ev.uuid -> schedule),
               lastTick
             )
 
@@ -330,19 +324,14 @@ class EvcsModelSpec
           )
         )
 
-        val schedule1 = ChargingSchedule(
-          ev1,
-          Seq(
-            Entry(3600L, 7200L, Kilowatts(2d)),
-            Entry(9000L, 14400L, Kilowatts(3d))
+        val schedule1 =
+          SortedSet(
+            ScheduleEntry(3600L, 7200L, Kilowatts(2d)),
+            ScheduleEntry(9000L, 14400L, Kilowatts(3d))
           )
-        )
 
-        val schedule2 = ChargingSchedule(
-          ev2,
-          Seq(
-            Entry(5400L, 9000L, Kilowatts(2d))
-          )
+        val schedule2 = SortedSet(
+          ScheduleEntry(5400L, 9000L, Kilowatts(2d))
         )
 
         val lastTick = 1800L
@@ -350,7 +339,7 @@ class EvcsModelSpec
 
         val lastState = EvcsState(
           Seq(ev1, ev2),
-          Map(ev1 -> Some(schedule1), ev2 -> Some(schedule2)),
+          Map(ev1.uuid -> schedule1, ev2.uuid -> schedule2),
           lastTick
         )
 
@@ -436,11 +425,8 @@ class EvcsModelSpec
           )
         )
 
-        val schedule = ChargingSchedule(
-          ev,
-          Seq(
-            Entry(3600L, 7200L, Kilowatts(2d))
-          )
+        val schedule = SortedSet(
+          ScheduleEntry(3600L, 7200L, Kilowatts(2d))
         )
 
         val lastTick = 1800L
@@ -448,7 +434,7 @@ class EvcsModelSpec
 
         val lastState = EvcsState(
           Seq(ev),
-          Map(ev -> Some(schedule)),
+          Map(ev.uuid -> schedule),
           lastTick
         )
 
@@ -598,9 +584,8 @@ class EvcsModelSpec
             )
 
             // has not been charging before
-            val schedule1 = ChargingSchedule(
-              ev1,
-              Seq(ChargingSchedule.Entry(3600L, 7200L, Kilowatts(0d)))
+            val schedule1 = SortedSet(
+              ScheduleEntry(3600L, 7200L, Kilowatts(0d))
             )
 
             // stays two more hours
@@ -617,16 +602,15 @@ class EvcsModelSpec
             )
 
             // has been charging for 1.5 hours with given power
-            val schedule2 = ChargingSchedule(
-              ev1,
-              Seq(ChargingSchedule.Entry(0L, 5400L, Kilowatts(lastPower2)))
+            val schedule2 = SortedSet(
+              ScheduleEntry(0L, 5400L, Kilowatts(lastPower2))
             )
 
             evcsModel.determineFlexOptions(
               data,
               EvcsState(
                 Seq(ev1, ev2),
-                Map(ev1 -> Some(schedule1), ev2 -> Some(schedule2)),
+                Map(ev1.uuid -> schedule1, ev2.uuid -> schedule2),
                 0L
               )
             ) match {
@@ -740,9 +724,8 @@ class EvcsModelSpec
               )
             )
 
-            val schedule1 = ChargingSchedule(
-              ev1,
-              Seq(ChargingSchedule.Entry(3600L, 7200L, Kilowatts(0d)))
+            val schedule1 = SortedSet(
+              ScheduleEntry(3600L, 7200L, Kilowatts(0d))
             )
 
             val ev2 = EvModelWrapper(
@@ -757,16 +740,15 @@ class EvcsModelSpec
               )
             )
 
-            val schedule2 = ChargingSchedule(
-              ev1,
-              Seq(ChargingSchedule.Entry(0L, 5400L, Kilowatts(lastPower2)))
+            val schedule2 = SortedSet(
+              ScheduleEntry(0L, 5400L, Kilowatts(lastPower2))
             )
 
             evcsModel.determineFlexOptions(
               data,
               EvcsState(
                 Seq(ev1, ev2),
-                Map(ev1 -> Some(schedule1), ev2 -> Some(schedule2)),
+                Map(ev1.uuid -> schedule1, ev2.uuid -> schedule2),
                 0L
               )
             ) match {
@@ -810,16 +792,15 @@ class EvcsModelSpec
           )
         )
 
-        val schedule1 = ChargingSchedule(
-          ev1,
-          Seq(ChargingSchedule.Entry(3600L, 7200L, Kilowatts(5.0)))
+        val schedule1 = SortedSet(
+          ScheduleEntry(3600L, 7200L, Kilowatts(5.0))
         )
 
         evcsModel.determineFlexOptions(
           data,
           EvcsState(
             Seq(ev1),
-            Map(ev1 -> Some(schedule1)),
+            Map(ev1.uuid -> schedule1),
             0L
           )
         ) match {
@@ -943,7 +924,7 @@ class EvcsModelSpec
               data,
               EvcsState(
                 Seq(ev1, ev2),
-                Map(ev1 -> None, ev2 -> None),
+                Map.empty,
                 0L
               ),
               Kilowatts(setPower)
@@ -956,29 +937,27 @@ class EvcsModelSpec
                 actualEvs should have size 2
                 actualEvs should contain allOf (ev1, ev2)
 
-                actualSchedules.getOrElse(ev1, None).map {
-                  case ChargingSchedule(_, entries) =>
-                    entries.size shouldBe 1
-                    val entry = entries.headOption
-                      .getOrElse(fail("No charging schedule entry for ev1"))
-                    entry.tickStart shouldBe currentTick
+                actualSchedules.get(ev1.uuid).map { entries =>
+                  entries.size shouldBe 1
+                  val entry = entries.headOption
+                    .getOrElse(fail("No charging schedule entry for ev1"))
+                  entry.tickStart shouldBe currentTick
 
-                    (
-                      entry.chargingPower.toKilowatts,
-                      entry.tickStop
-                    )
+                  (
+                    entry.chargingPower.toKilowatts,
+                    entry.tickStop
+                  )
                 } shouldBe expPowerAndTick1
-                actualSchedules.getOrElse(ev2, None).map {
-                  case ChargingSchedule(_, entries) =>
-                    entries.size shouldBe 1
-                    val entry = entries.headOption
-                      .getOrElse(fail("No charging schedule entry for ev2"))
-                    entry.tickStart shouldBe currentTick
+                actualSchedules.get(ev2.uuid).map { entries =>
+                  entries.size shouldBe 1
+                  val entry = entries.headOption
+                    .getOrElse(fail("No charging schedule entry for ev2"))
+                  entry.tickStart shouldBe currentTick
 
-                    (
-                      entry.chargingPower.toKilowatts,
-                      entry.tickStop
-                    )
+                  (
+                    entry.chargingPower.toKilowatts,
+                    entry.tickStop
+                  )
                 } shouldBe expPowerAndTick2
 
                 actualTick shouldBe currentTick
