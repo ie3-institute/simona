@@ -45,7 +45,7 @@ class HpModelSpec
             HpState(
               isRunning = false,
               0,
-              hpData.ambientTemperature,
+              Some(hpData.ambientTemperature),
               Kilowatts(0d),
               Kilowatts(0d),
               thermalState(Celsius(17d)),
@@ -60,7 +60,7 @@ class HpModelSpec
             HpState(
               isRunning = false,
               0,
-              hpData.ambientTemperature,
+              Some(hpData.ambientTemperature),
               Kilowatts(0d),
               Kilowatts(0d),
               thermalState(Celsius(18)),
@@ -75,7 +75,7 @@ class HpModelSpec
             HpState(
               isRunning = false,
               0,
-              hpData.ambientTemperature,
+              Some(hpData.ambientTemperature),
               Kilowatts(0d),
               Kilowatts(0d),
               thermalState(Celsius(20)),
@@ -90,7 +90,7 @@ class HpModelSpec
             HpState(
               isRunning = false,
               0,
-              hpData.ambientTemperature,
+              Some(hpData.ambientTemperature),
               Kilowatts(0d),
               Kilowatts(0d),
               thermalState(Celsius(22)),
@@ -105,7 +105,7 @@ class HpModelSpec
             HpState(
               isRunning = false,
               0,
-              hpData.ambientTemperature,
+              Some(hpData.ambientTemperature),
               Kilowatts(0d),
               Kilowatts(0d),
               thermalState(Celsius(23)),
@@ -120,7 +120,7 @@ class HpModelSpec
             HpState(
               isRunning = true,
               0,
-              hpData.ambientTemperature,
+              Some(hpData.ambientTemperature),
               Kilowatts(95d),
               Kilowatts(80d),
               thermalState(Celsius(17)),
@@ -135,7 +135,7 @@ class HpModelSpec
             HpState(
               isRunning = true,
               0,
-              hpData.ambientTemperature,
+              Some(hpData.ambientTemperature),
               Kilowatts(95d),
               Kilowatts(80d),
               thermalState(Celsius(18)),
@@ -150,7 +150,7 @@ class HpModelSpec
             HpState(
               isRunning = true,
               0,
-              hpData.ambientTemperature,
+              Some(hpData.ambientTemperature),
               Kilowatts(95d),
               Kilowatts(80d),
               thermalState(Celsius(20)),
@@ -165,7 +165,7 @@ class HpModelSpec
             HpState(
               isRunning = true,
               0,
-              hpData.ambientTemperature,
+              Some(hpData.ambientTemperature),
               Kilowatts(95d),
               Kilowatts(80d),
               thermalState(Celsius(22)),
@@ -180,7 +180,7 @@ class HpModelSpec
             HpState(
               isRunning = true,
               0,
-              hpData.ambientTemperature,
+              Some(hpData.ambientTemperature),
               Kilowatts(95d),
               Kilowatts(80d),
               thermalState(Celsius(25)),
@@ -206,7 +206,7 @@ class HpModelSpec
             val grid = thermalGrid(house)
             val hp = hpModel(grid)
 
-            hp.calculateNextState(state, data) match {
+            hp.determineState(state, data) match {
               case HpState(
                     isRunning,
                     _,
@@ -237,7 +237,7 @@ class HpModelSpec
           val grid = thermalGrid(house, Some(thermalStorage))
           val hp = hpModel(grid)
           // Tick, at which the house is heated up
-          val relevantData = hpData.copy(currentTimeTick = 2763L)
+          val relevantData = hpData.copy(currentTick = 2763L)
           val thermalState = ThermalGridState(
             Some(
               ThermalHouseState(
@@ -257,7 +257,7 @@ class HpModelSpec
           val lastState = HpState(
             isRunning = true,
             0,
-            hpData.ambientTemperature,
+            Some(hpData.ambientTemperature),
             Kilowatts(95.0),
             Kilowatts(80.0),
             thermalState,

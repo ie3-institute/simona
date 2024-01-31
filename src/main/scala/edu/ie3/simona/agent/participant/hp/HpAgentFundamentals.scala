@@ -116,7 +116,7 @@ trait HpAgentFundamentals
   ): HpState = HpState(
     isRunning = false,
     -1,
-    Celsius(10d), // TODO
+    None,
     Megawatts(0d),
     Megawatts(0d),
     ThermalGrid.startingState(thermalGrid),
@@ -285,7 +285,7 @@ trait HpAgentFundamentals
       calcRelevantData: HpRelevantData,
       nodalVoltage: squants.Dimensionless,
       model: HpModel
-  ): HpState = model.calculateNextState(modelState, calcRelevantData)
+  ): HpState = model.determineState(modelState, calcRelevantData)
 
   /** Abstract definition, individual implementations found in individual agent
     * fundamental classes

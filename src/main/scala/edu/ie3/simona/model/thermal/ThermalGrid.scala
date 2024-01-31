@@ -158,12 +158,13 @@ final case class ThermalGrid(
           case _ => state.storageState
         }
 
-        val (updatedHouseState, maybeHouseThreshold) = thermalHouse.updateState(
-          tick,
-          lastHouseState,
-          ambientTemperature,
-          qDot
-        )
+        val (updatedHouseState, maybeHouseThreshold) =
+          thermalHouse.determineState(
+            tick,
+            lastHouseState,
+            ambientTemperature,
+            qDot
+          )
 
         if (
           thermalHouse.isInnerTemperatureTooHigh(
@@ -172,7 +173,7 @@ final case class ThermalGrid(
         ) {
           /* The house is already heated up fully, set back the infeed and put it into storage, if available */
           val (fullHouseState, maybeFullHouseThreshold) =
-            thermalHouse.updateState(
+            thermalHouse.determineState(
               tick,
               lastHouseState,
               ambientTemperature,
@@ -243,6 +244,7 @@ final case class ThermalGrid(
     }
 
   /** Handle consumption (or no infeed) from thermal grid
+    *
     * @param tick
     *   Current tick
     * @param ambientTemperature
@@ -263,7 +265,7 @@ final case class ThermalGrid(
     /* House will be left with no influx in all cases. Determine if and when a threshold is reached */
     val maybeUpdatedHouseState =
       house.zip(state.houseState).map { case (house, houseState) =>
-        house.updateState(
+        house.determineState(
           tick,
           houseState,
           ambientTemperature,
@@ -303,9 +305,9 @@ final case class ThermalGrid(
   }
 
   /** Check, if the storage can heat the house. This is only done, if <ul>
-    * <li>The house has reached it's lower temperature boundary</li> <li>There
-    * is no infeed from external</li> <li>The storage is not empty itself</li>
-    * </ul>
+    * <li>the house has reached it's lower temperature boundary,</li> <li>there
+    * is no infeed from external and</li> <li>the storage is not empty
+    * itself</li> </ul>
     * @param tick
     *   The current tick
     * @param maybeHouseState
@@ -357,7 +359,7 @@ final case class ThermalGrid(
           )
         )
       )
-      val revisedHouseState = thermalHouse.updateState(
+      val revisedHouseState = thermalHouse.determineState(
         tick,
         formerHouseState.getOrElse(
           throw new InconsistentStateException(

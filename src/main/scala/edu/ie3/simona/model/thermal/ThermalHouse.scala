@@ -290,6 +290,7 @@ final case class ThermalHouse(
   }
 
   /** Update the current state of the house
+    *
     * @param tick
     *   current instance in time
     * @param state
@@ -301,7 +302,7 @@ final case class ThermalHouse(
     * @return
     *   Updated state and the tick in which the next threshold is reached
     */
-  def updateState(
+  def determineState(
       tick: Long,
       state: ThermalHouseState,
       ambientTemperature: Temperature,
