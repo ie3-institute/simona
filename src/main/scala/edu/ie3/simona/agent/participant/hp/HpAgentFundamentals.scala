@@ -55,7 +55,6 @@ import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import org.apache.pekko.actor.{ActorRef, FSM}
 import squants.energy.Megawatts
-import squants.thermal.Celsius
 import squants.{Dimensionless, Each, Power}
 
 import java.time.ZonedDateTime
