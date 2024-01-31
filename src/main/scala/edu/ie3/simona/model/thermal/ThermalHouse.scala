@@ -446,10 +446,10 @@ object ThermalHouse {
     *   Continuous infeed of thermal energy since the given tick
     */
   final case class ThermalHouseState(
-      override val tick: Long,
+      tick: Long,
       innerTemperature: Temperature,
       qDot: Power
-  ) extends ThermalModelState
+  )
 
   def startingState(house: ThermalHouse): ThermalHouseState =
     ThermalHouseState(
