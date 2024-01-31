@@ -84,7 +84,7 @@ final case class FixedFeedInModel(
   ): ProvideFlexOptions =
     ProvideMinMaxFlexOptions.noFlexOption(
       uuid,
-      calculateActivePower(ConstantState, data)
+      calculateActivePower(lastState, data)
     )
 
   override def handleControlledPowerChange(
