@@ -265,7 +265,7 @@ protected trait FixedFeedInAgentFundamentals
         ConstantState.type,
         FixedFeedInModel
       ],
-      ConstantState,
+      state: ConstantState.type,
       voltage: Dimensionless
   ) =>
     baseStateData.model match {
@@ -273,7 +273,7 @@ protected trait FixedFeedInAgentFundamentals
         fixedModel.calculatePower(
           currentTick,
           voltage,
-          ConstantState,
+          state,
           FixedRelevantData
         )
       case unsupportedModel =>
