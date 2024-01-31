@@ -380,8 +380,6 @@ trait HpAgentFundamentals
       baseStateData.receivedSecondaryDataStore
         .last(tick)
         .flatMap { case (receivedTick, receivedValues) =>
-          // FIXME: This fallback should check if the activation comes from an internal event. Only then it's valid to
-          //   take previously received values
           if (receivedTick != tick)
             log.debug(
               s"The model ${baseStateData.model.getUuid} needs to do calculations with values received " +
