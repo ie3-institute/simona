@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - New scheduling protocol [#650](https://github.com/ie3-institute/simona/issues/650)
 - Replaced akka with pekko [#641](https://github.com/ie3-institute/simona/issues/641)
 - Use `ThermalGrid` to calculate thermal environment of a heat pump [#315](https://github.com/ie3-institute/simona/issues/315)
+- Enable windows path as config parameters [#549](https://github.com/ie3-institute/simona/issues/549)
 
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
