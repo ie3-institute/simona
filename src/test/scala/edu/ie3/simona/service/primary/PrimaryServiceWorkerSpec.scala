@@ -346,7 +346,7 @@ class PrimaryServiceWorkerSpec
         tick shouldBe 900L
         inside(data) {
           case ActivePower(p) =>
-            (p ~= Kilowatts(1250.0)) shouldBe true
+            equalWithTolerance(p, Kilowatts(1250.0))
           case _ => fail("Expected to get active power only.")
         }
         nextDataTick shouldBe None

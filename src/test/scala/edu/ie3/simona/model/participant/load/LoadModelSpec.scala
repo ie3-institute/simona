@@ -67,7 +67,7 @@ class LoadModelSpec
                 operationInterval shouldBe defaultOperationInterval
                 scalingFactor shouldBe foreSeenScalingFactor
                 qControl shouldBe QControl(loadInput.getqCharacteristics)
-                (sRated ~= expsRated) shouldBe true
+                equalWithTolerance(sRated, expsRated)
                 cosPhiRated shouldBe loadInput.getCosPhiRated
                 loadProfile shouldBe loadInput.getLoadProfile
                 reference shouldBe foreSeenReference
@@ -115,7 +115,7 @@ class LoadModelSpec
                 operationInterval shouldBe defaultOperationInterval
                 scalingFactor shouldBe foreSeenScalingFactor
                 qControl shouldBe QControl(loadInput.getqCharacteristics)
-                (sRated ~= expsRated) shouldBe true
+                equalWithTolerance(sRated, expsRated)
                 cosPhiRated shouldBe loadInput.getCosPhiRated
                 reference shouldBe foreSeenReference
             }

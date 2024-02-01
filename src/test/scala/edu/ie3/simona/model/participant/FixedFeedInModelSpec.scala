@@ -65,9 +65,12 @@ class FixedFeedInModelSpec
           operationInterval shouldBe defaultOperationInterval
           scalingFactor shouldBe foreSeenScalingFactor
           qControl shouldBe QControl(fixedFeedInput.getqCharacteristics)
-          (sRated ~= Megawatts(
-            fixedFeedInput.getsRated().to(MEGAVOLTAMPERE).getValue.doubleValue
-          )) shouldBe true
+          equalWithTolerance(
+            sRated,
+            Megawatts(
+              fixedFeedInput.getsRated().to(MEGAVOLTAMPERE).getValue.doubleValue
+            )
+          )
           cosPhiRated shouldBe fixedFeedInput.getCosPhiRated
       }
     }

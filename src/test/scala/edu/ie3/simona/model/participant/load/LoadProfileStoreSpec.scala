@@ -143,7 +143,7 @@ class LoadProfileStoreSpec
         implicit val powerTolerance: squants.Energy = KilowattHours(1.0)
 
         /* Check the deviation against the expected value (deviation should be smaller than 1 kWh) */
-        (annualEnergy ~= expected) shouldBe true
+        equalWithTolerance(annualEnergy, expected)
       })
     }
   }

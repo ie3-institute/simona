@@ -129,12 +129,12 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
 
           amount shouldBe inputModel.getParallelDevices
           voltRatioNominal shouldBe BigDecimal("25")
-          (iNomHv ~= Amperes(36.373066958946424d)) shouldBe true
-          (iNomLv ~= Amperes(909.3266739736606d)) shouldBe true
-          (r ~= Each(7.357e-3)) shouldBe true
-          (x ~= Each(24.30792e-3)) shouldBe true
-          (g ~= Each(0.0)) shouldBe true
-          (b ~= Each(-3.75e-3)) shouldBe true
+          equalWithTolerance(iNomHv, Amperes(36.373066958946424d))
+          equalWithTolerance(iNomLv, Amperes(909.3266739736606d))
+          equalWithTolerance(r, Each(7.357e-3))
+          equalWithTolerance(x, Each(24.30792e-3))
+          equalWithTolerance(g, Each(0.0))
+          equalWithTolerance(b, Each(-3.75e-3))
       }
 
       /* The following tests are with regard to the tap position = 0 */

@@ -311,8 +311,8 @@ class LoadAgentFixedModelCalculationSpec
             case Some((tick, entry)) =>
               tick shouldBe 0L
               inside(entry) { case ApparentPower(p, q) =>
-                (p ~= Megawatts(268.603e-6)) shouldBe true
-                (q ~= Megavars(0.0)) shouldBe true
+                equalWithTolerance(p, Megawatts(268.603e-6))
+                equalWithTolerance(q, Megavars(0.0))
               }
             case None =>
               fail("Result value store does not contain entry for tick 0.")
@@ -358,8 +358,8 @@ class LoadAgentFixedModelCalculationSpec
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          (p ~= Megawatts(268.603e-6)) shouldBe true
-          (q ~= Megavars(0.0)) shouldBe true
+          equalWithTolerance(p, Megawatts(268.603e-6))
+          equalWithTolerance(q, Megavars(0.0))
       }
     }
 
@@ -396,8 +396,8 @@ class LoadAgentFixedModelCalculationSpec
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          (p ~= Megawatts(268.603e-6)) shouldBe true
-          (q ~= Megavars(0.0)) shouldBe true
+          equalWithTolerance(p, Megawatts(268.603e-6))
+          equalWithTolerance(q, Megavars(0.0))
         case answer => fail(s"Did not expect to get that answer: $answer")
       }
     }
@@ -414,8 +414,8 @@ class LoadAgentFixedModelCalculationSpec
       /* Expect, that nothing has changed */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          (p ~= Megawatts(268.603e-6)) shouldBe true
-          (q ~= Megavars(0.0)) shouldBe true
+          equalWithTolerance(p, Megawatts(268.603e-6))
+          equalWithTolerance(q, Megavars(0.0))
       }
     }
 
@@ -430,8 +430,8 @@ class LoadAgentFixedModelCalculationSpec
       /* Expect, the correct values (this model has fixed power factor) */
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          (p ~= Megawatts(268.603e-6)) shouldBe true
-          (q ~= Megavars(-22.07138e-6)) shouldBe true
+          equalWithTolerance(p, Megawatts(268.603e-6))
+          equalWithTolerance(q, Megavars(-22.07138e-6))
       }
     }
   }

@@ -176,11 +176,13 @@ class HpModelSpec
                     ThermalGridState(Some(thermalHouseState), _)
                   ) =>
                 isRunning shouldBe expectedRunningState
-                (activePower =~ Kilowatts(expectedActivePower)) shouldBe true
-
-                (thermalHouseState.innerTemperature =~ Celsius(
-                  expectedInnerTemperature
-                )) shouldBe true
+                equalWithTolerance(activePower, Kilowatts(expectedActivePower))
+                equalWithTolerance(
+                  thermalHouseState.innerTemperature,
+                  Celsius(
+                    expectedInnerTemperature
+                  )
+                )
             }
         }
       }

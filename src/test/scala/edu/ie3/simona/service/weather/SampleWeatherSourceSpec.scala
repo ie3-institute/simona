@@ -92,13 +92,10 @@ class SampleWeatherSourceSpec
       actual.windVel.unit shouldBe MetersPerSecond
 
       /* Values meet expectations */
-      (actual.diffIrr ~= WattsPerSquareMeter(72.7656)) shouldBe true
-
-      (actual.dirIrr ~= WattsPerSquareMeter(80.1172)) shouldBe true
-
-      (actual.windVel ~= MetersPerSecond(11.11602)) shouldBe true
-
-      (actual.temp ~= Celsius(6.459)) shouldBe true
+      equalWithTolerance(actual.diffIrr, WattsPerSquareMeter(72.7656))
+      equalWithTolerance(actual.dirIrr, WattsPerSquareMeter(80.1172))
+      equalWithTolerance(actual.windVel, MetersPerSecond(11.11602))
+      equalWithTolerance(actual.temp, Celsius(6.459))
 
     }
 
@@ -109,16 +106,16 @@ class SampleWeatherSourceSpec
       source.getWeather(tick, weightedCoordinates) match {
         case WeatherData(diffIrr, dirIrr, temp, windVel) =>
           diffIrr.unit shouldBe WattsPerSquareMeter
-          (diffIrr ~= WattsPerSquareMeter(72.7656)) shouldBe true
+          equalWithTolerance(diffIrr, WattsPerSquareMeter(72.7656))
 
           dirIrr.unit shouldBe WattsPerSquareMeter
-          (dirIrr ~= WattsPerSquareMeter(80.1172)) shouldBe true
+          equalWithTolerance(dirIrr, WattsPerSquareMeter(80.1172))
 
           temp.unit shouldBe Celsius
-          (temp ~= Celsius(6.459d)) shouldBe true
+          equalWithTolerance(temp, Celsius(6.459d))
 
           windVel.unit shouldBe MetersPerSecond
-          (windVel ~= MetersPerSecond(11.11602d)) shouldBe true
+          equalWithTolerance(windVel, MetersPerSecond(11.11602d))
 
       }
     }

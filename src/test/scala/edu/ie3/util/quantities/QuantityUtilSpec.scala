@@ -8,6 +8,7 @@ package edu.ie3.util.quantities
 
 import edu.ie3.simona.exceptions.QuantityException
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.test.matchers.SquantsMatchers
 import edu.ie3.util.scala.quantities.QuantityUtil
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.energy.{Kilojoules, Kilowatts, WattHours, Watts}
@@ -74,7 +75,7 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
         QuantityUtil invokePrivate endingValue(values, 2L) match {
           case (tick, value) =>
             tick shouldBe 2L
-            (value =~ unit(5d)) shouldBe true
+            equalWithTolerance(value, unit(5d))
         }
       }
     }
@@ -90,11 +91,13 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
         )
 
         forAll(cases) { (windowStart, windowEnd, expectedResult) =>
-          QuantityUtil.integrate[Power, Energy](
+          val actualResult = QuantityUtil.integrate[Power, Energy](
             values,
             windowStart,
             windowEnd
-          ) =~ expectedResult
+          )
+
+          equalWithTolerance(actualResult, expectedResult)
         }
       }
     }
@@ -156,7 +159,7 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
             windowEnd
           ) match {
             case Success(result) =>
-              result =~ expectedResult
+              equalWithTolerance(result, expectedResult)
             case Failure(exception) =>
               fail(
                 "Averaging with fine input should pass, but failed.",

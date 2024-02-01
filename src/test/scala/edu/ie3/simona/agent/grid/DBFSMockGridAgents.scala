@@ -73,8 +73,8 @@ trait DBFSMockGridAgents extends UnitSpec {
               _.nodeUuid == expectedVoltage.nodeUuid
             ) match {
               case Some(ExchangeVoltage(_, actualE, actualF)) =>
-                actualE ~= Volts(3d)
-                actualF ~= expectedVoltage.f
+                equalWithTolerance(actualE, expectedVoltage.e)
+                equalWithTolerance(actualF, expectedVoltage.f)
               case None =>
                 fail(
                   s"Expected ExchangeVoltage with node UUID ${expectedVoltage.nodeUuid} " +
@@ -122,8 +122,8 @@ trait DBFSMockGridAgents extends UnitSpec {
           expectedExchangedPowers.foreach { expectedPower =>
             exchangedPower.find(_.nodeUuid == expectedPower.nodeUuid) match {
               case Some(ExchangePower(_, actualP, actualQ)) =>
-                (actualP ~= expectedPower.p) shouldBe true
-                (actualQ ~= expectedPower.q) shouldBe true
+                equalWithTolerance(actualP, expectedPower.p)
+                equalWithTolerance(actualQ, expectedPower.q)
               case None =>
                 fail(
                   s"Expected ExchangePower with node UUID ${expectedPower.nodeUuid} " +

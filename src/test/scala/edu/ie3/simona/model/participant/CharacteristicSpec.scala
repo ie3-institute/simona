@@ -45,28 +45,28 @@ class CharacteristicSpec extends UnitSpec with CharacteristicTestData {
 
       interpolation1 match {
         case (x, y) =>
-          (x ~= Each(1)) shouldBe true
-          (y ~= Each(2)) shouldBe true
+          equalWithTolerance(x, Each(1))
+          equalWithTolerance(y, Each(2))
       }
       interpolation2 match {
         case (x, y) =>
-          (x ~= Each(2)) shouldBe true
-          (y ~= Each(4)) shouldBe true
+          equalWithTolerance(x, Each(2))
+          equalWithTolerance(y, Each(4))
       }
       interpolation3 match {
         case (x, y) =>
-          (x ~= Each(3)) shouldBe true
-          (y ~= Each(8)) shouldBe true
+          equalWithTolerance(x, Each(3))
+          equalWithTolerance(y, Each(8))
       }
       interpolation4 match {
         case (x, y) =>
-          (x ~= Each(1.5)) shouldBe true
-          (y ~= Each(3)) shouldBe true
+          equalWithTolerance(x, Each(1.5))
+          equalWithTolerance(y, Each(3))
       }
       interpolation5 match {
         case (x, y) =>
-          (x ~= Each(2.5)) shouldBe true
-          (y ~= Each(6)) shouldBe true
+          equalWithTolerance(x, Each(2.5))
+          equalWithTolerance(y, Each(6))
       }
     }
   }

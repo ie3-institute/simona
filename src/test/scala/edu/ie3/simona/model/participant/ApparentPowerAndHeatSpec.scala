@@ -30,9 +30,9 @@ class ApparentPowerAndHeatSpec extends UnitSpec {
           FixedRelevantData
         ) match {
           case ApparentPowerAndHeat(p, q, qDot) =>
-            (p =~ Megawatts(0d)) shouldBe true
-            (q =~ Megavars(0d)) shouldBe true
-            (qDot =~ Megawatts(0d)) shouldBe true
+            equalWithTolerance(p, Megawatts(0d))
+            equalWithTolerance(q, Megavars(0d))
+            equalWithTolerance(qDot, Megawatts(0d))
 
         }
       }
@@ -45,9 +45,9 @@ class ApparentPowerAndHeatSpec extends UnitSpec {
           FixedRelevantData
         ) match {
           case ApparentPowerAndHeat(p, q, qDot) =>
-            (p =~ Megawatts(43d)) shouldBe true
-            (q =~ Megavars(0d)) shouldBe true
-            (qDot =~ Megawatts(42d)) shouldBe true
+            equalWithTolerance(p, Megawatts(43d))
+            equalWithTolerance(q, Megavars(0d))
+            equalWithTolerance(qDot, Megawatts(42d))
 
         }
       }

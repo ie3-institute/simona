@@ -563,7 +563,7 @@ class ParticipantAgentExternalSourceSpec
 
       val actualFunction =
         mockAgent.underlyingActor.getReactivePowerFunction(0L, baseStateData)
-      (actualFunction(Kilowatts(100.0)) ~= Kilovars(0.0)) shouldBe true
+      equalWithTolerance(actualFunction(Kilowatts(100.0)), Kilovars(0.0))
     }
 
     "correctly determine the reactive power function from model when requested" in {
@@ -592,7 +592,7 @@ class ParticipantAgentExternalSourceSpec
 
       val actualFunction =
         mockAgent.underlyingActor.getReactivePowerFunction(0L, baseStateData)
-      (actualFunction(Kilowatts(100.0)) ~= Kilovars(48.43221)) shouldBe true
+      equalWithTolerance(actualFunction(Kilowatts(100.0)), Kilovars(48.43221))
     }
 
     "provide correct average power after three data ticks are available" in {
@@ -667,8 +667,8 @@ class ParticipantAgentExternalSourceSpec
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          (p ~= Megawatts(0.095)) shouldBe true
-          (q ~= Megavars(0.0312)) shouldBe true
+          equalWithTolerance(p, Megawatts(0.095))
+          equalWithTolerance(q, Megavars(0.0312))
       }
     }
 
@@ -684,8 +684,8 @@ class ParticipantAgentExternalSourceSpec
       /* Expect, that nothing has changed */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          (p ~= Megawatts(0.095)) shouldBe true
-          (q ~= Megavars(0.0312)) shouldBe true
+          equalWithTolerance(p, Megawatts(0.095))
+          equalWithTolerance(q, Megavars(0.0312))
       }
     }
 
@@ -701,8 +701,8 @@ class ParticipantAgentExternalSourceSpec
       /* Expect, that nothing has changed, as this model is meant to forward information from outside */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          (p ~= Megawatts(0.095)) shouldBe true
-          (q ~= Megavars(0.0312)) shouldBe true
+          equalWithTolerance(p, Megawatts(0.095))
+          equalWithTolerance(q, Megavars(0.0312))
       }
     }
 
@@ -764,8 +764,8 @@ class ParticipantAgentExternalSourceSpec
 
           participantAgent.prepareData(data, reactivePowerFunction) match {
             case Success(ApparentPower(p, q)) =>
-              (p ~= Megawatts(0.0)) shouldBe true
-              (q ~= Megavars(0.0)) shouldBe true
+              equalWithTolerance(p, Megawatts(0.0))
+              equalWithTolerance(q, Megavars(0.0))
             case Success(value) =>
               fail(s"Succeeded, but with wrong data: '$value'.")
             case Failure(exception) =>
@@ -788,8 +788,8 @@ class ParticipantAgentExternalSourceSpec
             (p: squants.Power) => Kilovars(p.toKilowatts * tan(acos(0.9)))
           ) match {
             case Success(ApparentPower(p, q)) =>
-              (p ~= Kilowatts(100.0)) shouldBe true
-              (q ~= Kilovars(48.43221)) shouldBe true
+              equalWithTolerance(p, Kilowatts(100.0))
+              equalWithTolerance(q, Kilovars(48.43221))
             case Success(value) =>
               fail(s"Succeeded, but with wrong data: '$value'.")
             case Failure(exception) =>
