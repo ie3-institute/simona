@@ -7,6 +7,8 @@
 package edu.ie3.simona.service.weather
 
 import edu.ie3.datamodel.io.connectors.SqlConnector
+import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.factory.timeseries.{
   CosmoIdCoordinateFactory,
   IconIdCoordinateFactory,
@@ -17,6 +19,7 @@ import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.datamodel.io.source.csv.{CsvDataSource, CsvIdCoordinateSource}
 import edu.ie3.datamodel.io.source.sql.SqlIdCoordinateSource
+import edu.ie3.datamodel.models.timeseries.individual.IndividualTimeSeries
 import edu.ie3.datamodel.models.value.WeatherValue
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
@@ -30,6 +33,7 @@ import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
   WeightedCoordinates
 }
+import edu.ie3.simona.service.weather.WeatherValueInterpolation.interpolate
 import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.checkBaseCsvParams
 import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
   checkCouchbaseParams,
@@ -41,8 +45,13 @@ import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.locationtech.jts.geom.{Coordinate, Point}
+import edu.ie3.util.scala.quantities.QuantitySquantsConversions._
+import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
+import org.locationtech.jts.geom.{Coordinate, Point}
 import squants.motion.MetersPerSecond
 import squants.thermal.Kelvin
+import tech.units.indriya.ComparableQuantity
+import squants.{Temperature, Velocity}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
@@ -290,7 +299,7 @@ trait WeatherSource {
   ): Array[Long]
 }
 
-object WeatherSource {
+object WeatherSource extends LazyLogging {
 
   def apply(
       dataSourceConfig: SimonaConfig.Simona.Input.Weather.Datasource,
@@ -550,52 +559,66 @@ object WeatherSource {
     MetersPerSecond(0d)
   )
 
-  def toWeatherData(
-      weatherValue: WeatherValue
+  /** Methode to get weather data from a time series. This method automatically
+    * interpolates missing values.
+    *
+    * @param timeSeries
+    *   with weather values
+    * @param dateTime
+    *   timestamp in question
+    * @return
+    *   weather data object
+    */
+  def getWeatherData(
+      timeSeries: IndividualTimeSeries[WeatherValue],
+      dateTime: ZonedDateTime
   ): WeatherData = {
-    WeatherData(
-      weatherValue.getSolarIrradiance.getDiffuseIrradiance.toScala match {
-        case Some(irradiance) =>
-          WattsPerSquareMeter(
-            irradiance
-              .to(PowerSystemUnits.WATT_PER_SQUAREMETRE)
-              .getValue
-              .doubleValue()
-          )
-        case None => EMPTY_WEATHER_DATA.diffIrr
-      },
-      weatherValue.getSolarIrradiance.getDirectIrradiance.toScala match {
-        case Some(irradiance) =>
-          WattsPerSquareMeter(
-            irradiance
-              .to(PowerSystemUnits.WATT_PER_SQUAREMETRE)
-              .getValue
-              .doubleValue()
-          )
-        case None => EMPTY_WEATHER_DATA.dirIrr
-      },
-      weatherValue.getTemperature.getTemperature.toScala match {
-        case Some(temperature) =>
-          Kelvin(
-            temperature
-              .to(Units.KELVIN)
-              .getValue
-              .doubleValue()
-          )
-        case None => EMPTY_WEATHER_DATA.temp
-      },
-      weatherValue.getWind.getVelocity.toScala match {
-        case Some(windVel) =>
-          MetersPerSecond(
-            windVel
-              .to(Units.METRE_PER_SECOND)
-              .getValue
-              .doubleValue()
-          )
-        case None => EMPTY_WEATHER_DATA.windVel
-      }
-    )
+    // gets a value option
+    val valueOption = timeSeries.getValue(dateTime).toScala
 
+    // check which data is missing
+    val (diffIrr, dirIrr, temp, windVel) = getOptions(valueOption)
+
+    WeatherData(
+      diffIrr.getOrElse(
+        interpolate(timeSeries, dateTime, "diffIrr", EMPTY_WEATHER_DATA.diffIrr)
+      ),
+      dirIrr.getOrElse(
+        interpolate(timeSeries, dateTime, "dirIrr", EMPTY_WEATHER_DATA.dirIrr)
+      ),
+      temp.getOrElse(
+        interpolate(timeSeries, dateTime, "temp", EMPTY_WEATHER_DATA.temp)
+      ),
+      windVel.getOrElse(
+        interpolate(timeSeries, dateTime, "windVel", EMPTY_WEATHER_DATA.windVel)
+      )
+    )
+  }
+
+  /** Method to get the data of a [[WeatherValue]].
+    *
+    * @param valueOption
+    *   value with data
+    * @return
+    *   a tuple of options
+    */
+  def getOptions(valueOption: Option[WeatherValue]): (
+      Option[Irradiance],
+      Option[Irradiance],
+      Option[Temperature],
+      Option[Velocity]
+  ) = {
+    valueOption match {
+      case Some(value) =>
+        val solar = value.getSolarIrradiance
+        (
+          solar.getDiffuseIrradiance.toScala.map(v => v.toSquants),
+          solar.getDirectIrradiance.toScala.map(v => v.toSquants),
+          value.getTemperature.getTemperature.toScala.map(v => v.toSquants),
+          value.getWind.getVelocity.toScala.map(v => v.toSquants)
+        )
+      case None => (None, None, None, None)
+    }
   }
 
   /** Weather package private case class to combine the provided agent

@@ -36,7 +36,7 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.weather.WeatherSource.{
   EMPTY_WEATHER_DATA,
   WeatherScheme,
-  toWeatherData
+  getWeatherData
 }
 import edu.ie3.simona.service.weather.WeatherSourceWrapper.WeightSum
 import edu.ie3.simona.service.weather.{WeatherSource => SimonaWeatherSource}
@@ -49,9 +49,7 @@ import tech.units.indriya.ComparableQuantity
 import java.nio.file.Path
 import java.time.ZonedDateTime
 import javax.measure.quantity.Length
-
 import scala.jdk.CollectionConverters.{IterableHasAsJava, MapHasAsScala}
-import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
 /** This class provides an implementation of the SIMONA trait
@@ -102,12 +100,10 @@ private[weather] final case class WeatherSourceWrapper private (
       )
       .asScala
       .toMap
-    val weatherDataMap = results.flatMap { case (point, timeSeries) =>
+    val weatherDataMap = results.map { case (point, timeSeries) =>
       // change temperature scale for the upcoming calculations
-      timeSeries
-        .getValue(dateTime)
-        .toScala
-        .map(weatherValue => point -> toWeatherData(weatherValue))
+
+      point -> getWeatherData(timeSeries, dateTime)
     }
 
     weatherDataMap.foldLeft((EMPTY_WEATHER_DATA, WeightSum.EMPTY_WEIGHT_SUM)) {

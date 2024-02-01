@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.ontology.messages.services
 
+import edu.ie3.datamodel.models.value.WeatherValue
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ProvisionMessage,
@@ -75,4 +76,17 @@ object WeatherMessage {
       windVel: Velocity
   ) extends SecondaryData
 
+  /** Container class for a weather value with a weight. It is primarily used
+    * for interpolation.
+    * @param value
+    *   weather value
+    * @param weight
+    *   of the value
+    * @tparam V
+    *   type of value
+    */
+  final case class ValueWithWeight[V](
+      value: V,
+      weight: Long
+  )
 }
