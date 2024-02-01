@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import org.apache.pekko.actor.ActorRef
-import org.apache.pekko.event.LoggingAdapter
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.powerflow.model.PowerFlowResult
@@ -17,6 +15,7 @@ import edu.ie3.simona.agent.grid.ReceivedValues.{
   ReceivedSlackVoltageValues
 }
 import edu.ie3.simona.agent.grid.ReceivedValuesStore.NodeToReceivedPower
+import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.model.grid.{GridModel, RefSystem}
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   FailedPowerFlow,
@@ -24,6 +23,8 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
   ProvideGridPowerMessage,
   ProvidePowerMessage
 }
+import org.apache.pekko.actor.typed.ActorRef
+import org.slf4j.Logger
 
 import java.util.UUID
 
@@ -33,14 +34,10 @@ sealed trait GridAgentData
   */
 object GridAgentData {
 
-  /** Initial state data of the [[GridAgent]]
-    */
-  final case object GridAgentUninitializedData extends GridAgentData
-
   /** Data that is send to the [[GridAgent]] directly after startup. It contains
     * the main information for initialization. This data should include all
     * [[GridAgent]] individual data, for data that is the same for all
-    * [[GridAgent]] s please use [[GridAgent.props()]]
+    * [[GridAgent]] s please use [[GridAgent.apply()]]
     *
     * @param subGridContainer
     *   raw grid information in the input data format
@@ -54,7 +51,7 @@ object GridAgentData {
   final case class GridAgentInitData(
       subGridContainer: SubGridContainer,
       thermalIslandGrids: Seq[ThermalGrid],
-      subGridGateToActorRef: Map[SubGridGate, ActorRef],
+      subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgentMessage]],
       refSystem: RefSystem
   ) extends GridAgentData
       with GridAgentDataHelper {
@@ -101,12 +98,12 @@ object GridAgentData {
 
     def apply(
         gridModel: GridModel,
-        subgridGateToActorRef: Map[SubGridGate, ActorRef],
-        nodeToAssetAgents: Map[UUID, Set[ActorRef]],
+        subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgentMessage]],
+        nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]],
         superiorGridNodeUuids: Vector[UUID],
         inferiorGridGates: Vector[SubGridGate],
         powerFlowParams: PowerFlowParams,
-        log: LoggingAdapter,
+        log: Logger,
         actorName: String
     ): GridAgentBaseData = {
 
@@ -194,7 +191,7 @@ object GridAgentData {
       currentSweepNo: Int,
       receivedValueStore: ReceivedValuesStore,
       sweepValueStores: Map[Int, SweepValueStore],
-      log: LoggingAdapter,
+      log: Logger,
       actorName: String
   ) extends GridAgentData
       with GridAgentDataHelper {
@@ -301,7 +298,7 @@ object GridAgentData {
     private def updateNodalReceivedPower(
         powerResponse: PowerResponseMessage,
         nodeToReceived: NodeToReceivedPower,
-        senderRef: ActorRef,
+        senderRef: ActorRef[_],
         replace: Boolean
     ): NodeToReceivedPower = {
       // extract the nodeUuid that corresponds to the sender's actorRef and check if we expect a message from the sender
@@ -359,7 +356,7 @@ object GridAgentData {
       */
     private def getNodeUuidForSender(
         nodeToReceivedPower: NodeToReceivedPower,
-        senderRef: ActorRef,
+        senderRef: ActorRef[_],
         replace: Boolean
     ): Option[UUID] =
       nodeToReceivedPower

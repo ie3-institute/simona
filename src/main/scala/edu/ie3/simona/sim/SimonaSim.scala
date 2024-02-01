@@ -10,15 +10,17 @@ import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.apache.pekko.actor.SupervisorStrategy.Stop
 import org.apache.pekko.actor.{
   Actor,
-  ActorRef,
   AllForOneStrategy,
   Props,
   Stash,
   SupervisorStrategy,
-  Terminated
+  Terminated,
+  ActorRef => classicRef
 }
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.agent.grid.GridAgentMessage
+import edu.ie3.simona.agent.grid.GridAgentMessage.StopGridAgent
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.scheduler.TimeAdvancer
@@ -34,6 +36,7 @@ import edu.ie3.simona.sim.SimonaSim.{
   SimonaSimStateData
 }
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
+import org.apache.pekko.actor.typed.ActorRef
 
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
@@ -70,34 +73,32 @@ class SimonaSim(simonaSetup: SimonaSetup)
 
   /* start listener */
   // output listener
-  val systemParticipantsListener: Seq[ActorRef] =
+  val systemParticipantsListener: Seq[classicRef] =
     simonaSetup.systemParticipantsListener(context)
 
   // runtime event listener
-  val runtimeEventListener
-      : org.apache.pekko.actor.typed.ActorRef[RuntimeEvent] =
+  val runtimeEventListener: ActorRef[RuntimeEvent] =
     simonaSetup.runtimeEventListener(context)
 
   /* start scheduler */
-  val timeAdvancer
-      : org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming] =
+  val timeAdvancer: ActorRef[TimeAdvancer.Incoming] =
     simonaSetup.timeAdvancer(context, self, runtimeEventListener)
-  val scheduler: ActorRef = simonaSetup.scheduler(context, timeAdvancer)
+  val scheduler: classicRef = simonaSetup.scheduler(context, timeAdvancer)
 
   /* start services */
   // primary service proxy
-  val primaryServiceProxy: ActorRef =
+  val primaryServiceProxy: classicRef =
     simonaSetup.primaryServiceProxy(context, scheduler)
 
   // weather service
-  val weatherService: ActorRef =
+  val weatherService: classicRef =
     simonaSetup.weatherService(context, scheduler)
 
   val extSimulationData: ExtSimSetupData =
     simonaSetup.extSimulations(context, scheduler)
 
   /* start grid agents  */
-  val gridAgents: Iterable[ActorRef] = simonaSetup.gridAgents(
+  val gridAgents: Iterable[ActorRef[GridAgentMessage]] = simonaSetup.gridAgents(
     context,
     EnvironmentRefs(
       scheduler,
@@ -116,7 +117,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
   context.watch(scheduler)
   context.watch(primaryServiceProxy)
   context.watch(weatherService)
-  gridAgents.foreach(context.watch)
+  gridAgents.foreach(ref => context.watch(ref.toClassic))
 
   override def receive: Receive = simonaSimReceive(SimonaSimStateData())
 
@@ -195,9 +196,9 @@ class SimonaSim(simonaSetup: SimonaSetup)
   }
 
   def waitingForListener(
-      initSimSender: ActorRef,
+      initSimSender: classicRef,
       successful: Boolean,
-      remainingListeners: Seq[ActorRef]
+      remainingListeners: Seq[classicRef]
   ): Receive = {
     case Terminated(actor) if remainingListeners.contains(actor) =>
       val updatedRemainingListeners = remainingListeners.filterNot(_ == actor)
@@ -231,8 +232,8 @@ class SimonaSim(simonaSetup: SimonaSetup)
       simulationSuccessful: Boolean
   ): Unit = {
     gridAgents.foreach { gridAgentRef =>
-      context.unwatch(gridAgentRef)
-      gridAgentRef ! StopMessage(simulationSuccessful)
+      context.unwatch(gridAgentRef.toClassic)
+      gridAgentRef ! StopGridAgent
     }
 
     context.unwatch(scheduler)
@@ -270,7 +271,7 @@ object SimonaSim {
   case object EmergencyShutdownInitiated
 
   private[SimonaSim] final case class SimonaSimStateData(
-      initSimSender: ActorRef = ActorRef.noSender
+      initSimSender: classicRef = classicRef.noSender
   )
 
   def props(simonaSetup: SimonaSetup): Props =

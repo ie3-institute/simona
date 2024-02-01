@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import org.apache.pekko.actor.ActorRef
-import org.apache.pekko.event.{LoggingAdapter, NoLogging}
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.simona.model.grid.GridModel
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
@@ -16,6 +14,12 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.grid.BasicGridWithSwitches
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.Megavars
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ScalaTestWithActorTestKit,
+  TestProbe
+}
+import org.apache.pekko.actor.typed.ActorRef
+import org.slf4j.{Logger, LoggerFactory}
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
 import tech.units.indriya.ComparableQuantity
@@ -31,12 +35,16 @@ import javax.measure.quantity.Angle
   * order to comprehend the expected test results.
   */
 class PowerFlowSupportSpec
-    extends UnitSpec
+    extends ScalaTestWithActorTestKit
+    with UnitSpec
     with BasicGridWithSwitches
     with PowerFlowSupport
     with GridResultsSupport {
 
-  override val log: LoggingAdapter = NoLogging
+  implicit val log: Logger =
+    LoggerFactory.getLogger(PowerFlowSupportSpec.super.getClass)
+  val actorRef: ActorRef[GridAgentMessage] =
+    TestProbe[GridAgentMessage]("noSender").ref
 
   /** Setting voltage at slack node to 110 kV and introducing a load of 1 MW at
     * node 1
@@ -55,7 +63,7 @@ class PowerFlowSupportSpec
       ),
       nodeToReceivedPower = Map(
         node1.uuid -> Map(
-          ActorRef.noSender -> Some(
+          actorRef -> Some(
             ExchangePower(
               node1.uuid,
               Megawatts(1d),
@@ -119,7 +127,10 @@ class PowerFlowSupportSpec
         )
 
         val pfResult =
-          createResultModels(gridModel, sweepValueStore)(ZonedDateTime.now())
+          createResultModels(gridModel, sweepValueStore)(
+            ZonedDateTime.now(),
+            log
+          )
 
         // left/top side segments should have similar currents
         val loadLinesLeft =
@@ -220,7 +231,7 @@ class PowerFlowSupportSpec
             gridModel.gridComponents.nodes,
             gridModel.nodeUuidToIndexMap
           )
-        )(ZonedDateTime.now())
+        )(ZonedDateTime.now(), log)
 
         // left/top side segments (lines that are adjacent to the open switch) should have no load
         val loadLinesLeft =
@@ -305,7 +316,7 @@ class PowerFlowSupportSpec
             gridModel.gridComponents.nodes,
             gridModel.nodeUuidToIndexMap
           )
-        )(ZonedDateTime.now())
+        )(ZonedDateTime.now(), log)
 
         // left/top side segments (lines that are adjacent to the open switch) should have load
         val expectedLoadLines =

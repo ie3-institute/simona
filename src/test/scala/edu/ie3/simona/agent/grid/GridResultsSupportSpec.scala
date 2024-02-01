@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import org.apache.pekko.event.{LoggingAdapter, NoLogging}
 import breeze.math.Complex
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
@@ -61,7 +60,6 @@ class GridResultsSupportSpec
     with GridInputTestData
     with TableDrivenPropertyChecks {
 
-  override protected val log: LoggingAdapter = NoLogging
   implicit val currentTolerance: squants.electro.ElectricCurrent = Amperes(1e-6)
   implicit val angleTolerance: squants.Angle = Degrees(1e-6)
 

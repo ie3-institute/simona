@@ -9,7 +9,7 @@ package edu.ie3.simona.agent.participant
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
-import edu.ie3.simona.agent.grid.GridAgent.FinishGridSimulationTrigger
+import edu.ie3.simona.agent.grid.GridAgentMessage.FinishGridSimulationTrigger
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.SimonaConfig

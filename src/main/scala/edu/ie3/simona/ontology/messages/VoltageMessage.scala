@@ -6,7 +6,9 @@
 
 package edu.ie3.simona.ontology.messages
 
+import edu.ie3.simona.agent.grid.GridAgentMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
+import org.apache.pekko.actor.typed.ActorRef
 
 import java.util.UUID
 import squants.electro.ElectricPotential
@@ -27,7 +29,8 @@ object VoltageMessage {
     */
   final case class RequestSlackVoltageMessage(
       currentSweepNo: Int,
-      nodeUuids: Seq[UUID]
+      nodeUuids: Seq[UUID],
+      sender: ActorRef[GridAgentMessage]
   ) extends VoltageMessage
 
   /** Provide complex voltage at the nodes that the sender's sub grid shares

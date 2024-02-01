@@ -7,8 +7,7 @@
 package edu.ie3.simona.sim.setup
 
 import java.util.UUID
-
-import org.apache.pekko.actor.ActorRef
+import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.testkit.TestException
 import edu.ie3.datamodel.models.input.MeasurementUnitInput
 import edu.ie3.datamodel.models.input.connector.{
@@ -19,16 +18,27 @@ import edu.ie3.datamodel.models.input.container.{
   JointGridContainer,
   RawGridElements
 }
+import edu.ie3.simona.agent.grid.GridAgentMessage
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.GridInputTestData
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ScalaTestWithActorTestKit,
+  TestProbe
+}
 
 import scala.jdk.CollectionConverters._
 
-class SetupHelperSpec extends UnitSpec with GridInputTestData {
+class SetupHelperSpec
+    extends ScalaTestWithActorTestKit
+    with UnitSpec
+    with GridInputTestData {
 
   private final object SetupHelperInstance extends SetupHelper
 
   "A setup helper" should {
+    val actorRef: ActorRef[GridAgentMessage] =
+      TestProbe[GridAgentMessage]("noSender").ref
+
     "reduce multiple SubGridGates between the same superior and inferior nodes to one unique SubGridGate" in {
 
       // build dummy grid with two transformers between the same nodes based on the basic grid input test data
@@ -83,7 +93,7 @@ class SetupHelperSpec extends UnitSpec with GridInputTestData {
         )
 
       val subGridToActorRefMap =
-        Map(1 -> ActorRef.noSender, 100 -> ActorRef.noSender)
+        Map(1 -> actorRef, 100 -> actorRef)
 
       // subGrid gates should be the same for this case
       gridModel.getSubGridTopologyGraph.edgesOf(
