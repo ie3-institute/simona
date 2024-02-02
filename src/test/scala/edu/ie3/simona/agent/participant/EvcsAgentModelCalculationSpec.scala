@@ -62,7 +62,7 @@ import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
 import squants.energy._
-import squants.{Each, Energy, Power}
+import squants.{Each, Energy, Power, energy}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -728,8 +728,8 @@ class EvcsAgentModelCalculationSpec
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          (p ~= Megawatts(0.0)) shouldBe true
-          (q ~= Megavars(0.0)) shouldBe true
+          p should approximate(Megawatts(0.0))
+          q should approximate(Megavars(0.0))
       }
     }
 
@@ -893,7 +893,7 @@ class EvcsAgentModelCalculationSpec
           evModels.headOption match {
             case Some(evModel) =>
               evModel.uuid shouldBe evA.getUuid
-              (evModel.storedEnergy ~= KilowattHours(11.0)) shouldBe true
+              evModel.storedEnergy should approximate(KilowattHours(11.0))
             case None => fail("Expected to get at least one ev.")
           }
       }
@@ -928,7 +928,7 @@ class EvcsAgentModelCalculationSpec
           evModels.headOption match {
             case Some(evModel) =>
               evModel.uuid shouldBe evB.getUuid
-              (evModel.storedEnergy ~= KilowattHours(11.0)) shouldBe true
+              evModel.storedEnergy should approximate(KilowattHours(11.0))
             case None => fail("Expected to get at least one ev.")
           }
       }
@@ -958,8 +958,8 @@ class EvcsAgentModelCalculationSpec
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          (p ~= Megawatts(0.011)) shouldBe true
-          (q ~= Megavars(0.0)) shouldBe true
+          p should approximate(Megawatts(0.011))
+          q should approximate(Megavars(0.0))
         case answer => fail(s"Did not expect to get that answer: $answer")
       }
     }
@@ -976,8 +976,8 @@ class EvcsAgentModelCalculationSpec
       /* Expect, that nothing has changed */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          (p ~= Megawatts(0.011)) shouldBe true
-          (q ~= Megavars(0.0)) shouldBe true
+          p should approximate(Megawatts(0.011))
+          q should approximate(Megavars(0.0))
       }
     }
 
@@ -992,8 +992,8 @@ class EvcsAgentModelCalculationSpec
       /* Expect, the correct values (this model has fixed power factor) */
       expectMsgClass(classOf[AssetPowerChangedMessage]) match {
         case AssetPowerChangedMessage(p, q) =>
-          (p ~= Megawatts(0.011)) shouldBe true
-          (q ~= Megavars(-0.0067133728)) shouldBe true
+          p should approximate(Megawatts(0.011))
+          q should approximate(Megavars(-0.0067133728))
       }
     }
   }
@@ -1253,9 +1253,9 @@ class EvcsAgentModelCalculationSpec
               maxPower
             ) =>
           modelUuid shouldBe evcsInputModelQv.getUuid
-          (refPower ~= Kilowatts(0.0)) shouldBe true
-          (minPower ~= Kilowatts(0.0)) shouldBe true
-          (maxPower ~= Kilowatts(0.0)) shouldBe true
+          refPower should approximate(Kilowatts(0.0))
+          minPower should approximate(Kilowatts(0.0))
+          (maxPower ~= Kilowatts(0.0))
       }
 
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
@@ -1282,8 +1282,8 @@ class EvcsAgentModelCalculationSpec
               requestAtTick
             ) =>
           modelUuid shouldBe evcsInputModelQv.getUuid
-          (result.p ~= Kilowatts(0)) shouldBe true
-          (result.q ~= Megavars(0)) shouldBe true
+          result.p should approximate(Kilowatts(0))
+          result.q should approximate(Megavars(0))
           requestAtNextActivation shouldBe false
           requestAtTick shouldBe None
       }
@@ -1342,15 +1342,17 @@ class EvcsAgentModelCalculationSpec
               requestAtTick
             ) =>
           modelUuid shouldBe evcsInputModelQv.getUuid
-          (result.p ~= Kilowatts(
-            ev900
-              .unwrap()
-              .getSRatedAC
-              .to(PowerSystemUnits.KILOWATT)
-              .getValue
-              .doubleValue
-          )) shouldBe true
-          (result.q ~= Megavars(0)) shouldBe true
+          result.p should approximate(
+            Kilowatts(
+              ev900
+                .unwrap()
+                .getSRatedAC
+                .to(PowerSystemUnits.KILOWATT)
+                .getValue
+                .doubleValue
+            )
+          )
+          result.q should approximate(Megavars(0))
           requestAtNextActivation shouldBe true
           requestAtTick shouldBe Some(4500)
       }
@@ -1380,7 +1382,7 @@ class EvcsAgentModelCalculationSpec
         uuid shouldBe evcsInputModelQv.getUuid
         evs.headOption.foreach { ev =>
           ev.uuid shouldBe ev900.uuid
-          (ev.storedEnergy ~= KilowattHours(11.0)) shouldBe true
+          ev.storedEnergy should approximate(KilowattHours(11.0))
         }
       }
 
@@ -1460,8 +1462,8 @@ class EvcsAgentModelCalculationSpec
               requestAtTick
             ) =>
           modelUuid shouldBe evcsInputModelQv.getUuid
-          (result.p ~= Kilowatts(11)) shouldBe true
-          (result.q ~= Megavars(0)) shouldBe true
+          result.p should approximate(Kilowatts(11))
+          result.q should approximate(Megavars(0))
           requestAtNextActivation shouldBe true
           requestAtTick shouldBe Some(9736)
       }
@@ -1513,8 +1515,8 @@ class EvcsAgentModelCalculationSpec
               requestAtTick
             ) =>
           modelUuid shouldBe evcsInputModelQv.getUuid
-          (result.p ~= Kilowatts(10)) shouldBe true
-          (result.q ~= Megavars(0)) shouldBe true
+          result.p should approximate(Kilowatts(10))
+          result.q should approximate(Megavars(0))
           // since battery is still below lowest soc, it's still considered empty
           requestAtNextActivation shouldBe true
           requestAtTick shouldBe Some(32776)
@@ -1605,8 +1607,8 @@ class EvcsAgentModelCalculationSpec
               requestAtTick
             ) =>
           modelUuid shouldBe evcsInputModelQv.getUuid
-          (result.p ~= Kilowatts(16)) shouldBe true
-          (result.q ~= Megavars(0)) shouldBe true
+          result.p should approximate(Kilowatts(16))
+          result.q should approximate(Megavars(0))
           // since battery is still below lowest soc, it's still considered empty
           requestAtNextActivation shouldBe true
           requestAtTick shouldBe Some(32580)
@@ -1679,8 +1681,8 @@ class EvcsAgentModelCalculationSpec
               requestAtTick
             ) =>
           modelUuid shouldBe evcsInputModelQv.getUuid
-          (result.p ~= Kilowatts(-20)) shouldBe true
-          (result.q ~= Megavars(0)) shouldBe true
+          result.p should approximate(Kilowatts(-20))
+          result.q should approximate(Megavars(0))
           requestAtNextActivation shouldBe false
           requestAtTick shouldBe Some(23040)
       }
@@ -1763,8 +1765,8 @@ class EvcsAgentModelCalculationSpec
               requestAtTick
             ) =>
           modelUuid shouldBe evcsInputModelQv.getUuid
-          (result.p ~= Kilowatts(-10)) shouldBe true
-          (result.q ~= Megavars(0)) shouldBe true
+          result.p should approximate(Kilowatts(-10))
+          result.q should approximate(Megavars(0))
           requestAtNextActivation shouldBe false
           requestAtTick shouldBe Some(25004)
       }
@@ -1838,8 +1840,8 @@ class EvcsAgentModelCalculationSpec
               requestAtTick
             ) =>
           modelUuid shouldBe evcsInputModelQv.getUuid
-          (result.p ~= Kilowatts(0)) shouldBe true
-          (result.q ~= Megavars(0)) shouldBe true
+          result.p should approximate(Kilowatts(0))
+          result.q should approximate(Megavars(0))
           requestAtNextActivation shouldBe false
           requestAtTick shouldBe None
       }
@@ -1887,7 +1889,7 @@ class EvcsAgentModelCalculationSpec
         uuid shouldBe evcsInputModelQv.getUuid
         evs.headOption.foreach { ev =>
           ev.uuid shouldBe ev11700.uuid
-          (ev.storedEnergy ~= KilowattHours(11.6)) shouldBe true
+          ev.storedEnergy should approximate(KilowattHours(11.6))
         }
       }
 
@@ -1956,8 +1958,8 @@ class EvcsAgentModelCalculationSpec
               requestAtTick
             ) =>
           modelUuid shouldBe evcsInputModelQv.getUuid
-          (result.p ~= Kilowatts(4)) shouldBe true
-          (result.q ~= Megavars(0)) shouldBe true
+          result.p should approximate(Kilowatts(4))
+          result.q should approximate(Megavars(0))
           // since we're starting from lowest again
           requestAtNextActivation shouldBe true
           requestAtTick shouldBe Some(72000)

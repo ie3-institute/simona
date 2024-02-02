@@ -319,8 +319,8 @@ class LoadAgentProfileModelCalculationSpec
             case Some((tick, entry)) =>
               tick shouldBe 0L
               inside(entry) { case ApparentPower(p, q) =>
-                (p ~= Megawatts(84.000938e-6)) shouldBe true
-                (q ~= Megavars(0.0)) shouldBe true
+                p should approximate(Megawatts(84.000938e-6))
+                q should approximate(Megavars(0.0))
               }
             case None =>
               fail("Result value store does not contain entry for tick 0.")
@@ -371,8 +371,8 @@ class LoadAgentProfileModelCalculationSpec
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          (p ~= Megawatts(79.750890e-6)) shouldBe true
-          (q ~= Megavars(0.0)) shouldBe true
+          p should approximate(Megawatts(79.750890e-6))
+          q should approximate(Megavars(0.0))
       }
     }
 
@@ -388,8 +388,8 @@ class LoadAgentProfileModelCalculationSpec
       /* Expect, that nothing has changed */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          (p ~= Megawatts(79.750890e-6)) shouldBe true
-          (q ~= Megavars(0.0)) shouldBe true
+          p should approximate(Megawatts(79.750890e-6))
+          q should approximate(Megavars(0.0))
       }
     }
 
@@ -404,8 +404,8 @@ class LoadAgentProfileModelCalculationSpec
       /* Expect, the correct values (this model has fixed power factor) */
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          (p ~= Megawatts(79.750890e-6)) shouldBe true
-          (q ~= Megavars(-22.0714e-6)) shouldBe true
+          p should approximate(Megawatts(79.750890e-6))
+          q should approximate(Megavars(-22.0714e-6))
       }
     }
   }

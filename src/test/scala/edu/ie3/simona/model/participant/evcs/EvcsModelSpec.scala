@@ -191,9 +191,9 @@ class EvcsModelSpec
             actualEv.sRatedAc shouldBe ev.sRatedAc
             actualEv.sRatedDc shouldBe ev.sRatedDc
             actualEv.eStorage shouldBe ev.eStorage
-            (actualEv.storedEnergy ~= KilowattHours(
-              expectedStored
-            )) shouldBe true
+            actualEv.storedEnergy should approximate(
+              KilowattHours(expectedStored)
+            )
             actualEv.departureTick shouldBe ev.departureTick
 
         }
@@ -620,9 +620,9 @@ class EvcsModelSpec
                     maxPower
                   ) =>
                 modelUuid shouldBe evcsModel.getUuid
-                (refPower ~= Kilowatts(expectedPRef)) shouldBe true
-                (minPower ~= Kilowatts(expectedPMin)) shouldBe true
-                (maxPower ~= Kilowatts(expectedPMax)) shouldBe true
+                refPower should approximate(Kilowatts(expectedPRef))
+                minPower should approximate(Kilowatts(expectedPMin))
+                maxPower should approximate(Kilowatts(expectedPMax))
             }
         }
 
@@ -758,9 +758,9 @@ class EvcsModelSpec
                     maxPower
                   ) =>
                 modelUuid shouldBe evcsModel.getUuid
-                (refPower ~= Kilowatts(expectedPRef)) shouldBe true
-                (minPower ~= Kilowatts(expectedPMin)) shouldBe true
-                (maxPower ~= Kilowatts(expectedPMax)) shouldBe true
+                refPower should approximate(Kilowatts(expectedPRef))
+                minPower should approximate(Kilowatts(expectedPMin))
+                maxPower should approximate(Kilowatts(expectedPMax))
             }
         }
 
@@ -810,9 +810,9 @@ class EvcsModelSpec
                 maxPower
               ) =>
             modelUuid shouldBe evcsModel.getUuid
-            (refPower ~= Kilowatts(5.0)) shouldBe true // one hour left
-            (minPower ~= Kilowatts(0d)) shouldBe true // no v2g allowed!
-            (maxPower ~= ev1.sRatedAc) shouldBe true
+            refPower should approximate(Kilowatts(5.0)) // one hour left
+            minPower should approximate(Kilowatts(0d)) // no v2g allowed!
+            maxPower should approximate(ev1.sRatedAc)
         }
 
       }

@@ -217,12 +217,12 @@ class HpModelSpec
                     maybeThreshold
                   ) =>
                 isRunning shouldBe expectedRunningState
-                (activePower ~= Kilowatts(expectedActivePower)) shouldBe true
-
-                (thermalHouseState.innerTemperature ~= Celsius(
-                  expectedInnerTemperature
-                )) shouldBe true
-
+                activePower should approximate(Kilowatts(expectedActivePower))
+                thermalHouseState.innerTemperature should approximate(
+                  Celsius(
+                    expectedInnerTemperature
+                  )
+                )
                 maybeThreshold shouldBe expectedNextThreshold
             }
         }
@@ -272,9 +272,9 @@ class HpModelSpec
                   maxPower
                 ) =>
               modelUuid shouldBe hp.uuid
-              (referencePower ~= Kilowatts(95.0)) shouldBe true
-              (minPower ~= Kilowatts(0.0)) shouldBe true
-              (maxPower ~= Kilowatts(95.0)) shouldBe true
+              referencePower should approximate(Kilowatts(95.0))
+              minPower should approximate(Kilowatts(0.0))
+              maxPower should approximate(Kilowatts(95.0))
           }
         }
       }
