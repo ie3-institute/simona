@@ -8,7 +8,6 @@ package edu.ie3.util.quantities
 
 import edu.ie3.simona.exceptions.QuantityException
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.simona.test.matchers.SquantsMatchers
 import edu.ie3.util.scala.quantities.QuantityUtil
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.energy.{Kilojoules, Kilowatts, WattHours, Watts}
@@ -95,7 +94,7 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
             values,
             windowStart,
             windowEnd
-          ) approx expectedResult
+          ) =~ expectedResult
         }
       }
     }
