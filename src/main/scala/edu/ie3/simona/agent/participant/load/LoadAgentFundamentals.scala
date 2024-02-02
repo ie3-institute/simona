@@ -419,13 +419,13 @@ object LoadAgentFundamentals {
           ConstantState.type,
           FixedLoadModel
         ],
-        ConstantState,
+        state: ConstantState.type,
         voltage: Dimensionless
     ) =>
       baseStateData.model.calculatePower(
         tick,
         voltage,
-        ConstantState,
+        state,
         FixedLoadRelevantData
       )
   }

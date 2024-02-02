@@ -718,7 +718,7 @@ final case class PvModel private (
   ): ProvideFlexOptions = {
     val power = calculateActivePower(ConstantState, data)
 
-    ProvideMinMaxFlexOptions(uuid, power, power, DefaultQuantities.zeroMW)
+    ProvideMinMaxFlexOptions(uuid, power, power, DefaultQuantities.zeroKW)
   }
 
   override def handleControlledPowerChange(

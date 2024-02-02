@@ -6,20 +6,22 @@
 
 package edu.ie3.simona.model.participant.evcs.uncontrolled
 
-import edu.ie3.simona.model.participant.evcs.{ChargingSchedule, EvModelWrapper}
+import edu.ie3.simona.model.participant.evcs.EvModelWrapper
+import edu.ie3.simona.model.participant.evcs.EvcsModel.ScheduleEntry
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.simona.test.common.model.MockEvModel
-import edu.ie3.simona.test.common.model.participant.EvcsTestData
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.energy.Kilowatts
 
 import java.util.UUID
+import scala.collection.immutable.SortedSet
 
 class ConstantPowerChargingSpec
     extends UnitSpec
     with TableDrivenPropertyChecks
-    with EvcsTestData {
+    with EvcsInputTestData {
 
   "Calculating constant power charging schedules" should {
     val evcsModel = evcsStandardModel
@@ -39,12 +41,10 @@ class ConstantPowerChargingSpec
 
       val actualSchedule = evcsModel.chargeWithConstantPower(
         1800L,
-        Set(ev)
+        Seq(ev)
       )
 
-      actualSchedule shouldBe Map(
-        ev -> None
-      )
+      actualSchedule shouldBe Map.empty
     }
 
     "work correctly with one ev" in {
@@ -79,20 +79,15 @@ class ConstantPowerChargingSpec
 
         val chargingMap = evcsModel.chargeWithConstantPower(
           offset,
-          Set(ev)
+          Seq(ev)
         )
 
         chargingMap shouldBe Map(
-          ev -> Some(
-            ChargingSchedule(
-              ev,
-              Seq(
-                ChargingSchedule.Entry(
-                  offset,
-                  offset + stayingTicks,
-                  Kilowatts(expectedPower)
-                )
-              )
+          ev.uuid -> SortedSet(
+            ScheduleEntry(
+              offset,
+              offset + stayingTicks,
+              Kilowatts(expectedPower)
             )
           )
         )
@@ -144,32 +139,22 @@ class ConstantPowerChargingSpec
 
         val chargingMap = evcsModel.chargeWithConstantPower(
           offset,
-          Set(givenEv, ev)
+          Seq(givenEv, ev)
         )
 
         chargingMap shouldBe Map(
-          givenEv -> Some(
-            ChargingSchedule(
-              givenEv,
-              Seq(
-                ChargingSchedule.Entry(
-                  offset,
-                  offset + 3600L,
-                  Kilowatts(5.0)
-                )
-              )
+          givenEv.uuid -> SortedSet(
+            ScheduleEntry(
+              offset,
+              offset + 3600L,
+              Kilowatts(5.0)
             )
           ),
-          ev -> Some(
-            ChargingSchedule(
-              ev,
-              Seq(
-                ChargingSchedule.Entry(
-                  offset,
-                  offset + stayingTicks,
-                  Kilowatts(expectedPower)
-                )
-              )
+          ev.uuid -> SortedSet(
+            ScheduleEntry(
+              offset,
+              offset + stayingTicks,
+              Kilowatts(expectedPower)
             )
           )
         )

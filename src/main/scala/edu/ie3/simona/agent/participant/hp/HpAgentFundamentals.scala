@@ -55,7 +55,6 @@ import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import org.apache.pekko.actor.{ActorRef, FSM}
 import squants.energy.Megawatts
-import squants.thermal.Celsius
 import squants.{Dimensionless, Each, Power}
 
 import java.time.ZonedDateTime
@@ -116,7 +115,7 @@ trait HpAgentFundamentals
   ): HpState = HpState(
     isRunning = false,
     -1,
-    Celsius(10d), // TODO
+    None,
     Megawatts(0d),
     Megawatts(0d),
     ThermalGrid.startingState(thermalGrid),
@@ -285,7 +284,7 @@ trait HpAgentFundamentals
       calcRelevantData: HpRelevantData,
       nodalVoltage: squants.Dimensionless,
       model: HpModel
-  ): HpState = model.calculateNextState(modelState, calcRelevantData)
+  ): HpState = model.determineState(modelState, calcRelevantData)
 
   /** Abstract definition, individual implementations found in individual agent
     * fundamental classes
@@ -381,8 +380,6 @@ trait HpAgentFundamentals
       baseStateData.receivedSecondaryDataStore
         .last(tick)
         .flatMap { case (receivedTick, receivedValues) =>
-          // FIXME: This fallback should check if the activation comes from an internal event. Only then it's valid to
-          //   take previously received values
           if (receivedTick != tick)
             log.debug(
               s"The model ${baseStateData.model.getUuid} needs to do calculations with values received " +

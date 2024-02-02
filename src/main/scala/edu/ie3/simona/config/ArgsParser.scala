@@ -49,11 +49,6 @@ object ArgsParser extends LazyLogging {
           if (value.trim.isEmpty) failure("config location cannot be empty")
           else success
         )
-        .validate(value =>
-          if (value.contains("\\"))
-            failure("wrong config path, expected: /, found: \\")
-          else success
-        )
         .text("Location of the simona config file")
         .minOccurs(1)
       opt[Map[String, String]]("tArgs")
@@ -232,7 +227,7 @@ object ArgsParser extends LazyLogging {
 
     val argsConfig =
       ConfigFactory.parseString(
-        s"""config = ${parsedArgs.configLocation.get}
+        s"""config = "${parsedArgs.configLocation.get.replace("\\", "\\\\")}"
            |simona.runtime_configuration {
            |  selected_subnets = [${parsedArgs.selectedSubnets.getOrElse("")}]
            |  selected_volt_lvls = [${parsedArgs.selectedVoltLvls

@@ -522,7 +522,7 @@ class HpAgentModelCalculationSpec
 
               thermalGridState.houseState match {
                 case Some(ThermalHouseState(_, innerTemperature, _)) =>
-                  (innerTemperature ~= Celsius(20.99998675925926)) shouldBe true
+                  (innerTemperature ~= Celsius(20.999976906944)) shouldBe true
                 case None =>
                   fail(
                     s"Expected to get a result for thermal house '${hpInputModel.getUuid}'"
@@ -650,7 +650,7 @@ class HpAgentModelCalculationSpec
 
               thermalGridState.houseState match {
                 case Some(ThermalHouseState(_, innerTemperature, _)) =>
-                  (innerTemperature ~= Celsius(20.99998675925926)) shouldBe true
+                  (innerTemperature ~= Celsius(20.999976906944)) shouldBe true
                 case None =>
                   fail(
                     s"Expected to get a result for thermal house '${hpInputModel.getUuid}'"

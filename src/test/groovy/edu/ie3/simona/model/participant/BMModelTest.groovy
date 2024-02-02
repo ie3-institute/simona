@@ -6,29 +6,27 @@
 
 package edu.ie3.simona.model.participant
 
-import squants.market.EUR$
-import edu.ie3.util.scala.quantities.EuroPerKilowatthour$
-
 import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static tech.units.indriya.unit.Units.PERCENT
 
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.system.type.BmTypeInput
-import squants.energy.Megawatts$
-import squants.thermal.Celsius$
+import edu.ie3.simona.model.participant.ModelState.ConstantState$
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.EuroPerKilowatthour$
+import edu.ie3.util.scala.quantities.Sq
 import scala.Some
 import spock.lang.Shared
 import spock.lang.Specification
 import squants.energy.Kilowatts$
-import edu.ie3.util.scala.quantities.Sq
+import squants.energy.Megawatts$
+import squants.market.EUR$
+import squants.thermal.Celsius$
 import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
-
-
 
 /**
  * Test class that tries to cover all special cases of the current implementation of the {@link BMModel}
@@ -240,7 +238,7 @@ class BMModelTest extends Specification {
     bmModel._lastPower = new Some(Sq.create(lastPower, Kilowatts$.MODULE$))
 
     when: "the power from the grid is calculated"
-    def powerCalc = bmModel.calculateActivePower(new BMModel.BmState(), relevantData)
+    def powerCalc = bmModel.calculateActivePower(ConstantState$.MODULE$, relevantData)
 
     then: "compare in kilowatts"
     powerCalc - Sq.create(powerSol, Kilowatts$.MODULE$) < Sq.create(1e-12d, Kilowatts$.MODULE$)

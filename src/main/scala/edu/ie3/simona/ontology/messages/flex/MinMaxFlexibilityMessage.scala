@@ -92,6 +92,7 @@ object MinMaxFlexibilityMessage {
 
     /** Creates a [[ProvideMinMaxFlexOptions]] message that does not allow any
       * flexibility, meaning that min = ref = max power.
+      *
       * @param modelUuid
       *   The UUID of the flex provider asset model
       * @param power

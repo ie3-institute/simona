@@ -53,12 +53,11 @@ abstract class LoadModel[D <: LoadRelevantData](
   override def determineFlexOptions(
       data: D,
       lastState: ConstantState.type
-  ): ProvideFlexOptions = {
-    val power = calculateActivePower(lastState, data)
-
-    // no flexibility
-    ProvideMinMaxFlexOptions(uuid, power, power, power)
-  }
+  ): ProvideFlexOptions =
+    ProvideMinMaxFlexOptions.noFlexOption(
+      uuid,
+      calculateActivePower(lastState, data)
+    )
 
   override def handleControlledPowerChange(
       data: D,

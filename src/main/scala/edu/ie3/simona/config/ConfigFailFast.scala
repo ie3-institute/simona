@@ -264,7 +264,6 @@ case object ConfigFailFast extends LazyLogging {
       subConfig.fixedFeedIn.individualConfigs
     )
 
-    // TODO check chargingStrategy value
     checkBaseRuntimeConfigs(
       subConfig.evcs.defaultConfig,
       subConfig.evcs.individualConfigs

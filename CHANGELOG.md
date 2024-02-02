@@ -13,7 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Instantiation of Heat Pump Agents [#253](https://github.com/ie3-institute/simona/issues/253)
 - Output of accompanying thermal result models
 - Added JDK installation, Scala Plugin + SDK in usersguide [#324](https://github.com/ie3-institute/simona/issues/324)
-- Added capability of SystemParticipants to handle flexibility requests regarding self-optimization [#308](https://github.com/ie3-institute/simona/issues/308)
+- Energy Management capabilities:
+  - Added capability of SystemParticipants to handle flexibility [#308](https://github.com/ie3-institute/simona/issues/308)
+  - Added smart charging logic [#31](https://github.com/ie3-institute/simona/issues/31) and flex calculation in `EvcsAgent` [#332](https://github.com/ie3-institute/simona/issues/332)
 - Output of accompanying thermal result models
 - Implementation of Energy Management Agents [#204](https://github.com/ie3-institute/simona/issues/204)
 
@@ -31,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - New scheduling protocol [#650](https://github.com/ie3-institute/simona/issues/650)
 - Replaced akka with pekko [#641](https://github.com/ie3-institute/simona/issues/641)
 - Use `ThermalGrid` to calculate thermal environment of a heat pump [#315](https://github.com/ie3-institute/simona/issues/315)
+- Enable windows path as config parameters [#549](https://github.com/ie3-institute/simona/issues/549)
 
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)

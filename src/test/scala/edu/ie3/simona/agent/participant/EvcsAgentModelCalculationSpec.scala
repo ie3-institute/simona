@@ -25,11 +25,12 @@ import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent
 }
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.model.participant.evcs.EvcsModel.EvcsState
-import edu.ie3.simona.model.participant.evcs.{ChargingSchedule, EvModelWrapper}
+import edu.ie3.simona.model.participant.evcs.EvModelWrapper
+import edu.ie3.simona.model.participant.evcs.EvcsModel.{
+  EvcsState,
+  ScheduleEntry
+}
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
@@ -39,6 +40,8 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation
 }
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
@@ -51,6 +54,7 @@ import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.simona.test.common.{EvTestData, TestSpawnerClassic}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
@@ -60,8 +64,9 @@ import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
 import squants.energy._
 import squants.{Each, Energy, Power}
 
+import java.time.ZonedDateTime
 import java.util.UUID
-import scala.collection.SortedMap
+import scala.collection.immutable.{SortedMap, SortedSet}
 
 class EvcsAgentModelCalculationSpec
     extends ParticipantAgentSpec(
@@ -78,9 +83,28 @@ class EvcsAgentModelCalculationSpec
     with EvTestData
     with TestSpawnerClassic {
 
-  private implicit val powerTolerance: Power = Watts(0.1)
-  private implicit val energyTolerance: Energy = WattHours(0.1)
-  private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
+  private val requestVoltageDeviationThreshold = 1e-14d
+
+  private val defaultOutputConfig =
+    NotifierConfig(
+      simulationResultInfo = false,
+      powerRequestReply = false,
+      flexResult = false
+    )
+
+  private val modelConfig =
+    EvcsRuntimeConfig.apply(
+      calculateMissingReactivePowerWithModel = false,
+      scaling = 1.0,
+      uuids = List("default"),
+      chargingStrategy = "maxPower",
+      lowestEvSoc = 0.2
+    )
+
+  protected implicit val simulationStartDate: ZonedDateTime =
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
+  protected val simulationEndDate: ZonedDateTime =
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 02:00:00")
 
   /* Alter the input model to have a voltage sensitive reactive power calculation */
   private val evcsInputModelQv = evcsInputModel
@@ -88,16 +112,11 @@ class EvcsAgentModelCalculationSpec
     .qCharacteristics(new QV("qV:{(0.95,-0.625),(1.05,0.625)}"))
     .build()
 
-  private val evService = TestProbe("evService")
+  private val resolution = 3600L
 
-  private val noServices = None
-  private val withServices = Some(
-    Vector(
-      ActorEvMovementsService(evService.ref)
-    )
-  )
-
-  private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
+  private implicit val powerTolerance: Power = Watts(0.1)
+  private implicit val energyTolerance: Energy = WattHours(0.1)
+  private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
 
   "An evcs agent with model calculation depending on no secondary data service" should {
     val initStateData = ParticipantInitializeStateData[
@@ -107,12 +126,11 @@ class EvcsAgentModelCalculationSpec
     ](
       inputModel = evcsInputModel,
       modelConfig = modelConfig,
-      secondaryDataServices = noServices,
+      secondaryDataServices = None,
       simulationStartDate = simulationStartDate,
       simulationEndDate = simulationEndDate,
       resolution = resolution,
-      requestVoltageDeviationThreshold =
-        simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+      requestVoltageDeviationThreshold = requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
       primaryServiceProxy = primaryServiceProxy.ref
     )
@@ -163,6 +181,8 @@ class EvcsAgentModelCalculationSpec
   }
 
   "An evcs agent with model calculation depending on one secondary data service" should {
+    val evService = TestProbe("evService")
+
     val initStateData = ParticipantInitializeStateData[
       EvcsInput,
       EvcsRuntimeConfig,
@@ -170,12 +190,15 @@ class EvcsAgentModelCalculationSpec
     ](
       inputModel = evcsInputModel,
       modelConfig = modelConfig,
-      secondaryDataServices = withServices,
+      secondaryDataServices = Some(
+        Vector(
+          ActorEvMovementsService(evService.ref)
+        )
+      ),
       simulationStartDate = simulationStartDate,
       simulationEndDate = simulationEndDate,
       resolution = resolution,
-      requestVoltageDeviationThreshold =
-        simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+      requestVoltageDeviationThreshold = requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
       primaryServiceProxy = primaryServiceProxy.ref
     )
@@ -231,11 +254,15 @@ class EvcsAgentModelCalculationSpec
             ) =>
           inputModel shouldBe SimpleInputContainer(evcsInputModel)
           modelConfig shouldBe modelConfig
-          secondaryDataServices shouldBe withServices
+          secondaryDataServices shouldBe Some(
+            Vector(
+              ActorEvMovementsService(evService.ref)
+            )
+          )
           simulationStartDate shouldBe simulationStartDate
           simulationEndDate shouldBe simulationEndDate
           timeBin shouldBe resolution
-          requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
+          requestVoltageDeviationThreshold shouldBe requestVoltageDeviationThreshold
           outputConfig shouldBe defaultOutputConfig
           maybeEmAgent shouldBe None
         case unsuitableStateData =>
@@ -490,25 +517,19 @@ class EvcsAgentModelCalculationSpec
                     EvModelWrapper(evB)
                   )
 
-                  schedule.values.flatten should contain allOf (
-                    ChargingSchedule(
-                      EvModelWrapper(evA),
-                      Seq(
-                        ChargingSchedule.Entry(
-                          0,
-                          200,
-                          Kilowatts(11.0)
-                        )
+                  schedule shouldBe Map(
+                    evA.getUuid -> SortedSet(
+                      ScheduleEntry(
+                        0,
+                        200,
+                        Kilowatts(11.0)
                       )
                     ),
-                    ChargingSchedule(
-                      EvModelWrapper(evB),
-                      Seq(
-                        ChargingSchedule.Entry(
-                          0,
-                          200,
-                          Kilowatts(11.0)
-                        )
+                    evB.getUuid -> SortedSet(
+                      ScheduleEntry(
+                        0,
+                        200,
+                        Kilowatts(11.0)
                       )
                     )
                   )
@@ -521,7 +542,8 @@ class EvcsAgentModelCalculationSpec
           /* The store for simulation results has been extended */
           baseStateData.resultValueStore match {
             case ValueStore(_, store) =>
-              // FIXME: Please double-check if an empty result store is actually correct here!
+              // Since departures and arrivals are considered separately,
+              // EvcsAgent calculates results only with the next activation
               store.keys shouldBe empty
           }
         case _ =>
@@ -628,27 +650,23 @@ class EvcsAgentModelCalculationSpec
                     EvModelWrapper(evA),
                     EvModelWrapper(evB)
                   )
-                  schedule.values.flatten should contain allOf (
-                    ChargingSchedule(
-                      EvModelWrapper(evA),
-                      Seq(
-                        ChargingSchedule.Entry(
+                  schedule shouldBe Map(
+                    evA.getUuid ->
+                      SortedSet(
+                        ScheduleEntry(
+                          0,
+                          200,
+                          Kilowatts(11.0)
+                        )
+                      ),
+                    evB.getUuid ->
+                      SortedSet(
+                        ScheduleEntry(
                           0,
                           200,
                           Kilowatts(11.0)
                         )
                       )
-                    ),
-                    ChargingSchedule(
-                      EvModelWrapper(evB),
-                      Seq(
-                        ChargingSchedule.Entry(
-                          0,
-                          200,
-                          Kilowatts(11.0)
-                        )
-                      )
-                    )
                   )
 
                   tick shouldBe 0L
@@ -659,7 +677,8 @@ class EvcsAgentModelCalculationSpec
           /* The store for simulation results has been extended */
           baseStateData.resultValueStore match {
             case ValueStore(_, store) =>
-              // FIXME: Please double-check if an empty result store is actually correct here!
+              // Since departures and arrivals are considered separately,
+              // EvcsAgent calculates results only with the next activation
               store shouldBe empty
           }
         case _ =>
@@ -805,12 +824,15 @@ class EvcsAgentModelCalculationSpec
         initStateData = ParticipantInitializeStateData(
           inputModel = evcsInputModelQv,
           modelConfig = modelConfig,
-          secondaryDataServices = withServices,
+          secondaryDataServices = Some(
+            Vector(
+              ActorEvMovementsService(evService.ref)
+            )
+          ),
           simulationStartDate = simulationStartDate,
           simulationEndDate = simulationEndDate,
-          resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
-          requestVoltageDeviationThreshold =
-            simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+          resolution = resolution,
+          requestVoltageDeviationThreshold = requestVoltageDeviationThreshold,
           outputConfig = defaultOutputConfig,
           primaryServiceProxy = primaryServiceProxy.ref
         ),
@@ -979,6 +1001,7 @@ class EvcsAgentModelCalculationSpec
   "An evcs agent with model calculation controlled by an EmAgent" should {
 
     "be initialized correctly" in {
+      val evService = TestProbe("evService")
       val emAgent = TestProbe("EmAgentProbe")
 
       val evcsAgent = TestFSMRef(
@@ -987,12 +1010,15 @@ class EvcsAgentModelCalculationSpec
           initStateData = ParticipantInitializeStateData(
             inputModel = evcsInputModelQv,
             modelConfig = modelConfig,
-            secondaryDataServices = withServices,
+            secondaryDataServices = Some(
+              Vector(
+                ActorEvMovementsService(evService.ref)
+              )
+            ),
             simulationStartDate = simulationStartDate,
             simulationEndDate = simulationEndDate,
             resolution = resolution,
-            requestVoltageDeviationThreshold =
-              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+            requestVoltageDeviationThreshold = requestVoltageDeviationThreshold,
             outputConfig = defaultOutputConfig,
             primaryServiceProxy = primaryServiceProxy.ref,
             maybeEmAgent = Some(emAgent.ref.toTyped)
@@ -1023,11 +1049,15 @@ class EvcsAgentModelCalculationSpec
             ) =>
           inputModel shouldBe SimpleInputContainer(evcsInputModelQv)
           modelConfig shouldBe modelConfig
-          secondaryDataServices shouldBe withServices
+          secondaryDataServices shouldBe Some(
+            Vector(
+              ActorEvMovementsService(evService.ref)
+            )
+          )
           simulationStartDate shouldBe simulationStartDate
           simulationEndDate shouldBe simulationEndDate
           resolution shouldBe resolution
-          requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
+          requestVoltageDeviationThreshold shouldBe requestVoltageDeviationThreshold
           outputConfig shouldBe defaultOutputConfig
           maybeEmAgent shouldBe Some(emAgent.ref.toTyped)
         case unsuitableStateData =>
@@ -1084,7 +1114,11 @@ class EvcsAgentModelCalculationSpec
           /* Base state data */
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
-          services shouldBe withServices
+          services shouldBe Some(
+            Vector(
+              ActorEvMovementsService(evService.ref)
+            )
+          )
           outputConfig shouldBe defaultOutputConfig
           additionalActivationTicks shouldBe empty
           foreseenDataTicks shouldBe Map(evService.ref -> None)
@@ -1106,6 +1140,7 @@ class EvcsAgentModelCalculationSpec
     }
 
     "provide correct flex options when in Idle" in {
+      val evService = TestProbe("evService")
       val emAgent = TestProbe("EmAgentProbe")
       val resultListener = TestProbe("ResultListener")
 
@@ -1115,12 +1150,15 @@ class EvcsAgentModelCalculationSpec
           initStateData = ParticipantInitializeStateData(
             inputModel = SimpleInputContainer(evcsInputModelQv),
             modelConfig = modelConfig,
-            secondaryDataServices = withServices,
+            secondaryDataServices = Some(
+              Vector(
+                ActorEvMovementsService(evService.ref)
+              )
+            ),
             simulationStartDate = simulationStartDate,
             simulationEndDate = simulationEndDate,
             resolution = resolution,
-            requestVoltageDeviationThreshold =
-              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+            requestVoltageDeviationThreshold = requestVoltageDeviationThreshold,
             outputConfig = NotifierConfig(
               simulationResultInfo = true,
               powerRequestReply = false,
@@ -1155,11 +1193,15 @@ class EvcsAgentModelCalculationSpec
             ) =>
           inputModel shouldBe SimpleInputContainer(evcsInputModelQv)
           modelConfig shouldBe modelConfig
-          secondaryDataServices shouldBe withServices
+          secondaryDataServices shouldBe Some(
+            Vector(
+              ActorEvMovementsService(evService.ref)
+            )
+          )
           simulationStartDate shouldBe simulationStartDate
           simulationEndDate shouldBe simulationEndDate
           resolution shouldBe resolution
-          requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
+          requestVoltageDeviationThreshold shouldBe requestVoltageDeviationThreshold
           outputConfig shouldBe NotifierConfig(
             simulationResultInfo = true,
             powerRequestReply = false,
@@ -1920,6 +1962,9 @@ class EvcsAgentModelCalculationSpec
           requestAtNextActivation shouldBe true
           requestAtTick shouldBe Some(72000)
       }
+
+      // expect no more messages after completion of initialization
+      scheduler.expectNoMessage()
 
     }
 

@@ -1097,7 +1097,7 @@ protected trait ParticipantAgentFundamentals[
         false
     }
 
-    // Only after init:
+    // Only for completing initialization:
     // if we are EM-managed, there is no new tick for the
     // scheduler, since we are activated by the EmAgent from now on
     scheduler ! Completion(

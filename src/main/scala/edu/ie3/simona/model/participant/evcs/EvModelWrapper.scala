@@ -13,7 +13,19 @@ import squants.energy.{KilowattHours, Kilowatts}
 
 import java.util.UUID
 
-case class EvModelWrapper(
+/** Wrapper for objects that extend [[EvModel]], which uses
+  * [[javax.measure.Quantity]]. Since operations on javax/indriya quantities are
+  * a bit slow, we lazily convert them to [[squants.Quantity]]. When
+  * "unwrapping", we store back the only value that can have changed (while
+  * considering immutability, i.e. when using [[copy]]), which is
+  * [[storedEnergy]].
+  *
+  * @param storedEnergy
+  *   Currently stored energy in the EV battery
+  * @param original
+  *   The wrapped [[EvModel]]
+  */
+final case class EvModelWrapper(
     storedEnergy: squants.Energy,
     private val original: EvModel
 ) {
@@ -29,22 +41,27 @@ case class EvModelWrapper(
   )
   def departureTick: Long = original.getDepartureTick
 
-  def unwrap(): EvModel = {
+  /** Unwrapping the original [[EvModel]] while also updating the
+    * [[storedEnergy]], which could have changed.
+    *
+    * @return
+    *   The original [[EvModel]] with updated stored energy.
+    */
+  def unwrap(): EvModel =
     original.copyWith(
       storedEnergy.toKilowattHours.asKiloWattHour
     )
-  }
 
 }
 
 object EvModelWrapper {
 
-  def apply(evModel: EvModel): EvModelWrapper = {
+  def apply(evModel: EvModel): EvModelWrapper =
     new EvModelWrapper(
       KilowattHours(
         evModel.getStoredEnergy.to(KILOWATTHOUR).getValue.doubleValue
       ),
       evModel
     )
-  }
+
 }

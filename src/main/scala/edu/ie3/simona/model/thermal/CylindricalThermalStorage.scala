@@ -129,9 +129,17 @@ final case class CylindricalThermalStorage(
     (ThermalStorageState(tick, updatedEnergy, qDot), nextThreshold)
   }
 
+  override def startingState: ThermalStorageState = ThermalStorageState(
+    -1L,
+    getMinEnergyThreshold,
+    Kilowatts(0d)
+  )
+
+  @deprecated("Use thermal storage state instead")
   override def usableThermalEnergy: Energy =
     _storedEnergy - minEnergyThreshold
 
+  @deprecated("Use thermal storage state instead")
   override def tryToStoreAndReturnRemainder(
       addedEnergy: Energy
   ): Option[Energy] = {
@@ -146,6 +154,7 @@ final case class CylindricalThermalStorage(
     Option.empty
   }
 
+  @deprecated("Use thermal storage state instead")
   override def tryToTakeAndReturnLack(
       takenEnergy: Energy
   ): Option[Energy] = {
@@ -154,20 +163,15 @@ final case class CylindricalThermalStorage(
       if (_storedEnergy < minEnergyThreshold) {
         val lack = minEnergyThreshold - _storedEnergy
         _storedEnergy = minEnergyThreshold
-        return Option(lack)
+        return Some(lack)
       }
     }
-    Option.empty
+    None
   }
 
-  override def startingState: ThermalStorageState = ThermalStorageState(
-    -1L,
-    getMinEnergyThreshold,
-    Kilowatts(0d)
-  )
 }
 
-case object CylindricalThermalStorage {
+object CylindricalThermalStorage {
 
   /** Function to construct a new [[CylindricalThermalStorage]] based on a
     * provided [[CylindricalStorageInput]]
