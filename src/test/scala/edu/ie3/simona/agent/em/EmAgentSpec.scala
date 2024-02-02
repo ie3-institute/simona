@@ -23,6 +23,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.test.common.input.EmInputTestData
+import edu.ie3.simona.test.matchers.SquantsMatchers
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityMatchers.equalWithTolerance
@@ -45,7 +46,8 @@ class EmAgentSpec
     with AnyWordSpecLike
     with should.Matchers
     with EmInputTestData
-    with MockitoSugar {
+    with MockitoSugar
+    with SquantsMatchers {
 
   protected implicit val simulationStartDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
@@ -138,7 +140,7 @@ class EmAgentSpec
 
       evcsAgent.expectMessageType[IssuePowerControl] match {
         case IssuePowerControl(0, setPower) =>
-          (setPower ~= Kilowatts(5.0)) shouldBe true
+          setPower should approximate(Kilowatts(5.0))
       }
       emAgent ! FlexCtrlCompletion(
         modelUuid = evcsInput.getUuid,
@@ -265,7 +267,7 @@ class EmAgentSpec
       pvAgent.expectMessage(IssueNoControl(0))
       evcsAgent.expectMessageType[IssuePowerControl] match {
         case IssuePowerControl(0, setPower) =>
-          (setPower ~= Kilowatts(5.0)) shouldBe true
+          setPower should approximate(Kilowatts(5.0))
       }
 
       // send completions
@@ -324,7 +326,7 @@ class EmAgentSpec
       // evcs is now sent control too
       evcsAgent.expectMessageType[IssuePowerControl] match {
         case IssuePowerControl(300, setPower) =>
-          (setPower ~= Kilowatts(3.0)) shouldBe true
+          setPower should approximate(Kilowatts(3.0))
       }
 
       scheduler.expectNoMessage()
@@ -413,7 +415,7 @@ class EmAgentSpec
 
       evcsAgent.expectMessageType[IssuePowerControl] match {
         case IssuePowerControl(0, setPower) =>
-          (setPower ~= Kilowatts(5.0)) shouldBe true
+          setPower should approximate(Kilowatts(5.0))
       }
 
       // send completions
@@ -481,7 +483,7 @@ class EmAgentSpec
 
       evcsAgent.expectMessageType[IssuePowerControl] match {
         case IssuePowerControl(300, setPower) =>
-          (setPower ~= Kilowatts(3.0)) shouldBe true
+          setPower should approximate(Kilowatts(3.0))
       }
 
       scheduler.expectNoMessage()
@@ -607,7 +609,7 @@ class EmAgentSpec
 
       evcsAgent.expectMessageType[IssuePowerControl] match {
         case IssuePowerControl(0, setPower) =>
-          (setPower ~= Kilowatts(11.0)) shouldBe true
+          setPower should approximate(Kilowatts(11.0))
       }
 
       parentEmAgent.expectNoMessage()
@@ -635,8 +637,8 @@ class EmAgentSpec
               requestAtTick
             ) =>
           modelUuid shouldBe emInput.getUuid
-          (result.p ~= Kilowatts(6)) shouldBe true
-          (result.q ~= Kilovars(0.6)) shouldBe true
+          result.p should approximate(Kilowatts(6))
+          result.q should approximate(Kilovars(0.6))
           requestAtNextActivation shouldBe false
           requestAtTick shouldBe Some(300)
       }
@@ -654,7 +656,7 @@ class EmAgentSpec
       // We need 5 kW to compensate PV feed-in
       evcsAgent.expectMessageType[IssuePowerControl] match {
         case IssuePowerControl(150, setPower) =>
-          (setPower ~= Kilowatts(5.0)) shouldBe true
+          setPower should approximate(Kilowatts(5.0))
       }
 
       parentEmAgent.expectNoMessage()
@@ -682,8 +684,8 @@ class EmAgentSpec
               requestAtTick
             ) =>
           modelUuid shouldBe emInput.getUuid
-          (result.p ~= Kilowatts(0)) shouldBe true
-          (result.q ~= Kilovars(0)) shouldBe true
+          result.p should approximate(Kilowatts(0))
+          result.q should approximate(Kilovars(0))
           requestAtNextActivation shouldBe false
           requestAtTick shouldBe Some(600)
       }

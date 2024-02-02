@@ -322,8 +322,8 @@ class ParticipantAgentFundamentalsSpec
       )
       apparentPower match {
         case ApparentPower(p, q) =>
-          (p ~= Megawatts(0.8666666666666667)) shouldBe true
-          (q ~= Megavars(0.5333333333333334)) shouldBe true
+          p should approximate(Megawatts(0.8666666666666667))
+          q should approximate(Megavars(0.5333333333333334))
       }
     }
 
@@ -337,8 +337,8 @@ class ParticipantAgentFundamentalsSpec
         )
       apparentPower match {
         case ApparentPower(p, q) =>
-          (p ~= Megawatts(4.571428571428573)) shouldBe true
-          (q ~= Megavars(3.571428571428571)) shouldBe true
+          p should approximate(Megawatts(4.571428571428573))
+          q should approximate(Megavars(3.571428571428571))
       }
     }
 
@@ -352,8 +352,8 @@ class ParticipantAgentFundamentalsSpec
         )
       apparentPower match {
         case ApparentPower(p, q) =>
-          (p ~= Megawatts(4.571428571428573)) shouldBe true
-          (q ~= Megavars(3.571428571428571)) shouldBe true
+          p should approximate(Megawatts(4.571428571428573))
+          q should approximate(Megavars(3.571428571428571))
       }
     }
 
@@ -367,8 +367,8 @@ class ParticipantAgentFundamentalsSpec
         )
       apparentPower match {
         case ApparentPower(p, q) =>
-          (p ~= Megawatts(0.8666666666666667)) shouldBe true
-          (q ~= Megavars(2.8666666666666667)) shouldBe true
+          p should approximate(Megawatts(0.8666666666666667))
+          q should approximate(Megavars(2.8666666666666667))
       }
     }
 
@@ -382,8 +382,8 @@ class ParticipantAgentFundamentalsSpec
         )
       apparentPower match {
         case ApparentPower(p, q) =>
-          (p ~= Megawatts(4.571428571428573)) shouldBe true
-          (q ~= Megavars(21.71428571428571)) shouldBe true
+          p should approximate(Megawatts(4.571428571428573))
+          q should approximate(Megavars(21.71428571428571))
       }
     }
 
@@ -397,8 +397,8 @@ class ParticipantAgentFundamentalsSpec
         )
       apparentPower match {
         case ApparentPower(p, q) =>
-          (p ~= Megawatts(4.571428571428573)) shouldBe true
-          (q ~= Megavars(21.71428571428571)) shouldBe true
+          p should approximate(Megawatts(4.571428571428573))
+          q should approximate(Megavars(21.71428571428571))
       }
     }
   }

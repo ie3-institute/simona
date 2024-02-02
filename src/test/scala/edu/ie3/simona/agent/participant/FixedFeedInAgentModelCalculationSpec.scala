@@ -325,8 +325,8 @@ class FixedFeedInAgentModelCalculationSpec
             case Some((tick, entry)) =>
               tick shouldBe 0L
               inside(entry) { case ApparentPower(p, q) =>
-                (p ~= Megawatts(-268.603e-6)) shouldBe true
-                (q ~= Megavars(0.0)) shouldBe true
+                p should approximate(Megawatts(-268.603e-6))
+                q should approximate(Megavars(0.0))
               }
             case None =>
               fail("Result value store does not contain entry for tick 900.")
@@ -375,8 +375,8 @@ class FixedFeedInAgentModelCalculationSpec
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          (p ~= Megawatts(-268.603e-6)) shouldBe true
-          (q ~= Megavars(0.0)) shouldBe true
+          p should approximate(Megawatts(-268.603e-6))
+          q should approximate(Megavars(0.0))
       }
     }
 
@@ -416,8 +416,8 @@ class FixedFeedInAgentModelCalculationSpec
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          (p ~= Megawatts(-268.603e-6)) shouldBe true
-          (q ~= Megavars(0.0)) shouldBe true
+          p should approximate(Megawatts(-268.603e-6))
+          q should approximate(Megavars(0.0))
         case answer => fail(s"Did not expect to get that answer: $answer")
       }
     }
@@ -434,8 +434,8 @@ class FixedFeedInAgentModelCalculationSpec
       /* Expect, that nothing has changed */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          (p ~= Megawatts(-268.603e-6)) shouldBe true
-          (q ~= Megavars(0.0)) shouldBe true
+          p should approximate(Megawatts(-268.603e-6))
+          q should approximate(Megavars(0.0))
       }
     }
 
@@ -450,8 +450,8 @@ class FixedFeedInAgentModelCalculationSpec
       /* Expect, the correct values (this model has fixed power factor) */
       expectMsgClass(classOf[AssetPowerChangedMessage]) match {
         case AssetPowerChangedMessage(p, q) =>
-          (p ~= Megawatts(-0.000268603)) shouldBe true
-          (q ~= Megavars(-22.07138418e-6)) shouldBe true
+          p should approximate(Megawatts(-0.000268603))
+          q should approximate(Megavars(-22.07138418e-6))
       }
     }
   }

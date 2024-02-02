@@ -121,20 +121,19 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
 
     "provide correct values when the requested value is part of the containing xy coordinates" in {
       val requestedValue = Each(0.5)
-      (validCosPhiP.cosPhi(requestedValue) ~= Each(-0.8)) shouldBe true
+
+      validCosPhiP.cosPhi(requestedValue) should approximate(Each(-0.8))
     }
 
     "provide an interpolated value when the requested value is not part of the containing xy coordinates" in {
       val requestedValue = Each(0.75)
 
-      (validCosPhiP.cosPhi(requestedValue) ~= Each(-0.5)) shouldBe true
+      validCosPhiP.cosPhi(requestedValue) should approximate(Each(-0.5))
     }
 
     "provide the last known value when the requested value is outside of the containing xy coordinates" in {
-
-      (validCosPhiP.cosPhi(Each(2.0)) ~= Each(-0.2)) shouldBe true
-
-      (validCosPhiP.cosPhi(Each(-1.0)) ~= Each(-1.0)) shouldBe true
+      validCosPhiP.cosPhi(Each(2.0)) should approximate(Each(-0.2))
+      validCosPhiP.cosPhi(Each(-1.0)) should approximate(Each(-1.0))
     }
   }
 
@@ -166,7 +165,7 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
       )
 
       forAll(testingPoints) { (v: Double, scaleExpected: Double) =>
-        (validQV.q(Each(v), qMax) ~= qMax * scaleExpected) shouldBe true
+        validQV.q(Each(v), qMax) should approximate(qMax * scaleExpected)
       }
     }
 
@@ -204,7 +203,7 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
       )
 
       forAll(testingPoints) { (v: Double, scaleExpected: Double) =>
-        (validQV.q(Each(v), qMax) ~= qMax * scaleExpected) shouldBe true
+        validQV.q(Each(v), qMax) should approximate(qMax * scaleExpected)
       }
     }
   }

@@ -340,9 +340,9 @@ class StorageAgentModelCalculationSpec
               maxPower
             ) =>
           modelUuid shouldBe storageInputQv.getUuid
-          (refPower ~= Kilowatts(0.0)) shouldBe true
-          (minPower ~= Kilowatts(0.0)) shouldBe true
-          (maxPower ~= pMax) shouldBe true
+          refPower should approximate(Kilowatts(0.0))
+          minPower should approximate(Kilowatts(0.0))
+          maxPower should approximate(pMax)
       }
 
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
@@ -372,8 +372,8 @@ class StorageAgentModelCalculationSpec
               requestAtTick
             ) =>
           modelUuid shouldBe storageInputQv.getUuid
-          (result.p ~= pMax) shouldBe true
-          (result.q ~= Megavars(0)) shouldBe true
+          result.p should approximate(pMax)
+          result.q should approximate(Megavars(0))
           requestAtNextActivation shouldBe true
           requestAtTick shouldBe Some(60382)
       }
@@ -403,9 +403,9 @@ class StorageAgentModelCalculationSpec
               maxPower
             ) =>
           modelUuid shouldBe storageInputQv.getUuid
-          (refPower ~= Kilowatts(0.0)) shouldBe true
-          (minPower ~= pMax * -1) shouldBe true
-          (maxPower ~= pMax) shouldBe true
+          refPower should approximate(Kilowatts(0.0))
+          minPower should approximate(pMax * -1)
+          maxPower should approximate(pMax)
       }
 
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
@@ -432,8 +432,8 @@ class StorageAgentModelCalculationSpec
               requestAtTick
             ) =>
           modelUuid shouldBe storageInputQv.getUuid
-          (result.p ~= Kilowatts(9)) shouldBe true
-          (result.q ~= Megavars(0)) shouldBe true
+          result.p should approximate(Kilowatts(9))
+          result.q should approximate(Megavars(0))
           requestAtNextActivation shouldBe false
           requestAtTick shouldBe Some(74281)
       }
@@ -474,8 +474,8 @@ class StorageAgentModelCalculationSpec
               requestAtTick
             ) =>
           modelUuid shouldBe storageInputQv.getUuid
-          (result.p ~= pMax * -1) shouldBe true
-          (result.q ~= Megavars(0)) shouldBe true
+          result.p should approximate(pMax * -1)
+          result.q should approximate(Megavars(0))
           requestAtNextActivation shouldBe false
           requestAtTick shouldBe Some(57723)
       }
@@ -510,8 +510,8 @@ class StorageAgentModelCalculationSpec
               requestAtTick
             ) =>
           modelUuid shouldBe storageInputQv.getUuid
-          (result.p ~= Kilowatts(12)) shouldBe true
-          (result.q ~= Megavars(0)) shouldBe true
+          result.p should approximate(Kilowatts(12))
+          result.q should approximate(Megavars(0))
           requestAtNextActivation shouldBe false
           requestAtTick shouldBe Some(79688)
       }
@@ -541,9 +541,9 @@ class StorageAgentModelCalculationSpec
               maxPower
             ) =>
           modelUuid shouldBe storageInputQv.getUuid
-          (refPower ~= Kilowatts(0.0)) shouldBe true
-          (minPower ~= pMax * -1) shouldBe true
-          (maxPower ~= Kilowatts(0.0)) shouldBe true
+          refPower should approximate(Kilowatts(0.0))
+          minPower should approximate(pMax * -1)
+          maxPower should approximate(Kilowatts(0.0))
       }
 
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
@@ -570,8 +570,8 @@ class StorageAgentModelCalculationSpec
               requestAtTick
             ) =>
           modelUuid shouldBe storageInputQv.getUuid
-          (result.p ~= Kilowatts(-12)) shouldBe true
-          (result.q ~= Megavars(0)) shouldBe true
+          result.p should approximate(Kilowatts(-12))
+          result.q should approximate(Megavars(0))
           requestAtNextActivation shouldBe true
           requestAtTick shouldBe Some(131862)
       }
@@ -601,9 +601,9 @@ class StorageAgentModelCalculationSpec
               maxPower
             ) =>
           modelUuid shouldBe storageInputQv.getUuid
-          (refPower ~= Kilowatts(0.0)) shouldBe true
-          (minPower ~= Kilowatts(0.0)) shouldBe true
-          (maxPower ~= pMax) shouldBe true
+          refPower should approximate(Kilowatts(0.0))
+          minPower should approximate(Kilowatts(0.0))
+          maxPower should approximate(pMax)
       }
 
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
@@ -625,8 +625,8 @@ class StorageAgentModelCalculationSpec
               requestAtTick
             ) =>
           modelUuid shouldBe storageInputQv.getUuid
-          (result.p ~= Kilowatts(0)) shouldBe true
-          (result.q ~= Megavars(0)) shouldBe true
+          result.p should approximate(Kilowatts(0))
+          result.q should approximate(Megavars(0))
           requestAtNextActivation shouldBe false
           requestAtTick shouldBe None
       }

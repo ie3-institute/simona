@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Instantiation of Heat Pump Agents [#253](https://github.com/ie3-institute/simona/issues/253)
 - Output of accompanying thermal result models
 - Added JDK installation, Scala Plugin + SDK in usersguide [#324](https://github.com/ie3-institute/simona/issues/324)
+- Squants scalatest matchers [#715](https://github.com/ie3-institute/simona/issues/715)
 - Energy Management capabilities:
   - Added capability of SystemParticipants to handle flexibility [#308](https://github.com/ie3-institute/simona/issues/308)
   - Added smart charging logic [#31](https://github.com/ie3-institute/simona/issues/31) and flex calculation in `EvcsAgent` [#332](https://github.com/ie3-institute/simona/issues/332)
@@ -40,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed version number "2.0" from the logo printed to console [#642](https://github.com/ie3-institute/simona/issues/642)
 - Fixed PV Model documentation [#684](https://github.com/ie3-institute/simona/issues/684), [#686](https://github.com/ie3-institute/simona/issues/686)
 - Removed `CsvDataSourceAdapter` workaround [#702](https://github.com/ie3-institute/simona/issues/702)
+- Logging wrong duration in the first simulation hour [#705](https://github.com/ie3-institute/simona/issues/705)
 
 ## [3.0.0] - 2023-08-07
 
