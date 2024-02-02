@@ -240,7 +240,7 @@ trait SetupHelper extends LazyLogging {
   }
 }
 
-case object SetupHelper {
+object SetupHelper {
 
   /** Determine a comprehensive collection of all [[ResultEntity]] classes, that
     * will have to be considered
