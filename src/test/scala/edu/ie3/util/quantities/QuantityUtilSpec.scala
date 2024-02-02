@@ -74,7 +74,7 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
         QuantityUtil invokePrivate endingValue(values, 2L) match {
           case (tick, value) =>
             tick shouldBe 2L
-            (value =~ unit(5d)) shouldBe true
+            value should approximate(unit(5d))
         }
       }
     }
@@ -156,7 +156,7 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
             windowEnd
           ) match {
             case Success(result) =>
-              result =~ expectedResult
+              result should approximate(expectedResult)
             case Failure(exception) =>
               fail(
                 "Averaging with fine input should pass, but failed.",
