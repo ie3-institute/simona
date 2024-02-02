@@ -62,7 +62,7 @@ import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
 import squants.energy._
-import squants.{Each, Energy, Power, energy}
+import squants.{Each, Energy, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -1255,7 +1255,7 @@ class EvcsAgentModelCalculationSpec
           modelUuid shouldBe evcsInputModelQv.getUuid
           refPower should approximate(Kilowatts(0.0))
           minPower should approximate(Kilowatts(0.0))
-          (maxPower ~= Kilowatts(0.0))
+          maxPower should approximate(Kilowatts(0.0))
       }
 
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
