@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.sim.setup
 
-import org.apache.pekko.actor.ActorRef
 import com.typesafe.config.{Config => TypesafeConfig}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.graph.SubGridGate
@@ -23,6 +22,9 @@ import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.util.ConfigUtil.{GridOutputConfigUtil, OutputConfigUtil}
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
 import edu.ie3.simona.util.{EntityMapperUtil, ResultFileHierarchy}
+import edu.ie3.util.quantities.PowerSystemUnits
+import org.apache.pekko.actor.ActorRef
+import squants.electro.Kilovolts
 
 /** Methods to support the setup of a simona simulation
   *
@@ -179,15 +181,17 @@ trait SetupHelper extends LazyLogging {
         )
       )
 
-    if (
-      !refSystem.nominalVoltage.equals(
-        subGridContainer.getPredominantVoltageLevel.getNominalVoltage
-      )
+    val containerPotential = Kilovolts(
+      subGridContainer.getPredominantVoltageLevel.getNominalVoltage
+        .to(PowerSystemUnits.KILOVOLT)
+        .getValue
+        .doubleValue
     )
+
+    if (refSystem.nominalVoltage != containerPotential)
       logger.warn(
         s"The configured RefSystem for subGrid ${subGridContainer.getSubnet} differs in its nominal voltage (${refSystem.nominalVoltage}) from the grids" +
-          s"predominant voltage level nominal voltage (${subGridContainer.getPredominantVoltageLevel.getNominalVoltage}). If this is by intention and still valid, this " +
-          s"warning can be just ignored!"
+          s"predominant voltage level nominal voltage ($containerPotential). If this is by intention and still valid, this warning can be just ignored!"
       )
 
     refSystem
