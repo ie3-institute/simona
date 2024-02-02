@@ -694,7 +694,7 @@ class EmAgentIT
             emResult.getQ should equalWithTolerance(0.000088285537.asMegaVar)
         }
 
-        scheduler.expectMessage(Completion(emAgentActivation, Some(28666)))
+        scheduler.expectMessage(Completion(emAgentActivation, Some(28665)))
 
         /* TICK 28666
          LOAD: 0.000269 MW (unchanged)
@@ -703,12 +703,12 @@ class EmAgentIT
          -> flex signal is no control -> 0.00485 MW
          */
 
-        emAgentActivation ! Activation(28666)
+        emAgentActivation ! Activation(28665)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
-            emResult.getTime shouldBe 28666.toDateTime
+            emResult.getTime shouldBe 28665.toDateTime
             emResult.getP should equalWithTolerance(0.0050867679996.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.001073120040.asMegaVar)
         }
