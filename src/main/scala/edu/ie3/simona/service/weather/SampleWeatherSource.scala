@@ -123,6 +123,10 @@ final class SampleWeatherSource(
   */
 object SampleWeatherSource {
   object SampleIdCoordinateSource extends IdCoordinateSource {
+    override def getSourceFields: Optional[util.Set[String]] =
+      // only required for validation
+      Optional.empty
+
     override def getCoordinate(id: Int): Optional[Point] =
       Optional.of(NodeInput.DEFAULT_GEO_POSITION)
 
@@ -164,6 +168,7 @@ object SampleWeatherSource {
       else
         Vector.empty[CoordinateDistance].asJava
     }
+
   }
 
   // these lists contain the hourly weather values for each first of the month of 2011 + january of

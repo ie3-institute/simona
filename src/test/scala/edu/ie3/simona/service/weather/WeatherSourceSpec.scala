@@ -407,6 +407,12 @@ case object WeatherSourceSpec {
       value -> key
     }
 
+    override def getSourceFields(
+        entityClass: Class[_]
+    ): Optional[util.Set[String]] =
+      // only required for validation
+      Optional.empty
+
     override def getCoordinate(id: Int): Optional[Point] =
       idToCoordinate.get(id).toJava
 

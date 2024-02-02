@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.participant
 
+import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.datamodel.models.input.system.`type`.HpTypeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
@@ -13,10 +14,9 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalBusInput,
   ThermalHouseInput,
 }
-import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
-import edu.ie3.simona.model.participant.HpModel.HpRelevantData
+import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
@@ -69,6 +69,7 @@ trait HpModelTestData {
     nodeInput,
     thermalBus,
     new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
+    null,
     hpTypeInput,
   )
 
@@ -123,14 +124,14 @@ trait HpModelTestData {
     "thermal storage",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
-    thermalBus,
+    null,
     KilowattHours(20d),
     KilowattHours(500d),
     Kilowatts(10d),
     KilowattHours(0d),
   )
 
-  protected def thermalState(
+  def thermalState(
       temperature: Temperature,
       qDot: Power = Kilowatts(0d),
   ): ThermalGridState = ThermalGridState(
@@ -144,7 +145,7 @@ trait HpModelTestData {
     None,
   )
 
-  protected def hpData: HpRelevantData =
-    HpRelevantData(7200, Celsius(10d))
+  protected def hpData(hpState: HpState): HpRelevantData =
+    HpRelevantData(hpState, 7200, Celsius(10d))
 
 }

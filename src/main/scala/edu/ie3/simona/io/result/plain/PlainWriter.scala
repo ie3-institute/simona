@@ -59,7 +59,6 @@ object PlainWriter {
       PlainNodeResult(
         simRunId,
         createSimpleTimeStamp(full.getTime),
-        full.getUuid,
         full.getInputModel,
         full.getvMag.getValue.doubleValue(),
         full.getvAng.getValue.doubleValue(),
@@ -68,7 +67,6 @@ object PlainWriter {
 
     override def createFull(plain: PlainNodeResult): NodeResult = {
       new NodeResult(
-        plain.uuid,
         ZonedDateTime.parse(plain.time, timeFormatter),
         plain.inputModel,
         Quantities.getQuantity(plain.vMag, PowerSystemUnits.PU),

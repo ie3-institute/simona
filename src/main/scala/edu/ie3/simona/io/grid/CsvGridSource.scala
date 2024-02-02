@@ -36,6 +36,7 @@ object CsvGridSource {
     val houses = csvThermalSource
       .getThermalHouses(operators, busses)
       .asScala
+      .values
       .groupBy(thermalHouse => thermalHouse.getThermalBus)
       .map { case (bus, houses) =>
         bus -> houses.toSet
@@ -43,12 +44,13 @@ object CsvGridSource {
     val storages = csvThermalSource
       .getThermalStorages(operators, busses)
       .asScala
+      .values
       .groupBy(thermalStorage => thermalStorage.getThermalBus)
       .map { case (bus, storages) =>
         bus -> storages.toSet
       }
 
-    busses.asScala.map { bus =>
+    busses.values.asScala.map { bus =>
       val h: java.util.Collection[ThermalHouseInput] =
         houses.getOrElse(bus, Set.empty[ThermalHouseInput]).toSeq.asJava
       val s: java.util.Collection[ThermalStorageInput] =
