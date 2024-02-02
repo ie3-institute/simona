@@ -320,8 +320,8 @@ class ParticipantAgentFundamentalsSpec
       )
       apparentPower match {
         case ApparentPower(p, q) =>
-          equalWithTolerance(p, Megawatts(0.8666666666666667))
-          equalWithTolerance(q, Megavars(0.5333333333333334))
+          p should approximate(Megawatts(0.8666666666666667))
+          q should approximate(Megavars(0.5333333333333334))
       }
     }
 
@@ -335,8 +335,8 @@ class ParticipantAgentFundamentalsSpec
         )
       apparentPower match {
         case ApparentPower(p, q) =>
-          equalWithTolerance(p, Megawatts(4.571428571428573))
-          equalWithTolerance(q, Megavars(3.571428571428571))
+          p should approximate(Megawatts(4.571428571428573))
+          q should approximate(Megavars(3.571428571428571))
       }
     }
 
@@ -350,8 +350,8 @@ class ParticipantAgentFundamentalsSpec
         )
       apparentPower match {
         case ApparentPower(p, q) =>
-          equalWithTolerance(p, Megawatts(4.571428571428573))
-          equalWithTolerance(q, Megavars(3.571428571428571))
+          p should approximate(Megawatts(4.571428571428573))
+          q should approximate(Megavars(3.571428571428571))
       }
     }
 
@@ -365,8 +365,8 @@ class ParticipantAgentFundamentalsSpec
         )
       apparentPower match {
         case ApparentPower(p, q) =>
-          equalWithTolerance(p, Megawatts(0.8666666666666667))
-          equalWithTolerance(q, Megavars(2.8666666666666667))
+          p should approximate(Megawatts(0.8666666666666667))
+          q should approximate(Megavars(2.8666666666666667))
       }
     }
 
@@ -380,8 +380,8 @@ class ParticipantAgentFundamentalsSpec
         )
       apparentPower match {
         case ApparentPower(p, q) =>
-          equalWithTolerance(p, Megawatts(4.571428571428573))
-          equalWithTolerance(q, Megavars(21.71428571428571))
+          p should approximate(Megawatts(4.571428571428573))
+          q should approximate(Megavars(21.71428571428571))
       }
     }
 
@@ -395,8 +395,8 @@ class ParticipantAgentFundamentalsSpec
         )
       apparentPower match {
         case ApparentPower(p, q) =>
-          equalWithTolerance(p, Megawatts(4.571428571428573))
-          equalWithTolerance(q, Megavars(21.71428571428571))
+          p should approximate(Megawatts(4.571428571428573))
+          q should approximate(Megavars(21.71428571428571))
       }
     }
   }

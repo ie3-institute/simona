@@ -66,11 +66,10 @@ class ThermalGridWithStorageOnlySpec
                 Some(ThermalStorageState(tick, storedEnergy, qDot))
               ) =>
             tick shouldBe expectedStorageStartingState.tick
-            equalWithTolerance(
-              storedEnergy,
+            storedEnergy should approximate(
               expectedStorageStartingState.storedEnergy
             )
-            equalWithTolerance(qDot, expectedStorageStartingState.qDot)
+            qDot should approximate(expectedStorageStartingState.qDot)
 
           case _ => fail("Determination of starting state failed")
         }
@@ -87,8 +86,8 @@ class ThermalGridWithStorageOnlySpec
           ThermalGrid.startingState(thermalGrid)
         )
 
-        equalWithTolerance(gridDemand.required, MegawattHours(0d))
-        equalWithTolerance(gridDemand.possible, MegawattHours(0.92d))
+        gridDemand.required should approximate(MegawattHours(0d))
+        gridDemand.possible should approximate(MegawattHours(0.92d))
       }
     }
 
@@ -126,8 +125,8 @@ class ThermalGridWithStorageOnlySpec
                 Some(ThermalStorageState(tick, storedEnergy, qDot))
               ) =>
             tick shouldBe 0L
-            equalWithTolerance(storedEnergy, KilowattHours(430d))
-            equalWithTolerance(qDot, testGridQDotConsumptionHigh)
+            storedEnergy should approximate(KilowattHours(430d))
+            qDot should approximate(testGridQDotConsumptionHigh)
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(StorageEmpty(3600L))
@@ -158,8 +157,8 @@ class ThermalGridWithStorageOnlySpec
                 Some(ThermalStorageState(tick, storedEnergy, qDot))
               ) =>
             tick shouldBe 0L
-            equalWithTolerance(storedEnergy, KilowattHours(230d))
-            equalWithTolerance(qDot, testGridQDotInfeed)
+            storedEnergy should approximate(KilowattHours(230d))
+            qDot should approximate(testGridQDotInfeed)
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(StorageFull(220800L))
@@ -183,8 +182,8 @@ class ThermalGridWithStorageOnlySpec
                 Some(ThermalStorageState(tick, storedEnergy, qDot))
               ) =>
             tick shouldBe 0L
-            equalWithTolerance(storedEnergy, KilowattHours(230d))
-            equalWithTolerance(qDot, testGridQDotInfeed)
+            storedEnergy should approximate(KilowattHours(230d))
+            qDot should approximate(testGridQDotInfeed)
           case _ => fail("Thermal grid state updated failed")
         }
       }
@@ -214,8 +213,8 @@ class ThermalGridWithStorageOnlySpec
                 Some(StorageEmpty(thresholdTick))
               ) =>
             tick shouldBe 0L
-            equalWithTolerance(storedEnergy, KilowattHours(430d))
-            equalWithTolerance(qDot, testGridQDotConsumptionHigh)
+            storedEnergy should approximate(KilowattHours(430d))
+            qDot should approximate(testGridQDotConsumptionHigh)
             thresholdTick shouldBe 3600L
           case _ => fail("Thermal grid state updated failed")
         }
@@ -237,8 +236,8 @@ class ThermalGridWithStorageOnlySpec
                 None
               ) =>
             tick shouldBe 0L
-            equalWithTolerance(storedEnergy, KilowattHours(230d))
-            equalWithTolerance(qDot, Megawatts(0d))
+            storedEnergy should approximate(KilowattHours(230d))
+            qDot should approximate(Megawatts(0d))
 
           case _ => fail("Thermal grid state updated failed")
         }

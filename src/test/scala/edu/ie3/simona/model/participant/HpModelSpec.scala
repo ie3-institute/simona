@@ -176,9 +176,8 @@ class HpModelSpec
                     ThermalGridState(Some(thermalHouseState), _)
                   ) =>
                 isRunning shouldBe expectedRunningState
-                equalWithTolerance(activePower, Kilowatts(expectedActivePower))
-                equalWithTolerance(
-                  thermalHouseState.innerTemperature,
+                activePower should approximate(Kilowatts(expectedActivePower))
+                thermalHouseState.innerTemperature should approximate(
                   Celsius(
                     expectedInnerTemperature
                   )

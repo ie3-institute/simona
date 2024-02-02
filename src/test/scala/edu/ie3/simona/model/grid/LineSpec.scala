@@ -86,21 +86,20 @@ class LineSpec extends UnitSpec with LineInputTestData {
           nodeAUuid shouldBe lineInputMs10Kv.getNodeA.getUuid
           nodeBUuid shouldBe lineInputMs10Kv.getNodeB.getUuid
           amount shouldBe lineInputMs10Kv.getParallelDevices
-          equalWithTolerance(
-            iMax,
+          iMax should approximate(
             Amperes(lineInputMs10Kv.getType.getiMax().getValue.doubleValue())
           )
 
-          equalWithTolerance(r, Each(0.0013109999999999999d))
-          equalWithTolerance(x, Each(0.0010680000000000002d))
-          equalWithTolerance(g, Each(0d))
-          equalWithTolerance(b, Each(0.00000060375d))
+          r should approximate(Each(0.0013109999999999999d))
+          x should approximate(Each(0.0010680000000000002d))
+          g should approximate(Each(0d))
+          b should approximate(Each(0.00000060375d))
       }
 
-      equalWithTolerance(validLineModel.b0(), Each(0.000000301875d))
-      equalWithTolerance(validLineModel.bij(), Each(-373.5121155369499d))
-      equalWithTolerance(validLineModel.g0(), Each(0d))
-      equalWithTolerance(validLineModel.gij(), Each(458.4966137349637d))
+      validLineModel.b0() should approximate(Each(0.000000301875d))
+      validLineModel.bij() should approximate(Each(-373.5121155369499d))
+      validLineModel.g0() should approximate(Each(0d))
+      validLineModel.gij() should approximate(Each(458.4966137349637d))
     }
 
   }
@@ -152,8 +151,7 @@ class LineSpec extends UnitSpec with LineInputTestData {
       val iNodeB: squants.electro.ElectricCurrent =
         Amperes(145d)
 
-      equalWithTolerance(
-        LineModel.utilisation(validLineModel, iNodeA, iNodeB),
+      LineModel.utilisation(validLineModel, iNodeA, iNodeB) should approximate(
         Each(22.222222222222218)
       )
     }

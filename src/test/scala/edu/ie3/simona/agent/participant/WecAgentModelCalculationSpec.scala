@@ -479,8 +479,8 @@ class WecAgentModelCalculationSpec
                 fail("Expected a simulation result for tick 900.")
               ) match {
                 case ApparentPower(p, q) =>
-                  equalWithTolerance(p, Megawatts(0.0))
-                  equalWithTolerance(q, Megavars(0.0))
+                  p should approximate(Megawatts(0.0))
+                  q should approximate(Megavars(0.0))
               }
           }
         case _ =>
@@ -589,8 +589,8 @@ class WecAgentModelCalculationSpec
                 fail("Expected a simulation result for tick 900.")
               ) match {
                 case ApparentPower(p, q) =>
-                  equalWithTolerance(p, Megawatts(0.0))
-                  equalWithTolerance(q, Megavars(0.0))
+                  p should approximate(Megawatts(0.0))
+                  q should approximate(Megavars(0.0))
               }
           }
         case _ =>
@@ -655,8 +655,8 @@ class WecAgentModelCalculationSpec
       /* Appreciate the answer to my previous request */
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          equalWithTolerance(p, Megawatts(0.0))
-          equalWithTolerance(q, Megavars(0.0))
+          p should approximate(Megawatts(0.0))
+          q should approximate(Megavars(0.0))
       }
     }
 
@@ -745,8 +745,8 @@ class WecAgentModelCalculationSpec
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          equalWithTolerance(p, Megawatts(0.0))
-          equalWithTolerance(q, Megavars(0.0))
+          p should approximate(Megawatts(0.0))
+          q should approximate(Megavars(0.0))
         case answer => fail(s"Did not expect to get that answer: $answer")
       }
     }
@@ -763,8 +763,8 @@ class WecAgentModelCalculationSpec
       /* Expect, that nothing has changed */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          equalWithTolerance(p, Megawatts(0.0))
-          equalWithTolerance(q, Megavars(0.0))
+          p should approximate(Megawatts(0.0))
+          q should approximate(Megavars(0.0))
       }
     }
 
@@ -779,8 +779,8 @@ class WecAgentModelCalculationSpec
       /* Expect, the correct values (this model has fixed power factor) */
       expectMsgClass(classOf[AssetPowerChangedMessage]) match {
         case AssetPowerChangedMessage(p, q) =>
-          equalWithTolerance(p, Megawatts(0.0))
-          equalWithTolerance(q, Megavars(-156.1249e-3))
+          p should approximate(Megawatts(0.0))
+          q should approximate(Megavars(-156.1249e-3))
       }
     }
   }

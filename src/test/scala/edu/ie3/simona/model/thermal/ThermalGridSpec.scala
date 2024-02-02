@@ -26,8 +26,8 @@ class ThermalGridSpec extends UnitSpec {
 
         val energyDemand = ThermalEnergyDemand(required, possible)
 
-        equalWithTolerance(energyDemand.required, possible)
-        equalWithTolerance(energyDemand.possible, possible)
+        energyDemand.required should approximate(possible)
+        energyDemand.possible should approximate(possible)
       }
 
       "set the correct values, if they are sensible" in {
@@ -36,8 +36,8 @@ class ThermalGridSpec extends UnitSpec {
 
         val energyDemand = ThermalEnergyDemand(required, possible)
 
-        equalWithTolerance(energyDemand.required, required)
-        equalWithTolerance(energyDemand.possible, possible)
+        energyDemand.required should approximate(required)
+        energyDemand.possible should approximate(possible)
       }
     }
 
@@ -45,8 +45,8 @@ class ThermalGridSpec extends UnitSpec {
       "actually have no demand" in {
         val energyDemand = ThermalEnergyDemand.noDemand
 
-        equalWithTolerance(energyDemand.required, MegawattHours(0d))
-        equalWithTolerance(energyDemand.possible, MegawattHours(0d))
+        energyDemand.required should approximate(MegawattHours(0d))
+        energyDemand.possible should approximate(MegawattHours(0d))
       }
     }
 
@@ -92,8 +92,8 @@ class ThermalGridSpec extends UnitSpec {
 
         val totalDemand = energyDemand1 + energyDemand2
 
-        equalWithTolerance(totalDemand.required, MegawattHours(68d))
-        equalWithTolerance(totalDemand.possible, MegawattHours(75d))
+        totalDemand.required should approximate(MegawattHours(68d))
+        totalDemand.possible should approximate(MegawattHours(75d))
       }
     }
   }

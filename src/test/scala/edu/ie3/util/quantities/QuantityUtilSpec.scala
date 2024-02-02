@@ -75,7 +75,7 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
         QuantityUtil invokePrivate endingValue(values, 2L) match {
           case (tick, value) =>
             tick shouldBe 2L
-            equalWithTolerance(value, unit(5d))
+            value should approximate(unit(5d))
         }
       }
     }
@@ -91,13 +91,11 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
         )
 
         forAll(cases) { (windowStart, windowEnd, expectedResult) =>
-          val actualResult = QuantityUtil.integrate[Power, Energy](
+          QuantityUtil.integrate[Power, Energy](
             values,
             windowStart,
             windowEnd
-          )
-
-          equalWithTolerance(actualResult, expectedResult)
+          ) approx expectedResult
         }
       }
     }
@@ -159,7 +157,7 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
             windowEnd
           ) match {
             case Success(result) =>
-              equalWithTolerance(result, expectedResult)
+              result should approximate(expectedResult)
             case Failure(exception) =>
               fail(
                 "Averaging with fine input should pass, but failed.",

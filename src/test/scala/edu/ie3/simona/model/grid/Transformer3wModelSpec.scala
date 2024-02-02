@@ -85,10 +85,10 @@ class Transformer3wModelSpec
           transformerTappingModel shouldBe expectedTappingModel
           amount shouldBe transformer3wInput.getParallelDevices
           powerFlowCase shouldBe PowerFlowCaseA
-          equalWithTolerance(r, Each(1.03878e-3))
-          equalWithTolerance(x, Each(166.34349e-3))
-          equalWithTolerance(g, Each(1.874312e-6))
-          equalWithTolerance(b, Each(-75.012912e-6))
+          r should approximate(Each(1.03878e-3))
+          x should approximate(Each(166.34349e-3))
+          g should approximate(Each(1.874312e-6))
+          b should approximate(Each(-75.012912e-6))
       }
 
       val yii: Complex = Transformer3wModel.y0(
@@ -160,10 +160,10 @@ class Transformer3wModelSpec
           transformerTappingModel shouldBe expectedTappingModel
           amount shouldBe transformer3wInput.getParallelDevices
           powerFlowCase shouldBe PowerFlowCaseB
-          equalWithTolerance(r, Each(240.9972299e-6))
-          equalWithTolerance(x, Each(24.99307479224e-3))
-          equalWithTolerance(g, Each(0d))
-          equalWithTolerance(b, Each(0d))
+          r should approximate(Each(240.9972299e-6))
+          x should approximate(Each(24.99307479224e-3))
+          g should approximate(Each(0d))
+          b should approximate(Each(0d))
       }
 
       val yii: Complex = Transformer3wModel.y0(
@@ -235,10 +235,10 @@ class Transformer3wModelSpec
           transformerTappingModel shouldBe expectedTappingModel
           amount shouldBe transformer3wInput.getParallelDevices
           powerFlowCase shouldBe PowerFlowCaseC
-          equalWithTolerance(r, Each(3.185595567e-6))
-          equalWithTolerance(x, Each(556.0941828e-6))
-          equalWithTolerance(g, Each(0d))
-          equalWithTolerance(b, Each(0d))
+          r should approximate(Each(3.185595567e-6))
+          x should approximate(Each(556.0941828e-6))
+          g should approximate(Each(0d))
+          b should approximate(Each(0d))
       }
 
       val yii: Complex = Transformer3wModel.y0(

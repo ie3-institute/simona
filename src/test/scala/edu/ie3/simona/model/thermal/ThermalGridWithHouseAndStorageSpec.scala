@@ -77,16 +77,15 @@ class ThermalGridWithHouseAndStorageSpec
               ) =>
             houseTick shouldBe expectedHouseStartingState.tick
             storageTick shouldBe expectedHouseStartingState.tick
-            equalWithTolerance(
-              innerTemperature,
+
+            innerTemperature should approximate(
               expectedHouseStartingState.innerTemperature
             )
-            equalWithTolerance(
-              storedEnergy,
+            storedEnergy should approximate(
               expectedStorageStartingState.storedEnergy
             )
-            equalWithTolerance(qDotHouse, expectedHouseStartingState.qDot)
-            equalWithTolerance(qDotStorage, expectedStorageStartingState.qDot)
+            qDotHouse should approximate(expectedHouseStartingState.qDot)
+            qDotStorage should approximate(expectedStorageStartingState.qDot)
 
           case _ => fail("Determination of starting state failed")
         }
@@ -103,9 +102,8 @@ class ThermalGridWithHouseAndStorageSpec
           ThermalGrid.startingState(thermalGrid)
         )
 
-        equalWithTolerance(gridDemand.required, KilowattHours(0d))
-        equalWithTolerance(
-          gridDemand.possible,
+        gridDemand.required should approximate(KilowattHours(0d))
+        gridDemand.possible should approximate(
           KilowattHours(31.05009722 + 920)
         )
       }
@@ -124,8 +122,8 @@ class ThermalGridWithHouseAndStorageSpec
           )
         )
 
-        equalWithTolerance(gridDemand.required, KilowattHours(0d))
-        equalWithTolerance(gridDemand.possible, KilowattHours(1041.200111111))
+        gridDemand.required should approximate(KilowattHours(0d))
+        gridDemand.possible should approximate(KilowattHours(1041.200111111))
       }
 
       "consider stored energy to reduce house demand if stored energy is not enough" in {
@@ -141,8 +139,8 @@ class ThermalGridWithHouseAndStorageSpec
             )
           )
         )
-        equalWithTolerance(gridDemand.required, KilowattHours(8.64987499999))
-        equalWithTolerance(gridDemand.possible, KilowattHours(1418.64987499999))
+        gridDemand.required should approximate(KilowattHours(8.64987499999))
+        gridDemand.possible should approximate(KilowattHours(1418.64987499999))
       }
     }
 
@@ -179,8 +177,8 @@ class ThermalGridWithHouseAndStorageSpec
                 )
               ) =>
             storageTick shouldBe 0L
-            equalWithTolerance(storedEnergy, initialLoading)
-            equalWithTolerance(qDotStorage, externalQDot)
+            storedEnergy should approximate(initialLoading)
+            qDotStorage should approximate(externalQDot)
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
@@ -215,12 +213,12 @@ class ThermalGridWithHouseAndStorageSpec
                 )
               ) =>
             houseTick shouldBe 0L
-            equalWithTolerance(innerTemperature, Celsius(18.9999d))
-            equalWithTolerance(qDotHouse, Kilowatts(0d))
+            innerTemperature should approximate(Celsius(18.9999d))
+            qDotHouse should approximate(Kilowatts(0d))
 
             storageTick shouldBe 0L
-            equalWithTolerance(storedEnergy, initialLoading)
-            equalWithTolerance(qDotStorage, externalQDot)
+            storedEnergy should approximate(initialLoading)
+            qDotStorage should approximate(externalQDot)
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(StorageEmpty(17142L))
@@ -462,9 +460,9 @@ class ThermalGridWithHouseAndStorageSpec
             houseTick shouldBe tick
             storageTick shouldBe tick
 
-            equalWithTolerance(revisedQDotHouse, thermalStorage.chargingPower)
-            equalWithTolerance(
-              revisedQDotStorage,
+            revisedQDotHouse should approximate(thermalStorage.chargingPower)
+
+            revisedQDotStorage should approximate(
               thermalStorage.chargingPower * (-1)
             )
 
@@ -502,18 +500,17 @@ class ThermalGridWithHouseAndStorageSpec
                 )
               ) =>
             houseTick shouldBe 0L
-            equalWithTolerance(innerTemperature, Celsius(18.9999d))
-            equalWithTolerance(qDotHouse, externalQDot)
+            innerTemperature should approximate(Celsius(18.9999d))
+            qDotHouse should approximate(externalQDot)
 
             storageTick shouldBe -1L
-            equalWithTolerance(
-              storedEnergy,
+            storedEnergy should approximate(
               initialGridState.storageState
                 .map(_.storedEnergy)
                 .getOrElse(fail("No initial storage state found"))
             )
 
-            equalWithTolerance(qDotStorage, Kilowatts(0d))
+            qDotStorage should approximate(Kilowatts(0d))
 
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
@@ -548,12 +545,11 @@ class ThermalGridWithHouseAndStorageSpec
                 )
               ) =>
             houseTick shouldBe 0L
-            equalWithTolerance(innerTemperature, Celsius(20.99999167d))
-            equalWithTolerance(qDotHouse, Kilowatts(0d))
+            innerTemperature should approximate(Celsius(20.99999167d))
+            qDotHouse should approximate(Kilowatts(0d))
 
             storageTick shouldBe 0L
-            equalWithTolerance(
-              storedEnergy,
+            storedEnergy should approximate(
               gridState.storageState
                 .map(_.storedEnergy)
                 .getOrElse(
@@ -561,7 +557,7 @@ class ThermalGridWithHouseAndStorageSpec
                 )
             )
 
-            equalWithTolerance(qDotStorage, externalQDot)
+            qDotStorage should approximate(externalQDot)
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(

@@ -489,8 +489,8 @@ class GridResultsSupportSpec
             time shouldBe timeStamp
             input shouldBe transformerA.uuid
             tapPos shouldBe transformerA.currentTapPos
-            equalWithTolerance(currentMagnitude, Amperes(13.15547500d))
-            equalWithTolerance(currentAngle, Degrees(-45.0000000d))
+            currentMagnitude should approximate(Amperes(13.15547500d))
+            currentAngle should approximate(Degrees(-45.0000000d))
           case wrong => fail(s"Got wrong result: '$wrong'")
         }
       }
@@ -515,8 +515,8 @@ class GridResultsSupportSpec
               ) =>
             time shouldBe timeStamp
             input shouldBe transformerB.uuid
-            equalWithTolerance(currentMagnitude, Amperes(14.14213562d))
-            equalWithTolerance(currentAngle, Degrees(135.000000d))
+            currentMagnitude should approximate(Amperes(14.14213562d))
+            currentAngle should approximate(Degrees(135.000000d))
           case wrong => fail(s"Got wrong result: '$wrong'")
         }
       }
@@ -541,8 +541,8 @@ class GridResultsSupportSpec
               ) =>
             time shouldBe timeStamp
             input shouldBe transformerC.uuid
-            equalWithTolerance(currentMagnitude, Amperes(14.14213562d))
-            equalWithTolerance(currentAngle, Degrees(135.0000000d))
+            currentMagnitude should approximate(Amperes(14.14213562d))
+            currentAngle should approximate(Degrees(135.0000000d))
           case wrong => fail(s"Got wrong result: '$wrong'")
         }
       }
@@ -569,8 +569,8 @@ class GridResultsSupportSpec
               ) =>
             time shouldBe timeStamp
             input shouldBe transformer3wInput.getUuid
-            equalWithTolerance(currentMagnitude, Amperes(11.4542161d))
-            equalWithTolerance(currentAngle, Degrees(-89.4475391d))
+            currentMagnitude should approximate(Amperes(11.4542161d))
+            currentAngle should approximate(Degrees(-89.4475391d))
           case wrong => fail(s"Got wrong result: '$wrong'")
         }
       }

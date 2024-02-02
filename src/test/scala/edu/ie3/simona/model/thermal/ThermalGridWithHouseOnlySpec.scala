@@ -61,11 +61,10 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 None
               ) =>
             tick shouldBe expectedHouseStartingState.tick
-            equalWithTolerance(
-              innerTemperature,
+            innerTemperature should approximate(
               expectedHouseStartingState.innerTemperature
             )
-            equalWithTolerance(thermalInfeed, expectedHouseStartingState.qDot)
+            thermalInfeed should approximate(expectedHouseStartingState.qDot)
 
           case _ => fail("Determination of starting state failed")
         }
@@ -87,8 +86,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           ThermalGrid.startingState(thermalGrid)
         )
 
-        equalWithTolerance(gridDemand.required, houseDemand.required)
-        equalWithTolerance(gridDemand.possible, houseDemand.possible)
+        gridDemand.required should approximate(houseDemand.required)
+        gridDemand.possible should approximate(houseDemand.possible)
       }
     }
 
@@ -117,8 +116,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 None
               ) =>
             tick shouldBe 0L
-            equalWithTolerance(innerTemperature, Celsius(18.9999d))
-            equalWithTolerance(qDot, externalQDot)
+            innerTemperature should approximate(Celsius(18.9999d))
+            qDot should approximate(externalQDot)
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
@@ -144,8 +143,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 None
               ) =>
             tick shouldBe 0L
-            equalWithTolerance(innerTemperature, Celsius(18.9999d))
-            equalWithTolerance(qDot, Megawatts(0d))
+            innerTemperature should approximate(Celsius(18.9999d))
+            qDot should approximate(Megawatts(0d))
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
@@ -178,8 +177,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 None
               ) =>
             tick shouldBe 0L
-            equalWithTolerance(innerTemperature, Celsius(18.9999d))
-            equalWithTolerance(qDot, testGridQDotInfeed)
+            innerTemperature should approximate(Celsius(18.9999d))
+            qDot should approximate(testGridQDotInfeed)
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
@@ -204,8 +203,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 Some(HouseTemperatureUpperBoundaryReached(thresholdTick))
               ) =>
             tick shouldBe 0L
-            equalWithTolerance(innerTemperature, Celsius(18.9999d))
-            equalWithTolerance(qDot, testGridQDotInfeed)
+            innerTemperature should approximate(Celsius(18.9999d))
+            qDot should approximate(testGridQDotInfeed)
             thresholdTick shouldBe 7372L
           case _ => fail("Thermal grid state updated failed")
         }
@@ -226,8 +225,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 Some(HouseTemperatureLowerBoundaryReached(thresholdTick))
               ) =>
             tick shouldBe 0L
-            equalWithTolerance(innerTemperature, Celsius(18.9999d))
-            equalWithTolerance(qDot, Megawatts(0d))
+            innerTemperature should approximate(Celsius(18.9999d))
+            qDot should approximate(Megawatts(0d))
             thresholdTick shouldBe 154284L
           case _ => fail("Thermal grid state updated failed")
         }
@@ -248,8 +247,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 Some(HouseTemperatureLowerBoundaryReached(thresholdTick))
               ) =>
             tick shouldBe 0L
-            equalWithTolerance(innerTemperature, Celsius(18.9999d))
-            equalWithTolerance(qDot, Kilowatts(0d))
+            innerTemperature should approximate(Celsius(18.9999d))
+            qDot should approximate(Kilowatts(0d))
             thresholdTick shouldBe 154284L
           case _ => fail("Thermal grid state updated failed")
         }

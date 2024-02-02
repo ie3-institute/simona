@@ -6,22 +6,20 @@
 
 package edu.ie3.simona.test.matchers
 
-import edu.ie3.simona.exceptions.QuantityException
+import org.scalatest.matchers.{MatchResult, Matcher}
 import squants.Quantity
 
 /** Trait, to simplify test coding, that is reliant on squants */
 trait SquantsMatchers {
-  def equalWithTolerance[T <: Quantity[T]](actual: T, expected: T)(implicit
-      tolerance: T
-  ): Boolean = {
-    val bool = actual =~ expected
-
-    if (!bool) {
-      throw new QuantityException(
-        s"The actual quantity $actual and the expected quantity $expected differ more than $tolerance in value"
-      )
-    }
-    bool
+  class SquantsMatcher[Q <: Quantity[Q]](right: Q, implicit val tolerance: Q)
+      extends Matcher[Quantity[Q]] {
+    override def apply(left: Quantity[Q]): MatchResult = MatchResult(
+      left =~ right,
+      s"The quantities $left and $right differ more than $tolerance in value",
+      s"The quantities $left and $right differ less than $tolerance in value"
+    )
   }
 
+  def approximate[Q <: Quantity[Q]](right: Q)(implicit tolerance: Q) =
+    new SquantsMatcher(right, tolerance)
 }

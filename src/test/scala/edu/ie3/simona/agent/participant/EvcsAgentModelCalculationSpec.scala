@@ -49,7 +49,7 @@ import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
 import squants.energy.{Megawatts, Watts}
-import squants.{Each, Power}
+import squants.{Each, Power, energy}
 
 import java.util.UUID
 
@@ -461,8 +461,8 @@ class EvcsAgentModelCalculationSpec
                 fail("Expected a simulation result for tick 900.")
               ) match {
                 case ApparentPower(p, q) =>
-                  equalWithTolerance(p, Megawatts(0d))
-                  equalWithTolerance(q, Megavars(0d))
+                  p should approximate(Megawatts(0d))
+                  q should approximate(Megavars(0d))
               }
           }
         case _ =>
@@ -568,8 +568,8 @@ class EvcsAgentModelCalculationSpec
                 fail("Expected a simulation result for tick 900.")
               ) match {
                 case ApparentPower(p, q) =>
-                  equalWithTolerance(p, Megawatts(0d))
-                  equalWithTolerance(q, Megavars(0d))
+                  p should approximate(Megawatts(0d))
+                  q should approximate(Megavars(0d))
               }
           }
         case _ =>
@@ -613,8 +613,8 @@ class EvcsAgentModelCalculationSpec
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          equalWithTolerance(p, Megawatts(0.0))
-          equalWithTolerance(q, Megavars(0.0))
+          p should approximate(Megawatts(0.0))
+          q should approximate(Megavars(0.0))
       }
     }
 
@@ -825,8 +825,8 @@ class EvcsAgentModelCalculationSpec
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          equalWithTolerance(p, Megawatts(0.00572))
-          equalWithTolerance(q, Megavars(0.0))
+          p should approximate(Megawatts(0.00572))
+          q should approximate(Megavars(0.0))
         case answer => fail(s"Did not expect to get that answer: $answer")
       }
     }
@@ -843,8 +843,8 @@ class EvcsAgentModelCalculationSpec
       /* Expect, that nothing has changed */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          equalWithTolerance(p, Megawatts(0.00572))
-          equalWithTolerance(q, Megavars(0.0))
+          p should approximate(Megawatts(0.00572))
+          q should approximate(Megavars(0.0))
       }
     }
 
@@ -859,8 +859,8 @@ class EvcsAgentModelCalculationSpec
       /* Expect, the correct values (this model has fixed power factor) */
       expectMsgClass(classOf[AssetPowerChangedMessage]) match {
         case AssetPowerChangedMessage(p, q) =>
-          equalWithTolerance(p, Megawatts(0.00572))
-          equalWithTolerance(q, Megavars(-0.00335669))
+          p should approximate(Megawatts(0.00572))
+          q should approximate(Megavars(-0.00335669))
       }
     }
   }
