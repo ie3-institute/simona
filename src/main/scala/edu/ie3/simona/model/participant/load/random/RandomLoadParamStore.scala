@@ -73,6 +73,11 @@ case object RandomLoadParamStore extends LazyLogging {
   def apply(reader: Reader): RandomLoadParamStore =
     new RandomLoadParamStore(reader)
 
+  /** Returns a [[CSVFormat]] with the first line as its header
+    */
+  private def csvParser: CSVFormat =
+    CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).build()
+
   /** Initializes all type day values by receiving values from provided reader.
     *
     * @param reader
@@ -81,7 +86,7 @@ case object RandomLoadParamStore extends LazyLogging {
   def initializeDayTypeValues(
       reader: Reader
   ): Map[DayType.Value, TypeDayParameters] = {
-    val parser = CSVFormat.DEFAULT.withFirstRecordAsHeader.parse(reader)
+    val parser = csvParser.parse(reader)
     /* records list is an ArrayList */
     val records = parser.getRecords
 
