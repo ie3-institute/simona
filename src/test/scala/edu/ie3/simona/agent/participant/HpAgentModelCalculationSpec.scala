@@ -487,17 +487,14 @@ class HpAgentModelCalculationSpec
                     ) =>
                   isRunning shouldBe false
                   lastTimeTick shouldBe 0L
-                  (activePower =~ Kilowatts(0d)) shouldBe true
-
-                  (qDot =~
-                    Kilowatts(0d)) shouldBe true
+                  activePower should approximate(Kilowatts(0d))
+                  qDot should approximate(Kilowatts(0d))
 
                   thermalGridState.houseState match {
                     case Some(ThermalHouseState(_, innerTemperature, _)) =>
-                      (innerTemperature =~
-                        Celsius(
-                          20.9999769069444444444444444444444
-                        )) shouldBe true
+                      innerTemperature should approximate(
+                        Celsius(20.9999769069444444444444444444444)
+                      )
                     case None =>
                       fail(
                         s"Expected to get a result for thermal house '${inputModel.getUuid}'"
@@ -505,7 +502,7 @@ class HpAgentModelCalculationSpec
                   }
 
                   currentTimeTick shouldBe 0L
-                  (ambientTemperature =~ Celsius(1.815d)) shouldBe true
+                  ambientTemperature should approximate(Celsius(1.815d))
                 case None =>
                   fail("Did expect to get hp relevant data for tick 0L")
               }
@@ -520,9 +517,9 @@ class HpAgentModelCalculationSpec
                 fail("Expected a simulation result for tick 900.")
               ) match {
                 case ApparentPowerAndHeat(p, q, qDot) =>
-                  (p =~ Megawatts(0d)) shouldBe true
-                  q =~ Megavars(0d) shouldBe true
-                  qDot =~ Megawatts(0d) shouldBe true
+                  p should approximate(Megawatts(0d))
+                  q should approximate(Megavars(0d))
+                  qDot should approximate(Megawatts(0d))
               }
           }
         case _ =>
@@ -621,15 +618,14 @@ class HpAgentModelCalculationSpec
                     ) =>
                   isRunning shouldBe false
                   lastTimeTick shouldBe 0L
-                  (activePower =~ Kilowatts(0d)) shouldBe true
-
-                  (qDot =~ Kilowatts(0d)) shouldBe true
+                  activePower should approximate(Kilowatts(0d))
+                  qDot should approximate(Kilowatts(0d))
 
                   thermalGridState.houseState match {
                     case Some(ThermalHouseState(_, innerTemperature, _)) =>
-                      (innerTemperature =~ Celsius(
-                        20.9999769069444444444444444444444
-                      )) shouldBe true
+                      innerTemperature should approximate(
+                        Celsius(20.9999769069444444444444444444444)
+                      )
                     case None =>
                       fail(
                         s"Expected to get a result for thermal house '${inputModel.getUuid}'"
@@ -637,8 +633,7 @@ class HpAgentModelCalculationSpec
                   }
 
                   currentTimeTick shouldBe 0L
-                  (ambientTemperature =~
-                    Celsius(1.815d)) shouldBe true
+                  ambientTemperature should approximate(Celsius(1.815d))
                 case None =>
                   fail("Did expect to get hp relevant data for tick 0L")
               }
@@ -653,11 +648,9 @@ class HpAgentModelCalculationSpec
                 fail("Expected a simulation result for tick 0.")
               ) match {
                 case ApparentPowerAndHeat(p, q, qDot) =>
-                  (p =~ Megawatts(0d)) shouldBe true
-                  (q =~ Megavars(0d)) shouldBe true
-                  (
-                    qDot =~ Megawatts(0d)
-                  ) shouldBe true
+                  p should approximate(Megawatts(0d))
+                  q should approximate(Megavars(0d))
+                  qDot should approximate(Megawatts(0d))
               }
           }
         case _ =>
@@ -722,8 +715,8 @@ class HpAgentModelCalculationSpec
       /* Appreciate the answer to my previous request */
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          (p =~ Megawatts(0d)) shouldBe true
-          (q =~ Megavars(0d)) shouldBe true
+          p should approximate(Megawatts(0d))
+          q should approximate(Megavars(0d))
       }
     }
 
@@ -812,8 +805,8 @@ class HpAgentModelCalculationSpec
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          (p =~ Megawatts(0d)) shouldBe true
-          (q =~ Megavars(0d)) shouldBe true
+          p should approximate(Megawatts(0d))
+          q should approximate(Megavars(0d))
 
         case answer => fail(s"Did not expect to get that answer: $answer")
       }
@@ -831,8 +824,8 @@ class HpAgentModelCalculationSpec
       /* Expect, that nothing has changed */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          (p =~ Megawatts(0d)) shouldBe true
-          (q =~ Megavars(0d)) shouldBe true
+          p should approximate(Megawatts(0d))
+          q should approximate(Megavars(0d))
       }
     }
 
@@ -847,9 +840,8 @@ class HpAgentModelCalculationSpec
       /* Expect, the correct values (this model has fixed power factor) */
       expectMsgClass(classOf[AssetPowerChangedMessage]) match {
         case AssetPowerChangedMessage(p, q) =>
-          (p =~ Megawatts(0d)) shouldBe true
-          (q =~ Megavars(0d)) shouldBe true
-
+          p should approximate(Megawatts(0d))
+          q should approximate(Megavars(0d))
       }
     }
   }

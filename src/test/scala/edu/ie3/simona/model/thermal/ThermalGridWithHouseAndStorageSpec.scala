@@ -77,10 +77,15 @@ class ThermalGridWithHouseAndStorageSpec
               ) =>
             houseTick shouldBe expectedHouseStartingState.tick
             storageTick shouldBe expectedHouseStartingState.tick
-            (innerTemperature =~ expectedHouseStartingState.innerTemperature) shouldBe true
-            (storedEnergy =~ expectedStorageStartingState.storedEnergy) shouldBe true
-            (qDotHouse =~ expectedHouseStartingState.qDot) shouldBe true
-            (qDotStorage =~ expectedStorageStartingState.qDot) shouldBe true
+
+            innerTemperature should approximate(
+              expectedHouseStartingState.innerTemperature
+            )
+            storedEnergy should approximate(
+              expectedStorageStartingState.storedEnergy
+            )
+            qDotHouse should approximate(expectedHouseStartingState.qDot)
+            qDotStorage should approximate(expectedStorageStartingState.qDot)
 
           case _ => fail("Determination of starting state failed")
         }
@@ -97,8 +102,10 @@ class ThermalGridWithHouseAndStorageSpec
           ThermalGrid.startingState(thermalGrid)
         )
 
-        (gridDemand.required =~ KilowattHours(0d)) shouldBe true
-        (gridDemand.possible =~ KilowattHours(31.05009722 + 920)) shouldBe true
+        gridDemand.required should approximate(KilowattHours(0d))
+        gridDemand.possible should approximate(
+          KilowattHours(31.05009722 + 920)
+        )
       }
 
       "consider stored energy to reduce house demand" in {
@@ -115,8 +122,8 @@ class ThermalGridWithHouseAndStorageSpec
           )
         )
 
-        (gridDemand.required =~ KilowattHours(0d)) shouldBe true
-        (gridDemand.possible =~ KilowattHours(1041.200111111)) shouldBe true
+        gridDemand.required should approximate(KilowattHours(0d))
+        gridDemand.possible should approximate(KilowattHours(1041.200111111))
       }
 
       "consider stored energy to reduce house demand if stored energy is not enough" in {
@@ -132,8 +139,8 @@ class ThermalGridWithHouseAndStorageSpec
             )
           )
         )
-        (gridDemand.required =~ KilowattHours(8.64987499999)) shouldBe true
-        (gridDemand.possible =~ KilowattHours(1418.64987499999)) shouldBe true
+        gridDemand.required should approximate(KilowattHours(8.64987499999))
+        gridDemand.possible should approximate(KilowattHours(1418.64987499999))
       }
     }
 
@@ -170,8 +177,8 @@ class ThermalGridWithHouseAndStorageSpec
                 )
               ) =>
             storageTick shouldBe 0L
-            (storedEnergy =~ initialLoading) shouldBe true
-            (qDotStorage =~ externalQDot) shouldBe true
+            storedEnergy should approximate(initialLoading)
+            qDotStorage should approximate(externalQDot)
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
@@ -206,12 +213,12 @@ class ThermalGridWithHouseAndStorageSpec
                 )
               ) =>
             houseTick shouldBe 0L
-            (innerTemperature =~ Celsius(18.9999d)) shouldBe true
-            (qDotHouse =~ Kilowatts(0d)) shouldBe true
+            innerTemperature should approximate(Celsius(18.9999d))
+            qDotHouse should approximate(Kilowatts(0d))
 
             storageTick shouldBe 0L
-            (storedEnergy =~ initialLoading) shouldBe true
-            (qDotStorage =~ externalQDot) shouldBe true
+            storedEnergy should approximate(initialLoading)
+            qDotStorage should approximate(externalQDot)
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(StorageEmpty(17142L))
@@ -453,9 +460,11 @@ class ThermalGridWithHouseAndStorageSpec
             houseTick shouldBe tick
             storageTick shouldBe tick
 
-            (revisedQDotHouse =~ thermalStorage.chargingPower) shouldBe true
+            revisedQDotHouse should approximate(thermalStorage.chargingPower)
 
-            (revisedQDotStorage =~ thermalStorage.chargingPower * (-1)) shouldBe true
+            revisedQDotStorage should approximate(
+              thermalStorage.chargingPower * (-1)
+            )
 
             houseColdTick shouldBe 3718L
             storageEmptyTick shouldBe 3678L
@@ -491,15 +500,17 @@ class ThermalGridWithHouseAndStorageSpec
                 )
               ) =>
             houseTick shouldBe 0L
-            (innerTemperature =~ Celsius(18.9999d)) shouldBe true
-            (qDotHouse =~ externalQDot) shouldBe true
+            innerTemperature should approximate(Celsius(18.9999d))
+            qDotHouse should approximate(externalQDot)
 
             storageTick shouldBe -1L
-            (storedEnergy =~ initialGridState.storageState
-              .map(_.storedEnergy)
-              .getOrElse(fail("No initial storage state found"))) shouldBe true
+            storedEnergy should approximate(
+              initialGridState.storageState
+                .map(_.storedEnergy)
+                .getOrElse(fail("No initial storage state found"))
+            )
 
-            (qDotStorage =~ Kilowatts(0d)) shouldBe true
+            qDotStorage should approximate(Kilowatts(0d))
 
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
@@ -534,18 +545,19 @@ class ThermalGridWithHouseAndStorageSpec
                 )
               ) =>
             houseTick shouldBe 0L
-            (innerTemperature =~ Celsius(20.99999167d)) shouldBe true
-            (qDotHouse =~ Kilowatts(0d)) shouldBe true
+            innerTemperature should approximate(Celsius(20.99999167d))
+            qDotHouse should approximate(Kilowatts(0d))
 
             storageTick shouldBe 0L
-            (storedEnergy =~
+            storedEnergy should approximate(
               gridState.storageState
                 .map(_.storedEnergy)
                 .getOrElse(
                   fail("No initial storage state found")
-                )) shouldBe true
+                )
+            )
 
-            (qDotStorage =~ externalQDot) shouldBe true
+            qDotStorage should approximate(externalQDot)
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(

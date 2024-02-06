@@ -78,10 +78,10 @@ class WeatherSourceWrapperSpec extends UnitSpec {
       )
       val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
       val sumOfAll = 1 + 1 + 1 + 13
-      (result.dirIrr ~= WattsPerSquareMeter(sumOfAll / 4)) shouldBe true
-      (result.diffIrr ~= WattsPerSquareMeter(sumOfAll / 4)) shouldBe true
-      (result.temp ~= Celsius(sumOfAll / 4)) shouldBe true
-      (result.windVel ~= MetersPerSecond(sumOfAll / 4)) shouldBe true
+      result.dirIrr should approximate(WattsPerSquareMeter(sumOfAll / 4))
+      result.diffIrr should approximate(WattsPerSquareMeter(sumOfAll / 4))
+      result.temp should approximate(Celsius(sumOfAll / 4))
+      result.windVel should approximate(MetersPerSecond(sumOfAll / 4))
 
     }
 
@@ -96,10 +96,10 @@ class WeatherSourceWrapperSpec extends UnitSpec {
       )
       val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
       val sumOfAll = 1 + 1 + 1 + 13
-      (result.dirIrr ~= WattsPerSquareMeter(sumOfAll / 4)) shouldBe true
-      (result.diffIrr ~= WattsPerSquareMeter(sumOfAll / 4)) shouldBe true
-      (result.temp ~= Celsius((1 + 1 + 1) / 3)) shouldBe true
-      (result.windVel ~= MetersPerSecond(sumOfAll / 4)) shouldBe true
+      result.dirIrr should approximate(WattsPerSquareMeter(sumOfAll / 4))
+      result.diffIrr should approximate(WattsPerSquareMeter(sumOfAll / 4))
+      result.temp should approximate(Celsius((1 + 1 + 1) / 3))
+      result.windVel should approximate(MetersPerSecond(sumOfAll / 4))
     }
 
     "Calculate the correct weighted value for 4 coordinates with 0.25 weight each, where one is empty" in {
@@ -113,20 +113,20 @@ class WeatherSourceWrapperSpec extends UnitSpec {
       )
       val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
       val sumOfAll = 1 + 1 + 1
-      (result.dirIrr ~= WattsPerSquareMeter(sumOfAll / 3)) shouldBe true
-      (result.diffIrr ~= WattsPerSquareMeter(sumOfAll / 3)) shouldBe true
-      (result.temp ~= Celsius(sumOfAll / 3)) shouldBe true
-      (result.windVel ~= MetersPerSecond(sumOfAll / 3)) shouldBe true
+      result.dirIrr should approximate(WattsPerSquareMeter(sumOfAll / 3))
+      result.diffIrr should approximate(WattsPerSquareMeter(sumOfAll / 3))
+      result.temp should approximate(Celsius(sumOfAll / 3))
+      result.windVel should approximate(MetersPerSecond(sumOfAll / 3))
 
     }
 
     "calculate the correct weighted value for 1 coordinate with a weight of 1" in {
       val weightedCoordinates = WeightedCoordinates(Map(coordinate13 -> 1d))
       val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
-      (result.dirIrr ~= WattsPerSquareMeter(13d)) shouldBe true
-      (result.diffIrr ~= WattsPerSquareMeter(13d)) shouldBe true
-      (result.temp ~= Celsius(13d)) shouldBe true
-      (result.windVel ~= MetersPerSecond(13d)) shouldBe true
+      result.dirIrr should approximate(WattsPerSquareMeter(13d))
+      result.diffIrr should approximate(WattsPerSquareMeter(13d))
+      result.temp should approximate(Celsius(13d))
+      result.windVel should approximate(MetersPerSecond(13d))
     }
 
     "return temperature quantity on absolute scale" in {
@@ -169,10 +169,10 @@ class WeatherSourceWrapperSpec extends UnitSpec {
 
         weightSum.scale(weightedWeather) match {
           case WeatherData(diffIrr, dirIrr, temp, windVel) =>
-            (diffIrr ~= WattsPerSquareMeter(19.83)) shouldBe true
-            (dirIrr ~= WattsPerSquareMeter(3.01)) shouldBe true
-            (temp ~= Kelvin(290.75)) shouldBe true
-            (windVel ~= MetersPerSecond(10.6)) shouldBe true
+            diffIrr should approximate(WattsPerSquareMeter(19.83))
+            dirIrr should approximate(WattsPerSquareMeter(3.01))
+            temp should approximate(Kelvin(290.75))
+            windVel should approximate(MetersPerSecond(10.6))
         }
       }
     }
@@ -219,7 +219,7 @@ class WeatherSourceWrapperSpec extends UnitSpec {
 
       weightSum.scale(weightedWeather) match {
         case WeatherData(_, _, temp, _) =>
-          (temp ~= Kelvin(290d)) shouldBe true
+          temp should approximate(Kelvin(290d))
       }
     }
 
@@ -234,11 +234,10 @@ class WeatherSourceWrapperSpec extends UnitSpec {
 
       weightSum.scale(weatherData) match {
         case WeatherData(diffIrr, dirIrr, temp, windVel) =>
-          (diffIrr ~= WattsPerSquareMeter(4.0)) shouldBe true
-          (dirIrr ~= WattsPerSquareMeter(2.0)) shouldBe true
-          (temp ~= Kelvin(1.25d)) shouldBe true
-          (windVel ~= MetersPerSecond(1.0d)) shouldBe true
-
+          diffIrr should approximate(WattsPerSquareMeter(4.0))
+          dirIrr should approximate(WattsPerSquareMeter(2.0))
+          temp should approximate(Kelvin(1.25d))
+          windVel should approximate(MetersPerSecond(1.0d))
       }
     }
   }
