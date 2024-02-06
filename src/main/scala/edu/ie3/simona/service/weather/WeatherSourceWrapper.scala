@@ -49,7 +49,6 @@ import tech.units.indriya.ComparableQuantity
 import java.nio.file.Path
 import java.time.ZonedDateTime
 import javax.measure.quantity.Length
-
 import scala.jdk.CollectionConverters.{IterableHasAsJava, MapHasAsScala}
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
@@ -200,14 +199,15 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
 
   def apply(
       csvSep: String,
-      directoryPath: Path,
-      idCoordinateSourceFunction: () => IdCoordinateSource,
+      directoryPath: Path
+  )(implicit
+      simulationStart: ZonedDateTime,
+      idCoordinateSource: IdCoordinateSource,
       timestampPattern: Option[String],
       scheme: String,
       resolution: Option[Long],
       maxCoordinateDistance: ComparableQuantity[Length]
-  )(implicit simulationStart: ZonedDateTime): WeatherSourceWrapper = {
-    val idCoordinateSource = idCoordinateSourceFunction()
+  ): WeatherSourceWrapper = {
     val source = new CsvWeatherSource(
       csvSep,
       directoryPath,
@@ -227,23 +227,24 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
   }
 
   def apply(
-      couchbaseParams: CouchbaseParams,
-      idCoordinateSourceFunction: () => IdCoordinateSource,
+      couchbaseParams: CouchbaseParams
+  )(implicit
+      simulationStart: ZonedDateTime,
+      idCoordinateSource: IdCoordinateSource,
       timestampPattern: Option[String],
       scheme: String,
       resolution: Option[Long],
       maxCoordinateDistance: ComparableQuantity[Length]
-  )(implicit simulationStart: ZonedDateTime): WeatherSourceWrapper = {
+  ): WeatherSourceWrapper = {
     val couchbaseConnector = new CouchbaseConnector(
       couchbaseParams.url,
       couchbaseParams.bucketName,
       couchbaseParams.userName,
       couchbaseParams.password
     )
-    val idCoordinateSource = idCoordinateSourceFunction()
     val source = new CouchbaseWeatherSource(
       couchbaseConnector,
-      idCoordinateSourceFunction(),
+      idCoordinateSource,
       couchbaseParams.coordinateColumnName,
       couchbaseParams.keyPrefix,
       buildFactory(scheme, timestampPattern),
@@ -261,16 +262,17 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
   }
 
   def apply(
-      influxDbParams: InfluxDb1xParams,
-      idCoordinateSourceFunction: () => IdCoordinateSource,
+      influxDbParams: InfluxDb1xParams
+  )(implicit
+      simulationStart: ZonedDateTime,
+      idCoordinateSource: IdCoordinateSource,
       timestampPattern: Option[String],
       scheme: String,
       resolution: Option[Long],
       maxCoordinateDistance: ComparableQuantity[Length]
-  )(implicit simulationStart: ZonedDateTime): WeatherSourceWrapper = {
+  ): WeatherSourceWrapper = {
     val influxDb1xConnector =
       new InfluxDbConnector(influxDbParams.url, influxDbParams.database)
-    val idCoordinateSource = idCoordinateSourceFunction()
     val source = new InfluxDbWeatherSource(
       influxDb1xConnector,
       idCoordinateSource,
@@ -288,19 +290,20 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
   }
 
   def apply(
-      sqlParams: SqlParams,
-      idCoordinateSourceFunction: () => IdCoordinateSource,
+      sqlParams: SqlParams
+  )(implicit
+      simulationStart: ZonedDateTime,
+      idCoordinateSource: IdCoordinateSource,
       timestampPattern: Option[String],
       scheme: String,
       resolution: Option[Long],
       maxCoordinateDistance: ComparableQuantity[Length]
-  )(implicit simulationStart: ZonedDateTime): WeatherSourceWrapper = {
+  ): WeatherSourceWrapper = {
     val sqlConnector = new SqlConnector(
       sqlParams.jdbcUrl,
       sqlParams.userName,
       sqlParams.password
     )
-    val idCoordinateSource = idCoordinateSourceFunction()
     val source = new SqlWeatherSource(
       sqlConnector,
       idCoordinateSource,

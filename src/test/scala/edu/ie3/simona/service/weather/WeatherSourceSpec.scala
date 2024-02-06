@@ -299,41 +299,6 @@ class WeatherSourceSpec extends UnitSpec {
           )
       }
     }
-
-    "return correct coordinate factory" in {
-      val checkCoordinateFactory =
-        PrivateMethod[IdCoordinateFactory](Symbol("checkCoordinateFactory"))
-
-      val cases = Table(
-        ("gridModel", "expectedClass", "failureMessage"),
-        (
-          "",
-          classOf[InvalidConfigParameterException],
-          "No grid model defined!"
-        ),
-        ("icon", classOf[IconIdCoordinateFactory], ""),
-        ("cosmo", classOf[CosmoIdCoordinateFactory], ""),
-        (
-          "else",
-          classOf[InvalidConfigParameterException],
-          "Grid model 'else' is not supported!"
-        )
-      )
-
-      forAll(cases) { (gridModel, expectedClass, failureMessage) =>
-        val actual =
-          Try(WeatherSource invokePrivate checkCoordinateFactory(gridModel))
-
-        actual match {
-          case Success(factory) =>
-            factory.getClass shouldBe expectedClass
-
-          case Failure(exception) =>
-            exception.getClass shouldBe expectedClass
-            exception.getMessage shouldBe failureMessage
-        }
-      }
-    }
   }
 }
 
