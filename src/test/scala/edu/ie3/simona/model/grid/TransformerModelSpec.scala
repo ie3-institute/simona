@@ -43,13 +43,6 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
     Amperes(1e-9)
   implicit val dimensionlessTolerance: squants.Dimensionless = Each(1e-9)
 
-  def mainRefSystem: RefSystem = {
-    val nominalPower = Kilowatts(400d)
-    val nominalVoltage = Kilovolts(0.4d)
-    RefSystem(nominalPower, nominalVoltage)
-    /* Z_Ref = 0.4 Ω, Y_Ref = 2.5 Siemens */
-  }
-
   "A valid TransformerInput " should {
     "be validated without an exception" in new TransformerTestData {
       val unmodifiedTransformerInputModel: Transformer2WInput =
