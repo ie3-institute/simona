@@ -39,6 +39,7 @@ import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.Kilovars
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.prop.TableDrivenPropertyChecks
+import org.testcontainers.utility.DockerImageName
 import squants.energy.Kilowatts
 
 import java.util.UUID
@@ -61,7 +62,7 @@ class PrimaryServiceWorkerSqlIT
     with TestSpawnerClassic {
 
   override val container: PostgreSQLContainer = PostgreSQLContainer(
-    "postgres:14.2"
+    DockerImageName.parse("postgres:14.2")
   )
 
   private val simulationStart =

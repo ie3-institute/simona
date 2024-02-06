@@ -55,7 +55,7 @@ import edu.ie3.util.scala.quantities.{Kilovars, Megavars, ReactivePower, Vars}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
-import squants.Each
+import squants.{Each, Power}
 import squants.energy.{Kilowatts, Megawatts, Watts}
 import tech.units.indriya.quantity.Quantities
 
@@ -98,8 +98,8 @@ class ParticipantAgentExternalSourceSpec
       SystemParticipant[CalcRelevantData.FixedRelevantData.type, ApparentPower]
     ]
   when(mockModel.getUuid).thenReturn(testUUID)
-  private val activeToReactivePowerFunction: squants.Power => ReactivePower =
-    (p: squants.Power) => Kilovars(p.toKilowatts * tan(acos(0.9)))
+  private val activeToReactivePowerFunction: Power => ReactivePower =
+    (p: Power) => Kilovars(p.toKilowatts * tan(acos(0.9)))
   when(
     mockModel.activeToReactivePowerFunc(
       any(classOf[squants.Dimensionless])
@@ -117,7 +117,7 @@ class ParticipantAgentExternalSourceSpec
 
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
-  private implicit val powerTolerance: squants.Power = Watts(0.1)
+  private implicit val powerTolerance: Power = Watts(0.1)
   private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
 
   "A participant agent with externally given data provider" should {
@@ -563,7 +563,7 @@ class ParticipantAgentExternalSourceSpec
 
       val actualFunction =
         mockAgent.underlyingActor.getReactivePowerFunction(0L, baseStateData)
-      (actualFunction(Kilowatts(100.0)) ~= Kilovars(0.0)) shouldBe true
+      actualFunction(Kilowatts(100.0)) should approximate(Kilovars(0.0))
     }
 
     "correctly determine the reactive power function from model when requested" in {
@@ -592,7 +592,7 @@ class ParticipantAgentExternalSourceSpec
 
       val actualFunction =
         mockAgent.underlyingActor.getReactivePowerFunction(0L, baseStateData)
-      (actualFunction(Kilowatts(100.0)) ~= Kilovars(48.43221)) shouldBe true
+      actualFunction(Kilowatts(100.0)) should approximate(Kilovars(48.43221))
     }
 
     "provide correct average power after three data ticks are available" in {
@@ -667,8 +667,8 @@ class ParticipantAgentExternalSourceSpec
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          (p ~= Megawatts(0.095)) shouldBe true
-          (q ~= Megavars(0.0312)) shouldBe true
+          p should approximate(Megawatts(0.095))
+          q should approximate(Megavars(0.0312))
       }
     }
 
@@ -684,8 +684,8 @@ class ParticipantAgentExternalSourceSpec
       /* Expect, that nothing has changed */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          (p ~= Megawatts(0.095)) shouldBe true
-          (q ~= Megavars(0.0312)) shouldBe true
+          p should approximate(Megawatts(0.095))
+          q should approximate(Megavars(0.0312))
       }
     }
 
@@ -701,8 +701,8 @@ class ParticipantAgentExternalSourceSpec
       /* Expect, that nothing has changed, as this model is meant to forward information from outside */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          (p ~= Megawatts(0.095)) shouldBe true
-          (q ~= Megavars(0.0312)) shouldBe true
+          p should approximate(Megawatts(0.095))
+          q should approximate(Megavars(0.0312))
       }
     }
 
@@ -764,8 +764,8 @@ class ParticipantAgentExternalSourceSpec
 
           participantAgent.prepareData(data, reactivePowerFunction) match {
             case Success(ApparentPower(p, q)) =>
-              (p ~= Megawatts(0.0)) shouldBe true
-              (q ~= Megavars(0.0)) shouldBe true
+              p should approximate(Megawatts(0.0))
+              q should approximate(Megavars(0.0))
             case Success(value) =>
               fail(s"Succeeded, but with wrong data: '$value'.")
             case Failure(exception) =>
@@ -788,8 +788,8 @@ class ParticipantAgentExternalSourceSpec
             (p: squants.Power) => Kilovars(p.toKilowatts * tan(acos(0.9)))
           ) match {
             case Success(ApparentPower(p, q)) =>
-              (p ~= Kilowatts(100.0)) shouldBe true
-              (q ~= Kilovars(48.43221)) shouldBe true
+              p should approximate(Kilowatts(100.0))
+              q should approximate(Kilovars(48.43221))
             case Success(value) =>
               fail(s"Succeeded, but with wrong data: '$value'.")
             case Failure(exception) =>
