@@ -123,7 +123,7 @@ trait HpModelTestData {
     "thermal storage",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
-    null,
+    thermalBus,
     KilowattHours(20d),
     KilowattHours(500d),
     Kilowatts(10d),

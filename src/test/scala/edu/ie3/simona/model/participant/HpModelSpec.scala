@@ -224,6 +224,8 @@ class HpModelSpec
                   )
                 )
                 maybeThreshold shouldBe expectedNextThreshold
+              case unexpected =>
+                fail(s"Expected a hp state but got none $unexpected.")
             }
         }
       }
