@@ -352,81 +352,78 @@ object WeatherSource {
         s"Multiple weather sources defined: '${definedWeatherSources.map(_.getClass.getSimpleName).mkString("\n\t")}'." +
           s"Please define only one source!\nAvailable sources:\n\t${supportedWeatherSources.mkString("\n\t")}"
       )
-    val weatherSourceFunction: ZonedDateTime => WeatherSource =
-      definedWeatherSources.headOption match {
-        case Some(
-              Some(baseCsvParams @ BaseCsvParams(csvSep, directoryPath, _))
-            ) =>
-          checkBaseCsvParams(baseCsvParams, "WeatherSource")
-          (simulationStart: ZonedDateTime) =>
-            WeatherSourceWrapper(
-              csvSep,
-              Paths.get(directoryPath),
-              coordinateSourceFunction,
-              timestampPattern,
-              scheme,
-              resolution,
-              distance
-            )(simulationStart)
-        case Some(Some(params: CouchbaseParams)) =>
-          checkCouchbaseParams(params)
-          (simulationStart: ZonedDateTime) =>
-            WeatherSourceWrapper(
-              params,
-              coordinateSourceFunction,
-              timestampPattern,
-              scheme,
-              resolution,
-              distance
-            )(simulationStart)
-        case Some(Some(params @ InfluxDb1xParams(database, _, url))) =>
-          checkInfluxDb1xParams("WeatherSource", url, database)
-          (simulationStart: ZonedDateTime) =>
-            WeatherSourceWrapper(
-              params,
-              coordinateSourceFunction,
-              timestampPattern,
-              scheme,
-              resolution,
-              distance
-            )(simulationStart)
-        case Some(Some(params: SqlParams)) =>
-          checkSqlParams(params)
-          (simulationStart: ZonedDateTime) =>
-            WeatherSourceWrapper(
-              params,
-              coordinateSourceFunction,
-              timestampPattern,
-              scheme,
-              resolution,
-              distance
-            )(simulationStart)
-        case Some(Some(_: SampleParams)) =>
-          // sample weather, no check required
-          // coordinate source must be sample coordinate source
-          // calling the function here is not an issue as the sample coordinate source is already
-          // an object (= no overhead costs)
-          coordinateSourceFunction() match {
-            case _: SampleWeatherSource.SampleIdCoordinateSource.type =>
-              // all fine
-              (simulationStart: ZonedDateTime) =>
-                new SampleWeatherSource()(simulationStart)
-            case coordinateSource =>
-              // cannot use sample weather source with other combination of weather source than sample weather source
-              throw new InvalidConfigParameterException(
-                s"Invalid coordinate source " +
-                  s"'${coordinateSource.getClass.getSimpleName}' defined for SampleWeatherSource. " +
-                  "Please adapt the configuration to use sample coordinate source for weather data!"
-              )
-          }
-        case None | Some(_) =>
-          throw new InvalidConfigParameterException(
-            s"No weather source defined! This is currently not supported! Please provide the config parameters for one " +
-              s"of the following weather sources:\n\t${supportedWeatherSources.mkString("\n\t")}"
-          )
-      }
-
-    weatherSourceFunction
+    definedWeatherSources.headOption match {
+      case Some(
+            Some(baseCsvParams @ BaseCsvParams(csvSep, directoryPath, _))
+          ) =>
+        checkBaseCsvParams(baseCsvParams, "WeatherSource")
+        (simulationStart: ZonedDateTime) =>
+          WeatherSourceWrapper(
+            csvSep,
+            Paths.get(directoryPath),
+            coordinateSourceFunction,
+            timestampPattern,
+            scheme,
+            resolution,
+            distance
+          )(simulationStart)
+      case Some(Some(params: CouchbaseParams)) =>
+        checkCouchbaseParams(params)
+        (simulationStart: ZonedDateTime) =>
+          WeatherSourceWrapper(
+            params,
+            coordinateSourceFunction,
+            timestampPattern,
+            scheme,
+            resolution,
+            distance
+          )(simulationStart)
+      case Some(Some(params @ InfluxDb1xParams(database, _, url))) =>
+        checkInfluxDb1xParams("WeatherSource", url, database)
+        (simulationStart: ZonedDateTime) =>
+          WeatherSourceWrapper(
+            params,
+            coordinateSourceFunction,
+            timestampPattern,
+            scheme,
+            resolution,
+            distance
+          )(simulationStart)
+      case Some(Some(params: SqlParams)) =>
+        checkSqlParams(params)
+        (simulationStart: ZonedDateTime) =>
+          WeatherSourceWrapper(
+            params,
+            coordinateSourceFunction,
+            timestampPattern,
+            scheme,
+            resolution,
+            distance
+          )(simulationStart)
+      case Some(Some(_: SampleParams)) =>
+        // sample weather, no check required
+        // coordinate source must be sample coordinate source
+        // calling the function here is not an issue as the sample coordinate source is already
+        // an object (= no overhead costs)
+        coordinateSourceFunction() match {
+          case _: SampleWeatherSource.SampleIdCoordinateSource.type =>
+            // all fine
+            (simulationStart: ZonedDateTime) =>
+              new SampleWeatherSource()(simulationStart)
+          case coordinateSource =>
+            // cannot use sample weather source with other combination of weather source than sample weather source
+            throw new InvalidConfigParameterException(
+              s"Invalid coordinate source " +
+                s"'${coordinateSource.getClass.getSimpleName}' defined for SampleWeatherSource. " +
+                "Please adapt the configuration to use sample coordinate source for weather data!"
+            )
+        }
+      case None | Some(_) =>
+        throw new InvalidConfigParameterException(
+          s"No weather source defined! This is currently not supported! Please provide the config parameters for one " +
+            s"of the following weather sources:\n\t${supportedWeatherSources.mkString("\n\t")}"
+        )
+    }
   }
 
   /** Check the provided coordinate id data source configuration to ensure its

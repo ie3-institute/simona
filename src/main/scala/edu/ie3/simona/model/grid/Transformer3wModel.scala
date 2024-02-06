@@ -246,15 +246,15 @@ case object Transformer3wModel extends LazyLogging {
         BigDecimal.apply("1").setScale(5, RoundingMode.HALF_UP)
       case PowerFlowCaseB =>
         BigDecimal
-          .apply(trafo3wType.getvRatedA.to(KILOVOLT).getValue.doubleValue)
+          .apply(trafo3wType.getvRatedA.to(KILOVOLT).getValue.toString)
           .setScale(5, RoundingMode.HALF_UP) / BigDecimal
-          .apply(trafo3wType.getvRatedB.to(KILOVOLT).getValue.doubleValue)
+          .apply(trafo3wType.getvRatedB.to(KILOVOLT).getValue.toString)
           .setScale(5, RoundingMode.HALF_UP)
       case PowerFlowCaseC =>
         BigDecimal
-          .apply(trafo3wType.getvRatedA.to(KILOVOLT).getValue.doubleValue)
+          .apply(trafo3wType.getvRatedA.to(KILOVOLT).getValue.toString)
           .setScale(5, RoundingMode.HALF_UP) / BigDecimal
-          .apply(trafo3wType.getvRatedC.to(KILOVOLT).getValue.doubleValue)
+          .apply(trafo3wType.getvRatedC.to(KILOVOLT).getValue.toString)
           .setScale(5, RoundingMode.HALF_UP)
     }
 
@@ -503,7 +503,7 @@ case object Transformer3wModel extends LazyLogging {
     transformerModel.powerFlowCase match {
       case Transformer3wPowerFlowCase.PowerFlowCaseA =>
         BigDecimal
-          .apply(transformerModel.tapRatio)
+          .apply(transformerModel.tapRatio.toString)
           .setScale(5, RoundingMode.HALF_UP)
       case Transformer3wPowerFlowCase.PowerFlowCaseB |
           Transformer3wPowerFlowCase.PowerFlowCaseC =>

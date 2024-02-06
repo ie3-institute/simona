@@ -17,11 +17,9 @@ import scala.util.Try
 object ReflectionTools {
 
   def identifyValidCompanions(classNames: Iterable[String]): Iterable[Any] = {
-    val validCompanionObjects =
-      classNames.flatMap(name => resolveClassNameToCompanion(name)).collect {
-        case companion: Any => companion
-      }
-    validCompanionObjects
+    classNames.flatMap(name => resolveClassNameToCompanion(name)).collect {
+      case companion: Any => companion
+    }
   }
 
   def resolveClassNameToCompanion(className: String): Option[Any] = {
@@ -33,10 +31,9 @@ object ReflectionTools {
         )
       )
     val mirror = universe.runtimeMirror(getClass.getClassLoader)
-    val companionObj = Try(
+    Try(
       mirror.reflectModule(mirror.moduleSymbol(clazz)).instance
     ).toOption
-    companionObj
   }
 
   /** Determine the field and their value of the provided object instance

@@ -131,9 +131,9 @@ case object TransformerModel {
     // get referenced electric values
     val trafoType = transformerInput.getType
     val voltRatioNominal = BigDecimal
-      .apply(trafoType.getvRatedA().to(KILOVOLT).getValue.doubleValue)
+      .apply(trafoType.getvRatedA().to(KILOVOLT).getValue.toString)
       .setScale(5, RoundingMode.HALF_UP) / BigDecimal
-      .apply(trafoType.getvRatedB().to(KILOVOLT).getValue.doubleValue)
+      .apply(trafoType.getvRatedB().to(KILOVOLT).getValue.toString)
       .setScale(5, RoundingMode.HALF_UP)
     val squaredNominalVoltRatio = voltRatioNominal * voltRatioNominal
 
