@@ -503,7 +503,7 @@ class HpAgentModelCalculationSpec
 
                   currentTimeTick shouldBe 0L
                   ambientTemperature should approximate(Celsius(1.815d))
-                case None =>
+                case _ =>
                   fail("Did expect to get hp relevant data for tick 0L")
               }
           }
@@ -634,7 +634,7 @@ class HpAgentModelCalculationSpec
 
                   currentTimeTick shouldBe 0L
                   ambientTemperature should approximate(Celsius(1.815d))
-                case None =>
+                case _ =>
                   fail("Did expect to get hp relevant data for tick 0L")
               }
           }
