@@ -29,7 +29,9 @@ import tech.units.indriya.quantity.Quantities
 import java.util.UUID
 
 class ProfileLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
-  implicit val tolerance: Power = Watts(1d)
+
+  private implicit val tolerance: Power = Watts(1d)
+
   "Having a profile load model" when {
     val loadInput =
       new LoadInput(
@@ -117,7 +119,7 @@ class ProfileLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
             reference
           )
 
-          (actual.sRated =~ expectedSRated) shouldBe true
+          actual.sRated should approximate(expectedSRated)
         }
       }
     }
