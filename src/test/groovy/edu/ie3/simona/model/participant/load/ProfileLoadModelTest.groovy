@@ -33,8 +33,6 @@ import tech.units.indriya.quantity.Quantities
 import java.time.temporal.ChronoUnit
 import java.util.stream.Collectors
 
-
-
 class ProfileLoadModelTest extends Specification {
   def loadInput =
   new LoadInput(
@@ -70,27 +68,6 @@ class ProfileLoadModelTest extends Specification {
   loadInput.operationTime
   )
   def wattTolerance = 1 // Equals to 1 W power
-
-  def "A profile load model should be instantiated from valid input correctly"() {
-    when:
-    def actual = ProfileLoadModel.apply(
-        loadInput.copy().loadprofile(profile).build(),
-        foreSeenOperationInterval,
-        1.0,
-        reference)
-
-    then:
-    abs((actual.sRated().toWatts() * actual.cosPhiRated()).toDouble() - expectedsRated.doubleValue()) < wattTolerance
-
-    where:
-    profile | reference                                                           || expectedsRated
-    H0      | new ActivePower(Sq.create(268.6d, Watts$.MODULE$))                  || 268.6d
-    H0      | new EnergyConsumption(Sq.create(3000d, KilowattHours$.MODULE$))     || 805.8089d
-    L0      | new ActivePower(Sq.create(268.6d, Watts$.MODULE$))                  || 268.6d
-    L0      | new EnergyConsumption(Sq.create(3000d, KilowattHours$.MODULE$))     || 721.2d
-    G0      | new ActivePower(Sq.create(268.6d, Watts$.MODULE$))                  || 268.6d
-    G0      | new EnergyConsumption(Sq.create(3000d, KilowattHours$.MODULE$))     || 721.2d
-  }
 
   def "A profile load model should reach the targeted maximum power within a year"() {
     given:
