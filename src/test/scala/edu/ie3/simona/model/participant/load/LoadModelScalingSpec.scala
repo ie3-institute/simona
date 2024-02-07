@@ -77,11 +77,6 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
       val targetEnergyConsumption = KilowattHours(3000d)
 
       "reach the targeted annual energy consumption" in {
-        /* Test against a permissible deviation of 2 %. As per official documentation of the bdew load profiles
-         * [https://www.bdew.de/media/documents/2000131_Anwendung-repraesentativen_Lastprofile-Step-by-step.pdf] 1.5 %
-         * are officially permissible. But, as we currently do not take (bank) holidays into account, we cannot reach
-         * this accuracy. */
-
         forAll(
           Table(
             "profile",
@@ -90,7 +85,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             BdewStandardLoadProfile.G0
           )
         ) { profile =>
-          val dut = ProfileLoadModel(
+          val model = ProfileLoadModel(
             profileLoadInput.getUuid,
             profileLoadInput.getId,
             foreSeenOperationInterval,
@@ -107,10 +102,15 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             profile,
             EnergyConsumption(targetEnergyConsumption)
           )
-          dut.enable()
+          model.enable()
+
+          /* Test against a permissible deviation of 2 %. As per official documentation of the bdew load profiles
+           * [https://www.bdew.de/media/documents/2000131_Anwendung-repraesentativen_Lastprofile-Step-by-step.pdf] 1.5 %
+           * are officially permissible. But, as we currently do not take (bank) holidays into account, we cannot reach
+           * this accuracy. */
 
           calculateEnergyDiffForYear(
-            dut,
+            model,
             simulationStartDate,
             targetEnergyConsumption
           ) should be < Percent(2d)
@@ -121,7 +121,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         val scalingFactor = 1.5
         val expectedEnergy = KilowattHours(4500d)
 
-        val dut = ProfileLoadModel(
+        val model = ProfileLoadModel(
           profileLoadInput.getUuid,
           profileLoadInput.getId,
           foreSeenOperationInterval,
@@ -138,10 +138,10 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           BdewStandardLoadProfile.H0,
           EnergyConsumption(targetEnergyConsumption)
         )
-        dut.enable()
+        model.enable()
 
         calculateEnergyDiffForYear(
-          dut,
+          model,
           simulationStartDate,
           expectedEnergy
         ) should be < Percent(2d)
@@ -150,8 +150,6 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
       val targetMaximumPower = Watts(268.6)
 
       "approximately reach the maximum power" in {
-        implicit val tolerance: Power = Watts(1d)
-
         forAll(
           Table(
             "profile",
@@ -160,7 +158,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             BdewStandardLoadProfile.G0
           )
         ) { profile =>
-          val dut = ProfileLoadModel(
+          val model = ProfileLoadModel(
             profileLoadInput.getUuid,
             profileLoadInput.getId,
             foreSeenOperationInterval,
@@ -177,22 +175,23 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             profile,
             ActivePower(targetMaximumPower)
           )
-          dut.enable()
+          model.enable()
 
           val maximumPower = calculatePowerForYear(
-            dut,
+            model,
             simulationStartDate
           ).maxOption.value
 
+          implicit val tolerance: Power = Watts(1d)
           maximumPower should approximate(targetMaximumPower)
         }
       }
 
       "correctly account for the scaling factor when targeting at maximum power" in {
         val scalingFactor = 1.5
-        val expectedMaximum = Watts(402.0044899478780)
+        val expectedMaximum = Watts(402.9)
 
-        val dut = ProfileLoadModel(
+        val model = ProfileLoadModel(
           profileLoadInput.getUuid,
           profileLoadInput.getId,
           foreSeenOperationInterval,
@@ -209,14 +208,15 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           BdewStandardLoadProfile.H0,
           ActivePower(targetMaximumPower)
         )
-        dut.enable()
+        model.enable()
 
         val maximumPower = calculatePowerForYear(
-          dut,
+          model,
           simulationStartDate
         ).maxOption.value
 
-        maximumPower should be < expectedMaximum
+        implicit val tolerance: Power = Watts(1.5d)
+        maximumPower should approximate(expectedMaximum)
       }
     }
 
@@ -252,10 +252,10 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           randomLoadInput.getOperationTime
         )
 
-      val targetEnergyConsumption =
-        KilowattHours(3000d)
+      val targetEnergyConsumption = KilowattHours(3000d)
+
       "reach the targeted annual energy consumption" in {
-        val dut = RandomLoadModel(
+        val model = RandomLoadModel(
           randomLoadInput.getUuid,
           randomLoadInput.getId,
           foreSeenOperationInterval,
@@ -271,10 +271,10 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           randomLoadInput.getCosPhiRated,
           EnergyConsumption(targetEnergyConsumption)
         )
-        dut.enable()
+        model.enable()
 
         calculateEnergyDiffForYear(
-          dut,
+          model,
           simulationStartDate,
           targetEnergyConsumption
         ) should be < Percent(1d)
@@ -282,10 +282,9 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
 
       "correctly account for the scaling factor, when targeting a given annual energy consumption" in {
         val scalingFactor = 1.5
-        val expectedEnergy =
-          KilowattHours(4500d)
+        val expectedEnergy = KilowattHours(4500d)
 
-        val dut = RandomLoadModel(
+        val model = RandomLoadModel(
           randomLoadInput.getUuid,
           randomLoadInput.getId,
           foreSeenOperationInterval,
@@ -301,10 +300,10 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           randomLoadInput.getCosPhiRated,
           EnergyConsumption(targetEnergyConsumption)
         )
-        dut.enable()
+        model.enable()
 
         calculateEnergyDiffForYear(
-          dut,
+          model,
           simulationStartDate,
           expectedEnergy
         ) should be < Percent(2d)
@@ -312,7 +311,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
 
       val targetMaximumPower = Watts(268.6)
       "approximately reach the maximum power" in {
-        val dut = RandomLoadModel(
+        val model = RandomLoadModel(
           randomLoadInput.getUuid,
           randomLoadInput.getId,
           foreSeenOperationInterval,
@@ -328,10 +327,10 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           randomLoadInput.getCosPhiRated,
           ActivePower(targetMaximumPower)
         )
-        dut.enable()
+        model.enable()
 
         val powers = calculatePowerForYear(
-          dut,
+          model,
           simulationStartDate
         ).toIndexedSeq.sorted.toArray
 
@@ -347,7 +346,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         val scalingFactor = 1.5
         val expectedMaximum = targetMaximumPower * scalingFactor
 
-        val dut = RandomLoadModel(
+        val model = RandomLoadModel(
           randomLoadInput.getUuid,
           randomLoadInput.getId,
           foreSeenOperationInterval,
@@ -363,9 +362,10 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           randomLoadInput.getCosPhiRated,
           ActivePower(targetMaximumPower)
         )
-        dut.enable()
+        model.enable()
+
         val powers = calculatePowerForYear(
-          dut,
+          model,
           simulationStartDate
         ).toIndexedSeq.sorted.toArray
 
@@ -379,14 +379,14 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
   }
 
   def calculateEnergyDiffForYear[C <: LoadRelevantData](
-      dut: LoadModel[C],
+      model: LoadModel[C],
       simulationStartDate: ZonedDateTime,
       expectedEnergy: Energy
   ): Dimensionless = {
     val duration = Minutes(15d)
 
     val avgEnergy = calculatePowerForYear(
-      dut: LoadModel[C],
+      model: LoadModel[C],
       simulationStartDate: ZonedDateTime
     ).foldLeft(KilowattHours(0)) { case (energySum, power) =>
       energySum + (power * duration)
@@ -399,7 +399,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
   }
 
   def calculatePowerForYear[C <: LoadRelevantData](
-      dut: LoadModel[C],
+      model: LoadModel[C],
       simulationStartDate: ZonedDateTime
   ): Iterable[Power] = {
     val quarterHoursInYear = 365L * 96L
@@ -407,11 +407,11 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
     (0L until quarterHoursInYear)
       .map { quarterHour =>
         val tick = quarterHour * 15 * 60
-        val relevantData = createRelevantData(dut)(
+        val relevantData = createRelevantData(model)(
           simulationStartDate.plus(quarterHour * 15, ChronoUnit.MINUTES)
         )
 
-        dut
+        model
           .calculatePower(
             tick,
             Each(0d),
@@ -422,9 +422,9 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
   }
 
   def createRelevantData[C <: LoadRelevantData](
-      dut: LoadModel[C]
+      model: LoadModel[C]
   ): ZonedDateTime => C =
-    dut match {
+    model match {
       case _: RandomLoadModel  => RandomLoadModel.RandomRelevantData
       case _: ProfileLoadModel => ProfileLoadModel.ProfileRelevantData
     }
