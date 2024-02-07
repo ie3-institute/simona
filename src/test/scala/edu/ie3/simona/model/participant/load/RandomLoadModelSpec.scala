@@ -89,7 +89,7 @@ class RandomLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
             reference
           )
 
-          (actual.sRated =~ expectedSRated) shouldBe true
+          actual.sRated should approximate(expectedSRated)
         }
       }
     }
