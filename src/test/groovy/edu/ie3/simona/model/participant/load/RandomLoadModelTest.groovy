@@ -34,8 +34,7 @@ import java.time.temporal.ChronoUnit
 import java.util.stream.Collectors
 
 class RandomLoadModelTest extends Specification {
-  def loadInput =
-  new LoadInput(
+  def loadInput = new LoadInput(
   UUID.fromString("4eeaf76a-ec17-4fc3-872d-34b7d6004b03"),
   "testLoad",
   OperatorInput.NO_OPERATOR_ASSIGNED,
@@ -140,12 +139,14 @@ class RandomLoadModelTest extends Specification {
           startDate.plus(cnt * 15, ChronoUnit.MINUTES))
     }).collect(Collectors.toSet())
 
-    and:
+    when:
     def avgEnergy = (0..10).parallelStream().mapToDouble( { runCnt ->
       relevantDatas.parallelStream().mapToDouble( { relevantData ->
         (dut.calculateActivePower(relevantData).$times(Sq.create(15d, Minutes$.MODULE$))).toKilowattHours()
       }).sum()
     }).average().orElse(0d)
-    avgEnergy
+
+    then:
+    abs(avgEnergy - 3000) / 3000 < 0.01
   }
 }
