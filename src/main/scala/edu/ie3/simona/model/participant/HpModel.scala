@@ -276,9 +276,9 @@ case object HpModel {
     * @param hpInput
     *   instance of [[HpInput]] this chp model should be built from
     * @param simulationStartDate
-    *   wall-clock time, the simulation starts
+    *   Simulation time at which the simulation starts
     * @param simulationEndDate
-    *   wall-clock time, the simulation ends
+    *   Simulation time at which the simulation ends
     * @param qControl
     *   Strategy to control the reactive power output
     * @param scalingFactor
