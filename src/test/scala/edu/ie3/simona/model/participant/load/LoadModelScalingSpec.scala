@@ -20,16 +20,14 @@ import edu.ie3.simona.model.participant.load.LoadReference.{
   EnergyConsumption
 }
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
-import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel
-import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomRelevantData
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.energy.{KilowattHours, Kilowatts, Watts}
 import squants.time.Minutes
-import squants.{Dimensionless, Each, Energy, Percent, Power}
+import squants.{Dimensionless, Each, Energy, Percent, Power, Quantity}
 import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
@@ -103,7 +101,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
                 .getsRated()
                 .to(PowerSystemUnits.KILOWATT)
                 .getValue
-                .doubleValue()
+                .doubleValue
             ),
             profileLoadInput.getCosPhiRated,
             profile,
@@ -111,7 +109,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           )
           dut.enable()
 
-          calculateAverageEnergy[ProfileRelevantData](
+          calculateEnergyDiffForYear(
             dut,
             simulationStartDate,
             targetEnergyConsumption
@@ -121,8 +119,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
 
       "correctly account for the scaling factor, when targeting a given annual energy consumption" in {
         val scalingFactor = 1.5
-        val expectedEnergy =
-          KilowattHours(4500d)
+        val expectedEnergy = KilowattHours(4500d)
 
         val dut = ProfileLoadModel(
           profileLoadInput.getUuid,
@@ -135,7 +132,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
               .getsRated()
               .to(PowerSystemUnits.KILOWATT)
               .getValue
-              .doubleValue()
+              .doubleValue
           ),
           profileLoadInput.getCosPhiRated,
           BdewStandardLoadProfile.H0,
@@ -143,7 +140,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         )
         dut.enable()
 
-        calculateAverageEnergy[ProfileRelevantData](
+        calculateEnergyDiffForYear(
           dut,
           simulationStartDate,
           expectedEnergy
@@ -151,6 +148,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
       }
 
       val targetMaximumPower = Watts(268.6)
+
       "approximately reach the maximum power" in {
         implicit val tolerance: Power = Watts(1d)
 
@@ -173,7 +171,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
                 .getsRated()
                 .to(PowerSystemUnits.KILOWATT)
                 .getValue
-                .doubleValue()
+                .doubleValue
             ),
             profileLoadInput.getCosPhiRated,
             profile,
@@ -181,21 +179,18 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           )
           dut.enable()
 
-          calculatePowerFromRelevantData[ProfileRelevantData](
-            simulationStartDate,
-            dut
-          ).maxOption match {
-            case Some(maximumPower) =>
-              maximumPower should approximate(targetMaximumPower)
-            case None => fail("Unable to determine maximum power.")
-          }
+          val maximumPower = calculatePowerForYear(
+            dut,
+            simulationStartDate
+          ).maxOption.value
+
+          maximumPower should approximate(targetMaximumPower)
         }
       }
 
       "correctly account for the scaling factor when targeting at maximum power" in {
         val scalingFactor = 1.5
-        val expectedMaximum =
-          Watts(402.0044899478780)
+        val expectedMaximum = Watts(402.0044899478780)
 
         val dut = ProfileLoadModel(
           profileLoadInput.getUuid,
@@ -208,7 +203,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
               .getsRated()
               .to(PowerSystemUnits.KILOWATT)
               .getValue
-              .doubleValue()
+              .doubleValue
           ),
           profileLoadInput.getCosPhiRated,
           BdewStandardLoadProfile.H0,
@@ -216,15 +211,12 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         )
         dut.enable()
 
-        calculatePowerFromRelevantData[ProfileRelevantData](
-          simulationStartDate,
-          dut
-        ).maxOption match {
-          case Some(maximumPower) =>
-            maximumPower should be < expectedMaximum
+        val maximumPower = calculatePowerForYear(
+          dut,
+          simulationStartDate
+        ).maxOption.value
 
-          case None => fail("Unable to determine maximum power.")
-        }
+        maximumPower should be < expectedMaximum
       }
     }
 
@@ -274,14 +266,14 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
               .getsRated()
               .to(PowerSystemUnits.KILOWATT)
               .getValue
-              .doubleValue()
+              .doubleValue
           ),
           randomLoadInput.getCosPhiRated,
           EnergyConsumption(targetEnergyConsumption)
         )
         dut.enable()
 
-        calculateAverageEnergy[RandomRelevantData](
+        calculateEnergyDiffForYear(
           dut,
           simulationStartDate,
           targetEnergyConsumption
@@ -304,14 +296,14 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
               .getsRated()
               .to(PowerSystemUnits.KILOWATT)
               .getValue
-              .doubleValue()
+              .doubleValue
           ),
           randomLoadInput.getCosPhiRated,
           EnergyConsumption(targetEnergyConsumption)
         )
         dut.enable()
 
-        calculateAverageEnergy[RandomRelevantData](
+        calculateEnergyDiffForYear(
           dut,
           simulationStartDate,
           expectedEnergy
@@ -331,22 +323,21 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
               .getsRated()
               .to(PowerSystemUnits.KILOWATT)
               .getValue
-              .doubleValue()
+              .doubleValue
           ),
           randomLoadInput.getCosPhiRated,
           ActivePower(targetMaximumPower)
         )
         dut.enable()
 
-        val powers =
-          calculatePowerFromRelevantData[RandomRelevantData](
-            simulationStartDate,
-            dut
-          ).sorted.toArray
+        val powers = calculatePowerForYear(
+          dut,
+          simulationStartDate
+        ).toIndexedSeq.sorted.toArray
 
         val quantile95 = RandomLoadModelSpec.get95Quantile(powers)
 
-        getRelativeResult(
+        getRelativeDifference(
           quantile95,
           targetMaximumPower
         ) should be < Percent(1d)
@@ -355,7 +346,6 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
       "correctly account for the scaling factor when targeting at maximum power" in {
         val scalingFactor = 1.5
         val expectedMaximum = targetMaximumPower * scalingFactor
-        implicit val tolerance: Power = Watts(10d)
 
         val dut = RandomLoadModel(
           randomLoadInput.getUuid,
@@ -368,109 +358,81 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
               .getsRated()
               .to(PowerSystemUnits.KILOWATT)
               .getValue
-              .doubleValue()
+              .doubleValue
           ),
           randomLoadInput.getCosPhiRated,
           ActivePower(targetMaximumPower)
         )
         dut.enable()
-        val powers =
-          calculatePowerFromRelevantData[RandomRelevantData](
-            simulationStartDate,
-            dut
-          ).sorted.toArray
+        val powers = calculatePowerForYear(
+          dut,
+          simulationStartDate
+        ).toIndexedSeq.sorted.toArray
+
         /* Tolerance is equivalent to 10 W difference between the 95%-percentile of the obtained random results and the
          * target maximum power. Because of the stochastic nature, the maximum power cannot be met perfectly */
-        RandomLoadModelSpec.get95Quantile(powers) should approximate(
-          expectedMaximum
-        )
+        implicit val tolerance: Power = Watts(10d)
+        RandomLoadModelSpec.get95Quantile(powers) should
+          approximate(expectedMaximum)
       }
     }
   }
 
-  def getRelativeResult[Q <: squants.Quantity[Q]](
-      avgResult: Q,
-      expectedResult: Q
-  ): Dimensionless =
-    Each(1) - Each(avgResult.divide(expectedResult)).abs
-
-  def calculateAverageEnergy[C <: LoadRelevantData](
+  def calculateEnergyDiffForYear[C <: LoadRelevantData](
       dut: LoadModel[C],
       simulationStartDate: ZonedDateTime,
       expectedEnergy: Energy
   ): Dimensionless = {
+    val duration = Minutes(15d)
 
-    val relevantData = getRelevantData(dut, simulationStartDate)
+    val avgEnergy = calculatePowerForYear(
+      dut: LoadModel[C],
+      simulationStartDate: ZonedDateTime
+    ).foldLeft(KilowattHours(0)) { case (energySum, power) =>
+      energySum + (power * duration)
+    }
 
-    val totalRuns = 10
-    val avgEnergy = (0 until totalRuns)
-      .map { _ =>
-        relevantData
-          .map { case (tick, relevantData) =>
-            dut
-              .calculatePower(
-                tick,
-                Each(0d),
-                relevantData
-              )
-              .p * Minutes(15d)
-          }
-          .fold(KilowattHours(0))(
-            _ + _
-          )
-      }
-      .fold(KilowattHours(0d))(
-        _ + _
-      )
-      .divide(totalRuns)
-
-    getRelativeResult(
+    getRelativeDifference(
       avgEnergy,
       expectedEnergy
     )
-
   }
 
-  def calculatePowerFromRelevantData[C <: LoadRelevantData](
-      simulationStartDate: ZonedDateTime,
-      dut: LoadModel[C]
-  ): IndexedSeq[Power] = {
+  def calculatePowerForYear[C <: LoadRelevantData](
+      dut: LoadModel[C],
+      simulationStartDate: ZonedDateTime
+  ): Iterable[Power] = {
+    val quarterHoursInYear = 365L * 96L
 
-    val relevantData = getRelevantData(dut, simulationStartDate)
+    (0L until quarterHoursInYear)
+      .map { quarterHour =>
+        val tick = quarterHour * 15 * 60
+        val relevantData = createRelevantData(dut)(
+          simulationStartDate.plus(quarterHour * 15, ChronoUnit.MINUTES)
+        )
 
-    val totalRuns = 10
-    (0 until totalRuns)
-      .flatMap { _ =>
-        relevantData
-          .map { case (tick, relevantData) =>
-            dut
-              .calculatePower(
-                tick,
-                Each(0d),
-                relevantData
-              )
-              .p
-          }
+        dut
+          .calculatePower(
+            tick,
+            Each(0d),
+            relevantData
+          )
+          .p
       }
   }
 
-  def getRelevantData[C <: LoadRelevantData](
-      dut: LoadModel[C],
-      simulationStartDate: ZonedDateTime
-  ): Map[Long, C] = {
-    val createRelevantData: ZonedDateTime => C = dut match {
+  def createRelevantData[C <: LoadRelevantData](
+      dut: LoadModel[C]
+  ): ZonedDateTime => C =
+    dut match {
       case _: RandomLoadModel  => RandomLoadModel.RandomRelevantData
       case _: ProfileLoadModel => ProfileLoadModel.ProfileRelevantData
     }
 
-    val quarterHoursInYear = 365L * 96L
-    (0L until quarterHoursInYear)
-      .map(tick =>
-        tick -> createRelevantData(
-          simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
-        )
-      )
-      .toMap[Long, C]
-  }
+  def getRelativeDifference[Q <: Quantity[Q]](
+      actualResult: Q,
+      expectedResult: Q
+  ): Dimensionless =
+    Each((expectedResult - actualResult) / expectedResult)
 
 }
