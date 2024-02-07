@@ -394,30 +394,6 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
   ): Dimensionless =
     Each(1) - Each(avgResult.divide(expectedResult)).abs
 
-  def getRelevantData[
-      C <: LoadRelevantData
-  ](dut: LoadModel[C], simulationStartDate: ZonedDateTime): Map[Long, C] = {
-    dut match {
-      case _: RandomLoadModel =>
-        (0L until 35040)
-          .map(tick =>
-            tick -> RandomLoadModel.RandomRelevantData(
-              simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
-            )
-          )
-          .toMap[Long, C]
-      case _: ProfileLoadModel =>
-        (0L until 35040)
-          .map(tick =>
-            tick -> ProfileLoadModel
-              .ProfileRelevantData(
-                simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
-              )
-          )
-          .toMap[Long, C]
-    }
-  }
-
   def calculateAverageEnergy[C <: LoadRelevantData](
       dut: LoadModel[C],
       simulationStartDate: ZonedDateTime,
@@ -477,4 +453,24 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           }
       }
   }
+
+  def getRelevantData[C <: LoadRelevantData](
+      dut: LoadModel[C],
+      simulationStartDate: ZonedDateTime
+  ): Map[Long, C] = {
+    val createRelevantData: ZonedDateTime => C = dut match {
+      case _: RandomLoadModel  => RandomLoadModel.RandomRelevantData
+      case _: ProfileLoadModel => ProfileLoadModel.ProfileRelevantData
+    }
+
+    val quarterHoursInYear = 365L * 96L
+    (0L until quarterHoursInYear)
+      .map(tick =>
+        tick -> createRelevantData(
+          simulationStartDate.plus(tick * 15, ChronoUnit.MINUTES)
+        )
+      )
+      .toMap[Long, C]
+  }
+
 }
