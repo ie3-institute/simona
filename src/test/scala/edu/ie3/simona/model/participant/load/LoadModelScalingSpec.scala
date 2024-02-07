@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.participant.load
 
-import breeze.numerics.abs
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
@@ -38,7 +37,6 @@ import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
-  implicit val tolerance: Dimensionless = Each(1e-10)
 
   "Testing correct scaling of load models" when {
     val simulationStartDate =
@@ -78,8 +76,8 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           profileLoadInput.getOperationTime
         )
 
-      val targetEnergyConsumption =
-        KilowattHours(3000d)
+      val targetEnergyConsumption = KilowattHours(3000d)
+
       "reach the targeted annual energy consumption" in {
         /* Test against a permissible deviation of 2 %. As per official documentation of the bdew load profiles
          * [https://www.bdew.de/media/documents/2000131_Anwendung-repraesentativen_Lastprofile-Step-by-step.pdf] 1.5 %
@@ -117,7 +115,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             dut,
             simulationStartDate,
             targetEnergyConsumption
-          ) =~ Percent(2d)
+          ) should be < Percent(2d)
         }
       }
 
@@ -149,12 +147,13 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           dut,
           simulationStartDate,
           expectedEnergy
-        ) =~ Percent(2d)
+        ) should be < Percent(2d)
       }
 
       val targetMaximumPower = Watts(268.6)
       "approximately reach the maximum power" in {
         implicit val tolerance: Power = Watts(1d)
+
         forAll(
           Table(
             "profile",
@@ -187,7 +186,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             dut
           ).maxOption match {
             case Some(maximumPower) =>
-              maximumPower =~ targetMaximumPower
+              maximumPower should approximate(targetMaximumPower)
             case None => fail("Unable to determine maximum power.")
           }
         }
@@ -197,7 +196,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         val scalingFactor = 1.5
         val expectedMaximum =
           Watts(402.0044899478780)
-        implicit val tolerance: Power = Watts(1d)
+
         val dut = ProfileLoadModel(
           profileLoadInput.getUuid,
           profileLoadInput.getId,
@@ -222,7 +221,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           dut
         ).maxOption match {
           case Some(maximumPower) =>
-            maximumPower =~ expectedMaximum
+            maximumPower should be < expectedMaximum
 
           case None => fail("Unable to determine maximum power.")
         }
@@ -286,7 +285,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           dut,
           simulationStartDate,
           targetEnergyConsumption
-        ) =~ Percent(1d)
+        ) should be < Percent(1d)
       }
 
       "correctly account for the scaling factor, when targeting a given annual energy consumption" in {
@@ -316,7 +315,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           dut,
           simulationStartDate,
           expectedEnergy
-        ) =~ Percent(2d)
+        ) should be < Percent(2d)
       }
 
       val targetMaximumPower = Watts(268.6)
@@ -350,14 +349,14 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         getRelativeResult(
           quantile95,
           targetMaximumPower
-        ) =~ Percent(1d)
-
+        ) should be < Percent(1d)
       }
 
       "correctly account for the scaling factor when targeting at maximum power" in {
         val scalingFactor = 1.5
         val expectedMaximum = targetMaximumPower * scalingFactor
-        implicit val tolerance: Power = Watts(1d)
+        implicit val tolerance: Power = Watts(10d)
+
         val dut = RandomLoadModel(
           randomLoadInput.getUuid,
           randomLoadInput.getId,
@@ -382,7 +381,9 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           ).sorted.toArray
         /* Tolerance is equivalent to 10 W difference between the 95%-percentile of the obtained random results and the
          * target maximum power. Because of the stochastic nature, the maximum power cannot be met perfectly */
-        RandomLoadModelSpec.get95Quantile(powers) =~ expectedMaximum
+        RandomLoadModelSpec.get95Quantile(powers) should approximate(
+          expectedMaximum
+        )
       }
     }
   }
@@ -390,11 +391,8 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
   def getRelativeResult[Q <: squants.Quantity[Q]](
       avgResult: Q,
       expectedResult: Q
-  ): Dimensionless = {
-    val result = Percent(100) -
-      Percent(abs(avgResult.divide(expectedResult)))
-    Percent(abs(result.value.doubleValue()))
-  }
+  ): Dimensionless =
+    Each(1) - Each(avgResult.divide(expectedResult)).abs
 
   def getRelevantData[
       C <: LoadRelevantData
