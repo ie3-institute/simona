@@ -75,7 +75,7 @@ final class SampleWeatherSource(
       ) 2011
       else wallClockTime.get(YEAR)
     val index = (((year - 2011) * 288) + (month * 24) + hour) + 1
-    val weatherResult = WeatherData(
+    WeatherData(
       WattsPerSquareMeter(
         SampleWeatherSource
           .diffuseRadiation(index)
@@ -99,7 +99,6 @@ final class SampleWeatherSource(
           .doubleValue
       )
     )
-    weatherResult
   }
 
   /** Determine an Array with all ticks between the request frame's start and

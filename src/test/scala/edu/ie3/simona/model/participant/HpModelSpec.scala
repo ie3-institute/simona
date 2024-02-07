@@ -176,11 +176,14 @@ class HpModelSpec
                     ThermalGridState(Some(thermalHouseState), _)
                   ) =>
                 isRunning shouldBe expectedRunningState
-                (activePower =~ Kilowatts(expectedActivePower)) shouldBe true
-
-                (thermalHouseState.innerTemperature =~ Celsius(
-                  expectedInnerTemperature
-                )) shouldBe true
+                activePower should approximate(Kilowatts(expectedActivePower))
+                thermalHouseState.innerTemperature should approximate(
+                  Celsius(
+                    expectedInnerTemperature
+                  )
+                )
+              case unexpected =>
+                fail(s"Expected a hp state but got none $unexpected.")
             }
         }
       }

@@ -31,7 +31,7 @@ object GraphicDataCleaner {
 
     /* setup */
     val dataSource: CsvDataSource =
-      new CsvDataSourceAdapter(csvSep, baseFolder, fileNamingStrategy)
+      new CsvDataSource(csvSep, baseFolder, fileNamingStrategy)
 
     val csvTypeSource: TypeSource =
       new TypeSource(dataSource)
