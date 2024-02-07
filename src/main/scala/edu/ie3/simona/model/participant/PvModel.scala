@@ -542,27 +542,15 @@ final case class PvModel private (
   private def calcEpsilon(eDifH: Irradiation, eBeamH: Irradiation, thetaZ: Angle): Double = {
     val thetaZInRad = thetaZ.toRadians
 
-    ((eDifH + eBeamH / cos(thetaZInRad)) / eDifH +
-      (5.535d * 1.0e-6) * pow(
-        thetaZ.toDegrees,
-        3
-      )) / (1d + (5.535d * 1.0e-6) * pow(
-      thetaZ.toDegrees,
-      3
-    ))
+    ((eDifH + eBeamH / cos(thetaZInRad)) / eDifH +(5.535d * 1.0e-6) * pow(thetaZ.toDegrees, 3)) /
+    (1d + (5.535d * 1.0e-6) * pow(thetaZ.toDegrees,3))
   }
 
   private def calcEpsilonOld(eDifH: Irradiation, eBeamH: Irradiation, thetaZ: Angle): Double = {
     val thetaZInRad = thetaZ.toRadians
 
-    ((eDifH + eBeamH) / eDifH +
-      (5.535d * 1.0e-6) * pow(
-        thetaZ.toRadians,
-        3
-      )) / (1d + (5.535d * 1.0e-6) * pow(
-      thetaZ.toRadians,
-      3
-    ))
+    ((eDifH + eBeamH) / eDifH +(5.535d * 1.0e-6) * pow(thetaZ.toRadians, 3)) /
+    (1d + (5.535d * 1.0e-6) * pow(thetaZ.toRadians, 3))
   }
 
   private def firstFraction(eDifH: Irradiation, eBeamH: Irradiation, thetaZ: Angle): Double = {
@@ -593,12 +581,12 @@ final case class PvModel private (
 
     if (eDifH.value.doubleValue > 0) {
       // if we have diffuse radiation on horizontal surface we have to check if we have another epsilon due to clouds get the epsilon
-      var epsilon = ((eDifH + eBeamH) / eDifH +
+      var epsilon = ((eDifH + eBeamH / cos(thetaZInRad)) / eDifH +
         (5.535d * 1.0e-6) * pow(
-          thetaZ.toRadians,
+          thetaZ.toDegrees,
           3
         )) / (1d + (5.535d * 1.0e-6) * pow(
-        thetaZ.toRadians,
+        thetaZ.toDegrees,
         3
       ))
 
@@ -635,10 +623,7 @@ final case class PvModel private (
 
     // calculate the f_ij components based on the epsilon bin
     val f11 = -0.0161 * pow(x, 3) + 0.1840 * pow(x, 2) - 0.3806 * x + 0.2324
-    val f12 = 0.0134 * pow(x, 4) - 0.1938 * pow(x, 3) + 0.8410 * pow(
-      x,
-      2
-    ) - 1.4018 * x + 1.3579
+    val f12 = 0.0134 * pow(x, 4) - 0.1938 * pow(x, 3) + 0.8410 * pow(x, 2) - 1.4018 * x + 1.3579
     val f13 = 0.0032 * pow(x, 3) - 0.0280 * pow(x, 2) - 0.0056 * x - 0.0385
     val f21 = -0.0048 * pow(x, 3) + 0.0536 * pow(x, 2) - 0.1049 * x + 0.0034
     val f22 = 0.0012 * pow(x, 3) - 0.0067 * pow(x, 2) + 0.0091 * x - 0.0269

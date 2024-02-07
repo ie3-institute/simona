@@ -476,9 +476,9 @@ class PvModelTest extends Specification {
     // 0.244 MJ/m^2 = 67.777778 Wh/m^2
     //Beam Radiation on horizontal surface
     Irradiation eBeamH = Sq.create(67.777778d, WattHoursPerSquareMeter$.MODULE$)
-    // 0.769 MJ/m^2 = 213,61111 Wh/m^2
+    // 0.796 MJ/m^2 = 221,111288 Wh/m^2
     //Diffuse beam Radiation on horizontal surface
-    Irradiation eDifH = Sq.create(213.61111d, WattHoursPerSquareMeter$.MODULE$)
+    Irradiation eDifH = Sq.create(221.111288d, WattHoursPerSquareMeter$.MODULE$)
     //Incidence Angle
     Angle thetaG = Sq.create(Math.toRadians(thetaGIn), Radians$.MODULE$)
     //Zenith Angle
@@ -490,7 +490,7 @@ class PvModelTest extends Specification {
     "- should calculate the beam diffusion"
     // == 0,7792781569074354 MJ/m^2
 
-    def epsilon = pvModel.calcEpsilon(eDifH, eBeamH, thetaZ)
+    def epsilon = pvModel.calcEpsilon(eDifH, eBeamH, thetaZ) // epsilon(Duffie) = 1,28451252
     def epsilonOld = pvModel.calcEpsilonOld(eDifH, eBeamH, thetaZ)
     def firstFraction = pvModel.firstFraction(eDifH, eBeamH, thetaZ)
 
@@ -499,7 +499,7 @@ class PvModelTest extends Specification {
 
     where: "the following parameters are given"
     thetaGIn | thetaZIn | slope | airMass           | I0                  || eDifSSol
-    37.0     | 62.2     | 60    | 2.13873080095658d | 1399.0077631849722d || 216.46615469650982d
+    37.0     | 62.2     | 60    | 2.144d            | 1395.8445d          || 220.83351d
   }
 
   def "Calculate the ground reflection eRefS"() {
