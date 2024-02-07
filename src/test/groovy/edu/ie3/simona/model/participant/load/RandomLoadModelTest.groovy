@@ -7,7 +7,6 @@
 package edu.ie3.simona.model.participant.load
 
 import static edu.ie3.datamodel.models.profile.BdewStandardLoadProfile.H0
-import static edu.ie3.simona.model.participant.load.LoadReference.ActivePower
 import static edu.ie3.simona.model.participant.load.LoadReference.EnergyConsumption
 import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static org.apache.commons.math3.util.FastMath.abs
@@ -21,7 +20,6 @@ import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel
-import edu.ie3.simona.model.participant.load.random.RandomLoadParameters
 import edu.ie3.util.TimeUtil
 import squants.energy.*
 import spock.lang.Specification
@@ -66,60 +64,6 @@ class RandomLoadModelTest extends Specification {
   simulationEndDate,
   loadInput.operationTime
   )
-  def testingTolerance = 1e-6 // Equals to 1 W power
-
-  def "A random load model should be instantiated from valid input correctly"() {
-    when:
-    def actual = RandomLoadModel.apply(
-        loadInput,
-        foreSeenOperationInterval,
-        1.0,
-        reference
-        )
-
-    then:
-    abs(actual.sRated().toWatts().doubleValue() - (expSRated.value().doubleValue())) < testingTolerance
-
-    where:
-    reference                                                          || expSRated
-    new ActivePower(Sq.create(268.6d, Watts$.MODULE$))                 || Sq.create(311.0105263157895d, Watts$.MODULE$)
-    new EnergyConsumption(Sq.create(2000d, KilowattHours$.MODULE$))    || Sq.create(513.8717370343667d, Watts$.MODULE$)
-  }
-
-  def "A random load model is able to deliver the correct distribution on request"() {
-    given:
-    def dut = new RandomLoadModel(
-        loadInput.uuid,
-        loadInput.id,
-        foreSeenOperationInterval,
-        1.0,
-        QControl.apply(loadInput.qCharacteristics),
-        Sq.create(loadInput.sRated.to(KILOWATT).value.doubleValue(), Kilowatts$.MODULE$),
-        loadInput.cosPhiRated,
-        new ActivePower(Sq.create(268.6d, Watts$.MODULE$))
-        )
-    /* Working day, 61th quarter hour */
-    def queryDate = TimeUtil.withDefaults.toZonedDateTime('2019-07-19 15:21:00')
-    def expectedParams = new RandomLoadParameters(0.405802458524704, 0.0671483352780342, 0.0417016632854939)
-
-    when:
-    /* First query leeds to generation of distribution */
-    def firstHit = dut.getGevDistribution(queryDate)
-
-    then:
-    firstHit.with {
-      assert k == expectedParams.k()
-      assert mu == expectedParams.my()
-      assert sigma == expectedParams.sigma()
-    }
-
-    when:
-    /* Second query is only look up in storage */
-    def secondHit = dut.getGevDistribution(queryDate)
-
-    then:
-    secondHit == firstHit
-  }
 
   def "A random load model should approx. reach the targeted annual energy consumption"() {
     given:

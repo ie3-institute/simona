@@ -110,7 +110,7 @@ class RandomLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
               .doubleValue()
           ),
           loadInput.getCosPhiRated,
-          new ActivePower(Watts(268.6))
+          ActivePower(Watts(268.6))
         )
         /* Working day, 61th quarter hour */
         val queryDate =
