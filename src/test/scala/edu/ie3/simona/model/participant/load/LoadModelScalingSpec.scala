@@ -433,6 +433,6 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
       actualResult: Q,
       expectedResult: Q
   ): Dimensionless =
-    Each((expectedResult - actualResult) / expectedResult)
+    Each((expectedResult - actualResult).abs / expectedResult)
 
 }
