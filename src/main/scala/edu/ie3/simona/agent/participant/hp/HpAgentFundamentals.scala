@@ -320,7 +320,7 @@ trait HpAgentFundamentals
           simulationEndDate
         )
 
-        /* Determine a proper starting model state and safe it into the base state data */
+        /* Determine a proper starting model state and save it into the base state data */
         val startingModelState = startingState(model.thermalGrid)
         val stateDataStore = ValueStore.updateValueStore(
           ValueStore(resolution),
