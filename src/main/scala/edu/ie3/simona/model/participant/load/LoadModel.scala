@@ -87,7 +87,7 @@ case object LoadModel extends LazyLogging {
     *
     * When the load is scaled based on the consumed energy per year, the
     * installed sRated capacity is not usable anymore instead, the load's rated
-    * apparent power ist scaled on the maximum power occurring in the specified
+    * apparent power is scaled on the maximum power occurring in the specified
     * load profile multiplied by the ratio of the annual consumption and the
     * standard load profile scale
     *

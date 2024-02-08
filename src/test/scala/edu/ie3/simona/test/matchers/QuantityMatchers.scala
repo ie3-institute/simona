@@ -6,38 +6,29 @@
 
 package edu.ie3.simona.test.matchers
 
+import edu.ie3.simona.test.matchers.QuantityMatchers.EqualMatcher
 import edu.ie3.util.quantities.QuantityUtil
-import javax.measure.Quantity
 import org.scalatest.matchers.{MatchResult, Matcher}
 
+import javax.measure.Quantity
+
+@deprecated("Use implementation in power system utils package")
 /** Trait, to simplify test coding, that is reliant on [[Quantity]] s
   */
 trait QuantityMatchers {
-  class QuantityMatcher[Q <: Quantity[Q]](right: Quantity[Q], tolerance: Double)
-      extends Matcher[Quantity[Q]]
-      with QuantityMatchers {
-    override def apply(left: Quantity[Q]): MatchResult = MatchResult(
-      QuantityUtil.equals(left, right, tolerance),
-      QuantityMatchers.assembleRawFailureMessage(left, right, tolerance),
-      QuantityMatchers.assembleNegatedFailureMessage(left, right, tolerance)
-    )
-  }
-
   def equalWithTolerance[Q <: Quantity[Q]](
       right: Quantity[Q],
       tolerance: Double = 1e-10
-  ) = new QuantityMatcher(right, tolerance)
+  ) = new EqualMatcher(right, tolerance)
 }
 
-case object QuantityMatchers extends QuantityMatchers {
-  private def assembleRawFailureMessage[Q <: Quantity[Q]](
-      lhs: Quantity[Q],
-      rhs: Quantity[Q],
-      tolerance: Double
-  ) = s"The quantities $lhs and $rhs differ more than $tolerance in value"
-  private def assembleNegatedFailureMessage[Q <: Quantity[Q]](
-      lhs: Quantity[Q],
-      rhs: Quantity[Q],
-      tolerance: Double
-  ) = s"The quantities $lhs and $rhs differ less than $tolerance in value"
+object QuantityMatchers {
+  class EqualMatcher[Q <: Quantity[Q]](right: Quantity[Q], tolerance: Double)
+      extends Matcher[Quantity[Q]] {
+    override def apply(left: Quantity[Q]): MatchResult = MatchResult(
+      QuantityUtil.equals(left, right, tolerance),
+      s"The quantities $left and $right differ more than $tolerance in value",
+      s"The quantities $left and $right differ less than $tolerance in value"
+    )
+  }
 }

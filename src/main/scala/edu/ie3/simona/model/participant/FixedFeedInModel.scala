@@ -43,7 +43,7 @@ final case class FixedFeedInModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    scalingFactor: Double,
+    override val scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double
@@ -69,7 +69,7 @@ final case class FixedFeedInModel(
   override protected def calculateActivePower(
       data: FixedRelevantData.type = FixedRelevantData
   ): Power =
-    sRated * (-1) * cosPhiRated * scalingFactor
+    sRated * (-1) * cosPhiRated
 }
 
 case object FixedFeedInModel extends LazyLogging {
