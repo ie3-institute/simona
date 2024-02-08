@@ -344,7 +344,7 @@ class GridAgentController(
           fixedFeedInInput,
           modelConfiguration,
           primaryServiceProxy,
-          None,
+          Iterable.empty,
           simulationStartDate,
           simulationEndDate,
           resolution,
@@ -395,7 +395,7 @@ class GridAgentController(
           loadInput,
           modelConfiguration,
           primaryServiceProxy,
-          None,
+          Iterable.empty,
           simulationStartDate,
           simulationEndDate,
           resolution,
@@ -449,7 +449,7 @@ class GridAgentController(
           pvInput,
           modelConfiguration,
           primaryServiceProxy,
-          Some(Vector(ActorWeatherService(weatherService))),
+          Iterable(ActorWeatherService(weatherService)),
           simulationStartDate,
           simulationEndDate,
           resolution,
@@ -495,14 +495,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig
-  ): ActorRef = {
-    val sources = Some(
-      Vector(
-        ActorEvMovementsService(
-          evMovementsService
-        )
-      )
-    )
+  ): ActorRef =
     gridAgentContext.simonaActorOf(
       EvcsAgent.props(
         environmentRefs.scheduler,
@@ -510,7 +503,11 @@ class GridAgentController(
           evcsInput,
           modelConfiguration,
           primaryServiceProxy,
-          sources,
+          Iterable(
+            ActorEvMovementsService(
+              evMovementsService
+            )
+          ),
           simulationStartDate,
           simulationEndDate,
           resolution,
@@ -520,7 +517,6 @@ class GridAgentController(
         listener
       )
     )
-  }
 
   /** Builds an [[HpAgent]] from given input
     * @param hpInput
@@ -557,7 +553,7 @@ class GridAgentController(
           thermalGrid,
           modelConfiguration,
           primaryServiceProxy,
-          Some(Vector(ActorWeatherService(weatherService))),
+          Iterable(ActorWeatherService(weatherService)),
           simulationStartDate,
           simulationEndDate,
           resolution,
@@ -611,7 +607,7 @@ class GridAgentController(
           wecInput,
           modelConfiguration,
           primaryServiceProxy,
-          Some(Vector(ActorWeatherService(weatherService))),
+          Iterable(ActorWeatherService(weatherService)),
           simulationStartDate,
           simulationEndDate,
           resolution,

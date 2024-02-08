@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.participant.load
 
-import org.apache.pekko.actor.{ActorRef, Props}
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
@@ -19,6 +18,7 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel
@@ -28,6 +28,7 @@ import edu.ie3.simona.model.participant.load.{
   LoadModel,
   LoadModelBehaviour
 }
+import org.apache.pekko.actor.{ActorRef, Props}
 
 object LoadAgent {
   def props(
@@ -113,6 +114,7 @@ abstract class LoadAgent[LD <: LoadRelevantData, LM <: LoadModel[LD]](
 ) extends ParticipantAgent[
       ApparentPower,
       LD,
+      ConstantState.type,
       ParticipantStateData[ApparentPower],
       LoadInput,
       LoadRuntimeConfig,

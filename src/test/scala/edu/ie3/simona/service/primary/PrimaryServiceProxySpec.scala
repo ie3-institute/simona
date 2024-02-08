@@ -588,7 +588,7 @@ class PrimaryServiceProxySpec
         maliciousStateData,
         self
       )
-      expectMsg(RegistrationFailedMessage)
+      expectMsg(RegistrationFailedMessage(proxyRef))
     }
 
     "forward the registration request, if worker is already known" in {
@@ -623,7 +623,7 @@ class PrimaryServiceProxySpec
         maliciousStateData,
         self
       )
-      expectMsg(RegistrationFailedMessage)
+      expectMsg(RegistrationFailedMessage(proxyRef))
     }
 
     "spin off a worker, if needed and forward the registration request" in {
@@ -677,7 +677,7 @@ class PrimaryServiceProxySpec
       )
 
       proxyRef ! request
-      expectMsg(RegistrationFailedMessage)
+      expectMsg(RegistrationFailedMessage(proxyRef))
     }
 
     "succeed, if model is handled" in {

@@ -17,12 +17,16 @@ trait EvTestData {
     UUID.fromString("73c041c7-68e9-470e-8ca2-21fd7dbd1797"),
     "evA",
     Quantities.getQuantity(11d, PowerSystemUnits.KILOWATT),
-    Quantities.getQuantity(58d, PowerSystemUnits.KILOWATTHOUR)
+    Quantities.getQuantity(11d, PowerSystemUnits.KILOWATT),
+    Quantities.getQuantity(58d, PowerSystemUnits.KILOWATTHOUR),
+    200
   )
   protected val evB: MockEvModel = new MockEvModel(
     UUID.fromString("6d7d27a1-5cbb-4b73-aecb-dfcc5a6fb22e"),
     "evB",
     Quantities.getQuantity(11d, PowerSystemUnits.KILOWATT),
-    Quantities.getQuantity(80d, PowerSystemUnits.KILOWATTHOUR)
+    Quantities.getQuantity(11d, PowerSystemUnits.KILOWATT),
+    Quantities.getQuantity(80d, PowerSystemUnits.KILOWATTHOUR),
+    200
   )
 }
