@@ -1,7 +1,0 @@
-uuid,cos_phi_rated,id,node,operates_from,operates_until,operator,q_characteristics,chargingpoints,type,location_type,"v2gsupport"
-925c13f9-f82a-4010-ac12-92e1e8a0f419,1.0,evcs_home,2a5e9609-b66c-428d-a67a-a1437130ffb0,,,,cosPhiFixed:{(0.00,1.0)},100000,cee16,home,true
-06ca05f8-e4ac-4d4d-ad1c-67e6604b395a,1.0,evcs_work,2a5e9609-b66c-428d-a67a-a1437130ffb0,,,,cosPhiFixed:{(0.00,1.0)},100000,cee16,work,true
-d625249e-8e60-4318-837e-a0cfa9b91f3e,1.0,evcs_customer_parking,2a5e9609-b66c-428d-a67a-a1437130ffb0,,,,cosPhiFixed:{(0.00,1.0)},100000,cee16,customer_parking,true
-9c20507d-f5d5-4d61-b98d-0542e7d68f1b,1.0,evcs_street,2a5e9609-b66c-428d-a67a-a1437130ffb0,,,,cosPhiFixed:{(0.00,1.0)},100000,cee16,street,true
-58b78eed-ae99-44b5-b817-2e990018edb9,1.0,evcs_charging_hub_town,2a5e9609-b66c-428d-a67a-a1437130ffb0,,,,cosPhiFixed:{(0.00,1.0)},100000,cee16,charging_hub_town,true
-6e219da2-b233-48e7-9960-6aad29b39dc8,1.0,evcs_charging_hub_highway,2a5e9609-b66c-428d-a67a-a1437130ffb0,,,,cosPhiFixed:{(0.00,1.0)},100000,cee16,charging_hub_highway,true
