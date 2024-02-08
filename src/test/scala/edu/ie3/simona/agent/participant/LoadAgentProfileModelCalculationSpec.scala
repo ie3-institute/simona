@@ -89,7 +89,7 @@ class LoadAgentProfileModelCalculationSpec
     loadConfigUtil.getOrDefault[LoadRuntimeConfig](
       voltageSensitiveInput.getUuid
     )
-  private val services = None
+  private val services = Iterable.empty
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
   private implicit val powerTolerance: squants.Power = Watts(0.1)

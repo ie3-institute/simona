@@ -132,7 +132,7 @@ class ParticipantAgentExternalSourceSpec
     ](
       inputModel = mockInputModel,
       modelConfig = mock[BaseRuntimeConfig],
-      secondaryDataServices = None,
+      secondaryDataServices = Iterable.empty,
       simulationStartDate = defaultSimulationStart,
       simulationEndDate = defaultSimulationEnd,
       resolution = simonaConfig.simona.powerflow.resolution.getSeconds,

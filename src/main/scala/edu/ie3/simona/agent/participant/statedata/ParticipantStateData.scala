@@ -71,9 +71,7 @@ object ParticipantStateData {
   ](
       inputModel: InputModelContainer[I],
       modelConfig: C,
-      secondaryDataServices: Option[
-        Vector[SecondaryDataService[_ <: SecondaryData]]
-      ],
+      secondaryDataServices: Iterable[SecondaryDataService[_ <: SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -118,9 +116,7 @@ object ParticipantStateData {
       inputModel: InputModelContainer[I],
       modelConfig: C,
       primaryServiceProxy: ClassicActorRef,
-      secondaryDataServices: Option[
-        Vector[SecondaryDataService[_ <: SecondaryData]]
-      ],
+      secondaryDataServices: Iterable[SecondaryDataService[_ <: SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -139,8 +135,8 @@ object ParticipantStateData {
         inputModel: I,
         modelConfig: C,
         primaryServiceProxy: ClassicActorRef,
-        secondaryDataServices: Option[
-          Vector[SecondaryDataService[_ <: SecondaryData]]
+        secondaryDataServices: Iterable[
+          SecondaryDataService[_ <: SecondaryData]
         ],
         simulationStartDate: ZonedDateTime,
         simulationEndDate: ZonedDateTime,
@@ -168,8 +164,8 @@ object ParticipantStateData {
         inputModel: I,
         modelConfig: C,
         primaryServiceProxy: ClassicActorRef,
-        secondaryDataServices: Option[
-          Vector[SecondaryDataService[_ <: SecondaryData]]
+        secondaryDataServices: Iterable[
+          SecondaryDataService[_ <: SecondaryData]
         ],
         simulationStartDate: ZonedDateTime,
         simulationEndDate: ZonedDateTime,
@@ -200,8 +196,8 @@ object ParticipantStateData {
         thermalGrid: ThermalGrid,
         modelConfig: C,
         primaryServiceProxy: ClassicActorRef,
-        secondaryDataServices: Option[
-          Vector[SecondaryDataService[_ <: SecondaryData]]
+        secondaryDataServices: Iterable[
+          SecondaryDataService[_ <: SecondaryData]
         ],
         simulationStartDate: ZonedDateTime,
         simulationEndDate: ZonedDateTime,
@@ -231,8 +227,8 @@ object ParticipantStateData {
         thermalGrid: ThermalGrid,
         modelConfig: C,
         primaryServiceProxy: ClassicActorRef,
-        secondaryDataServices: Option[
-          Vector[SecondaryDataService[_ <: SecondaryData]]
+        secondaryDataServices: Iterable[
+          SecondaryDataService[_ <: SecondaryData]
         ],
         simulationStartDate: ZonedDateTime,
         simulationEndDate: ZonedDateTime,
@@ -272,7 +268,7 @@ object ParticipantStateData {
       +PD <: PrimaryDataWithApparentPower[PD]
   ](
       baseStateData: BaseStateData[PD],
-      pendingResponses: Seq[ClassicActorRef],
+      pendingResponses: Iterable[ClassicActorRef],
       foreseenNextDataTicks: Map[ClassicActorRef, Long] = Map.empty
   ) extends ParticipantStateData[PD]
 

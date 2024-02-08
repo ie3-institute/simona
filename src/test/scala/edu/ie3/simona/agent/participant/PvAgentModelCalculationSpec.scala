@@ -109,11 +109,9 @@ class PvAgentModelCalculationSpec
   private val modelConfig = configUtil.getOrDefault[PvRuntimeConfig](
     voltageSensitiveInput.getUuid
   )
-  private val noServices = None
-  private val withServices = Some(
-    Vector(
-      ActorWeatherService(weatherService.ref)
-    )
+  private val noServices = Iterable.empty
+  private val withServices = Iterable(
+    ActorWeatherService(weatherService.ref)
   )
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 

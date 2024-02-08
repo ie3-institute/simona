@@ -186,7 +186,7 @@ class ParticipantAgentMock(
   override def determineModelBaseStateData(
       inputModel: InputModelContainer[SystemParticipantInput],
       modelConfig: SimonaConfig.BaseRuntimeConfig,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
+      services: Iterable[SecondaryDataService[_ <: SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,

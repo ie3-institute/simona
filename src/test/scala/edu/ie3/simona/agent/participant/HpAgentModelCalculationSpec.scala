@@ -110,11 +110,9 @@ class HpAgentModelCalculationSpec
     participantConfigUtil.getOrDefault[HpRuntimeConfig](
       hpInput.getUuid
     )
-  private val noServices = None
-  private val services = Some(
-    Vector(
-      ActorWeatherService(weatherService.ref)
-    )
+  private val noServices = Iterable.empty
+  private val services = Iterable(
+    ActorWeatherService(weatherService.ref)
   )
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 

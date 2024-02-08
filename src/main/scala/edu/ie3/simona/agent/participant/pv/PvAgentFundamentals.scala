@@ -87,7 +87,7 @@ protected trait PvAgentFundamentals
     * @param modelConfig
     *   Configuration of the model
     * @param services
-    *   Optional collection of services to register with
+    *   Collection of services to register with
     * @param simulationStartDate
     *   Real world time date time, when the simulation starts
     * @param simulationEndDate
@@ -106,7 +106,7 @@ protected trait PvAgentFundamentals
   override def determineModelBaseStateData(
       inputModel: InputModelContainer[PvInput],
       modelConfig: PvRuntimeConfig,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
+      services: Iterable[SecondaryDataService[_ <: SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -120,11 +120,7 @@ protected trait PvAgentFundamentals
     PvModel
   ] = {
     /* Check for needed services */
-    if (
-      !services.exists(serviceDefinitions =>
-        serviceDefinitions.map(_.getClass).containsSlice(neededServices)
-      )
-    )
+    if (!services.toSeq.map(_.getClass).containsSlice(neededServices))
       throw new AgentInitializationException(
         s"PvAgent cannot be initialized without a weather service!"
       )

@@ -264,7 +264,7 @@ abstract class ParticipantAgent[
           ParticipantInitializingStateData(
             inputModel: InputModelContainer[I],
             modelConfig: MC,
-            secondaryDataServices,
+            _,
             simulationStartDate,
             simulationEndDate,
             resolution,
@@ -277,7 +277,6 @@ abstract class ParticipantAgent[
       initializeParticipantForPrimaryDataReplay(
         inputModel,
         modelConfig,
-        secondaryDataServices,
         simulationStartDate,
         simulationEndDate,
         resolution,
@@ -501,8 +500,6 @@ abstract class ParticipantAgent[
     *   Input model
     * @param modelConfig
     *   Configuration for the model
-    * @param services
-    *   Optional list of services, that are needed
     * @param simulationStartDate
     *   Real world time date time, when the simulation starts
     * @param simulationEndDate
@@ -525,7 +522,6 @@ abstract class ParticipantAgent[
   def initializeParticipantForPrimaryDataReplay(
       inputModel: InputModelContainer[I],
       modelConfig: MC,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -563,7 +559,7 @@ abstract class ParticipantAgent[
   def initializeParticipantForModelCalculation(
       inputModel: InputModelContainer[I],
       modelConfig: MC,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
+      services: Iterable[SecondaryDataService[_ <: SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,

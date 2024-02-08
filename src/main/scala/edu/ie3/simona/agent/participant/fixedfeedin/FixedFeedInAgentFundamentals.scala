@@ -84,7 +84,7 @@ protected trait FixedFeedInAgentFundamentals
     * @param modelConfig
     *   Configuration of the model
     * @param services
-    *   Optional collection of services to register with
+    *   Collection of services to register with
     * @param simulationStartDate
     *   Real world time date time, when the simulation starts
     * @param simulationEndDate
@@ -103,7 +103,7 @@ protected trait FixedFeedInAgentFundamentals
   override def determineModelBaseStateData(
       inputModel: InputModelContainer[FixedFeedInInput],
       modelConfig: FixedFeedInRuntimeConfig,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
+      services: Iterable[SecondaryDataService[_ <: SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,

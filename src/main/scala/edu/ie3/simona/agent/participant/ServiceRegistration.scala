@@ -46,19 +46,15 @@ trait ServiceRegistration[
     * @param services
     *   Definition of where to get what
     * @return
-    *   a vector of actor references to wait for responses
+    *   an iterable of actor references to wait for responses
     */
   def registerForServices(
       inputModel: I,
-      services: Option[Seq[SecondaryDataService[_ <: SecondaryData]]]
-  ): Seq[ActorRef] =
-    services
-      .map(sources =>
-        sources.flatMap(service =>
-          registerForSecondaryService(service, inputModel)
-        )
-      )
-      .getOrElse(Seq.empty[ActorRef])
+      services: Iterable[SecondaryDataService[_ <: SecondaryData]]
+  ): Iterable[ActorRef] =
+    services.flatMap(service =>
+      registerForSecondaryService(service, inputModel)
+    )
 
   /** Register for the distinct secondary service
     *

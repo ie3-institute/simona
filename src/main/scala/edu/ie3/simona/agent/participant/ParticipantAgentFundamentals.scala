@@ -119,7 +119,6 @@ protected trait ParticipantAgentFundamentals[
   override def initializeParticipantForPrimaryDataReplay(
       inputModel: InputModelContainer[I],
       modelConfig: MC,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -260,7 +259,7 @@ protected trait ParticipantAgentFundamentals[
   override def initializeParticipantForModelCalculation(
       inputModel: InputModelContainer[I],
       modelConfig: MC,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
+      services: Iterable[SecondaryDataService[_ <: SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -340,7 +339,7 @@ protected trait ParticipantAgentFundamentals[
   def determineModelBaseStateData(
       inputModel: InputModelContainer[I],
       modelConfig: MC,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
+      services: Iterable[SecondaryDataService[_ <: SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -1967,7 +1966,7 @@ protected trait ParticipantAgentFundamentals[
 
   /** Returns secondary service of type T or throws exception
     * @param services
-    *   the services Option used in
+    *   the services used in
     *   [[edu.ie3.simona.agent.participant.statedata.BaseStateData.ModelBaseStateData]]
     * @param tag
     *   ClassTag of T
@@ -1977,14 +1976,9 @@ protected trait ParticipantAgentFundamentals[
     *   secondary service of given type
     */
   protected def getService[T <: SecondaryDataService[_]](
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]]
+      services: Iterable[SecondaryDataService[_ <: SecondaryData]]
   )(implicit tag: ClassTag[T]): ActorRef =
     services
-      .getOrElse(
-        throw new InconsistentStateException(
-          "No services provided by ParticipantModelBaseStateData."
-        )
-      )
       .find {
         case _: T => true
         case _    => false

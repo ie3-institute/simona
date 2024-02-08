@@ -114,9 +114,7 @@ class WecAgentModelCalculationSpec
       voltageSensitiveInput.getUuid
     )
 
-  private val withServices = Some(
-    Vector(ActorWeatherService(weatherService.ref))
-  )
+  private val withServices = Iterable(ActorWeatherService(weatherService.ref))
 
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
@@ -137,7 +135,7 @@ class WecAgentModelCalculationSpec
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       modelConfig = modelConfig,
       primaryServiceProxy = primaryServiceProxy.ref,
-      secondaryDataServices = None,
+      secondaryDataServices = Iterable.empty,
       outputConfig = NotifierConfig(
         simulationResultInfo = false,
         powerRequestReply = false,

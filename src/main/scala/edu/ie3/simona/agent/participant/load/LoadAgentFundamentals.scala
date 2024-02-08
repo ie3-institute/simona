@@ -95,7 +95,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
     * @param modelConfig
     *   Configuration of the model
     * @param services
-    *   Optional collection of services to register with
+    *   Collection of services to register with
     * @param simulationStartDate
     *   Real world time date time, when the simulation starts
     * @param simulationEndDate
@@ -114,7 +114,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
   override def determineModelBaseStateData(
       inputModel: InputModelContainer[LoadInput],
       modelConfig: LoadRuntimeConfig,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
+      services: Iterable[SecondaryDataService[_ <: SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,

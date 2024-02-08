@@ -190,10 +190,8 @@ class EvcsAgentModelCalculationSpec
     ](
       inputModel = evcsInputModel,
       modelConfig = modelConfig,
-      secondaryDataServices = Some(
-        Vector(
-          ActorEvMovementsService(evService.ref)
-        )
+      secondaryDataServices = Iterable(
+        ActorEvMovementsService(evService.ref)
       ),
       simulationStartDate = simulationStartDate,
       simulationEndDate = simulationEndDate,
@@ -824,10 +822,8 @@ class EvcsAgentModelCalculationSpec
         initStateData = ParticipantInitializeStateData(
           inputModel = evcsInputModelQv,
           modelConfig = modelConfig,
-          secondaryDataServices = Some(
-            Vector(
-              ActorEvMovementsService(evService.ref)
-            )
+          secondaryDataServices = Iterable(
+            ActorEvMovementsService(evService.ref)
           ),
           simulationStartDate = simulationStartDate,
           simulationEndDate = simulationEndDate,
@@ -1010,10 +1006,8 @@ class EvcsAgentModelCalculationSpec
           initStateData = ParticipantInitializeStateData(
             inputModel = evcsInputModelQv,
             modelConfig = modelConfig,
-            secondaryDataServices = Some(
-              Vector(
-                ActorEvMovementsService(evService.ref)
-              )
+            secondaryDataServices = Iterable(
+              ActorEvMovementsService(evService.ref)
             ),
             simulationStartDate = simulationStartDate,
             simulationEndDate = simulationEndDate,
@@ -1150,10 +1144,8 @@ class EvcsAgentModelCalculationSpec
           initStateData = ParticipantInitializeStateData(
             inputModel = SimpleInputContainer(evcsInputModelQv),
             modelConfig = modelConfig,
-            secondaryDataServices = Some(
-              Vector(
-                ActorEvMovementsService(evService.ref)
-              )
+            secondaryDataServices = Iterable(
+              ActorEvMovementsService(evService.ref)
             ),
             simulationStartDate = simulationStartDate,
             simulationEndDate = simulationEndDate,
