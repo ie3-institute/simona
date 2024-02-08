@@ -53,6 +53,7 @@ import edu.ie3.simona.event.ResultEvent.{
   ThermalResultEvent
 }
 import edu.ie3.simona.event.notifier.NotifierConfig
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.exceptions.agent.{
   ActorNotRegisteredException,
   AgentInitializationException,
@@ -790,10 +791,10 @@ protected trait ParticipantAgentFundamentals[
         setPointActivePower
       )
 
-    // sanity check, simulation will hang if this matches
+    // sanity check, simulation would hang if this matches
     flexChangeIndicator.changesAtTick match {
       case Some(changeAtTick) if changeAtTick <= flexCtrl.tick =>
-        log.error(
+        throw new CriticalFailureException(
           s"Scheduling agent ${self.path} (${baseStateData.modelUuid}) for activation at tick $changeAtTick, although current tick is ${flexCtrl.tick}"
         )
       case _ =>
