@@ -149,7 +149,9 @@ class PrimaryServiceProxySqlIT
 
       scheduler.expectMsg(Completion(workerRef, Some(0)))
 
-      systemParticipantProbe.expectMsg(RegistrationSuccessfulMessage(Some(0L)))
+      systemParticipantProbe.expectMsg(
+        RegistrationSuccessfulMessage(workerRef.toClassic, Some(0L))
+      )
     }
 
     "handle participant request correctly if participant does not have primary data" in {
@@ -169,7 +171,7 @@ class PrimaryServiceProxySqlIT
 
       scheduler.expectNoMessage()
 
-      systemParticipantProbe.expectMsg(RegistrationFailedMessage)
+      systemParticipantProbe.expectMsg(RegistrationFailedMessage(proxyRef))
     }
   }
 }

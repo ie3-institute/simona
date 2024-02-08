@@ -21,19 +21,17 @@ import edu.ie3.simona.model.thermal.ThermalHouse.{
   ThermalHouseState,
   temperatureTolerance
 }
-import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.{ThermalConductance, WattsPerKelvin}
-import squants.energy.{KilowattHours, MegawattHours, Megawatts}
-import squants.thermal.{Celsius, JoulesPerKelvin, Kelvin, ThermalCapacity}
-import squants.time.Hours
+import squants.energy.{KilowattHours, Kilowatts, MegawattHours, Megawatts}
+import squants.thermal.{Kelvin, ThermalCapacity}
+import squants.time.{Hours, Seconds}
 import squants.{Energy, Power, Temperature, Time}
 import tech.units.indriya.unit.Units
 
 import java.util.UUID
 
-/** A thermal house model including a variable inner temperature <p> *
-  * <strong>Important:</strong> The field innerTemperature is a variable.
+/** A thermal house model
   *
   * @param uuid
   *   the element's uuid
@@ -98,24 +96,39 @@ final case class ThermalHouse(
       state: ThermalHouseState
   ): ThermalEnergyDemand = {
     /* Calculate the inner temperature of the house, at the questioned instance in time */
-    val duration = state.tick.durationUntil(tick)
-    val innerTemperature = newInnerTemperature(
+    val duration = Seconds(tick - state.tick)
+    val currentInnerTemp = newInnerTemperature(
       state.qDot,
       duration,
       state.innerTemperature,
       ambientTemperature
     )
 
-    /* Determine the needed energy */
+    /* Determine, which temperature boundary triggers a needed energy to reach the temperature constraints */
+    val temperatureToTriggerRequiredEnergy =
+      if (
+        currentInnerTemp <= state.innerTemperature &&
+        state.qDot <= Kilowatts(0d)
+      ) {
+        // temperature has been decreasing and heat source has been turned off
+        // => we have reached target temp before and are now targeting lower temp
+        lowerBoundaryTemperature
+      } else targetTemperature
     val requiredEnergy =
-      if (isInnerTemperatureTooLow(innerTemperature)) {
-        energy(targetTemperature, innerTemperature)
-      } else
+      if (
+        isInnerTemperatureTooLow(
+          currentInnerTemp,
+          temperatureToTriggerRequiredEnergy
+        )
+      ) energy(targetTemperature, currentInnerTemp)
+      else
         MegawattHours(0d)
 
     val possibleEnergy =
-      if (!isInnerTemperatureTooHigh(innerTemperature)) {
-        energy(upperBoundaryTemperature, innerTemperature)
+      if (!isInnerTemperatureTooHigh(currentInnerTemp)) {
+        // if upper boundary has not been reached,
+        // there is an amount of optional energy that could be stored
+        energy(upperBoundaryTemperature, currentInnerTemp)
       } else
         MegawattHours(0d)
     ThermalEnergyDemand(requiredEnergy, possibleEnergy)
@@ -148,7 +161,9 @@ final case class ThermalHouse(
   def isInnerTemperatureTooHigh(
       innerTemperature: Temperature
   ): Boolean =
-    innerTemperature > (upperBoundaryTemperature - temperatureTolerance)
+    innerTemperature > Kelvin(
+      upperBoundaryTemperature.toKelvinScale - temperatureTolerance.toKelvinScale
+    )
 
   /** Check if inner temperature is lower than preferred minimum temperature
     *
@@ -156,9 +171,12 @@ final case class ThermalHouse(
     *   true, if inner temperature is too low
     */
   def isInnerTemperatureTooLow(
-      innerTemperature: Temperature
+      innerTemperature: Temperature,
+      boundaryTemperature: Temperature = lowerBoundaryTemperature
   ): Boolean =
-    innerTemperature < (lowerBoundaryTemperature + temperatureTolerance)
+    innerTemperature < Kelvin(
+      boundaryTemperature.toKelvinScale + temperatureTolerance.toKelvinScale
+    )
 
   /** Calculate the new inner temperature of the thermal house.
     *
@@ -276,6 +294,7 @@ final case class ThermalHouse(
   }
 
   /** Update the current state of the house
+    *
     * @param tick
     *   current instance in time
     * @param state
@@ -287,13 +306,13 @@ final case class ThermalHouse(
     * @return
     *   Updated state and the tick in which the next threshold is reached
     */
-  def updateState(
+  def determineState(
       tick: Long,
       state: ThermalHouseState,
       ambientTemperature: Temperature,
       qDot: Power
   ): (ThermalHouseState, Option[ThermalThreshold]) = {
-    val duration = state.tick.durationUntil(tick)
+    val duration = Seconds(tick - state.tick)
     val updatedInnerTemperature = newInnerTemperature(
       state.qDot,
       duration,
@@ -327,7 +346,6 @@ final case class ThermalHouse(
     * @return
     *   The next threshold, that will be reached
     */
-
   private def nextThreshold(
       tick: Long,
       qDotExternal: Power,
@@ -340,33 +358,34 @@ final case class ThermalHouse(
       ambientTemperature,
       artificialDuration
     ) / artificialDuration
-
     val resultingQDot = qDotExternal - loss
-
-    resultingQDot match {
-      case qDot if qDot < Megawatts(0d) =>
-        /* House has more losses than gain */
-        val nextTick = nextActivation(
-          tick,
-          innerTemperature,
-          lowerBoundaryTemperature,
-          resultingQDot
-        )
-        Some(HouseTemperatureLowerBoundaryReached(nextTick))
-
-      case qDot if qDot > Megawatts(0d) =>
-        /* House has more gain than losses */
-        val nextTick = nextActivation(
-          tick,
-          upperBoundaryTemperature,
-          innerTemperature,
-          resultingQDot
-        )
-        Some(HouseTemperatureUpperBoundaryReached(nextTick))
-
-      case _ =>
-        /* House is in perfect balance */
-        None
+    if (
+      resultingQDot < Megawatts(0d) && !isInnerTemperatureTooLow(
+        innerTemperature
+      )
+    ) {
+      /* House has more losses than gain */
+      nextActivation(
+        tick,
+        innerTemperature,
+        lowerBoundaryTemperature,
+        resultingQDot
+      ).map(HouseTemperatureLowerBoundaryReached)
+    } else if (
+      resultingQDot > Megawatts(0d) && !isInnerTemperatureTooHigh(
+        innerTemperature
+      )
+    ) {
+      /* House has more gain than losses */
+      nextActivation(
+        tick,
+        upperBoundaryTemperature,
+        innerTemperature,
+        resultingQDot
+      ).map(HouseTemperatureUpperBoundaryReached)
+    } else {
+      /* House is in perfect balance */
+      None
     }
   }
 
@@ -375,24 +394,21 @@ final case class ThermalHouse(
       higherTemperature: Temperature,
       lowerTemperature: Temperature,
       qDot: Power
-  ): Long = {
+  ): Option[Long] = {
     val flexibleEnergy = energy(higherTemperature, lowerTemperature)
-    if (
-      flexibleEnergy <
-        KilowattHours(0d)
-    )
-      tick
+    if (flexibleEnergy < MegawattHours(0d))
+      None
     else {
-      val duration =
-        flexibleEnergy / (qDot * math.signum(qDot.value.doubleValue()))
-      tick + duration.toSeconds.toLong
+      val duration = Math.round(
+        (flexibleEnergy / (qDot * math.signum(qDot.toWatts))).toSeconds
+      )
+      Some(tick + duration)
     }
   }
 }
 
 object ThermalHouse {
-  protected def temperatureTolerance: Temperature =
-    Kelvin(0.01d)
+  protected def temperatureTolerance: Temperature = Kelvin(0.01d)
 
   def apply(input: ThermalHouseInput): ThermalHouse = new ThermalHouse(
     input.getUuid,
@@ -405,23 +421,22 @@ object ThermalHouse {
         .to(PowerSystemUnits.KILOWATT_PER_KELVIN)
         .getValue
         .doubleValue
-      // Kilowatt in Watt
-        * 1000
+        * 1000 // kW/K to W/K
     ),
-    JoulesPerKelvin(
+    KilowattHours(
       input.getEthCapa
         .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN)
         .getValue
         .doubleValue
-      // from kWh to Joule
-        * 3.6e6
+    ) / Kelvin(1d),
+    Kelvin(
+      input.getTargetTemperature.to(Units.KELVIN).getValue.doubleValue
     ),
-    Celsius(input.getTargetTemperature.to(Units.CELSIUS).getValue.doubleValue),
-    Celsius(
-      input.getLowerTemperatureLimit.to(Units.CELSIUS).getValue.doubleValue
+    Kelvin(
+      input.getLowerTemperatureLimit.to(Units.KELVIN).getValue.doubleValue
     ),
-    Celsius(
-      input.getUpperTemperatureLimit.to(Units.CELSIUS).getValue.doubleValue
+    Kelvin(
+      input.getUpperTemperatureLimit.to(Units.KELVIN).getValue.doubleValue
     )
   )
 
@@ -435,10 +450,10 @@ object ThermalHouse {
     *   Continuous infeed of thermal energy since the given tick
     */
   final case class ThermalHouseState(
-      override val tick: Long,
+      tick: Long,
       innerTemperature: Temperature,
       qDot: Power
-  ) extends ThermalModelState
+  )
 
   def startingState(house: ThermalHouse): ThermalHouseState =
     ThermalHouseState(

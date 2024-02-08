@@ -10,6 +10,7 @@ import de.lmu.ifi.dbs.elki.math.statistics.distribution.GeneralizedExtremeValueD
 import de.lmu.ifi.dbs.elki.utilities.random.RandomFactory
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.LoadReference._
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomRelevantData
@@ -50,7 +51,7 @@ final case class RandomLoadModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    scalingFactor: Double,
+    override val scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double,
@@ -89,6 +90,7 @@ final case class RandomLoadModel(
     */
   @tailrec
   override protected def calculateActivePower(
+      modelState: ConstantState.type,
       data: RandomRelevantData
   ): Power = {
     val gev = getGevDistribution(data.date)
@@ -96,7 +98,7 @@ final case class RandomLoadModel(
     /* Get a next random power (in kW) */
     val randomPower = gev.nextRandom()
     if (randomPower < 0)
-      calculateActivePower(data)
+      calculateActivePower(modelState, data)
     else {
       val profilePower = Kilowatts(randomPower)
       val activePower = reference match {
@@ -109,7 +111,7 @@ final case class RandomLoadModel(
           /* scale the profiles random power based on the energyConsumption/profileEnergyScaling(=1000kWh/year) ratio  */
           profilePower * energyReferenceScalingFactor
       }
-      activePower * scalingFactor
+      activePower
     }
   }
 
@@ -148,7 +150,7 @@ final case class RandomLoadModel(
   }
 }
 
-case object RandomLoadModel {
+object RandomLoadModel {
 
   final case class RandomRelevantData(date: ZonedDateTime)
       extends LoadRelevantData
@@ -180,7 +182,7 @@ case object RandomLoadModel {
       scalingFactor: Double,
       reference: LoadReference
   ): RandomLoadModel = {
-    reference match {
+    val model = reference match {
       case ActivePower(power) =>
         val sRatedPowerScaled =
           LoadModel.scaleSRatedActivePower(input, power, 1.1)
@@ -215,5 +217,7 @@ case object RandomLoadModel {
           reference
         )
     }
+    model.enable()
+    model
   }
 }

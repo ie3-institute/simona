@@ -171,6 +171,7 @@ final case class PrimaryServiceWorker[V <: Value](
   ): Try[PrimaryServiceInitializedStateData[V]] = registrationMessage match {
     case ServiceMessage.WorkerRegistrationMessage(requestingActor) =>
       requestingActor ! RegistrationSuccessfulMessage(
+        self,
         serviceStateData.maybeNextActivationTick
       )
       val subscribers = serviceStateData.subscribers :+ requestingActor
@@ -307,7 +308,7 @@ final case class PrimaryServiceWorker[V <: Value](
       )
 
     val provisionMessage =
-      ProvidePrimaryDataMessage(tick, primaryData, maybeNextTick)
+      ProvidePrimaryDataMessage(tick, self, primaryData, maybeNextTick)
     serviceBaseStateData.subscribers.foreach(_ ! provisionMessage)
     (updatedStateData, maybeNextTick)
   }
@@ -426,6 +427,7 @@ object PrimaryServiceWorker {
     */
   final case class ProvidePrimaryDataMessage(
       override val tick: Long,
+      override val serviceRef: ActorRef,
       override val data: PrimaryData,
       override val nextDataTick: Option[Long],
       override val unlockKey: Option[ScheduleKey] = None

@@ -6,10 +6,6 @@
 
 package edu.ie3.simona.model.participant.load.profile
 
-import java.io.{InputStreamReader, Reader}
-import java.time.{Duration, ZonedDateTime}
-import java.util
-
 import breeze.numerics.round
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.profile.{
@@ -24,6 +20,9 @@ import edu.ie3.simona.model.participant.load.{DayType, profile}
 import org.apache.commons.csv.CSVFormat
 import squants.energy.{KilowattHours, Watts}
 
+import java.io.{InputStreamReader, Reader}
+import java.time.{Duration, ZonedDateTime}
+import java.util
 import scala.jdk.CollectionConverters._
 import scala.math.pow
 

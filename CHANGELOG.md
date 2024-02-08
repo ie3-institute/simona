@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Output of accompanying thermal result models
 - Added JDK installation, Scala Plugin + SDK in usersguide [#324](https://github.com/ie3-institute/simona/issues/324)
 - Squants scalatest matchers [#715](https://github.com/ie3-institute/simona/issues/715)
+- Energy Management capabilities:
+  - Added capability of SystemParticipants to handle flexibility [#308](https://github.com/ie3-institute/simona/issues/308)
+  - Added smart charging logic [#31](https://github.com/ie3-institute/simona/issues/31) and flex calculation in `EvcsAgent` [#332](https://github.com/ie3-institute/simona/issues/332)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -30,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replaced akka with pekko [#641](https://github.com/ie3-institute/simona/issues/641)
 - Use `ThermalGrid` to calculate thermal environment of a heat pump [#315](https://github.com/ie3-institute/simona/issues/315)
 - Enable windows path as config parameters [#549](https://github.com/ie3-institute/simona/issues/549)
+- Unified consideration of scaling factor when simulating system participants [#81](https://github.com/ie3-institute/simona/issues/81)
 
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)

@@ -8,6 +8,7 @@ package edu.ie3.simona.model.participant.load
 
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantData
 import edu.ie3.simona.model.participant.load.LoadReference.{
@@ -45,7 +46,7 @@ final case class FixedLoadModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    scalingFactor: Double,
+    override val scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double,
@@ -76,8 +77,9 @@ final case class FixedLoadModel(
     *   Active power
     */
   override protected def calculateActivePower(
+      modelState: ConstantState.type,
       data: FixedLoadRelevantData.type = FixedLoadRelevantData
-  ): Power = activePower * scalingFactor
+  ): Power = activePower
 }
 
 object FixedLoadModel {
@@ -85,22 +87,26 @@ object FixedLoadModel {
 
   def apply(
       input: LoadInput,
-      operationInterval: OperationInterval,
       scalingFactor: Double,
+      operationInterval: OperationInterval,
       reference: LoadReference
-  ): FixedLoadModel = FixedLoadModel(
-    input.getUuid,
-    input.getId,
-    operationInterval,
-    scalingFactor,
-    QControl(input.getqCharacteristics()),
-    Kilowatts(
-      input.getsRated
-        .to(PowerSystemUnits.KILOWATT)
-        .getValue
-        .doubleValue
-    ),
-    input.getCosPhiRated,
-    reference
-  )
+  ): FixedLoadModel = {
+    val model = FixedLoadModel(
+      input.getUuid,
+      input.getId,
+      operationInterval,
+      scalingFactor,
+      QControl(input.getqCharacteristics()),
+      Kilowatts(
+        input.getsRated
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue
+      ),
+      input.getCosPhiRated,
+      reference
+    )
+    model.enable()
+    model
+  }
 }

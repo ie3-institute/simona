@@ -48,6 +48,7 @@ import squants.Each
 import squants.energy.{Kilowatts, Megawatts, Watts}
 
 import java.util.concurrent.TimeUnit
+import scala.collection.SortedMap
 
 class LoadAgentFixedModelCalculationSpec
     extends ParticipantAgentSpec(
@@ -78,7 +79,8 @@ class LoadAgentFixedModelCalculationSpec
     )
   private val defaultOutputConfig = NotifierConfig(
     simonaConfig.simona.output.participant.defaultConfig.simulationResult,
-    simonaConfig.simona.output.participant.defaultConfig.powerRequestReply
+    simonaConfig.simona.output.participant.defaultConfig.powerRequestReply,
+    simonaConfig.simona.output.participant.defaultConfig.flexResult
   )
   private val loadConfigUtil = ConfigUtil.ParticipantConfigUtil(
     simonaConfig.simona.runtime.participant
@@ -87,7 +89,7 @@ class LoadAgentFixedModelCalculationSpec
     loadConfigUtil.getOrDefault[LoadRuntimeConfig](
       voltageSensitiveInput.getUuid
     )
-  private val services = None
+  private val services = Iterable.empty
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
   private implicit val powerTolerance: squants.Power = Watts(0.1)
@@ -157,7 +159,8 @@ class LoadAgentFixedModelCalculationSpec
               simulationEndDate,
               resolution,
               requestVoltageDeviationThreshold,
-              outputConfig
+              outputConfig,
+              maybeEmAgent
             ) =>
           inputModel shouldBe SimpleInputContainer(voltageSensitiveInput)
           modelConfig shouldBe modelConfig
@@ -167,12 +170,16 @@ class LoadAgentFixedModelCalculationSpec
           resolution shouldBe this.resolution
           requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
           outputConfig shouldBe defaultOutputConfig
+          maybeEmAgent shouldBe None
         case unsuitableStateData =>
           fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
       }
 
       /* Refuse registration */
-      primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        loadAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* Expect a completion notification */
       scheduler.expectMsg(Completion(loadAgent.toTyped, Some(0)))
@@ -192,23 +199,22 @@ class LoadAgentFixedModelCalculationSpec
               voltageValueStore,
               resultValueStore,
               requestValueStore,
+              _,
+              _,
               _
             ) =>
           /* Base state data */
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
-          services shouldBe None
+          services shouldBe Iterable.empty
           outputConfig shouldBe defaultOutputConfig
           additionalActivationTicks shouldBe empty
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
-            Map(0L -> Each(1.0))
+            SortedMap(0L -> Each(1.0))
           )
-          resultValueStore shouldBe ValueStore.forResult(
-            resolution,
-            2
-          )
+          resultValueStore shouldBe ValueStore(resolution)
           requestValueStore shouldBe ValueStore[ApparentPower](
             resolution
           )
@@ -232,7 +238,10 @@ class LoadAgentFixedModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        loadAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -253,12 +262,12 @@ class LoadAgentFixedModelCalculationSpec
       )
 
       inside(loadAgent.stateData) {
-        case modelBaseStateData: ParticipantModelBaseStateData[_, _, _] =>
-          modelBaseStateData.requestValueStore shouldBe ValueStore[
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
+          baseStateData.requestValueStore shouldBe ValueStore[
             ApparentPower
           ](
             resolution,
-            Map(
+            SortedMap(
               0L -> ApparentPower(
                 Megawatts(0d),
                 Megavars(0d)
@@ -285,7 +294,10 @@ class LoadAgentFixedModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        loadAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I am not interested in the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -302,12 +314,8 @@ class LoadAgentFixedModelCalculationSpec
 
       awaitAssert(loadAgent.stateName shouldBe Idle)
       inside(loadAgent.stateData) {
-        case participantModelBaseStateData: ParticipantModelBaseStateData[
-              _,
-              _,
-              _
-            ] =>
-          participantModelBaseStateData.resultValueStore.last(0L) match {
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
+          baseStateData.resultValueStore.last(0L) match {
             case Some((tick, entry)) =>
               tick shouldBe 0L
               inside(entry) { case ApparentPower(p, q) =>
@@ -338,7 +346,10 @@ class LoadAgentFixedModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        loadAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       scheduler.expectMsg(Completion(loadAgent.toTyped, Some(0)))
 
@@ -378,7 +389,10 @@ class LoadAgentFixedModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        loadAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       scheduler.expectMsg(Completion(loadAgent.toTyped, Some(0)))
 

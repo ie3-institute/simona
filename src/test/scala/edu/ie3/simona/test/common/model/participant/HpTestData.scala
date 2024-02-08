@@ -52,7 +52,7 @@ trait HpTestData extends DefaultTestData {
     Quantities.getQuantity(11.0, StandardUnits.ACTIVE_POWER_IN)
   )
 
-  protected val inputModel = new HpInput(
+  protected val hpInputModel = new HpInput(
     UUID.fromString("7832dea4-8703-4b37-8752-e67b86e957df"),
     "test hp",
     OperatorInput.NO_OPERATOR_ASSIGNED,

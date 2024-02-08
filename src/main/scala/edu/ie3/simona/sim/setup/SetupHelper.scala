@@ -11,6 +11,7 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.result.ResultEntity
+import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.utils.ContainerUtils
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.config.RefSystemParser.ConfigRefSystems
@@ -261,5 +262,6 @@ object SetupHelper {
       ).simulationResultIdentifiersToConsider ++ OutputConfigUtil(
         outputConfig.thermal
       ).simulationResultIdentifiersToConsider)
-        .map(notifierId => EntityMapperUtil.getResultEntityClass(notifierId))
+        .map(notifierId => EntityMapperUtil.getResultEntityClass(notifierId)) ++
+      (if (outputConfig.flex) Seq(classOf[FlexOptionsResult]) else Seq.empty)
 }

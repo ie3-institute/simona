@@ -180,7 +180,9 @@ class PrimaryServiceWorkerSpec
       serviceRef ! WorkerRegistrationMessage(systemParticipant.ref)
 
       /* Wait for request approval */
-      systemParticipant.expectMsg(RegistrationSuccessfulMessage(Some(0L)))
+      systemParticipant.expectMsg(
+        RegistrationSuccessfulMessage(serviceRef, Some(0L))
+      )
 
       /* We cannot directly check, if the requesting actor is among the subscribers, therefore we ask the actor to
        * provide data to all subscribed actors and check, if the subscribed probe gets one */
@@ -243,11 +245,13 @@ class PrimaryServiceWorkerSpec
       expectMsgClass(classOf[ProvidePrimaryDataMessage]) match {
         case ProvidePrimaryDataMessage(
               actualTick,
+              actualServiceRef,
               actualData,
               actualNextDataTick,
               unlockKey
             ) =>
           actualTick shouldBe 0L
+          actualServiceRef shouldBe serviceRef
           actualData shouldBe primaryData
           actualNextDataTick shouldBe Some(900L)
           unlockKey shouldBe None
@@ -322,6 +326,7 @@ class PrimaryServiceWorkerSpec
       expectMsg(
         ProvidePrimaryDataMessage(
           tick,
+          serviceRef,
           ActivePower(Kilowatts(50.0)),
           Some(900L)
         )
@@ -342,15 +347,23 @@ class PrimaryServiceWorkerSpec
 
       inside(
         systemParticipant.expectMsgClass(classOf[ProvidePrimaryDataMessage])
-      ) { case ProvidePrimaryDataMessage(tick, data, nextDataTick, unlockKey) =>
-        tick shouldBe 900L
-        inside(data) {
-          case ActivePower(p) =>
-            p should approximate(Kilowatts(1250.0))
-          case _ => fail("Expected to get active power only.")
-        }
-        nextDataTick shouldBe None
-        unlockKey shouldBe None
+      ) {
+        case ProvidePrimaryDataMessage(
+              tick,
+              actualServiceRef,
+              data,
+              nextDataTick,
+              unlockKey
+            ) =>
+          tick shouldBe 900L
+          actualServiceRef shouldBe serviceRef
+          inside(data) {
+            case ActivePower(p) =>
+              p should approximate(Kilowatts(1250.0))
+            case _ => fail("Expected to get active power only.")
+          }
+          nextDataTick shouldBe None
+          unlockKey shouldBe None
       }
     }
   }

@@ -6,12 +6,7 @@
 
 package edu.ie3.simona.agent.participant.evcs
 
-import org.apache.pekko.actor.{ActorRef, Props}
 import edu.ie3.datamodel.models.input.system.EvcsInput
-import edu.ie3.simona.agent.participant.{
-  ParticipantAgent,
-  ParticipantAgentFundamentals
-}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
   ZERO_POWER
@@ -21,15 +16,23 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.Acto
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
+import edu.ie3.simona.agent.participant.{
+  ParticipantAgent,
+  ParticipantAgentFundamentals
+}
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
-import edu.ie3.simona.model.participant.EvcsModel
-import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
+import edu.ie3.simona.model.participant.evcs.EvcsModel
+import edu.ie3.simona.model.participant.evcs.EvcsModel.{
+  EvcsRelevantData,
+  EvcsState
+}
 import edu.ie3.simona.ontology.messages.services.EvMessage.{
   DepartingEvsRequest,
   EvFreeLotsRequest
 }
 import edu.ie3.util.scala.quantities.ReactivePower
+import org.apache.pekko.actor.{ActorRef, Props}
 import squants.Power
 
 object EvcsAgent {
@@ -66,6 +69,7 @@ class EvcsAgent(
 ) extends ParticipantAgent[
       ApparentPower,
       EvcsRelevantData,
+      EvcsState,
       ParticipantStateData[ApparentPower],
       EvcsInput,
       EvcsRuntimeConfig,
@@ -80,21 +84,24 @@ class EvcsAgent(
           modelBaseStateData: ParticipantModelBaseStateData[
             ApparentPower,
             EvcsRelevantData,
+            EvcsState,
             EvcsModel
           ]
         ) =>
       handleFreeLotsRequest(tick, modelBaseStateData)
       stay()
+
     case Event(
           DepartingEvsRequest(tick, departingEvs),
           modelBaseStateData: ParticipantModelBaseStateData[
             ApparentPower,
             EvcsRelevantData,
+            EvcsState,
             EvcsModel
           ]
         ) =>
       val updatedStateData =
-        handleDepartingEvsRequest(tick, modelBaseStateData, departingEvs)
+        handleDepartingEvsRequest(tick, departingEvs, modelBaseStateData)
       stay() using updatedStateData
   }
 

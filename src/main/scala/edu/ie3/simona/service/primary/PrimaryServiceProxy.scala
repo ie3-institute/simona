@@ -260,7 +260,7 @@ case class PrimaryServiceProxy(
             s"There is no time series apparent for the model with uuid '{}'.",
             modelUuid
           )
-          sender() ! RegistrationFailedMessage
+          sender() ! RegistrationFailedMessage(self)
       }
     case x =>
       log.error(
@@ -313,7 +313,7 @@ case class PrimaryServiceProxy(
                 s"Will inform the requesting actor, that registration is not possible.",
               exception
             )
-            requestingActor ! RegistrationFailedMessage
+            requestingActor ! RegistrationFailedMessage(self)
         }
 
       case None =>
@@ -321,7 +321,7 @@ case class PrimaryServiceProxy(
           s"There is no source information for time series '$timeSeriesUuid' (requested for model " +
             s"'$modelUuid'), although the mapping contains information about it."
         )
-        requestingActor ! RegistrationFailedMessage
+        requestingActor ! RegistrationFailedMessage(self)
     }
   }
 
