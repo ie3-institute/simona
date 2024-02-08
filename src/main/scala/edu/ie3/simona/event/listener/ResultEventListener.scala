@@ -13,6 +13,7 @@ import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.event.Event
 import edu.ie3.simona.event.ResultEvent.{
+  FlexOptionsResultEvent,
   ParticipantResultEvent,
   PowerFlowResultEvent,
   ThermalResultEvent
@@ -312,6 +313,10 @@ object ResultEventListener extends Transformer3wResultSupport {
                   ctx.log
                 )
             }
+        idle(updatedBaseData)
+
+      case (ctx, FlexOptionsResultEvent(flexOptionsResult)) =>
+        val updatedBaseData = handleResult(flexOptionsResult, baseData, ctx.log)
         idle(updatedBaseData)
 
       case (ctx, _: StopMessage) =>

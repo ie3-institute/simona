@@ -8,16 +8,17 @@ package edu.ie3.simona.test.common.model
 
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.model.participant.CalcRelevantData
-
+import edu.ie3.simona.model.participant.ModelState
 import edu.ie3.simona.model.participant.SystemParticipant
 import edu.ie3.simona.model.participant.control.QControl
-
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.Sq
+import scala.Tuple2
 import squants.Dimensionless
 import squants.energy.*
 
-class MockParticipant extends SystemParticipant<CalcRelevantData, Data.PrimaryData.PrimaryDataWithApparentPower> {
+class MockParticipant extends SystemParticipant<CalcRelevantData, Data.PrimaryData.ApparentPower, ModelState> {
 
   MockParticipant(
   UUID uuid,
@@ -40,12 +41,22 @@ class MockParticipant extends SystemParticipant<CalcRelevantData, Data.PrimaryDa
   }
 
   @Override
-  Data.PrimaryData.ApparentPower calculatePower(long tick, Dimensionless voltage, CalcRelevantData data) {
+  Data.PrimaryData.ApparentPower calculatePower(long tick, Dimensionless voltage, ModelState maybeModelState, CalcRelevantData data) {
     return super.calculateApparentPower(tick, voltage, data)
   }
 
   @Override
-  Power calculateActivePower(CalcRelevantData data) {
+  Power calculateActivePower(ModelState maybeModelState, CalcRelevantData data) {
     return Sq.create(0, Megawatts$.MODULE$)
+  }
+
+  @Override
+  FlexibilityMessage.ProvideFlexOptions determineFlexOptions(CalcRelevantData data, ModelState lastState) {
+    return null
+  }
+
+  @Override
+  Tuple2 handleControlledPowerChange(CalcRelevantData data, ModelState lastState, Power setPower) {
+    return null
   }
 }

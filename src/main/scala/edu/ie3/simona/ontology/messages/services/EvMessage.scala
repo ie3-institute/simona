@@ -7,12 +7,13 @@
 package edu.ie3.simona.ontology.messages.services
 
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
-import edu.ie3.simona.api.data.ev.model.EvModel
+import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ProvisionMessage,
   ServiceRegistrationMessage
 }
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
+import org.apache.pekko.actor.ActorRef
 
 import java.util.UUID
 
@@ -45,6 +46,7 @@ object EvMessage {
     */
   final case class ProvideEvDataMessage(
       override val tick: Long,
+      override val serviceRef: ActorRef,
       override val data: EvData,
       override val nextDataTick: Option[Long] = None,
       override val unlockKey: Option[ScheduleKey] = None
@@ -52,12 +54,11 @@ object EvMessage {
       with ProvisionMessage[EvData]
 
   /** Requests number of free lots from evcs
+    *
     * @param tick
     *   The latest tick that the data is requested for
     */
-  final case class EvFreeLotsRequest(
-      tick: Long
-  )
+  final case class EvFreeLotsRequest(tick: Long)
 
   /** Requests EV models of departing EVs with given UUIDs
     *
@@ -73,9 +74,8 @@ object EvMessage {
     * @param arrivals
     *   EVs arriving at the charging station
     */
-
   final case class ArrivingEvsData(
-      arrivals: Seq[EvModel]
+      arrivals: Seq[EvModelWrapper]
   ) extends EvData {}
 
   trait EvResponseMessage extends EvMessage
@@ -87,6 +87,7 @@ object EvMessage {
 
   final case class DepartingEvsResponse(
       evcs: UUID,
-      evModels: Set[EvModel]
+      evModels: Seq[EvModelWrapper]
   ) extends EvResponseMessage
+
 }

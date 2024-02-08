@@ -98,6 +98,7 @@ trait DefaultTestData {
          |    notifier = "default"
          |    powerRequestReply = false
          |    simulationResult = false
+         |    flexResult = false
          |}
          |simona.output.participant.individualConfigs = []
          |

@@ -12,10 +12,12 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-
 import squants.Power
 import squants.energy.Kilowatts
 
@@ -43,11 +45,15 @@ final case class FixedFeedInModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    scalingFactor: Double,
+    override val scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double
-) extends SystemParticipant[FixedRelevantData.type, ApparentPower](
+) extends SystemParticipant[
+      FixedRelevantData.type,
+      ApparentPower,
+      ConstantState.type
+    ](
       uuid,
       id,
       operationInterval,
@@ -56,7 +62,7 @@ final case class FixedFeedInModel(
       sRated,
       cosPhiRated
     )
-    with ApparentPowerParticipant[FixedRelevantData.type] {
+    with ApparentPowerParticipant[FixedRelevantData.type, ConstantState.type] {
 
   /** Calculate the active power behaviour of the model
     *
@@ -67,12 +73,29 @@ final case class FixedFeedInModel(
     *   Active power
     */
   override protected def calculateActivePower(
+      modelState: ConstantState.type,
       data: FixedRelevantData.type = FixedRelevantData
   ): Power =
-    sRated * (-1) * cosPhiRated * scalingFactor
+    sRated * (-1) * cosPhiRated
+
+  override def determineFlexOptions(
+      data: FixedRelevantData.type,
+      lastState: ConstantState.type
+  ): ProvideFlexOptions =
+    ProvideMinMaxFlexOptions.noFlexOption(
+      uuid,
+      calculateActivePower(lastState, data)
+    )
+
+  override def handleControlledPowerChange(
+      data: FixedRelevantData.type,
+      lastState: ConstantState.type,
+      setPower: Power
+  ): (ConstantState.type, FlexChangeIndicator) =
+    (lastState, FlexChangeIndicator())
 }
 
-case object FixedFeedInModel extends LazyLogging {
+object FixedFeedInModel extends LazyLogging {
   def apply(
       inputModel: FixedFeedInInput,
       modelConfiguration: SimonaConfig.FixedFeedInRuntimeConfig,

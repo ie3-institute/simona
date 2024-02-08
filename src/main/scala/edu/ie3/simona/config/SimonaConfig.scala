@@ -1,5 +1,5 @@
 /*
- * © 2023. TU Dortmund University,
+ * © 2024. TU Dortmund University,
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
@@ -82,7 +82,9 @@ object SimonaConfig {
   final case class EvcsRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: scala.Boolean,
       override val scaling: scala.Double,
-      override val uuids: scala.List[java.lang.String]
+      override val uuids: scala.List[java.lang.String],
+      chargingStrategy: java.lang.String,
+      lowestEvSoc: scala.Double
   ) extends BaseRuntimeConfig(
         calculateMissingReactivePowerWithModel,
         scaling,
@@ -95,6 +97,13 @@ object SimonaConfig {
         $tsCfgValidator: $TsCfgValidator
     ): SimonaConfig.EvcsRuntimeConfig = {
       SimonaConfig.EvcsRuntimeConfig(
+        chargingStrategy =
+          if (c.hasPathOrNull("chargingStrategy"))
+            c.getString("chargingStrategy")
+          else "maxPower",
+        lowestEvSoc =
+          if (c.hasPathOrNull("lowestEvSoc")) c.getDouble("lowestEvSoc")
+          else 0.2,
         calculateMissingReactivePowerWithModel = $_reqBln(
           parentPath,
           c,
@@ -393,6 +402,7 @@ object SimonaConfig {
   final case class ParticipantBaseOutputConfig(
       override val notifier: java.lang.String,
       override val simulationResult: scala.Boolean,
+      flexResult: scala.Boolean,
       powerRequestReply: scala.Boolean
   ) extends BaseOutputConfig(notifier, simulationResult)
   object ParticipantBaseOutputConfig {
@@ -402,6 +412,8 @@ object SimonaConfig {
         $tsCfgValidator: $TsCfgValidator
     ): SimonaConfig.ParticipantBaseOutputConfig = {
       SimonaConfig.ParticipantBaseOutputConfig(
+        flexResult =
+          c.hasPathOrNull("flexResult") && c.getBoolean("flexResult"),
         powerRequestReply =
           $_reqBln(parentPath, c, "powerRequestReply", $tsCfgValidator),
         notifier = $_reqStr(parentPath, c, "notifier", $tsCfgValidator),
@@ -1802,6 +1814,7 @@ object SimonaConfig {
 
     final case class Output(
         base: SimonaConfig.Simona.Output.Base,
+        flex: scala.Boolean,
         grid: SimonaConfig.GridOutputConfig,
         participant: SimonaConfig.Simona.Output.Participant,
         sink: SimonaConfig.Simona.Output.Sink,
@@ -2070,6 +2083,7 @@ object SimonaConfig {
             parentPath + "base.",
             $tsCfgValidator
           ),
+          flex = c.hasPathOrNull("flex") && c.getBoolean("flex"),
           grid = SimonaConfig.GridOutputConfig(
             if (c.hasPathOrNull("grid")) c.getConfig("grid")
             else com.typesafe.config.ConfigFactory.parseString("grid{}"),
