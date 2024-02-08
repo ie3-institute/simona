@@ -89,6 +89,8 @@ class NotifierSpec
           classOf[StorageResult],
         Ev ->
           classOf[EvResult],
+        Em ->
+          classOf[EmResult],
       )
       // TODO: Grid results are not covered, yet.
 

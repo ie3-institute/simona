@@ -119,6 +119,7 @@ class GridAgent(
       TimeUtil.withDefaults
         .toZonedDateTime(simonaConfig.simona.time.endDateTime),
       simonaConfig.simona.runtime.participant,
+      simonaConfig.simona.runtime.rootEm,
       simonaConfig.simona.output.participant,
       resolution,
       listener,

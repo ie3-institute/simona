@@ -7,7 +7,7 @@
 package edu.ie3.simona.io.grid
 
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
-import edu.ie3.datamodel.io.source._
+import edu.ie3.datamodel.io.source.{ThermalSource, TypeSource}
 import edu.ie3.datamodel.io.source.csv._
 import edu.ie3.datamodel.models.input.container._
 import edu.ie3.datamodel.models.input.thermal.{
@@ -25,22 +25,24 @@ object CsvGridSource {
       baseFolder: Path,
       fileNamingStrategy: FileNamingStrategy,
   ): Map[ThermalBusInput, ThermalGrid] = {
-    val csvDataSource =
+    val dataSource =
       new CsvDataSource(csvSep, baseFolder, fileNamingStrategy)
-    val csvTypeSource: TypeSource =
-      new TypeSource(csvDataSource)
-    val csvThermalSource: ThermalSource =
-      new ThermalSource(csvTypeSource, csvDataSource)
-    val operators = csvTypeSource.getOperators
-    val busses = csvThermalSource.getThermalBuses()
-    val houses = csvThermalSource
+    val typeSource = new TypeSource(dataSource)
+    val thermalSource = new ThermalSource(
+      typeSource,
+      dataSource,
+    )
+
+    val operators = typeSource.getOperators
+    val busses = thermalSource.getThermalBuses()
+    val houses = thermalSource
       .getThermalHouses(operators, busses)
       .asScala
       .groupBy(thermalHouse => thermalHouse.getThermalBus)
       .map { case (bus, houses) =>
         bus -> houses.toSet
       }
-    val storages = csvThermalSource
+    val storages = thermalSource
       .getThermalStorages(operators, busses)
       .asScala
       .groupBy(thermalStorage => thermalStorage.getThermalBus)
