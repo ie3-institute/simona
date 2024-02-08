@@ -205,7 +205,7 @@ class LoadAgentProfileModelCalculationSpec
           /* Base state data */
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
-          services shouldBe None
+          services shouldBe Iterable.empty
           outputConfig shouldBe defaultOutputConfig
           additionalActivationTicks
             .corresponds(Seq(900L, 1800L, 2700L, 3600L))(_ == _) shouldBe true
