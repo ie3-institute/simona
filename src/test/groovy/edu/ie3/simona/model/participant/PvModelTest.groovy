@@ -32,9 +32,7 @@ import org.locationtech.jts.geom.Point
 import scala.Option
 import spock.lang.Shared
 import spock.lang.Specification
-import squants.*
-import squants.energy.*
-import squants.space.*
+import squants.space.Angle
 import java.time.ZonedDateTime
 
 /**

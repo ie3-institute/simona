@@ -155,7 +155,7 @@ class EmAgentIT
                 uuids = List.empty
               ),
               primaryServiceProxy.ref.toClassic,
-              Some(Vector(ActorWeatherService(weatherService.ref.toClassic))),
+              Iterable(ActorWeatherService(weatherService.ref.toClassic)),
               simulationStartDate,
               simulationEndDate,
               resolution,
@@ -442,7 +442,7 @@ class EmAgentIT
                 uuids = List.empty
               ),
               primaryServiceProxy.ref.toClassic,
-              Some(Vector(ActorWeatherService(weatherService.ref.toClassic))),
+              Iterable(ActorWeatherService(weatherService.ref.toClassic)),
               simulationStartDate,
               simulationEndDate,
               resolution,
@@ -466,7 +466,7 @@ class EmAgentIT
                 List.empty[String]
               ),
               primaryServiceProxy.ref.toClassic,
-              Some(Vector(ActorWeatherService(weatherService.ref.toClassic))),
+              Iterable(ActorWeatherService(weatherService.ref.toClassic)),
               simulationStartDate,
               simulationEndDate,
               resolution,
