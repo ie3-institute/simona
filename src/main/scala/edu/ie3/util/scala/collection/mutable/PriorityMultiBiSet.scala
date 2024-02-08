@@ -36,6 +36,7 @@ final case class PriorityMultiBiSet[K, V] private (
 ) {
 
   /** Get the first key of the queue, if the queue is not empty. Runs in O(1).
+    *
     * @return
     *   The first key
     */
@@ -49,6 +50,7 @@ final case class PriorityMultiBiSet[K, V] private (
   def keySet: SortedSet[K] = queue
 
   /** Get the key that given value is mapped for, if it exists.
+    *
     * @param value
     *   Value to retrieve the key for
     * @return
@@ -57,7 +59,8 @@ final case class PriorityMultiBiSet[K, V] private (
   def getKeyOf(value: V): Option[K] =
     back.get(value)
 
-  /** Set given value to given key
+  /** Set given value to given key.
+    *
     * @param key
     *   The key to add the value for
     * @param value
@@ -65,7 +68,7 @@ final case class PriorityMultiBiSet[K, V] private (
     */
   def set(key: K, value: V): Unit = {
     // remove old mapping for value in table and queue
-    back.get(value).foreach(remove(_, value))
+    remove(value)
     // add new mapping
     back += (value -> key)
 
@@ -80,37 +83,36 @@ final case class PriorityMultiBiSet[K, V] private (
     }
   }
 
-  /** Removes the given value for given key, if it exists.
-    * @param key
-    *   The key for which the value should be removed
+  /** Removes the given value, if it exists.
+    *
     * @param value
     *   The value
     * @return
-    *   Whether the key-value pair existed
+    *   Whether the value existed somewhere in here
     */
-  def remove(key: K, value: V): Boolean = {
-    back.remove(value)
+  def remove(value: V): Boolean = {
+    back.get(value).exists { key =>
+      back.remove(value)
 
-    table.get(key).exists { set =>
-      val existed = set.remove(value)
+      table.get(key).exists { set =>
+        val existed = set.remove(value)
 
-      if (set.isEmpty) {
-        table -= key
-        queue -= key
+        if (set.isEmpty) {
+          table -= key
+          queue -= key
+        }
+
+        existed
       }
-
-      existed
     }
+
   }
 
-  /** Retrieves the first element in the list of the first key. The returned
-    * element is also removed the queue here.
+  /** Retrieves the values stored for given key. The returned elements are also
+    * removed from the queue here.
     *
-    * If the list of values for given key is empty, the list is removed: There
-    * are no empty lists in the queue, thus also keys only exist for non-empty
-    * lists.
     * @return
-    *   The first element in the list of the first key
+    *   All values stored for the first key
     */
   def getAndRemoveSet(key: K): Set[V] = {
     table
@@ -131,12 +133,14 @@ final case class PriorityMultiBiSet[K, V] private (
   }
 
   /** Tests whether there is no value for any key in the queue.
+    *
     * @return
     *   True if the queue is empty
     */
   def isEmpty: Boolean = queue.isEmpty
 
   /** Tests whether there is any value for any key in the queue.
+    *
     * @return
     *   True if the queue is non-empty
     */

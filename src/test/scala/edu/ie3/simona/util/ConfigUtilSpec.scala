@@ -620,23 +620,27 @@ class ConfigUtilSpec
       SimonaConfig.ParticipantBaseOutputConfig(
         notifier = "default",
         powerRequestReply = false,
-        simulationResult = false
+        simulationResult = false,
+        flexResult = false
       ),
       List(
         SimonaConfig.ParticipantBaseOutputConfig(
           notifier = "load",
           powerRequestReply = false,
-          simulationResult = false
+          simulationResult = false,
+          flexResult = false
         ),
         SimonaConfig.ParticipantBaseOutputConfig(
           notifier = "pv",
           powerRequestReply = false,
-          simulationResult = false
+          simulationResult = false,
+          flexResult = false
         ),
         SimonaConfig.ParticipantBaseOutputConfig(
           notifier = "chp",
           powerRequestReply = false,
-          simulationResult = false
+          simulationResult = false,
+          flexResult = false
         )
       )
     )
@@ -646,20 +650,24 @@ class ConfigUtilSpec
       inside(configUtil) { case OutputConfigUtil(default, configs) =>
         default shouldBe NotifierConfig(
           simulationResultInfo = false,
-          powerRequestReply = false
+          powerRequestReply = false,
+          flexResult = false
         )
         configs shouldBe Map(
           Load -> NotifierConfig(
             simulationResultInfo = false,
-            powerRequestReply = false
+            powerRequestReply = false,
+            flexResult = false
           ),
           PvPlant -> NotifierConfig(
             simulationResultInfo = false,
-            powerRequestReply = false
+            powerRequestReply = false,
+            flexResult = false
           ),
           ChpPlant -> NotifierConfig(
             simulationResultInfo = false,
-            powerRequestReply = false
+            powerRequestReply = false,
+            flexResult = false
           )
         )
       }
@@ -670,14 +678,16 @@ class ConfigUtilSpec
       val actual = configUtil.getOrDefault(PvPlant)
       actual shouldBe NotifierConfig(
         simulationResultInfo = false,
-        powerRequestReply = false
+        powerRequestReply = false,
+        flexResult = false
       )
     }
 
     "return default config, when the requested model type is not apparent" in {
       configUtil.getOrDefault(Wec) shouldBe NotifierConfig(
         simulationResultInfo = false,
-        powerRequestReply = false
+        powerRequestReply = false,
+        flexResult = false
       )
     }
 
@@ -686,23 +696,27 @@ class ConfigUtilSpec
         SimonaConfig.ParticipantBaseOutputConfig(
           notifier = "default",
           powerRequestReply = false,
-          simulationResult = true
+          simulationResult = true,
+          flexResult = false
         ),
         List(
           SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "load",
             powerRequestReply = true,
-            simulationResult = true
+            simulationResult = true,
+            flexResult = false
           ),
           SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "pv",
             powerRequestReply = true,
-            simulationResult = false
+            simulationResult = false,
+            flexResult = false
           ),
           SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "chp",
             powerRequestReply = true,
-            simulationResult = true
+            simulationResult = true,
+            flexResult = false
           )
         )
       )
@@ -719,23 +733,27 @@ class ConfigUtilSpec
         SimonaConfig.ParticipantBaseOutputConfig(
           notifier = "default",
           powerRequestReply = false,
-          simulationResult = false
+          simulationResult = false,
+          flexResult = false
         ),
         List(
           SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "load",
             powerRequestReply = true,
-            simulationResult = true
+            simulationResult = true,
+            flexResult = false
           ),
           SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "pv",
             powerRequestReply = true,
-            simulationResult = false
+            simulationResult = false,
+            flexResult = false
           ),
           SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "chp",
             powerRequestReply = true,
-            simulationResult = true
+            simulationResult = true,
+            flexResult = false
           )
         )
       )
@@ -751,23 +769,27 @@ class ConfigUtilSpec
         SimonaConfig.ParticipantBaseOutputConfig(
           notifier = "default",
           powerRequestReply = false,
-          simulationResult = false
+          simulationResult = false,
+          flexResult = false
         ),
         List(
           SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "load",
             powerRequestReply = true,
-            simulationResult = true
+            simulationResult = true,
+            flexResult = false
           ),
           SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "pv",
             powerRequestReply = true,
-            simulationResult = false
+            simulationResult = false,
+            flexResult = false
           ),
           SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "chp",
             powerRequestReply = true,
-            simulationResult = true
+            simulationResult = true,
+            flexResult = false
           )
         )
       )

@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add additional test cases from references for PvModelTest [#590](https://github.com/ie3-institute/simona/issues/590)
 - Instantiation of Heat Pump Agents [#253](https://github.com/ie3-institute/simona/issues/253)
 - Output of accompanying thermal result models
+- Added JDK installation, Scala Plugin + SDK in usersguide [#324](https://github.com/ie3-institute/simona/issues/324)
+- Squants scalatest matchers [#715](https://github.com/ie3-institute/simona/issues/715)
+- Energy Management capabilities:
+  - Added capability of SystemParticipants to handle flexibility [#308](https://github.com/ie3-institute/simona/issues/308)
+  - Added smart charging logic [#31](https://github.com/ie3-institute/simona/issues/31) and flex calculation in `EvcsAgent` [#332](https://github.com/ie3-institute/simona/issues/332)
 - Models for measurements within the grid structure [#89](https://github.com/ie3-institute/simona/issues/89)
 - Config possibility for transformer control groups [#90](https://github.com/ie3-institute/simona/issues/90)
 
@@ -28,6 +33,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Schedule lock [#651](https://github.com/ie3-institute/simona/issues/651)
   - New scheduling protocol [#650](https://github.com/ie3-institute/simona/issues/650)
 - Replaced akka with pekko [#641](https://github.com/ie3-institute/simona/issues/641)
+- Use `ThermalGrid` to calculate thermal environment of a heat pump [#315](https://github.com/ie3-institute/simona/issues/315)
+- Enable windows path as config parameters [#549](https://github.com/ie3-institute/simona/issues/549)
+- Unified consideration of scaling factor when simulating system participants [#81](https://github.com/ie3-institute/simona/issues/81)
+
+### Fixed
+- Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
+- Removed version number "2.0" from the logo printed to console [#642](https://github.com/ie3-institute/simona/issues/642)
+- Fixed PV Model documentation [#684](https://github.com/ie3-institute/simona/issues/684), [#686](https://github.com/ie3-institute/simona/issues/686)
+- Removed `CsvDataSourceAdapter` workaround [#702](https://github.com/ie3-institute/simona/issues/702)
+- Logging wrong duration in the first simulation hour [#705](https://github.com/ie3-institute/simona/issues/705)
+- Fixed some compiler warnings [#657](https://github.com/ie3-institute/simona/issues/657)
 
 ## [3.0.0] - 2023-08-07
 
@@ -125,6 +141,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed broken layout in RTD documentation [#500](https://github.com/ie3-institute/simona/issues/500)
 - Corrected tests in RefSystemTest [#560](https://github.com/ie3-institute/simona/issues/560)
 - Take log file event filters from `logback.xml` when defining the run log appender [#108](https://github.com/ie3-institute/simona/issues/108)
+- Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
 
 ### Removed
 - Remove workaround for tscfg tmp directory [#178](https://github.com/ie3-institute/simona/issues/178)

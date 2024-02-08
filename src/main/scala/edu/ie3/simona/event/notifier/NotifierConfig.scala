@@ -14,5 +14,6 @@ package edu.ie3.simona.event.notifier
   */
 final case class NotifierConfig(
     simulationResultInfo: Boolean,
-    powerRequestReply: Boolean
+    powerRequestReply: Boolean,
+    flexResult: Boolean
 )

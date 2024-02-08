@@ -9,18 +9,20 @@ package edu.ie3.simona.model.participant.load
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
+import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.{
   ApparentPowerParticipant,
+  FlexChangeIndicator,
   SystemParticipant
 }
-import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import squants.{Energy, Power}
 import squants.energy.Megawatts
+import squants.{Energy, Power}
 
 import java.util.UUID
 
@@ -37,7 +39,7 @@ abstract class LoadModel[D <: LoadRelevantData](
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double
-) extends SystemParticipant[D, ApparentPower](
+) extends SystemParticipant[D, ApparentPower, ConstantState.type](
       uuid,
       id,
       operationInterval,
@@ -46,7 +48,24 @@ abstract class LoadModel[D <: LoadRelevantData](
       sRated,
       cosPhiRated
     )
-    with ApparentPowerParticipant[D]
+    with ApparentPowerParticipant[D, ConstantState.type] {
+
+  override def determineFlexOptions(
+      data: D,
+      lastState: ConstantState.type
+  ): ProvideFlexOptions =
+    ProvideMinMaxFlexOptions.noFlexOption(
+      uuid,
+      calculateActivePower(lastState, data)
+    )
+
+  override def handleControlledPowerChange(
+      data: D,
+      lastState: ConstantState.type,
+      setPower: Power
+  ): (ConstantState.type, FlexChangeIndicator) =
+    (lastState, FlexChangeIndicator())
+}
 
 case object LoadModel extends LazyLogging {
 
@@ -89,7 +108,7 @@ case object LoadModel extends LazyLogging {
     *
     * When the load is scaled based on the consumed energy per year, the
     * installed sRated capacity is not usable anymore instead, the load's rated
-    * apparent power ist scaled on the maximum power occurring in the specified
+    * apparent power is scaled on the maximum power occurring in the specified
     * load profile multiplied by the ratio of the annual consumption and the
     * standard load profile scale
     *

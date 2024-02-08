@@ -96,8 +96,7 @@ final case class TransformerTappingModel(
         s"Provided tap pos $newTapPos is not between allowed tapping range of tapMin: $tapMin and tapMax: $tapMax!"
       )
     _currentTapPos = newTapPos
-    val tapRatio: Double = 1 + (_currentTapPos - tapNeutr) * deltaVval
-    tapRatio
+    1 + (_currentTapPos - tapNeutr) * deltaVval
   }
 
   /** Determine the amount of tap positions to increase oder decrease in order

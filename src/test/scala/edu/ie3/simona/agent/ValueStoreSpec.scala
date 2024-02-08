@@ -9,6 +9,8 @@ package edu.ie3.simona.agent
 import edu.ie3.simona.test.common.UnitSpec
 import org.scalatest.PrivateMethodTester
 
+import scala.collection.SortedMap
+
 class ValueStoreSpec extends UnitSpec with PrivateMethodTester {
   "An empty value store" should {
     val emptyValueStore: ValueStore[String] = ValueStore[String](Long.MaxValue)
@@ -42,7 +44,7 @@ class ValueStoreSpec extends UnitSpec with PrivateMethodTester {
   "A filled value store" should {
     val filledValueStore: ValueStore[String] = ValueStore[String](
       5,
-      Map(1L -> "One", 2L -> "Two", 3L -> "Three", 4L -> "Four")
+      SortedMap(1L -> "One", 2L -> "Two", 3L -> "Three", 4L -> "Four")
     )
 
     "be properly instantiated" in {
