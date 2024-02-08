@@ -97,7 +97,7 @@ final case class ThermalHouse(
   ): ThermalEnergyDemand = {
     /* Calculate the inner temperature of the house, at the questioned instance in time */
     val duration = Seconds(tick - state.tick)
-    val innerTemperature = newInnerTemperature(
+    val currentInnerTemp = newInnerTemperature(
       state.qDot,
       duration,
       state.innerTemperature,
@@ -107,24 +107,28 @@ final case class ThermalHouse(
     /* Determine, which temperature boundary triggers a needed energy to reach the temperature constraints */
     val temperatureToTriggerRequiredEnergy =
       if (
-        innerTemperature <= state.innerTemperature &&
+        currentInnerTemp <= state.innerTemperature &&
         state.qDot <= Kilowatts(0d)
-      )
+      ) {
+        // temperature has been decreasing and heat source has been turned off
+        // => we have reached target temp before and are now targeting lower temp
         lowerBoundaryTemperature
-      else targetTemperature
+      } else targetTemperature
     val requiredEnergy =
       if (
         isInnerTemperatureTooLow(
-          innerTemperature,
+          currentInnerTemp,
           temperatureToTriggerRequiredEnergy
         )
-      ) energy(targetTemperature, innerTemperature)
+      ) energy(targetTemperature, currentInnerTemp)
       else
         MegawattHours(0d)
 
     val possibleEnergy =
-      if (!isInnerTemperatureTooHigh(innerTemperature)) {
-        energy(upperBoundaryTemperature, innerTemperature)
+      if (!isInnerTemperatureTooHigh(currentInnerTemp)) {
+        // if upper boundary has not been reached,
+        // there is an amount of optional energy that could be stored
+        energy(upperBoundaryTemperature, currentInnerTemp)
       } else
         MegawattHours(0d)
     ThermalEnergyDemand(requiredEnergy, possibleEnergy)
