@@ -49,6 +49,7 @@ import squants.energy.{Kilowatts, Megawatts, Watts}
 
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
+import scala.collection.SortedMap
 
 class FixedFeedInAgentModelCalculationSpec
     extends ParticipantAgentSpec(
@@ -86,7 +87,8 @@ class FixedFeedInAgentModelCalculationSpec
     )
   private val defaultOutputConfig = NotifierConfig(
     simonaConfig.simona.output.participant.defaultConfig.simulationResult,
-    simonaConfig.simona.output.participant.defaultConfig.powerRequestReply
+    simonaConfig.simona.output.participant.defaultConfig.powerRequestReply,
+    simonaConfig.simona.output.participant.defaultConfig.flexResult
   )
 
   private val fixedFeedConfigUtil = ConfigUtil.ParticipantConfigUtil(
@@ -96,7 +98,7 @@ class FixedFeedInAgentModelCalculationSpec
     fixedFeedConfigUtil.getOrDefault[FixedFeedInRuntimeConfig](
       voltageSensitiveInput.getUuid
     )
-  private val services = None
+  private val services = Iterable.empty
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
   "A fixed feed in agent with model calculation " should {
@@ -163,7 +165,8 @@ class FixedFeedInAgentModelCalculationSpec
               simulationEndDate,
               resolution,
               requestVoltageDeviationThreshold,
-              outputConfig
+              outputConfig,
+              maybeEmAgent
             ) =>
           inputModel shouldBe SimpleInputContainer(voltageSensitiveInput)
           modelConfig shouldBe modelConfig
@@ -173,12 +176,16 @@ class FixedFeedInAgentModelCalculationSpec
           resolution shouldBe this.resolution
           requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
           outputConfig shouldBe defaultOutputConfig
+          maybeEmAgent shouldBe None
         case unsuitableStateData =>
           fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
       }
 
       /* Refuse registration */
-      primaryServiceProxy.send(fixedFeedAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        fixedFeedAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* Expect a completion notification */
       scheduler.expectMsg(Completion(fixedFeedAgent.toTyped, Some(0)))
@@ -198,23 +205,22 @@ class FixedFeedInAgentModelCalculationSpec
               voltageValueStore,
               resultValueStore,
               requestValueStore,
+              _,
+              _,
               _
             ) =>
           /* Base state data */
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
-          services shouldBe None
+          services shouldBe Iterable.empty
           outputConfig shouldBe defaultOutputConfig
           additionalActivationTicks shouldBe empty
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
-            Map(0L -> Each(1.0))
+            SortedMap(0L -> Each(1.0))
           )
-          resultValueStore shouldBe ValueStore.forResult(
-            resolution,
-            2
-          )
+          resultValueStore shouldBe ValueStore(resolution)
           requestValueStore shouldBe ValueStore[ApparentPower](
             resolution
           )
@@ -238,7 +244,10 @@ class FixedFeedInAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(fixedFeedAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        fixedFeedAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -259,12 +268,12 @@ class FixedFeedInAgentModelCalculationSpec
       )
 
       inside(fixedFeedAgent.stateData) {
-        case modelBaseStateData: ParticipantModelBaseStateData[_, _, _] =>
-          modelBaseStateData.requestValueStore shouldBe ValueStore[
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
+          baseStateData.requestValueStore shouldBe ValueStore[
             ApparentPower
           ](
             resolution,
-            Map(
+            SortedMap(
               0L -> ApparentPower(
                 Megawatts(0d),
                 Megavars(0d)
@@ -291,7 +300,10 @@ class FixedFeedInAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(fixedFeedAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        fixedFeedAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       /* I am not interested in the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -308,12 +320,8 @@ class FixedFeedInAgentModelCalculationSpec
 
       awaitAssert(fixedFeedAgent.stateName shouldBe Idle)
       inside(fixedFeedAgent.stateData) {
-        case participantModelBaseStateData: ParticipantModelBaseStateData[
-              _,
-              _,
-              _
-            ] =>
-          participantModelBaseStateData.resultValueStore.last(0L) match {
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
+          baseStateData.resultValueStore.last(0L) match {
             case Some((tick, entry)) =>
               tick shouldBe 0L
               inside(entry) { case ApparentPower(p, q) =>
@@ -344,7 +352,10 @@ class FixedFeedInAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(fixedFeedAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        fixedFeedAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       scheduler.expectMsg(Completion(fixedFeedAgent.toTyped, Some(0)))
 
@@ -384,7 +395,10 @@ class FixedFeedInAgentModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(fixedFeedAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        fixedFeedAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       scheduler.expectMsg(Completion(fixedFeedAgent.toTyped, Some(0)))
 

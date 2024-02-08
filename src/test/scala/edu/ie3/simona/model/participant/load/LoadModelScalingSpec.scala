@@ -14,6 +14,7 @@ import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.LoadReference.{
   ActivePower,
@@ -415,6 +416,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           .calculatePower(
             tick,
             Each(0d),
+            ConstantState,
             relevantData
           )
           .p

@@ -77,6 +77,6 @@ class FixedFeedModelTest extends Specification {
         )
 
     then:
-    actualModel.calculateActivePower(CalcRelevantData.FixedRelevantData$.MODULE$) =~ expectedPower
+    actualModel.calculateActivePower(ModelState.ConstantState$.MODULE$, CalcRelevantData.FixedRelevantData$.MODULE$) =~ expectedPower
   }
 }

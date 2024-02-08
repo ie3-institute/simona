@@ -9,8 +9,8 @@ package edu.ie3.simona.model.thermal
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
-import squants.energy.Kilowatts
-import squants.thermal.Celsius
+import squants.energy.{Kilowatts, Power}
+import squants.thermal.{Celsius, Temperature}
 
 import java.util.UUID
 
@@ -21,8 +21,8 @@ trait ThermalGridTestData {
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited()
   )
-  protected val testGridambientTemperature = Celsius(12d)
-  protected val testGridQDotInfeed = Kilowatts(15d)
-  protected val testGridQDotConsumption = Kilowatts(-42d)
-  protected val testGridQDotConsumptionHigh = Kilowatts(-200d)
+  protected val testGridambientTemperature: Temperature = Celsius(12d)
+  protected val testGridQDotInfeed: Power = Kilowatts(15d)
+  protected val testGridQDotConsumption: Power = Kilowatts(-42d)
+  protected val testGridQDotConsumptionHigh: Power = Kilowatts(-200d)
 }

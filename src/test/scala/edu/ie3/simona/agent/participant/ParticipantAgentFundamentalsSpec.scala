@@ -28,6 +28,7 @@ import edu.ie3.simona.exceptions.agent.{
 }
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.SystemParticipant
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
 import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantData
 import edu.ie3.simona.model.participant.load.{FixedLoadModel, LoadReference}
@@ -35,17 +36,17 @@ import edu.ie3.simona.test.common.AgentSpec
 import edu.ie3.simona.test.common.model.participant.LoadTestData
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
 import org.mockito.Mockito.when
 import org.scalatest.PrivateMethodTester
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor3, TableFor5}
 import org.scalatestplus.mockito.MockitoSugar
-import squants.Each
-import squants.energy.{Kilowatts, Megawatts}
+import squants.{Each, Power}
+import squants.energy.{Kilowatts, Megawatts, Watts}
 
 import java.util.UUID
 import java.util.concurrent.TimeUnit
-import scala.collection.SortedSet
+import scala.collection.{SortedMap, SortedSet}
 
 class ParticipantAgentFundamentalsSpec
     extends AgentSpec(
@@ -64,13 +65,14 @@ class ParticipantAgentFundamentalsSpec
     with MockitoSugar {
   implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
-  implicit val pTolerance: squants.Power = Megawatts(0.001)
-  implicit val qTolerance: ReactivePower = Megavars(0.001)
+  private implicit val pTolerance: Power = Watts(0.1)
+  private implicit val qTolerance: ReactivePower = Vars(0.1)
 
   private val outputConfig: NotifierConfig =
     NotifierConfig(
       simulationResultInfo = false,
-      powerRequestReply = false
+      powerRequestReply = false,
+      flexResult = false
     )
 
   /* Get one instance of the mock for participant agent */
@@ -89,7 +91,7 @@ class ParticipantAgentFundamentalsSpec
     )
   val mockAgent: ParticipantAgentMock = mockAgentTestRef.underlyingActor
 
-  private val powerValues: Map[Long, ApparentPower] =
+  private val powerValues =
     Map(
       0L -> ApparentPower(
         Megawatts(1.0),
@@ -406,7 +408,7 @@ class ParticipantAgentFundamentalsSpec
       val requestTick = 1800L
       val resultValueStore = ValueStore(
         900,
-        Map(
+        SortedMap(
           800L -> ApparentPower(
             Megawatts(0.0),
             Megavars(0.0)
@@ -435,7 +437,7 @@ class ParticipantAgentFundamentalsSpec
       )
       val requestValueStore = ValueStore(
         900,
-        Map(
+        SortedMap(
           900L -> ApparentPower(
             Megawatts(0.0),
             Megavars(0.0)
@@ -485,7 +487,7 @@ class ParticipantAgentFundamentalsSpec
       val requestTick = 1800L
       val resultValueStore = ValueStore(
         900,
-        Map(
+        SortedMap(
           800L -> ApparentPower(
             Megawatts(0.0),
             Megavars(0.0)
@@ -494,7 +496,7 @@ class ParticipantAgentFundamentalsSpec
       )
       val requestValueStore = ValueStore(
         900,
-        Map(
+        SortedMap(
           900L -> ApparentPower(
             Megawatts(0.0),
             Megavars(0.0)
@@ -526,6 +528,7 @@ class ParticipantAgentFundamentalsSpec
       val baseStateData = ParticipantModelBaseStateData[
         ApparentPower,
         FixedLoadRelevantData.type,
+        ConstantState.type,
         FixedLoadModel
       ](
         simulationStartDate,
@@ -548,7 +551,9 @@ class ParticipantAgentFundamentalsSpec
         ValueStore.forVoltage(901L, Each(1.0)),
         ValueStore(901L),
         ValueStore(901L),
-        ValueStore(901L)
+        ValueStore(901L),
+        ValueStore(901L),
+        None
       )
 
       ParticipantAgent.getAndCheckNodalVoltage(
@@ -561,6 +566,7 @@ class ParticipantAgentFundamentalsSpec
       val baseStateData = ParticipantModelBaseStateData[
         ApparentPower,
         FixedLoadRelevantData.type,
+        ConstantState.type,
         FixedLoadModel
       ](
         simulationStartDate,
@@ -583,7 +589,9 @@ class ParticipantAgentFundamentalsSpec
         ValueStore(901L),
         ValueStore(901L),
         ValueStore(901L),
-        ValueStore(901L)
+        ValueStore(901L),
+        ValueStore(901L),
+        None
       )
 
       intercept[InconsistentStateException] {
@@ -611,16 +619,25 @@ case object ParticipantAgentFundamentalsSpec extends MockitoSugar {
   ): ParticipantModelBaseStateData[
     ApparentPower,
     FixedRelevantData.type,
-    SystemParticipant[FixedRelevantData.type, ApparentPower]
+    ConstantState.type,
+    SystemParticipant[FixedRelevantData.type, ApparentPower, ConstantState.type]
   ] = {
-    val modelMock =
-      mock[SystemParticipant[FixedRelevantData.type, ApparentPower]]
+    val modelMock = mock[SystemParticipant[
+      FixedRelevantData.type,
+      ApparentPower,
+      ConstantState.type
+    ]]
     when(modelMock.getUuid).thenReturn(UUID.randomUUID())
 
     ParticipantModelBaseStateData[
       ApparentPower,
       FixedRelevantData.type,
-      SystemParticipant[FixedRelevantData.type, ApparentPower]
+      ConstantState.type,
+      SystemParticipant[
+        FixedRelevantData.type,
+        ApparentPower,
+        ConstantState.type
+      ]
     ](
       TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
       TimeUtil.withDefaults.toZonedDateTime("2020-01-01 23:59:00"),
@@ -628,7 +645,8 @@ case object ParticipantAgentFundamentalsSpec extends MockitoSugar {
       None,
       NotifierConfig(
         simulationResultInfo = false,
-        powerRequestReply = false
+        powerRequestReply = false,
+        flexResult = false
       ),
       additionalActivationTicks,
       foreseenDataTicks,
@@ -636,7 +654,9 @@ case object ParticipantAgentFundamentalsSpec extends MockitoSugar {
       ValueStore(0L),
       ValueStore(0L),
       ValueStore(0L),
-      ValueStore(0L)
+      ValueStore(0L),
+      ValueStore(0L),
+      None
     )
   }
 }

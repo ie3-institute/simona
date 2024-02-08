@@ -6,13 +6,13 @@
 
 package edu.ie3.simona.agent.participant.fixedfeedin
 
-import org.apache.pekko.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
 import edu.ie3.datamodel.models.result.system.{
   FixedFeedInResult,
   SystemParticipantResult
 }
 import edu.ie3.simona.agent.ValueStore
+import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
@@ -20,12 +20,12 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
 }
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
-import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
-import edu.ie3.simona.agent.participant.statedata.{
-  DataCollectionStateData,
-  ParticipantStateData
+import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
+  FlexControlledData,
+  ParticipantModelBaseStateData
 }
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.FixedFeedInRuntimeConfig
@@ -35,12 +35,25 @@ import edu.ie3.simona.exceptions.agent.{
   InvalidRequestException
 }
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
-import edu.ie3.simona.model.participant.FixedFeedInModel
+import edu.ie3.simona.model.participant.ModelState.ConstantState
+import edu.ie3.simona.model.participant.{
+  CalcRelevantData,
+  FixedFeedInModel,
+  FlexChangeIndicator,
+  ModelState
+}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
+  FlexRequest,
+  FlexResponse
+}
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.ReactivePower
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
+import org.apache.pekko.actor.{ActorRef, FSM}
 import squants.{Dimensionless, Each, Power}
 
 import java.time.ZonedDateTime
@@ -52,6 +65,7 @@ protected trait FixedFeedInAgentFundamentals
     extends ParticipantAgentFundamentals[
       ApparentPower,
       FixedRelevantData.type,
+      ConstantState.type,
       ParticipantStateData[ApparentPower],
       FixedFeedInInput,
       FixedFeedInRuntimeConfig,
@@ -70,7 +84,7 @@ protected trait FixedFeedInAgentFundamentals
     * @param modelConfig
     *   Configuration of the model
     * @param services
-    *   Optional collection of services to register with
+    *   Collection of services to register with
     * @param simulationStartDate
     *   Real world time date time, when the simulation starts
     * @param simulationEndDate
@@ -89,15 +103,17 @@ protected trait FixedFeedInAgentFundamentals
   override def determineModelBaseStateData(
       inputModel: InputModelContainer[FixedFeedInInput],
       modelConfig: FixedFeedInRuntimeConfig,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
+      services: Iterable[SecondaryDataService[_ <: SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
-      outputConfig: NotifierConfig
+      outputConfig: NotifierConfig,
+      maybeEmAgent: Option[TypedActorRef[FlexResponse]]
   ): ParticipantModelBaseStateData[
     ApparentPower,
     FixedRelevantData.type,
+    ConstantState.type,
     FixedFeedInModel
   ] = {
     /* Build the calculation model */
@@ -129,6 +145,7 @@ protected trait FixedFeedInAgentFundamentals
     ParticipantModelBaseStateData[
       ApparentPower,
       FixedRelevantData.type,
+      ConstantState.type,
       FixedFeedInModel
     ](
       simulationStartDate,
@@ -149,9 +166,11 @@ protected trait FixedFeedInAgentFundamentals
             .doubleValue
         )
       ),
-      ValueStore.forResult(resolution, 2),
       ValueStore(resolution),
-      ValueStore(resolution)
+      ValueStore(resolution),
+      ValueStore(resolution),
+      ValueStore(resolution),
+      maybeEmAgent.map(FlexControlledData(_, self.toTyped[FlexRequest]))
     )
   }
 
@@ -167,26 +186,96 @@ protected trait FixedFeedInAgentFundamentals
     simulationEndDate
   )
 
+  override protected def createInitialState(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        FixedRelevantData.type,
+        ConstantState.type,
+        FixedFeedInModel
+      ]
+  ): ModelState.ConstantState.type = ConstantState
+
+  override protected def createCalcRelevantData(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        FixedRelevantData.type,
+        ConstantState.type,
+        FixedFeedInModel
+      ],
+      tick: Long
+  ): FixedRelevantData.type =
+    FixedRelevantData
+
+  /** Handle an active power change by flex control.
+    * @param tick
+    *   Tick, in which control is issued
+    * @param baseStateData
+    *   Base state data of the agent
+    * @param data
+    *   Calculation relevant data
+    * @param lastState
+    *   Last known model state
+    * @param setPower
+    *   Setpoint active power
+    * @return
+    *   Updated model state, a result model and a [[FlexChangeIndicator]]
+    */
+  def handleControlledPowerChange(
+      tick: Long,
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        FixedRelevantData.type,
+        ConstantState.type,
+        FixedFeedInModel
+      ],
+      data: FixedRelevantData.type,
+      lastState: ConstantState.type,
+      setPower: squants.Power
+  ): (ConstantState.type, ApparentPower, FlexChangeIndicator) = {
+    /* Calculate result */
+    val voltage = getAndCheckNodalVoltage(baseStateData, tick)
+
+    val reactivePower = baseStateData.model.calculateReactivePower(
+      setPower,
+      voltage
+    )
+    val result = ApparentPower(setPower, reactivePower)
+
+    /* Handle the request within the model */
+    val (updatedState, flexChangeIndicator) =
+      baseStateData.model.handleControlledPowerChange(data, lastState, setPower)
+    (updatedState, result, flexChangeIndicator)
+  }
+
   override val calculateModelPowerFunc: (
       Long,
       ParticipantModelBaseStateData[
         ApparentPower,
         FixedRelevantData.type,
+        ConstantState.type,
         FixedFeedInModel
       ],
+      ConstantState.type,
       Dimensionless
   ) => ApparentPower = (
       currentTick: Long,
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         FixedRelevantData.type,
+        ConstantState.type,
         FixedFeedInModel
       ],
+      state: ConstantState.type,
       voltage: Dimensionless
   ) =>
     baseStateData.model match {
       case fixedModel: FixedFeedInModel =>
-        fixedModel.calculatePower(currentTick, voltage, FixedRelevantData)
+        fixedModel.calculatePower(
+          currentTick,
+          voltage,
+          state,
+          FixedRelevantData
+        )
       case unsupportedModel =>
         throw new InconsistentStateException(
           s"The model $unsupportedModel is not supported!"
@@ -203,8 +292,10 @@ protected trait FixedFeedInAgentFundamentals
     * [[edu.ie3.simona.ontology.messages.SchedulerMessage.Completion]] to
     * scheduler and using update result values.</p>
     *
-    * @param collectionStateData
-    *   State data with collected, comprehensive secondary data.
+    * @param baseStateData
+    *   The base state data with collected secondary data
+    * @param lastModelState
+    *   Optional last model state
     * @param currentTick
     *   Tick, the trigger belongs to
     * @param scheduler
@@ -213,7 +304,13 @@ protected trait FixedFeedInAgentFundamentals
     *   [[Idle]] with updated result values
     */
   override def calculatePowerWithSecondaryDataAndGoToIdle(
-      collectionStateData: DataCollectionStateData[ApparentPower],
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        FixedRelevantData.type,
+        ConstantState.type,
+        FixedFeedInModel
+      ],
+      lastModelState: ConstantState.type,
       currentTick: Long,
       scheduler: ActorRef
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] =
@@ -272,4 +369,28 @@ protected trait FixedFeedInAgentFundamentals
       result.p.toMegawatts.asMegaWatt,
       result.q.toMegavars.asMegaVar
     )
+
+  /** Update the last known model state with the given external, relevant data
+    *
+    * @param tick
+    *   Tick to update state for
+    * @param modelState
+    *   Last known model state
+    * @param calcRelevantData
+    *   Data, relevant for calculation
+    * @param nodalVoltage
+    *   Current nodal voltage of the agent
+    * @param model
+    *   Model for calculation
+    * @return
+    *   The updated state at given tick under consideration of calculation
+    *   relevant data
+    */
+  override protected def updateState(
+      tick: Long,
+      modelState: ModelState.ConstantState.type,
+      calcRelevantData: CalcRelevantData.FixedRelevantData.type,
+      nodalVoltage: squants.Dimensionless,
+      model: FixedFeedInModel
+  ): ModelState.ConstantState.type = modelState
 }
