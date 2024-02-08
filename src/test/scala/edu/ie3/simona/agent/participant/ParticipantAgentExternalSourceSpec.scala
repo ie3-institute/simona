@@ -132,7 +132,7 @@ class ParticipantAgentExternalSourceSpec
     ](
       inputModel = mockInputModel,
       modelConfig = mock[BaseRuntimeConfig],
-      secondaryDataServices = None,
+      secondaryDataServices = Iterable.empty,
       simulationStartDate = defaultSimulationStart,
       simulationEndDate = defaultSimulationEnd,
       resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
@@ -192,7 +192,7 @@ class ParticipantAgentExternalSourceSpec
             ) =>
           inputModel shouldBe SimpleInputContainer(mockInputModel)
           modelConfig shouldBe modelConfig
-          secondaryDataServices shouldBe None
+          secondaryDataServices shouldBe Iterable.empty
           simulationStartDate shouldBe defaultSimulationStart
           simulationEndDate shouldBe defaultSimulationEnd
           resolution shouldBe this.resolution

@@ -32,6 +32,7 @@ import edu.ie3.simona.test.helper.TestContainerHelper
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import org.scalatest.BeforeAndAfterAll
+import org.testcontainers.utility.DockerImageName
 
 import java.util.UUID
 
@@ -51,7 +52,7 @@ class PrimaryServiceProxySqlIT
     with TestSpawnerClassic {
 
   override val container: PostgreSQLContainer = PostgreSQLContainer(
-    "postgres:14.2"
+    DockerImageName.parse("postgres:14.2")
   )
 
   private val simulationStart =

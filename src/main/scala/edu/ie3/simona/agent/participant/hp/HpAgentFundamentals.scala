@@ -292,7 +292,7 @@ trait HpAgentFundamentals
   override def determineModelBaseStateData(
       inputModel: InputModelContainer[HpInput],
       modelConfig: HpRuntimeConfig,
-      services: Option[Vector[SecondaryDataService[_ <: Data.SecondaryData]]],
+      services: Iterable[SecondaryDataService[_ <: Data.SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -305,7 +305,7 @@ trait HpAgentFundamentals
     HpState,
     HpModel
   ] = {
-    if (!services.exists(_.map(_.getClass).containsSlice(neededServices)))
+    if (!services.toSeq.map(_.getClass).containsSlice(neededServices))
       throw new AgentInitializationException(
         "HpAgent cannot be initialized without its needed services."
       )
@@ -320,7 +320,7 @@ trait HpAgentFundamentals
           simulationEndDate
         )
 
-        /* Determine a proper starting model state and safe it into the base state data */
+        /* Determine a proper starting model state and save it into the base state data */
         val startingModelState = startingState(model.thermalGrid)
         val stateDataStore = ValueStore.updateValueStore(
           ValueStore(resolution),

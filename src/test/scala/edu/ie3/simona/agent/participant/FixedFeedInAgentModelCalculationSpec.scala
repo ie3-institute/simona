@@ -98,7 +98,7 @@ class FixedFeedInAgentModelCalculationSpec
     fixedFeedConfigUtil.getOrDefault[FixedFeedInRuntimeConfig](
       voltageSensitiveInput.getUuid
     )
-  private val services = None
+  private val services = Iterable.empty
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
   "A fixed feed in agent with model calculation " should {
@@ -212,7 +212,7 @@ class FixedFeedInAgentModelCalculationSpec
           /* Base state data */
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
-          services shouldBe None
+          services shouldBe Iterable.empty
           outputConfig shouldBe defaultOutputConfig
           additionalActivationTicks shouldBe empty
           foreseenDataTicks shouldBe Map.empty

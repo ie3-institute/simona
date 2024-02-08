@@ -22,16 +22,17 @@ object MinMaxFlexibilityMessage {
     * negative or all positive, meaning that feed-in or load is mandatory.
     *
     * @param modelUuid
-    *   The UUID of the flex provider asset model
+    *   The UUID of the flex options provider asset model
     * @param ref
-    *   The reference active power that the flex provider would produce/consume
-    *   regularly at the current tick, i.e. if it was not flex-controlled
+    *   The reference active power that the flex options provider would
+    *   produce/consume regularly at the current tick, i.e. if it was not
+    *   flex-controlled
     * @param min
-    *   The minimum active power that the flex provider allows at the current
-    *   tick
+    *   The minimum active power that the flex options provider allows at the
+    *   current tick
     * @param max
-    *   The maximum active power that the flex provider allows at the current
-    *   tick
+    *   The maximum active power that the flex options provider allows at the
+    *   current tick
     */
   final case class ProvideMinMaxFlexOptions private (
       override val modelUuid: UUID,
@@ -57,17 +58,17 @@ object MinMaxFlexibilityMessage {
       * regarding the power values
       *
       * @param modelUuid
-      *   The UUID of the flex provider asset model
+      *   The UUID of the flex options provider asset model
       * @param ref
-      *   The reference active power that the flex provider would
+      *   The reference active power that the flex options provider would
       *   produce/consume regularly at the current tick, i.e. if it was not
       *   flex-controlled
       * @param min
-      *   The minimum active power that the flex provider allows at the current
-      *   tick
+      *   The minimum active power that the flex options provider allows at the
+      *   current tick
       * @param max
-      *   The maximum active power that the flex provider allows at the current
-      *   tick
+      *   The maximum active power that the flex options provider allows at the
+      *   current tick
       * @return
       *   The [[ProvideMinMaxFlexOptions]] message
       */

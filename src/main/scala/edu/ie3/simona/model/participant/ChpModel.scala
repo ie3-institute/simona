@@ -8,6 +8,7 @@ package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.input.system.ChpInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.ChpModel._
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
@@ -21,6 +22,8 @@ import squants.{Energy, Power, Seconds, Time}
 import squants.energy.{KilowattHours, Kilowatts}
 
 import java.util.UUID
+
+import java.time.ZonedDateTime
 
 /** Model of a combined heat and power plant (CHP) with a [[ThermalStorage]]
   * medium and its current [[ChpState]].
@@ -48,7 +51,7 @@ final case class ChpModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    scalingFactor: Double,
+    override val scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double,
@@ -354,10 +357,14 @@ object ChpModel {
     *
     * @param chpInput
     *   instance of [[ChpInput]] this chp model should be built from
-    * @param operationInterval
-    *   operation interval of the simulation
+    * @param simulationStartDate
+    *   Simulation time at which the simulation starts
+    * @param simulationEndDate
+    *   Simulation time at which the simulation ends
     * @param qControl
-    *   (no usage)
+    *   Strategy to control the reactive power output
+    * @param scalingFactor
+    *   Scale the output of this asset by the given factor
     * @param thermalStorage
     *   instance of [[ThermalStorage]] used as thermal storage
     * @return
@@ -365,15 +372,23 @@ object ChpModel {
     */
   def apply(
       chpInput: ChpInput,
-      operationInterval: OperationInterval,
+      simulationStartDate: ZonedDateTime,
+      simulationEndDate: ZonedDateTime,
       qControl: QControl,
+      scalingFactor: Double,
       thermalStorage: ThermalStorage with MutableStorage
-  ): ChpModel =
-    new ChpModel(
+  ): ChpModel = {
+    val operationInterval = SystemComponent.determineOperationInterval(
+      simulationStartDate,
+      simulationEndDate,
+      chpInput.getOperationTime
+    )
+
+    val model = new ChpModel(
       chpInput.getUuid,
       chpInput.getId,
       operationInterval,
-      scalingFactor = 1.0,
+      scalingFactor,
       qControl,
       Kilowatts(
         chpInput.getType.getsRated
@@ -390,4 +405,8 @@ object ChpModel {
       ),
       thermalStorage
     )
+
+    model.enable()
+    model
+  }
 }

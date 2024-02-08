@@ -53,6 +53,7 @@ import edu.ie3.simona.event.ResultEvent.{
   ThermalResultEvent
 }
 import edu.ie3.simona.event.notifier.NotifierConfig
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.exceptions.agent.{
   ActorNotRegisteredException,
   AgentInitializationException,
@@ -119,7 +120,6 @@ protected trait ParticipantAgentFundamentals[
   override def initializeParticipantForPrimaryDataReplay(
       inputModel: InputModelContainer[I],
       modelConfig: MC,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -260,7 +260,7 @@ protected trait ParticipantAgentFundamentals[
   override def initializeParticipantForModelCalculation(
       inputModel: InputModelContainer[I],
       modelConfig: MC,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
+      services: Iterable[SecondaryDataService[_ <: SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -340,7 +340,7 @@ protected trait ParticipantAgentFundamentals[
   def determineModelBaseStateData(
       inputModel: InputModelContainer[I],
       modelConfig: MC,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
+      services: Iterable[SecondaryDataService[_ <: SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -791,10 +791,10 @@ protected trait ParticipantAgentFundamentals[
         setPointActivePower
       )
 
-    // sanity check, simulation will hang if this matches
+    // sanity check, simulation would hang if this matches
     flexChangeIndicator.changesAtTick match {
       case Some(changeAtTick) if changeAtTick <= flexCtrl.tick =>
-        log.error(
+        throw new CriticalFailureException(
           s"Scheduling agent ${self.path} (${baseStateData.modelUuid}) for activation at tick $changeAtTick, although current tick is ${flexCtrl.tick}"
         )
       case _ =>
@@ -1967,7 +1967,7 @@ protected trait ParticipantAgentFundamentals[
 
   /** Returns secondary service of type T or throws exception
     * @param services
-    *   the services Option used in
+    *   the services used in
     *   [[edu.ie3.simona.agent.participant.statedata.BaseStateData.ModelBaseStateData]]
     * @param tag
     *   ClassTag of T
@@ -1977,14 +1977,9 @@ protected trait ParticipantAgentFundamentals[
     *   secondary service of given type
     */
   protected def getService[T <: SecondaryDataService[_]](
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]]
+      services: Iterable[SecondaryDataService[_ <: SecondaryData]]
   )(implicit tag: ClassTag[T]): ActorRef =
     services
-      .getOrElse(
-        throw new InconsistentStateException(
-          "No services provided by ParticipantModelBaseStateData."
-        )
-      )
       .find {
         case _: T => true
         case _    => false

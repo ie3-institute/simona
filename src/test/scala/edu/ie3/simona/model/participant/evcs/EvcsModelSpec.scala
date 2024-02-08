@@ -658,9 +658,9 @@ class EvcsModelSpec
           (0.0, 0.0, 5.0, 15.0, 10.0, 15.0),
           // 2: mid-way full (set to 7.5 kWh), forced charging
           (0.0, 7.5, 0.0, 15.0, 10.0, 15.0),
-          // 2: almost full (12.5 kWh), forced charging
+          // 2: almost full (charged to 12.5 kWh), forced charging
           (0.0, 5.0, 5.0, 15.0, 10.0, 15.0),
-          // 2: full (set)
+          // 2: full (set to 15 kWh)
           (0.0, 15.0, 0.0, 10.0, 10.0, 10.0),
 
           /* 1: at lower margin (set to 2 kWh) */
@@ -672,9 +672,9 @@ class EvcsModelSpec
           (2.0, 0.0, 5.0, 15.0, -5.0, 15.0),
           // 2: mid-way full (set to 7.5 kWh)
           (2.0, 7.5, 0.0, 15.0, -5.0, 15.0),
-          // 2: almost full (12.5 kWh)
+          // 2: almost full (charged to 12.5 kWh)
           (2.0, 5.0, 5.0, 15.0, -5.0, 15.0),
-          // 2: full (set)
+          // 2: full (set to 15 kWh)
           (2.0, 15.0, 0.0, 10.0, -5.0, 10.0),
 
           /* 1: mid-way full (set to 5 kWh) */
@@ -684,9 +684,9 @@ class EvcsModelSpec
           (5.0, 0.0, 5.0, 15.0, -15.0, 15.0),
           // 2: mid-way full (set to 7.5 kWh)
           (5.0, 7.5, 0.0, 15.0, -15.0, 15.0),
-          // 2: almost full (12.5 kWh)
+          // 2: almost full (charged to 12.5 kWh)
           (5.0, 5.0, 5.0, 15.0, -15.0, 15.0),
-          // 2: full (set)
+          // 2: full (set to 15 kWh)
           (5.0, 15.0, 0.0, 10.0, -15.0, 10.0),
 
           /* 1: full (set to 10 kWh) */
@@ -696,9 +696,9 @@ class EvcsModelSpec
           (10.0, 0.0, 5.0, 5.0, -15.0, 5.0),
           // 2: mid-way full (set to 7.5 kWh)
           (10.0, 7.5, 0.0, 5.0, -15.0, 5.0),
-          // 2: almost full (12.5 kWh)
+          // 2: almost full (charged to 12.5 kWh)
           (10.0, 5.0, 5.0, 5.0, -15.0, 5.0),
-          // 2: full (set)
+          // 2: full (set to 15 kWh)
           (10.0, 15.0, 0.0, 0.0, -15.0, 0.0)
         )
 

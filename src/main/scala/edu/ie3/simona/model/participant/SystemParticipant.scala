@@ -55,7 +55,7 @@ abstract class SystemParticipant[
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    scalingFactor: Double,
+    val scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double
@@ -109,7 +109,10 @@ abstract class SystemParticipant[
       val activePower = calculateActivePower(modelState, data)
       val reactivePower =
         calculateReactivePower(activePower, voltage)
-      ApparentPower(activePower, reactivePower)
+      ApparentPower(
+        activePower * scalingFactor,
+        reactivePower * scalingFactor
+      )
     } else {
       ApparentPower(
         DefaultQuantities.zeroMW,
@@ -168,7 +171,7 @@ abstract class SystemParticipant[
       nodalVoltage: Dimensionless
   ): Power => ReactivePower =
     qControl.activeToReactivePowerFunc(
-      sRated * scalingFactor,
+      sRated,
       cosPhiRated,
       nodalVoltage
     )

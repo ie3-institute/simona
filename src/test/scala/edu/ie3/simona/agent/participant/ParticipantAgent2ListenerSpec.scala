@@ -63,7 +63,7 @@ class ParticipantAgent2ListenerSpec
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
 
   /* Assign this test to receive the result events from agent */
-  override val systemListener: Iterable[ActorRef] = Vector(self)
+  override val systemListener: Iterable[ActorRef] = Iterable(self)
 
   private val testUUID = UUID.randomUUID
   private val testID = "PartAgentExternalMock"
@@ -79,7 +79,7 @@ class ParticipantAgent2ListenerSpec
   when(mockInputModel.getUuid).thenReturn(testUUID)
   when(mockInputModel.getId).thenReturn(testID)
 
-  private val sources = None
+  private val services = Iterable.empty
 
   "A participant agent" should {
     val initStateData: NotifierConfig => ParticipantInitializeStateData[
@@ -94,7 +94,7 @@ class ParticipantAgent2ListenerSpec
       ](
         inputModel = mockInputModel,
         modelConfig = mock[BaseRuntimeConfig],
-        secondaryDataServices = sources,
+        secondaryDataServices = services,
         simulationStartDate = defaultSimulationStart,
         simulationEndDate = defaultSimulationEnd,
         resolution = simonaConfig.simona.powerflow.resolution.getSeconds,

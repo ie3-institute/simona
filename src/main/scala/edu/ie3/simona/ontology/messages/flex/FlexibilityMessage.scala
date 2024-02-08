@@ -22,7 +22,7 @@ import java.util.UUID
 object FlexibilityMessage {
 
   /** Trait that is extended by all messages that are supposed to be received by
-    * a flexibility provider, which could be any
+    * a flex options provider, which could be any
     * [[edu.ie3.simona.agent.participant.ParticipantAgent]] or
     * [[edu.ie3.simona.agent.em.EmAgent]], if it is EM-controlled.
     */
@@ -37,15 +37,15 @@ object FlexibilityMessage {
     val modelUuid: UUID
   }
 
-  /** Message that registers a flex provider with an
+  /** Message that registers a flex options provider with an
     * [[edu.ie3.simona.agent.em.EmAgent]].
     *
     * @param modelUuid
-    *   The UUID of the flex provider asset model
+    *   The UUID of the flex options provider asset model
     * @param participant
-    *   The actor reference to the flex provider
+    *   The actor reference to the flex options provider
     * @param inputModel
-    *   The asset input model of the flex provider
+    *   The asset input model of the flex options provider
     */
   final case class RegisterParticipant(
       override val modelUuid: UUID,
@@ -53,12 +53,13 @@ object FlexibilityMessage {
       inputModel: AssetInput
   ) extends FlexResponse
 
-  /** Message that schedules a flex request for a flex provider at given tick.
+  /** Message that schedules a flex request for a flex options provider at given
+    * tick.
     *
     * @param modelUuid
-    *   The UUID of the flex provider asset model
+    *   The UUID of the flex options provider asset model
     * @param tick
-    *   The tick to schedule the flex provider for
+    *   The tick to schedule the flex options provider for
     * @param scheduleKey
     *   Optionally a schedule key that unlocks the scheduler once the scheduling
     *   chain is completed
@@ -69,7 +70,8 @@ object FlexibilityMessage {
       scheduleKey: Option[ScheduleKey] = None
   ) extends FlexResponse
 
-  /** Message that requests flex options from a flex provider for given tick
+  /** Message that requests flex options from a flex options provider for given
+    * tick
     *
     * @param tick
     *   The tick to request flex options for
@@ -83,8 +85,9 @@ object FlexibilityMessage {
     */
   trait ProvideFlexOptions extends FlexResponse
 
-  /** Message that issues flexibility control to a flex provider, i.e. a
-    * feasible set point is delivered that the flex provider should adhere to
+  /** Message that issues flexibility control to a flex options provider, i.e. a
+    * feasible set point is delivered that the flex options provider should
+    * adhere to
     */
   trait IssueFlexControl extends FlexRequest
 
@@ -112,24 +115,24 @@ object FlexibilityMessage {
   final case class IssueNoControl(override val tick: Long)
       extends IssueFlexControl
 
-  /** Message sent by flex providers indicating that the [[IssueFlexControl]]
-    * message has been handled and the flex communication for the current tick
-    * is completed.
+  /** Message sent by flex options providers indicating that the
+    * [[IssueFlexControl]] message has been handled and the flex communication
+    * for the current tick is completed.
     *
     * @param modelUuid
-    *   The UUID of the flex provider asset model
+    *   The UUID of the flex options provider asset model
     * @param result
-    *   The apparent power that is produced/consumed by the flex provider, which
-    *   can deviate from the set point communicated by a [[IssueFlexControl]]
-    *   message if it is not feasible.
+    *   The apparent power that is produced/consumed by the flex options
+    *   provider, which can deviate from the set point communicated by a
+    *   [[IssueFlexControl]] message if it is not feasible.
     * @param requestAtNextActivation
     *   Whether or not to request flex options at the very next activation of
     *   the receiving EM agent. This is the case if flex options change the very
     *   next second after the current tick.
     * @param requestAtTick
     *   Optionally the tick at which flex options are foreseen to have changed,
-    * i.e. the tick at which the flex provider would like to be activated at the
-    * latest.
+    * i.e. the tick at which the flex options provider would like to be
+    * activated at the latest.
     */
   final case class FlexCtrlCompletion(
       override val modelUuid: UUID,

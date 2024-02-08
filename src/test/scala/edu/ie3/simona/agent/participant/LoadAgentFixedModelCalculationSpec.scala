@@ -89,7 +89,7 @@ class LoadAgentFixedModelCalculationSpec
     loadConfigUtil.getOrDefault[LoadRuntimeConfig](
       voltageSensitiveInput.getUuid
     )
-  private val services = None
+  private val services = Iterable.empty
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
   private implicit val powerTolerance: squants.Power = Watts(0.1)
@@ -206,7 +206,7 @@ class LoadAgentFixedModelCalculationSpec
           /* Base state data */
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
-          services shouldBe None
+          services shouldBe Iterable.empty
           outputConfig shouldBe defaultOutputConfig
           additionalActivationTicks shouldBe empty
           foreseenDataTicks shouldBe Map.empty

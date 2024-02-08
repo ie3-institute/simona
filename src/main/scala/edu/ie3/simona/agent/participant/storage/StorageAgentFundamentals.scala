@@ -83,7 +83,7 @@ trait StorageAgentFundamentals
   override def determineModelBaseStateData(
       inputModel: ParticipantStateData.InputModelContainer[StorageInput],
       modelConfig: StorageRuntimeConfig,
-      services: Option[Vector[SecondaryDataService[_ <: Data.SecondaryData]]],
+      services: Iterable[SecondaryDataService[_ <: Data.SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,

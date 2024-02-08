@@ -110,11 +110,9 @@ class HpAgentModelCalculationSpec
     participantConfigUtil.getOrDefault[HpRuntimeConfig](
       hpInput.getUuid
     )
-  private val noServices = None
-  private val services = Some(
-    Vector(
-      ActorWeatherService(weatherService.ref)
-    )
+  private val noServices = Iterable.empty
+  private val services = Iterable(
+    ActorWeatherService(weatherService.ref)
   )
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
@@ -301,10 +299,8 @@ class HpAgentModelCalculationSpec
           /* Base state data */
           startDate shouldBe defaultSimulationStart
           endDate shouldBe defaultSimulationEnd
-          services shouldBe Some(
-            Vector(
-              ActorWeatherService(weatherService.ref)
-            )
+          services shouldBe Iterable(
+            ActorWeatherService(weatherService.ref)
           )
           outputConfig shouldBe NotifierConfig(
             simulationResultInfo = true,
@@ -323,7 +319,7 @@ class HpAgentModelCalculationSpec
           )
 
           /* Additional information */
-          awaitRegistrationResponsesFrom shouldBe Vector(weatherService.ref)
+          awaitRegistrationResponsesFrom shouldBe Iterable(weatherService.ref)
           foreseenNextDataTicks shouldBe Map.empty
         case _ =>
           fail(

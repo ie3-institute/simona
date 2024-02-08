@@ -91,7 +91,7 @@ class PvAgentModelCalculationSpec
     .build()
 
   /* Assign this test to receive the result events from agent */
-  override val systemListener: Iterable[ActorRef] = Vector(self)
+  override val systemListener: Iterable[ActorRef] = Iterable(self)
 
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
@@ -109,11 +109,9 @@ class PvAgentModelCalculationSpec
   private val modelConfig = configUtil.getOrDefault[PvRuntimeConfig](
     voltageSensitiveInput.getUuid
   )
-  private val noServices = None
-  private val withServices = Some(
-    Vector(
-      ActorWeatherService(weatherService.ref)
-    )
+  private val noServices = Iterable.empty
+  private val withServices = Iterable(
+    ActorWeatherService(weatherService.ref)
   )
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
@@ -301,10 +299,8 @@ class PvAgentModelCalculationSpec
           /* Base state data */
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
-          services shouldBe Some(
-            Vector(
-              ActorWeatherService(weatherService.ref)
-            )
+          services shouldBe Iterable(
+            ActorWeatherService(weatherService.ref)
           )
           outputConfig shouldBe NotifierConfig(
             simulationResultInfo = false,
@@ -321,7 +317,7 @@ class PvAgentModelCalculationSpec
           requestValueStore shouldBe ValueStore[ApparentPower](resolution)
 
           /* Additional information */
-          awaitRegistrationResponsesFrom shouldBe Vector(weatherService.ref)
+          awaitRegistrationResponsesFrom shouldBe Iterable(weatherService.ref)
           foreseenNextDataTicks shouldBe Map.empty
         case _ =>
           fail(

@@ -29,7 +29,7 @@ final case class StorageModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    scalingFactor: Double,
+    override val scalingFactor: Double,
     qControl: QControl,
     sRated: squants.Power,
     cosPhiRated: Double,

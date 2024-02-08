@@ -95,7 +95,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
     * @param modelConfig
     *   Configuration of the model
     * @param services
-    *   Optional collection of services to register with
+    *   Collection of services to register with
     * @param simulationStartDate
     *   Real world time date time, when the simulation starts
     * @param simulationEndDate
@@ -114,7 +114,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
   override def determineModelBaseStateData(
       inputModel: InputModelContainer[LoadInput],
       modelConfig: LoadRuntimeConfig,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
+      services: Iterable[SecondaryDataService[_ <: SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -212,12 +212,18 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
         inputModel.electricalInputModel.getOperationTime
       )
     val reference = LoadReference(inputModel.electricalInputModel, modelConfig)
-    buildModel(inputModel.electricalInputModel, operationInterval, reference)
+    buildModel(
+      inputModel.electricalInputModel,
+      operationInterval,
+      modelConfig,
+      reference
+    )
   }
 
   protected def buildModel(
       inputModel: LoadInput,
       operationInterval: OperationInterval,
+      modelConfig: LoadRuntimeConfig,
       reference: LoadReference
   ): LM
 
@@ -379,12 +385,15 @@ object LoadAgentFundamentals {
     override def buildModel(
         inputModel: LoadInput,
         operationInterval: OperationInterval,
+        modelConfig: LoadRuntimeConfig,
         reference: LoadReference
-    ): FixedLoadModel = {
-      val model = FixedLoadModel(inputModel, operationInterval, 1d, reference)
-      model.enable()
-      model
-    }
+    ): FixedLoadModel =
+      FixedLoadModel(
+        inputModel,
+        modelConfig.scaling,
+        operationInterval,
+        reference
+      )
 
     override protected def createCalcRelevantData(
         baseStateData: ParticipantModelBaseStateData[
@@ -440,12 +449,15 @@ object LoadAgentFundamentals {
     override def buildModel(
         inputModel: LoadInput,
         operationInterval: OperationInterval,
+        modelConfig: LoadRuntimeConfig,
         reference: LoadReference
-    ): ProfileLoadModel = {
-      val model = ProfileLoadModel(inputModel, operationInterval, 1d, reference)
-      model.enable()
-      model
-    }
+    ): ProfileLoadModel =
+      ProfileLoadModel(
+        inputModel,
+        operationInterval,
+        modelConfig.scaling,
+        reference
+      )
 
     override protected def createCalcRelevantData(
         baseStateData: ParticipantModelBaseStateData[
@@ -497,12 +509,15 @@ object LoadAgentFundamentals {
     override def buildModel(
         inputModel: LoadInput,
         operationInterval: OperationInterval,
+        modelConfig: LoadRuntimeConfig,
         reference: LoadReference
-    ): RandomLoadModel = {
-      val model = RandomLoadModel(inputModel, operationInterval, 1d, reference)
-      model.enable()
-      model
-    }
+    ): RandomLoadModel =
+      RandomLoadModel(
+        inputModel,
+        operationInterval,
+        modelConfig.scaling,
+        reference
+      )
 
     override protected def createCalcRelevantData(
         baseStateData: ParticipantModelBaseStateData[

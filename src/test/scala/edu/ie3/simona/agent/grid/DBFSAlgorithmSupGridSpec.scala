@@ -183,6 +183,8 @@ class DBFSAlgorithmSupGridSpec
                     case Some(value) =>
                       value.getvMag().getValue shouldBe 1
                       value.getvAng().getValue shouldBe 0
+                    case None =>
+                      fail(s"Expected a result but got none.")
                   }
 
                   // due to the fact that the used grid does not contain anything besides the one ehv node
@@ -300,6 +302,8 @@ class DBFSAlgorithmSupGridSpec
                     case Some(value) =>
                       value.getvMag().getValue shouldBe 1
                       value.getvAng().getValue shouldBe 0
+                    case None =>
+                      fail(s"Expected a result but got none.")
                   }
 
                   // due to the fact that the used grid does not contain anything besides the one ehv node

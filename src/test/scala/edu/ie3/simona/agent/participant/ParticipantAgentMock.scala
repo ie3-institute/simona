@@ -68,7 +68,7 @@ class ParticipantAgentMock(
       SimonaConfig.BaseRuntimeConfig,
       ApparentPower
     ],
-    override val listener: Iterable[ActorRef] = Vector.empty[ActorRef]
+    override val listener: Iterable[ActorRef] = Iterable.empty[ActorRef]
 ) extends ParticipantAgent[
       ApparentPower,
       FixedRelevantData.type,
@@ -186,7 +186,7 @@ class ParticipantAgentMock(
   override def determineModelBaseStateData(
       inputModel: InputModelContainer[SystemParticipantInput],
       modelConfig: SimonaConfig.BaseRuntimeConfig,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
+      services: Iterable[SecondaryDataService[_ <: SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,

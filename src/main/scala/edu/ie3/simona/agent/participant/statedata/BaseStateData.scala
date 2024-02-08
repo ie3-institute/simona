@@ -109,7 +109,7 @@ object BaseStateData {
 
     /** The services, the physical model depends on
       */
-    val services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]]
+    val services: Iterable[SecondaryDataService[_ <: SecondaryData]]
 
     /** Stores all data that are relevant to model calculation
       */
@@ -214,9 +214,7 @@ object BaseStateData {
       override val startDate: ZonedDateTime,
       override val endDate: ZonedDateTime,
       override val model: M,
-      override val services: Option[
-        Vector[SecondaryDataService[_ <: SecondaryData]]
-      ],
+      override val services: Iterable[SecondaryDataService[_ <: SecondaryData]],
       override val outputConfig: NotifierConfig,
       override val additionalActivationTicks: SortedSet[Long],
       override val foreseenDataTicks: Map[ClassicActorRef, Option[Long]],

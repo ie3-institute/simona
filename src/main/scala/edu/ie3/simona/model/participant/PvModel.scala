@@ -32,7 +32,7 @@ final case class PvModel private (
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    scalingFactor: Double,
+    override val scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double,
@@ -145,7 +145,7 @@ final case class PvModel private (
       eTotal,
       data.dateTime,
       irraditionSTC
-    ) * scalingFactor
+    )
   }
 
   /** Calculates the position of the earth in relation to the sun (day angle)

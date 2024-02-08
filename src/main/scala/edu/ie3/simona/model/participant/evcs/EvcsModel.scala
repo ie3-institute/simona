@@ -72,7 +72,7 @@ final case class EvcsModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    scalingFactor: Double,
+    override val scalingFactor: Double,
     simulationStartDate: ZonedDateTime,
     qControl: QControl,
     sRated: Power,
