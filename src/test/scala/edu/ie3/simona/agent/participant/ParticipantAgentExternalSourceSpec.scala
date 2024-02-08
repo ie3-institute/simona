@@ -192,7 +192,7 @@ class ParticipantAgentExternalSourceSpec
             ) =>
           inputModel shouldBe SimpleInputContainer(mockInputModel)
           modelConfig shouldBe modelConfig
-          secondaryDataServices shouldBe None
+          secondaryDataServices shouldBe Iterable.empty
           simulationStartDate shouldBe defaultSimulationStart
           simulationEndDate shouldBe defaultSimulationEnd
           resolution shouldBe this.resolution

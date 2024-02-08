@@ -63,7 +63,7 @@ class ParticipantAgent2ListenerSpec
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
 
   /* Assign this test to receive the result events from agent */
-  override val systemListener: Iterable[ActorRef] = Vector(self)
+  override val systemListener: Iterable[ActorRef] = Iterable(self)
 
   private val testUUID = UUID.randomUUID
   private val testID = "PartAgentExternalMock"

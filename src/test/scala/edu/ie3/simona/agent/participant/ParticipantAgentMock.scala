@@ -68,7 +68,7 @@ class ParticipantAgentMock(
       SimonaConfig.BaseRuntimeConfig,
       ApparentPower
     ],
-    override val listener: Iterable[ActorRef] = Vector.empty[ActorRef]
+    override val listener: Iterable[ActorRef] = Iterable.empty[ActorRef]
 ) extends ParticipantAgent[
       ApparentPower,
       FixedRelevantData.type,

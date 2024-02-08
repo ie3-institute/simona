@@ -99,7 +99,7 @@ class WecAgentModelCalculationSpec
     .build()
 
   /* Assign this test to receive the result events from agent */
-  override val systemListener: Iterable[ActorRef] = Vector(self)
+  override val systemListener: Iterable[ActorRef] = Iterable(self)
 
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
@@ -294,7 +294,7 @@ class WecAgentModelCalculationSpec
           requestValueStore shouldBe ValueStore[ApparentPower](resolution)
 
           /* Additional information */
-          awaitRegistrationResponsesFrom shouldBe Vector(weatherService.ref)
+          awaitRegistrationResponsesFrom shouldBe Iterable(weatherService.ref)
           foreseenNextDataTicks shouldBe Map.empty
         case _ =>
           fail(

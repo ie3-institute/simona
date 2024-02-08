@@ -299,10 +299,8 @@ class HpAgentModelCalculationSpec
           /* Base state data */
           startDate shouldBe defaultSimulationStart
           endDate shouldBe defaultSimulationEnd
-          services shouldBe Some(
-            Vector(
-              ActorWeatherService(weatherService.ref)
-            )
+          services shouldBe Iterable(
+            ActorWeatherService(weatherService.ref)
           )
           outputConfig shouldBe NotifierConfig(
             simulationResultInfo = true,
@@ -321,7 +319,7 @@ class HpAgentModelCalculationSpec
           )
 
           /* Additional information */
-          awaitRegistrationResponsesFrom shouldBe Vector(weatherService.ref)
+          awaitRegistrationResponsesFrom shouldBe Iterable(weatherService.ref)
           foreseenNextDataTicks shouldBe Map.empty
         case _ =>
           fail(

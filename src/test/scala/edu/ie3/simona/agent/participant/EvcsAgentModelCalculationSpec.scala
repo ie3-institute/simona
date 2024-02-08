@@ -252,10 +252,8 @@ class EvcsAgentModelCalculationSpec
             ) =>
           inputModel shouldBe SimpleInputContainer(evcsInputModel)
           modelConfig shouldBe modelConfig
-          secondaryDataServices shouldBe Some(
-            Vector(
-              ActorEvMovementsService(evService.ref)
-            )
+          secondaryDataServices shouldBe Iterable(
+            ActorEvMovementsService(evService.ref)
           )
           simulationStartDate shouldBe simulationStartDate
           simulationEndDate shouldBe simulationEndDate
@@ -302,10 +300,8 @@ class EvcsAgentModelCalculationSpec
           /* Base state data */
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
-          services shouldBe Some(
-            Vector(
-              ActorEvMovementsService(evService.ref)
-            )
+          services shouldBe Iterable(
+            ActorEvMovementsService(evService.ref)
           )
           outputConfig shouldBe NotifierConfig(
             simulationResultInfo = false,
@@ -322,7 +318,7 @@ class EvcsAgentModelCalculationSpec
           requestValueStore shouldBe ValueStore[ApparentPower](resolution)
 
           /* Additional information */
-          awaitRegistrationResponsesFrom shouldBe Vector(evService.ref)
+          awaitRegistrationResponsesFrom shouldBe Iterable(evService.ref)
           foreseenNextDataTicks shouldBe Map.empty
         case _ =>
           fail(
@@ -1043,10 +1039,8 @@ class EvcsAgentModelCalculationSpec
             ) =>
           inputModel shouldBe SimpleInputContainer(evcsInputModelQv)
           modelConfig shouldBe modelConfig
-          secondaryDataServices shouldBe Some(
-            Vector(
-              ActorEvMovementsService(evService.ref)
-            )
+          secondaryDataServices shouldBe Iterable(
+            ActorEvMovementsService(evService.ref)
           )
           simulationStartDate shouldBe simulationStartDate
           simulationEndDate shouldBe simulationEndDate
@@ -1108,10 +1102,8 @@ class EvcsAgentModelCalculationSpec
           /* Base state data */
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
-          services shouldBe Some(
-            Vector(
-              ActorEvMovementsService(evService.ref)
-            )
+          services shouldBe Iterable(
+            ActorEvMovementsService(evService.ref)
           )
           outputConfig shouldBe defaultOutputConfig
           additionalActivationTicks shouldBe empty
@@ -1185,10 +1177,8 @@ class EvcsAgentModelCalculationSpec
             ) =>
           inputModel shouldBe SimpleInputContainer(evcsInputModelQv)
           modelConfig shouldBe modelConfig
-          secondaryDataServices shouldBe Some(
-            Vector(
-              ActorEvMovementsService(evService.ref)
-            )
+          secondaryDataServices shouldBe Iterable(
+            ActorEvMovementsService(evService.ref)
           )
           simulationStartDate shouldBe simulationStartDate
           simulationEndDate shouldBe simulationEndDate
