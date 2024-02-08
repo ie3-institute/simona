@@ -45,10 +45,6 @@ trait ServiceRegistration[
     *   Input model definition
     * @param services
     *   Definition of where to get what
-    * @param scheduleTriggerFunc
-    *   function providing the proper ScheduleTriggerMessage for a given trigger
-    * @param emControlled
-    *   whether the agent is em-controlled or not
     * @return
     *   a vector of actor references to wait for responses
     */
