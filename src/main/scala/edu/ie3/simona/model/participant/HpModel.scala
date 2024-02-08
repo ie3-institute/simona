@@ -116,7 +116,7 @@ final case class HpModel(
   ): Power = modelState.qDot
 
   /** Given a [[HpRelevantData]] object and the current [[HpState]], this
-    * function calculates the heat pump's next state To get the actual active
+    * function calculates the heat pump's next state to get the actual active
     * power of this state use [[calculateActivePower]] with the generated state
     *
     * @param state
