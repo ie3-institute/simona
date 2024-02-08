@@ -25,7 +25,7 @@ trait ThermalHouseTestData extends ThermalGridTestData {
     getQuantity(15.0, StandardUnits.HEAT_CAPACITY),
     getQuantity(19d, Units.CELSIUS),
     getQuantity(21d, Units.CELSIUS),
-    getQuantity(18d, Units.CELSIUS)
+    getQuantity(18d, Units.CELSIUS),
   )
 
   protected val thermalHouse: ThermalHouse = ThermalHouse(thermalHouseInput)
@@ -34,6 +34,6 @@ trait ThermalHouseTestData extends ThermalGridTestData {
     ThermalHouseState(
       -1L,
       Celsius(19d),
-      Megawatts(0d)
+      Megawatts(0d),
     )
 }

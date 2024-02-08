@@ -24,7 +24,7 @@ final case class RefSystem private (
     nominalVoltage: squants.electro.ElectricPotential,
     nominalCurrent: squants.electro.ElectricCurrent,
     nominalPower: squants.Power,
-    nominalImpedance: squants.electro.ElectricalResistance
+    nominalImpedance: squants.electro.ElectricalResistance,
 ) {
 
   /** Calculates the referenced resistance r (real part of impedance z) of a
@@ -146,11 +146,11 @@ final case class RefSystem private (
 
   def vInSi(vInPu: Complex): (
       squants.electro.ElectricPotential,
-      squants.electro.ElectricPotential
+      squants.electro.ElectricPotential,
   ) =
     (
       vInSi(Each(vInPu.real)),
-      vInSi(Each(vInPu.imag))
+      vInSi(Each(vInPu.imag)),
     )
 
   /** Converts a provided voltage value from physical SI value into p.u. value
@@ -170,7 +170,7 @@ case object RefSystem {
 
   def apply(
       nominalPower: squants.Power,
-      nominalVoltage: squants.electro.ElectricPotential
+      nominalVoltage: squants.electro.ElectricPotential,
   ): RefSystem = {
 
     val nominalCurrent: squants.electro.ElectricCurrent =
@@ -183,7 +183,7 @@ case object RefSystem {
       nominalVoltage,
       nominalCurrent,
       nominalPower,
-      nominalImpedance
+      nominalImpedance,
     )
   }
 
@@ -227,7 +227,7 @@ case object RefSystem {
   def transferImpedance(
       impedance: squants.Dimensionless,
       from: RefSystem,
-      to: RefSystem
+      to: RefSystem,
   ): squants.Dimensionless = {
     val ratio = from.nominalImpedance.toOhms / to.nominalImpedance.toOhms
     Each(impedance.toEach * ratio)
@@ -248,7 +248,7 @@ case object RefSystem {
   def transferAdmittance(
       admittance: squants.Dimensionless,
       from: RefSystem,
-      to: RefSystem
+      to: RefSystem,
   ): squants.Dimensionless = {
     val ratio = to.nominalImpedance.toOhms / from.nominalImpedance.toOhms
 

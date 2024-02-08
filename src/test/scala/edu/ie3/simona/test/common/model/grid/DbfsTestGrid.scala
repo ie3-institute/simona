@@ -11,14 +11,14 @@ import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.connector._
 import edu.ie3.datamodel.models.input.connector.`type`.{
   LineTypeInput,
-  Transformer2WTypeInput
+  Transformer2WTypeInput,
 }
 import edu.ie3.datamodel.models.input.container.RawGridElements
 import edu.ie3.datamodel.models.input.system.characteristic.OlmCharacteristicInput
 import edu.ie3.datamodel.models.input.{
   MeasurementUnitInput,
   NodeInput,
-  OperatorInput
+  OperatorInput,
 }
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.datamodel.utils.GridAndGeoUtils
@@ -58,7 +58,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     false,
     NodeInput.DEFAULT_GEO_POSITION,
     GermanVoltageLevelUtils.HV,
-    1
+    1,
   )
   protected val node2 = new NodeInput(
     UUID.fromString("e364ef00-e6ca-46b1-ba2b-bb73c0c6fee0"),
@@ -69,7 +69,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     false,
     NodeInput.DEFAULT_GEO_POSITION,
     GermanVoltageLevelUtils.HV,
-    1
+    1,
   )
   protected val node3 = new NodeInput(
     UUID.fromString("47ef9983-8fcf-4713-be90-093fc27864ae"),
@@ -80,7 +80,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     false,
     NodeInput.DEFAULT_GEO_POSITION,
     GermanVoltageLevelUtils.HV,
-    1
+    1,
   )
   protected val node4 = new NodeInput(
     UUID.fromString("d44ba8ed-81db-4a22-a40d-f7c0d0808a75"),
@@ -91,7 +91,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     false,
     NodeInput.DEFAULT_GEO_POSITION,
     GermanVoltageLevelUtils.HV,
-    1
+    1,
   )
   protected val supNodeA = new NodeInput(
     UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"),
@@ -102,7 +102,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     true,
     NodeInput.DEFAULT_GEO_POSITION,
     GermanVoltageLevelUtils.EHV_380KV,
-    1000
+    1000,
   )
   protected val supNodeB = new NodeInput(
     UUID.fromString("fb4272fa-5a31-4218-9a46-0a37ac5b34a4"),
@@ -113,7 +113,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     true,
     NodeInput.DEFAULT_GEO_POSITION,
     GermanVoltageLevelUtils.EHV_380KV,
-    1000
+    1000,
   )
 
   /* Mocking table of nodes of underlying grids
@@ -133,7 +133,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     Quantities.getQuantity(0.1094, OHM_PER_KILOMETRE),
     Quantities.getQuantity(0.4, OHM_PER_KILOMETRE),
     Quantities.getQuantity(680.0, AMPERE),
-    Quantities.getQuantity(110.0, KILOVOLT)
+    Quantities.getQuantity(110.0, KILOVOLT),
   )
 
   protected val lineType2 = new LineTypeInput(
@@ -144,7 +144,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     Quantities.getQuantity(0.0283, OHM_PER_KILOMETRE),
     Quantities.getQuantity(0.11, OHM_PER_KILOMETRE),
     Quantities.getQuantity(800.0, AMPERE),
-    Quantities.getQuantity(110.0, KILOVOLT)
+    Quantities.getQuantity(110.0, KILOVOLT),
   )
 
   protected val lineType3 = new LineTypeInput(
@@ -155,7 +155,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     Quantities.getQuantity(0.0547, OHM_PER_KILOMETRE),
     Quantities.getQuantity(0.4, OHM_PER_KILOMETRE),
     Quantities.getQuantity(1360.0, AMPERE),
-    Quantities.getQuantity(110.0, KILOVOLT)
+    Quantities.getQuantity(110.0, KILOVOLT),
   )
 
   protected val lineType4 = new LineTypeInput(
@@ -166,7 +166,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     Quantities.getQuantity(0.109999999403954, OHM_PER_KILOMETRE),
     Quantities.getQuantity(0.379999995231628, OHM_PER_KILOMETRE),
     Quantities.getQuantity(550.0, AMPERE),
-    Quantities.getQuantity(110.0, KILOVOLT)
+    Quantities.getQuantity(110.0, KILOVOLT),
   )
 
   protected val line3To4 = new LineInput(
@@ -180,7 +180,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     lineType1,
     Quantities.getQuantity(20, KILOMETRE),
     GridAndGeoUtils.buildSafeLineStringBetweenNodes(node3, node4),
-    OlmCharacteristicInput.CONSTANT_CHARACTERISTIC
+    OlmCharacteristicInput.CONSTANT_CHARACTERISTIC,
   )
 
   protected val line2To3 = new LineInput(
@@ -194,7 +194,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     lineType2,
     Quantities.getQuantity(20.0, KILOMETRE),
     GridAndGeoUtils.buildSafeLineStringBetweenNodes(node3, node2),
-    OlmCharacteristicInput.CONSTANT_CHARACTERISTIC
+    OlmCharacteristicInput.CONSTANT_CHARACTERISTIC,
   )
 
   protected val line1To2 = new LineInput(
@@ -208,7 +208,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     lineType3,
     Quantities.getQuantity(24.0, KILOMETRE),
     GridAndGeoUtils.buildSafeLineStringBetweenNodes(node1, node2),
-    OlmCharacteristicInput.CONSTANT_CHARACTERISTIC
+    OlmCharacteristicInput.CONSTANT_CHARACTERISTIC,
   )
 
   protected val line1To3 = new LineInput(
@@ -222,7 +222,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     lineType4,
     Quantities.getQuantity(40, KILOMETRE),
     GridAndGeoUtils.buildSafeLineStringBetweenNodes(node1, node3),
-    OlmCharacteristicInput.CONSTANT_CHARACTERISTIC
+    OlmCharacteristicInput.CONSTANT_CHARACTERISTIC,
   )
 
   protected val line1To4 = new LineInput(
@@ -236,7 +236,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     lineType2,
     Quantities.getQuantity(30, KILOMETRE),
     GridAndGeoUtils.buildSafeLineStringBetweenNodes(node4, node1),
-    OlmCharacteristicInput.CONSTANT_CHARACTERISTIC
+    OlmCharacteristicInput.CONSTANT_CHARACTERISTIC,
   )
 
   // 1 transformer from HS to HöS
@@ -255,7 +255,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     false,
     0,
     -5,
-    5
+    5,
   )
 
   protected val transformer1 = new Transformer2WInput(
@@ -268,7 +268,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     1,
     trafoType,
     0,
-    false
+    false,
   )
   protected val transformer2 = new Transformer2WInput(
     UUID.fromString("ceccd8cb-29dc-45d6-8a13-4b0033c5f1ef"),
@@ -280,7 +280,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     1,
     trafoType,
     0,
-    false
+    false,
   )
 
   protected val (hvGridContainer, hvSubGridGates) = {
@@ -296,7 +296,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
       transformers.asJava,
       Set.empty[Transformer3WInput].asJava,
       Set.empty[SwitchInput].asJava,
-      Set.empty[MeasurementUnitInput].asJava
+      Set.empty[MeasurementUnitInput].asJava,
     )
 
     /* Sub grid gates are the apparent gates to superior grids + artificial one to underlying grids */
@@ -306,42 +306,42 @@ trait DbfsTestGrid extends SubGridGateMokka {
       ) ++ rawGridElements.getTransformer3Ws.asScala.flatMap(transformer =>
         Seq(
           SubGridGate.fromTransformer3W(transformer, ConnectorPort.B),
-          SubGridGate.fromTransformer3W(transformer, ConnectorPort.C)
+          SubGridGate.fromTransformer3W(transformer, ConnectorPort.C),
         )
       ) ++ Seq(
         build2wSubGridGate(
           node4.getUuid,
           1,
           UUID.fromString("1129b00d-3d89-4a4a-8ae1-2a56041b95aa"),
-          13
+          13,
         ),
         build2wSubGridGate(
           node2.getUuid,
           1,
           UUID.fromString("139c435d-e550-48d8-b590-ee897621f42a"),
-          12
+          12,
         ),
         build2wSubGridGate(
           node1.getUuid,
           1,
           UUID.fromString("1676e48c-5353-4f06-b671-c579cf6a7072"),
-          11
+          11,
         ),
         build2wSubGridGate(
           node3.getUuid,
           1,
           UUID.fromString("9237e237-01e9-446f-899f-c3b5cf69d288"),
-          13
-        )
+          13,
+        ),
       )
 
     (
       TestGridFactory.createSubGrid(
         gridName = "centerGrid",
         subgrid = 1,
-        rawGridElements = rawGridElements
+        rawGridElements = rawGridElements,
       ),
-      subGridGates
+      subGridGates,
     )
   }
 
@@ -357,7 +357,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
       transformers.asJava,
       Set.empty[Transformer3WInput].asJava,
       Set.empty[SwitchInput].asJava,
-      Set.empty[MeasurementUnitInput].asJava
+      Set.empty[MeasurementUnitInput].asJava,
     )
 
     /* Sub grid gates are the apparent gates to superior grids + artificial one to underlying grids */
@@ -367,14 +367,14 @@ trait DbfsTestGrid extends SubGridGateMokka {
       ) ++ rawGridElements.getTransformer3Ws.asScala.flatMap(transformer =>
         Seq(
           SubGridGate.fromTransformer3W(transformer, ConnectorPort.B),
-          SubGridGate.fromTransformer3W(transformer, ConnectorPort.C)
+          SubGridGate.fromTransformer3W(transformer, ConnectorPort.C),
         )
       ) ++ Seq(
         build2wSubGridGate(
           node1.getUuid,
           1,
           UUID.fromString("1676e48c-5353-4f06-b671-c579cf6a7072"),
-          11
+          11,
         )
       )
 
@@ -382,9 +382,9 @@ trait DbfsTestGrid extends SubGridGateMokka {
       TestGridFactory.createSubGrid(
         gridName = "centerGrid",
         subgrid = 1,
-        rawGridElements = rawGridElements
+        rawGridElements = rawGridElements,
       ),
-      subGridGates
+      subGridGates,
     )
   }
 
@@ -396,7 +396,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
       Set.empty[Transformer2WInput].asJava,
       Set.empty[Transformer3WInput].asJava,
       Set.empty[SwitchInput].asJava,
-      Set.empty[MeasurementUnitInput].asJava
+      Set.empty[MeasurementUnitInput].asJava,
     )
 
     val subGridGates: Seq[SubGridGate] =
@@ -408,9 +408,9 @@ trait DbfsTestGrid extends SubGridGateMokka {
       TestGridFactory.createSubGrid(
         gridName = "superiorGrid",
         subgrid = 1000,
-        rawGridElements = rawGridElements
+        rawGridElements = rawGridElements,
       ),
-      subGridGates
+      subGridGates,
     )
   }
 }

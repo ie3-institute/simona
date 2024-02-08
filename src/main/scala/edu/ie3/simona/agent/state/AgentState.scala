@@ -19,7 +19,7 @@ object AgentState {
   final case class TerminatedPrematurelyEvent(
       actorRef: ActorRef,
       reason: FSM.Reason,
-      tick: Option[Int]
+      tick: Option[Int],
   )
 
   case object Uninitialized extends AgentState

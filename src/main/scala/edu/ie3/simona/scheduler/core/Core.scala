@@ -76,7 +76,7 @@ object Core {
       */
     def handleSchedule(
         actor: Actor,
-        newTick: Long
+        newTick: Long,
     ): (Option[Long], InactiveCore)
   }
 

@@ -11,14 +11,14 @@ import edu.ie3.datamodel.models.result.connector.{
   LineResult,
   SwitchResult,
   Transformer2WResult,
-  Transformer3WResult
+  Transformer3WResult,
 }
 import edu.ie3.datamodel.models.result.system.PvResult
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent,
-  PowerFlowResultEvent
+  PowerFlowResultEvent,
 }
 import edu.ie3.simona.io.result.{ResultEntitySink, ResultSinkType}
 import edu.ie3.simona.ontology.messages.StopMessage
@@ -29,7 +29,7 @@ import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
 import edu.ie3.util.io.FileIOUtils
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ActorTestKit,
-  ScalaTestWithActorTestKit
+  ScalaTestWithActorTestKit,
 }
 import org.apache.pekko.testkit.TestKit.awaitCond
 import org.apache.pekko.testkit.TestProbe
@@ -47,7 +47,7 @@ class ResultEventListenerSpec
     extends ScalaTestWithActorTestKit(
       ActorTestKit.ApplicationTestConfig.withValue(
         "org.apache.pekko.actor.testkit.typed.filter-leeway",
-        ConfigValueFactory.fromAnyRef("10s")
+        ConfigValueFactory.fromAnyRef("10s"),
       )
     )
     with UnitSpec
@@ -62,7 +62,7 @@ class ResultEventListenerSpec
     classOf[Transformer2WResult],
     classOf[Transformer3WResult],
     classOf[SwitchResult],
-    classOf[LineResult]
+    classOf[LineResult],
   )
 
   private val timeoutDuration: Duration = 30.seconds
@@ -71,16 +71,16 @@ class ResultEventListenerSpec
   private def resultFileHierarchy(
       runId: Int,
       fileFormat: String,
-      classes: Set[Class[_ <: ResultEntity]] = resultEntitiesToBeWritten
+      classes: Set[Class[_ <: ResultEntity]] = resultEntitiesToBeWritten,
   ): ResultFileHierarchy =
     ResultFileHierarchy(
       outputDir = testTmpDir + File.separator + runId,
       simulationName,
       ResultEntityPathConfig(
         classes,
-        ResultSinkType.Csv(fileFormat = fileFormat)
+        ResultSinkType.Csv(fileFormat = fileFormat),
       ),
-      createDirs = true
+      createDirs = true,
     )
 
   def createDir(
@@ -113,7 +113,7 @@ class ResultEventListenerSpec
         val fileHierarchy = resultFileHierarchy(1, ".csv")
         Await.ready(
           Future.sequence(createDir(fileHierarchy)),
-          60 seconds
+          60 seconds,
         )
 
         // after the creation of the listener, it is expected that a corresponding raw result data file is present
@@ -122,7 +122,7 @@ class ResultEventListenerSpec
             classOf[PvResult],
             fail(
               s"Cannot get filepath for raw result file of class '${classOf[PvResult].getSimpleName}' from outputFileHierarchy!'"
-            )
+            ),
           )
         )
 
@@ -162,7 +162,7 @@ class ResultEventListenerSpec
             classOf[PvResult],
             fail(
               s"Cannot get filepath for raw result file of class '${classOf[PvResult].getSimpleName}' from outputFileHierarchy!'"
-            )
+            ),
           )
         )
 
@@ -170,7 +170,7 @@ class ResultEventListenerSpec
         awaitCond(
           outputFile.exists(),
           interval = 500.millis,
-          max = timeoutDuration
+          max = timeoutDuration,
         )
 
         // stop listener so that result is flushed out
@@ -180,7 +180,7 @@ class ResultEventListenerSpec
         awaitCond(
           getFileLinesLength(outputFile) == 2,
           interval = 500.millis,
-          max = timeoutDuration
+          max = timeoutDuration,
         )
 
         val resultFileSource = Source.fromFile(outputFile)
@@ -210,7 +210,7 @@ class ResultEventListenerSpec
           Iterable(dummySwitchResult),
           Iterable(dummyLineResult),
           Iterable(dummyTrafo2wResult),
-          Iterable.empty[PartialTransformer3wResult]
+          Iterable.empty[PartialTransformer3wResult],
         )
 
         val outputFiles = Map(
@@ -219,7 +219,7 @@ class ResultEventListenerSpec
               classOf[NodeResult],
               fail(
                 s"Cannot get filepath for raw result file of class '${classOf[NodeResult].getSimpleName}' from outputFileHierarchy!'"
-              )
+              ),
             )
           ),
           dummySwitchResultString -> new File(
@@ -227,7 +227,7 @@ class ResultEventListenerSpec
               classOf[SwitchResult],
               fail(
                 s"Cannot get filepath for raw result file of class '${classOf[SwitchResult].getSimpleName}' from outputFileHierarchy!'"
-              )
+              ),
             )
           ),
           dummyLineResultDataString -> new File(
@@ -235,7 +235,7 @@ class ResultEventListenerSpec
               classOf[LineResult],
               fail(
                 s"Cannot get filepath for raw result file of class '${classOf[LineResult].getSimpleName}' from outputFileHierarchy!'"
-              )
+              ),
             )
           ),
           dummyTrafo2wResultDataString -> new File(
@@ -243,16 +243,16 @@ class ResultEventListenerSpec
               classOf[Transformer2WResult],
               fail(
                 s"Cannot get filepath for raw result file of class '${classOf[Transformer2WResult].getSimpleName}' from outputFileHierarchy!'"
-              )
+              ),
             )
-          )
+          ),
         )
 
         // wait until all output files exist (headers are flushed out immediately):
         awaitCond(
           outputFiles.values.map(_.exists()).forall(identity),
           interval = 500.millis,
-          max = timeoutDuration
+          max = timeoutDuration,
         )
 
         // stop listener so that result is flushed out
@@ -262,7 +262,7 @@ class ResultEventListenerSpec
         awaitCond(
           !outputFiles.values.exists(file => getFileLinesLength(file) < 2),
           interval = 500.millis,
-          max = timeoutDuration
+          max = timeoutDuration,
         )
 
         outputFiles.foreach { case (resultRowString, outputFile) =>
@@ -291,7 +291,7 @@ class ResultEventListenerSpec
           Iterable.empty[SwitchResult],
           Iterable.empty[LineResult],
           Iterable.empty[Transformer2WResult],
-          Iterable(partialResult)
+          Iterable(partialResult),
         )
 
       "correctly reacts on received results" in {
@@ -308,14 +308,14 @@ class ResultEventListenerSpec
             classOf[Transformer3WResult],
             fail(
               s"Cannot get filepath for raw result file of class '${classOf[Transformer3WResult].getSimpleName}' from outputFileHierarchy!'"
-            )
+            ),
           )
         )
         /* The result file is created at start up and only contains a head line. */
         awaitCond(
           outputFile.exists(),
           interval = 500.millis,
-          max = timeoutDuration
+          max = timeoutDuration,
         )
         getFileLinesLength(outputFile) shouldBe 1
 
@@ -346,7 +346,7 @@ class ResultEventListenerSpec
         awaitCond(
           getFileLinesLength(outputFile) == 2,
           interval = 500.millis,
-          max = timeoutDuration
+          max = timeoutDuration,
         )
         /* Check the result */
         val resultFileSource = Source.fromFile(outputFile)
@@ -387,16 +387,16 @@ class ResultEventListenerSpec
               classOf[PvResult],
               fail(
                 s"Cannot get filepath for raw result file of class '${classOf[PvResult].getSimpleName}' from outputFileHierarchy!'"
-              )
+              ),
             ),
-            ""
+            "",
           )
         )
 
         awaitCond(
           outputFile.exists(),
           interval = 500.millis,
-          max = timeoutDuration
+          max = timeoutDuration,
         )
 
         // stopping the actor should wait until existing messages within an actor are fully processed
@@ -415,10 +415,10 @@ class ResultEventListenerSpec
               classOf[PvResult],
               fail(
                 s"Cannot get filepath for raw result file of class '${classOf[PvResult].getSimpleName}' from outputFileHierarchy!'"
-              )
+              ),
             )
           ).exists,
-          timeoutDuration
+          timeoutDuration,
         )
 
         val resultFileSource = Source.fromInputStream(
@@ -428,7 +428,7 @@ class ResultEventListenerSpec
                 classOf[PvResult],
                 fail(
                   s"Cannot get filepath for raw result file of class '${classOf[PvResult].getSimpleName}' from outputFileHierarchy!'"
-                )
+                ),
               )
             )
           )

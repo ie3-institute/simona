@@ -45,15 +45,15 @@ class RunSimonaStandaloneIT
           .empty()
           .withValue(
             "simona.output.base.dir",
-            ConfigValueFactory.fromAnyRef(testTmpDir)
+            ConfigValueFactory.fromAnyRef(testTmpDir),
           )
           .withValue(
             "simona.time.startDateTime",
-            ConfigValueFactory.fromAnyRef("2011-01-01 00:00:00")
+            ConfigValueFactory.fromAnyRef("2011-01-01 00:00:00"),
           )
           .withValue(
             "simona.time.endDateTime",
-            ConfigValueFactory.fromAnyRef("2011-01-01 02:00:00")
+            ConfigValueFactory.fromAnyRef("2011-01-01 02:00:00"),
           )
           .withFallback(
             ConfigFactory
@@ -78,7 +78,7 @@ class RunSimonaStandaloneIT
       val simonaStandaloneSetup = SimonaStandaloneSetup(
         parsedConfig,
         resultFileHierarchy,
-        Some(runtimeEventQueue)
+        Some(runtimeEventQueue),
       )
 
       /* run simulation */
@@ -100,7 +100,7 @@ class RunSimonaStandaloneIT
       // todo implement if valid result handling is implemented
       val pvResultFileContent = getFileSource(
         resultFileHierarchy,
-        classOf[PvResult]
+        classOf[PvResult],
       ).getLines().toVector
       pvResultFileContent.size shouldBe 190
       pvResultFileContent.headOption.map(
@@ -113,12 +113,12 @@ class RunSimonaStandaloneIT
 
   private def getFileSource(
       resultFileHierarchy: ResultFileHierarchy,
-      entityClass: Class[_ <: ResultEntity]
+      entityClass: Class[_ <: ResultEntity],
   ): BufferedSource = {
     Source.fromFile(
       resultFileHierarchy.rawOutputDataFilePaths.getOrElse(
         entityClass,
-        fail(s"Unable to get output path for result entity: $entityClass")
+        fail(s"Unable to get output path for result entity: $entityClass"),
       )
     )
   }

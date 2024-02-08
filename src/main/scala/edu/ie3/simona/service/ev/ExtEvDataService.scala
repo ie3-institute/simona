@@ -21,11 +21,11 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrat
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
-  ServiceBaseStateData
+  ServiceBaseStateData,
 }
 import edu.ie3.simona.service.ev.ExtEvDataService.{
   ExtEvStateData,
-  InitExtEvData
+  InitExtEvData,
 }
 import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
 import edu.ie3.simona.util.ReceiveDataMap
@@ -47,7 +47,7 @@ object ExtEvDataService {
       extEvMessage: Option[EvDataMessageFromExt] = None,
       freeLots: ReceiveDataMap[UUID, Int] = ReceiveDataMap.empty,
       departingEvResponses: ReceiveDataMap[UUID, Seq[EvModelWrapper]] =
-        ReceiveDataMap.empty
+        ReceiveDataMap.empty,
   ) extends ServiceBaseStateData
 
   final case class InitExtEvData(
@@ -65,7 +65,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
   ): Try[
     (
         ExtEvStateData,
-        Option[Long]
+        Option[Long],
     )
   ] =
     initServiceData match {
@@ -76,7 +76,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
         Success(
           evInitializedStateData,
-          None
+          None,
         )
 
       case invalidData =>
@@ -129,14 +129,14 @@ class ExtEvDataService(override val scheduler: ActorRef)
     */
   private def handleRegistrationRequest(
       agentToBeRegistered: ActorRef,
-      evcs: UUID
+      evcs: UUID,
   )(implicit
       serviceStateData: ExtEvStateData
   ): ExtEvStateData = {
     log.debug(
       "Received ev movement service registration from {} for [Evcs:{}]",
       agentToBeRegistered.path.name,
-      evcs
+      evcs,
     )
 
     serviceStateData.uuidToActorRef.get(evcs) match {
@@ -152,7 +152,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
         // actor is already registered, do nothing
         log.warning(
           "Sending actor {} is already registered",
-          agentToBeRegistered
+          agentToBeRegistered,
         )
         serviceStateData
     }
@@ -173,7 +173,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
       tick: Long
   )(implicit serviceStateData: ExtEvStateData, ctx: ActorContext): (
       ExtEvStateData,
-      Option[Long]
+      Option[Long],
   ) = {
     serviceStateData.extEvMessage.getOrElse(
       throw ServiceException(
@@ -187,7 +187,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
       case arrivingEvsProvision: ProvideArrivingEvs =>
         handleArrivingEvs(tick, arrivingEvsProvision.arrivals)(
           serviceStateData,
-          ctx
+          ctx,
         )
     }
   }
@@ -211,15 +211,15 @@ class ExtEvDataService(override val scheduler: ActorRef)
     (
       serviceStateData.copy(
         extEvMessage = None,
-        freeLots = ReceiveDataMap(freeLots)
+        freeLots = ReceiveDataMap(freeLots),
       ),
-      None
+      None,
     )
   }
 
   private def requestDepartingEvs(
       tick: Long,
-      requestedDepartingEvs: java.util.Map[UUID, java.util.List[UUID]]
+      requestedDepartingEvs: java.util.Map[UUID, java.util.List[UUID]],
   )(implicit
       serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Long]) = {
@@ -235,7 +235,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
           case None =>
             log.warning(
               "A corresponding actor ref for UUID {} could not be found",
-              evcs
+              evcs,
             )
 
             None
@@ -250,18 +250,18 @@ class ExtEvDataService(override val scheduler: ActorRef)
     (
       serviceStateData.copy(
         extEvMessage = None,
-        departingEvResponses = ReceiveDataMap(departingEvResponses.toSet)
+        departingEvResponses = ReceiveDataMap(departingEvResponses.toSet),
       ),
-      None
+      None,
     )
   }
 
   private def handleArrivingEvs(
       tick: Long,
-      allArrivingEvs: java.util.Map[UUID, java.util.List[EvModel]]
+      allArrivingEvs: java.util.Map[UUID, java.util.List[EvModel]],
   )(implicit
       serviceStateData: ExtEvStateData,
-      ctx: ActorContext
+      ctx: ActorContext,
   ): (ExtEvStateData, Option[Long]) = {
     val actorToEvs = allArrivingEvs.asScala.flatMap {
       case (evcs, arrivingEvs) =>
@@ -271,7 +271,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
           .orElse {
             log.warning(
               "A corresponding actor ref for UUID {} could not be found",
-              evcs
+              evcs,
             )
             None
           }
@@ -286,7 +286,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
           tick,
           self,
           ArrivingEvsData(arrivingEvs),
-          unlockKey = Some(key)
+          unlockKey = Some(key),
         )
       }
 
@@ -296,7 +296,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
       serviceStateData.copy(
         extEvMessage = None
       ),
-      None
+      None,
     )
   }
 

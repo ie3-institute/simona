@@ -70,7 +70,7 @@ trait SimonaSetup {
     */
   def primaryServiceProxy(
       context: ActorContext,
-      scheduler: ActorRef
+      scheduler: ActorRef,
   ): ActorRef
 
   /** Creates a weather service
@@ -85,7 +85,7 @@ trait SimonaSetup {
     */
   def weatherService(
       context: ActorContext,
-      scheduler: ActorRef
+      scheduler: ActorRef,
   ): ActorRef
 
   /** Loads external simulations and provides corresponding actors and init data
@@ -99,7 +99,7 @@ trait SimonaSetup {
     */
   def extSimulations(
       context: ActorContext,
-      scheduler: ActorRef
+      scheduler: ActorRef,
   ): ExtSimSetupData
 
   /** Creates the time advancer
@@ -116,7 +116,7 @@ trait SimonaSetup {
   def timeAdvancer(
       context: ActorContext,
       simulation: ActorRef,
-      runtimeEventListener: org.apache.pekko.actor.typed.ActorRef[RuntimeEvent]
+      runtimeEventListener: org.apache.pekko.actor.typed.ActorRef[RuntimeEvent],
   ): org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming]
 
   /** Creates a scheduler service
@@ -130,7 +130,7 @@ trait SimonaSetup {
     */
   def scheduler(
       context: ActorContext,
-      timeAdvancer: org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming]
+      timeAdvancer: org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming],
   ): ActorRef
 
   /** Creates all the needed grid agents
@@ -148,7 +148,7 @@ trait SimonaSetup {
   def gridAgents(
       context: ActorContext,
       environmentRefs: EnvironmentRefs,
-      systemParticipantListener: Seq[ActorRef]
+      systemParticipantListener: Seq[ActorRef],
   ): Iterable[ActorRef]
 
   /** SIMONA links sub grids connected by a three winding transformer a bit
@@ -163,7 +163,7 @@ trait SimonaSetup {
           new SubGridGate(
             transformer,
             transformer.getNodeInternal,
-            gate.inferiorNode
+            gate.inferiorNode,
           )
         case _ => gate
       }

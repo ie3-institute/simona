@@ -34,7 +34,7 @@ object Transformer3wPowerFlowCase {
 
   def apply(
       trafo3wInput: Transformer3WInput,
-      subnetNo: Int
+      subnetNo: Int,
   ): Transformer3wPowerFlowCase = {
     if (trafo3wInput.getNodeA.getSubnet == subnetNo)
       PowerFlowCaseA

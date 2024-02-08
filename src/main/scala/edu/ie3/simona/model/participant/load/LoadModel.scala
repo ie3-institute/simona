@@ -15,7 +15,7 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.{
   ApparentPowerParticipant,
   FlexChangeIndicator,
-  SystemParticipant
+  SystemParticipant,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
@@ -38,7 +38,7 @@ abstract class LoadModel[D <: LoadRelevantData](
     scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
-    cosPhiRated: Double
+    cosPhiRated: Double,
 ) extends SystemParticipant[D, ApparentPower, ConstantState.type](
       uuid,
       id,
@@ -46,23 +46,23 @@ abstract class LoadModel[D <: LoadRelevantData](
       scalingFactor,
       qControl,
       sRated,
-      cosPhiRated
+      cosPhiRated,
     )
     with ApparentPowerParticipant[D, ConstantState.type] {
 
   override def determineFlexOptions(
       data: D,
-      lastState: ConstantState.type
+      lastState: ConstantState.type,
   ): ProvideFlexOptions =
     ProvideMinMaxFlexOptions.noFlexOption(
       uuid,
-      calculateActivePower(lastState, data)
+      calculateActivePower(lastState, data),
     )
 
   override def handleControlledPowerChange(
       data: D,
       lastState: ConstantState.type,
-      setPower: Power
+      setPower: Power,
   ): (ConstantState.type, FlexChangeIndicator) =
     (lastState, FlexChangeIndicator())
 }
@@ -90,7 +90,7 @@ case object LoadModel extends LazyLogging {
   def scaleSRatedActivePower(
       inputModel: LoadInput,
       activePower: Power,
-      safetyFactor: Double = 1d
+      safetyFactor: Double = 1d,
   ): Power = {
     val sRated = Megawatts(
       inputModel.getsRated
@@ -133,7 +133,7 @@ case object LoadModel extends LazyLogging {
       energyConsumption: Energy,
       profileMaxPower: Power,
       profileEnergyScaling: Energy,
-      safetyFactor: Double = 1d
+      safetyFactor: Double = 1d,
   ): Power = {
     (profileMaxPower / inputModel.getCosPhiRated) * (
       energyConsumption / profileEnergyScaling

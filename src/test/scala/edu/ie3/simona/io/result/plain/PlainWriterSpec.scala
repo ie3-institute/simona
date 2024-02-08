@@ -43,7 +43,7 @@ class PlainWriterSpec extends UnitSpec with GivenWhenThen {
         time,
         inputModelId,
         vMag,
-        vAng
+        vAng,
       )
 
       When("converting to a plain result")
@@ -77,7 +77,7 @@ class PlainWriterSpec extends UnitSpec with GivenWhenThen {
         eventId,
         inputModelId,
         vMag,
-        vAng
+        vAng,
       )
 
       When("converting to a full NodeResult")
@@ -91,7 +91,7 @@ class PlainWriterSpec extends UnitSpec with GivenWhenThen {
         .getvMag() shouldBe Quantities.getQuantity(vMag, PowerSystemUnits.PU)
       plainResult.getvAng() shouldBe Quantities.getQuantity(
         vAng,
-        PowerSystemUnits.DEGREE_GEOM
+        PowerSystemUnits.DEGREE_GEOM,
       )
     }
   }

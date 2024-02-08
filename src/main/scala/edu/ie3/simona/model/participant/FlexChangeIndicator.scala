@@ -8,5 +8,5 @@ package edu.ie3.simona.model.participant
 
 final case class FlexChangeIndicator(
     changesAtNextActivation: Boolean = false,
-    changesAtTick: Option[Long] = None
+    changesAtTick: Option[Long] = None,
 )
