@@ -51,7 +51,7 @@ final case class RandomLoadModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    scalingFactor: Double,
+    override val scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double,
@@ -111,7 +111,7 @@ final case class RandomLoadModel(
           /* scale the profiles random power based on the energyConsumption/profileEnergyScaling(=1000kWh/year) ratio  */
           profilePower * energyReferenceScalingFactor
       }
-      activePower * scalingFactor
+      activePower
     }
   }
 
@@ -182,7 +182,7 @@ object RandomLoadModel {
       scalingFactor: Double,
       reference: LoadReference
   ): RandomLoadModel = {
-    reference match {
+    val model = reference match {
       case ActivePower(power) =>
         val sRatedPowerScaled =
           LoadModel.scaleSRatedActivePower(input, power, 1.1)
@@ -217,5 +217,7 @@ object RandomLoadModel {
           reference
         )
     }
+    model.enable()
+    model
   }
 }
