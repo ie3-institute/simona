@@ -51,7 +51,7 @@ final case class HpModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    scalingFactor: Double,
+    override val scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double,
@@ -72,7 +72,7 @@ final case class HpModel(
     with ApparentPowerAndHeatParticipant[HpRelevantData] {
 
   private val pRated: Power =
-    sRated * cosPhiRated * scalingFactor
+    sRated * cosPhiRated
 
   /** As this is a state-full model (with respect to the current operation
     * condition and inner temperature), the power calculation operates on the
@@ -158,7 +158,7 @@ final case class HpModel(
   private def calcState(hpData: HpRelevantData, isRunning: Boolean): HpState = {
     val (newActivePower, newThermalPower) =
       if (isRunning)
-        (pRated, pThermal * scalingFactor)
+        (pRated, pThermal)
       else (DefaultQuantities.zeroKW, DefaultQuantities.zeroKW)
     /* Push thermal energy to the thermal grid and get it's updated state in return */
     val thermalGridState = hpData match {
@@ -275,10 +275,14 @@ case object HpModel {
     *
     * @param hpInput
     *   instance of [[HpInput]] this chp model should be built from
-    * @param operationInterval
-    *   operation interval of the simulation
+    * @param simulationStartDate
+    *   Simulation time at which the simulation starts
+    * @param simulationEndDate
+    *   Simulation time at which the simulation ends
     * @param qControl
-    *   (no usage)
+    *   Strategy to control the reactive power output
+    * @param scalingFactor
+    *   Scale the output of this asset by the given factor
     * @param thermalGrid
     *   thermal grid, defining the behaviour of the connected sinks and storages
     * @return
@@ -286,15 +290,23 @@ case object HpModel {
     */
   def apply(
       hpInput: HpInput,
-      operationInterval: OperationInterval,
+      simulationStartDate: ZonedDateTime,
+      simulationEndDate: ZonedDateTime,
       qControl: QControl,
+      scalingFactor: Double,
       thermalGrid: ThermalGrid
   ): HpModel = {
+    val operationInterval = SystemComponent.determineOperationInterval(
+      simulationStartDate,
+      simulationEndDate,
+      hpInput.getOperationTime
+    )
+
     val model = new HpModel(
       hpInput.getUuid,
       hpInput.getId,
       operationInterval,
-      scalingFactor = 1.0,
+      scalingFactor,
       qControl,
       Kilowatts(
         hpInput.getType.getsRated

@@ -45,7 +45,7 @@ final case class FixedLoadModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    scalingFactor: Double,
+    override val scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double,
@@ -77,7 +77,7 @@ final case class FixedLoadModel(
     */
   override protected def calculateActivePower(
       data: FixedLoadRelevantData.type = FixedLoadRelevantData
-  ): Power = activePower * scalingFactor
+  ): Power = activePower
 }
 
 object FixedLoadModel {
@@ -85,22 +85,26 @@ object FixedLoadModel {
 
   def apply(
       input: LoadInput,
-      operationInterval: OperationInterval,
       scalingFactor: Double,
+      operationInterval: OperationInterval,
       reference: LoadReference
-  ): FixedLoadModel = FixedLoadModel(
-    input.getUuid,
-    input.getId,
-    operationInterval,
-    scalingFactor,
-    QControl(input.getqCharacteristics()),
-    Kilowatts(
-      input.getsRated
-        .to(PowerSystemUnits.KILOWATT)
-        .getValue
-        .doubleValue
-    ),
-    input.getCosPhiRated,
-    reference
-  )
+  ): FixedLoadModel = {
+    val model = FixedLoadModel(
+      input.getUuid,
+      input.getId,
+      operationInterval,
+      scalingFactor,
+      QControl(input.getqCharacteristics()),
+      Kilowatts(
+        input.getsRated
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue
+      ),
+      input.getCosPhiRated,
+      reference
+    )
+    model.enable()
+    model
+  }
 }
