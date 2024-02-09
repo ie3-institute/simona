@@ -80,7 +80,7 @@ object RuntimeEvent {
   final case class Done(
       tick: Long,
       duration: Long,
-      errorInSim: Boolean
+      errorInSim: Boolean,
   ) extends RuntimeEvent
 
   /** Indicates that a power flow calculation has failed. This event is not

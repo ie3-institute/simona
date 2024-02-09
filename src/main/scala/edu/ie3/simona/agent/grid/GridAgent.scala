@@ -10,7 +10,7 @@ import edu.ie3.simona.agent.grid.GridAgent.Create
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
   GridAgentInitData,
-  GridAgentUninitializedData
+  GridAgentUninitializedData,
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.GridAgentState.{Initializing, SimulateGrid}
@@ -21,7 +21,7 @@ import edu.ie3.simona.model.grid.GridModel
 import edu.ie3.simona.ontology.messages.PowerMessage.RequestGridPowerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.{Activation, StopMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
@@ -38,13 +38,13 @@ object GridAgent {
   def props(
       environmentRefs: EnvironmentRefs,
       simonaConfig: SimonaConfig,
-      listener: Iterable[ActorRef]
+      listener: Iterable[ActorRef],
   ): Props =
     Props(
       new GridAgent(
         environmentRefs,
         simonaConfig,
-        listener
+        listener,
       )
     )
 
@@ -55,7 +55,7 @@ object GridAgent {
     */
   final case class Create(
       gridAgentInitData: GridAgentInitData,
-      unlockKey: ScheduleKey
+      unlockKey: ScheduleKey,
   )
 
   /** Trigger used inside of [[edu.ie3.simona.agent.grid.DBFSAlgorithm]] to
@@ -97,7 +97,7 @@ object GridAgent {
 class GridAgent(
     val environmentRefs: EnvironmentRefs,
     simonaConfig: SimonaConfig,
-    val listener: Iterable[ActorRef]
+    val listener: Iterable[ActorRef],
 ) extends SimonaAgent[GridAgentData]
     with DBFSAlgorithm
     with Stash {
@@ -121,7 +121,7 @@ class GridAgent(
       simonaConfig.simona.output.participant,
       resolution,
       listener,
-      log
+      log,
     )
 
   override def postStop(): Unit = {
@@ -139,12 +139,12 @@ class GridAgent(
   when(Uninitialized) {
     case Event(
           Create(gridAgentInitData, unlockKey),
-          _
+          _,
         ) =>
       environmentRefs.scheduler ! ScheduleActivation(
         self.toTyped,
         INIT_SIM_TICK,
-        Some(unlockKey)
+        Some(unlockKey),
       )
 
       goto(Initializing) using gridAgentInitData
@@ -153,7 +153,7 @@ class GridAgent(
   when(Initializing) {
     case Event(
           Activation(INIT_SIM_TICK),
-          gridAgentInitData: GridAgentInitData
+          gridAgentInitData: GridAgentInitData,
         ) =>
       // fail fast sanity checks
       failFast(gridAgentInitData)
@@ -161,13 +161,13 @@ class GridAgent(
       log.debug(
         "Inferior Subnets: {}; Inferior Subnet Nodes: {}",
         gridAgentInitData.inferiorGridIds,
-        gridAgentInitData.inferiorGridNodeUuids
+        gridAgentInitData.inferiorGridNodeUuids,
       )
 
       log.debug(
         "Superior Subnets: {}; Superior Subnet Nodes: {}",
         gridAgentInitData.superiorGridIds,
-        gridAgentInitData.superiorGridNodeUuids
+        gridAgentInitData.superiorGridNodeUuids,
       )
 
       log.debug("Received InitializeTrigger.")
@@ -188,7 +188,7 @@ class GridAgent(
           .toZonedDateTime(simonaConfig.simona.time.startDateTime),
         TimeUtil.withDefaults.toZonedDateTime(
           simonaConfig.simona.time.endDateTime
-        )
+        ),
       )
 
       /* Reassure, that there are also calculation models for the given uuids */
@@ -219,17 +219,17 @@ class GridAgent(
           simonaConfig.simona.powerflow.newtonraphson.epsilon.toVector.sorted,
           simonaConfig.simona.powerflow.newtonraphson.iterations,
           simonaConfig.simona.powerflow.sweepTimeout,
-          simonaConfig.simona.powerflow.stopOnFailure
+          simonaConfig.simona.powerflow.stopOnFailure,
         ),
         log,
-        actorName
+        actorName,
       )
 
       log.debug("Je suis initialized")
 
       environmentRefs.scheduler ! Completion(
         self.toTyped,
-        Some(resolution)
+        Some(resolution),
       )
 
       goto(Idle) using gridAgentBaseData
@@ -245,13 +245,13 @@ class GridAgent(
 
     case Event(
           Activation(tick),
-          gridAgentBaseData: GridAgentBaseData
+          gridAgentBaseData: GridAgentBaseData,
         ) =>
       unstashAll()
 
       environmentRefs.scheduler ! Completion(
         self.toTyped,
-        Some(tick)
+        Some(tick),
       )
 
       goto(SimulateGrid) using gridAgentBaseData

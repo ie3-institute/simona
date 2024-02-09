@@ -7,7 +7,7 @@
 package edu.ie3.simona.test.common
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.simona.test.matchers.QuantityMatchers
+import edu.ie3.simona.test.matchers.{QuantityMatchers, SquantsMatchers}
 import edu.ie3.util.scala.quantities.{QuantityUtil => PSQuantityUtil}
 import org.scalatest._
 import org.scalatest.matchers.should
@@ -27,6 +27,7 @@ import java.util.Locale
 trait UnitSpec
     extends should.Matchers
     with QuantityMatchers
+    with SquantsMatchers
     with AnyWordSpecLike
     with OptionValues
     with Inside

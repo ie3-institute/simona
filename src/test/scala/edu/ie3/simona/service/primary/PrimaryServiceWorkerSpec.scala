@@ -16,7 +16,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ActivePower
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.WorkerRegistrationMessage
@@ -27,7 +27,7 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   CsvInitPrimaryServiceStateData,
   InitPrimaryServiceStateData,
   PrimaryServiceInitializedStateData,
-  ProvidePrimaryDataMessage
+  ProvidePrimaryDataMessage,
 }
 import edu.ie3.simona.service.primary.PrimaryServiceWorkerSpec.WrongInitPrimaryServiceStateData
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
@@ -54,7 +54,7 @@ class PrimaryServiceWorkerSpec
         ConfigFactory
           .parseString("""
                        |pekko.loglevel="OFF"
-          """.stripMargin)
+          """.stripMargin),
       )
     )
     with TimeSeriesTestData
@@ -78,7 +78,7 @@ class PrimaryServiceWorkerSpec
       fileNamingStrategy = new FileNamingStrategy(),
       simulationStart =
         TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
-      timePattern = "yyyy-MM-dd'T'HH:mm:ss'Z'"
+      timePattern = "yyyy-MM-dd'T'HH:mm:ss'Z'",
     )
 
   private implicit val powerTolerance: squants.Power = Watts(0.1)
@@ -90,7 +90,7 @@ class PrimaryServiceWorkerSpec
       TestActorRef(
         new PrimaryServiceWorker[PValue](
           scheduler.ref,
-          classOf[PValue]
+          classOf[PValue],
         )
       )
     val service = serviceRef.underlyingActor
@@ -114,7 +114,7 @@ class PrimaryServiceWorkerSpec
         directoryPath = baseDirectoryPath,
         filePath = Paths.get("its_pq_" + uuidPq),
         fileNamingStrategy = new FileNamingStrategy(),
-        timePattern = TimeUtil.withDefaults.getDtfPattern
+        timePattern = TimeUtil.withDefaults.getDtfPattern,
       )
       service.init(maliciousInitData) match {
         case Failure(exception) =>
@@ -135,12 +135,12 @@ class PrimaryServiceWorkerSpec
                   activationTicks,
                   simulationStart,
                   source,
-                  subscribers
+                  subscribers,
                 ) =>
               nextActivationTick shouldBe Some(0L)
               activationTicks.toVector shouldBe Vector(
                 900L,
-                1800L
+                1800L,
               ) // The first tick should already been popped
               simulationStart shouldBe validInitData.simulationStart
               source.getClass shouldBe classOf[CsvTimeSeriesSource[PValue]]
@@ -160,7 +160,7 @@ class PrimaryServiceWorkerSpec
 
       scheduler.send(
         serviceRef,
-        SimonaService.Create(validInitData, key)
+        SimonaService.Create(validInitData, key),
       )
       scheduler.expectMsg(
         ScheduleActivation(serviceRef.toTyped, INIT_SIM_TICK, Some(key))
@@ -180,7 +180,9 @@ class PrimaryServiceWorkerSpec
       serviceRef ! WorkerRegistrationMessage(systemParticipant.ref)
 
       /* Wait for request approval */
-      systemParticipant.expectMsg(RegistrationSuccessfulMessage(Some(0L)))
+      systemParticipant.expectMsg(
+        RegistrationSuccessfulMessage(serviceRef, Some(0L))
+      )
 
       /* We cannot directly check, if the requesting actor is among the subscribers, therefore we ask the actor to
        * provide data to all subscribed actors and check, if the subscribed probe gets one */
@@ -202,16 +204,16 @@ class PrimaryServiceWorkerSpec
         uuidP,
         Paths.get("its_p_" + uuidP),
         classOf[PValue],
-        new TimeBasedSimpleValueFactory[PValue](classOf[PValue])
+        new TimeBasedSimpleValueFactory[PValue](classOf[PValue]),
       ),
-      Vector(self)
+      Vector(self),
     )
 
     "correctly distribute proper primary data" in {
       val announcePrimaryData = PrivateMethod[
         (
             PrimaryServiceInitializedStateData[PValue],
-            Option[Long]
+            Option[Long],
         )
       ](Symbol("announcePrimaryData"))
       val tick = 0L
@@ -221,7 +223,7 @@ class PrimaryServiceWorkerSpec
       service invokePrivate announcePrimaryData(
         tick,
         primaryData,
-        serviceStateData
+        serviceStateData,
       ) match {
         case (updatedStateData, maybeNextTick) =>
           /* Check updated state data */
@@ -231,7 +233,7 @@ class PrimaryServiceWorkerSpec
                   activationTicks,
                   _,
                   _,
-                  _
+                  _,
                 ) =>
               nextActivationTick shouldBe Some(900L)
               activationTicks.size shouldBe 0
@@ -243,11 +245,13 @@ class PrimaryServiceWorkerSpec
       expectMsgClass(classOf[ProvidePrimaryDataMessage]) match {
         case ProvidePrimaryDataMessage(
               actualTick,
+              actualServiceRef,
               actualData,
               actualNextDataTick,
-              unlockKey
+              unlockKey,
             ) =>
           actualTick shouldBe 0L
+          actualServiceRef shouldBe serviceRef
           actualData shouldBe primaryData
           actualNextDataTick shouldBe Some(900L)
           unlockKey shouldBe None
@@ -257,7 +261,7 @@ class PrimaryServiceWorkerSpec
     val processDataAndAnnounce = PrivateMethod[
       (
           PrimaryServiceInitializedStateData[PValue],
-          Option[Long]
+          Option[Long],
       )
     ](Symbol("processDataAndAnnounce"))
 
@@ -273,7 +277,7 @@ class PrimaryServiceWorkerSpec
       service invokePrivate processDataAndAnnounce(
         tick,
         maliciousValue,
-        stateData
+        stateData,
       ) match {
         case (
               PrimaryServiceInitializedStateData(
@@ -281,9 +285,9 @@ class PrimaryServiceWorkerSpec
                 _,
                 _,
                 _,
-                _
+                _,
               ),
-              maybeNextTick
+              maybeNextTick,
             ) =>
           nextActivationTick shouldBe Some(900L)
           maybeNextTick shouldBe Some(900L)
@@ -302,7 +306,7 @@ class PrimaryServiceWorkerSpec
       service invokePrivate processDataAndAnnounce(
         tick,
         value,
-        serviceStateData
+        serviceStateData,
       ) match {
         case (updatedStateData, _) =>
           inside(updatedStateData) {
@@ -311,7 +315,7 @@ class PrimaryServiceWorkerSpec
                   activationTicks,
                   _,
                   _,
-                  _
+                  _,
                 ) =>
               nextActivationTick shouldBe Some(900L)
               activationTicks.size shouldBe 0
@@ -322,8 +326,9 @@ class PrimaryServiceWorkerSpec
       expectMsg(
         ProvidePrimaryDataMessage(
           tick,
+          serviceRef,
           ActivePower(Kilowatts(50.0)),
-          Some(900L)
+          Some(900L),
         )
       )
     }
@@ -342,15 +347,23 @@ class PrimaryServiceWorkerSpec
 
       inside(
         systemParticipant.expectMsgClass(classOf[ProvidePrimaryDataMessage])
-      ) { case ProvidePrimaryDataMessage(tick, data, nextDataTick, unlockKey) =>
-        tick shouldBe 900L
-        inside(data) {
-          case ActivePower(p) =>
-            (p ~= Kilowatts(1250.0)) shouldBe true
-          case _ => fail("Expected to get active power only.")
-        }
-        nextDataTick shouldBe None
-        unlockKey shouldBe None
+      ) {
+        case ProvidePrimaryDataMessage(
+              tick,
+              actualServiceRef,
+              data,
+              nextDataTick,
+              unlockKey,
+            ) =>
+          tick shouldBe 900L
+          actualServiceRef shouldBe serviceRef
+          inside(data) {
+            case ActivePower(p) =>
+              p should approximate(Kilowatts(1250.0))
+            case _ => fail("Expected to get active power only.")
+          }
+          nextDataTick shouldBe None
+          unlockKey shouldBe None
       }
     }
   }
@@ -359,14 +372,14 @@ class PrimaryServiceWorkerSpec
 object PrimaryServiceWorkerSpec {
   final case class WrongInitPrimaryServiceStateData(
       override val simulationStart: ZonedDateTime,
-      override val timeSeriesUuid: UUID
+      override val timeSeriesUuid: UUID,
   ) extends InitPrimaryServiceStateData
 
   object WrongInitPrimaryServiceStateData {
     def apply(): WrongInitPrimaryServiceStateData =
       new WrongInitPrimaryServiceStateData(
         ZonedDateTime.now(),
-        UUID.randomUUID()
+        UUID.randomUUID(),
       )
   }
 }

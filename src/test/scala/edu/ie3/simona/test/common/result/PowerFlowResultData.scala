@@ -11,7 +11,7 @@ import edu.ie3.datamodel.models.result.NodeResult
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
   SwitchResult,
-  Transformer2WResult
+  Transformer2WResult,
 }
 import edu.ie3.datamodel.models.result.system.PvResult
 import edu.ie3.util.TimeUtil
@@ -33,7 +33,7 @@ trait PowerFlowResultData {
     dummyTime,
     dummyInputModel,
     Quantities.getQuantity(10, StandardUnits.ACTIVE_POWER_IN),
-    Quantities.getQuantity(10, StandardUnits.REACTIVE_POWER_IN)
+    Quantities.getQuantity(10, StandardUnits.REACTIVE_POWER_IN),
   )
 
   val dummyPvResultDataString =
@@ -44,7 +44,7 @@ trait PowerFlowResultData {
     dummyTime,
     dummyInputModel,
     Quantities.getQuantity(1.0, PowerSystemUnits.PU),
-    Quantities.getQuantity(10, PowerSystemUnits.DEGREE_GEOM)
+    Quantities.getQuantity(10, PowerSystemUnits.DEGREE_GEOM),
   )
 
   val dummyNodeResultString =
@@ -54,7 +54,7 @@ trait PowerFlowResultData {
     UUID.fromString("647efb19-ec38-4e01-812b-0d751f0150e8"),
     dummyTime,
     dummyInputModel,
-    true
+    true,
   )
 
   val dummySwitchResultString =
@@ -68,7 +68,7 @@ trait PowerFlowResultData {
     Quantities.getQuantity(100, PowerSystemUnits.DEGREE_GEOM),
     Quantities.getQuantity(100, Units.AMPERE),
     Quantities.getQuantity(100, PowerSystemUnits.DEGREE_GEOM),
-    0
+    0,
   )
 
   val dummyTrafo2wResultDataString =
@@ -81,7 +81,7 @@ trait PowerFlowResultData {
     Quantities.getQuantity(100, Units.AMPERE),
     Quantities.getQuantity(100, PowerSystemUnits.DEGREE_GEOM),
     Quantities.getQuantity(100, Units.AMPERE),
-    Quantities.getQuantity(100, PowerSystemUnits.DEGREE_GEOM)
+    Quantities.getQuantity(100, PowerSystemUnits.DEGREE_GEOM),
   )
 
   val dummyLineResultDataString =

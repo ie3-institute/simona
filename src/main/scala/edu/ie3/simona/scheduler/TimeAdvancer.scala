@@ -11,7 +11,7 @@ import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.sim.SimMessage.{SimulationFailure, SimulationSuccessful}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -56,14 +56,14 @@ object TimeAdvancer {
       simulation: org.apache.pekko.actor.ActorRef,
       eventListener: Option[ActorRef[RuntimeEvent]],
       checkWindow: Option[Int],
-      endTick: Long
+      endTick: Long,
   ): Behavior[Incoming] = Behaviors.receivePartial {
     case (_, ScheduleActivation(actor, tick, _)) =>
       inactive(
         TimeAdvancerData(simulation, actor, endTick),
         eventListener.map(RuntimeNotifier(_, checkWindow)),
         tick,
-        tick
+        tick,
       )
 
     case (ctx, Stop(errorMsg: String)) =>
@@ -86,14 +86,14 @@ object TimeAdvancer {
       data: TimeAdvancerData,
       notifier: Option[RuntimeNotifier],
       startingTick: Long,
-      nextActiveTick: Long
+      nextActiveTick: Long,
   ): Behavior[Incoming] = Behaviors.receivePartial {
     case (_, StartSimMessage(pauseTick)) =>
       val updatedNotifier = notifier.map {
         _.starting(
           startingTick,
           pauseTick,
-          data.endTick
+          data.endTick,
         )
       }
 
@@ -103,7 +103,7 @@ object TimeAdvancer {
         data,
         updatedNotifier,
         nextActiveTick,
-        pauseTick
+        pauseTick,
       )
 
     case (ctx, Stop(errorMsg: String)) =>
@@ -126,7 +126,7 @@ object TimeAdvancer {
       data: TimeAdvancerData,
       notifier: Option[RuntimeNotifier],
       activeTick: Long,
-      pauseTick: Option[Long]
+      pauseTick: Option[Long],
   ): Behavior[Incoming] = Behaviors.receivePartial {
     case (ctx, Completion(_, maybeNewTick)) =>
       checkCompletion(activeTick, maybeNewTick)
@@ -152,7 +152,7 @@ object TimeAdvancer {
                 data,
                 updatedNotifier,
                 pauseTick + 1,
-                newTick
+                newTick,
               )
 
             case (Some(newTick), _) =>
@@ -165,7 +165,7 @@ object TimeAdvancer {
                   notifierCompleted.starting(
                     newTick,
                     pauseTick,
-                    data.endTick
+                    data.endTick,
                   )
                 else
                   notifierCompleted
@@ -177,7 +177,7 @@ object TimeAdvancer {
                 data,
                 updatedNotifier,
                 newTick,
-                pauseTick
+                pauseTick,
               )
 
             case (None, _) =>
@@ -195,7 +195,7 @@ object TimeAdvancer {
 
   private def endSuccessfully(
       data: TimeAdvancerData,
-      notifier: Option[RuntimeNotifier]
+      notifier: Option[RuntimeNotifier],
   ): Behavior[Incoming] = {
     data.simulation ! SimulationSuccessful
 
@@ -214,7 +214,7 @@ object TimeAdvancer {
       simulation: org.apache.pekko.actor.ActorRef,
       notifier: Option[RuntimeNotifier],
       tick: Long,
-      errorMsg: String
+      errorMsg: String,
   ): Behavior[Incoming] = {
     simulation ! SimulationFailure
     notifier.foreach(_.error(tick, errorMsg))
@@ -224,7 +224,7 @@ object TimeAdvancer {
 
   private def checkCompletion(
       activeTick: Long,
-      maybeNewTick: Option[Long]
+      maybeNewTick: Option[Long],
   ): Option[String] =
     maybeNewTick.filter(_ <= activeTick).map { newTick =>
       s"The next trigger has tick $newTick, although current active tick was $activeTick."
@@ -243,6 +243,6 @@ object TimeAdvancer {
   private final case class TimeAdvancerData(
       simulation: org.apache.pekko.actor.ActorRef,
       schedulee: ActorRef[Activation],
-      endTick: Long
+      endTick: Long,
   )
 }

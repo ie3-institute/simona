@@ -47,8 +47,8 @@ class ResultFileHierarchySpec
           runOutputDir,
           ResultEntityPathConfig(
             Set(classOf[PvResult]),
-            ResultSinkType.Csv("csv", "pref", "suff")
-          )
+            ResultSinkType.Csv("csv", "pref", "suff"),
+          ),
         )
 
       val runOutputDirWithDate =
@@ -95,9 +95,9 @@ class ResultFileHierarchySpec
           runOutputDir,
           ResultEntityPathConfig(
             Set(classOf[PvResult]),
-            ResultSinkType.Csv("csv", "pref", "suff")
+            ResultSinkType.Csv("csv", "pref", "suff"),
           ),
-          createDirs = true
+          createDirs = true,
         )
 
       // check for existence of run output dir

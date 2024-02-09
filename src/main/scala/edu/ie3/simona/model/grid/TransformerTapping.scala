@@ -73,7 +73,7 @@ trait TransformerTapping {
     */
   def computeDeltaTap(
       vChangeRequest: Quantity[Dimensionless],
-      deadBand: Quantity[Dimensionless] = Quantities.getQuantity(0.75, PU)
+      deadBand: Quantity[Dimensionless] = Quantities.getQuantity(0.75, PU),
   ): Int =
     transformerTappingModel.computeDeltaTap(vChangeRequest, deadBand)
 

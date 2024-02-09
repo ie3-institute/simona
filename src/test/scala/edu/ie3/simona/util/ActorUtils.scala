@@ -13,23 +13,23 @@ import org.apache.pekko.actor.typed.ActorRef
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 object ActorUtils {
-  implicit class RichTriggeredAgent(
-      private val triggeredAgent: TestProbe[Activation]
+  implicit class RichActivatedActor(
+      private val triggeredActor: TestProbe[Activation]
   ) {
 
-    def expectTriggerAndComplete(
+    def expectActivationAndComplete(
         scheduler: ActorRef[SchedulerMessage],
         expectedTick: Long,
-        newTick: Option[Long] = None
+        newTick: Option[Long] = None,
     ): Unit = {
       val receivedTrigger =
-        triggeredAgent.expectMessageType[Activation]
+        triggeredActor.expectMessageType[Activation]
 
       receivedTrigger.tick shouldBe expectedTick
 
       scheduler ! Completion(
-        triggeredAgent.ref,
-        newTick
+        triggeredActor.ref,
+        newTick,
       )
     }
 

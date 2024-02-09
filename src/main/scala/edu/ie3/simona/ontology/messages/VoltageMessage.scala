@@ -27,7 +27,7 @@ object VoltageMessage {
     */
   final case class RequestSlackVoltageMessage(
       currentSweepNo: Int,
-      nodeUuids: Seq[UUID]
+      nodeUuids: Seq[UUID],
   ) extends VoltageMessage
 
   /** Provide complex voltage at the nodes that the sender's sub grid shares
@@ -38,7 +38,7 @@ object VoltageMessage {
     */
   final case class ProvideSlackVoltageMessage(
       currentSweepNo: Int,
-      nodalSlackVoltages: Seq[ExchangeVoltage]
+      nodalSlackVoltages: Seq[ExchangeVoltage],
   ) extends VoltageMessage
 
   object ProvideSlackVoltageMessage {
@@ -55,7 +55,7 @@ object VoltageMessage {
     final case class ExchangeVoltage(
         nodeUuid: UUID,
         e: ElectricPotential,
-        f: ElectricPotential
+        f: ElectricPotential,
     )
   }
 

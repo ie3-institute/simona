@@ -17,6 +17,7 @@ import org.apache.pekko.stream.IOResult
 
 import java.io.{BufferedWriter, File, FileWriter, Writer}
 import java.lang
+import java.nio.file.Path
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}
@@ -40,7 +41,7 @@ final case class ResultEntityCsvSink private (
     fileWriter: Writer,
     resultEntityProcessor: ResultEntityProcessor,
     compressOutputFiles: Boolean,
-    delimiter: String
+    delimiter: String,
 ) extends ResultEntitySink
     with LazyLogging {
 
@@ -85,7 +86,7 @@ final case class ResultEntityCsvSink private (
     }
   }
 
-  /** Creat the initial the .csv-file and write the header in the first row
+  /** Create the initial the .csv-file and write the header in the first row
     *
     * @return
     *   a future with information on the I/O operation
@@ -109,17 +110,20 @@ final case class ResultEntityCsvSink private (
       )
     )
 
-    FileIOUtils.gzip(outfileName).asScala.andThen {
-      case Success(_) =>
-        logger.debug(logPrefix(s"Compressed $outfileName."))
-        FileIOUtils.deleteFileIfExists(outFileName).asScala
-      case Failure(_) =>
-        Future.failed[IOResult](
-          new ProcessResultEventException(
-            s"Failed to zip file $outFileName!"
+    FileIOUtils
+      .compressFile(Path.of(outFileName), Path.of(outFileName + ".gz"))
+      .asScala
+      .andThen {
+        case Success(_) =>
+          logger.debug(logPrefix(s"Compressed $outfileName."))
+          FileIOUtils.deleteFileIfExists(outFileName).asScala
+        case Failure(_) =>
+          Future.failed[IOResult](
+            new ProcessResultEventException(
+              s"Failed to zip file $outFileName!"
+            )
           )
-        )
-    }
+      }
   }
 
   /** Contains all cleanup operations before closing this sink
@@ -155,7 +159,7 @@ object ResultEntityCsvSink {
       outfileName: String,
       resultEntityProcessor: ResultEntityProcessor,
       compressOutputFiles: Boolean,
-      delimiter: String = ","
+      delimiter: String = ",",
   ): ResultEntityCsvSink = {
 
     val file = new File(outfileName)
@@ -168,7 +172,7 @@ object ResultEntityCsvSink {
       writer,
       resultEntityProcessor,
       compressOutputFiles,
-      delimiter
+      delimiter,
     )
 
     if (!existedBefore)

@@ -27,7 +27,7 @@ private[listener] trait Transformer3wResultSupport {
     */
   final case class Transformer3wKey(
       model: UUID,
-      zdt: ZonedDateTime
+      zdt: ZonedDateTime,
   )
 
   /** Holding the result values of all three ports of a transformer
@@ -42,7 +42,7 @@ private[listener] trait Transformer3wResultSupport {
   final case class AggregatedTransformer3wResult(
       a: Option[PartialTransformer3wResult.PortA],
       b: Option[PartialTransformer3wResult.PortB],
-      c: Option[PartialTransformer3wResult.PortC]
+      c: Option[PartialTransformer3wResult.PortC],
   ) {
 
     /** Check, if the results can be consolidated
@@ -65,29 +65,29 @@ private[listener] trait Transformer3wResultSupport {
             aResult.input,
             Quantities.getQuantity(
               aResult.currentMagnitude.toAmperes,
-              Units.AMPERE
+              Units.AMPERE,
             ),
             Quantities.getQuantity(
               aResult.currentAngle.toDegrees,
-              PowerSystemUnits.DEGREE_GEOM
+              PowerSystemUnits.DEGREE_GEOM,
             ),
             Quantities.getQuantity(
               bResult.currentMagnitude.toAmperes,
-              Units.AMPERE
+              Units.AMPERE,
             ),
             Quantities.getQuantity(
               bResult.currentAngle.toDegrees,
-              PowerSystemUnits.DEGREE_GEOM
+              PowerSystemUnits.DEGREE_GEOM,
             ),
             Quantities.getQuantity(
               cResult.currentMagnitude.toAmperes,
-              Units.AMPERE
+              Units.AMPERE,
             ),
             Quantities.getQuantity(
               cResult.currentAngle.toDegrees,
-              PowerSystemUnits.DEGREE_GEOM
+              PowerSystemUnits.DEGREE_GEOM,
             ),
-            aResult.tapPos
+            aResult.tapPos,
           )
         )
       case _ =>

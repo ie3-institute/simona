@@ -30,7 +30,7 @@ object ArgsParser extends LazyLogging {
       nodePort: Option[String] = None,
       seedAddress: Option[String] = None,
       useLocalWorker: Option[Boolean] = None,
-      tArgs: Map[String, String] = Map.empty
+      tArgs: Map[String, String] = Map.empty,
   ) {
     val useCluster: Boolean = clusterType.isDefined
   }
@@ -42,16 +42,11 @@ object ArgsParser extends LazyLogging {
         .action((value, args) => {
           args.copy(
             config = Some(parseTypesafeConfig(value)),
-            configLocation = Option(value)
+            configLocation = Option(value),
           )
         })
         .validate(value =>
           if (value.trim.isEmpty) failure("config location cannot be empty")
-          else success
-        )
-        .validate(value =>
-          if (value.contains("\\"))
-            failure("wrong config path, expected: /, found: \\")
           else success
         )
         .text("Location of the simona config file")
@@ -127,7 +122,7 @@ object ArgsParser extends LazyLogging {
 
   private def parse(
       parser: scoptOptionParser[Arguments],
-      args: Array[String]
+      args: Array[String],
   ): Option[Arguments] =
     parser.parse(args, init = Arguments(args))
 
@@ -174,32 +169,28 @@ object ArgsParser extends LazyLogging {
   def parseListenerConfigOption(
       listenerConfigOption: Option[List[SimonaConfig.Simona.Event.Listener$Elm]]
   ): Map[SimonaListenerCompanion, Option[List[String]]] = {
-    val clusterSingletonsWithEvents
-        : Map[SimonaListenerCompanion, Option[List[String]]] =
-      listenerConfigOption match {
-        case Some(listenerElems) =>
-          listenerElems.foldLeft(
-            Map.empty[SimonaListenerCompanion, Option[List[String]]]
-          )((listenerMap, listenerElem) =>
-            ReflectionTools
-              .resolveClassNameToCompanion(listenerElem.fullClassPath) match {
-              case Some(listener: SimonaListenerCompanion) =>
-                listenerMap + (listener -> listenerElem.eventsToProcess)
-              case nonListenerCompanion =>
-                logger.warn(
-                  s"Invalid value ${nonListenerCompanion.getClass} for 'event.listener' config parameter!"
-                )
-                listenerMap
-            }
-          )
-        case None =>
-          logger.info(
-            "No listener assigned in configuration value 'event.listener'. No event are going to be processed!"
-          )
+    listenerConfigOption match {
+      case Some(listenerElems) =>
+        listenerElems.foldLeft(
           Map.empty[SimonaListenerCompanion, Option[List[String]]]
-      }
-
-    clusterSingletonsWithEvents
+        )((listenerMap, listenerElem) =>
+          ReflectionTools
+            .resolveClassNameToCompanion(listenerElem.fullClassPath) match {
+            case Some(listener: SimonaListenerCompanion) =>
+              listenerMap + (listener -> listenerElem.eventsToProcess)
+            case nonListenerCompanion =>
+              logger.warn(
+                s"Invalid value ${nonListenerCompanion.getClass} for 'event.listener' config parameter!"
+              )
+              listenerMap
+          }
+        )
+      case None =>
+        logger.info(
+          "No listener assigned in configuration value 'event.listener'. No event are going to be processed!"
+        )
+        Map.empty[SimonaListenerCompanion, Option[List[String]]]
+    }
   }
 
   /** Prepare the config by parsing the provided program arguments
@@ -232,7 +223,7 @@ object ArgsParser extends LazyLogging {
 
     val argsConfig =
       ConfigFactory.parseString(
-        s"""config = ${parsedArgs.configLocation.get}
+        s"""config = "${parsedArgs.configLocation.get.replace("\\", "\\\\")}"
            |simona.runtime_configuration {
            |  selected_subnets = [${parsedArgs.selectedSubnets.getOrElse("")}]
            |  selected_volt_lvls = [${parsedArgs.selectedVoltLvls

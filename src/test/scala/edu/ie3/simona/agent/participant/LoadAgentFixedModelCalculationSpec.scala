@@ -17,7 +17,7 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   ParticipantInitializeStateData,
   ParticipantInitializingStateData,
   ParticipantUninitializedStateData,
-  SimpleInputContainer
+  SimpleInputContainer,
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
@@ -29,7 +29,7 @@ import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage
+  RequestAssetPowerMessage,
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
@@ -48,6 +48,7 @@ import squants.Each
 import squants.energy.{Kilowatts, Megawatts, Watts}
 
 import java.util.concurrent.TimeUnit
+import scala.collection.SortedMap
 
 class LoadAgentFixedModelCalculationSpec
     extends ParticipantAgentSpec(
@@ -57,7 +58,7 @@ class LoadAgentFixedModelCalculationSpec
           .parseString("""
             |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
             |pekko.loglevel="DEBUG"
-        """.stripMargin)
+        """.stripMargin),
       )
     )
     with LoadTestData
@@ -74,11 +75,12 @@ class LoadAgentFixedModelCalculationSpec
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
       LoadModelBehaviour.FIX,
-      LoadReference.ActivePower(Kilowatts(0d))
+      LoadReference.ActivePower(Kilowatts(0d)),
     )
   private val defaultOutputConfig = NotifierConfig(
     simonaConfig.simona.output.participant.defaultConfig.simulationResult,
-    simonaConfig.simona.output.participant.defaultConfig.powerRequestReply
+    simonaConfig.simona.output.participant.defaultConfig.powerRequestReply,
+    simonaConfig.simona.output.participant.defaultConfig.flexResult,
   )
   private val loadConfigUtil = ConfigUtil.ParticipantConfigUtil(
     simonaConfig.simona.runtime.participant
@@ -87,7 +89,7 @@ class LoadAgentFixedModelCalculationSpec
     loadConfigUtil.getOrDefault[LoadRuntimeConfig](
       voltageSensitiveInput.getUuid
     )
-  private val services = None
+  private val services = Iterable.empty
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
   private implicit val powerTolerance: squants.Power = Watts(0.1)
@@ -97,7 +99,7 @@ class LoadAgentFixedModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       LoadInput,
       LoadRuntimeConfig,
-      ApparentPower
+      ApparentPower,
     ](
       inputModel = voltageSensitiveInput,
       modelConfig = modelConfig,
@@ -108,7 +110,7 @@ class LoadAgentFixedModelCalculationSpec
       requestVoltageDeviationThreshold =
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
-      primaryServiceProxy = primaryServiceProxy.ref
+      primaryServiceProxy = primaryServiceProxy.ref,
     )
 
     "be instantiated correctly" in {
@@ -116,7 +118,7 @@ class LoadAgentFixedModelCalculationSpec
         new FixedLoadAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -136,7 +138,7 @@ class LoadAgentFixedModelCalculationSpec
         new FixedLoadAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -157,7 +159,8 @@ class LoadAgentFixedModelCalculationSpec
               simulationEndDate,
               resolution,
               requestVoltageDeviationThreshold,
-              outputConfig
+              outputConfig,
+              maybeEmAgent,
             ) =>
           inputModel shouldBe SimpleInputContainer(voltageSensitiveInput)
           modelConfig shouldBe modelConfig
@@ -167,12 +170,16 @@ class LoadAgentFixedModelCalculationSpec
           resolution shouldBe this.resolution
           requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
           outputConfig shouldBe defaultOutputConfig
+          maybeEmAgent shouldBe None
         case unsuitableStateData =>
           fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
       }
 
       /* Refuse registration */
-      primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        loadAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref),
+      )
 
       /* Expect a completion notification */
       scheduler.expectMsg(Completion(loadAgent.toTyped, Some(0)))
@@ -192,23 +199,22 @@ class LoadAgentFixedModelCalculationSpec
               voltageValueStore,
               resultValueStore,
               requestValueStore,
-              _
+              _,
+              _,
+              _,
             ) =>
           /* Base state data */
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
-          services shouldBe None
+          services shouldBe Iterable.empty
           outputConfig shouldBe defaultOutputConfig
           additionalActivationTicks shouldBe empty
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
-            Map(0L -> Each(1.0))
+            SortedMap(0L -> Each(1.0)),
           )
-          resultValueStore shouldBe ValueStore.forResult(
-            resolution,
-            2
-          )
+          resultValueStore shouldBe ValueStore(resolution)
           requestValueStore shouldBe ValueStore[ApparentPower](
             resolution
           )
@@ -224,7 +230,7 @@ class LoadAgentFixedModelCalculationSpec
         new FixedLoadAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -232,7 +238,10 @@ class LoadAgentFixedModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        loadAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref),
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -243,27 +252,27 @@ class LoadAgentFixedModelCalculationSpec
       loadAgent ! RequestAssetPowerMessage(
         0L,
         Each(1d),
-        Each(0d)
+        Each(0d),
       )
       expectMsg(
         AssetPowerChangedMessage(
           Megawatts(0d),
-          Megavars(0d)
+          Megavars(0d),
         )
       )
 
       inside(loadAgent.stateData) {
-        case modelBaseStateData: ParticipantModelBaseStateData[_, _, _] =>
-          modelBaseStateData.requestValueStore shouldBe ValueStore[
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
+          baseStateData.requestValueStore shouldBe ValueStore[
             ApparentPower
           ](
             resolution,
-            Map(
+            SortedMap(
               0L -> ApparentPower(
                 Megawatts(0d),
-                Megavars(0d)
+                Megavars(0d),
               )
-            )
+            ),
           )
         case _ =>
           fail(
@@ -277,7 +286,7 @@ class LoadAgentFixedModelCalculationSpec
         new FixedLoadAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -285,7 +294,10 @@ class LoadAgentFixedModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        loadAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref),
+      )
 
       /* I am not interested in the CompletionMessage */
       scheduler.expectMsgType[Completion]
@@ -302,17 +314,13 @@ class LoadAgentFixedModelCalculationSpec
 
       awaitAssert(loadAgent.stateName shouldBe Idle)
       inside(loadAgent.stateData) {
-        case participantModelBaseStateData: ParticipantModelBaseStateData[
-              _,
-              _,
-              _
-            ] =>
-          participantModelBaseStateData.resultValueStore.last(0L) match {
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
+          baseStateData.resultValueStore.last(0L) match {
             case Some((tick, entry)) =>
               tick shouldBe 0L
               inside(entry) { case ApparentPower(p, q) =>
-                (p ~= Megawatts(268.603e-6)) shouldBe true
-                (q ~= Megavars(0.0)) shouldBe true
+                p should approximate(Megawatts(268.603e-6))
+                q should approximate(Megavars(0.0))
               }
             case None =>
               fail("Result value store does not contain entry for tick 0.")
@@ -329,7 +337,7 @@ class LoadAgentFixedModelCalculationSpec
         new FixedLoadAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -338,7 +346,10 @@ class LoadAgentFixedModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        loadAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref),
+      )
 
       scheduler.expectMsg(Completion(loadAgent.toTyped, Some(0)))
 
@@ -353,13 +364,13 @@ class LoadAgentFixedModelCalculationSpec
       loadAgent ! RequestAssetPowerMessage(
         3000L,
         Each(1d),
-        Each(0d)
+        Each(0d),
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          (p ~= Megawatts(268.603e-6)) shouldBe true
-          (q ~= Megavars(0.0)) shouldBe true
+          p should approximate(Megawatts(268.603e-6))
+          q should approximate(Megavars(0.0))
       }
     }
 
@@ -367,7 +378,7 @@ class LoadAgentFixedModelCalculationSpec
       new FixedLoadAgent(
         scheduler = scheduler.ref,
         initStateData = initStateData,
-        listener = systemListener
+        listener = systemListener,
       )
     )
 
@@ -378,7 +389,10 @@ class LoadAgentFixedModelCalculationSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(loadAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        loadAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref),
+      )
 
       scheduler.expectMsg(Completion(loadAgent.toTyped, Some(0)))
 
@@ -391,13 +405,13 @@ class LoadAgentFixedModelCalculationSpec
       loadAgent ! RequestAssetPowerMessage(
         3000L,
         Each(1d),
-        Each(0d)
+        Each(0d),
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          (p ~= Megawatts(268.603e-6)) shouldBe true
-          (q ~= Megavars(0.0)) shouldBe true
+          p should approximate(Megawatts(268.603e-6))
+          q should approximate(Megavars(0.0))
         case answer => fail(s"Did not expect to get that answer: $answer")
       }
     }
@@ -408,14 +422,14 @@ class LoadAgentFixedModelCalculationSpec
       loadAgent ! RequestAssetPowerMessage(
         3000L,
         Each(1.000000000000001d),
-        Each(0d)
+        Each(0d),
       )
 
       /* Expect, that nothing has changed */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          (p ~= Megawatts(268.603e-6)) shouldBe true
-          (q ~= Megavars(0.0)) shouldBe true
+          p should approximate(Megawatts(268.603e-6))
+          q should approximate(Megavars(0.0))
       }
     }
 
@@ -424,14 +438,14 @@ class LoadAgentFixedModelCalculationSpec
       loadAgent ! RequestAssetPowerMessage(
         3000L,
         Each(0.98),
-        Each(0d)
+        Each(0d),
       )
 
       /* Expect, the correct values (this model has fixed power factor) */
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          (p ~= Megawatts(268.603e-6)) shouldBe true
-          (q ~= Megavars(-22.07138e-6)) shouldBe true
+          p should approximate(Megawatts(268.603e-6))
+          q should approximate(Megavars(-22.07138e-6))
       }
     }
   }

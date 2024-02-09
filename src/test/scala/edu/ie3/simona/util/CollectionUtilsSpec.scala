@@ -28,7 +28,7 @@ class CollectionUtilsSpec extends UnitSpec {
         List(
           (Each(1d), Each(2d)),
           (Each(2d), Each(4d)),
-          (Each(3d), Each(8d))
+          (Each(3d), Each(8d)),
         )
       )
 
@@ -44,11 +44,11 @@ class CollectionUtilsSpec extends UnitSpec {
 
       returnedSequence1 shouldBe Seq(
         (Each(1d), Each(2d)),
-        (Each(2d), Each(4d))
+        (Each(2d), Each(4d)),
       )
       returnedSequence2 shouldBe Seq(
         (Each(2d), Each(4d)),
-        (Each(3d), Each(8d))
+        (Each(3d), Each(8d)),
       )
       returnedSequence3 shouldBe Seq((Each(3d), Each(8d)))
     }

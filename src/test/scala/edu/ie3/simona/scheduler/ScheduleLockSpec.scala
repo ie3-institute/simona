@@ -8,13 +8,13 @@ package edu.ie3.simona.scheduler
 
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
-  TestProbe
+  TestProbe,
 }
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike

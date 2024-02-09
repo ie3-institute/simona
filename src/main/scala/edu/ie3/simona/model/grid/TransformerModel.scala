@@ -11,7 +11,7 @@ import breeze.numerics.pow
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.{
   ConnectorPort,
-  Transformer2WInput
+  Transformer2WInput,
 }
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
@@ -77,11 +77,11 @@ final case class TransformerModel(
     protected val r: squants.Dimensionless,
     protected val x: squants.Dimensionless,
     protected val g: squants.Dimensionless,
-    protected val b: squants.Dimensionless
+    protected val b: squants.Dimensionless,
 ) extends SystemComponent(
       uuid,
       id,
-      operationInterval
+      operationInterval,
     )
     with PiEquivalentCircuit
     with TransformerTapping {
@@ -95,7 +95,7 @@ case object TransformerModel {
       transformerInput: Transformer2WInput,
       refSystem: RefSystem,
       startDate: ZonedDateTime,
-      endDate: ZonedDateTime
+      endDate: ZonedDateTime,
   ): TransformerModel = {
 
     // validate the input model first
@@ -125,15 +125,15 @@ case object TransformerModel {
       transformerInput: Transformer2WInput,
       gridRefSystem: RefSystem,
       simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime
+      simulationEndDate: ZonedDateTime,
   ): TransformerModel = {
 
     // get referenced electric values
     val trafoType = transformerInput.getType
     val voltRatioNominal = BigDecimal
-      .apply(trafoType.getvRatedA().to(KILOVOLT).getValue.doubleValue)
+      .apply(trafoType.getvRatedA().to(KILOVOLT).getValue.toString)
       .setScale(5, RoundingMode.HALF_UP) / BigDecimal
-      .apply(trafoType.getvRatedB().to(KILOVOLT).getValue.doubleValue)
+      .apply(trafoType.getvRatedB().to(KILOVOLT).getValue.toString)
       .setScale(5, RoundingMode.HALF_UP)
     val squaredNominalVoltRatio = voltRatioNominal * voltRatioNominal
 
@@ -167,7 +167,7 @@ case object TransformerModel {
           .multiply(squaredNominalVoltRatio)
           .getValue
           .doubleValue()
-      )
+      ),
     )
 
     /* Transfer the dimensionless parameters into the grid reference system */
@@ -175,7 +175,7 @@ case object TransformerModel {
       gridRefSystem.rInPu(rTrafo),
       gridRefSystem.xInPu(xTrafo),
       gridRefSystem.gInPu(gTrafo),
-      gridRefSystem.bInPu(bTrafo)
+      gridRefSystem.bInPu(bTrafo),
     )
 
     // iNomHv, iNomLv
@@ -201,7 +201,7 @@ case object TransformerModel {
           Kilovolts(
             trafoType.getvRatedB.to(KILOVOLT).getValue.doubleValue()
           )
-        )
+        ),
       )
 
     // get the element port, where the transformer tap is located
@@ -216,14 +216,14 @@ case object TransformerModel {
       trafoType.getTapMin,
       trafoType.getTapNeutr,
       transformerInput.isAutoTap,
-      tapSide
+      tapSide,
     )
 
     val operationInterval =
       SystemComponent.determineOperationInterval(
         simulationStartDate,
         simulationEndDate,
-        transformerInput.getOperationTime
+        transformerInput.getOperationTime,
       )
 
     val transformerModel = new TransformerModel(
@@ -240,7 +240,7 @@ case object TransformerModel {
       r,
       x,
       g,
-      b
+      b,
     )
 
     // if the transformer input model is in operation, enable the model
@@ -268,7 +268,7 @@ case object TransformerModel {
     */
   def validateInputModel(
       transformerInput: Transformer2WInput,
-      refSystem: RefSystem
+      refSystem: RefSystem,
   ): Unit = {
     val trafoType = transformerInput.getType
 
@@ -371,7 +371,7 @@ case object TransformerModel {
 
     new Complex(
       transformerModel.gij().value.doubleValue(),
-      transformerModel.bij().value.doubleValue()
+      transformerModel.bij().value.doubleValue(),
     ) * amount / tapRatio
   }
 
@@ -390,14 +390,14 @@ case object TransformerModel {
   def utilisation(
       transformerModel: TransformerModel,
       iNodeHv: Quantity[ElectricCurrent],
-      iNodeLv: Quantity[ElectricCurrent]
+      iNodeLv: Quantity[ElectricCurrent],
   ): squants.Dimensionless = {
     Each(
       Math.max(
         iNodeHv.getValue.doubleValue() / transformerModel.iNomHv.value
           .doubleValue(),
         iNodeLv.getValue.doubleValue() / transformerModel.iNomLv.value
-          .doubleValue()
+          .doubleValue(),
       ) * 100
     )
   }

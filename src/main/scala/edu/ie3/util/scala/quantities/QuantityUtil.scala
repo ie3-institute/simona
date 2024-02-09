@@ -60,7 +60,7 @@ object QuantityUtil {
   ] with TimeIntegral[Q]](
       values: Map[Long, Q],
       windowStart: Long,
-      windowEnd: Long
+      windowEnd: Long,
   ): Try[Q] = {
     if (windowStart == windowEnd)
       Failure(
@@ -75,7 +75,7 @@ object QuantityUtil {
         integrate[Q, QI](
           values,
           windowStart,
-          windowEnd
+          windowEnd,
         ) / Seconds(windowEnd - windowStart)
       }
   }
@@ -101,7 +101,7 @@ object QuantityUtil {
   ] with TimeIntegral[Q]](
       values: Map[Long, Q],
       windowStart: Long,
-      windowEnd: Long
+      windowEnd: Long,
   ): QI = {
 
     /** Case class to hold current state of integration
@@ -116,7 +116,7 @@ object QuantityUtil {
     final case class IntegrationState(
         currentIntegral: QI,
         lastTick: Long,
-        lastValue: Q
+        lastValue: Q,
     )
 
     /* Determine the starting and ending value for the integral */
@@ -141,12 +141,12 @@ object QuantityUtil {
         IntegrationState(
           startValue * Hours(0),
           windowStart,
-          startValue
+          startValue,
         )
       ) {
         case (
               IntegrationState(currentIntegral, lastTick, lastValue),
-              (tick, value)
+              (tick, value),
             ) =>
           /* Calculate the partial integral over the last know value since it's occurrence and the instance when the newest value comes in */
           val duration = Seconds(tick - lastTick)
@@ -171,7 +171,7 @@ object QuantityUtil {
     */
   private def startingValue[Q <: squants.Quantity[Q]](
       values: Map[Long, Q],
-      windowStart: Long
+      windowStart: Long,
   ): Q = {
     values
       .filter { case (tick, _) =>
@@ -205,7 +205,7 @@ object QuantityUtil {
     */
   private def endingValue[Q <: Quantity[Q]](
       values: Map[Long, Q],
-      windowEnd: Long
+      windowEnd: Long,
   ): (Long, Q) = {
     values
       .filter { case (tick, _) =>

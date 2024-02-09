@@ -12,7 +12,7 @@ import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.simona.agent.grid.ReceivedValues.{
   ReceivedPowerValues,
-  ReceivedSlackVoltageValues
+  ReceivedSlackVoltageValues,
 }
 import edu.ie3.simona.agent.grid.ReceivedValuesStore.NodeToReceivedPower
 import edu.ie3.simona.model.grid.{GridModel, RefSystem}
@@ -20,7 +20,7 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
   FailedPowerFlow,
   PowerResponseMessage,
   ProvideGridPowerMessage,
-  ProvidePowerMessage
+  ProvidePowerMessage,
 }
 import org.apache.pekko.actor.ActorRef
 import org.apache.pekko.event.LoggingAdapter
@@ -55,7 +55,7 @@ object GridAgentData {
       subGridContainer: SubGridContainer,
       thermalIslandGrids: Seq[ThermalGrid],
       subGridGateToActorRef: Map[SubGridGate, ActorRef],
-      refSystem: RefSystem
+      refSystem: RefSystem,
   ) extends GridAgentData
       with GridAgentDataHelper {
     override protected val subgridGates: Vector[SubGridGate] =
@@ -76,13 +76,13 @@ object GridAgentData {
   final case class PowerFlowDoneData private (
       gridAgentBaseData: GridAgentBaseData,
       powerFlowResult: PowerFlowResult,
-      pendingRequestAnswers: Set[Int]
+      pendingRequestAnswers: Set[Int],
   ) extends GridAgentData
 
   object PowerFlowDoneData {
     def apply(
         gridAgentBaseData: GridAgentBaseData,
-        powerFlowResult: PowerFlowResult
+        powerFlowResult: PowerFlowResult,
     ): PowerFlowDoneData = {
       /* Determine the subgrid numbers of all superior grids */
       val superiorSubGrids = gridAgentBaseData.gridEnv.subgridGateToActorRef
@@ -107,14 +107,14 @@ object GridAgentData {
         inferiorGridGates: Vector[SubGridGate],
         powerFlowParams: PowerFlowParams,
         log: LoggingAdapter,
-        actorName: String
+        actorName: String,
     ): GridAgentBaseData = {
 
       val currentSweepNo = 0 // initialization is assumed to be always @ sweep 0
       val sweepValueStores: Map[Int, SweepValueStore] = Map
         .empty[
           Int,
-          SweepValueStore
+          SweepValueStore,
         ] // initialization is assumed to be always with no sweep data
       val inferiorGridGateToActorRef = subgridGateToActorRef.filter {
         case (gate, _) => inferiorGridGates.contains(gate)
@@ -126,11 +126,11 @@ object GridAgentData {
         ReceivedValuesStore.empty(
           nodeToAssetAgents,
           inferiorGridGateToActorRef,
-          superiorGridNodeUuids
+          superiorGridNodeUuids,
         ),
         sweepValueStores,
         log,
-        actorName
+        actorName,
       )
     }
 
@@ -152,7 +152,7 @@ object GridAgentData {
     def clean(
         gridAgentBaseData: GridAgentBaseData,
         superiorGridNodeUuids: Vector[UUID],
-        inferiorGridGates: Vector[SubGridGate]
+        inferiorGridGates: Vector[SubGridGate],
     ): GridAgentBaseData = {
 
       gridAgentBaseData.copy(
@@ -161,10 +161,10 @@ object GridAgentData {
           gridAgentBaseData.gridEnv.subgridGateToActorRef.filter {
             case (gate, _) => inferiorGridGates.contains(gate)
           },
-          superiorGridNodeUuids
+          superiorGridNodeUuids,
         ),
         currentSweepNo = 0,
-        sweepValueStores = Map.empty[Int, SweepValueStore]
+        sweepValueStores = Map.empty[Int, SweepValueStore],
       )
 
     }
@@ -195,7 +195,7 @@ object GridAgentData {
       receivedValueStore: ReceivedValuesStore,
       sweepValueStores: Map[Int, SweepValueStore],
       log: LoggingAdapter,
-      actorName: String
+      actorName: String,
   ) extends GridAgentData
       with GridAgentDataHelper {
 
@@ -217,11 +217,11 @@ object GridAgentData {
           .forall(_.isDefined)
       log.debug(
         "slackMap: {}",
-        receivedValueStore.nodeToReceivedSlackVoltage
+        receivedValueStore.nodeToReceivedSlackVoltage,
       )
       log.debug(
         "powerMap: {}",
-        receivedValueStore.nodeToReceivedPower
+        receivedValueStore.nodeToReceivedPower,
       )
       assetAndGridPowerValuesReady & slackVoltageValuesReady
     }
@@ -239,7 +239,7 @@ object GridAgentData {
       */
     def updateWithReceivedPowerValues(
         receivedPowerValues: ReceivedPowerValues,
-        replace: Boolean = false
+        replace: Boolean = false,
     ): GridAgentBaseData = {
       val updatedNodeToReceivedPowersMap = receivedPowerValues.values.foldLeft(
         receivedValueStore.nodeToReceivedPower
@@ -248,8 +248,8 @@ object GridAgentData {
               nodeToReceivedPowerValuesMapWithAddedPowerResponse,
               (
                 senderRef,
-                provideGridPowerMessage: ProvideGridPowerMessage
-              )
+                provideGridPowerMessage: ProvideGridPowerMessage,
+              ),
             ) =>
           /* Go over all includes messages and add them. */
           provideGridPowerMessage.nodalResidualPower.foldLeft(
@@ -257,25 +257,25 @@ object GridAgentData {
           ) {
             case (
                   nodeToReceivedPowerValuesMapWithAddedExchangedPower,
-                  exchangedPower
+                  exchangedPower,
                 ) =>
               updateNodalReceivedPower(
                 exchangedPower,
                 nodeToReceivedPowerValuesMapWithAddedExchangedPower,
                 senderRef,
-                replace
+                replace,
               )
           }
         case (
               nodeToReceivedPowerValuesMapWithAddedPowerResponse,
-              (senderRef, powerResponseMessage)
+              (senderRef, powerResponseMessage),
             ) =>
           // some other singular power response message
           updateNodalReceivedPower(
             powerResponseMessage,
             nodeToReceivedPowerValuesMapWithAddedPowerResponse,
             senderRef,
-            replace
+            replace,
           )
       }
       this.copy(
@@ -302,7 +302,7 @@ object GridAgentData {
         powerResponse: PowerResponseMessage,
         nodeToReceived: NodeToReceivedPower,
         senderRef: ActorRef,
-        replace: Boolean
+        replace: Boolean,
     ): NodeToReceivedPower = {
       // extract the nodeUuid that corresponds to the sender's actorRef and check if we expect a message from the sender
       val nodeUuid = powerResponse match {
@@ -334,7 +334,7 @@ object GridAgentData {
           nodeUuid,
           throw new RuntimeException(
             s"NodeId $nodeUuid is not part of nodeToReceivedPowerValuesMap!"
-          )
+          ),
         ) +
         // add or update entry in map of node entries
         (senderRef -> Some(powerResponse))
@@ -360,7 +360,7 @@ object GridAgentData {
     private def getNodeUuidForSender(
         nodeToReceivedPower: NodeToReceivedPower,
         senderRef: ActorRef,
-        replace: Boolean
+        replace: Boolean,
     ): Option[UUID] =
       nodeToReceivedPower
         .find { case (_, receivedPowerMessages) =>
@@ -431,13 +431,13 @@ object GridAgentData {
     def storeSweepDataAndClearReceiveMaps(
         validPowerFlowResult: ValidNewtonRaphsonPFResult,
         superiorGridNodeUuids: Vector[UUID],
-        inferiorGridGates: Vector[SubGridGate]
+        inferiorGridGates: Vector[SubGridGate],
     ): GridAgentBaseData = {
       val sweepValueStore =
         SweepValueStore(
           validPowerFlowResult,
           gridEnv.gridModel.gridComponents.nodes,
-          gridEnv.gridModel.nodeUuidToIndexMap
+          gridEnv.gridModel.nodeUuidToIndexMap,
         )
       val updatedSweepValueStore =
         sweepValueStores + (currentSweepNo -> sweepValueStore)
@@ -449,8 +449,8 @@ object GridAgentData {
           gridEnv.subgridGateToActorRef.filter { case (gate, _) =>
             inferiorGridGates.contains(gate)
           },
-          superiorGridNodeUuids
-        )
+          superiorGridNodeUuids,
+        ),
       )
     }
   }

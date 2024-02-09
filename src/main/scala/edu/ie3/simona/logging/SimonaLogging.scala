@@ -12,7 +12,7 @@ import org.apache.pekko.event.{
   LogSource,
   LoggingAdapter,
   LoggingBus,
-  LoggingFilter
+  LoggingFilter,
 }
 
 private[logging] trait SimonaLogging {
@@ -33,7 +33,7 @@ object SimonaLogging {
       system: ActorSystem,
       state: () => S,
       logSource: T,
-      agentName: String
+      agentName: String,
   ): LoggingAdapter = {
     val (str, clazz) = LogSource(logSource, system)
     SimonaBusLogging(
@@ -41,14 +41,14 @@ object SimonaLogging {
       str,
       clazz,
       logFilter(system),
-      () => fsmPrefix(agentName, state)
+      () => fsmPrefix(agentName, state),
     )
   }
 
   private[logging] def createAdapter[T: LogSource](
       system: ActorSystem,
       logSource: T,
-      agentName: String
+      agentName: String,
   ): LoggingAdapter = {
     val (str, clazz) = LogSource(logSource, system)
     SimonaBusLogging(
@@ -56,7 +56,7 @@ object SimonaLogging {
       str,
       clazz,
       logFilter(system),
-      () => actorPrefix(agentName)
+      () => actorPrefix(agentName),
     )
   }
 
@@ -79,7 +79,7 @@ object SimonaLogging {
       logSource: String,
       logClass: Class[_],
       loggingFilter: LoggingFilter,
-      prefix: () => String
+      prefix: () => String,
   ) extends LoggingAdapter {
 
     import org.apache.pekko.event.Logging._

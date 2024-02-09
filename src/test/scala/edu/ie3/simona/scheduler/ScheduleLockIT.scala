@@ -8,14 +8,14 @@ package edu.ie3.simona.scheduler
 
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.test.common.TestSpawnerTyped
-import edu.ie3.simona.util.ActorUtils.RichTriggeredAgent
+import edu.ie3.simona.util.ActorUtils.RichActivatedActor
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
-  TestProbe
+  TestProbe,
 }
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -35,17 +35,17 @@ class ScheduleLockIT
 
       val parentScheduler = spawn(
         Scheduler(timeAdvancer.ref),
-        "parentScheduler"
+        "parentScheduler",
       )
       val childScheduler = spawn(
         Scheduler(parentScheduler),
-        "childScheduler"
+        "childScheduler",
       )
 
       // first, we normally schedule some activation for our agent1
       childScheduler ! ScheduleActivation(
         agent1.ref,
-        30
+        30,
       )
       val sa1 = timeAdvancer.expectMessageType[ScheduleActivation]
       sa1.tick shouldBe 30
@@ -63,20 +63,20 @@ class ScheduleLockIT
       childScheduler ! ScheduleActivation(
         agent2.ref,
         30,
-        Some(scheduleKey)
+        Some(scheduleKey),
       )
 
       // because of activated agents, child/parentScheduler should not be able to complete yet
       timeAdvancer.expectNoMessage()
 
       // completing agent activations
-      agent1.expectTriggerAndComplete(
+      agent1.expectActivationAndComplete(
         childScheduler,
-        30
+        30,
       )
-      agent2.expectTriggerAndComplete(
+      agent2.expectActivationAndComplete(
         childScheduler,
-        30
+        30,
       )
 
       timeAdvancer.expectMessage(Completion(lockActivation))
@@ -96,7 +96,7 @@ class ScheduleLockIT
       // first, we normally schedule some activation
       childScheduler ! ScheduleActivation(
         agent.ref,
-        30
+        30,
       )
       val sa1 = timeAdvancer.expectMessageType[ScheduleActivation]
       sa1.tick shouldBe 30
@@ -110,9 +110,9 @@ class ScheduleLockIT
       lockActivation ! Activation(30)
 
       // completing the agent activation
-      agent.expectTriggerAndComplete(
+      agent.expectActivationAndComplete(
         childScheduler,
-        30
+        30,
       )
 
       // because of the lock, parentScheduler should not be able to complete yet
@@ -122,7 +122,7 @@ class ScheduleLockIT
       childScheduler ! ScheduleActivation(
         agent.ref,
         40,
-        Some(scheduleKey)
+        Some(scheduleKey),
       )
 
       timeAdvancer.expectMessage(Completion(lockActivation, Some(40)))

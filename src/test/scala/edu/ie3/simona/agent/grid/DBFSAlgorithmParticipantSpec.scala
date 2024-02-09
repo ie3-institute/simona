@@ -17,7 +17,7 @@ import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
@@ -28,13 +28,13 @@ import edu.ie3.simona.test.common.model.grid.DbfsTestGridWithParticipants
 import edu.ie3.simona.test.common.{
   ConfigTestData,
   TestKitWithShutdown,
-  TestSpawnerClassic
+  TestSpawnerClassic,
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.Megavars
 import org.apache.pekko.actor.typed.scaladsl.adapter.{
   ClassicActorRefOps,
-  TypedActorRefOps
+  TypedActorRefOps,
 }
 import org.apache.pekko.actor.{ActorRef, ActorSystem}
 import org.apache.pekko.testkit.{ImplicitSender, TestProbe}
@@ -49,7 +49,7 @@ class DBFSAlgorithmParticipantSpec
           .parseString("""
             |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
             |pekko.loglevel="OFF"
-        """.stripMargin)
+        """.stripMargin),
       )
     )
     with DBFSMockGridAgents
@@ -68,14 +68,14 @@ class DBFSAlgorithmParticipantSpec
     runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref,
     weather = weatherService.ref,
-    evDataService = None
+    evDataService = None,
   )
 
   protected val resultListener: TestProbe = TestProbe("resultListener")
 
   private val superiorGridAgent = SuperiorGA(
     TestProbe("superiorGridAgent_1000"),
-    Seq(supNodeA.getUuid)
+    Seq(supNodeA.getUuid),
   )
 
   "Test participant" should {
@@ -83,7 +83,7 @@ class DBFSAlgorithmParticipantSpec
       GridAgent.props(
         environmentRefs,
         simonaConfig,
-        Iterable(resultListener.ref)
+        Iterable(resultListener.ref),
       )
     )
 
@@ -99,7 +99,7 @@ class DBFSAlgorithmParticipantSpec
         hvGridContainer,
         Seq.empty,
         subGridGateToActorRef,
-        RefSystem("2000 MVA", "110 kV")
+        RefSystem("2000 MVA", "110 kV"),
       )
 
       val key =
@@ -111,7 +111,7 @@ class DBFSAlgorithmParticipantSpec
         ScheduleActivation(
           gridAgentWithParticipants.toTyped,
           INIT_SIM_TICK,
-          Some(key)
+          Some(key),
         )
       )
 
@@ -123,7 +123,7 @@ class DBFSAlgorithmParticipantSpec
           case ScheduleActivation(
                 loadAgent,
                 INIT_SIM_TICK,
-                _
+                _,
               ) =>
             loadAgent
         }
@@ -131,7 +131,7 @@ class DBFSAlgorithmParticipantSpec
       scheduler.expectMsg(
         Completion(
           gridAgentWithParticipants.toTyped,
-          Some(3600)
+          Some(3600),
         )
       )
 
@@ -141,14 +141,17 @@ class DBFSAlgorithmParticipantSpec
         PrimaryServiceRegistrationMessage(load1.getUuid)
       )
 
-      primaryService.send(loadAgent.toClassic, RegistrationFailedMessage)
+      primaryService.send(
+        loadAgent.toClassic,
+        RegistrationFailedMessage(primaryService.ref),
+      )
 
       scheduler.expectMsg(Completion(loadAgent, Some(0)))
 
       // triggering the loadAgent's calculation
       scheduler.send(
         loadAgent.toClassic,
-        Activation(0)
+        Activation(0),
       )
       // the load agent should send a CompletionMessage
       scheduler.expectMsg(Completion(loadAgent, None))
@@ -160,14 +163,14 @@ class DBFSAlgorithmParticipantSpec
       // send init data to agent
       scheduler.send(
         gridAgentWithParticipants,
-        Activation(3600)
+        Activation(3600),
       )
 
       // we expect a completion message
       scheduler.expectMsg(
         Completion(
           gridAgentWithParticipants.toTyped,
-          Some(3600)
+          Some(3600),
         )
       )
 
@@ -196,10 +199,10 @@ class DBFSAlgorithmParticipantSpec
             ExchangeVoltage(
               supNodeA.getUuid,
               Kilovolts(380d),
-              Kilovolts(0d)
+              Kilovolts(0d),
             )
-          )
-        )
+          ),
+        ),
       )
 
       // power flow calculation should run now. After it's done,
@@ -207,7 +210,7 @@ class DBFSAlgorithmParticipantSpec
       // hence we ask for them and expect a corresponding response
       superiorGridAgent.requestGridPower(
         gridAgentWithParticipants,
-        firstSweepNo
+        firstSweepNo,
       )
 
       // the gridAgentWithParticipants has received an AssetPowerChangedMessage
@@ -217,7 +220,7 @@ class DBFSAlgorithmParticipantSpec
           ExchangePower(
             supNodeA.getUuid,
             Megawatts(135.90837346741768),
-            Megavars(60.98643348675892)
+            Megavars(60.98643348675892),
           )
         )
       )
@@ -228,7 +231,7 @@ class DBFSAlgorithmParticipantSpec
 
       superiorGridAgent.requestGridPower(
         gridAgentWithParticipants,
-        secondSweepNo
+        secondSweepNo,
       )
 
       // the agent now should ask for updated slack voltages from the superior grid
@@ -244,10 +247,10 @@ class DBFSAlgorithmParticipantSpec
             ExchangeVoltage(
               supNodeA.getUuid,
               Kilovolts(374.2269461446d),
-              Kilovolts(65.9863075134d)
+              Kilovolts(65.9863075134d),
             )
-          )
-        )
+          ),
+        ),
       )
 
       // here the gridAgentWithParticipants has received a second AssetPowerUnchangedMessage
@@ -257,7 +260,7 @@ class DBFSAlgorithmParticipantSpec
           ExchangePower(
             supNodeA.getUuid,
             Megawatts(135.90837346741768),
-            Megavars(60.98643348675892)
+            Megavars(60.98643348675892),
           )
         )
       )
@@ -266,13 +269,13 @@ class DBFSAlgorithmParticipantSpec
       // (here we do it by hand)
       superiorGridAgent.gaProbe.send(
         gridAgentWithParticipants,
-        FinishGridSimulationTrigger(3600L)
+        FinishGridSimulationTrigger(3600L),
       )
 
       scheduler.expectMsg(
         Completion(
           gridAgentWithParticipants.toTyped,
-          Some(7200)
+          Some(7200),
         )
       )
     }

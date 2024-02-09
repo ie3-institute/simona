@@ -17,14 +17,14 @@ import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
 import edu.ie3.simona.test.common.AgentSpec
 import org.apache.pekko.actor.typed.scaladsl.adapter.{
   ClassicActorRefOps,
-  ClassicActorSystemOps
+  ClassicActorSystemOps,
 }
 import org.apache.pekko.actor.{
   Actor,
   ActorContext,
   ActorRef,
   ActorSystem,
-  Props
+  Props,
 }
 import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 
@@ -36,7 +36,7 @@ class SimonaSimFailSpec
           .parseString("""
                      |pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
                      |pekko.loglevel="OFF"
-        """.stripMargin)
+        """.stripMargin),
       )
     ) {
   "A SimonaSim" should {
@@ -48,9 +48,9 @@ class SimonaSimFailSpec
         Props(
           new FailSim(
             system,
-            timeAdvancer.ref.toTyped
+            timeAdvancer.ref.toTyped,
           )
-        )
+        ),
       )
 
       /* Init the simulation */
@@ -70,11 +70,11 @@ class SimonaSimFailSpec
 object SimonaSimFailSpec {
   class FailSim(
       actorSystem: ActorSystem,
-      timeAdvancer: org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming]
+      timeAdvancer: org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming],
   ) extends SimonaSim(
         new DummySetup(
           actorSystem,
-          timeAdvancer
+          timeAdvancer,
         )
       ) {
     val child: ActorRef = context.actorOf(Props(new Loser))
@@ -94,7 +94,7 @@ object SimonaSimFailSpec {
       timeAdvancer: org.apache.pekko.actor.typed.ActorRef[
         TimeAdvancer.Incoming
       ],
-      override val args: Array[String] = Array.empty[String]
+      override val args: Array[String] = Array.empty[String],
   ) extends SimonaSetup {
 
     override val buildActorSystem: () => ActorSystem = () => actorSystem
@@ -112,13 +112,13 @@ object SimonaSimFailSpec {
 
     override def primaryServiceProxy(
         context: ActorContext,
-        scheduler: ActorRef
+        scheduler: ActorRef,
     ): ActorRef =
       TestProbe("primaryService")(actorSystem).ref
 
     override def weatherService(
         context: ActorContext,
-        scheduler: ActorRef
+        scheduler: ActorRef,
     ): ActorRef =
       TestProbe("weatherService")(actorSystem).ref
 
@@ -127,7 +127,7 @@ object SimonaSimFailSpec {
         simulation: ActorRef,
         runtimeEventListener: org.apache.pekko.actor.typed.ActorRef[
           RuntimeEvent
-        ]
+        ],
     ): org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming] =
       timeAdvancer
 
@@ -135,18 +135,18 @@ object SimonaSimFailSpec {
         context: ActorContext,
         timeAdvancer: org.apache.pekko.actor.typed.ActorRef[
           TimeAdvancer.Incoming
-        ]
+        ],
     ): ActorRef = TestProbe("scheduler")(actorSystem).ref
 
     override def gridAgents(
         context: ActorContext,
         environmentRefs: EnvironmentRefs,
-        systemParticipantListener: Seq[ActorRef]
+        systemParticipantListener: Seq[ActorRef],
     ): Iterable[ActorRef] = Iterable.empty
 
     override def extSimulations(
         context: ActorContext,
-        scheduler: ActorRef
+        scheduler: ActorRef,
     ): ExtSimSetupData =
       ExtSimSetupData(Iterable.empty, Map.empty)
   }

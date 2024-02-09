@@ -50,7 +50,7 @@ final class SampleWeatherSource(
     */
   override def getWeather(
       tick: Long,
-      weightedCoordinates: WeatherSource.WeightedCoordinates
+      weightedCoordinates: WeatherSource.WeightedCoordinates,
   ): WeatherData = getWeather(tick)
 
   /** Get the weather data for the given tick and coordinate. Here, the weather
@@ -75,7 +75,7 @@ final class SampleWeatherSource(
       ) 2011
       else wallClockTime.get(YEAR)
     val index = (((year - 2011) * 288) + (month * 24) + hour) + 1
-    val weatherResult = WeatherData(
+    WeatherData(
       WattsPerSquareMeter(
         SampleWeatherSource
           .diffuseRadiation(index)
@@ -97,9 +97,8 @@ final class SampleWeatherSource(
         SampleWeatherSource
           .windVelocity(index)
           .doubleValue
-      )
+      ),
     )
-    weatherResult
   }
 
   /** Determine an Array with all ticks between the request frame's start and
@@ -114,7 +113,7 @@ final class SampleWeatherSource(
     */
   override def getDataTicks(
       requestFrameStart: Long,
-      requestFrameEnd: Long
+      requestFrameEnd: Long,
   ): Array[Long] =
     TickUtil.getTicksInBetween(requestFrameStart, requestFrameEnd, resolution)
 }
@@ -138,13 +137,13 @@ object SampleWeatherSource {
     override def getClosestCoordinates(
         coordinate: Point,
         n: Int,
-        distance: ComparableQuantity[Length]
+        distance: ComparableQuantity[Length],
     ): util.List[CoordinateDistance] = {
       if (coordinate.getY.abs <= 90 && coordinate.getX.abs <= 180)
         Vector(
           new CoordinateDistance(
             coordinate,
-            coordinate
+            coordinate,
           )
         ).asJava
       else
@@ -153,13 +152,13 @@ object SampleWeatherSource {
 
     override def getNearestCoordinates(
         coordinate: Point,
-        i: Int
+        i: Int,
     ): util.List[CoordinateDistance] = {
       if (coordinate.getY.abs <= 90 && coordinate.getX.abs <= 180)
         Vector(
           new CoordinateDistance(
             coordinate,
-            coordinate
+            coordinate,
           )
         ).asJava
       else

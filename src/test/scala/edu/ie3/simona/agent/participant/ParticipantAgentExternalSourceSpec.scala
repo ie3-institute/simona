@@ -15,7 +15,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ActivePower,
   ActivePowerAndHeat,
   ApparentPower,
-  ApparentPowerAndHeat
+  ApparentPowerAndHeat,
 }
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.FromOutsideBaseStateData
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
@@ -23,7 +23,7 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   ParticipantInitializeStateData,
   ParticipantInitializingStateData,
   ParticipantUninitializedStateData,
-  SimpleInputContainer
+  SimpleInputContainer,
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
@@ -31,13 +31,14 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage
+  RequestAssetPowerMessage,
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
@@ -55,13 +56,13 @@ import org.apache.pekko.util.Timeout
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
-import squants.Each
 import squants.energy.{Kilowatts, Megawatts, Watts}
+import squants.{Each, Power}
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
 import java.util.concurrent.TimeUnit
-import scala.collection.SortedSet
+import scala.collection.{SortedMap, SortedSet}
 import scala.util.{Failure, Success}
 
 /** Tests a mock participant agent with external data (primary data). Since
@@ -76,7 +77,7 @@ class ParticipantAgentExternalSourceSpec
           .parseString("""
             |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
             |pekko.loglevel="DEBUG"
-        """.stripMargin)
+        """.stripMargin),
       )
     )
     with DefaultTestData
@@ -94,12 +95,14 @@ class ParticipantAgentExternalSourceSpec
   when(mockInputModel.getId).thenReturn(testID)
   when(mockInputModel.getNode).thenReturn(mockNode)
   private val mockModel =
-    mock[
-      SystemParticipant[CalcRelevantData.FixedRelevantData.type, ApparentPower]
-    ]
+    mock[SystemParticipant[
+      CalcRelevantData.FixedRelevantData.type,
+      ApparentPower,
+      ConstantState.type,
+    ]]
   when(mockModel.getUuid).thenReturn(testUUID)
-  private val activeToReactivePowerFunction: squants.Power => ReactivePower =
-    (p: squants.Power) => Kilovars(p.toKilowatts * tan(acos(0.9)))
+  private val activeToReactivePowerFunction: Power => ReactivePower =
+    (p: Power) => Kilovars(p.toKilowatts * tan(acos(0.9)))
   when(
     mockModel.activeToReactivePowerFunc(
       any(classOf[squants.Dimensionless])
@@ -108,41 +111,42 @@ class ParticipantAgentExternalSourceSpec
 
   private val simonaConfig: SimonaConfig = createSimonaConfig(
     LoadModelBehaviour.FIX,
-    LoadReference.ActivePower(Kilowatts(0.0))
+    LoadReference.ActivePower(Kilowatts(0.0)),
   )
   private val defaultOutputConfig = NotifierConfig(
     simulationResultInfo = false,
-    powerRequestReply = false
+    powerRequestReply = false,
+    flexResult = false,
   )
 
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
-  private implicit val powerTolerance: squants.Power = Watts(0.1)
+  private implicit val powerTolerance: Power = Watts(0.1)
   private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
 
   "A participant agent with externally given data provider" should {
     val initStateData = ParticipantInitializeStateData[
       SystemParticipantInput,
       BaseRuntimeConfig,
-      ApparentPower
+      ApparentPower,
     ](
       inputModel = mockInputModel,
       modelConfig = mock[BaseRuntimeConfig],
-      secondaryDataServices = None,
+      secondaryDataServices = Iterable.empty,
       simulationStartDate = defaultSimulationStart,
       simulationEndDate = defaultSimulationEnd,
       resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
       requestVoltageDeviationThreshold =
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
-      primaryServiceProxy = primaryServiceProxy.ref
+      primaryServiceProxy = primaryServiceProxy.ref,
     )
 
     "be instantiated correctly" in {
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
           scheduler = scheduler.ref,
-          initStateData = initStateData
+          initStateData = initStateData,
         )
       )
 
@@ -161,7 +165,7 @@ class ParticipantAgentExternalSourceSpec
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
           scheduler = scheduler.ref,
-          initStateData = initStateData
+          initStateData = initStateData,
         )
       )
 
@@ -183,16 +187,18 @@ class ParticipantAgentExternalSourceSpec
               simulationEndDate,
               resolution,
               requestVoltageDeviationThreshold,
-              outputConfig
+              outputConfig,
+              maybeEmAgent,
             ) =>
           inputModel shouldBe SimpleInputContainer(mockInputModel)
           modelConfig shouldBe modelConfig
-          secondaryDataServices shouldBe None
+          secondaryDataServices shouldBe Iterable.empty
           simulationStartDate shouldBe defaultSimulationStart
           simulationEndDate shouldBe defaultSimulationEnd
           resolution shouldBe this.resolution
           requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
           outputConfig shouldBe defaultOutputConfig
+          maybeEmAgent shouldBe None
         case unsuitableStateData =>
           fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
       }
@@ -200,7 +206,7 @@ class ParticipantAgentExternalSourceSpec
       /* Reply, that registration was successful */
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(Some(4711L))
+        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(4711L)),
       )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped, Some(4711L)))
@@ -210,7 +216,8 @@ class ParticipantAgentExternalSourceSpec
       mockAgent.stateData match {
         case baseStateData: FromOutsideBaseStateData[SystemParticipant[
               FixedRelevantData.type,
-              ApparentPower
+              ApparentPower,
+              ConstantState.type,
             ], ApparentPower] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
           baseStateData.foreseenDataTicks shouldBe Map(
@@ -227,7 +234,7 @@ class ParticipantAgentExternalSourceSpec
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
           scheduler = scheduler.ref,
-          initStateData = initStateData
+          initStateData = initStateData,
         )
       )
 
@@ -237,7 +244,7 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(Some(900L))
+        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -249,12 +256,12 @@ class ParticipantAgentExternalSourceSpec
       mockAgent ! RequestAssetPowerMessage(
         0L,
         Each(1.0),
-        Each(0.0)
+        Each(0.0),
       )
       expectMsg(
         AssetPowerChangedMessage(
           Megawatts(0.0),
-          Megavars(0.0)
+          Megavars(0.0),
         )
       )
 
@@ -270,16 +277,16 @@ class ParticipantAgentExternalSourceSpec
               _,
               _,
               _,
-              requestValueStore
+              requestValueStore,
             ) =>
           requestValueStore shouldBe ValueStore[ApparentPower](
             resolution,
-            Map(
+            SortedMap(
               0L -> ApparentPower(
                 Megawatts(0.0),
-                Megavars(0.0)
+                Megavars(0.0),
               )
-            )
+            ),
           )
         case _ =>
           fail(
@@ -292,7 +299,7 @@ class ParticipantAgentExternalSourceSpec
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
           scheduler = scheduler.ref,
-          initStateData = initStateData
+          initStateData = initStateData,
         )
       )
 
@@ -302,7 +309,7 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(Some(900L))
+        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -314,12 +321,13 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         ProvidePrimaryDataMessage(
           900L,
+          primaryServiceProxy.ref,
           ApparentPower(
             Kilowatts(0.0),
-            Kilovars(900.0)
+            Kilovars(900.0),
           ),
-          Some(1800L)
-        )
+          Some(1800L),
+        ),
       )
 
       /* Find yourself in corresponding state and state data */
@@ -328,10 +336,11 @@ class ParticipantAgentExternalSourceSpec
         case DataCollectionStateData(
               baseStateData: FromOutsideBaseStateData[SystemParticipant[
                 CalcRelevantData,
-                ApparentPower
+                ApparentPower,
+                ConstantState.type,
               ], ApparentPower],
               expectedSenders,
-              isYetTriggered
+              isYetTriggered,
             ) =>
           /* The next data tick is already registered */
           baseStateData.foreseenDataTicks shouldBe Map(
@@ -343,7 +352,7 @@ class ParticipantAgentExternalSourceSpec
             primaryServiceProxy.ref -> Some(
               ApparentPower(
                 Kilowatts(0.0),
-                Kilovars(900.0)
+                Kilovars(900.0),
               )
             )
           )
@@ -367,7 +376,8 @@ class ParticipantAgentExternalSourceSpec
       mockAgent.stateData match {
         case baseStateData: FromOutsideBaseStateData[SystemParticipant[
               CalcRelevantData,
-              ApparentPower
+              ApparentPower,
+              ConstantState.type,
             ], ApparentPower] =>
           /* The new data is apparent in the result value store */
           baseStateData.resultValueStore match {
@@ -375,7 +385,7 @@ class ParticipantAgentExternalSourceSpec
               store shouldBe Map(
                 900L -> ApparentPower(
                   Kilowatts(0.0),
-                  Kilovars(900.0)
+                  Kilovars(900.0),
                 )
               )
           }
@@ -390,7 +400,7 @@ class ParticipantAgentExternalSourceSpec
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
           scheduler = scheduler.ref,
-          initStateData = initStateData
+          initStateData = initStateData,
         )
       )
 
@@ -400,7 +410,7 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(Some(900L))
+        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -416,10 +426,11 @@ class ParticipantAgentExternalSourceSpec
         case DataCollectionStateData(
               baseStateData: FromOutsideBaseStateData[SystemParticipant[
                 CalcRelevantData,
-                ApparentPower
+                ApparentPower,
+                ConstantState.type,
               ], ApparentPower],
               expectedSenders,
-              isYetTriggered
+              isYetTriggered,
             ) =>
           /* The next data tick is already registered */
           baseStateData.foreseenDataTicks shouldBe Map(
@@ -442,12 +453,13 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         ProvidePrimaryDataMessage(
           900L,
+          primaryServiceProxy.ref,
           ApparentPower(
             Kilowatts(0.0),
-            Kilovars(900.0)
+            Kilovars(900.0),
           ),
-          Some(1800L)
-        )
+          Some(1800L),
+        ),
       )
 
       /* Expect confirmation */
@@ -458,7 +470,8 @@ class ParticipantAgentExternalSourceSpec
       mockAgent.stateData match {
         case baseStateData: FromOutsideBaseStateData[SystemParticipant[
               CalcRelevantData,
-              ApparentPower
+              ApparentPower,
+              ConstantState.type,
             ], ApparentPower] =>
           /* The new data is apparent in the result value store */
           baseStateData.resultValueStore match {
@@ -466,7 +479,7 @@ class ParticipantAgentExternalSourceSpec
               store shouldBe Map(
                 900L -> ApparentPower(
                   Kilowatts(0.0),
-                  Kilovars(900.0)
+                  Kilovars(900.0),
                 )
               )
           }
@@ -481,7 +494,7 @@ class ParticipantAgentExternalSourceSpec
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
           scheduler = scheduler.ref,
-          initStateData = initStateData
+          initStateData = initStateData,
         )
       )
 
@@ -492,7 +505,7 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(Some(900L))
+        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -503,7 +516,7 @@ class ParticipantAgentExternalSourceSpec
       mockAgent ! RequestAssetPowerMessage(
         1800L,
         Each(1.0),
-        Each(0.0)
+        Each(0.0),
       )
       expectNoMessage(noReceiveTimeOut.duration)
       awaitAssert(mockAgent.stateName == Idle)
@@ -513,12 +526,13 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         ProvidePrimaryDataMessage(
           900L,
+          primaryServiceProxy.ref,
           ApparentPower(
             Kilowatts(0.0),
-            Kilovars(900.0)
+            Kilovars(900.0),
           ),
-          Some(1800L)
-        )
+          Some(1800L),
+        ),
       )
 
       /* Trigger the agent */
@@ -533,17 +547,19 @@ class ParticipantAgentExternalSourceSpec
     val mockAgent = TestFSMRef(
       new ParticipantAgentMock(
         scheduler = scheduler.ref,
-        initStateData = initStateData
+        initStateData = initStateData,
       )
     )
 
     "correctly determine the reactive power function when trivial reactive power is requested" in {
       val baseStateData: FromOutsideBaseStateData[SystemParticipant[
         CalcRelevantData.FixedRelevantData.type,
-        ApparentPower
+        ApparentPower,
+        ConstantState.type,
       ], ApparentPower] = FromOutsideBaseStateData[SystemParticipant[
         CalcRelevantData.FixedRelevantData.type,
-        ApparentPower
+        ApparentPower,
+        ConstantState.type,
       ], ApparentPower](
         mockModel,
         defaultSimulationStart,
@@ -555,24 +571,26 @@ class ParticipantAgentExternalSourceSpec
         1e-4,
         ValueStore.forVoltage(
           900L,
-          Each(1.0)
+          Each(1.0),
         ),
         ValueStore.forResult(900L, 1L),
-        ValueStore(900L)
+        ValueStore(900L),
       )
 
       val actualFunction =
         mockAgent.underlyingActor.getReactivePowerFunction(0L, baseStateData)
-      (actualFunction(Kilowatts(100.0)) ~= Kilovars(0.0)) shouldBe true
+      actualFunction(Kilowatts(100.0)) should approximate(Kilovars(0.0))
     }
 
     "correctly determine the reactive power function from model when requested" in {
       val baseStateData: FromOutsideBaseStateData[SystemParticipant[
         CalcRelevantData.FixedRelevantData.type,
-        ApparentPower
+        ApparentPower,
+        ConstantState.type,
       ], ApparentPower] = FromOutsideBaseStateData[SystemParticipant[
         CalcRelevantData.FixedRelevantData.type,
-        ApparentPower
+        ApparentPower,
+        ConstantState.type,
       ], ApparentPower](
         mockModel,
         defaultSimulationStart,
@@ -584,15 +602,15 @@ class ParticipantAgentExternalSourceSpec
         1e-4,
         ValueStore.forVoltage(
           900L,
-          Each(1.0)
+          Each(1.0),
         ),
         ValueStore.forResult(900L, 1L),
-        ValueStore(900L)
+        ValueStore(900L),
       )
 
       val actualFunction =
         mockAgent.underlyingActor.getReactivePowerFunction(0L, baseStateData)
-      (actualFunction(Kilowatts(100.0)) ~= Kilovars(48.43221)) shouldBe true
+      actualFunction(Kilowatts(100.0)) should approximate(Kilovars(48.43221))
     }
 
     "provide correct average power after three data ticks are available" in {
@@ -603,7 +621,7 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(Some(900L))
+        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -616,12 +634,13 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         ProvidePrimaryDataMessage(
           900L,
+          primaryServiceProxy.ref,
           ApparentPower(
             Kilowatts(100.0),
-            Kilovars(33.0)
+            Kilovars(33.0),
           ),
-          Some(1800L)
-        )
+          Some(1800L),
+        ),
       )
       scheduler.send(mockAgent, Activation(900))
       scheduler.expectMsg(Completion(mockAgent.toTyped, Some(1800)))
@@ -631,12 +650,13 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         ProvidePrimaryDataMessage(
           1800L,
+          primaryServiceProxy.ref,
           ApparentPower(
             Kilowatts(150.0),
-            Kilovars(49.0)
+            Kilovars(49.0),
           ),
-          Some(2700L)
-        )
+          Some(2700L),
+        ),
       )
       scheduler.send(mockAgent, Activation(1800))
       scheduler.expectMsg(Completion(mockAgent.toTyped, Some(2700)))
@@ -646,12 +666,13 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         ProvidePrimaryDataMessage(
           2700L,
+          primaryServiceProxy.ref,
           ApparentPower(
             Kilowatts(200.0),
-            Kilovars(66.0)
+            Kilovars(66.0),
           ),
-          None
-        )
+          None,
+        ),
       )
       scheduler.send(mockAgent, Activation(2700))
       scheduler.expectMsg(Completion(mockAgent.toTyped))
@@ -662,13 +683,13 @@ class ParticipantAgentExternalSourceSpec
       mockAgent ! RequestAssetPowerMessage(
         3000L,
         Each(1.0),
-        Each(0.0)
+        Each(0.0),
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          (p ~= Megawatts(0.095)) shouldBe true
-          (q ~= Megavars(0.0312)) shouldBe true
+          p should approximate(Megawatts(0.095))
+          q should approximate(Megavars(0.0312))
       }
     }
 
@@ -678,14 +699,14 @@ class ParticipantAgentExternalSourceSpec
       mockAgent ! RequestAssetPowerMessage(
         3000L,
         Each(1.000000000000001d),
-        Each(0.0)
+        Each(0.0),
       )
 
       /* Expect, that nothing has changed */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          (p ~= Megawatts(0.095)) shouldBe true
-          (q ~= Megavars(0.0312)) shouldBe true
+          p should approximate(Megawatts(0.095))
+          q should approximate(Megavars(0.0312))
       }
     }
 
@@ -695,14 +716,14 @@ class ParticipantAgentExternalSourceSpec
       mockAgent ! RequestAssetPowerMessage(
         3000L,
         Each(0.98d),
-        Each(0.0)
+        Each(0.0),
       )
 
       /* Expect, that nothing has changed, as this model is meant to forward information from outside */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          (p ~= Megawatts(0.095)) shouldBe true
-          (q ~= Megavars(0.0312)) shouldBe true
+          p should approximate(Megawatts(0.095))
+          q should approximate(Megavars(0.0312))
       }
     }
 
@@ -720,7 +741,7 @@ class ParticipantAgentExternalSourceSpec
               ApparentPowerAndHeat(
                 Kilowatts(0.0),
                 Kilovars(0.0),
-                Kilowatts(0.0)
+                Kilowatts(0.0),
               )
             )
           )
@@ -741,7 +762,7 @@ class ParticipantAgentExternalSourceSpec
             primaryServiceProxy.ref -> Some(
               ActivePowerAndHeat(
                 Kilowatts(0.0),
-                Kilowatts(0.0)
+                Kilowatts(0.0),
               )
             )
           )
@@ -764,14 +785,14 @@ class ParticipantAgentExternalSourceSpec
 
           participantAgent.prepareData(data, reactivePowerFunction) match {
             case Success(ApparentPower(p, q)) =>
-              (p ~= Megawatts(0.0)) shouldBe true
-              (q ~= Megavars(0.0)) shouldBe true
+              p should approximate(Megawatts(0.0))
+              q should approximate(Megavars(0.0))
             case Success(value) =>
               fail(s"Succeeded, but with wrong data: '$value'.")
             case Failure(exception) =>
               fail(
                 "Was meant to succeed, but failed with exception.",
-                exception
+                exception,
               )
           }
         }
@@ -785,17 +806,17 @@ class ParticipantAgentExternalSourceSpec
 
           participantAgent.prepareData(
             data,
-            (p: squants.Power) => Kilovars(p.toKilowatts * tan(acos(0.9)))
+            (p: squants.Power) => Kilovars(p.toKilowatts * tan(acos(0.9))),
           ) match {
             case Success(ApparentPower(p, q)) =>
-              (p ~= Kilowatts(100.0)) shouldBe true
-              (q ~= Kilovars(48.43221)) shouldBe true
+              p should approximate(Kilowatts(100.0))
+              q should approximate(Kilovars(48.43221))
             case Success(value) =>
               fail(s"Succeeded, but with wrong data: '$value'.")
             case Failure(exception) =>
               fail(
                 "Was meant to succeed, but failed with exception.",
-                exception
+                exception,
               )
           }
         }

@@ -31,20 +31,20 @@ object GraphicDataCleaner {
 
     /* setup */
     val dataSource: CsvDataSource =
-      new CsvDataSourceAdapter(csvSep, baseFolder, fileNamingStrategy)
+      new CsvDataSource(csvSep, baseFolder, fileNamingStrategy)
 
     val csvTypeSource: TypeSource =
       new TypeSource(dataSource)
 
     val csvRawGridSource: RawGridSource = new RawGridSource(
       csvTypeSource,
-      dataSource
+      dataSource,
     )
 
     val csvGraphicSource: GraphicSource = new GraphicSource(
       csvTypeSource,
       csvRawGridSource,
-      dataSource
+      dataSource,
     )
 
     /* read - by default, the csvGraphicSource only returns valid, that means elements with all

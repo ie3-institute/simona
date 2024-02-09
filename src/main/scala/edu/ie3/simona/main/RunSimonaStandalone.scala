@@ -7,11 +7,7 @@
 package edu.ie3.simona.main
 
 import edu.ie3.simona.config.{ArgsParser, ConfigFailFast, SimonaConfig}
-import edu.ie3.simona.sim.SimMessage.{
-  InitSim,
-  SimulationFailure,
-  SimulationSuccessful
-}
+import edu.ie3.simona.sim.SimMessage.{InitSim, SimulationFailure, SimulationSuccessful}
 import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
 import org.apache.pekko.actor.ActorSystem
@@ -44,7 +40,7 @@ object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
       SimonaStandaloneSetup(
         parsedConfig,
         SimonaStandaloneSetup.buildResultFileHierarchy(parsedConfig),
-        mainArgs = arguments.mainArgs
+        mainArgs = arguments.mainArgs,
       )
     )
   }

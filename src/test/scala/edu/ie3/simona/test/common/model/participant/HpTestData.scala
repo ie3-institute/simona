@@ -13,7 +13,7 @@ import edu.ie3.datamodel.models.input.system.characteristic.ReactivePowerCharact
 import edu.ie3.datamodel.models.input.thermal.{
   ThermalBusInput,
   ThermalHouseInput,
-  ThermalStorageInput
+  ThermalStorageInput,
 }
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
@@ -34,12 +34,12 @@ trait HpTestData extends DefaultTestData {
     false,
     NodeInput.DEFAULT_GEO_POSITION,
     GermanVoltageLevelUtils.LV,
-    2
+    2,
   )
 
   protected val thermalBusInput = new ThermalBusInput(
     UUID.fromString("48fa6e8d-c07f-45cd-9ad7-094a1f2a7489"),
-    "thermal bus"
+    "thermal bus",
   )
 
   protected val typeInput = new HpTypeInput(
@@ -49,10 +49,10 @@ trait HpTestData extends DefaultTestData {
     Quantities.getQuantity(0.0, StandardUnits.ENERGY_PRICE),
     Quantities.getQuantity(15.0, StandardUnits.ACTIVE_POWER_IN),
     0.97,
-    Quantities.getQuantity(11.0, StandardUnits.ACTIVE_POWER_IN)
+    Quantities.getQuantity(11.0, StandardUnits.ACTIVE_POWER_IN),
   )
 
-  protected val inputModel = new HpInput(
+  protected val hpInputModel = new HpInput(
     UUID.fromString("7832dea4-8703-4b37-8752-e67b86e957df"),
     "test hp",
     OperatorInput.NO_OPERATOR_ASSIGNED,
@@ -60,7 +60,7 @@ trait HpTestData extends DefaultTestData {
     nodeInput,
     thermalBusInput,
     ReactivePowerCharacteristic.parse("cosPhiFixed:{(0.00,0.98)}"),
-    typeInput
+    typeInput,
   )
 
   protected val thermalHouse = new ThermalHouseInput(
@@ -71,12 +71,12 @@ trait HpTestData extends DefaultTestData {
     Quantities.getQuantity(75, StandardUnits.HEAT_CAPACITY),
     Quantities.getQuantity(21.0, StandardUnits.TEMPERATURE),
     Quantities.getQuantity(22.0, StandardUnits.TEMPERATURE),
-    Quantities.getQuantity(20.0, StandardUnits.TEMPERATURE)
+    Quantities.getQuantity(20.0, StandardUnits.TEMPERATURE),
   )
 
   protected val thermalGrid = new ThermalGrid(
     thermalBusInput,
     Seq(thermalHouse).asJava,
-    Seq.empty[ThermalStorageInput].asJava
+    Seq.empty[ThermalStorageInput].asJava,
   )
 }

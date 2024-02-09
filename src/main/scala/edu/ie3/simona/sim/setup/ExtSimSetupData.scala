@@ -11,7 +11,7 @@ import org.apache.pekko.actor.ActorRef
 
 final case class ExtSimSetupData(
     extSimAdapters: Iterable[ActorRef],
-    extDataServices: Map[Class[_], ActorRef]
+    extDataServices: Map[Class[_], ActorRef],
 ) {
 
   def evDataService: Option[ActorRef] =

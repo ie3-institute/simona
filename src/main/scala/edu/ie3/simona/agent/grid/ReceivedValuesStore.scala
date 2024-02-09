@@ -9,11 +9,11 @@ package edu.ie3.simona.agent.grid
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.agent.grid.ReceivedValuesStore.{
   NodeToReceivedPower,
-  NodeToReceivedSlackVoltage
+  NodeToReceivedSlackVoltage,
 }
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   PowerResponseMessage,
-  ProvidePowerMessage
+  ProvidePowerMessage,
 }
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 import org.apache.pekko.actor.ActorRef
@@ -41,7 +41,7 @@ import java.util.UUID
   */
 final case class ReceivedValuesStore private (
     nodeToReceivedPower: NodeToReceivedPower,
-    nodeToReceivedSlackVoltage: NodeToReceivedSlackVoltage
+    nodeToReceivedSlackVoltage: NodeToReceivedSlackVoltage,
 )
 
 object ReceivedValuesStore {
@@ -70,13 +70,13 @@ object ReceivedValuesStore {
   def empty(
       nodeToAssetAgents: Map[UUID, Set[ActorRef]],
       inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef],
-      superiorGridNodeUuids: Vector[UUID]
+      superiorGridNodeUuids: Vector[UUID],
   ): ReceivedValuesStore = {
     val (nodeToReceivedPower, nodeToReceivedSlackVoltage) =
       buildEmptyReceiveMaps(
         nodeToAssetAgents,
         inferiorSubGridGateToActorRef,
-        superiorGridNodeUuids
+        superiorGridNodeUuids,
       )
     ReceivedValuesStore(nodeToReceivedPower, nodeToReceivedSlackVoltage)
   }
@@ -95,7 +95,7 @@ object ReceivedValuesStore {
     */
   private def buildEmptyNodeToReceivedPowerMap(
       nodeToAssetAgents: Map[UUID, Set[ActorRef]],
-      inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef]
+      inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef],
   ): NodeToReceivedPower = {
     /* Collect everything, that I expect from my asset agents */
     val assetsToReceivedPower: NodeToReceivedPower = nodeToAssetAgents.collect {
@@ -111,14 +111,14 @@ object ReceivedValuesStore {
       .foldLeft(assetsToReceivedPower) {
         case (
               subordinateToReceivedPower,
-              couplingNodeUuid -> inferiorSubGridRef
+              couplingNodeUuid -> inferiorSubGridRef,
             ) =>
           /* Check, if there is already something expected for the given coupling node
            * and add reference to the subordinate grid agent */
           val actorRefToMessage = subordinateToReceivedPower
             .getOrElse(
               couplingNodeUuid,
-              Map.empty[ActorRef, Option[ProvidePowerMessage]]
+              Map.empty[ActorRef, Option[ProvidePowerMessage]],
             ) + (inferiorSubGridRef -> None)
 
           /* Update the existing map */
@@ -158,14 +158,14 @@ object ReceivedValuesStore {
   private def buildEmptyReceiveMaps(
       nodeToAssetAgents: Map[UUID, Set[ActorRef]],
       inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef],
-      superiorGridNodeUuids: Vector[UUID]
+      superiorGridNodeUuids: Vector[UUID],
   ): (NodeToReceivedPower, NodeToReceivedSlackVoltage) = {
     (
       buildEmptyNodeToReceivedPowerMap(
         nodeToAssetAgents,
-        inferiorSubGridGateToActorRef
+        inferiorSubGridGateToActorRef,
       ),
-      buildEmptyNodeToReceivedSlackVoltageValuesMap(superiorGridNodeUuids)
+      buildEmptyNodeToReceivedSlackVoltageValuesMap(superiorGridNodeUuids),
     )
   }
 

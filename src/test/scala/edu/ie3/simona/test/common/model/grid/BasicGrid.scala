@@ -9,7 +9,7 @@ package edu.ie3.simona.test.common.model.grid
 import edu.ie3.simona.model.grid.{
   NodeModel,
   TransformerModel,
-  TransformerTappingModel
+  TransformerTappingModel,
 }
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.util.quantities.PowerSystemUnits._
@@ -67,7 +67,7 @@ trait BasicGrid extends FiveLinesWithNodes with DefaultTestData {
       "node0",
       "5f2b9b3e-faa6-493b-a6ee-22a4a516ad0e",
       false,
-      linesRatedVoltage
+      linesRatedVoltage,
     )
   // / create transformer HV node @ 110kV
   def node6: NodeModel =
@@ -75,7 +75,7 @@ trait BasicGrid extends FiveLinesWithNodes with DefaultTestData {
       "node6",
       "3d2d3626-5043-4ec7-892d-cead983c046e",
       true,
-      transformerHvVoltLvl
+      transformerHvVoltLvl,
     )
 
   override protected def nodes: Seq[NodeModel] =
@@ -95,7 +95,7 @@ trait BasicGrid extends FiveLinesWithNodes with DefaultTestData {
       13,
       -13,
       0,
-      autoTap = true
+      autoTap = true,
     )
 
   // / electric params in pu
@@ -129,7 +129,7 @@ trait BasicGrid extends FiveLinesWithNodes with DefaultTestData {
     transformerRInPu,
     transformerXInPu,
     transformerGInPu,
-    transformerBInPu
+    transformerBInPu,
   )
 
   // init transformer tapping

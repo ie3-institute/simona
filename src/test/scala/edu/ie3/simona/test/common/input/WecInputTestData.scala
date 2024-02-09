@@ -23,7 +23,7 @@ trait WecInputTestData extends WecTypeInputTestData {
     nodeInputNoSlackNs04KvB,
     CosPhiFixed.CONSTANT_CHARACTERISTIC,
     wecTypeInputEnerconE82,
-    false
+    false,
   )
 
 }

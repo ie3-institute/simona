@@ -44,7 +44,7 @@ sealed trait QControl {
   def activeToReactivePowerFunc(
       sRated: Power,
       cosPhiRated: Double,
-      nodalVoltage: Dimensionless
+      nodalVoltage: Dimensionless,
   ): Power => ReactivePower
 }
 
@@ -72,7 +72,7 @@ object QControl {
             cosPhiP.getPoints.asScala.map(point =>
               XYPair[Dimensionless, Dimensionless](
                 Each(point.getX.getValue.doubleValue()),
-                Each(point.getY.getValue.doubleValue())
+                Each(point.getY.getValue.doubleValue()),
               )
             )
           )
@@ -84,7 +84,7 @@ object QControl {
               .map(point =>
                 XYPair[Dimensionless, Dimensionless](
                   Each(point.getX.getValue.doubleValue()),
-                  Each(point.getY.getValue.doubleValue())
+                  Each(point.getY.getValue.doubleValue()),
                 )
               )
               .toSeq
@@ -117,7 +117,7 @@ object QControl {
     override def activeToReactivePowerFunc(
         sRated: Power,
         cosPhiRated: Double,
-        nodalVoltage: Dimensionless
+        nodalVoltage: Dimensionless,
     ): Power => ReactivePower = { activePower: Power =>
       _cosPhiMultiplication(cosPhi, activePower)
     }
@@ -150,7 +150,7 @@ object QControl {
       */
     def q(
         vInPu: Dimensionless,
-        qMax: ReactivePower
+        qMax: ReactivePower,
     ): ReactivePower = {
       qMax * interpolateXy(vInPu)._2.toEach
     }
@@ -169,7 +169,7 @@ object QControl {
     override def activeToReactivePowerFunc(
         sRated: Power,
         cosPhiRated: Double,
-        nodalVoltage: Dimensionless
+        nodalVoltage: Dimensionless,
     ): Power => ReactivePower = { activePower: Power =>
       val qMaxFromP = Megavars(
         sqrt(
@@ -196,7 +196,7 @@ object QControl {
       */
     private def qMaxPossible(
         qMaxFromP: ReactivePower,
-        qFromCharacteristic: ReactivePower
+        qFromCharacteristic: ReactivePower,
     ): ReactivePower =
       if (qFromCharacteristic.abs >= qMaxFromP.abs)
         qMaxFromP * copySign(1, qFromCharacteristic.toMegavars)
@@ -244,7 +244,7 @@ object QControl {
     override def activeToReactivePowerFunc(
         sRated: Power,
         cosPhiRated: Double,
-        nodalVoltage: Dimensionless
+        nodalVoltage: Dimensionless,
     ): Power => ReactivePower = { activePower: Power =>
       /* cosphi( P / P_N ) = cosphi( P / (S_N * cosphi_rated) ) */
       val pInPu =

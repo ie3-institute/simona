@@ -17,11 +17,11 @@ import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   FailedPowerFlow,
-  ProvideGridPowerMessage
+  ProvideGridPowerMessage,
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
@@ -30,7 +30,7 @@ import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{
   ConfigTestData,
   TestKitWithShutdown,
-  TestSpawnerClassic
+  TestSpawnerClassic,
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.Megavars
@@ -51,7 +51,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
           .parseString("""
           |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
           |pekko.loglevel="OFF"
-        """.stripMargin)
+        """.stripMargin),
       )
     )
     with DBFSMockGridAgents
@@ -67,7 +67,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
   private val superiorGridAgent = SuperiorGA(
     TestProbe("superiorGridAgent_1000"),
-    Seq(supNodeA.getUuid)
+    Seq(supNodeA.getUuid),
   )
 
   private val inferiorGridAgent =
@@ -78,7 +78,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
     runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref,
     weather = weatherService.ref,
-    evDataService = None
+    evDataService = None,
   )
 
   val resultListener: TestProbe = TestProbe("resultListener")
@@ -90,7 +90,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
         GridAgent.props(
           environmentRefs,
           simonaConfig,
-          listener = Iterable(resultListener.ref)
+          listener = Iterable(resultListener.ref),
         )
       )
 
@@ -111,7 +111,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
           hvGridContainerPF,
           Seq.empty[ThermalGrid],
           subGridGateToActorRef,
-          RefSystem("2000 MVA", "110 kV")
+          RefSystem("2000 MVA", "110 kV"),
         )
 
       val key =
@@ -120,7 +120,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
       centerGridAgent ! GridAgent.Create(
         gridAgentInitData,
-        key
+        key,
       )
       scheduler.expectMsg(
         ScheduleActivation(centerGridAgent.toTyped, INIT_SIM_TICK, Some(key))
@@ -130,7 +130,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       scheduler.expectMsg(
         Completion(
           centerGridAgent.toTyped,
-          Some(3600)
+          Some(3600),
         )
       )
 
@@ -141,14 +141,14 @@ class DBFSAlgorithmFailedPowerFlowSpec
       // send init data to agent
       scheduler.send(
         centerGridAgent,
-        Activation(3600)
+        Activation(3600),
       )
 
       // we expect a completion message
       scheduler.expectMsg(
         Completion(
           centerGridAgent.toTyped,
-          Some(3600)
+          Some(3600),
         )
       )
     }
@@ -179,9 +179,9 @@ class DBFSAlgorithmFailedPowerFlowSpec
           ExchangeVoltage(
             node1.getUuid,
             Kilovolts(110d),
-            Kilovolts(0d)
+            Kilovolts(0d),
           )
-        )
+        ),
       )
 
       // we now answer the request of our centerGridAgent
@@ -193,10 +193,10 @@ class DBFSAlgorithmFailedPowerFlowSpec
             ExchangePower(
               nodeUuid,
               Megawatts(1000.0),
-              Megavars(0.0)
+              Megavars(0.0),
             )
           )
-        )
+        ),
       )
 
       superiorGridAgent.gaProbe.send(
@@ -207,10 +207,10 @@ class DBFSAlgorithmFailedPowerFlowSpec
             ExchangeVoltage(
               supNodeA.getUuid,
               Kilovolts(380d),
-              Kilovolts(0d)
+              Kilovolts(0d),
             )
-          )
-        )
+          ),
+        ),
       )
 
       // power flow calculation should run now. After it's done,
@@ -227,7 +227,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       // connected inferior grids, because the slack node is just a mock, we imitate this behavior
       superiorGridAgent.gaProbe.send(
         centerGridAgent,
-        FinishGridSimulationTrigger(3600)
+        FinishGridSimulationTrigger(3600),
       )
 
       // after a FinishGridSimulationTrigger is send to the inferior grids, they themselves will
@@ -239,7 +239,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       scheduler.expectMsg(
         Completion(
           centerGridAgent.toTyped,
-          Some(7200)
+          Some(7200),
         )
       )
 

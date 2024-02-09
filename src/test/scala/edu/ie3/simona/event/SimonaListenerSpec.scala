@@ -36,7 +36,7 @@ class SimonaListenerSpec
             |pekko.loggers =["edu.ie3.simona.test.common.SilentTestEventListener"]
             |pekko.loglevel="debug"
             |""".stripMargin
-          )
+          ),
       )
     )
     with Matchers {
@@ -78,7 +78,7 @@ class SimonaListenerSpec
       EventFilter
         .debug(
           message = s"$logPrefix Received '$msg' from date $msgDate",
-          occurrences = 1
+          occurrences = 1,
         )
         .intercept {
           listener ! TestEvent(msg, msgDate)
@@ -91,7 +91,7 @@ class SimonaListenerSpec
       EventFilter
         .warning(
           message = s"$logPrefix Received unknown event",
-          occurrences = 1
+          occurrences = 1,
         )
         .intercept {
           listener ! UnknownEvent
@@ -100,7 +100,7 @@ class SimonaListenerSpec
       EventFilter
         .warning(
           message = s"$logPrefix Received unknown message: $unknownMessage",
-          occurrences = 1
+          occurrences = 1,
         )
         .intercept {
           listener ! unknownMessage

@@ -24,7 +24,7 @@ class RefSystemParserSpec extends UnitSpec {
             vNom = "10 kV",
             voltLvls = Some(
               List(VoltLvlConfig("MS", "10 kV"), VoltLvlConfig("MS", "20 kV"))
-            )
+            ),
           ),
           new RefSystemConfig(
             gridIds = Some(List("100")),
@@ -33,16 +33,16 @@ class RefSystemParserSpec extends UnitSpec {
             voltLvls = Some(
               List(
                 VoltLvlConfig("HS", "110 kV"),
-                VoltLvlConfig("HoeS", "380 kV")
+                VoltLvlConfig("HoeS", "380 kV"),
               )
-            )
+            ),
           ),
           new RefSystemConfig(
             gridIds = None,
             sNom = "5000 MVA",
             vNom = "110 kV",
-            voltLvls = None
-          )
+            voltLvls = None,
+          ),
         )
 
       val configRefSystems = RefSystemParser.parse(validRefSystems)
@@ -71,7 +71,7 @@ class RefSystemParserSpec extends UnitSpec {
         18 -> configRefSystemOne,
         19 -> configRefSystemOne,
         20 -> configRefSystemOne,
-        100 -> configRefSystemTwo
+        100 -> configRefSystemTwo,
       )
 
       // check internal voltLvLRefSystems
@@ -81,7 +81,7 @@ class RefSystemParserSpec extends UnitSpec {
         GermanVoltageLevelUtils.MV_10KV -> configRefSystemOne,
         GermanVoltageLevelUtils.MV_20KV -> configRefSystemOne,
         GermanVoltageLevelUtils.HV -> configRefSystemTwo,
-        GermanVoltageLevelUtils.EHV_380KV -> configRefSystemTwo
+        GermanVoltageLevelUtils.EHV_380KV -> configRefSystemTwo,
       )
 
     }
@@ -96,7 +96,7 @@ class RefSystemParserSpec extends UnitSpec {
             vNom = "10 kV",
             voltLvls = Some(
               List(VoltLvlConfig("MS", "10 kV"), VoltLvlConfig("MS", "20 kV"))
-            )
+            ),
           )
         )
       intercept[InvalidConfigParameterException] {
@@ -115,7 +115,7 @@ class RefSystemParserSpec extends UnitSpec {
             vNom = "10 kV",
             voltLvls = Some(
               List(VoltLvlConfig("MS", "10 kV"), VoltLvlConfig("MS", "20 kV"))
-            )
+            ),
           ),
           new RefSystemConfig(
             gridIds = None,
@@ -123,8 +123,8 @@ class RefSystemParserSpec extends UnitSpec {
             vNom = "10 kV",
             voltLvls = Some(
               List(VoltLvlConfig("MS", "10 kV"), VoltLvlConfig("MS", "20 kV"))
-            )
-          )
+            ),
+          ),
         )
       intercept[InvalidConfigParameterException] {
         RefSystemParser.parse(validRefSystems)
@@ -142,7 +142,7 @@ class RefSystemParserSpec extends UnitSpec {
             vNom = "10 kV",
             voltLvls = Some(
               List(VoltLvlConfig("MS", "10 kV"), VoltLvlConfig("MS", "20 kV"))
-            )
+            ),
           ),
           new RefSystemConfig(
             gridIds = None,
@@ -150,8 +150,8 @@ class RefSystemParserSpec extends UnitSpec {
             vNom = "10 kV",
             voltLvls = Some(
               List(VoltLvlConfig("MS", "10 kV"), VoltLvlConfig("MS", "20 kV"))
-            )
-          )
+            ),
+          ),
         )
       intercept[InvalidConfigParameterException] {
         RefSystemParser.parse(validRefSystems)
@@ -171,7 +171,7 @@ class RefSystemParserSpec extends UnitSpec {
           vNom = "10 kV",
           voltLvls = Some(
             List(VoltLvlConfig("MS", "10 kV"), VoltLvlConfig("MS", "20 kV"))
-          )
+          ),
         ),
         new RefSystemConfig(
           gridIds = Some(List("100")),
@@ -179,8 +179,8 @@ class RefSystemParserSpec extends UnitSpec {
           vNom = "110 kV",
           voltLvls = Some(
             List(VoltLvlConfig("HS", "110 kV"), VoltLvlConfig("HoeS", "380 kV"))
-          )
-        )
+          ),
+        ),
       )
 
     val configRefSystems = RefSystemParser.parse(validRefSystems)
@@ -199,7 +199,7 @@ class RefSystemParserSpec extends UnitSpec {
 
       configRefSystems.find(
         1,
-        Some(GermanVoltageLevelUtils.MV_10KV)
+        Some(GermanVoltageLevelUtils.MV_10KV),
       ) shouldBe Some(
         configRefSystemOne
       )
@@ -210,7 +210,7 @@ class RefSystemParserSpec extends UnitSpec {
 
       configRefSystems.find(
         1000,
-        Some(GermanVoltageLevelUtils.HV)
+        Some(GermanVoltageLevelUtils.HV),
       ) shouldBe Some(
         configRefSystemTwo
       )
@@ -227,7 +227,7 @@ class RefSystemParserSpec extends UnitSpec {
 
       configRefSystems.find(
         1000,
-        Some(GermanVoltageLevelUtils.EHV_220KV)
+        Some(GermanVoltageLevelUtils.EHV_220KV),
       ) shouldBe None
 
     }

@@ -19,7 +19,7 @@ import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
@@ -28,7 +28,7 @@ import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{
   ConfigTestData,
   TestKitWithShutdown,
-  TestSpawnerClassic
+  TestSpawnerClassic,
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.Megavars
@@ -54,7 +54,7 @@ class DBFSAlgorithmCenGridSpec
           .parseString("""
             |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
             |pekko.loglevel="OFF"
-        """.stripMargin)
+        """.stripMargin),
       )
     )
     with DBFSMockGridAgents
@@ -69,7 +69,7 @@ class DBFSAlgorithmCenGridSpec
 
   private val superiorGridAgent = SuperiorGA(
     TestProbe("superiorGridAgent_1000"),
-    Seq(supNodeA.getUuid, supNodeB.getUuid)
+    Seq(supNodeA.getUuid, supNodeB.getUuid),
   )
 
   private val inferiorGrid11 =
@@ -80,7 +80,7 @@ class DBFSAlgorithmCenGridSpec
 
   private val inferiorGrid13 = InferiorGA(
     TestProbe("inferiorGridAgent_13"),
-    Seq(node3.getUuid, node4.getUuid)
+    Seq(node3.getUuid, node4.getUuid),
   )
 
   private val environmentRefs = EnvironmentRefs(
@@ -88,7 +88,7 @@ class DBFSAlgorithmCenGridSpec
     runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref,
     weather = weatherService.ref,
-    evDataService = None
+    evDataService = None,
   )
 
   val resultListener: TestProbe = TestProbe("resultListener")
@@ -100,7 +100,7 @@ class DBFSAlgorithmCenGridSpec
         GridAgent.props(
           environmentRefs,
           simonaConfig,
-          listener = Iterable(resultListener.ref)
+          listener = Iterable(resultListener.ref),
         )
       )
 
@@ -124,7 +124,7 @@ class DBFSAlgorithmCenGridSpec
           hvGridContainer,
           Seq.empty[ThermalGrid],
           subGridGateToActorRef,
-          RefSystem("2000 MVA", "110 kV")
+          RefSystem("2000 MVA", "110 kV"),
         )
 
       val key =
@@ -133,7 +133,7 @@ class DBFSAlgorithmCenGridSpec
 
       centerGridAgent ! GridAgent.Create(
         gridAgentInitData,
-        key
+        key,
       )
       scheduler.expectMsg(
         ScheduleActivation(centerGridAgent.toTyped, INIT_SIM_TICK, Some(key))
@@ -143,7 +143,7 @@ class DBFSAlgorithmCenGridSpec
       scheduler.expectMsg(
         Completion(
           centerGridAgent.toTyped,
-          Some(3600)
+          Some(3600),
         )
       )
 
@@ -153,13 +153,13 @@ class DBFSAlgorithmCenGridSpec
 
       scheduler.send(
         centerGridAgent,
-        Activation(3600)
+        Activation(3600),
       )
 
       scheduler.expectMsg(
         Completion(
           centerGridAgent.toTyped,
-          Some(3600)
+          Some(3600),
         )
       )
     }
@@ -202,9 +202,9 @@ class DBFSAlgorithmCenGridSpec
           ExchangeVoltage(
             node1.getUuid,
             Kilovolts(110d),
-            Kilovolts(0d)
+            Kilovolts(0d),
           )
-        )
+        ),
       )
 
       inferiorGrid12.expectSlackVoltageProvision(
@@ -213,9 +213,9 @@ class DBFSAlgorithmCenGridSpec
           ExchangeVoltage(
             node2.getUuid,
             Kilovolts(110d),
-            Kilovolts(0d)
+            Kilovolts(0d),
           )
-        )
+        ),
       )
 
       inferiorGrid13.expectSlackVoltageProvision(
@@ -224,14 +224,14 @@ class DBFSAlgorithmCenGridSpec
           ExchangeVoltage(
             node3.getUuid,
             Kilovolts(110d),
-            Kilovolts(0d)
+            Kilovolts(0d),
           ),
           ExchangeVoltage(
             node4.getUuid,
             Kilovolts(110d),
-            Kilovolts(0d)
-          )
-        )
+            Kilovolts(0d),
+          ),
+        ),
       )
 
       // we now answer the request of our centerGridAgent
@@ -244,10 +244,10 @@ class DBFSAlgorithmCenGridSpec
             ExchangePower(
               nodeUuid,
               Megawatts(0.0),
-              Megavars(0.0)
+              Megavars(0.0),
             )
           )
-        )
+        ),
       )
 
       inferiorGrid12.gaProbe.send(
@@ -257,10 +257,10 @@ class DBFSAlgorithmCenGridSpec
             ExchangePower(
               nodeUuid,
               Megawatts(0.0),
-              Megavars(0.0)
+              Megavars(0.0),
             )
           )
-        )
+        ),
       )
 
       inferiorGrid13.gaProbe.send(
@@ -270,10 +270,10 @@ class DBFSAlgorithmCenGridSpec
             ExchangePower(
               nodeUuid,
               Megawatts(0.0),
-              Megavars(0.0)
+              Megavars(0.0),
             )
           )
-        )
+        ),
       )
 
       superiorGridAgent.gaProbe.send(
@@ -284,15 +284,15 @@ class DBFSAlgorithmCenGridSpec
             ExchangeVoltage(
               supNodeA.getUuid,
               Kilovolts(380d),
-              Kilovolts(0d)
+              Kilovolts(0d),
             ),
             ExchangeVoltage(
               supNodeB.getUuid,
               Kilovolts(380d),
-              Kilovolts(0d)
-            )
-          )
-        )
+              Kilovolts(0d),
+            ),
+          ),
+        ),
       )
 
       // power flow calculation should run now. After it's done,
@@ -305,13 +305,13 @@ class DBFSAlgorithmCenGridSpec
           ExchangePower(
             supNodeA.getUuid,
             Megawatts(0.0),
-            Megavars(0.0)
+            Megavars(0.0),
           ),
           ExchangePower(
             supNodeB.getUuid,
             Megawatts(0.160905770717798),
-            Megavars(-1.4535602349123878)
-          )
+            Megavars(-1.4535602349123878),
+          ),
         )
       )
 
@@ -333,15 +333,15 @@ class DBFSAlgorithmCenGridSpec
             ExchangeVoltage(
               supNodeB.getUuid,
               Kilovolts(374.22694614463d), // 380 kV @ 10°
-              Kilovolts(65.9863075134335d) // 380 kV @ 10°
+              Kilovolts(65.9863075134335d), // 380 kV @ 10°
             ),
             ExchangeVoltage( // this one should currently be ignored anyways
               supNodeA.getUuid,
               Kilovolts(380d),
-              Kilovolts(0d)
-            )
-          )
-        )
+              Kilovolts(0d),
+            ),
+          ),
+        ),
       )
 
       // After the intermediate power flow calculation, we expect one grid power
@@ -375,9 +375,9 @@ class DBFSAlgorithmCenGridSpec
           ExchangeVoltage(
             node1.getUuid,
             Kilovolts(108.487669651919932d),
-            Kilovolts(19.101878551141232d)
+            Kilovolts(19.101878551141232d),
           )
-        )
+        ),
       )
 
       inferiorGrid12.expectSlackVoltageProvision(
@@ -386,9 +386,9 @@ class DBFSAlgorithmCenGridSpec
           ExchangeVoltage(
             node2.getUuid,
             Kilovolts(108.449088870497683d),
-            Kilovolts(19.10630456834157630d)
+            Kilovolts(19.10630456834157630d),
           )
-        )
+        ),
       )
 
       inferiorGrid13.expectSlackVoltageProvision(
@@ -397,14 +397,14 @@ class DBFSAlgorithmCenGridSpec
           ExchangeVoltage(
             node3.getUuid,
             Kilovolts(108.470028019077087d),
-            Kilovolts(19.104403047662570d)
+            Kilovolts(19.104403047662570d),
           ),
           ExchangeVoltage(
             node4.getUuid,
             Kilovolts(108.482524607256866d),
-            Kilovolts(19.1025584700935336d)
-          )
-        )
+            Kilovolts(19.1025584700935336d),
+          ),
+        ),
       )
 
       // we now answer the requests of our centerGridAgent
@@ -416,10 +416,10 @@ class DBFSAlgorithmCenGridSpec
             ExchangePower(
               nodeUuid,
               Megawatts(0.0),
-              Megavars(0.0)
+              Megavars(0.0),
             )
           )
-        )
+        ),
       )
 
       inferiorGrid12.gaProbe.send(
@@ -429,10 +429,10 @@ class DBFSAlgorithmCenGridSpec
             ExchangePower(
               nodeUuid,
               Megawatts(0.0),
-              Megavars(0.0)
+              Megavars(0.0),
             )
           )
-        )
+        ),
       )
 
       inferiorGrid13.gaProbe.send(
@@ -442,10 +442,10 @@ class DBFSAlgorithmCenGridSpec
             ExchangePower(
               nodeUuid,
               Megawatts(0.0),
-              Megavars(0.0)
+              Megavars(0.0),
             )
           )
-        )
+        ),
       )
 
       // we expect that the GridAgent unstashes the messages and return a value for our power request
@@ -454,13 +454,13 @@ class DBFSAlgorithmCenGridSpec
           ExchangePower(
             supNodeA.getUuid,
             Megawatts(0.0),
-            Megavars(0.0)
+            Megavars(0.0),
           ),
           ExchangePower(
             supNodeB.getUuid,
             Megawatts(0.16090577067051856),
-            Megavars(-1.4535602358772026)
-          )
+            Megavars(-1.4535602358772026),
+          ),
         )
       )
 
@@ -468,7 +468,7 @@ class DBFSAlgorithmCenGridSpec
       // connected inferior grids, because the slack node is just a mock, we imitate this behavior
       superiorGridAgent.gaProbe.send(
         centerGridAgent,
-        FinishGridSimulationTrigger(3600)
+        FinishGridSimulationTrigger(3600),
       )
 
       // after a FinishGridSimulationTrigger is send the inferior grids, they themselves will send the
@@ -482,7 +482,7 @@ class DBFSAlgorithmCenGridSpec
       scheduler.expectMsg(
         Completion(
           centerGridAgent.toTyped,
-          Some(7200)
+          Some(7200),
         )
       )
 

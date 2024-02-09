@@ -17,7 +17,7 @@ import edu.ie3.simona.model.grid.GridModel.GridComponents
 import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseA,
   PowerFlowCaseB,
-  PowerFlowCaseC
+  PowerFlowCaseC,
 }
 import edu.ie3.simona.util.CollectionUtils
 import org.jgrapht.Graph
@@ -36,7 +36,7 @@ import scala.jdk.CollectionConverters._
 final case class GridModel(
     subnetNo: Int,
     mainRefSystem: RefSystem,
-    gridComponents: GridComponents
+    gridComponents: GridComponents,
 ) {
 
   // init nodeUuidToIndexMap
@@ -50,7 +50,7 @@ final case class GridModel(
         nodeModel.uuid,
         throw new InvalidGridException(
           s"Requested slack node with uuid ${nodeModel.uuid} is not part of nodeToIndexMap!"
-        )
+        ),
       )
     )
     .toVector
@@ -64,7 +64,7 @@ case object GridModel {
       subGridContainer: SubGridContainer,
       refSystem: RefSystem,
       startDate: ZonedDateTime,
-      endDate: ZonedDateTime
+      endDate: ZonedDateTime,
   ): GridModel = {
     buildAndValidate(subGridContainer, refSystem, startDate, endDate)
   }
@@ -77,7 +77,7 @@ case object GridModel {
       lines: Set[LineModel],
       transformers: Set[TransformerModel],
       transformers3w: Set[Transformer3wModel],
-      switches: Set[SwitchModel]
+      switches: Set[SwitchModel],
   )
 
   /** Checks the availability of node calculation models, that are connected by
@@ -93,7 +93,7 @@ case object GridModel {
     */
   private def getConnectedNodes(
       connector: ConnectorInput,
-      nodes: Seq[NodeModel]
+      nodes: Seq[NodeModel],
   ): (NodeModel, NodeModel) = {
     val nodeAOpt: Option[NodeModel] =
       nodes.find(_.uuid.equals(connector.getNodeA.getUuid))
@@ -131,7 +131,7 @@ case object GridModel {
     */
   private def getConnectedNodes(
       transformerInput: Transformer3WInput,
-      nodes: Seq[NodeModel]
+      nodes: Seq[NodeModel],
   ): (NodeModel, NodeModel, NodeModel) = {
     val connectorInput: ConnectorInput = transformerInput // upcast
     val (nodeA, nodeB) =
@@ -166,7 +166,7 @@ case object GridModel {
 
   def composeAdmittanceMatrix(
       nodeUuidToIndexMap: Map[UUID, Int],
-      gridComponents: GridComponents
+      gridComponents: GridComponents,
   ): DenseMatrix[Complex] = {
 
     val _returnAdmittanceMatrixIfValid
@@ -177,7 +177,7 @@ case object GridModel {
             { entry: Complex =>
               !entry.imag.isNaN & !entry.real.isNaN & entry.imag.isFinite & entry.real.isFinite
             },
-            admittanceMatrix
+            admittanceMatrix,
           )
         )
           throw new RuntimeException("Admittance matrix is illegal.")
@@ -192,17 +192,17 @@ case object GridModel {
     val linesAdmittanceMatrix = buildAssetAdmittanceMatrix(
       nodeUuidToIndexMap,
       gridComponents.lines,
-      getLinesAdmittance
+      getLinesAdmittance,
     )
     val trafoAdmittanceMatrix = buildAssetAdmittanceMatrix(
       nodeUuidToIndexMap,
       gridComponents.transformers,
-      getTransformerAdmittance
+      getTransformerAdmittance,
     )
     val trafo3wAdmittanceMatrix = buildAssetAdmittanceMatrix(
       nodeUuidToIndexMap,
       gridComponents.transformers3w,
-      getTransformer3wAdmittance
+      getTransformer3wAdmittance,
     )
 
     _returnAdmittanceMatrixIfValid(
@@ -215,8 +215,8 @@ case object GridModel {
       assets: Set[C],
       getAssetAdmittance: (
           Map[UUID, Int],
-          C
-      ) => (Int, Int, Complex, Complex, Complex)
+          C,
+      ) => (Int, Int, Complex, Complex, Complex),
   ): DenseMatrix[Complex] = {
     val matrixDimension = nodeUuidToIndexMap.values.toSeq.distinct.size
 
@@ -238,20 +238,20 @@ case object GridModel {
 
   private def getLinesAdmittance(
       nodeUuidToIndexMap: Map[UUID, Int],
-      line: LineModel
+      line: LineModel,
   ): (Int, Int, Complex, Complex, Complex) = {
 
     val (i: Int, j: Int) =
       (
         nodeUuidToIndexMap.getOrElse(
           line.nodeAUuid,
-          throwNodeNotFoundException(line.nodeAUuid)
+          throwNodeNotFoundException(line.nodeAUuid),
         ),
         nodeUuidToIndexMap
           .getOrElse(
             line.nodeBUuid,
-            throwNodeNotFoundException(line.nodeBUuid)
-          )
+            throwNodeNotFoundException(line.nodeBUuid),
+          ),
       )
 
     // yaa == ybb => we use yaa only
@@ -262,25 +262,25 @@ case object GridModel {
 
   private def getTransformerAdmittance(
       nodeUuidToIndexMap: Map[UUID, Int],
-      trafo: TransformerModel
+      trafo: TransformerModel,
   ): (Int, Int, Complex, Complex, Complex) = {
 
     val (i: Int, j: Int) =
       (
         nodeUuidToIndexMap.getOrElse(
           trafo.hvNodeUuid,
-          throwNodeNotFoundException(trafo.hvNodeUuid)
+          throwNodeNotFoundException(trafo.hvNodeUuid),
         ),
         nodeUuidToIndexMap.getOrElse(
           trafo.lvNodeUuid,
-          throwNodeNotFoundException(trafo.lvNodeUuid)
-        )
+          throwNodeNotFoundException(trafo.lvNodeUuid),
+        ),
       )
 
     val (yab, yaa, ybb) = (
       TransformerModel.yij(trafo),
       TransformerModel.y0(trafo, ConnectorPort.A),
-      TransformerModel.y0(trafo, ConnectorPort.B)
+      TransformerModel.y0(trafo, ConnectorPort.B),
     )
 
     (i, j, yab, yaa, ybb)
@@ -288,7 +288,7 @@ case object GridModel {
 
   private def getTransformer3wAdmittance(
       nodeUuidToIndexMap: Map[UUID, Int],
-      trafo3w: Transformer3wModel
+      trafo3w: Transformer3wModel,
   ): (Int, Int, Complex, Complex, Complex) = {
 
     // start with power flow case specific parameters
@@ -299,7 +299,7 @@ case object GridModel {
             trafo3w.hvNodeUuid,
             trafo3w.nodeInternalUuid,
             Transformer3wModel
-              .y0(trafo3w, Transformer3wModel.Transformer3wPort.INTERNAL)
+              .y0(trafo3w, Transformer3wModel.Transformer3wPort.INTERNAL),
           )
 
         case PowerFlowCaseB =>
@@ -314,7 +314,7 @@ case object GridModel {
         nodeUuidToIndexMap
           .getOrElse(nodeAUuid, throwNodeNotFoundException(nodeAUuid)),
         nodeUuidToIndexMap
-          .getOrElse(nodeBUuid, throwNodeNotFoundException(nodeBUuid))
+          .getOrElse(nodeBUuid, throwNodeNotFoundException(nodeBUuid)),
       )
 
     // these parameters are the same for all cases
@@ -451,7 +451,7 @@ case object GridModel {
       subGridContainer: SubGridContainer,
       refSystem: RefSystem,
       startDate: ZonedDateTime,
-      endDate: ZonedDateTime
+      endDate: ZonedDateTime,
   ): GridModel = {
 
     // build
@@ -480,7 +480,7 @@ case object GridModel {
               transformer2wInput,
               refSystem,
               startDate,
-              endDate
+              endDate,
             )
           } else {
             throw new InvalidGridException(
@@ -499,7 +499,7 @@ case object GridModel {
             refSystem,
             subGridContainer.getSubnet,
             startDate,
-            endDate
+            endDate,
           )
       }.toSet
 
@@ -532,7 +532,7 @@ case object GridModel {
         lines,
         transformers,
         transformer3ws,
-        switches
+        switches,
       )
 
     val gridModel =
@@ -575,7 +575,7 @@ case object GridModel {
             case switchModel: SwitchModel =>
               map ++ Map(
                 switchModel.nodeAUuid -> componentId,
-                switchModel.nodeBUuid -> componentId
+                switchModel.nodeBUuid -> componentId,
               )
 
             case nodeModel: NodeModel =>

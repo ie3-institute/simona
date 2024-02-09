@@ -62,7 +62,7 @@ object Data {
 
     val ZERO_POWER: ApparentPower = ApparentPower(
       Megawatts(0d),
-      Megavars(0d)
+      Megavars(0d),
     )
 
     /** Active power as participant simulation result
@@ -76,7 +76,7 @@ object Data {
       override def toApparentPower: ApparentPower =
         ApparentPower(
           p,
-          Megavars(0d)
+          Megavars(0d),
         )
 
       override def add(q: ReactivePower): ApparentPower =
@@ -92,7 +92,7 @@ object Data {
       */
     final case class ApparentPower(
         override val p: Power,
-        override val q: ReactivePower
+        override val q: ReactivePower,
     ) extends PrimaryDataWithApparentPower[ApparentPower] {
       override def toApparentPower: ApparentPower = this
 
@@ -109,14 +109,14 @@ object Data {
       */
     final case class ActivePowerAndHeat(
         override val p: Power,
-        override val qDot: Power
+        override val qDot: Power,
     ) extends PrimaryData
         with Heat
         with EnrichableData[ApparentPowerAndHeat] {
       override def toApparentPower: ApparentPower =
         ApparentPower(
           p,
-          Megavars(0d)
+          Megavars(0d),
         )
 
       override def add(q: ReactivePower): ApparentPowerAndHeat =
@@ -135,7 +135,7 @@ object Data {
     final case class ApparentPowerAndHeat(
         override val p: Power,
         override val q: ReactivePower,
-        override val qDot: Power
+        override val qDot: Power,
     ) extends PrimaryDataWithApparentPower[ApparentPowerAndHeat]
         with Heat {
       override def toApparentPower: ApparentPower =
@@ -161,7 +161,7 @@ object Data {
                     ),
                     Kilowatts(
                       qDot.to(PowerSystemUnits.KILOWATT).getValue.doubleValue
-                    )
+                    ),
                   )
                 )
               case _ =>
@@ -181,7 +181,7 @@ object Data {
                     ),
                     Kilovars(
                       q.to(PowerSystemUnits.KILOVAR).getValue.doubleValue
-                    )
+                    ),
                   )
                 )
               case _ =>
@@ -201,7 +201,7 @@ object Data {
                     ),
                     Kilowatts(
                       qDot.to(PowerSystemUnits.KILOWATT).getValue.doubleValue
-                    )
+                    ),
                   )
                 )
               case _ =>

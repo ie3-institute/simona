@@ -19,11 +19,11 @@ import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   ProvideGridPowerMessage,
-  RequestGridPowerMessage
+  RequestGridPowerMessage,
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
@@ -31,7 +31,7 @@ import edu.ie3.simona.test.common.{
   ConfigTestData,
   TestKitWithShutdown,
   TestSpawnerClassic,
-  UnitSpec
+  UnitSpec,
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.Megavars
@@ -57,7 +57,7 @@ class DBFSAlgorithmSupGridSpec
           .parseString("""
             |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
             |pekko.loglevel="OFF"
-        """.stripMargin)
+        """.stripMargin),
       )
     )
     with UnitSpec
@@ -77,7 +77,7 @@ class DBFSAlgorithmSupGridSpec
     runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref,
     weather = weatherService.ref,
-    evDataService = None
+    evDataService = None,
   )
 
   val resultListener: TestProbe = TestProbe("resultListener")
@@ -87,7 +87,7 @@ class DBFSAlgorithmSupGridSpec
       GridAgent.props(
         environmentRefs,
         simonaConfig,
-        listener = Iterable(resultListener.ref)
+        listener = Iterable(resultListener.ref),
       )
     )
 
@@ -100,7 +100,7 @@ class DBFSAlgorithmSupGridSpec
           ehvGridContainer,
           Seq.empty[ThermalGrid],
           subnetGatesToActorRef,
-          RefSystem("5000 MVA", "380 kV")
+          RefSystem("5000 MVA", "380 kV"),
         )
 
       val key =
@@ -112,7 +112,7 @@ class DBFSAlgorithmSupGridSpec
         ScheduleActivation(
           superiorGridAgentFSM.toTyped,
           INIT_SIM_TICK,
-          Some(key)
+          Some(key),
         )
       )
 
@@ -163,10 +163,10 @@ class DBFSAlgorithmSupGridSpec
                 ExchangePower(
                   uuid,
                   Megawatts(0.0),
-                  Megavars(0.0)
+                  Megavars(0.0),
                 )
               }
-            )
+            ),
           )
 
           // we expect a completion message here and that the agent goes back to simulate grid
@@ -183,6 +183,8 @@ class DBFSAlgorithmSupGridSpec
                     case Some(value) =>
                       value.getvMag().getValue shouldBe 1
                       value.getvAng().getValue shouldBe 0
+                    case None =>
+                      fail("Expected a result but got none.")
                   }
 
                   // due to the fact that the used grid does not contain anything besides the one ehv node
@@ -219,24 +221,24 @@ class DBFSAlgorithmSupGridSpec
           Array(
             (
               Megawatts(0.0),
-              Megavars(0.0)
+              Megavars(0.0),
             ),
             (
               Megawatts(0.1),
-              Megavars(0.1)
+              Megavars(0.1),
             ),
             (
               Megawatts(0.0),
-              Megavars(0.1)
+              Megavars(0.1),
             ),
             (
               Megawatts(0.0),
-              Megavars(0.0)
+              Megavars(0.0),
             ),
             (
               Megawatts(0.0),
-              Megavars(0.0)
-            )
+              Megavars(0.0),
+            ),
           )
 
         // bring agent in simulate grid state
@@ -277,10 +279,10 @@ class DBFSAlgorithmSupGridSpec
                 ExchangePower(
                   uuid,
                   deviations(sweepNo)._1,
-                  deviations(sweepNo)._2
+                  deviations(sweepNo)._2,
                 )
               }
-            )
+            ),
           )
 
           // we expect a completion message here and that the agent goes back to simulate grid
@@ -300,6 +302,8 @@ class DBFSAlgorithmSupGridSpec
                     case Some(value) =>
                       value.getvMag().getValue shouldBe 1
                       value.getvAng().getValue shouldBe 0
+                    case None =>
+                      fail("Expected a result but got none.")
                   }
 
                   // due to the fact that the used grid does not contain anything besides the one ehv node

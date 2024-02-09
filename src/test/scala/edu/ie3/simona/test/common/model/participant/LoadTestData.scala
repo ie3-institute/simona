@@ -30,6 +30,6 @@ trait LoadTestData extends LoadInputTestData {
     SystemComponent.determineOperationInterval(
       simulationStartDate,
       simulationEndDate,
-      operationTime
+      operationTime,
     )
 }

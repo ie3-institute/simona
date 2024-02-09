@@ -39,7 +39,7 @@ class LineSpec extends UnitSpec with LineInputTestData {
       Each(0.0013109999999999999d),
       Each(0.0010680000000000002d),
       Each(0d),
-      Each(0.60375d)
+      Each(0.60375d),
     )
 
   }
@@ -61,7 +61,7 @@ class LineSpec extends UnitSpec with LineInputTestData {
         lineInputMs10Kv,
         refSystem,
         defaultSimulationStart,
-        defaultSimulationEnd
+        defaultSimulationEnd,
       )
 
       inside(validLineModel) {
@@ -76,7 +76,7 @@ class LineSpec extends UnitSpec with LineInputTestData {
               r,
               x,
               g,
-              b
+              b,
             ) =>
           uuid shouldBe lineInputMs10Kv.getUuid
           id shouldBe lineInputMs10Kv.getId
@@ -84,21 +84,20 @@ class LineSpec extends UnitSpec with LineInputTestData {
           nodeAUuid shouldBe lineInputMs10Kv.getNodeA.getUuid
           nodeBUuid shouldBe lineInputMs10Kv.getNodeB.getUuid
           amount shouldBe lineInputMs10Kv.getParallelDevices
-          (iMax ~= Amperes(
-            lineInputMs10Kv.getType.getiMax().getValue.doubleValue()
-          )) shouldBe true
+          iMax should approximate(
+            Amperes(lineInputMs10Kv.getType.getiMax().getValue.doubleValue())
+          )
 
-          (r ~= Each(0.0013109999999999999d)) shouldBe true
-          (x ~= Each(0.0010680000000000002d)) shouldBe true
-          (g ~= Each(0d)) shouldBe true
-          (b ~= Each(0.00000060375d)) shouldBe true
+          r should approximate(Each(0.0013109999999999999d))
+          x should approximate(Each(0.0010680000000000002d))
+          g should approximate(Each(0d))
+          b should approximate(Each(0.00000060375d))
       }
 
-      (validLineModel.b0() ~= Each(0.000000301875d)) shouldBe true
-      (validLineModel.bij() ~= Each(-373.5121155369499d)) shouldBe true
-      (validLineModel.g0() ~= Each(0d)) shouldBe true
-      (validLineModel.gij() ~= Each(458.4966137349637d)) shouldBe true
-
+      validLineModel.b0() should approximate(Each(0.000000301875d))
+      validLineModel.bij() should approximate(Each(-373.5121155369499d))
+      validLineModel.g0() should approximate(Each(0d))
+      validLineModel.gij() should approximate(Each(458.4966137349637d))
     }
 
   }
@@ -135,7 +134,7 @@ class LineSpec extends UnitSpec with LineInputTestData {
     "calculate the branch admittance Y_ij of a given line model correctly" in new ValidLineModel {
       LineModel.yij(validLineModel) shouldBe Complex(
         1375.489841204891,
-        -1120.5363466108497
+        -1120.5363466108497,
       )
     }
 
@@ -150,10 +149,9 @@ class LineSpec extends UnitSpec with LineInputTestData {
       val iNodeB: squants.electro.ElectricCurrent =
         Amperes(145d)
 
-      (LineModel.utilisation(validLineModel, iNodeA, iNodeB) ~= Each(
-        22.222222222222218
-      )) shouldBe true
-
+      LineModel.utilisation(validLineModel, iNodeA, iNodeB) should approximate(
+        Each(22.222222222222218)
+      )
     }
 
     "be able to be enabled and disabled on request" in new FiveLinesWithNodes {

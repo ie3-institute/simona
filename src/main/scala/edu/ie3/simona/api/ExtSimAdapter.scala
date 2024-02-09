@@ -9,16 +9,11 @@ package edu.ie3.simona.api
 import edu.ie3.simona.api.ExtSimAdapter.{Create, ExtSimAdapterStateData}
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
-import edu.ie3.simona.api.simulation.ontology.{
-  ActivationMessage,
-  CompletionMessage => ExtCompletionMessage,
-  TerminationCompleted,
-  TerminationMessage
-}
+import edu.ie3.simona.api.simulation.ontology.{ActivationMessage, CompletionMessage => ExtCompletionMessage, TerminationCompleted, TerminationMessage}
 import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
 import edu.ie3.simona.ontology.messages.{Activation, StopMessage}
@@ -47,7 +42,7 @@ object ExtSimAdapter {
 
   final case class ExtSimAdapterStateData(
       extSimData: ExtSimAdapterData,
-      currentTick: Option[Long] = None
+      currentTick: Option[Long] = None,
   )
 }
 
@@ -59,7 +54,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
     scheduler ! ScheduleActivation(
       self.toTyped,
       INIT_SIM_TICK,
-      Some(unlockKey)
+      Some(unlockKey),
     )
     context become receiveIdle(
       ExtSimAdapterStateData(extSimAdapterData)
@@ -75,7 +70,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
       )
       log.debug(
         "Tick {} has been activated in external simulation",
-        tick
+        tick,
       )
 
       context become receiveIdle(
@@ -91,7 +86,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
       scheduler ! Completion(self.toTyped, newTick)
       log.debug(
         "Tick {} has been completed in external simulation",
-        stateData.currentTick
+        stateData.currentTick,
       )
 
       context become receiveIdle(stateData.copy(currentTick = None))
@@ -104,7 +99,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
 
       scheduleDataService.getDataService ! ScheduleServiceActivation(
         tick,
-        key
+        key,
       )
 
     case StopMessage(simulationSuccessful) =>

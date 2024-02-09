@@ -49,7 +49,7 @@ class PowerFlowSupportSpec
           ExchangeVoltage(
             node6.uuid,
             Kilovolts(110d),
-            Kilovolts(0d)
+            Kilovolts(0d),
           )
         )
       ),
@@ -59,11 +59,11 @@ class PowerFlowSupportSpec
             ExchangePower(
               node1.uuid,
               Megawatts(1d),
-              Megavars(0d)
+              Megavars(0d),
             )
           )
         )
-      )
+      ),
     )
 
   val currentTolerance = 1e-3 // 1 mA
@@ -97,7 +97,7 @@ class PowerFlowSupportSpec
             gridModel.gridComponents.transformers3w,
             gridModel.nodeUuidToIndexMap,
             receivedValuesStore,
-            gridModel.mainRefSystem
+            gridModel.mainRefSystem,
           )
 
         operatingPoint.length shouldBe 10 withClue "safety check: 13 nodes minus 3 closed switches"
@@ -106,7 +106,7 @@ class PowerFlowSupportSpec
           gridModel,
           3,
           operatingPoint,
-          slackNodeVoltages
+          slackNodeVoltages,
         )(Vector(1e-12)) match {
           case successResult: ValidNewtonRaphsonPFResult => successResult
           case failure => fail(s"Newton-Raphson failed: $failure")
@@ -115,7 +115,7 @@ class PowerFlowSupportSpec
         val sweepValueStore = SweepValueStore(
           result,
           gridModel.gridComponents.nodes,
-          gridModel.nodeUuidToIndexMap
+          gridModel.nodeUuidToIndexMap,
         )
 
         val pfResult =
@@ -127,26 +127,26 @@ class PowerFlowSupportSpec
             line18To1,
             line0To17,
             line0To15,
-            line16To3
+            line16To3,
           ).map(_.uuid).toSet
         pfResult.lineResults
           .filter(lineRes => loadLinesLeft.contains(lineRes.getInputModel))
           .foreach { lineRes =>
             lineRes.getiAMag() should equalWithTolerance(
               30.4954d.asAmpere,
-              currentTolerance
+              currentTolerance,
             )
             lineRes.getiBMag() should equalWithTolerance(
               30.4954d.asAmpere,
-              currentTolerance
+              currentTolerance,
             )
             normalizeAngle(lineRes.getiAAng()) should equalWithTolerance(
               179.7095d.asDegreeGeom,
-              angleTolerance
+              angleTolerance,
             )
             normalizeAngle(lineRes.getiBAng()) should equalWithTolerance(
               179.7095d.asDegreeGeom,
-              angleTolerance
+              angleTolerance,
             )
           }
 
@@ -155,26 +155,26 @@ class PowerFlowSupportSpec
           Iterable(
             line1To13,
             line14To2,
-            line2To3
+            line2To3,
           ).map(_.uuid).toSet
         pfResult.lineResults
           .filter(lineRes => loadLinesRight.contains(lineRes.getInputModel))
           .foreach { lineRes =>
             lineRes.getiAMag() should equalWithTolerance(
               27.723d.asAmpere,
-              currentTolerance
+              currentTolerance,
             )
             lineRes.getiBMag() should equalWithTolerance(
               27.723d.asAmpere,
-              currentTolerance
+              currentTolerance,
             )
             normalizeAngle(lineRes.getiAAng()) should equalWithTolerance(
               179.7095d.asDegreeGeom,
-              angleTolerance
+              angleTolerance,
             )
             normalizeAngle(lineRes.getiBAng()) should equalWithTolerance(
               179.7095d.asDegreeGeom,
-              angleTolerance
+              angleTolerance,
             )
           }
 
@@ -198,7 +198,7 @@ class PowerFlowSupportSpec
             gridModel.gridComponents.transformers3w,
             gridModel.nodeUuidToIndexMap,
             receivedValuesStore,
-            gridModel.mainRefSystem
+            gridModel.mainRefSystem,
           )
 
         operatingPoint.length shouldBe 11 withClue "safety check: 13 nodes minus 2 closed switches"
@@ -207,7 +207,7 @@ class PowerFlowSupportSpec
           gridModel,
           50,
           operatingPoint,
-          slackNodeVoltages
+          slackNodeVoltages,
         )(Vector(1e-12)) match {
           case successResult: ValidNewtonRaphsonPFResult => successResult
           case failure => fail(s"Newton-Raphson failed: $failure")
@@ -218,8 +218,8 @@ class PowerFlowSupportSpec
           SweepValueStore(
             result,
             gridModel.gridComponents.nodes,
-            gridModel.nodeUuidToIndexMap
-          )
+            gridModel.nodeUuidToIndexMap,
+          ),
         )(ZonedDateTime.now())
 
         // left/top side segments (lines that are adjacent to the open switch) should have no load
@@ -230,11 +230,11 @@ class PowerFlowSupportSpec
           .foreach { lineRes =>
             lineRes.getiAMag() should equalWithTolerance(
               0.0001d.asAmpere,
-              currentTolerance
+              currentTolerance,
             )
             lineRes.getiBMag() should equalWithTolerance(
               0.0001d.asAmpere,
-              currentTolerance
+              currentTolerance,
             )
           // angles are not reliable enough with such small magnitudes
           }
@@ -247,19 +247,19 @@ class PowerFlowSupportSpec
           .foreach { lineRes =>
             lineRes.getiAMag() should equalWithTolerance(
               58.6017d.asAmpere,
-              currentTolerance
+              currentTolerance,
             )
             lineRes.getiBMag() should equalWithTolerance(
               58.6017d.asAmpere,
-              currentTolerance
+              currentTolerance,
             )
             normalizeAngle(lineRes.getiAAng()) should equalWithTolerance(
               179.4090d.asDegreeGeom,
-              angleTolerance
+              angleTolerance,
             )
             normalizeAngle(lineRes.getiBAng()) should equalWithTolerance(
               179.4090d.asDegreeGeom,
-              angleTolerance
+              angleTolerance,
             )
           }
 
@@ -283,7 +283,7 @@ class PowerFlowSupportSpec
             gridModel.gridComponents.transformers3w,
             gridModel.nodeUuidToIndexMap,
             receivedValuesStore,
-            gridModel.mainRefSystem
+            gridModel.mainRefSystem,
           )
 
         operatingPoint.length shouldBe 11 withClue "safety check: 13 nodes minus 2 closed switches"
@@ -292,7 +292,7 @@ class PowerFlowSupportSpec
           gridModel,
           50,
           operatingPoint,
-          slackNodeVoltages
+          slackNodeVoltages,
         )(Vector(1e-12)) match {
           case successResult: ValidNewtonRaphsonPFResult => successResult
           case failure => fail(s"Newton-Raphson failed: $failure")
@@ -303,8 +303,8 @@ class PowerFlowSupportSpec
           SweepValueStore(
             result,
             gridModel.gridComponents.nodes,
-            gridModel.nodeUuidToIndexMap
-          )
+            gridModel.nodeUuidToIndexMap,
+          ),
         )(ZonedDateTime.now())
 
         // left/top side segments (lines that are adjacent to the open switch) should have load
@@ -315,19 +315,19 @@ class PowerFlowSupportSpec
           .foreach { lineRes =>
             lineRes.getiAMag() should equalWithTolerance(
               58.5343d.asAmpere,
-              currentTolerance
+              currentTolerance,
             )
             lineRes.getiBMag() should equalWithTolerance(
               58.5343d.asAmpere,
-              currentTolerance
+              currentTolerance,
             )
             normalizeAngle(lineRes.getiAAng()) should equalWithTolerance(
               179.461d.asDegreeGeom,
-              angleTolerance
+              angleTolerance,
             )
             normalizeAngle(lineRes.getiBAng()) should equalWithTolerance(
               179.461d.asDegreeGeom,
-              angleTolerance
+              angleTolerance,
             )
           }
 
@@ -341,11 +341,11 @@ class PowerFlowSupportSpec
           .foreach { lineRes =>
             lineRes.getiAMag() should equalWithTolerance(
               0.0001d.asAmpere,
-              currentTolerance
+              currentTolerance,
             )
             lineRes.getiBMag() should equalWithTolerance(
               0.0001d.asAmpere,
-              currentTolerance
+              currentTolerance,
             )
           // angles are not reliable enough with such small magnitudes
           }

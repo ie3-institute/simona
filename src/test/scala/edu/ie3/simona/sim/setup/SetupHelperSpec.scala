@@ -9,11 +9,11 @@ package edu.ie3.simona.sim.setup
 import edu.ie3.datamodel.models.input.MeasurementUnitInput
 import edu.ie3.datamodel.models.input.connector.{
   Transformer2WInput,
-  Transformer3WInput
+  Transformer3WInput,
 }
 import edu.ie3.datamodel.models.input.container.{
   JointGridContainer,
-  RawGridElements
+  RawGridElements,
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.GridInputTestData
@@ -41,7 +41,7 @@ class SetupHelperSpec extends UnitSpec with GridInputTestData {
         adaptedTransformerInputModel.getParallelDevices,
         adaptedTransformerInputModel.getType,
         adaptedTransformerInputModel.getTapPos,
-        adaptedTransformerInputModel.isAutoTap
+        adaptedTransformerInputModel.isAutoTap,
       )
       val adaptedTransformers = transformers + secondTransformer
 
@@ -51,14 +51,14 @@ class SetupHelperSpec extends UnitSpec with GridInputTestData {
         adaptedTransformers.asJava,
         Set.empty[Transformer3WInput].asJava,
         switches.asJava,
-        Set.empty[MeasurementUnitInput].asJava
+        Set.empty[MeasurementUnitInput].asJava,
       )
 
       val gridModel = new JointGridContainer(
         "TestGrid",
         rawGridElements,
         validTestGridInputModel.getSystemParticipants,
-        validTestGridInputModel.getGraphics
+        validTestGridInputModel.getGraphics,
       )
 
       val subGrids = gridModel.getSubGridTopologyGraph
@@ -72,13 +72,13 @@ class SetupHelperSpec extends UnitSpec with GridInputTestData {
       val superiorGrid = subGrids
         .getOrElse(
           1,
-          throw TestException("Cannot get subGrid with id 1 from test data!")
+          throw TestException("Cannot get subGrid with id 1 from test data!"),
         )
 
       val inferiorGrid = subGrids
         .getOrElse(
           100,
-          throw TestException("Cannot get subGrid with id 100 from test data!")
+          throw TestException("Cannot get subGrid with id 100 from test data!"),
         )
 
       val subGridToActorRefMap =
@@ -101,14 +101,14 @@ class SetupHelperSpec extends UnitSpec with GridInputTestData {
         .buildGateToActorRef(
           subGridToActorRefMap,
           subGridGates,
-          superiorGrid.getSubnet
+          superiorGrid.getSubnet,
         )
         .size shouldBe 1
       SetupHelperInstance
         .buildGateToActorRef(
           subGridToActorRefMap,
           subGridGates,
-          inferiorGrid.getSubnet
+          inferiorGrid.getSubnet,
         )
         .size shouldBe 1
 
