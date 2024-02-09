@@ -10,10 +10,9 @@ import breeze.math.Complex
 import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult
 import edu.ie3.simona.model.control.TransformerControlGroup.RegulationCriterion
-import tech.units.indriya.ComparableQuantity
 
 import java.util.UUID
-import javax.measure.quantity.Dimensionless
+import squants.Dimensionless
 
 /** Business logic for a transformer control group. It's main purpose is to
   * determine, if there is any regulation need and if yes, to what extent (here:
@@ -28,9 +27,7 @@ import javax.measure.quantity.Dimensionless
   */
 final case class TransformerControlGroup(
     nodalRegulationCriterion: Map[UUID, RegulationCriterion],
-    harmonizeRegulationNeeds: Array[
-      ComparableQuantity[Dimensionless]
-    ] => Option[ComparableQuantity[Dimensionless]]
+    harmonizeRegulationNeeds: Array[Dimensionless] => Option[Dimensionless]
 ) {
 
   /** Based on the given successful power flow result, determine the difference
@@ -48,7 +45,7 @@ final case class TransformerControlGroup(
   def determineRegulationNeed(
       result: SuccessFullPowerFlowResult,
       uuidToIndex: Map[UUID, Int]
-  ): Option[ComparableQuantity[Dimensionless]] = {
+  ): Option[Dimensionless] = {
     val regulationNeeds = result.nodeData.flatMap {
       case StateData(resultNodeIndex, _, voltage, _) =>
         /* Find possible matching criterion and evaluate it */
@@ -71,5 +68,5 @@ final case class TransformerControlGroup(
 
 object TransformerControlGroup {
   type RegulationCriterion =
-    Complex => Option[ComparableQuantity[Dimensionless]]
+    Complex => Option[Dimensionless]
 }
