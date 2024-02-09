@@ -6,10 +6,10 @@
 
 package edu.ie3.simona.agent.participant.data.primary
 
-import org.apache.pekko.actor.ActorRef
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.DataService
+import org.apache.pekko.actor.ActorRef
 
 /** Enum-like trait to denote possible external data sources for systems
   */

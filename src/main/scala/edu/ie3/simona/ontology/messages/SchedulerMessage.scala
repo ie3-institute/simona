@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.ontology.messages
 
-import org.apache.pekko.actor.typed.ActorRef
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.scheduler.{Scheduler, TimeAdvancer}
+import org.apache.pekko.actor.typed.ActorRef
 
 trait SchedulerMessage extends Scheduler.Incoming with TimeAdvancer.Incoming
 

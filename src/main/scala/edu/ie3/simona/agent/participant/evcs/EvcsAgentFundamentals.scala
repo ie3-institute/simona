@@ -29,7 +29,6 @@ import edu.ie3.simona.agent.participant.statedata.{
   ParticipantStateData,
 }
 import edu.ie3.simona.agent.state.AgentState
-import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
@@ -123,7 +122,7 @@ protected trait EvcsAgentFundamentals
     /* Check for needed services */
     if (!services.toSeq.map(_.getClass).containsSlice(neededServices))
       throw new AgentInitializationException(
-        s"EvcsAgent cannot be initialized without an ev data service!"
+        "EvcsAgent cannot be initialized without an ev data service!"
       )
 
     /* Build the calculation model */

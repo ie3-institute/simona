@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.participant
 
-import org.apache.pekko.actor.ActorRef
 import edu.ie3.datamodel.models.input.system.{EvcsInput, SystemParticipantInput}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
@@ -26,6 +25,7 @@ import edu.ie3.simona.model.participant.{
 }
 import edu.ie3.simona.ontology.messages.services.EvMessage.RegisterForEvDataMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
+import org.apache.pekko.actor.ActorRef
 
 trait ServiceRegistration[
     PD <: PrimaryDataWithApparentPower[PD],
@@ -76,7 +76,7 @@ trait ServiceRegistration[
   ): Option[ActorRef] = serviceDefinition match {
     case SecondaryDataService.ActorPriceService(_) =>
       log.debug(
-        s"Attempt to register for {}. This is currently not supported.",
+        "Attempt to register for {}. This is currently not supported.",
         ActorPriceService,
       )
       None
@@ -110,7 +110,7 @@ trait ServiceRegistration[
             s"Cannot register for weather information at node ${inputModel.getNode.getId} " +
               s"(${inputModel.getNode.getUuid}), because the geo position " +
               s"(${inputModel.getNode.getGeoPosition.getY}, ${inputModel.getNode.getGeoPosition.getX}) " +
-              s"is invalid."
+              "is invalid."
           )
       }
     actorRef ! RegisterForWeatherMessage(lat, lon)

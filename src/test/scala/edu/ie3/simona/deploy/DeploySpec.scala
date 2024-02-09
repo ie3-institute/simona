@@ -11,7 +11,6 @@ import org.scalatest.Ignore
 
 import java.io.File
 import scala.io.{Codec, Source}
-import scala.language.{existentials, postfixOps}
 import scala.util.{Failure, Success, Using}
 
 // this is secure functionality spec to ensure that the deployment script is altered if required in order to maintain

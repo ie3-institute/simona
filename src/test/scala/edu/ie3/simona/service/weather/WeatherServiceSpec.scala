@@ -64,7 +64,7 @@ class WeatherServiceSpec
 
   // setup config for scheduler
   private val config = ConfigFactory
-    .parseString(s"""
+    .parseString("""
             simona.time.startDateTime = "2011-01-01 00:00:00"
             simona.time.endDateTime = "2011-01-01 01:00:00"
             simona.time.schedulerReadyCheckWindow = 900

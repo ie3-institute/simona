@@ -288,7 +288,7 @@ case object TransformerModel {
         s"The rated voltage of the high voltage side (${transformerInput.getType.getvRatedA()}) of transformer " +
           s"${transformerInput.getUuid} is closer to the reference voltage ($vRef), as the rated voltage of the " +
           s"low voltage side (${transformerInput.getType.getvRatedB()}). Is the transformer connected the right way " +
-          s"round?"
+          "round?"
       )
 
     // valid r,x,g,b values?

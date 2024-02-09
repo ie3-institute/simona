@@ -6,8 +6,8 @@
 
 package edu.ie3.util.scala.quantities
 
-import squants.{Each, Energy, Power, Dimensionless}
 import squants.energy.{KilowattHours, Kilowatts, Megawatts}
+import squants.{Dimensionless, Each, Energy, Power}
 
 object DefaultQuantities {
 

@@ -413,14 +413,14 @@ object WeatherSource {
           case coordinateSource =>
             // cannot use sample weather source with other combination of weather source than sample weather source
             throw new InvalidConfigParameterException(
-              s"Invalid coordinate source " +
+              "Invalid coordinate source " +
                 s"'${coordinateSource.getClass.getSimpleName}' defined for SampleWeatherSource. " +
                 "Please adapt the configuration to use sample coordinate source for weather data!"
             )
         }
       case None | Some(_) =>
         throw new InvalidConfigParameterException(
-          s"No weather source defined! This is currently not supported! Please provide the config parameters for one " +
+          "No weather source defined! This is currently not supported! Please provide the config parameters for one " +
             s"of the following weather sources:\n\t${supportedWeatherSources.mkString("\n\t")}"
         )
     }
@@ -501,7 +501,7 @@ object WeatherSource {
         () => SampleWeatherSource.SampleIdCoordinateSource
       case None | Some(_) =>
         throw new InvalidConfigParameterException(
-          s"No coordinate source defined! This is currently not supported! Please provide the config parameters for one " +
+          "No coordinate source defined! This is currently not supported! Please provide the config parameters for one " +
             s"of the following coordinate sources:\n\t${supportedCoordinateSources.mkString("\n\t")}"
         )
     }

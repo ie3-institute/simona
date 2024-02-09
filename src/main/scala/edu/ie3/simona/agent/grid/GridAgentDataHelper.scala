@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.agent.grid
 
-import java.util.UUID
-
 import edu.ie3.datamodel.graph.SubGridGate
+
+import java.util.UUID
 
 /** Trait containing helper methods for the [[GridAgent]] to reduce the amount
   * of code in the GridAgent

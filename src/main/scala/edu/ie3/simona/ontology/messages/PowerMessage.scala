@@ -112,6 +112,6 @@ object PowerMessage {
   /** Indicate that the power flow calculation failed, as a reply to a
     * [[RequestGridPowerMessage]].
     */
-  final case object FailedPowerFlow extends PowerResponseMessage
+  case object FailedPowerFlow extends PowerResponseMessage
 
 }

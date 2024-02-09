@@ -18,12 +18,11 @@ import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMin
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
-import squants.{Energy, Power, Seconds, Time}
 import squants.energy.{KilowattHours, Kilowatts}
-
-import java.util.UUID
+import squants.{Energy, Power, Seconds, Time}
 
 import java.time.ZonedDateTime
+import java.util.UUID
 
 /** Model of a combined heat and power plant (CHP) with a [[ThermalStorage]]
   * medium and its current [[ChpState]].

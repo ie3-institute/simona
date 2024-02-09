@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.event.notifier
 
-import org.apache.pekko.actor.{Actor, ActorRef}
 import edu.ie3.simona.event.Event
+import org.apache.pekko.actor.{Actor, ActorRef}
 
 trait Notifier extends Actor {
 

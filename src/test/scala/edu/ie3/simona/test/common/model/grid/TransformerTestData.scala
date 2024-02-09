@@ -9,7 +9,6 @@ package edu.ie3.simona.test.common.model.grid
 import breeze.math.Complex
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.simona.model.grid.RefSystem
-import edu.ie3.util.quantities.PowerSystemUnits._
 import org.scalatest.prop.TableDrivenPropertyChecks.Table
 import org.scalatest.prop.{TableFor5, TableFor9}
 import squants.electro.Kilovolts

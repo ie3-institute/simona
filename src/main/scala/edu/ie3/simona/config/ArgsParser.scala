@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.config
 
-import com.typesafe.config.{ConfigFactory, Config => TypesafeConfig}
+import com.typesafe.config.{Config => TypesafeConfig, ConfigFactory}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.event.listener.SimonaListenerCompanion
 import edu.ie3.util.scala.ReflectionTools

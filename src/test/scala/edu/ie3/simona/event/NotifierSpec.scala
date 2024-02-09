@@ -6,10 +6,6 @@
 
 package edu.ie3.simona.event
 
-import java.util.{Calendar, Date}
-import org.apache.pekko.actor.{ActorLogging, ActorRef, ActorSystem, Props}
-import org.apache.pekko.testkit.ImplicitSender
-import org.apache.pekko.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.result.system._
 import edu.ie3.simona.event.NotifierSpec.{TestEvent, TestEventEnvelope}
@@ -17,8 +13,12 @@ import edu.ie3.simona.event.notifier.Notifier
 import edu.ie3.simona.test.common.TestKitWithShutdown
 import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier._
 import edu.ie3.simona.util.EntityMapperUtil
+import org.apache.pekko.actor.{ActorLogging, ActorRef, ActorSystem, Props}
+import org.apache.pekko.testkit.ImplicitSender
+import org.apache.pekko.util.Timeout
 import org.scalatest.matchers.should.Matchers
 
+import java.util.{Calendar, Date}
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
@@ -41,7 +41,7 @@ class NotifierSpec
       extends Notifier
       with ActorLogging {
     override def preStart(): Unit = {
-      log.debug(s"{} started!", self)
+      log.debug("{} started!", self)
     }
 
     override def receive: Receive = {

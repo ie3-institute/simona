@@ -21,12 +21,7 @@ import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier._
-import edu.ie3.simona.util.ConfigUtil.{
-  GridOutputConfigUtil,
-  NotifierIdentifier,
-  ParticipantConfigUtil,
-  OutputConfigUtil,
-}
+import edu.ie3.simona.util.ConfigUtil.{GridOutputConfigUtil, NotifierIdentifier, OutputConfigUtil, ParticipantConfigUtil}
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor2}
 
 import java.util.UUID

@@ -6,12 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.{
-  ClassicActorRefOps,
-  TypedActorRefOps,
-}
-import org.apache.pekko.actor.{ActorRef, ActorSystem}
-import org.apache.pekko.testkit.{ImplicitSender, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.agent.EnvironmentRefs
@@ -38,10 +32,14 @@ import edu.ie3.simona.test.common.{
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.Megavars
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
+  ClassicActorRefOps,
+  TypedActorRefOps,
+}
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.{ImplicitSender, TestProbe}
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
-
-import scala.language.postfixOps
 
 class DBFSAlgorithmParticipantSpec
     extends TestKitWithShutdown(
@@ -89,7 +87,7 @@ class DBFSAlgorithmParticipantSpec
       )
     )
 
-    s"initialize itself when it receives an init activation" in {
+    "initialize itself when it receives an init activation" in {
 
       // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
       val subGridGateToActorRef: Map[SubGridGate, ActorRef] =
@@ -178,7 +176,7 @@ class DBFSAlgorithmParticipantSpec
 
     }
 
-    s"check the request asset power message indirectly" in {
+    "check the request asset power message indirectly" in {
 
       val firstSweepNo = 0
 

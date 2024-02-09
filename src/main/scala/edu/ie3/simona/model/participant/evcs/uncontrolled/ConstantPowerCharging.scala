@@ -6,10 +6,7 @@
 
 package edu.ie3.simona.model.participant.evcs.uncontrolled
 
-import edu.ie3.simona.model.participant.evcs.EvcsModel.{
-  ScheduleMap,
-  ScheduleEntry,
-}
+import edu.ie3.simona.model.participant.evcs.EvcsModel.{ScheduleEntry, ScheduleMap}
 import edu.ie3.simona.model.participant.evcs.{EvModelWrapper, EvcsModel}
 import squants.Seconds
 

@@ -6,16 +6,10 @@
 
 package edu.ie3.simona.agent.grid
 
-import org.apache.pekko.event.LoggingAdapter
 import breeze.math.Complex
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.datamodel.models.result.NodeResult
-import edu.ie3.datamodel.models.result.connector.{
-  LineResult,
-  SwitchResult,
-  Transformer2WResult,
-  Transformer3WResult,
-}
+import edu.ie3.datamodel.models.result.connector.{LineResult, SwitchResult, Transformer2WResult}
 import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.agent.grid.SweepValueStore.SweepValueStoreData
@@ -29,6 +23,7 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
 import edu.ie3.simona.model.grid._
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.QuantityUtil
+import org.apache.pekko.event.LoggingAdapter
 import squants.space.Degrees
 import squants.{Amperes, Angle, ElectricCurrent}
 import tech.units.indriya.quantity.Quantities

@@ -61,7 +61,7 @@ object ResultSinkType {
         )
       case None =>
         throw new IllegalArgumentException(
-          s"No sinks defined! Cannot determine the sink type!"
+          "No sinks defined! Cannot determine the sink type!"
         )
       case unknown =>
         throw new IllegalArgumentException(

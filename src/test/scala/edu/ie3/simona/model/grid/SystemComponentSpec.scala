@@ -6,13 +6,12 @@
 
 package edu.ie3.simona.model.grid
 
-import java.util.UUID
-
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.grid.SystemComponentSpec.SystemComponentMock
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.OperationInterval
 
+import java.util.UUID
 import scala.util.Try
 
 /** Test for abstract class [[SystemComponent]]

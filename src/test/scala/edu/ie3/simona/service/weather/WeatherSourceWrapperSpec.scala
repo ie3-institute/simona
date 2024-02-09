@@ -30,10 +30,10 @@ import edu.ie3.util.geo.GeoUtils
 import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
 import org.locationtech.jts.geom.Point
-import tech.units.indriya.ComparableQuantity
-import squants.{Temperature, Velocity}
 import squants.motion.MetersPerSecond
 import squants.thermal.{Celsius, Kelvin}
+import squants.{Temperature, Velocity}
+import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 

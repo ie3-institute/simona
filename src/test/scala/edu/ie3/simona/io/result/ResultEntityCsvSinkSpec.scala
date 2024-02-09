@@ -6,9 +6,6 @@
 
 package edu.ie3.simona.io.result
 
-import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.stream.scaladsl.FileIO
-import org.apache.pekko.util.ByteString
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.exceptions.EntityProcessorException
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
@@ -18,6 +15,9 @@ import edu.ie3.simona.exceptions.ProcessResultEventException
 import edu.ie3.simona.test.common.{IOTestCommons, TestKitWithShutdown, UnitSpec}
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.io.FileIOUtils
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.scaladsl.FileIO
+import org.apache.pekko.util.ByteString
 import tech.units.indriya.quantity.Quantities
 
 import java.io.File
@@ -27,7 +27,6 @@ import java.util.UUID
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
 import scala.io.Source
-import scala.language.postfixOps
 
 class ResultEntityCsvSinkSpec
     extends TestKitWithShutdown(

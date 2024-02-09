@@ -6,11 +6,11 @@
 
 package edu.ie3.simona.test.common.input
 
-import java.util.UUID
-
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.connector.SwitchInput
 import edu.ie3.simona.test.common.DefaultTestData
+
+import java.util.UUID
 
 /** //ToDo: Class Description
   *

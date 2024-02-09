@@ -6,11 +6,9 @@
 
 package edu.ie3.simona.model.participant.load.profile
 
-import java.time.ZonedDateTime
-
 import edu.ie3.util.TimeUtil
 
-// needs to be imported for max function
+import java.time.ZonedDateTime
 import scala.math.Ordering.Double.IeeeOrdering
 
 /** Stores a slice of load profile data, that comprises a whole day (96 quarter

@@ -27,10 +27,8 @@ import edu.ie3.simona.test.common.model.grid.{
 import edu.ie3.util.quantities.PowerSystemUnits._
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor4}
 import squants.Each
-import squants.electro.{Amperes, Kilovolts}
-import squants.energy.Kilowatts
+import squants.electro.Amperes
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit

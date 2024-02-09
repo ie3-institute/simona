@@ -15,11 +15,6 @@ sonarqube {
     // reports stuff (for all languages)
     property 'sonar.junit.reportPaths', [
       'build/test-results/test'] // Comma-delimited list of paths to Surefire XML-format reports.
-    // unit tests reports dirs
-    // scapegoat report dir
-    property "sonar.scala.scapegoat.reportPaths", [
-      "build/reports/scapegoat/src/scapegoat-scalastyle.xml",
-      "build/reports/scapegoat/testsrc/scapegoat-scalastyle.xml"] // Comma-delimited list of paths to Scapegoat reports in the Scalastyle format
     // scala specific stuff
     property 'sonar.scala.coverage.reportPaths', 'build/reports/scoverageTest/scoverage.xml'
 

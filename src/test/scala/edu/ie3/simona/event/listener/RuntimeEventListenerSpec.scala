@@ -6,11 +6,6 @@
 
 package edu.ie3.simona.event.listener
 
-import org.apache.pekko.actor.testkit.typed.scaladsl.{
-  ActorTestKit,
-  LoggingTestKit,
-  ScalaTestWithActorTestKit,
-}
 import com.typesafe.config.ConfigValueFactory
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent
@@ -26,6 +21,11 @@ import edu.ie3.simona.event.RuntimeEvent.{
 }
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.TimeUtil
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ActorTestKit,
+  LoggingTestKit,
+  ScalaTestWithActorTestKit,
+}
 import org.scalatest.PrivateMethodTester
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -118,7 +118,7 @@ class RuntimeEventListenerSpec
         (
           InitComplete(0L),
           Level.INFO,
-          s"Initialization complete. (duration: 0h : 0m : 0s )",
+          "Initialization complete. (duration: 0h : 0m : 0s )",
         ),
         (
           Ready(currentTick, 0L),

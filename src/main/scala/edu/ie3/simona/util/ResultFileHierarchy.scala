@@ -6,10 +6,7 @@
 
 package edu.ie3.simona.util
 
-import java.io.{BufferedWriter, File, FileWriter}
-import java.nio.file.{Files, Paths}
-import java.text.SimpleDateFormat
-import com.typesafe.config.{ConfigRenderOptions, Config => TypesafeConfig}
+import com.typesafe.config.{Config => TypesafeConfig, ConfigRenderOptions}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.io.naming.{
   EntityPersistenceNamingStrategy,
@@ -24,6 +21,9 @@ import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
 import edu.ie3.util.io.FileIOUtils
 import org.apache.commons.io.FilenameUtils._
 
+import java.io.{BufferedWriter, File, FileWriter}
+import java.nio.file.{Files, Paths}
+import java.text.SimpleDateFormat
 import scala.jdk.OptionConverters.RichOptional
 
 /** Represents the output directory where the results will be materialized. If
@@ -275,7 +275,7 @@ object ResultFileHierarchy extends LazyLogging {
       // files inside the runOutputDir -> fail
       throw new FileHierarchyException(
         s"The runOutputDir ${outputFileHierarchy.runOutputDir} already exists and is NOT empty! " +
-          s"Please either delete or empty the directory."
+          "Please either delete or empty the directory."
       )
     }
 

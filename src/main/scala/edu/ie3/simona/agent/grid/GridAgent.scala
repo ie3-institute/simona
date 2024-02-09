@@ -27,13 +27,12 @@ import edu.ie3.simona.ontology.messages.{Activation, StopMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
-import org.apache.pekko.actor.{ActorRef, Props, Stash}
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorRef, Props, Stash}
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-import scala.language.postfixOps
 
 object GridAgent {
   def props(
@@ -160,13 +159,13 @@ class GridAgent(
       failFast(gridAgentInitData)
 
       log.debug(
-        s"Inferior Subnets: {}; Inferior Subnet Nodes: {}",
+        "Inferior Subnets: {}; Inferior Subnet Nodes: {}",
         gridAgentInitData.inferiorGridIds,
         gridAgentInitData.inferiorGridNodeUuids,
       )
 
       log.debug(
-        s"Superior Subnets: {}; Superior Subnet Nodes: {}",
+        "Superior Subnets: {}; Superior Subnet Nodes: {}",
         gridAgentInitData.superiorGridIds,
         gridAgentInitData.superiorGridNodeUuids,
       )
@@ -276,7 +275,7 @@ class GridAgent(
     )
       throw new GridAgentInitializationException(
         s"$actorName has neither superior nor inferior grids! This can either " +
-          s"be cause by wrong subnetGate information or invalid parametrization of the simulation!"
+          "be cause by wrong subnetGate information or invalid parametrization of the simulation!"
       )
   }
 }

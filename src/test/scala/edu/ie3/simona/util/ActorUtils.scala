@@ -6,10 +6,10 @@
 
 package edu.ie3.simona.util
 
-import org.apache.pekko.actor.testkit.typed.scaladsl.TestProbe
-import org.apache.pekko.actor.typed.ActorRef
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import org.apache.pekko.actor.testkit.typed.scaladsl.TestProbe
+import org.apache.pekko.actor.typed.ActorRef
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 object ActorUtils {

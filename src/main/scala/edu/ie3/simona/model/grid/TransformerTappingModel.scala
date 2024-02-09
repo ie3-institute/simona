@@ -11,10 +11,10 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.simona.exceptions.InvalidActionRequestException
 import edu.ie3.util.quantities.PowerSystemUnits._
+import tech.units.indriya.quantity.Quantities
 
 import javax.measure.Quantity
 import javax.measure.quantity.Dimensionless
-import tech.units.indriya.quantity.Quantities
 
 /** Holds all functions a transformer with tapping control is capable of. If
   * used by a transformer model, it is recommended to be used via

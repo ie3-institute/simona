@@ -8,11 +8,11 @@ package edu.ie3.simona.test.common.model.participant
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.simona.model.SystemComponent
-
-import java.time.ZonedDateTime
 import edu.ie3.simona.test.common.input.LoadInputTestData
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.OperationInterval
+
+import java.time.ZonedDateTime
 
 /** Trait to supply different test data environments for testing a load agent
   */

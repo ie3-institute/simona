@@ -8,8 +8,7 @@ package edu.ie3.simona.util
 
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.util.CollectionUtils._
-import squants.Each
-import squants.Dimensionless
+import squants.{Dimensionless, Each}
 
 class CollectionUtilsSpec extends UnitSpec {
 

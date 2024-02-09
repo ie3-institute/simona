@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.event.listener
 
-import org.apache.pekko.actor.{Actor, DeadLetter, Props}
 import com.typesafe.scalalogging.LazyLogging
+import org.apache.pekko.actor.{Actor, DeadLetter, Props}
 
 /** Simply reads the message, it receives
   */

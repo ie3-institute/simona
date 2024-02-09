@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.test.common
 
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.pekko.actor.{ActorRef, ActorSystem}
 import org.apache.pekko.testkit.ImplicitSender
-import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.PrivateMethodTester
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike

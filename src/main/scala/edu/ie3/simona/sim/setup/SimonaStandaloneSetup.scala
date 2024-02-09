@@ -6,12 +6,6 @@
 
 package edu.ie3.simona.sim.setup
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.{
-  ClassicActorContextOps,
-  ClassicActorRefOps,
-  TypedActorRefOps,
-}
-import org.apache.pekko.actor.{ActorContext, ActorRef, ActorSystem}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.graph.SubGridTopologyGraph
@@ -42,6 +36,12 @@ import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.TimeUtil
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
+  ClassicActorContextOps,
+  ClassicActorRefOps,
+  TypedActorRefOps,
+}
+import org.apache.pekko.actor.{ActorContext, ActorRef, ActorSystem}
 
 import java.util.concurrent.LinkedBlockingQueue
 import scala.jdk.CollectionConverters._

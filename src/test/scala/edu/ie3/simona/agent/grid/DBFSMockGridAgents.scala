@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import org.apache.pekko.actor.ActorRef
-import org.apache.pekko.testkit.TestProbe
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   ProvideGridPowerMessage,
@@ -20,6 +18,8 @@ import edu.ie3.simona.ontology.messages.VoltageMessage.{
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
+import org.apache.pekko.actor.ActorRef
+import org.apache.pekko.testkit.TestProbe
 import squants.Power
 import squants.electro.Volts
 import squants.energy.Megawatts
@@ -78,7 +78,7 @@ trait DBFSMockGridAgents extends UnitSpec {
               case None =>
                 fail(
                   s"Expected ExchangeVoltage with node UUID ${expectedVoltage.nodeUuid} " +
-                    s"was not included in ProvideSlackVoltageMessage."
+                    "was not included in ProvideSlackVoltageMessage."
                 )
             }
           }
@@ -127,7 +127,7 @@ trait DBFSMockGridAgents extends UnitSpec {
               case None =>
                 fail(
                   s"Expected ExchangePower with node UUID ${expectedPower.nodeUuid} " +
-                    s"was not included in ProvideGridPowerMessage."
+                    "was not included in ProvideGridPowerMessage."
                 )
             }
           }

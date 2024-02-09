@@ -6,6 +6,15 @@
 
 package edu.ie3.simona.sim
 
+import com.typesafe.config.ConfigFactory
+import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.event.RuntimeEvent
+import edu.ie3.simona.scheduler.TimeAdvancer
+import edu.ie3.simona.scheduler.TimeAdvancer.StartSimMessage
+import edu.ie3.simona.sim.SimMessage.{InitSim, SimulationFailure}
+import edu.ie3.simona.sim.SimonaSimFailSpec.FailSim
+import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
+import edu.ie3.simona.test.common.AgentSpec
 import org.apache.pekko.actor.typed.scaladsl.adapter.{
   ClassicActorRefOps,
   ClassicActorSystemOps,
@@ -18,15 +27,6 @@ import org.apache.pekko.actor.{
   Props,
 }
 import org.apache.pekko.testkit.{TestActorRef, TestProbe}
-import com.typesafe.config.ConfigFactory
-import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.scheduler.TimeAdvancer
-import edu.ie3.simona.scheduler.TimeAdvancer.StartSimMessage
-import edu.ie3.simona.sim.SimMessage.{InitSim, SimulationFailure}
-import edu.ie3.simona.sim.SimonaSimFailSpec.FailSim
-import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
-import edu.ie3.simona.test.common.AgentSpec
 
 class SimonaSimFailSpec
     extends AgentSpec(

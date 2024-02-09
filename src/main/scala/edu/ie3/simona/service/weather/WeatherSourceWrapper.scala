@@ -49,7 +49,6 @@ import tech.units.indriya.ComparableQuantity
 import java.nio.file.Path
 import java.time.ZonedDateTime
 import javax.measure.quantity.Length
-
 import scala.jdk.CollectionConverters.{IterableHasAsJava, MapHasAsScala}
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}

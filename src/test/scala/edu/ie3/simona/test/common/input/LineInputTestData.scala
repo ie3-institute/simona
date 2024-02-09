@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.test.common.input
 
-import java.util.UUID
-
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.connector.LineInput
 import edu.ie3.datamodel.models.input.connector.`type`.LineTypeInput
@@ -22,6 +20,8 @@ import edu.ie3.util.quantities.PowerSystemUnits.{
 }
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.AMPERE
+
+import java.util.UUID
 
 /** //ToDo: Class Description
   *

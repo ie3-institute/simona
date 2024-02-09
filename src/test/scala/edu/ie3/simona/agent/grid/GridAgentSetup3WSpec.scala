@@ -6,16 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import org.apache.pekko.actor.{
-  Actor,
-  ActorIdentity,
-  ActorRef,
-  ActorSystem,
-  Identify,
-  Props,
-}
-import org.apache.pekko.testkit.ImplicitSender
-import org.apache.pekko.util.Timeout
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.result.ResultEntity
@@ -29,6 +19,16 @@ import edu.ie3.simona.test.common.{
 }
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
+import org.apache.pekko.actor.{
+  Actor,
+  ActorIdentity,
+  ActorRef,
+  ActorSystem,
+  Identify,
+  Props,
+}
+import org.apache.pekko.testkit.ImplicitSender
+import org.apache.pekko.util.Timeout
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.util.concurrent.TimeUnit

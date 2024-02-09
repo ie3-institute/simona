@@ -18,8 +18,8 @@ import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
 import edu.ie3.util.TimeUtil
 
-import java.time.{Duration, ZonedDateTime}
 import java.time.temporal.ChronoUnit
+import java.time.{Duration, ZonedDateTime}
 
 class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
   "Validating the configs" when {
@@ -504,7 +504,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               simonaConfig.simona.runtime.participant.load.individualConfigs,
               defaultString,
             )
-          }.getMessage shouldBe s"Found invalid UUID 'blabla' it was meant to be the string 'default' or a valid UUID."
+          }.getMessage shouldBe "Found invalid UUID 'blabla' it was meant to be the string 'default' or a valid UUID."
         }
 
         "throw an InvalidConfigParameterException if the scaling factor of the load model config is negative" in {

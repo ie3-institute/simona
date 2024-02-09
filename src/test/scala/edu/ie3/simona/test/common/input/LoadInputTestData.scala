@@ -6,14 +6,15 @@
 
 package edu.ie3.simona.test.common.input
 
-import java.util.UUID
+import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
-import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATTHOUR, VOLTAMPERE}
 import tech.units.indriya.quantity.Quantities
+
+import java.util.UUID
 
 /** //ToDo: Class Description
   *

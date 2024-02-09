@@ -67,7 +67,6 @@ import edu.ie3.simona.model.participant.{
   ModelState,
   SystemParticipant,
 }
-import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
@@ -324,7 +323,7 @@ protected trait ParticipantAgentFundamentals[
           newTick.filterNot(_ => baseStateData.isEmManaged),
         )
 
-        log.debug(s"Going to {}, using {}", Idle, nextBaseStateData)
+        log.debug("Going to {}, using {}", Idle, nextBaseStateData)
         goto(Idle) using nextBaseStateData
       }
     } catch {
@@ -1232,8 +1231,8 @@ protected trait ParticipantAgentFundamentals[
       baseStateData.foreseenDataTicks.values.flatten.exists(_ < requestTick)
     if (activationExpected || dataExpected) {
       log.debug(
-        s"Received power request from '{}' for tick '{}', but I'm still waiting for new results before " +
-          s"this tick. Waiting with the response.",
+        "Received power request from '{}' for tick '{}', but I'm still waiting for new results before " +
+          "this tick. Waiting with the response.",
         sender(),
         requestTick,
       )
@@ -1606,7 +1605,7 @@ protected trait ParticipantAgentFundamentals[
       )
     } else {
       log.debug(
-        s"No relevant data apparent, stay and reply with alternative result {}.",
+        "No relevant data apparent, stay and reply with alternative result {}.",
         alternativeResult,
       )
       stayWithUpdatedRequestValueStore(

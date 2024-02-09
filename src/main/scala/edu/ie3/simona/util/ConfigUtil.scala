@@ -20,9 +20,8 @@ import edu.ie3.datamodel.models.result.connector.{
 }
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.SqlParams
 import edu.ie3.simona.config.SimonaConfig._
-import edu.ie3.simona.event.notifier.{Notifier, NotifierConfig}
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import org.apache.kafka.clients.admin.AdminClient
 import org.apache.kafka.common.KafkaException
@@ -500,7 +499,7 @@ object ConfigUtil {
           )
         case Failure(other) =>
           throw new InvalidConfigParameterException(
-            s"Checking kafka config failed with unexpected exception.",
+            "Checking kafka config failed with unexpected exception.",
             other,
           )
         case Success(missingTopics) if missingTopics.nonEmpty =>

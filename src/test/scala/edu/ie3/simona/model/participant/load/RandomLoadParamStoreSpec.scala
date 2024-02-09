@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.model.participant.load
 
-import java.io.InputStreamReader
-
 import edu.ie3.simona.model.participant.load.random.{
   RandomLoadParamStore,
   RandomLoadParameters,
@@ -17,6 +15,8 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
 import org.scalatest.PrivateMethodTester
 import org.scalatest.prop.TableDrivenPropertyChecks
+
+import java.io.InputStreamReader
 
 class RandomLoadParamStoreSpec
     extends UnitSpec

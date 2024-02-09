@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import org.apache.pekko.event.{LoggingAdapter, NoLogging}
 import breeze.math.Complex
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
@@ -43,6 +42,7 @@ import edu.ie3.util.quantities.PowerSystemUnits.{DEGREE_GEOM, PU}
 import edu.ie3.util.quantities.QuantityUtil
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.{QuantityUtil => ScalaQuantityUtil}
+import org.apache.pekko.event.{LoggingAdapter, NoLogging}
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.Each
 import squants.electro.{Amperes, Volts}

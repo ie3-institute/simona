@@ -7,9 +7,10 @@
 package edu.ie3.simona.model.grid
 
 import edu.ie3.util.quantities.PowerSystemUnits._
+import tech.units.indriya.quantity.Quantities
+
 import javax.measure.Quantity
 import javax.measure.quantity.Dimensionless
-import tech.units.indriya.quantity.Quantities
 
 /** should be mixed into every transformer model that is capable of transformer
   * tapping. Currently mixed into [[TransformerModel]] and

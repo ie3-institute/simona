@@ -6,14 +6,14 @@
 
 package edu.ie3.simona.test.common.input
 
-import java.util.UUID
-
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.{
   CylindricalStorageInput,
   ThermalBusInput,
 }
 import tech.units.indriya.quantity.Quantities.getQuantity
+
+import java.util.UUID
 
 trait CylindricalStorageInputTestData {
 

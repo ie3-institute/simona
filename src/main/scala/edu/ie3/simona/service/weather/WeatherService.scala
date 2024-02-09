@@ -6,9 +6,8 @@
 
 package edu.ie3.simona.service.weather
 
-import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
-import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
   RegistrationFailedMessage,
@@ -16,11 +15,11 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResp
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage._
-import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceActivationBaseStateData,
 }
+import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.weather.WeatherService.{
   InitWeatherServiceStateData,
   WeatherInitializedStateData,
@@ -32,6 +31,7 @@ import edu.ie3.simona.service.weather.WeatherSource.{
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
+import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 
 import java.time.ZonedDateTime
 import scala.util.{Failure, Success, Try}

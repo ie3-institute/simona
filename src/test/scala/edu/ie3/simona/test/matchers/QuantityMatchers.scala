@@ -11,9 +11,9 @@ import edu.ie3.simona.test.matchers.QuantityMatchers.{
   QuantityEquivalenceMatcher,
 }
 import edu.ie3.util.quantities.QuantityUtil
+import org.scalatest.matchers.{MatchResult, Matcher}
 
 import javax.measure.Quantity
-import org.scalatest.matchers.{MatchResult, Matcher}
 
 /** Trait, to simplify test coding, that is reliant on [[Quantity]] s
   */

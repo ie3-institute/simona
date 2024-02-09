@@ -28,7 +28,6 @@ import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.state.AgentState
-import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.PvRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
@@ -122,7 +121,7 @@ protected trait PvAgentFundamentals
     /* Check for needed services */
     if (!services.toSeq.map(_.getClass).containsSlice(neededServices))
       throw new AgentInitializationException(
-        s"PvAgent cannot be initialized without a weather service!"
+        "PvAgent cannot be initialized without a weather service!"
       )
 
     /* Build the calculation model */

@@ -6,15 +6,14 @@
 
 package edu.ie3.simona.main
 
-import java.util.Locale
-
-import org.apache.pekko.actor.{ActorRef, ActorSystem}
-import org.apache.pekko.pattern.gracefulStop
-import org.apache.pekko.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.sim.setup.SimonaSetup
 import edu.ie3.util.scala.quantities.QuantityUtil
+import org.apache.pekko.actor.ActorRef
+import org.apache.pekko.pattern.gracefulStop
+import org.apache.pekko.util.Timeout
 
+import java.util.Locale
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Random

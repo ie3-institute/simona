@@ -6,12 +6,12 @@
 
 package edu.ie3.simona.agent.participant.data.secondary
 
-import org.apache.pekko.actor.ActorRef
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData.WholesalePrice
 import edu.ie3.simona.agent.participant.data.DataService
 import edu.ie3.simona.ontology.messages.services.EvMessage.EvData
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
+import org.apache.pekko.actor.ActorRef
 
 /** Common properties to all secondary data services
   */

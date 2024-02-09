@@ -7,9 +7,9 @@
 package edu.ie3.simona.ontology.messages
 
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
+import squants.electro.ElectricPotential
 
 import java.util.UUID
-import squants.electro.ElectricPotential
 
 sealed trait VoltageMessage
 

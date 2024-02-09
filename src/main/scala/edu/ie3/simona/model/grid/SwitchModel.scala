@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.model.grid
 
-import java.time.ZonedDateTime
-import java.util.UUID
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.SwitchInput
 import edu.ie3.simona.exceptions.InvalidActionRequestException
@@ -15,6 +13,8 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.scala.OperationInterval
 
+import java.time.ZonedDateTime
+import java.util.UUID
 import scala.util.{Failure, Success, Try}
 
 /** This model represents an electric power switch

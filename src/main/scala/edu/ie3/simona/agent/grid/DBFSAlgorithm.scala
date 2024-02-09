@@ -6,10 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{ActorRef, FSM, PoisonPill}
-import org.apache.pekko.pattern.{ask, pipe}
-import org.apache.pekko.util.{Timeout => PekkoTimeout}
 import breeze.linalg.{DenseMatrix, DenseVector}
 import breeze.math.Complex
 import edu.ie3.datamodel.graph.SubGridGate
@@ -46,6 +42,10 @@ import edu.ie3.simona.ontology.messages.VoltageMessage.{
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.scala.quantities.Megavars
 import edu.ie3.util.scala.quantities.SquantsUtils.RichElectricPotential
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorRef, FSM, PoisonPill}
+import org.apache.pekko.pattern.{ask, pipe}
+import org.apache.pekko.util.{Timeout => PekkoTimeout}
 import squants.Each
 import squants.energy.Megawatts
 
@@ -158,7 +158,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           gridAgentBaseData: GridAgentBaseData,
         ) =>
       log.debug(
-        s"Received Slack Voltages request from {} for nodes {} and sweepNo: {}",
+        "Received Slack Voltages request from {} for nodes {} and sweepNo: {}",
         sender(),
         nodeUuids,
         gridAgentBaseData.currentSweepNo,
@@ -197,7 +197,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               throw new DBFSAlgorithmException(
                 s"Requested nodeUuid $nodeUuid " +
                   s"not found in sweep value store data for sweepNo: $sweepNo. This indicates" +
-                  s"either a wrong processing of a previous sweep result or inconsistencies in grid model data!"
+                  "either a wrong processing of a previous sweep result or inconsistencies in grid model data!"
               )
           }
         }.getOrElse {
@@ -229,7 +229,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         } match {
           case (slackE, slackF) =>
             log.debug(
-              s"Provide {} to {} for node {} and sweepNo: {}",
+              "Provide {} to {} for node {} and sweepNo: {}",
               s"$slackE, $slackF",
               sender(),
               nodeUuid,
@@ -255,14 +255,14 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         ) =>
       if (gridAgentBaseData.currentSweepNo == requestSweepNo) {
         log.debug(
-          s"Received request for grid power values for sweepNo {} before my first power flow calc. Stashing away.",
+          "Received request for grid power values for sweepNo {} before my first power flow calc. Stashing away.",
           requestSweepNo,
         )
         stash()
         stay()
       } else {
         log.debug(
-          s"Received request for grid power values for a NEW sweep (request: {}, my: {})",
+          "Received request for grid power values for a NEW sweep (request: {}, my: {})",
           requestSweepNo,
           gridAgentBaseData.currentSweepNo,
         )
@@ -395,7 +395,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         gridAgentBaseData.powerFlowParams.sweepTimeout,
       )
 
-      log.debug(s"Going to {}", HandlePowerFlowCalculations)
+      log.debug("Going to {}", HandlePowerFlowCalculations)
 
       goto(HandlePowerFlowCalculations) using gridAgentBaseData
 
@@ -517,7 +517,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               // when we don't have assets we can skip another request for different asset behaviour due to changed
               // voltage values and go back to SimulateGrid directly
               log.debug(
-                s"No generation or load assets in the grid. Going back to {}.",
+                "No generation or load assets in the grid. Going back to {}.",
                 SimulateGrid,
               )
               unstashAll() // we can answer the stashed grid power requests now
@@ -591,7 +591,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       } else {
         // no changes from assets, we want to go back to SimulateGrid and report the LF results to our parent grids if any requests
         log.debug(
-          s"Assets have not changed their exchanged power or no voltage dependent behaviour. Going back to {}.",
+          "Assets have not changed their exchanged power or no voltage dependent behaviour. Going back to {}.",
           SimulateGrid,
         )
         unstashAll() // we can answer the stashed grid power requests now
@@ -1065,7 +1065,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
     implicit val timeout: PekkoTimeout = PekkoTimeout.create(askTimeout)
 
-    log.debug(s"asking assets for power values: {}", nodeToAssetAgents)
+    log.debug("asking assets for power values: {}", nodeToAssetAgents)
 
     if (nodeToAssetAgents.values.flatten.nonEmpty)
       Some(
@@ -1141,7 +1141,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   ): Option[Future[ReceivedPowerValues]] = {
     implicit val timeout: PekkoTimeout = PekkoTimeout.create(askTimeout)
     log.debug(
-      s"asking inferior grids for power values: {}",
+      "asking inferior grids for power values: {}",
       inferiorGridGates,
     )
     Option.when(inferiorGridGates.nonEmpty) {
@@ -1200,7 +1200,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   ): Option[Future[ReceivedSlackVoltageValues]] = {
     implicit val timeout: PekkoTimeout = PekkoTimeout.create(askTimeout)
     log.debug(
-      s"asking superior grids for slack voltage values: {}",
+      "asking superior grids for slack voltage values: {}",
       superiorGridGates,
     )
 

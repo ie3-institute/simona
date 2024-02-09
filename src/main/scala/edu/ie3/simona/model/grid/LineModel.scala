@@ -288,25 +288,25 @@ case object LineModel extends LazyLogging {
     if (lineType.getR.getValue.doubleValue() <= 0)
       throw new InvalidGridException(
         s"Resistance r of lineType ${lineType.getUuid} used in line ${lineInput.getUuid} is 0 or smaller, " +
-          s"which is not allowed! Please correct parameters!"
+          "which is not allowed! Please correct parameters!"
       )
 
     if (lineType.getX.getValue.doubleValue() <= 0)
       throw new InvalidGridException(
         s"Reactance x of lineType ${lineType.getUuid} used in line ${lineInput.getUuid} is 0 or smaller," +
-          s" which is not allowed! Please correct parameters!"
+          " which is not allowed! Please correct parameters!"
       )
 
     if (lineType.getB.getValue.doubleValue() < 0)
       throw new InvalidGridException(
         s"Susceptance b of lineType ${lineType.getUuid} used in line ${lineInput.getUuid} is smaller " +
-          s"than 0, which is not allowed! Please correct parameters!"
+          "than 0, which is not allowed! Please correct parameters!"
       )
 
     if (lineType.getG.getValue.doubleValue() < 0)
       throw new InvalidGridException(
         s"Conductance g of lineType ${lineType.getUuid} used in line ${lineInput.getUuid} is smaller " +
-          s"than 0, which is not allowed! Please correct parameters!"
+          "than 0, which is not allowed! Please correct parameters!"
       )
   }
 

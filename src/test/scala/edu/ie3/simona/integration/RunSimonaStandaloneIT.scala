@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.integration
 
-import java.io.File
-import java.util.concurrent.LinkedBlockingQueue
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.PvResult
@@ -22,6 +20,8 @@ import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.util.io.FileIOUtils
 import org.scalatest.BeforeAndAfterAll
 
+import java.io.File
+import java.util.concurrent.LinkedBlockingQueue
 import scala.io.{BufferedSource, Source}
 import scala.jdk.CollectionConverters._
 

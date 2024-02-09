@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.event.listener
 
-import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import com.sksamuel.avro4s.RecordFormat
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent.{Done, Error, PowerFlowFailed}
@@ -20,6 +19,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.{Deserializer, Serdes}
 import org.apache.kafka.common.utils.Bytes
+import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.scalatest.GivenWhenThen
 import org.scalatest.prop.TableDrivenPropertyChecks
 

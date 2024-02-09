@@ -10,8 +10,8 @@ import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import squants.{Energy, Power, Seconds}
 import squants.energy.KilowattHours
+import squants.{Energy, Power, Seconds}
 
 import java.util.UUID
 

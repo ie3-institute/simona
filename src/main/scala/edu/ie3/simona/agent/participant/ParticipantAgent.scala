@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
-import edu.ie3.simona.agent.{SimonaAgent, ValueStore}
 import edu.ie3.simona.agent.grid.GridAgent.FinishGridSimulationTrigger
 import edu.ie3.simona.agent.participant.ParticipantAgent.{
   StartCalculationTrigger,
@@ -33,6 +32,7 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.{
   Calculate,
   HandleInformation,
 }
+import edu.ie3.simona.agent.{SimonaAgent, ValueStore}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
@@ -44,13 +44,13 @@ import edu.ie3.simona.model.participant.{
   SystemParticipant,
 }
 import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage
+import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexResponse,
   IssueFlexControl,
   RequestFlexOptions,
 }
-import edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
@@ -412,9 +412,9 @@ abstract class ParticipantAgent[
           case (actorRef, data) => s"$actorRef -> $data"
         }
         log.debug(
-          s"Got asset power request for tick {}'. Will answer it later. " +
-            s"I'm waiting for senders: '{}', already got from '{}'. " +
-            s"The actor has {} been triggered yet.",
+          "Got asset power request for tick {}'. Will answer it later. " +
+            "I'm waiting for senders: '{}', already got from '{}'. " +
+            "The actor has {} been triggered yet.",
           s"$currentTick from ${sender()}",
           awaitedSenders,
           yetReceivedSenders,
@@ -475,7 +475,7 @@ abstract class ParticipantAgent[
 
     case Event(RequestAssetPowerMessage(currentTick, _, _), _) =>
       log.debug(
-        s"Got asset power request for tick {} from '{}'. Will answer it later.",
+        "Got asset power request for tick {} from '{}'. Will answer it later.",
         currentTick,
         sender(),
       )

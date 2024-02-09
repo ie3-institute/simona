@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.agent.grid
 
-import org.apache.pekko.actor.ActorRef
 import edu.ie3.simona.ontology.messages.PowerMessage.PowerResponseMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
+import org.apache.pekko.actor.ActorRef
 
 /** Serves as a wrapper class that allows for matches against received values in
   * [[DBFSAlgorithm]]

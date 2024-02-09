@@ -160,7 +160,7 @@ case object ConfigFailFast extends LazyLogging {
         .equals(supportedSinks)
     )
       throw new InvalidConfigParameterException(
-        s"Newly added sink(s) " +
+        "Newly added sink(s) " +
           s"'${sink.productElementNames.map(_.toLowerCase).toSet.removedAll(supportedSinks)}' detected! " +
           s"Please adapt 'ConfigFailFast' accordingly! Currently supported sinks: ${supportedSinks.mkString(", ")}."
       )
@@ -214,8 +214,8 @@ case object ConfigFailFast extends LazyLogging {
 
     if (startDate.isAfter(endDate))
       throw new InvalidConfigParameterException(
-        s"Invalid time configuration." +
-          s"Please ensure that the start time of the simulation is before the end time."
+        "Invalid time configuration." +
+          "Please ensure that the start time of the simulation is before the end time."
       )
   }
 
@@ -234,7 +234,7 @@ case object ConfigFailFast extends LazyLogging {
       case e: DateTimeParseException =>
         throw new InvalidConfigParameterException(
           s"Invalid dateTimeString: $dateTimeString." +
-            s"Please ensure that your date/time parameter match the following pattern: 'yyyy-MM-dd HH:mm:ss'",
+            "Please ensure that your date/time parameter match the following pattern: 'yyyy-MM-dd HH:mm:ss'",
           e,
         )
     }
@@ -435,7 +435,7 @@ case object ConfigFailFast extends LazyLogging {
     if (voltLvls.isEmpty && gridIds.isEmpty)
       throw new InvalidConfigParameterException(
         "The provided values for voltLvls and gridIds are empty! " +
-          s"At least one of these optional parameters has to be provided for a valid refSystem! " +
+          "At least one of these optional parameters has to be provided for a valid refSystem! " +
           s"Provided refSystem is: $refSystem."
       )
 
@@ -577,8 +577,8 @@ case object ConfigFailFast extends LazyLogging {
         .get(ChronoUnit.MILLIS) != 0)
     ) {
       throw new InvalidConfigParameterException(
-        s"Invalid time resolution. Please ensure, that " +
-          s"the time resolution for power flow calculation is at least rounded to a full second!"
+        "Invalid time resolution. Please ensure, that " +
+          "the time resolution for power flow calculation is at least rounded to a full second!"
       )
     }
   }

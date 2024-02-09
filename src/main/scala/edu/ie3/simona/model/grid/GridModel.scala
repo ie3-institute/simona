@@ -133,8 +133,9 @@ case object GridModel {
       transformerInput: Transformer3WInput,
       nodes: Seq[NodeModel],
   ): (NodeModel, NodeModel, NodeModel) = {
+    val connectorInput: ConnectorInput = transformerInput // upcast
     val (nodeA, nodeB) =
-      getConnectedNodes(transformerInput.asInstanceOf[ConnectorInput], nodes)
+      getConnectedNodes(connectorInput, nodes)
     val nodeCOpt: Option[NodeModel] = nodes.find(
       _.uuid.equals(transformerInput.getNodeC.getUuid)
     )
@@ -179,7 +180,7 @@ case object GridModel {
             admittanceMatrix,
           )
         )
-          throw new RuntimeException(s"Admittance matrix is illegal.")
+          throw new RuntimeException("Admittance matrix is illegal.")
         else
           admittanceMatrix
     }

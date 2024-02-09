@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.event.listener
 
-import org.apache.pekko.actor.typed.{Behavior, PostStop}
-import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent.PowerFlowFailed
@@ -19,6 +17,8 @@ import edu.ie3.simona.io.runtime.{
   RuntimeEventSink,
 }
 import edu.ie3.util.TimeUtil
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.{Behavior, PostStop}
 import org.slf4j.Logger
 
 import java.util.concurrent.BlockingQueue
