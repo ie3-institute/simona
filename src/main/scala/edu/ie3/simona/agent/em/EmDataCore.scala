@@ -33,7 +33,7 @@ object EmDataCore {
       PriorityMultiBiSet.empty,
       Set.empty,
       FlexCorrespondenceStore(),
-      None
+      None,
     )
 
   /** Data structure holding relevant data and providing methods that handle
@@ -58,7 +58,7 @@ object EmDataCore {
       private val activationQueue: PriorityMultiBiSet[Long, UUID],
       private val flexWithNext: Set[UUID],
       private val correspondences: FlexCorrespondenceStore,
-      private val lastActiveTick: Option[Long]
+      private val lastActiveTick: Option[Long],
   ) {
 
     /** Adds a connected agent, given its model UUID and actor reference
@@ -108,7 +108,7 @@ object EmDataCore {
         modelToActor,
         updatedQueue,
         correspondences,
-        activeTick = newTick
+        activeTick = newTick,
       )
     }
 
@@ -131,7 +131,7 @@ object EmDataCore {
       */
     def handleSchedule(
         model: UUID,
-        newTick: Long
+        newTick: Long,
     ): (Option[Long], Inactive) = {
       lastActiveTick.filter(newTick <= _).foreach { lastActive =>
         throw new CriticalFailureException(
@@ -188,7 +188,7 @@ object EmDataCore {
       private val activationQueue: PriorityMultiBiSet[Long, UUID],
       private val correspondences: FlexCorrespondenceStore,
       private val awaitedFlexOptions: Set[UUID] = Set.empty,
-      activeTick: Long
+      activeTick: Long,
   ) {
 
     /** Removes and returns flex requests scheduled for the current tick, which
@@ -211,7 +211,7 @@ object EmDataCore {
             modelUuid,
             throw new CriticalFailureException(
               s"Could not find actor for model uuid $modelUuid"
-            )
+            ),
           )
       }
 
@@ -232,7 +232,7 @@ object EmDataCore {
       copy(
         correspondences =
           correspondences.updateFlexOptions(flexOptions, activeTick),
-        awaitedFlexOptions = awaitedFlexOptions.excl(flexOptions.modelUuid)
+        awaitedFlexOptions = awaitedFlexOptions.excl(flexOptions.modelUuid),
       )
 
     /** Checks whether all awaited flex options have been received and we can
@@ -340,7 +340,7 @@ object EmDataCore {
             modelUuid,
             throw new CriticalFailureException(
               s"Could not find actor for model uuid $modelUuid"
-            )
+            ),
           ) -> issueCtrl
       }
 
@@ -353,8 +353,8 @@ object EmDataCore {
           awaitedCompletions = modelUuidToMsg.map { case (participant, _) =>
             participant
           }.toSet,
-          activeTick = activeTick
-        )
+          activeTick = activeTick,
+        ),
       )
     }
 
@@ -386,7 +386,7 @@ object EmDataCore {
       private val flexWithNext: Set[UUID] = Set.empty,
       private val correspondences: FlexCorrespondenceStore,
       private val awaitedCompletions: Set[UUID],
-      activeTick: Long
+      activeTick: Long,
   ) {
 
     /** Tries to handle the completion of some connected agent for the currently
@@ -416,7 +416,7 @@ object EmDataCore {
         correspondences.updateResult(
           completion.modelUuid,
           completion.result,
-          activeTick
+          activeTick,
         )
 
       val updatedFlexWithNext =
@@ -427,7 +427,7 @@ object EmDataCore {
       copy(
         correspondences = updatedCorrespondence,
         flexWithNext = updatedFlexWithNext,
-        awaitedCompletions = awaitedCompletions.excl(completion.modelUuid)
+        awaitedCompletions = awaitedCompletions.excl(completion.modelUuid),
       )
     }
 
@@ -451,7 +451,7 @@ object EmDataCore {
           activationQueue,
           flexWithNext,
           correspondences,
-          Some(activeTick)
+          Some(activeTick),
         )
       }
 

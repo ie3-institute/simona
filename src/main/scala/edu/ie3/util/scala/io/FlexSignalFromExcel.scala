@@ -8,7 +8,7 @@ package edu.ie3.util.scala.io
 
 import edu.ie3.datamodel.models.timeseries.individual.{
   IndividualTimeSeries,
-  TimeBasedValue
+  TimeBasedValue,
 }
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.config.SimonaConfig.Simona.Runtime.RootEm
@@ -26,7 +26,7 @@ import javax.measure.quantity.Power
 import scala.jdk.CollectionConverters.{
   IterableHasAsScala,
   IteratorHasAsScala,
-  SetHasAsJava
+  SetHasAsJava,
 }
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try, Using}
@@ -53,7 +53,7 @@ object FlexSignalFromExcel {
       timeSeriesType: TimeSeriesType.Value = TimeSeriesType.ResidualLoad,
       // ATTENTION: the unit configured here is not the output unit as `PValues` are transformed to kW by default
       unit: measure.Unit[Power] = PowerSystemUnits.MEGAWATT,
-      zoneId: ZoneId = ZoneId.of("UTC")
+      zoneId: ZoneId = ZoneId.of("UTC"),
   ): Try[IndividualTimeSeries[PValue]] = {
     Using {
       val file = new File(filePath)
@@ -104,7 +104,7 @@ object FlexSignalFromExcel {
       val tsTypeToTs = values.map { case (tsType, valueSet) =>
         tsType -> new IndividualTimeSeries[PValue](
           UUID.randomUUID(),
-          valueSet.asJava
+          valueSet.asJava,
         )
       }
 
@@ -115,7 +115,7 @@ object FlexSignalFromExcel {
   def getCorrespondingMinMaxValues(
       timeSeriesType: TimeSeriesType.Value,
       timeSeries: IndividualTimeSeries[PValue],
-      config: RootEm
+      config: RootEm,
   ): (squants.Power, squants.Power) = {
 
     // todo this is very use case dependant and has to be reworked
@@ -126,7 +126,7 @@ object FlexSignalFromExcel {
         .flexSignals(
           config.filePath,
           config.nodeId,
-          TimeSeriesType.TotalResLoad
+          TimeSeriesType.TotalResLoad,
         ) match {
         case Success(timeSeries) => timeSeries
         case Failure(exception)  => throw exception
@@ -148,7 +148,7 @@ object FlexSignalFromExcel {
       )
     (
       Kilowatts(minValue.getValue.doubleValue()),
-      Kilowatts(maxValue.getValue.doubleValue())
+      Kilowatts(maxValue.getValue.doubleValue()),
     )
   }
 

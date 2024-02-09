@@ -24,20 +24,20 @@ class EmAggregateSelfOptSpec extends UnitSpec with MockitoSugar {
         modelUuid = UUID.randomUUID(),
         ref = Kilowatts(2.0),
         min = Kilowatts(-1.0),
-        max = Kilowatts(4.0)
+        max = Kilowatts(4.0),
       )
 
       val flexOptions2 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
         ref = Kilowatts(-6.0),
         min = Kilowatts(-6.0),
-        max = Kilowatts(0.0)
+        max = Kilowatts(0.0),
       )
 
       val actualResult = strat.aggregateFlexOptions(
         Iterable(
           (mock[SystemParticipantInput], flexOptions1),
-          (mock[SystemParticipantInput], flexOptions2)
+          (mock[SystemParticipantInput], flexOptions2),
         )
       )
 
@@ -53,20 +53,20 @@ class EmAggregateSelfOptSpec extends UnitSpec with MockitoSugar {
         modelUuid = UUID.randomUUID(),
         ref = Kilowatts(6.0),
         min = Kilowatts(4.0),
-        max = Kilowatts(12.0)
+        max = Kilowatts(12.0),
       )
 
       val flexOptions2 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
         ref = Kilowatts(2.0),
         min = Kilowatts(-2.0),
-        max = Kilowatts(2.0)
+        max = Kilowatts(2.0),
       )
 
       val actualResult = strat.aggregateFlexOptions(
         Iterable(
           (mock[SystemParticipantInput], flexOptions1),
-          (mock[SystemParticipantInput], flexOptions2)
+          (mock[SystemParticipantInput], flexOptions2),
         )
       )
 
@@ -82,20 +82,20 @@ class EmAggregateSelfOptSpec extends UnitSpec with MockitoSugar {
         modelUuid = UUID.randomUUID(),
         ref = Kilowatts(-1.0),
         min = Kilowatts(-10.0),
-        max = Kilowatts(-1.0)
+        max = Kilowatts(-1.0),
       )
 
       val flexOptions2 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
         ref = Kilowatts(-6.0),
         min = Kilowatts(-6.0),
-        max = Kilowatts(0.0)
+        max = Kilowatts(0.0),
       )
 
       val actualResult = strat.aggregateFlexOptions(
         Iterable(
           (mock[SystemParticipantInput], flexOptions1),
-          (mock[SystemParticipantInput], flexOptions2)
+          (mock[SystemParticipantInput], flexOptions2),
         )
       )
 
@@ -115,20 +115,20 @@ class EmAggregateSelfOptSpec extends UnitSpec with MockitoSugar {
         modelUuid = UUID.randomUUID(),
         ref = Kilowatts(2.0),
         min = Kilowatts(-1.0),
-        max = Kilowatts(4.0)
+        max = Kilowatts(4.0),
       )
 
       val flexOptions2 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
         ref = Kilowatts(-6.0),
         min = Kilowatts(-6.0),
-        max = Kilowatts(0.0)
+        max = Kilowatts(0.0),
       )
 
       val actualResult = strat.aggregateFlexOptions(
         Iterable(
           (mock[SystemParticipantInput], flexOptions1),
-          (mock[PvInput], flexOptions2)
+          (mock[PvInput], flexOptions2),
         )
       )
 
@@ -144,20 +144,20 @@ class EmAggregateSelfOptSpec extends UnitSpec with MockitoSugar {
         modelUuid = UUID.randomUUID(),
         ref = Kilowatts(-1.0),
         min = Kilowatts(-10.0),
-        max = Kilowatts(-1.0)
+        max = Kilowatts(-1.0),
       )
 
       val flexOptions2 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
         ref = Kilowatts(-6.0),
         min = Kilowatts(-6.0),
-        max = Kilowatts(0.0)
+        max = Kilowatts(0.0),
       )
 
       val actualResult = strat.aggregateFlexOptions(
         Iterable(
           (mock[SystemParticipantInput], flexOptions1),
-          (mock[PvInput], flexOptions2)
+          (mock[PvInput], flexOptions2),
         )
       )
 

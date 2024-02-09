@@ -11,7 +11,7 @@ import edu.ie3.simona.scheduler.core.Core.{
   ActiveCore,
   Actor,
   CoreFactory,
-  InactiveCore
+  InactiveCore,
 }
 import edu.ie3.util.scala.collection.immutable.PrioritySwitchBiSet
 
@@ -33,7 +33,7 @@ object PhaseSwitchCore extends CoreFactory {
 
   final case class PhaseSwitchInactive private (
       private val activationQueue: PrioritySwitchBiSet[Long, Actor],
-      private val lastActiveTick: Option[Long]
+      private val lastActiveTick: Option[Long],
   ) extends InactiveCore {
     override def activate(newTick: Long): ActiveCore = {
       val nextScheduledTick = activationQueue.headKeyOption.getOrElse(
@@ -52,7 +52,7 @@ object PhaseSwitchCore extends CoreFactory {
 
     override def handleSchedule(
         actor: Actor,
-        newTick: Long
+        newTick: Long,
     ): (Option[Long], InactiveCore) = {
       lastActiveTick.filter(newTick < _).foreach { lastActive =>
         throw new CriticalFailureException(
@@ -79,7 +79,7 @@ object PhaseSwitchCore extends CoreFactory {
       private val activationQueue: PrioritySwitchBiSet[Long, Actor],
       activeTick: Long,
       private val phase: Int = 0,
-      private val activeActors: Set[Actor] = Set.empty
+      private val activeActors: Set[Actor] = Set.empty,
   ) extends ActiveCore {
 
     override def handleCompletion(actor: Actor): ActiveCore = {
@@ -99,14 +99,14 @@ object PhaseSwitchCore extends CoreFactory {
       ) {
         (
           activationQueue.headKeyOption,
-          PhaseSwitchInactive(activationQueue, Some(activeTick))
+          PhaseSwitchInactive(activationQueue, Some(activeTick)),
         )
       }
     }
 
     override def handleSchedule(
         actor: Actor,
-        newTick: Long
+        newTick: Long,
     ): ActiveCore = {
       if (newTick == activeTick) {
         // what's done, is done: old phases are completed,
@@ -148,8 +148,8 @@ object PhaseSwitchCore extends CoreFactory {
             copy(
               activationQueue = updatedQueue,
               phase = newPhase,
-              activeActors = activeActors.incl(actor)
-            )
+              activeActors = activeActors.incl(actor),
+            ),
           )
         }
         .getOrElse((Iterable.empty, this))

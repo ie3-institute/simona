@@ -25,12 +25,12 @@ object EmAggregateSimpleSum extends EmAggregateFlex {
     ) {
       case (
             (sumRef, sumMin, sumMax),
-            (_, ProvideMinMaxFlexOptions(_, addRef, addMin, addMax))
+            (_, ProvideMinMaxFlexOptions(_, addRef, addMin, addMax)),
           ) =>
         (
           sumRef + addRef,
           sumMin + addMin,
-          sumMax + addMax
+          sumMax + addMax,
         )
     }
   }

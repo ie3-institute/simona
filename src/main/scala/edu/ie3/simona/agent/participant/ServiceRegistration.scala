@@ -14,7 +14,7 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
   ActorEvMovementsService,
   ActorPriceService,
-  ActorWeatherService
+  ActorWeatherService,
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.config.SimonaConfig
@@ -22,7 +22,7 @@ import edu.ie3.simona.exceptions.agent.ServiceRegistrationException
 import edu.ie3.simona.model.participant.{
   CalcRelevantData,
   ModelState,
-  SystemParticipant
+  SystemParticipant,
 }
 import edu.ie3.simona.ontology.messages.services.EvMessage.RegisterForEvDataMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
@@ -34,7 +34,7 @@ trait ServiceRegistration[
     D <: ParticipantStateData[PD],
     I <: SystemParticipantInput,
     MC <: SimonaConfig.BaseRuntimeConfig,
-    M <: SystemParticipant[CD, PD, MS]
+    M <: SystemParticipant[CD, PD, MS],
 ] {
   this: ParticipantAgent[PD, CD, MS, D, I, MC, M] =>
 
@@ -50,7 +50,7 @@ trait ServiceRegistration[
     */
   def registerForServices(
       inputModel: I,
-      services: Iterable[SecondaryDataService[_ <: SecondaryData]]
+      services: Iterable[SecondaryDataService[_ <: SecondaryData]],
   ): Iterable[ActorRef] =
     services.flatMap(service =>
       registerForSecondaryService(service, inputModel)
@@ -72,12 +72,12 @@ trait ServiceRegistration[
       S <: SecondaryData
   ](
       serviceDefinition: SecondaryDataService[S],
-      inputModel: I
+      inputModel: I,
   ): Option[ActorRef] = serviceDefinition match {
     case SecondaryDataService.ActorPriceService(_) =>
       log.debug(
         s"Attempt to register for {}. This is currently not supported.",
-        ActorPriceService
+        ActorPriceService,
       )
       None
     case ActorWeatherService(serviceRef) =>
@@ -98,7 +98,7 @@ trait ServiceRegistration[
     */
   private def registerForWeather(
       actorRef: ActorRef,
-      inputModel: I
+      inputModel: I,
   ): Unit = {
     /* If we are asked to register for weather, determine the proper geo position */
     val geoPosition = inputModel.getNode.getGeoPosition
@@ -126,7 +126,7 @@ trait ServiceRegistration[
     */
   private def registerForEvMovements(
       serviceRef: ActorRef,
-      inputModel: I
+      inputModel: I,
   ): Unit = {
     inputModel match {
       case evcsInput: EvcsInput =>

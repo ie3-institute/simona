@@ -34,7 +34,7 @@ trait EmModelStrat {
       flexOptions: Iterable[
         (_ <: AssetInput, ProvideMinMaxFlexOptions)
       ],
-      target: Power
+      target: Power,
   ): Iterable[(UUID, Power)]
 
   /** Depending on the model strategy used, not all flex options provided by
@@ -51,7 +51,7 @@ trait EmModelStrat {
     */
   def adaptFlexOptions(
       assetInput: AssetInput,
-      flexOptions: ProvideMinMaxFlexOptions
+      flexOptions: ProvideMinMaxFlexOptions,
   ): ProvideMinMaxFlexOptions
 }
 

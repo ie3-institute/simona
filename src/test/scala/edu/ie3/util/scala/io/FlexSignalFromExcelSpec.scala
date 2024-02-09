@@ -38,7 +38,7 @@ class FlexSignalFromExcelSpec extends UnitSpec with TableDrivenPropertyChecks {
           case Failure(exception) =>
             fail(
               "Reading flex signal from excel file failed with the following exception.",
-              exception
+              exception,
             )
         }
       }

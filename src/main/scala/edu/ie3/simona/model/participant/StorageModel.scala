@@ -12,7 +12,7 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.StorageModel.{
   RefTargetSocParams,
   StorageRelevantData,
-  StorageState
+  StorageState,
 }
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
@@ -38,7 +38,7 @@ final case class StorageModel(
     eta: squants.Dimensionless,
     dod: squants.Dimensionless,
     initialSoc: Double, // TODO this is ugly and should be solved in a different way, as this value is only used outside the model
-    targetSoc: Option[Double] // TODO only needed for initializing fields
+    targetSoc: Option[Double], // TODO only needed for initializing fields
 ) extends SystemParticipant[StorageRelevantData, ApparentPower, StorageState](
       uuid,
       id,
@@ -46,7 +46,7 @@ final case class StorageModel(
       scalingFactor,
       qControl,
       sRated,
-      cosPhiRated
+      cosPhiRated,
     ) {
 
   private val minEnergy = eStorage * dod.toEach
@@ -80,7 +80,7 @@ final case class StorageModel(
     RefTargetSocParams(
       targetEnergy,
       targetWithPosMargin,
-      targetWithNegMargin
+      targetWithNegMargin,
     )
   }
 
@@ -101,12 +101,12 @@ final case class StorageModel(
       tick: Long,
       voltage: squants.Dimensionless,
       modelState: StorageState,
-      data: StorageRelevantData
+      data: StorageRelevantData,
   ): ApparentPower = ???
 
   override protected def calculateActivePower(
       modelState: StorageState,
-      data: StorageRelevantData
+      data: StorageRelevantData,
   ): squants.Power =
     throw new NotImplementedError(
       "Storage model cannot calculate power without flexibility control."
@@ -114,7 +114,7 @@ final case class StorageModel(
 
   override def determineFlexOptions(
       data: StorageRelevantData,
-      lastState: StorageState
+      lastState: StorageState,
   ): ProvideFlexOptions = {
     val currentStoredEnergy =
       determineCurrentState(lastState, data.currentTick)
@@ -146,14 +146,14 @@ final case class StorageModel(
       uuid,
       refPower,
       if (dischargingPossible) pMax * (-1) else Kilowatts(0d),
-      if (chargingPossible) pMax else Kilowatts(0d)
+      if (chargingPossible) pMax else Kilowatts(0d),
     )
   }
 
   override def handleControlledPowerChange(
       data: StorageRelevantData,
       lastState: StorageState,
-      setPower: squants.Power
+      setPower: squants.Power,
   ): (StorageState, FlexChangeIndicator) = {
     val currentStoredEnergy =
       determineCurrentState(lastState, data.currentTick)
@@ -182,7 +182,7 @@ final case class StorageModel(
       StorageState(
         currentStoredEnergy,
         netPower,
-        data.currentTick
+        data.currentTick,
       ) // FIXME this should be setPower instead of netPower ? Because the EM receives / sees Power after considering eta / output power. Internal "discharging" needs to be done with netpower! Check whether EM get's setpower or netPower.
 
     // if the storage is at minimum or maximum charged energy AND we are charging
@@ -253,7 +253,7 @@ final case class StorageModel(
 
   private def determineCurrentState(
       lastState: StorageState,
-      currentTick: Long
+      currentTick: Long,
   ): squants.Energy = {
     val timespan = currentTick - lastState.tick
     val energyChange = lastState.chargingPower * squants.Seconds(timespan)
@@ -294,13 +294,13 @@ object StorageModel {
   final case class StorageState(
       storedEnergy: squants.Energy,
       chargingPower: squants.Power,
-      tick: Long
+      tick: Long,
   ) extends ModelState
 
   final case class RefTargetSocParams(
       targetSoc: squants.Energy,
       targetWithPosMargin: squants.Energy,
-      targetWithNegMargin: squants.Energy
+      targetWithNegMargin: squants.Energy,
   )
 
   def apply(
@@ -309,7 +309,7 @@ object StorageModel {
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       initialSoc: Double,
-      targetSoc: Option[Double]
+      targetSoc: Option[Double],
   ): StorageModel = {
     {
       // TODO have this in some fail fast
@@ -332,7 +332,7 @@ object StorageModel {
       SystemComponent.determineOperationInterval(
         simulationStartDate,
         simulationEndDate,
-        inputModel.getOperationTime
+        inputModel.getOperationTime,
       )
 
     // build the fixed feed in model
@@ -368,7 +368,7 @@ object StorageModel {
         inputModel.getType.getDod.to(PowerSystemUnits.PU).getValue.doubleValue
       ),
       initialSoc,
-      targetSoc
+      targetSoc,
     )
 
     // TODO include activePowerGradient, lifeTime, lifeCycle ?

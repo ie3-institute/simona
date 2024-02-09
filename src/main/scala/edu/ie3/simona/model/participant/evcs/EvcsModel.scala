@@ -17,13 +17,13 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.evcs.EvcsModel._
 import edu.ie3.simona.model.participant.evcs.uncontrolled.{
   ConstantPowerCharging,
-  MaximumPowerCharging
+  MaximumPowerCharging,
 }
 import edu.ie3.simona.model.participant.{
   CalcRelevantData,
   FlexChangeIndicator,
   ModelState,
-  SystemParticipant
+  SystemParticipant,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
@@ -82,7 +82,7 @@ final case class EvcsModel(
     locationType: EvcsLocationType,
     vehicle2grid: Boolean,
     strategy: ChargingStrategy.Value,
-    lowestEvSoc: Double
+    lowestEvSoc: Double,
 ) extends SystemParticipant[EvcsRelevantData, ApparentPower, EvcsState](
       uuid,
       id,
@@ -90,7 +90,7 @@ final case class EvcsModel(
       scalingFactor,
       qControl,
       sRated * chargingPoints,
-      cosPhiRated
+      cosPhiRated,
     )
     with LazyLogging
     with MaximumPowerCharging
@@ -107,7 +107,7 @@ final case class EvcsModel(
     */
   def calculateNewScheduling(
       data: EvcsRelevantData,
-      evs: Seq[EvModelWrapper]
+      evs: Seq[EvModelWrapper],
   ): ScheduleMap = {
     if (
       locationType == EvcsLocationType.CHARGING_HUB_TOWN || locationType == EvcsLocationType.CHARGING_HUB_HIGHWAY
@@ -115,13 +115,13 @@ final case class EvcsModel(
       /* Cars at charging hubs always charge eagerly */
       chargeWithMaximumPower(
         data.tick,
-        evs
+        evs,
       )
     } else
       scheduleByStrategy(
         strategy,
         data.tick,
-        evs
+        evs,
       )
   }
 
@@ -139,17 +139,17 @@ final case class EvcsModel(
   private def scheduleByStrategy(
       strategy: ChargingStrategy.Value,
       currentTick: Long,
-      evs: Seq[EvModelWrapper]
+      evs: Seq[EvModelWrapper],
   ): ScheduleMap = strategy match {
     case ChargingStrategy.MAX_POWER =>
       chargeWithMaximumPower(
         currentTick,
-        evs
+        evs,
       )
     case ChargingStrategy.CONSTANT_POWER =>
       chargeWithConstantPower(
         currentTick,
-        evs
+        evs,
       )
     case ChargingStrategy.GRID_ORIENTED =>
       throw new NotImplementedError(
@@ -173,7 +173,7 @@ final case class EvcsModel(
     */
   def applySchedule(
       state: EvcsState,
-      currentTick: Long
+      currentTick: Long,
   ): Seq[EvModelWrapper] = if (state.schedule.nonEmpty) {
     state.evs
       .map(ev =>
@@ -184,7 +184,7 @@ final case class EvcsModel(
               ev,
               _,
               state.tick,
-              currentTick
+              currentTick,
             )
           }
           .getOrElse(ev)
@@ -214,7 +214,7 @@ final case class EvcsModel(
       ev: EvModelWrapper,
       schedule: ChargingSchedule,
       lastSchedulingTick: Long,
-      currentTick: Long
+      currentTick: Long,
   ): EvModelWrapper = {
     /* Determine charged energy in the charging interval */
     val chargedEnergySinceLastScheduling =
@@ -231,7 +231,7 @@ final case class EvcsModel(
             val trimmedEntry = trimScheduleEntry(
               scheduleEntry,
               lastSchedulingTick,
-              currentTick
+              currentTick,
             )
 
             /* Determine the energy charged within this slice of the schedule and accumulate it */
@@ -263,7 +263,7 @@ final case class EvcsModel(
   def createResults(
       lastState: EvcsState,
       currentTick: Long,
-      voltageMagnitude: Dimensionless
+      voltageMagnitude: Dimensionless,
   ): (Iterable[EvResult], Iterable[EvcsResult]) = {
 
     val lastTick = lastState.tick
@@ -292,7 +292,7 @@ final case class EvcsModel(
           evUuid -> trimScheduleEntry(
             entry,
             lastTick,
-            currentTick
+            currentTick,
           )
         }
       }
@@ -324,7 +324,7 @@ final case class EvcsModel(
         lastEvMap,
         startingSchedules,
         Seq.empty[EvResult],
-        Seq.empty[EvcsResult]
+        Seq.empty[EvcsResult],
       ) { case ((evMap, lastActiveEntries, evResults, evcsResults), tick) =>
         val time = tick.toDateTime(simulationStartDate)
 
@@ -353,7 +353,7 @@ final case class EvcsModel(
                 ev,
                 tick,
                 Kilowatts(0d),
-                voltageMagnitude
+                voltageMagnitude,
               )
             }
 
@@ -368,7 +368,7 @@ final case class EvcsModel(
                 ev,
                 entry.tickStart,
                 entry.chargingPower,
-                voltageMagnitude
+                voltageMagnitude,
               )
 
               // update EV
@@ -378,7 +378,7 @@ final case class EvcsModel(
 
               (
                 evMap.updated(evUuid, newEv),
-                results.appended(result)
+                results.appended(result),
               )
           }
 
@@ -391,20 +391,20 @@ final case class EvcsModel(
         }
         val evcsQ = calculateReactivePower(
           evcsP,
-          voltageMagnitude
+          voltageMagnitude,
         )
         val evcsResult = new EvcsResult(
           time,
           uuid,
           evcsP.toMegawatts.asMegaWatt,
-          evcsQ.toMegavars.asMegaVar
+          evcsQ.toMegavars.asMegaVar,
         )
 
         (
           updatedEvMap,
           currentActiveEntries,
           evResults ++ chargingEvResults ++ noChargingEvResults,
-          evcsResults :+ evcsResult
+          evcsResults :+ evcsResult,
         )
       }
 
@@ -423,7 +423,7 @@ final case class EvcsModel(
           _,
           currentTick,
           Kilowatts(0d),
-          voltageMagnitude
+          voltageMagnitude,
         )
       }
 
@@ -434,11 +434,11 @@ final case class EvcsModel(
       ev: EvModelWrapper,
       tick: Long,
       p: Power,
-      voltageMagnitude: Dimensionless
+      voltageMagnitude: Dimensionless,
   ) = {
     val q = calculateReactivePower(
       p,
-      voltageMagnitude
+      voltageMagnitude,
     )
     val soc = (ev.storedEnergy / ev.eStorage).asPu
       .to(PERCENT)
@@ -448,7 +448,7 @@ final case class EvcsModel(
       ev.uuid,
       p.toMegawatts.asMegaWatt,
       q.toMegavars.asMegaVar,
-      soc
+      soc,
     )
   }
 
@@ -469,11 +469,11 @@ final case class EvcsModel(
   private def trimScheduleEntry(
       scheduleEntry: ScheduleEntry,
       lastSchedulingTick: Long,
-      currentTick: Long
+      currentTick: Long,
   ): ScheduleEntry =
     scheduleEntry.copy(
       tickStart = math.max(scheduleEntry.tickStart, lastSchedulingTick),
-      tickStop = math.min(scheduleEntry.tickStop, currentTick)
+      tickStop = math.min(scheduleEntry.tickStop, currentTick),
     )
 
   /** Determine the energy, that has been charged during the schedule entry time
@@ -516,19 +516,19 @@ final case class EvcsModel(
       tick: Long,
       voltage: Dimensionless,
       modelState: EvcsState,
-      data: EvcsRelevantData
+      data: EvcsRelevantData,
   ): ApparentPower =
     throw new NotImplementedError("Use calculatePowerAndEvSoc() instead.")
 
   override protected def calculateActivePower(
       modelState: EvcsState,
-      data: EvcsRelevantData
+      data: EvcsRelevantData,
   ): Power =
     throw new NotImplementedError("Use calculatePowerAndEvSoc() instead.")
 
   override def determineFlexOptions(
       data: EvcsRelevantData,
-      lastState: EvcsState
+      lastState: EvcsState,
   ): FlexibilityMessage.ProvideFlexOptions = {
 
     val currentEvs = determineCurrentEvs(data, lastState)
@@ -541,7 +541,7 @@ final case class EvcsModel(
       ) {
         case (
               (chargingSum, preferredSum, forcedSum, dischargingSum),
-              ev
+              ev,
             ) =>
           val maxPower = getMaxAvailableChargingPower(ev)
 
@@ -575,7 +575,7 @@ final case class EvcsModel(
             chargingSum + maxCharging,
             preferredSum + preferred.getOrElse(Kilowatts(0d)),
             forcedSum + forced,
-            dischargingSum + maxDischarging
+            dischargingSum + maxDischarging,
           )
       }
 
@@ -590,7 +590,7 @@ final case class EvcsModel(
       uuid,
       adaptedPreferred,
       adaptedMaxDischarging,
-      maxCharging
+      maxCharging,
     )
   }
 
@@ -599,7 +599,7 @@ final case class EvcsModel(
   override def handleControlledPowerChange(
       data: EvcsRelevantData,
       lastState: EvcsState,
-      setPower: Power
+      setPower: Power,
   ): (EvcsState, FlexChangeIndicator) = {
     val currentEvs = determineCurrentEvs(data, lastState)
 
@@ -608,9 +608,9 @@ final case class EvcsModel(
         EvcsState(
           evs = currentEvs,
           schedule = Map.empty,
-          tick = data.tick
+          tick = data.tick,
         ),
-        FlexChangeIndicator()
+        FlexChangeIndicator(),
       )
 
     // applicable evs can be charged/discharged, other evs cannot
@@ -646,9 +646,9 @@ final case class EvcsModel(
       EvcsState(
         evs = currentEvs,
         schedule = allSchedules,
-        tick = data.tick
+        tick = data.tick,
       ),
-      aggregateFlexChange(combinedSchedules)
+      aggregateFlexChange(combinedSchedules),
     )
   }
 
@@ -677,7 +677,7 @@ final case class EvcsModel(
 
     FlexChangeIndicator(
       scheduleAtNextActivation,
-      nextScheduledTick
+      nextScheduledTick,
     )
   }
 
@@ -698,10 +698,10 @@ final case class EvcsModel(
   private def createScheduleWithSetPower(
       currentTick: Long,
       evs: Seq[EvModelWrapper],
-      setPower: Power
+      setPower: Power,
   ): (
       Seq[(UUID, (ChargingSchedule, Long, Boolean))],
-      Power
+      Power,
   ) = {
 
     if (evs.isEmpty) return (Seq.empty, setPower)
@@ -734,8 +734,8 @@ final case class EvcsModel(
               ScheduleEntry(currentTick, endTick, proposedPower)
             ),
             endTick,
-            isFull(ev) || isEmpty(ev) || isInLowerMargin(ev)
-          )
+            isFull(ev) || isEmpty(ev) || isInLowerMargin(ev),
+          ),
         )
       }
 
@@ -764,8 +764,8 @@ final case class EvcsModel(
           (
             SortedSet(ScheduleEntry(currentTick, endTick, power)),
             endTick,
-            isFull(ev) || isEmpty(ev) || isInLowerMargin(ev)
-          )
+            isFull(ev) || isEmpty(ev) || isInLowerMargin(ev),
+          ),
         )
       }
 
@@ -782,7 +782,7 @@ final case class EvcsModel(
         createScheduleWithSetPower(
           currentTick,
           fittingPowerEvs,
-          remainingAfterAllocation
+          remainingAfterAllocation,
         )
 
       val combinedResults = maxChargedResults ++ nextIterationResults
@@ -805,7 +805,7 @@ final case class EvcsModel(
     */
   private def calcFlexOptionsChange(
       ev: EvModelWrapper,
-      power: Power
+      power: Power,
   ): Long = {
     val timeUntilFullOrEmpty =
       if (power > Kilowatts(0d)) {
@@ -876,7 +876,7 @@ final case class EvcsModel(
     */
   def determineCurrentEvs(
       data: EvcsRelevantData,
-      lastState: EvcsState
+      lastState: EvcsState,
   ): Seq[EvModelWrapper] = {
 
     // If last state is outdated, determine
@@ -890,7 +890,7 @@ final case class EvcsModel(
     validateArrivals(
       lastState.evs,
       data.arrivals,
-      chargingPoints
+      chargingPoints,
     )
 
     currentEVs ++ data.arrivals
@@ -906,7 +906,7 @@ final case class EvcsModel(
     */
   def validateDepartures(
       lastEvs: Seq[EvModelWrapper],
-      departures: Seq[UUID]
+      departures: Seq[UUID],
   ): Unit = {
     departures.foreach { ev =>
       if (!lastEvs.exists(_.uuid == ev))
@@ -931,7 +931,7 @@ final case class EvcsModel(
   def validateArrivals(
       lastEvs: Seq[EvModelWrapper],
       arrivals: Seq[EvModelWrapper],
-      chargingPoints: Int
+      chargingPoints: Int,
   ): Unit = {
 
     arrivals.foreach { ev =>
@@ -974,7 +974,7 @@ object EvcsModel {
     */
   final case class EvcsRelevantData(
       tick: Long,
-      arrivals: Seq[EvModelWrapper]
+      arrivals: Seq[EvModelWrapper],
   ) extends CalcRelevantData
 
   /** Class that represents the state of the charging station (including
@@ -991,7 +991,7 @@ object EvcsModel {
   final case class EvcsState(
       evs: Seq[EvModelWrapper],
       schedule: ScheduleMap,
-      tick: Long
+      tick: Long,
   ) extends ModelState
 
   /** Schedule entry specifying a time interval in which the EV should be
@@ -1007,7 +1007,7 @@ object EvcsModel {
   final case class ScheduleEntry(
       tickStart: Long,
       tickStop: Long,
-      chargingPower: squants.Power
+      chargingPower: squants.Power,
   ) extends Ordered[ScheduleEntry] {
     override def compare(that: ScheduleEntry): Int = {
       val startComp = tickStart.compare(that.tickStart)
@@ -1047,14 +1047,14 @@ object EvcsModel {
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       chargingStrategy: String,
-      lowestEvSoc: Double
+      lowestEvSoc: Double,
   ): EvcsModel = {
     /* Determine the operation interval */
     val operationInterval: OperationInterval =
       SystemComponent.determineOperationInterval(
         simulationStartDate,
         simulationEndDate,
-        inputModel.getOperationTime
+        inputModel.getOperationTime,
       )
 
     val model = EvcsModel(
@@ -1071,7 +1071,7 @@ object EvcsModel {
       inputModel.getLocationType,
       inputModel.getV2gSupport,
       ChargingStrategy(chargingStrategy),
-      lowestEvSoc
+      lowestEvSoc,
     )
 
     model.enable()

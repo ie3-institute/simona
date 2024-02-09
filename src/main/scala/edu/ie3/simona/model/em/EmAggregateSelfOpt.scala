@@ -28,11 +28,11 @@ final case class EmAggregateSelfOpt(pvFlex: Boolean) extends EmAggregateFlex {
       flexOptions.foldLeft((Kilowatts(0d), Kilowatts(0d))) {
         case (
               (sumMin, sumMax),
-              (_, ProvideMinMaxFlexOptions(_, _, addMin, addMax))
+              (_, ProvideMinMaxFlexOptions(_, _, addMin, addMax)),
             ) =>
           (
             sumMin + addMin,
-            sumMax + addMax
+            sumMax + addMax,
           )
       }
 
@@ -43,7 +43,7 @@ final case class EmAggregateSelfOpt(pvFlex: Boolean) extends EmAggregateFlex {
         flexOptions.foldLeft(Kilowatts(0d)) {
           case (
                 maxSumExclPv,
-                (inputModel, ProvideMinMaxFlexOptions(_, _, addMin, addMax))
+                (inputModel, ProvideMinMaxFlexOptions(_, _, addMin, addMax)),
               ) =>
             inputModel match {
               case _: PvInput =>

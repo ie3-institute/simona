@@ -40,6 +40,6 @@ object PlainResult {
       uuid: UUID,
       inputModel: UUID,
       vMag: Double,
-      vAng: Double
+      vAng: Double,
   ) extends PlainResult
 }

@@ -15,7 +15,7 @@ import edu.ie3.simona.sim.SimMessage.{
   InitSim,
   SimulationFailure,
   SimulationSuccessful,
-  StartSimulation
+  StartSimulation,
 }
 import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
@@ -46,7 +46,7 @@ object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
       SimonaStandaloneSetup(
         parsedConfig,
         SimonaStandaloneSetup.buildResultFileHierarchy(parsedConfig),
-        mainArgs = arguments.mainArgs
+        mainArgs = arguments.mainArgs,
       )
     )
   }

@@ -13,7 +13,7 @@ import edu.ie3.datamodel.models.input.container._
 import edu.ie3.datamodel.models.input.thermal.{
   ThermalBusInput,
   ThermalHouseInput,
-  ThermalStorageInput
+  ThermalStorageInput,
 }
 
 import java.nio.file.Path
@@ -23,14 +23,14 @@ object CsvGridSource {
   def readThermalGrids(
       csvSep: String,
       baseFolder: Path,
-      fileNamingStrategy: FileNamingStrategy
+      fileNamingStrategy: FileNamingStrategy,
   ): Map[ThermalBusInput, ThermalGrid] = {
     val dataSource =
       new CsvDataSource(csvSep, baseFolder, fileNamingStrategy)
     val typeSource = new TypeSource(dataSource)
     val thermalSource = new ThermalSource(
       typeSource,
-      dataSource
+      dataSource,
     )
 
     val operators = typeSource.getOperators
@@ -58,7 +58,7 @@ object CsvGridSource {
       bus -> new ThermalGrid(
         bus,
         h,
-        s
+        s,
       )
     }.toMap
   }

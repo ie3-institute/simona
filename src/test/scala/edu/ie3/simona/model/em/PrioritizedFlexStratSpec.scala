@@ -10,7 +10,7 @@ import edu.ie3.datamodel.models.input.system.{
   EvcsInput,
   LoadInput,
   PvInput,
-  StorageInput
+  StorageInput,
 }
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
@@ -59,7 +59,7 @@ class PrioritizedFlexStratSpec
           "evcsMax",
           "storageMin",
           "storageMax",
-          "expectedResult"
+          "expectedResult",
         ),
 
         /* excess feed-in */
@@ -106,7 +106,7 @@ class PrioritizedFlexStratSpec
         // no excess
         (-3d, 0d, -5d, 2d, -11d, 11d, -2d, 2d, L.empty),
         // excess is fully covered by min storage and parts of ev flex, vehicle-to-home
-        (-3d, 5d, -1d, 5d, -11d, 11d, -2d, 2d, L((st, -2d), (ev, -5d)))
+        (-3d, 5d, -1d, 5d, -11d, 11d, -2d, 2d, L((st, -2d), (ev, -5d))),
       )
 
       forAll(cases) {
@@ -119,7 +119,7 @@ class PrioritizedFlexStratSpec
             evcsMax,
             storageMin,
             storageMax,
-            expectedResult
+            expectedResult,
         ) =>
           val flexOptions = Seq(
             (
@@ -128,8 +128,8 @@ class PrioritizedFlexStratSpec
                 load,
                 Kilowatts(loadPower),
                 Kilowatts(loadPower),
-                Kilowatts(loadPower)
-              )
+                Kilowatts(loadPower),
+              ),
             ),
             (
               pvInputModel,
@@ -137,8 +137,8 @@ class PrioritizedFlexStratSpec
                 pv,
                 Kilowatts(pvPower),
                 Kilowatts(pvPower),
-                Kilowatts(0d)
-              )
+                Kilowatts(0d),
+              ),
             ),
             (
               evcsInputModel,
@@ -146,8 +146,8 @@ class PrioritizedFlexStratSpec
                 ev,
                 Kilowatts(evcsSuggested),
                 Kilowatts(evcsMin),
-                Kilowatts(evcsMax)
-              )
+                Kilowatts(evcsMax),
+              ),
             ),
             (
               storageInputModel,
@@ -155,15 +155,15 @@ class PrioritizedFlexStratSpec
                 st,
                 Kilowatts(0d),
                 Kilowatts(storageMin),
-                Kilowatts(storageMax)
-              )
-            )
+                Kilowatts(storageMax),
+              ),
+            ),
           )
 
           val actualResults =
             strat.determineFlexControl(
               flexOptions,
-              Kilowatts(target)
+              Kilowatts(target),
             )
 
           actualResults should have size expectedResult.size withClue
@@ -175,7 +175,7 @@ class PrioritizedFlexStratSpec
               uuid,
               fail(
                 s"Actual control message $power for model $uuid is not part of the expected"
-              )
+              ),
             )
 
             power.toKilowatts should ===(expectedRes +- 1e-6d)
@@ -195,7 +195,7 @@ class PrioritizedFlexStratSpec
           "evcsMax",
           "storageMin",
           "storageMax",
-          "expectedResult"
+          "expectedResult",
         ),
 
         /* excess feed-in */
@@ -220,7 +220,7 @@ class PrioritizedFlexStratSpec
         // excess is fully covered by parts of storage flex
         (5d, -1d, 0d, -11d, 11d, -5d, 5d, L((st, -4d))),
         // excess is fully covered by min storage flex
-        (6d, -1d, 0d, -11d, 11d, -5d, 5d, L((st, -5d)))
+        (6d, -1d, 0d, -11d, 11d, -5d, 5d, L((st, -5d))),
       )
 
       forAll(cases) {
@@ -232,7 +232,7 @@ class PrioritizedFlexStratSpec
             evcsMax,
             storageMin,
             storageMax,
-            expectedResult
+            expectedResult,
         ) =>
           val flexOptions = Seq(
             (
@@ -241,8 +241,8 @@ class PrioritizedFlexStratSpec
                 load,
                 Kilowatts(loadPower),
                 Kilowatts(loadPower),
-                Kilowatts(loadPower)
-              )
+                Kilowatts(loadPower),
+              ),
             ),
             (
               pvInputModel,
@@ -250,8 +250,8 @@ class PrioritizedFlexStratSpec
                 pv,
                 Kilowatts(pvPower),
                 Kilowatts(pvPower),
-                Kilowatts(0d)
-              )
+                Kilowatts(0d),
+              ),
             ),
             (
               evcsInputModel,
@@ -259,8 +259,8 @@ class PrioritizedFlexStratSpec
                 ev,
                 Kilowatts(evcsSuggested),
                 Kilowatts(evcsMin),
-                Kilowatts(evcsMax)
-              )
+                Kilowatts(evcsMax),
+              ),
             ),
             (
               storageInputModel,
@@ -268,15 +268,15 @@ class PrioritizedFlexStratSpec
                 st,
                 Kilowatts(0d),
                 Kilowatts(storageMin),
-                Kilowatts(storageMax)
-              )
-            )
+                Kilowatts(storageMax),
+              ),
+            ),
           )
 
           val actualResults =
             strat.determineFlexControl(
               flexOptions,
-              Kilowatts(0d)
+              Kilowatts(0d),
             )
 
           actualResults should have size expectedResult.size withClue
@@ -288,7 +288,7 @@ class PrioritizedFlexStratSpec
               uuid,
               fail(
                 s"Actual control message $power for model $uuid is not part of the expected"
-              )
+              ),
             )
 
             power.toKilowatts should ===(expectedRes +- 1e-6d)
@@ -309,7 +309,7 @@ class PrioritizedFlexStratSpec
         (true, loadInputModel, true),
         (true, pvInputModel, false),
         (true, evcsInputModel, false),
-        (true, storageInputModel, false)
+        (true, storageInputModel, false),
       )
 
       forAll(cases) { case (pvFlex, inputModel, expectedAdaptation) =>
@@ -317,7 +317,7 @@ class PrioritizedFlexStratSpec
           inputModel.getUuid,
           Kilowatts(1),
           Kilowatts(-1),
-          Kilowatts(2)
+          Kilowatts(2),
         )
 
         val flexOptionsOut = PrioritizedFlexStrat(pvFlex)
@@ -327,7 +327,7 @@ class PrioritizedFlexStratSpec
           flexOptionsOut shouldBe ProvideMinMaxFlexOptions
             .noFlexOption(
               inputModel.getUuid,
-              Kilowatts(1)
+              Kilowatts(1),
             )
         } else {
           flexOptionsOut shouldBe flexOptionsIn

@@ -10,7 +10,7 @@ import org.apache.pekko.actor.{ActorContext, ActorRef, ActorSystem}
 import edu.ie3.datamodel.exceptions.NotImplementedException
 import edu.ie3.datamodel.models.input.connector.{
   ConnectorPort,
-  Transformer3WInput
+  Transformer3WInput,
 }
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.event.RuntimeEvent
@@ -38,38 +38,38 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
 
   override def primaryServiceProxy(
       context: ActorContext,
-      scheduler: ActorRef
+      scheduler: ActorRef,
   ): ActorRef =
     throw new NotImplementedException("This is a dummy setup")
 
   override def weatherService(
       context: ActorContext,
-      scheduler: ActorRef
+      scheduler: ActorRef,
   ): ActorRef =
     throw new NotImplementedException("This is a dummy setup")
 
   override def extSimulations(
       context: ActorContext,
-      scheduler: ActorRef
+      scheduler: ActorRef,
   ): ExtSimSetupData =
     throw new NotImplementedException("This is a dummy setup")
 
   override def timeAdvancer(
       context: ActorContext,
       simulation: ActorRef,
-      runtimeEventListener: org.apache.pekko.actor.typed.ActorRef[RuntimeEvent]
+      runtimeEventListener: org.apache.pekko.actor.typed.ActorRef[RuntimeEvent],
   ): org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming] =
     throw new NotImplementedException("This is a dummy setup")
 
   override def scheduler(
       context: ActorContext,
-      timeAdvancer: org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming]
+      timeAdvancer: org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming],
   ): ActorRef = throw new NotImplementedException("This is a dummy setup")
 
   override def gridAgents(
       context: ActorContext,
       environmentRefs: EnvironmentRefs,
-      systemParticipantListener: Seq[ActorRef]
+      systemParticipantListener: Seq[ActorRef],
   ): Iterable[ActorRef] =
     throw new NotImplementedException("This is a dummy setup")
 
@@ -94,7 +94,7 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
         2,
         nodeCUuid,
         3,
-        ConnectorPort.C
+        ConnectorPort.C,
       )
       val internalNode = subGridGate.link match {
         case input: Transformer3WInput => input.getNodeInternal

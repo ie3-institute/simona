@@ -15,13 +15,13 @@ import edu.ie3.datamodel.io.naming.DatabaseNamingStrategy
 import edu.ie3.datamodel.models.value.{HeatAndSValue, PValue}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ActivePower,
-  ApparentPowerAndHeat
+  ApparentPowerAndHeat,
 }
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.WorkerRegistrationMessage
@@ -29,7 +29,7 @@ import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   ProvidePrimaryDataMessage,
-  SqlInitPrimaryServiceStateData
+  SqlInitPrimaryServiceStateData,
 }
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
 import edu.ie3.simona.test.common.{AgentSpec, TestSpawnerClassic}
@@ -51,7 +51,7 @@ class PrimaryServiceWorkerSqlIT
         ConfigFactory
           .parseString("""
                      |pekko.loglevel="OFF"
-          """.stripMargin)
+          """.stripMargin),
       )
     )
     with ForAllTestContainer
@@ -98,34 +98,34 @@ class PrimaryServiceWorkerSqlIT
           "uuid",
           "firstTick",
           "firstData",
-          "maybeNextTick"
+          "maybeNextTick",
         ),
         (
           PrimaryServiceWorker.props(
             scheduler.ref,
-            classOf[HeatAndSValue]
+            classOf[HeatAndSValue],
           ),
           uuidPqh,
           0L,
           ApparentPowerAndHeat(
             Kilowatts(1000.0),
             Kilovars(329.0),
-            Kilowatts(8000.0)
+            Kilowatts(8000.0),
           ),
-          Some(900L)
+          Some(900L),
         ),
         (
           PrimaryServiceWorker.props(
             scheduler.ref,
-            classOf[PValue]
+            classOf[PValue],
           ),
           uuidP,
           0L,
           ActivePower(
             Kilowatts(1000.0)
           ),
-          Some(900L)
-        )
+          Some(900L),
+        ),
       )
 
       forAll(cases) {
@@ -134,7 +134,7 @@ class PrimaryServiceWorkerSqlIT
             uuid,
             firstTick,
             firstData,
-            maybeNextTick
+            maybeNextTick,
         ) =>
           val serviceRef = TestActorRef(service)
 
@@ -146,15 +146,15 @@ class PrimaryServiceWorkerSqlIT
               userName = container.username,
               password = container.password,
               schemaName = schemaName,
-              timePattern = "yyyy-MM-dd HH:mm:ss"
+              timePattern = "yyyy-MM-dd HH:mm:ss",
             ),
-            new DatabaseNamingStrategy()
+            new DatabaseNamingStrategy(),
           )
 
           val key1 = ScheduleKey(lock.ref.toTyped, UUID.randomUUID())
           scheduler.send(
             serviceRef,
-            SimonaService.Create(initData, key1)
+            SimonaService.Create(initData, key1),
           )
           scheduler.expectMsg(
             ScheduleActivation(serviceRef.toTyped, INIT_SIM_TICK, Some(key1))
@@ -167,7 +167,7 @@ class PrimaryServiceWorkerSqlIT
 
           participant.send(
             serviceRef,
-            WorkerRegistrationMessage(participant.ref)
+            WorkerRegistrationMessage(participant.ref),
           )
           participant.expectMsg(
             RegistrationSuccessfulMessage(serviceRef, Some(firstTick))

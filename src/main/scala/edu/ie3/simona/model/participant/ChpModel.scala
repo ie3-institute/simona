@@ -56,7 +56,7 @@ final case class ChpModel(
     sRated: Power,
     cosPhiRated: Double,
     pThermal: Power,
-    storage: ThermalStorage with MutableStorage
+    storage: ThermalStorage with MutableStorage,
 ) extends SystemParticipant[ChpRelevantData, ApparentPower, ConstantState.type](
       uuid,
       id,
@@ -64,7 +64,7 @@ final case class ChpModel(
       scalingFactor,
       qControl,
       sRated,
-      cosPhiRated
+      cosPhiRated,
     )
     with ApparentPowerParticipant[ChpRelevantData, ConstantState.type] {
 
@@ -83,7 +83,7 @@ final case class ChpModel(
     */
   override protected def calculateActivePower(
       modelState: ConstantState.type,
-      chpData: ChpRelevantData
+      chpData: ChpRelevantData,
   ): Power =
     chpData.chpState.activePower
 
@@ -149,7 +149,7 @@ final case class ChpModel(
       isRunning = false,
       chpData.currentTimeTick,
       DefaultQuantities.zeroKW,
-      DefaultQuantities.zeroKWH
+      DefaultQuantities.zeroKWH,
     )
 
   /** The demand cannot be covered, therefore this function sets storage level
@@ -186,7 +186,7 @@ final case class ChpModel(
       isRunning = false,
       chpData.currentTimeTick,
       DefaultQuantities.zeroKW,
-      DefaultQuantities.zeroKWH
+      DefaultQuantities.zeroKWH,
     )
   }
 
@@ -226,7 +226,7 @@ final case class ChpModel(
     */
   private def calculateStateRunningSurplus(
       chpData: ChpRelevantData,
-      surplus: Option[Energy] = None
+      surplus: Option[Energy] = None,
   ): ChpState = {
     surplus match {
       case Some(surplusEnergy) =>
@@ -234,14 +234,14 @@ final case class ChpModel(
           isRunning = false,
           chpData.currentTimeTick,
           pRated,
-          chpEnergy(chpData) - surplusEnergy
+          chpEnergy(chpData) - surplusEnergy,
         )
       case None =>
         ChpState(
           isRunning = true,
           chpData.currentTimeTick,
           pRated,
-          chpEnergy(chpData)
+          chpEnergy(chpData),
         )
     }
   }
@@ -255,7 +255,7 @@ final case class ChpModel(
     */
   private def powerToEnergy(
       chpData: ChpRelevantData,
-      power: Power
+      power: Power,
   ): Energy =
     power * timeRunning(chpData)
 
@@ -294,17 +294,17 @@ final case class ChpModel(
 
   override def determineFlexOptions(
       data: ChpRelevantData,
-      lastState: ConstantState.type
+      lastState: ConstantState.type,
   ): ProvideFlexOptions =
     ProvideMinMaxFlexOptions.noFlexOption(
       uuid,
-      calculateActivePower(lastState, data)
+      calculateActivePower(lastState, data),
     )
 
   override def handleControlledPowerChange(
       data: ChpRelevantData,
       lastState: ConstantState.type,
-      setPower: squants.Power
+      setPower: squants.Power,
   ): (ConstantState.type, FlexChangeIndicator) =
     (lastState, FlexChangeIndicator())
 
@@ -331,7 +331,7 @@ object ChpModel {
       isRunning: Boolean,
       lastTimeTick: Long,
       activePower: Power,
-      thermalEnergy: Energy
+      thermalEnergy: Energy,
   )
 
   /** Main data required for simulation/calculation, containing a [[ChpState]],
@@ -350,7 +350,7 @@ object ChpModel {
   final case class ChpRelevantData(
       chpState: ChpState,
       heatDemand: Energy,
-      currentTimeTick: Long
+      currentTimeTick: Long,
   ) extends CalcRelevantData
 
   /** Function to construct a new [[ChpModel]] based on a provided [[ChpInput]]
@@ -376,12 +376,12 @@ object ChpModel {
       simulationEndDate: ZonedDateTime,
       qControl: QControl,
       scalingFactor: Double,
-      thermalStorage: ThermalStorage with MutableStorage
+      thermalStorage: ThermalStorage with MutableStorage,
   ): ChpModel = {
     val operationInterval = SystemComponent.determineOperationInterval(
       simulationStartDate,
       simulationEndDate,
-      chpInput.getOperationTime
+      chpInput.getOperationTime,
     )
 
     val model = new ChpModel(
@@ -403,7 +403,7 @@ object ChpModel {
           .getValue
           .doubleValue
       ),
-      thermalStorage
+      thermalStorage,
     )
 
     model.enable()

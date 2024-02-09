@@ -83,11 +83,11 @@ class ThermalGridSpec extends UnitSpec {
       "deliver proper results" in {
         val energyDemand1 = ThermalEnergyDemand(
           MegawattHours(45d),
-          MegawattHours(47d)
+          MegawattHours(47d),
         )
         val energyDemand2 = ThermalEnergyDemand(
           MegawattHours(23d),
-          MegawattHours(28d)
+          MegawattHours(28d),
         )
 
         val totalDemand = energyDemand1 + energyDemand2

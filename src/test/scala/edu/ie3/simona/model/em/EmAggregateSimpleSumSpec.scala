@@ -23,20 +23,20 @@ class EmAggregateSimpleSumSpec extends UnitSpec with MockitoSugar {
         modelUuid = UUID.randomUUID(),
         ref = Kilowatts(6.0),
         min = Kilowatts(4.0),
-        max = Kilowatts(12.0)
+        max = Kilowatts(12.0),
       )
 
       val flexOptions2 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
         ref = Kilowatts(2.0),
         min = Kilowatts(-2.0),
-        max = Kilowatts(2.0)
+        max = Kilowatts(2.0),
       )
 
       val actualResult = EmAggregateSimpleSum.aggregateFlexOptions(
         Iterable(
           (mock[SystemParticipantInput], flexOptions1),
-          (mock[SystemParticipantInput], flexOptions2)
+          (mock[SystemParticipantInput], flexOptions2),
         )
       )
 

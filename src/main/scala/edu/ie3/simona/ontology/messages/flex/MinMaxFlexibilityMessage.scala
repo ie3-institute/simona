@@ -38,7 +38,7 @@ object MinMaxFlexibilityMessage {
       override val modelUuid: UUID,
       ref: Power,
       min: Power,
-      max: Power
+      max: Power,
   ) extends ProvideFlexOptions {
 
     /** Checks whether given power fits within the min-max interval and thus
@@ -76,7 +76,7 @@ object MinMaxFlexibilityMessage {
         modelUuid: UUID,
         ref: Power,
         min: Power,
-        max: Power
+        max: Power,
     ): ProvideMinMaxFlexOptions = {
       if (min > ref)
         throw new CriticalFailureException(
@@ -103,7 +103,7 @@ object MinMaxFlexibilityMessage {
       */
     def noFlexOption(
         modelUuid: UUID,
-        power: Power
+        power: Power,
     ): ProvideMinMaxFlexOptions =
       ProvideMinMaxFlexOptions(modelUuid, power, power, power)
   }

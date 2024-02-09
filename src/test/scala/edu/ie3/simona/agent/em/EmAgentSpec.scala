@@ -12,14 +12,14 @@ import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.{
   FlexOptionsResultEvent,
-  ParticipantResultEvent
+  ParticipantResultEvent,
 }
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.test.common.input.EmInputTestData
@@ -31,7 +31,7 @@ import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{Kilovars, ReactivePower}
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
-  TestProbe
+  TestProbe,
 }
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -55,7 +55,7 @@ class EmAgentSpec
   private val outputConfig = NotifierConfig(
     simulationResultInfo = true,
     powerRequestReply = false,
-    flexResult = true // also test FlexOptionsResult if EM-controlled
+    flexResult = true, // also test FlexOptionsResult if EM-controlled
   )
 
   override protected val modelConfig: EmRuntimeConfig = EmRuntimeConfig(
@@ -63,7 +63,7 @@ class EmAgentSpec
     scaling = 1d,
     uuids = List("default"),
     aggregateFlex = "SELF_OPT_EXCL_PV",
-    pvFlex = false
+    pvFlex = false,
   )
 
   private implicit val activePowerTolerance: Power = Kilowatts(1e-10)
@@ -83,7 +83,7 @@ class EmAgentSpec
           simulationStartDate,
           parent = Left(scheduler.ref),
           maybeRootEmConfig = None,
-          listener = Iterable(resultListener.ref)
+          listener = Iterable(resultListener.ref),
         )
       )
 
@@ -115,7 +115,7 @@ class EmAgentSpec
         pvInput.getUuid,
         Kilowatts(-5d),
         Kilowatts(-5d),
-        Kilowatts(0d)
+        Kilowatts(0d),
       )
 
       pvAgent.expectNoMessage()
@@ -125,7 +125,7 @@ class EmAgentSpec
         evcsInput.getUuid,
         Kilowatts(2d),
         Kilowatts(-11d),
-        Kilowatts(11d)
+        Kilowatts(11d),
       )
 
       // receive flex control messages
@@ -133,7 +133,7 @@ class EmAgentSpec
       emAgent ! FlexCtrlCompletion(
         modelUuid = pvInput.getUuid,
         result = ApparentPower(Kilowatts(-5d), Kilovars(-0.5d)),
-        requestAtTick = Some(600)
+        requestAtTick = Some(600),
       )
 
       scheduler.expectNoMessage()
@@ -145,7 +145,7 @@ class EmAgentSpec
       emAgent ! FlexCtrlCompletion(
         modelUuid = evcsInput.getUuid,
         result = ApparentPower(Kilowatts(5d), Kilovars(0.1d)),
-        requestAtTick = Some(300)
+        requestAtTick = Some(300),
       )
 
       // expect correct results
@@ -177,7 +177,7 @@ class EmAgentSpec
         evcsInput.getUuid,
         Kilowatts(0d),
         Kilowatts(-11d),
-        Kilowatts(0d)
+        Kilowatts(0d),
       )
 
       // receive flex control messages
@@ -188,7 +188,7 @@ class EmAgentSpec
       emAgent !
         FlexCtrlCompletion(
           evcsInput.getUuid,
-          ApparentPower(Kilowatts(0d), Kilovars(0d))
+          ApparentPower(Kilowatts(0d), Kilovars(0d)),
         )
 
       // expect correct results
@@ -218,7 +218,7 @@ class EmAgentSpec
           simulationStartDate,
           parent = Left(scheduler.ref),
           maybeRootEmConfig = None,
-          listener = Iterable(resultListener.ref)
+          listener = Iterable(resultListener.ref),
         )
       )
 
@@ -250,7 +250,7 @@ class EmAgentSpec
         pvInput.getUuid,
         Kilowatts(-5d),
         Kilowatts(-5d),
-        Kilowatts(0d)
+        Kilowatts(0d),
       )
 
       pvAgent.expectNoMessage()
@@ -260,7 +260,7 @@ class EmAgentSpec
         evcsInput.getUuid,
         Kilowatts(2d),
         Kilowatts(-11d),
-        Kilowatts(11d)
+        Kilowatts(11d),
       )
 
       // receive flex control messages
@@ -274,7 +274,7 @@ class EmAgentSpec
       emAgent ! FlexCtrlCompletion(
         modelUuid = pvInput.getUuid,
         result = ApparentPower(Kilowatts(-5d), Kilovars(-0.5d)),
-        requestAtTick = Some(300)
+        requestAtTick = Some(300),
       )
 
       scheduler.expectNoMessage()
@@ -282,7 +282,7 @@ class EmAgentSpec
       emAgent ! FlexCtrlCompletion(
         modelUuid = evcsInput.getUuid,
         result = ApparentPower(Kilowatts(5d), Kilovars(0.1d)),
-        requestAtTick = Some(600)
+        requestAtTick = Some(600),
       )
 
       // expect correct results
@@ -312,7 +312,7 @@ class EmAgentSpec
         pvInput.getUuid,
         Kilowatts(-3d),
         Kilowatts(-3d),
-        Kilowatts(0d)
+        Kilowatts(0d),
       )
 
       // receive flex control messages
@@ -320,7 +320,7 @@ class EmAgentSpec
 
       emAgent ! FlexCtrlCompletion(
         pvInput.getUuid,
-        ApparentPower(Kilowatts(-3d), Kilovars(-0.06d))
+        ApparentPower(Kilowatts(-3d), Kilovars(-0.06d)),
       )
 
       // evcs is now sent control too
@@ -334,7 +334,7 @@ class EmAgentSpec
       emAgent ! FlexCtrlCompletion(
         evcsInput.getUuid,
         ApparentPower(Kilowatts(3d), Kilovars(0.06d)),
-        requestAtTick = Some(800) // should overwrite tick 600
+        requestAtTick = Some(800), // should overwrite tick 600
       )
 
       // expect correct results
@@ -365,7 +365,7 @@ class EmAgentSpec
           simulationStartDate,
           parent = Left(scheduler.ref),
           maybeRootEmConfig = None,
-          listener = Iterable(resultListener.ref)
+          listener = Iterable(resultListener.ref),
         )
       )
 
@@ -397,7 +397,7 @@ class EmAgentSpec
         pvInput.getUuid,
         Kilowatts(-5d),
         Kilowatts(-5d),
-        Kilowatts(0d)
+        Kilowatts(0d),
       )
 
       pvAgent.expectNoMessage()
@@ -407,7 +407,7 @@ class EmAgentSpec
         evcsInput.getUuid,
         Kilowatts(2d),
         Kilowatts(-11d),
-        Kilowatts(11d)
+        Kilowatts(11d),
       )
 
       // receive flex control messages
@@ -422,7 +422,7 @@ class EmAgentSpec
       emAgent ! FlexCtrlCompletion(
         pvInput.getUuid,
         ApparentPower(Kilowatts(-5d), Kilovars(-0.5d)),
-        requestAtTick = Some(300)
+        requestAtTick = Some(300),
       )
 
       scheduler.expectNoMessage()
@@ -431,7 +431,7 @@ class EmAgentSpec
         evcsInput.getUuid,
         ApparentPower(Kilowatts(5d), Kilovars(0.1d)),
         requestAtNextActivation = true, // sending ChangingFlexOptions indicator
-        requestAtTick = Some(600)
+        requestAtTick = Some(600),
       )
 
       resultListener.expectMessageType[ParticipantResultEvent] match {
@@ -460,7 +460,7 @@ class EmAgentSpec
         pvInput.getUuid,
         Kilowatts(-3d),
         Kilowatts(-3d),
-        Kilowatts(0d)
+        Kilowatts(0d),
       )
 
       // expecting flex options request, since we asked for it last time
@@ -470,7 +470,7 @@ class EmAgentSpec
         evcsInput.getUuid,
         Kilowatts(2d),
         Kilowatts(-11d),
-        Kilowatts(11d)
+        Kilowatts(11d),
       )
 
       // FLEX CONTROL
@@ -478,7 +478,7 @@ class EmAgentSpec
 
       emAgent ! FlexCtrlCompletion(
         pvInput.getUuid,
-        ApparentPower(Kilowatts(-3d), Kilovars(-0.06d))
+        ApparentPower(Kilowatts(-3d), Kilovars(-0.06d)),
       )
 
       evcsAgent.expectMessageType[IssuePowerControl] match {
@@ -490,7 +490,7 @@ class EmAgentSpec
 
       emAgent ! FlexCtrlCompletion(
         evcsInput.getUuid, // revoking tick 600
-        ApparentPower(Kilowatts(3d), Kilovars(0.06d))
+        ApparentPower(Kilowatts(3d), Kilovars(0.06d)),
       )
 
       // expect correct results
@@ -523,7 +523,7 @@ class EmAgentSpec
           simulationStartDate,
           parent = Right(parentEmAgent.ref),
           maybeRootEmConfig = None,
-          listener = Iterable(resultListener.ref)
+          listener = Iterable(resultListener.ref),
         )
       )
 
@@ -559,7 +559,7 @@ class EmAgentSpec
         pvInput.getUuid,
         Kilowatts(-5d),
         Kilowatts(-5d),
-        Kilowatts(0d)
+        Kilowatts(0d),
       )
 
       pvAgent.expectNoMessage()
@@ -569,7 +569,7 @@ class EmAgentSpec
         evcsInput.getUuid,
         Kilowatts(2d),
         Kilowatts(-11d),
-        Kilowatts(11d)
+        Kilowatts(11d),
       )
 
       resultListener.expectMessageType[FlexOptionsResultEvent] match {
@@ -586,7 +586,7 @@ class EmAgentSpec
               modelUuid,
               referencePower,
               minPower,
-              maxPower
+              maxPower,
             ) =>
           modelUuid shouldBe emInput.getUuid
           referencePower shouldBe Kilowatts(0d)
@@ -604,7 +604,7 @@ class EmAgentSpec
       emAgent ! FlexCtrlCompletion(
         pvInput.getUuid,
         ApparentPower(Kilowatts(-5), Kilovars(-0.5)),
-        requestAtTick = Some(600)
+        requestAtTick = Some(600),
       )
 
       evcsAgent.expectMessageType[IssuePowerControl] match {
@@ -617,7 +617,7 @@ class EmAgentSpec
       emAgent ! FlexCtrlCompletion(
         evcsInput.getUuid,
         ApparentPower(Kilowatts(11), Kilovars(1.1)),
-        requestAtTick = Some(300)
+        requestAtTick = Some(300),
       )
 
       // expect correct results
@@ -634,7 +634,7 @@ class EmAgentSpec
               modelUuid,
               result,
               requestAtNextActivation,
-              requestAtTick
+              requestAtTick,
             ) =>
           modelUuid shouldBe emInput.getUuid
           result.p should approximate(Kilowatts(6))
@@ -664,7 +664,7 @@ class EmAgentSpec
       emAgent ! FlexCtrlCompletion(
         evcsInput.getUuid,
         ApparentPower(Kilowatts(5.0), Kilovars(0.5)),
-        requestAtTick = Some(700)
+        requestAtTick = Some(700),
       )
 
       // expect correct results
@@ -681,7 +681,7 @@ class EmAgentSpec
               modelUuid,
               result,
               requestAtNextActivation,
-              requestAtTick
+              requestAtTick,
             ) =>
           modelUuid shouldBe emInput.getUuid
           result.p should approximate(Kilowatts(0))

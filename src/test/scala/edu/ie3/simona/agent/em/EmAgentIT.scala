@@ -19,18 +19,18 @@ import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
   RegistrationFailedMessage,
-  RegistrationSuccessfulMessage
+  RegistrationSuccessfulMessage,
 }
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
   ProvideWeatherMessage,
   RegisterForWeatherMessage,
-  WeatherData
+  WeatherData,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.test.common.input.EmInputTestData
@@ -43,7 +43,7 @@ import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
-  TestProbe
+  TestProbe,
 }
 import org.apache.pekko.actor.typed.scaladsl.adapter._
 import org.apache.pekko.testkit.TestActorRef
@@ -75,13 +75,13 @@ class EmAgentIT
   private val outputConfigOn = NotifierConfig(
     simulationResultInfo = true,
     powerRequestReply = false,
-    flexResult = false
+    flexResult = false,
   )
 
   private val outputConfigOff = NotifierConfig(
     simulationResultInfo = false,
     powerRequestReply = false,
-    flexResult = false
+    flexResult = false,
   )
 
   override protected val modelConfig: EmRuntimeConfig = EmRuntimeConfig(
@@ -89,7 +89,7 @@ class EmAgentIT
     scaling = 1d,
     uuids = List("default"),
     aggregateFlex = "SELF_OPT",
-    pvFlex = false
+    pvFlex = false,
   )
 
   private implicit val quantityTolerance: Double = 1e-10d
@@ -114,9 +114,9 @@ class EmAgentIT
             simulationStartDate,
             parent = Left(scheduler.ref),
             maybeRootEmConfig = None,
-            listener = Iterable(resultListener.ref)
+            listener = Iterable(resultListener.ref),
           ),
-          "EmAgent"
+          "EmAgent",
         )
 
         val loadAgent = TestActorRef(
@@ -129,7 +129,7 @@ class EmAgentIT
                 scaling = 1d,
                 modelBehaviour = "fix",
                 reference = "power",
-                uuids = List.empty
+                uuids = List.empty,
               ),
               primaryServiceProxy.ref.toClassic,
               None,
@@ -138,11 +138,11 @@ class EmAgentIT
               resolution,
               simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfigOff,
-              Some(emAgent)
+              Some(emAgent),
             ),
-            listener = Iterable(resultListener.ref.toClassic)
+            listener = Iterable(resultListener.ref.toClassic),
           ),
-          "LoadAgent"
+          "LoadAgent",
         )
         val pvAgent = TestActorRef(
           new PvAgent(
@@ -152,7 +152,7 @@ class EmAgentIT
               PvRuntimeConfig(
                 calculateMissingReactivePowerWithModel = true,
                 scaling = 2d,
-                uuids = List.empty
+                uuids = List.empty,
               ),
               primaryServiceProxy.ref.toClassic,
               Iterable(ActorWeatherService(weatherService.ref.toClassic)),
@@ -161,11 +161,11 @@ class EmAgentIT
               resolution,
               simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfigOff,
-              Some(emAgent)
+              Some(emAgent),
             ),
-            listener = Iterable(resultListener.ref.toClassic)
+            listener = Iterable(resultListener.ref.toClassic),
           ),
-          "PvAgent"
+          "PvAgent",
         )
         val storageAgent = TestActorRef(
           new StorageAgent(
@@ -177,7 +177,7 @@ class EmAgentIT
                 scaling = 1d,
                 uuids = List.empty,
                 initialSoc = 0d,
-                targetSoc = None
+                targetSoc = None,
               ),
               primaryServiceProxy.ref.toClassic,
               None,
@@ -186,11 +186,11 @@ class EmAgentIT
               resolution,
               simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfigOff,
-              Some(emAgent)
+              Some(emAgent),
             ),
-            listener = Iterable(resultListener.ref.toClassic)
+            listener = Iterable(resultListener.ref.toClassic),
           ),
-          "StorageAgent"
+          "StorageAgent",
         )
 
         scheduler.expectNoMessage()
@@ -236,13 +236,13 @@ class EmAgentIT
         weatherService.expectMessage(
           RegisterForWeatherMessage(
             pvInput.getNode.getGeoPosition.getY,
-            pvInput.getNode.getGeoPosition.getX
+            pvInput.getNode.getGeoPosition.getX,
           )
         )
 
         pvAgent ! RegistrationSuccessfulMessage(
           weatherService.ref.toClassic,
-          Some(0L)
+          Some(0L),
         )
 
         scheduler.expectMessage(Completion(pvAgent))
@@ -276,9 +276,9 @@ class EmAgentIT
             WattsPerSquareMeter(400d),
             WattsPerSquareMeter(200d),
             Celsius(0d),
-            MetersPerSecond(0d)
+            MetersPerSecond(0d),
           ),
-          Some(7200)
+          Some(7200),
         )
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
@@ -310,9 +310,9 @@ class EmAgentIT
             WattsPerSquareMeter(300d),
             WattsPerSquareMeter(500d),
             Celsius(0d),
-            MetersPerSecond(0d)
+            MetersPerSecond(0d),
           ),
-          Some(14400)
+          Some(14400),
         )
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
@@ -364,9 +364,9 @@ class EmAgentIT
             WattsPerSquareMeter(5d),
             WattsPerSquareMeter(5d),
             Celsius(0d),
-            MetersPerSecond(0d)
+            MetersPerSecond(0d),
           ),
-          Some(21600)
+          Some(21600),
         )
 
         emAgentActivation ! Activation(14400)
@@ -401,9 +401,9 @@ class EmAgentIT
             simulationStartDate,
             parent = Left(scheduler.ref),
             maybeRootEmConfig = None,
-            listener = Iterable(resultListener.ref)
+            listener = Iterable(resultListener.ref),
           ),
-          "EmAgent1"
+          "EmAgent1",
         )
 
         val loadAgent = TestActorRef(
@@ -416,7 +416,7 @@ class EmAgentIT
                 scaling = 1d,
                 modelBehaviour = "fix",
                 reference = "power",
-                uuids = List.empty
+                uuids = List.empty,
               ),
               primaryServiceProxy.ref.toClassic,
               None,
@@ -425,11 +425,11 @@ class EmAgentIT
               resolution,
               simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfigOff,
-              Some(emAgent)
+              Some(emAgent),
             ),
-            listener = Iterable(resultListener.ref.toClassic)
+            listener = Iterable(resultListener.ref.toClassic),
           ),
-          "LoadAgent1"
+          "LoadAgent1",
         )
         val pvAgent = TestActorRef(
           new PvAgent(
@@ -439,7 +439,7 @@ class EmAgentIT
               PvRuntimeConfig(
                 calculateMissingReactivePowerWithModel = true,
                 scaling = 2d,
-                uuids = List.empty
+                uuids = List.empty,
               ),
               primaryServiceProxy.ref.toClassic,
               Iterable(ActorWeatherService(weatherService.ref.toClassic)),
@@ -448,11 +448,11 @@ class EmAgentIT
               resolution,
               simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfigOff,
-              Some(emAgent)
+              Some(emAgent),
             ),
-            listener = Iterable(resultListener.ref.toClassic)
+            listener = Iterable(resultListener.ref.toClassic),
           ),
-          "PvAgent1"
+          "PvAgent1",
         )
         val heatPumpAgent = TestActorRef(
           new HpAgent(
@@ -463,7 +463,7 @@ class EmAgentIT
               HpRuntimeConfig(
                 calculateMissingReactivePowerWithModel = true,
                 1.0,
-                List.empty[String]
+                List.empty[String],
               ),
               primaryServiceProxy.ref.toClassic,
               Iterable(ActorWeatherService(weatherService.ref.toClassic)),
@@ -472,11 +472,11 @@ class EmAgentIT
               resolution,
               simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
               outputConfigOff,
-              Some(emAgent)
+              Some(emAgent),
             ),
-            listener = Iterable(resultListener.ref.toClassic)
+            listener = Iterable(resultListener.ref.toClassic),
           ),
-          "HeatPumpAgent1"
+          "HeatPumpAgent1",
         )
 
         scheduler.expectNoMessage()
@@ -522,13 +522,13 @@ class EmAgentIT
         weatherService.expectMessage(
           RegisterForWeatherMessage(
             pvInput.getNode.getGeoPosition.getY,
-            pvInput.getNode.getGeoPosition.getX
+            pvInput.getNode.getGeoPosition.getX,
           )
         )
 
         pvAgent ! RegistrationSuccessfulMessage(
           weatherService.ref.toClassic,
-          Some(0L)
+          Some(0L),
         )
 
         scheduler.expectMessage(Completion(pvAgent))
@@ -546,13 +546,13 @@ class EmAgentIT
         weatherService.expectMessage(
           RegisterForWeatherMessage(
             hpInputModel.getNode.getGeoPosition.getY,
-            hpInputModel.getNode.getGeoPosition.getX
+            hpInputModel.getNode.getGeoPosition.getX,
           )
         )
 
         heatPumpAgent ! RegistrationSuccessfulMessage(
           weatherService.ref.toClassic,
-          Some(0L)
+          Some(0L),
         )
 
         scheduler.expectMessage(Completion(heatPumpAgent))
@@ -577,9 +577,9 @@ class EmAgentIT
               WattsPerSquareMeter(400d),
               WattsPerSquareMeter(200d),
               Celsius(0d),
-              MetersPerSecond(0d)
+              MetersPerSecond(0d),
             ),
-            Some(7200)
+            Some(7200),
           )
         }
 
@@ -613,9 +613,9 @@ class EmAgentIT
               WattsPerSquareMeter(300d),
               WattsPerSquareMeter(500d),
               Celsius(0d),
-              MetersPerSecond(0d)
+              MetersPerSecond(0d),
             ),
-            Some(14400)
+            Some(14400),
           )
         }
 
@@ -647,9 +647,9 @@ class EmAgentIT
               WattsPerSquareMeter(5d),
               WattsPerSquareMeter(5d),
               Celsius(0d),
-              MetersPerSecond(0d)
+              MetersPerSecond(0d),
             ),
-            Some(21600)
+            Some(21600),
           )
         }
 
@@ -680,9 +680,9 @@ class EmAgentIT
               WattsPerSquareMeter(5d),
               WattsPerSquareMeter(5d),
               Celsius(0d),
-              MetersPerSecond(0d)
+              MetersPerSecond(0d),
             ),
-            Some(28800)
+            Some(28800),
           )
         }
 

@@ -25,15 +25,15 @@ object PvAgent {
       initStateData: ParticipantInitializeStateData[
         PvInput,
         PvRuntimeConfig,
-        ApparentPower
+        ApparentPower,
       ],
-      listener: Iterable[ActorRef]
+      listener: Iterable[ActorRef],
   ): Props =
     Props(
       new PvAgent(
         scheduler,
         initStateData,
-        listener
+        listener,
       )
     )
 
@@ -54,9 +54,9 @@ class PvAgent(
     initStateData: ParticipantInitializeStateData[
       PvInput,
       PvRuntimeConfig,
-      ApparentPower
+      ApparentPower,
     ],
-    override val listener: Iterable[ActorRef]
+    override val listener: Iterable[ActorRef],
 ) extends ParticipantAgent[
       ApparentPower,
       PvRelevantData,
@@ -64,10 +64,10 @@ class PvAgent(
       ParticipantStateData[ApparentPower],
       PvInput,
       PvRuntimeConfig,
-      PvModel
+      PvModel,
     ](
       scheduler,
-      initStateData
+      initStateData,
     )
     with PvAgentFundamentals {
 

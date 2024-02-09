@@ -26,7 +26,7 @@ final case class RuntimeEventLogSink(
   override def handleRuntimeEvent(
       runtimeEvent: RuntimeEvent,
       runtimeStats: RuntimeStats,
-      log: Logger
+      log: Logger,
   ): Unit =
     runtimeEvent match {
       case Initializing =>

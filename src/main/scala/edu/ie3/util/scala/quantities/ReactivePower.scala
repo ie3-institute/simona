@@ -14,7 +14,7 @@ import scala.util.Try
 
 final class ReactivePower private (
     val value: Double,
-    val unit: ReactivePowerUnit
+    val unit: ReactivePowerUnit,
 ) extends Quantity[ReactivePower]
     with TimeIntegral[PowerRamp] {
 

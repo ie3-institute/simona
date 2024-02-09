@@ -9,7 +9,7 @@ package edu.ie3.simona.agent.participant.storage
 import edu.ie3.datamodel.models.input.system.StorageInput
 import edu.ie3.datamodel.models.result.system.{
   StorageResult,
-  SystemParticipantResult
+  SystemParticipantResult,
 }
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
@@ -17,33 +17,33 @@ import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
-  ZERO_POWER
+  ZERO_POWER,
 }
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FlexControlledData,
-  ParticipantModelBaseStateData
+  ParticipantModelBaseStateData,
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.participant.statedata.{
   BaseStateData,
-  ParticipantStateData
+  ParticipantStateData,
 }
 import edu.ie3.simona.config.SimonaConfig.StorageRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   AgentInitializationException,
-  InvalidRequestException
+  InvalidRequestException,
 }
 import edu.ie3.simona.model.participant.StorageModel.{
   StorageRelevantData,
-  StorageState
+  StorageState,
 }
 import edu.ie3.simona.model.participant.{FlexChangeIndicator, StorageModel}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexRequest,
-  FlexResponse
+  FlexResponse,
 }
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -69,7 +69,7 @@ trait StorageAgentFundamentals
       ParticipantStateData[ApparentPower],
       StorageInput,
       StorageRuntimeConfig,
-      StorageModel
+      StorageModel,
     ] {
   this: StorageAgent =>
   override val alternativeResult: ApparentPower = ZERO_POWER
@@ -89,12 +89,12 @@ trait StorageAgentFundamentals
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeEmAgent: Option[TypedActorRef[FlexResponse]]
+      maybeEmAgent: Option[TypedActorRef[FlexResponse]],
   ): BaseStateData.ParticipantModelBaseStateData[
     ApparentPower,
     StorageRelevantData,
     StorageState,
-    StorageModel
+    StorageModel,
   ] = {
     if (maybeEmAgent.isEmpty)
       throw new AgentInitializationException(
@@ -107,14 +107,14 @@ trait StorageAgentFundamentals
         inputModel,
         modelConfig,
         simulationStartDate,
-        simulationEndDate
+        simulationEndDate,
       )
 
     ParticipantModelBaseStateData[
       ApparentPower,
       StorageRelevantData,
       StorageState,
-      StorageModel
+      StorageModel,
     ](
       simulationStartDate,
       simulationEndDate,
@@ -132,7 +132,7 @@ trait StorageAgentFundamentals
             .to(PowerSystemUnits.PU)
             .getValue
             .doubleValue
-        )
+        ),
       ),
       ValueStore(resolution),
       ValueStore(resolution),
@@ -140,7 +140,7 @@ trait StorageAgentFundamentals
       ValueStore(resolution),
       maybeEmAgent.map(
         FlexControlledData(_, self.toTyped[FlexRequest])
-      )
+      ),
     )
   }
 
@@ -148,14 +148,14 @@ trait StorageAgentFundamentals
       inputModel: InputModelContainer[StorageInput],
       modelConfig: StorageRuntimeConfig,
       simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime
+      simulationEndDate: ZonedDateTime,
   ): StorageModel = StorageModel(
     inputModel.electricalInputModel,
     modelConfig.scaling,
     simulationStartDate,
     simulationEndDate,
     modelConfig.initialSoc,
-    modelConfig.targetSoc
+    modelConfig.targetSoc,
   )
 
   override protected def createInitialState(
@@ -163,12 +163,12 @@ trait StorageAgentFundamentals
         ApparentPower,
         StorageRelevantData,
         StorageState,
-        StorageModel
+        StorageModel,
       ]
   ): StorageState = StorageState(
     baseStateData.model.eStorage * baseStateData.model.initialSoc,
     Kilowatts(0d),
-    SimonaConstants.INIT_SIM_TICK
+    SimonaConstants.INIT_SIM_TICK,
   )
 
   override protected def createCalcRelevantData(
@@ -176,9 +176,9 @@ trait StorageAgentFundamentals
         ApparentPower,
         StorageRelevantData,
         StorageState,
-        StorageModel
+        StorageModel,
       ],
-      tick: Long
+      tick: Long,
   ): StorageRelevantData =
     StorageRelevantData(tick)
 
@@ -188,10 +188,10 @@ trait StorageAgentFundamentals
         ApparentPower,
         StorageRelevantData,
         StorageState,
-        StorageModel
+        StorageModel,
       ],
       StorageState,
-      squants.Dimensionless
+      squants.Dimensionless,
   ) => ApparentPower =
     (_, _, _, _) =>
       throw new InvalidRequestException(
@@ -203,11 +203,11 @@ trait StorageAgentFundamentals
         ApparentPower,
         StorageRelevantData,
         StorageState,
-        StorageModel
+        StorageModel,
       ],
       modelState: StorageState,
       currentTick: Long,
-      scheduler: ActorRef
+      scheduler: ActorRef,
   ): State =
     throw new InvalidRequestException(
       "StorageAgent cannot be used without EM control"
@@ -219,25 +219,25 @@ trait StorageAgentFundamentals
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         squants.Power => ReactivePower
-      ]
+      ],
   ): ApparentPower = ParticipantAgentFundamentals.averageApparentPower(
     tickToResults,
     windowStart,
     windowEnd,
     activeToReactivePowerFuncOpt,
-    log
+    log,
   )
 
   override protected def buildResult(
       uuid: UUID,
       dateTime: ZonedDateTime,
-      result: ApparentPower
+      result: ApparentPower,
   ): SystemParticipantResult = new StorageResult(
     dateTime,
     uuid,
     result.p.toMegawatts.asMegaWatt,
     result.q.toMegavars.asMegaVar,
-    (-1d).asPercent // dummy value
+    (-1d).asPercent, // dummy value
   )
 
   /** Additional actions on a new calculated simulation result. Overridden here
@@ -257,15 +257,15 @@ trait StorageAgentFundamentals
         ApparentPower,
         StorageRelevantData,
         StorageState,
-        StorageModel
+        StorageModel,
       ],
       result: ApparentPower,
-      currentTick: Long
+      currentTick: Long,
   ): ParticipantModelBaseStateData[
     ApparentPower,
     StorageRelevantData,
     StorageState,
-    StorageModel
+    StorageModel,
   ] = {
 
     // announce last result to listeners
@@ -291,7 +291,7 @@ trait StorageAgentFundamentals
         uuid,
         result.p.toMegawatts.asMegaWatt,
         result.q.toMegavars.asMegaVar,
-        soc
+        soc,
       )
 
       notifyListener(ParticipantResultEvent(storageResult))
@@ -301,7 +301,7 @@ trait StorageAgentFundamentals
       resultValueStore = ValueStore.updateValueStore(
         baseStateData.resultValueStore,
         currentTick,
-        result
+        result,
       )
     )
   }
@@ -327,11 +327,11 @@ trait StorageAgentFundamentals
         ApparentPower,
         StorageRelevantData,
         StorageState,
-        StorageModel
+        StorageModel,
       ],
       data: StorageRelevantData,
       lastState: StorageState,
-      setPower: squants.Power
+      setPower: squants.Power,
   ): (StorageState, ApparentPower, FlexChangeIndicator) = {
     val (updatedState, flexChangeIndicator) =
       baseStateData.model.handleControlledPowerChange(data, lastState, setPower)
@@ -339,7 +339,7 @@ trait StorageAgentFundamentals
     val voltage = getAndCheckNodalVoltage(baseStateData, tick)
     val reactivePower = baseStateData.model.calculateReactivePower(
       setPower,
-      voltage
+      voltage,
     )
 
     // TODO: Actually change state and calculate the next tick, when something happens
@@ -368,7 +368,7 @@ trait StorageAgentFundamentals
       modelState: StorageState,
       calcRelevantData: StorageRelevantData,
       nodalVoltage: squants.Dimensionless,
-      model: StorageModel
+      model: StorageModel,
   ): StorageState = ???
 
 }

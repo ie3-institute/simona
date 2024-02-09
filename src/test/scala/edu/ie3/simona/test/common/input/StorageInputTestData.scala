@@ -33,7 +33,7 @@ trait StorageInputTestData extends DefaultTestData with NodeInputTestData {
     Quantities.getQuantity(0.92, PU),
     Quantities.getQuantity(20d, PERCENT),
     Quantities.getQuantity(43800.0, HOUR),
-    100000
+    100000,
   )
 
   protected val storageInput = new StorageInput(
@@ -43,7 +43,7 @@ trait StorageInputTestData extends DefaultTestData with NodeInputTestData {
     OperationTime.notLimited(),
     nodeInputNoSlackNs04KvA,
     CosPhiFixed.CONSTANT_CHARACTERISTIC,
-    storageTypeInput
+    storageTypeInput,
   )
 
 }

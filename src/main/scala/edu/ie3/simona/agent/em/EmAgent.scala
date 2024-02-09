@@ -15,14 +15,14 @@ import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.{
   FlexOptionsResultEvent,
-  ParticipantResultEvent
+  ParticipantResultEvent,
 }
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.{EmModelShell, EmTools, FlexTimeSeries}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
@@ -104,7 +104,7 @@ object EmAgent {
       simulationStartDate: ZonedDateTime,
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
       maybeRootEmConfig: Option[SimonaConfig.Simona.Runtime.RootEm] = None,
-      listener: Iterable[ActorRef[ResultEvent]]
+      listener: Iterable[ActorRef[ResultEvent]],
   ): Behavior[EmMessage] = Behaviors.setup { ctx =>
     val constantData = EmData(
       outputConfig,
@@ -116,7 +116,7 @@ object EmAgent {
           parentEm ! RegisterParticipant(
             inputModel.getUuid,
             flexAdapter,
-            inputModel
+            inputModel,
           )
 
           FlexControlledData(parentEm, flexAdapter)
@@ -133,20 +133,20 @@ object EmAgent {
       maybeRootEmConfig.map(
         FlexTimeSeries(_)(simulationStartDate)
       ),
-      listener
+      listener,
     )
 
     val modelShell = EmModelShell(
       inputModel.getUuid,
       inputModel.getId,
       modelStrategy,
-      modelConfig
+      modelConfig,
     )
 
     inactive(
       constantData,
       modelShell,
-      EmDataCore.create(simulationStartDate)
+      EmDataCore.create(simulationStartDate),
     )
   }
 
@@ -156,7 +156,7 @@ object EmAgent {
   private def inactive(
       emData: EmData,
       modelShell: EmModelShell,
-      core: EmDataCore.Inactive
+      core: EmDataCore.Inactive,
   ): Behavior[EmMessage] = Behaviors.receivePartial {
 
     case (_, RegisterParticipant(model, actor, spi)) =>
@@ -178,13 +178,13 @@ object EmAgent {
               schedulerData.scheduler ! ScheduleActivation(
                 schedulerData.activationAdapter,
                 scheduleTick,
-                scheduleKey
+                scheduleKey,
               ),
             _.emAgent ! ScheduleFlexRequest(
               modelShell.uuid,
               scheduleTick,
-              scheduleKey
-            )
+              scheduleKey,
+            ),
           )
         case None =>
           // we don't need to escalate to the parent, this means that we can
@@ -227,7 +227,7 @@ object EmAgent {
   private def awaitingFlexOptions(
       emData: EmData,
       modelShell: EmModelShell,
-      flexOptionsCore: EmDataCore.AwaitingFlexOptions
+      flexOptionsCore: EmDataCore.AwaitingFlexOptions,
   ): Behavior[EmMessage] = Behaviors.receiveMessagePartial {
     case flexOptions: ProvideFlexOptions =>
       val updatedCore = flexOptionsCore.handleFlexOptions(flexOptions)
@@ -250,7 +250,7 @@ object EmAgent {
                 modelShell.uuid,
                 ref.toMegawatts.asMegaWatt,
                 min.toMegawatts.asMegaWatt,
-                max.toMegawatts.asMegaWatt
+                max.toMegawatts.asMegaWatt,
               )
 
               emData.listener.foreach {
@@ -262,7 +262,7 @@ object EmAgent {
               modelShell.uuid,
               ref,
               min,
-              max
+              max,
             )
 
             flexStateData.emAgent ! flexMessage
@@ -309,7 +309,7 @@ object EmAgent {
         awaitingFlexOptions(
           emData,
           modelShell,
-          updatedCore
+          updatedCore,
         )
       }
 
@@ -326,7 +326,7 @@ object EmAgent {
   private def awaitingFlexCtrl(
       emData: EmData,
       modelShell: EmModelShell,
-      flexOptionsCore: EmDataCore.AwaitingFlexOptions
+      flexOptionsCore: EmDataCore.AwaitingFlexOptions,
   ): Behavior[EmMessage] = Behaviors.receiveMessagePartial {
     case Flex(flexCtrl: IssueFlexControl) =>
       val flexData = emData.parentData.getOrElse(
@@ -343,7 +343,7 @@ object EmAgent {
       val setPointActivePower = EmTools
         .determineFlexPower(
           ownFlexOptions,
-          flexCtrl
+          flexCtrl,
         )
 
       // flex options calculated by connected agents
@@ -352,7 +352,7 @@ object EmAgent {
       val ctrlSetPoints =
         modelShell.determineFlexControl(
           receivedFlexOptions,
-          setPointActivePower
+          setPointActivePower,
         )
 
       val (allFlexMsgs, newCore) = flexOptionsCore
@@ -373,7 +373,7 @@ object EmAgent {
   private def awaitingCompletions(
       emData: EmData,
       modelShell: EmModelShell,
-      core: EmDataCore.AwaitingCompletions
+      core: EmDataCore.AwaitingCompletions,
   ): Behavior[EmMessage] = Behaviors.receiveMessagePartial {
     // Completions and results
     case completion: FlexCtrlCompletion =>
@@ -386,7 +386,7 @@ object EmAgent {
             emData,
             modelShell,
             inactiveCore,
-            lastActiveTick = updatedCore.activeTick
+            lastActiveTick = updatedCore.activeTick,
           )
           inactive(emData, modelShell, inactiveCore)
         }
@@ -395,7 +395,7 @@ object EmAgent {
           awaitingCompletions(
             emData,
             modelShell,
-            updatedCore
+            updatedCore,
           )
         }
 
@@ -405,7 +405,7 @@ object EmAgent {
       emData: EmData,
       modelShell: EmModelShell,
       inactiveCore: EmDataCore.Inactive,
-      lastActiveTick: Long
+      lastActiveTick: Long,
   ): Unit = {
     // calc result
     val result = inactiveCore.getResults
@@ -415,7 +415,7 @@ object EmAgent {
       .getOrElse(
         ApparentPower(
           Megawatts(0d),
-          Megavars(0d)
+          Megavars(0d),
         )
       )
 
@@ -426,7 +426,7 @@ object EmAgent {
             .toDateTime(emData.simulationStartDate),
           modelShell.uuid,
           result.p.toMegawatts.asMegaWatt,
-          result.q.toMegavars.asMegaVar
+          result.q.toMegavars.asMegaVar,
         )
       )
     }
@@ -435,14 +435,14 @@ object EmAgent {
       schedulerData =>
         schedulerData.scheduler ! Completion(
           schedulerData.activationAdapter,
-          inactiveCore.nextActiveTick
+          inactiveCore.nextActiveTick,
         ),
       _.emAgent ! FlexCtrlCompletion(
         modelShell.uuid,
         result,
         inactiveCore.hasFlexWithNext,
-        inactiveCore.nextActiveTick
-      )
+        inactiveCore.nextActiveTick,
+      ),
     )
   }
 
@@ -465,7 +465,7 @@ object EmAgent {
       simulationStartDate: ZonedDateTime,
       parentData: Either[SchedulerData, FlexControlledData],
       flexTimeSeries: Option[FlexTimeSeries],
-      listener: Iterable[ActorRef[ResultEvent]]
+      listener: Iterable[ActorRef[ResultEvent]],
   )
 
   /** The existence of this data object indicates that the corresponding agent
@@ -479,6 +479,6 @@ object EmAgent {
     */
   final case class SchedulerData(
       scheduler: ActorRef[SchedulerMessage],
-      activationAdapter: ActorRef[Activation]
+      activationAdapter: ActorRef[Activation],
   )
 }

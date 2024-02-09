@@ -22,7 +22,7 @@ import scala.collection.SortedMap
   */
 final case class ValueStore[+D](
     maxTickSpan: Long,
-    private val store: SortedMap[Long, D] = SortedMap.empty[Long, D]
+    private val store: SortedMap[Long, D] = SortedMap.empty[Long, D],
 ) {
 
   /** Determine the lastly known data tick, if available. Includes the given
@@ -105,11 +105,11 @@ object ValueStore {
     */
   def forVoltage(
       maxTickSpan: Long,
-      initialPerUnit: Dimensionless
+      initialPerUnit: Dimensionless,
   ): ValueStore[Dimensionless] =
     new ValueStore(
       maxTickSpan,
-      SortedMap(SimonaConstants.FIRST_TICK_IN_SIMULATION -> initialPerUnit)
+      SortedMap(SimonaConstants.FIRST_TICK_IN_SIMULATION -> initialPerUnit),
     )
 
   /** Create a value store for result values. A result value store requires a
@@ -144,7 +144,7 @@ object ValueStore {
   def updateValueStore[D](
       valueStore: ValueStore[D],
       tick: Long,
-      newEntry: D
+      newEntry: D,
   ): ValueStore[D] = {
     val updatedStore = valueStore.store ++ SortedMap(tick -> newEntry)
 

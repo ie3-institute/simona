@@ -10,23 +10,23 @@ import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.datamodel.models.input.system.`type`.{
   HpTypeInput,
-  StorageTypeInput
+  StorageTypeInput,
 }
 import edu.ie3.datamodel.models.input.system.`type`.chargingpoint.ChargingPointTypeUtils
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
 import edu.ie3.datamodel.models.input.system.characteristic.{
   CosPhiFixed,
-  ReactivePowerCharacteristic
+  ReactivePowerCharacteristic,
 }
 import edu.ie3.datamodel.models.input.system.{
   EmInput,
   EvcsInput,
   HpInput,
-  StorageInput
+  StorageInput,
 }
 import edu.ie3.datamodel.models.input.thermal.{
   ThermalHouseInput,
-  ThermalStorageInput
+  ThermalStorageInput,
 }
 import edu.ie3.datamodel.models.{ControlStrategy, OperationTime, StandardUnits}
 import edu.ie3.simona.config.SimonaConfig
@@ -59,7 +59,7 @@ trait EmInputTestData
     2,
     0.95,
     EvcsLocationType.HOME,
-    true
+    true,
   )
 
   protected val householdStorageTypeInput = new StorageTypeInput(
@@ -75,7 +75,7 @@ trait EmInputTestData
     Quantities.getQuantity(0.95, PU),
     Quantities.getQuantity(20d, PERCENT),
     Quantities.getQuantity(50000d, HOUR),
-    100000
+    100000,
   )
 
   protected val householdStorageInput = new StorageInput(
@@ -85,7 +85,7 @@ trait EmInputTestData
     OperationTime.notLimited(),
     nodeInputNoSlackNs04KvA,
     CosPhiFixed.CONSTANT_CHARACTERISTIC,
-    householdStorageTypeInput
+    householdStorageTypeInput,
   )
 
   protected val emInput = new EmInput(
@@ -96,7 +96,7 @@ trait EmInputTestData
     nodeInputNoSlackNs04KvA,
     CosPhiFixed.CONSTANT_CHARACTERISTIC,
     Array.empty,
-    ControlStrategy.DefaultControlStrategies.NO_CONTROL_STRATEGY // FIXME adapt once available
+    ControlStrategy.DefaultControlStrategies.NO_CONTROL_STRATEGY, // FIXME adapt once available
   )
 
   protected val simonaConfig: SimonaConfig =
@@ -104,7 +104,7 @@ trait EmInputTestData
       LoadModelBehaviour.FIX,
       LoadReference.ActivePower(
         Kilowatts(0.0)
-      )
+      ),
     )
 
   private val configUtil = ConfigUtil.ParticipantConfigUtil(
@@ -115,7 +115,7 @@ trait EmInputTestData
     NotifierConfig(
       simonaConfig.simona.output.participant.defaultConfig.simulationResult,
       simonaConfig.simona.output.participant.defaultConfig.powerRequestReply,
-      simonaConfig.simona.output.participant.defaultConfig.flexResult
+      simonaConfig.simona.output.participant.defaultConfig.flexResult,
     )
 
   protected val modelConfig: SimonaConfig.EmRuntimeConfig =
@@ -130,7 +130,7 @@ trait EmInputTestData
     Quantities.getQuantity(0.0, StandardUnits.ENERGY_PRICE),
     Quantities.getQuantity(5.0, StandardUnits.ACTIVE_POWER_IN),
     0.97,
-    Quantities.getQuantity(7.5, StandardUnits.ACTIVE_POWER_IN)
+    Quantities.getQuantity(7.5, StandardUnits.ACTIVE_POWER_IN),
   )
 
   protected val adaptedHpInputModel = new HpInput(
@@ -141,7 +141,7 @@ trait EmInputTestData
     nodeInput,
     thermalBusInput,
     ReactivePowerCharacteristic.parse("cosPhiFixed:{(0.00,0.98)}"),
-    adaptedTypeInput
+    adaptedTypeInput,
   )
 
   /* Set inner temperature of house a bit lower */
@@ -153,11 +153,11 @@ trait EmInputTestData
     Quantities.getQuantity(75, StandardUnits.HEAT_CAPACITY),
     Quantities.getQuantity(20.3, StandardUnits.TEMPERATURE),
     Quantities.getQuantity(22.0, StandardUnits.TEMPERATURE),
-    Quantities.getQuantity(20.0, StandardUnits.TEMPERATURE)
+    Quantities.getQuantity(20.0, StandardUnits.TEMPERATURE),
   )
   val adaptedThermalGrid = new ThermalGrid(
     thermalBusInput,
     Seq(adaptedThermalHouse).asJava,
-    Seq.empty[ThermalStorageInput].asJava
+    Seq.empty[ThermalStorageInput].asJava,
   )
 }

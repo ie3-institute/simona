@@ -37,7 +37,7 @@ trait SimonaAgent[D]
     case Event(Status.Failure(ex), _) =>
       log.error(
         ex,
-        "Received a failure status message with following exception."
+        "Received a failure status message with following exception.",
       )
       self ! PoisonPill
       stay()

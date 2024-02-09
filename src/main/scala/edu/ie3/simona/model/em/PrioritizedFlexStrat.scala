@@ -11,7 +11,7 @@ import edu.ie3.datamodel.models.input.system.{
   EvcsInput,
   HpInput,
   PvInput,
-  StorageInput
+  StorageInput,
 }
 import EmModelStrat.tolerance
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
@@ -53,7 +53,7 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
       flexOptions: Iterable[
         (_ <: AssetInput, ProvideMinMaxFlexOptions)
       ],
-      target: Power
+      target: Power,
   ): Seq[(UUID, Power)] = {
 
     val totalRefPower =
@@ -96,7 +96,7 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
       ) {
         case (
               (issueCtrlMsgs, Some(remainingExcessPower)),
-              (inputModel, flexOption: ProvideMinMaxFlexOptions)
+              (inputModel, flexOption: ProvideMinMaxFlexOptions),
             ) =>
           // potential for decreasing feed-in/increasing load (negative)
           val flexPotential =
@@ -113,7 +113,7 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
             // thus use all of the available flexibility and continue
             (
               issueCtrlMsgs :+ (inputModel.getUuid, flexOption.max),
-              Some(remainingExcessPower - flexPotential)
+              Some(remainingExcessPower - flexPotential),
             )
           } else {
 
@@ -125,7 +125,7 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
 
             (
               issueCtrlMsgs :+ (inputModel.getUuid, powerCtrl),
-              None
+              None,
             )
           }
         case ((issueCtrlMsgs, None), (_, _)) =>
@@ -145,7 +145,7 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
       ) {
         case (
               (issueCtrlMsgs, Some(remainingExcessPower)),
-              (inputModel, flexOption: ProvideMinMaxFlexOptions)
+              (inputModel, flexOption: ProvideMinMaxFlexOptions),
             ) =>
           // potential for decreasing load/increasing feed-in
           val flexPotential =
@@ -162,7 +162,7 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
             // thus use all of the available flexibility and continue
             (
               issueCtrlMsgs :+ (inputModel.getUuid, flexOption.min),
-              Some(remainingExcessPower - flexPotential)
+              Some(remainingExcessPower - flexPotential),
             )
           } else {
 
@@ -174,7 +174,7 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
 
             (
               issueCtrlMsgs :+ (inputModel.getUuid, powerCtrl),
-              None
+              None,
             )
           }
         case ((issueCtrlMsgs, None), (_, _)) =>
@@ -189,7 +189,7 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
 
   override def adaptFlexOptions(
       assetInput: AssetInput,
-      flexOptions: ProvideMinMaxFlexOptions
+      flexOptions: ProvideMinMaxFlexOptions,
   ): ProvideMinMaxFlexOptions = {
     if (controllableAssets.contains(assetInput.getClass))
       flexOptions
@@ -197,7 +197,7 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
       // device is not controllable by this EmAgent
       flexOptions.copy(
         min = flexOptions.ref,
-        max = flexOptions.ref
+        max = flexOptions.ref,
       )
     }
   }

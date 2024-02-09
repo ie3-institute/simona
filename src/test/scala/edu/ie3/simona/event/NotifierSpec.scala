@@ -30,7 +30,7 @@ class NotifierSpec
           .parseString("""
             |pekko.loggers =["org.apache.pekko.testkit.TestEventListener"]
             |pekko.loglevel="OFF"
-            |""".stripMargin)
+            |""".stripMargin),
       )
     )
     with Matchers
@@ -90,7 +90,7 @@ class NotifierSpec
         Ev ->
           classOf[EvResult],
         Em ->
-          classOf[EmResult]
+          classOf[EmResult],
       )
       // TODO: Grid results are not covered, yet.
 
@@ -108,7 +108,7 @@ object NotifierSpec {
 
   final case class TestEventEnvelope(
       testEvent: TestEvent,
-      msg: String = "Please notify others of this!"
+      msg: String = "Please notify others of this!",
   )
 
 }

@@ -24,7 +24,7 @@ final case class EmModelShell(
     id: String,
     modelStrategy: EmModelStrat,
     aggregateFlex: EmAggregateFlex,
-    modelToParticipantInput: Map[UUID, AssetInput] = Map.empty
+    modelToParticipantInput: Map[UUID, AssetInput] = Map.empty,
 ) {
 
   def addParticipant(modelUuid: UUID, inputModel: AssetInput): EmModelShell =
@@ -44,7 +44,7 @@ final case class EmModelShell(
           modelUuid,
           throw new CriticalFailureException(
             s"Asset input for model with UUID $modelUuid was not found."
-          )
+          ),
         )
 
         val minMaxFlexOptions = flexOptions match {
@@ -66,7 +66,7 @@ final case class EmModelShell(
 
   def determineFlexControl(
       allFlexOptions: Iterable[(UUID, ProvideFlexOptions)],
-      target: Power
+      target: Power,
   ): Iterable[(UUID, Power)] = {
 
     val minMaxFlexOptions = allFlexOptions.toMap.view.mapValues {
@@ -83,7 +83,7 @@ final case class EmModelShell(
           modelUuid,
           throw new CriticalFailureException(
             s"Asset input for model with UUID $modelUuid was not found."
-          )
+          ),
         )
         assetInput -> flexOptions
     }
@@ -114,7 +114,7 @@ object EmModelShell {
       uuid: UUID,
       id: String,
       modelStrat: String,
-      modelConfig: EmRuntimeConfig
+      modelConfig: EmRuntimeConfig,
   ): EmModelShell = {
 
     val modelStrategy = modelStrat match {

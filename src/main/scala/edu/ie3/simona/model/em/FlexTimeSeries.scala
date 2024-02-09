@@ -27,7 +27,7 @@ final case class FlexTimeSeries(
     resolutionHours: Int,
     minValue: Power,
     maxValue: Power,
-    threshold: Double
+    threshold: Double,
 ) {
   def get(tick: Long): Power = {
     // round current time to flexTimeSeries.resolutionHours hrs
@@ -92,7 +92,7 @@ object FlexTimeSeries {
       FlexSignalFromExcel.getCorrespondingMinMaxValues(
         timeSeriesType,
         timeSeries,
-        config
+        config,
       )
 
     FlexTimeSeries(
@@ -101,7 +101,7 @@ object FlexTimeSeries {
       resolutionHours,
       minValue,
       maxValue,
-      config.threshold
+      config.threshold,
     )
   }
 }

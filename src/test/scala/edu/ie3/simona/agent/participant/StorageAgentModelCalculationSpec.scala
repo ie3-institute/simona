@@ -16,7 +16,7 @@ import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModel
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   ParticipantInitializeStateData,
   ParticipantInitializingStateData,
-  SimpleInputContainer
+  SimpleInputContainer,
 }
 import edu.ie3.simona.agent.participant.storage.StorageAgent
 import edu.ie3.simona.agent.state.AgentState.Idle
@@ -25,7 +25,7 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.StorageRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.{
   FlexOptionsResultEvent,
-  ParticipantResultEvent
+  ParticipantResultEvent,
 }
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
@@ -34,7 +34,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
-  RequestAssetPowerMessage
+  RequestAssetPowerMessage,
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
@@ -65,7 +65,7 @@ class StorageAgentModelCalculationSpec
           .parseString("""
           |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
           |akka.loglevel="DEBUG"
-    """.stripMargin)
+    """.stripMargin),
       )
     )
     with StorageInputTestData {
@@ -87,12 +87,12 @@ class StorageAgentModelCalculationSpec
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
       LoadModelBehaviour.FIX,
-      LoadReference.ActivePower(Kilowatts(0d))
+      LoadReference.ActivePower(Kilowatts(0d)),
     )
   private val outputConfig = NotifierConfig(
     simulationResultInfo = true,
     powerRequestReply = false,
-    flexResult = true
+    flexResult = true,
   )
   private val configUtil = ConfigUtil.ParticipantConfigUtil(
     simonaConfig.simona.runtime.participant
@@ -112,7 +112,7 @@ class StorageAgentModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       StorageInput,
       StorageRuntimeConfig,
-      ApparentPower
+      ApparentPower,
     ](
       inputModel = storageInputQv,
       modelConfig = modelConfig,
@@ -124,7 +124,7 @@ class StorageAgentModelCalculationSpec
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = outputConfig,
       primaryServiceProxy = primaryServiceProxy.ref,
-      maybeEmAgent = Some(emAgent.ref.toTyped)
+      maybeEmAgent = Some(emAgent.ref.toTyped),
     )
 
     "end in correct state with correct state data after initialisation" in {
@@ -132,7 +132,7 @@ class StorageAgentModelCalculationSpec
         new StorageAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = Iterable.empty
+          listener = Iterable.empty,
         )
       )
 
@@ -154,7 +154,7 @@ class StorageAgentModelCalculationSpec
               resolution,
               requestVoltageDeviationThreshold,
               outputConfig,
-              maybeEmAgent
+              maybeEmAgent,
             ) =>
           inputModel shouldBe SimpleInputContainer(storageInputQv)
           modelConfig shouldBe modelConfig
@@ -172,14 +172,14 @@ class StorageAgentModelCalculationSpec
       /* Refuse registration */
       primaryServiceProxy.send(
         storageAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       emAgent.expectMsg(
         RegisterParticipant(
           storageInputQv.getUuid,
           storageAgent.toTyped,
-          storageInputQv
+          storageInputQv,
         )
       )
       emAgent.expectMsg(
@@ -205,7 +205,7 @@ class StorageAgentModelCalculationSpec
               requestValueStore,
               _,
               _,
-              _
+              _,
             ) =>
           /* Base state data */
           startDate shouldBe simulationStartDate
@@ -216,7 +216,7 @@ class StorageAgentModelCalculationSpec
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
-            SortedMap(0L -> Each(1.0))
+            SortedMap(0L -> Each(1.0)),
           )
           resultValueStore shouldBe ValueStore(
             resolution
@@ -236,7 +236,7 @@ class StorageAgentModelCalculationSpec
         new StorageAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = Iterable.empty
+          listener = Iterable.empty,
         )
       )
 
@@ -246,7 +246,7 @@ class StorageAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         storageAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       emAgent.expectMsgType[RegisterParticipant]
@@ -261,12 +261,12 @@ class StorageAgentModelCalculationSpec
       storageAgent ! RequestAssetPowerMessage(
         0,
         Each(1d),
-        Each(0d)
+        Each(0d),
       )
       expectMsg(
         AssetPowerChangedMessage(
           Megawatts(0d),
-          Megavars(0d)
+          Megavars(0d),
         )
       )
 
@@ -279,9 +279,9 @@ class StorageAgentModelCalculationSpec
             SortedMap(
               0L -> ApparentPower(
                 Megawatts(0d),
-                Megavars(0d)
+                Megavars(0d),
               )
-            )
+            ),
           )
         case _ =>
           fail(
@@ -297,7 +297,7 @@ class StorageAgentModelCalculationSpec
         new StorageAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = Iterable(resultListener.ref)
+          listener = Iterable(resultListener.ref),
         )
       )
 
@@ -307,7 +307,7 @@ class StorageAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         storageAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       emAgent.expectMsgType[RegisterParticipant]
@@ -337,7 +337,7 @@ class StorageAgentModelCalculationSpec
               modelUuid,
               refPower,
               minPower,
-              maxPower
+              maxPower,
             ) =>
           modelUuid shouldBe storageInputQv.getUuid
           refPower should approximate(Kilowatts(0.0))
@@ -357,8 +357,8 @@ class StorageAgentModelCalculationSpec
         storageAgent,
         IssuePowerControl(
           0,
-          Kilowatts(storageInputQv.getType.getpMax().getValue.doubleValue())
-        )
+          Kilowatts(storageInputQv.getType.getpMax().getValue.doubleValue()),
+        ),
       )
 
       // next potential activation at fully charged battery:
@@ -369,7 +369,7 @@ class StorageAgentModelCalculationSpec
               modelUuid,
               result,
               requestAtNextActivation,
-              requestAtTick
+              requestAtTick,
             ) =>
           modelUuid shouldBe storageInputQv.getUuid
           result.p should approximate(pMax)
@@ -400,7 +400,7 @@ class StorageAgentModelCalculationSpec
               modelUuid,
               refPower,
               minPower,
-              maxPower
+              maxPower,
             ) =>
           modelUuid shouldBe storageInputQv.getUuid
           refPower should approximate(Kilowatts(0.0))
@@ -429,7 +429,7 @@ class StorageAgentModelCalculationSpec
               modelUuid,
               result,
               requestAtNextActivation,
-              requestAtTick
+              requestAtTick,
             ) =>
           modelUuid shouldBe storageInputQv.getUuid
           result.p should approximate(Kilowatts(9))
@@ -458,8 +458,8 @@ class StorageAgentModelCalculationSpec
           36000,
           Kilowatts(
             storageInputQv.getType.getpMax().multiply(-1).getValue.doubleValue
-          )
-        )
+          ),
+        ),
       )
 
       // after 2 hours, we're at: 111.95296 kWh
@@ -471,7 +471,7 @@ class StorageAgentModelCalculationSpec
               modelUuid,
               result,
               requestAtNextActivation,
-              requestAtTick
+              requestAtTick,
             ) =>
           modelUuid shouldBe storageInputQv.getUuid
           result.p should approximate(pMax * -1)
@@ -507,7 +507,7 @@ class StorageAgentModelCalculationSpec
               modelUuid,
               result,
               requestAtNextActivation,
-              requestAtTick
+              requestAtTick,
             ) =>
           modelUuid shouldBe storageInputQv.getUuid
           result.p should approximate(Kilowatts(12))
@@ -538,7 +538,7 @@ class StorageAgentModelCalculationSpec
               modelUuid,
               refPower,
               minPower,
-              maxPower
+              maxPower,
             ) =>
           modelUuid shouldBe storageInputQv.getUuid
           refPower should approximate(Kilowatts(0.0))
@@ -567,7 +567,7 @@ class StorageAgentModelCalculationSpec
               modelUuid,
               result,
               requestAtNextActivation,
-              requestAtTick
+              requestAtTick,
             ) =>
           modelUuid shouldBe storageInputQv.getUuid
           result.p should approximate(Kilowatts(-12))
@@ -598,7 +598,7 @@ class StorageAgentModelCalculationSpec
               modelUuid,
               refPower,
               minPower,
-              maxPower
+              maxPower,
             ) =>
           modelUuid shouldBe storageInputQv.getUuid
           refPower should approximate(Kilowatts(0.0))
@@ -622,7 +622,7 @@ class StorageAgentModelCalculationSpec
               modelUuid,
               result,
               requestAtNextActivation,
-              requestAtTick
+              requestAtTick,
             ) =>
           modelUuid shouldBe storageInputQv.getUuid
           result.p should approximate(Kilowatts(0))

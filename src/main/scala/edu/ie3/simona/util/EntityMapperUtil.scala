@@ -26,7 +26,7 @@ object EntityMapperUtil {
     Storage -> classOf[StorageResult],
     Em -> classOf[EmResult],
     Hp -> classOf[HpResult],
-    House -> classOf[ThermalHouseResult]
+    House -> classOf[ThermalHouseResult],
   )
 
   /** Get the classes of [[ResultEntity]], that are issued by the notifier, that
@@ -44,6 +44,6 @@ object EntityMapperUtil {
       notifierId,
       throw new NoSuchElementException(
         s"Cannot determine result entity class of notifier $notifierId"
-      )
+      ),
     )
 }

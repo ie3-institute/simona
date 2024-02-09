@@ -9,20 +9,20 @@ package edu.ie3.simona.agent.participant.fixedfeedin
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
 import edu.ie3.datamodel.models.result.system.{
   FixedFeedInResult,
-  SystemParticipantResult
+  SystemParticipantResult,
 }
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
-  ZERO_POWER
+  ZERO_POWER,
 }
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FlexControlledData,
-  ParticipantModelBaseStateData
+  ParticipantModelBaseStateData,
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
@@ -32,7 +32,7 @@ import edu.ie3.simona.config.SimonaConfig.FixedFeedInRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   InconsistentStateException,
-  InvalidRequestException
+  InvalidRequestException,
 }
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
@@ -40,11 +40,11 @@ import edu.ie3.simona.model.participant.{
   CalcRelevantData,
   FixedFeedInModel,
   FlexChangeIndicator,
-  ModelState
+  ModelState,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexRequest,
-  FlexResponse
+  FlexResponse,
 }
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
@@ -69,7 +69,7 @@ protected trait FixedFeedInAgentFundamentals
       ParticipantStateData[ApparentPower],
       FixedFeedInInput,
       FixedFeedInRuntimeConfig,
-      FixedFeedInModel
+      FixedFeedInModel,
     ] {
   this: FixedFeedInAgent =>
   override protected val pdClassTag: ClassTag[ApparentPower] =
@@ -109,12 +109,12 @@ protected trait FixedFeedInAgentFundamentals
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeEmAgent: Option[TypedActorRef[FlexResponse]]
+      maybeEmAgent: Option[TypedActorRef[FlexResponse]],
   ): ParticipantModelBaseStateData[
     ApparentPower,
     FixedRelevantData.type,
     ConstantState.type,
-    FixedFeedInModel
+    FixedFeedInModel,
   ] = {
     /* Build the calculation model */
     val model =
@@ -122,7 +122,7 @@ protected trait FixedFeedInAgentFundamentals
         inputModel,
         modelConfig,
         simulationStartDate,
-        simulationEndDate
+        simulationEndDate,
       )
 
     /* Go and collect all ticks, in which new data will be available. Also register for
@@ -139,14 +139,14 @@ protected trait FixedFeedInAgentFundamentals
       SortedSet[Long](
         SimonaConstants.FIRST_TICK_IN_SIMULATION,
         model.operationInterval.start,
-        model.operationInterval.end
+        model.operationInterval.end,
       ).filterNot(_ == lastTickInSimulation)
 
     ParticipantModelBaseStateData[
       ApparentPower,
       FixedRelevantData.type,
       ConstantState.type,
-      FixedFeedInModel
+      FixedFeedInModel,
     ](
       simulationStartDate,
       simulationEndDate,
@@ -164,13 +164,13 @@ protected trait FixedFeedInAgentFundamentals
             .to(PU)
             .getValue
             .doubleValue
-        )
+        ),
       ),
       ValueStore(resolution),
       ValueStore(resolution),
       ValueStore(resolution),
       ValueStore(resolution),
-      maybeEmAgent.map(FlexControlledData(_, self.toTyped[FlexRequest]))
+      maybeEmAgent.map(FlexControlledData(_, self.toTyped[FlexRequest])),
     )
   }
 
@@ -178,12 +178,12 @@ protected trait FixedFeedInAgentFundamentals
       inputModel: InputModelContainer[FixedFeedInInput],
       modelConfig: FixedFeedInRuntimeConfig,
       simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime
+      simulationEndDate: ZonedDateTime,
   ): FixedFeedInModel = FixedFeedInModel(
     inputModel.electricalInputModel,
     modelConfig,
     simulationStartDate,
-    simulationEndDate
+    simulationEndDate,
   )
 
   override protected def createInitialState(
@@ -191,7 +191,7 @@ protected trait FixedFeedInAgentFundamentals
         ApparentPower,
         FixedRelevantData.type,
         ConstantState.type,
-        FixedFeedInModel
+        FixedFeedInModel,
       ]
   ): ModelState.ConstantState.type = ConstantState
 
@@ -200,9 +200,9 @@ protected trait FixedFeedInAgentFundamentals
         ApparentPower,
         FixedRelevantData.type,
         ConstantState.type,
-        FixedFeedInModel
+        FixedFeedInModel,
       ],
-      tick: Long
+      tick: Long,
   ): FixedRelevantData.type =
     FixedRelevantData
 
@@ -226,18 +226,18 @@ protected trait FixedFeedInAgentFundamentals
         ApparentPower,
         FixedRelevantData.type,
         ConstantState.type,
-        FixedFeedInModel
+        FixedFeedInModel,
       ],
       data: FixedRelevantData.type,
       lastState: ConstantState.type,
-      setPower: squants.Power
+      setPower: squants.Power,
   ): (ConstantState.type, ApparentPower, FlexChangeIndicator) = {
     /* Calculate result */
     val voltage = getAndCheckNodalVoltage(baseStateData, tick)
 
     val reactivePower = baseStateData.model.calculateReactivePower(
       setPower,
-      voltage
+      voltage,
     )
     val result = ApparentPower(setPower, reactivePower)
 
@@ -253,20 +253,20 @@ protected trait FixedFeedInAgentFundamentals
         ApparentPower,
         FixedRelevantData.type,
         ConstantState.type,
-        FixedFeedInModel
+        FixedFeedInModel,
       ],
       ConstantState.type,
-      Dimensionless
+      Dimensionless,
   ) => ApparentPower = (
       currentTick: Long,
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         FixedRelevantData.type,
         ConstantState.type,
-        FixedFeedInModel
+        FixedFeedInModel,
       ],
       state: ConstantState.type,
-      voltage: Dimensionless
+      voltage: Dimensionless,
   ) =>
     baseStateData.model match {
       case fixedModel: FixedFeedInModel =>
@@ -274,7 +274,7 @@ protected trait FixedFeedInAgentFundamentals
           currentTick,
           voltage,
           state,
-          FixedRelevantData
+          FixedRelevantData,
         )
       case unsupportedModel =>
         throw new InconsistentStateException(
@@ -308,11 +308,11 @@ protected trait FixedFeedInAgentFundamentals
         ApparentPower,
         FixedRelevantData.type,
         ConstantState.type,
-        FixedFeedInModel
+        FixedFeedInModel,
       ],
       lastModelState: ConstantState.type,
       currentTick: Long,
-      scheduler: ActorRef
+      scheduler: ActorRef,
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] =
     throw new InvalidRequestException(
       "Request to calculate power with secondary data cannot be processed in a fixed feed in agent."
@@ -337,14 +337,14 @@ protected trait FixedFeedInAgentFundamentals
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         Power => ReactivePower
-      ] = None
+      ] = None,
   ): ApparentPower =
     ParticipantAgentFundamentals.averageApparentPower(
       tickToResults,
       windowStart,
       windowEnd,
       activeToReactivePowerFuncOpt,
-      log
+      log,
     )
 
   /** Determines the correct result.
@@ -361,13 +361,13 @@ protected trait FixedFeedInAgentFundamentals
   override protected def buildResult(
       uuid: UUID,
       dateTime: ZonedDateTime,
-      result: ApparentPower
+      result: ApparentPower,
   ): SystemParticipantResult =
     new FixedFeedInResult(
       dateTime,
       uuid,
       result.p.toMegawatts.asMegaWatt,
-      result.q.toMegavars.asMegaVar
+      result.q.toMegavars.asMegaVar,
     )
 
   /** Update the last known model state with the given external, relevant data
@@ -391,6 +391,6 @@ protected trait FixedFeedInAgentFundamentals
       modelState: ModelState.ConstantState.type,
       calcRelevantData: CalcRelevantData.FixedRelevantData.type,
       nodalVoltage: squants.Dimensionless,
-      model: FixedFeedInModel
+      model: FixedFeedInModel,
   ): ModelState.ConstantState.type = modelState
 }

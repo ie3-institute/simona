@@ -11,7 +11,7 @@ import edu.ie3.datamodel.models.ControlStrategy
 import edu.ie3.datamodel.models.input.container.{
   SubGridContainer,
   SystemParticipants,
-  ThermalGrid
+  ThermalGrid,
 }
 import edu.ie3.datamodel.models.input.system._
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
@@ -24,7 +24,7 @@ import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.agent.em.EmAgent.EmMessage
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
   ActorEvMovementsService,
-  ActorWeatherService
+  ActorWeatherService,
 }
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
 import edu.ie3.simona.agent.participant.fixedfeedin.FixedFeedInAgent
@@ -50,7 +50,7 @@ import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.adapter.{
   ClassicActorContextOps,
   ClassicActorRefOps,
-  TypedActorRefOps
+  TypedActorRefOps,
 }
 import org.apache.pekko.actor.{ActorContext, ActorRef => ClassicActorRef}
 import org.apache.pekko.event.LoggingAdapter
@@ -93,11 +93,11 @@ class GridAgentController(
     outputConfig: SimonaConfig.Simona.Output.Participant,
     resolution: Long,
     listener: Iterable[ClassicActorRef],
-    log: LoggingAdapter
+    log: LoggingAdapter,
 ) extends LazyLogging {
   def buildSystemParticipants(
       subGridContainer: SubGridContainer,
-      thermalIslandGridsByBusId: Map[UUID, ThermalGrid]
+      thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
   ): Map[UUID, Set[ClassicActorRef]] = {
 
     val systemParticipants =
@@ -112,7 +112,7 @@ class GridAgentController(
       thermalIslandGridsByBusId,
       environmentRefs,
       rootEmConfig,
-      subGridContainer.getSubnet
+      subGridContainer.getSubnet,
     )
   }
 
@@ -132,7 +132,7 @@ class GridAgentController(
     */
   private def filterSysParts(
       subGridContainer: SubGridContainer,
-      environmentRefs: EnvironmentRefs
+      environmentRefs: EnvironmentRefs,
   ) = {
 
     val emParticipants =
@@ -146,13 +146,13 @@ class GridAgentController(
         .foldLeft((Set.empty[String], Vector.empty[SystemParticipantInput])) {
           case (
                 (notProcessedElements, availableSystemParticipants),
-                curSysPart
+                curSysPart,
               ) =>
             curSysPart match {
               case entity @ (_: BmInput | _: ChpInput | _: EvInput) =>
                 (
                   notProcessedElements + entity.getClass.getSimpleName,
-                  availableSystemParticipants
+                  availableSystemParticipants,
                 )
               // only include evcs if ev data service is present
               case evcsInput: EvcsInput
@@ -164,7 +164,7 @@ class GridAgentController(
               case entity if emParticipants.contains(entity.getUuid) =>
                 log.debug(
                   s"System participant {} is part of an energy-managed system and thus not directly connected to the grid.",
-                  entity
+                  entity,
                 )
                 (notProcessedElements, availableSystemParticipants)
               case entity =>
@@ -208,7 +208,7 @@ class GridAgentController(
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
       environmentRefs: EnvironmentRefs,
       rootEmConfig: Option[SimonaConfig.Simona.Runtime.RootEm],
-      subGrid: Int
+      subGrid: Int,
   ): Map[UUID, Set[ClassicActorRef]] = {
     /* Prepare the config util for the participant models, which (possibly) utilizes as map to speed up the initialization
      * phase */
@@ -247,7 +247,7 @@ class GridAgentController(
         ),
         outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
         maybeParentEm = None,
-        rootEmConfig = rootEmConfig
+        rootEmConfig = rootEmConfig,
       )
     }
 
@@ -267,11 +267,11 @@ class GridAgentController(
           false,
           new GeometryFactory().createPoint(new Coordinate()),
           GermanVoltageLevelUtils.LV,
-          0
+          0,
         ),
         new CosPhiFixed("cosPhiFixed:{(0.00,0.90)}"),
         emInputs.map(_.getUuid).toArray,
-        ControlStrategy.DefaultControlStrategies.NO_CONTROL_STRATEGY
+        ControlStrategy.DefaultControlStrategies.NO_CONTROL_STRATEGY,
       )
 
       val completeEmParticipantMap =
@@ -284,11 +284,11 @@ class GridAgentController(
           1d,
           List.empty,
           pvFlex = false,
-          aggregateFlex = "SIMPLE_SUM"
+          aggregateFlex = "SIMPLE_SUM",
         ),
         outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
         None,
-        rootEmConfig
+        rootEmConfig,
       )
 
       // introduce to environment
@@ -309,7 +309,7 @@ class GridAgentController(
             participant,
             thermalIslandGridsByBusId,
             environmentRefs,
-            emParticipantMap
+            emParticipantMap,
           )
         introduceAgentToEnvironment(actorRef)
         // return uuid to actorRef
@@ -326,7 +326,7 @@ class GridAgentController(
   // TODO not needed anymore if psdm does this
   private def matchWithEm[T <: AssetInput](
       existingEmActors: Map[UUID, ActorRef[EmMessage]],
-      remainingEms: Iterable[(T, UUID)]
+      remainingEms: Iterable[(T, UUID)],
   ): Iterable[(T, ActorRef[EmMessage])] = {
     remainingEms
       .map { case (em, parentUuid) =>
@@ -354,7 +354,7 @@ class GridAgentController(
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
       environmentRefs: EnvironmentRefs,
       participantEmMap: Map[UUID, SystemParticipantInput],
-      maybeParentEm: Option[ActorRef[FlexResponse]] = None
+      maybeParentEm: Option[ActorRef[FlexResponse]] = None,
   ): ClassicActorRef = participantInputModel match {
     case input: FixedFeedInInput =>
       buildFixedFeedIn(
@@ -368,7 +368,7 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.FixedFeedIn),
-        maybeParentEm
+        maybeParentEm,
       )
     case input: LoadInput =>
       buildLoad(
@@ -382,7 +382,7 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.Load),
-        maybeParentEm
+        maybeParentEm,
       )
     case input: PvInput =>
       buildPv(
@@ -397,7 +397,7 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.PvPlant),
-        maybeParentEm
+        maybeParentEm,
       )
     case input: WecInput =>
       buildWec(
@@ -412,7 +412,7 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.Wec),
-        maybeParentEm
+        maybeParentEm,
       )
     case input: EvcsInput =>
       buildEvcs(
@@ -431,7 +431,7 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.Evcs),
-        maybeParentEm
+        maybeParentEm,
       )
     case hpInput: HpInput =>
       thermalIslandGridsByBusId.get(hpInput.getThermalBus.getUuid) match {
@@ -446,7 +446,7 @@ class GridAgentController(
             environmentRefs.weather,
             requestVoltageDeviationThreshold,
             outputConfigUtil.getOrDefault(NotifierIdentifier.Hp),
-            maybeParentEm
+            maybeParentEm,
           )
         case None =>
           throw new GridAgentInitializationException(
@@ -465,7 +465,7 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.Storage),
-        maybeParentEm
+        maybeParentEm,
       )
     case input: SystemParticipantInput =>
       throw new NotImplementedError(
@@ -510,7 +510,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeParentEm: Option[ActorRef[FlexResponse]] = None
+      maybeParentEm: Option[ActorRef[FlexResponse]] = None,
   ): ClassicActorRef =
     gridAgentContext.simonaActorOf(
       FixedFeedInAgent.props(
@@ -525,11 +525,11 @@ class GridAgentController(
           resolution,
           requestVoltageDeviationThreshold,
           outputConfig,
-          maybeParentEm
+          maybeParentEm,
         ),
-        listener
+        listener,
       ),
-      fixedFeedInInput.getId
+      fixedFeedInInput.getId,
     )
 
   /** Creates a load agent and determines the needed additional information for
@@ -565,7 +565,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeParentEm: Option[ActorRef[FlexResponse]] = None
+      maybeParentEm: Option[ActorRef[FlexResponse]] = None,
   ): ClassicActorRef =
     gridAgentContext.simonaActorOf(
       LoadAgent.props(
@@ -580,11 +580,11 @@ class GridAgentController(
           resolution,
           requestVoltageDeviationThreshold,
           outputConfig,
-          maybeParentEm
+          maybeParentEm,
         ),
-        listener
+        listener,
       ),
-      loadInput.getId
+      loadInput.getId,
     )
 
   /** Creates a pv agent and determines the needed additional information for
@@ -623,7 +623,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeParentEm: Option[ActorRef[FlexResponse]] = None
+      maybeParentEm: Option[ActorRef[FlexResponse]] = None,
   ): ClassicActorRef =
     gridAgentContext.simonaActorOf(
       PvAgent.props(
@@ -638,11 +638,11 @@ class GridAgentController(
           resolution,
           requestVoltageDeviationThreshold,
           outputConfig,
-          maybeParentEm
+          maybeParentEm,
         ),
-        listener
+        listener,
       ),
-      pvInput.getId
+      pvInput.getId,
     )
 
   /** Creates an Evcs agent and determines the needed additional information for
@@ -681,7 +681,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeParentEm: Option[ActorRef[FlexResponse]] = None
+      maybeParentEm: Option[ActorRef[FlexResponse]] = None,
   ): ClassicActorRef =
     gridAgentContext.simonaActorOf(
       EvcsAgent.props(
@@ -700,9 +700,9 @@ class GridAgentController(
           resolution,
           requestVoltageDeviationThreshold,
           outputConfig,
-          maybeParentEm
+          maybeParentEm,
         ),
-        listener
+        listener,
       )
     )
 
@@ -735,7 +735,7 @@ class GridAgentController(
       weatherService: ClassicActorRef,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeParentEm: Option[ActorRef[FlexResponse]] = None
+      maybeParentEm: Option[ActorRef[FlexResponse]] = None,
   ): ClassicActorRef =
     gridAgentContext.simonaActorOf(
       HpAgent.props(
@@ -751,11 +751,11 @@ class GridAgentController(
           resolution,
           requestVoltageDeviationThreshold,
           outputConfig,
-          maybeParentEm
+          maybeParentEm,
         ),
-        listener
+        listener,
       ),
-      hpInput.getId
+      hpInput.getId,
     )
 
   /** Creates a wec agent and determines the needed additional information for
@@ -794,7 +794,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeParentEm: Option[ActorRef[FlexResponse]] = None
+      maybeParentEm: Option[ActorRef[FlexResponse]] = None,
   ): ClassicActorRef =
     gridAgentContext.simonaActorOf(
       WecAgent.props(
@@ -809,11 +809,11 @@ class GridAgentController(
           resolution,
           requestVoltageDeviationThreshold,
           outputConfig,
-          maybeParentEm
+          maybeParentEm,
         ),
-        listener
+        listener,
       ),
-      wecInput.getId
+      wecInput.getId,
     )
 
   /** Creates a storage agent and determines the needed additional information
@@ -849,7 +849,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeParentEm: Option[ActorRef[FlexResponse]] = None
+      maybeParentEm: Option[ActorRef[FlexResponse]] = None,
   ): ClassicActorRef =
     gridAgentContext.simonaActorOf(
       StorageAgent.props(
@@ -864,11 +864,11 @@ class GridAgentController(
           resolution,
           requestVoltageDeviationThreshold,
           outputConfig,
-          maybeParentEm
+          maybeParentEm,
         ),
-        listener
+        listener,
       ),
-      storageInput.getId
+      storageInput.getId,
     )
 
   /** Builds an [[EmAgent]] from given input
@@ -887,7 +887,7 @@ class GridAgentController(
       modelConfiguration: EmRuntimeConfig,
       outputConfig: NotifierConfig,
       maybeParentEm: Option[ActorRef[FlexResponse]] = None,
-      rootEmConfig: Option[SimonaConfig.Simona.Runtime.RootEm] = None
+      rootEmConfig: Option[SimonaConfig.Simona.Runtime.RootEm] = None,
   ): ActorRef[EmMessage] =
     gridAgentContext.spawn(
       EmAgent(
@@ -902,9 +902,9 @@ class GridAgentController(
           environmentRefs.scheduler.toTyped[SchedulerMessage]
         ),
         rootEmConfig,
-        listener.map(_.toTyped[ResultEvent])
+        listener.map(_.toTyped[ResultEvent]),
       ),
-      SimonaActorNaming.actorName(classOf[EmAgent.type], emInput.getId)
+      SimonaActorNaming.actorName(classOf[EmAgent.type], emInput.getId),
     )
 
   /** Introduces the given agent to scheduler
@@ -918,7 +918,7 @@ class GridAgentController(
     gridAgentContext.watch(actorRef)
     environmentRefs.scheduler ! ScheduleActivation(
       actorRef.toTyped,
-      INIT_SIM_TICK
+      INIT_SIM_TICK,
     )
   }
 

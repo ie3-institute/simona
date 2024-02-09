@@ -15,7 +15,7 @@ import edu.ie3.simona.config.SimonaConfig.StorageRuntimeConfig
 import edu.ie3.simona.model.participant.StorageModel
 import edu.ie3.simona.model.participant.StorageModel.{
   StorageRelevantData,
-  StorageState
+  StorageState,
 }
 import org.apache.pekko.actor.{ActorRef, Props}
 
@@ -25,15 +25,15 @@ object StorageAgent {
       initStateData: ParticipantInitializeStateData[
         StorageInput,
         StorageRuntimeConfig,
-        ApparentPower
+        ApparentPower,
       ],
-      listener: Iterable[ActorRef]
+      listener: Iterable[ActorRef],
   ): Props =
     Props(
       new StorageAgent(
         scheduler,
         initStateData,
-        listener
+        listener,
       )
     )
 }
@@ -50,9 +50,9 @@ class StorageAgent(
     initStateData: ParticipantInitializeStateData[
       StorageInput,
       StorageRuntimeConfig,
-      ApparentPower
+      ApparentPower,
     ],
-    override val listener: Iterable[ActorRef]
+    override val listener: Iterable[ActorRef],
 ) extends ParticipantAgent[
       ApparentPower,
       StorageRelevantData,
@@ -60,9 +60,9 @@ class StorageAgent(
       ParticipantStateData[ApparentPower],
       StorageInput,
       StorageRuntimeConfig,
-      StorageModel
+      StorageModel,
     ](
       scheduler,
-      initStateData
+      initStateData,
     )
     with StorageAgentFundamentals {}

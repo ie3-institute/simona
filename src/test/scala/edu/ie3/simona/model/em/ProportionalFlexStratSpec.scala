@@ -41,7 +41,7 @@ class ProportionalFlexStratSpec
           "min2",
           "max2",
           "expected1",
-          "expected2"
+          "expected2",
         ),
 
         /* target equal to reference sum */
@@ -74,7 +74,7 @@ class ProportionalFlexStratSpec
         // target lower than min sum
         (-7d, -1d, -2d, 0d, 0d, -4d, 0d, S(-2d), S(-4d)),
         (-7d, -2d, -2d, 0d, 0d, -4d, 0d, N, S(-4d)),
-        (-7d, 0d, -4d, 0d, -2d, -2d, 0d, S(-4d), N)
+        (-7d, 0d, -4d, 0d, -2d, -2d, 0d, S(-4d), N),
       )
 
       forAll(cases) {
@@ -87,29 +87,29 @@ class ProportionalFlexStratSpec
             min2,
             max2,
             expected1,
-            expected2
+            expected2,
         ) =>
           val flexOptions1 = ProvideMinMaxFlexOptions(
             modelUuid = UUID.randomUUID(),
             ref = Kilowatts(ref1),
             min = Kilowatts(min1),
-            max = Kilowatts(max1)
+            max = Kilowatts(max1),
           )
 
           val flexOptions2 = ProvideMinMaxFlexOptions(
             modelUuid = UUID.randomUUID(),
             ref = Kilowatts(ref2),
             min = Kilowatts(min2),
-            max = Kilowatts(max2)
+            max = Kilowatts(max2),
           )
 
           val actualResults = ProportionalFlexStrat
             .determineFlexControl(
               Seq(
                 (assetInput, flexOptions1),
-                (assetInput, flexOptions2)
+                (assetInput, flexOptions2),
               ),
-              Kilowatts(target)
+              Kilowatts(target),
             )
             .toMap
 
@@ -120,7 +120,7 @@ class ProportionalFlexStratSpec
               flexOptions1.modelUuid,
               fail(
                 "Results should include a set point for device 1, but doesn't"
-              )
+              ),
             )
             (res1 ~= Kilowatts(exp1)) shouldBe true
           }
@@ -130,7 +130,7 @@ class ProportionalFlexStratSpec
               flexOptions2.modelUuid,
               fail(
                 "Results should include a set point for device 2, but doesn't"
-              )
+              ),
             )
             (res2 ~= Kilowatts(exp2)) shouldBe true
           }
@@ -145,7 +145,7 @@ class ProportionalFlexStratSpec
         UUID.randomUUID(),
         Kilowatts(1),
         Kilowatts(-1),
-        Kilowatts(2)
+        Kilowatts(2),
       )
 
       val flexOptionsOut =

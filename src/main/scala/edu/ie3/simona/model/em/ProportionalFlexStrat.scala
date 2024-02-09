@@ -35,7 +35,7 @@ object ProportionalFlexStrat extends EmModelStrat {
       modelFlexOptions: Iterable[
         (_ <: AssetInput, ProvideMinMaxFlexOptions)
       ],
-      target: Power
+      target: Power,
   ): Iterable[(UUID, Power)] = {
 
     // Input models are not needed here
@@ -51,12 +51,12 @@ object ProportionalFlexStrat extends EmModelStrat {
       ) {
         case (
               (sumRef, sumMin, sumMax),
-              ProvideMinMaxFlexOptions(_, addRef, addMin, addMax)
+              ProvideMinMaxFlexOptions(_, addRef, addMin, addMax),
             ) =>
           (
             sumRef + addRef,
             sumMin + addMin,
-            sumMax + addMax
+            sumMax + addMax,
           )
       }
 
@@ -97,7 +97,7 @@ object ProportionalFlexStrat extends EmModelStrat {
       target: Power,
       totalRef: Power,
       totalLimit: Power,
-      options: Iterable[(UUID, Power, Power)]
+      options: Iterable[(UUID, Power, Power)],
   ): Iterable[(UUID, Power)] = {
     // filter out options with ref == limit because they're useless here
     val filteredOptions = options.filterNot { case (_, refPower, limitPower) =>
@@ -132,7 +132,7 @@ object ProportionalFlexStrat extends EmModelStrat {
 
   override def adaptFlexOptions(
       assetInput: AssetInput,
-      flexOptions: ProvideMinMaxFlexOptions
+      flexOptions: ProvideMinMaxFlexOptions,
   ): ProvideMinMaxFlexOptions =
     flexOptions
 }

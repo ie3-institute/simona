@@ -51,7 +51,7 @@ object ReflectionTools {
     */
   def classFieldToVal[A](a: A)(implicit
       tt: TypeTag[A],
-      ct: ClassTag[A]
+      ct: ClassTag[A],
   ): Map[universe.MethodSymbol, Any] = {
     val members = tt.tpe.members.collect {
       case m if m.isMethod && m.asMethod.isCaseAccessor => m.asMethod

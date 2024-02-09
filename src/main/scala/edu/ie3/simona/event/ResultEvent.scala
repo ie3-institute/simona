@@ -10,11 +10,11 @@ import edu.ie3.datamodel.models.result.NodeResult
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
   SwitchResult,
-  Transformer2WResult
+  Transformer2WResult,
 }
 import edu.ie3.datamodel.models.result.system.{
   FlexOptionsResult,
-  SystemParticipantResult
+  SystemParticipantResult,
 }
 import edu.ie3.datamodel.models.result.thermal.ThermalUnitResult
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
@@ -65,7 +65,7 @@ object ResultEvent {
       switchResults: Iterable[SwitchResult],
       lineResults: Iterable[LineResult],
       transformer2wResults: Iterable[Transformer2WResult],
-      transformer3wResults: Iterable[PartialTransformer3wResult]
+      transformer3wResults: Iterable[PartialTransformer3wResult],
   ) extends ResultEvent
 
   /** Event that holds the flexibility options result of a

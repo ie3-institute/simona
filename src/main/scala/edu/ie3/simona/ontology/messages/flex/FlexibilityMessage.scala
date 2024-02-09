@@ -50,7 +50,7 @@ object FlexibilityMessage {
   final case class RegisterParticipant(
       override val modelUuid: UUID,
       participant: ActorRef[FlexRequest],
-      inputModel: AssetInput
+      inputModel: AssetInput,
   ) extends FlexResponse
 
   /** Message that schedules a flex request for a flex options provider at given
@@ -67,7 +67,7 @@ object FlexibilityMessage {
   final case class ScheduleFlexRequest(
       override val modelUuid: UUID,
       tick: Long,
-      scheduleKey: Option[ScheduleKey] = None
+      scheduleKey: Option[ScheduleKey] = None,
   ) extends FlexResponse
 
   /** Message that requests flex options from a flex options provider for given
@@ -102,7 +102,7 @@ object FlexibilityMessage {
     */
   final case class IssuePowerControl(
       override val tick: Long,
-      setPower: Power
+      setPower: Power,
   ) extends IssueFlexControl
 
   /** Message sent by [[edu.ie3.simona.agent.em.EmAgent]] indicating that no
@@ -138,7 +138,7 @@ object FlexibilityMessage {
       override val modelUuid: UUID,
       result: ApparentPower,
       requestAtNextActivation: Boolean = false,
-      requestAtTick: Option[Long] = None
+      requestAtTick: Option[Long] = None,
   ) extends FlexResponse
 
 }

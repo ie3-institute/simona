@@ -8,12 +8,12 @@ package edu.ie3.simona.agent.em
 
 import edu.ie3.simona.agent.em.FlexCorrespondenceStore.{
   FlexCorrespondence,
-  WithTime
+  WithTime,
 }
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssueFlexControl,
-  ProvideFlexOptions
+  ProvideFlexOptions,
 }
 
 import java.time.ZonedDateTime
@@ -45,11 +45,11 @@ final case class FlexCorrespondenceStore(
     */
   def updateFlexOptions(
       flexOptions: ProvideFlexOptions,
-      tick: Long
+      tick: Long,
   ): FlexCorrespondenceStore =
     updateCorrespondence(
       flexOptions.modelUuid,
-      _.copy(receivedFlexOptions = Some(WithTime(flexOptions, tick)))
+      _.copy(receivedFlexOptions = Some(WithTime(flexOptions, tick))),
     )
 
   /** Updates the latest flex control for the flex provider, overwriting the
@@ -67,11 +67,11 @@ final case class FlexCorrespondenceStore(
   def updateFlexControl(
       modelUuid: UUID,
       flexControl: IssueFlexControl,
-      tick: Long
+      tick: Long,
   ): FlexCorrespondenceStore =
     updateCorrespondence(
       modelUuid,
-      _.copy(issuedCtrlMsg = Some(WithTime(flexControl, tick)))
+      _.copy(issuedCtrlMsg = Some(WithTime(flexControl, tick))),
     )
 
   /** Updates the latest result for the flex provider, overwriting the former
@@ -89,20 +89,20 @@ final case class FlexCorrespondenceStore(
   def updateResult(
       modelUuid: UUID,
       result: ApparentPower,
-      tick: Long
+      tick: Long,
   ): FlexCorrespondenceStore =
     updateCorrespondence(
       modelUuid,
-      _.copy(receivedResult = Some(WithTime(result, tick)))
+      _.copy(receivedResult = Some(WithTime(result, tick))),
     )
 
   private def updateCorrespondence(
       modelUuid: UUID,
-      update: FlexCorrespondence => FlexCorrespondence
+      update: FlexCorrespondence => FlexCorrespondence,
   ): FlexCorrespondenceStore = {
     val correspondence = store.getOrElse(
       modelUuid,
-      FlexCorrespondence()
+      FlexCorrespondence(),
     )
     copy(store = store.updated(modelUuid, update(correspondence)))
   }
@@ -124,7 +124,7 @@ object FlexCorrespondenceStore {
   final case class FlexCorrespondence(
       receivedFlexOptions: Option[WithTime[ProvideFlexOptions]] = None,
       issuedCtrlMsg: Option[WithTime[IssueFlexControl]] = None,
-      receivedResult: Option[WithTime[ApparentPower]] = None
+      receivedResult: Option[WithTime[ApparentPower]] = None,
   )
 
   /** Wrapper that allows storing a tick with an object

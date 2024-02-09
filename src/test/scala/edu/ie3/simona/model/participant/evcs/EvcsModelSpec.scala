@@ -11,7 +11,7 @@ import edu.ie3.simona.model.participant.FlexChangeIndicator
 import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsRelevantData,
   EvcsState,
-  ScheduleEntry
+  ScheduleEntry,
 }
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
@@ -45,7 +45,7 @@ class EvcsModelSpec
       "configured as a charging hub" in {
         val evcsModel = evcsStandardModel.copy(
           strategy = ChargingStrategy.CONSTANT_POWER,
-          locationType = EvcsLocationType.CHARGING_HUB_TOWN
+          locationType = EvcsLocationType.CHARGING_HUB_TOWN,
         )
 
         val evModel = EvModelWrapper(
@@ -56,16 +56,16 @@ class EvcsModelSpec
             20.0.asKiloWatt, // DC is not
             20.0.asKiloWattHour,
             5.0.asKiloWattHour,
-            10800L
+            10800L,
           )
         )
 
         val actualSchedule = evcsModel.calculateNewScheduling(
           EvcsRelevantData(
             3600L,
-            Seq.empty
+            Seq.empty,
           ),
-          Seq(evModel)
+          Seq(evModel),
         )
 
         actualSchedule shouldBe Map(
@@ -78,7 +78,7 @@ class EvcsModelSpec
       "configured as a home cs with constant power strategy" in {
         val evcsModel = evcsStandardModel.copy(
           strategy = ChargingStrategy.CONSTANT_POWER,
-          locationType = EvcsLocationType.HOME
+          locationType = EvcsLocationType.HOME,
         )
 
         val evModel = EvModelWrapper(
@@ -89,16 +89,16 @@ class EvcsModelSpec
             20.0.asKiloWatt, // DC is not
             20.0.asKiloWattHour,
             15.0.asKiloWattHour,
-            10800L
+            10800L,
           )
         )
 
         val actualSchedule = evcsModel.calculateNewScheduling(
           EvcsRelevantData(
             3600L,
-            Seq.empty
+            Seq.empty,
           ),
-          Seq(evModel)
+          Seq(evModel),
         )
 
         actualSchedule shouldBe Map(
@@ -123,7 +123,7 @@ class EvcsModelSpec
             "chargeEnd",
             "lastCalcTick",
             "power",
-            "expectedStored"
+            "expectedStored",
           ),
           // charging ends before currentTick
           (0.0, 0L, 2700L, 0L, 5.0, 3.75),
@@ -142,7 +142,7 @@ class EvcsModelSpec
           (0.0, 0L, 7200L, 0L, 2.5, 2.5),
           (0.0, 900L, 7200L, 0L, 5.0, 3.75),
           (2.5, 0L, 7200L, 1800L, 5.0, 5.0),
-          (2.5, 0L, 7200L, 2700L, 5.0, 3.75)
+          (2.5, 0L, 7200L, 2700L, 5.0, 3.75),
         )
 
         forAll(cases) {
@@ -152,7 +152,7 @@ class EvcsModelSpec
               chargeEnd,
               lastCalcTick,
               power,
-              expectedStored
+              expectedStored,
           ) =>
             val ev = EvModelWrapper(
               new MockEvModel(
@@ -162,7 +162,7 @@ class EvcsModelSpec
                 10.0.asKiloWatt,
                 10.0.asKiloWattHour,
                 storedEnergy.asKiloWattHour,
-                7200L // is ignored here
+                7200L, // is ignored here
               )
             )
 
@@ -172,12 +172,12 @@ class EvcsModelSpec
             val state = EvcsState(
               Seq(ev),
               Map(ev.uuid -> entry),
-              lastCalcTick
+              lastCalcTick,
             )
 
             val actualOutput = evcsModel.applySchedule(
               state,
-              currentTick
+              currentTick,
             )
 
             actualOutput should have size 1
@@ -213,13 +213,13 @@ class EvcsModelSpec
             10.0.asKiloWatt,
             10.0.asKiloWattHour,
             0d.asKiloWattHour,
-            10800L
+            10800L,
           )
         )
 
         val schedule = SortedSet(
           ScheduleEntry(3600L, 5400L, Kilowatts(2d)),
-          ScheduleEntry(7200L, 9000L, Kilowatts(4d))
+          ScheduleEntry(7200L, 9000L, Kilowatts(4d)),
         )
 
         // tick, p in kW
@@ -229,7 +229,7 @@ class EvcsModelSpec
             (3600L, 2d),
             (5400L, 0d),
             (7200L, 4d),
-            (9000L, 0d)
+            (9000L, 0d),
           )
 
         val cases = Table(
@@ -237,7 +237,7 @@ class EvcsModelSpec
             "lastTick",
             "currentTick",
             "firstResultIndex",
-            "lastResultIndex"
+            "lastResultIndex",
           ),
           (1800L, 10800L, 0, 5),
           (3600L, 10000L, 1, 5),
@@ -247,7 +247,7 @@ class EvcsModelSpec
           (5400L, 9001L, 2, 5),
           (5400L, 8999L, 2, 4),
           (8999L, 9000L, 3, 4),
-          (8999L, 9060L, 3, 5)
+          (8999L, 9060L, 3, 5),
         )
 
         forAll(cases) {
@@ -255,19 +255,19 @@ class EvcsModelSpec
               lastTick,
               currentTick,
               firstResultIndex,
-              lastResultIndex
+              lastResultIndex,
           ) =>
             val lastState = EvcsState(
               Seq(ev),
               Map(ev.uuid -> schedule),
-              lastTick
+              lastTick,
             )
 
             val (actualEvResults, actualEvcsResults) =
               evcsStandardModel.createResults(
                 lastState,
                 currentTick,
-                Each(1d)
+                Each(1d),
               )
 
             val (_, firstPower) = generalEvResults(firstResultIndex)
@@ -307,7 +307,7 @@ class EvcsModelSpec
             10.0.asKiloWatt,
             10.0.asKiloWattHour,
             0d.asKiloWattHour,
-            18000L
+            18000L,
           )
         )
 
@@ -319,14 +319,14 @@ class EvcsModelSpec
             10.0.asKiloWatt,
             10.0.asKiloWattHour,
             0d.asKiloWattHour,
-            18000L
+            18000L,
           )
         )
 
         val schedule1 =
           SortedSet(
             ScheduleEntry(3600L, 7200L, Kilowatts(2d)),
-            ScheduleEntry(9000L, 14400L, Kilowatts(3d))
+            ScheduleEntry(9000L, 14400L, Kilowatts(3d)),
           )
 
         val schedule2 = SortedSet(
@@ -339,14 +339,14 @@ class EvcsModelSpec
         val lastState = EvcsState(
           Seq(ev1, ev2),
           Map(ev1.uuid -> schedule1, ev2.uuid -> schedule2),
-          lastTick
+          lastTick,
         )
 
         val (actualEvResults, actualEvcsResults) =
           evcsStandardModel.createResults(
             lastState,
             currentTick,
-            Each(1d)
+            Each(1d),
           )
 
         // tick, p in kW, soc in %
@@ -355,7 +355,7 @@ class EvcsModelSpec
             (1800L, 0d, 0d),
             (3600L, 2d, 0d),
             (7200L, 0d, 20d),
-            (9000L, 3d, 20d)
+            (9000L, 3d, 20d),
           )
 
         // tick, p in kW, soc in %
@@ -363,7 +363,7 @@ class EvcsModelSpec
           Seq(
             (1800L, 0d, 0d),
             (5400L, 2d, 0d),
-            (9000L, 0d, 20d)
+            (9000L, 0d, 20d),
           )
 
         // tick, p in kW
@@ -373,7 +373,7 @@ class EvcsModelSpec
             (3600L, 2d),
             (5400L, 4d),
             (7200L, 2d),
-            (9000L, 3d)
+            (9000L, 3d),
           )
 
         actualEvResults should have size expectedEv1Results.size + expectedEv2Results.size
@@ -420,7 +420,7 @@ class EvcsModelSpec
             10.0.asKiloWatt,
             10.0.asKiloWattHour,
             0d.asKiloWattHour,
-            7200L // equals the current tick
+            7200L, // equals the current tick
           )
         )
 
@@ -434,14 +434,14 @@ class EvcsModelSpec
         val lastState = EvcsState(
           Seq(ev),
           Map(ev.uuid -> schedule),
-          lastTick
+          lastTick,
         )
 
         val (actualEvResults, actualEvcsResults) =
           evcsStandardModel.createResults(
             lastState,
             currentTick,
-            Each(1d)
+            Each(1d),
           )
 
         // tick, p in kW, soc in %
@@ -451,14 +451,14 @@ class EvcsModelSpec
             (3600L, 2d, 0d),
             // this result normally does not appear
             // if EV does not depart at current tick
-            (7200L, 0d, 20d)
+            (7200L, 0d, 20d),
           )
 
         // tick, p in kW
         val expectedEvcsResults =
           Seq(
             (1800L, 0d),
-            (3600L, 2d)
+            (3600L, 2d),
           )
 
         actualEvResults should have size expectedEvResults.size
@@ -494,7 +494,7 @@ class EvcsModelSpec
 
         val data = EvcsRelevantData(
           currentTick,
-          Seq.empty
+          Seq.empty,
         )
 
         val cases = Table(
@@ -504,7 +504,7 @@ class EvcsModelSpec
             "lastPower2",
             "expectedPRef",
             "expectedPMin",
-            "expectedPMax"
+            "expectedPMax",
           ),
 
           /* 1: empty */
@@ -557,7 +557,7 @@ class EvcsModelSpec
           // 2: almost full (12.5 kWh)
           (10.0, 5.0, 5.0, 1.25, -15.0, 5.0),
           // 2: full (set)
-          (10.0, 15.0, 0.0, 0.0, -15.0, 0.0)
+          (10.0, 15.0, 0.0, 0.0, -15.0, 0.0),
         )
 
         forAll(cases) {
@@ -567,7 +567,7 @@ class EvcsModelSpec
               lastPower2,
               expectedPRef,
               expectedPMin,
-              expectedPMax
+              expectedPMax,
           ) =>
             // stays one more hour
             val ev1 = EvModelWrapper(
@@ -578,7 +578,7 @@ class EvcsModelSpec
                 20.0.asKiloWatt, // DC is not
                 10.0.asKiloWattHour,
                 lastStored1.asKiloWattHour,
-                10800L
+                10800L,
               )
             )
 
@@ -596,7 +596,7 @@ class EvcsModelSpec
                 10.0.asKiloWatt, // DC is not
                 15.0.asKiloWattHour,
                 lastStored2.asKiloWattHour,
-                14400L
+                14400L,
               )
             )
 
@@ -610,14 +610,14 @@ class EvcsModelSpec
               EvcsState(
                 Seq(ev1, ev2),
                 Map(ev1.uuid -> schedule1, ev2.uuid -> schedule2),
-                0L
-              )
+                0L,
+              ),
             ) match {
               case ProvideMinMaxFlexOptions(
                     modelUuid,
                     refPower,
                     minPower,
-                    maxPower
+                    maxPower,
                   ) =>
                 modelUuid shouldBe evcsModel.getUuid
                 refPower should approximate(Kilowatts(expectedPRef))
@@ -636,7 +636,7 @@ class EvcsModelSpec
 
         val data = EvcsRelevantData(
           currentTick,
-          Seq.empty
+          Seq.empty,
         )
 
         val cases = Table(
@@ -646,7 +646,7 @@ class EvcsModelSpec
             "lastPower2",
             "expectedPRef",
             "expectedPMin",
-            "expectedPMax"
+            "expectedPMax",
           ),
 
           /* 1: empty */
@@ -699,7 +699,7 @@ class EvcsModelSpec
           // 2: almost full (charged to 12.5 kWh)
           (10.0, 5.0, 5.0, 5.0, -15.0, 5.0),
           // 2: full (set to 15 kWh)
-          (10.0, 15.0, 0.0, 0.0, -15.0, 0.0)
+          (10.0, 15.0, 0.0, 0.0, -15.0, 0.0),
         )
 
         forAll(cases) {
@@ -709,7 +709,7 @@ class EvcsModelSpec
               lastPower2,
               expectedPRef,
               expectedPMin,
-              expectedPMax
+              expectedPMax,
           ) =>
             val ev1 = EvModelWrapper(
               new MockEvModel(
@@ -719,7 +719,7 @@ class EvcsModelSpec
                 20.0.asKiloWatt, // DC is not
                 10.0.asKiloWattHour,
                 lastStored1.asKiloWattHour,
-                10800L
+                10800L,
               )
             )
 
@@ -735,7 +735,7 @@ class EvcsModelSpec
                 10.0.asKiloWatt, // DC is not
                 15.0.asKiloWattHour,
                 lastStored2.asKiloWattHour,
-                10800L
+                10800L,
               )
             )
 
@@ -748,14 +748,14 @@ class EvcsModelSpec
               EvcsState(
                 Seq(ev1, ev2),
                 Map(ev1.uuid -> schedule1, ev2.uuid -> schedule2),
-                0L
-              )
+                0L,
+              ),
             ) match {
               case ProvideMinMaxFlexOptions(
                     modelUuid,
                     refPower,
                     minPower,
-                    maxPower
+                    maxPower,
                   ) =>
                 modelUuid shouldBe evcsModel.getUuid
                 refPower should approximate(Kilowatts(expectedPRef))
@@ -769,14 +769,14 @@ class EvcsModelSpec
       "disallowing v2g" in {
         val evcsModel = evcsStandardModel.copy(
           vehicle2grid = false,
-          strategy = ChargingStrategy.CONSTANT_POWER
+          strategy = ChargingStrategy.CONSTANT_POWER,
         )
 
         val currentTick = 7200L
 
         val data = EvcsRelevantData(
           currentTick,
-          Seq.empty
+          Seq.empty,
         )
 
         val ev1 = EvModelWrapper(
@@ -787,7 +787,7 @@ class EvcsModelSpec
             20.0.asKiloWatt, // DC is not
             10.0.asKiloWattHour,
             0.0.asKiloWattHour,
-            10800L
+            10800L,
           )
         )
 
@@ -800,14 +800,14 @@ class EvcsModelSpec
           EvcsState(
             Seq(ev1),
             Map(ev1.uuid -> schedule1),
-            0L
-          )
+            0L,
+          ),
         ) match {
           case ProvideMinMaxFlexOptions(
                 modelUuid,
                 refPower,
                 minPower,
-                maxPower
+                maxPower,
               ) =>
             modelUuid shouldBe evcsModel.getUuid
             refPower should approximate(Kilowatts(5.0)) // one hour left
@@ -828,7 +828,7 @@ class EvcsModelSpec
 
         val data = EvcsRelevantData(
           currentTick,
-          Seq.empty
+          Seq.empty,
         )
 
         val cases = Table(
@@ -839,7 +839,7 @@ class EvcsModelSpec
             "expPowerAndTick1",
             "expPowerAndTick2",
             "expNextActivation",
-            "expNextTick"
+            "expNextTick",
           ),
 
           /* setPower is 0 kWh */
@@ -882,7 +882,7 @@ class EvcsModelSpec
           (10.0, 8.0, -15.0, S(-10.0, 6480L), S(-5.0, 7200L), true, S(6480L)),
           (10.0, 5.5, -15.0, S(-10.0, 6480L), S(-5.0, 5400L), true, S(5400L)),
           (10.0, 15.0, -15.0, S(-10.0, 6480L), S(-5.0, 10800L), true, S(6480L)),
-          (7.0, 10.5, -15.0, S(-10.0, 5400L), S(-5.0, 9000L), false, S(5400L))
+          (7.0, 10.5, -15.0, S(-10.0, 5400L), S(-5.0, 9000L), false, S(5400L)),
         )
 
         forAll(cases) {
@@ -893,7 +893,7 @@ class EvcsModelSpec
               expPowerAndTick1: Option[(Double, Long)],
               expPowerAndTick2: Option[(Double, Long)],
               expNextActivation: Boolean,
-              expNextTick: Option[Long]
+              expNextTick: Option[Long],
           ) =>
             val ev1 = EvModelWrapper(
               new MockEvModel(
@@ -903,7 +903,7 @@ class EvcsModelSpec
                 20.0.asKiloWatt, // DC is not
                 10.0.asKiloWattHour,
                 stored1.asKiloWattHour,
-                7200L
+                7200L,
               )
             )
 
@@ -915,7 +915,7 @@ class EvcsModelSpec
                 10.0.asKiloWatt, // DC is not
                 15.0.asKiloWattHour,
                 stored2.asKiloWattHour,
-                10800L
+                10800L,
               )
             )
 
@@ -924,13 +924,13 @@ class EvcsModelSpec
               EvcsState(
                 Seq(ev1, ev2),
                 Map.empty,
-                0L
+                0L,
               ),
-              Kilowatts(setPower)
+              Kilowatts(setPower),
             ) match {
               case (
                     EvcsState(actualEvs, actualSchedules, actualTick),
-                    FlexChangeIndicator(actualNextActivation, actualNextTick)
+                    FlexChangeIndicator(actualNextActivation, actualNextTick),
                   ) =>
                 // evs have not changed here since no schedules were given as input
                 actualEvs should have size 2
@@ -944,7 +944,7 @@ class EvcsModelSpec
 
                   (
                     entry.chargingPower.toKilowatts,
-                    entry.tickStop
+                    entry.tickStop,
                   )
                 } shouldBe expPowerAndTick1
                 actualSchedules.get(ev2.uuid).map { entries =>
@@ -955,7 +955,7 @@ class EvcsModelSpec
 
                   (
                     entry.chargingPower.toKilowatts,
-                    entry.tickStop
+                    entry.tickStop,
                   )
                 } shouldBe expPowerAndTick2
 
