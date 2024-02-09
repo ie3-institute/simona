@@ -30,7 +30,7 @@ object ArgsParser extends LazyLogging {
       nodePort: Option[String] = None,
       seedAddress: Option[String] = None,
       useLocalWorker: Option[Boolean] = None,
-      tArgs: Map[String, String] = Map.empty
+      tArgs: Map[String, String] = Map.empty,
   ) {
     val useCluster: Boolean = clusterType.isDefined
   }
@@ -42,7 +42,7 @@ object ArgsParser extends LazyLogging {
         .action((value, args) => {
           args.copy(
             config = Some(parseTypesafeConfig(value)),
-            configLocation = Option(value)
+            configLocation = Option(value),
           )
         })
         .validate(value =>
@@ -122,7 +122,7 @@ object ArgsParser extends LazyLogging {
 
   private def parse(
       parser: scoptOptionParser[Arguments],
-      args: Array[String]
+      args: Array[String],
   ): Option[Arguments] =
     parser.parse(args, init = Arguments(args))
 

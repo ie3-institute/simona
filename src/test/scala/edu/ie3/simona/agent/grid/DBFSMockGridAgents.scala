@@ -11,12 +11,12 @@ import org.apache.pekko.testkit.TestProbe
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   ProvideGridPowerMessage,
-  RequestGridPowerMessage
+  RequestGridPowerMessage,
 }
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 import edu.ie3.simona.ontology.messages.VoltageMessage.{
   ProvideSlackVoltageMessage,
-  RequestSlackVoltageMessage
+  RequestSlackVoltageMessage,
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
@@ -48,7 +48,7 @@ trait DBFSMockGridAgents extends UnitSpec {
 
   final case class InferiorGA(
       override val gaProbe: TestProbe,
-      override val nodeUuids: Seq[UUID]
+      override val nodeUuids: Seq[UUID],
   ) extends GAActorAndModel {
 
     def expectGridPowerRequest(): ActorRef = {
@@ -61,7 +61,7 @@ trait DBFSMockGridAgents extends UnitSpec {
 
     def expectSlackVoltageProvision(
         expectedSweepNo: Int,
-        expectedExchangedVoltages: Seq[ExchangeVoltage]
+        expectedExchangedVoltages: Seq[ExchangeVoltage],
     ): Unit = {
       inside(gaProbe.expectMsgType[ProvideSlackVoltageMessage]) {
         case ProvideSlackVoltageMessage(sweepNo, exchangedVoltages) =>
@@ -88,13 +88,13 @@ trait DBFSMockGridAgents extends UnitSpec {
     def requestSlackVoltage(receiver: ActorRef, sweepNo: Int): Unit =
       gaProbe.send(
         receiver,
-        RequestSlackVoltageMessage(sweepNo, nodeUuids)
+        RequestSlackVoltageMessage(sweepNo, nodeUuids),
       )
   }
 
   final case class SuperiorGA(
       override val gaProbe: TestProbe,
-      override val nodeUuids: Seq[UUID]
+      override val nodeUuids: Seq[UUID],
   ) extends GAActorAndModel {
 
     def expectSlackVoltageRequest(expectedSweepNo: Int): ActorRef = {
@@ -113,7 +113,7 @@ trait DBFSMockGridAgents extends UnitSpec {
 
     def expectGridPowerProvision(
         expectedExchangedPowers: Seq[ExchangePower],
-        maxDuration: FiniteDuration = 30 seconds
+        maxDuration: FiniteDuration = 30 seconds,
     ): Unit = {
       inside(gaProbe.expectMsgType[ProvideGridPowerMessage](maxDuration)) {
         case ProvideGridPowerMessage(exchangedPower) =>
@@ -140,8 +140,8 @@ trait DBFSMockGridAgents extends UnitSpec {
         receiver,
         RequestGridPowerMessage(
           sweepNo,
-          nodeUuids
-        )
+          nodeUuids,
+        ),
       )
     }
   }

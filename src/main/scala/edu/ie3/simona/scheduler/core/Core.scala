@@ -66,7 +66,7 @@ object Core {
       */
     def handleSchedule(
         actor: Actor,
-        newTick: Long
+        newTick: Long,
     ): (Option[Long], InactiveCore)
 
   }
@@ -123,7 +123,7 @@ object Core {
       */
     def handleSchedule(
         actor: Actor,
-        newTick: Long
+        newTick: Long,
     ): ActiveCore
 
     /** Removes and returns activations scheduled for the current tick, which

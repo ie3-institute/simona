@@ -42,7 +42,7 @@ final case class PvModel private (
     private val etaConv: Dimensionless,
     private val alphaE: Angle,
     private val gammaE: Angle,
-    private val moduleSurface: Area = SquareMeters(1d)
+    private val moduleSurface: Area = SquareMeters(1d),
 ) extends SystemParticipant[PvRelevantData, ApparentPower, ConstantState.type](
       uuid,
       id,
@@ -50,7 +50,7 @@ final case class PvModel private (
       scalingFactor,
       qControl,
       sRated,
-      cosPhiRated
+      cosPhiRated,
     )
     with ApparentPowerParticipant[PvRelevantData, ConstantState.type] {
 
@@ -76,7 +76,7 @@ final case class PvModel private (
     */
   override protected def calculateActivePower(
       modelState: ConstantState.type,
-      data: PvRelevantData
+      data: PvRelevantData,
   ): Power = {
     // === Weather Base Data  === //
     /* The pv model calculates the power in-feed based on the solar irradiance that is received over a specific
@@ -114,7 +114,7 @@ final case class PvModel private (
       delta,
       lat,
       gammaE,
-      alphaE
+      alphaE,
     )
 
     // === Diffuse Radiation Parameters ===//
@@ -130,7 +130,7 @@ final case class PvModel private (
       extraterrestrialRadiationI0,
       thetaZ,
       thetaG,
-      gammaE
+      gammaE,
     )
 
     // === Reflected Radiation ===//
@@ -144,7 +144,7 @@ final case class PvModel private (
     calcOutput(
       eTotal,
       data.dateTime,
-      irraditionSTC
+      irraditionSTC,
     )
   }
 
@@ -203,7 +203,7 @@ final case class PvModel private (
   private def calcHourAngleOmega(
       time: ZonedDateTime,
       angleJ: Angle,
-      longitude: Angle
+      longitude: Angle,
   ): Angle = {
     val jInRad = angleJ.toRadians
     val lambda = longitude.toDegrees
@@ -232,7 +232,7 @@ final case class PvModel private (
     */
   private def calcSunsetAngleOmegaSS(
       latitude: Angle,
-      delta: Angle
+      delta: Angle,
   ): Angle = {
     val latInRad = latitude.toRadians
     val deltaInRad = delta.toRadians
@@ -261,7 +261,7 @@ final case class PvModel private (
   private def calcSolarAltitudeAngleAlphaS(
       omega: Angle,
       delta: Angle,
-      latitude: Angle
+      latitude: Angle,
   ): Angle = {
     val latInRad = latitude.toRadians
     val deltaInRad = delta.toRadians
@@ -271,9 +271,9 @@ final case class PvModel private (
         max(
           cos(omegaInRad) * cos(latInRad) * cos(deltaInRad) +
             sin(latInRad) * sin(deltaInRad),
-          -1
+          -1,
         ),
-        1
+        1,
       )
     Radians(asin(sinAlphaS))
   }
@@ -368,7 +368,7 @@ final case class PvModel private (
       latitude: Angle,
       gammaE: Angle,
       alphaE: Angle,
-      omega: Angle
+      omega: Angle,
   ): Angle = {
     val deltaInRad = delta.toRadians
     val omegaInRad = omega.toRadians
@@ -407,7 +407,7 @@ final case class PvModel private (
       thetaG: Angle,
       omega: Angle,
       omegaSS: Angle,
-      omegaSR: Angle
+      omegaSR: Angle,
   ): Option[(Angle, Angle)] = {
     val thetaGInRad = thetaG.toRadians
     val omegaSSInRad = omegaSS.toRadians
@@ -470,7 +470,7 @@ final case class PvModel private (
       delta: Angle,
       latitude: Angle,
       gammaE: Angle,
-      alphaE: Angle
+      alphaE: Angle,
   ): Irradiation = {
 
     omegas match {
@@ -540,7 +540,7 @@ final case class PvModel private (
       extraterrestrialRadiationI0: Irradiation,
       thetaZ: Angle,
       thetaG: Angle,
-      gammaE: Angle
+      gammaE: Angle,
   ): Irradiation = {
     val thetaZInRad = thetaZ.toRadians
     val thetaGInRad = thetaG.toRadians
@@ -558,10 +558,10 @@ final case class PvModel private (
       var epsilon = ((eDifH + eBeamH) / eDifH +
         (5.535d * 1.0e-6) * pow(
           thetaZInRad,
-          3
+          3,
         )) / (1d + (5.535d * 1.0e-6) * pow(
         thetaZInRad,
-        3
+        3,
       ))
 
       // get the corresponding bin if epsilon is smaller than 6.2
@@ -573,7 +573,7 @@ final case class PvModel private (
           Array(1.500, 1.950),
           Array(1.950, 2.800),
           Array(2.800, 4.500),
-          Array(4.500, 6.200)
+          Array(4.500, 6.200),
         )
         // adapt the epsilon as we have no bin < 1
         epsilon = max(1, epsilon)
@@ -599,7 +599,7 @@ final case class PvModel private (
     val f11 = -0.0161 * pow(x, 3) + 0.1840 * pow(x, 2) - 0.3806 * x + 0.2324
     val f12 = 0.0134 * pow(x, 4) - 0.1938 * pow(x, 3) + 0.8410 * pow(
       x,
-      2
+      2,
     ) - 1.4018 * x + 1.3579
     val f13 = 0.0032 * pow(x, 3) - 0.0280 * pow(x, 2) - 0.0056 * x - 0.0385
     val f21 = -0.0048 * pow(x, 3) + 0.0536 * pow(x, 2) - 0.1049 * x + 0.0034
@@ -640,7 +640,7 @@ final case class PvModel private (
       eBeamH: Irradiation,
       eDifH: Irradiation,
       gammaE: Angle,
-      albedo: Double
+      albedo: Double,
   ): Irradiation = {
     val gammaEInRad = gammaE.toRadians
     (eBeamH + eDifH) * (albedo * 0.5 * (1 - cos(gammaEInRad)))
@@ -648,7 +648,7 @@ final case class PvModel private (
 
   private def generatorCorrectionFactor(
       time: ZonedDateTime,
-      gammaE: Angle
+      gammaE: Angle,
   ): Double = {
     val gammaEValInDeg = gammaE.toDegrees
 
@@ -682,7 +682,7 @@ final case class PvModel private (
   private def calcOutput(
       eTotalInWhPerSM: Irradiation,
       time: ZonedDateTime,
-      irradiationSTC: Irradiation
+      irradiationSTC: Irradiation,
   ): Power = {
     val genCorr = generatorCorrectionFactor(time, gammaE)
     val tempCorr = temperatureCorrectionFactor(time)
@@ -703,7 +703,7 @@ final case class PvModel private (
         "The fed in active power is higher than the estimated maximum active power of this plant ({} < {}). " +
           "Did you provide wrong weather input data?",
         proposal,
-        pMax
+        pMax,
       )
 
     /* If the output is marginally small, suppress the output, as we are likely to be in night and then only produce incorrect output */
@@ -714,7 +714,7 @@ final case class PvModel private (
 
   override def determineFlexOptions(
       data: PvRelevantData,
-      lastState: ConstantState.type
+      lastState: ConstantState.type,
   ): ProvideFlexOptions = {
     val power = calculateActivePower(ConstantState, data)
 
@@ -724,7 +724,7 @@ final case class PvModel private (
   override def handleControlledPowerChange(
       data: PvRelevantData,
       lastState: ConstantState.type,
-      setPower: squants.Power
+      setPower: squants.Power,
   ): (ConstantState.type, FlexChangeIndicator) =
     (lastState, FlexChangeIndicator())
 }
@@ -747,21 +747,21 @@ object PvModel {
       dateTime: ZonedDateTime,
       weatherDataFrameLength: Long,
       diffIrradiance: Irradiance,
-      dirIrradiance: Irradiance
+      dirIrradiance: Irradiance,
   ) extends CalcRelevantData
 
   def apply(
       inputModel: PvInput,
       scalingFactor: Double,
       simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime
+      simulationEndDate: ZonedDateTime,
   ): PvModel = {
     /* Determine the operation interval */
     val operationInterval: OperationInterval =
       SystemComponent.determineOperationInterval(
         simulationStartDate,
         simulationEndDate,
-        inputModel.getOperationTime
+        inputModel.getOperationTime,
       )
 
     // moduleSurface and yieldSTC are left out for now
@@ -798,7 +798,7 @@ object PvModel {
           .to(RADIAN)
           .getValue
           .doubleValue
-      )
+      ),
     )
 
     model.enable()

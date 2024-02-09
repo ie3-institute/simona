@@ -36,7 +36,7 @@ final case class RuntimeNotifier(
     private val lastCheck: Option[Long] = None,
     private val simStartTime: Option[Long] = None,
     private val lastStartTime: Option[Long] = None,
-    private val lastCheckWindowTime: Option[Long] = None
+    private val lastCheckWindowTime: Option[Long] = None,
 ) {
 
   /** Notifier listeners that simulation has started or continued with given
@@ -53,7 +53,7 @@ final case class RuntimeNotifier(
   def starting(
       tick: Long,
       pauseTick: Option[Long],
-      endTick: Long
+      endTick: Long,
   ): RuntimeNotifier = {
     val nowTime = now()
 
@@ -72,7 +72,7 @@ final case class RuntimeNotifier(
       copy(
         simStartTime = Some(nowTime),
         lastStartTime = Some(nowTime),
-        lastCheckWindowTime = Some(nowTime)
+        lastCheckWindowTime = Some(nowTime),
       )
   }
 
@@ -119,7 +119,7 @@ final case class RuntimeNotifier(
           .map { lastPassedCheck =>
             copy(
               lastCheck = Some(lastPassedCheck),
-              lastCheckWindowTime = Some(nowTime)
+              lastCheckWindowTime = Some(nowTime),
             )
           }
       }
@@ -139,7 +139,7 @@ final case class RuntimeNotifier(
       Done(
         endTick,
         duration(simStartTime),
-        errorInSim = false
+        errorInSim = false,
       )
     )
   }
@@ -160,7 +160,7 @@ final case class RuntimeNotifier(
       Done(
         endTick,
         duration(simStartTime),
-        errorInSim = true
+        errorInSim = true,
       )
     )
   }
@@ -185,7 +185,7 @@ object RuntimeNotifier {
     */
   private def duration(
       intervalStart: Option[Long],
-      intervalEnd: Long = now()
+      intervalEnd: Long = now(),
   ): Long =
     intervalStart.map(intervalEnd - _).getOrElse(0)
 

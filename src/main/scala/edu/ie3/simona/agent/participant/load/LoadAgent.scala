@@ -12,7 +12,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.load.LoadAgentFundamentals.{
   FixedLoadAgentFundamentals,
   ProfileLoadAgentFundamentals,
-  RandomLoadAgentFundamentals
+  RandomLoadAgentFundamentals,
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
@@ -26,7 +26,7 @@ import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomReleva
 import edu.ie3.simona.model.participant.load.{
   FixedLoadModel,
   LoadModel,
-  LoadModelBehaviour
+  LoadModelBehaviour,
 }
 import org.apache.pekko.actor.{ActorRef, Props}
 
@@ -36,9 +36,9 @@ object LoadAgent {
       initStateData: ParticipantInitializeStateData[
         LoadInput,
         LoadRuntimeConfig,
-        ApparentPower
+        ApparentPower,
       ],
-      listener: Iterable[ActorRef]
+      listener: Iterable[ActorRef],
   ): Props =
     LoadModelBehaviour(initStateData.modelConfig.modelBehaviour) match {
       case LoadModelBehaviour.FIX =>
@@ -58,12 +58,12 @@ object LoadAgent {
       initStateData: ParticipantInitializeStateData[
         LoadInput,
         LoadRuntimeConfig,
-        ApparentPower
+        ApparentPower,
       ],
-      override val listener: Iterable[ActorRef]
+      override val listener: Iterable[ActorRef],
   ) extends LoadAgent[
         FixedLoadModel.FixedLoadRelevantData.type,
-        FixedLoadModel
+        FixedLoadModel,
       ](scheduler, initStateData, listener)
       with FixedLoadAgentFundamentals
 
@@ -72,12 +72,12 @@ object LoadAgent {
       initStateData: ParticipantInitializeStateData[
         LoadInput,
         LoadRuntimeConfig,
-        ApparentPower
+        ApparentPower,
       ],
-      override val listener: Iterable[ActorRef]
+      override val listener: Iterable[ActorRef],
   ) extends LoadAgent[
         ProfileRelevantData,
-        ProfileLoadModel
+        ProfileLoadModel,
       ](scheduler, initStateData, listener)
       with ProfileLoadAgentFundamentals
 
@@ -86,12 +86,12 @@ object LoadAgent {
       initStateData: ParticipantInitializeStateData[
         LoadInput,
         LoadRuntimeConfig,
-        ApparentPower
+        ApparentPower,
       ],
-      override val listener: Iterable[ActorRef]
+      override val listener: Iterable[ActorRef],
   ) extends LoadAgent[
         RandomRelevantData,
-        RandomLoadModel
+        RandomLoadModel,
       ](scheduler, initStateData, listener)
       with RandomLoadAgentFundamentals
 }
@@ -108,9 +108,9 @@ abstract class LoadAgent[LD <: LoadRelevantData, LM <: LoadModel[LD]](
     initStateData: ParticipantInitializeStateData[
       LoadInput,
       LoadRuntimeConfig,
-      ApparentPower
+      ApparentPower,
     ],
-    override val listener: Iterable[ActorRef]
+    override val listener: Iterable[ActorRef],
 ) extends ParticipantAgent[
       ApparentPower,
       LD,
@@ -118,7 +118,7 @@ abstract class LoadAgent[LD <: LoadRelevantData, LM <: LoadModel[LD]](
       ParticipantStateData[ApparentPower],
       LoadInput,
       LoadRuntimeConfig,
-      LM
+      LM,
     ](scheduler, initStateData)
     with LoadAgentFundamentals[LD, LM] {
   /*

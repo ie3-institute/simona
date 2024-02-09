@@ -58,11 +58,11 @@ final case class HpModel(
     sRated: Power,
     cosPhiRated: Double,
     pThermal: Power,
-    thermalGrid: ThermalGrid
+    thermalGrid: ThermalGrid,
 ) extends SystemParticipant[
       HpRelevantData,
       ApparentPowerAndHeat,
-      HpState
+      HpState,
     ](
       uuid,
       id,
@@ -70,7 +70,7 @@ final case class HpModel(
       scalingFactor,
       qControl,
       sRated,
-      cosPhiRated
+      cosPhiRated,
     )
     with ApparentPowerAndHeatParticipant[HpRelevantData, HpState] {
 
@@ -92,7 +92,7 @@ final case class HpModel(
     */
   override protected def calculateActivePower(
       modelState: HpState,
-      relevantData: HpRelevantData
+      relevantData: HpRelevantData,
   ): Power = modelState.activePower
 
   /** "Calculate" the heat output of the heat pump. The hp's state is already
@@ -112,7 +112,7 @@ final case class HpModel(
   override def calculateHeat(
       tick: Long,
       modelState: HpState,
-      data: HpRelevantData
+      data: HpRelevantData,
   ): Power = modelState.qDot
 
   /** Given a [[HpRelevantData]] object and the current [[HpState]], this
@@ -128,7 +128,7 @@ final case class HpModel(
     */
   def determineState(
       state: HpState,
-      relevantData: HpRelevantData
+      relevantData: HpRelevantData,
   ): HpState = {
     val turnOn = operatesInNextState(state, relevantData)
     calcState(state, relevantData, turnOn)
@@ -149,12 +149,12 @@ final case class HpModel(
     */
   private def operatesInNextState(
       state: HpState,
-      relevantData: HpRelevantData
+      relevantData: HpRelevantData,
   ): Boolean = {
     val demand = thermalGrid.energyDemand(
       relevantData.currentTick,
       relevantData.ambientTemperature,
-      state.thermalGridState
+      state.thermalGridState,
     )
     demand.hasRequiredDemand || (state.isRunning && demand.hasAdditionalDemand)
   }
@@ -175,7 +175,7 @@ final case class HpModel(
   private def calcState(
       state: HpState,
       relevantData: HpRelevantData,
-      isRunning: Boolean
+      isRunning: Boolean,
   ): HpState = {
     val (newActivePower, newThermalPower) =
       if (isRunning)
@@ -188,7 +188,7 @@ final case class HpModel(
         relevantData.currentTick,
         state.thermalGridState,
         state.ambientTemperature.getOrElse(relevantData.ambientTemperature),
-        newThermalPower
+        newThermalPower,
       )
 
     HpState(
@@ -198,13 +198,13 @@ final case class HpModel(
       newActivePower,
       newThermalPower,
       thermalGridState,
-      maybeThreshold
+      maybeThreshold,
     )
   }
 
   override def determineFlexOptions(
       data: HpRelevantData,
-      lastState: HpState
+      lastState: HpState,
   ): ProvideFlexOptions = {
     /* Determine the operating state in the given tick */
     val updatedState = determineState(lastState, data)
@@ -213,7 +213,7 @@ final case class HpModel(
     val thermalEnergyDemand = thermalGrid.energyDemand(
       data.currentTick,
       data.ambientTemperature,
-      lastState.thermalGridState
+      lastState.thermalGridState,
     )
     val canOperate =
       thermalEnergyDemand.hasRequiredDemand || thermalEnergyDemand.hasAdditionalDemand
@@ -234,7 +234,7 @@ final case class HpModel(
       uuid,
       updatedState.activePower,
       lowerBoundary,
-      upperBoundary
+      upperBoundary,
     )
   }
 
@@ -258,7 +258,7 @@ final case class HpModel(
   override def handleControlledPowerChange(
       data: HpRelevantData,
       lastState: HpState,
-      setPower: Power
+      setPower: Power,
   ): (HpState, FlexChangeIndicator) = {
     /* If the setpoint value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
     val turnOn = setPower > (sRated * cosPhiRated * 0.5)
@@ -268,8 +268,8 @@ final case class HpModel(
       updatedState,
       FlexChangeIndicator(
         changesAtNextActivation = true,
-        updatedState.maybeThermalThreshold.map(_.tick)
-      )
+        updatedState.maybeThermalThreshold.map(_.tick),
+      ),
     )
   }
 }
@@ -283,14 +283,14 @@ object HpModel {
       scaling: Double,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
-      thermalGrid: ThermalGrid
+      thermalGrid: ThermalGrid,
   ): HpModel = {
     /* Determine the operation interval */
     val operationInterval: OperationInterval =
       SystemComponent.determineOperationInterval(
         simulationStartDate,
         simulationEndDate,
-        inputModel.getOperationTime
+        inputModel.getOperationTime,
       )
 
     val qControl = QControl(inputModel.getqCharacteristics())
@@ -314,7 +314,7 @@ object HpModel {
           .getValue
           .doubleValue
       ),
-      thermalGrid
+      thermalGrid,
     )
 
     model.enable()
@@ -348,7 +348,7 @@ object HpModel {
       activePower: Power,
       qDot: Power,
       thermalGridState: ThermalGridState,
-      maybeThermalThreshold: Option[ThermalThreshold]
+      maybeThermalThreshold: Option[ThermalThreshold],
   ) extends ModelState
 
   /** Main data required for simulation/calculation, containing a [[HpState]]
@@ -362,7 +362,7 @@ object HpModel {
     */
   final case class HpRelevantData(
       currentTick: Long,
-      ambientTemperature: Temperature
+      ambientTemperature: Temperature,
   ) extends CalcRelevantData
 
   /** Internal method to construct a new [[HpModel]] based on a provided
@@ -389,12 +389,12 @@ object HpModel {
       simulationEndDate: ZonedDateTime,
       qControl: QControl,
       scalingFactor: Double,
-      thermalGrid: ThermalGrid
+      thermalGrid: ThermalGrid,
   ): HpModel = {
     val operationInterval = SystemComponent.determineOperationInterval(
       simulationStartDate,
       simulationEndDate,
-      hpInput.getOperationTime
+      hpInput.getOperationTime,
     )
 
     val model = new HpModel(
@@ -416,7 +416,7 @@ object HpModel {
           .getValue
           .doubleValue
       ),
-      thermalGrid
+      thermalGrid,
     )
 
     model.enable()

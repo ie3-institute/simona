@@ -27,18 +27,18 @@ import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage
+  RequestAssetPowerMessage,
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
   RegistrationFailedMessage,
-  RegistrationSuccessfulMessage
+  RegistrationSuccessfulMessage,
 }
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
   ProvideWeatherMessage,
   RegisterForWeatherMessage,
-  WeatherData
+  WeatherData,
 }
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.model.participant.HpTestData
@@ -48,7 +48,7 @@ import edu.ie3.util.scala.quantities.{
   Megavars,
   ReactivePower,
   Vars,
-  WattsPerSquareMeter
+  WattsPerSquareMeter,
 }
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
@@ -73,7 +73,7 @@ class HpAgentModelCalculationSpec
           .parseString("""
             |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
             |pekko.loglevel="DEBUG"
-        """.stripMargin)
+        """.stripMargin),
       )
     )
     with HpTestData
@@ -101,7 +101,7 @@ class HpAgentModelCalculationSpec
   private val defaultOutputConfig = NotifierConfig(
     simonaConfig.simona.output.participant.defaultConfig.simulationResult,
     simonaConfig.simona.output.participant.defaultConfig.powerRequestReply,
-    simonaConfig.simona.output.participant.defaultConfig.flexResult
+    simonaConfig.simona.output.participant.defaultConfig.flexResult,
   )
   private val participantConfigUtil = ConfigUtil.ParticipantConfigUtil(
     simonaConfig.simona.runtime.participant
@@ -120,7 +120,7 @@ class HpAgentModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       HpInput,
       HpRuntimeConfig,
-      ApparentPowerAndHeat
+      ApparentPowerAndHeat,
     ](
       inputModel = hpInput,
       modelConfig = modelConfig,
@@ -132,7 +132,7 @@ class HpAgentModelCalculationSpec
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
       primaryServiceProxy = primaryServiceProxy.ref,
-      maybeEmAgent = None
+      maybeEmAgent = None,
     )
 
     "be instantiated correctly" in {
@@ -140,7 +140,7 @@ class HpAgentModelCalculationSpec
         new HpAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -162,7 +162,7 @@ class HpAgentModelCalculationSpec
         new HpAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -174,7 +174,7 @@ class HpAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         hpAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       deathProbe.expectTerminated(hpAgent)
@@ -185,7 +185,7 @@ class HpAgentModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       HpInput,
       HpRuntimeConfig,
-      ApparentPowerAndHeat
+      ApparentPowerAndHeat,
     ](
       inputModel = hpInput,
       thermalGrid = thermalGrid,
@@ -198,7 +198,7 @@ class HpAgentModelCalculationSpec
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
       primaryServiceProxy = primaryServiceProxy.ref,
-      maybeEmAgent = None
+      maybeEmAgent = None,
     )
 
     "be instantiated correctly" in {
@@ -206,7 +206,7 @@ class HpAgentModelCalculationSpec
         new HpAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -226,7 +226,7 @@ class HpAgentModelCalculationSpec
         new HpAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -248,7 +248,7 @@ class HpAgentModelCalculationSpec
               resolution,
               requestVoltageDeviationThreshold,
               outputConfig,
-              _
+              _,
             ) =>
           inputModel shouldBe WithHeatInputContainer(hpInput, thermalGrid)
           modelConfig shouldBe modelConfig
@@ -265,7 +265,7 @@ class HpAgentModelCalculationSpec
       /* Refuse registration */
       primaryServiceProxy.send(
         hpAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       /* Expect a registration message */
@@ -291,10 +291,10 @@ class HpAgentModelCalculationSpec
                 requestValueStore,
                 _,
                 _,
-                _
+                _,
               ),
               awaitRegistrationResponsesFrom,
-              foreseenNextDataTicks
+              foreseenNextDataTicks,
             ) =>
           /* Base state data */
           startDate shouldBe defaultSimulationStart
@@ -305,13 +305,13 @@ class HpAgentModelCalculationSpec
           outputConfig shouldBe NotifierConfig(
             simulationResultInfo = true,
             powerRequestReply = false,
-            flexResult = false
+            flexResult = false,
           )
           additionalActivationTicks shouldBe empty
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
-            SortedMap(0L -> Each(1.0))
+            SortedMap(0L -> Each(1.0)),
           )
           resultValueStore shouldBe ValueStore(resolution)
           requestValueStore shouldBe ValueStore[ApparentPowerAndHeat](
@@ -330,7 +330,7 @@ class HpAgentModelCalculationSpec
       /* Reply, that registration was successful */
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(4711L))
+        RegistrationSuccessfulMessage(weatherService.ref, Some(4711L)),
       )
 
       /* Expect a completion message */
@@ -356,7 +356,7 @@ class HpAgentModelCalculationSpec
         new HpAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -366,7 +366,7 @@ class HpAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         hpAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       /* Expect a registration message */
@@ -375,7 +375,7 @@ class HpAgentModelCalculationSpec
       )
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(900L))
+        RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -387,12 +387,12 @@ class HpAgentModelCalculationSpec
       hpAgent ! RequestAssetPowerMessage(
         0L,
         Dimensionless.primaryUnit(1.0),
-        Dimensionless.primaryUnit(0.0)
+        Dimensionless.primaryUnit(0.0),
       )
       expectMsg(
         AssetPowerChangedMessage(
           Megawatts(0.0),
-          Megavars(0.0)
+          Megavars(0.0),
         )
       )
 
@@ -406,9 +406,9 @@ class HpAgentModelCalculationSpec
               0L -> ApparentPowerAndHeat(
                 Megawatts(0.0),
                 Megavars(0.0),
-                Megawatts(0.0)
+                Megawatts(0.0),
               )
-            )
+            ),
           )
         case _ =>
           fail(
@@ -422,7 +422,7 @@ class HpAgentModelCalculationSpec
         new HpAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -432,14 +432,14 @@ class HpAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         hpAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(0L))
+        RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -452,12 +452,12 @@ class HpAgentModelCalculationSpec
         WattsPerSquareMeter(0),
         WattsPerSquareMeter(0),
         Celsius(1.815),
-        MetersPerSecond(7.726576)
+        MetersPerSecond(7.726576),
       )
 
       weatherService.send(
         hpAgent,
-        ProvideWeatherMessage(0L, weatherService.ref, weatherData, Some(3600L))
+        ProvideWeatherMessage(0L, weatherService.ref, weatherData, Some(3600L)),
       )
 
       /* Find yourself in corresponding state and state data */
@@ -466,7 +466,7 @@ class HpAgentModelCalculationSpec
         case DataCollectionStateData(
               baseStateData: ParticipantModelBaseStateData[_, _, _, _],
               expectedSenders,
-              isYetTriggered
+              isYetTriggered,
             ) =>
           /* The next data tick is already registered */
           baseStateData.foreseenDataTicks shouldBe Map(
@@ -507,8 +507,8 @@ class HpAgentModelCalculationSpec
                       activePower,
                       qDot,
                       thermalGridState,
-                      _
-                    )
+                      _,
+                    ),
                   )
                 ) =>
               isRunning shouldBe false
@@ -533,7 +533,7 @@ class HpAgentModelCalculationSpec
               store.size shouldBe 1
               store.getOrElse(
                 0L,
-                fail("Expected a simulation result for tick 900.")
+                fail("Expected a simulation result for tick 900."),
               ) match {
                 case ApparentPowerAndHeat(p, q, qDot) =>
                   p should approximate(Megawatts(0d))
@@ -553,7 +553,7 @@ class HpAgentModelCalculationSpec
         new HpAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -563,14 +563,14 @@ class HpAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         hpAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(0L))
+        RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -586,7 +586,7 @@ class HpAgentModelCalculationSpec
         case DataCollectionStateData(
               baseStateData: ParticipantModelBaseStateData[_, _, _, _],
               expectedSenders,
-              isYetTriggered
+              isYetTriggered,
             ) =>
           /* The next data tick is already registered */
           baseStateData.foreseenDataTicks shouldBe Map(
@@ -609,12 +609,12 @@ class HpAgentModelCalculationSpec
         WattsPerSquareMeter(0),
         WattsPerSquareMeter(0),
         Celsius(1.815),
-        MetersPerSecond(7.726576)
+        MetersPerSecond(7.726576),
       )
 
       weatherService.send(
         hpAgent,
-        ProvideWeatherMessage(0L, weatherService.ref, weatherData, Some(3600L))
+        ProvideWeatherMessage(0L, weatherService.ref, weatherData, Some(3600L)),
       )
 
       /* Expect confirmation */
@@ -635,8 +635,8 @@ class HpAgentModelCalculationSpec
                       activePower,
                       qDot,
                       thermalGridState,
-                      _
-                    )
+                      _,
+                    ),
                   )
                 ) =>
               isRunning shouldBe false
@@ -661,7 +661,7 @@ class HpAgentModelCalculationSpec
               store.size shouldBe 1
               store.getOrElse(
                 0L,
-                fail("Expected a simulation result for tick 0.")
+                fail("Expected a simulation result for tick 0."),
               ) match {
                 case ApparentPowerAndHeat(p, q, qDot) =>
                   p should approximate(Megawatts(0d))
@@ -681,7 +681,7 @@ class HpAgentModelCalculationSpec
         new HpAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -692,14 +692,14 @@ class HpAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         hpAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(3600L))
+        RegistrationSuccessfulMessage(weatherService.ref, Some(3600L)),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -710,7 +710,7 @@ class HpAgentModelCalculationSpec
       hpAgent ! RequestAssetPowerMessage(
         7200L,
         Each(1.0),
-        Each(0.0)
+        Each(0.0),
       )
       expectNoMessage(noReceiveTimeOut.duration)
       awaitAssert(hpAgent.stateName == Idle)
@@ -720,7 +720,7 @@ class HpAgentModelCalculationSpec
         WattsPerSquareMeter(0),
         WattsPerSquareMeter(0),
         Celsius(1.815),
-        MetersPerSecond(7.726576)
+        MetersPerSecond(7.726576),
       )
       weatherService.send(
         hpAgent,
@@ -728,8 +728,8 @@ class HpAgentModelCalculationSpec
           3600L,
           weatherService.ref,
           weatherData,
-          Some(7200L)
-        )
+          Some(7200L),
+        ),
       )
 
       /* Trigger the agent */
@@ -751,7 +751,7 @@ class HpAgentModelCalculationSpec
       new HpAgent(
         scheduler = scheduler.ref,
         initStateData = initStateData,
-        listener = systemListener
+        listener = systemListener,
       )
     )
 
@@ -763,14 +763,14 @@ class HpAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         hpAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(0L))
+        RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -788,10 +788,10 @@ class HpAgentModelCalculationSpec
             WattsPerSquareMeter(0),
             WattsPerSquareMeter(0),
             Celsius(1.815),
-            MetersPerSecond(7.726576)
+            MetersPerSecond(7.726576),
           ),
-          Some(3600L)
-        )
+          Some(3600L),
+        ),
       )
       scheduler.send(hpAgent, Activation(0))
       scheduler.expectMsg(Completion(hpAgent.toTyped, Some(3600)))
@@ -806,10 +806,10 @@ class HpAgentModelCalculationSpec
             WattsPerSquareMeter(0),
             WattsPerSquareMeter(0),
             Celsius(1.815),
-            MetersPerSecond(7.726576)
+            MetersPerSecond(7.726576),
           ),
-          Some(7200L)
-        )
+          Some(7200L),
+        ),
       )
       scheduler.send(hpAgent, Activation(3600))
       scheduler.expectMsg(Completion(hpAgent.toTyped, Some(7200)))
@@ -824,10 +824,10 @@ class HpAgentModelCalculationSpec
             WattsPerSquareMeter(0),
             WattsPerSquareMeter(0),
             Celsius(1.815),
-            MetersPerSecond(7.726576)
+            MetersPerSecond(7.726576),
           ),
-          None
-        )
+          None,
+        ),
       )
       scheduler.send(hpAgent, Activation(7200))
       scheduler.expectMsg(Completion(hpAgent.toTyped))
@@ -836,7 +836,7 @@ class HpAgentModelCalculationSpec
       hpAgent ! RequestAssetPowerMessage(
         7500L,
         Each(1.0),
-        Each(0.0)
+        Each(0.0),
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -853,7 +853,7 @@ class HpAgentModelCalculationSpec
       hpAgent ! RequestAssetPowerMessage(
         7500L,
         Each(1.000000000000001d),
-        Each(0.0)
+        Each(0.0),
       )
 
       /* Expect, that nothing has changed */
@@ -869,7 +869,7 @@ class HpAgentModelCalculationSpec
       hpAgent ! RequestAssetPowerMessage(
         7500L,
         Each(0.98),
-        Each(0.0)
+        Each(0.0),
       )
 
       /* Expect, the correct values (this model has fixed power factor) */

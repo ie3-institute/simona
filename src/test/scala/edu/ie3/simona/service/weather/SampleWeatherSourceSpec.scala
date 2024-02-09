@@ -10,7 +10,7 @@ import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
-  WeightedCoordinates
+  WeightedCoordinates,
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.util.TickUtil._
@@ -40,12 +40,12 @@ class SampleWeatherSourceSpec
     "always return the queried coordinate itself as nearest coordinate" in {
       val queryCoordinate = AgentCoordinates(
         NodeInput.DEFAULT_GEO_POSITION.getY,
-        NodeInput.DEFAULT_GEO_POSITION.getX
+        NodeInput.DEFAULT_GEO_POSITION.getX,
       )
 
       source.getWeightedCoordinates(
         queryCoordinate,
-        4
+        4,
       ) match {
         case Success(WeightedCoordinates(weighting)) =>
           weighting.corresponds(
@@ -58,7 +58,7 @@ class SampleWeatherSourceSpec
         case Failure(exception) =>
           fail(
             "Querying the nearest coordinates was supposed to pass.",
-            exception
+            exception,
           )
       }
     }
@@ -69,7 +69,7 @@ class SampleWeatherSourceSpec
         (0L, 86400L, (0L to 86400L by 3600L).toArray),
         (1L, 86400L, (3600L to 86400L by 3600L).toArray),
         (0L, 86399L, (0L to 82800L by 3600L).toArray),
-        (1L, 86399L, (3600L to 82800L by 3600L).toArray)
+        (1L, 86399L, (3600L to 82800L by 3600L).toArray),
       )
 
       testData.forEvery {

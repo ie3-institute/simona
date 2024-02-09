@@ -19,7 +19,7 @@ trait ThermalGridTestData {
     UUID.randomUUID(),
     "Thermal Bus",
     OperatorInput.NO_OPERATOR_ASSIGNED,
-    OperationTime.notLimited()
+    OperationTime.notLimited(),
   )
   protected val testGridambientTemperature: Temperature = Celsius(12d)
   protected val testGridQDotInfeed: Power = Kilowatts(15d)

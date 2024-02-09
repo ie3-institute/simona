@@ -16,7 +16,7 @@ import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.SCHEMA_REGI
 import org.apache.kafka.clients.producer.{
   KafkaProducer,
   ProducerConfig,
-  ProducerRecord
+  ProducerRecord,
 }
 import org.apache.kafka.common.serialization.{Serdes, Serializer}
 
@@ -26,11 +26,11 @@ import scala.reflect.ClassTag
 
 final case class ResultEntityKafkaSink[
     V <: ResultEntity,
-    P <: PlainResult
+    P <: PlainResult,
 ] private (
     producer: KafkaProducer[String, P],
     plainWriter: PlainWriter[V, P],
-    topic: String
+    topic: String,
 ) extends ResultEntitySink {
 
   override def handleResultEntity(resultEntity: ResultEntity): Unit = {
@@ -53,7 +53,7 @@ object ResultEntityKafkaSink {
       simRunId: UUID,
       bootstrapServers: String,
       schemaRegistryUrl: String,
-      linger: Int
+      linger: Int,
   )(implicit
       tag: ClassTag[R]
   ): ResultEntityKafkaSink[_ <: ResultEntity, _ <: PlainResult] = {
@@ -62,7 +62,7 @@ object ResultEntityKafkaSink {
     props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
     props.put(
       ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG,
-      true
+      true,
     ) // exactly once delivery
 
     val NodeResClass = classOf[NodeResult]
@@ -79,24 +79,24 @@ object ResultEntityKafkaSink {
       schemaRegistryUrl: String,
       props: Properties,
       topic: String,
-      writer: PlainWriter[F, P]
+      writer: PlainWriter[F, P],
   ): ResultEntityKafkaSink[F, P] = {
     val keySerializer = Serdes.String().serializer()
     val valueSerializer: Serializer[P] = reflectionSerializer4S[P]
 
     valueSerializer.configure(
       Map(SCHEMA_REGISTRY_URL_CONFIG -> schemaRegistryUrl).asJava,
-      false
+      false,
     )
 
     ResultEntityKafkaSink(
       new KafkaProducer[String, P](
         props,
         keySerializer,
-        valueSerializer
+        valueSerializer,
       ),
       writer,
-      topic
+      topic,
     )
   }
 }

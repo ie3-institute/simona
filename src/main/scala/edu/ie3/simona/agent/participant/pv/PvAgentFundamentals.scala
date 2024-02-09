@@ -9,21 +9,21 @@ package edu.ie3.simona.agent.participant.pv
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.datamodel.models.result.system.{
   PvResult,
-  SystemParticipantResult
+  SystemParticipantResult,
 }
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
-  ZERO_POWER
+  ZERO_POWER,
 }
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.pv.PvAgent.neededServices
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FlexControlledData,
-  ParticipantModelBaseStateData
+  ParticipantModelBaseStateData,
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
@@ -34,7 +34,7 @@ import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   AgentInitializationException,
   InconsistentStateException,
-  InvalidRequestException
+  InvalidRequestException,
 }
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.ModelState.ConstantState
@@ -42,11 +42,11 @@ import edu.ie3.simona.model.participant.PvModel.PvRelevantData
 import edu.ie3.simona.model.participant.{
   FlexChangeIndicator,
   ModelState,
-  PvModel
+  PvModel,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexRequest,
-  FlexResponse
+  FlexResponse,
 }
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.weather.WeatherService.FALLBACK_WEATHER_STEM_DISTANCE
@@ -72,7 +72,7 @@ protected trait PvAgentFundamentals
       ParticipantStateData[ApparentPower],
       PvInput,
       PvRuntimeConfig,
-      PvModel
+      PvModel,
     ] {
   this: PvAgent =>
   override protected val pdClassTag: ClassTag[ApparentPower] =
@@ -112,12 +112,12 @@ protected trait PvAgentFundamentals
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeEmAgent: Option[TypedActorRef[FlexResponse]]
+      maybeEmAgent: Option[TypedActorRef[FlexResponse]],
   ): ParticipantModelBaseStateData[
     ApparentPower,
     PvRelevantData,
     ConstantState.type,
-    PvModel
+    PvModel,
   ] = {
     /* Check for needed services */
     if (!services.toSeq.map(_.getClass).containsSlice(neededServices))
@@ -131,14 +131,14 @@ protected trait PvAgentFundamentals
         inputModel,
         modelConfig,
         simulationStartDate,
-        simulationEndDate
+        simulationEndDate,
       )
 
     ParticipantModelBaseStateData[
       ApparentPower,
       PvRelevantData,
       ConstantState.type,
-      PvModel
+      PvModel,
     ](
       simulationStartDate,
       simulationEndDate,
@@ -156,13 +156,13 @@ protected trait PvAgentFundamentals
             .to(PU)
             .getValue
             .doubleValue
-        )
+        ),
       ),
       ValueStore(resolution),
       ValueStore(resolution),
       ValueStore(resolution),
       ValueStore(resolution),
-      maybeEmAgent.map(FlexControlledData(_, self.toTyped[FlexRequest]))
+      maybeEmAgent.map(FlexControlledData(_, self.toTyped[FlexRequest])),
     )
   }
 
@@ -170,12 +170,12 @@ protected trait PvAgentFundamentals
       inputModel: InputModelContainer[PvInput],
       modelConfig: PvRuntimeConfig,
       simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime
+      simulationEndDate: ZonedDateTime,
   ): PvModel = PvModel(
     inputModel.electricalInputModel,
     modelConfig.scaling,
     simulationStartDate,
-    simulationEndDate
+    simulationEndDate,
   )
 
   override protected def createInitialState(
@@ -183,7 +183,7 @@ protected trait PvAgentFundamentals
         ApparentPower,
         PvRelevantData,
         ConstantState.type,
-        PvModel
+        PvModel,
       ]
   ): ModelState.ConstantState.type =
     ConstantState
@@ -193,9 +193,9 @@ protected trait PvAgentFundamentals
         ApparentPower,
         PvRelevantData,
         ConstantState.type,
-        PvModel
+        PvModel,
       ],
-      tick: Long
+      tick: Long,
   ): PvRelevantData = {
     /* convert current tick to a datetime */
     implicit val startDateTime: ZonedDateTime =
@@ -241,7 +241,7 @@ protected trait PvAgentFundamentals
       dateTime,
       tickInterval,
       weatherData.diffIrr,
-      weatherData.dirIrr
+      weatherData.dirIrr,
     )
   }
 
@@ -265,18 +265,18 @@ protected trait PvAgentFundamentals
         ApparentPower,
         PvRelevantData,
         ConstantState.type,
-        PvModel
+        PvModel,
       ],
       data: PvRelevantData,
       lastState: ConstantState.type,
-      setPower: squants.Power
+      setPower: squants.Power,
   ): (ConstantState.type, ApparentPower, FlexChangeIndicator) = {
     /* Calculate result */
     val voltage = getAndCheckNodalVoltage(baseStateData, tick)
 
     val reactivePower = baseStateData.model.calculateReactivePower(
       setPower,
-      voltage
+      voltage,
     )
     val result = ApparentPower(setPower, reactivePower)
 
@@ -296,10 +296,10 @@ protected trait PvAgentFundamentals
         ApparentPower,
         PvRelevantData,
         ConstantState.type,
-        PvModel
+        PvModel,
       ],
       ConstantState.type,
-      Dimensionless
+      Dimensionless,
   ) => ApparentPower =
     (_, _, _, _) =>
       throw new InvalidRequestException(
@@ -332,11 +332,11 @@ protected trait PvAgentFundamentals
         ApparentPower,
         PvRelevantData,
         ConstantState.type,
-        PvModel
+        PvModel,
       ],
       lastModelState: ConstantState.type,
       currentTick: Long,
-      scheduler: ActorRef
+      scheduler: ActorRef,
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
     val voltage =
       getAndCheckNodalVoltage(baseStateData, currentTick)
@@ -344,21 +344,21 @@ protected trait PvAgentFundamentals
     val relevantData =
       createCalcRelevantData(
         baseStateData,
-        currentTick
+        currentTick,
       )
 
     val result = baseStateData.model.calculatePower(
       currentTick,
       voltage,
       ConstantState,
-      relevantData
+      relevantData,
     )
 
     updateValueStoresInformListenersAndGoToIdleWithUpdatedBaseStateData(
       scheduler,
       baseStateData,
       AccompaniedSimulationResult(result),
-      relevantData
+      relevantData,
     )
   }
 
@@ -381,14 +381,14 @@ protected trait PvAgentFundamentals
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         Power => ReactivePower
-      ] = None
+      ] = None,
   ): ApparentPower =
     ParticipantAgentFundamentals.averageApparentPower(
       tickToResults,
       windowStart,
       windowEnd,
       activeToReactivePowerFuncOpt,
-      log
+      log,
     )
 
   /** Determines the correct result.
@@ -405,13 +405,13 @@ protected trait PvAgentFundamentals
   override protected def buildResult(
       uuid: UUID,
       dateTime: ZonedDateTime,
-      result: ApparentPower
+      result: ApparentPower,
   ): SystemParticipantResult =
     new PvResult(
       dateTime,
       uuid,
       result.p.toMegawatts.asMegaWatt,
-      result.q.toMegavars.asMegaVar
+      result.q.toMegavars.asMegaVar,
     )
 
   /** Update the last known model state with the given external, relevant data
@@ -435,6 +435,6 @@ protected trait PvAgentFundamentals
       modelState: ModelState.ConstantState.type,
       calcRelevantData: PvRelevantData,
       nodalVoltage: squants.Dimensionless,
-      model: PvModel
+      model: PvModel,
   ): ModelState.ConstantState.type = modelState
 }

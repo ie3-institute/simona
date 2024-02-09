@@ -9,20 +9,20 @@ package edu.ie3.simona.agent.participant.load
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.result.system.{
   LoadResult,
-  SystemParticipantResult
+  SystemParticipantResult,
 }
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
-  ZERO_POWER
+  ZERO_POWER,
 }
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FlexControlledData,
-  ParticipantModelBaseStateData
+  ParticipantModelBaseStateData,
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
@@ -38,22 +38,22 @@ import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantDat
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
 import edu.ie3.simona.model.participant.load.profile.{
   LoadProfileStore,
-  ProfileLoadModel
+  ProfileLoadModel,
 }
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomRelevantData
 import edu.ie3.simona.model.participant.load.random.{
   RandomLoadModel,
-  RandomLoadParamStore
+  RandomLoadParamStore,
 }
 import edu.ie3.simona.model.participant.load.{
   FixedLoadModel,
   LoadModel,
-  LoadReference
+  LoadReference,
 }
 import edu.ie3.simona.model.participant.{FlexChangeIndicator, ModelState}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexRequest,
-  FlexResponse
+  FlexResponse,
 }
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil._
@@ -80,7 +80,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       ParticipantStateData[ApparentPower],
       LoadInput,
       LoadRuntimeConfig,
-      LM
+      LM,
     ] {
   this: LoadAgent[LD, LM] =>
   override protected val pdClassTag: ClassTag[ApparentPower] =
@@ -120,12 +120,12 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeEmAgent: Option[TypedActorRef[FlexResponse]]
+      maybeEmAgent: Option[TypedActorRef[FlexResponse]],
   ): ParticipantModelBaseStateData[
     ApparentPower,
     LD,
     ConstantState.type,
-    LM
+    LM,
   ] = {
     /* Build the calculation model */
     val model =
@@ -133,7 +133,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
         inputModel,
         modelConfig,
         simulationStartDate,
-        simulationEndDate
+        simulationEndDate,
       )
 
     /* Go and collect all ticks, in which activation is needed in addition to the activations made by incoming data.
@@ -152,21 +152,21 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
         SortedSet[Long](
           SimonaConstants.FIRST_TICK_IN_SIMULATION,
           fixedLoadModel.operationInterval.start,
-          fixedLoadModel.operationInterval.end
+          fixedLoadModel.operationInterval.end,
         ).filterNot(_ == lastTickInSimulation)
       case profileLoadModel: ProfileLoadModel =>
         activationTicksInOperationTime(
           simulationStartDate,
           LoadProfileStore.resolution.getSeconds,
           profileLoadModel.operationInterval.start,
-          profileLoadModel.operationInterval.end
+          profileLoadModel.operationInterval.end,
         )
       case randomLoadModel: RandomLoadModel =>
         activationTicksInOperationTime(
           simulationStartDate,
           RandomLoadParamStore.resolution.getSeconds,
           randomLoadModel.operationInterval.start,
-          randomLoadModel.operationInterval.end
+          randomLoadModel.operationInterval.end,
         )
       case _ =>
         SortedSet.empty[Long]
@@ -189,13 +189,13 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
             .to(PU)
             .getValue
             .doubleValue
-        )
+        ),
       ),
       ValueStore(resolution),
       ValueStore(resolution),
       ValueStore(resolution),
       ValueStore(resolution),
-      maybeEmAgent.map(FlexControlledData(_, self.toTyped[FlexRequest]))
+      maybeEmAgent.map(FlexControlledData(_, self.toTyped[FlexRequest])),
     )
   }
 
@@ -203,20 +203,20 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       inputModel: InputModelContainer[LoadInput],
       modelConfig: LoadRuntimeConfig,
       simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime
+      simulationEndDate: ZonedDateTime,
   ): LM = {
     val operationInterval: OperationInterval =
       SystemComponent.determineOperationInterval(
         simulationStartDate,
         simulationEndDate,
-        inputModel.electricalInputModel.getOperationTime
+        inputModel.electricalInputModel.getOperationTime,
       )
     val reference = LoadReference(inputModel.electricalInputModel, modelConfig)
     buildModel(
       inputModel.electricalInputModel,
       operationInterval,
       modelConfig,
-      reference
+      reference,
     )
   }
 
@@ -224,7 +224,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       inputModel: LoadInput,
       operationInterval: OperationInterval,
       modelConfig: LoadRuntimeConfig,
-      reference: LoadReference
+      reference: LoadReference,
   ): LM
 
   override protected def createInitialState(
@@ -232,7 +232,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
         ApparentPower,
         LD,
         ConstantState.type,
-        LM
+        LM,
       ]
   ): ModelState.ConstantState.type = ConstantState
 
@@ -256,18 +256,18 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
         ApparentPower,
         LD,
         ConstantState.type,
-        LM
+        LM,
       ],
       data: LD,
       lastState: ConstantState.type,
-      setPower: squants.Power
+      setPower: squants.Power,
   ): (ConstantState.type, ApparentPower, FlexChangeIndicator) = {
     /* Calculate result */
     val voltage = getAndCheckNodalVoltage(baseStateData, tick)
 
     val reactivePower = baseStateData.model.calculateReactivePower(
       setPower,
-      voltage
+      voltage,
     )
     val result = ApparentPower(setPower, reactivePower)
 
@@ -303,11 +303,11 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
         ApparentPower,
         LD,
         ConstantState.type,
-        LM
+        LM,
       ],
       lastModelState: ConstantState.type,
       currentTick: Long,
-      scheduler: ActorRef
+      scheduler: ActorRef,
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] =
     throw new InconsistentStateException(
       s"Load model is not able to calculate power with secondary data."
@@ -332,14 +332,14 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         Power => ReactivePower
-      ] = None
+      ] = None,
   ): ApparentPower =
     ParticipantAgentFundamentals.averageApparentPower(
       tickToResults,
       windowStart,
       windowEnd,
       activeToReactivePowerFuncOpt,
-      log
+      log,
     )
 
   /** Determines the correct result.
@@ -356,13 +356,13 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
   override protected def buildResult(
       uuid: UUID,
       dateTime: ZonedDateTime,
-      result: ApparentPower
+      result: ApparentPower,
   ): SystemParticipantResult =
     new LoadResult(
       dateTime,
       uuid,
       result.p.toMegawatts.asMegaWatt,
-      result.q.toMegavars.asMegaVar
+      result.q.toMegavars.asMegaVar,
     )
 
   override protected def updateState(
@@ -370,7 +370,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       modelState: ModelState.ConstantState.type,
       calcRelevantData: LD,
       nodalVoltage: squants.Dimensionless,
-      model: LM
+      model: LM,
   ): ModelState.ConstantState.type = modelState
 }
 
@@ -378,7 +378,7 @@ object LoadAgentFundamentals {
   trait FixedLoadAgentFundamentals
       extends LoadAgentFundamentals[
         FixedLoadModel.FixedLoadRelevantData.type,
-        FixedLoadModel
+        FixedLoadModel,
       ] {
     this: LoadAgent.FixedLoadAgent =>
 
@@ -386,13 +386,13 @@ object LoadAgentFundamentals {
         inputModel: LoadInput,
         operationInterval: OperationInterval,
         modelConfig: LoadRuntimeConfig,
-        reference: LoadReference
+        reference: LoadReference,
     ): FixedLoadModel =
       FixedLoadModel(
         inputModel,
         modelConfig.scaling,
         operationInterval,
-        reference
+        reference,
       )
 
     override protected def createCalcRelevantData(
@@ -400,9 +400,9 @@ object LoadAgentFundamentals {
           ApparentPower,
           FixedLoadRelevantData.type,
           ConstantState.type,
-          FixedLoadModel
+          FixedLoadModel,
         ],
-        tick: Long
+        tick: Long,
     ): FixedLoadRelevantData.type =
       FixedLoadRelevantData
 
@@ -416,33 +416,33 @@ object LoadAgentFundamentals {
           ApparentPower,
           FixedLoadRelevantData.type,
           ConstantState.type,
-          FixedLoadModel
+          FixedLoadModel,
         ],
         ConstantState.type,
-        Dimensionless
+        Dimensionless,
     ) => ApparentPower = (
         tick: Long,
         baseStateData: ParticipantModelBaseStateData[
           ApparentPower,
           FixedLoadRelevantData.type,
           ConstantState.type,
-          FixedLoadModel
+          FixedLoadModel,
         ],
         state: ConstantState.type,
-        voltage: Dimensionless
+        voltage: Dimensionless,
     ) =>
       baseStateData.model.calculatePower(
         tick,
         voltage,
         state,
-        FixedLoadRelevantData
+        FixedLoadRelevantData,
       )
   }
 
   trait ProfileLoadAgentFundamentals
       extends LoadAgentFundamentals[
         ProfileRelevantData,
-        ProfileLoadModel
+        ProfileLoadModel,
       ] {
     this: LoadAgent.ProfileLoadAgent =>
 
@@ -450,13 +450,13 @@ object LoadAgentFundamentals {
         inputModel: LoadInput,
         operationInterval: OperationInterval,
         modelConfig: LoadRuntimeConfig,
-        reference: LoadReference
+        reference: LoadReference,
     ): ProfileLoadModel =
       ProfileLoadModel(
         inputModel,
         operationInterval,
         modelConfig.scaling,
-        reference
+        reference,
       )
 
     override protected def createCalcRelevantData(
@@ -464,9 +464,9 @@ object LoadAgentFundamentals {
           ApparentPower,
           ProfileRelevantData,
           ConstantState.type,
-          ProfileLoadModel
+          ProfileLoadModel,
         ],
-        currentTick: Long
+        currentTick: Long,
     ): ProfileRelevantData =
       ProfileRelevantData(
         currentTick.toDateTime(baseStateData.startDate)
@@ -482,10 +482,10 @@ object LoadAgentFundamentals {
           ApparentPower,
           ProfileRelevantData,
           ConstantState.type,
-          ProfileLoadModel
+          ProfileLoadModel,
         ],
         ConstantState.type,
-        Dimensionless
+        Dimensionless,
     ) => ApparentPower = (tick, baseStateData, _, voltage) => {
       val profileRelevantData =
         createCalcRelevantData(baseStateData, tick)
@@ -494,7 +494,7 @@ object LoadAgentFundamentals {
         currentTick,
         voltage,
         ConstantState,
-        profileRelevantData
+        profileRelevantData,
       )
     }
   }
@@ -502,7 +502,7 @@ object LoadAgentFundamentals {
   trait RandomLoadAgentFundamentals
       extends LoadAgentFundamentals[
         RandomRelevantData,
-        RandomLoadModel
+        RandomLoadModel,
       ] {
     this: LoadAgent.RandomLoadAgent =>
 
@@ -510,13 +510,13 @@ object LoadAgentFundamentals {
         inputModel: LoadInput,
         operationInterval: OperationInterval,
         modelConfig: LoadRuntimeConfig,
-        reference: LoadReference
+        reference: LoadReference,
     ): RandomLoadModel =
       RandomLoadModel(
         inputModel,
         operationInterval,
         modelConfig.scaling,
-        reference
+        reference,
       )
 
     override protected def createCalcRelevantData(
@@ -524,9 +524,9 @@ object LoadAgentFundamentals {
           ApparentPower,
           RandomRelevantData,
           ConstantState.type,
-          RandomLoadModel
+          RandomLoadModel,
         ],
-        tick: Long
+        tick: Long,
     ): RandomRelevantData =
       RandomRelevantData(
         tick.toDateTime(baseStateData.startDate)
@@ -542,10 +542,10 @@ object LoadAgentFundamentals {
           ApparentPower,
           RandomRelevantData,
           ConstantState.type,
-          RandomLoadModel
+          RandomLoadModel,
         ],
         ConstantState.type,
-        Dimensionless
+        Dimensionless,
     ) => ApparentPower = (tick, baseStateData, _, voltage) => {
       val profileRelevantData =
         createCalcRelevantData(baseStateData, tick)
@@ -554,7 +554,7 @@ object LoadAgentFundamentals {
         currentTick,
         voltage,
         ConstantState,
-        profileRelevantData
+        profileRelevantData,
       )
     }
   }

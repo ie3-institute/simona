@@ -25,15 +25,15 @@ object WecAgent {
       initStateData: ParticipantInitializeStateData[
         WecInput,
         WecRuntimeConfig,
-        ApparentPower
+        ApparentPower,
       ],
-      listener: Iterable[ActorRef]
+      listener: Iterable[ActorRef],
   ): Props =
     Props(
       new WecAgent(
         scheduler,
         initStateData,
-        listener
+        listener,
       )
     )
 
@@ -54,9 +54,9 @@ class WecAgent(
     initStateData: ParticipantInitializeStateData[
       WecInput,
       WecRuntimeConfig,
-      ApparentPower
+      ApparentPower,
     ],
-    override val listener: Iterable[ActorRef]
+    override val listener: Iterable[ActorRef],
 ) extends ParticipantAgent[
       ApparentPower,
       WecRelevantData,
@@ -64,7 +64,7 @@ class WecAgent(
       ParticipantStateData[ApparentPower],
       WecInput,
       WecRuntimeConfig,
-      WecModel
+      WecModel,
     ](scheduler, initStateData)
     with WecAgentFundamentals {
 

@@ -12,14 +12,14 @@ import squants.{Dimensionless, Power}
 
 trait ApparentPowerAndHeatParticipant[
     CD <: CalcRelevantData,
-    MS <: ModelState
+    MS <: ModelState,
 ] {
   this: SystemParticipant[CD, ApparentPowerAndHeat, MS] =>
   override def calculatePower(
       tick: Long,
       voltage: Dimensionless,
       modelState: MS,
-      data: CD
+      data: CD,
   ): ApparentPowerAndHeat = {
     val apparentPower =
       calculateApparentPower(tick, voltage, modelState, data)
@@ -46,6 +46,6 @@ trait ApparentPowerAndHeatParticipant[
   def calculateHeat(
       tick: Long,
       modelState: MS,
-      data: CD
+      data: CD,
   ): Power
 }

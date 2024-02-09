@@ -15,7 +15,7 @@ trait ApparentPowerParticipant[CD <: CalcRelevantData, MS <: ModelState] {
       tick: Long,
       voltage: Dimensionless,
       modelState: MS,
-      data: CD
+      data: CD,
   ): ApparentPower =
     calculateApparentPower(tick, voltage, modelState, data)
 }

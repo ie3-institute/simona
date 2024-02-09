@@ -11,7 +11,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssueFlexControl,
   IssueNoControl,
   IssuePowerControl,
-  ProvideFlexOptions
+  ProvideFlexOptions,
 }
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import squants.Power
@@ -32,7 +32,7 @@ object EmTools {
     */
   def determineFlexPower(
       flexOptionsMsg: ProvideFlexOptions,
-      flexCtrl: IssueFlexControl
+      flexCtrl: IssueFlexControl,
   ): Power =
     flexOptionsMsg match {
       case flexOptions: ProvideMinMaxFlexOptions =>
@@ -64,7 +64,7 @@ object EmTools {
     */
   def checkSetPower(
       flexOptions: ProvideMinMaxFlexOptions,
-      setPower: Power
+      setPower: Power,
   ): Unit = {
     if (setPower < flexOptions.min)
       throw new CriticalFailureException(

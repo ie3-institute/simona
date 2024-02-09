@@ -9,13 +9,13 @@ package edu.ie3.simona.scheduler
 import edu.ie3.simona.actor.ActorUtil.stopOnError
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.core.Core.{
   ActiveCore,
   CoreFactory,
-  InactiveCore
+  InactiveCore,
 }
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.util.scala.Scope
@@ -43,20 +43,20 @@ object Scheduler {
     */
   def apply(
       parent: ActorRef[SchedulerMessage],
-      coreFactory: CoreFactory = RegularSchedulerCore
+      coreFactory: CoreFactory = RegularSchedulerCore,
   ): Behavior[Incoming] = Behaviors.setup { ctx =>
     val adapter =
       ctx.messageAdapter[Activation](WrappedActivation)
 
     inactive(
       SchedulerData(parent, adapter),
-      coreFactory.create()
+      coreFactory.create(),
     )
   }
 
   private def inactive(
       data: SchedulerData,
-      core: InactiveCore
+      core: InactiveCore,
   ): Behavior[Incoming] =
     Behaviors.receive {
       case (_, WrappedActivation(Activation(tick))) =>
@@ -70,7 +70,7 @@ object Scheduler {
 
       case (
             _,
-            ScheduleActivation(actor, newTick, unlockKey)
+            ScheduleActivation(actor, newTick, unlockKey),
           ) =>
         val (maybeSchedule, newCore) = core.handleSchedule(actor, newTick)
         maybeSchedule match {
@@ -81,7 +81,7 @@ object Scheduler {
             data.parent ! ScheduleActivation(
               data.activationAdapter,
               scheduleTick,
-              unlockKey
+              unlockKey,
             )
           case None =>
             // we don't need to escalate to the parent, this means that we can release the lock (if applicable)
@@ -95,18 +95,18 @@ object Scheduler {
       case (ctx, unexpected) =>
         stopOnError(
           ctx,
-          s"Received unexpected message $unexpected when inactive"
+          s"Received unexpected message $unexpected when inactive",
         )
     }
 
   private def active(
       data: SchedulerData,
-      core: ActiveCore
+      core: ActiveCore,
   ): Behavior[Incoming] = Behaviors.receive {
 
     case (
           _,
-          ScheduleActivation(actor, newTick, unlockKey)
+          ScheduleActivation(actor, newTick, unlockKey),
         ) =>
       val (toActivate, newCore) = core
         .handleSchedule(actor, newTick)
@@ -146,7 +146,7 @@ object Scheduler {
             .map { case (maybeScheduleTick, inactiveCore) =>
               data.parent ! Completion(
                 data.activationAdapter,
-                maybeScheduleTick
+                maybeScheduleTick,
               )
               inactive(data, inactiveCore)
             }
@@ -170,7 +170,7 @@ object Scheduler {
       parent: ActorRef[
         SchedulerMessage
       ],
-      activationAdapter: ActorRef[Activation]
+      activationAdapter: ActorRef[Activation],
   )
 
 }

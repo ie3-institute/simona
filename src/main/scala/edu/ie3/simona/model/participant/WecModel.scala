@@ -13,7 +13,7 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.WecModel.{
   WecCharacteristic,
-  WecRelevantData
+  WecRelevantData,
 }
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.system.Characteristic
@@ -65,7 +65,7 @@ final case class WecModel(
     sRated: Power,
     cosPhiRated: Double,
     rotorArea: Area,
-    betzCurve: WecCharacteristic
+    betzCurve: WecCharacteristic,
 ) extends SystemParticipant[WecRelevantData, ApparentPower, ConstantState.type](
       uuid,
       id,
@@ -73,7 +73,7 @@ final case class WecModel(
       scalingFactor,
       qControl,
       sRated,
-      cosPhiRated
+      cosPhiRated,
     )
     with ApparentPowerParticipant[WecRelevantData, ConstantState.type] {
 
@@ -95,7 +95,7 @@ final case class WecModel(
     */
   override protected def calculateActivePower(
       modelState: ConstantState.type,
-      wecData: WecRelevantData
+      wecData: WecRelevantData,
   ): Power = {
     val activePower = determinePower(wecData)
     val pMax = sMax * cosPhiRated
@@ -105,7 +105,7 @@ final case class WecModel(
          "The fed in active power is higher than the estimated maximum active power of this plant ({} > {}). " +
            "Did you provide wrong weather input data?",
          activePower,
-         pMax
+         pMax,
        )
        pMax
      } else {
@@ -134,7 +134,7 @@ final case class WecModel(
     val airDensity =
       calculateAirDensity(
         wecData.temperature,
-        wecData.airPressure
+        wecData.airPressure,
       ).toKilogramsPerCubicMeter
 
     val v = wecData.windVelocity.toMetersPerSecond
@@ -179,7 +179,7 @@ final case class WecModel(
     */
   private def calculateAirDensity(
       temperature: Temperature,
-      airPressure: Option[Pressure]
+      airPressure: Option[Pressure],
   ): Density = {
     airPressure match {
       case None =>
@@ -195,7 +195,7 @@ final case class WecModel(
 
   override def determineFlexOptions(
       data: WecRelevantData,
-      lastState: ConstantState.type
+      lastState: ConstantState.type,
   ): ProvideFlexOptions = {
     val power = calculateActivePower(ConstantState, data)
 
@@ -205,7 +205,7 @@ final case class WecModel(
   override def handleControlledPowerChange(
       data: WecRelevantData,
       lastState: ConstantState.type,
-      setPower: Power
+      setPower: Power,
   ): (ConstantState.type, FlexChangeIndicator) =
     (lastState, FlexChangeIndicator())
 }
@@ -236,7 +236,7 @@ object WecModel {
           input.getPoints.asScala.map(p =>
             XYPair[Velocity, Dimensionless](
               MetersPerSecond(p.getX.to(METRE_PER_SECOND).getValue.doubleValue),
-              Each(p.getY.to(PU).getValue.doubleValue)
+              Each(p.getY.to(PU).getValue.doubleValue),
             )
           )
       )
@@ -255,19 +255,19 @@ object WecModel {
   final case class WecRelevantData(
       windVelocity: Velocity,
       temperature: Temperature,
-      airPressure: Option[Pressure]
+      airPressure: Option[Pressure],
   ) extends CalcRelevantData
 
   def apply(
       inputModel: WecInput,
       scalingFactor: Double,
       simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime
+      simulationEndDate: ZonedDateTime,
   ): WecModel = {
     val operationInterval = SystemComponent.determineOperationInterval(
       simulationStartDate,
       simulationEndDate,
-      inputModel.getOperationTime
+      inputModel.getOperationTime,
     )
 
     val model = new WecModel(
@@ -281,7 +281,7 @@ object WecModel {
       SquareMeters(
         inputModel.getType.getRotorArea.to(SQUARE_METRE).getValue.doubleValue
       ),
-      WecCharacteristic(inputModel.getType.getCpCharacteristic)
+      WecCharacteristic(inputModel.getType.getCpCharacteristic),
     )
 
     model.enable()

@@ -49,7 +49,7 @@ abstract class SimonaListenerWithFilter(eventsToProcess: Option[List[String]])
       case _ =>
         log.debug(
           "Skipping event {} as it is not in the list of events to process.",
-          event.id
+          event.id,
         )
     }
   }

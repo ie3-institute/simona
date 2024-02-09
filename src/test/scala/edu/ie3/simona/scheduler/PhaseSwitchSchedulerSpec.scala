@@ -8,7 +8,7 @@ package edu.ie3.simona.scheduler
 
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.core.PhaseSwitchCore
@@ -16,7 +16,7 @@ import edu.ie3.simona.util.ActorUtils.RichActivatedActor
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
-  TestProbe
+  TestProbe,
 }
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -145,7 +145,7 @@ class PhaseSwitchSchedulerSpec
 
       scheduler ! ScheduleActivation(
         agent2.ref,
-        INIT_SIM_TICK
+        INIT_SIM_TICK,
       )
 
       // waiting for next phase
@@ -221,7 +221,7 @@ class PhaseSwitchSchedulerSpec
 
       scheduler ! ScheduleActivation(
         agent1.ref,
-        INIT_SIM_TICK
+        INIT_SIM_TICK,
       )
 
       val sa1 = parent.expectMessageType[ScheduleActivation]
@@ -230,7 +230,7 @@ class PhaseSwitchSchedulerSpec
 
       scheduler ! ScheduleActivation(
         agent2.ref,
-        INIT_SIM_TICK
+        INIT_SIM_TICK,
       )
 
       // TICK -1
@@ -240,7 +240,7 @@ class PhaseSwitchSchedulerSpec
       agent1.expectActivationAndComplete(
         scheduler,
         INIT_SIM_TICK,
-        Some(0)
+        Some(0),
       )
 
       parent.expectNoMessage()
@@ -248,7 +248,7 @@ class PhaseSwitchSchedulerSpec
       agent2.expectActivationAndComplete(
         scheduler,
         INIT_SIM_TICK,
-        Some(0)
+        Some(0),
       )
 
       parent.expectMessage(Completion(schedulerActivation, Some(0)))
@@ -262,7 +262,7 @@ class PhaseSwitchSchedulerSpec
       agent1.expectActivationAndComplete(
         scheduler,
         0,
-        Some(900)
+        Some(900),
       )
 
       parent.expectNoMessage()
@@ -270,7 +270,7 @@ class PhaseSwitchSchedulerSpec
       agent2.expectActivationAndComplete(
         scheduler,
         0,
-        Some(300)
+        Some(300),
       )
 
       parent.expectMessage(Completion(schedulerActivation, Some(300)))
@@ -281,7 +281,7 @@ class PhaseSwitchSchedulerSpec
       agent2.expectActivationAndComplete(
         scheduler,
         300,
-        Some(900)
+        Some(900),
       )
 
       parent.expectMessage(Completion(schedulerActivation, Some(900)))
@@ -295,7 +295,7 @@ class PhaseSwitchSchedulerSpec
       agent1.expectActivationAndComplete(
         scheduler,
         900,
-        Some(3600)
+        Some(3600),
       )
 
       parent.expectNoMessage()
@@ -303,7 +303,7 @@ class PhaseSwitchSchedulerSpec
       agent2.expectActivationAndComplete(
         scheduler,
         900,
-        Some(1800)
+        Some(1800),
       )
 
       parent.expectMessage(Completion(schedulerActivation, Some(1800)))
@@ -388,7 +388,7 @@ class PhaseSwitchSchedulerSpec
       agent1.expectActivationAndComplete(
         scheduler,
         900,
-        Some(1800)
+        Some(1800),
       )
 
       parent.expectMessage(Completion(schedulerActivation, Some(1800)))

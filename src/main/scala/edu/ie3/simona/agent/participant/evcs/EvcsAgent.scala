@@ -9,7 +9,7 @@ package edu.ie3.simona.agent.participant.evcs
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
-  ZERO_POWER
+  ZERO_POWER,
 }
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorEvMovementsService
@@ -18,18 +18,18 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant.{
   ParticipantAgent,
-  ParticipantAgentFundamentals
+  ParticipantAgentFundamentals,
 }
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.participant.evcs.EvcsModel
 import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsRelevantData,
-  EvcsState
+  EvcsState,
 }
 import edu.ie3.simona.ontology.messages.services.EvMessage.{
   DepartingEvsRequest,
-  EvFreeLotsRequest
+  EvFreeLotsRequest,
 }
 import edu.ie3.util.scala.quantities.ReactivePower
 import org.apache.pekko.actor.{ActorRef, Props}
@@ -41,15 +41,15 @@ object EvcsAgent {
       initStateData: ParticipantInitializeStateData[
         EvcsInput,
         EvcsRuntimeConfig,
-        ApparentPower
+        ApparentPower,
       ],
-      listener: Iterable[ActorRef]
+      listener: Iterable[ActorRef],
   ): Props =
     Props(
       new EvcsAgent(
         scheduler,
         initStateData,
-        listener
+        listener,
       )
     )
 
@@ -63,9 +63,9 @@ class EvcsAgent(
     initStateData: ParticipantInitializeStateData[
       EvcsInput,
       EvcsRuntimeConfig,
-      ApparentPower
+      ApparentPower,
     ],
-    override val listener: Iterable[ActorRef]
+    override val listener: Iterable[ActorRef],
 ) extends ParticipantAgent[
       ApparentPower,
       EvcsRelevantData,
@@ -73,7 +73,7 @@ class EvcsAgent(
       ParticipantStateData[ApparentPower],
       EvcsInput,
       EvcsRuntimeConfig,
-      EvcsModel
+      EvcsModel,
     ](scheduler, initStateData)
     with EvcsAgentFundamentals {
   override val alternativeResult: ApparentPower = ZERO_POWER
@@ -85,8 +85,8 @@ class EvcsAgent(
             ApparentPower,
             EvcsRelevantData,
             EvcsState,
-            EvcsModel
-          ]
+            EvcsModel,
+          ],
         ) =>
       handleFreeLotsRequest(tick, modelBaseStateData)
       stay()
@@ -97,8 +97,8 @@ class EvcsAgent(
             ApparentPower,
             EvcsRelevantData,
             EvcsState,
-            EvcsModel
-          ]
+            EvcsModel,
+          ],
         ) =>
       val updatedStateData =
         handleDepartingEvsRequest(tick, departingEvs, modelBaseStateData)
@@ -124,13 +124,13 @@ class EvcsAgent(
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         Power => ReactivePower
-      ]
+      ],
   ): ApparentPower =
     ParticipantAgentFundamentals.averageApparentPower(
       tickToResults,
       windowStart,
       windowEnd,
       activeToReactivePowerFuncOpt,
-      log
+      log,
     )
 }

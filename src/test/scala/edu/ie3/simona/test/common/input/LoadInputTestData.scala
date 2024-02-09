@@ -33,6 +33,6 @@ trait LoadInputTestData extends NodeInputTestData {
       false,
       Quantities.getQuantity(3000d, KILOWATTHOUR),
       Quantities.getQuantity(282.74d, VOLTAMPERE),
-      0.95
+      0.95,
     )
 }

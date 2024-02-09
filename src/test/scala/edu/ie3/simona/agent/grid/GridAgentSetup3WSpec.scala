@@ -12,7 +12,7 @@ import org.apache.pekko.actor.{
   ActorRef,
   ActorSystem,
   Identify,
-  Props
+  Props,
 }
 import org.apache.pekko.testkit.ImplicitSender
 import org.apache.pekko.util.Timeout
@@ -25,7 +25,7 @@ import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
 import edu.ie3.simona.test.common.{
   ConfigTestData,
   TestKitWithShutdown,
-  ThreeWindingTestData
+  ThreeWindingTestData,
 }
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
@@ -43,7 +43,7 @@ class GridAgentSetup3WSpec
           .parseString("""
             |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
             |pekko.loglevel="DEBUG"
-        """.stripMargin)
+        """.stripMargin),
       )
     )
     with ImplicitSender
@@ -66,7 +66,7 @@ class GridAgentSetup3WSpec
               runtimeEventListener = self,
               primaryServiceProxy = self,
               weather = ActorRef.noSender,
-              evDataService = None
+              evDataService = None,
             )
 
             SimonaStandaloneSetup(
@@ -78,20 +78,20 @@ class GridAgentSetup3WSpec
                   Set.empty[Class[_ <: ResultEntity]],
                   ResultSinkType(
                     simonaConfig.simona.output.sink,
-                    simonaConfig.simona.simulationName
-                  )
-                )
-              )
+                    simonaConfig.simona.simulationName,
+                  ),
+                ),
+              ),
             ).buildSubGridToActorRefMap(
               threeWindingTestGrid.getSubGridTopologyGraph,
               context,
               environmentRefs,
-              Seq.empty[ActorRef]
+              Seq.empty[ActorRef],
             )
             sender() ! "done"
           }
         })) ? "setup",
-        Duration(1, TimeUnit.SECONDS)
+        Duration(1, TimeUnit.SECONDS),
       )
 
       val sel = system.actorSelection("user/**/GridAgent_*")
@@ -101,7 +101,7 @@ class GridAgentSetup3WSpec
       val responses: Seq[ActorIdentity] =
         receiveWhile(
           max = Duration.create(500, "ms"),
-          idle = Duration.create(250, "ms")
+          idle = Duration.create(250, "ms"),
         ) { case msg: ActorIdentity =>
           msg
         }

@@ -27,7 +27,7 @@ import java.util.UUID
   */
 final case class EvModelWrapper(
     storedEnergy: squants.Energy,
-    private val original: EvModel
+    private val original: EvModel,
 ) {
 
   def uuid: UUID = original.getUuid
@@ -61,7 +61,7 @@ object EvModelWrapper {
       KilowattHours(
         evModel.getStoredEnergy.to(KILOWATTHOUR).getValue.doubleValue
       ),
-      evModel
+      evModel,
     )
 
 }

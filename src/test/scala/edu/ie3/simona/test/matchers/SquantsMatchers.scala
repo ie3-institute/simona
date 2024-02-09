@@ -16,7 +16,7 @@ trait SquantsMatchers {
     override def apply(left: Quantity[Q]): MatchResult = MatchResult(
       left =~ right,
       s"The quantities $left and $right differ more than $tolerance in value",
-      s"The quantities $left and $right differ less than $tolerance in value"
+      s"The quantities $left and $right differ less than $tolerance in value",
     )
   }
 

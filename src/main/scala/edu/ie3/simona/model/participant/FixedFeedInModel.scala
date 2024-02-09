@@ -48,11 +48,11 @@ final case class FixedFeedInModel(
     override val scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
-    cosPhiRated: Double
+    cosPhiRated: Double,
 ) extends SystemParticipant[
       FixedRelevantData.type,
       ApparentPower,
-      ConstantState.type
+      ConstantState.type,
     ](
       uuid,
       id,
@@ -60,7 +60,7 @@ final case class FixedFeedInModel(
       scalingFactor,
       qControl,
       sRated,
-      cosPhiRated
+      cosPhiRated,
     )
     with ApparentPowerParticipant[FixedRelevantData.type, ConstantState.type] {
 
@@ -74,23 +74,23 @@ final case class FixedFeedInModel(
     */
   override protected def calculateActivePower(
       modelState: ConstantState.type,
-      data: FixedRelevantData.type = FixedRelevantData
+      data: FixedRelevantData.type = FixedRelevantData,
   ): Power =
     sRated * (-1) * cosPhiRated
 
   override def determineFlexOptions(
       data: FixedRelevantData.type,
-      lastState: ConstantState.type
+      lastState: ConstantState.type,
   ): ProvideFlexOptions =
     ProvideMinMaxFlexOptions.noFlexOption(
       uuid,
-      calculateActivePower(lastState, data)
+      calculateActivePower(lastState, data),
     )
 
   override def handleControlledPowerChange(
       data: FixedRelevantData.type,
       lastState: ConstantState.type,
-      setPower: Power
+      setPower: Power,
   ): (ConstantState.type, FlexChangeIndicator) =
     (lastState, FlexChangeIndicator())
 }
@@ -100,14 +100,14 @@ object FixedFeedInModel extends LazyLogging {
       inputModel: FixedFeedInInput,
       modelConfiguration: SimonaConfig.FixedFeedInRuntimeConfig,
       simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime
+      simulationEndDate: ZonedDateTime,
   ): FixedFeedInModel = {
     /* Determine the operation interval */
     val operationInterval: OperationInterval =
       SystemComponent.determineOperationInterval(
         simulationStartDate,
         simulationEndDate,
-        inputModel.getOperationTime
+        inputModel.getOperationTime,
       )
 
     // build the fixed feed in model
@@ -123,7 +123,7 @@ object FixedFeedInModel extends LazyLogging {
           .getValue
           .doubleValue
       ),
-      inputModel.getCosPhiRated
+      inputModel.getCosPhiRated,
     )
     model.enable()
     model
