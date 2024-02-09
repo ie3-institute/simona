@@ -20,13 +20,14 @@ trait InitializeStateData[+PD <: PrimaryData] extends ParticipantStateData[PD] {
   val outputConfig: NotifierConfig
 }
 
-case object InitializeStateData {
+object InitializeStateData {
   final case class TrivialInitializeStateData[+PD <: PrimaryData](
       resultEventEmitter: String
   ) extends InitializeStateData[PD] {
     val outputConfig: NotifierConfig = NotifierConfig(
       simulationResultInfo = false,
-      powerRequestReply = true
+      powerRequestReply = true,
+      flexResult = false,
     )
   }
 }

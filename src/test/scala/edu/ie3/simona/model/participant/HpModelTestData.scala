@@ -6,17 +6,17 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.datamodel.models.input.system.`type`.HpTypeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.thermal.{
   ThermalBusInput,
-  ThermalHouseInput
+  ThermalHouseInput,
 }
+import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
-import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
+import edu.ie3.simona.model.participant.HpModel.HpRelevantData
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
@@ -24,7 +24,7 @@ import edu.ie3.simona.model.thermal.{
   CylindricalThermalStorage,
   ThermalGrid,
   ThermalHouse,
-  ThermalStorage
+  ThermalStorage,
 }
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
@@ -48,7 +48,7 @@ trait HpModelTestData {
     false,
     NodeInput.DEFAULT_GEO_POSITION,
     GermanVoltageLevelUtils.LV,
-    2
+    2,
   )
 
   protected val hpTypeInput = new HpTypeInput(
@@ -58,7 +58,7 @@ trait HpModelTestData {
     Quantities.getQuantity(200d, PowerSystemUnits.EURO_PER_MEGAWATTHOUR),
     Quantities.getQuantity(100, PowerSystemUnits.KILOVOLTAMPERE),
     0.95,
-    Quantities.getQuantity(15, PowerSystemUnits.KILOWATT)
+    Quantities.getQuantity(15, PowerSystemUnits.KILOWATT),
   )
 
   protected val hpInputModel = new HpInput(
@@ -69,7 +69,7 @@ trait HpModelTestData {
     nodeInput,
     thermalBus,
     new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
-    hpTypeInput
+    hpTypeInput,
   )
 
   protected def hpModel(thermalGrid: ThermalGrid) = new HpModel(
@@ -81,16 +81,16 @@ trait HpModelTestData {
     Kilowatts(100d),
     0.95,
     Kilowatts(15d),
-    thermalGrid
+    thermalGrid,
   )
 
   protected def thermalGrid(
       thermalHouse: ThermalHouse,
-      thermalStorage: Option[ThermalStorage] = None
+      thermalStorage: Option[ThermalStorage] = None,
   ): ThermalGrid =
     ThermalGrid(
       Some(thermalHouse),
-      thermalStorage
+      thermalStorage,
     )
 
   private val thermHouseUuid: UUID =
@@ -101,7 +101,7 @@ trait HpModelTestData {
 
   protected def thermalHouse(
       lowerTemperatureBoundary: Double,
-      upperTemperatureBoundary: Double
+      upperTemperatureBoundary: Double,
   ): ThermalHouse = ThermalHouse(
     new ThermalHouseInput(
       thermHouseUuid,
@@ -111,10 +111,10 @@ trait HpModelTestData {
       Quantities.getQuantity(10.0, StandardUnits.HEAT_CAPACITY),
       Quantities.getQuantity(
         (lowerTemperatureBoundary + upperTemperatureBoundary) / 2.0,
-        Units.CELSIUS
+        Units.CELSIUS,
       ),
       Quantities.getQuantity(upperTemperatureBoundary, Units.CELSIUS),
-      Quantities.getQuantity(lowerTemperatureBoundary, Units.CELSIUS)
+      Quantities.getQuantity(lowerTemperatureBoundary, Units.CELSIUS),
     )
   )
 
@@ -123,28 +123,28 @@ trait HpModelTestData {
     "thermal storage",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
-    null,
+    thermalBus,
     KilowattHours(20d),
     KilowattHours(500d),
     Kilowatts(10d),
-    KilowattHours(0d)
+    KilowattHours(0d),
   )
 
-  def thermalState(
+  protected def thermalState(
       temperature: Temperature,
-      qDot: Power = Kilowatts(0d)
+      qDot: Power = Kilowatts(0d),
   ): ThermalGridState = ThermalGridState(
     Some(
       ThermalHouseState(
         0L,
         temperature,
-        qDot
+        qDot,
       )
     ),
-    None
+    None,
   )
 
-  protected def hpData(hpState: HpState): HpRelevantData =
-    HpRelevantData(hpState, 7200, Celsius(10d))
+  protected def hpData: HpRelevantData =
+    HpRelevantData(7200, Celsius(10d))
 
 }

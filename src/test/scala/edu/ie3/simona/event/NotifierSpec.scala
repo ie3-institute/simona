@@ -18,7 +18,6 @@ import edu.ie3.simona.test.common.TestKitWithShutdown
 import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier._
 import edu.ie3.simona.util.EntityMapperUtil
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpecLike
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -31,7 +30,7 @@ class NotifierSpec
           .parseString("""
             |pekko.loggers =["org.apache.pekko.testkit.TestEventListener"]
             |pekko.loglevel="OFF"
-            |""".stripMargin)
+            |""".stripMargin),
       )
     )
     with Matchers
@@ -89,7 +88,7 @@ class NotifierSpec
         Storage ->
           classOf[StorageResult],
         Ev ->
-          classOf[EvResult]
+          classOf[EvResult],
       )
       // TODO: Grid results are not covered, yet.
 
@@ -107,7 +106,7 @@ object NotifierSpec {
 
   final case class TestEventEnvelope(
       testEvent: TestEvent,
-      msg: String = "Please notify others of this!"
+      msg: String = "Please notify others of this!",
   )
 
 }

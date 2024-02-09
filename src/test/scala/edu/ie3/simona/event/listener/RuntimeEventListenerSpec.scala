@@ -9,7 +9,7 @@ package edu.ie3.simona.event.listener
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ActorTestKit,
   LoggingTestKit,
-  ScalaTestWithActorTestKit
+  ScalaTestWithActorTestKit,
 }
 import com.typesafe.config.ConfigValueFactory
 import edu.ie3.simona.config.SimonaConfig
@@ -22,7 +22,7 @@ import edu.ie3.simona.event.RuntimeEvent.{
   Initializing,
   PowerFlowFailed,
   Ready,
-  Simulating
+  Simulating,
 }
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.TimeUtil
@@ -39,7 +39,7 @@ class RuntimeEventListenerSpec
         // Timeout for LoggingTestKit via TestKitSettings
         // Log message sometimes seem to take a while until caught by the test kit
         "org.apache.pekko.actor.testkit.typed.filter-leeway",
-        ConfigValueFactory.fromAnyRef("30s")
+        ConfigValueFactory.fromAnyRef("30s"),
       )
     )
     with AnyWordSpecLike
@@ -62,10 +62,10 @@ class RuntimeEventListenerSpec
     RuntimeEventListener(
       SimonaConfig.Simona.Runtime.Listener(
         None,
-        None
+        None,
       ),
       Some(eventQueue),
-      startDateTimeString
+      startDateTimeString,
     )
   )
 
@@ -78,7 +78,7 @@ class RuntimeEventListenerSpec
         Ready(currentTick, duration),
         Simulating(currentTick, 0),
         Done(endTick, duration, errorInSim = false),
-        Error(errMsg)
+        Error(errMsg),
       )
 
       for (event <- eventsToQueue) {
@@ -113,38 +113,38 @@ class RuntimeEventListenerSpec
         (
           Initializing,
           Level.INFO,
-          "Initializing Agents and Services for Simulation ... "
+          "Initializing Agents and Services for Simulation ... ",
         ),
         (
           InitComplete(0L),
           Level.INFO,
-          s"Initialization complete. (duration: 0h : 0m : 0s )"
+          s"Initialization complete. (duration: 0h : 0m : 0s )",
         ),
         (
           Ready(currentTick, 0L),
           Level.INFO,
-          s"Switched from 'Simulating' to 'Ready'. Last simulated time: ${calcTime(currentTick)}."
+          s"Switched from 'Simulating' to 'Ready'. Last simulated time: ${calcTime(currentTick)}.",
         ),
         (
           Simulating(currentTick, endTick),
           Level.INFO,
-          s"Simulating from ${calcTime(currentTick)} until ${calcTime(endTick)}."
+          s"Simulating from ${calcTime(currentTick)} until ${calcTime(endTick)}.",
         ),
         (
           CheckWindowPassed(currentTick, 0L),
           Level.INFO,
-          s"Simulation until ${calcTime(currentTick)} completed."
+          s"Simulation until ${calcTime(currentTick)} completed.",
         ),
         (
           Done(endTick, duration, errorInSim = false),
           Level.INFO,
-          s"Simulation completed with \u001b[0;32mSUCCESS (Failed PF: 2)\u001b[0;30m in time step ${calcTime(endTick)}. Total runtime: 3h : 0m : 5s "
+          s"Simulation completed with \u001b[0;32mSUCCESS (Failed PF: 2)\u001b[0;30m in time step ${calcTime(endTick)}. Total runtime: 3h : 0m : 5s ",
         ),
         (
           Error(errMsg),
           Level.ERROR,
-          errMsg
-        )
+          errMsg,
+        ),
       )
 
       events.foreach { case (event, level, msg) =>

@@ -26,8 +26,8 @@ class ThermalGridSpec extends UnitSpec {
 
         val energyDemand = ThermalEnergyDemand(required, possible)
 
-        (energyDemand.required =~ possible) shouldBe true
-        (energyDemand.possible =~ possible) shouldBe true
+        energyDemand.required should approximate(possible)
+        energyDemand.possible should approximate(possible)
       }
 
       "set the correct values, if they are sensible" in {
@@ -36,8 +36,8 @@ class ThermalGridSpec extends UnitSpec {
 
         val energyDemand = ThermalEnergyDemand(required, possible)
 
-        (energyDemand.required =~ required) shouldBe true
-        (energyDemand.possible =~ possible) shouldBe true
+        energyDemand.required should approximate(required)
+        energyDemand.possible should approximate(possible)
       }
     }
 
@@ -45,9 +45,8 @@ class ThermalGridSpec extends UnitSpec {
       "actually have no demand" in {
         val energyDemand = ThermalEnergyDemand.noDemand
 
-        (energyDemand.required =~ MegawattHours(0d)) shouldBe true
-
-        (energyDemand.possible =~ MegawattHours(0d)) shouldBe true
+        energyDemand.required should approximate(MegawattHours(0d))
+        energyDemand.possible should approximate(MegawattHours(0d))
       }
     }
 
@@ -84,18 +83,17 @@ class ThermalGridSpec extends UnitSpec {
       "deliver proper results" in {
         val energyDemand1 = ThermalEnergyDemand(
           MegawattHours(45d),
-          MegawattHours(47d)
+          MegawattHours(47d),
         )
         val energyDemand2 = ThermalEnergyDemand(
           MegawattHours(23d),
-          MegawattHours(28d)
+          MegawattHours(28d),
         )
 
         val totalDemand = energyDemand1 + energyDemand2
 
-        (totalDemand.required =~ MegawattHours(68d)) shouldBe true
-
-        (totalDemand.possible =~ MegawattHours(75d)) shouldBe true
+        totalDemand.required should approximate(MegawattHours(68d))
+        totalDemand.possible should approximate(MegawattHours(75d))
       }
     }
   }

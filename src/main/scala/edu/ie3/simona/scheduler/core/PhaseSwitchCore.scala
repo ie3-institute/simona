@@ -10,7 +10,7 @@ import edu.ie3.simona.scheduler.core.Core.{
   ActiveCore,
   Actor,
   CoreFactory,
-  InactiveCore
+  InactiveCore,
 }
 import edu.ie3.util.scala.collection.immutable.PrioritySwitchBiSet
 
@@ -32,7 +32,7 @@ object PhaseSwitchCore extends CoreFactory {
 
   final case class PhaseSwitchInactive private (
       private val activationQueue: PrioritySwitchBiSet[Long, Actor],
-      private val lastActiveTick: Option[Long]
+      private val lastActiveTick: Option[Long],
   ) extends InactiveCore {
     override def checkActivation(newTick: Long): Boolean =
       activationQueue.headKeyOption.contains(newTick)
@@ -49,7 +49,7 @@ object PhaseSwitchCore extends CoreFactory {
 
     override def handleSchedule(
         actor: Actor,
-        newTick: Long
+        newTick: Long,
     ): (Option[Long], InactiveCore) = {
       val oldEarliestTick = activationQueue.headKeyOption
 
@@ -68,7 +68,7 @@ object PhaseSwitchCore extends CoreFactory {
       private val activationQueue: PrioritySwitchBiSet[Long, Actor],
       activeTick: Long,
       private val phase: Int = 0,
-      private val activeActors: Set[Actor] = Set.empty
+      private val activeActors: Set[Actor] = Set.empty,
   ) extends ActiveCore {
 
     override def checkCompletion(actor: Actor): Boolean =
@@ -85,7 +85,7 @@ object PhaseSwitchCore extends CoreFactory {
       ) {
         (
           activationQueue.headKeyOption,
-          PhaseSwitchInactive(activationQueue, Some(activeTick))
+          PhaseSwitchInactive(activationQueue, Some(activeTick)),
         )
       }
     }
@@ -123,8 +123,8 @@ object PhaseSwitchCore extends CoreFactory {
             copy(
               activationQueue = updatedQueue,
               phase = newPhase,
-              activeActors = activeActors.incl(actor)
-            )
+              activeActors = activeActors.incl(actor),
+            ),
           )
         }
         .getOrElse((Iterable.empty, this))
