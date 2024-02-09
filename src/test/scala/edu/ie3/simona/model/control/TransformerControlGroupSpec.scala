@@ -24,7 +24,7 @@ class TransformerControlGroupSpec extends UnitSpec with QuantityMatchers {
     val buildTransformerControlModels = PrivateMethod[TransformerControlGroup](
       Symbol("buildTransformerControlModels")
     )
-
+    implicit val tolerance: Dimensionless = Each(1e-10)
     val dut = GridModel invokePrivate buildTransformerControlModels(
       Set(
         UUID.fromString(
@@ -100,7 +100,7 @@ class TransformerControlGroupSpec extends UnitSpec with QuantityMatchers {
 
       actual match {
         case Some(regulationNeed) =>
-          regulationNeed =~ Each(0.05d)
+          regulationNeed should approximate(Each(0.05))
         case None => fail("Did expect to receive a regulation need.")
       }
     }
@@ -120,7 +120,7 @@ class TransformerControlGroupSpec extends UnitSpec with QuantityMatchers {
 
       actual match {
         case Some(regulationNeed) =>
-          regulationNeed =~ Each(-990.05d)
+          regulationNeed should approximate(Each(-0.05))
         case None => fail("Did expect to receive a regulation need.")
       }
     }

@@ -969,7 +969,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate checkTransformerControl(dut)
-          }.getMessage shouldBe "A transformer control group cannot have no measurements assigned."
+          }.getMessage shouldBe s"A transformer control group (${dut.toString}) cannot have no measurements assigned."
         }
 
         "throw an exception, if the transformers are empty" in {
@@ -982,7 +982,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate checkTransformerControl(dut)
-          }.getMessage shouldBe "A transformer control group cannot have no transformers assigned."
+          }.getMessage shouldBe s"A transformer control group (${dut.toString}) cannot have no transformers assigned."
         }
 
         "throw an exception, if vMax is smaller than vMin" in {
@@ -995,33 +995,35 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate checkTransformerControl(dut)
-          }.getMessage shouldBe "The minimum permissible voltage magnitude of a transformer control group must be smaller than the maximum permissible voltage magnitude."
+          }.getMessage shouldBe s"The minimum permissible voltage magnitude of a transformer control group (${dut.toString}) must be smaller than the maximum permissible voltage magnitude."
         }
 
-        "throw an exception, if vMin is negative" in {
+        "throw Exception if vMin is lower than -20% of nominal Voltage" in {
           val dut = TransformerControlGroup(
             List("6888c53a-7629-4563-ac8e-840f80b03106"),
             List("a16cf7ca-8bbf-46e1-a74e-ffa6513c89a8"),
             1.02,
-            -0.98
+            0.79
           )
 
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate checkTransformerControl(dut)
-          }.getMessage shouldBe "The minimum permissible voltage magnitude of a transformer control group has to be positive."
+          }.getMessage shouldBe s"A control group (${dut.toString}) which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
+            "by invalid parametrization of one control groups where vMin is lower than the lower boundary (0.8 of nominal Voltage)!"
         }
 
-        "throw an exception, if vMax is negative" in {
+        "throw Exception if vMax is higher than +20% of nominal Voltage" in {
           val dut = TransformerControlGroup(
             List("6888c53a-7629-4563-ac8e-840f80b03106"),
             List("a16cf7ca-8bbf-46e1-a74e-ffa6513c89a8"),
-            -1.02,
+            1.21,
             0.98
           )
 
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate checkTransformerControl(dut)
-          }.getMessage shouldBe "The maximum permissible voltage magnitude of a transformer control group has to be positive."
+          }.getMessage shouldBe s"A control group (${dut.toString}) which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
+            "by invalid parametrization of one control groups where vMax is higher than the upper boundary (1.2 of nominal Voltage)!"
         }
       }
     }

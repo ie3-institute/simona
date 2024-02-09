@@ -36,6 +36,8 @@ import java.time.ZonedDateTime
 import java.util.UUID
 import scala.collection.immutable.ListSet
 import scala.jdk.CollectionConverters._
+import squants.Each
+import squants.Dimensionless
 
 /** Representation of one physical electrical grid. It holds the references to
   * nodes, lines, switches and transformers and fundamental properties (like
