@@ -11,7 +11,7 @@ import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior, Scheduler}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 
@@ -38,7 +38,7 @@ object ScheduleLock {
 
   private def lockAdapter(
       lock: ActorRef[LockMsg],
-      expectedTick: Long
+      expectedTick: Long,
   ): Behavior[Activation] =
     Behaviors.receive { case (ctx, Activation(tick)) =>
       if (tick == expectedTick)
@@ -95,7 +95,7 @@ object ScheduleLock {
   def singleKey(
       ctx: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
-      tick: Long
+      tick: Long,
   ): ScheduleKey =
     singleKey(TypedSpawner(ctx), scheduler, tick)
 
@@ -114,7 +114,7 @@ object ScheduleLock {
   def singleKey(
       ctx: org.apache.pekko.actor.ActorContext,
       scheduler: ActorRef[SchedulerMessage],
-      tick: Long
+      tick: Long,
   ): ScheduleKey =
     singleKey(ClassicSpawner(ctx), scheduler, tick)
 
@@ -133,7 +133,7 @@ object ScheduleLock {
   def singleKey(
       spawner: Spawner,
       scheduler: ActorRef[SchedulerMessage],
-      tick: Long
+      tick: Long,
   ): ScheduleKey =
     multiKey(spawner, scheduler, tick, 1).headOption.getOrElse(
       throw new RuntimeException("Should not happen")
@@ -157,7 +157,7 @@ object ScheduleLock {
       ctx: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
       tick: Long,
-      count: Int
+      count: Int,
   ): Iterable[ScheduleKey] =
     multiKey(TypedSpawner(ctx), scheduler, tick, count)
 
@@ -179,7 +179,7 @@ object ScheduleLock {
       ctx: org.apache.pekko.actor.ActorContext,
       scheduler: ActorRef[SchedulerMessage],
       tick: Long,
-      count: Int
+      count: Int,
   ): Iterable[ScheduleKey] =
     multiKey(ClassicSpawner(ctx), scheduler, tick, count)
 
@@ -201,7 +201,7 @@ object ScheduleLock {
       spawner: Spawner,
       scheduler: ActorRef[SchedulerMessage],
       tick: Long,
-      count: Int
+      count: Int,
   ): Iterable[ScheduleKey] = {
     val keys = (1 to count).map(_ => UUID.randomUUID())
 
@@ -227,7 +227,7 @@ object ScheduleLock {
     */
   private def apply(
       scheduler: ActorRef[SchedulerMessage],
-      awaitedKeys: Set[UUID]
+      awaitedKeys: Set[UUID],
   ): Behavior[LockMsg] =
     Behaviors.withStash(100) { buffer =>
       Behaviors.receiveMessage {
@@ -244,7 +244,7 @@ object ScheduleLock {
   private def uninitialized(
       scheduler: ActorRef[SchedulerMessage],
       awaitedKeys: Set[UUID],
-      adapter: ActorRef[Activation]
+      adapter: ActorRef[Activation],
   ): Behavior[LockMsg] =
     Behaviors.withStash(100) { buffer =>
       Behaviors.receiveMessage {
@@ -261,7 +261,7 @@ object ScheduleLock {
   private def active(
       scheduler: ActorRef[SchedulerMessage],
       awaitedKeys: Set[UUID],
-      adapter: ActorRef[Activation]
+      adapter: ActorRef[Activation],
   ): Behavior[LockMsg] = Behaviors.receiveMessage { case Unlock(key) =>
     val updatedKeys = awaitedKeys - key
 

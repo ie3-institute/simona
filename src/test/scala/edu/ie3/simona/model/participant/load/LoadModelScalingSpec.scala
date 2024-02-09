@@ -14,10 +14,11 @@ import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.LoadReference.{
   ActivePower,
-  EnergyConsumption
+  EnergyConsumption,
 }
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel
@@ -58,20 +59,20 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             false,
             NodeInput.DEFAULT_GEO_POSITION,
             GermanVoltageLevelUtils.LV,
-            -1
+            -1,
           ),
           new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
           BdewStandardLoadProfile.H0,
           false,
           Quantities.getQuantity(3000d, PowerSystemUnits.KILOWATTHOUR),
           Quantities.getQuantity(282.74d, PowerSystemUnits.VOLTAMPERE),
-          0.95
+          0.95,
         )
       val foreSeenOperationInterval =
         SystemComponent.determineOperationInterval(
           simulationStartDate,
           simulationEndDate,
-          profileLoadInput.getOperationTime
+          profileLoadInput.getOperationTime,
         )
 
       val targetEnergyConsumption = KilowattHours(3000d)
@@ -82,7 +83,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             "profile",
             BdewStandardLoadProfile.H0,
             BdewStandardLoadProfile.L0,
-            BdewStandardLoadProfile.G0
+            BdewStandardLoadProfile.G0,
           )
         ) { profile =>
           val model = ProfileLoadModel(
@@ -100,7 +101,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             ),
             profileLoadInput.getCosPhiRated,
             profile,
-            EnergyConsumption(targetEnergyConsumption)
+            EnergyConsumption(targetEnergyConsumption),
           )
           model.enable()
 
@@ -112,7 +113,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           calculateEnergyDiffForYear(
             model,
             simulationStartDate,
-            targetEnergyConsumption
+            targetEnergyConsumption,
           ) should be < Percent(2d)
         }
       }
@@ -136,14 +137,14 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           ),
           profileLoadInput.getCosPhiRated,
           BdewStandardLoadProfile.H0,
-          EnergyConsumption(targetEnergyConsumption)
+          EnergyConsumption(targetEnergyConsumption),
         )
         model.enable()
 
         calculateEnergyDiffForYear(
           model,
           simulationStartDate,
-          expectedEnergy
+          expectedEnergy,
         ) should be < Percent(2d)
       }
 
@@ -155,7 +156,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             "profile",
             BdewStandardLoadProfile.H0,
             BdewStandardLoadProfile.L0,
-            BdewStandardLoadProfile.G0
+            BdewStandardLoadProfile.G0,
           )
         ) { profile =>
           val model = ProfileLoadModel(
@@ -173,13 +174,13 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             ),
             profileLoadInput.getCosPhiRated,
             profile,
-            ActivePower(targetMaximumPower)
+            ActivePower(targetMaximumPower),
           )
           model.enable()
 
           val maximumPower = calculatePowerForYear(
             model,
-            simulationStartDate
+            simulationStartDate,
           ).maxOption.value
 
           implicit val tolerance: Power = Watts(1d)
@@ -206,13 +207,13 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           ),
           profileLoadInput.getCosPhiRated,
           BdewStandardLoadProfile.H0,
-          ActivePower(targetMaximumPower)
+          ActivePower(targetMaximumPower),
         )
         model.enable()
 
         val maximumPower = calculatePowerForYear(
           model,
-          simulationStartDate
+          simulationStartDate,
         ).maxOption.value
 
         implicit val tolerance: Power = Watts(1.5d)
@@ -236,20 +237,20 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
             false,
             NodeInput.DEFAULT_GEO_POSITION,
             GermanVoltageLevelUtils.LV,
-            -1
+            -1,
           ),
           new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
           BdewStandardLoadProfile.H0,
           false,
           Quantities.getQuantity(3000d, PowerSystemUnits.KILOWATTHOUR),
           Quantities.getQuantity(282.74d, PowerSystemUnits.VOLTAMPERE),
-          0.95
+          0.95,
         )
       val foreSeenOperationInterval =
         SystemComponent.determineOperationInterval(
           simulationStartDate,
           simulationEndDate,
-          randomLoadInput.getOperationTime
+          randomLoadInput.getOperationTime,
         )
 
       val targetEnergyConsumption = KilowattHours(3000d)
@@ -269,14 +270,14 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
               .doubleValue
           ),
           randomLoadInput.getCosPhiRated,
-          EnergyConsumption(targetEnergyConsumption)
+          EnergyConsumption(targetEnergyConsumption),
         )
         model.enable()
 
         calculateEnergyDiffForYear(
           model,
           simulationStartDate,
-          targetEnergyConsumption
+          targetEnergyConsumption,
         ) should be < Percent(1d)
       }
 
@@ -298,14 +299,14 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
               .doubleValue
           ),
           randomLoadInput.getCosPhiRated,
-          EnergyConsumption(targetEnergyConsumption)
+          EnergyConsumption(targetEnergyConsumption),
         )
         model.enable()
 
         calculateEnergyDiffForYear(
           model,
           simulationStartDate,
-          expectedEnergy
+          expectedEnergy,
         ) should be < Percent(2d)
       }
 
@@ -325,20 +326,20 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
               .doubleValue
           ),
           randomLoadInput.getCosPhiRated,
-          ActivePower(targetMaximumPower)
+          ActivePower(targetMaximumPower),
         )
         model.enable()
 
         val powers = calculatePowerForYear(
           model,
-          simulationStartDate
+          simulationStartDate,
         ).toIndexedSeq.sorted.toArray
 
         val quantile95 = RandomLoadModelSpec.get95Quantile(powers)
 
         getRelativeDifference(
           quantile95,
-          targetMaximumPower
+          targetMaximumPower,
         ) should be < Percent(1d)
       }
 
@@ -360,13 +361,13 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
               .doubleValue
           ),
           randomLoadInput.getCosPhiRated,
-          ActivePower(targetMaximumPower)
+          ActivePower(targetMaximumPower),
         )
         model.enable()
 
         val powers = calculatePowerForYear(
           model,
-          simulationStartDate
+          simulationStartDate,
         ).toIndexedSeq.sorted.toArray
 
         /* Tolerance is equivalent to 10 W difference between the 95%-percentile of the obtained random results and the
@@ -381,26 +382,26 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
   def calculateEnergyDiffForYear[C <: LoadRelevantData](
       model: LoadModel[C],
       simulationStartDate: ZonedDateTime,
-      expectedEnergy: Energy
+      expectedEnergy: Energy,
   ): Dimensionless = {
     val duration = Minutes(15d)
 
     val avgEnergy = calculatePowerForYear(
       model: LoadModel[C],
-      simulationStartDate: ZonedDateTime
+      simulationStartDate: ZonedDateTime,
     ).foldLeft(KilowattHours(0)) { case (energySum, power) =>
       energySum + (power * duration)
     }
 
     getRelativeDifference(
       avgEnergy,
-      expectedEnergy
+      expectedEnergy,
     )
   }
 
   def calculatePowerForYear[C <: LoadRelevantData](
       model: LoadModel[C],
-      simulationStartDate: ZonedDateTime
+      simulationStartDate: ZonedDateTime,
   ): Iterable[Power] = {
     val quarterHoursInYear = 365L * 96L
 
@@ -415,7 +416,8 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
           .calculatePower(
             tick,
             Each(0d),
-            relevantData
+            ConstantState,
+            relevantData,
           )
           .p
       }
@@ -431,7 +433,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
 
   def getRelativeDifference[Q <: Quantity[Q]](
       actualResult: Q,
-      expectedResult: Q
+      expectedResult: Q,
   ): Dimensionless =
     Each((expectedResult - actualResult).abs / expectedResult)
 

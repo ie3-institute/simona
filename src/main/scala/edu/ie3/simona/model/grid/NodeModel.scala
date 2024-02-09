@@ -39,18 +39,18 @@ final case class NodeModel(
     operationInterval: OperationInterval,
     isSlack: Boolean,
     vTarget: squants.Dimensionless,
-    voltLvl: VoltageLevel
+    voltLvl: VoltageLevel,
 ) extends SystemComponent(
       uuid,
       id,
-      operationInterval
+      operationInterval,
     )
 
 case object NodeModel {
   def apply(
       nodeInput: NodeInput,
       simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime
+      simulationEndDate: ZonedDateTime,
   ): NodeModel = {
 
     // validate the input model
@@ -60,7 +60,7 @@ case object NodeModel {
       SystemComponent.determineOperationInterval(
         simulationStartDate,
         simulationEndDate,
-        nodeInput.getOperationTime
+        nodeInput.getOperationTime,
       )
 
     val nodeModel = new NodeModel(
@@ -69,7 +69,7 @@ case object NodeModel {
       operationInterval,
       nodeInput.isSlack,
       Each(nodeInput.getvTarget.to(PowerSystemUnits.PU).getValue.doubleValue()),
-      nodeInput.getVoltLvl
+      nodeInput.getVoltLvl,
     )
 
     /* Checks, if the participant is in operation right from the start */

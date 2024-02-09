@@ -16,11 +16,11 @@ import edu.ie3.simona.api.simulation.ontology.{
   ActivationMessage,
   TerminationCompleted,
   TerminationMessage,
-  CompletionMessage => ExtCompletionMessage
+  CompletionMessage => ExtCompletionMessage,
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
 import edu.ie3.simona.ontology.messages.{Activation, StopMessage}
@@ -41,7 +41,7 @@ class ExtSimAdapterSpec
           .parseString("""
             |pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
             |pekko.loglevel = "INFO"
-            |""".stripMargin)
+            |""".stripMargin),
       )
     )
     with AnyWordSpecLike
@@ -89,7 +89,7 @@ class ExtSimAdapterSpec
       awaitCond(
         !extData.receiveMessageQueue.isEmpty,
         max = 3.seconds,
-        message = "No message received"
+        message = "No message received",
       )
       extData.receiveMessageQueue.size() shouldBe 1
       extData.receiveMessageQueue.take() shouldBe new ActivationMessage(
@@ -129,7 +129,7 @@ class ExtSimAdapterSpec
       awaitCond(
         !extData.receiveMessageQueue.isEmpty,
         max = 3.seconds,
-        message = "No message received"
+        message = "No message received",
       )
       extData.receiveMessageQueue.size() shouldBe 1
       extData.receiveMessageQueue.take()
@@ -169,7 +169,7 @@ class ExtSimAdapterSpec
         awaitCond(
           !extData.receiveMessageQueue.isEmpty,
           max = 3.seconds,
-          message = "No message received"
+          message = "No message received",
         )
         extData.receiveMessageQueue.size() shouldBe 1
         extData.receiveMessageQueue.take() shouldBe new TerminationMessage(

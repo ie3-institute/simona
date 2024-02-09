@@ -8,10 +8,13 @@ package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.participant.BMModel.BMCalcRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.EnergyPrice
-import squants.energy.Megawatts
+import squants.energy.{Kilowatts, Megawatts}
 import squants.{Dimensionless, Money, Power, Temperature}
 
 import java.time.ZonedDateTime
@@ -32,17 +35,21 @@ final case class BMModel(
     private val isCostControlled: Boolean,
     private val opex: Money,
     private val feedInTariff: EnergyPrice,
-    private val loadGradient: Double
-) extends SystemParticipant[BMCalcRelevantData, ApparentPower](
+    private val loadGradient: Double,
+) extends SystemParticipant[
+      BMCalcRelevantData,
+      ApparentPower,
+      ConstantState.type,
+    ](
       uuid,
       id,
       operationInterval,
       scalingFactor,
       qControl,
       sRated,
-      cosPhi
+      cosPhi,
     )
-    with ApparentPowerParticipant[BMCalcRelevantData] {
+    with ApparentPowerParticipant[BMCalcRelevantData, ConstantState.type] {
 
   /** Saves power output of last cycle. Needed for load gradient
     */
@@ -51,9 +58,10 @@ final case class BMModel(
   override def calculatePower(
       tick: Long,
       voltage: Dimensionless,
-      data: BMCalcRelevantData
+      modelState: ConstantState.type,
+      data: BMCalcRelevantData,
   ): ApparentPower = {
-    val result = super.calculatePower(tick, voltage, data)
+    val result = super.calculatePower(tick, voltage, modelState, data)
     _lastPower = Some(result.p)
 
     result
@@ -67,7 +75,8 @@ final case class BMModel(
     *   Active power
     */
   override protected def calculateActivePower(
-      data: BMCalcRelevantData
+      modelState: ConstantState.type,
+      data: BMCalcRelevantData,
   ): Power = {
     // Calculate heat demand //
     val (k1, k2) = (calculateK1(data.date), calculateK2(data.date))
@@ -133,7 +142,7 @@ final case class BMModel(
   private def calculatePTh(
       temp: Temperature,
       k1: Double,
-      k2: Double
+      k2: Double,
   ): Power = {
     // linear regression: Heat-demand in relation to temperature (above 19.28°C: independent of temperature)
     val pTh = temp.toCelsiusScale match {
@@ -178,7 +187,7 @@ final case class BMModel(
     */
   private def calculateElOutput(
       usage: Double,
-      eff: Double
+      eff: Double,
   ): Power = {
     val currOpex = opex.divide(eff)
     val avgOpex = (currOpex + opex).divide(2)
@@ -216,9 +225,25 @@ final case class BMModel(
         }
     }
   }
+
+  override def determineFlexOptions(
+      data: BMCalcRelevantData,
+      lastState: ConstantState.type,
+  ): ProvideFlexOptions = {
+    val power = calculateActivePower(lastState, data)
+
+    ProvideMinMaxFlexOptions(uuid, power, power, Kilowatts(0d))
+  }
+
+  override def handleControlledPowerChange(
+      data: BMCalcRelevantData,
+      lastState: ConstantState.type,
+      setPower: squants.Power,
+  ): (ConstantState.type, FlexChangeIndicator) =
+    (lastState, FlexChangeIndicator())
 }
 
-case object BMModel {
+object BMModel {
 
   /** Data, that is needed for model calculations with the biomass model
     *
@@ -229,6 +254,6 @@ case object BMModel {
     */
   final case class BMCalcRelevantData(
       date: ZonedDateTime,
-      temperature: Temperature
+      temperature: Temperature,
   ) extends CalcRelevantData
 }

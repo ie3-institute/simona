@@ -17,11 +17,11 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.LoadReference.{
   ActivePower,
-  EnergyConsumption
+  EnergyConsumption,
 }
 import edu.ie3.simona.model.participant.load.random.{
   RandomLoadModel,
-  RandomLoadParameters
+  RandomLoadParameters,
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
@@ -51,14 +51,14 @@ class RandomLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
           false,
           NodeInput.DEFAULT_GEO_POSITION,
           GermanVoltageLevelUtils.LV,
-          -1
+          -1,
         ),
         new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
         BdewStandardLoadProfile.H0,
         false,
         Quantities.getQuantity(3000d, PowerSystemUnits.KILOWATTHOUR),
         Quantities.getQuantity(282.74d, PowerSystemUnits.VOLTAMPERE),
-        0.95
+        0.95,
       )
 
     val simulationStartDate =
@@ -69,7 +69,7 @@ class RandomLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
       SystemComponent.determineOperationInterval(
         simulationStartDate,
         simulationEndDate,
-        loadInput.getOperationTime
+        loadInput.getOperationTime,
       )
 
     "instantiating it" should {
@@ -78,7 +78,7 @@ class RandomLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
         val testData = Table(
           ("reference", "expectedSRated"),
           (ActivePower(Watts(268.6)), Watts(311.0105263157895d)),
-          (EnergyConsumption(KilowattHours(2000d)), Watts(513.871737d))
+          (EnergyConsumption(KilowattHours(2000d)), Watts(513.871737d)),
         )
 
         forAll(testData) { (reference, expectedSRated: Power) =>
@@ -86,7 +86,7 @@ class RandomLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
             loadInput,
             foreSeenOperationInterval,
             1.0,
-            reference
+            reference,
           )
 
           actual.sRated should approximate(expectedSRated)
@@ -110,7 +110,7 @@ class RandomLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
               .doubleValue()
           ),
           loadInput.getCosPhiRated,
-          ActivePower(Watts(268.6))
+          ActivePower(Watts(268.6)),
         )
         /* Working day, 61th quarter hour */
         val queryDate =
@@ -118,7 +118,7 @@ class RandomLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
         val expectedParams = new RandomLoadParameters(
           0.405802458524704,
           0.0671483352780342,
-          0.0417016632854939
+          0.0417016632854939,
         )
 
         /* First query leeds to generation of distribution */

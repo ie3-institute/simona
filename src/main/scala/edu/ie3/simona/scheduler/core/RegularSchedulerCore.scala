@@ -10,7 +10,7 @@ import edu.ie3.simona.scheduler.core.Core.{
   ActiveCore,
   Actor,
   CoreFactory,
-  InactiveCore
+  InactiveCore,
 }
 import edu.ie3.util.scala.collection.mutable.PriorityMultiBiSet
 
@@ -24,7 +24,7 @@ object RegularSchedulerCore extends CoreFactory {
 
   final case class SchedulerInactive private (
       private val activationQueue: PriorityMultiBiSet[Long, Actor],
-      private val lastActiveTick: Option[Long]
+      private val lastActiveTick: Option[Long],
   ) extends InactiveCore {
     override def checkActivation(newTick: Long): Boolean =
       activationQueue.headKeyOption.contains(newTick)
@@ -41,7 +41,7 @@ object RegularSchedulerCore extends CoreFactory {
 
     override def handleSchedule(
         actor: Actor,
-        newTick: Long
+        newTick: Long,
     ): (Option[Long], InactiveCore) = {
       val oldEarliestTick = activationQueue.headKeyOption
 
@@ -59,7 +59,7 @@ object RegularSchedulerCore extends CoreFactory {
   private final case class SchedulerActive(
       private val activationQueue: PriorityMultiBiSet[Long, Actor],
       private val activeActors: Set[Actor] = Set.empty,
-      activeTick: Long
+      activeTick: Long,
   ) extends ActiveCore {
     override def checkCompletion(actor: Actor): Boolean =
       activeActors.contains(actor)
@@ -74,7 +74,7 @@ object RegularSchedulerCore extends CoreFactory {
       ) {
         (
           activationQueue.headKeyOption,
-          SchedulerInactive(activationQueue, Some(activeTick))
+          SchedulerInactive(activationQueue, Some(activeTick)),
         )
       }
 

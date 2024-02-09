@@ -27,7 +27,7 @@ class NodeInputModelSpec extends UnitSpec with NodeInputTestData {
         NodeModel(
           nodeInputNoSlackNs04KvA,
           defaultSimulationStart,
-          defaultSimulationEnd
+          defaultSimulationEnd,
         )
 
       inside(validNodeModel) {
@@ -37,7 +37,7 @@ class NodeInputModelSpec extends UnitSpec with NodeInputTestData {
               operationInterval,
               isSlack,
               vTarget,
-              voltLvl
+              voltLvl,
             ) =>
           uuid shouldBe nodeInputNoSlackNs04KvA.getUuid
           id shouldBe nodeInputNoSlackNs04KvA.getId

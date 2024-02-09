@@ -41,7 +41,7 @@ final case class ResultEntityCsvSink private (
     fileWriter: Writer,
     resultEntityProcessor: ResultEntityProcessor,
     compressOutputFiles: Boolean,
-    delimiter: String
+    delimiter: String,
 ) extends ResultEntitySink
     with LazyLogging {
 
@@ -159,7 +159,7 @@ object ResultEntityCsvSink {
       outfileName: String,
       resultEntityProcessor: ResultEntityProcessor,
       compressOutputFiles: Boolean,
-      delimiter: String = ","
+      delimiter: String = ",",
   ): ResultEntityCsvSink = {
 
     val file = new File(outfileName)
@@ -172,7 +172,7 @@ object ResultEntityCsvSink {
       writer,
       resultEntityProcessor,
       compressOutputFiles,
-      delimiter
+      delimiter,
     )
 
     if (!existedBefore)

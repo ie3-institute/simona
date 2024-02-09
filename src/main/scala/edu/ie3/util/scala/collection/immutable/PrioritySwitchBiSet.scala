@@ -42,7 +42,7 @@ final case class PrioritySwitchBiSet[K, V](
     private val orderedValues: immutable.Vector[V],
     private val valueToIndex: Map[V, Int],
     private val queue: immutable.SortedMap[K, immutable.SortedSet[Int]],
-    private val back: Map[V, K]
+    private val back: Map[V, K],
 ) {
 
   /** Get the first key of the queue, if the queue is not empty.
@@ -107,7 +107,7 @@ final case class PrioritySwitchBiSet[K, V](
 
         copy(
           queue = updatedQueue,
-          back = updatedBack
+          back = updatedBack,
         )
       }
       .getOrElse(this)
@@ -120,9 +120,9 @@ final case class PrioritySwitchBiSet[K, V](
         (
           copy(
             orderedValues = orderedValues.appended(value),
-            valueToIndex = valueToIndex.updated(value, newIndex)
+            valueToIndex = valueToIndex.updated(value, newIndex),
           ),
-          newIndex
+          newIndex,
         )
       case i =>
         (this, i)
@@ -134,7 +134,7 @@ final case class PrioritySwitchBiSet[K, V](
 
     updatedStruct.copy(
       queue = queue.updated(key, updatedSet),
-      back = back.updated(value, key)
+      back = back.updated(value, key),
     )
   }
 
@@ -165,7 +165,7 @@ final case class PrioritySwitchBiSet[K, V](
 
         (
           firstValue,
-          copy(queue = updatedQueue, back = back.removed(firstValue))
+          copy(queue = updatedQueue, back = back.removed(firstValue)),
         )
       }
   }
@@ -208,6 +208,6 @@ object PrioritySwitchBiSet {
     Vector.empty,
     Map.empty,
     immutable.SortedMap.empty,
-    Map.empty
+    Map.empty,
   )
 }

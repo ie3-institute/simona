@@ -11,7 +11,7 @@ import edu.ie3.simona.event.listener.ResultEventListener.ResultMessage
 import edu.ie3.simona.ontology.messages.{
   Activation,
   PowerMessage,
-  VoltageMessage
+  VoltageMessage,
 }
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import org.apache.pekko.actor.typed.ActorRef
@@ -33,7 +33,7 @@ object GridAgentMessage {
     */
   final case class CreateGridAgent(
       gridAgentInitData: GridAgentInitData,
-      unlockKey: ScheduleKey
+      unlockKey: ScheduleKey,
   ) extends GridAgentMessage
 
   /** Trigger used inside of [[edu.ie3.simona.agent.grid.DBFSAlgorithm]] to
@@ -86,7 +86,7 @@ object GridAgentMessage {
     */
   private[grid] final case class StringAdapter(
       str: String,
-      sender: ActorRef[GridAgentMessage]
+      sender: ActorRef[GridAgentMessage],
   ) extends GridAgentMessage
 
   /** Wrapper for activation values

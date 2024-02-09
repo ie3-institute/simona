@@ -33,12 +33,12 @@ class LoadModelSpec
         ("reference", "sRated"),
         (
           LoadReference.ActivePower(Watts(268.6)),
-          Watts(282.7368421052632)
+          Watts(282.7368421052632),
         ),
         (
           LoadReference.EnergyConsumption(KilowattHours(3000.0)),
-          Watts(848.2105263157896)
-        )
+          Watts(848.2105263157896),
+        ),
       )
 
       forAll(params) {
@@ -48,7 +48,7 @@ class LoadModelSpec
               loadInput,
               defaultOperationInterval,
               foreSeenScalingFactor,
-              foreSeenReference
+              foreSeenReference,
             )
             inside(actual) {
               case ProfileLoadModel(
@@ -60,7 +60,7 @@ class LoadModelSpec
                     sRated,
                     cosPhiRated,
                     loadProfile,
-                    reference
+                    reference,
                   ) =>
                 uuid shouldBe loadInput.getUuid
                 id shouldBe loadInput.getId
@@ -82,12 +82,12 @@ class LoadModelSpec
         ("reference", "sRated"),
         (
           LoadReference.ActivePower(Watts(268.6)),
-          Watts(311.0105263157895)
+          Watts(311.0105263157895),
         ),
         (
           LoadReference.EnergyConsumption(KilowattHours(3000.0)),
-          Watts(770.8076055515501)
-        )
+          Watts(770.8076055515501),
+        ),
       )
 
       forAll(params) {
@@ -97,7 +97,7 @@ class LoadModelSpec
               loadInput,
               defaultOperationInterval,
               foreSeenScalingFactor,
-              foreSeenReference
+              foreSeenReference,
             )
             inside(actual) {
               case RandomLoadModel(
@@ -108,7 +108,7 @@ class LoadModelSpec
                     qControl,
                     sRated,
                     cosPhiRated,
-                    reference
+                    reference,
                   ) =>
                 uuid shouldBe loadInput.getUuid
                 id shouldBe loadInput.getId

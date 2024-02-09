@@ -25,7 +25,7 @@ class QuantityMatchersSpec extends UnitSpec {
       "pass if quantities are approximately the same" in {
         quant should equalWithTolerance(
           quant.add(toleranceQuantity.multiply(0.9)),
-          testTolerance
+          testTolerance,
         )
       }
 
@@ -33,7 +33,7 @@ class QuantityMatchersSpec extends UnitSpec {
         quant should not(
           equalWithTolerance(
             quant.add(toleranceQuantity.multiply(1.1)),
-            testTolerance
+            testTolerance,
           )
         )
       }

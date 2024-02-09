@@ -10,13 +10,16 @@ import edu.ie3.datamodel.models.input.system.ChpInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.ChpModel._
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.{MutableStorage, ThermalStorage}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
-import squants.energy.{KilowattHours, Kilowatts}
 import squants.{Energy, Power, Seconds, Time}
+import squants.energy.{KilowattHours, Kilowatts}
 
 import java.util.UUID
 
@@ -53,17 +56,17 @@ final case class ChpModel(
     sRated: Power,
     cosPhiRated: Double,
     pThermal: Power,
-    storage: ThermalStorage with MutableStorage
-) extends SystemParticipant[ChpRelevantData, ApparentPower](
+    storage: ThermalStorage with MutableStorage,
+) extends SystemParticipant[ChpRelevantData, ApparentPower, ConstantState.type](
       uuid,
       id,
       operationInterval,
       scalingFactor,
       qControl,
       sRated,
-      cosPhiRated
+      cosPhiRated,
     )
-    with ApparentPowerParticipant[ChpRelevantData] {
+    with ApparentPowerParticipant[ChpRelevantData, ConstantState.type] {
 
   val pRated: Power = sRated * cosPhiRated
 
@@ -79,7 +82,8 @@ final case class ChpModel(
     *   active power
     */
   override protected def calculateActivePower(
-      chpData: ChpRelevantData
+      modelState: ConstantState.type,
+      chpData: ChpRelevantData,
   ): Power =
     chpData.chpState.activePower
 
@@ -145,7 +149,7 @@ final case class ChpModel(
       isRunning = false,
       chpData.currentTimeTick,
       DefaultQuantities.zeroKW,
-      DefaultQuantities.zeroKWH
+      DefaultQuantities.zeroKWH,
     )
 
   /** The demand cannot be covered, therefore this function sets storage level
@@ -182,7 +186,7 @@ final case class ChpModel(
       isRunning = false,
       chpData.currentTimeTick,
       DefaultQuantities.zeroKW,
-      DefaultQuantities.zeroKWH
+      DefaultQuantities.zeroKWH,
     )
   }
 
@@ -222,7 +226,7 @@ final case class ChpModel(
     */
   private def calculateStateRunningSurplus(
       chpData: ChpRelevantData,
-      surplus: Option[Energy] = None
+      surplus: Option[Energy] = None,
   ): ChpState = {
     surplus match {
       case Some(surplusEnergy) =>
@@ -230,14 +234,14 @@ final case class ChpModel(
           isRunning = false,
           chpData.currentTimeTick,
           pRated,
-          chpEnergy(chpData) - surplusEnergy
+          chpEnergy(chpData) - surplusEnergy,
         )
       case None =>
         ChpState(
           isRunning = true,
           chpData.currentTimeTick,
           pRated,
-          chpEnergy(chpData)
+          chpEnergy(chpData),
         )
     }
   }
@@ -251,7 +255,7 @@ final case class ChpModel(
     */
   private def powerToEnergy(
       chpData: ChpRelevantData,
-      power: Power
+      power: Power,
   ): Energy =
     power * timeRunning(chpData)
 
@@ -287,11 +291,28 @@ final case class ChpModel(
 
   private def timeRunning(chpData: ChpRelevantData): Time =
     Seconds(chpData.currentTimeTick - chpData.chpState.lastTimeTick)
+
+  override def determineFlexOptions(
+      data: ChpRelevantData,
+      lastState: ConstantState.type,
+  ): ProvideFlexOptions =
+    ProvideMinMaxFlexOptions.noFlexOption(
+      uuid,
+      calculateActivePower(lastState, data),
+    )
+
+  override def handleControlledPowerChange(
+      data: ChpRelevantData,
+      lastState: ConstantState.type,
+      setPower: squants.Power,
+  ): (ConstantState.type, FlexChangeIndicator) =
+    (lastState, FlexChangeIndicator())
+
 }
 
 /** Create valid ChpModel by calling the apply function.
   */
-case object ChpModel {
+object ChpModel {
 
   /** As the ChpModel class is a dynamic model, it requires a state for its
     * calculations. The state contains all variables needed, except the storage
@@ -310,7 +331,7 @@ case object ChpModel {
       isRunning: Boolean,
       lastTimeTick: Long,
       activePower: Power,
-      thermalEnergy: Energy
+      thermalEnergy: Energy,
   )
 
   /** Main data required for simulation/calculation, containing a [[ChpState]],
@@ -329,7 +350,7 @@ case object ChpModel {
   final case class ChpRelevantData(
       chpState: ChpState,
       heatDemand: Energy,
-      currentTimeTick: Long
+      currentTimeTick: Long,
   ) extends CalcRelevantData
 
   /** Function to construct a new [[ChpModel]] based on a provided [[ChpInput]]
@@ -355,12 +376,12 @@ case object ChpModel {
       simulationEndDate: ZonedDateTime,
       qControl: QControl,
       scalingFactor: Double,
-      thermalStorage: ThermalStorage with MutableStorage
+      thermalStorage: ThermalStorage with MutableStorage,
   ): ChpModel = {
     val operationInterval = SystemComponent.determineOperationInterval(
       simulationStartDate,
       simulationEndDate,
-      chpInput.getOperationTime
+      chpInput.getOperationTime,
     )
 
     val model = new ChpModel(
@@ -373,7 +394,7 @@ case object ChpModel {
         chpInput.getType.getsRated
           .to(PowerSystemUnits.KILOWATT)
           .getValue
-          .doubleValue()
+          .doubleValue
       ),
       chpInput.getType.getCosPhiRated,
       Kilowatts(
@@ -382,7 +403,7 @@ case object ChpModel {
           .getValue
           .doubleValue
       ),
-      thermalStorage
+      thermalStorage,
     )
 
     model.enable()

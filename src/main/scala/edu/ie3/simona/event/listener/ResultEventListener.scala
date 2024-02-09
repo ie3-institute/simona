@@ -13,13 +13,14 @@ import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.event.Event
 import edu.ie3.simona.event.ResultEvent.{
+  FlexOptionsResultEvent,
   ParticipantResultEvent,
   PowerFlowResultEvent,
-  ThermalResultEvent
+  ThermalResultEvent,
 }
 import edu.ie3.simona.exceptions.{
   FileHierarchyException,
-  ProcessResultEventException
+  ProcessResultEventException,
 }
 import edu.ie3.simona.io.result._
 import edu.ie3.simona.ontology.messages.StopMessage
@@ -54,8 +55,8 @@ object ResultEventListener extends Transformer3wResultSupport {
       classToSink: Map[Class[_], ResultEntitySink],
       threeWindingResults: Map[
         Transformer3wKey,
-        AggregatedTransformer3wResult
-      ] = Map.empty
+        AggregatedTransformer3wResult,
+      ] = Map.empty,
   )
 
   /** Initialize the sinks for this listener based on the provided collection
@@ -93,8 +94,8 @@ object ResultEventListener extends Transformer3wResultSupport {
                       ResultEntityCsvSink(
                         fileName.replace(".gz", ""),
                         new ResultEntityProcessor(resultClass),
-                        fileName.endsWith(".gz")
-                      )
+                        fileName.endsWith(".gz"),
+                      ),
                     )
                   }
                 } else {
@@ -120,7 +121,7 @@ object ResultEventListener extends Transformer3wResultSupport {
             runId,
             bootstrapServers,
             schemaRegistryUrl,
-            linger
+            linger,
           ) =>
         val classes: Iterable[Class[_ <: ResultEntity]] = Set(
           classOf[NodeResult] // currently, only NodeResults are sent out
@@ -134,8 +135,8 @@ object ResultEventListener extends Transformer3wResultSupport {
                 runId,
                 bootstrapServers,
                 schemaRegistryUrl,
-                linger
-              )
+                linger,
+              ),
             )
           )
         )
@@ -154,7 +155,7 @@ object ResultEventListener extends Transformer3wResultSupport {
   private def handleResult(
       resultEntity: ResultEntity,
       baseData: BaseData,
-      log: Logger
+      log: Logger,
   ): BaseData = {
     handOverToSink(resultEntity, baseData.classToSink, log)
     baseData
@@ -174,14 +175,14 @@ object ResultEventListener extends Transformer3wResultSupport {
   private def handlePartialTransformer3wResult(
       result: PartialTransformer3wResult,
       baseData: BaseData,
-      log: Logger
+      log: Logger,
   ): BaseData = {
     val key = Transformer3wKey(result.input, result.time)
     // retrieve existing partial result or use empty one
     val partialResult =
       baseData.threeWindingResults.getOrElse(
         key,
-        AggregatedTransformer3wResult.EMPTY
+        AggregatedTransformer3wResult.EMPTY,
       )
     // add partial result
     val updatedResults = partialResult.add(result).map { updatedResult =>
@@ -201,7 +202,7 @@ object ResultEventListener extends Transformer3wResultSupport {
       case Failure(exception) =>
         log.warn(
           "Failure when handling partial Transformer3w result",
-          exception
+          exception,
         )
         // on failure, we just continue with previous results
         baseData.threeWindingResults
@@ -221,7 +222,7 @@ object ResultEventListener extends Transformer3wResultSupport {
   private def handOverToSink(
       resultEntity: ResultEntity,
       classToSink: Map[Class[_], ResultEntitySink],
-      log: Logger
+      log: Logger,
   ): Unit =
     Try {
       classToSink
@@ -243,7 +244,7 @@ object ResultEventListener extends Transformer3wResultSupport {
           s"Events that will be processed: {}",
           resultFileHierarchy.resultEntitiesToConsider
             .map(_.getSimpleName)
-            .mkString(",")
+            .mkString(","),
         )
     }
 
@@ -294,8 +295,8 @@ object ResultEventListener extends Transformer3wResultSupport {
               switchResults,
               lineResults,
               transformer2wResults,
-              transformer3wResults
-            )
+              transformer3wResults,
+            ),
           ) =>
         val updatedBaseData =
           (nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ transformer3wResults)
@@ -304,14 +305,18 @@ object ResultEventListener extends Transformer3wResultSupport {
                 handleResult(resultEntity, currentBaseData, ctx.log)
               case (
                     currentBaseData,
-                    partialTransformerResult: PartialTransformer3wResult
+                    partialTransformerResult: PartialTransformer3wResult,
                   ) =>
                 handlePartialTransformer3wResult(
                   partialTransformerResult,
                   currentBaseData,
-                  ctx.log
+                  ctx.log,
                 )
             }
+        idle(updatedBaseData)
+
+      case (ctx, FlexOptionsResultEvent(flexOptionsResult)) =>
+        val updatedBaseData = handleResult(flexOptionsResult, baseData, ctx.log)
         idle(updatedBaseData)
 
       case (ctx, _: StopMessage) =>
@@ -336,7 +341,7 @@ object ResultEventListener extends Transformer3wResultSupport {
           .map { case Transformer3wKey(model, zdt) =>
             s"model '$model' at $zdt"
           }
-          .mkString("\n\t\t")
+          .mkString("\n\t\t"),
       )
 
       // close sinks concurrently to speed up closing (closing calls might be blocking)
@@ -348,7 +353,7 @@ object ResultEventListener extends Transformer3wResultSupport {
             }
           )
         ),
-        5.minutes
+        5.minutes,
       )
 
       ctx.log.debug("Result I/O completed.")

@@ -13,14 +13,14 @@ import edu.ie3.simona.agent.grid.GridAgentMessage.{
   ActivationAdapter,
   VMAdapter,
   CreateGridAgent,
-  FinishGridSimulationTrigger
+  FinishGridSimulationTrigger,
 }
 import edu.ie3.simona.event.listener.ResultEventListener.ResultMessage
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
@@ -35,7 +35,7 @@ import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.Megavars
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
-  TestProbe
+  TestProbe,
 }
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
@@ -63,7 +63,7 @@ class DBFSAlgorithmParticipantSpec
     runtimeEventListener = runtimeEvents.ref.toClassic,
     primaryServiceProxy = primaryService.ref.toClassic,
     weather = weatherService.ref.toClassic,
-    evDataService = None
+    evDataService = None,
   )
 
   protected val resultListener: TestProbe[ResultMessage] =
@@ -71,7 +71,7 @@ class DBFSAlgorithmParticipantSpec
 
   private val superiorGridAgent = SuperiorGA(
     TestProbe("superiorGridAgent_1000"),
-    Seq(supNodeA.getUuid)
+    Seq(supNodeA.getUuid),
   )
 
   "Test participant" should {
@@ -79,7 +79,7 @@ class DBFSAlgorithmParticipantSpec
       GridAgent(
         environmentRefs,
         simonaConfig,
-        Iterable(resultListener.ref.toClassic)
+        Iterable(resultListener.ref.toClassic),
       )
     )
 
@@ -95,7 +95,7 @@ class DBFSAlgorithmParticipantSpec
         hvGridContainer,
         Seq.empty,
         subGridGateToActorRef,
-        RefSystem("2000 MVA", "110 kV")
+        RefSystem("2000 MVA", "110 kV"),
       )
 
       val key =
@@ -117,7 +117,7 @@ class DBFSAlgorithmParticipantSpec
         case ScheduleActivation(
               loadAgent,
               INIT_SIM_TICK,
-              _
+              _,
             ) =>
           loadAgent
       }
@@ -175,9 +175,9 @@ class DBFSAlgorithmParticipantSpec
             ExchangeVoltage(
               supNodeA.getUuid,
               Kilovolts(380d),
-              Kilovolts(0d)
+              Kilovolts(0d),
             )
-          )
+          ),
         )
       )
 
@@ -186,7 +186,7 @@ class DBFSAlgorithmParticipantSpec
       // hence we ask for them and expect a corresponding response
       superiorGridAgent.requestGridPower(
         gridAgentWithParticipants,
-        firstSweepNo
+        firstSweepNo,
       )
 
       // the gridAgentWithParticipants has received an AssetPowerChangedMessage
@@ -196,7 +196,7 @@ class DBFSAlgorithmParticipantSpec
           ExchangePower(
             supNodeA.getUuid,
             Megawatts(135.90837346741768),
-            Megavars(60.98643348675892)
+            Megavars(60.98643348675892),
           )
         )
       )
@@ -207,7 +207,7 @@ class DBFSAlgorithmParticipantSpec
 
       superiorGridAgent.requestGridPower(
         gridAgentWithParticipants,
-        secondSweepNo
+        secondSweepNo,
       )
 
       // the agent now should ask for updated slack voltages from the superior grid
@@ -222,9 +222,9 @@ class DBFSAlgorithmParticipantSpec
             ExchangeVoltage(
               supNodeA.getUuid,
               Kilovolts(374.2269461446d),
-              Kilovolts(65.9863075134d)
+              Kilovolts(65.9863075134d),
             )
-          )
+          ),
         )
       )
 
@@ -235,7 +235,7 @@ class DBFSAlgorithmParticipantSpec
           ExchangePower(
             supNodeA.getUuid,
             Megawatts(135.90837346741768),
-            Megavars(60.98643348675892)
+            Megavars(60.98643348675892),
           )
         )
       )

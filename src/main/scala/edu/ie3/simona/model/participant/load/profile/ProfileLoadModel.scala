@@ -9,6 +9,7 @@ package edu.ie3.simona.model.participant.load.profile
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.profile.StandardLoadProfile
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.LoadReference._
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
@@ -49,7 +50,7 @@ final case class ProfileLoadModel(
     sRated: Power,
     cosPhiRated: Double,
     loadProfile: StandardLoadProfile,
-    reference: LoadReference
+    reference: LoadReference,
 ) extends LoadModel[ProfileRelevantData](
       uuid,
       id,
@@ -57,7 +58,7 @@ final case class ProfileLoadModel(
       scalingFactor,
       qControl,
       sRated,
-      cosPhiRated
+      cosPhiRated,
     ) {
 
   private val loadProfileStore: LoadProfileStore = LoadProfileStore()
@@ -84,7 +85,8 @@ final case class ProfileLoadModel(
     *   Active power
     */
   override protected def calculateActivePower(
-      data: ProfileRelevantData
+      modelState: ConstantState.type,
+      data: ProfileRelevantData,
   ): Power = {
     /* The power comes in W and is delivered all 15 minutes */
     val averagePower: Power = loadProfileStore
@@ -103,7 +105,7 @@ final case class ProfileLoadModel(
   }
 }
 
-case object ProfileLoadModel {
+object ProfileLoadModel {
 
   final case class ProfileRelevantData(date: ZonedDateTime)
       extends LoadRelevantData
@@ -112,7 +114,7 @@ case object ProfileLoadModel {
       input: LoadInput,
       operationInterval: OperationInterval,
       scalingFactor: Double,
-      reference: LoadReference
+      reference: LoadReference,
   ): ProfileLoadModel = {
     val model = reference match {
       case LoadReference.ActivePower(power) =>
@@ -126,7 +128,7 @@ case object ProfileLoadModel {
           sRatedPowerScaled,
           input.getCosPhiRated,
           input.getLoadProfile.asInstanceOf[StandardLoadProfile],
-          reference
+          reference,
         )
 
       case LoadReference.EnergyConsumption(energyConsumption) =>
@@ -138,7 +140,7 @@ case object ProfileLoadModel {
           input,
           energyConsumption,
           loadProfileMax,
-          LoadProfileStore.defaultLoadProfileEnergyScaling
+          LoadProfileStore.defaultLoadProfileEnergyScaling,
         )
         ProfileLoadModel(
           input.getUuid,
@@ -149,7 +151,7 @@ case object ProfileLoadModel {
           sRatedEnergy,
           input.getCosPhiRated,
           input.getLoadProfile.asInstanceOf[StandardLoadProfile],
-          reference
+          reference,
         )
     }
     model.enable()

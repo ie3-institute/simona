@@ -20,14 +20,14 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.apache.pekko.actor.typed.receptionist.Receptionist.{
   Listing,
   Register,
-  Subscribe
+  Subscribe,
 }
 import org.apache.pekko.actor.typed.receptionist.ServiceKey
 import org.apache.pekko.actor.typed.scaladsl.AskPattern.Askable
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.scaladsl.adapter.{
   TypedActorContextOps,
-  TypedActorRefOps
+  TypedActorRefOps,
 }
 import org.apache.pekko.actor.typed.{ActorRef, Scheduler}
 import org.apache.pekko.actor.{ActorRef => classicRef}
@@ -68,7 +68,7 @@ class GridAgentSetup2WSpec
               runtimeEventListener = ctx.self.toClassic,
               primaryServiceProxy = ctx.self.toClassic,
               weather = classicRef.noSender,
-              evDataService = None
+              evDataService = None,
             )
 
             SimonaStandaloneSetup(
@@ -80,15 +80,15 @@ class GridAgentSetup2WSpec
                   Set.empty[Class[_ <: ResultEntity]],
                   ResultSinkType(
                     simonaConfig.simona.output.sink,
-                    simonaConfig.simona.simulationName
-                  )
-                )
-              )
+                    simonaConfig.simona.simulationName,
+                  ),
+                ),
+              ),
             ).buildSubGridToActorRefMap(
               gridContainer.getSubGridTopologyGraph,
               ctx.toClassic,
               environmentRefs,
-              Seq.empty[classicRef]
+              Seq.empty[classicRef],
             )
             ctx.self ! StringAdapter("done", ctx.self)
             Behaviors.same
@@ -97,7 +97,7 @@ class GridAgentSetup2WSpec
 
       Await.ready(
         actor.ask[GridAgentMessage](ref => StringAdapter("setup", ref)),
-        Duration(10, TimeUnit.SECONDS)
+        Duration(10, TimeUnit.SECONDS),
       )
 
       testKit.spawn(Behaviors.setup[Listing] { ctx =>

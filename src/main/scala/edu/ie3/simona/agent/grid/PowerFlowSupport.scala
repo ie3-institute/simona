@@ -69,7 +69,7 @@ trait PowerFlowSupport {
       receivedValuesStore: ReceivedValuesStore,
       gridMainRefSystem: RefSystem,
       targetVoltageFromReceivedData: Boolean = true,
-      ignoreTargetVoltage: Boolean = false
+      ignoreTargetVoltage: Boolean = false,
   ): (Array[PresetData], WithForcedStartVoltages) = {
     val (operatingPoints, stateData) = nodes.map { nodeModel =>
       // note: currently we only support pq nodes as we not distinguish between pq/pv nodes -
@@ -81,7 +81,7 @@ trait PowerFlowSupport {
         nodeModel.uuid,
         throw new RuntimeException(
           s"Received data for node ${nodeModel.id} [${nodeModel.uuid}] which is not in my nodeUuidToIndexMap!"
-        )
+        ),
       )
 
       val apparentPower: Complex =
@@ -105,18 +105,18 @@ trait PowerFlowSupport {
               .foldLeft(
                 (
                   Kilowatts(0d),
-                  Kilovars(0d)
+                  Kilovars(0d),
                 )
               ) { case ((pSum, qSum), powerMessage) =>
                 (
                   pSum + powerMessage.p,
-                  qSum + powerMessage.q
+                  qSum + powerMessage.q,
                 )
               }
 
             new Complex(
               gridMainRefSystem.pInPu(p).value.doubleValue,
-              gridMainRefSystem.qInPu(q).value.doubleValue
+              gridMainRefSystem.qInPu(q).value.doubleValue,
             )
           case None => new Complex(0, 0)
         }
@@ -140,7 +140,7 @@ trait PowerFlowSupport {
             nodeModel.uuid,
             transformers2w,
             transformers3w,
-            gridMainRefSystem
+            gridMainRefSystem,
           )
         } else {
           // Either the received data shall not be considered or the node is not a slack node
@@ -155,7 +155,7 @@ trait PowerFlowSupport {
           nodeIdx,
           NodeType.SL,
           targetVoltage,
-          apparentPower
+          apparentPower,
         )
       )
 
@@ -164,9 +164,9 @@ trait PowerFlowSupport {
           nodeIdx,
           nodeType,
           apparentPower,
-          targetVoltage.abs
+          targetVoltage.abs,
         ),
-        optStateData
+        optStateData,
       )
     }.unzip
 
@@ -193,7 +193,7 @@ trait PowerFlowSupport {
 
     (
       combineOperatingPoint(adaptedOperatingPoint.toArray),
-      WithForcedStartVoltages(Array(slackNodeData))
+      WithForcedStartVoltages(Array(slackNodeData)),
     )
   }
 
@@ -224,7 +224,7 @@ trait PowerFlowSupport {
       sweepDataValues: Vector[SweepValueStore.SweepValueStoreData],
       transformers2w: Set[TransformerModel],
       transformers3w: Set[Transformer3wModel],
-      gridMainRefSystem: RefSystem
+      gridMainRefSystem: RefSystem,
   ): (Array[PresetData], WithForcedStartVoltages) =
     sweepDataValues.map { sweepValueStoreData =>
       val nodeStateData = sweepValueStoreData.stateData
@@ -245,7 +245,7 @@ trait PowerFlowSupport {
           sweepValueStoreData.nodeUuid,
           transformers2w,
           transformers3w,
-          gridMainRefSystem
+          gridMainRefSystem,
         )
       } else
         Complex.one
@@ -256,22 +256,22 @@ trait PowerFlowSupport {
           nodeStateData.index,
           nodeStateData.nodeType,
           nodeStateData.power,
-          targetVoltage.abs
+          targetVoltage.abs,
         ),
         Option.when(nodeStateData.nodeType == NodeType.SL)(
           StateData(
             nodeStateData.index,
             nodeStateData.nodeType,
             targetVoltage,
-            nodeStateData.power
+            nodeStateData.power,
           )
-        )
+        ),
       )
     }.unzip match {
       case (operatingPoint, stateData) =>
         (
           combineOperatingPoint(operatingPoint.toArray),
-          WithForcedStartVoltages(stateData.flatten.toArray)
+          WithForcedStartVoltages(stateData.flatten.toArray),
         )
     }
 
@@ -316,15 +316,15 @@ trait PowerFlowSupport {
   private def combinePresetData(a: PresetData, b: PresetData): PresetData = {
     require(
       a.index == b.index,
-      "Preset Data should only be combined when they map to the same index."
+      "Preset Data should only be combined when they map to the same index.",
     )
     require(
       a.nodeType == b.nodeType,
-      "Preset Data combination is only supported for the same node types for now."
+      "Preset Data combination is only supported for the same node types for now.",
     )
     require(
       math.abs(a.targetVoltage - b.targetVoltage) < 1e-6,
-      "Nodes to be combined have to be located in the same voltage level."
+      "Nodes to be combined have to be located in the same voltage level.",
     )
 
     val index = a.index
@@ -335,7 +335,7 @@ trait PowerFlowSupport {
     def combineOptionals(
         a: Option[Double],
         b: Option[Double],
-        f: (Double, Double) => Double
+        f: (Double, Double) => Double,
     ): Option[Double] = (a, b) match {
       case (Some(a), Some(b)) => Some(f(a, b))
       case (Some(a), None)    => Some(a)
@@ -360,7 +360,7 @@ trait PowerFlowSupport {
       activePowerMin,
       activePowerMax,
       reactivePowerMin,
-      reactivePowerMax
+      reactivePowerMax,
     )
   }
 
@@ -376,7 +376,7 @@ trait PowerFlowSupport {
     */
   protected def composeValidNewtonRaphsonPFResultVoltagesDebugString(
       validResult: ValidNewtonRaphsonPFResult,
-      gridModel: GridModel
+      gridModel: GridModel,
   ): String = {
     val debugString = new mutable.StringBuilder("Power flow result: ")
     validResult.nodeData.foreach(nodeStateData => {
@@ -429,23 +429,23 @@ trait PowerFlowSupport {
       nodeUuid: UUID,
       transformers2w: Set[TransformerModel],
       transformers3w: Set[Transformer3wModel],
-      gridRefSystem: RefSystem
+      gridRefSystem: RefSystem,
   ): Complex = {
     ((
       transformers2w.find(_.hvNodeUuid == nodeUuid),
-      transformers3w.find(_.nodeInternalUuid == nodeUuid)
+      transformers3w.find(_.nodeInternalUuid == nodeUuid),
     ) match {
       case (Some(transformer2w), None) =>
         transferToVoltageLevel(
           receivedSlackVoltage.e,
           receivedSlackVoltage.f,
-          transformer2w
+          transformer2w,
         )
       case (None, Some(transformer3w)) =>
         transferToVoltageLevel(
           receivedSlackVoltage.e,
           receivedSlackVoltage.f,
-          transformer3w
+          transformer3w,
         )
       case (Some(transformer2w), Some(transformer3w)) =>
         throw new RuntimeException(
@@ -478,7 +478,7 @@ trait PowerFlowSupport {
   private def transferToVoltageLevel(
       e: ElectricPotential,
       f: ElectricPotential,
-      transformerModel: TransformerModel
+      transformerModel: TransformerModel,
   ): (ElectricPotential, ElectricPotential) = {
     val voltRatio = transformerModel.voltRatioNominal
     (e.divide(voltRatio.toDouble), f.divide(voltRatio.toDouble))
@@ -499,7 +499,7 @@ trait PowerFlowSupport {
   private def transferToVoltageLevel(
       e: ElectricPotential,
       f: ElectricPotential,
-      transformerModel: Transformer3wModel
+      transformerModel: Transformer3wModel,
   ): (ElectricPotential, ElectricPotential) = {
     val voltRatio = Transformer3wModel.voltRatio(transformerModel)
     (e.divide(voltRatio.toDouble), f.divide(voltRatio.toDouble))
@@ -519,10 +519,10 @@ trait PowerFlowSupport {
   private def toPu(
       e: ElectricPotential,
       f: ElectricPotential,
-      gridRefSystem: RefSystem
+      gridRefSystem: RefSystem,
   ): (squants.Dimensionless, squants.Dimensionless) = (
     gridRefSystem.vInPu(e),
-    gridRefSystem.vInPu(f)
+    gridRefSystem.vInPu(f),
   )
 
   /** Build a [[Complex]] from both parts of the voltage
@@ -558,14 +558,14 @@ trait PowerFlowSupport {
       gridModel: GridModel,
       maxIterations: Int,
       operatingPoint: Array[PresetData],
-      slackVoltages: WithForcedStartVoltages
+      slackVoltages: WithForcedStartVoltages,
   )(epsilons: Vector[Double])(implicit log: Logger): PowerFlowResult = {
     epsilons.headOption match {
       case Some(epsilon) =>
         val admittanceMatrix =
           GridModel.composeAdmittanceMatrix(
             gridModel.nodeUuidToIndexMap,
-            gridModel.gridComponents
+            gridModel.gridComponents,
           )
 
         // / execute
@@ -575,7 +575,7 @@ trait PowerFlowSupport {
         Try {
           powerFlow.calculate(
             operatingPoint,
-            Some(slackVoltages)
+            Some(slackVoltages),
           )
         }.map {
           case _: PowerFlowResult.FailedPowerFlowResult if epsilons.size > 1 =>
@@ -584,13 +584,13 @@ trait PowerFlowSupport {
             log.debug(
               "NR power flow with ɛ = {} failed. Relaxing to {}.",
               epsilon,
-              epsilonsLeft.headOption.getOrElse("")
+              epsilonsLeft.headOption.getOrElse(""),
             )
             newtonRaphsonPF(
               gridModel,
               maxIterations,
               operatingPoint,
-              slackVoltages
+              slackVoltages,
             )(
               epsilonsLeft
             )
@@ -601,7 +601,7 @@ trait PowerFlowSupport {
           case Failure(exception) =>
             throw new DBFSAlgorithmException(
               s"Power flow calculation in subgrid ${gridModel.subnetNo} failed.",
-              exception
+              exception,
             )
         }
       case None =>

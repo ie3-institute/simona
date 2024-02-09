@@ -11,13 +11,13 @@ import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import edu.ie3.simona.actor.ActorUtil.stopOnError
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.core.Core.{
   ActiveCore,
   CoreFactory,
-  InactiveCore
+  InactiveCore,
 }
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 
@@ -42,20 +42,20 @@ object Scheduler {
     */
   def apply(
       parent: ActorRef[SchedulerMessage],
-      coreFactory: CoreFactory = RegularSchedulerCore
+      coreFactory: CoreFactory = RegularSchedulerCore,
   ): Behavior[Incoming] = Behaviors.setup { ctx =>
     val adapter =
       ctx.messageAdapter[Activation](msg => WrappedActivation(msg))
 
     inactive(
       SchedulerData(parent, adapter),
-      coreFactory.create()
+      coreFactory.create(),
     )
   }
 
   private def inactive(
       data: SchedulerData,
-      core: InactiveCore
+      core: InactiveCore,
   ): Behavior[Incoming] =
     Behaviors.receive {
       case (ctx, WrappedActivation(Activation(tick))) =>
@@ -71,7 +71,7 @@ object Scheduler {
 
       case (
             ctx,
-            ScheduleActivation(actor, newTick, unlockKey)
+            ScheduleActivation(actor, newTick, unlockKey),
           ) =>
         if (core.checkSchedule(newTick)) {
           val (maybeSchedule, newCore) = core.handleSchedule(actor, newTick)
@@ -84,7 +84,7 @@ object Scheduler {
               data.parent ! ScheduleActivation(
                 data.activationAdapter,
                 scheduleTick,
-                unlockKey
+                unlockKey,
               )
             case None =>
               // we don't need to escalate to the parent, this means that we can release the lock (if applicable)
@@ -100,18 +100,18 @@ object Scheduler {
       case (ctx, unexpected) =>
         stopOnError(
           ctx,
-          s"Received unexpected message $unexpected when inactive"
+          s"Received unexpected message $unexpected when inactive",
         )
     }
 
   private def active(
       data: SchedulerData,
-      core: ActiveCore
+      core: ActiveCore,
   ): Behavior[Incoming] = Behaviors.receive {
 
     case (
           ctx,
-          ScheduleActivation(actor, newTick, unlockKey)
+          ScheduleActivation(actor, newTick, unlockKey),
         ) =>
       if (core.checkSchedule(actor, newTick)) {
         val (toActivate, newCore) =
@@ -138,7 +138,7 @@ object Scheduler {
         .cond(
           core.checkCompletion(actor),
           core.handleCompletion(actor),
-          s"Actor $actor is not part of the expected completing actors"
+          s"Actor $actor is not part of the expected completing actors",
         )
         .flatMap { newCore =>
           // if successful
@@ -148,7 +148,7 @@ object Scheduler {
                 .cond(
                   newCore.checkSchedule(actor, newTick),
                   newCore.handleSchedule(actor, newTick),
-                  s"Cannot schedule an event at tick $newTick for completing actor $actor"
+                  s"Cannot schedule an event at tick $newTick for completing actor $actor",
                 )
             }
             .getOrElse(Right(newCore))
@@ -167,7 +167,7 @@ object Scheduler {
             .map { case (maybeScheduleTick, inactiveCore) =>
               data.parent ! Completion(
                 data.activationAdapter,
-                maybeScheduleTick
+                maybeScheduleTick,
               )
               inactive(data, inactiveCore)
             }
@@ -177,7 +177,7 @@ object Scheduler {
         }
         .fold(
           stopOnError(ctx, _),
-          identity
+          identity,
         )
 
     case (ctx, unexpected) =>
@@ -194,6 +194,6 @@ object Scheduler {
       parent: ActorRef[
         SchedulerMessage
       ],
-      activationAdapter: ActorRef[Activation]
+      activationAdapter: ActorRef[Activation],
   )
 }

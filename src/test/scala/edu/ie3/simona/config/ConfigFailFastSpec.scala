@@ -33,7 +33,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               new Time(
                 "2020-06-18 13:41:00",
                 None,
-                "2020-05-18 13:41:00"
+                "2020-05-18 13:41:00",
               )
             )
           }
@@ -45,7 +45,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               new Time(
                 "2020-06-18 13:41:00",
                 None,
-                "2020-07-18 13:41:00"
+                "2020-07-18 13:41:00",
               )
             )
           }.getMessage shouldBe "Invalid time configuration." +
@@ -88,11 +88,11 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 10,
                 new Newtonraphson(
                   List(10, 30),
-                  100
+                  100,
                 ),
                 Duration.of(3600, ChronoUnit.SECONDS),
                 stopOnFailure = false,
-                Duration.of(3600, ChronoUnit.SECONDS)
+                Duration.of(3600, ChronoUnit.SECONDS),
               )
             )
           }
@@ -105,11 +105,11 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 10,
                 new Newtonraphson(
                   List(10, 30),
-                  100
+                  100,
                 ),
                 resolution = Duration.of(3600, ChronoUnit.NANOS),
                 stopOnFailure = false,
-                sweepTimeout = Duration.of(3600, ChronoUnit.SECONDS)
+                sweepTimeout = Duration.of(3600, ChronoUnit.SECONDS),
               )
             )
           }.getMessage shouldBe "Invalid time resolution. Please ensure, that the time resolution for power flow calculation is at least rounded to a full second!"
@@ -450,7 +450,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
               simonaConfig.simona.runtime.participant.load.defaultConfig,
               simonaConfig.simona.runtime.participant.load.individualConfigs,
-              defaultString
+              defaultString,
             )
           }.getMessage shouldBe "There has to be at least one identifier for each participant."
         }
@@ -476,7 +476,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
               simonaConfig.simona.runtime.participant.load.defaultConfig,
               simonaConfig.simona.runtime.participant.load.individualConfigs,
-              defaultString
+              defaultString,
             )
           }.getMessage shouldBe "Found invalid UUID 'blabla' it was meant to be the string 'default' or a valid UUID."
         }
@@ -502,7 +502,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
               simonaConfig.simona.runtime.participant.load.defaultConfig,
               simonaConfig.simona.runtime.participant.load.individualConfigs,
-              defaultString
+              defaultString,
             )
           }.getMessage shouldBe s"Found invalid UUID 'blabla' it was meant to be the string 'default' or a valid UUID."
         }
@@ -528,7 +528,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
               simonaConfig.simona.runtime.participant.load.defaultConfig,
               simonaConfig.simona.runtime.participant.load.individualConfigs,
-              defaultString
+              defaultString,
             )
           }.getMessage shouldBe "The scaling factor for system participants with UUID '49f250fa-41ff-4434-a083-79c98d260a76' may not be negative."
         }
@@ -569,7 +569,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
               simonaConfig.simona.runtime.participant.load.defaultConfig,
               simonaConfig.simona.runtime.participant.load.individualConfigs,
-              defaultString
+              defaultString,
             )
           }.getMessage shouldBe "The basic model configurations contain ambiguous definitions."
         }
@@ -687,18 +687,21 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             SimonaConfig.ParticipantBaseOutputConfig(
               notifier = "load",
               powerRequestReply = true,
-              simulationResult = false
+              simulationResult = false,
+              flexResult = false,
             ),
             SimonaConfig.ParticipantBaseOutputConfig(
               notifier = "pv",
               powerRequestReply = true,
-              simulationResult = false
+              simulationResult = false,
+              flexResult = false,
             ),
             SimonaConfig.ParticipantBaseOutputConfig(
               notifier = "chp",
               powerRequestReply = true,
-              simulationResult = false
-            )
+              simulationResult = false,
+              flexResult = false,
+            ),
           )
 
           noException shouldBe thrownBy {
@@ -713,18 +716,21 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             SimonaConfig.ParticipantBaseOutputConfig(
               notifier = "load",
               powerRequestReply = true,
-              simulationResult = false
+              simulationResult = false,
+              flexResult = false,
             ),
             SimonaConfig.ParticipantBaseOutputConfig(
               notifier = "pv",
               powerRequestReply = true,
-              simulationResult = false
+              simulationResult = false,
+              flexResult = false,
             ),
             SimonaConfig.ParticipantBaseOutputConfig(
               notifier = "load",
               powerRequestReply = false,
-              simulationResult = true
-            )
+              simulationResult = true,
+              flexResult = false,
+            ),
           )
 
           intercept[InvalidConfigParameterException](
@@ -751,7 +757,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               Sink(
                 Some(Csv("", "", "", isHierarchic = false)),
                 Some(InfluxDb1x("", 0, "")),
-                None
+                None,
               )
             )
           }.getLocalizedMessage shouldBe "Multiple sink configurations are not supported! Please ensure that only " +
@@ -779,9 +785,9 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                     0,
                     "00000000-0000-0000-0000-000000000000",
                     "https://reg:123",
-                    "topic"
+                    "topic",
                   )
-                )
+                ),
               )
             )
           }.getMessage shouldBe "Connection with kafka broker localhost:12345 failed."
@@ -796,7 +802,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           intercept[InvalidConfigParameterException] {
             CsvConfigUtil.checkBaseCsvParams(
               csvParams,
-              "CsvGridData"
+              "CsvGridData",
             )
           }.getMessage shouldBe "The csvSep parameter '\t' for 'CsvGridData' configuration is invalid! Please choose between ';' or ','!"
         }
@@ -806,7 +812,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           intercept[InvalidConfigParameterException] {
             CsvConfigUtil.checkBaseCsvParams(
               csvParams,
-              "CsvGridData"
+              "CsvGridData",
             )
           }.getMessage shouldBe "The provided directoryPath for .csv-files '' for 'CsvGridData' configuration is invalid! Please correct the path!"
         }
@@ -818,7 +824,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           intercept[InvalidConfigParameterException] {
             CsvConfigUtil.checkBaseCsvParams(
               csvParams,
-              "CsvGridData"
+              "CsvGridData",
             )
           }.getMessage shouldBe "The provided directoryPath for .csv-files 'somewhere/else' for 'CsvGridData' configuration is invalid! Please correct the path!"
         }
@@ -827,13 +833,13 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           val csvParams = BaseCsvParams(
             ",",
             "inputData/common/pekko.conf",
-            isHierarchic = false
+            isHierarchic = false,
           )
 
           intercept[InvalidConfigParameterException] {
             CsvConfigUtil.checkBaseCsvParams(
               csvParams,
-              "CsvGridData"
+              "CsvGridData",
             )
           }.getMessage shouldBe "The provided directoryPath for .csv-files 'inputData/common/pekko.conf' for 'CsvGridData' configuration is invalid! Please correct the path!"
         }
@@ -844,7 +850,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           noException shouldBe thrownBy {
             CsvConfigUtil.checkBaseCsvParams(
               csvParams,
-              "CsvGridData"
+              "CsvGridData",
             )
           }
         }
@@ -857,7 +863,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             Some(
               BaseCsvParams(",", "inputData/vn_simona", isHierarchic = false)
             ),
-            id = ""
+            id = "",
           )
 
           intercept[InvalidConfigParameterException] {
@@ -868,7 +874,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         "identify unsupported id" in {
           val gridDataSource = SimonaConfig.Simona.Input.Grid.Datasource(
             None,
-            id = "someWhereUndefined"
+            id = "someWhereUndefined",
           )
 
           intercept[InvalidConfigParameterException] {
@@ -879,7 +885,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         "identify missing csv parameters" in {
           val gridDataSource = SimonaConfig.Simona.Input.Grid.Datasource(
             None,
-            id = "csv"
+            id = "csv",
           )
 
           intercept[InvalidConfigParameterException] {
@@ -894,10 +900,10 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               BaseCsvParams(
                 ",",
                 "input/samples/vn_simona",
-                isHierarchic = false
+                isHierarchic = false,
               )
             ),
-            id = "csv"
+            id = "csv",
           )
 
           noException shouldBe thrownBy {
@@ -923,7 +929,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                   SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
                     .SampleParams(true)
                 ),
-                None
+                None,
               ),
               None,
               None,
@@ -935,7 +941,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               ),
               "this won't work",
               None,
-              Some("yyyy-MM-dd HH:mm")
+              Some("yyyy-MM-dd HH:mm"),
             )
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate checkWeatherDataSource(
