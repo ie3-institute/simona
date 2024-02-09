@@ -6,25 +6,17 @@
 
 package edu.ie3.simona.service.weather
 
-import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.testkit.{
-  EventFilter,
-  ImplicitSender,
-  TestActorRef,
-  TestProbe
-}
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
   RegistrationFailedMessage,
-  RegistrationSuccessfulMessage
+  RegistrationSuccessfulMessage,
 }
 import edu.ie3.simona.ontology.messages.services.WeatherMessage._
 import edu.ie3.simona.scheduler.ScheduleLock
@@ -34,11 +26,19 @@ import edu.ie3.simona.service.weather.WeatherSource.AgentCoordinates
 import edu.ie3.simona.test.common.{
   ConfigTestData,
   TestKitWithShutdown,
-  TestSpawnerClassic
+  TestSpawnerClassic,
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.testkit.{
+  EventFilter,
+  ImplicitSender,
+  TestActorRef,
+  TestProbe,
+}
 import org.scalatest.PrivateMethodTester
 import org.scalatest.wordspec.AnyWordSpecLike
 import squants.motion.MetersPerSecond
@@ -52,7 +52,7 @@ class WeatherServiceSpec
           .parseString("""
              |pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
              |pekko.loglevel = "INFO"
-          """.stripMargin)
+          """.stripMargin),
       )
     )
     with ImplicitSender
@@ -105,7 +105,7 @@ class WeatherServiceSpec
       TimeUtil.withDefaults.toZonedDateTime(
         simonaConfig.simona.time.endDateTime
       ),
-      4
+      4,
     )
   )
 
@@ -121,8 +121,8 @@ class WeatherServiceSpec
           InitWeatherServiceStateData(
             simonaConfig.simona.input.weather.datasource
           ),
-          key
-        )
+          key,
+        ),
       )
       scheduler.expectMsg(
         ScheduleActivation(weatherActor.toTyped, INIT_SIM_TICK, Some(key))
@@ -137,26 +137,26 @@ class WeatherServiceSpec
         .error(
           pattern =
             "\\[.*] Unable to obtain necessary information to register for coordinate AgentCoordinates\\(180\\.5,90\\.5\\)\\.",
-          occurrences = 1
+          occurrences = 1,
         )
         .intercept {
           weatherActor ! RegisterForWeatherMessage(
             invalidCoordinate.latitude,
-            invalidCoordinate.longitude
+            invalidCoordinate.longitude,
           )
         }
 
-      expectMsg(RegistrationFailedMessage)
+      expectMsg(RegistrationFailedMessage(weatherActor))
     }
 
     "announce, that a valid coordinate is registered" in {
       /* The successful registration stems from the test above */
       weatherActor ! RegisterForWeatherMessage(
         validCoordinate.latitude,
-        validCoordinate.longitude
+        validCoordinate.longitude,
       )
 
-      expectMsg(RegistrationSuccessfulMessage(Some(0L)))
+      expectMsg(RegistrationSuccessfulMessage(weatherActor.ref, Some(0L)))
     }
 
     "recognize, that a valid coordinate yet is registered" in {
@@ -164,12 +164,12 @@ class WeatherServiceSpec
       EventFilter
         .warning(
           pattern = "Sending actor Actor\\[.*] is already registered",
-          occurrences = 1
+          occurrences = 1,
         )
         .intercept {
           weatherActor ! RegisterForWeatherMessage(
             validCoordinate.latitude,
-            validCoordinate.longitude
+            validCoordinate.longitude,
           )
         }
       expectNoMessage()
@@ -184,13 +184,14 @@ class WeatherServiceSpec
       expectMsg(
         ProvideWeatherMessage(
           0,
+          weatherActor,
           WeatherData(
             WattsPerSquareMeter(0d),
             WattsPerSquareMeter(0d),
             Celsius(-2.3719999999999573),
-            MetersPerSecond(4.16474)
+            MetersPerSecond(4.16474),
           ),
-          Some(3600L)
+          Some(3600L),
         )
       )
 
@@ -205,13 +206,14 @@ class WeatherServiceSpec
       expectMsg(
         ProvideWeatherMessage(
           3600,
+          weatherActor,
           WeatherData(
             WattsPerSquareMeter(0d),
             WattsPerSquareMeter(0d),
             Celsius(-2.5259999999999536),
-            MetersPerSecond(4.918092)
+            MetersPerSecond(4.918092),
           ),
-          None
+          None,
         )
       )
     }

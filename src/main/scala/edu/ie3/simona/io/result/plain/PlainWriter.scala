@@ -62,7 +62,7 @@ object PlainWriter {
         full.getUuid,
         full.getInputModel,
         full.getvMag.getValue.doubleValue(),
-        full.getvAng.getValue.doubleValue()
+        full.getvAng.getValue.doubleValue(),
       )
     }
 
@@ -72,7 +72,7 @@ object PlainWriter {
         ZonedDateTime.parse(plain.time, timeFormatter),
         plain.inputModel,
         Quantities.getQuantity(plain.vMag, PowerSystemUnits.PU),
-        Quantities.getQuantity(plain.vAng, PowerSystemUnits.DEGREE_GEOM)
+        Quantities.getQuantity(plain.vAng, PowerSystemUnits.DEGREE_GEOM),
       )
     }
   }

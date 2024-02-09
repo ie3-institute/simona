@@ -24,7 +24,7 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
     2L -> unit(5d),
     4L -> unit(15d),
     6L -> unit(-5d),
-    8L -> unit(-10d)
+    8L -> unit(-10d),
   )
 
   "Integrating over quantities" when {
@@ -36,7 +36,7 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
         intercept[QuantityException] {
           QuantityUtil invokePrivate startingValue(
             Map.empty[Long, Power],
-            1L
+            1L,
           )
         }.getMessage shouldBe "Unable to determine unit for dummy starting value."
       }
@@ -44,7 +44,7 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
       "bring default value, if there is nothing before window starts" in {
         QuantityUtil invokePrivate startingValue(
           values,
-          1L
+          1L,
         ) should be
         unit(0d)
 
@@ -53,7 +53,7 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
       "bring correct value, if there is something before window starts" in {
         QuantityUtil invokePrivate startingValue(
           values,
-          2L
+          2L,
         ) should be
         unit(5d)
 
@@ -74,7 +74,7 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
         QuantityUtil invokePrivate endingValue(values, 2L) match {
           case (tick, value) =>
             tick shouldBe 2L
-            (value =~ unit(5d)) shouldBe true
+            value should approximate(unit(5d))
         }
       }
     }
@@ -86,14 +86,14 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
           (1L, 3L, integrationUnit(5d)),
           (2L, 4L, integrationUnit(10d)),
           (2L, 8L, integrationUnit(30d)),
-          (0L, 12L, integrationUnit(-10d))
+          (0L, 12L, integrationUnit(-10d)),
         )
 
         forAll(cases) { (windowStart, windowEnd, expectedResult) =>
           QuantityUtil.integrate[Power, Energy](
             values,
             windowStart,
-            windowEnd
+            windowEnd,
           ) =~ expectedResult
         }
       }
@@ -106,14 +106,14 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
         QuantityUtil.average[Power, Energy](
           values,
           0L,
-          0L
+          0L,
         ) match {
           case Failure(exception: IllegalArgumentException) =>
             exception.getMessage shouldBe "Cannot average over trivial time window."
           case Failure(exception) =>
             fail(
               "Averaging over values failed with wrong exception.",
-              exception
+              exception,
             )
           case Success(_) =>
             fail("Averaging with trivial window length should fail")
@@ -124,14 +124,14 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
         QuantityUtil.average[Power, Energy](
           values,
           3L,
-          0L
+          0L,
         ) match {
           case Failure(exception: IllegalArgumentException) =>
             exception.getMessage shouldBe "Window end is before window start."
           case Failure(exception) =>
             fail(
               "Averaging over values failed with wrong exception.",
-              exception
+              exception,
             )
           case Success(_) =>
             fail("Averaging with flipped window start / end should fail")
@@ -146,21 +146,21 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
           (1L, 3L, unit(2.5d)),
           (2L, 4L, unit(5d)),
           (2L, 8L, unit(5d)),
-          (0L, 12L, unit(-0.8333333))
+          (0L, 12L, unit(-0.8333333)),
         )
 
         forAll(cases) { (windowStart, windowEnd, expectedResult) =>
           QuantityUtil.average[Power, Energy](
             values,
             windowStart,
-            windowEnd
+            windowEnd,
           ) match {
             case Success(result) =>
-              result =~ expectedResult
+              result should approximate(expectedResult)
             case Failure(exception) =>
               fail(
                 "Averaging with fine input should pass, but failed.",
-                exception
+                exception,
               )
           }
         }

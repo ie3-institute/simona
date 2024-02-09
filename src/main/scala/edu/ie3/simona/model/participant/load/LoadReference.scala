@@ -20,7 +20,7 @@ sealed trait LoadReference {
 
   def getKey: String = key
 }
-case object LoadReference {
+object LoadReference {
 
   /** Scale the load model behaviour to reach the given active power in max
     *
@@ -61,7 +61,7 @@ case object LoadReference {
     */
   def apply(
       inputModel: LoadInput,
-      modelConfig: SimonaConfig.LoadRuntimeConfig
+      modelConfig: SimonaConfig.LoadRuntimeConfig,
   ): LoadReference =
     StringUtils.cleanString(modelConfig.reference).toLowerCase match {
       case "power" =>

@@ -35,7 +35,7 @@ class FixedFeedInModelSpec
       val simonaConfig: SimonaConfig =
         createSimonaConfig(
           LoadModelBehaviour.FIX,
-          LoadReference.ActivePower(Kilowatts(0.0))
+          LoadReference.ActivePower(Kilowatts(0.0)),
         )
       val modelConfig = ConfigUtil
         .ParticipantConfigUtil(
@@ -47,7 +47,7 @@ class FixedFeedInModelSpec
         fixedFeedInput,
         modelConfig,
         defaultSimulationStart,
-        defaultSimulationEnd
+        defaultSimulationEnd,
       )
 
       inside(actualModel) {
@@ -58,16 +58,18 @@ class FixedFeedInModelSpec
               scalingFactor,
               qControl,
               sRated,
-              cosPhiRated
+              cosPhiRated,
             ) =>
           uuid shouldBe fixedFeedInput.getUuid
           id shouldBe fixedFeedInput.getId
           operationInterval shouldBe defaultOperationInterval
           scalingFactor shouldBe foreSeenScalingFactor
           qControl shouldBe QControl(fixedFeedInput.getqCharacteristics)
-          (sRated ~= Megawatts(
-            fixedFeedInput.getsRated().to(MEGAVOLTAMPERE).getValue.doubleValue
-          )) shouldBe true
+          sRated should approximate(
+            Megawatts(
+              fixedFeedInput.getsRated().to(MEGAVOLTAMPERE).getValue.doubleValue
+            )
+          )
           cosPhiRated shouldBe fixedFeedInput.getCosPhiRated
       }
     }

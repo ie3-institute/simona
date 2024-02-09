@@ -9,17 +9,17 @@ package edu.ie3.simona.service.weather
 import edu.ie3.datamodel.io.factory.timeseries.{
   CosmoIdCoordinateFactory,
   IconIdCoordinateFactory,
-  IdCoordinateFactory
+  IdCoordinateFactory,
 }
 import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.simona.exceptions.{
   InvalidConfigParameterException,
-  ServiceException
+  ServiceException,
 }
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
-  WeightedCoordinates
+  WeightedCoordinates,
 }
 import edu.ie3.simona.service.weather.WeatherSourceSpec._
 import edu.ie3.simona.test.common.UnitSpec
@@ -44,7 +44,7 @@ class WeatherSourceSpec extends UnitSpec {
     "issue a ServiceException, if there are not enough coordinates available" in {
       DummyWeatherSource.getNearestCoordinatesWithDistances(
         AgentCoordinates(coordinate0.getY, coordinate0.getX),
-        9
+        9,
       ) match {
         case Failure(exception: ServiceException) =>
           exception.getMessage shouldBe "There are not enough coordinates for averaging. Found 8 within the given distance of 400000 m but need 9. Please make sure that there are enough coordinates within the given distance."
@@ -54,7 +54,7 @@ class WeatherSourceSpec extends UnitSpec {
     "issue a ServiceException, if there are not enough coordinates in max distance available" in {
       DummyWeatherSource.getNearestCoordinatesWithDistances(
         AgentCoordinates(coordinate0.getY, coordinate0.getX),
-        9
+        9,
       ) match {
         case Failure(exception: ServiceException) =>
           exception.getMessage shouldBe "There are not enough coordinates for averaging. Found 8 within the given distance of 400000 m but need 9. Please make sure that there are enough coordinates within the given distance."
@@ -66,7 +66,7 @@ class WeatherSourceSpec extends UnitSpec {
       val agentCoordinates = AgentCoordinates(51.3, 7.3)
       DummyWeatherSource.getNearestCoordinatesWithDistances(
         agentCoordinates,
-        4
+        4,
       ) match {
         case Failure(exception: ServiceException) =>
           exception.getMessage shouldBe "The queried point shall be surrounded by 4 weather coordinates, which are in each quadrant. This is not the case."
@@ -80,12 +80,12 @@ class WeatherSourceSpec extends UnitSpec {
         agentCoordinates.latitude,
         agentCoordinates.longitude,
         coordinate551525.getY,
-        coordinate551525.getX
+        coordinate551525.getX,
       )
 
       DummyWeatherSource.getNearestCoordinatesWithDistances(
         agentCoordinates,
-        4
+        4,
       ) match {
         case Success(coordinateDistances) =>
           coordinateDistances.size shouldBe 1
@@ -95,14 +95,14 @@ class WeatherSourceSpec extends UnitSpec {
               coordinateDistance.getCoordinateB shouldBe coordinate551525
               QuantityUtil.isEquivalentAbs(
                 coordinateDistance.getDistance,
-                distance
+                distance,
               ) shouldBe true
             case None => fail("Somebody stole the first result >:-(")
           }
         case Failure(exception) =>
           fail(
             "Determining the nearest coordinates was meant to succeed.",
-            exception
+            exception,
           )
       }
     }
@@ -113,25 +113,25 @@ class WeatherSourceSpec extends UnitSpec {
       val expectedCoordinateDistances = Vector(
         new CoordinateDistance(
           coordinate0,
-          coordinate67775
+          coordinate67775,
         ),
         new CoordinateDistance(
           coordinate0,
-          coordinate551525
+          coordinate551525,
         ),
         new CoordinateDistance(
           coordinate0,
-          coordinate531137
+          coordinate531137,
         ),
         new CoordinateDistance(
           coordinate0,
-          coordinate278150
-        )
+          coordinate278150,
+        ),
       )
 
       DummyWeatherSource.getNearestCoordinatesWithDistances(
         agentCoordinates,
-        4
+        4,
       ) match {
         case Success(coordinateDistances) =>
           coordinateDistances.size shouldBe 4
@@ -144,7 +144,7 @@ class WeatherSourceSpec extends UnitSpec {
         case Failure(exception) =>
           fail(
             "Determining the nearest coordinates was meant to succeed.",
-            exception
+            exception,
           )
       }
     }
@@ -153,7 +153,7 @@ class WeatherSourceSpec extends UnitSpec {
       val coordinates = Vector(
         new CoordinateDistance(
           coordinate0,
-          coordinate67775
+          coordinate67775,
         )
       )
 
@@ -165,7 +165,7 @@ class WeatherSourceSpec extends UnitSpec {
         case Failure(exception) =>
           fail(
             "Determining the weight of coordinates was meant to succeed.",
-            exception
+            exception,
           )
       }
     }
@@ -174,12 +174,12 @@ class WeatherSourceSpec extends UnitSpec {
       val coordinates = Vector(
         new CoordinateDistance(
           coordinate0,
-          coordinate0
+          coordinate0,
         ),
         new CoordinateDistance(
           coordinate0,
-          coordinate0
-        )
+          coordinate0,
+        ),
       )
 
       DummyWeatherSource.determineWeights(coordinates) match {
@@ -198,26 +198,26 @@ class WeatherSourceSpec extends UnitSpec {
       val coordinates = Vector(
         new CoordinateDistance(
           coordinate0,
-          coordinate67775
+          coordinate67775,
         ),
         new CoordinateDistance(
           coordinate0,
-          coordinate531137
+          coordinate531137,
         ),
         new CoordinateDistance(
           coordinate0,
-          coordinate551525
+          coordinate551525,
         ),
         new CoordinateDistance(
           coordinate0,
-          coordinate278150
-        )
+          coordinate278150,
+        ),
       )
       val expectedWeights = Map(
         coordinate67775 -> 0.254626046882988,
         coordinate531137 -> 0.249222038996929,
         coordinate551525 -> 0.250659514620527,
-        coordinate278150 -> 0.245492399499556
+        coordinate278150 -> 0.245492399499556,
       )
 
       DummyWeatherSource.determineWeights(coordinates) match {
@@ -230,7 +230,7 @@ class WeatherSourceSpec extends UnitSpec {
         case Failure(exception) =>
           fail(
             "Determining the weight of coordinates was meant to succeed.",
-            exception
+            exception,
           )
       }
     }
@@ -239,7 +239,7 @@ class WeatherSourceSpec extends UnitSpec {
       /* Query more coordinates, than are apparent */
       DummyWeatherSource.getWeightedCoordinates(
         AgentCoordinates(coordinate0.getY, coordinate0.getX),
-        9
+        9,
       ) match {
         case Failure(exception: ServiceException) =>
           exception.getMessage shouldBe "Determination of coordinate weights failed."
@@ -255,18 +255,18 @@ class WeatherSourceSpec extends UnitSpec {
 
       DummyWeatherSource.getWeightedCoordinates(
         agentCoordinates,
-        4
+        4,
       ) match {
         case Success(WeightedCoordinates(weighting)) =>
           weighting.size shouldBe 1
           weighting.getOrElse(
             coordinate551525,
-            fail("Expected coordinate wasn't found")
+            fail("Expected coordinate wasn't found"),
           ) shouldBe 1d
         case Failure(exception) =>
           fail(
             "Determining the nearest weighted coordinates was meant to succeed.",
-            exception
+            exception,
           )
       }
     }
@@ -278,12 +278,12 @@ class WeatherSourceSpec extends UnitSpec {
         coordinate67775 -> 0.254626046882988,
         coordinate531137 -> 0.249222038996929,
         coordinate551525 -> 0.250659514620527,
-        coordinate278150 -> 0.245492399499556
+        coordinate278150 -> 0.245492399499556,
       )
 
       DummyWeatherSource.getWeightedCoordinates(
         agentCoordinates,
-        4
+        4,
       ) match {
         case Success(WeightedCoordinates(weighting)) =>
           weighting.corresponds(expectedWeighting) {
@@ -295,7 +295,7 @@ class WeatherSourceSpec extends UnitSpec {
         case Failure(exception) =>
           fail(
             "Determining the nearest weighted coordinates was meant to succeed.",
-            exception
+            exception,
           )
       }
     }
@@ -309,15 +309,15 @@ class WeatherSourceSpec extends UnitSpec {
         (
           "",
           classOf[InvalidConfigParameterException],
-          "No grid model defined!"
+          "No grid model defined!",
         ),
         ("icon", classOf[IconIdCoordinateFactory], ""),
         ("cosmo", classOf[CosmoIdCoordinateFactory], ""),
         (
           "else",
           classOf[InvalidConfigParameterException],
-          "Grid model 'else' is not supported!"
-        )
+          "Grid model 'else' is not supported!",
+        ),
       )
 
       forAll(cases) { (gridModel, expectedClass, failureMessage) =>
@@ -365,7 +365,7 @@ case object WeatherSourceSpec {
       */
     override def getWeather(
         tick: Long,
-        weightedCoordinates: WeightedCoordinates
+        weightedCoordinates: WeightedCoordinates,
     ): WeatherMessage.WeatherData =
       throw new UnsupportedOperationException(
         "This is not supported by the dummy source."
@@ -384,7 +384,7 @@ case object WeatherSourceSpec {
       */
     override def getDataTicks(
         requestFrameStart: Long,
-        requestFrameEnd: Long
+        requestFrameEnd: Long,
     ): Array[Long] =
       throw new UnsupportedOperationException(
         "This is not supported by the dummy source."
@@ -400,7 +400,7 @@ case object WeatherSourceSpec {
       477295 -> coordinate477295,
       537947 -> coordinate537947,
       144112 -> coordinate144112,
-      165125 -> coordinate165125
+      165125 -> coordinate165125,
     )
 
     private val coordinateToId = idToCoordinate.map { case (key, value) =>
@@ -422,7 +422,7 @@ case object WeatherSourceSpec {
     def getClosestCoordinates(
         coordinate: Point,
         n: Int,
-        distance: ComparableQuantity[Length]
+        distance: ComparableQuantity[Length],
     ): util.List[CoordinateDistance] = {
       val points: Set[Point] = coordinateToId.keySet
 
@@ -442,7 +442,7 @@ case object WeatherSourceSpec {
 
     override def getNearestCoordinates(
         coordinate: Point,
-        n: Int
+        n: Int,
     ): util.List[CoordinateDistance] = {
       calculateCoordinateDistances(coordinate, n, coordinateToId.keySet.asJava)
     }

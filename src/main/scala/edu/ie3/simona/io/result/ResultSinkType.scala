@@ -20,7 +20,7 @@ object ResultSinkType {
   final case class Csv(
       fileFormat: String = ".csv",
       filePrefix: String = "",
-      fileSuffix: String = ""
+      fileSuffix: String = "",
   ) extends ResultSinkType
 
   final case class InfluxDb1x(url: String, database: String, scenario: String)
@@ -31,12 +31,12 @@ object ResultSinkType {
       runId: UUID,
       bootstrapServers: String,
       schemaRegistryUrl: String,
-      linger: Int
+      linger: Int,
   ) extends ResultSinkType
 
   def apply(
       sinkConfig: SimonaConfig.Simona.Output.Sink,
-      runName: String
+      runName: String,
   ): ResultSinkType = {
     val sink: Seq[Any] =
       Seq(sinkConfig.csv, sinkConfig.influxDb1x, sinkConfig.kafka).flatten
@@ -57,7 +57,7 @@ object ResultSinkType {
           UUID.fromString(params.runId),
           params.bootstrapServers,
           params.schemaRegistryUrl,
-          params.linger
+          params.linger,
         )
       case None =>
         throw new IllegalArgumentException(

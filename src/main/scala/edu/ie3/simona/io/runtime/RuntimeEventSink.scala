@@ -28,7 +28,7 @@ trait RuntimeEventSink {
   def handleRuntimeEvent(
       runtimeEvent: RuntimeEvent,
       runtimeStats: RuntimeStats,
-      log: Logger
+      log: Logger,
   ): Unit
 
   /** Contains all cleanup operations before closing this sink. Should be

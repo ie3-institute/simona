@@ -11,7 +11,7 @@ import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.csv.CsvJointGridContainerSource
 import edu.ie3.datamodel.models.input.container.{
   JointGridContainer,
-  ThermalGrid
+  ThermalGrid,
 }
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.datamodel.utils.validation.ValidationUtils
@@ -31,7 +31,7 @@ object GridProvider extends LazyLogging {
 
   def gridFromConfig(
       simulationName: String,
-      gridDataSource: SimonaConfig.Simona.Input.Grid.Datasource
+      gridDataSource: SimonaConfig.Simona.Input.Grid.Datasource,
   ): JointGridContainer = {
     GridSourceType(gridDataSource.id.toLowerCase) match {
       case GridSourceType.CSV =>
@@ -41,7 +41,7 @@ object GridProvider extends LazyLogging {
               simulationName,
               params.csvSep,
               Path.of(params.directoryPath),
-              params.isHierarchic
+              params.isHierarchic,
             )
 
             // checks the grid container and throws exception if there is an error
@@ -77,7 +77,7 @@ object GridProvider extends LazyLogging {
             .readThermalGrids(
               params.csvSep,
               Path.of(params.directoryPath),
-              new FileNamingStrategy()
+              new FileNamingStrategy(),
             )
         case None =>
           throw new RuntimeException(

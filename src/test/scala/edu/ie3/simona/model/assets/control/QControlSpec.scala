@@ -10,14 +10,14 @@ import edu.ie3.datamodel.models.input.system.characteristic
 import edu.ie3.datamodel.models.input.system.characteristic.{
   CharacteristicPoint,
   CosPhiP => CosPhiPInput,
-  QV => QVInput
+  QV => QVInput,
 }
 import edu.ie3.simona.exceptions.QControlException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.control.QControl.{
   CosPhiFixed,
   CosPhiP,
-  QV
+  QV,
 }
 import edu.ie3.simona.model.system.Characteristic.XYPair
 import edu.ie3.simona.test.common.UnitSpec
@@ -47,7 +47,7 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
 
   def createXYPair(
       d1: Double,
-      d2: Double
+      d2: Double,
   ): XYPair[squants.Dimensionless, squants.Dimensionless] = {
     XYPair(Each(d1), Each(d2))
   }
@@ -59,12 +59,12 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
           util.Arrays.asList(
             new CharacteristicPoint[Dimensionless, Dimensionless](
               getQuantity(1d, PU),
-              getQuantity(2d, PU)
+              getQuantity(2d, PU),
             ),
             new CharacteristicPoint[Dimensionless, Dimensionless](
               getQuantity(3d, PU),
-              getQuantity(4d, PU)
-            )
+              getQuantity(4d, PU),
+            ),
           )
         )
       val invalidInput =
@@ -90,7 +90,7 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
           Vector(
             createXYPair(0.0, -1.0),
             createXYPair(0.5, -0.8),
-            createXYPair(1.0, -0.2)
+            createXYPair(1.0, -0.2),
           )
         )
       )
@@ -103,7 +103,7 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
             createXYPair(0.9, -1.0),
             createXYPair(0.95, 0.0),
             createXYPair(1.05, 0.0),
-            createXYPair(1.1, 1.0)
+            createXYPair(1.1, 1.0),
           )
         )
       )
@@ -118,20 +118,19 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
 
     "provide correct values when the requested value is part of the containing xy coordinates" in {
       val requestedValue = Each(0.5)
-      (validCosPhiP.cosPhi(requestedValue) ~= Each(-0.8)) shouldBe true
+
+      validCosPhiP.cosPhi(requestedValue) should approximate(Each(-0.8))
     }
 
     "provide an interpolated value when the requested value is not part of the containing xy coordinates" in {
       val requestedValue = Each(0.75)
 
-      (validCosPhiP.cosPhi(requestedValue) ~= Each(-0.5)) shouldBe true
+      validCosPhiP.cosPhi(requestedValue) should approximate(Each(-0.5))
     }
 
     "provide the last known value when the requested value is outside of the containing xy coordinates" in {
-
-      (validCosPhiP.cosPhi(Each(2.0)) ~= Each(-0.2)) shouldBe true
-
-      (validCosPhiP.cosPhi(Each(-1.0)) ~= Each(-1.0)) shouldBe true
+      validCosPhiP.cosPhi(Each(2.0)) should approximate(Each(-0.2))
+      validCosPhiP.cosPhi(Each(-1.0)) should approximate(Each(-1.0))
     }
   }
 
@@ -159,11 +158,11 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
         (1.03, 0.375),
         (1.04, 0.5),
         (1.05, 0.625),
-        (1.10, 0.625)
+        (1.10, 0.625),
       )
 
       forAll(testingPoints) { (v: Double, scaleExpected: Double) =>
-        (validQV.q(Each(v), qMax) ~= qMax * scaleExpected) shouldBe true
+        validQV.q(Each(v), qMax) should approximate(qMax * scaleExpected)
       }
     }
 
@@ -197,11 +196,11 @@ class QControlSpec extends UnitSpec with TableDrivenPropertyChecks {
         (1.08, 0.6),
         (1.09, 0.8),
         (1.1, 1.0),
-        (1.12, 1.0)
+        (1.12, 1.0),
       )
 
       forAll(testingPoints) { (v: Double, scaleExpected: Double) =>
-        (validQV.q(Each(v), qMax) ~= qMax * scaleExpected) shouldBe true
+        validQV.q(Each(v), qMax) should approximate(qMax * scaleExpected)
       }
     }
   }
