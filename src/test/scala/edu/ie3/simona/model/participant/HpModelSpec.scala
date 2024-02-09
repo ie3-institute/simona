@@ -11,7 +11,7 @@ import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureLowerBoundaryReached,
-  HouseTemperatureUpperBoundaryReached
+  HouseTemperatureUpperBoundaryReached,
 }
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
@@ -39,7 +39,7 @@ class HpModelSpec
             "expectedRunningState",
             "expectedActivePower",
             "expectedInnerTemperature",
-            "expectedNextThreshold"
+            "expectedNextThreshold",
           ),
           (
             HpState(
@@ -49,12 +49,12 @@ class HpModelSpec
               Kilowatts(0d),
               Kilowatts(0d),
               thermalState(Celsius(17d)),
-              None
+              None,
             ),
             true,
             95,
             15.6,
-            Some(HouseTemperatureUpperBoundaryReached(31711L))
+            Some(HouseTemperatureUpperBoundaryReached(31711L)),
           ),
           (
             HpState(
@@ -64,12 +64,12 @@ class HpModelSpec
               Kilowatts(0d),
               Kilowatts(0d),
               thermalState(Celsius(18)),
-              None
+              None,
             ),
             true,
             95,
             16.4,
-            Some(HouseTemperatureUpperBoundaryReached(30642L))
+            Some(HouseTemperatureUpperBoundaryReached(30642L)),
           ),
           (
             HpState(
@@ -79,12 +79,12 @@ class HpModelSpec
               Kilowatts(0d),
               Kilowatts(0d),
               thermalState(Celsius(20)),
-              None
+              None,
             ),
             true,
             95,
             18.0,
-            Some(HouseTemperatureUpperBoundaryReached(27771L))
+            Some(HouseTemperatureUpperBoundaryReached(27771L)),
           ),
           (
             HpState(
@@ -94,12 +94,12 @@ class HpModelSpec
               Kilowatts(0d),
               Kilowatts(0d),
               thermalState(Celsius(22)),
-              None
+              None,
             ),
             false,
             0,
             19.6,
-            Some(HouseTemperatureLowerBoundaryReached(13200L))
+            Some(HouseTemperatureLowerBoundaryReached(13200L)),
           ),
           (
             HpState(
@@ -109,12 +109,12 @@ class HpModelSpec
               Kilowatts(0d),
               Kilowatts(0d),
               thermalState(Celsius(23)),
-              None
+              None,
             ),
             false,
             0,
             20.4,
-            Some(HouseTemperatureLowerBoundaryReached(15508L))
+            Some(HouseTemperatureLowerBoundaryReached(15508L)),
           ),
           (
             HpState(
@@ -124,12 +124,12 @@ class HpModelSpec
               Kilowatts(95d),
               Kilowatts(80d),
               thermalState(Celsius(17)),
-              None
+              None,
             ),
             true,
             95,
             15.6,
-            Some(HouseTemperatureUpperBoundaryReached(31711L))
+            Some(HouseTemperatureUpperBoundaryReached(31711L)),
           ),
           (
             HpState(
@@ -139,12 +139,12 @@ class HpModelSpec
               Kilowatts(95d),
               Kilowatts(80d),
               thermalState(Celsius(18)),
-              None
+              None,
             ),
             true,
             95,
             16.4,
-            Some(HouseTemperatureUpperBoundaryReached(30642L))
+            Some(HouseTemperatureUpperBoundaryReached(30642L)),
           ),
           (
             HpState(
@@ -154,12 +154,12 @@ class HpModelSpec
               Kilowatts(95d),
               Kilowatts(80d),
               thermalState(Celsius(20)),
-              None
+              None,
             ),
             true,
             95,
             18.0,
-            Some(HouseTemperatureUpperBoundaryReached(27771L))
+            Some(HouseTemperatureUpperBoundaryReached(27771L)),
           ),
           (
             HpState(
@@ -169,12 +169,12 @@ class HpModelSpec
               Kilowatts(95d),
               Kilowatts(80d),
               thermalState(Celsius(22)),
-              None
+              None,
             ),
             true,
             95,
             19.6,
-            Some(HouseTemperatureUpperBoundaryReached(23200L))
+            Some(HouseTemperatureUpperBoundaryReached(23200L)),
           ),
           (
             HpState(
@@ -184,13 +184,13 @@ class HpModelSpec
               Kilowatts(95d),
               Kilowatts(80d),
               thermalState(Celsius(25)),
-              None
+              None,
             ),
             false,
             0,
             22.0,
-            Some(HouseTemperatureLowerBoundaryReached(19200L))
-          )
+            Some(HouseTemperatureLowerBoundaryReached(19200L)),
+          ),
         )
 
         forAll(cases) {
@@ -199,7 +199,7 @@ class HpModelSpec
               expectedRunningState,
               expectedActivePower,
               expectedInnerTemperature,
-              expectedNextThreshold
+              expectedNextThreshold,
           ) =>
             val data = hpData
             val house = thermalHouse(18, 22)
@@ -214,7 +214,7 @@ class HpModelSpec
                     activePower,
                     _,
                     ThermalGridState(Some(thermalHouseState), _),
-                    maybeThreshold
+                    maybeThreshold,
                   ) =>
                 isRunning shouldBe expectedRunningState
                 activePower should approximate(Kilowatts(expectedActivePower))
@@ -245,16 +245,16 @@ class HpModelSpec
               ThermalHouseState(
                 0L,
                 Celsius(21),
-                Kilowatts(80)
+                Kilowatts(80),
               )
             ),
             Some(
               ThermalStorageState(
                 0L,
                 KilowattHours(20),
-                Kilowatts(0)
+                Kilowatts(0),
               )
-            )
+            ),
           )
           val lastState = HpState(
             isRunning = true,
@@ -263,7 +263,7 @@ class HpModelSpec
             Kilowatts(95.0),
             Kilowatts(80.0),
             thermalState,
-            Some(HouseTemperatureUpperBoundaryReached(7995L))
+            Some(HouseTemperatureUpperBoundaryReached(7995L)),
           )
 
           hp.determineFlexOptions(relevantData, lastState) match {
@@ -271,7 +271,7 @@ class HpModelSpec
                   modelUuid,
                   referencePower,
                   minPower,
-                  maxPower
+                  maxPower,
                 ) =>
               modelUuid shouldBe hp.uuid
               referencePower should approximate(Kilowatts(95.0))

@@ -20,7 +20,7 @@ class MinMaxFlexibilityMessageTest extends UnitSpec {
     "succeed if there is no flexibility" in {
       val res = ProvideMinMaxFlexOptions.noFlexOption(
         modelUuid = UUID.randomUUID(),
-        power = Watts(1)
+        power = Watts(1),
       )
 
       res.ref shouldBe Watts(1)
@@ -33,7 +33,7 @@ class MinMaxFlexibilityMessageTest extends UnitSpec {
         modelUuid = UUID.randomUUID(),
         ref = Watts(1),
         min = Watts(0),
-        max = Watts(2)
+        max = Watts(2),
       )
 
       res.ref shouldBe Watts(1)
@@ -47,7 +47,7 @@ class MinMaxFlexibilityMessageTest extends UnitSpec {
           modelUuid = UUID.randomUUID(),
           ref = Watts(1),
           min = Watts(2),
-          max = Watts(2)
+          max = Watts(2),
         )
       }.getMessage should include("is greater than reference power")
     }
@@ -58,7 +58,7 @@ class MinMaxFlexibilityMessageTest extends UnitSpec {
           modelUuid = UUID.randomUUID(),
           ref = Watts(1),
           min = Watts(1),
-          max = Watts(0)
+          max = Watts(0),
         )
       }.getMessage should include("is greater than maximum power")
     }

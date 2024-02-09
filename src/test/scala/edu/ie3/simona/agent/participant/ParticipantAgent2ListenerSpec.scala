@@ -21,7 +21,7 @@ import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage
+  RequestAssetPowerMessage,
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
@@ -52,7 +52,7 @@ class ParticipantAgent2ListenerSpec
           .parseString("""
             |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
             |pekko.loglevel="OFF"
-        """.stripMargin)
+        """.stripMargin),
       )
     )
     with DefaultTestData
@@ -72,7 +72,7 @@ class ParticipantAgent2ListenerSpec
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
       LoadModelBehaviour.FIX,
-      LoadReference.ActivePower(Kilowatts(0d))
+      LoadReference.ActivePower(Kilowatts(0d)),
     )
 
   private val mockInputModel = mock[SystemParticipantInput]
@@ -85,12 +85,12 @@ class ParticipantAgent2ListenerSpec
     val initStateData: NotifierConfig => ParticipantInitializeStateData[
       SystemParticipantInput,
       BaseRuntimeConfig,
-      ApparentPower
+      ApparentPower,
     ] = outputConfig =>
       ParticipantInitializeStateData[
         SystemParticipantInput,
         BaseRuntimeConfig,
-        ApparentPower
+        ApparentPower,
       ](
         inputModel = mockInputModel,
         modelConfig = mock[BaseRuntimeConfig],
@@ -101,7 +101,7 @@ class ParticipantAgent2ListenerSpec
         requestVoltageDeviationThreshold =
           simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
         outputConfig = outputConfig,
-        primaryServiceProxy = primaryServiceProxy.ref
+        primaryServiceProxy = primaryServiceProxy.ref,
       )
 
     "inform listeners about new simulation results, when asked to do" in {
@@ -109,14 +109,14 @@ class ParticipantAgent2ListenerSpec
       val outputConfig = NotifierConfig(
         simulationResultInfo = true,
         powerRequestReply = false,
-        flexResult = false
+        flexResult = false,
       )
 
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
           scheduler = scheduler.ref,
           initStateData = initStateData(outputConfig),
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -127,7 +127,7 @@ class ParticipantAgent2ListenerSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped))
@@ -146,11 +146,11 @@ class ParticipantAgent2ListenerSpec
             ) =>
           systemParticipantResult.getP should equalWithTolerance(
             Quantities.getQuantity(2, MEGAWATT),
-            quantityTolerance
+            quantityTolerance,
           )
           systemParticipantResult.getQ should equalWithTolerance(
             Quantities.getQuantity(1, MEGAVAR),
-            quantityTolerance
+            quantityTolerance,
           )
         case _ => fail("Expected a SystemParticipantResult")
       }
@@ -161,14 +161,14 @@ class ParticipantAgent2ListenerSpec
       val outputConfig = NotifierConfig(
         simulationResultInfo = false,
         powerRequestReply = false,
-        flexResult = false
+        flexResult = false,
       )
 
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
           scheduler = scheduler.ref,
           initStateData = initStateData(outputConfig),
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -179,7 +179,7 @@ class ParticipantAgent2ListenerSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped))
@@ -197,14 +197,14 @@ class ParticipantAgent2ListenerSpec
       val outputConfig = NotifierConfig(
         simulationResultInfo = false,
         powerRequestReply = true,
-        flexResult = false
+        flexResult = false,
       )
 
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
           scheduler = scheduler.ref,
           initStateData = initStateData(outputConfig),
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -215,7 +215,7 @@ class ParticipantAgent2ListenerSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped))
@@ -229,7 +229,7 @@ class ParticipantAgent2ListenerSpec
       mockAgent ! RequestAssetPowerMessage(
         3000L,
         Each(1d),
-        Each(0d)
+        Each(0d),
       )
 
       /* Wait for original reply (this is the querying agent) */
@@ -258,14 +258,14 @@ class ParticipantAgent2ListenerSpec
       val outputConfig = NotifierConfig(
         simulationResultInfo = false,
         powerRequestReply = false,
-        flexResult = false
+        flexResult = false,
       )
 
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
           scheduler = scheduler.ref,
           initStateData = initStateData(outputConfig),
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -276,7 +276,7 @@ class ParticipantAgent2ListenerSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped))
@@ -291,7 +291,7 @@ class ParticipantAgent2ListenerSpec
       mockAgent ! RequestAssetPowerMessage(
         3000L,
         Each(1d),
-        Each(0d)
+        Each(0d),
       )
 
       /* Wait for original reply (this is the querying agent) */

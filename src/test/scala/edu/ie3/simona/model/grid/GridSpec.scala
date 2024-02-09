@@ -16,7 +16,7 @@ import edu.ie3.simona.test.common.input.{GridInputTestData, LineInputTestData}
 import edu.ie3.simona.test.common.model.grid.{
   BasicGrid,
   BasicGridWithSwitches,
-  FiveLinesWithNodes
+  FiveLinesWithNodes,
 }
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 
@@ -66,12 +66,12 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
         )
       val getLinesAdmittance: (
           Map[UUID, Int],
-          LineModel
+          LineModel,
       ) => (Int, Int, Complex, Complex, Complex) =
         (nodeUuidToIndexMap, line) =>
           GridModel invokePrivate getLinesAdmittanceMethod(
             nodeUuidToIndexMap,
-            line
+            line,
           )
 
       // result of method call
@@ -79,7 +79,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
         GridModel invokePrivate buildAssetAdmittanceMatrix(
           nodeUuidToIndexMap,
           lines,
-          getLinesAdmittance
+          getLinesAdmittance,
         )
 
       _printAdmittanceMatrixOnMismatch(actualResult, lineAdmittanceMatrix)
@@ -94,7 +94,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
       GridModel.updateUuidToIndexMap(withClosedSwitches)
       private val admittanceMatixClosed = GridModel.composeAdmittanceMatrix(
         withClosedSwitches.nodeUuidToIndexMap,
-        withClosedSwitches.gridComponents
+        withClosedSwitches.gridComponents,
       )
 
       private val withOpenSwitches = createGridCopy()
@@ -102,7 +102,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
       GridModel.updateUuidToIndexMap(withOpenSwitches)
       private val admittanceMatrixOpen = GridModel.composeAdmittanceMatrix(
         withOpenSwitches.nodeUuidToIndexMap,
-        withOpenSwitches.gridComponents
+        withOpenSwitches.gridComponents,
       )
 
       // dimension of admittance matrix with closed switches should be the dimension
@@ -120,7 +120,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
         .flatMap { switch =>
           Iterable(
             switch.nodeAUuid -> switch.nodeBUuid,
-            switch.nodeBUuid -> switch.nodeAUuid
+            switch.nodeBUuid -> switch.nodeAUuid,
           )
         }
         .groupMap { case (key, _) => key } { case (_, value) => value }
@@ -168,7 +168,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
 
           admittanceMatixClosed.valueAt(
             iClosed,
-            jClosed
+            jClosed,
           ) shouldBe sumOfAdmittancesOpenSwitches withClue s" at \n\tposition ($iClosed, $jClosed) of the grid with closed switches/" +
             s"\n\tpositions (${iOpenAll.mkString(",")}) x (${jOpenAll.mkString(",")}) of the grid with open switches"
 
@@ -203,8 +203,8 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
           lines,
           Set(transformer2wModel),
           Set.empty[Transformer3wModel],
-          switches
-        )
+          switches,
+        ),
       )
       // get the private method for validation
       val validateConnectivity: PrivateMethod[Unit] =
@@ -231,8 +231,8 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
           adaptedLines,
           Set(transformer2wModel),
           Set.empty[Transformer3wModel],
-          Set.empty[SwitchModel]
-        )
+          Set.empty[SwitchModel],
+        ),
       )
 
       // get the private method for validation
@@ -259,7 +259,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
         "SecondSwitch1",
         defaultOperationInterval,
         node1.uuid,
-        node13.uuid
+        node13.uuid,
       )
       // add the second switch + enable switches
       override val switches: Set[SwitchModel] = super.switches + secondSwitch
@@ -276,8 +276,8 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
           lines,
           Set(transformer2wModel),
           Set.empty[Transformer3wModel],
-          switches
-        )
+          switches,
+        ),
       )
 
       // get the private method for validation
@@ -380,8 +380,8 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
             lines,
             Set(transformer2wModel),
             Set.empty[Transformer3wModel],
-            switches
-          )
+            switches,
+          ),
         )
 
         // update the uuidToIndexMap
@@ -431,8 +431,8 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
             lines,
             Set(transformer2wModel),
             Set.empty[Transformer3wModel],
-            Set.empty[SwitchModel]
-          )
+            Set.empty[SwitchModel],
+          ),
         )
 
         // update the uuidToIndexMap
@@ -463,7 +463,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
         validTestGridInputModel,
         gridInputModelTestDataRefSystem,
         defaultSimulationStart,
-        defaultSimulationEnd
+        defaultSimulationEnd,
       )
 
     }

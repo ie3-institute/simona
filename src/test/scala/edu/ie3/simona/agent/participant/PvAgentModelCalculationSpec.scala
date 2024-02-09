@@ -30,18 +30,18 @@ import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage
+  RequestAssetPowerMessage,
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
   RegistrationFailedMessage,
-  RegistrationSuccessfulMessage
+  RegistrationSuccessfulMessage,
 }
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
   ProvideWeatherMessage,
   RegisterForWeatherMessage,
-  WeatherData
+  WeatherData,
 }
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.PvInputTestData
@@ -52,7 +52,7 @@ import edu.ie3.util.scala.quantities.{
   Megavars,
   ReactivePower,
   Vars,
-  WattsPerSquareMeter
+  WattsPerSquareMeter,
 }
 import squants.energy.{Kilowatts, Megawatts, Watts}
 import squants.motion.MetersPerSecond
@@ -71,7 +71,7 @@ class PvAgentModelCalculationSpec
           .parseString("""
             |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
             |pekko.loglevel="DEBUG"
-        """.stripMargin)
+        """.stripMargin),
       )
     )
     with PvInputTestData {
@@ -96,12 +96,12 @@ class PvAgentModelCalculationSpec
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
       LoadModelBehaviour.FIX,
-      LoadReference.ActivePower(Kilowatts(0d))
+      LoadReference.ActivePower(Kilowatts(0d)),
     )
   private val defaultOutputConfig = NotifierConfig(
     simonaConfig.simona.output.participant.defaultConfig.simulationResult,
     simonaConfig.simona.output.participant.defaultConfig.powerRequestReply,
-    simonaConfig.simona.output.participant.defaultConfig.flexResult
+    simonaConfig.simona.output.participant.defaultConfig.flexResult,
   )
   private val configUtil = ConfigUtil.ParticipantConfigUtil(
     simonaConfig.simona.runtime.participant
@@ -122,7 +122,7 @@ class PvAgentModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       PvInput,
       PvRuntimeConfig,
-      ApparentPower
+      ApparentPower,
     ](
       inputModel = voltageSensitiveInput,
       modelConfig = modelConfig,
@@ -133,7 +133,7 @@ class PvAgentModelCalculationSpec
       requestVoltageDeviationThreshold =
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
-      primaryServiceProxy = primaryServiceProxy.ref
+      primaryServiceProxy = primaryServiceProxy.ref,
     )
 
     "be instantiated correctly" in {
@@ -141,7 +141,7 @@ class PvAgentModelCalculationSpec
         new PvAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -163,7 +163,7 @@ class PvAgentModelCalculationSpec
         new PvAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -175,7 +175,7 @@ class PvAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         pvAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       deathProbe.expectTerminated(pvAgent.ref)
@@ -186,7 +186,7 @@ class PvAgentModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       PvInput,
       PvRuntimeConfig,
-      ApparentPower
+      ApparentPower,
     ](
       inputModel = voltageSensitiveInput,
       modelConfig = modelConfig,
@@ -197,7 +197,7 @@ class PvAgentModelCalculationSpec
       requestVoltageDeviationThreshold =
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
-      primaryServiceProxy = primaryServiceProxy.ref
+      primaryServiceProxy = primaryServiceProxy.ref,
     )
 
     "be instantiated correctly" in {
@@ -205,7 +205,7 @@ class PvAgentModelCalculationSpec
         new PvAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -225,7 +225,7 @@ class PvAgentModelCalculationSpec
         new PvAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -247,7 +247,7 @@ class PvAgentModelCalculationSpec
               resolution,
               requestVoltageDeviationThreshold,
               outputConfig,
-              maybeEmAgent
+              maybeEmAgent,
             ) =>
           inputModel shouldBe SimpleInputContainer(voltageSensitiveInput)
           modelConfig shouldBe modelConfig
@@ -265,7 +265,7 @@ class PvAgentModelCalculationSpec
       /* Refuse registration */
       primaryServiceProxy.send(
         pvAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       /* Expect a registration message */
@@ -291,10 +291,10 @@ class PvAgentModelCalculationSpec
                 requestValueStore,
                 _,
                 _,
-                _
+                _,
               ),
               awaitRegistrationResponsesFrom,
-              foreseenNextDataTicks
+              foreseenNextDataTicks,
             ) =>
           /* Base state data */
           startDate shouldBe simulationStartDate
@@ -305,13 +305,13 @@ class PvAgentModelCalculationSpec
           outputConfig shouldBe NotifierConfig(
             simulationResultInfo = false,
             powerRequestReply = false,
-            flexResult = false
+            flexResult = false,
           )
           additionalActivationTicks shouldBe empty
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
-            SortedMap(0L -> Each(1.0))
+            SortedMap(0L -> Each(1.0)),
           )
           resultValueStore shouldBe ValueStore(resolution)
           requestValueStore shouldBe ValueStore[ApparentPower](resolution)
@@ -328,7 +328,7 @@ class PvAgentModelCalculationSpec
       /* Reply, that registration was successful */
       weatherService.send(
         pvAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(4711L))
+        RegistrationSuccessfulMessage(weatherService.ref, Some(4711L)),
       )
 
       /* Expect a completion message */
@@ -354,7 +354,7 @@ class PvAgentModelCalculationSpec
         new PvAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -364,7 +364,7 @@ class PvAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         pvAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       /* Expect a registration message */
@@ -373,7 +373,7 @@ class PvAgentModelCalculationSpec
       )
       weatherService.send(
         pvAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(900L))
+        RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -385,12 +385,12 @@ class PvAgentModelCalculationSpec
       pvAgent ! RequestAssetPowerMessage(
         0L,
         Each(1d),
-        Each(0d)
+        Each(0d),
       )
       expectMsg(
         AssetPowerChangedMessage(
           Megawatts(0d),
-          Megavars(0d)
+          Megavars(0d),
         )
       )
 
@@ -403,9 +403,9 @@ class PvAgentModelCalculationSpec
             SortedMap(
               0L -> ApparentPower(
                 Megawatts(0d),
-                Megavars(0d)
+                Megavars(0d),
               )
-            )
+            ),
           )
         case _ =>
           fail(
@@ -419,7 +419,7 @@ class PvAgentModelCalculationSpec
         new PvAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -429,14 +429,14 @@ class PvAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         pvAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         pvAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(0L))
+        RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -449,12 +449,12 @@ class PvAgentModelCalculationSpec
         WattsPerSquareMeter(0d),
         WattsPerSquareMeter(0d),
         Celsius(1.815d),
-        MetersPerSecond(7.726576d)
+        MetersPerSecond(7.726576d),
       )
 
       weatherService.send(
         pvAgent,
-        ProvideWeatherMessage(0L, weatherService.ref, weatherData, Some(3600L))
+        ProvideWeatherMessage(0L, weatherService.ref, weatherData, Some(3600L)),
       )
 
       /* Find yourself in corresponding state and state data */
@@ -463,7 +463,7 @@ class PvAgentModelCalculationSpec
         case DataCollectionStateData(
               baseStateData: ParticipantModelBaseStateData[_, _, _, _],
               expectedSenders,
-              isYetTriggered
+              isYetTriggered,
             ) =>
           /* The next data tick is already registered */
           baseStateData.foreseenDataTicks shouldBe Map(
@@ -507,7 +507,7 @@ class PvAgentModelCalculationSpec
               store.size shouldBe 1
               store.getOrElse(
                 0L,
-                fail("Expected a simulation result for tick 900.")
+                fail("Expected a simulation result for tick 900."),
               ) match {
                 case ApparentPower(p, q) =>
                   p should approximate(Megawatts(0.0))
@@ -526,7 +526,7 @@ class PvAgentModelCalculationSpec
         new PvAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -536,14 +536,14 @@ class PvAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         pvAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         pvAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(0L))
+        RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -559,7 +559,7 @@ class PvAgentModelCalculationSpec
         case DataCollectionStateData(
               baseStateData: ParticipantModelBaseStateData[_, _, _, _],
               expectedSenders,
-              isYetTriggered
+              isYetTriggered,
             ) =>
           /* The next data tick is already registered */
           baseStateData.foreseenDataTicks shouldBe Map(
@@ -582,12 +582,12 @@ class PvAgentModelCalculationSpec
         WattsPerSquareMeter(0d),
         WattsPerSquareMeter(0d),
         Celsius(1.815d),
-        MetersPerSecond(7.726576d)
+        MetersPerSecond(7.726576d),
       )
 
       weatherService.send(
         pvAgent,
-        ProvideWeatherMessage(0L, weatherService.ref, weatherData, Some(3600L))
+        ProvideWeatherMessage(0L, weatherService.ref, weatherData, Some(3600L)),
       )
 
       /* Expect confirmation */
@@ -611,7 +611,7 @@ class PvAgentModelCalculationSpec
               store.size shouldBe 1
               store.getOrElse(
                 0L,
-                fail("Expected a simulation result for tick 0.")
+                fail("Expected a simulation result for tick 0."),
               ) match {
                 case ApparentPower(p, q) =>
                   p should approximate(Megawatts(0.0))
@@ -630,7 +630,7 @@ class PvAgentModelCalculationSpec
         new PvAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -641,14 +641,14 @@ class PvAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         pvAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         pvAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(3600L))
+        RegistrationSuccessfulMessage(weatherService.ref, Some(3600L)),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -659,7 +659,7 @@ class PvAgentModelCalculationSpec
       pvAgent ! RequestAssetPowerMessage(
         7200L,
         Each(1d),
-        Each(0d)
+        Each(0d),
       )
       expectNoMessage(noReceiveTimeOut.duration)
       awaitAssert(pvAgent.stateName == Idle)
@@ -669,7 +669,7 @@ class PvAgentModelCalculationSpec
         WattsPerSquareMeter(0d),
         WattsPerSquareMeter(0d),
         Celsius(1.815d),
-        MetersPerSecond(7.726576d)
+        MetersPerSecond(7.726576d),
       )
       weatherService.send(
         pvAgent,
@@ -677,8 +677,8 @@ class PvAgentModelCalculationSpec
           3600L,
           weatherService.ref,
           weatherData,
-          Some(7200L)
-        )
+          Some(7200L),
+        ),
       )
 
       /* Trigger the agent */
@@ -700,7 +700,7 @@ class PvAgentModelCalculationSpec
       new PvAgent(
         scheduler = scheduler.ref,
         initStateData = initStateData,
-        listener = systemListener
+        listener = systemListener,
       )
     )
 
@@ -712,14 +712,14 @@ class PvAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         pvAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         pvAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(0L))
+        RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -737,10 +737,10 @@ class PvAgentModelCalculationSpec
             WattsPerSquareMeter(0d),
             WattsPerSquareMeter(0d),
             Celsius(1.815d),
-            MetersPerSecond(7.726576d)
+            MetersPerSecond(7.726576d),
           ),
-          Some(3600L)
-        )
+          Some(3600L),
+        ),
       )
       scheduler.send(pvAgent, Activation(0))
       scheduler.expectMsg(Completion(pvAgent.toTyped, Some(3600)))
@@ -755,10 +755,10 @@ class PvAgentModelCalculationSpec
             WattsPerSquareMeter(0d),
             WattsPerSquareMeter(0d),
             Celsius(1.815d),
-            MetersPerSecond(7.726576d)
+            MetersPerSecond(7.726576d),
           ),
-          Some(7200L)
-        )
+          Some(7200L),
+        ),
       )
       scheduler.send(pvAgent, Activation(3600))
       scheduler.expectMsg(Completion(pvAgent.toTyped, Some(7200)))
@@ -773,10 +773,10 @@ class PvAgentModelCalculationSpec
             WattsPerSquareMeter(0d),
             WattsPerSquareMeter(0d),
             Celsius(1.815d),
-            MetersPerSecond(7.726576d)
+            MetersPerSecond(7.726576d),
           ),
-          None
-        )
+          None,
+        ),
       )
       scheduler.send(pvAgent, Activation(7200))
       scheduler.expectMsg(Completion(pvAgent.toTyped))
@@ -785,7 +785,7 @@ class PvAgentModelCalculationSpec
       pvAgent ! RequestAssetPowerMessage(
         7500L,
         Each(1d),
-        Each(0d)
+        Each(0d),
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -802,7 +802,7 @@ class PvAgentModelCalculationSpec
       pvAgent ! RequestAssetPowerMessage(
         7500L,
         Each(1.000000000000001d),
-        Each(0d)
+        Each(0d),
       )
 
       /* Expect, that nothing has changed */
@@ -818,7 +818,7 @@ class PvAgentModelCalculationSpec
       pvAgent ! RequestAssetPowerMessage(
         7500L,
         Each(0.98),
-        Each(0d)
+        Each(0d),
       )
 
       /* Expect, the correct values (this model has fixed power factor) */

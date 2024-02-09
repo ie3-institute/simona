@@ -8,7 +8,7 @@ package edu.ie3.simona.scheduler
 
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
-  TestProbe
+  TestProbe,
 }
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import edu.ie3.simona.event.RuntimeEvent
@@ -16,7 +16,7 @@ import edu.ie3.simona.event.RuntimeEvent._
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.scheduler.TimeAdvancer.{StartSimMessage, Stop}
 import edu.ie3.simona.sim.SimMessage
@@ -49,7 +49,7 @@ class TimeAdvancerSpec
           simulation.ref.toClassic,
           Some(listener.ref),
           Some(900),
-          7200
+          7200,
         )
       )
 
@@ -199,7 +199,7 @@ class TimeAdvancerSpec
           simulation.ref.toClassic,
           Some(listener.ref),
           Some(900),
-          3600
+          3600,
         )
       )
 
@@ -273,7 +273,7 @@ class TimeAdvancerSpec
           simulation.ref.toClassic,
           Some(listener.ref),
           Some(900),
-          5400
+          5400,
         )
       )
       timeAdvancer ! ScheduleActivation(scheduler.ref, INIT_SIM_TICK)
@@ -361,7 +361,7 @@ class TimeAdvancerSpec
           simulation.ref.toClassic,
           Some(listener.ref),
           Some(900),
-          3600
+          3600,
         )
       )
       timeAdvancer ! ScheduleActivation(scheduler.ref, INIT_SIM_TICK)
@@ -439,7 +439,7 @@ class TimeAdvancerSpec
           simulation.ref.toClassic,
           Some(listener.ref),
           Some(1800),
-          3600
+          3600,
         )
       )
       timeAdvancer ! ScheduleActivation(scheduler.ref, 0)
@@ -489,7 +489,7 @@ class TimeAdvancerSpec
           simulation.ref.toClassic,
           Some(listener.ref),
           Some(900),
-          3600
+          3600,
         )
       )
       timeAdvancer ! ScheduleActivation(scheduler.ref, 0)
@@ -549,7 +549,7 @@ class TimeAdvancerSpec
           simulation.ref.toClassic,
           Some(listener.ref),
           Some(1800),
-          3600
+          3600,
         )
       )
       timeAdvancer ! ScheduleActivation(scheduler.ref, 0)
@@ -599,7 +599,7 @@ class TimeAdvancerSpec
           simulation.ref.toClassic,
           Some(listener.ref),
           Some(900),
-          1800
+          1800,
         )
       )
       timeAdvancer ! ScheduleActivation(scheduler.ref, 0)
@@ -652,7 +652,7 @@ class TimeAdvancerSpec
           simulation.ref.toClassic,
           Some(listener.ref),
           Some(900),
-          1800
+          1800,
         )
       )
       timeAdvancer ! ScheduleActivation(scheduler.ref, 0)
@@ -739,7 +739,7 @@ class TimeAdvancerSpec
           simulation.ref.toClassic,
           Some(listener.ref),
           Some(900),
-          1800
+          1800,
         )
       )
       timeAdvancer ! ScheduleActivation(scheduler.ref, 0)

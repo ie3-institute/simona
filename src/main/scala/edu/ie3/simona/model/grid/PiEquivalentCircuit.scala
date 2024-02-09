@@ -125,7 +125,7 @@ trait PiEquivalentCircuit extends LazyLogging {
         r,
         x,
         g,
-        b
+        b,
       )
   }
 

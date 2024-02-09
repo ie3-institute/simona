@@ -14,12 +14,12 @@ import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.{
   CalcRelevantData,
   ModelState,
-  SystemParticipant
+  SystemParticipant,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexRequest,
   FlexResponse,
-  ProvideFlexOptions
+  ProvideFlexOptions,
 }
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.{ActorRef => ClassicActorRef}
@@ -100,7 +100,7 @@ object BaseStateData {
       +PD <: PrimaryDataWithApparentPower[PD],
       CD <: CalcRelevantData,
       MS <: ModelState,
-      +M <: SystemParticipant[_ <: CalcRelevantData, PD, MS]
+      +M <: SystemParticipant[_ <: CalcRelevantData, PD, MS],
   ] extends BaseStateData[PD] {
 
     /** The physical system model
@@ -154,7 +154,7 @@ object BaseStateData {
   final case class FromOutsideBaseStateData[M <: SystemParticipant[
     _ <: CalcRelevantData,
     P,
-    _
+    _,
   ], +P <: PrimaryDataWithApparentPower[P]](
       model: M,
       override val startDate: ZonedDateTime,
@@ -168,7 +168,7 @@ object BaseStateData {
         Dimensionless
       ],
       override val resultValueStore: ValueStore[P],
-      override val requestValueStore: ValueStore[P]
+      override val requestValueStore: ValueStore[P],
   ) extends BaseStateData[P] {
     override val modelUuid: UUID = model.getUuid
   }
@@ -209,7 +209,7 @@ object BaseStateData {
       +PD <: PrimaryDataWithApparentPower[PD],
       CD <: CalcRelevantData,
       MS <: ModelState,
-      M <: SystemParticipant[_ <: CalcRelevantData, PD, MS]
+      M <: SystemParticipant[_ <: CalcRelevantData, PD, MS],
   ](
       override val startDate: ZonedDateTime,
       override val endDate: ZonedDateTime,
@@ -228,7 +228,7 @@ object BaseStateData {
         Map[ClassicActorRef, _ <: SecondaryData]
       ],
       override val stateDataStore: ValueStore[MS],
-      override val flexStateData: Option[FlexControlledData]
+      override val flexStateData: Option[FlexControlledData],
   ) extends ModelBaseStateData[PD, CD, MS, M] {
 
     /** Unique identifier of the simulation model
@@ -249,7 +249,7 @@ object BaseStateData {
   final case class FlexControlledData(
       emAgent: ActorRef[FlexResponse],
       flexAdapter: ActorRef[FlexRequest],
-      lastFlexOptions: Option[ProvideFlexOptions] = None
+      lastFlexOptions: Option[ProvideFlexOptions] = None,
   )
 
   /** Updates the base state data with the given value stores
@@ -277,7 +277,7 @@ object BaseStateData {
       updatedRequestValueStore: ValueStore[PD],
       updatedVoltageValueStore: ValueStore[Dimensionless],
       updatedAdditionalActivationTicks: SortedSet[Long],
-      updatedForeseenTicks: Map[ClassicActorRef, Option[Long]]
+      updatedForeseenTicks: Map[ClassicActorRef, Option[Long]],
   ): BaseStateData[PD] = {
     baseStateData match {
       case external: FromOutsideBaseStateData[_, PD] =>
@@ -286,7 +286,7 @@ object BaseStateData {
           requestValueStore = updatedRequestValueStore,
           voltageValueStore = updatedVoltageValueStore,
           additionalActivationTicks = updatedAdditionalActivationTicks,
-          foreseenDataTicks = updatedForeseenTicks
+          foreseenDataTicks = updatedForeseenTicks,
         )
       case model: ParticipantModelBaseStateData[PD, _, _, _] =>
         model.copy(
@@ -294,7 +294,7 @@ object BaseStateData {
           requestValueStore = updatedRequestValueStore,
           voltageValueStore = updatedVoltageValueStore,
           additionalActivationTicks = updatedAdditionalActivationTicks,
-          foreseenDataTicks = updatedForeseenTicks
+          foreseenDataTicks = updatedForeseenTicks,
         )
     }
   }

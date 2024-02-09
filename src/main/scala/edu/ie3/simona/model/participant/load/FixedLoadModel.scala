@@ -13,7 +13,7 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantData
 import edu.ie3.simona.model.participant.load.LoadReference.{
   ActivePower,
-  EnergyConsumption
+  EnergyConsumption,
 }
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
@@ -50,7 +50,7 @@ final case class FixedLoadModel(
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double,
-    reference: LoadReference
+    reference: LoadReference,
 ) extends LoadModel[FixedLoadRelevantData.type](
       uuid,
       id,
@@ -58,7 +58,7 @@ final case class FixedLoadModel(
       scalingFactor,
       qControl,
       sRated,
-      cosPhiRated
+      cosPhiRated,
     ) {
 
   val activePower: Power = reference match {
@@ -78,7 +78,7 @@ final case class FixedLoadModel(
     */
   override protected def calculateActivePower(
       modelState: ConstantState.type,
-      data: FixedLoadRelevantData.type = FixedLoadRelevantData
+      data: FixedLoadRelevantData.type = FixedLoadRelevantData,
   ): Power = activePower
 }
 
@@ -89,7 +89,7 @@ object FixedLoadModel {
       input: LoadInput,
       scalingFactor: Double,
       operationInterval: OperationInterval,
-      reference: LoadReference
+      reference: LoadReference,
   ): FixedLoadModel = {
     val model = FixedLoadModel(
       input.getUuid,
@@ -104,7 +104,7 @@ object FixedLoadModel {
           .doubleValue
       ),
       input.getCosPhiRated,
-      reference
+      reference,
     )
     model.enable()
     model

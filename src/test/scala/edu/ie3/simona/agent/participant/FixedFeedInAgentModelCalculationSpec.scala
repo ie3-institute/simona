@@ -21,7 +21,7 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   ParticipantInitializeStateData,
   ParticipantInitializingStateData,
   ParticipantUninitializedStateData,
-  SimpleInputContainer
+  SimpleInputContainer,
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
@@ -33,7 +33,7 @@ import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage
+  RequestAssetPowerMessage,
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
@@ -59,7 +59,7 @@ class FixedFeedInAgentModelCalculationSpec
           .parseString("""
             |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
             |pekko.loglevel="DEBUG"
-        """.stripMargin)
+        """.stripMargin),
       )
     )
     with FixedFeedInputTestData {
@@ -83,12 +83,12 @@ class FixedFeedInAgentModelCalculationSpec
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
       LoadModelBehaviour.FIX,
-      LoadReference.ActivePower(Kilowatts(0d))
+      LoadReference.ActivePower(Kilowatts(0d)),
     )
   private val defaultOutputConfig = NotifierConfig(
     simonaConfig.simona.output.participant.defaultConfig.simulationResult,
     simonaConfig.simona.output.participant.defaultConfig.powerRequestReply,
-    simonaConfig.simona.output.participant.defaultConfig.flexResult
+    simonaConfig.simona.output.participant.defaultConfig.flexResult,
   )
 
   private val fixedFeedConfigUtil = ConfigUtil.ParticipantConfigUtil(
@@ -105,7 +105,7 @@ class FixedFeedInAgentModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       FixedFeedInInput,
       FixedFeedInRuntimeConfig,
-      ApparentPower
+      ApparentPower,
     ](
       inputModel = voltageSensitiveInput,
       modelConfig = modelConfig,
@@ -116,7 +116,7 @@ class FixedFeedInAgentModelCalculationSpec
       requestVoltageDeviationThreshold =
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
-      primaryServiceProxy = primaryServiceProxy.ref
+      primaryServiceProxy = primaryServiceProxy.ref,
     )
 
     "be instantiated correctly" in {
@@ -124,7 +124,7 @@ class FixedFeedInAgentModelCalculationSpec
         new FixedFeedInAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -144,7 +144,7 @@ class FixedFeedInAgentModelCalculationSpec
         new FixedFeedInAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -166,7 +166,7 @@ class FixedFeedInAgentModelCalculationSpec
               resolution,
               requestVoltageDeviationThreshold,
               outputConfig,
-              maybeEmAgent
+              maybeEmAgent,
             ) =>
           inputModel shouldBe SimpleInputContainer(voltageSensitiveInput)
           modelConfig shouldBe modelConfig
@@ -184,7 +184,7 @@ class FixedFeedInAgentModelCalculationSpec
       /* Refuse registration */
       primaryServiceProxy.send(
         fixedFeedAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       /* Expect a completion notification */
@@ -207,7 +207,7 @@ class FixedFeedInAgentModelCalculationSpec
               requestValueStore,
               _,
               _,
-              _
+              _,
             ) =>
           /* Base state data */
           startDate shouldBe simulationStartDate
@@ -218,7 +218,7 @@ class FixedFeedInAgentModelCalculationSpec
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
-            SortedMap(0L -> Each(1.0))
+            SortedMap(0L -> Each(1.0)),
           )
           resultValueStore shouldBe ValueStore(resolution)
           requestValueStore shouldBe ValueStore[ApparentPower](
@@ -236,7 +236,7 @@ class FixedFeedInAgentModelCalculationSpec
         new FixedFeedInAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -246,7 +246,7 @@ class FixedFeedInAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         fixedFeedAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -258,12 +258,12 @@ class FixedFeedInAgentModelCalculationSpec
       fixedFeedAgent ! RequestAssetPowerMessage(
         0L,
         Each(1d),
-        Each(0d)
+        Each(0d),
       )
       expectMsg(
         AssetPowerChangedMessage(
           Megawatts(0d),
-          Megavars(0d)
+          Megavars(0d),
         )
       )
 
@@ -276,9 +276,9 @@ class FixedFeedInAgentModelCalculationSpec
             SortedMap(
               0L -> ApparentPower(
                 Megawatts(0d),
-                Megavars(0d)
+                Megavars(0d),
               )
-            )
+            ),
           )
         case _ =>
           fail(
@@ -292,7 +292,7 @@ class FixedFeedInAgentModelCalculationSpec
         new FixedFeedInAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -302,7 +302,7 @@ class FixedFeedInAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         fixedFeedAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       /* I am not interested in the CompletionMessage */
@@ -343,7 +343,7 @@ class FixedFeedInAgentModelCalculationSpec
         new FixedFeedInAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -354,7 +354,7 @@ class FixedFeedInAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         fixedFeedAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       scheduler.expectMsg(Completion(fixedFeedAgent.toTyped, Some(0)))
@@ -370,7 +370,7 @@ class FixedFeedInAgentModelCalculationSpec
       fixedFeedAgent ! RequestAssetPowerMessage(
         3000L,
         Each(1d),
-        Each(0d)
+        Each(0d),
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -384,7 +384,7 @@ class FixedFeedInAgentModelCalculationSpec
       new FixedFeedInAgent(
         scheduler = scheduler.ref,
         initStateData = initStateData,
-        listener = systemListener
+        listener = systemListener,
       )
     )
 
@@ -397,7 +397,7 @@ class FixedFeedInAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         fixedFeedAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       scheduler.expectMsg(Completion(fixedFeedAgent.toTyped, Some(0)))
@@ -411,7 +411,7 @@ class FixedFeedInAgentModelCalculationSpec
       fixedFeedAgent ! RequestAssetPowerMessage(
         3000L,
         Each(1d),
-        Each(0d)
+        Each(0d),
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -428,7 +428,7 @@ class FixedFeedInAgentModelCalculationSpec
       fixedFeedAgent ! RequestAssetPowerMessage(
         3000L,
         Each(1.000000000000001d),
-        Each(0d)
+        Each(0d),
       )
 
       /* Expect, that nothing has changed */
@@ -444,7 +444,7 @@ class FixedFeedInAgentModelCalculationSpec
       fixedFeedAgent ! RequestAssetPowerMessage(
         3000L,
         Each(0.98),
-        Each(0d)
+        Each(0d),
       )
 
       /* Expect, the correct values (this model has fixed power factor) */

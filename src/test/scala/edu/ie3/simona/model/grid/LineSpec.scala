@@ -41,7 +41,7 @@ class LineSpec extends UnitSpec with LineInputTestData {
       Each(0.0013109999999999999d),
       Each(0.0010680000000000002d),
       Each(0d),
-      Each(0.60375d)
+      Each(0.60375d),
     )
 
   }
@@ -63,7 +63,7 @@ class LineSpec extends UnitSpec with LineInputTestData {
         lineInputMs10Kv,
         refSystem,
         defaultSimulationStart,
-        defaultSimulationEnd
+        defaultSimulationEnd,
       )
 
       inside(validLineModel) {
@@ -78,7 +78,7 @@ class LineSpec extends UnitSpec with LineInputTestData {
               r,
               x,
               g,
-              b
+              b,
             ) =>
           uuid shouldBe lineInputMs10Kv.getUuid
           id shouldBe lineInputMs10Kv.getId
@@ -136,7 +136,7 @@ class LineSpec extends UnitSpec with LineInputTestData {
     "calculate the branch admittance Y_ij of a given line model correctly" in new ValidLineModel {
       LineModel.yij(validLineModel) shouldBe Complex(
         1375.489841204891,
-        -1120.5363466108497
+        -1120.5363466108497,
       )
     }
 

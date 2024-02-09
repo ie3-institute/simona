@@ -61,7 +61,7 @@ object LoadReference {
     */
   def apply(
       inputModel: LoadInput,
-      modelConfig: SimonaConfig.LoadRuntimeConfig
+      modelConfig: SimonaConfig.LoadRuntimeConfig,
   ): LoadReference =
     StringUtils.cleanString(modelConfig.reference).toLowerCase match {
       case "power" =>

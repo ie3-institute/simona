@@ -35,11 +35,11 @@ final case class BMModel(
     private val isCostControlled: Boolean,
     private val opex: Money,
     private val feedInTariff: EnergyPrice,
-    private val loadGradient: Double
+    private val loadGradient: Double,
 ) extends SystemParticipant[
       BMCalcRelevantData,
       ApparentPower,
-      ConstantState.type
+      ConstantState.type,
     ](
       uuid,
       id,
@@ -47,7 +47,7 @@ final case class BMModel(
       scalingFactor,
       qControl,
       sRated,
-      cosPhi
+      cosPhi,
     )
     with ApparentPowerParticipant[BMCalcRelevantData, ConstantState.type] {
 
@@ -59,7 +59,7 @@ final case class BMModel(
       tick: Long,
       voltage: Dimensionless,
       modelState: ConstantState.type,
-      data: BMCalcRelevantData
+      data: BMCalcRelevantData,
   ): ApparentPower = {
     val result = super.calculatePower(tick, voltage, modelState, data)
     _lastPower = Some(result.p)
@@ -76,7 +76,7 @@ final case class BMModel(
     */
   override protected def calculateActivePower(
       modelState: ConstantState.type,
-      data: BMCalcRelevantData
+      data: BMCalcRelevantData,
   ): Power = {
     // Calculate heat demand //
     val (k1, k2) = (calculateK1(data.date), calculateK2(data.date))
@@ -142,7 +142,7 @@ final case class BMModel(
   private def calculatePTh(
       temp: Temperature,
       k1: Double,
-      k2: Double
+      k2: Double,
   ): Power = {
     // linear regression: Heat-demand in relation to temperature (above 19.28°C: independent of temperature)
     val pTh = temp.toCelsiusScale match {
@@ -187,7 +187,7 @@ final case class BMModel(
     */
   private def calculateElOutput(
       usage: Double,
-      eff: Double
+      eff: Double,
   ): Power = {
     val currOpex = opex.divide(eff)
     val avgOpex = (currOpex + opex).divide(2)
@@ -228,7 +228,7 @@ final case class BMModel(
 
   override def determineFlexOptions(
       data: BMCalcRelevantData,
-      lastState: ConstantState.type
+      lastState: ConstantState.type,
   ): ProvideFlexOptions = {
     val power = calculateActivePower(lastState, data)
 
@@ -238,7 +238,7 @@ final case class BMModel(
   override def handleControlledPowerChange(
       data: BMCalcRelevantData,
       lastState: ConstantState.type,
-      setPower: squants.Power
+      setPower: squants.Power,
   ): (ConstantState.type, FlexChangeIndicator) =
     (lastState, FlexChangeIndicator())
 }
@@ -254,6 +254,6 @@ object BMModel {
     */
   final case class BMCalcRelevantData(
       date: ZonedDateTime,
-      temperature: Temperature
+      temperature: Temperature,
   ) extends CalcRelevantData
 }

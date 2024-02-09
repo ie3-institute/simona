@@ -42,7 +42,7 @@ abstract class ThermalStorage(
     bus: ThermalBusInput,
     minEnergyThreshold: Energy,
     maxEnergyThreshold: Energy,
-    chargingPower: Power
+    chargingPower: Power,
 ) {
   protected val zeroEnergy: Energy = KilowattHours(0d)
 
@@ -70,7 +70,7 @@ abstract class ThermalStorage(
   def updateState(
       tick: Long,
       qDot: Power,
-      lastState: ThermalStorageState
+      lastState: ThermalStorageState,
   ): (ThermalStorageState, Option[ThermalThreshold])
 }
 
@@ -78,7 +78,7 @@ object ThermalStorage {
   final case class ThermalStorageState(
       tick: Long,
       storedEnergy: Energy,
-      qDot: Power
+      qDot: Power,
   )
 
   object ThermalStorageThreshold {

@@ -10,7 +10,7 @@ import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ProvisionMessage,
-  ServiceRegistrationMessage
+  ServiceRegistrationMessage,
 }
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import org.apache.pekko.actor.ActorRef
@@ -49,7 +49,7 @@ object EvMessage {
       override val serviceRef: ActorRef,
       override val data: EvData,
       override val nextDataTick: Option[Long] = None,
-      override val unlockKey: Option[ScheduleKey] = None
+      override val unlockKey: Option[ScheduleKey] = None,
   ) extends EvMessage
       with ProvisionMessage[EvData]
 
@@ -82,12 +82,12 @@ object EvMessage {
 
   final case class FreeLotsResponse(
       evcs: UUID,
-      freeLots: Int
+      freeLots: Int,
   ) extends EvResponseMessage
 
   final case class DepartingEvsResponse(
       evcs: UUID,
-      evModels: Seq[EvModelWrapper]
+      evModels: Seq[EvModelWrapper],
   ) extends EvResponseMessage
 
 }

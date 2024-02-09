@@ -11,7 +11,7 @@ import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureLowerBoundaryReached,
-  HouseTemperatureUpperBoundaryReached
+  HouseTemperatureUpperBoundaryReached,
 }
 import edu.ie3.simona.test.common.UnitSpec
 import squants.energy.{Kilowatts, Megawatts, WattHours, Watts}
@@ -32,7 +32,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         new edu.ie3.datamodel.models.input.container.ThermalGrid(
           thermalBusInput,
           Set(thermalHouseInput).asJava,
-          Set.empty[ThermalStorageInput].asJava
+          Set.empty[ThermalStorageInput].asJava,
         )
 
       ThermalGrid(thermalGridInput) match {
@@ -49,7 +49,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       new edu.ie3.datamodel.models.input.container.ThermalGrid(
         thermalBusInput,
         Set(thermalHouseInput).asJava,
-        Set.empty[ThermalStorageInput].asJava
+        Set.empty[ThermalStorageInput].asJava,
       )
     )
 
@@ -58,7 +58,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         ThermalGrid.startingState(thermalGrid) match {
           case ThermalGridState(
                 Some(ThermalHouseState(tick, innerTemperature, thermalInfeed)),
-                None
+                None,
               ) =>
             tick shouldBe expectedHouseStartingState.tick
             innerTemperature should approximate(
@@ -77,13 +77,13 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         val houseDemand = thermalHouse.energyDemand(
           tick,
           testGridambientTemperature,
-          expectedHouseStartingState
+          expectedHouseStartingState,
         )
 
         val gridDemand = thermalGrid.energyDemand(
           tick,
           testGridambientTemperature,
-          ThermalGrid.startingState(thermalGrid)
+          ThermalGrid.startingState(thermalGrid),
         )
 
         gridDemand.required should approximate(houseDemand.required)
@@ -107,13 +107,13 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
             tick,
             testGridambientTemperature,
             gridState,
-            externalQDot
+            externalQDot,
           )
 
         updatedGridState match {
           case ThermalGridState(
                 Some(ThermalHouseState(tick, innerTemperature, qDot)),
-                None
+                None,
               ) =>
             tick shouldBe 0L
             innerTemperature should approximate(Celsius(18.9999d))
@@ -134,13 +134,13 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
             tick,
             testGridambientTemperature,
             gridState,
-            testGridQDotConsumption
+            testGridQDotConsumption,
           )
 
         updatedGridState match {
           case ThermalGridState(
                 Some(ThermalHouseState(tick, innerTemperature, qDot)),
-                None
+                None,
               ) =>
             tick shouldBe 0L
             innerTemperature should approximate(Celsius(18.9999d))
@@ -168,13 +168,13 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
             tick,
             testGridambientTemperature,
             gridState,
-            testGridQDotInfeed
+            testGridQDotInfeed,
           )
 
         updatedGridState match {
           case ThermalGridState(
                 Some(ThermalHouseState(tick, innerTemperature, qDot)),
-                None
+                None,
               ) =>
             tick shouldBe 0L
             innerTemperature should approximate(Celsius(18.9999d))
@@ -193,14 +193,14 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           0L,
           ThermalGrid.startingState(thermalGrid),
           testGridambientTemperature,
-          testGridQDotInfeed
+          testGridQDotInfeed,
         ) match {
           case (
                 ThermalGridState(
                   Some(ThermalHouseState(tick, innerTemperature, qDot)),
-                  None
+                  None,
                 ),
-                Some(HouseTemperatureUpperBoundaryReached(thresholdTick))
+                Some(HouseTemperatureUpperBoundaryReached(thresholdTick)),
               ) =>
             tick shouldBe 0L
             innerTemperature should approximate(Celsius(18.9999d))
@@ -215,14 +215,14 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           0L,
           ThermalGrid.startingState(thermalGrid),
           testGridambientTemperature,
-          testGridQDotConsumption
+          testGridQDotConsumption,
         ) match {
           case (
                 ThermalGridState(
                   Some(ThermalHouseState(tick, innerTemperature, qDot)),
-                  None
+                  None,
                 ),
-                Some(HouseTemperatureLowerBoundaryReached(thresholdTick))
+                Some(HouseTemperatureLowerBoundaryReached(thresholdTick)),
               ) =>
             tick shouldBe 0L
             innerTemperature should approximate(Celsius(18.9999d))
@@ -237,14 +237,14 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           0L,
           ThermalGrid.startingState(thermalGrid),
           testGridambientTemperature,
-          Megawatts(0d)
+          Megawatts(0d),
         ) match {
           case (
                 ThermalGridState(
                   Some(ThermalHouseState(tick, innerTemperature, qDot)),
-                  None
+                  None,
                 ),
-                Some(HouseTemperatureLowerBoundaryReached(thresholdTick))
+                Some(HouseTemperatureLowerBoundaryReached(thresholdTick)),
               ) =>
             tick shouldBe 0L
             innerTemperature should approximate(Celsius(18.9999d))

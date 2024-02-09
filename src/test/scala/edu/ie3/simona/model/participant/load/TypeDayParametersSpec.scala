@@ -8,7 +8,7 @@ package edu.ie3.simona.model.participant.load
 
 import edu.ie3.simona.model.participant.load.random.{
   RandomLoadParameters,
-  TypeDayParameters
+  TypeDayParameters,
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
@@ -21,7 +21,7 @@ class TypeDayParametersSpec extends UnitSpec {
           RandomLoadParameters(
             cnt.toDouble,
             (cnt + 1).toDouble,
-            (cnt + 2).toDouble
+            (cnt + 2).toDouble,
           )
         )
         .toArray
@@ -37,7 +37,7 @@ class TypeDayParametersSpec extends UnitSpec {
             RandomLoadParameters(
               cnt.toDouble,
               (cnt + 1).toDouble,
-              (cnt + 2).toDouble
+              (cnt + 2).toDouble,
             )
           )
           .toArray

@@ -35,13 +35,13 @@ class ConstantPowerChargingSpec
           10.0.asKiloWatt,
           20.0.asKiloWattHour,
           20.0.asKiloWattHour,
-          3600L
+          3600L,
         )
       )
 
       val actualSchedule = evcsModel.chargeWithConstantPower(
         1800L,
-        Seq(ev)
+        Seq(ev),
       )
 
       actualSchedule shouldBe Map.empty
@@ -61,7 +61,7 @@ class ConstantPowerChargingSpec
         (1800L, 5.0, 5.0), // more than max power, limited
         (3600L, 5.0, 5.0), // exactly max power
         (7200L, 5.0, 2.5), // less than max power
-        (180000L, 5.0, 0.1) // long stay: 100 hours
+        (180000L, 5.0, 0.1), // long stay: 100 hours
       )
 
       forAll(cases) { (stayingTicks, storedEnergy, expectedPower) =>
@@ -73,13 +73,13 @@ class ConstantPowerChargingSpec
             10.0.asKiloWatt,
             10.0.asKiloWattHour,
             storedEnergy.asKiloWattHour,
-            offset + stayingTicks
+            offset + stayingTicks,
           )
         )
 
         val chargingMap = evcsModel.chargeWithConstantPower(
           offset,
-          Seq(ev)
+          Seq(ev),
         )
 
         chargingMap shouldBe Map(
@@ -87,7 +87,7 @@ class ConstantPowerChargingSpec
             ScheduleEntry(
               offset,
               offset + stayingTicks,
-              Kilowatts(expectedPower)
+              Kilowatts(expectedPower),
             )
           )
         )
@@ -109,7 +109,7 @@ class ConstantPowerChargingSpec
         (1800L, 5.0, 5.0), // more than max power, limited
         (3600L, 5.0, 5.0), // exactly max power
         (7200L, 5.0, 2.5), // less than max power
-        (180000L, 5.0, 0.1) // long stay: 100 hours
+        (180000L, 5.0, 0.1), // long stay: 100 hours
       )
 
       forAll(cases) { (stayingTicks, storedEnergy, expectedPower) =>
@@ -121,7 +121,7 @@ class ConstantPowerChargingSpec
             10.0.asKiloWatt,
             10.0.asKiloWattHour,
             5.0.asKiloWattHour,
-            offset + 3600L
+            offset + 3600L,
           )
         )
 
@@ -133,13 +133,13 @@ class ConstantPowerChargingSpec
             10.0.asKiloWatt,
             10.0.asKiloWattHour,
             storedEnergy.asKiloWattHour,
-            offset + stayingTicks
+            offset + stayingTicks,
           )
         )
 
         val chargingMap = evcsModel.chargeWithConstantPower(
           offset,
-          Seq(givenEv, ev)
+          Seq(givenEv, ev),
         )
 
         chargingMap shouldBe Map(
@@ -147,16 +147,16 @@ class ConstantPowerChargingSpec
             ScheduleEntry(
               offset,
               offset + 3600L,
-              Kilowatts(5.0)
+              Kilowatts(5.0),
             )
           ),
           ev.uuid -> SortedSet(
             ScheduleEntry(
               offset,
               offset + stayingTicks,
-              Kilowatts(expectedPower)
+              Kilowatts(expectedPower),
             )
-          )
+          ),
         )
       }
 
