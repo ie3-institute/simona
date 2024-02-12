@@ -63,7 +63,7 @@ class ParticipantAgent2ListenerSpec
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
 
   /* Assign this test to receive the result events from agent */
-  override val systemListener: Iterable[ActorRef] = Vector(self)
+  override val systemListener: Iterable[ActorRef] = Iterable(self)
 
   private val testUUID = UUID.randomUUID
   private val testID = "PartAgentExternalMock"
@@ -79,7 +79,7 @@ class ParticipantAgent2ListenerSpec
   when(mockInputModel.getUuid).thenReturn(testUUID)
   when(mockInputModel.getId).thenReturn(testID)
 
-  private val sources = None
+  private val services = Iterable.empty
 
   "A participant agent" should {
     val initStateData: NotifierConfig => ParticipantInitializeStateData[
@@ -94,7 +94,7 @@ class ParticipantAgent2ListenerSpec
       ](
         inputModel = mockInputModel,
         modelConfig = mock[BaseRuntimeConfig],
-        secondaryDataServices = sources,
+        secondaryDataServices = services,
         simulationStartDate = defaultSimulationStart,
         simulationEndDate = defaultSimulationEnd,
         resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
@@ -108,7 +108,8 @@ class ParticipantAgent2ListenerSpec
       /* Let the agent send announcements, when there is anew request reply */
       val outputConfig = NotifierConfig(
         simulationResultInfo = true,
-        powerRequestReply = false
+        powerRequestReply = false,
+        flexResult = false
       )
 
       val mockAgent = TestFSMRef(
@@ -124,7 +125,10 @@ class ParticipantAgent2ListenerSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(mockAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        mockAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped))
 
@@ -156,7 +160,8 @@ class ParticipantAgent2ListenerSpec
       /* Let the agent send announcements, when there is anew request reply */
       val outputConfig = NotifierConfig(
         simulationResultInfo = false,
-        powerRequestReply = false
+        powerRequestReply = false,
+        flexResult = false
       )
 
       val mockAgent = TestFSMRef(
@@ -172,7 +177,10 @@ class ParticipantAgent2ListenerSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(mockAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        mockAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped))
 
@@ -188,7 +196,8 @@ class ParticipantAgent2ListenerSpec
       /* Let the agent send announcements, when there is anew request reply */
       val outputConfig = NotifierConfig(
         simulationResultInfo = false,
-        powerRequestReply = true
+        powerRequestReply = true,
+        flexResult = false
       )
 
       val mockAgent = TestFSMRef(
@@ -204,7 +213,10 @@ class ParticipantAgent2ListenerSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(mockAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        mockAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped))
 
@@ -245,7 +257,8 @@ class ParticipantAgent2ListenerSpec
       /* Let the agent send announcements, when there is anew request reply */
       val outputConfig = NotifierConfig(
         simulationResultInfo = false,
-        powerRequestReply = false
+        powerRequestReply = false,
+        flexResult = false
       )
 
       val mockAgent = TestFSMRef(
@@ -261,7 +274,10 @@ class ParticipantAgent2ListenerSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(mockAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        mockAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref)
+      )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped))
 

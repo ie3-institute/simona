@@ -18,20 +18,25 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.exceptions.agent.ServiceRegistrationException
+import edu.ie3.simona.model.participant.{
+  CalcRelevantData,
+  ModelState,
+  SystemParticipant
+}
 import edu.ie3.simona.ontology.messages.services.EvMessage.RegisterForEvDataMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
 
 trait ServiceRegistration[
     PD <: PrimaryDataWithApparentPower[PD],
     CD <: CalcRelevantData,
+    MS <: ModelState,
     D <: ParticipantStateData[PD],
     I <: SystemParticipantInput,
     MC <: SimonaConfig.BaseRuntimeConfig,
-    M <: SystemParticipant[CD, PD]
+    M <: SystemParticipant[CD, PD, MS]
 ] {
-  this: ParticipantAgent[PD, CD, D, I, MC, M] =>
+  this: ParticipantAgent[PD, CD, MS, D, I, MC, M] =>
 
   /** Registers the agent for the needed services and collects all actor
     * references, with which the actor has been registered
@@ -41,19 +46,15 @@ trait ServiceRegistration[
     * @param services
     *   Definition of where to get what
     * @return
-    *   a vector of actor references to wait for responses
+    *   an iterable of actor references to wait for responses
     */
   def registerForServices(
       inputModel: I,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]]
-  ): Vector[ActorRef] =
-    services
-      .map(sources =>
-        sources.flatMap(service =>
-          registerForSecondaryService(service, inputModel)
-        )
-      )
-      .getOrElse(Vector.empty[ActorRef])
+      services: Iterable[SecondaryDataService[_ <: SecondaryData]]
+  ): Iterable[ActorRef] =
+    services.flatMap(service =>
+      registerForSecondaryService(service, inputModel)
+    )
 
   /** Register for the distinct secondary service
     *
@@ -79,12 +80,12 @@ trait ServiceRegistration[
         ActorPriceService
       )
       None
-    case ActorWeatherService(actorRef) =>
-      registerForWeather(actorRef, inputModel)
-      Some(actorRef)
-    case ActorEvMovementsService(actorRef) =>
-      registerForEvMovements(actorRef, inputModel)
-      Some(actorRef)
+    case ActorWeatherService(serviceRef) =>
+      registerForWeather(serviceRef, inputModel)
+      Some(serviceRef)
+    case ActorEvMovementsService(serviceRef) =>
+      registerForEvMovements(serviceRef, inputModel)
+      Some(serviceRef)
   }
 
   /** Register for the weather service
@@ -117,19 +118,19 @@ trait ServiceRegistration[
 
   /** Register for the EV movement service
     *
-    * @param actorRef
+    * @param serviceRef
     *   Actor reference of the EV movements service
     * @param inputModel
     *   Input model of the simulation mode
     * @return
     */
   private def registerForEvMovements(
-      actorRef: ActorRef,
+      serviceRef: ActorRef,
       inputModel: I
   ): Unit = {
     inputModel match {
       case evcsInput: EvcsInput =>
-        actorRef ! RegisterForEvDataMessage(evcsInput.getUuid)
+        serviceRef ! RegisterForEvDataMessage(evcsInput.getUuid)
       case _ =>
         throw new ServiceRegistrationException(
           s"Cannot register for EV movements information at node ${inputModel.getNode.getId} " +

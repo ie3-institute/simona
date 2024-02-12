@@ -21,7 +21,6 @@ import squants.thermal.*
 import squants.time.*
 
 
-
 class ThermalHouseTest extends Specification {
 
   @Shared
@@ -49,21 +48,21 @@ class ThermalHouseTest extends Specification {
     when:
     Temperature innerTemp = Sq.create(innerTemperature, Celsius$.MODULE$)
     def isHigher = thermalHouse.isInnerTemperatureTooHigh(innerTemp)
-    def isLower = thermalHouse.isInnerTemperatureTooLow(innerTemp)
+    def isLower = thermalHouse.isInnerTemperatureTooLow(innerTemp, thermalHouse.lowerBoundaryTemperature())
 
     then:
     isHigher == isTooHigh
     isLower == isTooLow
 
     where:
-    innerTemperature         || isTooHigh | isTooLow
-    17d                      || false     | true
-    17.98d                   || false     | true
-    18d                      || false     | true
-    20d                      || false     | false
-    22d                      || true      | false
-    22.02d                   || true      | false
-    23d                      || true      | false
+    innerTemperature || isTooHigh | isTooLow
+    17d              || false     | true
+    17.98d           || false     | true
+    18d              || false     | true
+    20d              || false     | false
+    22d              || true      | false
+    22.02d           || true      | false
+    23d              || true      | false
   }
 
   def "Calculation of thermal energy change and new inner temperature is performed correctly"() {
@@ -79,11 +78,11 @@ class ThermalHouseTest extends Specification {
     def newInnerTemperature = thermalHouse.calcNewInnerTemperature(innerTemperature, innerTemperatureChange)
 
     then:
-    Sq.create(100d, KilowattHours$.MODULE$) - thermalEnergyGain < Sq.create(TOLERANCE, KilowattHours$.MODULE$)
-    Sq.create(10d, KilowattHours$.MODULE$) - thermalEnergyLoss < Sq.create(TOLERANCE, KilowattHours$.MODULE$)
-    Sq.create(90d, KilowattHours$.MODULE$) - thermalEnergyChange < Sq.create(TOLERANCE, KilowattHours$.MODULE$)
-    Sq.create(9d, Kelvin$.MODULE$) - innerTemperatureChange < Sq.create(TOLERANCE, Kelvin$.MODULE$)
-    Sq.create(29d, Celsius$.MODULE$) - newInnerTemperature < Sq.create(TOLERANCE, Celsius$.MODULE$)
+    Math.abs(100d - thermalEnergyGain.toKilowattHours()) < TOLERANCE
+    Math.abs(10d - thermalEnergyLoss.toKilowattHours()) < TOLERANCE
+    Math.abs(90d - thermalEnergyChange.toKilowattHours()) < TOLERANCE
+    Math.abs(9d - innerTemperatureChange.toKelvinScale()) < TOLERANCE
+    Math.abs(29d - newInnerTemperature.toCelsiusScale()) < TOLERANCE
   }
 
   def "Comprising function to calculate new inner temperature works as expected"() {
@@ -122,7 +121,7 @@ class ThermalHouseTest extends Specification {
     thermalHouse.operatorInput() == thermalHouseInput.operator
     thermalHouse.operationTime() == thermalHouseInput.operationTime
     thermalHouse.bus() == thermalHouseInput.thermalBus
-    thermalHouse.ethLosses().value().doubleValue() == thermalHouseInput.ethLosses.to(KILOWATT_PER_KELVIN).value.doubleValue() * 1000
+    thermalHouse.ethLosses().toWattsPerKelvin() == thermalHouseInput.ethLosses.to(KILOWATT_PER_KELVIN).value.doubleValue() * 1000
     (thermalHouse.ethCapa().$times(Sq.create(1d, Kelvin$.MODULE$))).toKilowattHours() == thermalHouseInput.ethCapa.to(KILOWATTHOUR_PER_KELVIN).value.doubleValue()
     thermalHouse.lowerBoundaryTemperature() == Sq.create(18, Celsius$.MODULE$)
     thermalHouse.upperBoundaryTemperature() == Sq.create(22, Celsius$.MODULE$)

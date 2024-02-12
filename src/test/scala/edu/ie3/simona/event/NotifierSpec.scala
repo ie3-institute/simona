@@ -24,7 +24,6 @@ import edu.ie3.simona.test.common.TestKitWithShutdown
 import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier._
 import edu.ie3.simona.util.EntityMapperUtil
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpecLike
 
 import scala.concurrent.duration._
 import scala.language.postfixOps

@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Output of accompanying thermal result models
 - Added JDK installation, Scala Plugin + SDK in usersguide [#324](https://github.com/ie3-institute/simona/issues/324)
 - Squants scalatest matchers [#715](https://github.com/ie3-institute/simona/issues/715)
+- Energy Management capabilities:
+  - Added capability of SystemParticipants to handle flexibility [#308](https://github.com/ie3-institute/simona/issues/308)
+  - Added smart charging logic [#31](https://github.com/ie3-institute/simona/issues/31) and flex calculation in `EvcsAgent` [#332](https://github.com/ie3-institute/simona/issues/332)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -40,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed `CsvDataSourceAdapter` workaround [#702](https://github.com/ie3-institute/simona/issues/702)
 - Logging wrong duration in the first simulation hour [#705](https://github.com/ie3-institute/simona/issues/705)
 - Fixed some compiler warnings [#657](https://github.com/ie3-institute/simona/issues/657)
+- Fixing false negative in ref system voltage validation [#706](https://github.com/ie3-institute/simona/issues/706)
 
 ## [3.0.0] - 2023-08-07
 

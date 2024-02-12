@@ -687,17 +687,20 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             SimonaConfig.ParticipantBaseOutputConfig(
               notifier = "load",
               powerRequestReply = true,
-              simulationResult = false
+              simulationResult = false,
+              flexResult = false
             ),
             SimonaConfig.ParticipantBaseOutputConfig(
               notifier = "pv",
               powerRequestReply = true,
-              simulationResult = false
+              simulationResult = false,
+              flexResult = false
             ),
             SimonaConfig.ParticipantBaseOutputConfig(
               notifier = "chp",
               powerRequestReply = true,
-              simulationResult = false
+              simulationResult = false,
+              flexResult = false
             )
           )
 
@@ -713,17 +716,20 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             SimonaConfig.ParticipantBaseOutputConfig(
               notifier = "load",
               powerRequestReply = true,
-              simulationResult = false
+              simulationResult = false,
+              flexResult = false
             ),
             SimonaConfig.ParticipantBaseOutputConfig(
               notifier = "pv",
               powerRequestReply = true,
-              simulationResult = false
+              simulationResult = false,
+              flexResult = false
             ),
             SimonaConfig.ParticipantBaseOutputConfig(
               notifier = "load",
               powerRequestReply = false,
-              simulationResult = true
+              simulationResult = true,
+              flexResult = false
             )
           )
 
