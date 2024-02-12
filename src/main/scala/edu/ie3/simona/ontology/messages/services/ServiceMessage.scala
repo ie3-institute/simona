@@ -51,7 +51,7 @@ case object ServiceMessage {
       */
     final case class RegistrationSuccessfulMessage(
         override val serviceRef: ActorRef,
-        nextDataTick: Option[Long]
+        nextDataTick: Option[Long],
     ) extends RegistrationResponseMessage
 
     /** Message, that is used to announce a failed registration
@@ -62,7 +62,7 @@ case object ServiceMessage {
 
     final case class ScheduleServiceActivation(
         tick: Long,
-        unlockKey: ScheduleKey
+        unlockKey: ScheduleKey,
     )
   }
 

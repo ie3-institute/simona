@@ -14,7 +14,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessage.{
   ActivationAdapter,
   CreateGridAgent,
   FinishGridSimulationTrigger,
-  PMAdapter
+  PMAdapter,
 }
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.event.listener.ResultEventListener.ResultMessage
@@ -22,11 +22,11 @@ import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   ProvideGridPowerMessage,
-  RequestGridPowerMessage
+  RequestGridPowerMessage,
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
@@ -37,7 +37,7 @@ import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.Megavars
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
-  TestProbe
+  TestProbe,
 }
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
@@ -73,7 +73,7 @@ class DBFSAlgorithmSupGridSpec
     runtimeEventListener = runtimeEvents.ref.toClassic,
     primaryServiceProxy = primaryService.ref.toClassic,
     weather = weatherService.ref.toClassic,
-    evDataService = None
+    evDataService = None,
   )
 
   val resultListener: TestProbe[ResultMessage] =
@@ -84,7 +84,7 @@ class DBFSAlgorithmSupGridSpec
       GridAgent(
         environmentRefs,
         simonaConfig,
-        listener = Iterable(resultListener.ref.toClassic)
+        listener = Iterable(resultListener.ref.toClassic),
       )
     )
 
@@ -97,7 +97,7 @@ class DBFSAlgorithmSupGridSpec
           ehvGridContainer,
           Seq.empty[ThermalGrid],
           subnetGatesToActorRef,
-          RefSystem("5000 MVA", "380 kV")
+          RefSystem("5000 MVA", "380 kV"),
         )
 
       val key =
@@ -160,7 +160,7 @@ class DBFSAlgorithmSupGridSpec
                 ExchangePower(
                   uuid,
                   Megawatts(0.0),
-                  Megavars(0.0)
+                  Megavars(0.0),
                 )
               }
             )
@@ -224,24 +224,24 @@ class DBFSAlgorithmSupGridSpec
           Array(
             (
               Megawatts(0.0),
-              Megavars(0.0)
+              Megavars(0.0),
             ),
             (
               Megawatts(0.1),
-              Megavars(0.1)
+              Megavars(0.1),
             ),
             (
               Megawatts(0.0),
-              Megavars(0.1)
+              Megavars(0.1),
             ),
             (
               Megawatts(0.0),
-              Megavars(0.0)
+              Megavars(0.0),
             ),
             (
               Megawatts(0.0),
-              Megavars(0.0)
-            )
+              Megavars(0.0),
+            ),
           )
 
         // bring agent in simulate grid state
@@ -284,7 +284,7 @@ class DBFSAlgorithmSupGridSpec
                 ExchangePower(
                   uuid,
                   deviations(sweepNo)._1,
-                  deviations(sweepNo)._2
+                  deviations(sweepNo)._2,
                 )
               }
             )

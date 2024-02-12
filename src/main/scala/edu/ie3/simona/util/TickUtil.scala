@@ -45,7 +45,7 @@ object TickUtil {
     /** Calculate the length for the time interval */
     def durationUntil(
         otherTick: Long,
-        tickDuration: Time = Seconds(1d)
+        tickDuration: Time = Seconds(1d),
     ): Time =
       tickDuration * (otherTick - tick).toDouble
 

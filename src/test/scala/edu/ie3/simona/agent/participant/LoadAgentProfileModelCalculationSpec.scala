@@ -21,7 +21,7 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   ParticipantInitializeStateData,
   ParticipantInitializingStateData,
   ParticipantUninitializedStateData,
-  SimpleInputContainer
+  SimpleInputContainer,
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
@@ -33,7 +33,7 @@ import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage
+  RequestAssetPowerMessage,
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
@@ -58,7 +58,7 @@ class LoadAgentProfileModelCalculationSpec
           .parseString("""
             |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
             |pekko.loglevel="DEBUG"
-        """.stripMargin)
+        """.stripMargin),
       )
     )
     with LoadTestData
@@ -75,12 +75,12 @@ class LoadAgentProfileModelCalculationSpec
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
       LoadModelBehaviour.PROFILE,
-      LoadReference.ActivePower(Kilowatts(0d))
+      LoadReference.ActivePower(Kilowatts(0d)),
     )
   private val defaultOutputConfig = NotifierConfig(
     simonaConfig.simona.output.participant.defaultConfig.simulationResult,
     simonaConfig.simona.output.participant.defaultConfig.powerRequestReply,
-    simonaConfig.simona.output.participant.defaultConfig.flexResult
+    simonaConfig.simona.output.participant.defaultConfig.flexResult,
   )
   private val loadConfigUtil = ConfigUtil.ParticipantConfigUtil(
     simonaConfig.simona.runtime.participant
@@ -99,7 +99,7 @@ class LoadAgentProfileModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       LoadInput,
       LoadRuntimeConfig,
-      ApparentPower
+      ApparentPower,
     ](
       inputModel = voltageSensitiveInput,
       modelConfig = modelConfig,
@@ -110,7 +110,7 @@ class LoadAgentProfileModelCalculationSpec
       requestVoltageDeviationThreshold =
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
-      primaryServiceProxy = primaryServiceProxy.ref
+      primaryServiceProxy = primaryServiceProxy.ref,
     )
 
     "be instantiated correctly" in {
@@ -118,7 +118,7 @@ class LoadAgentProfileModelCalculationSpec
         new ProfileLoadAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -138,7 +138,7 @@ class LoadAgentProfileModelCalculationSpec
         new ProfileLoadAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -159,7 +159,7 @@ class LoadAgentProfileModelCalculationSpec
               resolution,
               requestVoltageDeviationThreshold,
               outputConfig,
-              maybeEmAgent
+              maybeEmAgent,
             ) =>
           inputModel shouldBe SimpleInputContainer(voltageSensitiveInput)
           modelConfig shouldBe modelConfig
@@ -177,7 +177,7 @@ class LoadAgentProfileModelCalculationSpec
       /* Refuse registration */
       primaryServiceProxy.send(
         loadAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       /* Expect a completion notification */
@@ -200,7 +200,7 @@ class LoadAgentProfileModelCalculationSpec
               requestValueStore,
               _,
               _,
-              _
+              _,
             ) =>
           /* Base state data */
           startDate shouldBe simulationStartDate
@@ -212,7 +212,7 @@ class LoadAgentProfileModelCalculationSpec
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
-            SortedMap(0L -> Each(1.0))
+            SortedMap(0L -> Each(1.0)),
           )
           resultValueStore shouldBe ValueStore(resolution)
           requestValueStore shouldBe ValueStore[ApparentPower](
@@ -230,7 +230,7 @@ class LoadAgentProfileModelCalculationSpec
         new ProfileLoadAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -240,7 +240,7 @@ class LoadAgentProfileModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         loadAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -252,12 +252,12 @@ class LoadAgentProfileModelCalculationSpec
       loadAgent ! RequestAssetPowerMessage(
         0L,
         Each(1d),
-        Each(0d)
+        Each(0d),
       )
       expectMsg(
         AssetPowerChangedMessage(
           Megawatts(0d),
-          Megavars(0d)
+          Megavars(0d),
         )
       )
 
@@ -270,9 +270,9 @@ class LoadAgentProfileModelCalculationSpec
             SortedMap(
               0L -> ApparentPower(
                 Megawatts(0d),
-                Megavars(0d)
+                Megavars(0d),
               )
-            )
+            ),
           )
         case _ =>
           fail(
@@ -286,7 +286,7 @@ class LoadAgentProfileModelCalculationSpec
         new ProfileLoadAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -296,7 +296,7 @@ class LoadAgentProfileModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         loadAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       /* I am not interested in the CompletionMessage */
@@ -336,7 +336,7 @@ class LoadAgentProfileModelCalculationSpec
       new ProfileLoadAgent(
         scheduler = scheduler.ref,
         initStateData = initStateData,
-        listener = systemListener
+        listener = systemListener,
       )
     )
 
@@ -348,7 +348,7 @@ class LoadAgentProfileModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         loadAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       scheduler.expectMsg(Completion(loadAgent.toTyped, Some(0)))
@@ -366,7 +366,7 @@ class LoadAgentProfileModelCalculationSpec
       loadAgent ! RequestAssetPowerMessage(
         1800L,
         Each(1d),
-        Each(0d)
+        Each(0d),
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -382,7 +382,7 @@ class LoadAgentProfileModelCalculationSpec
       loadAgent ! RequestAssetPowerMessage(
         1800L,
         Each(1.000000000000001d),
-        Each(0d)
+        Each(0d),
       )
 
       /* Expect, that nothing has changed */
@@ -398,7 +398,7 @@ class LoadAgentProfileModelCalculationSpec
       loadAgent ! RequestAssetPowerMessage(
         1800L,
         Each(0.98),
-        Each(0)
+        Each(0),
       )
 
       /* Expect, the correct values (this model has fixed power factor) */

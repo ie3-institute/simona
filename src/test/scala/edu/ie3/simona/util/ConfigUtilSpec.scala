@@ -11,7 +11,7 @@ import edu.ie3.datamodel.models.result.connector.{
   LineResult,
   SwitchResult,
   Transformer2WResult,
-  Transformer3WResult
+  Transformer3WResult,
 }
 import edu.ie3.datamodel.models.result.system.{ChpResult, LoadResult}
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
@@ -25,7 +25,7 @@ import edu.ie3.simona.util.ConfigUtil.{
   GridOutputConfigUtil,
   NotifierIdentifier,
   ParticipantConfigUtil,
-  OutputConfigUtil
+  OutputConfigUtil,
 }
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor2}
 
@@ -67,7 +67,7 @@ class ConfigUtilSpec
                   scaling,
                   uuids,
                   modelBehaviour,
-                  reference
+                  reference,
                 )
               ) =>
             calculateMissingReactivePowerWithModel shouldBe false
@@ -126,7 +126,7 @@ class ConfigUtilSpec
                   scaling,
                   uuids,
                   modelBehaviour,
-                  reference
+                  reference,
                 )
               ) =>
             calculateMissingReactivePowerWithModel shouldBe false
@@ -242,7 +242,7 @@ class ConfigUtilSpec
           1.3,
           List("49f250fa-41ff-4434-a083-79c98d260a76"),
           "profile",
-          "power"
+          "power",
         )
       actual.getOrDefault[LoadRuntimeConfig](
         UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
@@ -252,7 +252,7 @@ class ConfigUtilSpec
           1.5,
           List("fb8f1443-1843-4ecd-a94a-59be8148397f"),
           "random",
-          "energy"
+          "energy",
         )
     }
   }
@@ -286,7 +286,7 @@ class ConfigUtilSpec
                 FixedFeedInRuntimeConfig(
                   calculateMissingReactivePowerWithModel,
                   scaling,
-                  uuids
+                  uuids,
                 )
               ) =>
             calculateMissingReactivePowerWithModel shouldBe false
@@ -337,7 +337,7 @@ class ConfigUtilSpec
                 FixedFeedInRuntimeConfig(
                   calculateMissingReactivePowerWithModel,
                   scaling,
-                  uuids
+                  uuids,
                 )
               ) =>
             calculateMissingReactivePowerWithModel shouldBe false
@@ -439,7 +439,7 @@ class ConfigUtilSpec
         FixedFeedInRuntimeConfig(
           calculateMissingReactivePowerWithModel = false,
           1.3,
-          List("49f250fa-41ff-4434-a083-79c98d260a76")
+          List("49f250fa-41ff-4434-a083-79c98d260a76"),
         )
       actual.getOrDefault[FixedFeedInRuntimeConfig](
         UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
@@ -447,7 +447,7 @@ class ConfigUtilSpec
         FixedFeedInRuntimeConfig(
           calculateMissingReactivePowerWithModel = false,
           1.5,
-          List("fb8f1443-1843-4ecd-a94a-59be8148397f")
+          List("fb8f1443-1843-4ecd-a94a-59be8148397f"),
         )
     }
   }
@@ -538,7 +538,7 @@ class ConfigUtilSpec
         FixedFeedInRuntimeConfig(
           calculateMissingReactivePowerWithModel = false,
           1.0,
-          List("default")
+          List("default"),
         )
 
       // return default if a request for load is done, but fixed feed is found
@@ -550,7 +550,7 @@ class ConfigUtilSpec
           1.0,
           List("default"),
           "profile",
-          "power"
+          "power",
         )
 
       // return default if a request for pv is done, but fixed feed is found
@@ -560,7 +560,7 @@ class ConfigUtilSpec
         PvRuntimeConfig(
           calculateMissingReactivePowerWithModel = false,
           1.0,
-          List("default")
+          List("default"),
         )
     }
   }
@@ -572,27 +572,27 @@ class ConfigUtilSpec
           ("config", "expected"),
           (
             new GridOutputConfig(false, false, "grid", false, false, false),
-            Set.empty[Class[_ <: ResultEntity]]
+            Set.empty[Class[_ <: ResultEntity]],
           ),
           (
             new GridOutputConfig(true, false, "grid", false, false, false),
-            Set(classOf[LineResult])
+            Set(classOf[LineResult]),
           ),
           (
             new GridOutputConfig(false, true, "grid", false, false, false),
-            Set(classOf[NodeResult])
+            Set(classOf[NodeResult]),
           ),
           (
             new GridOutputConfig(false, false, "grid", true, false, false),
-            Set(classOf[SwitchResult])
+            Set(classOf[SwitchResult]),
           ),
           (
             new GridOutputConfig(false, false, "grid", false, true, false),
-            Set(classOf[Transformer2WResult])
+            Set(classOf[Transformer2WResult]),
           ),
           (
             new GridOutputConfig(false, false, "grid", false, false, true),
-            Set(classOf[Transformer3WResult])
+            Set(classOf[Transformer3WResult]),
           ),
           (
             new GridOutputConfig(true, true, "grid", true, true, true),
@@ -601,9 +601,9 @@ class ConfigUtilSpec
               classOf[NodeResult],
               classOf[SwitchResult],
               classOf[Transformer2WResult],
-              classOf[Transformer3WResult]
-            )
-          )
+              classOf[Transformer3WResult],
+            ),
+          ),
         )
 
       forAll(ddt) {
@@ -621,28 +621,28 @@ class ConfigUtilSpec
         notifier = "default",
         powerRequestReply = false,
         simulationResult = false,
-        flexResult = false
+        flexResult = false,
       ),
       List(
         SimonaConfig.ParticipantBaseOutputConfig(
           notifier = "load",
           powerRequestReply = false,
           simulationResult = false,
-          flexResult = false
+          flexResult = false,
         ),
         SimonaConfig.ParticipantBaseOutputConfig(
           notifier = "pv",
           powerRequestReply = false,
           simulationResult = false,
-          flexResult = false
+          flexResult = false,
         ),
         SimonaConfig.ParticipantBaseOutputConfig(
           notifier = "chp",
           powerRequestReply = false,
           simulationResult = false,
-          flexResult = false
-        )
-      )
+          flexResult = false,
+        ),
+      ),
     )
 
     "build the correct map on valid input" in {
@@ -651,24 +651,24 @@ class ConfigUtilSpec
         default shouldBe NotifierConfig(
           simulationResultInfo = false,
           powerRequestReply = false,
-          flexResult = false
+          flexResult = false,
         )
         configs shouldBe Map(
           Load -> NotifierConfig(
             simulationResultInfo = false,
             powerRequestReply = false,
-            flexResult = false
+            flexResult = false,
           ),
           PvPlant -> NotifierConfig(
             simulationResultInfo = false,
             powerRequestReply = false,
-            flexResult = false
+            flexResult = false,
           ),
           ChpPlant -> NotifierConfig(
             simulationResultInfo = false,
             powerRequestReply = false,
-            flexResult = false
-          )
+            flexResult = false,
+          ),
         )
       }
     }
@@ -679,7 +679,7 @@ class ConfigUtilSpec
       actual shouldBe NotifierConfig(
         simulationResultInfo = false,
         powerRequestReply = false,
-        flexResult = false
+        flexResult = false,
       )
     }
 
@@ -687,7 +687,7 @@ class ConfigUtilSpec
       configUtil.getOrDefault(Wec) shouldBe NotifierConfig(
         simulationResultInfo = false,
         powerRequestReply = false,
-        flexResult = false
+        flexResult = false,
       )
     }
 
@@ -697,28 +697,28 @@ class ConfigUtilSpec
           notifier = "default",
           powerRequestReply = false,
           simulationResult = true,
-          flexResult = false
+          flexResult = false,
         ),
         List(
           SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "load",
             powerRequestReply = true,
             simulationResult = true,
-            flexResult = false
+            flexResult = false,
           ),
           SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "pv",
             powerRequestReply = true,
             simulationResult = false,
-            flexResult = false
+            flexResult = false,
           ),
           SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "chp",
             powerRequestReply = true,
             simulationResult = true,
-            flexResult = false
-          )
-        )
+            flexResult = false,
+          ),
+        ),
       )
       val configUtil = OutputConfigUtil(inputConfig)
       val expectedResult: Set[Value] = NotifierIdentifier.values -- Vector(
@@ -734,28 +734,28 @@ class ConfigUtilSpec
           notifier = "default",
           powerRequestReply = false,
           simulationResult = false,
-          flexResult = false
+          flexResult = false,
         ),
         List(
           SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "load",
             powerRequestReply = true,
             simulationResult = true,
-            flexResult = false
+            flexResult = false,
           ),
           SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "pv",
             powerRequestReply = true,
             simulationResult = false,
-            flexResult = false
+            flexResult = false,
           ),
           SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "chp",
             powerRequestReply = true,
             simulationResult = true,
-            flexResult = false
-          )
-        )
+            flexResult = false,
+          ),
+        ),
       )
       val configUtil = OutputConfigUtil(inputConfig)
       val expectedResult: Set[Value] =
@@ -770,28 +770,28 @@ class ConfigUtilSpec
           notifier = "default",
           powerRequestReply = false,
           simulationResult = false,
-          flexResult = false
+          flexResult = false,
         ),
         List(
           SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "load",
             powerRequestReply = true,
             simulationResult = true,
-            flexResult = false
+            flexResult = false,
           ),
           SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "pv",
             powerRequestReply = true,
             simulationResult = false,
-            flexResult = false
+            flexResult = false,
           ),
           SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "chp",
             powerRequestReply = true,
             simulationResult = true,
-            flexResult = false
-          )
-        )
+            flexResult = false,
+          ),
+        ),
       )
       val configUtil = OutputConfigUtil(inputConfig)
       val expectedResult: Set[Class[_ <: ResultEntity]] =
@@ -810,9 +810,9 @@ class ConfigUtilSpec
             0,
             "-not-a-uuid-",
             "https://reg:123",
-            "topic"
+            "topic",
           ),
-          Seq("topic")
+          Seq("topic"),
         )
       }.getMessage shouldBe "The UUID '-not-a-uuid-' cannot be parsed as it is invalid."
     }
@@ -825,9 +825,9 @@ class ConfigUtilSpec
             0,
             "00000000-0000-0000-0000-000000000000",
             "https://reg:123",
-            "topic"
+            "topic",
           ),
-          Seq("topic")
+          Seq("topic"),
         )
       }.getMessage shouldBe "Exception creating kafka client for broker not#a#server."
     }
@@ -840,9 +840,9 @@ class ConfigUtilSpec
             0,
             "00000000-0000-0000-0000-000000000000",
             "https://reg:123",
-            "topic"
+            "topic",
           ),
-          Seq("topic")
+          Seq("topic"),
         )
       }.getMessage shouldBe "Connection with kafka broker localhost:12345 failed."
     }

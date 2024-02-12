@@ -19,7 +19,7 @@ import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
@@ -29,7 +29,7 @@ import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.test.common.{
   EvTestData,
   TestKitWithShutdown,
-  TestSpawnerClassic
+  TestSpawnerClassic,
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -48,7 +48,7 @@ class ExtEvDataServiceSpec
           .parseString("""
         |pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
         |pekko.loglevel = "INFO"
-        |""".stripMargin)
+        |""".stripMargin),
       )
     )
     with AnyWordSpecLike
@@ -61,7 +61,7 @@ class ExtEvDataServiceSpec
   private val extEvData = (dataService: ActorRef) =>
     new ExtEvData(
       dataService,
-      extSimAdapter.ref
+      extSimAdapter.ref,
     )
 
   private val evcs1UUID =
@@ -79,7 +79,7 @@ class ExtEvDataServiceSpec
 
       scheduler.send(
         evService,
-        SimonaService.Create(InitExtEvData(extEvData(evService)), key)
+        SimonaService.Create(InitExtEvData(extEvData(evService)), key),
       )
       scheduler.expectMsg(
         ScheduleActivation(evService.toTyped, INIT_SIM_TICK, Some(key))
@@ -106,7 +106,7 @@ class ExtEvDataServiceSpec
 
       scheduler.send(
         evService,
-        SimonaService.Create(InitExtEvData(extEvData(evService)), key)
+        SimonaService.Create(InitExtEvData(extEvData(evService)), key),
       )
       scheduler.expectMsg(
         ScheduleActivation(evService.toTyped, INIT_SIM_TICK, Some(key))
@@ -130,7 +130,7 @@ class ExtEvDataServiceSpec
 
       scheduler.send(
         evService,
-        SimonaService.Create(InitExtEvData(extEvData(evService)), key)
+        SimonaService.Create(InitExtEvData(extEvData(evService)), key),
       )
       scheduler.expectMsgType[ScheduleActivation]
 
@@ -161,7 +161,7 @@ class ExtEvDataServiceSpec
 
       scheduler.send(
         evService,
-        SimonaService.Create(InitExtEvData(extEvData(evService)), key)
+        SimonaService.Create(InitExtEvData(extEvData(evService)), key),
       )
       scheduler.expectMsg(
         ScheduleActivation(evService.toTyped, INIT_SIM_TICK, Some(key))
@@ -174,7 +174,7 @@ class ExtEvDataServiceSpec
       assertThrows[ServiceException] {
         evService.receive(
           Activation(0),
-          scheduler.ref
+          scheduler.ref,
         )
       }
 
@@ -192,7 +192,7 @@ class ExtEvDataServiceSpec
 
       scheduler.send(
         evService,
-        SimonaService.Create(InitExtEvData(extData), key)
+        SimonaService.Create(InitExtEvData(extData), key),
       )
       scheduler.expectMsgType[ScheduleActivation]
 
@@ -238,8 +238,8 @@ class ExtEvDataServiceSpec
         evService,
         FreeLotsResponse(
           evcs1UUID,
-          2
-        )
+          2,
+        ),
       )
 
       // nothing should happen yet, waiting for second departed ev
@@ -249,8 +249,8 @@ class ExtEvDataServiceSpec
         evService,
         FreeLotsResponse(
           evcs2UUID,
-          0
-        )
+          0,
+        ),
       )
 
       // ev service should recognize that all evcs that are expected are returned,
@@ -258,7 +258,7 @@ class ExtEvDataServiceSpec
       awaitCond(
         !extData.receiveTriggerQueue.isEmpty,
         max = 3.seconds,
-        message = "No message received"
+        message = "No message received",
       )
       extData.receiveTriggerQueue.size() shouldBe 1
       // only evcs 1 should be included, the other one is full
@@ -278,7 +278,7 @@ class ExtEvDataServiceSpec
 
       scheduler.send(
         evService,
-        SimonaService.Create(InitExtEvData(extData), key)
+        SimonaService.Create(InitExtEvData(extData), key),
       )
       scheduler.expectMsgType[ScheduleActivation]
 
@@ -302,7 +302,7 @@ class ExtEvDataServiceSpec
       awaitCond(
         !extData.receiveTriggerQueue.isEmpty,
         max = 3.seconds,
-        message = "No message received"
+        message = "No message received",
       )
       extData.receiveTriggerQueue.size() shouldBe 1
       extData.receiveTriggerQueue.take() shouldBe new ProvideEvcsFreeLots()
@@ -319,7 +319,7 @@ class ExtEvDataServiceSpec
 
       scheduler.send(
         evService,
-        SimonaService.Create(InitExtEvData(extData), key)
+        SimonaService.Create(InitExtEvData(extData), key),
       )
       scheduler.expectMsgType[ScheduleActivation]
 
@@ -337,7 +337,7 @@ class ExtEvDataServiceSpec
 
       val departures = Map(
         evcs1UUID -> List(evA.getUuid).asJava,
-        evcs2UUID -> List(evB.getUuid).asJava
+        evcs2UUID -> List(evB.getUuid).asJava,
       ).asJava
 
       extData.sendExtMsg(
@@ -369,7 +369,7 @@ class ExtEvDataServiceSpec
 
       evcs1.send(
         evService,
-        DepartingEvsResponse(evcs1UUID, Seq(EvModelWrapper(updatedEvA)))
+        DepartingEvsResponse(evcs1UUID, Seq(EvModelWrapper(updatedEvA))),
       )
 
       // nothing should happen yet, waiting for second departed ev
@@ -381,7 +381,7 @@ class ExtEvDataServiceSpec
 
       evcs2.send(
         evService,
-        DepartingEvsResponse(evcs2UUID, Seq(EvModelWrapper(updatedEvB)))
+        DepartingEvsResponse(evcs2UUID, Seq(EvModelWrapper(updatedEvB))),
       )
 
       // ev service should recognize that all evs that are expected are returned,
@@ -389,7 +389,7 @@ class ExtEvDataServiceSpec
       awaitCond(
         !extData.receiveTriggerQueue.isEmpty,
         max = 3.seconds,
-        message = "No message received"
+        message = "No message received",
       )
       extData.receiveTriggerQueue.size() shouldBe 1
       extData.receiveTriggerQueue.take() shouldBe new ProvideDepartingEvs(
@@ -408,7 +408,7 @@ class ExtEvDataServiceSpec
 
       scheduler.send(
         evService,
-        SimonaService.Create(InitExtEvData(extData), key)
+        SimonaService.Create(InitExtEvData(extData), key),
       )
       scheduler.expectMsgType[ScheduleActivation]
 
@@ -434,7 +434,7 @@ class ExtEvDataServiceSpec
       awaitCond(
         !extData.receiveTriggerQueue.isEmpty,
         max = 3.seconds,
-        message = "No message received"
+        message = "No message received",
       )
       extData.receiveTriggerQueue.size() shouldBe 1
       extData.receiveTriggerQueue.take() shouldBe new ProvideDepartingEvs(
@@ -453,7 +453,7 @@ class ExtEvDataServiceSpec
 
       scheduler.send(
         evService,
-        SimonaService.Create(InitExtEvData(extData), key)
+        SimonaService.Create(InitExtEvData(extData), key),
       )
       scheduler.expectMsgType[ScheduleActivation]
 
@@ -471,7 +471,7 @@ class ExtEvDataServiceSpec
 
       val arrivals = Map(
         evcs1UUID -> List[EvModel](evA).asJava,
-        evcs2UUID -> List[EvModel](evB).asJava
+        evcs2UUID -> List[EvModel](evB).asJava,
       ).asJava
 
       extData.sendExtMsg(
@@ -516,7 +516,7 @@ class ExtEvDataServiceSpec
 
       scheduler.send(
         evService,
-        SimonaService.Create(InitExtEvData(extData), key)
+        SimonaService.Create(InitExtEvData(extData), key),
       )
       scheduler.expectMsgType[ScheduleActivation]
 
@@ -530,7 +530,7 @@ class ExtEvDataServiceSpec
 
       val arrivals = Map(
         evcs1UUID -> List[EvModel](evA).asJava,
-        evcs2UUID -> List[EvModel](evB).asJava
+        evcs2UUID -> List[EvModel](evB).asJava,
       ).asJava
 
       extData.sendExtMsg(

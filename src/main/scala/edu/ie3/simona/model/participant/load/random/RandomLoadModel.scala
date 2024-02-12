@@ -55,7 +55,7 @@ final case class RandomLoadModel(
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double,
-    reference: LoadReference
+    reference: LoadReference,
 ) extends LoadModel[RandomRelevantData](
       uuid,
       id,
@@ -63,7 +63,7 @@ final case class RandomLoadModel(
       scalingFactor,
       qControl,
       sRated,
-      cosPhiRated
+      cosPhiRated,
     ) {
 
   private lazy val energyReferenceScalingFactor = reference match {
@@ -91,7 +91,7 @@ final case class RandomLoadModel(
   @tailrec
   override protected def calculateActivePower(
       modelState: ConstantState.type,
-      data: RandomRelevantData
+      data: RandomRelevantData,
   ): Power = {
     val gev = getGevDistribution(data.date)
 
@@ -130,7 +130,7 @@ final case class RandomLoadModel(
      * available, yet, instantiate one. */
     val key: GevKey = (
       DayType(dateTime.getDayOfWeek),
-      TimeUtil.withDefaults.getQuarterHourOfDay(dateTime)
+      TimeUtil.withDefaults.getQuarterHourOfDay(dateTime),
     )
     gevStorage.get(key) match {
       case Some(foundIt) => foundIt
@@ -142,7 +142,7 @@ final case class RandomLoadModel(
           gevParameters.my,
           gevParameters.sigma,
           gevParameters.k,
-          randomFactory
+          randomFactory,
         )
         gevStorage += (key -> newGev)
         newGev
@@ -180,7 +180,7 @@ object RandomLoadModel {
       input: LoadInput,
       operationInterval: OperationInterval,
       scalingFactor: Double,
-      reference: LoadReference
+      reference: LoadReference,
   ): RandomLoadModel = {
     val model = reference match {
       case ActivePower(power) =>
@@ -195,7 +195,7 @@ object RandomLoadModel {
           QControl.apply(input.getqCharacteristics()),
           sRatedPowerScaled,
           input.getCosPhiRated,
-          reference
+          reference,
         )
       case EnergyConsumption(energyConsumption) =>
         val sRatedEnergy = LoadModel.scaleSRatedEnergy(
@@ -203,7 +203,7 @@ object RandomLoadModel {
           energyConsumption,
           randomMaxPower,
           randomProfileEnergyScaling,
-          1.1
+          1.1,
         )
 
         RandomLoadModel(
@@ -214,7 +214,7 @@ object RandomLoadModel {
           QControl.apply(input.getqCharacteristics()),
           sRatedEnergy,
           input.getCosPhiRated,
-          reference
+          reference,
         )
     }
     model.enable()

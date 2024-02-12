@@ -24,7 +24,7 @@ trait RandomStorageState {
     ThermalStorageState(
       -1L,
       storedEnergy,
-      Kilowatts(0d)
+      Kilowatts(0d),
     )
   }
 }

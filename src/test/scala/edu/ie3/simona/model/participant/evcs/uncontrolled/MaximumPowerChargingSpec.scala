@@ -35,13 +35,13 @@ class MaximumPowerChargingSpec
           10.0.asKiloWatt,
           20.0.asKiloWattHour,
           20.0.asKiloWattHour,
-          3600
+          3600,
         )
       )
 
       val actualSchedule = evcsModel.chargeWithMaximumPower(
         1800L,
-        Seq(ev)
+        Seq(ev),
       )
 
       actualSchedule shouldBe Map.empty
@@ -59,7 +59,7 @@ class MaximumPowerChargingSpec
         // half full battery
         (1800L, 5.0, 1800L), // stay shorter than full
         (3600L, 5.0, 3600L), // exactly full
-        (14400L, 5.0, 3600L) // full before end of stay
+        (14400L, 5.0, 3600L), // full before end of stay
       )
 
       forAll(cases) { (stayingTicks, storedEnergy, expectedDuration) =>
@@ -71,13 +71,13 @@ class MaximumPowerChargingSpec
             10.0.asKiloWatt,
             10.0.asKiloWattHour,
             storedEnergy.asKiloWattHour,
-            offset + stayingTicks
+            offset + stayingTicks,
           )
         )
 
         val chargingMap = evcsModel.chargeWithMaximumPower(
           offset,
-          Seq(ev)
+          Seq(ev),
         )
 
         chargingMap shouldBe Map(
@@ -85,7 +85,7 @@ class MaximumPowerChargingSpec
             ScheduleEntry(
               offset,
               offset + expectedDuration,
-              ev.sRatedAc
+              ev.sRatedAc,
             )
           )
         )
@@ -105,7 +105,7 @@ class MaximumPowerChargingSpec
         // half full battery
         (1800L, 5.0, 1800L), // stay shorter than full
         (3600L, 5.0, 3600L), // exactly full
-        (14400L, 5.0, 3600L) // full before end of stay
+        (14400L, 5.0, 3600L), // full before end of stay
       )
 
       forAll(cases) { (stayingTicks, storedEnergy, expectedDuration) =>
@@ -117,7 +117,7 @@ class MaximumPowerChargingSpec
             10.0.asKiloWatt,
             10.0.asKiloWattHour,
             5.0.asKiloWattHour,
-            offset + 3600L
+            offset + 3600L,
           )
         )
 
@@ -129,13 +129,13 @@ class MaximumPowerChargingSpec
             10.0.asKiloWatt,
             10.0.asKiloWattHour,
             storedEnergy.asKiloWattHour,
-            offset + stayingTicks
+            offset + stayingTicks,
           )
         )
 
         val chargingMap = evcsModel.chargeWithMaximumPower(
           offset,
-          Seq(givenEv, ev)
+          Seq(givenEv, ev),
         )
 
         chargingMap shouldBe Map(
@@ -143,16 +143,16 @@ class MaximumPowerChargingSpec
             ScheduleEntry(
               offset,
               offset + 3600L,
-              Kilowatts(5.0)
+              Kilowatts(5.0),
             )
           ),
           ev.uuid -> SortedSet(
             ScheduleEntry(
               offset,
               offset + expectedDuration,
-              Kilowatts(5.0)
+              Kilowatts(5.0),
             )
-          )
+          ),
         )
       }
 

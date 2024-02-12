@@ -9,7 +9,7 @@ package edu.ie3.simona.sim.setup
 import org.apache.pekko.actor.{
   ActorSystem,
   ActorContext => classicContext,
-  ActorRef => classicRef
+  ActorRef => classicRef,
 }
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.connector.Transformer3WInput
@@ -77,7 +77,7 @@ trait SimonaSetup {
     */
   def primaryServiceProxy(
       context: classicContext,
-      scheduler: classicRef
+      scheduler: classicRef,
   ): classicRef
 
   /** Creates a weather service
@@ -92,7 +92,7 @@ trait SimonaSetup {
     */
   def weatherService(
       context: classicContext,
-      scheduler: classicRef
+      scheduler: classicRef,
   ): classicRef
 
   /** Loads external simulations and provides corresponding actors and init data
@@ -106,7 +106,7 @@ trait SimonaSetup {
     */
   def extSimulations(
       context: classicContext,
-      scheduler: classicRef
+      scheduler: classicRef,
   ): ExtSimSetupData
 
   /** Creates the time advancer
@@ -123,7 +123,7 @@ trait SimonaSetup {
   def timeAdvancer(
       context: classicContext,
       simulation: classicRef,
-      runtimeEventListener: ActorRef[RuntimeEvent]
+      runtimeEventListener: ActorRef[RuntimeEvent],
   ): ActorRef[TimeAdvancer.Incoming]
 
   /** Creates a scheduler service
@@ -137,7 +137,7 @@ trait SimonaSetup {
     */
   def scheduler(
       context: classicContext,
-      timeAdvancer: ActorRef[TimeAdvancer.Incoming]
+      timeAdvancer: ActorRef[TimeAdvancer.Incoming],
   ): classicRef
 
   /** Creates all the needed grid agents
@@ -155,7 +155,7 @@ trait SimonaSetup {
   def gridAgents(
       context: classicContext,
       environmentRefs: EnvironmentRefs,
-      systemParticipantListener: Seq[classicRef]
+      systemParticipantListener: Seq[classicRef],
   ): Iterable[ActorRef[GridAgentMessage]]
 
   /** SIMONA links sub grids connected by a three winding transformer a bit
@@ -170,7 +170,7 @@ trait SimonaSetup {
           new SubGridGate(
             transformer,
             transformer.getNodeInternal,
-            gate.inferiorNode
+            gate.inferiorNode,
           )
         case _ => gate
       }

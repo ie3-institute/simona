@@ -8,7 +8,7 @@ package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
-  PrimaryDataWithApparentPower
+  PrimaryDataWithApparentPower,
 }
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
@@ -17,7 +17,7 @@ import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.{
   DefaultQuantities,
   Megavars,
-  ReactivePower
+  ReactivePower,
 }
 import squants.Dimensionless
 import squants.energy.{Kilowatts, Power}
@@ -50,7 +50,7 @@ import java.util.UUID
 abstract class SystemParticipant[
     CD <: CalcRelevantData,
     +PD <: PrimaryDataWithApparentPower[PD],
-    MS <: ModelState
+    MS <: ModelState,
 ](
     uuid: UUID,
     id: String,
@@ -58,7 +58,7 @@ abstract class SystemParticipant[
     val scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
-    cosPhiRated: Double
+    cosPhiRated: Double,
 ) extends SystemComponent(uuid, id, operationInterval) {
 
   /** Maximum allowed apparent power output of this system participant. Used to
@@ -85,7 +85,7 @@ abstract class SystemParticipant[
       tick: Long,
       voltage: Dimensionless,
       modelState: MS,
-      data: CD
+      data: CD,
   ): PD
 
   /** Calculate the apparent power behaviour based on the given data.
@@ -103,7 +103,7 @@ abstract class SystemParticipant[
       tick: Long,
       voltage: Dimensionless,
       modelState: MS,
-      data: CD
+      data: CD,
   ): ApparentPower = {
     if (isInOperation(tick)) {
       val activePower = calculateActivePower(modelState, data)
@@ -111,12 +111,12 @@ abstract class SystemParticipant[
         calculateReactivePower(activePower, voltage)
       ApparentPower(
         activePower * scalingFactor,
-        reactivePower * scalingFactor
+        reactivePower * scalingFactor,
       )
     } else {
       ApparentPower(
         DefaultQuantities.zeroMW,
-        DefaultQuantities.zeroMVAr
+        DefaultQuantities.zeroMVAr,
       )
     }
   }
@@ -132,7 +132,7 @@ abstract class SystemParticipant[
     */
   protected def calculateActivePower(
       modelState: MS,
-      data: CD
+      data: CD,
   ): Power
 
   /** @param data
@@ -142,7 +142,7 @@ abstract class SystemParticipant[
     */
   def determineFlexOptions(
       data: CD,
-      lastState: MS
+      lastState: MS,
   ): ProvideFlexOptions
 
   /** @param data
@@ -156,7 +156,7 @@ abstract class SystemParticipant[
   def handleControlledPowerChange(
       data: CD,
       lastState: MS,
-      setPower: Power
+      setPower: Power,
   ): (MS, FlexChangeIndicator)
 
   /** Get a partial function, that transfers the current active into reactive
@@ -173,7 +173,7 @@ abstract class SystemParticipant[
     qControl.activeToReactivePowerFunc(
       sRated,
       cosPhiRated,
-      nodalVoltage
+      nodalVoltage,
     )
 
   /** Calculate the reactive power of the model
@@ -187,11 +187,11 @@ abstract class SystemParticipant[
     */
   def calculateReactivePower(
       activePower: Power,
-      voltage: Dimensionless
+      voltage: Dimensionless,
   ): ReactivePower = {
     limitReactivePower(
       activePower,
-      activeToReactivePowerFunc(voltage)(activePower)
+      activeToReactivePowerFunc(voltage)(activePower),
     )
   }
 
@@ -207,7 +207,7 @@ abstract class SystemParticipant[
     */
   private def limitReactivePower(
       activePower: Power,
-      reactivePower: ReactivePower
+      reactivePower: ReactivePower,
   ): ReactivePower = {
     {
       val apparentPower: Power = Kilowatts(

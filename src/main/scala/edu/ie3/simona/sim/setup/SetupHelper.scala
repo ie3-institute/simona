@@ -61,12 +61,12 @@ trait SetupHelper extends LazyLogging {
       subGridToActorRef: Map[Int, ActorRef[GridAgentMessage]],
       gridGates: Set[SubGridGate],
       configRefSystems: ConfigRefSystems,
-      thermalGrids: Seq[ThermalGrid]
+      thermalGrids: Seq[ThermalGrid],
   ): GridAgentInitData = {
     val subGridGateToActorRef = buildGateToActorRef(
       subGridToActorRef,
       gridGates,
-      subGridContainer.getSubnet
+      subGridContainer.getSubnet,
     )
 
     /* Find the matching reference system */
@@ -82,7 +82,7 @@ trait SetupHelper extends LazyLogging {
       updatedSubGridContainer,
       thermalGrids,
       subGridGateToActorRef,
-      refSystem
+      refSystem,
     )
   }
 
@@ -101,7 +101,7 @@ trait SetupHelper extends LazyLogging {
   def buildGateToActorRef(
       subGridToActorRefMap: Map[Int, ActorRef[GridAgentMessage]],
       subGridGates: Set[SubGridGate],
-      currentSubGrid: Int
+      currentSubGrid: Int,
   ): Map[SubGridGate, ActorRef[GridAgentMessage]] =
     subGridGates
       .groupBy(gate => (gate.superiorNode, gate.inferiorNode))
@@ -114,14 +114,14 @@ trait SetupHelper extends LazyLogging {
           gate -> getActorRef(
             subGridToActorRefMap,
             currentSubGrid,
-            superiorSubGrid
+            superiorSubGrid,
           )
         } else if (superiorSubGrid == currentSubGrid) {
           /* This is a gate to an inferior sub grid */
           gate -> getActorRef(
             subGridToActorRefMap,
             currentSubGrid,
-            inferiorSubGrid
+            inferiorSubGrid,
           )
         } else {
           throw new GridAgentInitializationException(
@@ -146,7 +146,7 @@ trait SetupHelper extends LazyLogging {
   def getActorRef(
       subGridToActorRefMap: Map[Int, ActorRef[GridAgentMessage]],
       currentSubGrid: Int,
-      queriedSubGrid: Int
+      queriedSubGrid: Int,
   ): ActorRef[GridAgentMessage] = {
     subGridToActorRefMap.get(queriedSubGrid) match {
       case Some(hit) => hit
@@ -169,12 +169,12 @@ trait SetupHelper extends LazyLogging {
     */
   def getRefSystem(
       configRefSystems: ConfigRefSystems,
-      subGridContainer: SubGridContainer
+      subGridContainer: SubGridContainer,
   ): RefSystem = {
     val refSystem = configRefSystems
       .find(
         subGridContainer.getSubnet,
-        Some(subGridContainer.getPredominantVoltageLevel)
+        Some(subGridContainer.getPredominantVoltageLevel),
       )
       .getOrElse(
         throw new InitializationException(
@@ -211,7 +211,7 @@ trait SetupHelper extends LazyLogging {
     */
   def buildResultFileHierarchy(
       config: TypesafeConfig,
-      createDirs: Boolean = true
+      createDirs: Boolean = true,
   ): ResultFileHierarchy = {
 
     val simonaConfig = SimonaConfig(config)
@@ -227,12 +227,12 @@ trait SetupHelper extends LazyLogging {
         modelsToWrite,
         ResultSinkType(
           simonaConfig.simona.output.sink,
-          simonaConfig.simona.simulationName
-        )
+          simonaConfig.simona.simulationName,
+        ),
       ),
       addTimeStampToOutputDir =
         simonaConfig.simona.output.base.addTimestampToOutputDir,
-      createDirs = createDirs
+      createDirs = createDirs,
     )
 
     // copy config data to output directory

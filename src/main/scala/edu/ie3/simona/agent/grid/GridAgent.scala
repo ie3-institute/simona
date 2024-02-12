@@ -10,7 +10,7 @@ import edu.ie3.simona.actor.SimonaActorNaming
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
-  GridAgentInitData
+  GridAgentInitData,
 }
 import edu.ie3.simona.agent.grid.GridAgentMessage._
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
@@ -21,14 +21,14 @@ import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.grid.GridModel
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.{Activation, StopMessage}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.scaladsl.adapter.{
   ClassicActorRefOps,
-  TypedActorContextOps
+  TypedActorContextOps,
 }
 import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
@@ -43,7 +43,7 @@ object GridAgent {
   def apply(
       environmentRefs: EnvironmentRefs,
       simonaConfig: SimonaConfig,
-      listener: Iterable[classicRef]
+      listener: Iterable[classicRef],
   ): Behavior[GridAgentMessage] = Behaviors.withStash(100) { buffer =>
     Behaviors.setup[GridAgentMessage] { context =>
       context.messageAdapter(values => ValuesAdapter(values))
@@ -71,7 +71,7 @@ object GridAgent {
           simonaConfig.simona.output.participant,
           resolution,
           listener.map(_.toTyped[ResultEvent]),
-          context.log
+          context.log,
         )
 
       val agent = GridAgent(
@@ -83,7 +83,7 @@ object GridAgent {
         gridAgentController,
         buffer,
         activationAdapter,
-        SimonaActorNaming.actorName(context.self)
+        SimonaActorNaming.actorName(context.self),
       )
 
       agent.uninitialized
@@ -100,7 +100,7 @@ final case class GridAgent(
     gridAgentController: GridAgentController,
     buffer: StashBuffer[GridAgentMessage],
     activationAdapter: ActorRef[Activation],
-    actorName: String
+    actorName: String,
 ) extends DBFSAlgorithm
     with Notifier {
 
@@ -110,7 +110,7 @@ final case class GridAgent(
         environmentRefs.scheduler ! ScheduleActivation(
           activationAdapter,
           INIT_SIM_TICK,
-          Some(unlockKey)
+          Some(unlockKey),
         )
 
         initializing(gridAgentInitData)
@@ -132,13 +132,13 @@ final case class GridAgent(
       ctx.log.debug(
         s"Inferior Subnets: {}; Inferior Subnet Nodes: {}",
         gridAgentInitData.inferiorGridIds,
-        gridAgentInitData.inferiorGridNodeUuids
+        gridAgentInitData.inferiorGridNodeUuids,
       )
 
       ctx.log.debug(
         s"Superior Subnets: {}; Superior Subnet Nodes: {}",
         gridAgentInitData.superiorGridIds,
-        gridAgentInitData.superiorGridNodeUuids
+        gridAgentInitData.superiorGridNodeUuids,
       )
 
       ctx.log.debug("Received InitializeTrigger.")
@@ -160,7 +160,7 @@ final case class GridAgent(
         ),
         TimeUtil.withDefaults.toZonedDateTime(
           simonaConfig.simona.time.endDateTime
-        )
+        ),
       )
 
       /* Reassure, that there are also calculation models for the given uuids */
@@ -191,17 +191,17 @@ final case class GridAgent(
           simonaConfig.simona.powerflow.newtonraphson.epsilon.toVector.sorted,
           simonaConfig.simona.powerflow.newtonraphson.iterations,
           simonaConfig.simona.powerflow.sweepTimeout,
-          simonaConfig.simona.powerflow.stopOnFailure
+          simonaConfig.simona.powerflow.stopOnFailure,
         ),
         ctx.log,
-        ctx.self.toString
+        ctx.self.toString,
       )
 
       ctx.log.debug("Je suis initialized")
 
       environmentRefs.scheduler ! Completion(
         activationAdapter,
-        Some(resolution)
+        Some(resolution),
       )
 
       idle(gridAgentBaseData)
@@ -225,7 +225,7 @@ final case class GridAgent(
     case (_, ActivationAdapter(activation: Activation)) =>
       environmentRefs.scheduler ! Completion(
         activationAdapter,
-        Some(activation.tick)
+        Some(activation.tick),
       )
       buffer.unstashAll(simulateGrid(gridAgentBaseData, activation.tick))
 
@@ -247,7 +247,7 @@ final case class GridAgent(
 
   private def failFast(
       gridAgentInitData: GridAgentInitData,
-      actorName: String
+      actorName: String,
   ): Unit = {
     if (
       gridAgentInitData.superiorGridGates.isEmpty && gridAgentInitData.inferiorGridGates.isEmpty

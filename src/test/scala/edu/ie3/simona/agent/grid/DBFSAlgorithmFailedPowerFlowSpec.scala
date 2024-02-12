@@ -15,11 +15,11 @@ import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   FailedPowerFlow,
-  ProvideGridPowerMessage
+  ProvideGridPowerMessage,
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
 import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
@@ -31,7 +31,7 @@ import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.Megavars
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
-  TestProbe
+  TestProbe,
 }
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import squants.electro.Kilovolts
@@ -55,7 +55,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
   private val superiorGridAgent = SuperiorGA(
     TestProbe("superiorGridAgent_1000"),
-    Seq(supNodeA.getUuid)
+    Seq(supNodeA.getUuid),
   )
 
   private val inferiorGridAgent =
@@ -66,7 +66,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
     runtimeEventListener = runtimeEvents.ref.toClassic,
     primaryServiceProxy = primaryService.ref.toClassic,
     weather = weatherService.ref.toClassic,
-    evDataService = None
+    evDataService = None,
   )
 
   val resultListener: TestProbe[ResultMessage] =
@@ -79,7 +79,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
         GridAgent(
           environmentRefs,
           simonaConfig,
-          listener = Iterable(resultListener.ref.toClassic)
+          listener = Iterable(resultListener.ref.toClassic),
         )
       )
 
@@ -100,7 +100,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
           hvGridContainerPF,
           Seq.empty[ThermalGrid],
           subGridGateToActorRef,
-          RefSystem("2000 MVA", "110 kV")
+          RefSystem("2000 MVA", "110 kV"),
         )
 
       val key =
@@ -109,14 +109,14 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
       centerGridAgent ! CreateGridAgent(
         gridAgentInitData,
-        key
+        key,
       )
 
       val message = scheduler.expectMessageType[ScheduleActivation]
       message shouldBe ScheduleActivation(
         message.actor,
         INIT_SIM_TICK,
-        Some(key)
+        Some(key),
       )
 
       centerGridAgent ! ActivationAdapter(Activation(INIT_SIM_TICK))
@@ -159,9 +159,9 @@ class DBFSAlgorithmFailedPowerFlowSpec
           ExchangeVoltage(
             node1.getUuid,
             Kilovolts(110d),
-            Kilovolts(0d)
+            Kilovolts(0d),
           )
-        )
+        ),
       )
 
       // we now answer the request of our centerGridAgent
@@ -172,7 +172,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
             ExchangePower(
               nodeUuid,
               Megawatts(1000.0),
-              Megavars(0.0)
+              Megavars(0.0),
             )
           )
         )
@@ -185,9 +185,9 @@ class DBFSAlgorithmFailedPowerFlowSpec
             ExchangeVoltage(
               supNodeA.getUuid,
               Kilovolts(380d),
-              Kilovolts(0d)
+              Kilovolts(0d),
             )
-          )
+          ),
         )
       )
 
@@ -201,7 +201,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       // wait 30 seconds max for power flow to finish
       superiorGridAgent.gaProbe.expectMessage(
         30 seconds,
-        PMAdapter(FailedPowerFlow)
+        PMAdapter(FailedPowerFlow),
       )
 
       // normally the slack node would send a FinishGridSimulationTrigger to all

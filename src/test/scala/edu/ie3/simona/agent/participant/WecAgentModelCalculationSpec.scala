@@ -21,7 +21,7 @@ import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   CollectRegistrationConfirmMessages,
   ParticipantInitializeStateData,
-  ParticipantUninitializedStateData
+  ParticipantUninitializedStateData,
 }
 import edu.ie3.simona.agent.participant.wec.WecAgent
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
@@ -37,18 +37,18 @@ import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage
+  RequestAssetPowerMessage,
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
   RegistrationFailedMessage,
-  RegistrationSuccessfulMessage
+  RegistrationSuccessfulMessage,
 }
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
   ProvideWeatherMessage,
   RegisterForWeatherMessage,
-  WeatherData
+  WeatherData,
 }
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.WecInputTestData
@@ -59,7 +59,7 @@ import edu.ie3.util.scala.quantities.{
   Megavars,
   ReactivePower,
   Vars,
-  WattsPerSquareMeter
+  WattsPerSquareMeter,
 }
 import org.scalatest.PrivateMethodTester
 import squants.Each
@@ -79,7 +79,7 @@ class WecAgentModelCalculationSpec
           .parseString("""
             |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
             |pekko.loglevel="DEBUG"
-        """.stripMargin)
+        """.stripMargin),
       )
     )
     with PrivateMethodTester
@@ -104,7 +104,7 @@ class WecAgentModelCalculationSpec
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
       LoadModelBehaviour.FIX,
-      LoadReference.ActivePower(Kilowatts(0d))
+      LoadReference.ActivePower(Kilowatts(0d)),
     )
   private val configUtil = ConfigUtil.ParticipantConfigUtil(
     simonaConfig.simona.runtime.participant
@@ -125,7 +125,7 @@ class WecAgentModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       WecInput,
       WecRuntimeConfig,
-      ApparentPower
+      ApparentPower,
     ](
       inputModel = voltageSensitiveInput,
       simulationStartDate = simulationStartDate,
@@ -139,8 +139,8 @@ class WecAgentModelCalculationSpec
       outputConfig = NotifierConfig(
         simulationResultInfo = false,
         powerRequestReply = false,
-        flexResult = false
-      )
+        flexResult = false,
+      ),
     )
 
     "be instantiated correctly" in {
@@ -148,7 +148,7 @@ class WecAgentModelCalculationSpec
         new WecAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -170,7 +170,7 @@ class WecAgentModelCalculationSpec
         new WecAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -182,7 +182,7 @@ class WecAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         wecAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       deathProbe.expectTerminated(wecAgent.ref)
@@ -193,7 +193,7 @@ class WecAgentModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       WecInput,
       WecRuntimeConfig,
-      ApparentPower
+      ApparentPower,
     ](
       inputModel = voltageSensitiveInput,
       modelConfig = modelConfig,
@@ -207,8 +207,8 @@ class WecAgentModelCalculationSpec
       outputConfig = NotifierConfig(
         simulationResultInfo = false,
         powerRequestReply = false,
-        flexResult = false
-      )
+        flexResult = false,
+      ),
     )
 
     "be instantiated correctly" in {
@@ -216,7 +216,7 @@ class WecAgentModelCalculationSpec
         new WecAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -236,7 +236,7 @@ class WecAgentModelCalculationSpec
         new WecAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -246,7 +246,7 @@ class WecAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         wecAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       /* Expect a registration message */
@@ -270,10 +270,10 @@ class WecAgentModelCalculationSpec
                 requestValueStore,
                 _,
                 _,
-                _
+                _,
               ),
               awaitRegistrationResponsesFrom,
-              foreseenNextDataTicks
+              foreseenNextDataTicks,
             ) =>
           /* Base state data */
           startDate shouldBe simulationStartDate
@@ -282,13 +282,13 @@ class WecAgentModelCalculationSpec
           outputConfig shouldBe NotifierConfig(
             simulationResultInfo = false,
             powerRequestReply = false,
-            flexResult = false
+            flexResult = false,
           )
           additionalActivationTicks shouldBe empty
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
-            SortedMap(0L -> Each(1.0))
+            SortedMap(0L -> Each(1.0)),
           )
           resultValueStore shouldBe ValueStore(resolution)
           requestValueStore shouldBe ValueStore[ApparentPower](resolution)
@@ -305,7 +305,7 @@ class WecAgentModelCalculationSpec
       /* Reply, that registration was successful */
       weatherService.send(
         wecAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(4711L))
+        RegistrationSuccessfulMessage(weatherService.ref, Some(4711L)),
       )
 
       /* Expect a completion message */
@@ -318,7 +318,7 @@ class WecAgentModelCalculationSpec
               ApparentPower,
               WecRelevantData,
               ConstantState.type,
-              WecModel
+              WecModel,
             ] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
           baseStateData.foreseenDataTicks shouldBe Map(
@@ -336,7 +336,7 @@ class WecAgentModelCalculationSpec
         new WecAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -346,14 +346,14 @@ class WecAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         wecAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       /* Expect a registration message */
       weatherService.expectMsg(RegisterForWeatherMessage(51.4843281, 7.4116482))
       weatherService.send(
         wecAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(900L))
+        RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -365,12 +365,12 @@ class WecAgentModelCalculationSpec
       wecAgent ! RequestAssetPowerMessage(
         0L,
         Each(1.0),
-        Each(0.0)
+        Each(0.0),
       )
       expectMsg(
         AssetPowerChangedMessage(
           Megawatts(0.0),
-          Megavars(0.0)
+          Megavars(0.0),
         )
       )
 
@@ -379,7 +379,7 @@ class WecAgentModelCalculationSpec
               ApparentPower,
               WecRelevantData,
               ConstantState.type,
-              WecModel
+              WecModel,
             ] =>
           modelBaseStateData.requestValueStore shouldBe ValueStore[
             ApparentPower
@@ -388,9 +388,9 @@ class WecAgentModelCalculationSpec
             SortedMap(
               0L -> ApparentPower(
                 Megawatts(0d),
-                Megavars(0d)
+                Megavars(0d),
               )
-            )
+            ),
           )
         case _ =>
           fail(
@@ -404,7 +404,7 @@ class WecAgentModelCalculationSpec
         new WecAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -414,14 +414,14 @@ class WecAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         wecAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         wecAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(900L))
+        RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -434,7 +434,7 @@ class WecAgentModelCalculationSpec
         WattsPerSquareMeter(50d),
         WattsPerSquareMeter(100d),
         Celsius(0d),
-        MetersPerSecond(0d)
+        MetersPerSecond(0d),
       )
 
       weatherService.send(
@@ -443,8 +443,8 @@ class WecAgentModelCalculationSpec
           900L,
           weatherService.ref,
           weatherData,
-          Some(1800L)
-        )
+          Some(1800L),
+        ),
       )
 
       /* Find yourself in corresponding state and state data */
@@ -455,10 +455,10 @@ class WecAgentModelCalculationSpec
                 ApparentPower,
                 WecRelevantData,
                 ConstantState.type,
-                WecModel
+                WecModel,
               ],
               expectedSenders,
-              isYetTriggered
+              isYetTriggered,
             ) =>
           /* The next data tick is already registered */
           baseStateData.foreseenDataTicks shouldBe Map(
@@ -491,7 +491,7 @@ class WecAgentModelCalculationSpec
               ApparentPower,
               WecRelevantData,
               ConstantState.type,
-              WecModel
+              WecModel,
             ] =>
           /* The store for calculation relevant data has been extended */
           baseStateData.receivedSecondaryDataStore match {
@@ -507,7 +507,7 @@ class WecAgentModelCalculationSpec
               store.size shouldBe 1
               store.getOrElse(
                 900L,
-                fail("Expected a simulation result for tick 900.")
+                fail("Expected a simulation result for tick 900."),
               ) match {
                 case ApparentPower(p, q) =>
                   p should approximate(Megawatts(0.0))
@@ -526,7 +526,7 @@ class WecAgentModelCalculationSpec
         new WecAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -536,14 +536,14 @@ class WecAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         wecAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         wecAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(900L))
+        RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -561,10 +561,10 @@ class WecAgentModelCalculationSpec
                 ApparentPower,
                 WecRelevantData,
                 ConstantState.type,
-                WecModel
+                WecModel,
               ],
               expectedSenders,
-              isYetTriggered
+              isYetTriggered,
             ) =>
           /* The next data tick is already registered */
           baseStateData.foreseenDataTicks shouldBe Map(
@@ -587,7 +587,7 @@ class WecAgentModelCalculationSpec
         WattsPerSquareMeter(50d),
         WattsPerSquareMeter(100d),
         Celsius(0d),
-        MetersPerSecond(0d)
+        MetersPerSecond(0d),
       )
 
       weatherService.send(
@@ -596,8 +596,8 @@ class WecAgentModelCalculationSpec
           900L,
           weatherService.ref,
           weatherData,
-          Some(1800L)
-        )
+          Some(1800L),
+        ),
       )
 
       /* Expect confirmation */
@@ -610,7 +610,7 @@ class WecAgentModelCalculationSpec
               ApparentPower,
               WecRelevantData,
               ConstantState.type,
-              WecModel
+              WecModel,
             ] =>
           /* The store for calculation relevant data has been extended */
           baseStateData.receivedSecondaryDataStore match {
@@ -626,7 +626,7 @@ class WecAgentModelCalculationSpec
               store.size shouldBe 1
               store.getOrElse(
                 900L,
-                fail("Expected a simulation result for tick 900.")
+                fail("Expected a simulation result for tick 900."),
               ) match {
                 case ApparentPower(p, q) =>
                   p should approximate(Megawatts(0.0))
@@ -645,7 +645,7 @@ class WecAgentModelCalculationSpec
         new WecAgent(
           scheduler = scheduler.ref,
           initStateData = initStateData,
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -656,14 +656,14 @@ class WecAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         wecAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         wecAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(900L))
+        RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -674,7 +674,7 @@ class WecAgentModelCalculationSpec
       wecAgent ! RequestAssetPowerMessage(
         1800L,
         Each(1.0),
-        Each(0.0)
+        Each(0.0),
       )
       expectNoMessage(noReceiveTimeOut.duration)
       awaitAssert(wecAgent.stateName == Idle)
@@ -684,7 +684,7 @@ class WecAgentModelCalculationSpec
         WattsPerSquareMeter(50d),
         WattsPerSquareMeter(100d),
         Celsius(0d),
-        MetersPerSecond(0d)
+        MetersPerSecond(0d),
       )
       weatherService.send(
         wecAgent,
@@ -692,8 +692,8 @@ class WecAgentModelCalculationSpec
           900L,
           weatherService.ref,
           weatherData,
-          Some(1800L)
-        )
+          Some(1800L),
+        ),
       )
 
       /* Trigger the agent */
@@ -715,7 +715,7 @@ class WecAgentModelCalculationSpec
       new WecAgent(
         scheduler = scheduler.ref,
         initStateData = initStateData,
-        listener = systemListener
+        listener = systemListener,
       )
     )
 
@@ -727,14 +727,14 @@ class WecAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         wecAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref)
+        RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         wecAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(900L))
+        RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -752,10 +752,10 @@ class WecAgentModelCalculationSpec
             WattsPerSquareMeter(50d),
             WattsPerSquareMeter(100d),
             Celsius(0d),
-            MetersPerSecond(0d)
+            MetersPerSecond(0d),
           ),
-          Some(1800L)
-        )
+          Some(1800L),
+        ),
       )
       scheduler.send(wecAgent, Activation(900))
       scheduler.expectMsg(Completion(wecAgent.toTyped, Some(1800)))
@@ -770,10 +770,10 @@ class WecAgentModelCalculationSpec
             WattsPerSquareMeter(50d),
             WattsPerSquareMeter(100d),
             Celsius(0d),
-            MetersPerSecond(0d)
+            MetersPerSecond(0d),
           ),
-          Some(2700L)
-        )
+          Some(2700L),
+        ),
       )
       scheduler.send(wecAgent, Activation(1800))
       scheduler.expectMsg(Completion(wecAgent.toTyped, Some(2700)))
@@ -788,10 +788,10 @@ class WecAgentModelCalculationSpec
             WattsPerSquareMeter(50d),
             WattsPerSquareMeter(100d),
             Celsius(0d),
-            MetersPerSecond(0d)
+            MetersPerSecond(0d),
           ),
-          None
-        )
+          None,
+        ),
       )
       scheduler.send(wecAgent, Activation(2700))
       scheduler.expectMsg(Completion(wecAgent.toTyped))
@@ -800,7 +800,7 @@ class WecAgentModelCalculationSpec
       wecAgent ! RequestAssetPowerMessage(
         3000L,
         Each(1.0),
-        Each(0.0)
+        Each(0.0),
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
@@ -817,7 +817,7 @@ class WecAgentModelCalculationSpec
       wecAgent ! RequestAssetPowerMessage(
         3000L,
         Each(1.000000000000001d),
-        Each(0.0)
+        Each(0.0),
       )
 
       /* Expect, that nothing has changed */
@@ -833,7 +833,7 @@ class WecAgentModelCalculationSpec
       wecAgent ! RequestAssetPowerMessage(
         3000L,
         Each(0.98d),
-        Each(0.0)
+        Each(0.0),
       )
 
       /* Expect, the correct values (this model has fixed power factor) */

@@ -43,7 +43,7 @@ final case class TransformerTappingModel(
     tapMin: Int,
     tapNeutr: Int,
     autoTap: Boolean,
-    tapSide: ConnectorPort = ConnectorPort.A
+    tapSide: ConnectorPort = ConnectorPort.A,
 ) extends LazyLogging {
 
   private val deltaVval = deltaV.to(PU).getValue.doubleValue()
@@ -130,7 +130,7 @@ final case class TransformerTappingModel(
     */
   def computeDeltaTap(
       vChangeRequest: Quantity[Dimensionless],
-      deadBandPerTap: Quantity[Dimensionless] = Quantities.getQuantity(0.75, PU)
+      deadBandPerTap: Quantity[Dimensionless] = Quantities.getQuantity(0.75, PU),
   ): Int = {
     /* Determine the tap change, that has to be done in any case, as well as the remainder to fully
      * fulfill the voltage change request */
@@ -169,7 +169,7 @@ case object TransformerTappingModel {
       tapMin: Int,
       tapNeutr: Int,
       autoTap: Boolean,
-      elementPort: ConnectorPort = ConnectorPort.A
+      elementPort: ConnectorPort = ConnectorPort.A,
   ): TransformerTappingModel = {
     val tapModel =
       new TransformerTappingModel(
@@ -179,7 +179,7 @@ case object TransformerTappingModel {
         tapMin,
         tapNeutr,
         autoTap,
-        elementPort
+        elementPort,
       )
 
     // update internal state variables

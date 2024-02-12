@@ -22,7 +22,7 @@ object ReceivedValues {
   type ParticipantPowerRequestResponse =
     (
         ActorRef[_],
-        PowerResponseMessage
+        PowerResponseMessage,
     ) // necessary, because participants are still classic actors
   type GridPowerRequestResponse =
     (ActorRef[GridAgentMessage], PowerResponseMessage)

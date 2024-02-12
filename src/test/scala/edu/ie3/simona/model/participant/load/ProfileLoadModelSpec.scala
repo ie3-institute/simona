@@ -15,7 +15,7 @@ import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.load.LoadReference.{
   ActivePower,
-  EnergyConsumption
+  EnergyConsumption,
 }
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
 import edu.ie3.simona.test.common.UnitSpec
@@ -48,14 +48,14 @@ class ProfileLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
           false,
           NodeInput.DEFAULT_GEO_POSITION,
           GermanVoltageLevelUtils.LV,
-          -1
+          -1,
         ),
         new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
         BdewStandardLoadProfile.H0,
         false,
         Quantities.getQuantity(3000d, PowerSystemUnits.KILOWATTHOUR),
         Quantities.getQuantity(282.74d, PowerSystemUnits.VOLTAMPERE),
-        0.95
+        0.95,
       )
 
     val simulationStartDate =
@@ -66,7 +66,7 @@ class ProfileLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
       SystemComponent.determineOperationInterval(
         simulationStartDate,
         simulationEndDate,
-        loadInput.getOperationTime
+        loadInput.getOperationTime,
       )
 
     "instantiating it" should {
@@ -77,46 +77,46 @@ class ProfileLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
             (
               BdewStandardLoadProfile.H0,
               ActivePower(Watts(268.6)),
-              Watts(282.74d)
+              Watts(282.74d),
             ),
             (
               BdewStandardLoadProfile.H0,
               EnergyConsumption(
                 KilowattHours(3000d)
               ),
-              Watts(848.22d)
+              Watts(848.22d),
             ),
             (
               BdewStandardLoadProfile.L0,
               ActivePower(Watts(268.6)),
-              Watts(282.74d)
+              Watts(282.74d),
             ),
             (
               BdewStandardLoadProfile.L0,
               EnergyConsumption(
                 KilowattHours(3000d)
               ),
-              Watts(759.158d)
+              Watts(759.158d),
             ),
             (
               BdewStandardLoadProfile.G0,
               ActivePower(Watts(268.6)),
-              Watts(282.74d)
+              Watts(282.74d),
             ),
             (
               BdewStandardLoadProfile.G0,
               EnergyConsumption(
                 KilowattHours(3000d)
               ),
-              Watts(759.158d)
-            )
+              Watts(759.158d),
+            ),
           )
         ) { (profile, reference, expectedSRated) =>
           val actual = ProfileLoadModel(
             loadInput.copy().loadprofile(profile).build(),
             foreSeenOperationInterval,
             1.0,
-            reference
+            reference,
           )
 
           actual.sRated should approximate(expectedSRated)

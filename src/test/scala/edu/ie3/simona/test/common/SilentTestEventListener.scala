@@ -28,7 +28,7 @@ class SilentTestEventListener extends TestEventListener with LazyLogging {
           Warning(
             simpleName(this),
             this.getClass,
-            "received unexpected event of class " + e.getClass + ": " + e
+            "received unexpected event of class " + e.getClass + ": " + e,
           )
         )
     }

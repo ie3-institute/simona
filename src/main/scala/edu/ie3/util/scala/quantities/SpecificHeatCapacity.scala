@@ -20,7 +20,7 @@ import scala.util.Try
   */
 final class SpecificHeatCapacity private (
     val value: Double,
-    val unit: SpecificHeatCapacityUnit
+    val unit: SpecificHeatCapacityUnit,
 ) extends Quantity[SpecificHeatCapacity] {
 
   def dimension: SpecificHeatCapacity.type = SpecificHeatCapacity
@@ -36,7 +36,7 @@ final class SpecificHeatCapacity private (
     */
   def calcEnergyDensity(
       temperatureA: Temperature,
-      temperatureB: Temperature
+      temperatureB: Temperature,
   ): EnergyDensity =
     KilowattHoursPerCubicMeter(
       this.toKilowattHoursPerKelvinCubicMeters * math.abs(
@@ -59,7 +59,7 @@ final class SpecificHeatCapacity private (
   def calcEnergy(
       temperatureA: Temperature,
       temperatureB: Temperature,
-      volume: Volume
+      volume: Volume,
   ): Energy =
     KilowattHours(
       this.toKilowattHoursPerKelvinCubicMeters * math.abs(

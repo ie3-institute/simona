@@ -8,7 +8,7 @@ package edu.ie3.simona.model.participant.evcs.uncontrolled
 
 import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   ScheduleMap,
-  ScheduleEntry
+  ScheduleEntry,
 }
 import edu.ie3.simona.model.participant.evcs.{EvModelWrapper, EvcsModel}
 import squants.Seconds
@@ -32,7 +32,7 @@ trait MaximumPowerCharging {
     */
   def chargeWithMaximumPower(
       currentTick: Long,
-      evs: Seq[EvModelWrapper]
+      evs: Seq[EvModelWrapper],
   ): ScheduleMap = evs
     .filter(ev => ev.storedEnergy < ev.eStorage)
     .map { ev =>

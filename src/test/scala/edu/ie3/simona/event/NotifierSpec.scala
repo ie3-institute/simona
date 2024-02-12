@@ -12,7 +12,7 @@ import org.apache.pekko.actor.{
   ActorLogging,
   ActorRef,
   ActorSystem,
-  Props
+  Props,
 }
 import org.apache.pekko.testkit.ImplicitSender
 import org.apache.pekko.util.Timeout
@@ -36,7 +36,7 @@ class NotifierSpec
           .parseString("""
             |pekko.loggers =["org.apache.pekko.testkit.TestEventListener"]
             |pekko.loglevel="OFF"
-            |""".stripMargin)
+            |""".stripMargin),
       )
     )
     with Matchers
@@ -95,7 +95,7 @@ class NotifierSpec
         Storage ->
           classOf[StorageResult],
         Ev ->
-          classOf[EvResult]
+          classOf[EvResult],
       )
       // TODO: Grid results are not covered, yet.
 
@@ -113,7 +113,7 @@ object NotifierSpec {
 
   final case class TestEventEnvelope(
       testEvent: TestEvent,
-      msg: String = "Please notify others of this!"
+      msg: String = "Please notify others of this!",
   )
 
 }

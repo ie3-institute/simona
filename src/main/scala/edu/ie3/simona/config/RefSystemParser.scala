@@ -18,7 +18,7 @@ object RefSystemParser {
 
   final case class ConfigRefSystems(
       private val gridIdRefSystems: Map[Int, RefSystem],
-      private val voltLvLRefSystems: Map[VoltageLevel, RefSystem]
+      private val voltLvLRefSystems: Map[VoltageLevel, RefSystem],
   ) {
 
     /** Returns a [[RefSystem]] based on the provided gridId or the voltLvl as
@@ -33,7 +33,7 @@ object RefSystemParser {
       */
     def find(
         gridId: Int,
-        voltLvl: Option[VoltageLevel] = None
+        voltLvl: Option[VoltageLevel] = None,
     ): Option[RefSystem] =
       gridIdRefSystems
         .get(gridId)
