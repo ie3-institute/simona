@@ -195,7 +195,6 @@ class SimonaStandaloneSetup(
           ExtSimAdapter.props(scheduler),
           s"$index",
         )
-
         val extSimAdapterData = new ExtSimAdapterData(extSimAdapter, args)
 
         // send init data right away, init activation is scheduled
