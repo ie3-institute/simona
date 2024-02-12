@@ -29,6 +29,7 @@ package edu.ie3.util.scala
   *     .map(transform)
   *     .map(_.doStuff)
   *     .map(maybeBar.calculate)
+  *     .get
   * }}}
   *
   * @param obj
