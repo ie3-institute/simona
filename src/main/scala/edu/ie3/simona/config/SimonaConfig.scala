@@ -756,13 +756,13 @@ object SimonaConfig {
       measurements: scala.List[java.lang.String],
       transformers: scala.List[java.lang.String],
       vMax: scala.Double,
-      vMin: scala.Double
+      vMin: scala.Double,
   )
   object TransformerControlGroup {
     def apply(
         c: com.typesafe.config.Config,
         parentPath: java.lang.String,
-        $tsCfgValidator: $TsCfgValidator
+        $tsCfgValidator: $TsCfgValidator,
     ): SimonaConfig.TransformerControlGroup = {
       SimonaConfig.TransformerControlGroup(
         measurements =
@@ -770,14 +770,14 @@ object SimonaConfig {
         transformers =
           $_L$_str(c.getList("transformers"), parentPath, $tsCfgValidator),
         vMax = $_reqDbl(parentPath, c, "vMax", $tsCfgValidator),
-        vMin = $_reqDbl(parentPath, c, "vMin", $tsCfgValidator)
+        vMin = $_reqDbl(parentPath, c, "vMin", $tsCfgValidator),
       )
     }
     private def $_reqDbl(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
         path: java.lang.String,
-        $tsCfgValidator: $TsCfgValidator
+        $tsCfgValidator: $TsCfgValidator,
     ): scala.Double = {
       if (c == null) 0
       else
@@ -953,20 +953,20 @@ object SimonaConfig {
       def apply(
           c: com.typesafe.config.Config,
           parentPath: java.lang.String,
-          $tsCfgValidator: $TsCfgValidator
+          $tsCfgValidator: $TsCfgValidator,
       ): SimonaConfig.Simona.Control = {
         SimonaConfig.Simona.Control(
           transformer = $_LSimonaConfig_TransformerControlGroup(
             c.getList("transformer"),
             parentPath,
-            $tsCfgValidator
+            $tsCfgValidator,
           )
         )
       }
       private def $_LSimonaConfig_TransformerControlGroup(
           cl: com.typesafe.config.ConfigList,
           parentPath: java.lang.String,
-          $tsCfgValidator: $TsCfgValidator
+          $tsCfgValidator: $TsCfgValidator,
       ): scala.List[SimonaConfig.TransformerControlGroup] = {
         import scala.jdk.CollectionConverters._
         cl.asScala
@@ -974,7 +974,7 @@ object SimonaConfig {
             SimonaConfig.TransformerControlGroup(
               cv.asInstanceOf[com.typesafe.config.ConfigObject].toConfig,
               parentPath,
-              $tsCfgValidator
+              $tsCfgValidator,
             )
           )
           .toList
@@ -2666,7 +2666,7 @@ object SimonaConfig {
               SimonaConfig.Simona.Control(
                 c.getConfig("control"),
                 parentPath + "control.",
-                $tsCfgValidator
+                $tsCfgValidator,
               )
             )
           else None,

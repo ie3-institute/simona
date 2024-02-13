@@ -27,7 +27,7 @@ import squants.Dimensionless
   */
 final case class TransformerControlGroup(
     nodalRegulationCriterion: Map[UUID, RegulationCriterion],
-    harmonizeRegulationNeeds: Array[Dimensionless] => Option[Dimensionless]
+    harmonizeRegulationNeeds: Array[Dimensionless] => Option[Dimensionless],
 ) {
 
   /** Based on the given successful power flow result, determine the difference
@@ -44,7 +44,7 @@ final case class TransformerControlGroup(
     */
   def determineRegulationNeed(
       result: SuccessFullPowerFlowResult,
-      uuidToIndex: Map[UUID, Int]
+      uuidToIndex: Map[UUID, Int],
   ): Option[Dimensionless] = {
     val regulationNeeds = result.nodeData.flatMap {
       case StateData(resultNodeIndex, _, voltage, _) =>

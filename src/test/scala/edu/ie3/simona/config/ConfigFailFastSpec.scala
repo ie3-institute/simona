@@ -15,7 +15,7 @@ import edu.ie3.simona.config.SimonaConfig.Simona.{Powerflow, Time}
 import edu.ie3.simona.config.SimonaConfig.{
   BaseCsvParams,
   ResultKafkaParams,
-  TransformerControlGroup
+  TransformerControlGroup,
 }
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
@@ -964,7 +964,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             List.empty[String],
             List("a16cf7ca-8bbf-46e1-a74e-ffa6513c89a8"),
             1.02,
-            0.98
+            0.98,
           )
 
           intercept[InvalidConfigParameterException] {
@@ -977,7 +977,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             List("6888c53a-7629-4563-ac8e-840f80b03106"),
             List.empty[String],
             1.02,
-            0.98
+            0.98,
           )
 
           intercept[InvalidConfigParameterException] {
@@ -990,7 +990,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             List("6888c53a-7629-4563-ac8e-840f80b03106"),
             List("a16cf7ca-8bbf-46e1-a74e-ffa6513c89a8"),
             0.98,
-            1.02
+            1.02,
           )
 
           intercept[InvalidConfigParameterException] {
@@ -1003,7 +1003,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             List("6888c53a-7629-4563-ac8e-840f80b03106"),
             List("a16cf7ca-8bbf-46e1-a74e-ffa6513c89a8"),
             1.02,
-            0.79
+            0.79,
           )
 
           intercept[InvalidConfigParameterException] {
@@ -1017,7 +1017,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             List("6888c53a-7629-4563-ac8e-840f80b03106"),
             List("a16cf7ca-8bbf-46e1-a74e-ffa6513c89a8"),
             1.21,
-            0.98
+            0.98,
           )
 
           intercept[InvalidConfigParameterException] {

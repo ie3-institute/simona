@@ -74,13 +74,13 @@ case object GridModel {
       refSystem: RefSystem,
       startDate: ZonedDateTime,
       endDate: ZonedDateTime,
-      controlConfig: Option[SimonaConfig.Simona.Control]
+      controlConfig: Option[SimonaConfig.Simona.Control],
   ): GridModel = buildAndValidate(
     subGridContainer,
     refSystem,
     startDate,
     endDate,
-    controlConfig
+    controlConfig,
   )
 
   /** structure that represents all grid components that are needed by a grid
@@ -569,7 +569,7 @@ case object GridModel {
       .map { controlConfig =>
         buildTransformerControlGroups(
           controlConfig.transformer,
-          subGridContainer.getRawGrid.getMeasurementUnits
+          subGridContainer.getRawGrid.getMeasurementUnits,
         )
       }
       .getOrElse(Set.empty[ControlGroupModel])
@@ -582,7 +582,7 @@ case object GridModel {
         subGridContainer.getSubnet,
         refSystem,
         gridComponents,
-        gridControls
+        gridControls,
       )
 
     // validate
@@ -604,14 +604,14 @@ case object GridModel {
     */
   private def buildTransformerControlGroups(
       config: List[SimonaConfig.TransformerControlGroup],
-      measurementUnitInput: java.util.Set[MeasurementUnitInput]
+      measurementUnitInput: java.util.Set[MeasurementUnitInput],
   ): Set[ControlGroupModel] = config.map {
     case TransformerControlGroup(measurements, _, vMax, vMin) =>
       buildTransformerControlGroupModel(
         measurementUnitInput,
         measurements,
         vMax,
-        vMin
+        vMin,
       )
   }.toSet
 
@@ -635,7 +635,7 @@ case object GridModel {
       measurementUnitInput: java.util.Set[MeasurementUnitInput],
       measurementConfigs: List[String],
       vMax: Double,
-      vMin: Double
+      vMin: Double,
   ): ControlGroupModel = {
     val nodeUuids =
       determineNodeUuids(measurementUnitInput, measurementConfigs)
@@ -654,7 +654,7 @@ case object GridModel {
     */
   private def determineNodeUuids(
       measurementUnitInput: java.util.Set[MeasurementUnitInput],
-      measurementConfigs: List[String]
+      measurementConfigs: List[String],
   ): Set[UUID] = Set.from(
     measurementUnitInput.asScala
       .filter(input =>
@@ -679,7 +679,7 @@ case object GridModel {
   private def buildTransformerControlModels(
       nodeUuids: Set[UUID],
       vMax: Double,
-      vMin: Double
+      vMin: Double,
   ): ControlGroupModel = {
     /* Determine the voltage regulation criterion for each of the available nodes */
     val nodeUuidToRegulationCriterion = nodeUuids.map { uuid =>

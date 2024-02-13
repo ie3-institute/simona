@@ -25,7 +25,7 @@ object GridAgentFailFast {
     */
   def failFast(
       gridAgentInitData: GridAgentInitData,
-      simonaConfig: SimonaConfig
+      simonaConfig: SimonaConfig,
   ): Unit = {
 
     /** Check if there is InitData for superior or inferior GridGates
@@ -43,7 +43,7 @@ object GridAgentFailFast {
 
     checkControlGroupsForMeasurement(
       gridAgentInitData.subGridContainer,
-      simonaConfig.simona.control
+      simonaConfig.simona.control,
     )
   }
 
@@ -58,7 +58,7 @@ object GridAgentFailFast {
     */
   def checkControlGroupsForMeasurement(
       subGridContainer: SubGridContainer,
-      maybeControlConfig: Option[SimonaConfig.Simona.Control]
+      maybeControlConfig: Option[SimonaConfig.Simona.Control],
   ): Unit = {
 
     val measurementUnits =

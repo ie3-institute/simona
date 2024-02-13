@@ -35,10 +35,10 @@ class TransformerControlGroupSpec extends UnitSpec with QuantityMatchers {
         ),
         UUID.fromString(
           "324f49e5-1c35-4c49-afb1-3cf41696bf93"
-        )
+        ),
       ),
       1.1,
-      0.9
+      0.9,
     )
 
     val uuidToIndex = Map(
@@ -50,7 +50,7 @@ class TransformerControlGroupSpec extends UnitSpec with QuantityMatchers {
       ) -> 1,
       UUID.fromString(
         "324f49e5-1c35-4c49-afb1-3cf41696bf93"
-      ) -> 2
+      ) -> 2,
     )
 
     "return no regulation need, if everything is fine" in {
@@ -59,9 +59,9 @@ class TransformerControlGroupSpec extends UnitSpec with QuantityMatchers {
         Array(
           StateData(0, NodeType.SL, Complex.one, Complex.zero),
           StateData(1, NodeType.PQ, Complex.one, Complex.zero),
-          StateData(2, NodeType.PQ, Complex.one, Complex.zero)
+          StateData(2, NodeType.PQ, Complex.one, Complex.zero),
         ),
-        DenseMatrix.zeros(1, 1)
+        DenseMatrix.zeros(1, 1),
       )
 
       val actual = dut.determineRegulationNeed(result, uuidToIndex)
@@ -75,9 +75,9 @@ class TransformerControlGroupSpec extends UnitSpec with QuantityMatchers {
         Array(
           StateData(0, NodeType.SL, Complex.one, Complex.zero),
           StateData(1, NodeType.PQ, Complex.one * 0.88, Complex.zero),
-          StateData(2, NodeType.PQ, Complex.one * 1.11, Complex.zero)
+          StateData(2, NodeType.PQ, Complex.one * 1.11, Complex.zero),
         ),
-        DenseMatrix.zeros(1, 1)
+        DenseMatrix.zeros(1, 1),
       )
 
       val actual = dut.determineRegulationNeed(result, uuidToIndex)
@@ -91,9 +91,9 @@ class TransformerControlGroupSpec extends UnitSpec with QuantityMatchers {
         Array(
           StateData(0, NodeType.SL, Complex.one, Complex.zero),
           StateData(1, NodeType.PQ, Complex.one * 0.85, Complex.zero),
-          StateData(2, NodeType.PQ, Complex.one * 0.88, Complex.zero)
+          StateData(2, NodeType.PQ, Complex.one * 0.88, Complex.zero),
         ),
-        DenseMatrix.zeros(1, 1)
+        DenseMatrix.zeros(1, 1),
       )
 
       val actual = dut.determineRegulationNeed(result, uuidToIndex)
@@ -111,9 +111,9 @@ class TransformerControlGroupSpec extends UnitSpec with QuantityMatchers {
         Array(
           StateData(0, NodeType.SL, Complex.one, Complex.zero),
           StateData(1, NodeType.PQ, Complex.one * 1.15, Complex.zero),
-          StateData(2, NodeType.PQ, Complex.one * 1.11, Complex.zero)
+          StateData(2, NodeType.PQ, Complex.one * 1.11, Complex.zero),
         ),
-        DenseMatrix.zeros(1, 1)
+        DenseMatrix.zeros(1, 1),
       )
 
       val actual = dut.determineRegulationNeed(result, uuidToIndex)
