@@ -9,7 +9,7 @@ package edu.ie3.simona.agent.participant.evcs
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.result.system.{
   EvcsResult,
-  SystemParticipantResult
+  SystemParticipantResult,
 }
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
@@ -21,12 +21,12 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.Acto
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent.neededServices
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FlexControlledData,
-  ParticipantModelBaseStateData
+  ParticipantModelBaseStateData,
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.participant.statedata.{
   BaseStateData,
-  ParticipantStateData
+  ParticipantStateData,
 }
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
@@ -36,18 +36,18 @@ import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   AgentInitializationException,
   InconsistentStateException,
-  InvalidRequestException
+  InvalidRequestException,
 }
 import edu.ie3.simona.model.participant.FlexChangeIndicator
 import edu.ie3.simona.model.participant.evcs.EvcsModel
 import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsRelevantData,
-  EvcsState
+  EvcsState,
 }
 import edu.ie3.simona.ontology.messages.PowerMessage.AssetPowerChangedMessage
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexRequest,
-  FlexResponse
+  FlexResponse,
 }
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.util.SimonaConstants
@@ -74,7 +74,7 @@ protected trait EvcsAgentFundamentals
       ParticipantStateData[ApparentPower],
       EvcsInput,
       EvcsRuntimeConfig,
-      EvcsModel
+      EvcsModel,
     ] {
   this: EvcsAgent =>
   override protected val pdClassTag: ClassTag[ApparentPower] =
@@ -113,12 +113,12 @@ protected trait EvcsAgentFundamentals
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeEmAgent: Option[TypedActorRef[FlexResponse]]
+      maybeEmAgent: Option[TypedActorRef[FlexResponse]],
   ): ParticipantModelBaseStateData[
     ApparentPower,
     EvcsRelevantData,
     EvcsState,
-    EvcsModel
+    EvcsModel,
   ] = {
     /* Check for needed services */
     if (!services.toSeq.map(_.getClass).containsSlice(neededServices))
@@ -132,14 +132,14 @@ protected trait EvcsAgentFundamentals
         inputModel,
         modelConfig,
         simulationStartDate,
-        simulationEndDate
+        simulationEndDate,
       )
 
     ParticipantModelBaseStateData[
       ApparentPower,
       EvcsRelevantData,
       EvcsState,
-      EvcsModel
+      EvcsModel,
     ](
       simulationStartDate,
       simulationEndDate,
@@ -157,13 +157,13 @@ protected trait EvcsAgentFundamentals
             .to(PU)
             .getValue
             .doubleValue
-        )
+        ),
       ),
       ValueStore(resolution),
       ValueStore(resolution),
       ValueStore(resolution),
       ValueStore(resolution),
-      maybeEmAgent.map(FlexControlledData(_, self.toTyped[FlexRequest]))
+      maybeEmAgent.map(FlexControlledData(_, self.toTyped[FlexRequest])),
     )
   }
 
@@ -171,14 +171,14 @@ protected trait EvcsAgentFundamentals
       inputModel: InputModelContainer[EvcsInput],
       modelConfig: EvcsRuntimeConfig,
       simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime
+      simulationEndDate: ZonedDateTime,
   ): EvcsModel = EvcsModel(
     inputModel.electricalInputModel,
     modelConfig.scaling,
     simulationStartDate,
     simulationEndDate,
     modelConfig.chargingStrategy,
-    modelConfig.lowestEvSoc
+    modelConfig.lowestEvSoc,
   )
 
   override protected def createInitialState(
@@ -186,13 +186,13 @@ protected trait EvcsAgentFundamentals
         ApparentPower,
         EvcsRelevantData,
         EvcsState,
-        EvcsModel
+        EvcsModel,
       ]
   ): EvcsState =
     EvcsState(
       Seq.empty,
       Map.empty,
-      SimonaConstants.FIRST_TICK_IN_SIMULATION
+      SimonaConstants.FIRST_TICK_IN_SIMULATION,
     )
 
   override protected def createCalcRelevantData(
@@ -200,9 +200,9 @@ protected trait EvcsAgentFundamentals
         ApparentPower,
         EvcsRelevantData,
         EvcsState,
-        EvcsModel
+        EvcsModel,
       ],
-      tick: Long
+      tick: Long,
   ): EvcsRelevantData = {
     // always only take arrivals for the current tick
     // or empty sequence if none arrived
@@ -239,18 +239,18 @@ protected trait EvcsAgentFundamentals
         ApparentPower,
         EvcsRelevantData,
         EvcsState,
-        EvcsModel
+        EvcsModel,
       ],
       data: EvcsRelevantData,
       lastState: EvcsState,
-      setPower: squants.Power
+      setPower: squants.Power,
   ): (EvcsState, ApparentPower, FlexChangeIndicator) = {
     /* Calculate the power */
     val voltage = getAndCheckNodalVoltage(baseStateData, tick)
 
     val reactivePower = baseStateData.model.calculateReactivePower(
       setPower,
-      voltage
+      voltage,
     )
     val result = ApparentPower(setPower, reactivePower)
 
@@ -270,10 +270,10 @@ protected trait EvcsAgentFundamentals
         ApparentPower,
         EvcsRelevantData,
         EvcsState,
-        EvcsModel
+        EvcsModel,
       ],
       EvcsState,
-      Dimensionless
+      Dimensionless,
   ) => ApparentPower =
     (_, _, _, _) =>
       throw new InvalidRequestException(
@@ -306,11 +306,11 @@ protected trait EvcsAgentFundamentals
         ApparentPower,
         EvcsRelevantData,
         EvcsState,
-        EvcsModel
+        EvcsModel,
       ],
       lastModelState: EvcsState,
       tick: Long,
-      scheduler: ActorRef
+      scheduler: ActorRef,
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
     /* extract EV data from secondary data, which should have been requested and received before */
     baseStateData.receivedSecondaryDataStore
@@ -322,7 +322,7 @@ protected trait EvcsAgentFundamentals
           handleArrivingEvsAndGoIdle(
             tick,
             scheduler,
-            baseStateData
+            baseStateData,
           )
       }
       .getOrElse(
@@ -347,8 +347,8 @@ protected trait EvcsAgentFundamentals
         ApparentPower,
         EvcsRelevantData,
         EvcsState,
-        EvcsModel
-      ]
+        EvcsModel,
+      ],
   ): Unit = {
     val evServiceRef = getService[ActorEvMovementsService](
       modelBaseStateData.services
@@ -359,7 +359,7 @@ protected trait EvcsAgentFundamentals
 
     evServiceRef ! FreeLotsResponse(
       modelBaseStateData.model.uuid,
-      modelBaseStateData.model.chargingPoints - lastState.evs.size
+      modelBaseStateData.model.chargingPoints - lastState.evs.size,
     )
   }
 
@@ -381,13 +381,13 @@ protected trait EvcsAgentFundamentals
         ApparentPower,
         EvcsRelevantData,
         EvcsState,
-        EvcsModel
-      ]
+        EvcsModel,
+      ],
   ): ParticipantModelBaseStateData[
     ApparentPower,
     EvcsRelevantData,
     EvcsState,
-    EvcsModel
+    EvcsModel,
   ] = {
     val evServiceRef = getService[ActorEvMovementsService](
       baseStateData.services
@@ -410,7 +410,7 @@ protected trait EvcsAgentFundamentals
 
     val updatedEvs = baseStateData.model.applySchedule(
       lastState,
-      tick
+      tick,
     )
 
     val (departingEvs, stayingEvs) = updatedEvs.partition { ev =>
@@ -421,7 +421,7 @@ protected trait EvcsAgentFundamentals
     if (requestedDepartingEvs.nonEmpty) {
       evServiceRef ! DepartingEvsResponse(
         baseStateData.modelUuid,
-        departingEvs
+        departingEvs,
       )
     }
 
@@ -430,7 +430,7 @@ protected trait EvcsAgentFundamentals
       determineResultsAnnounceUpdateValueStore(
         lastState,
         tick,
-        baseStateData
+        baseStateData,
       )
 
     val stayingSchedules =
@@ -451,9 +451,9 @@ protected trait EvcsAgentFundamentals
       stateDataStore = ValueStore.updateValueStore(
         baseStateData.stateDataStore,
         tick,
-        newState
+        newState,
       ),
-      resultValueStore = updatedResultValueStore
+      resultValueStore = updatedResultValueStore,
     )
   }
 
@@ -478,8 +478,8 @@ protected trait EvcsAgentFundamentals
         ApparentPower,
         EvcsRelevantData,
         EvcsState,
-        EvcsModel
-      ]
+        EvcsModel,
+      ],
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
 
     val relevantData =
@@ -489,13 +489,13 @@ protected trait EvcsAgentFundamentals
 
     val currentEvs = modelBaseStateData.model.determineCurrentEvs(
       relevantData,
-      lastState
+      lastState,
     )
 
     // if new EVs arrived, a new scheduling must be calculated.
     val newSchedule = modelBaseStateData.model.calculateNewScheduling(
       relevantData,
-      currentEvs
+      currentEvs,
     )
 
     // create new current state
@@ -504,7 +504,7 @@ protected trait EvcsAgentFundamentals
     val updatedStateDataStore = ValueStore.updateValueStore(
       modelBaseStateData.stateDataStore,
       tick,
-      newState
+      newState,
     )
 
     /* Update the base state data with the updated result value store and relevant data store */
@@ -515,7 +515,7 @@ protected trait EvcsAgentFundamentals
     // We're only here if we're not flex-controlled, thus sending a Completion is always right
     goToIdleReplyCompletionAndScheduleTriggerForNextAction(
       updatedBaseStateData,
-      scheduler
+      scheduler,
     )
   }
 
@@ -545,7 +545,7 @@ protected trait EvcsAgentFundamentals
       mostRecentRequest: Option[(Long, ApparentPower)],
       nodalVoltage: squants.Dimensionless,
       updatedVoltageValueStore: ValueStore[squants.Dimensionless],
-      alternativeResult: ApparentPower
+      alternativeResult: ApparentPower,
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
     /* No fast reply possible --> Some calculations have to be made */
     mostRecentRequest match {
@@ -561,7 +561,7 @@ protected trait EvcsAgentFundamentals
                 ApparentPower,
                 EvcsRelevantData,
                 EvcsState,
-                EvcsModel
+                EvcsModel,
               ] =>
             /* Active power is yet calculated, but reactive power needs update */
             val nextReactivePower = modelBaseStateData.model
@@ -572,18 +572,18 @@ protected trait EvcsAgentFundamentals
               ValueStore.updateValueStore(
                 baseStateData.requestValueStore,
                 requestTick,
-                lastResult.withReactivePower(nextReactivePower)
+                lastResult.withReactivePower(nextReactivePower),
               )
 
             val nextStateData =
               modelBaseStateData.copy(
                 requestValueStore = updatedRequestValueStore,
-                voltageValueStore = updatedVoltageValueStore
+                voltageValueStore = updatedVoltageValueStore,
               )
 
             stay() using nextStateData replying AssetPowerChangedMessage(
               lastResult.p,
-              nextReactivePower
+              nextReactivePower,
             )
           case unexpectedStateData =>
             throw new IllegalStateException(
@@ -605,7 +605,7 @@ protected trait EvcsAgentFundamentals
                   ApparentPower,
                   EvcsRelevantData,
                   EvcsState,
-                  EvcsModel
+                  EvcsModel,
                 ] =>
               val lastState =
                 getLastOrInitialStateData(modelBaseStateData, requestTick)
@@ -614,7 +614,7 @@ protected trait EvcsAgentFundamentals
                 determineResultsAnnounceUpdateValueStore(
                   lastState,
                   requestTick,
-                  modelBaseStateData
+                  modelBaseStateData,
                 )
 
               modelBaseStateData.copy(
@@ -630,7 +630,7 @@ protected trait EvcsAgentFundamentals
         getRelevantResultData(
           requestTick,
           updatedBaseStateData.resultValueStore,
-          updatedBaseStateData.requestValueStore
+          updatedBaseStateData.requestValueStore,
         ) match {
           case Some(relevantData) =>
             /* There is at least one relevant simulation result apparent, which might also be the most recent one
@@ -641,7 +641,7 @@ protected trait EvcsAgentFundamentals
               requestTick,
               nodalVoltage,
               updatedVoltageValueStore,
-              alternativeResult
+              alternativeResult,
             )
           case None =>
             /* There is no simulation result at all. Reply with zero power */
@@ -649,7 +649,7 @@ protected trait EvcsAgentFundamentals
               updatedBaseStateData,
               alternativeResult,
               requestTick,
-              updatedVoltageValueStore
+              updatedVoltageValueStore,
             )
         }
     }
@@ -672,15 +672,15 @@ protected trait EvcsAgentFundamentals
         ApparentPower,
         EvcsRelevantData,
         EvcsState,
-        EvcsModel
+        EvcsModel,
       ],
       result: ApparentPower,
-      currentTick: Long
+      currentTick: Long,
   ): ParticipantModelBaseStateData[
     ApparentPower,
     EvcsRelevantData,
     EvcsState,
-    EvcsModel
+    EvcsModel,
   ] = {
 
     // calculate results from last schedule
@@ -698,7 +698,7 @@ protected trait EvcsAgentFundamentals
               determineResultsAnnounceUpdateValueStore(
                 lastState,
                 currentTick,
-                baseStateData
+                baseStateData,
               )
 
             baseStateData.copy(
@@ -707,7 +707,7 @@ protected trait EvcsAgentFundamentals
               ApparentPower,
               EvcsRelevantData,
               EvcsState,
-              EvcsModel
+              EvcsModel,
             ]
         }
       }
@@ -734,8 +734,8 @@ protected trait EvcsAgentFundamentals
         ApparentPower,
         EvcsRelevantData,
         EvcsState,
-        EvcsModel
-      ]
+        EvcsModel,
+      ],
   ): ValueStore[ApparentPower] = {
 
     val voltage = modelBaseStateData.voltageValueStore
@@ -748,7 +748,7 @@ protected trait EvcsAgentFundamentals
     val (evResults, evcsResults) = modelBaseStateData.model.createResults(
       lastState,
       currentTick,
-      voltage
+      voltage,
     )
 
     // send out EV results
@@ -770,8 +770,8 @@ protected trait EvcsAgentFundamentals
           result.getTime.toTick(modelBaseStateData.startDate),
           ApparentPower(
             Megawatts(result.getP.to(MEGAWATT).getValue.doubleValue),
-            Megavars(result.getQ.to(MEGAVAR).getValue.doubleValue)
-          )
+            Megavars(result.getQ.to(MEGAVAR).getValue.doubleValue),
+          ),
         )
     }
   }
@@ -790,13 +790,13 @@ protected trait EvcsAgentFundamentals
   override protected def buildResult(
       uuid: UUID,
       dateTime: ZonedDateTime,
-      result: ApparentPower
+      result: ApparentPower,
   ): SystemParticipantResult =
     new EvcsResult(
       dateTime,
       uuid,
       result.p.toMegawatts.asMegaWatt,
-      result.q.toMegavars.asMegaVar
+      result.q.toMegavars.asMegaVar,
     )
 
   /** Update the last known model state with the given external, relevant data
@@ -820,6 +820,6 @@ protected trait EvcsAgentFundamentals
       modelState: EvcsState,
       calcRelevantData: EvcsRelevantData,
       nodalVoltage: squants.Dimensionless,
-      model: EvcsModel
+      model: EvcsModel,
   ): EvcsState = modelState
 }

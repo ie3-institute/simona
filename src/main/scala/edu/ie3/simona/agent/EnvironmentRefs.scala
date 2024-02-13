@@ -27,5 +27,5 @@ final case class EnvironmentRefs(
     runtimeEventListener: ActorRef,
     primaryServiceProxy: ActorRef,
     weather: ActorRef,
-    evDataService: Option[ActorRef]
+    evDataService: Option[ActorRef],
 )

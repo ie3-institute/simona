@@ -19,7 +19,7 @@ package edu.ie3.simona.util
   */
 final case class ReceiveDataMap[K, V](
     private val expectedKeys: Set[K],
-    receivedData: Map[K, V]
+    receivedData: Map[K, V],
 ) {
   def isComplete: Boolean = expectedKeys.isEmpty
 
@@ -27,7 +27,7 @@ final case class ReceiveDataMap[K, V](
 
   def addData(
       key: K,
-      value: V
+      value: V,
   ): ReceiveDataMap[K, V] = {
 
     if (!expectedKeys.contains(key))
@@ -37,7 +37,7 @@ final case class ReceiveDataMap[K, V](
 
     copy(
       expectedKeys = expectedKeys.excl(key),
-      receivedData.updated(key, value)
+      receivedData.updated(key, value),
     )
   }
 
@@ -50,13 +50,13 @@ object ReceiveDataMap {
   ): ReceiveDataMap[K, V] =
     ReceiveDataMap(
       expectedKeys = expectedKeys,
-      receivedData = Map.empty
+      receivedData = Map.empty,
     )
 
   def empty[K, V]: ReceiveDataMap[K, V] =
     ReceiveDataMap(
       expectedKeys = Set.empty,
-      receivedData = Map.empty
+      receivedData = Map.empty,
     )
 
 }

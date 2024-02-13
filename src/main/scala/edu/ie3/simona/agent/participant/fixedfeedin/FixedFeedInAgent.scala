@@ -23,9 +23,9 @@ object FixedFeedInAgent {
       initStateData: ParticipantInitializeStateData[
         FixedFeedInInput,
         FixedFeedInRuntimeConfig,
-        ApparentPower
+        ApparentPower,
       ],
-      listener: Iterable[ActorRef]
+      listener: Iterable[ActorRef],
   ): Props =
     Props(new FixedFeedInAgent(scheduler, initStateData, listener))
 }
@@ -42,9 +42,9 @@ class FixedFeedInAgent(
     initStateData: ParticipantInitializeStateData[
       FixedFeedInInput,
       FixedFeedInRuntimeConfig,
-      ApparentPower
+      ApparentPower,
     ],
-    override val listener: Iterable[ActorRef]
+    override val listener: Iterable[ActorRef],
 ) extends ParticipantAgent[
       ApparentPower,
       FixedRelevantData.type,
@@ -52,7 +52,7 @@ class FixedFeedInAgent(
       ParticipantStateData[ApparentPower],
       FixedFeedInInput,
       FixedFeedInRuntimeConfig,
-      FixedFeedInModel
+      FixedFeedInModel,
     ](scheduler, initStateData)
     with FixedFeedInAgentFundamentals {
 

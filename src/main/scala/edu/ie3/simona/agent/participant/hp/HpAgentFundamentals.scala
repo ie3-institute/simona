@@ -9,7 +9,7 @@ package edu.ie3.simona.agent.participant.hp
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.datamodel.models.result.system.{
   HpResult,
-  SystemParticipantResult
+  SystemParticipantResult,
 }
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
@@ -20,15 +20,15 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.hp.HpAgent.neededServices
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FlexControlledData,
-  ParticipantModelBaseStateData
+  ParticipantModelBaseStateData,
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   InputModelContainer,
-  WithHeatInputContainer
+  WithHeatInputContainer,
 }
 import edu.ie3.simona.agent.participant.statedata.{
   BaseStateData,
-  ParticipantStateData
+  ParticipantStateData,
 }
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
@@ -37,7 +37,7 @@ import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   AgentInitializationException,
   InconsistentStateException,
-  InvalidRequestException
+  InvalidRequestException,
 }
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
@@ -45,7 +45,7 @@ import edu.ie3.simona.model.participant.{FlexChangeIndicator, HpModel}
 import edu.ie3.simona.model.thermal.ThermalGrid
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexRequest,
-  FlexResponse
+  FlexResponse,
 }
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.util.quantities.PowerSystemUnits.PU
@@ -70,7 +70,7 @@ trait HpAgentFundamentals
       ParticipantStateData[ApparentPowerAndHeat],
       HpInput,
       HpRuntimeConfig,
-      HpModel
+      HpModel,
     ] {
   this: HpAgent =>
   override protected val pdClassTag: ClassTag[ApparentPowerAndHeat] =
@@ -78,7 +78,7 @@ trait HpAgentFundamentals
   override val alternativeResult: ApparentPowerAndHeat = ApparentPowerAndHeat(
     Megawatts(0d),
     Megavars(0d),
-    Megawatts(0d)
+    Megawatts(0d),
   )
 
   /** Partial function, that is able to transfer
@@ -91,10 +91,10 @@ trait HpAgentFundamentals
         ApparentPowerAndHeat,
         HpRelevantData,
         HpState,
-        HpModel
+        HpModel,
       ],
       HpState,
-      Dimensionless
+      Dimensionless,
   ) => ApparentPowerAndHeat =
     (_, _, _, _) =>
       throw new InvalidRequestException(
@@ -106,7 +106,7 @@ trait HpAgentFundamentals
         ApparentPowerAndHeat,
         HpRelevantData,
         HpState,
-        HpModel
+        HpModel,
       ]
   ): HpState = startingState(baseStateData.model.thermalGrid)
 
@@ -119,7 +119,7 @@ trait HpAgentFundamentals
     Megawatts(0d),
     Megawatts(0d),
     ThermalGrid.startingState(thermalGrid),
-    None
+    None,
   )
 
   /** Handle an active power change by flex control.
@@ -142,11 +142,11 @@ trait HpAgentFundamentals
         ApparentPowerAndHeat,
         HpRelevantData,
         HpState,
-        HpModel
+        HpModel,
       ],
       data: HpRelevantData,
       lastState: HpState,
-      setPower: squants.Power
+      setPower: squants.Power,
   ): (HpState, ApparentPowerAndHeat, FlexChangeIndicator) = {
     /* Determine needed information */
     val voltage =
@@ -180,7 +180,7 @@ trait HpAgentFundamentals
       tick,
       voltage,
       updatedState,
-      relevantData
+      relevantData,
     )
 
     (updatedState, result, flexChangeIndicator)
@@ -213,11 +213,11 @@ trait HpAgentFundamentals
         ApparentPowerAndHeat,
         HpRelevantData,
         HpState,
-        HpModel
+        HpModel,
       ],
       lastModelState: HpState,
       currentTick: Long,
-      scheduler: ActorRef
+      scheduler: ActorRef,
   ): FSM.State[AgentState, ParticipantStateData[ApparentPowerAndHeat]] = {
 
     /* Determine needed information */
@@ -232,7 +232,7 @@ trait HpAgentFundamentals
         lastModelState,
         relevantData,
         voltage,
-        baseStateData.model
+        baseStateData.model,
       )
 
     /* Calculate power results */
@@ -240,7 +240,7 @@ trait HpAgentFundamentals
       currentTick,
       voltage,
       updatedState,
-      relevantData
+      relevantData,
     )
     val accompanyingResults = baseStateData.model.thermalGrid.results(
       lastModelState.thermalGridState
@@ -250,7 +250,7 @@ trait HpAgentFundamentals
     val updatedStateDataStore = ValueStore.updateValueStore(
       baseStateData.stateDataStore,
       currentTick,
-      updatedState
+      updatedState,
     )
     val updatedBaseStateData =
       baseStateData.copy(stateDataStore = updatedStateDataStore)
@@ -258,7 +258,7 @@ trait HpAgentFundamentals
       scheduler,
       updatedBaseStateData,
       result,
-      relevantData
+      relevantData,
     )
   }
 
@@ -283,7 +283,7 @@ trait HpAgentFundamentals
       modelState: HpState,
       calcRelevantData: HpRelevantData,
       nodalVoltage: squants.Dimensionless,
-      model: HpModel
+      model: HpModel,
   ): HpState = model.determineState(modelState, calcRelevantData)
 
   /** Abstract definition, individual implementations found in individual agent
@@ -298,12 +298,12 @@ trait HpAgentFundamentals
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeEmAgent: Option[TypedActorRef[FlexResponse]]
+      maybeEmAgent: Option[TypedActorRef[FlexResponse]],
   ): BaseStateData.ParticipantModelBaseStateData[
     ApparentPowerAndHeat,
     HpRelevantData,
     HpState,
-    HpModel
+    HpModel,
   ] = {
     if (!services.toSeq.map(_.getClass).containsSlice(neededServices))
       throw new AgentInitializationException(
@@ -317,7 +317,7 @@ trait HpAgentFundamentals
           withHeatContainer,
           modelConfig,
           simulationStartDate,
-          simulationEndDate
+          simulationEndDate,
         )
 
         /* Determine a proper starting model state and save it into the base state data */
@@ -325,14 +325,14 @@ trait HpAgentFundamentals
         val stateDataStore = ValueStore.updateValueStore(
           ValueStore(resolution),
           -1L,
-          startingModelState
+          startingModelState,
         )
 
         ParticipantModelBaseStateData[
           ApparentPowerAndHeat,
           HpRelevantData,
           HpState,
-          HpModel
+          HpModel,
         ](
           simulationStartDate,
           simulationEndDate,
@@ -350,13 +350,13 @@ trait HpAgentFundamentals
                 .to(PU)
                 .getValue
                 .doubleValue
-            )
+            ),
           ),
           ValueStore(resolution),
           ValueStore(resolution),
           ValueStore(resolution),
           stateDataStore,
-          maybeEmAgent.map(FlexControlledData(_, self.toTyped[FlexRequest]))
+          maybeEmAgent.map(FlexControlledData(_, self.toTyped[FlexRequest])),
         )
       case unsupported =>
         throw new AgentInitializationException(
@@ -371,9 +371,9 @@ trait HpAgentFundamentals
         ApparentPowerAndHeat,
         HpRelevantData,
         HpState,
-        HpModel
+        HpModel,
       ],
-      tick: Long
+      tick: Long,
   ): HpRelevantData = {
     /* extract weather data from secondary data, which should have been requested and received before */
     val weatherData =
@@ -398,7 +398,7 @@ trait HpAgentFundamentals
 
     HpRelevantData(
       tick,
-      weatherData.temp.inKelvin
+      weatherData.temp.inKelvin,
     )
   }
 
@@ -418,7 +418,7 @@ trait HpAgentFundamentals
       inputModel: InputModelContainer[HpInput],
       modelConfig: HpRuntimeConfig,
       simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime
+      simulationEndDate: ZonedDateTime,
   ): HpModel = inputModel match {
     case ParticipantStateData.SimpleInputContainer(_) =>
       throw new AgentInitializationException(
@@ -431,7 +431,7 @@ trait HpAgentFundamentals
         modelConfig.scaling,
         simulationStartDate,
         simulationEndDate,
-        ThermalGrid(thermalGrid)
+        ThermalGrid(thermalGrid),
       )
   }
 
@@ -454,14 +454,14 @@ trait HpAgentFundamentals
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         Power => ReactivePower
-      ]
+      ],
   ): ApparentPowerAndHeat =
     ParticipantAgentFundamentals.averageApparentPowerAndHeat(
       tickToResults,
       windowStart,
       windowEnd,
       activeToReactivePowerFuncOpt,
-      log
+      log,
     )
 
   /** Determines the correct result.
@@ -478,12 +478,12 @@ trait HpAgentFundamentals
   override protected def buildResult(
       uuid: UUID,
       dateTime: ZonedDateTime,
-      result: ApparentPowerAndHeat
+      result: ApparentPowerAndHeat,
   ): SystemParticipantResult = new HpResult(
     dateTime,
     uuid,
     result.p.toMegawatts.asMegaWatt,
     result.q.toMegavars.asMegaVar,
-    result.qDot.toMegawatts.asMegaWatt
+    result.qDot.toMegawatts.asMegaWatt,
   )
 }

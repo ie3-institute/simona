@@ -21,7 +21,7 @@ final case class RefSystem private (
     nominalVoltage: ElectricPotential,
     nominalCurrent: ElectricCurrent,
     nominalPower: Power,
-    nominalImpedance: ElectricalResistance
+    nominalImpedance: ElectricalResistance,
 ) {
 
   /** Calculates the referenced resistance r (real part of impedance z) of a
@@ -143,11 +143,11 @@ final case class RefSystem private (
 
   def vInSi(vInPu: Complex): (
       ElectricPotential,
-      ElectricPotential
+      ElectricPotential,
   ) =
     (
       vInSi(Each(vInPu.real)),
-      vInSi(Each(vInPu.imag))
+      vInSi(Each(vInPu.imag)),
     )
 
   /** Converts a provided voltage value from physical SI value into p.u. value
@@ -167,7 +167,7 @@ case object RefSystem {
 
   def apply(
       nominalPower: Power,
-      nominalVoltage: ElectricPotential
+      nominalVoltage: ElectricPotential,
   ): RefSystem = {
 
     val nominalCurrent: ElectricCurrent =
@@ -180,7 +180,7 @@ case object RefSystem {
       nominalVoltage,
       nominalCurrent,
       nominalPower,
-      nominalImpedance
+      nominalImpedance,
     )
   }
 
@@ -224,7 +224,7 @@ case object RefSystem {
   def transferImpedance(
       impedance: Dimensionless,
       from: RefSystem,
-      to: RefSystem
+      to: RefSystem,
   ): Dimensionless = {
     val ratio = from.nominalImpedance.toOhms / to.nominalImpedance.toOhms
     Each(impedance.toEach * ratio)
@@ -245,7 +245,7 @@ case object RefSystem {
   def transferAdmittance(
       admittance: Dimensionless,
       from: RefSystem,
-      to: RefSystem
+      to: RefSystem,
   ): Dimensionless = {
     val ratio = to.nominalImpedance.toOhms / from.nominalImpedance.toOhms
 

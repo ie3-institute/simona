@@ -63,11 +63,11 @@ final case class LineModel(
     protected val r: squants.Dimensionless,
     protected val x: squants.Dimensionless,
     protected val g: squants.Dimensionless,
-    protected val b: squants.Dimensionless
+    protected val b: squants.Dimensionless,
 ) extends SystemComponent(
       uuid,
       id,
-      operationInterval
+      operationInterval,
     )
     with PiEquivalentCircuit {
 
@@ -111,7 +111,7 @@ case object LineModel extends LazyLogging {
       lineInput: LineInput,
       refSystem: RefSystem,
       simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime
+      simulationEndDate: ZonedDateTime,
   ): LineModel = {
     // validate the input model first
     validateInputModel(lineInput)
@@ -121,7 +121,7 @@ case object LineModel extends LazyLogging {
       lineInput,
       refSystem,
       simulationStartDate,
-      simulationEndDate
+      simulationEndDate,
     )
   }
 
@@ -143,7 +143,7 @@ case object LineModel extends LazyLogging {
       lineInput: LineInput,
       refSystem: RefSystem,
       startDate: ZonedDateTime,
-      endDate: ZonedDateTime
+      endDate: ZonedDateTime,
   ): LineModel = {
 
     val lineType = lineInput.getType
@@ -183,14 +183,14 @@ case object LineModel extends LazyLogging {
             .getValue
             .doubleValue()
         )
-      )
+      ),
     )
 
     val operationInterval =
       SystemComponent.determineOperationInterval(
         startDate,
         endDate,
-        lineInput.getOperationTime
+        lineInput.getOperationTime,
       )
 
     val lineModel = new LineModel(
@@ -206,7 +206,7 @@ case object LineModel extends LazyLogging {
       r,
       x,
       g,
-      b
+      b,
     )
 
     // if the line input model is in operation, enable the model
@@ -321,7 +321,7 @@ case object LineModel extends LazyLogging {
   def y0(lineModel: LineModel): Complex = {
     new Complex(
       lineModel.g0().value.doubleValue(),
-      lineModel.b0().value.doubleValue()
+      lineModel.b0().value.doubleValue(),
     )
   }
 
@@ -335,7 +335,7 @@ case object LineModel extends LazyLogging {
     */
   def yij(lineModel: LineModel): Complex = new Complex(
     lineModel.gij().value.doubleValue(),
-    lineModel.bij().value.doubleValue()
+    lineModel.bij().value.doubleValue(),
   )
 
   /** Calculates the utilisation of a given line model
@@ -352,12 +352,12 @@ case object LineModel extends LazyLogging {
   def utilisation(
       lineModel: LineModel,
       iNodeA: squants.electro.ElectricCurrent,
-      iNodeB: squants.electro.ElectricCurrent
+      iNodeB: squants.electro.ElectricCurrent,
   ): squants.Dimensionless = {
     Each(
       Math.max(
         iNodeA.toAmperes,
-        iNodeB.toAmperes
+        iNodeB.toAmperes,
       ) / lineModel.iNom.toAmperes * 100 / lineModel.amount
     )
   }

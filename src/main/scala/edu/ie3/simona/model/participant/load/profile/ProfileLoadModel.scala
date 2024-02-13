@@ -50,7 +50,7 @@ final case class ProfileLoadModel(
     sRated: Power,
     cosPhiRated: Double,
     loadProfile: StandardLoadProfile,
-    reference: LoadReference
+    reference: LoadReference,
 ) extends LoadModel[ProfileRelevantData](
       uuid,
       id,
@@ -58,7 +58,7 @@ final case class ProfileLoadModel(
       scalingFactor,
       qControl,
       sRated,
-      cosPhiRated
+      cosPhiRated,
     ) {
 
   private val loadProfileStore: LoadProfileStore = LoadProfileStore()
@@ -86,7 +86,7 @@ final case class ProfileLoadModel(
     */
   override protected def calculateActivePower(
       modelState: ConstantState.type,
-      data: ProfileRelevantData
+      data: ProfileRelevantData,
   ): Power = {
     /* The power comes in W and is delivered all 15 minutes */
     val averagePower: Power = loadProfileStore
@@ -114,7 +114,7 @@ object ProfileLoadModel {
       input: LoadInput,
       operationInterval: OperationInterval,
       scalingFactor: Double,
-      reference: LoadReference
+      reference: LoadReference,
   ): ProfileLoadModel = {
     val model = reference match {
       case LoadReference.ActivePower(power) =>
@@ -128,7 +128,7 @@ object ProfileLoadModel {
           sRatedPowerScaled,
           input.getCosPhiRated,
           input.getLoadProfile.asInstanceOf[StandardLoadProfile],
-          reference
+          reference,
         )
 
       case LoadReference.EnergyConsumption(energyConsumption) =>
@@ -140,7 +140,7 @@ object ProfileLoadModel {
           input,
           energyConsumption,
           loadProfileMax,
-          LoadProfileStore.defaultLoadProfileEnergyScaling
+          LoadProfileStore.defaultLoadProfileEnergyScaling,
         )
         ProfileLoadModel(
           input.getUuid,
@@ -151,7 +151,7 @@ object ProfileLoadModel {
           sRatedEnergy,
           input.getCosPhiRated,
           input.getLoadProfile.asInstanceOf[StandardLoadProfile],
-          reference
+          reference,
         )
     }
     model.enable()

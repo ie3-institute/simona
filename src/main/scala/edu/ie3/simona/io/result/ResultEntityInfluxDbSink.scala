@@ -48,7 +48,7 @@ object ResultEntityInfluxDbSink {
   def apply(
       databaseUrl: String,
       databaseName: String,
-      scenarioName: String
+      scenarioName: String,
   ): Future[ResultEntityInfluxDbSink] =
     Future.successful(
       new ResultEntityInfluxDbSink(

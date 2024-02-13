@@ -10,11 +10,11 @@ import breeze.numerics.round
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.profile.{
   BdewStandardLoadProfile,
-  StandardLoadProfile
+  StandardLoadProfile,
 }
 import edu.ie3.simona.model.participant.load.profile.LoadProfileStore.{
   initializeMaxConsumptionPerProfile,
-  initializeTypeDayValues
+  initializeTypeDayValues,
 }
 import edu.ie3.simona.model.participant.load.{DayType, profile}
 import org.apache.commons.csv.CSVFormat
@@ -56,7 +56,7 @@ class LoadProfileStore private (val reader: Reader) {
     */
   def entry(
       time: ZonedDateTime,
-      loadProfile: StandardLoadProfile
+      loadProfile: StandardLoadProfile,
   ): squants.Power = {
     val key = LoadProfileKey(loadProfile, time)
     profileMap.get(key) match {

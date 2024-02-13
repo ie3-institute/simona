@@ -36,7 +36,7 @@ class ThermalConductanceSpec extends AnyFlatSpec with Matchers {
     WattsPerKelvin(1000).thermalConductanceToEnergy(
       Kelvin(10),
       Kelvin(0),
-      Hours(5)
+      Hours(5),
     ) should be(KilowattHours(50d))
   }
 
@@ -44,7 +44,7 @@ class ThermalConductanceSpec extends AnyFlatSpec with Matchers {
     WattsPerKelvin(1000).thermalConductanceToEnergy(
       Celsius(10),
       Celsius(0),
-      Hours(5)
+      Hours(5),
     ) should be(KilowattHours(50d))
   }
 }

@@ -16,7 +16,7 @@ import edu.ie3.simona.io.runtime.{
   RuntimeEventKafkaSink,
   RuntimeEventLogSink,
   RuntimeEventQueueSink,
-  RuntimeEventSink
+  RuntimeEventSink,
 }
 import edu.ie3.util.TimeUtil
 import org.slf4j.Logger
@@ -42,7 +42,7 @@ object RuntimeEventListener {
   def apply(
       listenerConf: SimonaConfig.Simona.Runtime.Listener,
       queue: Option[BlockingQueue[RuntimeEvent]],
-      startDateTimeString: String
+      startDateTimeString: String,
   ): Behavior[RuntimeEvent] = {
     val listeners = Iterable(
       Some(
@@ -51,19 +51,19 @@ object RuntimeEventListener {
         )
       ),
       queue.map(qu => RuntimeEventQueueSink(qu)),
-      listenerConf.kafka.map(kafkaConf => RuntimeEventKafkaSink(kafkaConf))
+      listenerConf.kafka.map(kafkaConf => RuntimeEventKafkaSink(kafkaConf)),
     ).flatten
 
     RuntimeEventListener(
       listeners,
-      listenerConf.eventsToProcess
+      listenerConf.eventsToProcess,
     )
   }
 
   def apply(
       listeners: Iterable[RuntimeEventSink],
       eventsToProcess: Option[List[String]] = None,
-      runtimeStats: RuntimeStats = RuntimeStats()
+      runtimeStats: RuntimeStats = RuntimeStats(),
   ): Behavior[RuntimeEvent] = Behaviors
     .receive[RuntimeEvent] {
       case (_, PowerFlowFailed) =>
@@ -79,7 +79,7 @@ object RuntimeEventListener {
         else
           ctx.log.debug(
             "Skipping event {} as it is not in the list of events to process.",
-            event.id
+            event.id,
           )
         Behaviors.same
     }
@@ -92,7 +92,7 @@ object RuntimeEventListener {
       listeners: Iterable[RuntimeEventSink],
       event: RuntimeEvent,
       runtimeStats: RuntimeStats,
-      log: Logger
+      log: Logger,
   ): Unit =
     listeners.foreach(_.handleRuntimeEvent(event, runtimeStats, log))
 

@@ -30,7 +30,7 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
     2,
     0.95,
     EvcsLocationType.HOME,
-    true
+    true,
   )
 
   protected val evcsStandardModel: EvcsModel = EvcsModel(
@@ -39,7 +39,7 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
     defaultSimulationStart,
     defaultSimulationEnd,
     "maxPower",
-    lowestEvSoc = 0.2
+    lowestEvSoc = 0.2,
   )
 
 }

@@ -22,11 +22,11 @@ class ResultSinkTypeSpec extends UnitSpec {
             fileFormat = ".csv",
             filePrefix = "",
             fileSuffix = "",
-            isHierarchic = false
+            isHierarchic = false,
           )
         ),
         influxDb1x = None,
-        kafka = None
+        kafka = None,
       )
 
       inside(ResultSinkType(conf, "testRun")) {
@@ -46,10 +46,10 @@ class ResultSinkTypeSpec extends UnitSpec {
           SimonaConfig.Simona.Output.Sink.InfluxDb1x(
             database = "test",
             port = 1,
-            url = "localhost/"
+            url = "localhost/",
           )
         ),
-        kafka = None
+        kafka = None,
       )
       val runName = "testRun"
 
@@ -73,9 +73,9 @@ class ResultSinkTypeSpec extends UnitSpec {
             12,
             "00000000-0000-0000-0000-000000000000",
             "https://reg:123",
-            "topic"
+            "topic",
           )
-        )
+        ),
       )
       val runName = "testRun"
 
@@ -85,7 +85,7 @@ class ResultSinkTypeSpec extends UnitSpec {
               runId,
               bootstrapServers,
               schemaRegistryUrl,
-              linger
+              linger,
             ) =>
           topicNodeRes shouldBe "topic"
           runId shouldBe UUID.fromString("00000000-0000-0000-0000-000000000000")
@@ -104,17 +104,17 @@ class ResultSinkTypeSpec extends UnitSpec {
             fileFormat = ".csv",
             filePrefix = "",
             fileSuffix = "",
-            isHierarchic = false
+            isHierarchic = false,
           )
         ),
         influxDb1x = Some(
           SimonaConfig.Simona.Output.Sink.InfluxDb1x(
             database = "test",
             port = 1,
-            url = "localhost"
+            url = "localhost",
           )
         ),
-        kafka = None
+        kafka = None,
       )
 
       assertThrows[IllegalArgumentException](ResultSinkType(conf, "testRun"))
@@ -124,7 +124,7 @@ class ResultSinkTypeSpec extends UnitSpec {
       val conf = SimonaConfig.Simona.Output.Sink(
         csv = None,
         influxDb1x = None,
-        kafka = None
+        kafka = None,
       )
 
       assertThrows[IllegalArgumentException](ResultSinkType(conf, "testRun"))

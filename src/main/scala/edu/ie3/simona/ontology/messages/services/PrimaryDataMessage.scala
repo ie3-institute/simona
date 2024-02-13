@@ -30,7 +30,7 @@ object PrimaryDataMessage {
       override val serviceRef: ActorRef,
       override val data: ApparentPower,
       override val nextDataTick: Option[Long],
-      override val unlockKey: Option[ScheduleKey] = None
+      override val unlockKey: Option[ScheduleKey] = None,
   ) extends ProvisionMessage[ApparentPower]
       with PrimaryDataMessage
 }

@@ -8,11 +8,11 @@ package edu.ie3.simona.scheduler
 
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
-  TestProbe
+  TestProbe,
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.{LockMsg, ScheduleKey, Unlock}
@@ -90,7 +90,7 @@ class SchedulerSpec
 
       scheduler ! ScheduleActivation(
         agent2.ref,
-        INIT_SIM_TICK
+        INIT_SIM_TICK,
       )
 
       // activation is sent right away
@@ -159,7 +159,7 @@ class SchedulerSpec
 
       scheduler ! ScheduleActivation(
         agent1.ref,
-        INIT_SIM_TICK
+        INIT_SIM_TICK,
       )
 
       val sa1 = parent.expectMessageType[ScheduleActivation]
@@ -168,7 +168,7 @@ class SchedulerSpec
 
       scheduler ! ScheduleActivation(
         agent2.ref,
-        INIT_SIM_TICK
+        INIT_SIM_TICK,
       )
 
       // TICK -1
@@ -177,7 +177,7 @@ class SchedulerSpec
       agent1.expectActivationAndComplete(
         scheduler,
         INIT_SIM_TICK,
-        Some(0)
+        Some(0),
       )
 
       parent.expectNoMessage()
@@ -185,7 +185,7 @@ class SchedulerSpec
       agent2.expectActivationAndComplete(
         scheduler,
         INIT_SIM_TICK,
-        Some(0)
+        Some(0),
       )
 
       parent.expectMessage(Completion(schedulerActivation, Some(0)))
@@ -199,7 +199,7 @@ class SchedulerSpec
       agent1.expectActivationAndComplete(
         scheduler,
         0,
-        Some(300)
+        Some(300),
       )
 
       parent.expectNoMessage()
@@ -207,7 +207,7 @@ class SchedulerSpec
       agent2.expectActivationAndComplete(
         scheduler,
         0,
-        Some(900)
+        Some(900),
       )
 
       parent.expectMessage(Completion(schedulerActivation, Some(300)))
@@ -218,7 +218,7 @@ class SchedulerSpec
       agent1.expectActivationAndComplete(
         scheduler,
         300,
-        Some(900)
+        Some(900),
       )
 
       parent.expectMessage(Completion(schedulerActivation, Some(900)))
@@ -232,7 +232,7 @@ class SchedulerSpec
       agent1.expectActivationAndComplete(
         scheduler,
         900,
-        Some(3600)
+        Some(3600),
       )
 
       parent.expectNoMessage()
@@ -240,7 +240,7 @@ class SchedulerSpec
       agent2.expectActivationAndComplete(
         scheduler,
         900,
-        Some(1800)
+        Some(1800),
       )
 
       parent.expectMessage(Completion(schedulerActivation, Some(1800)))
@@ -263,7 +263,7 @@ class SchedulerSpec
         // send to init activation to scheduler
         scheduler ! ScheduleActivation(
           actor.ref,
-          INIT_SIM_TICK
+          INIT_SIM_TICK,
         )
       )
 
@@ -278,7 +278,7 @@ class SchedulerSpec
           _.expectActivationAndComplete(
             scheduler,
             tick,
-            Some(tick + 1)
+            Some(tick + 1),
           )
         }
 
@@ -310,7 +310,7 @@ class SchedulerSpec
       scheduler ! ScheduleActivation(
         agent2.ref,
         120,
-        Some(ScheduleKey(lock.ref, key))
+        Some(ScheduleKey(lock.ref, key)),
       )
 
       // no new scheduling when active
@@ -338,7 +338,7 @@ class SchedulerSpec
       scheduler ! ScheduleActivation(
         agent1.ref,
         60,
-        Some(ScheduleKey(lock.ref, key))
+        Some(ScheduleKey(lock.ref, key)),
       )
 
       // no new scheduling for same tick
@@ -367,7 +367,7 @@ class SchedulerSpec
       scheduler ! ScheduleActivation(
         agent1.ref,
         59,
-        Some(ScheduleKey(lock.ref, key))
+        Some(ScheduleKey(lock.ref, key)),
       )
 
       // lock should not receive unlock message by scheduler
@@ -378,7 +378,7 @@ class SchedulerSpec
         ScheduleActivation(
           schedulerActivation,
           59,
-          Some(ScheduleKey(lock.ref, key))
+          Some(ScheduleKey(lock.ref, key)),
         )
       )
     }
@@ -386,6 +386,32 @@ class SchedulerSpec
   }
 
   "The Scheduler should fail and stop" when {
+
+    "activated if no activation is scheduled" in {
+      val parent = TestProbe[SchedulerMessage]("parent")
+      val scheduler = spawn(
+        Scheduler(parent.ref)
+      )
+
+      val agent1 = TestProbe[Activation]("agent_1")
+
+      scheduler ! ScheduleActivation(agent1.ref, INIT_SIM_TICK)
+
+      val sa1 = parent.expectMessageType[ScheduleActivation]
+      sa1.tick shouldBe INIT_SIM_TICK
+      val schedulerActivation = sa1.actor
+
+      // TICK -1
+      schedulerActivation ! Activation(INIT_SIM_TICK)
+      agent1.expectActivationAndComplete(scheduler, INIT_SIM_TICK, None)
+      parent.expectMessage(Completion(schedulerActivation, None))
+
+      // No activation scheduled, this should fail now
+      schedulerActivation ! Activation(0)
+
+      // scheduler stopped
+      parent.expectTerminated(scheduler)
+    }
 
     "activated with wrong tick" in {
       val parent = TestProbe[SchedulerMessage]("parent")
@@ -412,7 +438,7 @@ class SchedulerSpec
       parent.expectTerminated(scheduler)
     }
 
-    "asked to schedule activation for a past tick while inactive" in {
+    "asked to schedule activation for the last tick while inactive" in {
       val parent = TestProbe[SchedulerMessage]("parent")
       val scheduler = spawn(
         Scheduler(parent.ref)
@@ -432,14 +458,15 @@ class SchedulerSpec
       agent1.expectActivationAndComplete(
         scheduler,
         900,
-        Some(1800)
+        Some(1800),
       )
 
       parent.expectMessage(Completion(schedulerActivation, Some(1800)))
 
       // now inactive again
-      // can't schedule activation with earlier tick than last tick (900) -> error
-      scheduler ! ScheduleActivation(agent1.ref, INIT_SIM_TICK)
+      // can't schedule activation with tick equal to last tick (900) -> error
+      // same result with any other past tick
+      scheduler ! ScheduleActivation(agent1.ref, 900)
 
       // agent does not receive activation
       agent1.expectNoMessage()
@@ -553,7 +580,7 @@ class SchedulerSpec
       agent1.expectActivationAndComplete(
         scheduler,
         INIT_SIM_TICK,
-        Some(0)
+        Some(0),
       )
 
       parent.expectMessage(Completion(schedulerActivation.ref, Some(0)))

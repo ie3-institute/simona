@@ -51,6 +51,6 @@ trait PvInputTestData
     11,
     false,
     Quantities.getQuantity(10, StandardUnits.S_RATED),
-    0.95
+    0.95,
   )
 }

@@ -31,7 +31,7 @@ class ApparentPowerAndHeatSpec extends UnitSpec {
           50L,
           Each(1.0d),
           ConstantState,
-          FixedRelevantData
+          FixedRelevantData,
         ) match {
           case ApparentPowerAndHeat(p, q, qDot) =>
             p should approximate(Megawatts(0d))
@@ -46,7 +46,7 @@ class ApparentPowerAndHeatSpec extends UnitSpec {
           10L,
           Each(1.0d),
           ConstantState,
-          FixedRelevantData
+          FixedRelevantData,
         ) match {
           case ApparentPowerAndHeat(p, q, qDot) =>
             p should approximate(Megawatts(43d))
@@ -63,7 +63,7 @@ object ApparentPowerAndHeatSpec {
       extends SystemParticipant[
         FixedRelevantData.type,
         ApparentPowerAndHeat,
-        ConstantState.type
+        ConstantState.type,
       ](
         UUID.randomUUID(),
         "ParticipantMock",
@@ -71,11 +71,11 @@ object ApparentPowerAndHeatSpec {
         1.0,
         CosPhiFixed(0.97),
         Kilowatts(42d),
-        0.97
+        0.97,
       )
       with ApparentPowerAndHeatParticipant[
         FixedRelevantData.type,
-        ConstantState.type
+        ConstantState.type,
       ] {
     this.enable()
 
@@ -92,7 +92,7 @@ object ApparentPowerAndHeatSpec {
     override def calculateHeat(
         tick: Long,
         modelState: ConstantState.type,
-        data: CalcRelevantData.FixedRelevantData.type
+        data: CalcRelevantData.FixedRelevantData.type,
     ): Power = Megawatts(42d)
 
     /** Calculate the active power behaviour of the model
@@ -104,7 +104,7 @@ object ApparentPowerAndHeatSpec {
       */
     override protected def calculateActivePower(
         modelState: ConstantState.type,
-        data: CalcRelevantData.FixedRelevantData.type
+        data: CalcRelevantData.FixedRelevantData.type,
     ): Power = Megawatts(43d)
 
     /** @param data
@@ -114,11 +114,11 @@ object ApparentPowerAndHeatSpec {
       */
     override def determineFlexOptions(
         data: CalcRelevantData.FixedRelevantData.type,
-        lastState: ModelState.ConstantState.type
+        lastState: ModelState.ConstantState.type,
     ): FlexibilityMessage.ProvideFlexOptions =
       ProvideMinMaxFlexOptions.noFlexOption(
         this.getUuid,
-        calculateActivePower(ConstantState, data)
+        calculateActivePower(ConstantState, data),
       )
 
     /** @param data
@@ -132,7 +132,7 @@ object ApparentPowerAndHeatSpec {
     override def handleControlledPowerChange(
         data: CalcRelevantData.FixedRelevantData.type,
         lastState: ModelState.ConstantState.type,
-        setPower: Power
+        setPower: Power,
     ): (ModelState.ConstantState.type, FlexChangeIndicator) =
       (lastState, FlexChangeIndicator())
   }

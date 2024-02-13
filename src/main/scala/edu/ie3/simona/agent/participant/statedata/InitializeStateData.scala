@@ -27,7 +27,7 @@ object InitializeStateData {
     val outputConfig: NotifierConfig = NotifierConfig(
       simulationResultInfo = false,
       powerRequestReply = true,
-      flexResult = false
+      flexResult = false,
     )
   }
 }

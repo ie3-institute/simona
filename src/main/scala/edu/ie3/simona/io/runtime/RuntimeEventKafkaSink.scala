@@ -16,7 +16,7 @@ import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.SCHEMA_REGI
 import org.apache.kafka.clients.producer.{
   KafkaProducer,
   ProducerConfig,
-  ProducerRecord
+  ProducerRecord,
 }
 import org.apache.kafka.common.serialization.{Serdes, Serializer}
 import org.slf4j.Logger
@@ -36,13 +36,13 @@ import scala.jdk.CollectionConverters._
 final case class RuntimeEventKafkaSink(
     producer: KafkaProducer[String, SimonaEndMessage],
     simRunId: UUID,
-    topic: String
+    topic: String,
 ) extends RuntimeEventSink {
 
   override def handleRuntimeEvent(
       runtimeEvent: RuntimeEvent,
       runtimeStats: RuntimeStats,
-      log: Logger
+      log: Logger,
   ): Unit = {
     (runtimeEvent match {
       case Done(_, _, errorInSim) =>
@@ -83,7 +83,7 @@ object RuntimeEventKafkaSink {
     props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, config.bootstrapServers)
     props.put(
       ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG,
-      true
+      true,
     ) // exactly once delivery
 
     implicit val recordFormat: RecordFormat[SimonaEndMessage] =
@@ -95,23 +95,23 @@ object RuntimeEventKafkaSink {
 
     valueSerializer.configure(
       Map(SCHEMA_REGISTRY_URL_CONFIG -> config.schemaRegistryUrl).asJava,
-      false
+      false,
     )
 
     RuntimeEventKafkaSink(
       new KafkaProducer[String, SimonaEndMessage](
         props,
         keySerializer,
-        valueSerializer
+        valueSerializer,
       ),
       simRunId,
-      config.topic
+      config.topic,
     )
   }
 
   final case class SimonaEndMessage(
       simRunId: UUID,
       failedPowerFlows: Int,
-      error: Boolean
+      error: Boolean,
   )
 }

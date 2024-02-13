@@ -24,15 +24,15 @@ object HpAgent {
       initStateData: ParticipantInitializeStateData[
         HpInput,
         HpRuntimeConfig,
-        ApparentPowerAndHeat
+        ApparentPowerAndHeat,
       ],
-      listener: Iterable[ActorRef]
+      listener: Iterable[ActorRef],
   ): Props =
     Props(
       new HpAgent(
         scheduler,
         initStateData,
-        listener
+        listener,
       )
     )
 
@@ -46,9 +46,9 @@ class HpAgent(
     initStateData: ParticipantInitializeStateData[
       HpInput,
       HpRuntimeConfig,
-      ApparentPowerAndHeat
+      ApparentPowerAndHeat,
     ],
-    override val listener: Iterable[ActorRef]
+    override val listener: Iterable[ActorRef],
 ) extends ParticipantAgent[
       ApparentPowerAndHeat,
       HpRelevantData,
@@ -58,7 +58,7 @@ class HpAgent(
       ],
       HpInput,
       HpRuntimeConfig,
-      HpModel
+      HpModel,
     ](scheduler, initStateData)
     with HpAgentFundamentals {
 

@@ -46,7 +46,7 @@ trait DefaultTestData {
     SystemComponent.determineOperationInterval(
       defaultSimulationStart,
       defaultSimulationEnd,
-      defaultOperationTime
+      defaultOperationTime,
     )
 
   // default Lat/Long
@@ -60,7 +60,7 @@ trait DefaultTestData {
 
   protected val default400Kva10KvRefSystem: RefSystem = RefSystem(
     Kilowatts(400d),
-    Kilovolts(10d)
+    Kilovolts(10d),
   )
 
   /** Creates a [[SimonaConfig]], that provides the desired participant model
@@ -75,7 +75,7 @@ trait DefaultTestData {
     */
   def createSimonaConfig(
       modelBehaviour: LoadModelBehaviour.Value,
-      reference: LoadReference
+      reference: LoadReference,
   ): SimonaConfig = {
     val typesafeConfig: Config = ConfigFactory.parseString(
       s"""

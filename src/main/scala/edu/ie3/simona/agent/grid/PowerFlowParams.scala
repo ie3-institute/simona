@@ -30,5 +30,5 @@ final case class PowerFlowParams(
     epsilon: Vector[Double],
     maxIterations: Int,
     sweepTimeout: Duration,
-    stopOnFailure: Boolean
+    stopOnFailure: Boolean,
 )

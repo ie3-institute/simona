@@ -23,7 +23,7 @@ class ReceivedValuesStoreSpec
           .parseString("""
             |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
             |pekko.loglevel="OFF"
-        """.stripMargin)
+        """.stripMargin),
       )
     )
     with UnitSpec
@@ -42,7 +42,7 @@ class ReceivedValuesStoreSpec
     ),
     UUID.fromString("34e807f1-c62b-4968-b0f6-980ce500ff97") -> Set(
       actorProbe2.ref
-    )
+    ),
   )
 
   // / subnet gate mapping for inferior grids
@@ -51,7 +51,7 @@ class ReceivedValuesStoreSpec
       UUID.fromString("5cd55ab5-a7d2-499f-a25f-6dbc3845c5e8"),
       1,
       UUID.fromString("1676360a-c7c4-43a9-a667-90ddfe8a18e6"),
-      2
+      2,
     ) -> actorProbe3.ref
   )
 
@@ -72,7 +72,7 @@ class ReceivedValuesStoreSpec
         ReceivedValuesStore.empty(
           nodeToAssetAgentsMap,
           inferiorSubGridGateToActorRefMap,
-          superiorGridNodeUuids
+          superiorGridNodeUuids,
         )
 
       receivedValuesStore.nodeToReceivedSlackVoltage.size shouldBe 0
@@ -86,7 +86,7 @@ class ReceivedValuesStoreSpec
         ReceivedValuesStore.empty(
           nodeToAssetAgentsMap,
           inferiorSubGridGateToActorRefMap,
-          superiorGridNodeUuids
+          superiorGridNodeUuids,
         )
 
       receivedValuesStore.nodeToReceivedPower.size shouldBe 3
@@ -116,8 +116,8 @@ class ReceivedValuesStoreSpec
           ),
           UUID.fromString("34e807f1-c62b-4968-b0f6-980ce500ff97") -> Set(
             actorProbe2.ref,
-            actorProbe3.ref
-          )
+            actorProbe3.ref,
+          ),
         )
 
       val inferiorSubGridGateToActorRefMap = Map.empty[SubGridGate, ActorRef]
@@ -127,7 +127,7 @@ class ReceivedValuesStoreSpec
         ReceivedValuesStore.empty(
           nodeToAssetAgentsMap,
           inferiorSubGridGateToActorRefMap,
-          superiorGridNodeUuids
+          superiorGridNodeUuids,
         )
 
       receivedValuesStore.nodeToReceivedSlackVoltage.size shouldBe 0
@@ -140,7 +140,7 @@ class ReceivedValuesStoreSpec
         UUID.fromString("34e807f1-c62b-4968-b0f6-980ce500ff97")
       ) shouldBe Map(
         actorProbe2.ref -> None,
-        actorProbe3.ref -> None
+        actorProbe3.ref -> None,
       )
 
     }
@@ -153,7 +153,7 @@ class ReceivedValuesStoreSpec
         ReceivedValuesStore.empty(
           nodeToAssetAgentsMap,
           inferiorSubGridGateToActorRefMap,
-          superiorGridNodeUuids
+          superiorGridNodeUuids,
         )
 
       receivedValuesStore.nodeToReceivedSlackVoltage.size shouldBe 0
@@ -178,14 +178,14 @@ class ReceivedValuesStoreSpec
 
       val superiorGridNodeUuids = Vector(
         UUID.fromString("baded8c4-b703-4316-b62f-75ffe09c9843"),
-        UUID.fromString("d5040bf7-56c1-4d6a-908a-47c05b0c5c54")
+        UUID.fromString("d5040bf7-56c1-4d6a-908a-47c05b0c5c54"),
       )
 
       val receivedValuesStore =
         ReceivedValuesStore.empty(
           nodeToAssetAgentsMap,
           inferiorSubGridGateToActorRefMap,
-          superiorGridNodeUuids
+          superiorGridNodeUuids,
         )
 
       receivedValuesStore.nodeToReceivedPower.size shouldBe 0
@@ -209,7 +209,7 @@ class ReceivedValuesStoreSpec
         ReceivedValuesStore.empty(
           nodeToAssetAgentsMap,
           inferiorSubGridGateToActorRefMap,
-          superiorGridNodeUuids
+          superiorGridNodeUuids,
         )
 
       receivedValuesStore.nodeToReceivedSlackVoltage.size shouldBe 0
