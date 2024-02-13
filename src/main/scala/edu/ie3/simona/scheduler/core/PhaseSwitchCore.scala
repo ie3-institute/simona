@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.scheduler.core
 
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.scheduler.core.Core.{
   ActiveCore,
   Actor,
@@ -34,30 +35,40 @@ object PhaseSwitchCore extends CoreFactory {
       private val activationQueue: PrioritySwitchBiSet[Long, Actor],
       private val lastActiveTick: Option[Long],
   ) extends InactiveCore {
-    override def checkActivation(newTick: Long): Boolean =
-      activationQueue.headKeyOption.contains(newTick)
-
-    override def activate(): Core.ActiveCore = {
-      val nextActiveTick = activationQueue.headKeyOption.getOrElse(
-        throw new RuntimeException("Nothing scheduled, cannot activate.")
+    override def activate(newTick: Long): ActiveCore = {
+      val nextScheduledTick = activationQueue.headKeyOption.getOrElse(
+        throw new CriticalFailureException(
+          "No activation scheduled, cannot activate."
+        )
       )
-      PhaseSwitchActive(activationQueue, activeTick = nextActiveTick)
-    }
 
-    override def checkSchedule(newTick: Long): Boolean =
-      lastActiveTick.forall(newTick >= _ + 1)
+      if (nextScheduledTick != newTick)
+        throw new CriticalFailureException(
+          s"Cannot activate with new tick $newTick because $nextScheduledTick is the next scheduled tick."
+        )
+
+      PhaseSwitchActive(activationQueue, activeTick = newTick)
+    }
 
     override def handleSchedule(
         actor: Actor,
         newTick: Long,
     ): (Option[Long], InactiveCore) = {
+      lastActiveTick.filter(newTick < _).foreach { lastActive =>
+        throw new CriticalFailureException(
+          s"Cannot schedule an activation for $actor at tick $newTick because the last active tick is $lastActive"
+        )
+      }
+
       val oldEarliestTick = activationQueue.headKeyOption
 
       val updatedQueue = activationQueue.set(newTick, actor)
       val newEarliestTick = updatedQueue.headKeyOption
 
       val maybeScheduleTick =
-        Option.when(newEarliestTick != oldEarliestTick)(newEarliestTick).flatten
+        Option
+          .when(newEarliestTick != oldEarliestTick)(newEarliestTick)
+          .flatten
 
       (maybeScheduleTick, copy(activationQueue = updatedQueue))
     }
@@ -71,11 +82,14 @@ object PhaseSwitchCore extends CoreFactory {
       private val activeActors: Set[Actor] = Set.empty,
   ) extends ActiveCore {
 
-    override def checkCompletion(actor: Actor): Boolean =
-      activeActors.contains(actor)
+    override def handleCompletion(actor: Actor): ActiveCore = {
+      if (!activeActors.contains(actor))
+        throw new CriticalFailureException(
+          s"Actor $actor is not part of the expected completing actors"
+        )
 
-    override def handleCompletion(actor: Actor): ActiveCore =
       copy(activeActors = activeActors.excl(actor))
+    }
 
     override def maybeComplete(): Option[(Option[Long], InactiveCore)] = {
       Option.when(
@@ -90,17 +104,28 @@ object PhaseSwitchCore extends CoreFactory {
       }
     }
 
-    override def checkSchedule(actor: Actor, newTick: Long): Boolean = {
+    override def handleSchedule(
+        actor: Actor,
+        newTick: Long,
+    ): ActiveCore = {
       if (newTick == activeTick) {
         // what's done, is done: old phases are completed,
         // thus they cannot handle new activation schedulings
-        activationQueue.indexOf(actor).forall(_ >= phase)
-      } else
-        newTick > activeTick
-    }
+        if (activationQueue.indexOf(actor).exists(_ < phase)) {
+          val activeActor = activationQueue.values(phase)
+          throw new CriticalFailureException(
+            s"Cannot schedule an activation at tick $newTick for $actor while actor $activeActor is active now"
+          )
+        }
+      } else {
+        if (newTick < activeTick)
+          throw new CriticalFailureException(
+            s"Cannot schedule an activation at tick $newTick for $actor while tick $activeTick is currently active"
+          )
+      }
 
-    override def handleSchedule(actor: Actor, newTick: Long): ActiveCore =
       copy(activationQueue = activationQueue.set(newTick, actor))
+    }
 
     override def takeNewActivations(): (Iterable[Actor], ActiveCore) = {
       Option
