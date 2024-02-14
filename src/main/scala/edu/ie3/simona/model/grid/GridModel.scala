@@ -26,7 +26,6 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseC,
 }
 import edu.ie3.simona.util.CollectionUtils
-
 import org.jgrapht.Graph
 import org.jgrapht.alg.connectivity.ConnectivityInspector
 import org.jgrapht.graph.{DefaultEdge, SimpleGraph}
@@ -67,7 +66,7 @@ final case class GridModel(
   def nodeUuidToIndexMap: Map[UUID, Int] = _nodeUuidToIndexMap
 }
 
-case object GridModel {
+object GridModel {
 
   def apply(
       subGridContainer: SubGridContainer,
