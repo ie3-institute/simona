@@ -31,18 +31,20 @@ import scala.jdk.CollectionConverters._
   * @param simRunId
   *   the id of this simulation run
   * @param topic
-  *   the topic to send the events to
+  *   the topic to send the events to ticks
+  * @param log
+  *   The logger to use
   */
 final case class RuntimeEventKafkaSink(
     producer: KafkaProducer[String, SimonaEndMessage],
     simRunId: UUID,
     topic: String,
+    log: Logger,
 ) extends RuntimeEventSink {
 
   override def handleRuntimeEvent(
       runtimeEvent: RuntimeEvent,
       runtimeStats: RuntimeStats,
-      log: Logger,
   ): Unit = {
     (runtimeEvent match {
       case Done(_, _, errorInSim) =>
@@ -74,7 +76,8 @@ final case class RuntimeEventKafkaSink(
 
 object RuntimeEventKafkaSink {
   def apply(
-      config: RuntimeKafkaParams
+      config: RuntimeKafkaParams,
+      log: Logger,
   ): RuntimeEventKafkaSink = {
     val simRunId = UUID.fromString(config.runId)
 
@@ -106,6 +109,7 @@ object RuntimeEventKafkaSink {
       ),
       simRunId,
       config.topic,
+      log,
     )
   }
 

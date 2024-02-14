@@ -21,7 +21,6 @@ final case class RuntimeEventQueueSink(queue: BlockingQueue[RuntimeEvent])
   override def handleRuntimeEvent(
       runtimeEvent: RuntimeEvent,
       runtimeStats: RuntimeStats,
-      log: Logger,
   ): Unit =
     queue.put(runtimeEvent)
 

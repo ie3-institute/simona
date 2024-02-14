@@ -18,15 +18,17 @@ import java.time.ZonedDateTime
   * @param simulationStartDate
   *   the simulation start date time, used for calculating simulation time from
   *   ticks
+  * @param log
+  *   The logger to use
   */
 final case class RuntimeEventLogSink(
-    simulationStartDate: ZonedDateTime
+    simulationStartDate: ZonedDateTime,
+    log: Logger,
 ) extends RuntimeEventSink {
 
   override def handleRuntimeEvent(
       runtimeEvent: RuntimeEvent,
       runtimeStats: RuntimeStats,
-      log: Logger,
   ): Unit =
     runtimeEvent match {
       case Initializing =>

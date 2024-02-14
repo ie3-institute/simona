@@ -22,13 +22,10 @@ trait RuntimeEventSink {
     *   The runtime event that should be processed
     * @param runtimeStats
     *   The runtime statistical data
-    * @param log
-    *   The logger to use
     */
   def handleRuntimeEvent(
       runtimeEvent: RuntimeEvent,
       runtimeStats: RuntimeStats,
-      log: Logger,
   ): Unit
 
   /** Contains all cleanup operations before closing this sink. Should be
