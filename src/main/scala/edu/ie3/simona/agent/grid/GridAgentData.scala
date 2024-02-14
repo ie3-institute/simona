@@ -10,13 +10,17 @@ import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
+import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.ReceivedValues.{
   ReceivedPowerValues,
   ReceivedSlackVoltageValues,
 }
 import edu.ie3.simona.agent.grid.ReceivedValuesStore.NodeToReceivedPower
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
+import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.event.notifier.Notifier
 import edu.ie3.simona.model.grid.{GridModel, RefSystem}
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   FailedPowerFlow,
   PowerResponseMessage,
@@ -24,8 +28,10 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
   ProvidePowerMessage,
 }
 import org.apache.pekko.actor.typed.ActorRef
-import org.slf4j.Logger
+import org.apache.pekko.actor.typed.scaladsl.StashBuffer
+import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
+import java.time.ZonedDateTime
 import java.util.UUID
 
 sealed trait GridAgentData
@@ -33,6 +39,29 @@ sealed trait GridAgentData
 /** Contains all state data of [[GridAgent]]
   */
 object GridAgentData {
+
+  /** Class holding some [[GridAgent]] values that are immutable.
+    * @param environmentRefs
+    *   environment actor refs
+    * @param simonaConfig
+    *   config
+    * @param listener
+    *   listeners
+    * @param resolution
+    *   of the simulation
+    * @param simStartTime
+    *   start time of the simulation
+    * @param activationAdapter
+    *   adapter for [[Activation]]
+    */
+  final case class GridAgentValues private (
+      environmentRefs: EnvironmentRefs,
+      simonaConfig: SimonaConfig,
+      override val listener: Iterable[ClassicRef],
+      resolution: Long,
+      simStartTime: ZonedDateTime,
+      activationAdapter: ActorRef[Activation],
+  ) extends Notifier
 
   /** Data that is send to the [[GridAgent]] directly after startup. It contains
     * the main information for initialization. This data should include all
@@ -103,7 +132,6 @@ object GridAgentData {
         superiorGridNodeUuids: Vector[UUID],
         inferiorGridGates: Vector[SubGridGate],
         powerFlowParams: PowerFlowParams,
-        log: Logger,
         actorName: String,
     ): GridAgentBaseData = {
 
@@ -126,7 +154,6 @@ object GridAgentData {
           superiorGridNodeUuids,
         ),
         sweepValueStores,
-        log,
         actorName,
       )
     }
@@ -191,7 +218,6 @@ object GridAgentData {
       currentSweepNo: Int,
       receivedValueStore: ReceivedValuesStore,
       sweepValueStores: Map[Int, SweepValueStore],
-      log: Logger,
       actorName: String,
   ) extends GridAgentData
       with GridAgentDataHelper {
@@ -212,14 +238,7 @@ object GridAgentData {
       val slackVoltageValuesReady =
         receivedValueStore.nodeToReceivedSlackVoltage.values
           .forall(_.isDefined)
-      log.debug(
-        "slackMap: {}",
-        receivedValueStore.nodeToReceivedSlackVoltage,
-      )
-      log.debug(
-        "powerMap: {}",
-        receivedValueStore.nodeToReceivedPower,
-      )
+
       assetAndGridPowerValuesReady & slackVoltageValuesReady
     }
 

@@ -6,27 +6,26 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.ontology.messages.PowerMessage.PowerResponseMessage
-import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
-import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
+import VoltageMessage.ProvideSlackVoltageMessage
+import edu.ie3.simona.agent.grid.GridAgentMessage.GAMessage
 import org.apache.pekko.actor.typed.ActorRef
 
 /** Serves as a wrapper class that allows for matches against received values in
   * [[DBFSAlgorithm]]
   */
-sealed trait ReceivedValues
+sealed trait ReceivedValues extends GAMessage
 
 object ReceivedValues {
 
-  type ParticipantPowerRequestResponse =
+  private type ParticipantPowerRequestResponse =
     (
         ActorRef[_],
         PowerResponseMessage,
     ) // necessary, because participants are still classic actors
-  type GridPowerRequestResponse =
+  private type GridPowerRequestResponse =
     (ActorRef[GridAgentMessage], PowerResponseMessage)
-  type ActorSlackVoltageRequestResponse =
+  private type ActorSlackVoltageRequestResponse =
     (ActorRef[GridAgentMessage], ProvideSlackVoltageMessage)
 
   sealed trait ReceivedPowerValues extends ReceivedValues {

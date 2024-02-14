@@ -6,7 +6,10 @@
 
 package edu.ie3.simona.sim
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
+  ClassicActorRefOps,
+  TypedActorRefOps,
+}
 import org.apache.pekko.actor.SupervisorStrategy.Stop
 import org.apache.pekko.actor.{
   Actor,
@@ -24,7 +27,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessage.StopGridAgent
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.scheduler.TimeAdvancer
-import edu.ie3.simona.scheduler.TimeAdvancer.StartSimMessage
+import edu.ie3.simona.scheduler.TimeAdvancer.{Incoming, StartSimMessage}
 import edu.ie3.simona.sim.SimMessage.{
   InitSim,
   SimulationFailure,
@@ -37,6 +40,7 @@ import edu.ie3.simona.sim.SimonaSim.{
 }
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
 import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
@@ -102,7 +106,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
     context,
     EnvironmentRefs(
       scheduler,
-      runtimeEventListener.toClassic,
+      runtimeEventListener,
       primaryServiceProxy,
       weatherService,
       extSimulationData.evDataService,

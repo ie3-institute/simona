@@ -9,7 +9,7 @@ package edu.ie3.simona.agent.grid
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.simona.model.grid.GridModel
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
-import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
+import VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.grid.BasicGridWithSwitches
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
@@ -41,8 +41,7 @@ class PowerFlowSupportSpec
     with PowerFlowSupport
     with GridResultsSupport {
 
-  implicit val log: Logger =
-    LoggerFactory.getLogger(PowerFlowSupportSpec.super.getClass)
+  implicit val log: Logger = LoggerFactory.getLogger(this.getClass)
   val actorRef: ActorRef[GridAgentMessage] =
     TestProbe[GridAgentMessage]("noSender").ref
 

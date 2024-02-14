@@ -8,11 +8,7 @@ package edu.ie3.simona.agent.grid
 
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.event.listener.ResultEventListener.ResultMessage
-import edu.ie3.simona.ontology.messages.{
-  Activation,
-  PowerMessage,
-  VoltageMessage,
-}
+import edu.ie3.simona.ontology.messages.{Activation, PowerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import org.apache.pekko.actor.typed.ActorRef
 
@@ -24,6 +20,11 @@ sealed trait GridAgentMessage
   * need for an adapter.
   */
 object GridAgentMessage {
+
+  /** Necessary because we want to extend [[GridAgentMessage]] in other classes,
+    * but we do want to keep [[GridAgentMessage]] sealed.
+    */
+  private[grid] trait GAMessage extends GridAgentMessage
 
   /** GridAgent initialization data can only be constructed once all GridAgent
     * actors are created. Thus, we need an extra initialization message.
@@ -78,33 +79,18 @@ object GridAgentMessage {
     */
   final object StopGridAgent extends GridAgentMessage
 
-  /** Wrapper for string messages. NOTICE: Only for internal use.
-    * @param str
-    *   message
-    * @param sender
-    *   of the message
-    */
-  private[grid] final case class StringAdapter(
-      str: String,
-      sender: ActorRef[GridAgentMessage],
-  ) extends GridAgentMessage
-
   /** Wrapper for activation values
     *
     * @param activation
     *   the tick
     */
-  final case class ActivationAdapter(activation: Activation)
+  final case class WrappedActivation(activation: Activation)
       extends GridAgentMessage
 
-  final case class PMAdapter(msg: PowerMessage) extends GridAgentMessage
-
-  final case class VMAdapter(msg: VoltageMessage) extends GridAgentMessage
-
-  final case class ValuesAdapter(values: ReceivedValues)
+  final case class WrappedPowerMessage(msg: PowerMessage)
       extends GridAgentMessage
 
-  final case class ResultMessageAdapter(msg: ResultMessage)
+  final case class WrappedResultMessage(msg: ResultMessage)
       extends GridAgentMessage
 
 }

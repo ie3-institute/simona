@@ -4,16 +4,16 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.ontology.messages
+package edu.ie3.simona.agent.grid
 
-import edu.ie3.simona.agent.grid.GridAgentMessage
-import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
+import edu.ie3.simona.agent.grid.GridAgentMessage.GAMessage
+import edu.ie3.simona.agent.grid.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 import org.apache.pekko.actor.typed.ActorRef
-
-import java.util.UUID
 import squants.electro.ElectricPotential
 
-sealed trait VoltageMessage
+import java.util.UUID
+
+sealed trait VoltageMessage extends GAMessage
 
 /** Message that is send between [[edu.ie3.simona.agent.grid.GridAgent]] s to
   * provide voltage information for nodes

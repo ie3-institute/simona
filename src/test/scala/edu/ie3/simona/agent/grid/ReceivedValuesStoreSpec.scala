@@ -24,22 +24,22 @@ class ReceivedValuesStoreSpec
     with SubGridGateMokka {
 
   // test actorRefs
-  val actorProbe1: TestProbe[ParticipantMessage] =
+  val participant1: TestProbe[ParticipantMessage] =
     TestProbe[ParticipantMessage]()
-  val actorProbe2: TestProbe[ParticipantMessage] =
+  val participant2: TestProbe[ParticipantMessage] =
     TestProbe[ParticipantMessage]()
-  val actorProbe3: TestProbe[ParticipantMessage] =
+  val participant3: TestProbe[ParticipantMessage] =
     TestProbe[ParticipantMessage]()
-  val actorProbe4: TestProbe[GridAgentMessage] = TestProbe[GridAgentMessage]()
+  val gridAgent: TestProbe[GridAgentMessage] = TestProbe[GridAgentMessage]()
 
   // test data used by almost all tests
   // / node to asset agents mapping
   val nodeToAssetAgentsMap: Map[UUID, Set[ActorRef[ParticipantMessage]]] = Map(
     UUID.fromString("dd9a5b54-94bb-4201-9108-2b1b7d689546") -> Set(
-      actorProbe1.ref
+      participant1.ref
     ),
     UUID.fromString("34e807f1-c62b-4968-b0f6-980ce500ff97") -> Set(
-      actorProbe2.ref
+      participant2.ref
     ),
   )
 
@@ -51,7 +51,7 @@ class ReceivedValuesStoreSpec
       1,
       UUID.fromString("1676360a-c7c4-43a9-a667-90ddfe8a18e6"),
       2,
-    ) -> actorProbe4.ref
+    ) -> gridAgent.ref
   )
 
   // / superior grid nodeUuid vector
@@ -93,13 +93,13 @@ class ReceivedValuesStoreSpec
       receivedValuesStore.nodeToReceivedPower.size shouldBe 3
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("dd9a5b54-94bb-4201-9108-2b1b7d689546")
-      ) shouldBe Map(actorProbe1.ref -> None)
+      ) shouldBe Map(participant1.ref -> None)
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("34e807f1-c62b-4968-b0f6-980ce500ff97")
-      ) shouldBe Map(actorProbe2.ref -> None)
+      ) shouldBe Map(participant2.ref -> None)
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("5cd55ab5-a7d2-499f-a25f-6dbc3845c5e8")
-      ) shouldBe Map(actorProbe4.ref -> None)
+      ) shouldBe Map(gridAgent.ref -> None)
 
       receivedValuesStore.nodeToReceivedSlackVoltage.size shouldBe 1
       receivedValuesStore.nodeToReceivedSlackVoltage(
@@ -113,11 +113,11 @@ class ReceivedValuesStoreSpec
       val nodeToAssetAgentsMap =
         Map(
           UUID.fromString("dd9a5b54-94bb-4201-9108-2b1b7d689546") -> Set(
-            actorProbe1.ref
+            participant1.ref
           ),
           UUID.fromString("34e807f1-c62b-4968-b0f6-980ce500ff97") -> Set(
-            actorProbe2.ref,
-            actorProbe3.ref,
+            participant2.ref,
+            participant3.ref,
           ),
         )
 
@@ -137,12 +137,12 @@ class ReceivedValuesStoreSpec
       receivedValuesStore.nodeToReceivedPower.size shouldBe 2
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("dd9a5b54-94bb-4201-9108-2b1b7d689546")
-      ) shouldBe Map(actorProbe1.ref -> None)
+      ) shouldBe Map(participant1.ref -> None)
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("34e807f1-c62b-4968-b0f6-980ce500ff97")
       ) shouldBe Map(
-        actorProbe2.ref -> None,
-        actorProbe3.ref -> None,
+        participant2.ref -> None,
+        participant3.ref -> None,
       )
 
     }
@@ -163,13 +163,13 @@ class ReceivedValuesStoreSpec
       receivedValuesStore.nodeToReceivedPower.size shouldBe 3
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("dd9a5b54-94bb-4201-9108-2b1b7d689546")
-      ) shouldBe Map(actorProbe1.ref -> None)
+      ) shouldBe Map(participant1.ref -> None)
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("34e807f1-c62b-4968-b0f6-980ce500ff97")
-      ) shouldBe Map(actorProbe2.ref -> None)
+      ) shouldBe Map(participant2.ref -> None)
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("5cd55ab5-a7d2-499f-a25f-6dbc3845c5e8")
-      ) shouldBe Map(actorProbe4.ref -> None)
+      ) shouldBe Map(gridAgent.ref -> None)
 
     }
 
@@ -222,10 +222,10 @@ class ReceivedValuesStoreSpec
       receivedValuesStore.nodeToReceivedPower.size shouldBe 2
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("dd9a5b54-94bb-4201-9108-2b1b7d689546")
-      ) shouldBe Map(actorProbe1.ref -> None)
+      ) shouldBe Map(participant1.ref -> None)
       receivedValuesStore.nodeToReceivedPower(
         UUID.fromString("34e807f1-c62b-4968-b0f6-980ce500ff97")
-      ) shouldBe Map(actorProbe2.ref -> None)
+      ) shouldBe Map(participant2.ref -> None)
 
     }
 

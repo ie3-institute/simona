@@ -10,10 +10,9 @@ import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessage.{
-  ActivationAdapter,
-  VMAdapter,
   CreateGridAgent,
   FinishGridSimulationTrigger,
+  WrappedActivation,
 }
 import edu.ie3.simona.event.listener.ResultEventListener.ResultMessage
 import edu.ie3.simona.model.grid.RefSystem
@@ -22,8 +21,9 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
-import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
+import VoltageMessage.ProvideSlackVoltageMessage
+import VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
+import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
@@ -53,14 +53,14 @@ class DBFSAlgorithmParticipantSpec
 
   private val scheduler: TestProbe[SchedulerMessage] =
     TestProbe[SchedulerMessage]("scheduler")
-  private val runtimeEvents = TestProbe("runtimeEvents")
+  private val runtimeEvents = TestProbe[RuntimeEvent]("runtimeEvents")
   private val primaryService: TestProbe[ServiceMessage] =
     TestProbe[ServiceMessage]("primaryService")
   private val weatherService = TestProbe("weatherService")
 
   private val environmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref.toClassic,
-    runtimeEventListener = runtimeEvents.ref.toClassic,
+    runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref.toClassic,
     weather = weatherService.ref.toClassic,
     evDataService = None,
@@ -109,7 +109,7 @@ class DBFSAlgorithmParticipantSpec
       msg shouldBe ScheduleActivation(msg.actor, INIT_SIM_TICK, Some(key))
 
       // send init data to agent and expect a CompletionMessage
-      gridAgentWithParticipants ! ActivationAdapter(Activation(INIT_SIM_TICK))
+      gridAgentWithParticipants ! WrappedActivation(Activation(INIT_SIM_TICK))
 
       val message = scheduler.expectMessageType[ScheduleActivation]
 
@@ -120,6 +120,9 @@ class DBFSAlgorithmParticipantSpec
               _,
             ) =>
           loadAgent
+
+        case other =>
+          fail(s"$other was not expected")
       }
 
       val completionMessage = scheduler.expectMessageType[Completion]
@@ -148,7 +151,7 @@ class DBFSAlgorithmParticipantSpec
     s"go to SimulateGrid when it receives an activity start trigger" in {
 
       // send init data to agent
-      gridAgentWithParticipants ! ActivationAdapter(Activation(3600))
+      gridAgentWithParticipants ! WrappedActivation(Activation(3600))
 
       // we expect a completion message
       val message = scheduler.expectMessageType[Completion]
@@ -161,7 +164,7 @@ class DBFSAlgorithmParticipantSpec
 
       // send the start grid simulation trigger
       // the gird agent should send a RequestAssetPowerMessage to the load agent
-      gridAgentWithParticipants ! ActivationAdapter(Activation(3600))
+      gridAgentWithParticipants ! WrappedActivation(Activation(3600))
 
       // we expect a request for voltage values of our slack node
       // (voltages are requested by our agent under test from the superior grid)
@@ -170,17 +173,15 @@ class DBFSAlgorithmParticipantSpec
 
       // we now answer the request of our gridAgentsWithParticipants
       // with a fake slack voltage message
-      firstSlackVoltageRequestSender ! VMAdapter(
-        ProvideSlackVoltageMessage(
-          firstSweepNo,
-          Seq(
-            ExchangeVoltage(
-              supNodeA.getUuid,
-              Kilovolts(380d),
-              Kilovolts(0d),
-            )
-          ),
-        )
+      firstSlackVoltageRequestSender ! ProvideSlackVoltageMessage(
+        firstSweepNo,
+        Seq(
+          ExchangeVoltage(
+            supNodeA.getUuid,
+            Kilovolts(380d),
+            Kilovolts(0d),
+          )
+        ),
       )
 
       // power flow calculation should run now. After it's done,
@@ -217,17 +218,15 @@ class DBFSAlgorithmParticipantSpec
         superiorGridAgent.expectSlackVoltageRequest(secondSweepNo)
 
       // the superior grid would answer with updated slack voltage values
-      secondSlackAskSender ! VMAdapter(
-        ProvideSlackVoltageMessage(
-          secondSweepNo,
-          Seq(
-            ExchangeVoltage(
-              supNodeA.getUuid,
-              Kilovolts(374.2269461446d),
-              Kilovolts(65.9863075134d),
-            )
-          ),
-        )
+      secondSlackAskSender ! ProvideSlackVoltageMessage(
+        secondSweepNo,
+        Seq(
+          ExchangeVoltage(
+            supNodeA.getUuid,
+            Kilovolts(374.2269461446d),
+            Kilovolts(65.9863075134d),
+          )
+        ),
       )
 
       // here the gridAgentWithParticipants has received a second AssetPowerUnchangedMessage

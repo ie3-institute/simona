@@ -21,8 +21,9 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
-import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
+import VoltageMessage.ProvideSlackVoltageMessage
+import VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
+import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
@@ -49,7 +50,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
   private val scheduler: TestProbe[SchedulerMessage] =
     TestProbe[SchedulerMessage]("scheduler")
-  private val runtimeEvents = TestProbe("runtimeEvents")
+  private val runtimeEvents = TestProbe[RuntimeEvent]("runtimeEvents")
   private val primaryService = TestProbe("primaryService")
   private val weatherService = TestProbe("weatherService")
 
@@ -63,7 +64,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
   private val environmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref.toClassic,
-    runtimeEventListener = runtimeEvents.ref.toClassic,
+    runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref.toClassic,
     weather = weatherService.ref.toClassic,
     evDataService = None,
@@ -112,21 +113,17 @@ class DBFSAlgorithmFailedPowerFlowSpec
         key,
       )
 
-      val message = scheduler.expectMessageType[ScheduleActivation]
-      message shouldBe ScheduleActivation(
-        message.actor,
-        INIT_SIM_TICK,
-        Some(key),
-      )
+      val msg = scheduler.expectMessageType[ScheduleActivation]
+      msg shouldBe ScheduleActivation(msg.actor, INIT_SIM_TICK, Some(key))
 
-      centerGridAgent ! ActivationAdapter(Activation(INIT_SIM_TICK))
-      scheduler.expectMessage(Completion(message.actor, Some(3600)))
+      centerGridAgent ! WrappedActivation(Activation(INIT_SIM_TICK))
+      scheduler.expectMessage(Completion(msg.actor, Some(3600)))
     }
 
     s"go to SimulateGrid when it receives an activation" in {
 
       // send init data to agent
-      centerGridAgent ! ActivationAdapter(Activation(3600))
+      centerGridAgent ! WrappedActivation(Activation(3600))
 
       // we expect a completion message
       val message = scheduler.expectMessageType[Completion]
@@ -137,7 +134,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       val sweepNo = 0
 
       // send the start grid simulation trigger
-      centerGridAgent ! ActivationAdapter(Activation(3600))
+      centerGridAgent ! WrappedActivation(Activation(3600))
 
       // we expect a request for grid power values here for sweepNo $sweepNo
       val powerRequestSender = inferiorGridAgent.expectGridPowerRequest()
@@ -166,7 +163,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
       // we now answer the request of our centerGridAgent
       // with a fake grid power message and one fake slack voltage message
-      powerRequestSender ! PMAdapter(
+      powerRequestSender ! WrappedPowerMessage(
         ProvideGridPowerMessage(
           inferiorGridAgent.nodeUuids.map(nodeUuid =>
             ExchangePower(
@@ -178,17 +175,15 @@ class DBFSAlgorithmFailedPowerFlowSpec
         )
       )
 
-      slackVoltageRequestSender ! VMAdapter(
-        ProvideSlackVoltageMessage(
-          sweepNo,
-          Seq(
-            ExchangeVoltage(
-              supNodeA.getUuid,
-              Kilovolts(380d),
-              Kilovolts(0d),
-            )
-          ),
-        )
+      slackVoltageRequestSender ! ProvideSlackVoltageMessage(
+        sweepNo,
+        Seq(
+          ExchangeVoltage(
+            supNodeA.getUuid,
+            Kilovolts(380d),
+            Kilovolts(0d),
+          )
+        ),
       )
 
       // power flow calculation should run now. After it's done,
@@ -201,7 +196,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       // wait 30 seconds max for power flow to finish
       superiorGridAgent.gaProbe.expectMessage(
         30 seconds,
-        PMAdapter(FailedPowerFlow),
+        WrappedPowerMessage(FailedPowerFlow),
       )
 
       // normally the slack node would send a FinishGridSimulationTrigger to all

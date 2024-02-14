@@ -16,7 +16,7 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
   PowerResponseMessage,
   ProvidePowerMessage,
 }
-import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
+import VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.{ActorRef => classicRef}

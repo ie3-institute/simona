@@ -7,9 +7,9 @@
 package edu.ie3.simona.sim.setup
 
 import org.apache.pekko.actor.{
-  ActorContext,
-  ActorRef => classicRef,
   ActorSystem,
+  ActorContext,
+  ActorRef => ClassicRef,
 }
 import org.apache.pekko.actor.typed.ActorRef
 import edu.ie3.datamodel.exceptions.NotImplementedException
@@ -40,31 +40,31 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
 
   override def systemParticipantsListener(
       context: ActorContext
-  ): Seq[classicRef] = throw new NotImplementedException(
+  ): Seq[ClassicRef] = throw new NotImplementedException(
     "This is a dummy setup"
   )
 
   override def primaryServiceProxy(
       context: ActorContext,
-      scheduler: classicRef,
-  ): classicRef =
+      scheduler: ClassicRef,
+  ): ClassicRef =
     throw new NotImplementedException("This is a dummy setup")
 
   override def weatherService(
       context: ActorContext,
-      scheduler: classicRef,
-  ): classicRef =
+      scheduler: ClassicRef,
+  ): ClassicRef =
     throw new NotImplementedException("This is a dummy setup")
 
   override def extSimulations(
       context: ActorContext,
-      scheduler: classicRef,
+      scheduler: ClassicRef,
   ): ExtSimSetupData =
     throw new NotImplementedException("This is a dummy setup")
 
   override def timeAdvancer(
       context: ActorContext,
-      simulation: classicRef,
+      simulation: ClassicRef,
       runtimeEventListener: ActorRef[RuntimeEvent],
   ): ActorRef[TimeAdvancer.Incoming] =
     throw new NotImplementedException("This is a dummy setup")
@@ -72,12 +72,12 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
   override def scheduler(
       context: ActorContext,
       timeAdvancer: ActorRef[TimeAdvancer.Incoming],
-  ): classicRef = throw new NotImplementedException("This is a dummy setup")
+  ): ClassicRef = throw new NotImplementedException("This is a dummy setup")
 
   override def gridAgents(
       context: ActorContext,
       environmentRefs: EnvironmentRefs,
-      systemParticipantListener: Seq[classicRef],
+      systemParticipantListener: Seq[ClassicRef],
   ): Iterable[ActorRef[GridAgentMessage]] =
     throw new NotImplementedException("This is a dummy setup")
 

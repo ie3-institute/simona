@@ -7,7 +7,7 @@
 package edu.ie3.simona.actor
 
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.{ActorRefFactory, Props, ActorRef => classicRef}
+import org.apache.pekko.actor.{ActorRefFactory, Props, ActorRef => ClassicRef}
 
 import java.util.UUID
 
@@ -16,10 +16,10 @@ object SimonaActorNaming {
   implicit class RichActorRefFactory(private val refFactory: ActorRefFactory)
       extends AnyVal {
 
-    def simonaActorOf(props: Props, actorId: String): classicRef =
+    def simonaActorOf(props: Props, actorId: String): ClassicRef =
       refFactory.actorOf(props, actorName(props, actorId))
 
-    def simonaActorOf(props: Props): classicRef =
+    def simonaActorOf(props: Props): ClassicRef =
       refFactory.actorOf(props, actorName(props, simonaActorUuid))
   }
 
@@ -63,13 +63,13 @@ object SimonaActorNaming {
   def actorName(typeName: String, actorId: String): String =
     s"${typeName}_${cleanActorIdForPekko(actorId)}"
 
-  /** Extracts the actor name from given [[classicRef]]. Cluster singletons are
+  /** Extracts the actor name from given [[ClassicRef]]. Cluster singletons are
     * taken care of separately.
     *
     * @return
     *   the actor name extract from the ActorRef
     */
-  def actorName(actorRef: classicRef): String =
+  def actorName(actorRef: ClassicRef): String =
     actorRef.path.name match {
       case "singleton" =>
         // singletons end in /${actorName}/singleton

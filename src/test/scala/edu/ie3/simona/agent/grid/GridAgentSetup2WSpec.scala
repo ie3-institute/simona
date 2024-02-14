@@ -9,14 +9,23 @@ package edu.ie3.simona.agent.grid
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentMessage.StringAdapter
+import edu.ie3.simona.agent.grid.GridAgentMessage.{
+  FinishGridSimulationTrigger,
+  PrepareNextSweepTrigger,
+}
+import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
 import edu.ie3.simona.test.common.ConfigTestData
 import edu.ie3.simona.test.common.input.TransformerInputTestData
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
-import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  BehaviorTestKit,
+  ScalaTestWithActorTestKit,
+  TestProbe,
+}
+import org.apache.pekko.actor.typed.{ActorRef, Scheduler}
 import org.apache.pekko.actor.typed.receptionist.Receptionist.{
   Listing,
   Register,
@@ -29,9 +38,12 @@ import org.apache.pekko.actor.typed.scaladsl.adapter.{
   TypedActorContextOps,
   TypedActorRefOps,
 }
-import org.apache.pekko.actor.typed.{ActorRef, Scheduler}
-import org.apache.pekko.actor.{ActorRef => classicRef}
+import org.apache.pekko.actor.{
+  ActorContext => ClassicContext,
+  ActorRef => ClassicRef,
+}
 import org.apache.pekko.util.Timeout
+import org.mockito.Mock
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.util.concurrent.TimeUnit
@@ -46,6 +58,19 @@ class GridAgentSetup2WSpec
     with LazyLogging {
 
   "The setup of grid agents" must {
+
+    val scheduler = TestProbe("scheduler")
+    val runtimeEventListener = TestProbe[RuntimeEvent]("listener")
+    val primaryServiceProxy = TestProbe("primaryServiceProxy")
+
+    val environmentRefs = EnvironmentRefs(
+      scheduler.ref.toClassic,
+      runtimeEventListener.ref,
+      primaryServiceProxy = primaryServiceProxy.ref.toClassic,
+      weather = ClassicRef.noSender,
+      evDataService = None,
+    )
+
     "provide two grid agents on presence of a two winding transformer" in {
 
       implicit val timeout: Timeout = Timeout(1, TimeUnit.SECONDS)
@@ -58,19 +83,7 @@ class GridAgentSetup2WSpec
         ctx.system.receptionist ! Register(serviceKey, ctx.self)
 
         Behaviors.receive[GridAgentMessage] {
-          case (ctx, StringAdapter("ping", sender)) =>
-            // replying to ping signal
-            sender ! StringAdapter("pong", ctx.self)
-            Behaviors.same
-          case (ctx, StringAdapter("setup", _)) =>
-            val environmentRefs = EnvironmentRefs(
-              scheduler = ctx.self.toClassic,
-              runtimeEventListener = ctx.self.toClassic,
-              primaryServiceProxy = ctx.self.toClassic,
-              weather = classicRef.noSender,
-              evDataService = None,
-            )
-
+          case (ctx, PrepareNextSweepTrigger(tick)) =>
             SimonaStandaloneSetup(
               typesafeConfig,
               ResultFileHierarchy(
@@ -88,19 +101,23 @@ class GridAgentSetup2WSpec
               gridContainer.getSubGridTopologyGraph,
               ctx.toClassic,
               environmentRefs,
-              Seq.empty[classicRef],
+              Seq.empty[ClassicRef],
             )
-            ctx.self ! StringAdapter("done", ctx.self)
+
+            ctx.self ! FinishGridSimulationTrigger(tick)
             Behaviors.same
+
+          case other =>
+            fail(s"$other was not expected")
         }
       })
 
       Await.ready(
-        actor.ask[GridAgentMessage](ref => StringAdapter("setup", ref)),
+        actor.ask[GridAgentMessage](_ => PrepareNextSweepTrigger(0)),
         Duration(10, TimeUnit.SECONDS),
       )
 
-      testKit.spawn(Behaviors.setup[Listing] { ctx =>
+      BehaviorTestKit(Behaviors.setup[Listing] { ctx =>
         logger.debug("Subscribing to the actors.")
         ctx.system.receptionist ! Subscribe(serviceKey, ctx.self)
 

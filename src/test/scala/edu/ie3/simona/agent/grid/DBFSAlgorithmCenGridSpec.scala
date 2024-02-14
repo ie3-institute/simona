@@ -19,8 +19,9 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
-import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
+import VoltageMessage.ProvideSlackVoltageMessage
+import VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
+import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
@@ -54,7 +55,7 @@ class DBFSAlgorithmCenGridSpec
 
   private val scheduler: TestProbe[SchedulerMessage] =
     TestProbe[SchedulerMessage]("scheduler")
-  private val runtimeEvents = TestProbe("runtimeEvents")
+  private val runtimeEvents = TestProbe[RuntimeEvent]("runtimeEvents")
   private val primaryService = TestProbe("primaryService")
   private val weatherService = TestProbe("weatherService")
 
@@ -76,7 +77,7 @@ class DBFSAlgorithmCenGridSpec
 
   private val environmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref.toClassic,
-    runtimeEventListener = runtimeEvents.ref.toClassic,
+    runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref.toClassic,
     weather = weatherService.ref.toClassic,
     evDataService = None,
@@ -132,14 +133,14 @@ class DBFSAlgorithmCenGridSpec
       val msg = scheduler.expectMessageType[ScheduleActivation]
       msg shouldBe ScheduleActivation(msg.actor, INIT_SIM_TICK, Some(key))
 
-      centerGridAgent ! ActivationAdapter(Activation(INIT_SIM_TICK))
+      centerGridAgent ! WrappedActivation(Activation(INIT_SIM_TICK))
       val completionMessage = scheduler.expectMessageType[Completion]
-      completionMessage shouldBe Completion(completionMessage.actor, Some(3600))
+      completionMessage shouldBe Completion(msg.actor, Some(3600))
     }
 
     s"go to SimulateGrid when it receives an activity start trigger" in {
 
-      centerGridAgent ! ActivationAdapter(Activation(3600))
+      centerGridAgent ! WrappedActivation(Activation(3600))
 
       val msg = scheduler.expectMessageType[Completion]
       msg shouldBe Completion(msg.actor, Some(3600))
@@ -150,7 +151,7 @@ class DBFSAlgorithmCenGridSpec
       val firstSweepNo = 0
 
       // send the start grid simulation trigger
-      centerGridAgent ! ActivationAdapter(Activation(3600))
+      centerGridAgent ! WrappedActivation(Activation(3600))
 
       /* We expect one grid power request message per inferior grid */
 
@@ -217,7 +218,7 @@ class DBFSAlgorithmCenGridSpec
       // we now answer the request of our centerGridAgent
       // with three fake grid power messages and one fake slack voltage message
 
-      firstPowerRequestSender11 ! PMAdapter(
+      firstPowerRequestSender11 ! WrappedPowerMessage(
         ProvideGridPowerMessage(
           inferiorGrid11.nodeUuids.map(nodeUuid =>
             ExchangePower(
@@ -229,7 +230,7 @@ class DBFSAlgorithmCenGridSpec
         )
       )
 
-      firstPowerRequestSender12 ! PMAdapter(
+      firstPowerRequestSender12 ! WrappedPowerMessage(
         ProvideGridPowerMessage(
           inferiorGrid12.nodeUuids.map(nodeUuid =>
             ExchangePower(
@@ -241,7 +242,7 @@ class DBFSAlgorithmCenGridSpec
         )
       )
 
-      firstPowerRequestSender13 ! PMAdapter(
+      firstPowerRequestSender13 ! WrappedPowerMessage(
         ProvideGridPowerMessage(
           inferiorGrid13.nodeUuids.map(nodeUuid =>
             ExchangePower(
@@ -253,22 +254,20 @@ class DBFSAlgorithmCenGridSpec
         )
       )
 
-      firstSlackVoltageRequestSender ! VMAdapter(
-        ProvideSlackVoltageMessage(
-          firstSweepNo,
-          Seq(
-            ExchangeVoltage(
-              supNodeA.getUuid,
-              Kilovolts(380d),
-              Kilovolts(0d),
-            ),
-            ExchangeVoltage(
-              supNodeB.getUuid,
-              Kilovolts(380d),
-              Kilovolts(0d),
-            ),
+      firstSlackVoltageRequestSender ! ProvideSlackVoltageMessage(
+        firstSweepNo,
+        Seq(
+          ExchangeVoltage(
+            supNodeA.getUuid,
+            Kilovolts(380d),
+            Kilovolts(0d),
           ),
-        )
+          ExchangeVoltage(
+            supNodeB.getUuid,
+            Kilovolts(380d),
+            Kilovolts(0d),
+          ),
+        ),
       )
 
       // power flow calculation should run now. After it's done,
@@ -301,22 +300,20 @@ class DBFSAlgorithmCenGridSpec
         superiorGridAgent.expectSlackVoltageRequest(secondSweepNo)
 
       // the superior grid would answer with updated slack voltage values
-      secondSlackAskSender ! VMAdapter(
-        ProvideSlackVoltageMessage(
-          secondSweepNo,
-          Seq(
-            ExchangeVoltage(
-              supNodeB.getUuid,
-              Kilovolts(374.22694614463d), // 380 kV @ 10°
-              Kilovolts(65.9863075134335d), // 380 kV @ 10°
-            ),
-            ExchangeVoltage( // this one should currently be ignored anyways
-              supNodeA.getUuid,
-              Kilovolts(380d),
-              Kilovolts(0d),
-            ),
+      secondSlackAskSender ! ProvideSlackVoltageMessage(
+        secondSweepNo,
+        Seq(
+          ExchangeVoltage(
+            supNodeB.getUuid,
+            Kilovolts(374.22694614463d), // 380 kV @ 10°
+            Kilovolts(65.9863075134335d), // 380 kV @ 10°
           ),
-        )
+          ExchangeVoltage( // this one should currently be ignored anyways
+            supNodeA.getUuid,
+            Kilovolts(380d),
+            Kilovolts(0d),
+          ),
+        ),
       )
 
       // After the intermediate power flow calculation, we expect one grid power
@@ -385,7 +382,7 @@ class DBFSAlgorithmCenGridSpec
       // we now answer the requests of our centerGridAgent
       // with three fake grid power message
 
-      secondPowerRequestSender11 ! PMAdapter(
+      secondPowerRequestSender11 ! WrappedPowerMessage(
         ProvideGridPowerMessage(
           inferiorGrid11.nodeUuids.map(nodeUuid =>
             ExchangePower(
@@ -397,7 +394,7 @@ class DBFSAlgorithmCenGridSpec
         )
       )
 
-      secondPowerRequestSender12 ! PMAdapter(
+      secondPowerRequestSender12 ! WrappedPowerMessage(
         ProvideGridPowerMessage(
           inferiorGrid12.nodeUuids.map(nodeUuid =>
             ExchangePower(
@@ -409,7 +406,7 @@ class DBFSAlgorithmCenGridSpec
         )
       )
 
-      secondPowerRequestSender13 ! PMAdapter(
+      secondPowerRequestSender13 ! WrappedPowerMessage(
         ProvideGridPowerMessage(
           inferiorGrid13.nodeUuids.map(nodeUuid =>
             ExchangePower(
