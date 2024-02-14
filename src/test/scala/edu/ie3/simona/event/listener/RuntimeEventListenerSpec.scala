@@ -147,8 +147,12 @@ class RuntimeEventListenerSpec
         ),
       )
 
+      val loggingTestKit = LoggingTestKit.empty
+        // logger name for ActorContext loggers (ctx.log) is the class name
+        .withLoggerName(RuntimeEventListener.getClass.getName)
+
       events.foreach { case (event, level, msg) =>
-        LoggingTestKit.empty
+        loggingTestKit
           .withLogLevel(level)
           .withMessageContains(msg)
           .expect {
