@@ -131,7 +131,9 @@ class DBFSAlgorithmParticipantSpec
         PrimaryServiceRegistrationMessage(load1.getUuid)
       )
 
-      loadAgent.toClassic ! RegistrationFailedMessage
+      loadAgent.toClassic ! RegistrationFailedMessage(
+        primaryService.ref.toClassic
+      )
 
       scheduler.expectMessage(Completion(loadAgent, Some(0)))
 

@@ -11,6 +11,7 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.result.ResultEntity
+import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.utils.ContainerUtils
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessage
@@ -24,6 +25,8 @@ import edu.ie3.simona.util.ConfigUtil.{GridOutputConfigUtil, OutputConfigUtil}
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
 import edu.ie3.simona.util.{EntityMapperUtil, ResultFileHierarchy}
 import org.apache.pekko.actor.typed.ActorRef
+import edu.ie3.util.quantities.PowerSystemUnits
+import squants.electro.Kilovolts
 
 /** Methods to support the setup of a simona simulation
   *
@@ -180,15 +183,17 @@ trait SetupHelper extends LazyLogging {
         )
       )
 
-    if (
-      !refSystem.nominalVoltage.equals(
-        subGridContainer.getPredominantVoltageLevel.getNominalVoltage
-      )
+    val containerPotential = Kilovolts(
+      subGridContainer.getPredominantVoltageLevel.getNominalVoltage
+        .to(PowerSystemUnits.KILOVOLT)
+        .getValue
+        .doubleValue
     )
+
+    if (refSystem.nominalVoltage != containerPotential)
       logger.warn(
         s"The configured RefSystem for subGrid ${subGridContainer.getSubnet} differs in its nominal voltage (${refSystem.nominalVoltage}) from the grids" +
-          s"predominant voltage level nominal voltage (${subGridContainer.getPredominantVoltageLevel.getNominalVoltage}). If this is by intention and still valid, this " +
-          s"warning can be just ignored!"
+          s"predominant voltage level nominal voltage ($containerPotential). If this is by intention and still valid, this warning can be just ignored!"
       )
 
     refSystem
@@ -237,7 +242,7 @@ trait SetupHelper extends LazyLogging {
   }
 }
 
-case object SetupHelper {
+object SetupHelper {
 
   /** Determine a comprehensive collection of all [[ResultEntity]] classes, that
     * will have to be considered
@@ -258,5 +263,6 @@ case object SetupHelper {
       ).simulationResultIdentifiersToConsider ++ OutputConfigUtil(
         outputConfig.thermal
       ).simulationResultIdentifiersToConsider)
-        .map(notifierId => EntityMapperUtil.getResultEntityClass(notifierId))
+        .map(notifierId => EntityMapperUtil.getResultEntityClass(notifierId)) ++
+      (if (outputConfig.flex) Seq(classOf[FlexOptionsResult]) else Seq.empty)
 }
