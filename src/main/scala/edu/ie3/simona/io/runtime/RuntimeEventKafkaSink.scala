@@ -5,6 +5,7 @@
  */
 
 package edu.ie3.simona.io.runtime
+
 import com.sksamuel.avro4s.RecordFormat
 import edu.ie3.simona.config.SimonaConfig.RuntimeKafkaParams
 import edu.ie3.simona.event.RuntimeEvent
@@ -26,12 +27,13 @@ import scala.jdk.CollectionConverters._
 
 /** Runtime event sink that sends events related to the simulation ending to a
   * kafka topic.
+  *
   * @param producer
   *   the kafka producer to use
   * @param simRunId
   *   the id of this simulation run
   * @param topic
-  *   the topic to send the events to ticks
+  *   the topic to send the events to
   * @param log
   *   The logger to use
   */

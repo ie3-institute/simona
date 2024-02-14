@@ -5,9 +5,9 @@
  */
 
 package edu.ie3.simona.io.runtime
+
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.io.runtime.RuntimeEventSink.RuntimeStats
-import org.slf4j.Logger
 
 import java.util.concurrent.BlockingQueue
 

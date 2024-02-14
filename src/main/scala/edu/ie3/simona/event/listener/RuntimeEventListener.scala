@@ -29,6 +29,7 @@ import java.util.concurrent.BlockingQueue
 object RuntimeEventListener {
 
   /** Creates a runtime event listener behavior with given configuration.
+    *
     * @param listenerConf
     *   configuration that determines additional sinks and event filters
     * @param queue
