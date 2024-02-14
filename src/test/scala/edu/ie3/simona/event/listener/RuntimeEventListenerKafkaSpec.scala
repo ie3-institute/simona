@@ -128,13 +128,20 @@ class RuntimeEventListenerKafkaSpec
       forAll(cases) { case (event, expectedMsg) =>
         listenerRef ! event
 
-        eventually(timeout(20 seconds), interval(1 second)) {
-          val records =
-            testConsumer.poll((1 second) toJava).asScala.map(_.value()).toList
+        val receivedRecord =
+          eventually(timeout(20 seconds), interval(1 second)) {
+            val records =
+              testConsumer.poll((1 second) toJava).asScala.map(_.value()).toList
 
-          records should have length 1
-          records should contain(expectedMsg)
-        }
+            // run until one record is received. After each second, if no record
+            // was received, the length check below fails and we retry
+            records should have length 1
+
+            // return final record to be checked
+            records.headOption.value
+          }
+
+        receivedRecord shouldBe expectedMsg
 
       }
 
