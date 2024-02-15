@@ -102,7 +102,7 @@ object GridModel {
 
   /** Represents an empty Transformer control group
     */
-  val emptyGridControls: GridControls = GridControls(
+  def emptyGridControls: GridControls = GridControls(
     Set.empty[TransformerControlGroupModel]
   )
 
