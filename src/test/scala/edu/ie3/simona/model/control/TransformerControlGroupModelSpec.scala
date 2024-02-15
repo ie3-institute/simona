@@ -18,12 +18,13 @@ import squants.{Dimensionless, Each}
 
 import java.util.UUID
 
-class TransformerControlGroupSpec extends UnitSpec with QuantityMatchers {
+class TransformerControlGroupModelSpec extends UnitSpec with QuantityMatchers {
   implicit val tolerance: Dimensionless = Each(1e-10)
   "Checking the function of transformer control groups" should {
-    val buildTransformerControlModels = PrivateMethod[TransformerControlGroup](
-      Symbol("buildTransformerControlModels")
-    )
+    val buildTransformerControlModels =
+      PrivateMethod[TransformerControlGroupModel](
+        Symbol("buildTransformerControlModels")
+      )
     implicit val tolerance: Dimensionless = Each(1e-10)
     val dut = GridModel invokePrivate buildTransformerControlModels(
       Set(

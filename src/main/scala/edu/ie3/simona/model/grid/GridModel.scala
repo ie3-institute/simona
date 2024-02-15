@@ -16,9 +16,7 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.TransformerControlGroup
 import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.control.{
-  TransformerControlGroup => ControlGroupModel
-}
+import edu.ie3.simona.model.control.TransformerControlGroupModel
 import edu.ie3.simona.model.grid.GridModel.{GridComponents, GridControls}
 import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseA,
@@ -99,13 +97,13 @@ object GridModel {
     *   Transformer control groups
     */
   final case class GridControls(
-      transformerControlGroups: Set[ControlGroupModel]
+      transformerControlGroups: Set[TransformerControlGroupModel]
   )
 
-  /** Represents an empty Transformer control groups
+  /** Represents an empty Transformer control group
     */
   val emptyGridControls: GridControls = GridControls(
-    Set.empty[ControlGroupModel]
+    Set.empty[TransformerControlGroupModel]
   )
 
   /** Checks the availability of node calculation models, that are connected by
@@ -571,7 +569,7 @@ object GridModel {
           subGridContainer.getRawGrid.getMeasurementUnits,
         )
       }
-      .getOrElse(Set.empty[ControlGroupModel])
+      .getOrElse(Set.empty[TransformerControlGroupModel])
 
     /* Build grid related control strategies */
     val gridControls = GridControls(transformerControlGroups)
@@ -604,7 +602,7 @@ object GridModel {
   private def buildTransformerControlGroups(
       config: List[SimonaConfig.TransformerControlGroup],
       measurementUnitInput: java.util.Set[MeasurementUnitInput],
-  ): Set[ControlGroupModel] = config.map {
+  ): Set[TransformerControlGroupModel] = config.map {
     case TransformerControlGroup(measurements, _, vMax, vMin) =>
       buildTransformerControlGroupModel(
         measurementUnitInput,
@@ -628,14 +626,14 @@ object GridModel {
     * @param vMin
     *   Lower permissible voltage magnitude
     * @return
-    *   A [[ControlGroupModel]]
+    *   A [[TransformerControlGroupModel]]
     */
   private def buildTransformerControlGroupModel(
       measurementUnitInput: java.util.Set[MeasurementUnitInput],
       measurementConfigs: Set[String],
       vMax: Double,
       vMin: Double,
-  ): ControlGroupModel = {
+  ): TransformerControlGroupModel = {
     val nodeUuids =
       determineNodeUuids(measurementUnitInput, measurementConfigs)
     buildTransformerControlModels(nodeUuids, vMax, vMin)
@@ -673,13 +671,13 @@ object GridModel {
     * @param vMin
     *   Lower permissible voltage magnitude
     * @return
-    *   A [[ControlGroupModel]]
+    *   A [[TransformerControlGroupModel]]
     */
   private def buildTransformerControlModels(
       nodeUuids: Set[UUID],
       vMax: Double,
       vMin: Double,
-  ): ControlGroupModel = {
+  ): TransformerControlGroupModel = {
     /* Determine the voltage regulation criterion for each of the available nodes */
     val nodeUuidToRegulationCriterion = nodeUuids.map { uuid =>
       uuid -> { (complexVoltage: Complex) =>
@@ -715,7 +713,10 @@ object GridModel {
 
       }
 
-    ControlGroupModel(nodeUuidToRegulationCriterion, harmonizationFunction)
+    TransformerControlGroupModel(
+      nodeUuidToRegulationCriterion,
+      harmonizationFunction,
+    )
   }
 
   /** Updates the internal state of the [[GridModel.nodeUuidToIndexMap]] to

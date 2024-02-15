@@ -14,7 +14,7 @@ import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.MeasurementUnitInput
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.exceptions.GridInconsistencyException
-import edu.ie3.simona.model.control.TransformerControlGroup
+import edu.ie3.simona.model.control.TransformerControlGroupModel
 import edu.ie3.simona.model.grid.GridModel.{
   emptyGridControls,
   GridComponents,
@@ -214,7 +214,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
           Set.empty[Transformer3wModel],
           switches,
         ),
-        GridControls(Set.empty[TransformerControlGroup]),
+        GridControls(Set.empty[TransformerControlGroupModel]),
       )
       // get the private method for validation
       val validateConnectivity: PrivateMethod[Unit] =
@@ -243,7 +243,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
           Set.empty[Transformer3wModel],
           Set.empty[SwitchModel],
         ),
-        GridControls(Set.empty[TransformerControlGroup]),
+        GridControls(Set.empty[TransformerControlGroupModel]),
       )
 
       // get the private method for validation
@@ -394,7 +394,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
             Set.empty[Transformer3wModel],
             switches,
           ),
-          GridControls(Set.empty[TransformerControlGroup]),
+          GridControls(Set.empty[TransformerControlGroupModel]),
         )
 
         // update the uuidToIndexMap
@@ -446,7 +446,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
             Set.empty[Transformer3wModel],
             Set.empty[SwitchModel],
           ),
-          GridControls(Set.empty[TransformerControlGroup]),
+          GridControls(Set.empty[TransformerControlGroupModel]),
         )
 
         // update the uuidToIndexMap
