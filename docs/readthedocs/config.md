@@ -274,4 +274,4 @@ Minimum Voltage Limit in p.u.:
 
 Maximum Voltage Limit in p.u.:
 
-`vMin = 1.02`
+`vMax = 1.02`
