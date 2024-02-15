@@ -752,45 +752,6 @@ object SimonaConfig {
 
   }
 
-  final case class TransformerControlGroup(
-      measurements: scala.List[java.lang.String],
-      transformers: scala.List[java.lang.String],
-      vMax: scala.Double,
-      vMin: scala.Double,
-  )
-  object TransformerControlGroup {
-    def apply(
-        c: com.typesafe.config.Config,
-        parentPath: java.lang.String,
-        $tsCfgValidator: $TsCfgValidator,
-    ): SimonaConfig.TransformerControlGroup = {
-      SimonaConfig.TransformerControlGroup(
-        measurements =
-          $_L$_str(c.getList("measurements"), parentPath, $tsCfgValidator),
-        transformers =
-          $_L$_str(c.getList("transformers"), parentPath, $tsCfgValidator),
-        vMax = $_reqDbl(parentPath, c, "vMax", $tsCfgValidator),
-        vMin = $_reqDbl(parentPath, c, "vMin", $tsCfgValidator),
-      )
-    }
-    private def $_reqDbl(
-        parentPath: java.lang.String,
-        c: com.typesafe.config.Config,
-        path: java.lang.String,
-        $tsCfgValidator: $TsCfgValidator,
-    ): scala.Double = {
-      if (c == null) 0
-      else
-        try c.getDouble(path)
-        catch {
-          case e: com.typesafe.config.ConfigException =>
-            $tsCfgValidator.addBadPath(parentPath + path, e)
-            0
-        }
-    }
-
-  }
-
   final case class SimpleOutputConfig(
       override val notifier: java.lang.String,
       override val simulationResult: scala.Boolean,
@@ -836,6 +797,45 @@ object SimonaConfig {
           case e: com.typesafe.config.ConfigException =>
             $tsCfgValidator.addBadPath(parentPath + path, e)
             null
+        }
+    }
+
+  }
+
+  final case class TransformerControlGroup(
+      measurements: scala.List[java.lang.String],
+      transformers: scala.List[java.lang.String],
+      vMax: scala.Double,
+      vMin: scala.Double,
+  )
+  object TransformerControlGroup {
+    def apply(
+        c: com.typesafe.config.Config,
+        parentPath: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator,
+    ): SimonaConfig.TransformerControlGroup = {
+      SimonaConfig.TransformerControlGroup(
+        measurements =
+          $_L$_str(c.getList("measurements"), parentPath, $tsCfgValidator),
+        transformers =
+          $_L$_str(c.getList("transformers"), parentPath, $tsCfgValidator),
+        vMax = $_reqDbl(parentPath, c, "vMax", $tsCfgValidator),
+        vMin = $_reqDbl(parentPath, c, "vMin", $tsCfgValidator),
+      )
+    }
+    private def $_reqDbl(
+        parentPath: java.lang.String,
+        c: com.typesafe.config.Config,
+        path: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator,
+    ): scala.Double = {
+      if (c == null) 0
+      else
+        try c.getDouble(path)
+        catch {
+          case e: com.typesafe.config.ConfigException =>
+            $tsCfgValidator.addBadPath(parentPath + path, e)
+            0
         }
     }
 
