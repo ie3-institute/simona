@@ -5,6 +5,7 @@
  */
 
 package edu.ie3.simona.io.runtime
+
 import com.sksamuel.avro4s.RecordFormat
 import edu.ie3.simona.config.SimonaConfig.RuntimeKafkaParams
 import edu.ie3.simona.event.RuntimeEvent
@@ -26,23 +27,26 @@ import scala.jdk.CollectionConverters._
 
 /** Runtime event sink that sends events related to the simulation ending to a
   * kafka topic.
+  *
   * @param producer
   *   the kafka producer to use
   * @param simRunId
   *   the id of this simulation run
   * @param topic
   *   the topic to send the events to
+  * @param log
+  *   The logger to use
   */
 final case class RuntimeEventKafkaSink(
     producer: KafkaProducer[String, SimonaEndMessage],
     simRunId: UUID,
     topic: String,
+    log: Logger,
 ) extends RuntimeEventSink {
 
   override def handleRuntimeEvent(
       runtimeEvent: RuntimeEvent,
       runtimeStats: RuntimeStats,
-      log: Logger,
   ): Unit = {
     (runtimeEvent match {
       case Done(_, _, errorInSim) =>
@@ -74,7 +78,8 @@ final case class RuntimeEventKafkaSink(
 
 object RuntimeEventKafkaSink {
   def apply(
-      config: RuntimeKafkaParams
+      config: RuntimeKafkaParams,
+      log: Logger,
   ): RuntimeEventKafkaSink = {
     val simRunId = UUID.fromString(config.runId)
 
@@ -106,6 +111,7 @@ object RuntimeEventKafkaSink {
       ),
       simRunId,
       config.topic,
+      log,
     )
   }
 
