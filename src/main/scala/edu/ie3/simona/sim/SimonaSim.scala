@@ -6,36 +6,20 @@
 
 package edu.ie3.simona.sim
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
-import org.apache.pekko.actor.SupervisorStrategy.Stop
-import org.apache.pekko.actor.{
-  Actor,
-  ActorRef,
-  AllForOneStrategy,
-  Props,
-  Stash,
-  SupervisorStrategy,
-  Terminated,
-}
-import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.ontology.messages.StopMessage
+import edu.ie3.simona.event.listener.ResultEventListener
+import edu.ie3.simona.event.listener.ResultEventListener.ResultMessage
+import edu.ie3.simona.main.RunSimona.SimonaEnded
 import edu.ie3.simona.scheduler.TimeAdvancer
-import edu.ie3.simona.scheduler.TimeAdvancer.StartSimMessage
-import edu.ie3.simona.sim.SimMessage.{
-  InitSim,
-  SimulationFailure,
-  SimulationSuccessful,
-  StartSimulation,
-}
-import edu.ie3.simona.sim.SimonaSim.{
-  EmergencyShutdownInitiated,
-  SimonaSimStateData,
-}
+import edu.ie3.simona.sim.SimMessage.{SimulationEnded, StartSimulation}
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
+import org.apache.pekko.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop, Terminated}
+import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
-import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 
 /** Main entrance point to a simona simulation as top level actor. This actors
@@ -51,229 +35,211 @@ import scala.language.postfixOps
   * @version 0.1
   * @since 01.07.20
   */
-class SimonaSim(simonaSetup: SimonaSetup)
-    extends Actor
-    with LazyLogging
-    with Stash {
-
-  override val supervisorStrategy: SupervisorStrategy =
-    AllForOneStrategy(maxNrOfRetries = 10, withinTimeRange = 1 minute) {
-      case ex: Exception =>
-        self ! EmergencyShutdownInitiated
-        logger.error(
-          "The simulation's guardian received an uncaught exception. - {}: \"{}\" - Start emergency shutdown.",
-          ex.getClass.getSimpleName,
-          ex.getMessage,
-        )
-        Stop
-    }
-
-  /* start listener */
-  // output listener
-  val systemParticipantsListener: Seq[ActorRef] =
-    simonaSetup.systemParticipantsListener(context)
-
-  // runtime event listener
-  val runtimeEventListener
-      : org.apache.pekko.actor.typed.ActorRef[RuntimeEvent] =
-    simonaSetup.runtimeEventListener(context)
-
-  /* start scheduler */
-  val timeAdvancer
-      : org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming] =
-    simonaSetup.timeAdvancer(context, self, runtimeEventListener)
-  val scheduler: ActorRef = simonaSetup.scheduler(context, timeAdvancer)
-
-  /* start services */
-  // primary service proxy
-  val primaryServiceProxy: ActorRef =
-    simonaSetup.primaryServiceProxy(context, scheduler)
-
-  // weather service
-  val weatherService: ActorRef =
-    simonaSetup.weatherService(context, scheduler)
-
-  val extSimulationData: ExtSimSetupData =
-    simonaSetup.extSimulations(context, scheduler)
-
-  /* start grid agents  */
-  val gridAgents: Iterable[ActorRef] = simonaSetup.gridAgents(
-    context,
-    EnvironmentRefs(
-      scheduler,
-      runtimeEventListener.toClassic,
-      primaryServiceProxy,
-      weatherService,
-      extSimulationData.evDataService,
-    ),
-    systemParticipantsListener,
-  )
-
-  /* watch all actors */
-  systemParticipantsListener.foreach(context.watch)
-  context.watch(runtimeEventListener.toClassic)
-  context.watch(timeAdvancer.toClassic)
-  context.watch(scheduler)
-  context.watch(primaryServiceProxy)
-  context.watch(weatherService)
-  gridAgents.foreach(context.watch)
-
-  override def receive: Receive = simonaSimReceive(SimonaSimStateData())
-
-  def simonaSimReceive(data: SimonaSim.SimonaSimStateData): Receive = {
-
-    case InitSim =>
-      // tell scheduler to process all init messages
-      timeAdvancer ! StartSimMessage()
-      context become simonaSimReceive(data.copy(initSimSender = sender()))
-
-    case StartSimulation(pauseScheduleAtTick) =>
-      timeAdvancer ! StartSimMessage(pauseScheduleAtTick)
-
-    case msg @ (SimulationSuccessful | SimulationFailure) =>
-      val simulationSuccessful = msg match {
-        case SimulationSuccessful =>
-          logger.info(
-            "Simulation terminated successfully. Stopping children ..."
-          )
-          true
-        case SimulationFailure =>
-          logger.error(
-            "An error occurred during the simulation. See stacktrace for details."
-          )
-          false
-      }
-
-      // stop all children
-      stopAllChildrenGracefully(simulationSuccessful)
-
-      // wait for listeners and send final message to parent
-      context become waitingForListener(
-        data.initSimSender,
-        simulationSuccessful,
-        systemParticipantsListener,
-      )
-
-    case EmergencyShutdownInitiated =>
-      logger.debug(
-        "Simulation guardian is aware, that emergency shutdown has been initiated. Inform the init sender."
-      )
-      data.initSimSender ! SimulationFailure
-      context.become(emergencyShutdownReceive)
-
-    case Terminated(actorRef) =>
-      logger.error(
-        "An actor ({}) unexpectedly terminated. Shut down all children gracefully and report simulation " +
-          "failure. See logs and possible stacktrace for details.",
-        actorRef,
-      )
-
-      // stop all children
-      stopAllChildrenGracefully(simulationSuccessful = false)
-
-      // wait for listeners and send final message to parent
-      context become waitingForListener(
-        data.initSimSender,
-        successful = false,
-        systemParticipantsListener,
-      )
-  }
-
-  def emergencyShutdownReceive: Receive = {
-    case EmergencyShutdownInitiated =>
-    /* Nothing to do. Already know about emergency shutdown. */
-
-    case Terminated(actorRef) =>
-      logger.debug("'{}' successfully terminated.", actorRef)
-
-    case unsupported =>
-      logger.warn(
-        "Received the following message. Simulation is in emergency shutdown mode. Will neglect that " +
-          "message!\n\t{}",
-        unsupported,
-      )
-  }
-
-  def waitingForListener(
-      initSimSender: ActorRef,
-      successful: Boolean,
-      remainingListeners: Seq[ActorRef],
-  ): Receive = {
-    case Terminated(actor) if remainingListeners.contains(actor) =>
-      val updatedRemainingListeners = remainingListeners.filterNot(_ == actor)
-
-      logger.debug(
-        "Listener {} has been terminated. Remaining listeners: {}",
-        actor,
-        updatedRemainingListeners,
-      )
-
-      if (updatedRemainingListeners.isEmpty) {
-        logger.info(
-          "The last remaining result listener has been terminated. Exiting."
-        )
-
-        val msg =
-          if (successful) SimulationSuccessful
-          else SimulationFailure
-        // inform InitSim Sender
-        initSimSender ! msg
-      }
-
-      context become waitingForListener(
-        initSimSender,
-        successful,
-        updatedRemainingListeners,
-      )
-  }
-
-  def stopAllChildrenGracefully(
-      simulationSuccessful: Boolean
-  ): Unit = {
-    gridAgents.foreach { gridAgentRef =>
-      context.unwatch(gridAgentRef)
-      gridAgentRef ! StopMessage(simulationSuccessful)
-    }
-
-    context.unwatch(scheduler)
-    context.stop(scheduler)
-
-    context.unwatch(weatherService)
-    context.stop(weatherService)
-
-    extSimulationData.extSimAdapters.foreach { ref =>
-      context.unwatch(ref)
-      ref ! StopMessage(simulationSuccessful)
-    }
-    extSimulationData.extDataServices.foreach { case (_, ref) =>
-      context.unwatch(ref)
-      context.stop(ref)
-    }
-
-    // do not unwatch the result listeners, as we're waiting for their termination
-    systemParticipantsListener.foreach(
-      _ ! StopMessage(simulationSuccessful)
-    )
-
-    context.unwatch(runtimeEventListener.toClassic)
-    context.stop(runtimeEventListener.toClassic)
-
-    logger.debug("Stopping all listeners requested.")
-  }
-}
-
 object SimonaSim {
 
-  /** Object to indicate to the scheduler itself, that an uncaught exception has
-    * triggered an emergency shutdown of the simulation system
+  def apply(simonaSetup: SimonaSetup): Behavior[SimMessage] =
+    Behaviors.receivePartial {
+      case (ctx, startMsg @ StartSimulation(starter)) =>
+        // We redirect to initializing behavior so that starter ref
+        // is available in case of a sudden termination of this actor
+        ctx.self ! startMsg
+        initializing(simonaSetup, starter)
+    }
+
+  /** Initializing behavior that is separated from [[apply]] above only because
+    * in case of a sudden stop of this actor itself (PostStop signal), the
+    * [[SimonaEnded]] message is sent to the starter
+    *
+    * @param starter
+    *   The starter ref that needs to be notified once simulation has ended
     */
-  case object EmergencyShutdownInitiated
+  private def initializing(
+      simonaSetup: SimonaSetup,
+      starter: ActorRef[SimonaEnded],
+  ): Behavior[SimMessage] =
+    Behaviors
+      .receivePartial[SimMessage] { case (ctx, StartSimulation(_)) =>
+        val resultEventListeners =
+          simonaSetup.systemParticipantsListener(ctx)
 
-  private[SimonaSim] final case class SimonaSimStateData(
-      initSimSender: ActorRef = ActorRef.noSender
+        val runtimeEventListener = simonaSetup.runtimeEventListener(ctx)
+
+        val timeAdvancer =
+          simonaSetup.timeAdvancer(ctx, ctx.self, runtimeEventListener)
+        val scheduler = simonaSetup.scheduler(ctx, timeAdvancer)
+
+        /* start services */
+        // primary service proxy
+        val primaryServiceProxy =
+          simonaSetup.primaryServiceProxy(ctx, scheduler)
+
+        // weather service
+        val weatherService =
+          simonaSetup.weatherService(ctx, scheduler)
+
+        val extSimulationData: ExtSimSetupData =
+          simonaSetup.extSimulations(ctx, scheduler)
+
+        val environmentRefs = EnvironmentRefs(
+          scheduler,
+          runtimeEventListener.toClassic,
+          primaryServiceProxy,
+          weatherService,
+          extSimulationData.evDataService,
+        )
+
+        /* start grid agents  */
+        val gridAgents = simonaSetup.gridAgents(
+          ctx,
+          environmentRefs,
+          resultEventListeners,
+        )
+
+        /* watch all actors */
+        resultEventListeners.foreach(ctx.watch)
+        ctx.watch(runtimeEventListener)
+        ctx.watch(timeAdvancer)
+        ctx.watch(scheduler)
+        ctx.watch(primaryServiceProxy.toTyped)
+        ctx.watch(weatherService.toTyped)
+        gridAgents.foreach(ref => ctx.watch(ref.toTyped))
+
+        // Start simulation
+        timeAdvancer ! TimeAdvancer.StartSimMessage()
+
+        val watchedActors = Iterable(
+          runtimeEventListener,
+          timeAdvancer,
+          scheduler,
+          primaryServiceProxy.toTyped,
+          weatherService.toTyped,
+        ) ++ gridAgents.map(_.toTyped)
+
+        idle(
+          ActorData(
+            starter,
+            runtimeEventListener,
+            watchedActors,
+            extSimulationData.extSimAdapters,
+            resultEventListeners,
+          )
+        )
+      }
+      .receiveSignal { case (_, PostStop) =>
+        // Something must have gone wrong during initialization above
+        // (could have been an exception thrown), there's nothing much
+        // we can do here besides notifying starter
+        starter ! SimonaEnded(successful = false)
+
+        Behaviors.stopped
+      }
+
+  private def idle(actorData: ActorData): Behavior[SimMessage] = Behaviors
+    .receivePartial[SimMessage] { case (ctx, SimulationEnded) =>
+      // stop all children and wait for result listeners
+      stopActors(ctx, actorData, simulationSuccessful = true)
+    }
+    .receiveSignal { case (ctx, Terminated(actor)) =>
+      ctx.log.error(
+        "An actor ({}) unexpectedly terminated. Shut down all children gracefully and report simulation " +
+          "failure. See logs and possible stacktrace for details.",
+        actor,
+      )
+
+      // stop all children and end
+      stopActors(ctx, actorData, simulationSuccessful = false)
+    }
+
+  private def stopActors(
+      ctx: ActorContext[_],
+      actorData: ActorData,
+      simulationSuccessful: Boolean,
+  ): Behavior[SimMessage] = {
+
+    actorData.watchedActors.foreach { ref =>
+      ctx.unwatch(ref)
+      ctx.stop(ref)
+    }
+
+    actorData.extSimAdapters.foreach { ref =>
+      ctx.unwatch(ref)
+      ref ! ExtSimAdapter.StopMessage(simulationSuccessful)
+    }
+
+    if (simulationSuccessful) {
+      // if the simulation is successful, we're waiting for the result listeners
+      // to terminate and thus do not unwatch them here
+      ctx.log.info(
+        "Simulation terminated successfully. Stopping children and waiting for results to flush out..."
+      )
+
+      actorData.resultListener.foreach(_ ! ResultEventListener.FlushAndStop)
+
+      waitingForListener(
+        actorData.starter,
+        remainingListeners = actorData.resultListener.toSeq,
+      )
+    } else {
+      ctx.log.error(
+        "An error occurred during the simulation. See stacktrace for details."
+      )
+
+      // if an error happened, we do not care for all results to be flushed out
+      // and just end everything right away
+      actorData.resultListener.foreach { ref =>
+        ctx.unwatch(ref)
+        ctx.stop(ref)
+      }
+
+      // also notify RuntimeEventListener that error happened
+      actorData.runtimeEventListener ! RuntimeEvent.Error(
+        "Simulation stopped with error."
+      )
+
+      actorData.starter ! SimonaEnded(successful = false)
+
+      Behaviors.stopped
+    }
+  }
+
+  private def waitingForListener(
+      starter: ActorRef[SimonaEnded],
+      remainingListeners: Seq[ActorRef[_]],
+  ): Behavior[SimMessage] = Behaviors.receiveSignal[SimMessage] {
+    case (ctx, Terminated(actor)) if remainingListeners.contains(actor) =>
+      val updatedRemainingListeners = remainingListeners.filterNot(_ == actor)
+
+      if (updatedRemainingListeners.isEmpty) {
+        ctx.log.info(
+          "All result listeners have terminated. Ending simulation successfully."
+        )
+
+        // inform InitSim Sender
+        starter ! SimonaEnded(successful = true)
+
+        Behaviors.stopped
+      } else {
+        waitingForListener(
+          starter,
+          updatedRemainingListeners,
+        )
+      }
+
+  }
+
+  /** TODO scaladoc
+    * @param starter
+    * @param runtimeEventListener
+    * @param watchedActors
+    *   excluding ExtSimAdapters and ResultListeners
+    * @param extSimAdapters
+    * @param resultListener
+    */
+  private final case class ActorData(
+      starter: ActorRef[SimonaEnded],
+      runtimeEventListener: ActorRef[RuntimeEvent],
+      watchedActors: Iterable[ActorRef[_]],
+      extSimAdapters: Iterable[ClassicRef],
+      resultListener: Iterable[ActorRef[ResultMessage]],
   )
-
-  def props(simonaSetup: SimonaSetup): Props =
-    Props(new SimonaSim(simonaSetup))
-
 }

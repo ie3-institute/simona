@@ -23,7 +23,6 @@ import edu.ie3.simona.exceptions.{
   ProcessResultEventException,
 }
 import edu.ie3.simona.io.result._
-import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.util.ResultFileHierarchy
 import org.slf4j.Logger
 
@@ -41,6 +40,8 @@ object ResultEventListener extends Transformer3wResultSupport {
   ) extends ResultMessage
 
   private final case class Failed(ex: Exception) extends ResultMessage
+
+  final case object FlushAndStop extends ResultMessage
 
   private final case object StopTimeout extends ResultMessage
 
@@ -319,9 +320,9 @@ object ResultEventListener extends Transformer3wResultSupport {
         val updatedBaseData = handleResult(flexOptionsResult, baseData, ctx.log)
         idle(updatedBaseData)
 
-      case (ctx, _: StopMessage) =>
+      case (ctx, FlushAndStop) =>
         ctx.log.debug(
-          s"${getClass.getSimpleName} received Stop message, shutting down when no message has been received in 5 seconds."
+          s"Received FlushAndStop message, shutting down once no message has been received for 5 seconds."
         )
         ctx.setReceiveTimeout(5.seconds, StopTimeout)
         Behaviors.same

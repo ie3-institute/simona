@@ -20,8 +20,8 @@ import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent,
   PowerFlowResultEvent,
 }
+import edu.ie3.simona.event.listener.ResultEventListener.FlushAndStop
 import edu.ie3.simona.io.result.{ResultEntitySink, ResultSinkType}
-import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.test.common.result.PowerFlowResultData
 import edu.ie3.simona.test.common.{IOTestCommons, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
@@ -32,7 +32,6 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
 }
 import org.apache.pekko.testkit.TestKit.awaitCond
-import org.apache.pekko.testkit.TestProbe
 
 import java.io.{File, FileInputStream}
 import java.util.UUID
@@ -140,7 +139,7 @@ class ResultEventListenerSpec
           )
         )
 
-        listener ! StopMessage(true)
+        listener ! FlushAndStop
         deathWatch expectTerminated (listener, 10 seconds)
       }
     }
@@ -174,7 +173,7 @@ class ResultEventListenerSpec
         )
 
         // stop listener so that result is flushed out
-        listenerRef ! StopMessage(true)
+        listenerRef ! FlushAndStop
 
         // wait until all lines have been written out:
         awaitCond(
@@ -256,7 +255,7 @@ class ResultEventListenerSpec
         )
 
         // stop listener so that result is flushed out
-        listenerRef ! StopMessage(true)
+        listenerRef ! FlushAndStop
 
         // wait until all lines have been written out:
         awaitCond(
@@ -340,7 +339,7 @@ class ResultEventListenerSpec
         listener ! powerflow3wResult(resultB)
 
         // stop listener so that result is flushed out
-        listener ! StopMessage(true)
+        listener ! FlushAndStop
 
         /* Await that the result is written */
         awaitCond(
@@ -403,7 +402,7 @@ class ResultEventListenerSpec
         // otherwise it might happen, that the shutdown is triggered even before the just send ParticipantResultEvent
         // reached the listener
         // this also triggers the compression of result files
-        listenerRef ! StopMessage(true)
+        listenerRef ! FlushAndStop
 
         // shutdown the actor system
         system.terminate()

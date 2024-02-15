@@ -6,30 +6,19 @@
 
 package edu.ie3.simona.sim
 
-trait SimMessage
+import edu.ie3.simona.main.RunSimona.SimonaEnded
+import org.apache.pekko.actor.typed.ActorRef
+
+sealed trait SimMessage
+
 object SimMessage {
 
-  /** Tell the [[SimonaSim]] to initialize the simulation
-    */
-  case object InitSim extends SimMessage
-
-  /** Starts simulation by activating the next (or first) tick
-    *
-    * @param pauseTick
-    *   Last tick that can be activated or completed before the simulation is
-    *   paused
-    */
+  /** Starts simulation by activating the next (or first) tick */
   final case class StartSimulation(
-      pauseTick: Option[Long] = None
+      starter: ActorRef[SimonaEnded]
   ) extends SimMessage
 
-  /** Reported back from the scheduler if an error occurred during the
-    * simulation
-    */
-  case object SimulationFailure extends SimMessage
-
-  /** Reported back from the scheduler if the simulation terminated as expected
-    */
-  case object SimulationSuccessful extends SimMessage
+  /** Indicate that the simulation has ended successfully */
+  case object SimulationEnded extends SimMessage
 
 }
