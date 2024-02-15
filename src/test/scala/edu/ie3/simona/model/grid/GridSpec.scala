@@ -536,7 +536,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
             false,
           ),
         ).asJava
-        val selectedMeasurements = List(
+        val selectedMeasurements = Set(
           "ab66fbb0-ece1-44b9-9341-86a884233ec4",
           "93b4d0d8-cc67-41f5-9d5c-1cd6dbb2e70d",
           "8e84eb8a-2940-4900-b0ce-0eeb6bca8bae",
