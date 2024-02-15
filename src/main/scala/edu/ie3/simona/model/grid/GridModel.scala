@@ -608,7 +608,7 @@ object GridModel {
     case TransformerControlGroup(measurements, _, vMax, vMin) =>
       buildTransformerControlGroupModel(
         measurementUnitInput,
-        measurements,
+        measurements.toSet,
         vMax,
         vMin,
       )
@@ -632,7 +632,7 @@ object GridModel {
     */
   private def buildTransformerControlGroupModel(
       measurementUnitInput: java.util.Set[MeasurementUnitInput],
-      measurementConfigs: List[String],
+      measurementConfigs: Set[String],
       vMax: Double,
       vMin: Double,
   ): ControlGroupModel = {
@@ -653,7 +653,7 @@ object GridModel {
     */
   private def determineNodeUuids(
       measurementUnitInput: java.util.Set[MeasurementUnitInput],
-      measurementConfigs: List[String],
+      measurementConfigs: Set[String],
   ): Set[UUID] = Set.from(
     measurementUnitInput.asScala
       .filter(input =>
