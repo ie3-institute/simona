@@ -13,8 +13,10 @@ import breeze.numerics.abs
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.MeasurementUnitInput
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
+import edu.ie3.simona.agent.grid.DBFSMockGridAgents
+import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.GridInconsistencyException
-import edu.ie3.simona.model.control.TransformerControlGroup
+import edu.ie3.simona.model.control.TransformerControlGroupModel
 import edu.ie3.simona.model.grid.GridModel.{
   emptyGridControls,
   GridComponents,
@@ -28,10 +30,20 @@ import edu.ie3.simona.test.common.model.grid.{
 }
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import testutils.TestObjectFactory
-
+import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
+import org.apache.pekko.testkit.TestProbe
+import edu.ie3.simona.test.common.ConfigTestData
+import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import scala.jdk.CollectionConverters.SetHasAsJava
+import edu.ie3.datamodel.models.input.container.ThermalGrid
 
-class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
+class GridSpec
+    extends UnitSpec
+    with LineInputTestData
+    with DefaultTestData
+    with DbfsTestGrid
+    with DBFSMockGridAgents
+    with ConfigTestData {
 
   private val _printAdmittanceMatrixOnMismatch
       : (DenseMatrix[Complex], DenseMatrix[Complex]) => Unit = {
@@ -214,7 +226,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
           Set.empty[Transformer3wModel],
           switches,
         ),
-        GridControls(Set.empty[TransformerControlGroup]),
+        GridControls(Set.empty[TransformerControlGroupModel]),
       )
       // get the private method for validation
       val validateConnectivity: PrivateMethod[Unit] =
@@ -243,7 +255,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
           Set.empty[Transformer3wModel],
           Set.empty[SwitchModel],
         ),
-        GridControls(Set.empty[TransformerControlGroup]),
+        GridControls(Set.empty[TransformerControlGroupModel]),
       )
 
       // get the private method for validation
@@ -394,7 +406,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
             Set.empty[Transformer3wModel],
             switches,
           ),
-          GridControls(Set.empty[TransformerControlGroup]),
+          GridControls(Set.empty[TransformerControlGroupModel]),
         )
 
         // update the uuidToIndexMap
@@ -446,7 +458,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
             Set.empty[Transformer3wModel],
             Set.empty[SwitchModel],
           ),
-          GridControls(Set.empty[TransformerControlGroup]),
+          GridControls(Set.empty[TransformerControlGroupModel]),
         )
 
         // update the uuidToIndexMap
@@ -536,7 +548,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
             false,
           ),
         ).asJava
-        val selectedMeasurements = List(
+        val selectedMeasurements = Set(
           "ab66fbb0-ece1-44b9-9341-86a884233ec4",
           "93b4d0d8-cc67-41f5-9d5c-1cd6dbb2e70d",
           "8e84eb8a-2940-4900-b0ce-0eeb6bca8bae",
@@ -552,12 +564,24 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
     }
 
     "process a valid GridInputModel without an Exception" in new GridInputTestData {
+      val simonaConfig: SimonaConfig = SimonaConfig(typesafeConfig)
+      private val superiorGridAgent = SuperiorGA(
+        TestProbe("superiorGridAgent_1000"),
+        Seq(supNodeA.getUuid),
+      )
+
       GridModel(
         validTestGridInputModel,
         gridInputModelTestDataRefSystem,
         defaultSimulationStart,
         defaultSimulationEnd,
-        controlConfig = None,
+        GridAgentInitData(
+          hvGridContainer,
+          Seq.empty[ThermalGrid],
+          superiorGridAgent.ref,
+          RefSystem("2000 MVA", "110 kV"),
+        ),
+        simonaConfig,
       )
     }
   }

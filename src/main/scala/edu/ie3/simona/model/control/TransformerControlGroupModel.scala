@@ -9,7 +9,7 @@ package edu.ie3.simona.model.control
 import breeze.math.Complex
 import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult
-import edu.ie3.simona.model.control.TransformerControlGroup.RegulationCriterion
+import edu.ie3.simona.model.control.TransformerControlGroupModel.RegulationCriterion
 
 import java.util.UUID
 import squants.Dimensionless
@@ -25,7 +25,7 @@ import squants.Dimensionless
   *   Partial function to harmonize different, possible contradictory regulation
   *   needs
   */
-final case class TransformerControlGroup(
+final case class TransformerControlGroupModel(
     nodalRegulationCriterion: Map[UUID, RegulationCriterion],
     harmonizeRegulationNeeds: Array[Dimensionless] => Option[Dimensionless],
 ) {
@@ -66,7 +66,7 @@ final case class TransformerControlGroup(
   }
 }
 
-object TransformerControlGroup {
+object TransformerControlGroupModel {
   type RegulationCriterion =
     Complex => Option[Dimensionless]
 }

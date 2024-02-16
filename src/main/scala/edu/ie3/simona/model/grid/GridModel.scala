@@ -12,13 +12,13 @@ import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.MeasurementUnitInput
 import edu.ie3.datamodel.models.input.connector._
 import edu.ie3.datamodel.models.input.container.SubGridContainer
+import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.TransformerControlGroup
 import edu.ie3.simona.exceptions.GridInconsistencyException
+import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.control.{
-  TransformerControlGroup => ControlGroupModel
-}
+import edu.ie3.simona.model.control.TransformerControlGroupModel
 import edu.ie3.simona.model.grid.GridModel.{GridComponents, GridControls}
 import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseA,
@@ -73,13 +73,15 @@ object GridModel {
       refSystem: RefSystem,
       startDate: ZonedDateTime,
       endDate: ZonedDateTime,
-      controlConfig: Option[SimonaConfig.Simona.Control],
+      gridAgentInitData: GridAgentInitData,
+      simonaConfig: SimonaConfig,
   ): GridModel = buildAndValidate(
     subGridContainer,
     refSystem,
     startDate,
     endDate,
-    controlConfig,
+    gridAgentInitData,
+    simonaConfig,
   )
 
   /** structure that represents all grid components that are needed by a grid
@@ -99,13 +101,13 @@ object GridModel {
     *   Transformer control groups
     */
   final case class GridControls(
-      transformerControlGroups: Set[ControlGroupModel]
+      transformerControlGroups: Set[TransformerControlGroupModel]
   )
 
-  /** Represents an empty Transformer control groups
+  /** Represents an empty Transformer control group
     */
-  val emptyGridControls: GridControls = GridControls(
-    Set.empty[ControlGroupModel]
+  def emptyGridControls: GridControls = GridControls(
+    Set.empty[TransformerControlGroupModel]
   )
 
   /** Checks the availability of node calculation models, that are connected by
@@ -474,12 +476,79 @@ object GridModel {
 
   }
 
+  private def checkForGridGates(gridAgentInitData: GridAgentInitData): Unit = {
+    if (
+      gridAgentInitData.superiorGridGates.isEmpty && gridAgentInitData.inferiorGridGates.isEmpty
+    )
+      throw new GridAgentInitializationException(
+        s"${gridAgentInitData.subGridContainer.getGridName} has neither superior nor inferior grids! This can either " +
+          s"be cause by wrong subnetGate information or invalid parametrization of the simulation!"
+      )
+  }
+
+  /** Checks all ControlGroups if a) Transformer of ControlGroup and Measurement
+    * belongs to the same sub grid. b) Measurements are measure voltage
+    * magnitude.
+    *
+    * @param subGridContainer
+    *   Container of all models for this sub grid
+    * @param maybeControlConfig
+    *   Config of ControlGroup
+    */
+  private def checkControlGroupsForMeasurement(
+      subGridContainer: SubGridContainer,
+      maybeControlConfig: Option[SimonaConfig.Simona.Control],
+  ): Unit = {
+
+    val measurementUnits =
+      subGridContainer.getRawGrid.getMeasurementUnits.asScala
+        .map(measurement => measurement.getUuid -> measurement)
+        .toMap
+
+    val transformerUnits2W =
+      subGridContainer.getRawGrid.getTransformer2Ws.asScala
+        .map(transformer2w => transformer2w.getUuid -> transformer2w)
+        .toMap
+
+    val transformerUnits3W =
+      subGridContainer.getRawGrid.getTransformer3Ws.asScala
+        .map(transformer3w => transformer3w.getUuid -> transformer3w)
+        .toMap
+
+    maybeControlConfig.foreach(control =>
+      control.transformer.foreach(controlGroup =>
+        controlGroup.transformers.map(UUID.fromString).foreach { transformer =>
+          val transformerUnit2W = transformerUnits2W.get(transformer)
+          val transformerUnit3W = transformerUnits3W.get(transformer)
+
+          if (transformerUnit2W.isDefined || transformerUnit3W.isDefined) {
+            controlGroup.measurements
+              .map(UUID.fromString)
+              .foreach { measurement =>
+                val measurementUnit = measurementUnits.getOrElse(
+                  measurement,
+                  throw new GridAgentInitializationException(
+                    s"${subGridContainer.getGridName} has a transformer control group (${control.transformer.toString}) with a measurement which UUID does not exist in this subnet."
+                  ),
+                )
+                if (!measurementUnit.getVMag)
+                  throw new GridAgentInitializationException(
+                    s"${subGridContainer.getGridName} has a transformer control group (${control.transformer.toString}) with a measurement which does not measure voltage magnitude."
+                  )
+              }
+          }
+        }
+      )
+    )
+  }
+
   private def buildAndValidate(
       subGridContainer: SubGridContainer,
       refSystem: RefSystem,
       startDate: ZonedDateTime,
       endDate: ZonedDateTime,
-      maybeControlConfig: Option[SimonaConfig.Simona.Control],
+      gridAgentInitData: GridAgentInitData,
+      simonaConfig: SimonaConfig,
   ): GridModel = {
 
     // build
@@ -564,6 +633,12 @@ object GridModel {
       )
 
     /* Build transformer control groups */
+    val maybeControlConfig: Option[SimonaConfig.Simona.Control] =
+      simonaConfig.simona.control match {
+        case Some(control) => simonaConfig.simona.control
+        case None          => None
+      }
+
     val transformerControlGroups = maybeControlConfig
       .map { controlConfig =>
         buildTransformerControlGroups(
@@ -571,7 +646,7 @@ object GridModel {
           subGridContainer.getRawGrid.getMeasurementUnits,
         )
       }
-      .getOrElse(Set.empty[ControlGroupModel])
+      .getOrElse(Set.empty[TransformerControlGroupModel])
 
     /* Build grid related control strategies */
     val gridControls = GridControls(transformerControlGroups)
@@ -584,9 +659,20 @@ object GridModel {
         gridControls,
       )
 
+    /** Check and validates the grid. Especially the consistency of the grid
+      * model the connectivity of the grid model if there is InitData for
+      * superior or inferior GridGates if there exits voltage measurements for
+      * transformerControlGroups
+      */
+
     // validate
     validateConsistency(gridModel)
     validateConnectivity(gridModel)
+    checkForGridGates(gridAgentInitData)
+    checkControlGroupsForMeasurement(
+      gridAgentInitData.subGridContainer,
+      simonaConfig.simona.control,
+    )
 
     // return
     gridModel
@@ -604,7 +690,7 @@ object GridModel {
   private def buildTransformerControlGroups(
       config: List[SimonaConfig.TransformerControlGroup],
       measurementUnitInput: java.util.Set[MeasurementUnitInput],
-  ): Set[ControlGroupModel] = config.map {
+  ): Set[TransformerControlGroupModel] = config.map {
     case TransformerControlGroup(measurements, _, vMax, vMin) =>
       buildTransformerControlGroupModel(
         measurementUnitInput,
@@ -628,14 +714,14 @@ object GridModel {
     * @param vMin
     *   Lower permissible voltage magnitude
     * @return
-    *   A [[ControlGroupModel]]
+    *   A [[TransformerControlGroupModel]]
     */
   private def buildTransformerControlGroupModel(
       measurementUnitInput: java.util.Set[MeasurementUnitInput],
       measurementConfigs: Set[String],
       vMax: Double,
       vMin: Double,
-  ): ControlGroupModel = {
+  ): TransformerControlGroupModel = {
     val nodeUuids =
       determineNodeUuids(measurementUnitInput, measurementConfigs)
     buildTransformerControlModels(nodeUuids, vMax, vMin)
@@ -673,13 +759,13 @@ object GridModel {
     * @param vMin
     *   Lower permissible voltage magnitude
     * @return
-    *   A [[ControlGroupModel]]
+    *   A [[TransformerControlGroupModel]]
     */
   private def buildTransformerControlModels(
       nodeUuids: Set[UUID],
       vMax: Double,
       vMin: Double,
-  ): ControlGroupModel = {
+  ): TransformerControlGroupModel = {
     /* Determine the voltage regulation criterion for each of the available nodes */
     val nodeUuidToRegulationCriterion = nodeUuids.map { uuid =>
       uuid -> { (complexVoltage: Complex) =>
@@ -715,7 +801,10 @@ object GridModel {
 
       }
 
-    ControlGroupModel(nodeUuidToRegulationCriterion, harmonizationFunction)
+    TransformerControlGroupModel(
+      nodeUuidToRegulationCriterion,
+      harmonizationFunction,
+    )
   }
 
   /** Updates the internal state of the [[GridModel.nodeUuidToIndexMap]] to

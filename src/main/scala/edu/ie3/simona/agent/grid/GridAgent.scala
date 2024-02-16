@@ -154,9 +154,6 @@ class GridAgent(
           Activation(INIT_SIM_TICK),
           gridAgentInitData: GridAgentInitData,
         ) =>
-      // fail fast sanity checks
-      GridAgentFailFast.failFast(gridAgentInitData, simonaConfig)
-
       log.debug(
         s"Inferior Subnets: {}; Inferior Subnet Nodes: {}",
         gridAgentInitData.inferiorGridIds,
@@ -188,7 +185,8 @@ class GridAgent(
         TimeUtil.withDefaults.toZonedDateTime(
           simonaConfig.simona.time.endDateTime
         ),
-        simonaConfig.simona.control,
+        gridAgentInitData,
+        simonaConfig,
       )
 
       /* Reassure, that there are also calculation models for the given uuids */

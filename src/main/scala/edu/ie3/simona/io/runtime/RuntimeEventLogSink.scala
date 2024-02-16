@@ -5,6 +5,7 @@
  */
 
 package edu.ie3.simona.io.runtime
+
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent._
 import edu.ie3.simona.io.runtime.RuntimeEventSink.RuntimeStats
@@ -15,18 +16,21 @@ import org.slf4j.Logger
 import java.time.ZonedDateTime
 
 /** Runtime event sink that just logs all received events.
+  *
   * @param simulationStartDate
   *   the simulation start date time, used for calculating simulation time from
   *   ticks
+  * @param log
+  *   The logger to use
   */
 final case class RuntimeEventLogSink(
-    simulationStartDate: ZonedDateTime
+    simulationStartDate: ZonedDateTime,
+    log: Logger,
 ) extends RuntimeEventSink {
 
   override def handleRuntimeEvent(
       runtimeEvent: RuntimeEvent,
       runtimeStats: RuntimeStats,
-      log: Logger,
   ): Unit =
     runtimeEvent match {
       case Initializing =>
