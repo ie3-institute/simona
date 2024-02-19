@@ -56,10 +56,6 @@ class SimonaSim(simonaSetup: SimonaSetup)
     }
 
   /* start listener */
-  // output listener
-  val systemParticipantsListener: Seq[ActorRef] =
-    simonaSetup.systemParticipantsListener(context)
-
   // runtime event listener
   val runtimeEventListener
       : org.apache.pekko.actor.typed.ActorRef[RuntimeEvent] =
@@ -84,6 +80,9 @@ class SimonaSim(simonaSetup: SimonaSetup)
   val weatherService: ActorRef =
     simonaSetup.weatherService(context, scheduler)
 
+  // output listener
+  val systemParticipantsListener: Seq[ActorRef] =
+    simonaSetup.systemParticipantsListener(context, extSimulationData)
 
   /* start grid agents  */
   val gridAgents: Iterable[ActorRef] = simonaSetup.gridAgents(
@@ -144,8 +143,8 @@ class SimonaSim(simonaSetup: SimonaSetup)
       )
 
     /* ExtSimulation */
-    case ResultMessage(res) =>
-      data.initSimSender ! res.getResults()
+    //case ResultMessage(res) =>
+    //  data.initSimSender ! res.getResults()
 
     case EmergencyShutdownInitiated =>
       logger.debug(

@@ -6,21 +6,17 @@
 
 package edu.ie3.simona.service
 
+import edu.ie3.simona.event
+import edu.ie3.simona.event.Event
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, Stash}
 import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
-import edu.ie3.simona.service.ServiceStateData.{
-  InitializeServiceStateData,
-  ServiceBaseStateData
-}
+import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
 import edu.ie3.simona.service.SimonaService.Create
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 
@@ -132,6 +128,7 @@ abstract class SimonaService[
 
   private def idleInternal(implicit stateData: S): Receive = {
     // agent registration process
+
     case registrationMsg: ServiceRegistrationMessage =>
       /* Someone asks to register for information from the service */
       handleRegistrationRequest(registrationMsg) match {
@@ -167,6 +164,7 @@ abstract class SimonaService[
       log.error("Unhandled message received:{}", x)
       unhandled(x)
   }
+
 
   /** Internal api method that allows handling incoming messages from external
     * simulations

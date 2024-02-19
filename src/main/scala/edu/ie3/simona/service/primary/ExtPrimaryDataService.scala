@@ -35,7 +35,7 @@ object ExtPrimaryDataService {
                                             extPrimaryDataMessage: Option[PrimaryDataMessageFromExt] = None
                                           ) extends ServiceBaseStateData
 
-  final case class InitExtPrimaryData(
+  case class InitExtPrimaryData(
                                        extPrimaryData: ExtPrimaryData
                                      ) extends InitializeServiceStateData
 
@@ -71,8 +71,11 @@ final case class ExtPrimaryDataService(
   override protected def handleRegistrationRequest(
                                                     registrationMessage: ServiceMessage.ServiceRegistrationMessage
                                                   )(implicit serviceStateData: ExtPrimaryDataStateData):
-  Try[ExtPrimaryDataStateData] = registrationMessage match {
+  Try[ExtPrimaryDataStateData] = {
+    println("Habe erhalten 0")
+    registrationMessage match {
     case ExtPrimaryDataServiceRegistrationMessage(modelUuid, requestingActor) =>
+      println("Habe erhalten")
       Success(handleRegistrationRequest(requestingActor, modelUuid))
     case invalidMessage =>
       Failure(
@@ -80,7 +83,9 @@ final case class ExtPrimaryDataService(
           s"A primary service provider is not able to handle registration request '$invalidMessage'."
         )
       )
+    }
   }
+
 
 
   private def handleRegistrationRequest(

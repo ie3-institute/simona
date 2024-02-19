@@ -7,5 +7,5 @@ sealed trait ResultMessage extends DataMessage
 object ResultMessage {
   final case class ResultRequest(tick: Long)
 
-  final case class ResultResponseMessage(results: Iterable[ResultEntity]) extends ResultMessage
+  final case class ResultResponseMessage(result: ResultEntity) extends ResultMessage
 }
