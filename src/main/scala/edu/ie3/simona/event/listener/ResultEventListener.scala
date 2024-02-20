@@ -11,7 +11,6 @@ import org.apache.pekko.actor.typed.{Behavior, PostStop}
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
-import edu.ie3.simona.event.Event
 import edu.ie3.simona.event.ResultEvent.{
   FlexOptionsResultEvent,
   ParticipantResultEvent,
@@ -33,17 +32,17 @@ import scala.util.{Failure, Success, Try}
 
 object ResultEventListener extends Transformer3wResultSupport {
 
-  trait ResultMessage extends Event
+  trait Incoming
 
   private final case class SinkResponse(
       response: Map[Class[_], ResultEntitySink]
-  ) extends ResultMessage
+  ) extends Incoming
 
-  private final case class Failed(ex: Exception) extends ResultMessage
+  private final case class InitFailed(ex: Exception) extends Incoming
 
-  final case object FlushAndStop extends ResultMessage
+  final case object FlushAndStop extends Incoming
 
-  private final case object StopTimeout extends ResultMessage
+  private final case object StopTimeout extends Incoming
 
   /** [[ResultEventListener]] base data containing all information the listener
     * needs
@@ -235,7 +234,7 @@ object ResultEventListener extends Transformer3wResultSupport {
 
   def apply(
       resultFileHierarchy: ResultFileHierarchy
-  ): Behavior[ResultMessage] = Behaviors.setup[ResultMessage] { ctx =>
+  ): Behavior[Incoming] = Behaviors.setup[Incoming] { ctx =>
     ctx.log.debug("Starting initialization!")
     resultFileHierarchy.resultSinkType match {
       case _: ResultSinkType.Kafka =>
@@ -254,33 +253,32 @@ object ResultEventListener extends Transformer3wResultSupport {
         ResultEventListener.initializeSinks(resultFileHierarchy)
       )
     ) {
-      case Failure(exception: Exception) => Failed(exception)
+      case Failure(exception: Exception) => InitFailed(exception)
       case Success(result)               => SinkResponse(result.toMap)
     }
 
     init()
   }
 
-  private def init(): Behavior[ResultMessage] = Behaviors.withStash(200) {
-    buffer =>
-      Behaviors.receive[ResultMessage] {
-        case (ctx, SinkResponse(response)) =>
-          ctx.log.debug("Initialization complete!")
-          buffer.unstashAll(idle(BaseData(response)))
+  private def init(): Behavior[Incoming] = Behaviors.withStash(200) { buffer =>
+    Behaviors.receive[Incoming] {
+      case (ctx, SinkResponse(response)) =>
+        ctx.log.debug("Initialization complete!")
+        buffer.unstashAll(idle(BaseData(response)))
 
-        case (ctx, Failed(ex)) =>
-          ctx.log.error("Unable to setup ResultEventListener.", ex)
-          Behaviors.stopped
+      case (ctx, InitFailed(ex)) =>
+        ctx.log.error("Unable to setup ResultEventListener.", ex)
+        Behaviors.stopped
 
-        case (_, msg) =>
-          // stash all messages
-          buffer.stash(msg)
-          Behaviors.same
-      }
+      case (_, msg) =>
+        // stash all messages
+        buffer.stash(msg)
+        Behaviors.same
+    }
   }
 
-  private def idle(baseData: BaseData): Behavior[ResultMessage] = Behaviors
-    .receive[ResultMessage] {
+  private def idle(baseData: BaseData): Behavior[Incoming] = Behaviors
+    .receive[Incoming] {
       case (ctx, ParticipantResultEvent(participantResult)) =>
         val updatedBaseData = handleResult(participantResult, baseData, ctx.log)
         idle(updatedBaseData)

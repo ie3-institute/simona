@@ -19,7 +19,6 @@ import edu.ie3.simona.api.data.ExtData
 import edu.ie3.simona.api.data.ev.{ExtEvData, ExtEvSimulation}
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.config.{ArgsParser, RefSystemParser, SimonaConfig}
-import edu.ie3.simona.event.listener.ResultEventListener.ResultMessage
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
@@ -34,7 +33,7 @@ import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
-import edu.ie3.simona.sim.SimMessage
+import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
@@ -43,8 +42,8 @@ import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.adapter._
 import org.apache.pekko.actor.{
-  ActorRef => ClassicRef,
   ActorContext => ClassicContext,
+  ActorRef => ClassicRef,
 }
 
 import java.util.concurrent.LinkedBlockingQueue
@@ -249,7 +248,7 @@ class SimonaStandaloneSetup(
 
   override def timeAdvancer(
       context: ActorContext[_],
-      simulation: ActorRef[SimMessage],
+      simulation: ActorRef[SimonaSim.SimulationEnded.type],
       runtimeEventListener: ActorRef[RuntimeEvent],
   ): ActorRef[TimeAdvancer.Incoming] = {
     val startDateTime = TimeUtil.withDefaults.toZonedDateTime(
@@ -282,7 +281,7 @@ class SimonaStandaloneSetup(
 
   override def runtimeEventListener(
       context: ActorContext[_]
-  ): ActorRef[RuntimeEvent] =
+  ): ActorRef[RuntimeEventListener.Incoming] =
     context
       .spawn(
         RuntimeEventListener(
@@ -293,9 +292,9 @@ class SimonaStandaloneSetup(
         RuntimeEventListener.getClass.getSimpleName,
       )
 
-  override def systemParticipantsListener(
+  override def resultEventListener(
       context: ActorContext[_]
-  ): Seq[ActorRef[ResultMessage]] = {
+  ): Seq[ActorRef[ResultEventListener.Incoming]] = {
     // append ResultEventListener as well to write raw output files
     ArgsParser
       .parseListenerConfigOption(simonaConfig.simona.event.listener)

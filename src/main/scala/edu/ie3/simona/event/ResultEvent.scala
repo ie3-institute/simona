@@ -18,9 +18,9 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.datamodel.models.result.thermal.ThermalUnitResult
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
-import edu.ie3.simona.event.listener.ResultEventListener.ResultMessage
+import edu.ie3.simona.event.listener.ResultEventListener
 
-sealed trait ResultEvent extends ResultMessage
+sealed trait ResultEvent extends Event with ResultEventListener.Incoming
 
 /** Calculation result events
   */

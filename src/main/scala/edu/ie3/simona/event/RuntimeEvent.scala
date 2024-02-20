@@ -6,8 +6,10 @@
 
 package edu.ie3.simona.event
 
+import edu.ie3.simona.event.listener.RuntimeEventListener.Incoming
+
 /** Event type for simulation control */
-sealed trait RuntimeEvent extends Event
+sealed trait RuntimeEvent extends Event with Incoming
 
 object RuntimeEvent {
 

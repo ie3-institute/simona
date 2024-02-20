@@ -13,10 +13,11 @@ import edu.ie3.datamodel.models.input.connector.{
 }
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.event.listener.ResultEventListener
+import edu.ie3.simona.event.listener.RuntimeEventListener
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.scheduler.TimeAdvancer
-import edu.ie3.simona.sim.SimMessage
+import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.grid.SubGridGateMokka
 import org.apache.pekko.actor.typed.scaladsl
@@ -30,13 +31,14 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
 
   override def runtimeEventListener(
       context: scaladsl.ActorContext[_]
-  ): typed.ActorRef[RuntimeEvent] = throw new NotImplementedException(
-    "This is a dummy setup"
-  )
+  ): typed.ActorRef[RuntimeEventListener.Incoming] = // todo typed
+    throw new NotImplementedException(
+      "This is a dummy setup"
+    )
 
-  override def systemParticipantsListener(
+  override def resultEventListener(
       context: scaladsl.ActorContext[_]
-  ): Seq[typed.ActorRef[ResultEventListener.ResultMessage]] =
+  ): Seq[typed.ActorRef[ResultEventListener.Incoming]] =
     throw new NotImplementedException("This is a dummy setup")
 
   override def primaryServiceProxy(
@@ -58,7 +60,7 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
 
   override def timeAdvancer(
       context: scaladsl.ActorContext[_],
-      simulation: typed.ActorRef[SimMessage],
+      simulation: typed.ActorRef[SimonaSim.SimulationEnded.type],
       runtimeEventListener: typed.ActorRef[RuntimeEvent],
   ): typed.ActorRef[TimeAdvancer.Incoming] = throw new NotImplementedException(
     "This is a dummy setup"

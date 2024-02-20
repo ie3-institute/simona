@@ -8,7 +8,6 @@ package edu.ie3.simona.main
 
 import edu.ie3.simona.config.{ArgsParser, ConfigFailFast, SimonaConfig}
 import edu.ie3.simona.main.RunSimona._
-import edu.ie3.simona.sim.SimMessage.StartSimulation
 import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
 import org.apache.pekko.actor.typed.scaladsl.AskPattern._
@@ -51,7 +50,7 @@ object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
     implicit val scheduler: Scheduler = simonaSim.scheduler
 
     // run the simulation
-    val terminated = simonaSim.ask[SimonaEnded](ref => StartSimulation(ref))
+    val terminated = simonaSim.ask[SimonaEnded](ref => SimonaSim.Start(ref))
 
     Await.result(terminated, timeout.duration) match {
       case SimonaEnded(successful) =>

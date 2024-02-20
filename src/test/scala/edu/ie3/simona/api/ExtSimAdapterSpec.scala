@@ -7,7 +7,7 @@
 package edu.ie3.simona.api
 
 import com.typesafe.config.ConfigFactory
-import edu.ie3.simona.api.ExtSimAdapter.StopMessage
+import edu.ie3.simona.api.ExtSimAdapter.Stop
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.api.simulation.ontology.{
@@ -165,7 +165,7 @@ class ExtSimAdapterSpec
         val stopWatcher = TestProbe()
         stopWatcher.watch(extSimAdapter)
 
-        extSimAdapter ! StopMessage(simSuccessful)
+        extSimAdapter ! Stop(simSuccessful)
 
         awaitCond(
           !extData.receiveMessageQueue.isEmpty,

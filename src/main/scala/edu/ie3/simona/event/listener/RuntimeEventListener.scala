@@ -28,6 +28,15 @@ import java.util.concurrent.BlockingQueue
   */
 object RuntimeEventListener {
 
+  trait Incoming
+
+  /** Message indicating that [[RuntimeEventListener]] should stop. Instead of
+    * using [[org.apache.pekko.actor.typed.scaladsl.ActorContext.stop()]], this
+    * way of stopping allows all messages that have been queued before to be
+    * processed.
+    */
+  case object Stop extends Incoming
+
   /** Creates a runtime event listener behavior with given configuration.
     *
     * @param listenerConf
@@ -43,7 +52,7 @@ object RuntimeEventListener {
       listenerConf: SimonaConfig.Simona.Runtime.Listener,
       queue: Option[BlockingQueue[RuntimeEvent]],
       startDateTimeString: String,
-  ): Behavior[RuntimeEvent] = Behaviors.setup { ctx =>
+  ): Behavior[Incoming] = Behaviors.setup { ctx =>
     val listeners = Iterable(
       Some(
         RuntimeEventLogSink(
@@ -67,14 +76,14 @@ object RuntimeEventListener {
       listeners: Iterable[RuntimeEventSink],
       eventsToProcess: Option[List[String]] = None,
       runtimeStats: RuntimeStats = RuntimeStats(),
-  ): Behavior[RuntimeEvent] = Behaviors
-    .receive[RuntimeEvent] {
+  ): Behavior[Incoming] = Behaviors
+    .receive[Incoming] {
       case (_, PowerFlowFailed) =>
         val updatedRuntimeData = runtimeStats
           .copy(failedPowerFlows = runtimeStats.failedPowerFlows + 1)
         RuntimeEventListener(listeners, eventsToProcess, updatedRuntimeData)
 
-      case (ctx, event) =>
+      case (ctx, event: RuntimeEvent) =>
         val process = eventsToProcess.forall(_.contains(event.id))
 
         if (process)
@@ -85,6 +94,10 @@ object RuntimeEventListener {
             event.id,
           )
         Behaviors.same
+
+      case (ctx, Stop) =>
+        ctx.log.debug("")
+        Behaviors.stopped
     }
     .receiveSignal { case (_, PostStop) =>
       listeners.foreach(_.close())

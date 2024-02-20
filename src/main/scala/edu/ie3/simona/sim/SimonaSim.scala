@@ -9,11 +9,9 @@ package edu.ie3.simona.sim
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.event.listener.ResultEventListener
-import edu.ie3.simona.event.listener.ResultEventListener.ResultMessage
+import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.main.RunSimona.SimonaEnded
 import edu.ie3.simona.scheduler.TimeAdvancer
-import edu.ie3.simona.sim.SimMessage.{SimulationEnded, StartSimulation}
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
 import org.apache.pekko.actor.typed.scaladsl.adapter._
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
@@ -37,13 +35,22 @@ import scala.language.postfixOps
   */
 object SimonaSim {
 
-  def apply(simonaSetup: SimonaSetup): Behavior[SimMessage] =
-    Behaviors.receivePartial {
-      case (ctx, startMsg @ StartSimulation(starter)) =>
-        // We redirect to initializing behavior so that starter ref
-        // is available in case of a sudden termination of this actor
-        ctx.self ! startMsg
-        initializing(simonaSetup, starter)
+  sealed trait Incoming
+
+  /** Starts simulation by activating the next (or first) tick */
+  final case class Start(
+      starter: ActorRef[SimonaEnded]
+  ) extends Incoming
+
+  /** Indicate that the simulation has ended successfully */
+  case object SimulationEnded extends Incoming
+
+  def apply(simonaSetup: SimonaSetup): Behavior[Incoming] =
+    Behaviors.receivePartial { case (ctx, startMsg @ Start(starter)) =>
+      // We redirect to initializing behavior so that starter ref
+      // is available in case of a sudden termination of this actor
+      ctx.self ! startMsg
+      initializing(simonaSetup, starter)
     }
 
   /** Initializing behavior that is separated from [[apply]] above only because
@@ -56,11 +63,11 @@ object SimonaSim {
   private def initializing(
       simonaSetup: SimonaSetup,
       starter: ActorRef[SimonaEnded],
-  ): Behavior[SimMessage] =
+  ): Behavior[Incoming] =
     Behaviors
-      .receivePartial[SimMessage] { case (ctx, StartSimulation(_)) =>
+      .receivePartial[Incoming] { case (ctx, Start(_)) =>
         val resultEventListeners =
-          simonaSetup.systemParticipantsListener(ctx)
+          simonaSetup.resultEventListener(ctx)
 
         val runtimeEventListener = simonaSetup.runtimeEventListener(ctx)
 
@@ -105,10 +112,9 @@ object SimonaSim {
         gridAgents.foreach(ref => ctx.watch(ref.toTyped))
 
         // Start simulation
-        timeAdvancer ! TimeAdvancer.StartSimMessage()
+        timeAdvancer ! TimeAdvancer.Start()
 
         val watchedActors = Iterable(
-          runtimeEventListener,
           timeAdvancer,
           scheduler,
           primaryServiceProxy.toTyped,
@@ -118,9 +124,9 @@ object SimonaSim {
         idle(
           ActorData(
             starter,
-            runtimeEventListener,
             watchedActors,
             extSimulationData.extSimAdapters,
+            runtimeEventListener,
             resultEventListeners,
           )
         )
@@ -134,10 +140,10 @@ object SimonaSim {
         Behaviors.stopped
       }
 
-  private def idle(actorData: ActorData): Behavior[SimMessage] = Behaviors
-    .receivePartial[SimMessage] { case (ctx, SimulationEnded) =>
+  private def idle(actorData: ActorData): Behavior[Incoming] = Behaviors
+    .receivePartial[Incoming] { case (ctx, SimulationEnded) =>
       // stop all children and wait for result listeners
-      stopActors(ctx, actorData, simulationSuccessful = true)
+      stop(ctx, actorData, simulationSuccessful = true)
     }
     .receiveSignal { case (ctx, Terminated(actor)) =>
       ctx.log.error(
@@ -147,25 +153,14 @@ object SimonaSim {
       )
 
       // stop all children and end
-      stopActors(ctx, actorData, simulationSuccessful = false)
+      stop(ctx, actorData, simulationSuccessful = false)
     }
 
-  private def stopActors(
+  private def stop(
       ctx: ActorContext[_],
       actorData: ActorData,
       simulationSuccessful: Boolean,
-  ): Behavior[SimMessage] = {
-
-    actorData.watchedActors.foreach { ref =>
-      ctx.unwatch(ref)
-      ctx.stop(ref)
-    }
-
-    actorData.extSimAdapters.foreach { ref =>
-      ctx.unwatch(ref)
-      ref ! ExtSimAdapter.StopMessage(simulationSuccessful)
-    }
-
+  ): Behavior[Incoming] =
     if (simulationSuccessful) {
       // if the simulation is successful, we're waiting for the result listeners
       // to terminate and thus do not unwatch them here
@@ -174,6 +169,8 @@ object SimonaSim {
       )
 
       actorData.resultListener.foreach(_ ! ResultEventListener.FlushAndStop)
+
+      stopChildren(ctx, actorData, simulationSuccessful)
 
       waitingForListener(
         actorData.starter,
@@ -184,13 +181,6 @@ object SimonaSim {
         "An error occurred during the simulation. See stacktrace for details."
       )
 
-      // if an error happened, we do not care for all results to be flushed out
-      // and just end everything right away
-      actorData.resultListener.foreach { ref =>
-        ctx.unwatch(ref)
-        ctx.stop(ref)
-      }
-
       // also notify RuntimeEventListener that error happened
       actorData.runtimeEventListener ! RuntimeEvent.Error(
         "Simulation stopped with error."
@@ -198,14 +188,45 @@ object SimonaSim {
 
       actorData.starter ! SimonaEnded(successful = false)
 
+      stopChildren(ctx, actorData, simulationSuccessful)
+
       Behaviors.stopped
     }
+
+  private def stopChildren(
+      ctx: ActorContext[_],
+      actorData: ActorData,
+      simulationSuccessful: Boolean,
+  ): Unit = {
+    actorData.watchedActors.foreach { ref =>
+      ctx.unwatch(ref)
+      ctx.stop(ref)
+    }
+
+    actorData.extSimAdapters.foreach { ref =>
+      ctx.unwatch(ref)
+      ref ! ExtSimAdapter.Stop(simulationSuccessful)
+    }
+
+    if (!simulationSuccessful)
+      // if an error happened, we do not care for all results to be flushed out
+      // and just end ResultEventListeners right away
+      actorData.resultListener.foreach { ref =>
+        ctx.unwatch(ref)
+        ctx.stop(ref)
+      }
+
+    ctx.unwatch(actorData.runtimeEventListener)
+    // we stop RuntimeEventListener by message so that RuntimeEvents
+    // (Error in particular) in queue can still be processed before
+    actorData.runtimeEventListener ! RuntimeEventListener.Stop
+
   }
 
   private def waitingForListener(
       starter: ActorRef[SimonaEnded],
       remainingListeners: Seq[ActorRef[_]],
-  ): Behavior[SimMessage] = Behaviors.receiveSignal[SimMessage] {
+  ): Behavior[Incoming] = Behaviors.receiveSignal[Incoming] {
     case (ctx, Terminated(actor)) if remainingListeners.contains(actor) =>
       val updatedRemainingListeners = remainingListeners.filterNot(_ == actor)
 
@@ -214,7 +235,6 @@ object SimonaSim {
           "All result listeners have terminated. Ending simulation successfully."
         )
 
-        // inform InitSim Sender
         starter ! SimonaEnded(successful = true)
 
         Behaviors.stopped
@@ -229,17 +249,17 @@ object SimonaSim {
 
   /** TODO scaladoc
     * @param starter
-    * @param runtimeEventListener
     * @param watchedActors
-    *   excluding ExtSimAdapters and ResultListeners
+    *   excluding ExtSimAdapters, ResultListeners, RuntimeEventListener
     * @param extSimAdapters
+    * @param runtimeEventListener
     * @param resultListener
     */
   private final case class ActorData(
       starter: ActorRef[SimonaEnded],
-      runtimeEventListener: ActorRef[RuntimeEvent],
       watchedActors: Iterable[ActorRef[_]],
       extSimAdapters: Iterable[ClassicRef],
-      resultListener: Iterable[ActorRef[ResultMessage]],
+      runtimeEventListener: ActorRef[RuntimeEventListener.Incoming],
+      resultListener: Iterable[ActorRef[ResultEventListener.Incoming]],
   )
 }

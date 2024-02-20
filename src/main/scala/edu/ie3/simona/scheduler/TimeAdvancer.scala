@@ -13,8 +13,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.sim.SimMessage
-import edu.ie3.simona.sim.SimMessage.SimulationEnded
+import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
@@ -32,7 +31,7 @@ object TimeAdvancer {
     *   Last tick that can be activated or completed before the simulation is
     *   paused
     */
-  final case class StartSimMessage(
+  final case class Start(
       pauseTick: Option[Long] = None
   ) extends Incoming
 
@@ -46,7 +45,7 @@ object TimeAdvancer {
     *   last tick of the simulation
     */
   def apply(
-      simulation: ActorRef[SimMessage],
+      simulation: ActorRef[SimonaSim.SimulationEnded.type],
       eventListener: Option[ActorRef[RuntimeEvent]],
       checkWindow: Option[Int],
       endTick: Long,
@@ -78,7 +77,7 @@ object TimeAdvancer {
       startingTick: Long,
       nextActiveTick: Long,
   ): Behavior[Incoming] = Behaviors.receivePartial {
-    case (_, StartSimMessage(pauseTick)) =>
+    case (_, Start(pauseTick)) =>
       val updatedNotifier = notifier.map {
         _.starting(
           startingTick,
@@ -181,7 +180,7 @@ object TimeAdvancer {
       data: TimeAdvancerData,
       notifier: Option[RuntimeNotifier],
   ): Behavior[Incoming] = {
-    data.simulation ! SimulationEnded
+    data.simulation ! SimonaSim.SimulationEnded
 
     notifier.foreach {
       // we do not want a check window message for the endTick
@@ -223,7 +222,7 @@ object TimeAdvancer {
     *   the last tick of the simulation
     */
   private final case class TimeAdvancerData(
-      simulation: ActorRef[SimMessage],
+      simulation: ActorRef[SimonaSim.SimulationEnded.type],
       schedulee: ActorRef[Activation],
       endTick: Long,
   )

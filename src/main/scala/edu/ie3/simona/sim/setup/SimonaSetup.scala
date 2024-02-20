@@ -9,11 +9,11 @@ package edu.ie3.simona.sim.setup
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.connector.Transformer3WInput
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.event.listener.ResultEventListener.ResultMessage
+import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.scheduler.TimeAdvancer
-import edu.ie3.simona.sim.SimMessage
+import edu.ie3.simona.sim.SimonaSim
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
@@ -44,7 +44,7 @@ trait SimonaSetup {
     */
   def runtimeEventListener(
       context: ActorContext[_]
-  ): ActorRef[RuntimeEvent]
+  ): ActorRef[RuntimeEventListener.Incoming]
 
   /** Creates a sequence of system participant event listeners
     *
@@ -53,9 +53,9 @@ trait SimonaSetup {
     * @return
     *   A sequence of actor references to runtime event listeners
     */
-  def systemParticipantsListener(
+  def resultEventListener(
       context: ActorContext[_]
-  ): Seq[ActorRef[ResultMessage]]
+  ): Seq[ActorRef[ResultEventListener.Incoming]]
 
   /** Creates a primary service proxy. The proxy is the first instance to ask
     * for primary data. If necessary, it delegates the registration request to
@@ -115,7 +115,7 @@ trait SimonaSetup {
     */
   def timeAdvancer(
       context: ActorContext[_],
-      simulation: ActorRef[SimMessage],
+      simulation: ActorRef[SimonaSim.SimulationEnded.type],
       runtimeEventListener: ActorRef[RuntimeEvent],
   ): ActorRef[TimeAdvancer.Incoming]
 
