@@ -641,7 +641,7 @@ object GridModel {
 
     val transformerControlGroups = maybeControlConfig
       .map { controlConfig =>
-        buildTransformerControlGroups(
+        buildControlGroups(
           controlConfig.transformer,
           subGridContainer.getRawGrid.getMeasurementUnits,
         )
@@ -678,7 +678,7 @@ object GridModel {
     gridModel
   }
 
-  /** Build business models for transformer control groups
+  /** Build business models for control groups
     *
     * @param config
     *   List of configs for control groups
@@ -687,7 +687,7 @@ object GridModel {
     * @return
     *   A set of control group business models
     */
-  private def buildTransformerControlGroups(
+  private def buildControlGroups(
       config: List[SimonaConfig.TransformerControlGroup],
       measurementUnitInput: java.util.Set[MeasurementUnitInput],
   ): Set[TransformerControlGroupModel] = config.map {
