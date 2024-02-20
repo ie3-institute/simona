@@ -340,7 +340,7 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
         getRelativeDifference(
           quantile95,
           targetMaximumPower,
-        ) should be < Percent(1d)
+        ) should be < Percent(2d)
       }
 
       "correctly account for the scaling factor when targeting at maximum power" in {

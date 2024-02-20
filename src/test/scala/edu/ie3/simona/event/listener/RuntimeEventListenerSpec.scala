@@ -47,30 +47,27 @@ class RuntimeEventListenerSpec
     with PrivateMethodTester {
 
   // global variables
-  val eventQueue = new LinkedBlockingQueue[RuntimeEvent]()
   val startDateTimeString = "2011-01-01 00:00:00"
   val endTick = 3600
   val duration = 10805000
-  val errMsg =
-    "Und wenn du lange in einen Abgrund blickst, blickt der Abgrund auch in dich hinein"
+  val errMsg = "testing error msg"
 
-  // to change for Ready event test cases
   val currentTick = 0
-
-  // build the listener
-  private val listenerRef = spawn(
-    RuntimeEventListener(
-      SimonaConfig.Simona.Runtime.Listener(
-        None,
-        None,
-      ),
-      Some(eventQueue),
-      startDateTimeString,
-    )
-  )
 
   "A runtime event listener" must {
     "add a valid runtime event to the blocking queue for further processing" in {
+      val eventQueue = new LinkedBlockingQueue[RuntimeEvent]()
+
+      val listenerRef = spawn(
+        RuntimeEventListener(
+          SimonaConfig.Simona.Runtime.Listener(
+            None,
+            None,
+          ),
+          Some(eventQueue),
+          startDateTimeString,
+        )
+      )
 
       //  valid runtime events
       val eventsToQueue: Seq[RuntimeEvent] = List(
@@ -96,6 +93,17 @@ class RuntimeEventListenerSpec
     }
 
     "return valid log messages for each status event" in {
+
+      val listenerRef = spawn(
+        RuntimeEventListener(
+          SimonaConfig.Simona.Runtime.Listener(
+            None,
+            None,
+          ),
+          None,
+          startDateTimeString,
+        )
+      )
 
       def calcTime(curTick: Long): String = {
         TimeUtil.withDefaults.toString(
@@ -147,8 +155,12 @@ class RuntimeEventListenerSpec
         ),
       )
 
+      val loggingTestKit = LoggingTestKit.empty
+        // logger name for ActorContext loggers (ctx.log) is the class name
+        .withLoggerName(RuntimeEventListener.getClass.getName)
+
       events.foreach { case (event, level, msg) =>
-        LoggingTestKit.empty
+        loggingTestKit
           .withLogLevel(level)
           .withMessageContains(msg)
           .expect {
