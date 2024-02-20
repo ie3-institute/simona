@@ -126,28 +126,25 @@ class RunSimonaStandaloneIT
   private def checkRuntimeEvents(
       runtimeEvents: Iterable[RuntimeEvent]
   ): Unit = {
-    runtimeEvents.toVector.size shouldBe 11
-    val groupedRuntimeEvents = runtimeEvents.toVector.groupBy {
-      case Initializing            => Initializing
-      case InitComplete(_)         => InitComplete
-      case Simulating(_, _)        => Simulating
-      case CheckWindowPassed(_, _) => CheckWindowPassed
-      case Done(_, _, _)           => Done
-      case other                   => fail(s"Unexpected runtime event: $other")
-    }
+    val groupedRuntimeEvents = runtimeEvents.groupBy(event => event.getClass)
 
-    groupedRuntimeEvents.size shouldBe 5
-    groupedRuntimeEvents.keySet should contain allOf (Simulating, CheckWindowPassed, InitComplete, Initializing, Done)
+    groupedRuntimeEvents.keySet should contain only (
+      classOf[Simulating],
+      classOf[CheckWindowPassed],
+      classOf[InitComplete],
+      classOf[Initializing.type],
+      classOf[Done]
+    )
 
     groupedRuntimeEvents
-      .get(Simulating)
+      .get(classOf[Simulating])
       .foreach(simulatingEvents => {
         simulatingEvents.size shouldBe 1
         simulatingEvents.headOption.foreach(_ shouldBe Simulating(0, 7200))
       })
 
     groupedRuntimeEvents
-      .get(CheckWindowPassed)
+      .get(classOf[CheckWindowPassed])
       .foreach(checkWindowsPassed => {
         checkWindowsPassed.size shouldBe 7
         checkWindowsPassed.foreach {
@@ -161,19 +158,19 @@ class RunSimonaStandaloneIT
       })
 
     groupedRuntimeEvents
-      .get(InitComplete)
+      .get(classOf[InitComplete])
       .foreach(initComplets => {
         initComplets.size shouldBe 1
       })
 
     groupedRuntimeEvents
-      .get(Initializing)
+      .get(classOf[Initializing.type])
       .foreach(initializings => {
         initializings.size shouldBe 1
       })
 
     groupedRuntimeEvents
-      .get(Done)
+      .get(classOf[Done])
       .foreach(dones => {
         dones.size shouldBe 1
         dones.headOption.foreach {
