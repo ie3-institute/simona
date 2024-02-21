@@ -34,10 +34,7 @@ import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 import java.util.UUID
 
-class SimonaSimSpec
-    extends ScalaTestWithActorTestKit
-    with UnitSpec
-    with LogCapturing {
+class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
   "SimonaSim" should {
 
