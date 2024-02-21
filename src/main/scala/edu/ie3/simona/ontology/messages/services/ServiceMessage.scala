@@ -47,22 +47,29 @@ case object ServiceMessage {
       requestingActor: ActorRef
   ) extends ServiceRegistrationMessage
 
-  sealed trait RegistrationResponseMessage extends ServiceMessage
 
-  case object RegistrationResponseMessage {
+  sealed trait RegistrationResponseMessage extends ServiceMessage {
+    val serviceRef: ActorRef
+  }
+
+  object RegistrationResponseMessage {
 
     /** Message, that is used to confirm a successful registration
       */
-    final case class RegistrationSuccessfulMessage(nextDataTick: Option[Long])
-        extends RegistrationResponseMessage
+    final case class RegistrationSuccessfulMessage(
+        override val serviceRef: ActorRef,
+        nextDataTick: Option[Long],
+    ) extends RegistrationResponseMessage
 
     /** Message, that is used to announce a failed registration
       */
-    case object RegistrationFailedMessage extends RegistrationResponseMessage
+    final case class RegistrationFailedMessage(
+        override val serviceRef: ActorRef
+    ) extends RegistrationResponseMessage
 
     final case class ScheduleServiceActivation(
         tick: Long,
-        unlockKey: ScheduleKey
+        unlockKey: ScheduleKey,
     )
   }
 
@@ -73,6 +80,7 @@ case object ServiceMessage {
     */
   trait ProvisionMessage[D <: Data] extends ServiceMessage {
     val tick: Long
+    val serviceRef: ActorRef
     val data: D
     val nextDataTick: Option[Long]
     val unlockKey: Option[ScheduleKey]

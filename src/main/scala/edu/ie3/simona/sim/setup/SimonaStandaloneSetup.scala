@@ -9,7 +9,7 @@ package edu.ie3.simona.sim.setup
 import org.apache.pekko.actor.typed.scaladsl.adapter.{
   ClassicActorContextOps,
   ClassicActorRefOps,
-  TypedActorRefOps
+  TypedActorRefOps,
 }
 import org.apache.pekko.actor.{ActorContext, ActorRef, ActorSystem}
 import com.typesafe.config.Config
@@ -68,20 +68,20 @@ class SimonaStandaloneSetup(
     simonaConfig: SimonaConfig,
     resultFileHierarchy: ResultFileHierarchy,
     runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
-    override val args: Array[String]
+    override val args: Array[String],
 ) extends SimonaSetup {
 
   override def gridAgents(
       context: ActorContext,
       environmentRefs: EnvironmentRefs,
-      systemParticipantListener: Seq[ActorRef]
+      systemParticipantListener: Seq[ActorRef],
   ): Iterable[ActorRef] = {
 
     /* get the grid */
     val subGridTopologyGraph = GridProvider
       .gridFromConfig(
         simonaConfig.simona.simulationName,
-        simonaConfig.simona.input.grid.datasource
+        simonaConfig.simona.input.grid.datasource,
       )
       .getSubGridTopologyGraph
     val thermalGridsByThermalBus = GridProvider.getThermalGridsFromConfig(
@@ -97,14 +97,14 @@ class SimonaStandaloneSetup(
       subGridTopologyGraph,
       context,
       environmentRefs,
-      systemParticipantListener
+      systemParticipantListener,
     )
 
     val keys = ScheduleLock.multiKey(
       context,
       environmentRefs.scheduler.toTyped,
       INIT_SIM_TICK,
-      subGridTopologyGraph.vertexSet().size
+      subGridTopologyGraph.vertexSet().size,
     )
 
     /* build the initialization data */
@@ -126,7 +126,7 @@ class SimonaStandaloneSetup(
           currentSubGrid,
           throw new GridAgentInitializationException(
             "Was asked to setup agent for sub grid " + currentSubGrid + ", but did not found it's actor reference."
-          )
+          ),
         )
         val thermalGrids =
           getThermalGrids(subGridContainer, thermalGridsByThermalBus)
@@ -137,7 +137,7 @@ class SimonaStandaloneSetup(
           subGridToActorRefMap,
           subGridGates,
           configRefSystems,
-          thermalGrids
+          thermalGrids,
         )
 
         currentActorRef ! GridAgent.Create(gridAgentInitData, key)
@@ -162,7 +162,7 @@ class SimonaStandaloneSetup(
           simulationStart,
           extSimSetupData.extPrimaryDataService
         ),
-        simulationStart
+        simulationStart,
       )
     )
 
@@ -172,7 +172,7 @@ class SimonaStandaloneSetup(
 
   override def weatherService(
       context: ActorContext,
-      scheduler: ActorRef
+      scheduler: ActorRef,
   ): ActorRef = {
     val weatherService = context.simonaActorOf(
       WeatherService.props(
@@ -180,14 +180,14 @@ class SimonaStandaloneSetup(
         TimeUtil.withDefaults
           .toZonedDateTime(simonaConfig.simona.time.startDateTime),
         TimeUtil.withDefaults
-          .toZonedDateTime(simonaConfig.simona.time.endDateTime)
+          .toZonedDateTime(simonaConfig.simona.time.endDateTime),
       )
     )
     weatherService ! SimonaService.Create(
       InitWeatherServiceStateData(
         simonaConfig.simona.input.weather.datasource
       ),
-      ScheduleLock.singleKey(context, scheduler.toTyped, INIT_SIM_TICK)
+      ScheduleLock.singleKey(context, scheduler.toTyped, INIT_SIM_TICK),
     )
 
     weatherService
@@ -195,7 +195,7 @@ class SimonaStandaloneSetup(
 
   override def extSimulations(
       context: ActorContext,
-      scheduler: ActorRef
+      scheduler: ActorRef,
   ): ExtSimSetupData = {
     val jars = ExtSimLoader.scanInputFolder()
 
@@ -206,26 +206,26 @@ class SimonaStandaloneSetup(
         // external simulation always needs at least an ExtSimAdapter
         val extSimAdapter = context.simonaActorOf(
           ExtSimAdapter.props(scheduler),
-          s"$index"
+          s"$index",
         )
         val extSimAdapterData = new ExtSimAdapterData(extSimAdapter, args)
 
         // send init data right away, init activation is scheduled
         extSimAdapter ! ExtSimAdapter.Create(
           extSimAdapterData,
-          ScheduleLock.singleKey(context, scheduler.toTyped, INIT_SIM_TICK)
+          ScheduleLock.singleKey(context, scheduler.toTyped, INIT_SIM_TICK),
         )
 
         // setup data services that belong to this external simulation
         val (extData, extDataInit): (
             Iterable[ExtData],
-            Iterable[(Class[_ <: SimonaService[_]], ActorRef)]
+            Iterable[(Class[_ <: SimonaService[_]], ActorRef)],
         ) =
           extLink.getExtDataSimulations.asScala.zipWithIndex.map {
             case (_: ExtEvSimulation, dIndex) =>
               val extEvDataService = context.simonaActorOf(
                 ExtEvDataService.props(scheduler),
-                s"$index-$dIndex"
+                s"$index-$dIndex",
               )
               val extEvData = new ExtEvData(extEvDataService, extSimAdapter)
 
@@ -234,8 +234,8 @@ class SimonaStandaloneSetup(
                 ScheduleLock.singleKey(
                   context,
                   scheduler.toTyped,
-                  INIT_SIM_TICK
-                )
+                  INIT_SIM_TICK,
+                ),
               )
 
               (extEvData, (classOf[ExtEvDataService], extEvDataService))
@@ -287,7 +287,7 @@ class SimonaStandaloneSetup(
 
         extLink.getExtSimulation.setup(
           extSimAdapterData,
-          extData.toList.asJava
+          extData.toList.asJava,
         )
 
         // starting external simulation
@@ -303,7 +303,7 @@ class SimonaStandaloneSetup(
   override def timeAdvancer(
       context: ActorContext,
       simulation: ActorRef,
-      runtimeEventListener: org.apache.pekko.actor.typed.ActorRef[RuntimeEvent]
+      runtimeEventListener: org.apache.pekko.actor.typed.ActorRef[RuntimeEvent],
   ): org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming] = {
     val startDateTime = TimeUtil.withDefaults.toZonedDateTime(
       simonaConfig.simona.time.startDateTime
@@ -317,22 +317,22 @@ class SimonaStandaloneSetup(
         simulation,
         Some(runtimeEventListener),
         simonaConfig.simona.time.schedulerReadyCheckWindow,
-        endDateTime.toTick(startDateTime)
+        endDateTime.toTick(startDateTime),
       ),
-      TimeAdvancer.getClass.getSimpleName
+      TimeAdvancer.getClass.getSimpleName,
     )
   }
 
   override def scheduler(
       context: ActorContext,
-      timeAdvancer: org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming]
+      timeAdvancer: org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming],
   ): ActorRef =
     context
       .spawn(
         Scheduler(
           timeAdvancer
         ),
-        Scheduler.getClass.getSimpleName
+        Scheduler.getClass.getSimpleName,
       )
       .toClassic
 
@@ -344,9 +344,9 @@ class SimonaStandaloneSetup(
         RuntimeEventListener(
           simonaConfig.simona.runtime.listener,
           runtimeEventQueue,
-          startDateTimeString = simonaConfig.simona.time.startDateTime
+          startDateTimeString = simonaConfig.simona.time.startDateTime,
         ),
-        RuntimeEventListener.getClass.getSimpleName
+        RuntimeEventListener.getClass.getSimpleName,
       )
 
   override def systemParticipantsListener(
@@ -362,7 +362,7 @@ class SimonaStandaloneSetup(
       .map { case ((listenerCompanion, events), index) =>
         context.simonaActorOf(
           listenerCompanion.props(events),
-          index.toString
+          index.toString,
         )
       }
       .toSeq :+ context
@@ -371,7 +371,7 @@ class SimonaStandaloneSetup(
           resultFileHierarchy,
           extResultDataService
         ),
-        ResultEventListener.getClass.getSimpleName
+        ResultEventListener.getClass.getSimpleName,
       )
       .toClassic
   }
@@ -380,7 +380,7 @@ class SimonaStandaloneSetup(
       subGridTopologyGraph: SubGridTopologyGraph,
       context: ActorContext,
       environmentRefs: EnvironmentRefs,
-      systemParticipantListener: Seq[ActorRef]
+      systemParticipantListener: Seq[ActorRef],
   ): Map[Int, ActorRef] = {
     subGridTopologyGraph
       .vertexSet()
@@ -391,9 +391,9 @@ class SimonaStandaloneSetup(
             GridAgent.props(
               environmentRefs,
               simonaConfig,
-              systemParticipantListener
+              systemParticipantListener,
             ),
-            subGridContainer.getSubnet.toString
+            subGridContainer.getSubnet.toString,
           )
         subGridContainer.getSubnet -> gridAgentRef
       })
@@ -410,7 +410,7 @@ class SimonaStandaloneSetup(
     */
   private def getThermalGrids(
       grid: GridContainer,
-      thermalGridByBus: Map[ThermalBusInput, ThermalGrid]
+      thermalGridByBus: Map[ThermalBusInput, ThermalGrid],
   ): Seq[ThermalGrid] = {
     grid.getSystemParticipants.getHeatPumps.asScala
       .flatten(hpInput => thermalGridByBus.get(hpInput.getThermalBus))
@@ -427,13 +427,13 @@ object SimonaStandaloneSetup extends LazyLogging with SetupHelper {
       typeSafeConfig: Config,
       resultFileHierarchy: ResultFileHierarchy,
       runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
-      mainArgs: Array[String] = Array.empty[String]
+      mainArgs: Array[String] = Array.empty[String],
   ): SimonaStandaloneSetup =
     new SimonaStandaloneSetup(
       () => ActorSystem("simona", typeSafeConfig),
       SimonaConfig(typeSafeConfig),
       resultFileHierarchy,
       runtimeEventQueue,
-      mainArgs
+      mainArgs,
     )
 }

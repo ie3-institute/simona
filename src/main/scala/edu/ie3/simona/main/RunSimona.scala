@@ -6,15 +6,14 @@
 
 package edu.ie3.simona.main
 
-import java.util.Locale
-
-import org.apache.pekko.actor.{ActorRef, ActorSystem}
-import org.apache.pekko.pattern.gracefulStop
-import org.apache.pekko.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.sim.setup.SimonaSetup
 import edu.ie3.util.scala.quantities.QuantityUtil
+import org.apache.pekko.actor.ActorRef
+import org.apache.pekko.pattern.gracefulStop
+import org.apache.pekko.util.Timeout
 
+import java.util.Locale
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Random
@@ -68,7 +67,8 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
       "\"Assimiliert das!\" - Worf (in Star Trek: Der erste Kontakt)",
       "\"Lebe lang und erfolgreich.\" - Gruppe von Vulkanier (in Star Trek: Der erste Kontakt)",
       "\"Ich bin der Anfang, das Ende, die Eine, die Viele ist. Ich bin die Borg.\" - Borg-Königin (in Star Trek: Der erste Kontakt)",
-      "\"A horse! A horse! My kingdom for a horse!\" - King Richard III (in Shakespeare's Richard III, 1594)"
+      "\"A horse! A horse! My kingdom for a horse!\" - King Richard III (in Shakespeare's Richard III, 1594)",
+      "\"Und wenn du lange in einen Abgrund blickst, blickt der Abgrund auch in dich hinein\" - F. Nietzsche",
     )
 
     val rand = new Random

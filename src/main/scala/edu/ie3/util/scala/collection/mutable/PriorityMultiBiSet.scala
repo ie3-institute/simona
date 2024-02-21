@@ -32,7 +32,7 @@ import scala.collection.{SortedSet, mutable}
 final case class PriorityMultiBiSet[K, V] private (
     private val queue: mutable.SortedSet[K],
     private val table: mutable.HashMap[K, mutable.Set[V]],
-    private val back: mutable.HashMap[V, K]
+    private val back: mutable.HashMap[V, K],
 ) {
 
   /** Get the first key of the queue, if the queue is not empty. Runs in O(1).
@@ -161,7 +161,7 @@ object PriorityMultiBiSet {
     PriorityMultiBiSet(
       mutable.SortedSet.empty[K],
       mutable.HashMap[K, mutable.Set[V]](),
-      mutable.HashMap[V, K]()
+      mutable.HashMap[V, K](),
     )
 
   /** Creates and returns an empty PriorityMultiQueue for given types. The
@@ -184,17 +184,17 @@ object PriorityMultiBiSet {
     */
   def empty[K: Ordering, V](
       initialKeyCapacity: Int,
-      loadFactor: Double = mutable.HashMap.defaultLoadFactor
+      loadFactor: Double = mutable.HashMap.defaultLoadFactor,
   ): PriorityMultiBiSet[K, V] =
     PriorityMultiBiSet(
       mutable.SortedSet.empty[K],
       new mutable.HashMap[K, mutable.Set[V]](
         initialKeyCapacity,
-        loadFactor
+        loadFactor,
       ),
       new mutable.HashMap[V, K](
         initialKeyCapacity,
-        loadFactor
-      )
+        loadFactor,
+      ),
     )
 }

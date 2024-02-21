@@ -5,6 +5,7 @@
  */
 
 package edu.ie3.simona.io.runtime
+
 import com.sksamuel.avro4s.RecordFormat
 import edu.ie3.simona.config.SimonaConfig.RuntimeKafkaParams
 import edu.ie3.simona.event.RuntimeEvent
@@ -16,7 +17,7 @@ import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.SCHEMA_REGI
 import org.apache.kafka.clients.producer.{
   KafkaProducer,
   ProducerConfig,
-  ProducerRecord
+  ProducerRecord,
 }
 import org.apache.kafka.common.serialization.{Serdes, Serializer}
 import org.slf4j.Logger
@@ -26,23 +27,26 @@ import scala.jdk.CollectionConverters._
 
 /** Runtime event sink that sends events related to the simulation ending to a
   * kafka topic.
+  *
   * @param producer
   *   the kafka producer to use
   * @param simRunId
   *   the id of this simulation run
   * @param topic
   *   the topic to send the events to
+  * @param log
+  *   The logger to use
   */
 final case class RuntimeEventKafkaSink(
     producer: KafkaProducer[String, SimonaEndMessage],
     simRunId: UUID,
-    topic: String
+    topic: String,
+    log: Logger,
 ) extends RuntimeEventSink {
 
   override def handleRuntimeEvent(
       runtimeEvent: RuntimeEvent,
       runtimeStats: RuntimeStats,
-      log: Logger
   ): Unit = {
     (runtimeEvent match {
       case Done(_, _, errorInSim) =>
@@ -74,7 +78,8 @@ final case class RuntimeEventKafkaSink(
 
 object RuntimeEventKafkaSink {
   def apply(
-      config: RuntimeKafkaParams
+      config: RuntimeKafkaParams,
+      log: Logger,
   ): RuntimeEventKafkaSink = {
     val simRunId = UUID.fromString(config.runId)
 
@@ -83,7 +88,7 @@ object RuntimeEventKafkaSink {
     props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, config.bootstrapServers)
     props.put(
       ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG,
-      true
+      true,
     ) // exactly once delivery
 
     implicit val recordFormat: RecordFormat[SimonaEndMessage] =
@@ -95,23 +100,24 @@ object RuntimeEventKafkaSink {
 
     valueSerializer.configure(
       Map(SCHEMA_REGISTRY_URL_CONFIG -> config.schemaRegistryUrl).asJava,
-      false
+      false,
     )
 
     RuntimeEventKafkaSink(
       new KafkaProducer[String, SimonaEndMessage](
         props,
         keySerializer,
-        valueSerializer
+        valueSerializer,
       ),
       simRunId,
-      config.topic
+      config.topic,
+      log,
     )
   }
 
   final case class SimonaEndMessage(
       simRunId: UUID,
       failedPowerFlows: Int,
-      error: Boolean
+      error: Boolean,
   )
 }

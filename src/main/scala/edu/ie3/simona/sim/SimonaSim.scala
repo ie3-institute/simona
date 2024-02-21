@@ -15,7 +15,7 @@ import org.apache.pekko.actor.{
   Props,
   Stash,
   SupervisorStrategy,
-  Terminated
+  Terminated,
 }
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.agent.EnvironmentRefs
@@ -30,7 +30,7 @@ import edu.ie3.simona.sim.SimMessage.{
   InitSim,
   SimulationFailure,
   SimulationSuccessful,
-  StartSimulation
+  StartSimulation,
 }
 import edu.ie3.simona.sim.SimonaSim.{
   EmergencyShutdownInitiated,
@@ -67,7 +67,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
         logger.error(
           "The simulation's guardian received an uncaught exception. - {}: \"{}\" - Start emergency shutdown.",
           ex.getClass.getSimpleName,
-          ex.getMessage
+          ex.getMessage,
         )
         Stop
     }
@@ -109,9 +109,9 @@ class SimonaSim(simonaSetup: SimonaSetup)
       runtimeEventListener.toClassic,
       primaryServiceProxy,
       weatherService,
-      extSimulationData.evDataService
+      extSimulationData.evDataService,
     ),
-    systemParticipantsListener
+    systemParticipantsListener,
   )
 
   /* watch all actors */
@@ -156,7 +156,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
       context become waitingForListener(
         data.initSimSender,
         simulationSuccessful,
-        systemParticipantsListener
+        systemParticipantsListener,
       )
 
     /* ExtSimulation */
@@ -174,7 +174,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
       logger.error(
         "An actor ({}) unexpectedly terminated. Shut down all children gracefully and report simulation " +
           "failure. See logs and possible stacktrace for details.",
-        actorRef
+        actorRef,
       )
 
       // stop all children
@@ -184,7 +184,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
       context become waitingForListener(
         data.initSimSender,
         successful = false,
-        systemParticipantsListener
+        systemParticipantsListener,
       )
   }
 
@@ -199,14 +199,14 @@ class SimonaSim(simonaSetup: SimonaSetup)
       logger.warn(
         "Received the following message. Simulation is in emergency shutdown mode. Will neglect that " +
           "message!\n\t{}",
-        unsupported
+        unsupported,
       )
   }
 
   def waitingForListener(
       initSimSender: ActorRef,
       successful: Boolean,
-      remainingListeners: Seq[ActorRef]
+      remainingListeners: Seq[ActorRef],
   ): Receive = {
     case Terminated(actor) if remainingListeners.contains(actor) =>
       val updatedRemainingListeners = remainingListeners.filterNot(_ == actor)
@@ -214,7 +214,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
       logger.debug(
         "Listener {} has been terminated. Remaining listeners: {}",
         actor,
-        updatedRemainingListeners
+        updatedRemainingListeners,
       )
 
       if (updatedRemainingListeners.isEmpty) {
@@ -232,7 +232,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
       context become waitingForListener(
         initSimSender,
         successful,
-        updatedRemainingListeners
+        updatedRemainingListeners,
       )
   }
 

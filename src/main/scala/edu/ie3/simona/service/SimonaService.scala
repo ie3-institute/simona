@@ -14,14 +14,14 @@ import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
-  ServiceBaseStateData
+  ServiceBaseStateData,
 }
 import edu.ie3.simona.service.SimonaService.Create
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -37,7 +37,7 @@ object SimonaService {
     */
   final case class Create[+I <: InitializeServiceStateData](
       initializeStateData: I,
-      unlockKey: ScheduleKey
+      unlockKey: ScheduleKey,
   )
 }
 
@@ -68,12 +68,12 @@ abstract class SimonaService[
 
     case Create(
           initializeStateData: InitializeServiceStateData,
-          unlockKey: ScheduleKey
+          unlockKey: ScheduleKey,
         ) =>
       scheduler ! ScheduleActivation(
         self.toTyped,
         INIT_SIM_TICK,
-        Some(unlockKey)
+        Some(unlockKey),
       )
 
       context become initializing(initializeStateData)
@@ -105,7 +105,7 @@ abstract class SimonaService[
               s"\nReceivedData: {}" +
               s"\nException: {}",
             initializeStateData,
-            exception
+            exception,
           )
           throw exception // if a service fails startup we don't want to go on with the simulation
       }
@@ -145,7 +145,7 @@ abstract class SimonaService[
               "\nMsg: {}" +
               "\nException: {}",
             registrationMsg,
-            exception
+            exception,
           )
           unhandled(registrationMsg)
       }
@@ -154,7 +154,7 @@ abstract class SimonaService[
       scheduler ! ScheduleActivation(
         self.toTyped,
         tick,
-        Some(unlockKey)
+        Some(unlockKey),
       )
 
     // activity start trigger for this service
@@ -229,7 +229,7 @@ abstract class SimonaService[
     */
   protected def announceInformation(tick: Long)(implicit
       serviceStateData: S,
-      ctx: ActorContext
+      ctx: ActorContext,
   ): (S, Option[Long])
 
 }

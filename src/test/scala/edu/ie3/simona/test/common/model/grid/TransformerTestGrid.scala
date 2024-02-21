@@ -12,16 +12,16 @@ import edu.ie3.datamodel.models.input.connector.{
   LineInput,
   SwitchInput,
   Transformer2WInput,
-  Transformer3WInput
+  Transformer3WInput,
 }
 import edu.ie3.datamodel.models.input.container.{
   RawGridElements,
-  SubGridContainer
+  SubGridContainer,
 }
 import edu.ie3.datamodel.models.input.{
   MeasurementUnitInput,
   NodeInput,
-  OperatorInput
+  OperatorInput,
 }
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
@@ -60,7 +60,7 @@ trait TransformerTestGrid {
     SystemComponent.determineOperationInterval(
       defaultSimulationStart,
       defaultSimulationEnd,
-      defaultOperationTime
+      defaultOperationTime,
     )
 
   def mainRefSystem: RefSystem = {
@@ -85,7 +85,7 @@ trait TransformerTestGrid {
     false,
     0,
     -10,
-    10
+    10,
   )
 
   val transformerTypeTapLv = new Transformer2WTypeInput(
@@ -103,7 +103,7 @@ trait TransformerTestGrid {
     true,
     0,
     -10,
-    10
+    10,
   )
 
   val nodeA = new NodeInput(
@@ -115,7 +115,7 @@ trait TransformerTestGrid {
     true,
     NodeInput.DEFAULT_GEO_POSITION,
     GermanVoltageLevelUtils.MV_10KV,
-    0
+    0,
   )
 
   val nodeB = new NodeInput(
@@ -127,7 +127,7 @@ trait TransformerTestGrid {
     false,
     NodeInput.DEFAULT_GEO_POSITION,
     GermanVoltageLevelUtils.LV,
-    1
+    1,
   )
 
   val transformerInputTapHv = new Transformer2WInput(
@@ -140,14 +140,14 @@ trait TransformerTestGrid {
     1,
     transformerTypeTapHv,
     0,
-    false
+    false,
   )
 
   val transformerModelTapHv: TransformerModel = TransformerModel(
     transformerInputTapHv,
     mainRefSystem,
     defaultSimulationStart,
-    defaultSimulationEnd
+    defaultSimulationEnd,
   )
 
   val transformerInputTapLv = new Transformer2WInput(
@@ -160,14 +160,14 @@ trait TransformerTestGrid {
     1,
     transformerTypeTapLv,
     0,
-    false
+    false,
   )
 
   val transformerModelTapLv: TransformerModel = TransformerModel(
     transformerInputTapLv,
     mainRefSystem,
     defaultSimulationStart,
-    defaultSimulationEnd
+    defaultSimulationEnd,
   )
 
   val gridTapHv: SubGridContainer = {
@@ -177,12 +177,12 @@ trait TransformerTestGrid {
       Set(transformerInputTapHv).asJava,
       Set.empty[Transformer3WInput].asJava,
       Set.empty[SwitchInput].asJava,
-      Set.empty[MeasurementUnitInput].asJava
+      Set.empty[MeasurementUnitInput].asJava,
     )
     TestGridFactory.createSubGrid(
       gridName = "transformer_test_grid",
       subgrid = 1,
-      rawGridElements = rawGridElements
+      rawGridElements = rawGridElements,
     )
   }
 
@@ -193,12 +193,12 @@ trait TransformerTestGrid {
       Set(transformerInputTapLv).asJava,
       Set.empty[Transformer3WInput].asJava,
       Set.empty[SwitchInput].asJava,
-      Set.empty[MeasurementUnitInput].asJava
+      Set.empty[MeasurementUnitInput].asJava,
     )
     TestGridFactory.createSubGrid(
       gridName = "transformer_test_grid",
       subgrid = 1,
-      rawGridElements = rawGridElements
+      rawGridElements = rawGridElements,
     )
   }
 }

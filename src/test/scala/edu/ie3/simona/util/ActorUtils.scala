@@ -20,7 +20,7 @@ object ActorUtils {
     def expectActivationAndComplete(
         scheduler: ActorRef[SchedulerMessage],
         expectedTick: Long,
-        newTick: Option[Long] = None
+        newTick: Option[Long] = None,
     ): Unit = {
       val receivedTrigger =
         triggeredActor.expectMessageType[Activation]
@@ -29,7 +29,7 @@ object ActorUtils {
 
       scheduler ! Completion(
         triggeredActor.ref,
-        newTick
+        newTick,
       )
     }
 

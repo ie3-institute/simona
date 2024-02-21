@@ -14,19 +14,19 @@ import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformatio
 import edu.ie3.datamodel.io.naming.{
   DatabaseNamingStrategy,
   EntityPersistenceNamingStrategy,
-  FileNamingStrategy
+  FileNamingStrategy,
 }
 import edu.ie3.datamodel.io.source.csv.{
   CsvTimeSeriesMappingSource,
-  CsvTimeSeriesMetaInformationSource
+  CsvTimeSeriesMetaInformationSource,
 }
 import edu.ie3.datamodel.io.source.sql.{
   SqlTimeSeriesMappingSource,
-  SqlTimeSeriesMetaInformationSource
+  SqlTimeSeriesMetaInformationSource,
 }
 import edu.ie3.datamodel.io.source.{
   TimeSeriesMappingSource,
-  TimeSeriesMetaInformationSource
+  TimeSeriesMetaInformationSource,
 }
 import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
@@ -36,7 +36,7 @@ import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
 }
 import edu.ie3.simona.exceptions.{
   InitializationException,
-  InvalidConfigParameterException
+  InvalidConfigParameterException,
 }
 import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.Activation
@@ -45,7 +45,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResp
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ExtPrimaryDataServiceRegistrationMessage,
   PrimaryServiceRegistrationMessage,
-  WorkerRegistrationMessage
+  WorkerRegistrationMessage,
 }
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.{ServiceStateData, SimonaService}
@@ -54,12 +54,12 @@ import edu.ie3.simona.service.primary.ExtTimeSeriesSubscribersSource.getSubscrib
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
   InitPrimaryServiceProxyStateData,
   PrimaryServiceStateData,
-  SourceRef
+  SourceRef,
 }
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   CsvInitPrimaryServiceStateData,
   InitPrimaryServiceStateData,
-  SqlInitPrimaryServiceStateData
+  SqlInitPrimaryServiceStateData,
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 
@@ -86,7 +86,7 @@ import scala.util.{Failure, Success, Try}
 case class PrimaryServiceProxy(
     scheduler: ActorRef,
     initStateData: InitPrimaryServiceProxyStateData,
-    private implicit val startDateTime: ZonedDateTime
+    private implicit val startDateTime: ZonedDateTime,
 ) extends Actor
     with SimonaActorLogging {
 
@@ -117,7 +117,7 @@ case class PrimaryServiceProxy(
         case Failure(exception) =>
           log.error(
             exception,
-            s"Unable to initialize the $actorName. Shut it down."
+            s"Unable to initialize the $actorName. Shut it down.",
           )
           self ! PoisonPill
       }
@@ -166,7 +166,7 @@ case class PrimaryServiceProxy(
               case None =>
                 log.warning(
                   "Unable to acquire meta information for time series '{}'. Leave that out.",
-                  timeSeriesUuid
+                  timeSeriesUuid,
                 )
                 None
             }
@@ -202,7 +202,7 @@ case class PrimaryServiceProxy(
       primaryConfig.sqlParams,
       primaryConfig.influxDb1xParams,
       primaryConfig.csvParams,
-      primaryConfig.couchbaseParams
+      primaryConfig.couchbaseParams,
     ).filter(_.isDefined).flatten.headOption match {
       case Some(PrimaryDataCsvParams(csvSep, directoryPath, _, _)) =>
         val fileNamingStrategy = new FileNamingStrategy()
@@ -210,31 +210,31 @@ case class PrimaryServiceProxy(
           new CsvTimeSeriesMappingSource(
             csvSep,
             Paths.get(directoryPath),
-            fileNamingStrategy
+            fileNamingStrategy,
           ),
           new CsvTimeSeriesMetaInformationSource(
             csvSep,
             Paths.get(directoryPath),
-            fileNamingStrategy
-          )
+            fileNamingStrategy,
+          ),
         )
       case Some(sqlParams: SqlParams) =>
         val sqlConnector = new SqlConnector(
           sqlParams.jdbcUrl,
           sqlParams.userName,
-          sqlParams.password
+          sqlParams.password,
         )
         Success(
           new SqlTimeSeriesMappingSource(
             sqlConnector,
             sqlParams.schemaName,
-            new EntityPersistenceNamingStrategy()
+            new EntityPersistenceNamingStrategy(),
           ),
           new SqlTimeSeriesMetaInformationSource(
             sqlConnector,
             sqlParams.schemaName,
-            new DatabaseNamingStrategy()
-          )
+            new DatabaseNamingStrategy(),
+          ),
         )
       case Some(x) =>
         Failure(
@@ -271,7 +271,7 @@ case class PrimaryServiceProxy(
             modelUuid,
             timeSeriesUuid,
             stateData,
-            sender()
+            sender(),
           )
         case None =>
           if (stateData.extSubscribers.nonEmpty) {
@@ -314,7 +314,7 @@ case class PrimaryServiceProxy(
       modelUuid: UUID,
       timeSeriesUuid: UUID,
       stateData: PrimaryServiceStateData,
-      requestingActor: ActorRef
+      requestingActor: ActorRef,
   ): Unit = {
     val timeSeriesToSourceRef = stateData.timeSeriesToSourceRef
     timeSeriesToSourceRef.get(timeSeriesUuid) match {
@@ -327,7 +327,7 @@ case class PrimaryServiceProxy(
         initializeWorker(
           metaInformation,
           stateData.simulationStart,
-          stateData.primaryConfig
+          stateData.primaryConfig,
         ) match {
           case Success(workerRef) =>
             /* Forward the registration request. The worker will reply about successful registration or not. */
@@ -341,9 +341,9 @@ case class PrimaryServiceProxy(
             log.warning(
               s"A failure occurred during spin-off of a primary source for time series '$timeSeriesUuid'. " +
                 s"Will inform the requesting actor, that registration is not possible.",
-              exception
+              exception,
             )
-            requestingActor ! RegistrationFailedMessage
+            requestingActor ! RegistrationFailedMessage(self)
         }
 
       case None =>
@@ -351,7 +351,7 @@ case class PrimaryServiceProxy(
           s"There is no source information for time series '$timeSeriesUuid' (requested for model " +
             s"'$modelUuid'), although the mapping contains information about it."
         )
-        requestingActor ! RegistrationFailedMessage
+        requestingActor ! RegistrationFailedMessage(self)
     }
   }
 
@@ -381,21 +381,21 @@ case class PrimaryServiceProxy(
   protected def initializeWorker(
       metaInformation: IndividualTimeSeriesMetaInformation,
       simulationStart: ZonedDateTime,
-      primaryConfig: PrimaryConfig
+      primaryConfig: PrimaryConfig,
   ): Try[ActorRef] = {
     val workerRef = classToWorkerRef(
       metaInformation.getColumnScheme.getValueClass,
-      metaInformation.getUuid.toString
+      metaInformation.getUuid.toString,
     )
     toInitData(
       metaInformation,
       simulationStart,
-      primaryConfig
+      primaryConfig,
     ) match {
       case Success(initData) =>
         workerRef ! SimonaService.Create(
           initData,
-          ScheduleLock.singleKey(context, scheduler.toTyped, INIT_SIM_TICK)
+          ScheduleLock.singleKey(context, scheduler.toTyped, INIT_SIM_TICK),
         )
         Success(workerRef)
       case Failure(cause) =>
@@ -403,7 +403,7 @@ case class PrimaryServiceProxy(
         Failure(
           new InitializationException(
             "Unable to build init data for worker. Kill the uninitialized worker. Goodbye my friend!",
-            cause
+            cause,
           )
         )
     }
@@ -423,12 +423,12 @@ case class PrimaryServiceProxy(
     */
   protected def classToWorkerRef[V <: Value](
       valueClass: Class[V],
-      timeSeriesUuid: String
+      timeSeriesUuid: String,
   ): ActorRef = {
     import edu.ie3.simona.actor.SimonaActorNaming._
     context.system.simonaActorOf(
       PrimaryServiceWorker.props(scheduler, valueClass),
-      timeSeriesUuid
+      timeSeriesUuid,
     )
   }
 
@@ -445,14 +445,14 @@ case class PrimaryServiceProxy(
   private def toInitData(
       metaInformation: IndividualTimeSeriesMetaInformation,
       simulationStart: ZonedDateTime,
-      primaryConfig: PrimaryConfig
+      primaryConfig: PrimaryConfig,
   ): Try[InitPrimaryServiceStateData] =
     primaryConfig match {
       case PrimaryConfig(
             None,
             Some(PrimaryDataCsvParams(csvSep, directoryPath, _, timePattern)),
             None,
-            None
+            None,
           ) =>
         /* The actual data sources are from csv. Meta information have to match */
         metaInformation match {
@@ -465,7 +465,7 @@ case class PrimaryServiceProxy(
                 Paths.get(directoryPath),
                 csvMetaData.getFullFilePath,
                 new FileNamingStrategy(),
-                timePattern
+                timePattern,
               )
             )
           case invalidMetaData =>
@@ -480,14 +480,14 @@ case class PrimaryServiceProxy(
             None,
             None,
             None,
-            Some(sqlParams: SqlParams)
+            Some(sqlParams: SqlParams),
           ) =>
         Success(
           SqlInitPrimaryServiceStateData(
             metaInformation.getUuid,
             simulationStart,
             sqlParams,
-            new DatabaseNamingStrategy()
+            new DatabaseNamingStrategy(),
           )
         )
 
@@ -513,18 +513,18 @@ case class PrimaryServiceProxy(
   private def updateStateData(
       stateData: PrimaryServiceStateData,
       timeSeriesUuid: UUID,
-      workerRef: ActorRef
+      workerRef: ActorRef,
   ): PrimaryServiceStateData = {
     val timeSeriesToSourceRef = stateData.timeSeriesToSourceRef
     val sourceRef = timeSeriesToSourceRef.getOrElse(
       timeSeriesUuid,
       throw new IllegalArgumentException(
         s"Cannot update entry for time series '$timeSeriesUuid', as it hasn't been part of it before."
-      )
+      ),
     )
     val updatedTimeSeriesToSourceRef = timeSeriesToSourceRef.updated(
       timeSeriesUuid,
-      sourceRef.copy(worker = Some(workerRef))
+      sourceRef.copy(worker = Some(workerRef)),
     )
     stateData.copy(timeSeriesToSourceRef = updatedTimeSeriesToSourceRef)
   }
@@ -535,7 +535,7 @@ object PrimaryServiceProxy {
   def props(
       scheduler: ActorRef,
       initStateData: InitPrimaryServiceProxyStateData,
-      startDateTime: ZonedDateTime
+      startDateTime: ZonedDateTime,
   ): Props = Props(
     new PrimaryServiceProxy(scheduler, initStateData, startDateTime)
   )
@@ -587,7 +587,7 @@ object PrimaryServiceProxy {
     */
   final case class SourceRef(
       metaInformation: IndividualTimeSeriesMetaInformation,
-      worker: Option[ActorRef]
+      worker: Option[ActorRef],
   )
 
   /** Check if the config holds correct information to instantiate a mapping
@@ -618,7 +618,7 @@ object PrimaryServiceProxy {
       primaryConfig.couchbaseParams,
       primaryConfig.csvParams,
       primaryConfig.influxDb1xParams,
-      primaryConfig.sqlParams
+      primaryConfig.sqlParams,
     ).filter(_.isDefined).flatten
     if (sourceConfigs.size > 1)
       throw new InvalidConfigParameterException(

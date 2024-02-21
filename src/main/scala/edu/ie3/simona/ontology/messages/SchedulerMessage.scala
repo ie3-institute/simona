@@ -16,13 +16,13 @@ trait SchedulerMessage extends Scheduler.Incoming with TimeAdvancer.Incoming
 object SchedulerMessage {
   final case class Completion(
       actor: ActorRef[Activation],
-      newTick: Option[Long] = None
+      newTick: Option[Long] = None,
   ) extends SchedulerMessage
 
   final case class ScheduleActivation(
       actor: ActorRef[Activation],
       tick: Long,
-      unlockKey: Option[ScheduleKey] = None
+      unlockKey: Option[ScheduleKey] = None,
   ) extends SchedulerMessage
 
   final case class ResultForExtCompleteMessage(results: Iterable[ResultEntity])

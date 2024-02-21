@@ -16,10 +16,9 @@ import edu.ie3.simona.io.runtime.{
   RuntimeEventKafkaSink,
   RuntimeEventLogSink,
   RuntimeEventQueueSink,
-  RuntimeEventSink
+  RuntimeEventSink,
 }
 import edu.ie3.util.TimeUtil
-import org.slf4j.Logger
 
 import java.util.concurrent.BlockingQueue
 
@@ -30,6 +29,7 @@ import java.util.concurrent.BlockingQueue
 object RuntimeEventListener {
 
   /** Creates a runtime event listener behavior with given configuration.
+    *
     * @param listenerConf
     *   configuration that determines additional sinks and event filters
     * @param queue
@@ -42,28 +42,31 @@ object RuntimeEventListener {
   def apply(
       listenerConf: SimonaConfig.Simona.Runtime.Listener,
       queue: Option[BlockingQueue[RuntimeEvent]],
-      startDateTimeString: String
-  ): Behavior[RuntimeEvent] = {
+      startDateTimeString: String,
+  ): Behavior[RuntimeEvent] = Behaviors.setup { ctx =>
     val listeners = Iterable(
       Some(
         RuntimeEventLogSink(
-          TimeUtil.withDefaults.toZonedDateTime(startDateTimeString)
+          TimeUtil.withDefaults.toZonedDateTime(startDateTimeString),
+          ctx.log,
         )
       ),
       queue.map(qu => RuntimeEventQueueSink(qu)),
-      listenerConf.kafka.map(kafkaConf => RuntimeEventKafkaSink(kafkaConf))
+      listenerConf.kafka.map(kafkaConf =>
+        RuntimeEventKafkaSink(kafkaConf, ctx.log)
+      ),
     ).flatten
 
-    RuntimeEventListener(
+    apply(
       listeners,
-      listenerConf.eventsToProcess
+      listenerConf.eventsToProcess,
     )
   }
 
-  def apply(
+  private def apply(
       listeners: Iterable[RuntimeEventSink],
       eventsToProcess: Option[List[String]] = None,
-      runtimeStats: RuntimeStats = RuntimeStats()
+      runtimeStats: RuntimeStats = RuntimeStats(),
   ): Behavior[RuntimeEvent] = Behaviors
     .receive[RuntimeEvent] {
       case (_, PowerFlowFailed) =>
@@ -75,11 +78,11 @@ object RuntimeEventListener {
         val process = eventsToProcess.forall(_.contains(event.id))
 
         if (process)
-          processEvent(listeners, event, runtimeStats, ctx.log)
+          processEvent(listeners, event, runtimeStats)
         else
           ctx.log.debug(
             "Skipping event {} as it is not in the list of events to process.",
-            event.id
+            event.id,
           )
         Behaviors.same
     }
@@ -92,8 +95,7 @@ object RuntimeEventListener {
       listeners: Iterable[RuntimeEventSink],
       event: RuntimeEvent,
       runtimeStats: RuntimeStats,
-      log: Logger
   ): Unit =
-    listeners.foreach(_.handleRuntimeEvent(event, runtimeStats, log))
+    listeners.foreach(_.handleRuntimeEvent(event, runtimeStats))
 
 }

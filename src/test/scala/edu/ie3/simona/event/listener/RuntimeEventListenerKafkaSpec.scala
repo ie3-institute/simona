@@ -57,19 +57,19 @@ class RuntimeEventListenerKafkaSpec
 
   deserializer.configure(
     Map(SCHEMA_REGISTRY_URL_CONFIG -> mockSchemaRegistryUrl).asJava,
-    false
+    false,
   )
 
   override def beforeAll(): Unit = {
     super.beforeAll()
     val config = Map[String, AnyRef](
       "group.id" -> "test",
-      "bootstrap.servers" -> kafka.bootstrapServers
+      "bootstrap.servers" -> kafka.bootstrapServers,
     )
     testConsumer = new KafkaConsumer[Bytes, SimonaEndMessage](
       config.asJava,
       Serdes.Bytes().deserializer(),
-      deserializer
+      deserializer,
     )
 
     testConsumer.assign(topicPartitions.asJava)
@@ -93,12 +93,12 @@ class RuntimeEventListenerKafkaSpec
                 linger = 0,
                 runId = runId.toString,
                 schemaRegistryUrl = mockSchemaRegistryUrl,
-                topic = testTopic.name
+                topic = testTopic.name,
               )
-            )
+            ),
           ),
           None,
-          startDateTimeString
+          startDateTimeString,
         )
       )
 
@@ -109,13 +109,13 @@ class RuntimeEventListenerKafkaSpec
         ("event", "expectedMsg"),
         (
           Done(1800L, 3L, errorInSim = false),
-          SimonaEndMessage(runId, 1, error = false)
+          SimonaEndMessage(runId, 1, error = false),
         ),
         (
           Done(3600L, 3L, errorInSim = true),
-          SimonaEndMessage(runId, 1, error = true)
+          SimonaEndMessage(runId, 1, error = true),
         ),
-        (Error(errMsg), SimonaEndMessage(runId, -1, error = true))
+        (Error(errMsg), SimonaEndMessage(runId, -1, error = true)),
       )
 
       Then("records can be fetched from Kafka")
@@ -128,13 +128,21 @@ class RuntimeEventListenerKafkaSpec
       forAll(cases) { case (event, expectedMsg) =>
         listenerRef ! event
 
-        val records: List[SimonaEndMessage] =
+        val receivedRecord =
           eventually(timeout(20 seconds), interval(1 second)) {
-            testConsumer.poll((1 second) toJava).asScala.map(_.value()).toList
+            val records =
+              testConsumer.poll((1 second) toJava).asScala.map(_.value()).toList
+
+            // run until one record is received. After each second, if no record
+            // was received, the length check below fails and we retry
+            records should have length 1
+
+            // return final record to be checked
+            records.headOption.value
           }
 
-        records should have length 1
-        records should contain(expectedMsg)
+        receivedRecord shouldBe expectedMsg
+
       }
 
     }
