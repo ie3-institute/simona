@@ -7,12 +7,15 @@
 package edu.ie3.simona.event
 
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
-import edu.ie3.datamodel.models.result.connector.{LineResult, SwitchResult, Transformer2WResult}
+import edu.ie3.datamodel.models.result.connector.{
+  LineResult,
+  SwitchResult,
+  Transformer2WResult
+}
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.datamodel.models.result.thermal.ThermalUnitResult
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.event.listener.ResultEventListener.ResultMessage
-
 
 sealed trait ResultEvent extends ResultMessage
 
@@ -21,8 +24,8 @@ sealed trait ResultEvent extends ResultMessage
 object ResultEvent {
 
   final case class ExternalResultEvent(
-                                      resultEntity: ResultEntity
-                                      ) extends ResultEvent
+      resultEntity: ResultEntity
+  ) extends ResultEvent
 
   /** Event that holds a calculation result of a
     * [[edu.ie3.simona.model.participant.SystemParticipant]]

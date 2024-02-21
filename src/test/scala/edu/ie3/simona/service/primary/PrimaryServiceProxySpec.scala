@@ -129,7 +129,7 @@ class PrimaryServiceProxySpec
 
   private val scheduler: TestProbe = TestProbe("scheduler")
 
-  val validExtPrimaryDataService = TestActorRef(
+  private val validExtPrimaryDataService = TestActorRef(
     new ExtPrimaryDataService(
       scheduler.ref
     )
@@ -358,20 +358,20 @@ class PrimaryServiceProxySpec
         Some(validExtPrimaryDataService)
       ) match {
         case Success(
-        PrimaryServiceStateData(
-        modelToTimeSeries,
-        timeSeriesToSourceRef,
-        simulationStart,
-        primaryConfig,
-        mappingSource,
-        extSubscribers,
-        extPrimaryDataService
-        )
-        ) => extPrimaryDataService should contain (validExtPrimaryDataService)
+              PrimaryServiceStateData(
+                modelToTimeSeries,
+                timeSeriesToSourceRef,
+                simulationStart,
+                primaryConfig,
+                mappingSource,
+                extSubscribers,
+                extPrimaryDataService
+              )
+            ) =>
+          extPrimaryDataService should contain(validExtPrimaryDataService)
           extSubscribers shouldBe Iterable.empty
       }
     }
-
 
   }
 

@@ -43,9 +43,9 @@ case object ServiceMessage {
       extends ServiceRegistrationMessage
 
   final case class ExtPrimaryDataServiceRegistrationMessage(
-                                                           modelUuid: UUID,
-                                                           requestingActor: ActorRef
-                                                           ) extends ServiceRegistrationMessage
+      modelUuid: UUID,
+      requestingActor: ActorRef
+  ) extends ServiceRegistrationMessage
 
   sealed trait RegistrationResponseMessage extends ServiceMessage
 
@@ -84,10 +84,5 @@ case object ServiceMessage {
   final case class RequestExtSubscriberMessage() extends ExtSubscriberMessage
 
   final case class ProvideExtSubscriberMessage() extends ExtSubscriberMessage
-
-
-
-
-
 
 }

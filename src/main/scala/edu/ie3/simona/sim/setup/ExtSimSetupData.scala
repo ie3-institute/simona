@@ -19,7 +19,9 @@ final case class ExtSimSetupData(
   def evDataService: Option[ActorRef] =
     extDataServices.get(classOf[ExtEvDataService])
 
-  def extPrimaryDataService: Option[ActorRef] = extDataServices.get(classOf[ExtPrimaryDataService])
+  def extPrimaryDataService: Option[ActorRef] =
+    extDataServices.get(classOf[ExtPrimaryDataService])
 
-  def extResultDataService: Option[ActorRef] = extDataServices.get(classOf[ExtResultDataService])
+  def extResultDataService: Option[ActorRef] =
+    extDataServices.get(classOf[ExtResultDataService])
 }

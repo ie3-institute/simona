@@ -25,5 +25,6 @@ object SchedulerMessage {
       unlockKey: Option[ScheduleKey] = None
   ) extends SchedulerMessage
 
-  final case class ResultForExtCompleteMessage(results: Iterable[ResultEntity]) extends SchedulerMessage
+  final case class ResultForExtCompleteMessage(results: Iterable[ResultEntity])
+      extends SchedulerMessage
 }

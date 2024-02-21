@@ -11,26 +11,56 @@ import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
 import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformation
-import edu.ie3.datamodel.io.naming.{DatabaseNamingStrategy, EntityPersistenceNamingStrategy, FileNamingStrategy}
-import edu.ie3.datamodel.io.source.csv.{CsvTimeSeriesMappingSource, CsvTimeSeriesMetaInformationSource}
-import edu.ie3.datamodel.io.source.sql.{SqlTimeSeriesMappingSource, SqlTimeSeriesMetaInformationSource}
-import edu.ie3.datamodel.io.source.{TimeSeriesMappingSource, TimeSeriesMetaInformationSource}
+import edu.ie3.datamodel.io.naming.{
+  DatabaseNamingStrategy,
+  EntityPersistenceNamingStrategy,
+  FileNamingStrategy
+}
+import edu.ie3.datamodel.io.source.csv.{
+  CsvTimeSeriesMappingSource,
+  CsvTimeSeriesMetaInformationSource
+}
+import edu.ie3.datamodel.io.source.sql.{
+  SqlTimeSeriesMappingSource,
+  SqlTimeSeriesMetaInformationSource
+}
+import edu.ie3.datamodel.io.source.{
+  TimeSeriesMappingSource,
+  TimeSeriesMetaInformationSource
+}
 import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.{Primary => PrimaryConfig}
-import edu.ie3.simona.exceptions.{InitializationException, InvalidConfigParameterException}
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
+  Primary => PrimaryConfig
+}
+import edu.ie3.simona.exceptions.{
+  InitializationException,
+  InvalidConfigParameterException
+}
 import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{ExtPrimaryDataServiceRegistrationMessage, PrimaryServiceRegistrationMessage, WorkerRegistrationMessage}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  ExtPrimaryDataServiceRegistrationMessage,
+  PrimaryServiceRegistrationMessage,
+  WorkerRegistrationMessage
+}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.{ServiceStateData, SimonaService}
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.primary.ExtTimeSeriesSubscribersSource.getSubscribers
-import edu.ie3.simona.service.primary.PrimaryServiceProxy.{InitPrimaryServiceProxyStateData, PrimaryServiceStateData, SourceRef}
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.{CsvInitPrimaryServiceStateData, InitPrimaryServiceStateData, SqlInitPrimaryServiceStateData}
+import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
+  InitPrimaryServiceProxyStateData,
+  PrimaryServiceStateData,
+  SourceRef
+}
+import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
+  CsvInitPrimaryServiceStateData,
+  InitPrimaryServiceStateData,
+  SqlInitPrimaryServiceStateData
+}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 
 import java.nio.file.Paths
@@ -43,35 +73,35 @@ import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
 /** This actor has information on which models can be replaced by precalculated
- * (primary) data and how to obtain those time series. It offers possibility to
- * register for a certain model. If data is available, a child actor is spun
- * of, that will do the actual provision and the requesting agent is informed
- * accordingly.
- *
- * @param scheduler
- *   Reference to the scheduler of the simulation
- * @param startDateTime
- *   Wall clock time of the first instant in simulation
- */
+  * (primary) data and how to obtain those time series. It offers possibility to
+  * register for a certain model. If data is available, a child actor is spun
+  * of, that will do the actual provision and the requesting agent is informed
+  * accordingly.
+  *
+  * @param scheduler
+  *   Reference to the scheduler of the simulation
+  * @param startDateTime
+  *   Wall clock time of the first instant in simulation
+  */
 case class PrimaryServiceProxy(
-                                scheduler: ActorRef,
-                                initStateData: InitPrimaryServiceProxyStateData,
-                                private implicit val startDateTime: ZonedDateTime
-                              ) extends Actor
-  with SimonaActorLogging {
+    scheduler: ActorRef,
+    initStateData: InitPrimaryServiceProxyStateData,
+    private implicit val startDateTime: ZonedDateTime
+) extends Actor
+    with SimonaActorLogging {
 
   /** Start receiving without knowing specifics about myself
-   *
-   * @return
-   *   How receiving should be handled
-   */
+    *
+    * @return
+    *   How receiving should be handled
+    */
   override def receive: Receive = uninitialized
 
   /** Handle all messages, when the actor isn't initialized, yet.
-   *
-   * @return
-   *   How receiving should be handled with gained insight of myself
-   */
+    *
+    * @return
+    *   How receiving should be handled with gained insight of myself
+    */
   private def uninitialized: Receive = {
     case Activation(INIT_SIM_TICK) =>
       /* The proxy is asked to initialize itself. If that happened successfully, change the logic of receiving
@@ -99,22 +129,21 @@ case class PrimaryServiceProxy(
   }
 
   /** Prepare the needed state data by building a
-   * [[edu.ie3.datamodel.io.source.TimeSeriesMappingSource]], obtain it's
-   * information and compile them to state data
-   *
-   * @param primaryConfig
-   *   Configuration for the primary source
-   * @param simulationStart
-   *   Wall clock time of first instant in simulation
-   * @return
-   *   State data, containing the known model and time series identifiers
-   */
+    * [[edu.ie3.datamodel.io.source.TimeSeriesMappingSource]], obtain it's
+    * information and compile them to state data
+    *
+    * @param primaryConfig
+    *   Configuration for the primary source
+    * @param simulationStart
+    *   Wall clock time of first instant in simulation
+    * @return
+    *   State data, containing the known model and time series identifiers
+    */
   private def prepareStateData(
-                                primaryConfig: PrimaryConfig,
-                                simulationStart: ZonedDateTime,
-                                extSimulation: Option[ActorRef]
-                              ): Try[PrimaryServiceStateData] = {
-
+      primaryConfig: PrimaryConfig,
+      simulationStart: ZonedDateTime,
+      extSimulation: Option[ActorRef]
+  ): Try[PrimaryServiceStateData] = {
 
     createSources(primaryConfig).map {
       case (mappingSource, metaInformationSource) =>
@@ -151,10 +180,10 @@ case class PrimaryServiceProxy(
             simulationStart,
             primaryConfig,
             mappingSource,
-            getSubscribers(),
+            getSubscribers,
             extSimulation
           )
-       } else {
+        } else {
           PrimaryServiceStateData(
             modelToTimeSeries,
             timeSeriesToSourceRef,
@@ -162,13 +191,13 @@ case class PrimaryServiceProxy(
             primaryConfig,
             mappingSource
           )
-       }
+        }
     }
   }
 
   private def createSources(
-                             primaryConfig: PrimaryConfig
-                           ): Try[(TimeSeriesMappingSource, TimeSeriesMetaInformationSource)] = {
+      primaryConfig: PrimaryConfig
+  ): Try[(TimeSeriesMappingSource, TimeSeriesMetaInformationSource)] = {
     Seq(
       primaryConfig.sqlParams,
       primaryConfig.influxDb1xParams,
@@ -223,15 +252,15 @@ case class PrimaryServiceProxy(
   }
 
   /** Message handling, if the actor has been initialized already. This method
-   * basically handles registration requests, checks, if pre-calculated,
-   * primary data is available and forwards the request to worker actors. If
-   * needed, new workers are spun off.
-   *
-   * @param stateData
-   *   Representing the current state of the agent
-   * @return
-   *   Message handling routine
-   */
+    * basically handles registration requests, checks, if pre-calculated,
+    * primary data is available and forwards the request to worker actors. If
+    * needed, new workers are spun off.
+    *
+    * @param stateData
+    *   Representing the current state of the agent
+    * @return
+    *   Message handling routine
+    */
   private def onMessage(stateData: PrimaryServiceStateData): Receive = {
     case PrimaryServiceRegistrationMessage(modelUuid) =>
       /* Try to register for this model */
@@ -260,7 +289,7 @@ case class PrimaryServiceProxy(
               s"There is no time series apparent for the model with uuid '{}'.",
               modelUuid
             )
-          sender() ! RegistrationFailedMessage
+            sender() ! RegistrationFailedMessage
           }
       }
     case x =>
@@ -271,22 +300,22 @@ case class PrimaryServiceProxy(
   }
 
   /** Handle the registration request for a covered model. First, try to get a
-   * already existing worker for this time series, otherwise spin-off a new
-   * one, remember it and forward the request
-   *
-   * @param modelUuid
-   *   Unique identifier of the model
-   * @param timeSeriesUuid
-   *   Unique identifier of the equivalent time series
-   * @param stateData
-   *   Current state data of the actor
-   */
+    * already existing worker for this time series, otherwise spin-off a new
+    * one, remember it and forward the request
+    *
+    * @param modelUuid
+    *   Unique identifier of the model
+    * @param timeSeriesUuid
+    *   Unique identifier of the equivalent time series
+    * @param stateData
+    *   Current state data of the actor
+    */
   protected def handleCoveredModel(
-                                    modelUuid: UUID,
-                                    timeSeriesUuid: UUID,
-                                    stateData: PrimaryServiceStateData,
-                                    requestingActor: ActorRef
-                                  ): Unit = {
+      modelUuid: UUID,
+      timeSeriesUuid: UUID,
+      stateData: PrimaryServiceStateData,
+      requestingActor: ActorRef
+  ): Unit = {
     val timeSeriesToSourceRef = stateData.timeSeriesToSourceRef
     timeSeriesToSourceRef.get(timeSeriesUuid) match {
       case Some(SourceRef(_, Some(worker))) =>
@@ -327,31 +356,33 @@ case class PrimaryServiceProxy(
   }
 
   protected def handleExternalModel(
-                                     modelUuid: UUID,
-                                     stateData: PrimaryServiceStateData,
-                                     requestingActor: ActorRef): Unit = {
+      modelUuid: UUID,
+      stateData: PrimaryServiceStateData,
+      requestingActor: ActorRef
+  ): Unit = {
     stateData.extPrimaryDataService match {
-      case Some(reqActor) => reqActor ! ExtPrimaryDataServiceRegistrationMessage(modelUuid, reqActor)
+      case Some(reqActor) =>
+        reqActor ! ExtPrimaryDataServiceRegistrationMessage(modelUuid, reqActor)
     }
   }
 
   /** Instantiate a new [[PrimaryServiceWorker]] and send initialization
-   * information
-   *
-   * @param metaInformation
-   *   Meta information (including column scheme) of the time series
-   * @param simulationStart
-   *   The time of the simulation start
-   * @param primaryConfig
-   *   Configuration for the primary config
-   * @return
-   *   The [[ActorRef]] to the worker
-   */
+    * information
+    *
+    * @param metaInformation
+    *   Meta information (including column scheme) of the time series
+    * @param simulationStart
+    *   The time of the simulation start
+    * @param primaryConfig
+    *   Configuration for the primary config
+    * @return
+    *   The [[ActorRef]] to the worker
+    */
   protected def initializeWorker(
-                                  metaInformation: IndividualTimeSeriesMetaInformation,
-                                  simulationStart: ZonedDateTime,
-                                  primaryConfig: PrimaryConfig
-                                ): Try[ActorRef] = {
+      metaInformation: IndividualTimeSeriesMetaInformation,
+      simulationStart: ZonedDateTime,
+      primaryConfig: PrimaryConfig
+  ): Try[ActorRef] = {
     val workerRef = classToWorkerRef(
       metaInformation.getColumnScheme.getValueClass,
       metaInformation.getUuid.toString
@@ -379,21 +410,21 @@ case class PrimaryServiceProxy(
   }
 
   /** Build a primary source worker and type it to the foreseen value class to
-   * come
-   *
-   * @param valueClass
-   *   Class of the values to provide later on
-   * @param timeSeriesUuid
-   *   uuid of the time series the actor processes
-   * @tparam V
-   *   Type of the class to provide
-   * @return
-   *   The [[ActorRef]] to the spun off actor
-   */
+    * come
+    *
+    * @param valueClass
+    *   Class of the values to provide later on
+    * @param timeSeriesUuid
+    *   uuid of the time series the actor processes
+    * @tparam V
+    *   Type of the class to provide
+    * @return
+    *   The [[ActorRef]] to the spun off actor
+    */
   protected def classToWorkerRef[V <: Value](
-                                              valueClass: Class[V],
-                                              timeSeriesUuid: String
-                                            ): ActorRef = {
+      valueClass: Class[V],
+      timeSeriesUuid: String
+  ): ActorRef = {
     import edu.ie3.simona.actor.SimonaActorNaming._
     context.system.simonaActorOf(
       PrimaryServiceWorker.props(scheduler, valueClass),
@@ -402,27 +433,27 @@ case class PrimaryServiceProxy(
   }
 
   /** Building proper init data for the worker
-   *
-   * @param metaInformation
-   *   Meta information (including column scheme) of the time series
-   * @param simulationStart
-   *   The time of the simulation start
-   * @param primaryConfig
-   *   Configuration for the primary config
-   * @return
-   */
+    *
+    * @param metaInformation
+    *   Meta information (including column scheme) of the time series
+    * @param simulationStart
+    *   The time of the simulation start
+    * @param primaryConfig
+    *   Configuration for the primary config
+    * @return
+    */
   private def toInitData(
-                          metaInformation: IndividualTimeSeriesMetaInformation,
-                          simulationStart: ZonedDateTime,
-                          primaryConfig: PrimaryConfig
-                        ): Try[InitPrimaryServiceStateData] =
+      metaInformation: IndividualTimeSeriesMetaInformation,
+      simulationStart: ZonedDateTime,
+      primaryConfig: PrimaryConfig
+  ): Try[InitPrimaryServiceStateData] =
     primaryConfig match {
       case PrimaryConfig(
-      None,
-      Some(PrimaryDataCsvParams(csvSep, directoryPath, _, timePattern)),
-      None,
-      None
-      ) =>
+            None,
+            Some(PrimaryDataCsvParams(csvSep, directoryPath, _, timePattern)),
+            None,
+            None
+          ) =>
         /* The actual data sources are from csv. Meta information have to match */
         metaInformation match {
           case csvMetaData: CsvIndividualTimeSeriesMetaInformation =>
@@ -446,11 +477,11 @@ case class PrimaryServiceProxy(
         }
 
       case PrimaryConfig(
-      None,
-      None,
-      None,
-      Some(sqlParams: SqlParams)
-      ) =>
+            None,
+            None,
+            None,
+            Some(sqlParams: SqlParams)
+          ) =>
         Success(
           SqlInitPrimaryServiceStateData(
             metaInformation.getUuid,
@@ -469,21 +500,21 @@ case class PrimaryServiceProxy(
     }
 
   /** Register the worker within the state data.
-   *
-   * @param stateData
-   *   Current state information
-   * @param timeSeriesUuid
-   *   Unique identifier of the time series, the worker takes care of
-   * @param workerRef
-   *   [[ActorRef]] to the new worker actor
-   * @return
-   *   The updated state data, that holds reference to the worker
-   */
+    *
+    * @param stateData
+    *   Current state information
+    * @param timeSeriesUuid
+    *   Unique identifier of the time series, the worker takes care of
+    * @param workerRef
+    *   [[ActorRef]] to the new worker actor
+    * @return
+    *   The updated state data, that holds reference to the worker
+    */
   private def updateStateData(
-                               stateData: PrimaryServiceStateData,
-                               timeSeriesUuid: UUID,
-                               workerRef: ActorRef
-                             ): PrimaryServiceStateData = {
+      stateData: PrimaryServiceStateData,
+      timeSeriesUuid: UUID,
+      workerRef: ActorRef
+  ): PrimaryServiceStateData = {
     val timeSeriesToSourceRef = stateData.timeSeriesToSourceRef
     val sourceRef = timeSeriesToSourceRef.getOrElse(
       timeSeriesUuid,
@@ -502,69 +533,69 @@ case class PrimaryServiceProxy(
 object PrimaryServiceProxy {
 
   def props(
-             scheduler: ActorRef,
-             initStateData: InitPrimaryServiceProxyStateData,
-             startDateTime: ZonedDateTime
-           ): Props = Props(
+      scheduler: ActorRef,
+      initStateData: InitPrimaryServiceProxyStateData,
+      startDateTime: ZonedDateTime
+  ): Props = Props(
     new PrimaryServiceProxy(scheduler, initStateData, startDateTime)
   )
 
   /** State data with needed information to initialize this primary service
-   * provider proxy
-   *
-   * @param primaryConfig
-   *   Configuration for the primary source
-   * @param simulationStart
-   *   Wall clock time of the first instant in simulation
-   */
+    * provider proxy
+    *
+    * @param primaryConfig
+    *   Configuration for the primary source
+    * @param simulationStart
+    *   Wall clock time of the first instant in simulation
+    */
   final case class InitPrimaryServiceProxyStateData(
-                                                     primaryConfig: PrimaryConfig,
-                                                     simulationStart: ZonedDateTime,
-                                                     extSimulation: Option[ActorRef]
-                                                   ) extends InitializeServiceStateData
+      primaryConfig: PrimaryConfig,
+      simulationStart: ZonedDateTime,
+      extSimulation: Option[ActorRef]
+  ) extends InitializeServiceStateData
 
   /** Holding the state of an initialized proxy.
-   *
-   * @param modelToTimeSeries
-   *   Mapping from models' to time series unique identifiers
-   * @param timeSeriesToSourceRef
-   *   Mapping from time series identifier to [[SourceRef]]
-   * @param simulationStart
-   *   Wall clock time of the first instant in simulation
-   * @param primaryConfig
-   *   The configuration for the sources
-   * @param mappingSource
-   *   The mapping source
-   */
+    *
+    * @param modelToTimeSeries
+    *   Mapping from models' to time series unique identifiers
+    * @param timeSeriesToSourceRef
+    *   Mapping from time series identifier to [[SourceRef]]
+    * @param simulationStart
+    *   Wall clock time of the first instant in simulation
+    * @param primaryConfig
+    *   The configuration for the sources
+    * @param mappingSource
+    *   The mapping source
+    */
   final case class PrimaryServiceStateData(
-                                            modelToTimeSeries: Map[UUID, UUID],
-                                            timeSeriesToSourceRef: Map[UUID, SourceRef],
-                                            simulationStart: ZonedDateTime,
-                                            primaryConfig: PrimaryConfig,
-                                            mappingSource: TimeSeriesMappingSource,
-                                            extSubscribers: Iterable[UUID] = Iterable.empty[UUID],
-                                            extPrimaryDataService: Option[ActorRef] = None
-                                          ) extends ServiceStateData
+      modelToTimeSeries: Map[UUID, UUID],
+      timeSeriesToSourceRef: Map[UUID, SourceRef],
+      simulationStart: ZonedDateTime,
+      primaryConfig: PrimaryConfig,
+      mappingSource: TimeSeriesMappingSource,
+      extSubscribers: Iterable[UUID] = Iterable.empty[UUID],
+      extPrimaryDataService: Option[ActorRef] = None
+  ) extends ServiceStateData
 
   /** Giving reference to the target time series and source worker.
-   *
-   * @param metaInformation
-   *   Meta information (including column scheme) of the time series
-   * @param worker
-   *   Optional reference to an already existing worker providing information
-   *   on that time series
-   */
+    *
+    * @param metaInformation
+    *   Meta information (including column scheme) of the time series
+    * @param worker
+    *   Optional reference to an already existing worker providing information
+    *   on that time series
+    */
   final case class SourceRef(
-                              metaInformation: IndividualTimeSeriesMetaInformation,
-                              worker: Option[ActorRef]
-                            )
+      metaInformation: IndividualTimeSeriesMetaInformation,
+      worker: Option[ActorRef]
+  )
 
   /** Check if the config holds correct information to instantiate a mapping
-   * source
-   *
-   * @param primaryConfig
-   *   Config entries for primary source
-   */
+    * source
+    *
+    * @param primaryConfig
+    *   Config entries for primary source
+    */
   def checkConfig(primaryConfig: PrimaryConfig): Unit = {
 
     def checkTimePattern(dtfPattern: String): Unit =
@@ -610,12 +641,12 @@ object PrimaryServiceProxy {
         case Some(x) =>
           throw new InvalidConfigParameterException(
             s"Invalid configuration '$x' for a time series source.\nAvailable types:\n\t${supportedSources
-              .mkString("\n\t")}"
+                .mkString("\n\t")}"
           )
         case None =>
           throw new InvalidConfigParameterException(
             s"No configuration for a time series mapping source provided.\nPlease provide one of the available sources:\n\t${supportedSources
-              .mkString("\n\t")}"
+                .mkString("\n\t")}"
           )
       }
     }

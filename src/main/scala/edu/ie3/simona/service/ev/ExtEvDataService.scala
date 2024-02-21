@@ -19,8 +19,14 @@ import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
-import edu.ie3.simona.service.ev.ExtEvDataService.{ExtEvStateData, InitExtEvData}
+import edu.ie3.simona.service.ServiceStateData.{
+  InitializeServiceStateData,
+  ServiceBaseStateData
+}
+import edu.ie3.simona.service.ev.ExtEvDataService.{
+  ExtEvStateData,
+  InitExtEvData
+}
 import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
 
 import java.util.UUID

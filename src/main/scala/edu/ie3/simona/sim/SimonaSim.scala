@@ -8,7 +8,15 @@ package edu.ie3.simona.sim
 
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.apache.pekko.actor.SupervisorStrategy.Stop
-import org.apache.pekko.actor.{Actor, ActorRef, AllForOneStrategy, Props, Stash, SupervisorStrategy, Terminated}
+import org.apache.pekko.actor.{
+  Actor,
+  ActorRef,
+  AllForOneStrategy,
+  Props,
+  Stash,
+  SupervisorStrategy,
+  Terminated
+}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
@@ -18,8 +26,17 @@ import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.ontology.messages.services.ResultMessage.ResultResponseMessage
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.TimeAdvancer.StartSimMessage
-import edu.ie3.simona.sim.SimMessage.{InitSim, SimulationFailure, SimulationSuccessful, StartSimulation}
-import edu.ie3.simona.sim.SimonaSim.{EmergencyShutdownInitiated, ResultMessage, SimonaSimStateData}
+import edu.ie3.simona.sim.SimMessage.{
+  InitSim,
+  SimulationFailure,
+  SimulationSuccessful,
+  StartSimulation
+}
+import edu.ie3.simona.sim.SimonaSim.{
+  EmergencyShutdownInitiated,
+  ResultMessage,
+  SimonaSimStateData
+}
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
 
 import scala.concurrent.duration.DurationInt
@@ -143,7 +160,7 @@ class SimonaSim(simonaSetup: SimonaSetup)
       )
 
     /* ExtSimulation */
-    //case ResultMessage(res) =>
+    // case ResultMessage(res) =>
     //  data.initSimSender ! res.getResults()
 
     case EmergencyShutdownInitiated =>

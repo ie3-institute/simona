@@ -12,8 +12,16 @@ import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.event.Event
-import edu.ie3.simona.event.ResultEvent.{ExternalResultEvent, ParticipantResultEvent, PowerFlowResultEvent, ThermalResultEvent}
-import edu.ie3.simona.exceptions.{FileHierarchyException, ProcessResultEventException}
+import edu.ie3.simona.event.ResultEvent.{
+  ExternalResultEvent,
+  ParticipantResultEvent,
+  PowerFlowResultEvent,
+  ThermalResultEvent
+}
+import edu.ie3.simona.exceptions.{
+  FileHierarchyException,
+  ProcessResultEventException
+}
 import edu.ie3.simona.io.result._
 import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.ontology.messages.services.ResultMessage.ResultResponseMessage
@@ -38,7 +46,6 @@ object ResultEventListener extends Transformer3wResultSupport {
   private final case class Failed(ex: Exception) extends ResultMessage
 
   private final case object StopTimeout extends ResultMessage
-
 
   /** [[ResultEventListener]] base data containing all information the listener
     * needs
@@ -158,7 +165,11 @@ object ResultEventListener extends Transformer3wResultSupport {
   ): BaseData = {
     handOverToSink(resultEntity, baseData.classToSink, log)
     if (baseData.extResultDataService.isDefined) {
-      handOverToExternalService(resultEntity, baseData.extResultDataService, log)
+      handOverToExternalService(
+        resultEntity,
+        baseData.extResultDataService,
+        log
+      )
     }
     baseData
   }
@@ -235,11 +246,13 @@ object ResultEventListener extends Transformer3wResultSupport {
     }
 
   private def handOverToExternalService(
-                                       resultEntity: ResultEntity,
-                                       extResultDataService: Option[ActorRef],
-                                       log: Logger
-                                       ): Unit = Try {
-    val extResultDataServiceRef = extResultDataService.getOrElse(throw new Exception("No external data service registered!"))
+      resultEntity: ResultEntity,
+      extResultDataService: Option[ActorRef],
+      log: Logger
+  ): Unit = Try {
+    val extResultDataServiceRef = extResultDataService.getOrElse(
+      throw new Exception("No external data service registered!")
+    )
     extResultDataServiceRef ! ResultResponseMessage(resultEntity)
   }
 
@@ -272,22 +285,23 @@ object ResultEventListener extends Transformer3wResultSupport {
     init(extResultDataService)
   }
 
-  private def init(extResultDataService: Option[ActorRef]): Behavior[ResultMessage] = Behaviors.withStash(200) {
-    buffer =>
-      Behaviors.receive[ResultMessage] {
-        case (ctx, SinkResponse(response)) =>
-          ctx.log.debug("Initialization complete!")
-          buffer.unstashAll(idle(BaseData(response, extResultDataService)))
+  private def init(
+      extResultDataService: Option[ActorRef]
+  ): Behavior[ResultMessage] = Behaviors.withStash(200) { buffer =>
+    Behaviors.receive[ResultMessage] {
+      case (ctx, SinkResponse(response)) =>
+        ctx.log.debug("Initialization complete!")
+        buffer.unstashAll(idle(BaseData(response, extResultDataService)))
 
-        case (ctx, Failed(ex)) =>
-          ctx.log.error("Unable to setup ResultEventListener.", ex)
-          Behaviors.stopped
+      case (ctx, Failed(ex)) =>
+        ctx.log.error("Unable to setup ResultEventListener.", ex)
+        Behaviors.stopped
 
-        case (_, msg) =>
-          // stash all messages
-          buffer.stash(msg)
-          Behaviors.same
-      }
+      case (_, msg) =>
+        // stash all messages
+        buffer.stash(msg)
+        Behaviors.same
+    }
   }
 
   private def idle(baseData: BaseData): Behavior[ResultMessage] = Behaviors

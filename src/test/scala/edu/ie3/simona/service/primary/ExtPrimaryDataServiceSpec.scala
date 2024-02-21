@@ -7,7 +7,8 @@
 package edu.ie3.simona.service.primary
 
 import com.typesafe.config.ConfigFactory
-import edu.ie3.simona.test.common.service.{PrimaryDataFactoryDefault, ResultFactoryDefault}
+import edu.ie3.simona.test.common.service.
+  PrimaryDataFactoryDefault
 import edu.ie3.datamodel.io.factory.timeseries.TimeBasedSimpleValueFactory
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesSource
@@ -21,18 +22,32 @@ import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryData
 import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  Completion,
+  ScheduleActivation
+}
 import edu.ie3.simona.ontology.messages.services.EvMessage._
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{ExtPrimaryDataServiceRegistrationMessage, WorkerRegistrationMessage}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  ExtPrimaryDataServiceRegistrationMessage,
+  WorkerRegistrationMessage
+}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.{CsvInitPrimaryServiceStateData, PrimaryServiceInitializedStateData, ProvidePrimaryDataMessage}
+import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
+  CsvInitPrimaryServiceStateData,
+  PrimaryServiceInitializedStateData,
+  ProvidePrimaryDataMessage
+}
 import edu.ie3.simona.service.primary.PrimaryServiceWorkerSpec.WrongInitPrimaryServiceStateData
-import edu.ie3.simona.test.common.{EvTestData, TestKitWithShutdown, TestSpawnerClassic}
+import edu.ie3.simona.test.common.{
+  EvTestData,
+  TestKitWithShutdown,
+  TestSpawnerClassic
+}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -79,9 +94,7 @@ class ExtPrimaryDataServiceSpec
   private val participant1UUID =
     UUID.fromString("06a14909-366e-4e94-a593-1016e1455b30")
 
-
   "An uninitialized external primary data service" must {
-
 
     "send correct completion message after initialisation" in {
       val primaryDataService = TestActorRef(
@@ -96,7 +109,10 @@ class ExtPrimaryDataServiceSpec
 
       scheduler.send(
         primaryDataService,
-        SimonaService.Create(InitExtPrimaryData(extPrimaryData(primaryDataService)), key)
+        SimonaService.Create(
+          InitExtPrimaryData(extPrimaryData(primaryDataService)),
+          key
+        )
       )
       scheduler.expectMsg(
         ScheduleActivation(primaryDataService.toTyped, INIT_SIM_TICK, Some(key))
@@ -123,7 +139,10 @@ class ExtPrimaryDataServiceSpec
 
     val systemParticipant: TestProbe = TestProbe("dummySystemParticipant")
     "correctly register a forwarded request" in {
-      serviceRef ! ExtPrimaryDataServiceRegistrationMessage(UUID.randomUUID(), systemParticipant.ref)
+      serviceRef ! ExtPrimaryDataServiceRegistrationMessage(
+        UUID.randomUUID(),
+        systemParticipant.ref
+      )
       println("Try to register")
 
       /* Wait for request approval */
