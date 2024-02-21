@@ -25,7 +25,7 @@ import edu.ie3.simona.api.data.ExtData
 import edu.ie3.simona.api.data.ev.{ExtEvData, ExtEvSimulation}
 import edu.ie3.simona.api.data.primarydata.{
   ExtPrimaryData,
-  ExtPrimaryDataSimulation
+  ExtPrimaryDataSimulation,
 }
 import edu.ie3.simona.api.data.results.{ExtResultDataSimulation, ExtResultsData}
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
@@ -42,7 +42,7 @@ import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
 import edu.ie3.simona.service.primary.{
   ExtPrimaryDataService,
-  PrimaryServiceProxy
+  PrimaryServiceProxy,
 }
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.results.ExtResultDataService
@@ -149,7 +149,7 @@ class SimonaStandaloneSetup(
   override def primaryServiceProxy(
       context: ActorContext,
       scheduler: ActorRef,
-      extSimSetupData: ExtSimSetupData
+      extSimSetupData: ExtSimSetupData,
   ): ActorRef = {
     val simulationStart = TimeUtil.withDefaults.toZonedDateTime(
       simonaConfig.simona.time.startDateTime
@@ -160,7 +160,7 @@ class SimonaStandaloneSetup(
         InitPrimaryServiceProxyStateData(
           simonaConfig.simona.input.primary,
           simulationStart,
-          extSimSetupData.extPrimaryDataService
+          extSimSetupData.extPrimaryDataService,
         ),
         simulationStart,
       )
@@ -243,12 +243,12 @@ class SimonaStandaloneSetup(
             case (extPrimaryDataSimulation: ExtPrimaryDataSimulation, dIndex) =>
               val extPrimaryDataService = context.simonaActorOf(
                 ExtPrimaryDataService.props(scheduler),
-                s"$index-$dIndex"
+                s"$index-$dIndex",
               )
               val extPrimaryData = new ExtPrimaryData(
                 extPrimaryDataService,
                 extSimAdapter,
-                extPrimaryDataSimulation.getFactory
+                extPrimaryDataSimulation.getFactory,
               )
 
               extPrimaryDataService ! SimonaService.Create(
@@ -256,8 +256,8 @@ class SimonaStandaloneSetup(
                 ScheduleLock.singleKey(
                   context,
                   scheduler.toTyped,
-                  INIT_SIM_TICK
-                )
+                  INIT_SIM_TICK,
+                ),
               )
 
               (null, (classOf[ExtResultDataService], extPrimaryDataService))
@@ -265,7 +265,7 @@ class SimonaStandaloneSetup(
             case (_: ExtResultDataSimulation, dIndex) =>
               val extResultDataService = context.simonaActorOf(
                 ExtResultDataService.props(scheduler),
-                s"$index-$dIndex"
+                s"$index-$dIndex",
               )
               val extResultsData =
                 new ExtResultsData(extResultDataService, extSimAdapter, null)
@@ -275,13 +275,13 @@ class SimonaStandaloneSetup(
                 ScheduleLock.singleKey(
                   context,
                   scheduler.toTyped,
-                  INIT_SIM_TICK
-                )
+                  INIT_SIM_TICK,
+                ),
               )
 
               (
                 extResultsData,
-                (classOf[ExtResultDataService], extResultDataService)
+                (classOf[ExtResultDataService], extResultDataService),
               )
           }.unzip
 
@@ -351,7 +351,7 @@ class SimonaStandaloneSetup(
 
   override def systemParticipantsListener(
       context: ActorContext,
-      extSimulationData: ExtSimSetupData
+      extSimulationData: ExtSimSetupData,
   ): Seq[ActorRef] = {
     val extResultDataService: Option[ActorRef] =
       extSimulationData.extResultDataService
@@ -369,7 +369,7 @@ class SimonaStandaloneSetup(
       .spawn(
         ResultEventListener(
           resultFileHierarchy,
-          extResultDataService
+          extResultDataService,
         ),
         ResultEventListener.getClass.getSimpleName,
       )

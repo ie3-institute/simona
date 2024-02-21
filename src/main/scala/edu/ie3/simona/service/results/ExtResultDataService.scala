@@ -12,7 +12,7 @@ import edu.ie3.simona.api.data.results.ExtResultsData
 import edu.ie3.simona.api.data.results.ontology.{
   ProvideResultEntities,
   RequestResultEntities,
-  ResultDataMessageFromExt
+  ResultDataMessageFromExt,
 }
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.services.ResultMessage.ResultResponseMessage
@@ -20,12 +20,12 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrat
 import edu.ie3.simona.ontology.messages.services.DataMessage
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
-  ServiceBaseStateData
+  ServiceBaseStateData,
 }
 import edu.ie3.simona.service.{ExtDataSupport, SimonaService}
 import edu.ie3.simona.service.results.ExtResultDataService.{
   ExtResultsStateData,
-  InitExtResultsData
+  InitExtResultsData,
 }
 
 import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
@@ -44,7 +44,7 @@ object ExtResultDataService {
       extResultsData: ExtResultsData,
       uuidToActorRef: Map[UUID, ActorRef] = Map.empty[UUID, ActorRef],
       extResultsMessage: Option[ResultDataMessageFromExt] = None,
-      resultStorage: Map[UUID, ResultEntity] = Map.empty
+      resultStorage: Map[UUID, ResultEntity] = Map.empty,
   ) extends ServiceBaseStateData
 
   final case class InitExtResultsData(
@@ -86,7 +86,7 @@ class ExtResultDataService(override val scheduler: ActorRef)
       tick: Long
   )(implicit
       serviceStateData: ExtResultsStateData,
-      ctx: ActorContext
+      ctx: ActorContext,
   ): (ExtResultsStateData, Option[Long]) = {
     serviceStateData.extResultsMessage.getOrElse(
       throw ServiceException(

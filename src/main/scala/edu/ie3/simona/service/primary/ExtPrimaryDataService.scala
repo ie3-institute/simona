@@ -12,25 +12,25 @@ import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryData
 import edu.ie3.simona.api.data.primarydata.ontology.{
   PrimaryDataMessageFromExt,
-  ProvidePrimaryData
+  ProvidePrimaryData,
 }
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ExtPrimaryDataServiceRegistrationMessage,
   PrimaryServiceRegistrationMessage,
-  WorkerRegistrationMessage
+  WorkerRegistrationMessage,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.{DataMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
-  ServiceBaseStateData
+  ServiceBaseStateData,
 }
 import edu.ie3.simona.service.primary.ExtPrimaryDataService.{
   ExtPrimaryDataStateData,
-  InitExtPrimaryData
+  InitExtPrimaryData,
 }
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.ProvidePrimaryDataMessage
 import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
@@ -52,7 +52,7 @@ object ExtPrimaryDataService {
       extPrimaryData: ExtPrimaryData,
       uuidToActorRef: Map[UUID, ActorRef] =
         Map.empty[UUID, ActorRef], // subscribers in SIMONA
-      extPrimaryDataMessage: Option[PrimaryDataMessageFromExt] = None
+      extPrimaryDataMessage: Option[PrimaryDataMessageFromExt] = None,
   ) extends ServiceBaseStateData
 
   case class InitExtPrimaryData(
@@ -75,7 +75,7 @@ final case class ExtPrimaryDataService(
 
       Success(
         primaryDataInitializedStateData,
-        None
+        None,
       )
 
     case invalidData =>
@@ -95,7 +95,7 @@ final case class ExtPrimaryDataService(
     registrationMessage match {
       case ExtPrimaryDataServiceRegistrationMessage(
             modelUuid,
-            requestingActor
+            requestingActor,
           ) =>
         println("Habe erhalten")
         Success(handleRegistrationRequest(requestingActor, modelUuid))
@@ -110,14 +110,14 @@ final case class ExtPrimaryDataService(
 
   private def handleRegistrationRequest(
       agentToBeRegistered: ActorRef,
-      agentUUID: UUID
+      agentUUID: UUID,
   )(implicit
       serviceStateData: ExtPrimaryDataStateData
   ): ExtPrimaryDataStateData = {
     serviceStateData.uuidToActorRef.get(agentUUID) match {
       case None =>
         // Actor is not registered yet
-        agentToBeRegistered ! RegistrationSuccessfulMessage(None)
+        agentToBeRegistered ! RegistrationSuccessfulMessage(self, None)
         serviceStateData.copy(
           uuidToActorRef =
             serviceStateData.uuidToActorRef + (agentUUID -> agentToBeRegistered)
@@ -126,7 +126,7 @@ final case class ExtPrimaryDataService(
         // actor is already registered, do nothing
         log.warning(
           "Sending actor {} is already registered",
-          agentToBeRegistered
+          agentToBeRegistered,
         )
         serviceStateData
     }
@@ -147,7 +147,7 @@ final case class ExtPrimaryDataService(
       tick: Long
   )(implicit
       serviceStateData: ExtPrimaryDataStateData,
-      ctx: ActorContext
+      ctx: ActorContext,
   ): (ExtPrimaryDataStateData, Option[Long]) = {
     serviceStateData.extPrimaryDataMessage.getOrElse(
       throw ServiceException(
@@ -157,20 +157,20 @@ final case class ExtPrimaryDataService(
       case providedPrimaryData: ProvidePrimaryData =>
         processDataAndAnnounce(tick, providedPrimaryData.primaryData)(
           serviceStateData,
-          ctx
+          ctx,
         )
     }
   }
 
   private def processDataAndAnnounce(
       tick: Long,
-      primaryData: java.util.Map[UUID, Value]
+      primaryData: java.util.Map[UUID, Value],
   )(implicit
       serviceStateData: ExtPrimaryDataStateData,
-      ctx: ActorContext
+      ctx: ActorContext,
   ): (
       ExtPrimaryDataStateData,
-      Option[Long]
+      Option[Long],
   ) = {
     val actorToPrimaryData = primaryData.asScala.flatMap {
       case (agent, primaryDataPerAgent) =>
@@ -180,7 +180,7 @@ final case class ExtPrimaryDataService(
           .orElse {
             log.warning(
               "A corresponding actor ref for UUID {} could not be found",
-              agent
+              agent,
             )
             None
           }
@@ -193,7 +193,7 @@ final case class ExtPrimaryDataService(
           ctx,
           scheduler.toTyped,
           tick,
-          actorToPrimaryData.size
+          actorToPrimaryData.size,
         )
 
       actorToPrimaryData.zip(keys).foreach {
@@ -202,16 +202,17 @@ final case class ExtPrimaryDataService(
             case Success(primaryData) =>
               actor ! ProvidePrimaryDataMessage(
                 tick,
+                self,
                 primaryData,
                 None,
-                unlockKey = Some(key)
+                unlockKey = Some(key),
               )
             case Failure(exception) =>
               /* Processing of data failed */
               log.warning(
                 "Unable to convert received value to primary data. Skipped that data." +
                   "\nException: {}",
-                exception
+                exception,
               )
           }
       }
@@ -219,7 +220,7 @@ final case class ExtPrimaryDataService(
 
     ( // Message leeren
       serviceStateData.copy(extPrimaryDataMessage = None),
-      None
+      None,
     )
 
   }

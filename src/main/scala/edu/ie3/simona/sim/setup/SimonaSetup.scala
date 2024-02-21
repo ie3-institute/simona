@@ -55,7 +55,7 @@ trait SimonaSetup {
     */
   def systemParticipantsListener(
       context: ActorContext,
-      extSimulationData: ExtSimSetupData
+      extSimulationData: ExtSimSetupData,
   ): Seq[ActorRef]
 
   /** Creates a primary service proxy. The proxy is the first instance to ask
@@ -72,7 +72,7 @@ trait SimonaSetup {
   def primaryServiceProxy(
       context: ActorContext,
       scheduler: ActorRef,
-      extSimulationData: ExtSimSetupData
+      extSimulationData: ExtSimSetupData,
   ): ActorRef
 
   /** Creates a weather service

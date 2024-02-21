@@ -7,8 +7,7 @@
 package edu.ie3.simona.service.primary
 
 import com.typesafe.config.ConfigFactory
-import edu.ie3.simona.test.common.service.
-  PrimaryDataFactoryDefault
+import edu.ie3.simona.test.common.service.PrimaryDataFactoryDefault
 import edu.ie3.datamodel.io.factory.timeseries.TimeBasedSimpleValueFactory
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesSource
@@ -24,12 +23,12 @@ import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ExtPrimaryDataServiceRegistrationMessage,
-  WorkerRegistrationMessage
+  WorkerRegistrationMessage,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
@@ -40,13 +39,13 @@ import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   CsvInitPrimaryServiceStateData,
   PrimaryServiceInitializedStateData,
-  ProvidePrimaryDataMessage
+  ProvidePrimaryDataMessage,
 }
 import edu.ie3.simona.service.primary.PrimaryServiceWorkerSpec.WrongInitPrimaryServiceStateData
 import edu.ie3.simona.test.common.{
   EvTestData,
   TestKitWithShutdown,
-  TestSpawnerClassic
+  TestSpawnerClassic,
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
@@ -74,7 +73,7 @@ class ExtPrimaryDataServiceSpec
           .parseString("""
         |pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
         |pekko.loglevel = "INFO"
-        |""".stripMargin)
+        |""".stripMargin),
       )
     )
     with TestSpawnerClassic {
@@ -88,7 +87,7 @@ class ExtPrimaryDataServiceSpec
     new ExtPrimaryData(
       dataService,
       extSimAdapter.ref,
-      primaryDataFactory
+      primaryDataFactory,
     )
 
   private val participant1UUID =
@@ -111,8 +110,8 @@ class ExtPrimaryDataServiceSpec
         primaryDataService,
         SimonaService.Create(
           InitExtPrimaryData(extPrimaryData(primaryDataService)),
-          key
-        )
+          key,
+        ),
       )
       scheduler.expectMsg(
         ScheduleActivation(primaryDataService.toTyped, INIT_SIM_TICK, Some(key))
@@ -141,12 +140,14 @@ class ExtPrimaryDataServiceSpec
     "correctly register a forwarded request" in {
       serviceRef ! ExtPrimaryDataServiceRegistrationMessage(
         UUID.randomUUID(),
-        systemParticipant.ref
+        systemParticipant.ref,
       )
       println("Try to register")
 
       /* Wait for request approval */
-      systemParticipant.expectMsg(RegistrationSuccessfulMessage(Some(0L)))
+      systemParticipant.expectMsg(
+        RegistrationSuccessfulMessage(systemParticipant.ref, Some(0L))
+      )
 
       /* We cannot directly check, if the requesting actor is among the subscribers, therefore we ask the actor to
        * provide data to all subscribed actors and check, if the subscribed probe gets one */

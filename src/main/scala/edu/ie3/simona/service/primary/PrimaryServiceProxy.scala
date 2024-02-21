@@ -109,7 +109,7 @@ case class PrimaryServiceProxy(
       prepareStateData(
         initStateData.primaryConfig,
         initStateData.simulationStart,
-        initStateData.extSimulation
+        initStateData.extSimulation,
       ) match {
         case Success(stateData) =>
           scheduler ! Completion(self.toTyped)
@@ -142,7 +142,7 @@ case class PrimaryServiceProxy(
   private def prepareStateData(
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime,
-      extSimulation: Option[ActorRef]
+      extSimulation: Option[ActorRef],
   ): Try[PrimaryServiceStateData] = {
 
     createSources(primaryConfig).map {
@@ -181,7 +181,7 @@ case class PrimaryServiceProxy(
             primaryConfig,
             mappingSource,
             getSubscribers,
-            extSimulation
+            extSimulation,
           )
         } else {
           PrimaryServiceStateData(
@@ -189,7 +189,7 @@ case class PrimaryServiceProxy(
             timeSeriesToSourceRef,
             simulationStart,
             primaryConfig,
-            mappingSource
+            mappingSource,
           )
         }
     }
@@ -280,14 +280,14 @@ case class PrimaryServiceProxy(
             } else {
               log.debug(
                 s"There is no time series apparent for the model with uuid '{}'.",
-                modelUuid
+                modelUuid,
               )
               sender() ! RegistrationFailedMessage
             }
           } else {
             log.debug(
               s"There is no time series apparent for the model with uuid '{}'.",
-              modelUuid
+              modelUuid,
             )
             sender() ! RegistrationFailedMessage
           }
@@ -358,7 +358,7 @@ case class PrimaryServiceProxy(
   protected def handleExternalModel(
       modelUuid: UUID,
       stateData: PrimaryServiceStateData,
-      requestingActor: ActorRef
+      requestingActor: ActorRef,
   ): Unit = {
     stateData.extPrimaryDataService match {
       case Some(reqActor) =>
@@ -551,7 +551,7 @@ object PrimaryServiceProxy {
   final case class InitPrimaryServiceProxyStateData(
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime,
-      extSimulation: Option[ActorRef]
+      extSimulation: Option[ActorRef],
   ) extends InitializeServiceStateData
 
   /** Holding the state of an initialized proxy.
@@ -574,7 +574,7 @@ object PrimaryServiceProxy {
       primaryConfig: PrimaryConfig,
       mappingSource: TimeSeriesMappingSource,
       extSubscribers: Iterable[UUID] = Iterable.empty[UUID],
-      extPrimaryDataService: Option[ActorRef] = None
+      extPrimaryDataService: Option[ActorRef] = None,
   ) extends ServiceStateData
 
   /** Giving reference to the target time series and source worker.

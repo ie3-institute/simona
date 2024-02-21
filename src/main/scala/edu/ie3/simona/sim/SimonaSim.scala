@@ -35,7 +35,7 @@ import edu.ie3.simona.sim.SimMessage.{
 import edu.ie3.simona.sim.SimonaSim.{
   EmergencyShutdownInitiated,
   ResultMessage,
-  SimonaSimStateData
+  SimonaSimStateData,
 }
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
 

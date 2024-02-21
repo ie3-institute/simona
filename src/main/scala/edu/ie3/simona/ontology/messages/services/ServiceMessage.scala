@@ -44,9 +44,8 @@ case object ServiceMessage {
 
   final case class ExtPrimaryDataServiceRegistrationMessage(
       modelUuid: UUID,
-      requestingActor: ActorRef
+      requestingActor: ActorRef,
   ) extends ServiceRegistrationMessage
-
 
   sealed trait RegistrationResponseMessage extends ServiceMessage {
     val serviceRef: ActorRef

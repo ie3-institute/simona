@@ -245,7 +245,7 @@ class PrimaryServiceProxySpec
     InitPrimaryServiceProxyStateData(
       validPrimaryConfig,
       simulationStart,
-      None
+      None,
     )
   val proxyRef: TestActorRef[PrimaryServiceProxy] = TestActorRef(
     new PrimaryServiceProxy(scheduler.ref, initStateData, simulationStart)
@@ -267,7 +267,7 @@ class PrimaryServiceProxySpec
       proxy invokePrivate prepareStateData(
         maliciousConfig,
         simulationStart,
-        Option.empty
+        Option.empty,
       ) match {
         case Success(_) =>
           fail("Building state data with missing config should fail")
@@ -288,7 +288,7 @@ class PrimaryServiceProxySpec
       proxy invokePrivate prepareStateData(
         maliciousConfig,
         simulationStart,
-        Option.empty
+        Option.empty,
       ) match {
         case Success(_) =>
           fail("Building state data with missing config should fail")
@@ -302,7 +302,7 @@ class PrimaryServiceProxySpec
       proxy invokePrivate prepareStateData(
         validPrimaryConfig,
         simulationStart,
-        Option.empty
+        Option.empty,
       ) match {
         case Success(
               PrimaryServiceStateData(
@@ -312,7 +312,7 @@ class PrimaryServiceProxySpec
                 primaryConfig,
                 mappingSource,
                 extSubscribers,
-                extPrimaryDataService
+                extPrimaryDataService,
               )
             ) =>
           modelToTimeSeries shouldBe Map(
@@ -355,7 +355,7 @@ class PrimaryServiceProxySpec
       proxy invokePrivate prepareStateData(
         validPrimaryConfig,
         simulationStart,
-        Some(validExtPrimaryDataService)
+        Some(validExtPrimaryDataService),
       ) match {
         case Success(
               PrimaryServiceStateData(
@@ -365,7 +365,7 @@ class PrimaryServiceProxySpec
                 primaryConfig,
                 mappingSource,
                 extSubscribers,
-                extPrimaryDataService
+                extPrimaryDataService,
               )
             ) =>
           extPrimaryDataService should contain(validExtPrimaryDataService)
@@ -598,7 +598,7 @@ class PrimaryServiceProxySpec
               primaryConfig,
               mappingSource,
               extSubscribers,
-              extPrimaryDataService
+              extPrimaryDataService,
             ) =>
           modelToTimeSeries shouldBe proxyStateData.modelToTimeSeries
           timeSeriesToSourceRef shouldBe Map(

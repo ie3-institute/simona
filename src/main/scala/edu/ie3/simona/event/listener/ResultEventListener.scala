@@ -169,7 +169,7 @@ object ResultEventListener extends Transformer3wResultSupport {
       handOverToExternalService(
         resultEntity,
         baseData.extResultDataService,
-        log
+        log,
       )
     }
     baseData
@@ -249,7 +249,7 @@ object ResultEventListener extends Transformer3wResultSupport {
   private def handOverToExternalService(
       resultEntity: ResultEntity,
       extResultDataService: Option[ActorRef],
-      log: Logger
+      log: Logger,
   ): Unit = Try {
     val extResultDataServiceRef = extResultDataService.getOrElse(
       throw new Exception("No external data service registered!")
@@ -259,7 +259,7 @@ object ResultEventListener extends Transformer3wResultSupport {
 
   def apply(
       resultFileHierarchy: ResultFileHierarchy,
-      extResultDataService: Option[ActorRef] = Option.empty[ActorRef]
+      extResultDataService: Option[ActorRef] = Option.empty[ActorRef],
   ): Behavior[ResultMessage] = Behaviors.setup[ResultMessage] { ctx =>
     ctx.log.debug("Starting initialization!")
     resultFileHierarchy.resultSinkType match {

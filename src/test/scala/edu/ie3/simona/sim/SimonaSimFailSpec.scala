@@ -107,13 +107,14 @@ object SimonaSimFailSpec {
         .ref
 
     override def systemParticipantsListener(
-        context: ActorContext
+        context: ActorContext,
+        extSimSetupData: ExtSimSetupData,
     ): Seq[ActorRef] = Seq.empty[ActorRef]
 
     override def primaryServiceProxy(
         context: ActorContext,
         scheduler: ActorRef,
-        extSimSetupData: ExtSimSetupData
+        extSimSetupData: ExtSimSetupData,
     ): ActorRef =
       TestProbe("primaryService")(actorSystem).ref
 
