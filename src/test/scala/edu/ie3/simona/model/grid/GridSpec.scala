@@ -10,36 +10,28 @@ import java.util.UUID
 import breeze.linalg.DenseMatrix
 import breeze.math.Complex
 import breeze.numerics.abs
+
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.MeasurementUnitInput
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
-import edu.ie3.simona.agent.grid.DBFSMockGridAgents
-import edu.ie3.simona.config.SimonaConfig
+
 import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.model.control.{GridControls, TransformerControlGroupModel}
 import edu.ie3.simona.test.common.input.{GridInputTestData, LineInputTestData}
-import edu.ie3.simona.test.common.model.grid.{
-  BasicGrid,
-  BasicGridWithSwitches,
-  FiveLinesWithNodes,
-}
-import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
+import edu.ie3.simona.test.common.model.grid.{BasicGrid, BasicGridWithSwitches, FiveLinesWithNodes}
+import edu.ie3.simona.test.common.{ConfigTestData, DefaultTestData, , UnitSpec}
 import testutils.TestObjectFactory
-import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
-import org.apache.pekko.testkit.TestProbe
-import edu.ie3.simona.test.common.ConfigTestData
+
 
 import scala.jdk.CollectionConverters.SetHasAsJava
-import edu.ie3.datamodel.models.input.container.ThermalGrid
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
+
 import edu.ie3.simona.model.grid.GridModel.GridComponents
+
 
 class GridSpec
     extends UnitSpec
     with LineInputTestData
     with DefaultTestData
-    with DbfsTestGrid
-    with DBFSMockGridAgents
     with ConfigTestData {
 
   private val _printAdmittanceMatrixOnMismatch
@@ -561,23 +553,11 @@ class GridSpec
     }
 
     "process a valid GridInputModel without an Exception" in new GridInputTestData {
-      val simonaConfig: SimonaConfig = SimonaConfig(typesafeConfig)
-      private val superiorGridAgent = SuperiorGA(
-        TestProbe("superiorGridAgent_1000"),
-        Seq(supNodeA.getUuid),
-      )
-
       GridModel(
         validTestGridInputModel,
         gridInputModelTestDataRefSystem,
         defaultSimulationStart,
         defaultSimulationEnd,
-        GridAgentInitData(
-          hvGridContainer,
-          Seq.empty[ThermalGrid],
-          superiorGridAgent.ref,
-          RefSystem("2000 MVA", "110 kV"),
-        ),
         simonaConfig,
       )
     }

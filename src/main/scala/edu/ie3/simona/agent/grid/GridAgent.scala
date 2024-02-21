@@ -12,11 +12,13 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentInitData,
   GridAgentUninitializedData,
 }
+import edu.ie3.simona.model.grid.GridModel
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.GridAgentState.{Initializing, SimulateGrid}
 import edu.ie3.simona.agent.{EnvironmentRefs, SimonaAgent}
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.model.grid.GridModel
+import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
+
 import edu.ie3.simona.ontology.messages.PowerMessage.RequestGridPowerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
@@ -93,6 +95,7 @@ object GridAgent {
     */
   final case class FinishGridSimulationTrigger(tick: Long)
 }
+
 class GridAgent(
     val environmentRefs: EnvironmentRefs,
     simonaConfig: SimonaConfig,
@@ -154,6 +157,9 @@ class GridAgent(
           Activation(INIT_SIM_TICK),
           gridAgentInitData: GridAgentInitData,
         ) =>
+      // fail fast sanity checks
+      failFast(gridAgentInitData)
+
       log.debug(
         s"Inferior Subnets: {}; Inferior Subnet Nodes: {}",
         gridAgentInitData.inferiorGridIds,
@@ -185,8 +191,7 @@ class GridAgent(
         TimeUtil.withDefaults.toZonedDateTime(
           simonaConfig.simona.time.endDateTime
         ),
-        gridAgentInitData,
-        simonaConfig,
+        simonaConfig
       )
 
       /* Reassure, that there are also calculation models for the given uuids */
@@ -267,4 +272,13 @@ class GridAgent(
   // everything else
   whenUnhandled(myUnhandled())
 
+  private def failFast(gridAgentInitData: GridAgentInitData): Unit = {
+    if (
+      gridAgentInitData.superiorGridGates.isEmpty && gridAgentInitData.inferiorGridGates.isEmpty
+    )
+      throw new GridAgentInitializationException(
+        s"$actorName has neither superior nor inferior grids! This can either " +
+          s"be cause by wrong subnetGate information or invalid parametrization of the simulation!"
+      )
+  }
 }

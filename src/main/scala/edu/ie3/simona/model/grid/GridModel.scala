@@ -70,14 +70,12 @@ object GridModel {
       refSystem: RefSystem,
       startDate: ZonedDateTime,
       endDate: ZonedDateTime,
-      gridAgentInitData: GridAgentInitData,
       simonaConfig: SimonaConfig,
   ): GridModel = buildAndValidate(
     subGridContainer,
     refSystem,
     startDate,
     endDate,
-    gridAgentInitData,
     simonaConfig,
   )
 
@@ -458,15 +456,6 @@ object GridModel {
 
   }
 
-  private def checkForGridGates(gridAgentInitData: GridAgentInitData): Unit = {
-    if (
-      gridAgentInitData.superiorGridGates.isEmpty && gridAgentInitData.inferiorGridGates.isEmpty
-    )
-      throw new GridAgentInitializationException(
-        s"${gridAgentInitData.subGridContainer.getGridName} has neither superior nor inferior grids! This can either " +
-          s"be cause by wrong subnetGate information or invalid parametrization of the simulation!"
-      )
-  }
 
   /** Checks all ControlGroups if a) Transformer of ControlGroup and Measurement
     * belongs to the same sub grid. b) Measurements are measure voltage
@@ -529,7 +518,6 @@ object GridModel {
       refSystem: RefSystem,
       startDate: ZonedDateTime,
       endDate: ZonedDateTime,
-      gridAgentInitData: GridAgentInitData,
       simonaConfig: SimonaConfig,
   ): GridModel = {
 
@@ -650,9 +638,7 @@ object GridModel {
     // validate
     validateConsistency(gridModel)
     validateConnectivity(gridModel)
-    checkForGridGates(gridAgentInitData)
-    checkControlGroupsForMeasurement(
-      gridAgentInitData.subGridContainer,
+    checkControlGroupsForMeasurement(subGridContainer,
       simonaConfig.simona.control,
     )
 
