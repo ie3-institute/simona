@@ -27,10 +27,10 @@ import java.util.Locale
   */
 trait UnitSpec
     extends should.Matchers
-    with LogCapturing
     with QuantityMatchers
     with SquantsMatchers
     with AnyWordSpecLike
+    with LogCapturing
     with OptionValues
     with Inside
     with Inspectors
