@@ -19,31 +19,34 @@ import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop, Terminated}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
-/** Main entrance point to a simona simulation as top level actor. This actors
-  * allows to control the simulation in the sense that messages for
-  * initialization and time steps can be send to this actor and will be handled
-  * accordingly. This actor does NOT report back any simulation status except of
-  * if the overall simulation has been successful or not. For specific status
+/** Main entrance point to a simona simulation as the guardian actor. This actor
+  * starts the initialization of all actors and waits for the simulation to end.
+  * This actor does NOT report back any simulation status except of if the
+  * overall simulation has been successful or not. For specific status
   * information, the user needs to pass in and subscribe to the corresponding
   * listener e.g. [[edu.ie3.simona.event.listener.RuntimeEventListener]] for
   * simulation status or [[edu.ie3.simona.event.listener.ResultEventListener]]
   * for result events
   *
-  * @version 0.1
   * @since 01.07.20
   */
 object SimonaSim {
 
   sealed trait Request
 
-  /** Starts simulation by activating the next (or first) tick */
+  /** Starts the initialization and then the simulation itself */
   final case class Start(
       starter: ActorRef[SimonaEnded]
   ) extends Request
 
-  /** Indicate that the simulation has ended successfully */
+  /** Indicates that the simulation has ended successfully */
   case object SimulationEnded extends Request
 
+  /** Creates a new [[SimonaSim]] behavior
+    *
+    * @param simonaSetup
+    *   The setup instructions
+    */
   def apply(simonaSetup: SimonaSetup): Behavior[Request] =
     Behaviors.receivePartial { case (ctx, startMsg @ Start(starter)) =>
       // We redirect to initializing behavior so that starter ref
@@ -54,7 +57,8 @@ object SimonaSim {
 
   /** Initializing behavior that is separated from [[apply]] above only because
     * in case of a sudden stop of this actor itself (PostStop signal), the
-    * [[SimonaEnded]] message is sent to the starter
+    * ActorRef of the starter also needs to be available for sending
+    * [[SimonaEnded]]
     *
     * @param starter
     *   The starter ref that needs to be notified once simulation has ended
@@ -117,7 +121,7 @@ object SimonaSim {
         // Start simulation
         timeAdvancer ! TimeAdvancer.Start()
 
-        val watchedActors = Iterable(
+        val otherActors = Iterable(
           timeAdvancer,
           scheduler,
           primaryServiceProxy.toTyped,
@@ -129,26 +133,26 @@ object SimonaSim {
         idle(
           ActorData(
             starter,
-            watchedActors,
             extSimulationData.extSimAdapters,
             runtimeEventListener,
             resultEventListeners.appended(runtimeEventListener),
+            otherActors,
           )
         )
       }
       .receiveSignal { case (_, PostStop) =>
         // Something must have gone wrong during initialization above
-        // (could have been an exception thrown), there's nothing much
-        // we can do here besides notifying starter
+        // (probably an unexpected exception thrown), there's nothing
+        // much we can do here besides notifying starter
         starter ! SimonaEnded(successful = false)
 
         Behaviors.stopped
       }
 
+  /** Behavior that is active while the simulation is running
+    */
   private def idle(actorData: ActorData): Behavior[Request] = Behaviors
     .receivePartial[Request] { case (ctx, SimulationEnded) =>
-      // if the simulation is successful, we're waiting for the event
-      // listeners to terminate and thus do not unwatch them here
       ctx.log.info(
         "Simulation terminated successfully. Stopping children and waiting for results to flush out..."
       )
@@ -165,8 +169,9 @@ object SimonaSim {
         )
         .map { data =>
           ctx.log.error(
-            "An actor ({}) unexpectedly terminated. Shut down all children gracefully and report simulation " +
-              "failure. See logs and possible stacktrace for details.",
+            "An actor ({}) unexpectedly terminated. " +
+              "Stopping all children and reporting simulation failure. " +
+              "See logs and possibly stacktrace for details.",
             actor,
           )
 
@@ -180,17 +185,15 @@ object SimonaSim {
         .get
     }
 
-  /** @param ctx
-    * @param actorData
-    * @param simulationSuccessful
-    * @return
+  /** Stops all children that can be stopped right away, and requests children
+    * with delayed stops to stop
     */
   private def stopChildren(
       ctx: ActorContext[_],
       actorData: ActorData,
       simulationSuccessful: Boolean,
   ): Behavior[Request] = {
-    actorData.watchedActors.foreach { ref =>
+    actorData.otherActors.foreach { ref =>
       ctx.unwatch(ref)
       ctx.stop(ref)
     }
@@ -200,17 +203,22 @@ object SimonaSim {
       ref ! ExtSimAdapter.Stop(simulationSuccessful)
     }
 
+    // if the simulation is successful, we're waiting for the delayed
+    // stopping listeners to terminate and thus do not unwatch them here
     actorData.delayedStoppingActors.foreach(
       _ ! DelayedStopHelper.FlushAndStop
     )
 
-    waitingForListener(
+    maybeStop(
+      ctx,
       actorData.starter,
       actorData.delayedStoppingActors,
       simulationSuccessful,
     )
   }
 
+  /** Behavior that waits for all remaining actors with delayed stops to stop
+    */
   private def waitingForListener(
       starter: ActorRef[SimonaEnded],
       remainingListeners: Seq[ActorRef[_]],
@@ -219,36 +227,55 @@ object SimonaSim {
     case (ctx, Terminated(actor)) if remainingListeners.contains(actor) =>
       val updatedRemainingListeners = remainingListeners.filterNot(_ == actor)
 
-      if (updatedRemainingListeners.isEmpty) {
-        ctx.log.info(
-          "All result listeners have terminated. Ending simulation successfully."
-        )
-
-        starter ! SimonaEnded(simulationSuccessful)
-
-        Behaviors.stopped
-      } else {
-        waitingForListener(
-          starter,
-          updatedRemainingListeners,
-          simulationSuccessful,
-        )
-      }
+      maybeStop(ctx, starter, updatedRemainingListeners, simulationSuccessful)
   }
 
-  /** TODO scaladoc
+  /** Stopping this actor and notifying starter if all actors with delayed stops
+    * have stopped
+    */
+  private def maybeStop(
+      ctx: ActorContext[_],
+      starter: ActorRef[SimonaEnded],
+      remainingListeners: Seq[ActorRef[_]],
+      simulationSuccessful: Boolean,
+  ): Behavior[Request] = {
+    if (remainingListeners.isEmpty) {
+      ctx.log.debug(
+        "All actors with delayed stops have terminated. Ending simulation."
+      )
+
+      starter ! SimonaEnded(simulationSuccessful)
+
+      Behaviors.stopped
+    } else {
+      waitingForListener(
+        starter,
+        remainingListeners,
+        simulationSuccessful,
+      )
+    }
+  }
+
+  /** Data object that mostly holds information about children of this actor
+    *
     * @param starter
-    * @param watchedActors
-    *   excluding ExtSimAdapters, ResultListeners, RuntimeEventListener
+    *   The ActorRef that started the simulation and should be notified about
+    *   its end
     * @param extSimAdapters
+    *   [[ExtSimAdapter]]s need to receive a [[ExtSimAdapter.Stop]] message
     * @param runtimeEventListener
+    *   The [[RuntimeEventListener]] that possibly receives an error event
     * @param delayedStoppingActors
+    *   The actors that are stopped with delay
+    * @param otherActors
+    *   All remaining children (excluding ExtSimAdapters, ResultListeners and
+    *   RuntimeEventListener)
     */
   private final case class ActorData(
       starter: ActorRef[SimonaEnded],
-      watchedActors: Iterable[ActorRef[_]],
       extSimAdapters: Iterable[ClassicRef],
       runtimeEventListener: ActorRef[RuntimeEventListener.Request],
       delayedStoppingActors: Seq[ActorRef[DelayedStopHelper.StoppingMsg]],
+      otherActors: Iterable[ActorRef[_]],
   )
 }

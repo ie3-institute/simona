@@ -11,18 +11,23 @@ import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 
 import scala.concurrent.duration.DurationInt
 
-/** todo
+/** Helper that provides functionality for delayed stopping of actors, i.e. upon
+  * receiving [[FlushAndStop]], the actor is stopped after a fixed amount of
+  * time after the last message has been received
   */
 object DelayedStopHelper {
 
+  /** Note: Needs to extend be message traits for actors that want to use this
+    * functionality
+    */
   sealed trait StoppingMsg
       extends ResultEventListener.Request
       with RuntimeEventListener.Request
 
   /** Message indicating that [[RuntimeEventListener]] should stop. Instead of
-    * using [[org.apache.pekko.actor.typed.scaladsl.ActorContext.stop()]], this
-    * way of stopping allows all messages that have been queued before to be
-    * processed. todo
+    * using [[org.apache.pekko.actor.typed.scaladsl.ActorContext.stop]], this
+    * way of stopping allows the current mailbox to be processed, plus more
+    * messages that are pending to be received.
     */
   case object FlushAndStop extends StoppingMsg
 
