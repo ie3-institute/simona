@@ -50,6 +50,6 @@ trait ExtDataSupport[
     *   the updated state data
     */
   protected def handleDataResponseMessage(
-      extResponseMsg: DataMessage // extResponseMsg
+      extResponseMsg: DataMessage
   )(implicit serviceStateData: S): S
 }

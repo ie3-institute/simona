@@ -96,7 +96,7 @@ class ExtResultDataService(override val scheduler: ActorRef)
       case _: RequestResultEntities =>
         requestResults(tick)
     }
-    (null, None) // No Annoucement
+    (null, None)
   }
 
   /** Handle a message from outside the simulation
@@ -112,8 +112,9 @@ class ExtResultDataService(override val scheduler: ActorRef)
       extMsg: DataMessageFromExt
   )(implicit
       serviceStateData: ExtResultsStateData
-  ): ExtResultsStateData = {
-    serviceStateData
+  ): ExtResultsStateData = extMsg match {
+    case extResultsMessageFromExt: ResultDataMessageFromExt =>
+      serviceStateData.copy(extResultsMessage = Some(extResultsMessageFromExt))
   }
 
   /** Handle a message from inside SIMONA sent to external

@@ -28,6 +28,7 @@ import edu.ie3.simona.service.ev.ExtEvDataService.{
   InitExtEvData,
 }
 import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
+import edu.ie3.simona.ontology.messages.services.DataMessage
 import edu.ie3.simona.util.ReceiveDataMap
 
 import java.util.UUID

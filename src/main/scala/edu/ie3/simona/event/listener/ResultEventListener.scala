@@ -13,7 +13,6 @@ import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.event.Event
 import edu.ie3.simona.event.ResultEvent.{
-  ExternalResultEvent,
   FlexOptionsResultEvent,
   ParticipantResultEvent,
   PowerFlowResultEvent,
@@ -26,7 +25,6 @@ import edu.ie3.simona.exceptions.{
 import edu.ie3.simona.io.result._
 import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.ontology.messages.services.ResultMessage.ResultResponseMessage
-import edu.ie3.simona.sim.SimonaSim.ResultMessage
 import edu.ie3.simona.util.ResultFileHierarchy
 import org.apache.pekko.actor.ActorRef
 import org.slf4j.Logger
@@ -169,7 +167,6 @@ object ResultEventListener extends Transformer3wResultSupport {
       handOverToExternalService(
         resultEntity,
         baseData.extResultDataService,
-        log,
       )
     }
     baseData
@@ -249,7 +246,6 @@ object ResultEventListener extends Transformer3wResultSupport {
   private def handOverToExternalService(
       resultEntity: ResultEntity,
       extResultDataService: Option[ActorRef],
-      log: Logger,
   ): Unit = Try {
     val extResultDataServiceRef = extResultDataService.getOrElse(
       throw new Exception("No external data service registered!")
