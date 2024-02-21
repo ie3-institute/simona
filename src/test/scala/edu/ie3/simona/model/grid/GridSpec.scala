@@ -18,15 +18,17 @@ import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.model.control.{GridControls, TransformerControlGroupModel}
 import edu.ie3.simona.test.common.input.{GridInputTestData, LineInputTestData}
-import edu.ie3.simona.test.common.model.grid.{BasicGrid, BasicGridWithSwitches, FiveLinesWithNodes}
-import edu.ie3.simona.test.common.{ConfigTestData, DefaultTestData, , UnitSpec}
+import edu.ie3.simona.test.common.model.grid.{
+  BasicGrid,
+  BasicGridWithSwitches,
+  FiveLinesWithNodes,
+}
+import edu.ie3.simona.test.common.{ConfigTestData, DefaultTestData, UnitSpec}
 import testutils.TestObjectFactory
-
 
 import scala.jdk.CollectionConverters.SetHasAsJava
 
 import edu.ie3.simona.model.grid.GridModel.GridComponents
-
 
 class GridSpec
     extends UnitSpec

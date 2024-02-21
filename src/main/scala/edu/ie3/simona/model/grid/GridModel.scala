@@ -456,7 +456,6 @@ object GridModel {
 
   }
 
-
   /** Checks all ControlGroups if a) Transformer of ControlGroup and Measurement
     * belongs to the same sub grid. b) Measurements are measure voltage
     * magnitude.
@@ -638,7 +637,8 @@ object GridModel {
     // validate
     validateConsistency(gridModel)
     validateConnectivity(gridModel)
-    checkControlGroupsForMeasurement(subGridContainer,
+    checkControlGroupsForMeasurement(
+      subGridContainer,
       simonaConfig.simona.control,
     )
 

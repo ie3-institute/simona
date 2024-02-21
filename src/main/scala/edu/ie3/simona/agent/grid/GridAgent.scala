@@ -191,7 +191,7 @@ class GridAgent(
         TimeUtil.withDefaults.toZonedDateTime(
           simonaConfig.simona.time.endDateTime
         ),
-        simonaConfig
+        simonaConfig,
       )
 
       /* Reassure, that there are also calculation models for the given uuids */
