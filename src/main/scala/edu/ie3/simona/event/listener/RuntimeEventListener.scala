@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.event.listener
 
-import org.apache.pekko.actor.typed.{Behavior, PostStop}
-import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent.PowerFlowFailed
@@ -19,6 +17,8 @@ import edu.ie3.simona.io.runtime.{
   RuntimeEventSink,
 }
 import edu.ie3.util.TimeUtil
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.{Behavior, PostStop}
 
 import java.util.concurrent.BlockingQueue
 
@@ -29,13 +29,6 @@ import java.util.concurrent.BlockingQueue
 object RuntimeEventListener {
 
   trait Incoming
-
-  /** Message indicating that [[RuntimeEventListener]] should stop. Instead of
-    * using [[org.apache.pekko.actor.typed.scaladsl.ActorContext.stop()]], this
-    * way of stopping allows all messages that have been queued before to be
-    * processed.
-    */
-  case object Stop extends Incoming
 
   /** Creates a runtime event listener behavior with given configuration.
     *
@@ -95,9 +88,8 @@ object RuntimeEventListener {
           )
         Behaviors.same
 
-      case (ctx, Stop) =>
-        ctx.log.debug("")
-        Behaviors.stopped
+      case (ctx, msg: DelayedStopHelper.StoppingMsg) =>
+        DelayedStopHelper.handleMsg((ctx, msg))
     }
     .receiveSignal { case (_, PostStop) =>
       listeners.foreach(_.close())

@@ -7,12 +7,17 @@
 package edu.ie3.simona.sim
 
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
+import edu.ie3.simona.event.listener.{
+  DelayedStopHelper,
+  ResultEventListener,
+  RuntimeEventListener,
+}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.main.RunSimona.SimonaEnded
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.scheduler.TimeAdvancer
+import edu.ie3.simona.sim.SimonaSim.SimulationEnded
 import edu.ie3.simona.sim.SimonaSimSpec._
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
 import edu.ie3.simona.test.common.UnitSpec
@@ -35,28 +40,69 @@ class SimonaSimSpec
 
   "SimonaSim" should {
 
-    "stop and indicate success to starter" when {
+    "indicate success to the starter and stop" when {
 
-      "receiving SimulationEnded(successful = true) from TimeAdvancer" in {}
+      "receiving SimulationEnded from TimeAdvancer" in {
+        val starter = TestProbe[SimonaEnded]("starter")
+        val runtimeListener =
+          TestProbe[RuntimeEventListener.Incoming]("runtimeEventListener")
+        val resultListener =
+          TestProbe[ResultEventListener.Incoming]("resultEventListener")
+        val timeAdvancer = TestProbe[TimeAdvancer.Incoming]("timeAdvancer")
+
+        val simonaSim = spawn(
+          SimonaSim(
+            new MockSetup(
+              Some(runtimeListener.ref),
+              Some(resultListener.ref),
+              Some(timeAdvancer.ref),
+            )
+          ),
+          uniqueName("simonaSim"),
+        )
+
+        simonaSim ! SimonaSim.Start(starter.ref)
+
+        // Initialization has started, mock actors are being created
+        timeAdvancer.expectMessage(TimeAdvancer.Start())
+
+        // Simulation should still "run" at this point
+        starter.expectNoMessage()
+
+        // TimeAdvancer reached its last tick, ending
+        simonaSim ! SimulationEnded
+
+        // runtime/result event listeners receive stop message
+        runtimeListener.expectMessage(DelayedStopHelper.FlushAndStop)
+        resultListener.expectMessage(DelayedStopHelper.FlushAndStop)
+
+        // both runtime and result listener actors have stopped, thus we can end
+        starter.expectMessage(SimonaEnded(successful = true))
+        starter.expectTerminated(simonaSim)
+      }
 
     }
 
-    "stop and indicate failure to starter" when {
-
-      "receiving SimulationEnded(successful = false) from TimeAdvancer" in {}
+    "indicate failure to starter and stop" when {
 
       "child stops due to thrown exception" in {
         val starter = TestProbe[SimonaEnded]("starter")
-        val timeAdvancer = TestProbe[TimeAdvancer.Incoming]("timeAdvancer")
         val runtimeListener =
           TestProbe[RuntimeEventListener.Incoming]("runtimeEventListener")
+        val resultListener =
+          TestProbe[ResultEventListener.Incoming]("resultEventListener")
+        val timeAdvancer = TestProbe[TimeAdvancer.Incoming]("timeAdvancer")
 
         val receiveThrowingActor =
           TestProbe[ActorRef[SchedulerMessage]]("receiveThrowingActor")
 
         val simonaSim = spawn(
           SimonaSim(
-            new MockSetup(Some(runtimeListener.ref), Some(timeAdvancer.ref)) {
+            new MockSetup(
+              Some(runtimeListener.ref),
+              Some(resultListener.ref),
+              Some(timeAdvancer.ref),
+            ) {
 
               override def scheduler(
                   context: ActorContext[_],
@@ -90,32 +136,40 @@ class SimonaSimSpec
         starter.expectNoMessage()
 
         // We cause an actor to fail.
-        // (The actor reacts to any message with an exception,
+        // (The mock actor reacts to any message with an exception,
         // we just pick the first best fit)
         throwingActor ! Completion(TestProbe().ref)
 
+        // runtime/result event listeners receive stop message
         runtimeListener.expectMessage(
           RuntimeEvent.Error("Simulation stopped with error.")
         )
-        runtimeListener.expectMessage(RuntimeEventListener.Stop)
+        runtimeListener.expectMessage(DelayedStopHelper.FlushAndStop)
+        resultListener.expectMessage(DelayedStopHelper.FlushAndStop)
 
-        // SimonaSim should run its failure routine and tell us that a failure happened
+        // both runtime and result listener actors have stopped, thus we can end
         starter.expectMessage(SimonaEnded(successful = false))
         starter.expectTerminated(simonaSim)
       }
 
       "child stops by changing behavior" in {
         val starter = TestProbe[SimonaEnded]("starter")
-        val timeAdvancer = TestProbe[TimeAdvancer.Incoming]("timeAdvancer")
         val runtimeListener =
           TestProbe[RuntimeEventListener.Incoming]("runtimeEventListener")
+        val resultListener =
+          TestProbe[ResultEventListener.Incoming]("resultEventListener")
+        val timeAdvancer = TestProbe[TimeAdvancer.Incoming]("timeAdvancer")
 
         val receiveStoppingActor =
           TestProbe[ActorRef[SchedulerMessage]]("receiveStoppingActor")
 
         val simonaSim = spawn(
           SimonaSim(
-            new MockSetup(Some(runtimeListener.ref), Some(timeAdvancer.ref)) {
+            new MockSetup(
+              Some(runtimeListener.ref),
+              Some(resultListener.ref),
+              Some(timeAdvancer.ref),
+            ) {
 
               override def scheduler(
                   context: ActorContext[_],
@@ -149,16 +203,81 @@ class SimonaSimSpec
         starter.expectNoMessage()
 
         // We cause an actor to fail.
-        // (The actor reacts to any message by stopping itself,
+        // (The mock actor reacts to any message by stopping itself,
         // we just pick the first best fit)
         stoppingActor ! Completion(TestProbe().ref)
 
+        // runtime/result event listeners receive stop message
         runtimeListener.expectMessage(
           RuntimeEvent.Error("Simulation stopped with error.")
         )
-        runtimeListener.expectMessage(RuntimeEventListener.Stop)
+        runtimeListener.expectMessage(DelayedStopHelper.FlushAndStop)
+        resultListener.expectMessage(DelayedStopHelper.FlushAndStop)
 
-        // SimonaSim should run its failure routine and tell us that a failure happened
+        // both runtime and result listener actors have stopped, thus we can end
+        starter.expectMessage(SimonaEnded(successful = false))
+        starter.expectTerminated(simonaSim)
+      }
+
+      "RuntimeEventListener stops unexpectedly" in {
+        val starter = TestProbe[SimonaEnded]("starter")
+        val resultListener =
+          TestProbe[ResultEventListener.Incoming]("resultEventListener")
+        val timeAdvancer = TestProbe[TimeAdvancer.Incoming]("timeAdvancer")
+
+        val receiveThrowingActor =
+          TestProbe[ActorRef[RuntimeEventListener.Incoming]](
+            "receiveThrowingActor"
+          )
+
+        val simonaSim = spawn(
+          SimonaSim(
+            new MockSetup(
+              None,
+              Some(resultListener.ref),
+              Some(timeAdvancer.ref),
+            ) {
+
+              override def runtimeEventListener(
+                  context: ActorContext[_]
+              ): ActorRef[RuntimeEventListener.Incoming] = {
+                // we cannot return a testprobe ref here,
+                // needs to be a proper actor created by context
+                val throwingActor = context
+                  .spawn[RuntimeEventListener.Incoming](
+                    throwOnMessage,
+                    uniqueName("throwingActor"),
+                  )
+                // send ref to the outside
+                receiveThrowingActor.ref ! throwingActor
+                throwingActor
+              }
+
+            }
+          ),
+          uniqueName("simonaSim"),
+        )
+
+        simonaSim ! SimonaSim.Start(starter.ref)
+
+        // Initialization has started, mock actors are being created
+        val throwingActor =
+          receiveThrowingActor
+            .expectMessageType[ActorRef[RuntimeEventListener.Incoming]]
+        timeAdvancer.expectMessage(TimeAdvancer.Start())
+
+        // Simulation should still "run" at this point
+        starter.expectNoMessage()
+
+        // We cause the RuntimeEventListener to fail.
+        // (The mock actor reacts to any message with an exception,
+        // we just pick the first best fit)
+        throwingActor ! RuntimeEvent.Initializing
+
+        // Result event listener receives stop message
+        resultListener.expectMessage(DelayedStopHelper.FlushAndStop)
+
+        // both runtime and result listener actors have stopped, thus we can end
         starter.expectMessage(SimonaEnded(successful = false))
         starter.expectTerminated(simonaSim)
       }
@@ -203,6 +322,18 @@ object SimonaSimSpec {
     Behaviors.same
   }
 
+  def stoppableForwardMessage[T >: DelayedStopHelper.StoppingMsg](
+      recipient: Option[ActorRef[T]]
+  ): Behavior[T] =
+    Behaviors.receiveMessage {
+      case msg @ DelayedStopHelper.FlushAndStop =>
+        recipient.foreach(_ ! msg)
+        Behaviors.stopped
+      case msg =>
+        recipient.foreach(_ ! msg)
+        Behaviors.same
+    }
+
   def forwardMessage[T](recipient: Option[ActorRef[T]]): Behavior[T] =
     Behaviors.receiveMessage { msg =>
       recipient.foreach(_ ! msg)
@@ -229,6 +360,7 @@ object SimonaSimSpec {
 
   class MockSetup(
       runtimeEventProbe: Option[ActorRef[RuntimeEventListener.Incoming]] = None,
+      resultEventProbe: Option[ActorRef[ResultEventListener.Incoming]] = None,
       timeAdvancerProbe: Option[ActorRef[TimeAdvancer.Incoming]] = None,
   ) extends SimonaSetup {
 
@@ -237,13 +369,18 @@ object SimonaSimSpec {
     override def runtimeEventListener(
         context: ActorContext[_]
     ): ActorRef[RuntimeEventListener.Incoming] = context.spawn(
-      forwardMessage(runtimeEventProbe),
+      stoppableForwardMessage(runtimeEventProbe),
       uniqueName("runtimeEventForwarder"),
     )
 
     override def resultEventListener(
         context: ActorContext[_]
-    ): Seq[ActorRef[ResultEventListener.Incoming]] = Seq.empty
+    ): Seq[ActorRef[ResultEventListener.Incoming]] = Seq(
+      context.spawn(
+        stoppableForwardMessage(resultEventProbe),
+        uniqueName("resultEventForwarder"),
+      )
+    )
 
     override def primaryServiceProxy(
         context: ActorContext[_],

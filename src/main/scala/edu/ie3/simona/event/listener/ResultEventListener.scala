@@ -40,10 +40,6 @@ object ResultEventListener extends Transformer3wResultSupport {
 
   private final case class InitFailed(ex: Exception) extends Incoming
 
-  final case object FlushAndStop extends Incoming
-
-  private final case object StopTimeout extends Incoming
-
   /** [[ResultEventListener]] base data containing all information the listener
     * needs
     *
@@ -278,7 +274,7 @@ object ResultEventListener extends Transformer3wResultSupport {
   }
 
   private def idle(baseData: BaseData): Behavior[Incoming] = Behaviors
-    .receive[Incoming] {
+    .receivePartial[Incoming] {
       case (ctx, ParticipantResultEvent(participantResult)) =>
         val updatedBaseData = handleResult(participantResult, baseData, ctx.log)
         idle(updatedBaseData)
@@ -318,17 +314,8 @@ object ResultEventListener extends Transformer3wResultSupport {
         val updatedBaseData = handleResult(flexOptionsResult, baseData, ctx.log)
         idle(updatedBaseData)
 
-      case (ctx, FlushAndStop) =>
-        ctx.log.debug(
-          s"Received FlushAndStop message, shutting down once no message has been received for 5 seconds."
-        )
-        ctx.setReceiveTimeout(5.seconds, StopTimeout)
-        Behaviors.same
-
-      case (ctx, StopTimeout) =>
-        // there have been no messages for 5 seconds, let's end this
-        ctx.log.debug(s"${getClass.getSimpleName} is now stopped.")
-        Behaviors.stopped
+      case (ctx, msg: DelayedStopHelper.StoppingMsg) =>
+        DelayedStopHelper.handleMsg((ctx, msg))
 
     }
     .receiveSignal { case (ctx, PostStop) =>
