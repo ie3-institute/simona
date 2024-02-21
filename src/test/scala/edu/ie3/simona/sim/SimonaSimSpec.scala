@@ -7,6 +7,7 @@
 package edu.ie3.simona.sim
 
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.event.listener.{
   DelayedStopHelper,
   ResultEventListener,
@@ -49,6 +50,7 @@ class SimonaSimSpec
         val resultListener =
           TestProbe[ResultEventListener.Incoming]("resultEventListener")
         val timeAdvancer = TestProbe[TimeAdvancer.Incoming]("timeAdvancer")
+        val extSimAdapter = TestProbe[ExtSimAdapter.Stop]("extSimAdapter")
 
         val simonaSim = spawn(
           SimonaSim(
@@ -56,7 +58,20 @@ class SimonaSimSpec
               Some(runtimeListener.ref),
               Some(resultListener.ref),
               Some(timeAdvancer.ref),
-            )
+            ) {
+              override def extSimulations(
+                  context: ActorContext[_],
+                  scheduler: ActorRef[SchedulerMessage],
+              ): ExtSimSetupData = {
+                // We cannot return a TestProbe ref here,
+                // needs to be a proper actor created by context
+                val extSim = context.spawn(
+                  forwardMessage(Some(extSimAdapter.ref)),
+                  uniqueName("extSimAdapterForwarder"),
+                )
+                ExtSimSetupData(Iterable(extSim.toClassic), Map.empty)
+              }
+            }
           ),
           uniqueName("simonaSim"),
         )
@@ -72,9 +87,12 @@ class SimonaSimSpec
         // TimeAdvancer reached its last tick, ending
         simonaSim ! SimulationEnded
 
-        // Runtime/result event listeners receive stop message
+        // Actors receive stop message
         runtimeListener.expectMessage(DelayedStopHelper.FlushAndStop)
         resultListener.expectMessage(DelayedStopHelper.FlushAndStop)
+        extSimAdapter.expectMessage(
+          ExtSimAdapter.Stop(simulationSuccessful = true)
+        )
 
         // Both runtime and result listener actors have stopped, thus we can end
         starter.expectMessage(SimonaEnded(successful = true))
@@ -108,8 +126,6 @@ class SimonaSimSpec
                   context: ActorContext[_],
                   timeAdvancer: ActorRef[TimeAdvancer.Incoming],
               ): ActorRef[SchedulerMessage] = {
-                // We cannot return a TestProbe ref here,
-                // needs to be a proper actor created by context
                 val throwingActor = context
                   .spawn[SchedulerMessage](
                     throwOnMessage,
@@ -175,8 +191,6 @@ class SimonaSimSpec
                   context: ActorContext[_],
                   timeAdvancer: ActorRef[TimeAdvancer.Incoming],
               ): ActorRef[SchedulerMessage] = {
-                // We cannot return a TestProbe ref here,
-                // needs to be a proper actor created by context
                 val stoppingActor =
                   context.spawn[SchedulerMessage](
                     stopOnMessage,
@@ -240,8 +254,6 @@ class SimonaSimSpec
               override def runtimeEventListener(
                   context: ActorContext[_]
               ): ActorRef[RuntimeEventListener.Incoming] = {
-                // We cannot return a TestProbe ref here,
-                // needs to be a proper actor created by context
                 val throwingActor = context
                   .spawn[RuntimeEventListener.Incoming](
                     throwOnMessage,
@@ -314,16 +326,25 @@ class SimonaSimSpec
 
 object SimonaSimSpec {
 
+  /** Behavior that does nothing on receiving message */
   def empty[T]: Behavior[T] = Behaviors.receiveMessage { _ =>
     Behaviors.same
   }
 
+  /** Behavior that forwards all messages to given actor. This is required
+    * because unless actors are created by the ActorContext inside SimonaSim,
+    * they cannot be stopped by SimonaSim.
+    */
   def forwardMessage[T](recipient: Option[ActorRef[T]]): Behavior[T] =
     Behaviors.receiveMessage { msg =>
       recipient.foreach(_ ! msg)
       Behaviors.same
     }
 
+  /** Similarly to [[forwardMessage]], this behavior stops on receiving
+    * [[DelayedStopHelper.FlushAndStop]] and forwards all other messages to
+    * given actor.
+    */
   def stoppableForwardMessage[T >: DelayedStopHelper.StoppingMsg](
       recipient: Option[ActorRef[T]]
   ): Behavior[T] =
@@ -336,10 +357,14 @@ object SimonaSimSpec {
         Behaviors.same
     }
 
+  /** Behavior that throws a RuntimeException on receiving any message, which
+    * should cause the actor to stop
+    */
   def throwOnMessage[T]: Behavior[T] = Behaviors.receiveMessage { _ =>
     throwTestException()
   }
 
+  /** Behavior that stops itself on the first received message */
   def stopOnMessage[T]: Behavior[T] = Behaviors.receiveMessage { _ =>
     Behaviors.stopped
   }
@@ -352,6 +377,18 @@ object SimonaSimSpec {
   def uniqueName(name: String): String =
     s"${name}_${UUID.randomUUID()}"
 
+  /** Mock implementation of [[SimonaSetup]]
+    *
+    * @param runtimeEventProbe
+    *   Optional ActorRef that messages received by RuntimeEventListener are
+    *   forwarded to
+    * @param resultEventProbe
+    *   Optional ActorRef that messages received by ResultEventListener are
+    *   forwarded to
+    * @param timeAdvancerProbe
+    *   Optional ActorRef that messages received by TimeAdvancer are forwarded
+    *   to
+    */
   class MockSetup(
       runtimeEventProbe: Option[ActorRef[RuntimeEventListener.Incoming]] = None,
       resultEventProbe: Option[ActorRef[ResultEventListener.Incoming]] = None,

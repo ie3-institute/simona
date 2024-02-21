@@ -108,6 +108,10 @@ object SimonaSim {
         ctx.watch(scheduler)
         ctx.watch(primaryServiceProxy.toTyped)
         ctx.watch(weatherService.toTyped)
+        extSimulationData.extSimAdapters.map(_.toTyped).foreach(ctx.watch)
+        extSimulationData.extDataServices.values
+          .map(_.toTyped)
+          .foreach(ctx.watch)
         gridAgents.foreach(ref => ctx.watch(ref.toTyped))
 
         // Start simulation
@@ -118,7 +122,9 @@ object SimonaSim {
           scheduler,
           primaryServiceProxy.toTyped,
           weatherService.toTyped,
-        ) ++ gridAgents.map(_.toTyped)
+        ) ++
+          gridAgents.map(_.toTyped) ++
+          extSimulationData.extDataServices.values.map(_.toTyped)
 
         idle(
           ActorData(
