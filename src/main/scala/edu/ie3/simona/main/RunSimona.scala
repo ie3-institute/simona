@@ -97,6 +97,6 @@ object RunSimona {
   /** Reported back from the scheduler if an error occurred during the
     * simulation
     */
-  case class SimonaEnded(successful: Boolean)
+  final case class SimonaEnded(successful: Boolean)
 
 }

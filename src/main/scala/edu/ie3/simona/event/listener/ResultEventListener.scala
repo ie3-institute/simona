@@ -32,13 +32,13 @@ import scala.util.{Failure, Success, Try}
 
 object ResultEventListener extends Transformer3wResultSupport {
 
-  trait Incoming
+  trait Request
 
   private final case class SinkResponse(
       response: Map[Class[_], ResultEntitySink]
-  ) extends Incoming
+  ) extends Request
 
-  private final case class InitFailed(ex: Exception) extends Incoming
+  private final case class InitFailed(ex: Exception) extends Request
 
   /** [[ResultEventListener]] base data containing all information the listener
     * needs
@@ -230,7 +230,7 @@ object ResultEventListener extends Transformer3wResultSupport {
 
   def apply(
       resultFileHierarchy: ResultFileHierarchy
-  ): Behavior[Incoming] = Behaviors.setup[Incoming] { ctx =>
+  ): Behavior[Request] = Behaviors.setup[Request] { ctx =>
     ctx.log.debug("Starting initialization!")
     resultFileHierarchy.resultSinkType match {
       case _: ResultSinkType.Kafka =>
@@ -256,8 +256,8 @@ object ResultEventListener extends Transformer3wResultSupport {
     init()
   }
 
-  private def init(): Behavior[Incoming] = Behaviors.withStash(200) { buffer =>
-    Behaviors.receive[Incoming] {
+  private def init(): Behavior[Request] = Behaviors.withStash(200) { buffer =>
+    Behaviors.receive[Request] {
       case (ctx, SinkResponse(response)) =>
         ctx.log.debug("Initialization complete!")
         buffer.unstashAll(idle(BaseData(response)))
@@ -273,8 +273,8 @@ object ResultEventListener extends Transformer3wResultSupport {
     }
   }
 
-  private def idle(baseData: BaseData): Behavior[Incoming] = Behaviors
-    .receivePartial[Incoming] {
+  private def idle(baseData: BaseData): Behavior[Request] = Behaviors
+    .receivePartial[Request] {
       case (ctx, ParticipantResultEvent(participantResult)) =>
         val updatedBaseData = handleResult(participantResult, baseData, ctx.log)
         idle(updatedBaseData)

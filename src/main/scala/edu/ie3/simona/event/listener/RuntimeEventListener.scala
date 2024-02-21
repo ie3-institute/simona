@@ -28,7 +28,7 @@ import java.util.concurrent.BlockingQueue
   */
 object RuntimeEventListener {
 
-  trait Incoming
+  trait Request
 
   /** Creates a runtime event listener behavior with given configuration.
     *
@@ -45,7 +45,7 @@ object RuntimeEventListener {
       listenerConf: SimonaConfig.Simona.Runtime.Listener,
       queue: Option[BlockingQueue[RuntimeEvent]],
       startDateTimeString: String,
-  ): Behavior[Incoming] = Behaviors.setup { ctx =>
+  ): Behavior[Request] = Behaviors.setup { ctx =>
     val listeners = Iterable(
       Some(
         RuntimeEventLogSink(
@@ -69,8 +69,8 @@ object RuntimeEventListener {
       listeners: Iterable[RuntimeEventSink],
       eventsToProcess: Option[List[String]] = None,
       runtimeStats: RuntimeStats = RuntimeStats(),
-  ): Behavior[Incoming] = Behaviors
-    .receive[Incoming] {
+  ): Behavior[Request] = Behaviors
+    .receive[Request] {
       case (_, PowerFlowFailed) =>
         val updatedRuntimeData = runtimeStats
           .copy(failedPowerFlows = runtimeStats.failedPowerFlows + 1)

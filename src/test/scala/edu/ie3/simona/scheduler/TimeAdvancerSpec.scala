@@ -38,7 +38,7 @@ class TimeAdvancerSpec
   "The TimeAdvancer should work correctly" when {
 
     "started checkWindow but without pauseTick" in {
-      val simulation = TestProbe[SimonaSim.Incoming]("simulation")
+      val simulation = TestProbe[SimonaSim.Request]("simulation")
       val scheduler = TestProbe[Activation]("scheduler")
       val listener = TestProbe[RuntimeEvent]("listener")
 
@@ -136,7 +136,7 @@ class TimeAdvancerSpec
     }
 
     "started without checkWindow and pauseTick" in {
-      val simulation = TestProbe[SimonaSim.Incoming]("simulation")
+      val simulation = TestProbe[SimonaSim.Request]("simulation")
       val scheduler = TestProbe[Activation]("scheduler")
       val listener = TestProbe[RuntimeEvent]("listener")
 
@@ -188,7 +188,7 @@ class TimeAdvancerSpec
     }
 
     "paused and started after initialization" in {
-      val simulation = TestProbe[SimonaSim.Incoming]("simulation")
+      val simulation = TestProbe[SimonaSim.Request]("simulation")
       val scheduler = TestProbe[Activation]("scheduler")
       val listener = TestProbe[RuntimeEvent]("listener")
 
@@ -262,7 +262,7 @@ class TimeAdvancerSpec
     }
 
     "paused and started and there is a gap between StartSchedule tick and next activation tick" in {
-      val simulation = TestProbe[SimonaSim.Incoming]("simulation")
+      val simulation = TestProbe[SimonaSim.Request]("simulation")
       val scheduler = TestProbe[Activation]("scheduler")
       val listener = TestProbe[RuntimeEvent]("listener")
 
@@ -350,7 +350,7 @@ class TimeAdvancerSpec
     }
 
     "paused and endTick - pauseScheduleAtTick == 1" in {
-      val simulation = TestProbe[SimonaSim.Incoming]("simulation")
+      val simulation = TestProbe[SimonaSim.Request]("simulation")
       val scheduler = TestProbe[Activation]("scheduler")
       val listener = TestProbe[RuntimeEvent]("listener")
 
@@ -428,7 +428,7 @@ class TimeAdvancerSpec
     }
 
     "activation has been scheduled after endTick" in {
-      val simulation = TestProbe[SimonaSim.Incoming]("simulation")
+      val simulation = TestProbe[SimonaSim.Request]("simulation")
       val scheduler = TestProbe[Activation]("scheduler")
       val listener = TestProbe[RuntimeEvent]("listener")
 
@@ -478,7 +478,7 @@ class TimeAdvancerSpec
     }
 
     "no next trigger has been supplied" in {
-      val simulation = TestProbe[SimonaSim.Incoming]("simulation")
+      val simulation = TestProbe[SimonaSim.Request]("simulation")
       val scheduler = TestProbe[Activation]("scheduler")
       val listener = TestProbe[RuntimeEvent]("listener")
 
@@ -538,7 +538,7 @@ class TimeAdvancerSpec
     }
 
     "endTick < pauseScheduleAtTick" in {
-      val simulation = TestProbe[SimonaSim.Incoming]("simulation")
+      val simulation = TestProbe[SimonaSim.Request]("simulation")
       val scheduler = TestProbe[Activation]("scheduler")
       val listener = TestProbe[RuntimeEvent]("listener")
 
@@ -588,7 +588,7 @@ class TimeAdvancerSpec
     }
 
     "endTick == pauseScheduleAtTick" in {
-      val simulation = TestProbe[SimonaSim.Incoming]("simulation")
+      val simulation = TestProbe[SimonaSim.Request]("simulation")
       val scheduler = TestProbe[Activation]("scheduler")
       val listener = TestProbe[RuntimeEvent]("listener")
 
@@ -641,7 +641,7 @@ class TimeAdvancerSpec
   "The TimeAdvancer should fail and stop" when {
 
     "wrong next tick has been supplied" in {
-      val simulation = TestProbe[SimonaSim.Incoming]("simulation")
+      val simulation = TestProbe[SimonaSim.Request]("simulation")
       val scheduler = TestProbe[Activation]("scheduler")
       val listener = TestProbe[RuntimeEvent]("listener")
 

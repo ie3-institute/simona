@@ -23,7 +23,7 @@ import org.apache.pekko.actor.typed.{ActorRef, Behavior}
   */
 object TimeAdvancer {
 
-  trait Incoming
+  trait Request
 
   /** Starts simulation by activating the next (or first) tick
     *
@@ -33,7 +33,7 @@ object TimeAdvancer {
     */
   final case class Start(
       pauseTick: Option[Long] = None
-  ) extends Incoming
+  ) extends Request
 
   /** @param simulation
     *   The root actor of the simulation
@@ -49,7 +49,7 @@ object TimeAdvancer {
       eventListener: Option[ActorRef[RuntimeEvent]],
       checkWindow: Option[Int],
       endTick: Long,
-  ): Behavior[Incoming] = Behaviors.receivePartial {
+  ): Behavior[Request] = Behaviors.receivePartial {
     case (_, ScheduleActivation(actor, tick, _)) =>
       inactive(
         TimeAdvancerData(simulation, actor, endTick),
@@ -76,7 +76,7 @@ object TimeAdvancer {
       notifier: Option[RuntimeNotifier],
       startingTick: Long,
       nextActiveTick: Long,
-  ): Behavior[Incoming] = Behaviors.receivePartial {
+  ): Behavior[Request] = Behaviors.receivePartial {
     case (_, Start(pauseTick)) =>
       val updatedNotifier = notifier.map {
         _.starting(
@@ -113,7 +113,7 @@ object TimeAdvancer {
       notifier: Option[RuntimeNotifier],
       activeTick: Long,
       pauseTick: Option[Long],
-  ): Behavior[Incoming] = Behaviors.receivePartial {
+  ): Behavior[Request] = Behaviors.receivePartial {
     case (ctx, Completion(_, maybeNewTick)) =>
       checkCompletion(activeTick, maybeNewTick)
         .map(endWithFailure(ctx, notifier, activeTick, _))
@@ -179,7 +179,7 @@ object TimeAdvancer {
   private def endSuccessfully(
       data: TimeAdvancerData,
       notifier: Option[RuntimeNotifier],
-  ): Behavior[Incoming] = {
+  ): Behavior[Request] = {
     data.simulation ! SimonaSim.SimulationEnded
 
     notifier.foreach {
@@ -193,11 +193,11 @@ object TimeAdvancer {
   }
 
   private def endWithFailure(
-      ctx: ActorContext[Incoming],
+      ctx: ActorContext[Request],
       notifier: Option[RuntimeNotifier],
       tick: Long,
       errorMsg: String,
-  ): Behavior[Incoming] = {
+  ): Behavior[Request] = {
     notifier.foreach(_.error(tick, errorMsg))
 
     stopOnError(ctx, errorMsg)

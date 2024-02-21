@@ -250,7 +250,7 @@ class SimonaStandaloneSetup(
       context: ActorContext[_],
       simulation: ActorRef[SimonaSim.SimulationEnded.type],
       runtimeEventListener: ActorRef[RuntimeEvent],
-  ): ActorRef[TimeAdvancer.Incoming] = {
+  ): ActorRef[TimeAdvancer.Request] = {
     val startDateTime = TimeUtil.withDefaults.toZonedDateTime(
       simonaConfig.simona.time.startDateTime
     )
@@ -271,7 +271,7 @@ class SimonaStandaloneSetup(
 
   override def scheduler(
       context: ActorContext[_],
-      timeAdvancer: ActorRef[TimeAdvancer.Incoming],
+      timeAdvancer: ActorRef[TimeAdvancer.Request],
   ): ActorRef[SchedulerMessage] =
     context
       .spawn(
@@ -281,7 +281,7 @@ class SimonaStandaloneSetup(
 
   override def runtimeEventListener(
       context: ActorContext[_]
-  ): ActorRef[RuntimeEventListener.Incoming] =
+  ): ActorRef[RuntimeEventListener.Request] =
     context
       .spawn(
         RuntimeEventListener(
@@ -294,7 +294,7 @@ class SimonaStandaloneSetup(
 
   override def resultEventListener(
       context: ActorContext[_]
-  ): Seq[ActorRef[ResultEventListener.Incoming]] = {
+  ): Seq[ActorRef[ResultEventListener.Request]] = {
     // append ResultEventListener as well to write raw output files
     ArgsParser
       .parseListenerConfigOption(simonaConfig.simona.event.listener)

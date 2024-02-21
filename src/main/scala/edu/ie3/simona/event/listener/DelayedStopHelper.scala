@@ -16,8 +16,8 @@ import scala.concurrent.duration.DurationInt
 object DelayedStopHelper {
 
   sealed trait StoppingMsg
-      extends ResultEventListener.Incoming
-      with RuntimeEventListener.Incoming
+      extends ResultEventListener.Request
+      with RuntimeEventListener.Request
 
   /** Message indicating that [[RuntimeEventListener]] should stop. Instead of
     * using [[org.apache.pekko.actor.typed.scaladsl.ActorContext.stop()]], this

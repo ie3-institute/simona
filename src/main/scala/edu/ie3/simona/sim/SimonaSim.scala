@@ -34,17 +34,17 @@ import org.apache.pekko.actor.{ActorRef => ClassicRef}
   */
 object SimonaSim {
 
-  sealed trait Incoming
+  sealed trait Request
 
   /** Starts simulation by activating the next (or first) tick */
   final case class Start(
       starter: ActorRef[SimonaEnded]
-  ) extends Incoming
+  ) extends Request
 
   /** Indicate that the simulation has ended successfully */
-  case object SimulationEnded extends Incoming
+  case object SimulationEnded extends Request
 
-  def apply(simonaSetup: SimonaSetup): Behavior[Incoming] =
+  def apply(simonaSetup: SimonaSetup): Behavior[Request] =
     Behaviors.receivePartial { case (ctx, startMsg @ Start(starter)) =>
       // We redirect to initializing behavior so that starter ref
       // is available in case of a sudden termination of this actor
@@ -62,9 +62,9 @@ object SimonaSim {
   private def initializing(
       simonaSetup: SimonaSetup,
       starter: ActorRef[SimonaEnded],
-  ): Behavior[Incoming] =
+  ): Behavior[Request] =
     Behaviors
-      .receivePartial[Incoming] { case (ctx, Start(_)) =>
+      .receivePartial[Request] { case (ctx, Start(_)) =>
         val resultEventListeners =
           simonaSetup.resultEventListener(ctx)
 
@@ -145,8 +145,8 @@ object SimonaSim {
         Behaviors.stopped
       }
 
-  private def idle(actorData: ActorData): Behavior[Incoming] = Behaviors
-    .receivePartial[Incoming] { case (ctx, SimulationEnded) =>
+  private def idle(actorData: ActorData): Behavior[Request] = Behaviors
+    .receivePartial[Request] { case (ctx, SimulationEnded) =>
       // if the simulation is successful, we're waiting for the event
       // listeners to terminate and thus do not unwatch them here
       ctx.log.info(
@@ -189,7 +189,7 @@ object SimonaSim {
       ctx: ActorContext[_],
       actorData: ActorData,
       simulationSuccessful: Boolean,
-  ): Behavior[Incoming] = {
+  ): Behavior[Request] = {
     actorData.watchedActors.foreach { ref =>
       ctx.unwatch(ref)
       ctx.stop(ref)
@@ -215,7 +215,7 @@ object SimonaSim {
       starter: ActorRef[SimonaEnded],
       remainingListeners: Seq[ActorRef[_]],
       simulationSuccessful: Boolean,
-  ): Behavior[Incoming] = Behaviors.receiveSignal[Incoming] {
+  ): Behavior[Request] = Behaviors.receiveSignal[Request] {
     case (ctx, Terminated(actor)) if remainingListeners.contains(actor) =>
       val updatedRemainingListeners = remainingListeners.filterNot(_ == actor)
 
@@ -248,7 +248,7 @@ object SimonaSim {
       starter: ActorRef[SimonaEnded],
       watchedActors: Iterable[ActorRef[_]],
       extSimAdapters: Iterable[ClassicRef],
-      runtimeEventListener: ActorRef[RuntimeEventListener.Incoming],
+      runtimeEventListener: ActorRef[RuntimeEventListener.Request],
       delayedStoppingActors: Seq[ActorRef[DelayedStopHelper.StoppingMsg]],
   )
 }

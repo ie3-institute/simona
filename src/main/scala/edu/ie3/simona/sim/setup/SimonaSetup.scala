@@ -44,7 +44,7 @@ trait SimonaSetup {
     */
   def runtimeEventListener(
       context: ActorContext[_]
-  ): ActorRef[RuntimeEventListener.Incoming]
+  ): ActorRef[RuntimeEventListener.Request]
 
   /** Creates a sequence of system participant event listeners
     *
@@ -55,7 +55,7 @@ trait SimonaSetup {
     */
   def resultEventListener(
       context: ActorContext[_]
-  ): Seq[ActorRef[ResultEventListener.Incoming]]
+  ): Seq[ActorRef[ResultEventListener.Request]]
 
   /** Creates a primary service proxy. The proxy is the first instance to ask
     * for primary data. If necessary, it delegates the registration request to
@@ -117,7 +117,7 @@ trait SimonaSetup {
       context: ActorContext[_],
       simulation: ActorRef[SimonaSim.SimulationEnded.type],
       runtimeEventListener: ActorRef[RuntimeEvent],
-  ): ActorRef[TimeAdvancer.Incoming]
+  ): ActorRef[TimeAdvancer.Request]
 
   /** Creates a scheduler service
     *
@@ -130,7 +130,7 @@ trait SimonaSetup {
     */
   def scheduler(
       context: ActorContext[_],
-      timeAdvancer: ActorRef[TimeAdvancer.Incoming],
+      timeAdvancer: ActorRef[TimeAdvancer.Request],
   ): ActorRef[SchedulerMessage]
 
   /** Creates all the needed grid agents

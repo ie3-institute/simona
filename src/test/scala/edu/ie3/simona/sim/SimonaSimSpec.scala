@@ -46,10 +46,10 @@ class SimonaSimSpec
       "receiving SimulationEnded from TimeAdvancer" in {
         val starter = TestProbe[SimonaEnded]("starter")
         val runtimeListener =
-          TestProbe[RuntimeEventListener.Incoming]("runtimeEventListener")
+          TestProbe[RuntimeEventListener.Request]("runtimeEventListener")
         val resultListener =
-          TestProbe[ResultEventListener.Incoming]("resultEventListener")
-        val timeAdvancer = TestProbe[TimeAdvancer.Incoming]("timeAdvancer")
+          TestProbe[ResultEventListener.Request]("resultEventListener")
+        val timeAdvancer = TestProbe[TimeAdvancer.Request]("timeAdvancer")
         val extSimAdapter = TestProbe[ExtSimAdapter.Stop]("extSimAdapter")
 
         val simonaSim = spawn(
@@ -106,10 +106,10 @@ class SimonaSimSpec
       "child stops due to thrown exception" in {
         val starter = TestProbe[SimonaEnded]("starter")
         val runtimeListener =
-          TestProbe[RuntimeEventListener.Incoming]("runtimeEventListener")
+          TestProbe[RuntimeEventListener.Request]("runtimeEventListener")
         val resultListener =
-          TestProbe[ResultEventListener.Incoming]("resultEventListener")
-        val timeAdvancer = TestProbe[TimeAdvancer.Incoming]("timeAdvancer")
+          TestProbe[ResultEventListener.Request]("resultEventListener")
+        val timeAdvancer = TestProbe[TimeAdvancer.Request]("timeAdvancer")
 
         val receiveThrowingActor =
           TestProbe[ActorRef[SchedulerMessage]]("receiveThrowingActor")
@@ -124,7 +124,7 @@ class SimonaSimSpec
 
               override def scheduler(
                   context: ActorContext[_],
-                  timeAdvancer: ActorRef[TimeAdvancer.Incoming],
+                  timeAdvancer: ActorRef[TimeAdvancer.Request],
               ): ActorRef[SchedulerMessage] = {
                 val throwingActor = context
                   .spawn[SchedulerMessage](
@@ -171,10 +171,10 @@ class SimonaSimSpec
       "child stops by changing behavior" in {
         val starter = TestProbe[SimonaEnded]("starter")
         val runtimeListener =
-          TestProbe[RuntimeEventListener.Incoming]("runtimeEventListener")
+          TestProbe[RuntimeEventListener.Request]("runtimeEventListener")
         val resultListener =
-          TestProbe[ResultEventListener.Incoming]("resultEventListener")
-        val timeAdvancer = TestProbe[TimeAdvancer.Incoming]("timeAdvancer")
+          TestProbe[ResultEventListener.Request]("resultEventListener")
+        val timeAdvancer = TestProbe[TimeAdvancer.Request]("timeAdvancer")
 
         val receiveStoppingActor =
           TestProbe[ActorRef[SchedulerMessage]]("receiveStoppingActor")
@@ -189,7 +189,7 @@ class SimonaSimSpec
 
               override def scheduler(
                   context: ActorContext[_],
-                  timeAdvancer: ActorRef[TimeAdvancer.Incoming],
+                  timeAdvancer: ActorRef[TimeAdvancer.Request],
               ): ActorRef[SchedulerMessage] = {
                 val stoppingActor =
                   context.spawn[SchedulerMessage](
@@ -235,11 +235,11 @@ class SimonaSimSpec
       "RuntimeEventListener stops unexpectedly" in {
         val starter = TestProbe[SimonaEnded]("starter")
         val resultListener =
-          TestProbe[ResultEventListener.Incoming]("resultEventListener")
-        val timeAdvancer = TestProbe[TimeAdvancer.Incoming]("timeAdvancer")
+          TestProbe[ResultEventListener.Request]("resultEventListener")
+        val timeAdvancer = TestProbe[TimeAdvancer.Request]("timeAdvancer")
 
         val receiveThrowingActor =
-          TestProbe[ActorRef[RuntimeEventListener.Incoming]](
+          TestProbe[ActorRef[RuntimeEventListener.Request]](
             "receiveThrowingActor"
           )
 
@@ -253,9 +253,9 @@ class SimonaSimSpec
 
               override def runtimeEventListener(
                   context: ActorContext[_]
-              ): ActorRef[RuntimeEventListener.Incoming] = {
+              ): ActorRef[RuntimeEventListener.Request] = {
                 val throwingActor = context
-                  .spawn[RuntimeEventListener.Incoming](
+                  .spawn[RuntimeEventListener.Request](
                     throwOnMessage,
                     uniqueName("throwingActor"),
                   )
@@ -274,7 +274,7 @@ class SimonaSimSpec
         // Initialization has started, mock actors are being created
         val throwingActor =
           receiveThrowingActor
-            .expectMessageType[ActorRef[RuntimeEventListener.Incoming]]
+            .expectMessageType[ActorRef[RuntimeEventListener.Request]]
         timeAdvancer.expectMessage(TimeAdvancer.Start())
 
         // Simulation should still "run" at this point
@@ -302,7 +302,7 @@ class SimonaSimSpec
 
               override def resultEventListener(
                   context: ActorContext[_]
-              ): Seq[ActorRef[ResultEventListener.Incoming]] =
+              ): Seq[ActorRef[ResultEventListener.Request]] =
                 throwTestException()
             }
           ),
@@ -390,23 +390,23 @@ object SimonaSimSpec {
     *   to
     */
   class MockSetup(
-      runtimeEventProbe: Option[ActorRef[RuntimeEventListener.Incoming]] = None,
-      resultEventProbe: Option[ActorRef[ResultEventListener.Incoming]] = None,
-      timeAdvancerProbe: Option[ActorRef[TimeAdvancer.Incoming]] = None,
+      runtimeEventProbe: Option[ActorRef[RuntimeEventListener.Request]] = None,
+      resultEventProbe: Option[ActorRef[ResultEventListener.Request]] = None,
+      timeAdvancerProbe: Option[ActorRef[TimeAdvancer.Request]] = None,
   ) extends SimonaSetup {
 
     override val args: Array[String] = Array.empty[String]
 
     override def runtimeEventListener(
         context: ActorContext[_]
-    ): ActorRef[RuntimeEventListener.Incoming] = context.spawn(
+    ): ActorRef[RuntimeEventListener.Request] = context.spawn(
       stoppableForwardMessage(runtimeEventProbe),
       uniqueName("runtimeEventForwarder"),
     )
 
     override def resultEventListener(
         context: ActorContext[_]
-    ): Seq[ActorRef[ResultEventListener.Incoming]] = Seq(
+    ): Seq[ActorRef[ResultEventListener.Request]] = Seq(
       context.spawn(
         stoppableForwardMessage(resultEventProbe),
         uniqueName("resultEventForwarder"),
@@ -429,7 +429,7 @@ object SimonaSimSpec {
         context: ActorContext[_],
         simulation: ActorRef[SimonaSim.SimulationEnded.type],
         runtimeEventListener: ActorRef[RuntimeEvent],
-    ): ActorRef[TimeAdvancer.Incoming] =
+    ): ActorRef[TimeAdvancer.Request] =
       context.spawn(
         forwardMessage(timeAdvancerProbe),
         uniqueName("timeAdvancerForwarder"),
@@ -437,7 +437,7 @@ object SimonaSimSpec {
 
     override def scheduler(
         context: ActorContext[_],
-        timeAdvancer: ActorRef[TimeAdvancer.Incoming],
+        timeAdvancer: ActorRef[TimeAdvancer.Request],
     ): ActorRef[SchedulerMessage] =
       context.spawn(empty, uniqueName("scheduler"))
 
