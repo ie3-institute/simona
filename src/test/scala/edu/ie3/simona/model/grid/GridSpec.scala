@@ -16,12 +16,7 @@ import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.agent.grid.DBFSMockGridAgents
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.GridInconsistencyException
-import edu.ie3.simona.model.control.TransformerControlGroupModel
-import edu.ie3.simona.model.grid.GridModel.{
-  emptyGridControls,
-  GridComponents,
-  GridControls,
-}
+import edu.ie3.simona.model.control.{GridControls, TransformerControlGroupModel}
 import edu.ie3.simona.test.common.input.{GridInputTestData, LineInputTestData}
 import edu.ie3.simona.test.common.model.grid.{
   BasicGrid,
@@ -33,9 +28,11 @@ import testutils.TestObjectFactory
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import org.apache.pekko.testkit.TestProbe
 import edu.ie3.simona.test.common.ConfigTestData
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
+
 import scala.jdk.CollectionConverters.SetHasAsJava
 import edu.ie3.datamodel.models.input.container.ThermalGrid
+import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
+import edu.ie3.simona.model.grid.GridModel.GridComponents
 
 class GridSpec
     extends UnitSpec
@@ -301,7 +298,7 @@ class GridSpec
           Set.empty[Transformer3wModel],
           switches,
         ),
-        emptyGridControls,
+        GridControls.emptyGridControls,
       )
 
       // get the private method for validation
