@@ -68,6 +68,7 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
       "\"Lebe lang und erfolgreich.\" - Gruppe von Vulkanier (in Star Trek: Der erste Kontakt)",
       "\"Ich bin der Anfang, das Ende, die Eine, die Viele ist. Ich bin die Borg.\" - Borg-Königin (in Star Trek: Der erste Kontakt)",
       "\"A horse! A horse! My kingdom for a horse!\" - King Richard III (in Shakespeare's Richard III, 1594)",
+      "\"Und wenn du lange in einen Abgrund blickst, blickt der Abgrund auch in dich hinein\" - F. Nietzsche",
     )
 
     val rand = new Random

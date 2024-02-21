@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Energy Management capabilities:
   - Added capability of SystemParticipants to handle flexibility [#308](https://github.com/ie3-institute/simona/issues/308)
   - Added smart charging logic [#31](https://github.com/ie3-institute/simona/issues/31) and flex calculation in `EvcsAgent` [#332](https://github.com/ie3-institute/simona/issues/332)
+- Enhance output quotes of `RunSimona` [#743](https://github.com/ie3-institute/simona/issues/743)
 - Models for measurements within the grid structure [#89](https://github.com/ie3-institute/simona/issues/89)
 - Config possibility for transformer control groups [#90](https://github.com/ie3-institute/simona/issues/90)
 
