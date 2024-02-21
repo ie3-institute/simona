@@ -6,14 +6,16 @@
 
 package edu.ie3.simona.test.common
 
-import java.util.Locale
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.test.matchers.{QuantityMatchers, SquantsMatchers}
 import edu.ie3.util.scala.quantities.{QuantityUtil => PSQuantityUtil}
+import org.apache.pekko.actor.testkit.typed.scaladsl.LogCapturing
 import org.scalatest._
 import org.scalatest.matchers.should
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.wordspec.AnyWordSpecLike
+
+import java.util.Locale
 
 /** Base class to be used with all scala unit tests. All data that should be
   * commonly available to all unit tests should be placed here instead of mixing
@@ -25,6 +27,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
   */
 trait UnitSpec
     extends should.Matchers
+    with LogCapturing
     with QuantityMatchers
     with SquantsMatchers
     with AnyWordSpecLike
