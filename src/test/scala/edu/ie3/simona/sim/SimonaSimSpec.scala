@@ -72,11 +72,11 @@ class SimonaSimSpec
         // TimeAdvancer reached its last tick, ending
         simonaSim ! SimulationEnded
 
-        // runtime/result event listeners receive stop message
+        // Runtime/result event listeners receive stop message
         runtimeListener.expectMessage(DelayedStopHelper.FlushAndStop)
         resultListener.expectMessage(DelayedStopHelper.FlushAndStop)
 
-        // both runtime and result listener actors have stopped, thus we can end
+        // Both runtime and result listener actors have stopped, thus we can end
         starter.expectMessage(SimonaEnded(successful = true))
         starter.expectTerminated(simonaSim)
       }
@@ -108,14 +108,14 @@ class SimonaSimSpec
                   context: ActorContext[_],
                   timeAdvancer: ActorRef[TimeAdvancer.Incoming],
               ): ActorRef[SchedulerMessage] = {
-                // we cannot return a testprobe ref here,
+                // We cannot return a TestProbe ref here,
                 // needs to be a proper actor created by context
                 val throwingActor = context
                   .spawn[SchedulerMessage](
                     throwOnMessage,
                     uniqueName("throwingActor"),
                   )
-                // send ref to the outside
+                // Send ref to the outside to make it accessible
                 receiveThrowingActor.ref ! throwingActor
                 throwingActor
               }
@@ -136,18 +136,18 @@ class SimonaSimSpec
         starter.expectNoMessage()
 
         // We cause an actor to fail.
-        // (The mock actor reacts to any message with an exception,
-        // we just pick the first best fit)
+        // (The mock actor reacts to any message with an
+        // exception, we just pick the first best fit)
         throwingActor ! Completion(TestProbe().ref)
 
-        // runtime/result event listeners receive stop message
+        // Runtime/result event listeners receive stop message
         runtimeListener.expectMessage(
           RuntimeEvent.Error("Simulation stopped with error.")
         )
         runtimeListener.expectMessage(DelayedStopHelper.FlushAndStop)
         resultListener.expectMessage(DelayedStopHelper.FlushAndStop)
 
-        // both runtime and result listener actors have stopped, thus we can end
+        // Both runtime and result listener actors have stopped, thus we can end
         starter.expectMessage(SimonaEnded(successful = false))
         starter.expectTerminated(simonaSim)
       }
@@ -175,18 +175,17 @@ class SimonaSimSpec
                   context: ActorContext[_],
                   timeAdvancer: ActorRef[TimeAdvancer.Incoming],
               ): ActorRef[SchedulerMessage] = {
-                // we cannot return a testprobe ref here,
+                // We cannot return a TestProbe ref here,
                 // needs to be a proper actor created by context
                 val stoppingActor =
                   context.spawn[SchedulerMessage](
                     stopOnMessage,
                     uniqueName("stoppingActor"),
                   )
-                // send ref to the outside
+                // Send ref to the outside to make it accessible
                 receiveStoppingActor.ref ! stoppingActor
                 stoppingActor
               }
-
             }
           ),
           uniqueName("simonaSim"),
@@ -203,18 +202,18 @@ class SimonaSimSpec
         starter.expectNoMessage()
 
         // We cause an actor to fail.
-        // (The mock actor reacts to any message by stopping itself,
-        // we just pick the first best fit)
+        // (The mock actor reacts to any message by stopping
+        // itself, we just pick the first best fit)
         stoppingActor ! Completion(TestProbe().ref)
 
-        // runtime/result event listeners receive stop message
+        // Runtime/result event listeners receive stop message
         runtimeListener.expectMessage(
           RuntimeEvent.Error("Simulation stopped with error.")
         )
         runtimeListener.expectMessage(DelayedStopHelper.FlushAndStop)
         resultListener.expectMessage(DelayedStopHelper.FlushAndStop)
 
-        // both runtime and result listener actors have stopped, thus we can end
+        // Both runtime and result listener actors have stopped, thus we can end
         starter.expectMessage(SimonaEnded(successful = false))
         starter.expectTerminated(simonaSim)
       }
@@ -241,14 +240,14 @@ class SimonaSimSpec
               override def runtimeEventListener(
                   context: ActorContext[_]
               ): ActorRef[RuntimeEventListener.Incoming] = {
-                // we cannot return a testprobe ref here,
+                // We cannot return a TestProbe ref here,
                 // needs to be a proper actor created by context
                 val throwingActor = context
                   .spawn[RuntimeEventListener.Incoming](
                     throwOnMessage,
                     uniqueName("throwingActor"),
                   )
-                // send ref to the outside
+                // Send ref to the outside
                 receiveThrowingActor.ref ! throwingActor
                 throwingActor
               }
@@ -270,14 +269,14 @@ class SimonaSimSpec
         starter.expectNoMessage()
 
         // We cause the RuntimeEventListener to fail.
-        // (The mock actor reacts to any message with an exception,
-        // we just pick the first best fit)
+        // (The mock actor reacts to any message with an
+        // exception, we just pick the first best fit)
         throwingActor ! RuntimeEvent.Initializing
 
         // Result event listener receives stop message
         resultListener.expectMessage(DelayedStopHelper.FlushAndStop)
 
-        // both runtime and result listener actors have stopped, thus we can end
+        // Both runtime and result listener actors have stopped, thus we can end
         starter.expectMessage(SimonaEnded(successful = false))
         starter.expectTerminated(simonaSim)
       }
@@ -311,9 +310,6 @@ class SimonaSimSpec
 
   }
 
-  // TODO:
-  // REL fails in edge cases
-
 }
 
 object SimonaSimSpec {
@@ -321,6 +317,12 @@ object SimonaSimSpec {
   def empty[T]: Behavior[T] = Behaviors.receiveMessage { _ =>
     Behaviors.same
   }
+
+  def forwardMessage[T](recipient: Option[ActorRef[T]]): Behavior[T] =
+    Behaviors.receiveMessage { msg =>
+      recipient.foreach(_ ! msg)
+      Behaviors.same
+    }
 
   def stoppableForwardMessage[T >: DelayedStopHelper.StoppingMsg](
       recipient: Option[ActorRef[T]]
@@ -332,12 +334,6 @@ object SimonaSimSpec {
       case msg =>
         recipient.foreach(_ ! msg)
         Behaviors.same
-    }
-
-  def forwardMessage[T](recipient: Option[ActorRef[T]]): Behavior[T] =
-    Behaviors.receiveMessage { msg =>
-      recipient.foreach(_ ! msg)
-      Behaviors.same
     }
 
   def throwOnMessage[T]: Behavior[T] = Behaviors.receiveMessage { _ =>
@@ -352,9 +348,7 @@ object SimonaSimSpec {
     "This is an exception for test purposes. It is expected to be thrown."
   )
 
-  /** @param name
-    * @return
-    */
+  /** Makes the given actor name unique by appending a random UUID */
   def uniqueName(name: String): String =
     s"${name}_${UUID.randomUUID()}"
 
