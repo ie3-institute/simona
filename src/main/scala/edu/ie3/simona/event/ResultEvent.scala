@@ -14,13 +14,15 @@ import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.event.listener.ResultEventListener.ResultMessage
 
 
-sealed trait ResultEvent extends ResultMessage {
-  def getResults(): Iterable[ResultEntity]
-}
+sealed trait ResultEvent extends ResultMessage
 
 /** Calculation result events
   */
 object ResultEvent {
+
+  final case class ExternalResultEvent(
+                                      resultEntity: ResultEntity
+                                      ) extends ResultEvent
 
   /** Event that holds a calculation result of a
     * [[edu.ie3.simona.model.participant.SystemParticipant]]
@@ -30,9 +32,7 @@ object ResultEvent {
     */
   final case class ParticipantResultEvent(
       systemParticipantResult: SystemParticipantResult
-  ) extends ResultEvent {
-    override def getResults(): Iterable[ResultEntity] = Iterable(systemParticipantResult)
-  }
+  ) extends ResultEvent
 
   /** Event, that is triggered every time a thermal model has a new result
     * @param thermalResult
@@ -40,9 +40,7 @@ object ResultEvent {
     */
   final case class ThermalResultEvent(
       thermalResult: ThermalUnitResult
-  ) extends ResultEvent {
-    override def getResults(): Iterable[ResultEntity] = Iterable(thermalResult)
-  }
+  ) extends ResultEvent
 
   /** Event that holds all grid calculation results of a power flow calculation.
     * The usage of a type is necessary here, to avoid passing in other instances
@@ -66,16 +64,5 @@ object ResultEvent {
       lineResults: Iterable[LineResult],
       transformer2wResults: Iterable[Transformer2WResult],
       transformer3wResults: Iterable[PartialTransformer3wResult]
-  ) extends ResultEvent {
-    override def getResults(): Iterable[ResultEntity] = {
-      var results: Iterable[ResultEntity] = Iterable.empty[ResultEntity]
-      results = results ++ nodeResults
-      results = results ++ switchResults
-      results = results ++ lineResults
-      results = results ++ transformer2wResults
-      // results = results ++ transformer3wResults
-      results
-    }
-  }
-
+  ) extends ResultEvent
 }

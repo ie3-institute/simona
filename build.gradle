@@ -7,7 +7,7 @@ plugins {
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
   id 'pmd' // code check, working on source code
-  id 'com.diffplug.spotless' version '6.23.3'// code format
+  id 'com.diffplug.spotless' version '6.24.0'// code format
   id "com.github.ben-manes.versions" version '0.50.0'
   id "de.undercouch.download" version "5.5.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
@@ -107,7 +107,7 @@ dependencies {
   /* testing */
   testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
   testImplementation 'org.scalatestplus:mockito-3-4_2.13:3.2.10.0'
-  testImplementation 'org.mockito:mockito-core:5.8.0' // mocking framework
+  testImplementation 'org.mockito:mockito-core:5.9.0' // mocking framework
   testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.17"
   testRuntimeOnly 'com.vladsch.flexmark:flexmark-all:0.64.8' //scalatest html output
   testImplementation group: 'org.pegdown', name: 'pegdown', version: '1.6.0'

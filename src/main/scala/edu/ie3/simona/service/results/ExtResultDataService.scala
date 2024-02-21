@@ -1,5 +1,6 @@
 package edu.ie3.simona.service.results
 
+import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.api.data.results.ExtResultsData
 import edu.ie3.simona.api.data.results.ontology.{ProvideResultEntities, RequestResultEntities, ResultDataMessageFromExt}
@@ -10,6 +11,7 @@ import edu.ie3.simona.ontology.messages.services.DataMessage
 import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
 import edu.ie3.simona.service.{ExtDataSupport, SimonaService}
 import edu.ie3.simona.service.results.ExtResultDataService.{ExtResultsStateData, InitExtResultsData}
+
 import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 
 import java.util.UUID
@@ -25,7 +27,8 @@ object ExtResultDataService {
   final case class ExtResultsStateData(
                                    extResultsData: ExtResultsData,
                                    uuidToActorRef: Map[UUID, ActorRef] = Map.empty[UUID, ActorRef],
-                                   extResultsMessage: Option[ResultDataMessageFromExt] = None
+                                   extResultsMessage: Option[ResultDataMessageFromExt] = None,
+                                   resultStorage: Map[UUID, ResultEntity] = Map.empty
                                  ) extends ServiceBaseStateData
 
   final case class InitExtResultsData(
@@ -70,10 +73,9 @@ class ExtResultDataService(override val scheduler: ActorRef)
                                             )(
     implicit serviceStateData: ExtResultsStateData,
     ctx: ActorContext): (ExtResultsStateData, Option[Long]) = {
-
     serviceStateData.extResultsMessage.getOrElse(
       throw ServiceException(
-        "ExtEvDataService was triggered without ExtEvMessage available"
+        "ExtResultDataService was triggered without ResultDataMessageFromExt available"
       )
     ) match {
       case _: RequestResultEntities =>
@@ -108,28 +110,39 @@ class ExtResultDataService(override val scheduler: ActorRef)
    * @return
    * the updated state data
    */
-  override protected def handleDataResponseMessage(
-                                                    extResponseMsg: DataMessage
-                                                  )(
+  override protected def handleDataResponseMessage(extResponseMsg: DataMessage)(
     implicit serviceStateData: ExtResultsStateData): ExtResultsStateData = {
     extResponseMsg match {
-      case ResultResponseMessage(results) =>
-        serviceStateData.extResultsData.queueExtResponseMsg(
-          new ProvideResultEntities(results.toList.asJava))
-        serviceStateData.copy()
+      case ResultResponseMessage(result) =>
+        if (serviceStateData.uuidToActorRef.contains(result.getUuid)) {
+          // A valid result was sent
+          val updatedResultStorage = serviceStateData.resultStorage + (result.getUuid -> result)
+          if (updatedResultStorage.size == serviceStateData.uuidToActorRef.size) {
+            // all responses received, forward them to external simulation in a bundle
+            serviceStateData.extResultsData.queueExtResponseMsg(
+              new ProvideResultEntities(updatedResultStorage.values.toList.asJava)
+            )
+            serviceStateData.copy(
+              resultStorage = Map.empty
+            )
+
+
+          } else {
+            // responses are still incomplete
+            serviceStateData.copy(
+              resultStorage = updatedResultStorage
+            )
+          }
+        }
+        else {
+            serviceStateData
+          }
     }
   }
 
   private def requestResults(
                             tick: Long
                             )(implicit serviceStateData: ExtResultsStateData): (ExtResultsStateData, Option[Long]) = {
-
     (serviceStateData.copy(), None)
   }
-
-
-
-
-
-
 }

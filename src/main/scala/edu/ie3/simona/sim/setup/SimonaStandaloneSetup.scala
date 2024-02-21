@@ -230,12 +230,12 @@ class SimonaStandaloneSetup(
 
               (extEvData, (classOf[ExtEvDataService], extEvDataService))
 
-            case (_: ExtPrimaryDataSimulation, dIndex) =>
+            case (extPrimaryDataSimulation: ExtPrimaryDataSimulation, dIndex) =>
               val extPrimaryDataService = context.simonaActorOf(
                 ExtPrimaryDataService.props(scheduler),
                 s"$index-$dIndex"
               )
-              val extPrimaryData = new ExtPrimaryData(extPrimaryDataService, extSimAdapter)
+              val extPrimaryData = new ExtPrimaryData(extPrimaryDataService, extSimAdapter, extPrimaryDataSimulation.getFactory)
 
               extPrimaryDataService ! SimonaService.Create(
                 InitExtPrimaryData(extPrimaryData),
@@ -253,7 +253,7 @@ class SimonaStandaloneSetup(
                 ExtResultDataService.props(scheduler),
                 s"$index-$dIndex"
               )
-              val extResultsData = new ExtResultsData(extResultDataService, extSimAdapter)
+              val extResultsData = new ExtResultsData(extResultDataService, extSimAdapter, null)
 
               extResultDataService ! SimonaService.Create(
                 InitExtResultsData(extResultsData),
@@ -332,8 +332,10 @@ class SimonaStandaloneSetup(
       )
 
   override def systemParticipantsListener(
-      context: ActorContext
+      context: ActorContext,
+      extSimulationData: ExtSimSetupData
   ): Seq[ActorRef] = {
+    val extResultDataService: Option[ActorRef] = extSimulationData.extResultDataService
     // append ResultEventListener as well to write raw output files
     ArgsParser
       .parseListenerConfigOption(simonaConfig.simona.event.listener)
@@ -347,7 +349,8 @@ class SimonaStandaloneSetup(
       .toSeq :+ context
       .spawn(
         ResultEventListener(
-          resultFileHierarchy
+          resultFileHierarchy,
+          extResultDataService
         ),
         ResultEventListener.getClass.getSimpleName
       )
