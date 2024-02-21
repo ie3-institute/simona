@@ -129,6 +129,12 @@ class PrimaryServiceProxySpec
 
   private val scheduler: TestProbe = TestProbe("scheduler")
 
+  val validExtPrimaryDataService = TestActorRef(
+    new ExtPrimaryDataService(
+      scheduler.ref
+    )
+  )
+
   "Testing a primary service config" should {
     "lead to complaining about too much source definitions" in {
       val maliciousConfig = PrimaryConfig(
@@ -260,7 +266,8 @@ class PrimaryServiceProxySpec
 
       proxy invokePrivate prepareStateData(
         maliciousConfig,
-        simulationStart
+        simulationStart,
+        Option.empty
       ) match {
         case Success(_) =>
           fail("Building state data with missing config should fail")
@@ -280,7 +287,8 @@ class PrimaryServiceProxySpec
 
       proxy invokePrivate prepareStateData(
         maliciousConfig,
-        simulationStart
+        simulationStart,
+        Option.empty
       ) match {
         case Success(_) =>
           fail("Building state data with missing config should fail")
@@ -293,7 +301,8 @@ class PrimaryServiceProxySpec
     "result in correct data" in {
       proxy invokePrivate prepareStateData(
         validPrimaryConfig,
-        simulationStart
+        simulationStart,
+        Option.empty
       ) match {
         case Success(
               PrimaryServiceStateData(
@@ -341,6 +350,29 @@ class PrimaryServiceProxySpec
           )
       }
     }
+
+    "build proxy correctly when there is an external simulation" in {
+      proxy invokePrivate prepareStateData(
+        validPrimaryConfig,
+        simulationStart,
+        Some(validExtPrimaryDataService)
+      ) match {
+        case Success(
+        PrimaryServiceStateData(
+        modelToTimeSeries,
+        timeSeriesToSourceRef,
+        simulationStart,
+        primaryConfig,
+        mappingSource,
+        extSubscribers,
+        extPrimaryDataService
+        )
+        ) => extPrimaryDataService should contain (validExtPrimaryDataService)
+          extSubscribers shouldBe Iterable.empty
+      }
+    }
+
+
   }
 
   "Sending initialization information to an uninitialized actor" should {

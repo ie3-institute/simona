@@ -114,7 +114,8 @@ case class PrimaryServiceProxy(
                                 simulationStart: ZonedDateTime,
                                 extSimulation: Option[ActorRef]
                               ): Try[PrimaryServiceStateData] = {
-    var serviceStateData = PrimaryServiceStateData(Map.empty, Map.empty, simulationStart, primaryConfig, null)
+
+
     createSources(primaryConfig).map {
       case (mappingSource, metaInformationSource) =>
         val modelToTimeSeries = mappingSource.getMapping.asScala.toMap
@@ -142,22 +143,26 @@ case class PrimaryServiceProxy(
             }
           }
           .toMap
-        serviceStateData = PrimaryServiceStateData(
-          modelToTimeSeries,
-          timeSeriesToSourceRef,
-          simulationStart,
-          primaryConfig,
-          mappingSource
-        )
-    }
-    if (extSimulation.isDefined) {
-      // Ask ExtPrimaryDataService which UUIDs should be substituted
-      Success(serviceStateData.copy(
-        extSubscribers = getSubscribers,
-        extPrimaryDataService = extSimulation
-      ))
-    } else {
-      Success(serviceStateData)
+        if (extSimulation.isDefined) {
+          // Ask ExtPrimaryDataService which UUIDs should be substituted
+          PrimaryServiceStateData(
+            modelToTimeSeries,
+            timeSeriesToSourceRef,
+            simulationStart,
+            primaryConfig,
+            mappingSource,
+            getSubscribers(),
+            extSimulation
+          )
+       } else {
+          PrimaryServiceStateData(
+            modelToTimeSeries,
+            timeSeriesToSourceRef,
+            simulationStart,
+            primaryConfig,
+            mappingSource
+          )
+       }
     }
   }
 
