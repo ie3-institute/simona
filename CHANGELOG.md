@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Energy Management capabilities:
   - Added capability of SystemParticipants to handle flexibility [#308](https://github.com/ie3-institute/simona/issues/308)
   - Added smart charging logic [#31](https://github.com/ie3-institute/simona/issues/31) and flex calculation in `EvcsAgent` [#332](https://github.com/ie3-institute/simona/issues/332)
+- Enhance output quotes of `RunSimona` [#743](https://github.com/ie3-institute/simona/issues/743)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -46,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Logging wrong duration in the first simulation hour [#705](https://github.com/ie3-institute/simona/issues/705)
 - Fixed some compiler warnings [#657](https://github.com/ie3-institute/simona/issues/657)
 - Fixing false negative in ref system voltage validation [#706](https://github.com/ie3-institute/simona/issues/706)
+- Fixing randomly failing test in `RuntimeEventListenerSpec` etc. [#709](https://github.com/ie3-institute/simona/issues/709)
 
 ## [3.0.0] - 2023-08-07
 
