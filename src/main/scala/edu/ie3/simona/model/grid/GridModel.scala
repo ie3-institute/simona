@@ -20,6 +20,7 @@ import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.control.TransformerControlGroupModel
 import edu.ie3.simona.model.grid.GridModel.{GridComponents, GridControls}
+import edu.ie3.simona.model.control.{GridControls, TransformerControlGroupModel}
 import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseA,
   PowerFlowCaseB,
@@ -93,21 +94,6 @@ object GridModel {
       transformers: Set[TransformerModel],
       transformers3w: Set[Transformer3wModel],
       switches: Set[SwitchModel],
-  )
-
-  /** Collection of grid-related control strategies
-    *
-    * @param transformerControlGroups
-    *   Transformer control groups
-    */
-  final case class GridControls(
-      transformerControlGroups: Set[TransformerControlGroupModel]
-  )
-
-  /** Represents an empty Transformer control group
-    */
-  def emptyGridControls: GridControls = GridControls(
-    Set.empty[TransformerControlGroupModel]
   )
 
   /** Checks the availability of node calculation models, that are connected by
