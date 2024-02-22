@@ -12,13 +12,12 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentInitData,
   GridAgentUninitializedData,
 }
-import edu.ie3.simona.model.grid.GridModel
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.GridAgentState.{Initializing, SimulateGrid}
 import edu.ie3.simona.agent.{EnvironmentRefs, SimonaAgent}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
-
+import edu.ie3.simona.model.grid.GridModel
 import edu.ie3.simona.ontology.messages.PowerMessage.RequestGridPowerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
@@ -28,8 +27,8 @@ import edu.ie3.simona.ontology.messages.{Activation, StopMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
-import org.apache.pekko.actor.{ActorRef, Props, Stash}
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorRef, Props, Stash}
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
