@@ -8,13 +8,13 @@ package edu.ie3.simona.agent.grid
 
 import edu.ie3.simona.ontology.messages.PowerMessage.PowerResponseMessage
 import VoltageMessage.ProvideSlackVoltageMessage
-import edu.ie3.simona.agent.grid.GridAgentMessage.GAMessage
+import edu.ie3.simona.agent.grid.GridAgentMessage.InternalMessage
 import org.apache.pekko.actor.typed.ActorRef
 
 /** Serves as a wrapper class that allows for matches against received values in
   * [[DBFSAlgorithm]]
   */
-sealed trait ReceivedValues extends GAMessage
+sealed trait ReceivedValues extends InternalMessage
 
 object ReceivedValues {
 

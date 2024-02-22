@@ -15,6 +15,7 @@ import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.FailedPowerFlowResult.FailedNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.enums.NodeType
+import edu.ie3.simona.agent.grid.GridAgent.idle
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
   GridAgentValues,
@@ -62,51 +63,6 @@ import scala.util.{Failure, Success}
   */
 trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
-  /** Method that defines the idle [[Behavior]] of the agent.
-    * @param gridAgentBaseData
-    *   state data of the actor
-    * @param values
-    *   immutable [[GridAgent]] values
-    * @param buffer
-    *   for [[GridAgentMessage]]s
-    * @return
-    *   a [[Behavior]]
-    */
-  protected def idle(
-      gridAgentBaseData: GridAgentBaseData
-  )(implicit
-      values: GridAgentValues,
-      buffer: StashBuffer[GridAgentMessage],
-  ): Behavior[GridAgentMessage] = Behaviors.receive[GridAgentMessage] {
-    case (_, pm: WrappedPowerMessage) =>
-      // needs to be set here to handle if the messages arrive too early
-      // before a transition to GridAgentBehaviour took place
-      buffer.stash(pm)
-      Behaviors.same
-
-    case (_, WrappedActivation(activation: Activation)) =>
-      values.environmentRefs.scheduler ! Completion(
-        values.activationAdapter,
-        Some(activation.tick),
-      )
-      buffer.unstashAll(simulateGrid(gridAgentBaseData, activation.tick))
-
-    case (ctx, WrappedResultMessage(StopMessage(_))) =>
-      // shutdown children
-      gridAgentBaseData.gridEnv.nodeToAssetAgents.foreach { case (_, actors) =>
-        actors.foreach(a => ctx.stop(a))
-      }
-
-      // we are done
-      Behaviors.stopped
-
-    case (_, StopGridAgent) =>
-      Behaviors.stopped
-
-    case _ =>
-      Behaviors.unhandled
-  }
-
   /** Method that defines the [[Behavior]] for simulating the grid.
     * @param gridAgentData
     *   state data of the actor
@@ -115,7 +71,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     * @return
     *   a [[Behavior]]
     */
-  private def simulateGrid(
+  private[grid] def simulateGrid(
       gridAgentData: GridAgentData,
       currentTick: Long,
   )(implicit

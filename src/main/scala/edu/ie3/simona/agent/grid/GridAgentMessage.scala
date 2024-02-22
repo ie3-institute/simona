@@ -7,10 +7,8 @@
 package edu.ie3.simona.agent.grid
 
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.event.listener.ResultEventListener.ResultMessage
 import edu.ie3.simona.ontology.messages.{Activation, PowerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
-import org.apache.pekko.actor.typed.ActorRef
 
 /** Trait for [[GridAgent]] messages.
   */
@@ -24,7 +22,7 @@ object GridAgentMessage {
   /** Necessary because we want to extend [[GridAgentMessage]] in other classes,
     * but we do want to keep [[GridAgentMessage]] sealed.
     */
-  private[grid] trait GAMessage extends GridAgentMessage
+  private[grid] trait InternalMessage extends GridAgentMessage
 
   /** GridAgent initialization data can only be constructed once all GridAgent
     * actors are created. Thus, we need an extra initialization message.
@@ -88,9 +86,6 @@ object GridAgentMessage {
       extends GridAgentMessage
 
   final case class WrappedPowerMessage(msg: PowerMessage)
-      extends GridAgentMessage
-
-  final case class WrappedResultMessage(msg: ResultMessage)
       extends GridAgentMessage
 
 }

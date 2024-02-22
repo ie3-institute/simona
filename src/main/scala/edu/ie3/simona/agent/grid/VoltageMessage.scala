@@ -6,14 +6,14 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.simona.agent.grid.GridAgentMessage.GAMessage
+import edu.ie3.simona.agent.grid.GridAgentMessage.InternalMessage
 import edu.ie3.simona.agent.grid.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 import org.apache.pekko.actor.typed.ActorRef
 import squants.electro.ElectricPotential
 
 import java.util.UUID
 
-sealed trait VoltageMessage extends GAMessage
+sealed trait VoltageMessage extends InternalMessage
 
 /** Message that is send between [[edu.ie3.simona.agent.grid.GridAgent]] s to
   * provide voltage information for nodes

@@ -199,6 +199,49 @@ object GridAgent extends DBFSAlgorithm {
       Behaviors.unhandled
   }
 
+  /** Method that defines the idle [[Behavior]] of the agent.
+    *
+    * @param gridAgentBaseData
+    *   state data of the actor
+    * @param values
+    *   immutable [[GridAgent]] values
+    * @param buffer
+    *   for [[GridAgentMessage]]s
+    * @return
+    *   a [[Behavior]]
+    */
+  private[grid] def idle(
+      gridAgentBaseData: GridAgentBaseData
+  )(implicit
+      values: GridAgentValues,
+      buffer: StashBuffer[GridAgentMessage],
+  ): Behavior[GridAgentMessage] = Behaviors.receive[GridAgentMessage] {
+    case (_, pm: WrappedPowerMessage) =>
+      // needs to be set here to handle if the messages arrive too early
+      // before a transition to GridAgentBehaviour took place
+      buffer.stash(pm)
+      Behaviors.same
+
+    case (_, WrappedActivation(activation: Activation)) =>
+      values.environmentRefs.scheduler ! Completion(
+        values.activationAdapter,
+        Some(activation.tick),
+      )
+      buffer.unstashAll(simulateGrid(gridAgentBaseData, activation.tick))
+
+    case (ctx, StopGridAgent) =>
+      // shutdown children
+      gridAgentBaseData.gridEnv.nodeToAssetAgents.foreach { case (_, actors) =>
+        actors.foreach(a => ctx.stop(a))
+      }
+
+      // we are done
+      Behaviors.stopped
+
+    case _ =>
+      Behaviors.unhandled
+  }
+
   private def failFast(
       gridAgentInitData: GridAgentInitData,
       actorName: String,
