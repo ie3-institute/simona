@@ -46,12 +46,12 @@ trait SimonaSetup {
       context: ActorContext[_]
   ): ActorRef[RuntimeEventListener.Request]
 
-  /** Creates a sequence of system participant event listeners
+  /** Creates a sequence of result event listeners
     *
     * @param context
     *   Actor context to use
     * @return
-    *   A sequence of actor references to runtime event listeners
+    *   A sequence of actor references to result event listeners
     */
   def resultEventListener(
       context: ActorContext[_]
