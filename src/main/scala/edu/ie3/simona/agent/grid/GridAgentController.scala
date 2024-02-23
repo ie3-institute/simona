@@ -32,7 +32,6 @@ import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.load.LoadAgent
 import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
-import edu.ie3.simona.agent.participant.storage.StorageAgent
 import edu.ie3.simona.agent.participant.wec.WecAgent
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig._
@@ -453,20 +452,6 @@ class GridAgentController(
             s"Unable to find thermal island grid for heat pump '${hpInput.getUuid}' with thermal bus '${hpInput.getThermalBus.getUuid}'."
           )
       }
-    case input: StorageInput =>
-      buildStorage(
-        input,
-        participantConfigUtil.getOrDefault[StorageRuntimeConfig](
-          input.getUuid
-        ),
-        environmentRefs.primaryServiceProxy,
-        simulationStartDate,
-        simulationEndDate,
-        resolution,
-        requestVoltageDeviationThreshold,
-        outputConfigUtil.getOrDefault(NotifierIdentifier.Storage),
-        maybeParentEm,
-      )
     case input: SystemParticipantInput =>
       throw new NotImplementedError(
         s"Building ${input.getClass.getSimpleName} is not implemented, yet."
@@ -814,61 +799,6 @@ class GridAgentController(
         listener,
       ),
       wecInput.getId,
-    )
-
-  /** Creates a storage agent and determines the needed additional information
-    * for later initialization of the agent.
-    *
-    * @param storageInput
-    *   Storage input model to derive information from
-    * @param modelConfiguration
-    *   User-provided configuration for this specific storage model
-    * @param primaryServiceProxy
-    *   Reference to the primary data service proxy
-    * @param simulationStartDate
-    *   First wall clock time in simulation
-    * @param simulationEndDate
-    *   Last wall clock time in simulation
-    * @param resolution
-    *   Frequency of power flow calculations
-    * @param requestVoltageDeviationThreshold
-    *   Maximum deviation in p.u. of request voltages to be considered equal
-    * @param outputConfig
-    *   Configuration of the output behavior
-    * @param maybeParentEm
-    *   The parent EmAgent, if applicable
-    * @return
-    *   The [[StorageAgent]] 's [[ClassicActorRef]]
-    */
-  private def buildStorage(
-      storageInput: StorageInput,
-      modelConfiguration: SimonaConfig.StorageRuntimeConfig,
-      primaryServiceProxy: ClassicActorRef,
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
-      resolution: Long,
-      requestVoltageDeviationThreshold: Double,
-      outputConfig: NotifierConfig,
-      maybeParentEm: Option[ActorRef[FlexResponse]] = None,
-  ): ClassicActorRef =
-    gridAgentContext.simonaActorOf(
-      StorageAgent.props(
-        environmentRefs.scheduler,
-        ParticipantInitializeStateData(
-          storageInput,
-          modelConfiguration,
-          primaryServiceProxy,
-          None,
-          simulationStartDate,
-          simulationEndDate,
-          resolution,
-          requestVoltageDeviationThreshold,
-          outputConfig,
-          maybeParentEm,
-        ),
-        listener,
-      ),
-      storageInput.getId,
     )
 
   /** Builds an [[EmAgent]] from given input
