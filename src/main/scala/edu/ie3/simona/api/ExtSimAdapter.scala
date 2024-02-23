@@ -8,7 +8,7 @@ package edu.ie3.simona.api
 
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
-import edu.ie3.simona.api.ExtSimAdapter.{Create, ExtSimAdapterStateData}
+import edu.ie3.simona.api.ExtSimAdapter.{Create, ExtSimAdapterStateData, Stop}
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.api.simulation.ontology.{
@@ -23,7 +23,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
-import edu.ie3.simona.ontology.messages.{Activation, StopMessage}
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -44,6 +44,8 @@ object ExtSimAdapter {
     *   The [[ExtSimAdapterData]] of the corresponding external simulation
     */
   final case class Create(extSimData: ExtSimAdapterData, unlockKey: ScheduleKey)
+
+  final case class Stop(simulationSuccessful: Boolean)
 
   final case class ExtSimAdapterStateData(
       extSimData: ExtSimAdapterData,
@@ -107,7 +109,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
         key,
       )
 
-    case StopMessage(simulationSuccessful) =>
+    case Stop(simulationSuccessful) =>
       // let external sim know that we have terminated
       stateData.extSimData.queueExtMsg(
         new TerminationMessage(simulationSuccessful)

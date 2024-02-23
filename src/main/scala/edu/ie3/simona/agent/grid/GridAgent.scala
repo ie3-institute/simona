@@ -23,7 +23,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.{Activation, StopMessage}
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
@@ -258,14 +258,6 @@ class GridAgent(
 
       goto(SimulateGrid) using gridAgentBaseData
 
-    case Event(StopMessage(_), data: GridAgentBaseData) =>
-      // shutdown children
-      data.gridEnv.nodeToAssetAgents.foreach { case (_, actors) =>
-        actors.foreach(context.stop)
-      }
-
-      // we are done
-      stop()
   }
 
   // everything else

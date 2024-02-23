@@ -82,9 +82,11 @@ class RunSimonaStandaloneIT
       )
 
       /* run simulation */
-      RunSimonaStandalone.run(
+      val successful = RunSimonaStandalone.run(
         simonaStandaloneSetup
       )
+
+      successful shouldBe true
 
       /* check the results */
       // check configs
