@@ -24,11 +24,9 @@ import edu.ie3.simona.event.RuntimeEvent.{
   Ready,
   Simulating,
 }
+import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.TimeUtil
-import org.scalatest.PrivateMethodTester
-import org.scalatest.matchers.should
-import org.scalatest.wordspec.AnyWordSpecLike
 import org.slf4j.event.Level
 
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
@@ -42,35 +40,30 @@ class RuntimeEventListenerSpec
         ConfigValueFactory.fromAnyRef("30s"),
       )
     )
-    with AnyWordSpecLike
-    with should.Matchers
-    with PrivateMethodTester {
+    with UnitSpec {
 
   // global variables
-  val eventQueue = new LinkedBlockingQueue[RuntimeEvent]()
   val startDateTimeString = "2011-01-01 00:00:00"
   val endTick = 3600
   val duration = 10805000
-  val errMsg =
-    "Und wenn du lange in einen Abgrund blickst, blickt der Abgrund auch in dich hinein"
+  val errMsg = "testing error msg"
 
-  // to change for Ready event test cases
   val currentTick = 0
-
-  // build the listener
-  private val listenerRef = spawn(
-    RuntimeEventListener(
-      SimonaConfig.Simona.Runtime.Listener(
-        None,
-        None,
-      ),
-      Some(eventQueue),
-      startDateTimeString,
-    )
-  )
 
   "A runtime event listener" must {
     "add a valid runtime event to the blocking queue for further processing" in {
+      val eventQueue = new LinkedBlockingQueue[RuntimeEvent]()
+
+      val listenerRef = spawn(
+        RuntimeEventListener(
+          SimonaConfig.Simona.Runtime.Listener(
+            None,
+            None,
+          ),
+          Some(eventQueue),
+          startDateTimeString,
+        )
+      )
 
       //  valid runtime events
       val eventsToQueue: Seq[RuntimeEvent] = List(
@@ -96,6 +89,17 @@ class RuntimeEventListenerSpec
     }
 
     "return valid log messages for each status event" in {
+
+      val listenerRef = spawn(
+        RuntimeEventListener(
+          SimonaConfig.Simona.Runtime.Listener(
+            None,
+            None,
+          ),
+          None,
+          startDateTimeString,
+        )
+      )
 
       def calcTime(curTick: Long): String = {
         TimeUtil.withDefaults.toString(
@@ -147,8 +151,12 @@ class RuntimeEventListenerSpec
         ),
       )
 
+      val loggingTestKit = LoggingTestKit.empty
+        // logger name for ActorContext loggers (ctx.log) is the class name
+        .withLoggerName(RuntimeEventListener.getClass.getName)
+
       events.foreach { case (event, level, msg) =>
-        LoggingTestKit.empty
+        loggingTestKit
           .withLogLevel(level)
           .withMessageContains(msg)
           .expect {

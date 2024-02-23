@@ -31,8 +31,8 @@ import scala.language.postfixOps
 
 class RuntimeEventListenerKafkaSpec
     extends ScalaTestWithActorTestKit
-    with KafkaSpecLike
     with UnitSpec
+    with KafkaSpecLike
     with GivenWhenThen
     with TableDrivenPropertyChecks {
   private var testConsumer: KafkaConsumer[Bytes, SimonaEndMessage] = _
@@ -128,13 +128,21 @@ class RuntimeEventListenerKafkaSpec
       forAll(cases) { case (event, expectedMsg) =>
         listenerRef ! event
 
-        val records: List[SimonaEndMessage] =
+        val receivedRecord =
           eventually(timeout(20 seconds), interval(1 second)) {
-            testConsumer.poll((1 second) toJava).asScala.map(_.value()).toList
+            val records =
+              testConsumer.poll((1 second) toJava).asScala.map(_.value()).toList
+
+            // run until one record is received. After each second, if no record
+            // was received, the length check below fails and we retry
+            records should have length 1
+
+            // return final record to be checked
+            records.headOption.value
           }
 
-        records should have length 1
-        records should contain(expectedMsg)
+        receivedRecord shouldBe expectedMsg
+
       }
 
     }
