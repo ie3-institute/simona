@@ -24,11 +24,9 @@ import edu.ie3.simona.event.RuntimeEvent.{
   Ready,
   Simulating,
 }
+import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.TimeUtil
-import org.scalatest.PrivateMethodTester
-import org.scalatest.matchers.should
-import org.scalatest.wordspec.AnyWordSpecLike
 import org.slf4j.event.Level
 
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
@@ -42,9 +40,7 @@ class RuntimeEventListenerSpec
         ConfigValueFactory.fromAnyRef("30s"),
       )
     )
-    with AnyWordSpecLike
-    with should.Matchers
-    with PrivateMethodTester {
+    with UnitSpec {
 
   // global variables
   val startDateTimeString = "2011-01-01 00:00:00"

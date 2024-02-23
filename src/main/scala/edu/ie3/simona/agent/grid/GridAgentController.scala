@@ -39,19 +39,14 @@ import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
-import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.typed.scaladsl.adapter.{
-  ClassicActorContextOps,
-  ClassicActorRefOps,
-  TypedActorRefOps,
-}
+import org.apache.pekko.actor.typed.scaladsl.adapter._
 import org.apache.pekko.actor.{ActorContext, ActorRef => ClassicActorRef}
 import org.apache.pekko.event.LoggingAdapter
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
@@ -514,7 +509,7 @@ class GridAgentController(
   ): ClassicActorRef =
     gridAgentContext.simonaActorOf(
       FixedFeedInAgent.props(
-        environmentRefs.scheduler,
+        environmentRefs.scheduler.toClassic,
         ParticipantInitializeStateData(
           fixedFeedInInput,
           modelConfiguration,
@@ -569,7 +564,7 @@ class GridAgentController(
   ): ClassicActorRef =
     gridAgentContext.simonaActorOf(
       LoadAgent.props(
-        environmentRefs.scheduler,
+        environmentRefs.scheduler.toClassic,
         ParticipantInitializeStateData(
           loadInput,
           modelConfiguration,
@@ -627,7 +622,7 @@ class GridAgentController(
   ): ClassicActorRef =
     gridAgentContext.simonaActorOf(
       PvAgent.props(
-        environmentRefs.scheduler,
+        environmentRefs.scheduler.toClassic,
         ParticipantInitializeStateData(
           pvInput,
           modelConfiguration,
@@ -685,7 +680,7 @@ class GridAgentController(
   ): ClassicActorRef =
     gridAgentContext.simonaActorOf(
       EvcsAgent.props(
-        environmentRefs.scheduler,
+        environmentRefs.scheduler.toClassic,
         ParticipantInitializeStateData(
           evcsInput,
           modelConfiguration,
@@ -739,7 +734,7 @@ class GridAgentController(
   ): ClassicActorRef =
     gridAgentContext.simonaActorOf(
       HpAgent.props(
-        environmentRefs.scheduler,
+        environmentRefs.scheduler.toClassic,
         ParticipantInitializeStateData(
           hpInput,
           thermalGrid,
@@ -798,7 +793,7 @@ class GridAgentController(
   ): ClassicActorRef =
     gridAgentContext.simonaActorOf(
       WecAgent.props(
-        environmentRefs.scheduler,
+        environmentRefs.scheduler.toClassic,
         ParticipantInitializeStateData(
           wecInput,
           modelConfiguration,
@@ -853,7 +848,7 @@ class GridAgentController(
   ): ClassicActorRef =
     gridAgentContext.simonaActorOf(
       StorageAgent.props(
-        environmentRefs.scheduler,
+        environmentRefs.scheduler.toClassic,
         ParticipantInitializeStateData(
           storageInput,
           modelConfiguration,
@@ -899,7 +894,7 @@ class GridAgentController(
           .getOrElse("PRIORITIZED"),
         simulationStartDate,
         maybeParentEm.toRight(
-          environmentRefs.scheduler.toTyped[SchedulerMessage]
+          environmentRefs.scheduler
         ),
         rootEmConfig,
         listener.map(_.toTyped[ResultEvent]),
