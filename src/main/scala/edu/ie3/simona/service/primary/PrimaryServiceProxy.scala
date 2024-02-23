@@ -274,7 +274,10 @@ case class PrimaryServiceProxy(
           )
         case None =>
           if (stateData.extSubscribers.nonEmpty) {
-            log.debug(s"Try to find external primary data for the model with uuid '{}'.", modelUuid)
+            log.debug(
+              s"Try to find external primary data for the model with uuid '{}'.",
+              modelUuid,
+            )
             if (stateData.extSubscribers.exists(_ == modelUuid)) {
               handleExternalModel(modelUuid, stateData, sender())
             } else {
