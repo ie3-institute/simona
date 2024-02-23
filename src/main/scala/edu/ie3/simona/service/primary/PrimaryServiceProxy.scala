@@ -144,7 +144,6 @@ case class PrimaryServiceProxy(
       simulationStart: ZonedDateTime,
       extSimulation: Option[ActorRef],
   ): Try[PrimaryServiceStateData] = {
-
     createSources(primaryConfig).map {
       case (mappingSource, metaInformationSource) =>
         val modelToTimeSeries = mappingSource.getMapping.asScala.toMap
@@ -275,21 +274,22 @@ case class PrimaryServiceProxy(
           )
         case None =>
           if (stateData.extSubscribers.nonEmpty) {
+            log.debug(s"Try to find external primary data for the model with uuid '{}'.", modelUuid)
             if (stateData.extSubscribers.exists(_ == modelUuid)) {
               handleExternalModel(modelUuid, stateData, sender())
             } else {
               log.debug(
-                s"There is no time series apparent for the model with uuid '{}'.",
+                s"There is no external data apparent for the model with uuid '{}'.",
                 modelUuid,
               )
-              sender() ! RegistrationFailedMessage
+              sender() ! RegistrationFailedMessage(self)
             }
           } else {
             log.debug(
               s"There is no time series apparent for the model with uuid '{}'.",
               modelUuid,
             )
-            sender() ! RegistrationFailedMessage
+            sender() ! RegistrationFailedMessage(self)
           }
       }
     case x =>
