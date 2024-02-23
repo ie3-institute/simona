@@ -97,7 +97,7 @@ class PrimaryServiceProxySpec
           csvSep,
           baseDirectoryPath.toString,
           isHierarchic = false,
-          TimeUtil.withDefaults.getDtfPattern,
+          TimeUtil.withDefaults.getDateTimeFormatter.toString,
         )
       ),
       None,
@@ -404,7 +404,7 @@ class PrimaryServiceProxySpec
           classOf[FileNamingStrategy].isAssignableFrom(
             fileNamingStrategy.getClass
           ) shouldBe true
-          timePattern shouldBe TimeUtil.withDefaults.getDtfPattern
+          timePattern shouldBe TimeUtil.withDefaults.getDateTimeFormatter.toString
         case Success(wrongData) =>
           fail(s"Creation of init data lead to wrong init data '$wrongData'.")
         case Failure(exception) =>
@@ -518,7 +518,7 @@ class PrimaryServiceProxySpec
               classOf[FileNamingStrategy].isAssignableFrom(
                 fileNamingStrategy.getClass
               ) shouldBe true
-              timePattern shouldBe TimeUtil.withDefaults.getDtfPattern
+              timePattern shouldBe TimeUtil.withDefaults.getDateTimeFormatter.toString
           }
 
           // receiving schedule activation, don't know why but ok...

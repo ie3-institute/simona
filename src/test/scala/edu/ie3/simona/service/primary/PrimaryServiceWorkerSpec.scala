@@ -114,7 +114,7 @@ class PrimaryServiceWorkerSpec
         directoryPath = baseDirectoryPath,
         filePath = Paths.get("its_pq_" + uuidPq),
         fileNamingStrategy = new FileNamingStrategy(),
-        timePattern = TimeUtil.withDefaults.getDtfPattern,
+        timePattern = TimeUtil.withDefaults.getDateTimeFormatter.toString,
       )
       service.init(maliciousInitData) match {
         case Failure(exception) =>
