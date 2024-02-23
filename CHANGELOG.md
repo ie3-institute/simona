@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added capability of SystemParticipants to handle flexibility [#308](https://github.com/ie3-institute/simona/issues/308)
   - Added smart charging logic [#31](https://github.com/ie3-institute/simona/issues/31) and flex calculation in `EvcsAgent` [#332](https://github.com/ie3-institute/simona/issues/332)
 - Enhance output quotes of `RunSimona` [#743](https://github.com/ie3-institute/simona/issues/743)
+- Printing logs of failed tests [#747](https://github.com/ie3-institute/simona/issues/747)
 - Models for measurements within the grid structure [#89](https://github.com/ie3-institute/simona/issues/89)
 - Config possibility for transformer control groups [#90](https://github.com/ie3-institute/simona/issues/90)
 
@@ -39,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enable windows path as config parameters [#549](https://github.com/ie3-institute/simona/issues/549)
 - Unified consideration of scaling factor when simulating system participants [#81](https://github.com/ie3-institute/simona/issues/81)
 - Small improvements in `ResultEventListener` [#738](https://github.com/ie3-institute/simona/issues/738)
+- Converting `SimonaSim` to pekko typed/terminating SimonSim when initialization fails [#210](https://github.com/ie3-institute/simona/issues/210)
 
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)

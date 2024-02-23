@@ -6,12 +6,17 @@
 
 package edu.ie3.simona.sim.setup
 
-import org.apache.pekko.actor.{ActorContext, ActorRef, ActorSystem}
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.connector.Transformer3WInput
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.event.RuntimeEvent
+import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
+import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
+import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.scheduler.TimeAdvancer
+import edu.ie3.simona.sim.SimonaSim
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.ActorContext
+import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 /** Trait that can be used to setup a customized simona simulation by providing
   * implementations for all setup information required by a
@@ -30,11 +35,6 @@ trait SimonaSetup {
     */
   val args: Array[String]
 
-  /** A function, that constructs the [[ActorSystem]], the simulation shall live
-    * in
-    */
-  val buildActorSystem: () => ActorSystem
-
   /** Creates the runtime event listener
     *
     * @param context
@@ -43,19 +43,19 @@ trait SimonaSetup {
     *   An actor reference to the runtime event listener
     */
   def runtimeEventListener(
-      context: ActorContext
-  ): org.apache.pekko.actor.typed.ActorRef[RuntimeEvent]
+      context: ActorContext[_]
+  ): ActorRef[RuntimeEventListener.Request]
 
-  /** Creates a sequence of system participant event listeners
+  /** Creates a sequence of result event listeners
     *
     * @param context
     *   Actor context to use
     * @return
-    *   A sequence of actor references to runtime event listeners
+    *   A sequence of actor references to result event listeners
     */
-  def systemParticipantsListener(
-      context: ActorContext
-  ): Seq[ActorRef]
+  def resultEventListener(
+      context: ActorContext[_]
+  ): Seq[ActorRef[ResultEventListener.Request]]
 
   /** Creates a primary service proxy. The proxy is the first instance to ask
     * for primary data. If necessary, it delegates the registration request to
@@ -69,9 +69,9 @@ trait SimonaSetup {
     *   An actor reference to the service
     */
   def primaryServiceProxy(
-      context: ActorContext,
-      scheduler: ActorRef,
-  ): ActorRef
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
+  ): ClassicRef
 
   /** Creates a weather service
     *
@@ -84,9 +84,9 @@ trait SimonaSetup {
     *   the service
     */
   def weatherService(
-      context: ActorContext,
-      scheduler: ActorRef,
-  ): ActorRef
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
+  ): ClassicRef
 
   /** Loads external simulations and provides corresponding actors and init data
     *
@@ -98,8 +98,8 @@ trait SimonaSetup {
     *   External simulations and their init data
     */
   def extSimulations(
-      context: ActorContext,
-      scheduler: ActorRef,
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
   ): ExtSimSetupData
 
   /** Creates the time advancer
@@ -114,10 +114,10 @@ trait SimonaSetup {
     *   An actor reference to the time advancer
     */
   def timeAdvancer(
-      context: ActorContext,
-      simulation: ActorRef,
-      runtimeEventListener: org.apache.pekko.actor.typed.ActorRef[RuntimeEvent],
-  ): org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming]
+      context: ActorContext[_],
+      simulation: ActorRef[SimonaSim.SimulationEnded.type],
+      runtimeEventListener: ActorRef[RuntimeEvent],
+  ): ActorRef[TimeAdvancer.Request]
 
   /** Creates a scheduler service
     *
@@ -129,9 +129,9 @@ trait SimonaSetup {
     *   An actor reference to the scheduler
     */
   def scheduler(
-      context: ActorContext,
-      timeAdvancer: org.apache.pekko.actor.typed.ActorRef[TimeAdvancer.Incoming],
-  ): ActorRef
+      context: ActorContext[_],
+      timeAdvancer: ActorRef[TimeAdvancer.Request],
+  ): ActorRef[SchedulerMessage]
 
   /** Creates all the needed grid agents
     *
@@ -139,17 +139,17 @@ trait SimonaSetup {
     *   Actor context to use
     * @param environmentRefs
     *   EnvironmentRefs to use
-    * @param systemParticipantListener
+    * @param resultEventListeners
     *   Listeners that await events from system participants
     * @return
     *   A mapping from actor reference to it's according initialization data to
     *   be used when setting up the agents
     */
   def gridAgents(
-      context: ActorContext,
+      context: ActorContext[_],
       environmentRefs: EnvironmentRefs,
-      systemParticipantListener: Seq[ActorRef],
-  ): Iterable[ActorRef]
+      resultEventListeners: Seq[ActorRef[ResultEvent]],
+  ): Iterable[ClassicRef]
 
   /** SIMONA links sub grids connected by a three winding transformer a bit
     * different. Therefore, the internal node has to be set as superior node.
