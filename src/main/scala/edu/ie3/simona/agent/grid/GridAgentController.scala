@@ -6,9 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{ActorContext, ActorRef}
-import org.apache.pekko.event.LoggingAdapter
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.input.system._
@@ -33,6 +30,9 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import org.apache.pekko.actor.typed.scaladsl.adapter.{ClassicActorRefOps, _}
+import org.apache.pekko.actor.{ActorContext, ActorRef}
+import org.apache.pekko.event.LoggingAdapter
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -339,7 +339,7 @@ class GridAgentController(
   ): ActorRef =
     gridAgentContext.simonaActorOf(
       FixedFeedInAgent.props(
-        environmentRefs.scheduler,
+        environmentRefs.scheduler.toClassic,
         ParticipantInitializeStateData(
           fixedFeedInInput,
           modelConfiguration,
@@ -390,7 +390,7 @@ class GridAgentController(
   ): ActorRef =
     gridAgentContext.simonaActorOf(
       LoadAgent.props(
-        environmentRefs.scheduler,
+        environmentRefs.scheduler.toClassic,
         ParticipantInitializeStateData(
           loadInput,
           modelConfiguration,
@@ -444,7 +444,7 @@ class GridAgentController(
   ): ActorRef =
     gridAgentContext.simonaActorOf(
       PvAgent.props(
-        environmentRefs.scheduler,
+        environmentRefs.scheduler.toClassic,
         ParticipantInitializeStateData(
           pvInput,
           modelConfiguration,
@@ -498,7 +498,7 @@ class GridAgentController(
   ): ActorRef =
     gridAgentContext.simonaActorOf(
       EvcsAgent.props(
-        environmentRefs.scheduler,
+        environmentRefs.scheduler.toClassic,
         ParticipantInitializeStateData(
           evcsInput,
           modelConfiguration,
@@ -547,7 +547,7 @@ class GridAgentController(
   ): ActorRef =
     gridAgentContext.simonaActorOf(
       HpAgent.props(
-        environmentRefs.scheduler,
+        environmentRefs.scheduler.toClassic,
         ParticipantInitializeStateData(
           hpInput,
           thermalGrid,
@@ -602,7 +602,7 @@ class GridAgentController(
   ): ActorRef =
     gridAgentContext.simonaActorOf(
       WecAgent.props(
-        environmentRefs.scheduler,
+        environmentRefs.scheduler.toClassic,
         ParticipantInitializeStateData(
           wecInput,
           modelConfiguration,
