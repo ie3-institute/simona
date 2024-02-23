@@ -165,6 +165,7 @@ class ExtResultDataService(override val scheduler: ActorRef)
   )(implicit
       serviceStateData: ExtResultsStateData
   ): (ExtResultsStateData, Option[Long]) = {
+    /* has to be filled -> For ReCoDE it isn't necessary that an external simulation requests results */
     (serviceStateData.copy(), None)
   }
 }

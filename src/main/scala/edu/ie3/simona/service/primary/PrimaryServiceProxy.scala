@@ -365,7 +365,10 @@ case class PrimaryServiceProxy(
   ): Unit = {
     stateData.extPrimaryDataService match {
       case Some(reqActor) =>
-        reqActor ! ExtPrimaryDataServiceRegistrationMessage(modelUuid, reqActor)
+        reqActor ! ExtPrimaryDataServiceRegistrationMessage(
+          modelUuid,
+          requestingActor,
+        )
     }
   }
 

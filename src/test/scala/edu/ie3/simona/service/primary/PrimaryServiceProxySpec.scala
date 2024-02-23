@@ -311,8 +311,8 @@ class PrimaryServiceProxySpec
                 simulationStart,
                 primaryConfig,
                 mappingSource,
-                extSubscribers,
-                extPrimaryDataService,
+                _,
+                _,
               )
             ) =>
           modelToTimeSeries shouldBe Map(
@@ -359,11 +359,11 @@ class PrimaryServiceProxySpec
       ) match {
         case Success(
               PrimaryServiceStateData(
-                modelToTimeSeries,
-                timeSeriesToSourceRef,
-                simulationStart,
-                primaryConfig,
-                mappingSource,
+                _,
+                _,
+                _,
+                _,
+                _,
                 extSubscribers,
                 extPrimaryDataService,
               )
@@ -597,8 +597,8 @@ class PrimaryServiceProxySpec
               simulationStart,
               primaryConfig,
               mappingSource,
-              extSubscribers,
-              extPrimaryDataService,
+              _,
+              _,
             ) =>
           modelToTimeSeries shouldBe proxyStateData.modelToTimeSeries
           timeSeriesToSourceRef shouldBe Map(

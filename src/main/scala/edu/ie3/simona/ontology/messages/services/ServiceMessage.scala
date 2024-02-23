@@ -84,12 +84,4 @@ case object ServiceMessage {
     val nextDataTick: Option[Long]
     val unlockKey: Option[ScheduleKey]
   }
-
-  // -=- Subscriber of extPrimaryData -=-
-  trait ExtSubscriberMessage extends ServiceMessage
-
-  final case class RequestExtSubscriberMessage() extends ExtSubscriberMessage
-
-  final case class ProvideExtSubscriberMessage() extends ExtSubscriberMessage
-
 }
