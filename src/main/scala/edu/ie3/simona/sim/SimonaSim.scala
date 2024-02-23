@@ -6,48 +6,18 @@
 
 package edu.ie3.simona.sim
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.{
-  ClassicActorRefOps,
-  TypedActorRefOps,
-}
-import org.apache.pekko.actor.SupervisorStrategy.Stop
-import org.apache.pekko.actor.{
-  Actor,
-  AllForOneStrategy,
-  Props,
-  Stash,
-  SupervisorStrategy,
-  Terminated,
-  ActorRef => classicRef,
-}
-import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentMessage
-import edu.ie3.simona.agent.grid.GridAgentMessage.StopGridAgent
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{DelayedStopHelper, RuntimeEventListener}
 import edu.ie3.simona.main.RunSimona.SimonaEnded
 import edu.ie3.simona.scheduler.TimeAdvancer
-import edu.ie3.simona.scheduler.TimeAdvancer.{Incoming, StartSimMessage}
-import edu.ie3.simona.sim.SimMessage.{
-  InitSim,
-  SimulationFailure,
-  SimulationSuccessful,
-  StartSimulation,
-}
-import edu.ie3.simona.sim.SimonaSim.{
-  EmergencyShutdownInitiated,
-  SimonaSimStateData,
-}
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
 import edu.ie3.util.scala.Scope
 import org.apache.pekko.actor.typed.scaladsl.adapter._
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop, Terminated}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
-import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
 /** Main entrance point to a simona simulation as the guardian actor. This actor
   * starts the initialization of all actors and waits for the simulation to end.
@@ -146,7 +116,7 @@ object SimonaSim {
         extSimulationData.extDataServices.values
           .map(_.toTyped)
           .foreach(ctx.watch)
-        gridAgents.foreach(ref => ctx.watch(ref.toTyped))
+        gridAgents.foreach(ref => ctx.watch(ref))
 
         // Start simulation
         timeAdvancer ! TimeAdvancer.Start()
@@ -157,7 +127,7 @@ object SimonaSim {
           primaryServiceProxy.toTyped,
           weatherService.toTyped,
         ) ++
-          gridAgents.map(_.toTyped) ++
+          gridAgents ++
           extSimulationData.extDataServices.values.map(_.toTyped)
 
         idle(

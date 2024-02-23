@@ -18,7 +18,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessage.{
 }
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.event.listener.ResultEventListener.ResultMessage
+import edu.ie3.simona.event.listener.ResultEventListener.Request
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.PowerMessage.{
@@ -77,8 +77,7 @@ class DBFSAlgorithmSupGridSpec
     evDataService = None,
   )
 
-  val resultListener: TestProbe[ResultMessage] =
-    TestProbe[ResultMessage]("resultListener")
+  val resultListener: TestProbe[Request] = TestProbe[Request]("resultListener")
 
   "A GridAgent actor in superior position with async test" should {
     val superiorGridAgentFSM: ActorRef[GridAgentMessage] = testKit.spawn(
@@ -181,7 +180,7 @@ class DBFSAlgorithmSupGridSpec
             case Completion(_, Some(7200)) =>
               // agent should be in Idle again and listener should contain power flow result data
               val resultMessage =
-                resultListener.expectMessageType[ResultMessage]
+                resultListener.expectMessageType[Request]
 
               resultMessage match {
                 case powerFlowResultEvent: PowerFlowResultEvent =>
@@ -310,7 +309,7 @@ class DBFSAlgorithmSupGridSpec
             case Completion(_, Some(7200)) =>
               // after doing cleanup stuff, our agent should go back to idle again and listener should contain power flow result data
               val resultMessage =
-                resultListener.expectMessageType[ResultMessage]
+                resultListener.expectMessageType[Request]
 
               resultMessage match {
                 case powerFlowResultEvent: PowerFlowResultEvent =>

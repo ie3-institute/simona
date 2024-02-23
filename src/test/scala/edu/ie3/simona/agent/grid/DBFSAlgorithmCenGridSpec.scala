@@ -11,7 +11,7 @@ import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessage._
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
-import edu.ie3.simona.event.listener.ResultEventListener.ResultMessage
+import edu.ie3.simona.event.listener.ResultEventListener.Request
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
@@ -83,8 +83,7 @@ class DBFSAlgorithmCenGridSpec
     evDataService = None,
   )
 
-  val resultListener: TestProbe[ResultMessage] =
-    TestProbe[ResultMessage]("resultListener")
+  val resultListener: TestProbe[Request] = TestProbe[Request]("resultListener")
 
   "A GridAgent actor in center position with async test" should {
 
@@ -451,7 +450,7 @@ class DBFSAlgorithmCenGridSpec
       val cm = scheduler.expectMessageType[Completion]
       cm shouldBe Completion(cm.actor, Some(7200))
 
-      val resultMessage = resultListener.expectMessageType[ResultMessage]
+      val resultMessage = resultListener.expectMessageType[Request]
       resultMessage match {
         case powerFlowResultEvent: PowerFlowResultEvent =>
           // we expect results for 4 nodes, 5 lines and 2 transformer2ws

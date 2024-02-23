@@ -14,7 +14,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessage.{
   FinishGridSimulationTrigger,
   WrappedActivation,
 }
-import edu.ie3.simona.event.listener.ResultEventListener.ResultMessage
+import edu.ie3.simona.event.listener.ResultEventListener.Request
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
@@ -66,8 +66,8 @@ class DBFSAlgorithmParticipantSpec
     evDataService = None,
   )
 
-  protected val resultListener: TestProbe[ResultMessage] =
-    TestProbe[ResultMessage]("resultListener")
+  protected val resultListener: TestProbe[Request] =
+    TestProbe[Request]("resultListener")
 
   private val superiorGridAgent = SuperiorGA(
     TestProbe("superiorGridAgent_1000"),

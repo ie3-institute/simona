@@ -11,7 +11,7 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.graph.SubGridTopologyGraph
 import edu.ie3.datamodel.models.input.container.{GridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
-import edu.ie3.simona.actor.SimonaActorNaming._
+import edu.ie3.simona.actor.SimonaActorNaming.RichActorRefFactory
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentMessage.CreateGridAgent
 import edu.ie3.simona.agent.grid.{GridAgent, GridAgentMessage}
@@ -20,8 +20,8 @@ import edu.ie3.simona.api.data.ExtData
 import edu.ie3.simona.api.data.ev.{ExtEvData, ExtEvSimulation}
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.config.{ArgsParser, RefSystemParser, SimonaConfig}
+import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
-import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.grid.GridProvider
 import edu.ie3.simona.ontology.messages.SchedulerMessage
@@ -40,23 +40,13 @@ import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.adapter.{
-  ClassicActorContextOps,
   ClassicActorRefOps,
+  TypedActorContextOps,
   TypedActorRefOps,
 }
-import org.apache.pekko.actor.{
-  ActorSystem,
-  ActorContext,
-  ActorRef => ClassicRef,
-}
-import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.typed.scaladsl.adapter._
-import org.apache.pekko.actor.{
-  ActorContext => ClassicContext,
-  ActorRef => ClassicRef,
-}
+import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 import java.util.concurrent.LinkedBlockingQueue
 import scala.jdk.CollectionConverters._
@@ -78,7 +68,7 @@ class SimonaStandaloneSetup(
   override def gridAgents(
       context: ActorContext[_],
       environmentRefs: EnvironmentRefs,
-      resultEventListeners: Seq[ActorRef[ResultEvent]],
+      resultEventListeners: Seq[ActorRef[ResultEventListener.Request]],
   ): Iterable[ActorRef[GridAgentMessage]] = {
 
     /* get the grid */
@@ -330,7 +320,7 @@ class SimonaStandaloneSetup(
 
   def buildSubGridToActorRefMap(
       subGridTopologyGraph: SubGridTopologyGraph,
-      context: ActorContext,
+      context: ActorContext[_],
       environmentRefs: EnvironmentRefs,
       systemParticipantListener: Seq[ClassicRef],
   ): Map[Int, ActorRef[GridAgentMessage]] = {

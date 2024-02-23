@@ -7,13 +7,14 @@
 package edu.ie3.simona.sim
 
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.agent.grid.GridAgentMessage
 import edu.ie3.simona.api.ExtSimAdapter
+import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{
   DelayedStopHelper,
   ResultEventListener,
   RuntimeEventListener,
 }
-import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.main.RunSimona.SimonaEnded
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
@@ -23,7 +24,6 @@ import edu.ie3.simona.sim.SimonaSimSpec._
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
 import edu.ie3.simona.test.common.UnitSpec
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
-  LogCapturing,
   ScalaTestWithActorTestKit,
   TestProbe,
 }
@@ -441,8 +441,8 @@ object SimonaSimSpec {
     override def gridAgents(
         context: ActorContext[_],
         environmentRefs: EnvironmentRefs,
-        systemParticipantListener: Seq[ActorRef[ResultEvent]],
-    ): Iterable[ClassicRef] = Iterable.empty
+        resultEventListeners: Seq[ActorRef[ResultEventListener.Request]],
+    ): Iterable[ActorRef[GridAgentMessage]] = Iterable.empty
 
     override def extSimulations(
         context: ActorContext[_],
