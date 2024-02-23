@@ -7,7 +7,7 @@
 package edu.ie3.simona.agent
 
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.scheduler.TimeAdvancer.Incoming
+import edu.ie3.simona.ontology.messages.SchedulerMessage
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
@@ -26,7 +26,7 @@ import org.apache.pekko.actor.{ActorRef => ClassicRef}
   *   Reference to the EV data service, if existing
   */
 final case class EnvironmentRefs(
-    scheduler: ClassicRef,
+    scheduler: ActorRef[SchedulerMessage],
     runtimeEventListener: ActorRef[RuntimeEvent],
     primaryServiceProxy: ClassicRef,
     weather: ClassicRef,

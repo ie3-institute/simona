@@ -70,7 +70,7 @@ class DBFSAlgorithmSupGridSpec
     TestProbe[GridAgentMessage]("hvGrid")
 
   private val environmentRefs = EnvironmentRefs(
-    scheduler = scheduler.ref.toClassic,
+    scheduler = scheduler.ref,
     runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref.toClassic,
     weather = weatherService.ref.toClassic,

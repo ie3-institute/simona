@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
+import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.simona.agent.EnvironmentRefs

@@ -229,15 +229,6 @@ object GridAgent extends DBFSAlgorithm {
       )
       buffer.unstashAll(simulateGrid(gridAgentBaseData, activation.tick))
 
-    case (ctx, StopGridAgent) =>
-      // shutdown children
-      gridAgentBaseData.gridEnv.nodeToAssetAgents.foreach { case (_, actors) =>
-        actors.foreach(a => ctx.stop(a))
-      }
-
-      // we are done
-      Behaviors.stopped
-
     case _ =>
       Behaviors.unhandled
   }

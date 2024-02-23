@@ -63,7 +63,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
     InferiorGA(TestProbe("inferiorGridAgent"), Seq(node1.getUuid))
 
   private val environmentRefs = EnvironmentRefs(
-    scheduler = scheduler.ref.toClassic,
+    scheduler = scheduler.ref,
     runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref.toClassic,
     weather = weatherService.ref.toClassic,
