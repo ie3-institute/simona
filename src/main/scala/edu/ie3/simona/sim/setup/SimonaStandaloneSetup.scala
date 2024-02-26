@@ -17,7 +17,10 @@ import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.data.ExtData
 import edu.ie3.simona.api.data.ev.{ExtEvData, ExtEvSimulation}
-import edu.ie3.simona.api.data.primarydata.{ExtPrimaryData, ExtPrimaryDataSimulation}
+import edu.ie3.simona.api.data.primarydata.{
+  ExtPrimaryData,
+  ExtPrimaryDataSimulation,
+}
 import edu.ie3.simona.api.data.results.{ExtResultDataSimulation, ExtResultsData}
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.config.{ArgsParser, RefSystemParser, SimonaConfig}
@@ -32,7 +35,10 @@ import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
-import edu.ie3.simona.service.primary.{ExtPrimaryDataService, PrimaryServiceProxy}
+import edu.ie3.simona.service.primary.{
+  ExtPrimaryDataService,
+  PrimaryServiceProxy,
+}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.results.ExtResultDataService
 import edu.ie3.simona.service.results.ExtResultDataService.InitExtResultsData
@@ -46,7 +52,10 @@ import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.adapter._
-import org.apache.pekko.actor.{ActorRef, ActorContext => ClassicContext, ActorRef => ClassicRef}
+import org.apache.pekko.actor.{
+  ActorContext => ClassicContext,
+  ActorRef => ClassicRef,
+}
 
 import java.util.concurrent.LinkedBlockingQueue
 import scala.jdk.CollectionConverters._
@@ -235,8 +244,8 @@ class SimonaStandaloneSetup(
               (extEvData, (classOf[ExtEvDataService], extEvDataService))
 
             case (extPrimaryDataSimulation: ExtPrimaryDataSimulation, dIndex) =>
-              val extPrimaryDataService = context.simonaActorOf(
-                ExtPrimaryDataService.props(scheduler),
+              val extPrimaryDataService = context.toClassic.simonaActorOf(
+                ExtPrimaryDataService.props(scheduler.toClassic),
                 s"$index-$dIndex",
               )
               val extPrimaryData = new ExtPrimaryData(
@@ -249,7 +258,7 @@ class SimonaStandaloneSetup(
                 InitExtPrimaryData(extPrimaryData),
                 ScheduleLock.singleKey(
                   context,
-                  scheduler.toTyped,
+                  scheduler,
                   INIT_SIM_TICK,
                 ),
               )
@@ -257,8 +266,8 @@ class SimonaStandaloneSetup(
               (null, (classOf[ExtResultDataService], extPrimaryDataService))
 
             case (_: ExtResultDataSimulation, dIndex) =>
-              val extResultDataService = context.simonaActorOf(
-                ExtResultDataService.props(scheduler),
+              val extResultDataService = context.toClassic.simonaActorOf(
+                ExtResultDataService.props(scheduler.toClassic),
                 s"$index-$dIndex",
               )
               val extResultsData =
@@ -268,7 +277,7 @@ class SimonaStandaloneSetup(
                 InitExtResultsData(extResultsData),
                 ScheduleLock.singleKey(
                   context,
-                  scheduler.toTyped,
+                  scheduler,
                   INIT_SIM_TICK,
                 ),
               )
@@ -344,7 +353,7 @@ class SimonaStandaloneSetup(
       context: ActorContext[_],
       extSimulationData: ExtSimSetupData,
   ): Seq[ActorRef[ResultEventListener.Request]] = {
-    val extResultDataService: Option[ActorRef] =
+    val extResultDataService: Option[ClassicRef] =
       extSimulationData.extResultDataService
     // append ResultEventListener as well to write raw output files
     ArgsParser

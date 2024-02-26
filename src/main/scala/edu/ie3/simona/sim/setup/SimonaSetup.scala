@@ -70,9 +70,9 @@ trait SimonaSetup {
     *   An actor reference to the service
     */
   def primaryServiceProxy(
-                           context: ActorContext[_],
-                           scheduler: ActorRef[SchedulerMessage],
-                           extSimulationData: ExtSimSetupData,
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
+      extSimulationData: ExtSimSetupData,
   ): ClassicRef
 
   /** Creates a weather service

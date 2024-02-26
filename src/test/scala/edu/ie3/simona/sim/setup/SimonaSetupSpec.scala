@@ -36,14 +36,10 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
     )
 
   override def resultEventListener(
-      context: scaladsl.ActorContext[_]
+      context: scaladsl.ActorContext[_],
+      extSimulationData: ExtSimSetupData,
   ): Seq[typed.ActorRef[ResultEventListener.Request]] =
     throw new NotImplementedException("This is a dummy setup")
-
-  override def systemParticipantsListener(
-      context: ActorContext,
-      extSimSetupData: ExtSimSetupData,
-  ): Seq[ActorRef] = throw new NotImplementedException("This is a dummy setup")
 
   override def primaryServiceProxy(
       context: scaladsl.ActorContext[_],
