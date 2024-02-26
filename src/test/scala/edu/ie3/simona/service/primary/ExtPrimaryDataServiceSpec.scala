@@ -90,9 +90,6 @@ class ExtPrimaryDataServiceSpec
       primaryDataFactory,
     )
 
-  private val participant1UUID =
-    UUID.fromString("06a14909-366e-4e94-a593-1016e1455b30")
-
   "An uninitialized external primary data service" must {
 
     "send correct completion message after initialisation" in {
@@ -129,7 +126,6 @@ class ExtPrimaryDataServiceSpec
           scheduler.ref
         )
       )
-    val validInitData = InitExtPrimaryData(extPrimaryData(serviceRef))
 
     "refuse registration for wrong registration request" in {
       serviceRef ! RegisterForWeatherMessage(51.4843281, 7.4116482)
