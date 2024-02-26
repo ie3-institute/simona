@@ -10,7 +10,9 @@ import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessage._
-import edu.ie3.simona.event.listener.ResultEventListener.Request
+import edu.ie3.simona.agent.grid.VoltageMessage.ProvideSlackVoltageMessage
+import edu.ie3.simona.agent.grid.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
+import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.PowerMessage.{
@@ -21,9 +23,6 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import VoltageMessage.ProvideSlackVoltageMessage
-import VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
-import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
@@ -70,7 +69,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
     evDataService = None,
   )
 
-  val resultListener: TestProbe[Request] = TestProbe[Request]("resultListener")
+  val resultListener: TestProbe[ResultEvent] =
+    TestProbe[ResultEvent]("resultListener")
 
   "A GridAgent actor in center position with async test" should {
 
@@ -79,7 +79,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
         GridAgent(
           environmentRefs,
           simonaConfig,
-          listener = Iterable(resultListener.ref.toClassic),
+          listener = Iterable(resultListener.ref),
         )
       )
 
@@ -112,11 +112,15 @@ class DBFSAlgorithmFailedPowerFlowSpec
         key,
       )
 
-      val msg = scheduler.expectMessageType[ScheduleActivation]
-      msg shouldBe ScheduleActivation(msg.actor, INIT_SIM_TICK, Some(key))
+      val gridAgentActivation = scheduler.expectMessageType[ScheduleActivation]
+      gridAgentActivation shouldBe ScheduleActivation(
+        gridAgentActivation.actor,
+        INIT_SIM_TICK,
+        Some(key),
+      )
 
       centerGridAgent ! WrappedActivation(Activation(INIT_SIM_TICK))
-      scheduler.expectMessage(Completion(msg.actor, Some(3600)))
+      scheduler.expectMessage(Completion(gridAgentActivation.actor, Some(3600)))
     }
 
     s"go to SimulateGrid when it receives an activation" in {
@@ -125,8 +129,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
       centerGridAgent ! WrappedActivation(Activation(3600))
 
       // we expect a completion message
-      val message = scheduler.expectMessageType[Completion]
-      message shouldBe Completion(message.actor, Some(3600))
+      val completionMessage = scheduler.expectMessageType[Completion]
+      completionMessage shouldBe Completion(completionMessage.actor, Some(3600))
     }
 
     s"start the simulation when an activation is sent is sent, handle failed power flow if it occurs" in {
@@ -208,8 +212,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
       inferiorGridAgent.gaProbe.expectMessage(FinishGridSimulationTrigger(3600))
 
       // after all grids have received a FinishGridSimulationTrigger, the scheduler should receive a CompletionMessage
-      val message = scheduler.expectMessageType[Completion]
-      message shouldBe Completion(message.actor, Some(7200))
+      val completionMessage = scheduler.expectMessageType[Completion]
+      completionMessage shouldBe Completion(completionMessage.actor, Some(7200))
 
       resultListener.expectNoMessage()
 

@@ -10,8 +10,8 @@ import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.connector.Transformer3WInput
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentMessage
-import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
+import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.sim.SimonaSim
@@ -149,7 +149,7 @@ trait SimonaSetup {
   def gridAgents(
       context: ActorContext[_],
       environmentRefs: EnvironmentRefs,
-      resultEventListeners: Seq[ActorRef[ResultEventListener.Request]],
+      resultEventListeners: Seq[ActorRef[ResultEvent]],
   ): Iterable[ActorRef[GridAgentMessage]]
 
   /** SIMONA links sub grids connected by a three winding transformer a bit

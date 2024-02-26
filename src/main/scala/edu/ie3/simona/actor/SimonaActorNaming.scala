@@ -7,6 +7,7 @@
 package edu.ie3.simona.actor
 
 import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.apache.pekko.actor.{ActorRefFactory, Props, ActorRef => ClassicRef}
 
 import java.util.UUID
@@ -84,14 +85,7 @@ object SimonaActorNaming {
     * @return
     *   the actor name extract from the ActorRef
     */
-  def actorName(actorRef: ActorRef[_]): String =
-    actorRef.path.name match {
-      case "singleton" =>
-        // singletons end in /${actorName}/singleton
-        actorRef.path.parent.name
-      case other =>
-        other
-    }
+  def actorName(actorRef: ActorRef[_]): String = actorName(actorRef.toClassic)
 
   /** Constructs the type name from given props.
     *

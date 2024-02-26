@@ -18,7 +18,7 @@ import edu.ie3.simona.agent.grid.ReceivedValues.{
 import edu.ie3.simona.agent.grid.ReceivedValuesStore.NodeToReceivedPower
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.notifier.Notifier
+import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.model.grid.{GridModel, RefSystem}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.{
@@ -28,8 +28,6 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
   ProvidePowerMessage,
 }
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.typed.scaladsl.StashBuffer
-import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -54,14 +52,18 @@ object GridAgentData {
     * @param activationAdapter
     *   adapter for [[Activation]]
     */
-  final case class GridAgentValues private (
+  final case class GridAgentConstantData private (
       environmentRefs: EnvironmentRefs,
       simonaConfig: SimonaConfig,
-      override val listener: Iterable[ClassicRef],
+      listener: Iterable[ActorRef[ResultEvent]],
       resolution: Long,
       simStartTime: ZonedDateTime,
       activationAdapter: ActorRef[Activation],
-  ) extends Notifier
+  ) {
+    def notifyListeners(event: ResultEvent): Unit = {
+      listener.foreach(listener => listener ! event)
+    }
+  }
 
   /** Data that is send to the [[GridAgent]] directly after startup. It contains
     * the main information for initialization. This data should include all

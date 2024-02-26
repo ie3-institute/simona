@@ -9,7 +9,7 @@ package edu.ie3.simona.agent.participant
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
-import edu.ie3.simona.agent.grid.GridAgentMessage.FinishGridSimulationTrigger
+import edu.ie3.simona.agent.participant.ParticipantAgent.FinishParticipantSimulation
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.SimonaConfig
@@ -241,7 +241,7 @@ class ParticipantAgent2ListenerSpec
         case unknownMsg => fail(s"Received unexpected message: $unknownMsg")
       }
 
-      scheduler.send(mockAgent, FinishGridSimulationTrigger(3000L))
+      scheduler.send(mockAgent, FinishParticipantSimulation(3000L))
 
       /* Wait for the result event (this is the event listener) */
       logger.warn(
@@ -303,7 +303,7 @@ class ParticipantAgent2ListenerSpec
         case unknownMsg => fail(s"Received unexpected message: $unknownMsg")
       }
 
-      scheduler.send(mockAgent, FinishGridSimulationTrigger(3000L))
+      scheduler.send(mockAgent, FinishParticipantSimulation(3000L))
 
       /* Make sure nothing else is sent */
       expectNoMessage(noReceiveTimeOut.duration)

@@ -37,7 +37,7 @@ class SetupHelperSpec
 
   "A setup helper" should {
     val actorRef: ActorRef[GridAgentMessage] =
-      TestProbe[GridAgentMessage]("noSender").ref
+      TestProbe[GridAgentMessage]("mock_grid_agent").ref
 
     "reduce multiple SubGridGates between the same superior and inferior nodes to one unique SubGridGate" in {
 

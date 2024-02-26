@@ -14,16 +14,15 @@ import edu.ie3.simona.agent.grid.GridAgentMessage.{
   FinishGridSimulationTrigger,
   WrappedActivation,
 }
-import edu.ie3.simona.event.listener.ResultEventListener.Request
+import edu.ie3.simona.agent.grid.VoltageMessage.ProvideSlackVoltageMessage
+import edu.ie3.simona.agent.grid.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
+import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import VoltageMessage.ProvideSlackVoltageMessage
-import VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
-import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
@@ -66,8 +65,8 @@ class DBFSAlgorithmParticipantSpec
     evDataService = None,
   )
 
-  protected val resultListener: TestProbe[Request] =
-    TestProbe[Request]("resultListener")
+  protected val resultListener: TestProbe[ResultEvent] =
+    TestProbe[ResultEvent]("resultListener")
 
   private val superiorGridAgent = SuperiorGA(
     TestProbe("superiorGridAgent_1000"),
@@ -79,7 +78,7 @@ class DBFSAlgorithmParticipantSpec
       GridAgent(
         environmentRefs,
         simonaConfig,
-        Iterable(resultListener.ref.toClassic),
+        Iterable(resultListener.ref),
       )
     )
 

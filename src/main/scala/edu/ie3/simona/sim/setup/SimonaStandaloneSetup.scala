@@ -20,8 +20,8 @@ import edu.ie3.simona.api.data.ExtData
 import edu.ie3.simona.api.data.ev.{ExtEvData, ExtEvSimulation}
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.config.{ArgsParser, RefSystemParser, SimonaConfig}
-import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
+import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.grid.GridProvider
 import edu.ie3.simona.ontology.messages.SchedulerMessage
@@ -68,7 +68,7 @@ class SimonaStandaloneSetup(
   override def gridAgents(
       context: ActorContext[_],
       environmentRefs: EnvironmentRefs,
-      resultEventListeners: Seq[ActorRef[ResultEventListener.Request]],
+      resultEventListeners: Seq[ActorRef[ResultEvent]],
   ): Iterable[ActorRef[GridAgentMessage]] = {
 
     /* get the grid */
@@ -91,7 +91,7 @@ class SimonaStandaloneSetup(
       subGridTopologyGraph,
       context,
       environmentRefs,
-      resultEventListeners.map(_.toClassic),
+      resultEventListeners,
     )
 
     val keys = ScheduleLock.multiKey(
@@ -322,7 +322,7 @@ class SimonaStandaloneSetup(
       subGridTopologyGraph: SubGridTopologyGraph,
       context: ActorContext[_],
       environmentRefs: EnvironmentRefs,
-      systemParticipantListener: Seq[ClassicRef],
+      resultEventListeners: Seq[ActorRef[ResultEvent]],
   ): Map[Int, ActorRef[GridAgentMessage]] = {
     subGridTopologyGraph
       .vertexSet()
@@ -333,7 +333,7 @@ class SimonaStandaloneSetup(
             GridAgent(
               environmentRefs,
               simonaConfig,
-              systemParticipantListener,
+              resultEventListeners,
             ),
             subGridContainer.getSubnet.toString,
           )

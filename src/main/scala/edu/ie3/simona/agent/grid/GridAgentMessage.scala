@@ -73,10 +73,6 @@ object GridAgentMessage {
   final case class FinishGridSimulationTrigger(tick: Long)
       extends GridAgentMessage
 
-  /** Message that should be send by the
-    */
-  final object StopGridAgent extends GridAgentMessage
-
   /** Wrapper for activation values
     *
     * @param activation

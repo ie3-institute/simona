@@ -7,9 +7,8 @@
 package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
-import edu.ie3.simona.agent.{SimonaAgent, ValueStore}
-import edu.ie3.simona.agent.grid.GridAgentMessage.FinishGridSimulationTrigger
 import edu.ie3.simona.agent.participant.ParticipantAgent.{
+  FinishParticipantSimulation,
   StartCalculationTrigger,
   getAndCheckNodalVoltage,
 }
@@ -33,6 +32,7 @@ import edu.ie3.simona.agent.state.ParticipantAgentState.{
   Calculate,
   HandleInformation,
 }
+import edu.ie3.simona.agent.{SimonaAgent, ValueStore}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
@@ -44,13 +44,13 @@ import edu.ie3.simona.model.participant.{
   SystemParticipant,
 }
 import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage
+import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexResponse,
   IssueFlexControl,
   RequestFlexOptions,
 }
-import edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
@@ -215,7 +215,7 @@ abstract class ParticipantAgent[
       )
 
     case Event(
-          FinishGridSimulationTrigger(tick),
+          FinishParticipantSimulation(tick),
           baseStateData: BaseStateData[PD],
         ) =>
       // clean up agent result value store
@@ -871,6 +871,9 @@ abstract class ParticipantAgent[
 object ParticipantAgent {
 
   trait ParticipantMessage
+
+  final case class FinishParticipantSimulation(tick: Long)
+      extends ParticipantMessage
 
   final case class StartCalculationTrigger(tick: Long)
 

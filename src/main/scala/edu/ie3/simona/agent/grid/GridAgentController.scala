@@ -33,11 +33,13 @@ import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.adapter.{
   ClassicActorRefOps,
+  TypedActorContextOps,
   TypedActorRefOps,
 }
-import org.apache.pekko.actor.{ActorContext, ActorRef => ClassicRef}
+import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import org.slf4j.Logger
 
 import java.time.ZonedDateTime
@@ -68,7 +70,7 @@ import scala.jdk.CollectionConverters._
   * @since 2019-07-18
   */
 class GridAgentController(
-    gridAgentContext: ActorContext,
+    gridAgentContext: ActorContext[_],
     environmentRefs: EnvironmentRefs,
     simulationStartDate: ZonedDateTime,
     simulationEndDate: ZonedDateTime,
@@ -196,7 +198,7 @@ class GridAgentController(
             thermalIslandGridsByBusId,
             environmentRefs,
           )
-        introduceAgentToEnvironment(actorRef.toClassic)
+        introduceAgentToEnvironment(actorRef)
         // return uuid to actorRef
         node.getUuid -> actorRef
       })
@@ -343,7 +345,7 @@ class GridAgentController(
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
   ): ActorRef[ParticipantMessage] =
-    gridAgentContext
+    gridAgentContext.toClassic
       .simonaActorOf(
         FixedFeedInAgent.props(
           environmentRefs.scheduler.toClassic,
@@ -396,7 +398,7 @@ class GridAgentController(
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
   ): ActorRef[ParticipantMessage] =
-    gridAgentContext
+    gridAgentContext.toClassic
       .simonaActorOf(
         LoadAgent.props(
           environmentRefs.scheduler.toClassic,
@@ -452,7 +454,7 @@ class GridAgentController(
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
   ): ActorRef[ParticipantMessage] =
-    gridAgentContext
+    gridAgentContext.toClassic
       .simonaActorOf(
         PvAgent.props(
           environmentRefs.scheduler.toClassic,
@@ -508,7 +510,7 @@ class GridAgentController(
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
   ): ActorRef[ParticipantMessage] =
-    gridAgentContext
+    gridAgentContext.toClassic
       .simonaActorOf(
         EvcsAgent.props(
           environmentRefs.scheduler.toClassic,
@@ -559,7 +561,7 @@ class GridAgentController(
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
   ): ActorRef[ParticipantMessage] =
-    gridAgentContext
+    gridAgentContext.toClassic
       .simonaActorOf(
         HpAgent.props(
           environmentRefs.scheduler.toClassic,
@@ -616,7 +618,7 @@ class GridAgentController(
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
   ): ActorRef[ParticipantMessage] =
-    gridAgentContext
+    gridAgentContext.toClassic
       .simonaActorOf(
         WecAgent.props(
           environmentRefs.scheduler.toClassic,
@@ -643,11 +645,11 @@ class GridAgentController(
     *   Reference to the actor to add to the environment
     */
   private def introduceAgentToEnvironment(
-      actorRef: ClassicRef
+      actorRef: ActorRef[ParticipantMessage]
   ): Unit = {
     gridAgentContext.watch(actorRef)
     environmentRefs.scheduler ! ScheduleActivation(
-      actorRef.toTyped,
+      actorRef.toClassic.toTyped,
       INIT_SIM_TICK,
     )
   }

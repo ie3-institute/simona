@@ -17,8 +17,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessage.{
   WrappedPowerMessage,
 }
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
-import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.event.listener.ResultEventListener.Request
+import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.PowerMessage.{
@@ -77,14 +76,15 @@ class DBFSAlgorithmSupGridSpec
     evDataService = None,
   )
 
-  val resultListener: TestProbe[Request] = TestProbe[Request]("resultListener")
+  val resultListener: TestProbe[ResultEvent] =
+    TestProbe[ResultEvent]("resultListener")
 
   "A GridAgent actor in superior position with async test" should {
     val superiorGridAgentFSM: ActorRef[GridAgentMessage] = testKit.spawn(
       GridAgent(
         environmentRefs,
         simonaConfig,
-        listener = Iterable(resultListener.ref.toClassic),
+        listener = Iterable(resultListener.ref),
       )
     )
 
@@ -179,8 +179,7 @@ class DBFSAlgorithmSupGridSpec
             // we expect another completion message when the agent is in SimulateGrid again
             case Completion(_, Some(7200)) =>
               // agent should be in Idle again and listener should contain power flow result data
-              val resultMessage =
-                resultListener.expectMessageType[Request]
+              val resultMessage = resultListener.expectMessageType[ResultEvent]
 
               resultMessage match {
                 case powerFlowResultEvent: PowerFlowResultEvent =>
@@ -309,7 +308,7 @@ class DBFSAlgorithmSupGridSpec
             case Completion(_, Some(7200)) =>
               // after doing cleanup stuff, our agent should go back to idle again and listener should contain power flow result data
               val resultMessage =
-                resultListener.expectMessageType[Request]
+                resultListener.expectMessageType[ResultEvent]
 
               resultMessage match {
                 case powerFlowResultEvent: PowerFlowResultEvent =>
