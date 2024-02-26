@@ -66,7 +66,7 @@ class DBFSAlgorithmParticipantSpec
   private val weatherService = TestProbe("weatherService")
 
   private val environmentRefs = EnvironmentRefs(
-    scheduler = scheduler.ref,
+    scheduler = scheduler.ref.toTyped,
     runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref,
     weather = weatherService.ref,

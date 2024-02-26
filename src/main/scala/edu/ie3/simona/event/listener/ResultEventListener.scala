@@ -11,7 +11,6 @@ import org.apache.pekko.actor.typed.{Behavior, PostStop}
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
-import edu.ie3.simona.event.Event
 import edu.ie3.simona.event.ResultEvent.{
   FlexOptionsResultEvent,
   ParticipantResultEvent,
@@ -36,15 +35,13 @@ import scala.util.{Failure, Success, Try}
 
 object ResultEventListener extends Transformer3wResultSupport {
 
-  trait ResultMessage extends Event
+  trait Request
 
   private final case class SinkResponse(
       response: Map[Class[_], ResultEntitySink]
-  ) extends ResultMessage
+  ) extends Request
 
-  private final case class Failed(ex: Exception) extends ResultMessage
-
-  private final case object StopTimeout extends ResultMessage
+  private final case class InitFailed(ex: Exception) extends Request
 
   /** [[ResultEventListener]] base data containing all information the listener
     * needs
@@ -256,7 +253,7 @@ object ResultEventListener extends Transformer3wResultSupport {
   def apply(
       resultFileHierarchy: ResultFileHierarchy,
       extResultDataService: Option[ActorRef] = Option.empty[ActorRef],
-  ): Behavior[ResultMessage] = Behaviors.setup[ResultMessage] { ctx =>
+  ): Behavior[Request] = Behaviors.setup[Request] { ctx =>
     ctx.log.debug("Starting initialization!")
     resultFileHierarchy.resultSinkType match {
       case _: ResultSinkType.Kafka =>
@@ -275,7 +272,7 @@ object ResultEventListener extends Transformer3wResultSupport {
         ResultEventListener.initializeSinks(resultFileHierarchy)
       )
     ) {
-      case Failure(exception: Exception) => Failed(exception)
+      case Failure(exception: Exception) => InitFailed(exception)
       case Success(result)               => SinkResponse(result.toMap)
     }
 
@@ -284,13 +281,13 @@ object ResultEventListener extends Transformer3wResultSupport {
 
   private def init(
       extResultDataService: Option[ActorRef]
-  ): Behavior[ResultMessage] = Behaviors.withStash(200) { buffer =>
-    Behaviors.receive[ResultMessage] {
+  ): Behavior[Request] = Behaviors.withStash(200) { buffer =>
+    Behaviors.receive[Request] {
       case (ctx, SinkResponse(response)) =>
         ctx.log.debug("Initialization complete!")
         buffer.unstashAll(idle(BaseData(response, extResultDataService)))
 
-      case (ctx, Failed(ex)) =>
+      case (ctx, InitFailed(ex)) =>
         ctx.log.error("Unable to setup ResultEventListener.", ex)
         Behaviors.stopped
 
@@ -301,8 +298,8 @@ object ResultEventListener extends Transformer3wResultSupport {
     }
   }
 
-  private def idle(baseData: BaseData): Behavior[ResultMessage] = Behaviors
-    .receive[ResultMessage] {
+  private def idle(baseData: BaseData): Behavior[Request] = Behaviors
+    .receivePartial[Request] {
       case (ctx, ParticipantResultEvent(participantResult)) =>
         val updatedBaseData = handleResult(participantResult, baseData, ctx.log)
         idle(updatedBaseData)
@@ -342,17 +339,8 @@ object ResultEventListener extends Transformer3wResultSupport {
         val updatedBaseData = handleResult(flexOptionsResult, baseData, ctx.log)
         idle(updatedBaseData)
 
-      case (ctx, _: StopMessage) =>
-        ctx.log.debug(
-          s"${getClass.getSimpleName} received Stop message, shutting down when no message has been received in 5 seconds."
-        )
-        ctx.setReceiveTimeout(5.seconds, StopTimeout)
-        Behaviors.same
-
-      case (ctx, StopTimeout) =>
-        // there have been no messages for 5 seconds, let's end this
-        ctx.log.debug(s"${getClass.getSimpleName} is now stopped.")
-        Behaviors.stopped
+      case (ctx, msg: DelayedStopHelper.StoppingMsg) =>
+        DelayedStopHelper.handleMsg((ctx, msg))
 
     }
     .receiveSignal { case (ctx, PostStop) =>

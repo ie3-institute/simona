@@ -21,7 +21,6 @@ import edu.ie3.simona.event.ResultEvent.{
   PowerFlowResultEvent,
 }
 import edu.ie3.simona.io.result.{ResultEntitySink, ResultSinkType}
-import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.test.common.result.PowerFlowResultData
 import edu.ie3.simona.test.common.{IOTestCommons, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
@@ -139,7 +138,7 @@ class ResultEventListenerSpec
           )
         )
 
-        listener ! StopMessage(true)
+        listener ! DelayedStopHelper.FlushAndStop
         deathWatch expectTerminated (listener, 10 seconds)
       }
     }
@@ -173,7 +172,7 @@ class ResultEventListenerSpec
         )
 
         // stop listener so that result is flushed out
-        listenerRef ! StopMessage(true)
+        listenerRef ! DelayedStopHelper.FlushAndStop
 
         // wait until all lines have been written out:
         awaitCond(
@@ -255,7 +254,7 @@ class ResultEventListenerSpec
         )
 
         // stop listener so that result is flushed out
-        listenerRef ! StopMessage(true)
+        listenerRef ! DelayedStopHelper.FlushAndStop
 
         // wait until all lines have been written out:
         awaitCond(
@@ -339,7 +338,7 @@ class ResultEventListenerSpec
         listener ! powerflow3wResult(resultB)
 
         // stop listener so that result is flushed out
-        listener ! StopMessage(true)
+        listener ! DelayedStopHelper.FlushAndStop
 
         /* Await that the result is written */
         awaitCond(
@@ -402,7 +401,7 @@ class ResultEventListenerSpec
         // otherwise it might happen, that the shutdown is triggered even before the just send ParticipantResultEvent
         // reached the listener
         // this also triggers the compression of result files
-        listenerRef ! StopMessage(true)
+        listenerRef ! DelayedStopHelper.FlushAndStop
 
         // shutdown the actor system
         system.terminate()

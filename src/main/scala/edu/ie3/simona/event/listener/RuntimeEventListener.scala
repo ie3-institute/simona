@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.event.listener
 
-import org.apache.pekko.actor.typed.{Behavior, PostStop}
-import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent.PowerFlowFailed
@@ -19,6 +17,8 @@ import edu.ie3.simona.io.runtime.{
   RuntimeEventSink,
 }
 import edu.ie3.util.TimeUtil
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.{Behavior, PostStop}
 
 import java.util.concurrent.BlockingQueue
 
@@ -27,6 +27,8 @@ import java.util.concurrent.BlockingQueue
   * for every RuntimeEventListener.
   */
 object RuntimeEventListener {
+
+  trait Request
 
   /** Creates a runtime event listener behavior with given configuration.
     *
@@ -43,7 +45,7 @@ object RuntimeEventListener {
       listenerConf: SimonaConfig.Simona.Runtime.Listener,
       queue: Option[BlockingQueue[RuntimeEvent]],
       startDateTimeString: String,
-  ): Behavior[RuntimeEvent] = Behaviors.setup { ctx =>
+  ): Behavior[Request] = Behaviors.setup { ctx =>
     val listeners = Iterable(
       Some(
         RuntimeEventLogSink(
@@ -67,14 +69,14 @@ object RuntimeEventListener {
       listeners: Iterable[RuntimeEventSink],
       eventsToProcess: Option[List[String]] = None,
       runtimeStats: RuntimeStats = RuntimeStats(),
-  ): Behavior[RuntimeEvent] = Behaviors
-    .receive[RuntimeEvent] {
+  ): Behavior[Request] = Behaviors
+    .receive[Request] {
       case (_, PowerFlowFailed) =>
         val updatedRuntimeData = runtimeStats
           .copy(failedPowerFlows = runtimeStats.failedPowerFlows + 1)
         RuntimeEventListener(listeners, eventsToProcess, updatedRuntimeData)
 
-      case (ctx, event) =>
+      case (ctx, event: RuntimeEvent) =>
         val process = eventsToProcess.forall(_.contains(event.id))
 
         if (process)
@@ -85,6 +87,9 @@ object RuntimeEventListener {
             event.id,
           )
         Behaviors.same
+
+      case (ctx, msg: DelayedStopHelper.StoppingMsg) =>
+        DelayedStopHelper.handleMsg((ctx, msg))
     }
     .receiveSignal { case (_, PostStop) =>
       listeners.foreach(_.close())

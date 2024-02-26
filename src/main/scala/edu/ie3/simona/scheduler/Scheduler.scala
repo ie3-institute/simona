@@ -28,10 +28,10 @@ import org.apache.pekko.actor.typed.{ActorRef, Behavior}
   */
 object Scheduler {
 
-  trait Incoming
+  trait Request
 
   private final case class WrappedActivation(activation: Activation)
-      extends Incoming
+      extends Request
 
   /** Creates a new scheduler with given parent and core. The scheduler starts
     * in the inactive state.
@@ -44,7 +44,7 @@ object Scheduler {
   def apply(
       parent: ActorRef[SchedulerMessage],
       coreFactory: CoreFactory = RegularSchedulerCore,
-  ): Behavior[Incoming] = Behaviors.setup { ctx =>
+  ): Behavior[Request] = Behaviors.setup { ctx =>
     val adapter =
       ctx.messageAdapter[Activation](WrappedActivation)
 
@@ -57,7 +57,7 @@ object Scheduler {
   private def inactive(
       data: SchedulerData,
       core: InactiveCore,
-  ): Behavior[Incoming] =
+  ): Behavior[Request] =
     Behaviors.receive {
       case (_, WrappedActivation(Activation(tick))) =>
         val (toActivate, activeCore) = core
@@ -102,7 +102,7 @@ object Scheduler {
   private def active(
       data: SchedulerData,
       core: ActiveCore,
-  ): Behavior[Incoming] = Behaviors.receive {
+  ): Behavior[Request] = Behaviors.receive {
 
     case (
           _,
