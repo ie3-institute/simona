@@ -52,9 +52,9 @@ class DBFSAlgorithmCenGridSpec
     with DbfsTestGrid
     with TestSpawnerTyped {
 
-  private val scheduler: TestProbe[SchedulerMessage] =
-    TestProbe[SchedulerMessage]("scheduler")
-  private val runtimeEvents = TestProbe[RuntimeEvent]("runtimeEvents")
+  private val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
+  private val runtimeEvents: TestProbe[RuntimeEvent] =
+    TestProbe("runtimeEvents")
   private val primaryService = TestProbe("primaryService")
   private val weatherService = TestProbe("weatherService")
 
@@ -82,8 +82,7 @@ class DBFSAlgorithmCenGridSpec
     evDataService = None,
   )
 
-  val resultListener: TestProbe[ResultEvent] =
-    TestProbe[ResultEvent]("resultListener")
+  val resultListener: TestProbe[ResultEvent] = TestProbe("resultListener")
 
   "A GridAgent actor in center position with async test" should {
 
@@ -119,33 +118,30 @@ class DBFSAlgorithmCenGridSpec
           RefSystem("2000 MVA", "110 kV"),
         )
 
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
+      val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
 
       centerGridAgent ! CreateGridAgent(
         gridAgentInitData,
         key,
       )
 
-      val gridAgentActivation = scheduler.expectMessageType[ScheduleActivation]
-      gridAgentActivation shouldBe ScheduleActivation(
-        gridAgentActivation.actor,
-        INIT_SIM_TICK,
-        Some(key),
-      )
+      val scheduleActivationMsg =
+        scheduler.expectMessageType[ScheduleActivation]
+      scheduleActivationMsg.tick shouldBe INIT_SIM_TICK
+      scheduleActivationMsg.unlockKey shouldBe Some(key)
+      val gridAgentActivation = scheduleActivationMsg.actor
 
       centerGridAgent ! WrappedActivation(Activation(INIT_SIM_TICK))
-      scheduler.expectMessage(Completion(gridAgentActivation.actor, Some(3600)))
+      scheduler.expectMessage(Completion(gridAgentActivation, Some(3600)))
     }
 
     s"go to SimulateGrid when it receives an activity start trigger" in {
 
       centerGridAgent ! WrappedActivation(Activation(3600))
 
-      val completionMessage = scheduler.expectMessageType[Completion]
-      completionMessage shouldBe Completion(completionMessage.actor, Some(3600))
+      scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
     }
 
     s"start the simulation when activation is sent" in {
@@ -449,9 +445,8 @@ class DBFSAlgorithmCenGridSpec
 
       inferiorGrid13.gaProbe.expectMessage(FinishGridSimulationTrigger(3600))
 
-      // after all grids have received a FinishGridSimulationTrigger, the scheduler should receive a CompletionMessage
-      val completionMessage = scheduler.expectMessageType[Completion]
-      completionMessage shouldBe Completion(completionMessage.actor, Some(7200))
+      // after all grids have received a FinishGridSimulationTrigger, the scheduler should receive a Completion
+      scheduler.expectMessageType[Completion].newTick shouldBe Some(7200)
 
       val resultMessage = resultListener.expectMessageType[ResultEvent]
       resultMessage match {

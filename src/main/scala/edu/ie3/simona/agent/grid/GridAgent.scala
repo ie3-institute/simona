@@ -72,7 +72,7 @@ object GridAgent extends DBFSAlgorithm {
       values: GridAgentConstantData,
       buffer: StashBuffer[GridAgentMessage],
   ): Behavior[GridAgentMessage] =
-    Behaviors.receiveMessagePartial[GridAgentMessage] {
+    Behaviors.receiveMessagePartial {
       case CreateGridAgent(gridAgentInitData, unlockKey) =>
         values.environmentRefs.scheduler ! ScheduleActivation(
           values.activationAdapter,
@@ -88,7 +88,7 @@ object GridAgent extends DBFSAlgorithm {
   )(implicit
       values: GridAgentConstantData,
       buffer: StashBuffer[GridAgentMessage],
-  ): Behavior[GridAgentMessage] = Behaviors.receivePartial[GridAgentMessage] {
+  ): Behavior[GridAgentMessage] = Behaviors.receivePartial {
     case (ctx, WrappedActivation(Activation(INIT_SIM_TICK))) =>
       // fail fast sanity checks
       failFast(gridAgentInitData, SimonaActorNaming.actorName(ctx.self))
@@ -200,7 +200,7 @@ object GridAgent extends DBFSAlgorithm {
   )(implicit
       values: GridAgentConstantData,
       buffer: StashBuffer[GridAgentMessage],
-  ): Behavior[GridAgentMessage] = Behaviors.receivePartial[GridAgentMessage] {
+  ): Behavior[GridAgentMessage] = Behaviors.receivePartial {
     case (_, msg @ WrappedPowerMessage(_)) =>
       // needs to be set here to handle if the messages arrive too early
       // before a transition to GridAgentBehaviour took place

@@ -80,7 +80,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   )(implicit
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgentMessage],
-  ): Behavior[GridAgentMessage] = Behaviors.receivePartial[GridAgentMessage] {
+  ): Behavior[GridAgentMessage] = Behaviors.receivePartial {
     case (ctx, message) =>
       (message, gridAgentData) match {
         // first part of the grid simulation, same for all gridAgents on all levels
@@ -525,7 +525,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   )(implicit
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgentMessage],
-  ): Behavior[GridAgentMessage] = Behaviors.receivePartial[GridAgentMessage] {
+  ): Behavior[GridAgentMessage] = Behaviors.receivePartial {
     case (ctx, message) =>
       (message, gridAgentData) match {
         // main method for power flow calculations
@@ -796,9 +796,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         // (only possible when first simulation triggered and this agent is faster in this state as the request
         // by a superior grid arrives)
         case (
-              msg @ WrappedPowerMessage(
-                _: RequestGridPowerMessage
-              ),
+              msg: WrappedPowerMessage,
               _: GridAgentBaseData,
             ) =>
           ctx.log.debug(
@@ -812,9 +810,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         // (only possible when first simulation triggered and this agent is faster
         // with its power flow calculation in this state as the request by a superior grid arrives)
         case (
-              msg @ WrappedPowerMessage(
-                _: RequestGridPowerMessage
-              ),
+              msg: WrappedPowerMessage,
               _: PowerFlowDoneData,
             ) =>
           ctx.log.debug(
@@ -842,7 +838,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   )(implicit
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgentMessage],
-  ): Behavior[GridAgentMessage] = Behaviors.receivePartial[GridAgentMessage] {
+  ): Behavior[GridAgentMessage] = Behaviors.receivePartial {
 
     case (ctx, CheckPowerDifferencesTrigger(currentTick)) =>
       ctx.log.debug("Starting the power differences check ...")

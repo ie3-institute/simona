@@ -50,11 +50,11 @@ class DBFSAlgorithmParticipantSpec
     with DbfsTestGridWithParticipants
     with TestSpawnerTyped {
 
-  private val scheduler: TestProbe[SchedulerMessage] =
-    TestProbe[SchedulerMessage]("scheduler")
-  private val runtimeEvents = TestProbe[RuntimeEvent]("runtimeEvents")
+  private val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
+  private val runtimeEvents: TestProbe[RuntimeEvent] =
+    TestProbe("runtimeEvents")
   private val primaryService: TestProbe[ServiceMessage] =
-    TestProbe[ServiceMessage]("primaryService")
+    TestProbe("primaryService")
   private val weatherService = TestProbe("weatherService")
 
   private val environmentRefs = EnvironmentRefs(
@@ -66,7 +66,7 @@ class DBFSAlgorithmParticipantSpec
   )
 
   protected val resultListener: TestProbe[ResultEvent] =
-    TestProbe[ResultEvent]("resultListener")
+    TestProbe("resultListener")
 
   private val superiorGridAgent = SuperiorGA(
     TestProbe("superiorGridAgent_1000"),
@@ -104,28 +104,20 @@ class DBFSAlgorithmParticipantSpec
 
       gridAgentWithParticipants ! CreateGridAgent(gridAgentInitData, key)
 
-      val msg = scheduler.expectMessageType[ScheduleActivation]
-      msg shouldBe ScheduleActivation(msg.actor, INIT_SIM_TICK, Some(key))
+      val scheduleActivationMsg =
+        scheduler.expectMessageType[ScheduleActivation]
+      scheduleActivationMsg.tick shouldBe INIT_SIM_TICK
+      scheduleActivationMsg.unlockKey shouldBe Some(key)
+      val gridAgentActivation = scheduleActivationMsg.actor
 
-      // send init data to agent and expect a CompletionMessage
+      // send init data to agent and expect a Completion
       gridAgentWithParticipants ! WrappedActivation(Activation(INIT_SIM_TICK))
 
-      val message = scheduler.expectMessageType[ScheduleActivation]
+      val scheduleLoadAgentMsg = scheduler.expectMessageType[ScheduleActivation]
+      scheduleLoadAgentMsg.tick shouldBe INIT_SIM_TICK
+      val loadAgent = scheduleLoadAgentMsg.actor
 
-      val loadAgent: ActorRef[Activation] = message match {
-        case ScheduleActivation(
-              loadAgent,
-              INIT_SIM_TICK,
-              _,
-            ) =>
-          loadAgent
-
-        case other =>
-          fail(s"$other was not expected")
-      }
-
-      val completionMessage = scheduler.expectMessageType[Completion]
-      completionMessage shouldBe Completion(completionMessage.actor, Some(3600))
+      scheduler.expectMessage(Completion(gridAgentActivation, Some(3600)))
 
       loadAgent ! Activation(INIT_SIM_TICK)
 
@@ -142,7 +134,7 @@ class DBFSAlgorithmParticipantSpec
       // triggering the loadAgent's calculation
       loadAgent ! Activation(0)
 
-      // the load agent should send a CompletionMessage
+      // the load agent should send a Completion
       scheduler.expectMessage(Completion(loadAgent, None))
 
     }
@@ -153,8 +145,7 @@ class DBFSAlgorithmParticipantSpec
       gridAgentWithParticipants ! WrappedActivation(Activation(3600))
 
       // we expect a completion message
-      val message = scheduler.expectMessageType[Completion]
-      message shouldBe Completion(message.actor, Some(3600))
+      scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
     }
 
     s"check the request asset power message indirectly" in {
@@ -244,8 +235,7 @@ class DBFSAlgorithmParticipantSpec
       // (here we do it by hand)
       gridAgentWithParticipants ! FinishGridSimulationTrigger(3600L)
 
-      val message = scheduler.expectMessageType[Completion]
-      message shouldBe Completion(message.actor, Some(7200))
+      scheduler.expectMessageType[Completion].newTick shouldBe Some(7200)
     }
   }
 }

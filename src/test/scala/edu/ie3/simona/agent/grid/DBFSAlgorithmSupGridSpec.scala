@@ -59,14 +59,13 @@ class DBFSAlgorithmSupGridSpec
     with DbfsTestGrid
     with TestSpawnerTyped {
 
-  private val scheduler: TestProbe[SchedulerMessage] =
-    TestProbe[SchedulerMessage]("scheduler")
-  private val runtimeEvents = TestProbe[RuntimeEvent]("runtimeEvents")
+  private val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
+  private val runtimeEvents: TestProbe[RuntimeEvent] =
+    TestProbe("runtimeEvents")
   private val primaryService: TestProbe[ServiceMessage] =
-    TestProbe[ServiceMessage]("primaryService")
+    TestProbe("primaryService")
   private val weatherService = TestProbe("weatherService")
-  private val hvGrid: TestProbe[GridAgentMessage] =
-    TestProbe[GridAgentMessage]("hvGrid")
+  private val hvGrid: TestProbe[GridAgentMessage] = TestProbe("hvGrid")
 
   private val environmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,
@@ -76,8 +75,7 @@ class DBFSAlgorithmSupGridSpec
     evDataService = None,
   )
 
-  val resultListener: TestProbe[ResultEvent] =
-    TestProbe[ResultEvent]("resultListener")
+  val resultListener: TestProbe[ResultEvent] = TestProbe("resultListener")
 
   "A GridAgent actor in superior position with async test" should {
     val superiorGridAgentFSM: ActorRef[GridAgentMessage] = testKit.spawn(
@@ -102,18 +100,19 @@ class DBFSAlgorithmSupGridSpec
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
 
       superiorGridAgentFSM ! CreateGridAgent(gridAgentInitData, key)
 
-      val am = scheduler.expectMessageType[ScheduleActivation]
-      am shouldBe ScheduleActivation(am.actor, INIT_SIM_TICK, Some(key))
+      val scheduleActivationMsg =
+        scheduler.expectMessageType[ScheduleActivation]
+      scheduleActivationMsg.tick shouldBe INIT_SIM_TICK
+      scheduleActivationMsg.unlockKey shouldBe Some(key)
+      val gridAgentActivation = scheduleActivationMsg.actor
 
       superiorGridAgentFSM ! WrappedActivation(Activation(INIT_SIM_TICK))
-
-      val cm = scheduler.expectMessageType[Completion]
-      cm shouldBe Completion(cm.actor, Some(3600))
+      scheduler.expectMessage(Completion(gridAgentActivation, Some(3600)))
     }
 
     s"go to SimulateGrid when it receives an activity start trigger" in {
@@ -121,8 +120,7 @@ class DBFSAlgorithmSupGridSpec
       superiorGridAgentFSM ! WrappedActivation(Activation(3600))
 
       // we expect a completion message
-      val message = scheduler.expectMessageType[Completion]
-      message shouldBe Completion(message.actor, Some(3600))
+      scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
     }
 
     s"start the simulation, do 2 sweeps and should end afterwards when no deviation on nodal " +
@@ -171,10 +169,7 @@ class DBFSAlgorithmSupGridSpec
           // we expect a completion message here and that the agent goes back to simulate grid
           // and waits until the newly scheduled StartGridSimulationTrigger is send
           // wait 30 seconds max for power flow to finish
-          val completionMessage =
-            scheduler.expectMessageType[Completion](130 seconds)
-
-          completionMessage match {
+          scheduler.expectMessageType[Completion](130 seconds) match {
             case Completion(_, Some(3600)) =>
             // we expect another completion message when the agent is in SimulateGrid again
             case Completion(_, Some(7200)) =>
@@ -249,8 +244,7 @@ class DBFSAlgorithmSupGridSpec
         superiorGridAgentFSM ! WrappedActivation(Activation(3600))
 
         // we expect a completion message
-        val message = scheduler.expectMessageType[Completion]
-        message shouldBe Completion(message.actor, Some(3600))
+        scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
 
         // go on with testing the sweep behaviour
         for (sweepNo <- 0 to maxNumberOfTestSweeps) {
@@ -298,10 +292,7 @@ class DBFSAlgorithmSupGridSpec
 
           // Simulate Grid
           // wait 30 seconds max for power flow to finish
-          val completionMessage =
-            scheduler.expectMessageType[Completion](30 seconds)
-
-          completionMessage match {
+          scheduler.expectMessageType[Completion](30 seconds) match {
             case Completion(_, Some(3600)) =>
             // when we received a FinishGridSimulationTrigger (as inferior grid agent)
             // we expect another completion message then as well (scheduler view)
