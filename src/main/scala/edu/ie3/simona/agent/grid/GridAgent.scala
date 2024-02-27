@@ -26,7 +26,6 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorContextOps
 import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
@@ -69,13 +68,13 @@ object GridAgent extends DBFSAlgorithm {
   }
 
   private def uninitialized(implicit
-      values: GridAgentConstantData,
+      constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgentMessage],
   ): Behavior[GridAgentMessage] =
     Behaviors.receiveMessagePartial {
       case CreateGridAgent(gridAgentInitData, unlockKey) =>
-        values.environmentRefs.scheduler ! ScheduleActivation(
-          values.activationAdapter,
+        constantData.environmentRefs.scheduler ! ScheduleActivation(
+          constantData.activationAdapter,
           INIT_SIM_TICK,
           Some(unlockKey),
         )
@@ -86,7 +85,7 @@ object GridAgent extends DBFSAlgorithm {
   private def initializing(
       gridAgentInitData: GridAgentInitData
   )(implicit
-      values: GridAgentConstantData,
+      constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgentMessage],
   ): Behavior[GridAgentMessage] = Behaviors.receivePartial {
     case (ctx, WrappedActivation(Activation(INIT_SIM_TICK))) =>
@@ -120,24 +119,24 @@ object GridAgent extends DBFSAlgorithm {
         subGridContainer,
         refSystem,
         TimeUtil.withDefaults.toZonedDateTime(
-          values.simonaConfig.simona.time.startDateTime
+          constantData.simonaConfig.simona.time.startDateTime
         ),
         TimeUtil.withDefaults.toZonedDateTime(
-          values.simonaConfig.simona.time.endDateTime
+          constantData.simonaConfig.simona.time.endDateTime
         ),
       )
 
       val gridAgentController =
         new GridAgentController(
           ctx,
-          values.environmentRefs,
-          values.simStartTime,
+          constantData.environmentRefs,
+          constantData.simStartTime,
           TimeUtil.withDefaults
-            .toZonedDateTime(values.simonaConfig.simona.time.endDateTime),
-          values.simonaConfig.simona.runtime.participant,
-          values.simonaConfig.simona.output.participant,
-          values.resolution,
-          values.listener,
+            .toZonedDateTime(constantData.simonaConfig.simona.time.endDateTime),
+          constantData.simonaConfig.simona.runtime.participant,
+          constantData.simonaConfig.simona.output.participant,
+          constantData.resolution,
+          constantData.listener,
           ctx.log,
         )
 
@@ -165,20 +164,20 @@ object GridAgent extends DBFSAlgorithm {
         gridAgentInitData.superiorGridNodeUuids,
         gridAgentInitData.inferiorGridGates,
         PowerFlowParams(
-          values.simonaConfig.simona.powerflow.maxSweepPowerDeviation,
-          values.simonaConfig.simona.powerflow.newtonraphson.epsilon.toVector.sorted,
-          values.simonaConfig.simona.powerflow.newtonraphson.iterations,
-          values.simonaConfig.simona.powerflow.sweepTimeout,
-          values.simonaConfig.simona.powerflow.stopOnFailure,
+          constantData.simonaConfig.simona.powerflow.maxSweepPowerDeviation,
+          constantData.simonaConfig.simona.powerflow.newtonraphson.epsilon.toVector.sorted,
+          constantData.simonaConfig.simona.powerflow.newtonraphson.iterations,
+          constantData.simonaConfig.simona.powerflow.sweepTimeout,
+          constantData.simonaConfig.simona.powerflow.stopOnFailure,
         ),
         SimonaActorNaming.actorName(ctx.self),
       )
 
       ctx.log.debug("Je suis initialized")
 
-      values.environmentRefs.scheduler ! Completion(
-        values.activationAdapter,
-        Some(values.resolution),
+      constantData.environmentRefs.scheduler ! Completion(
+        constantData.activationAdapter,
+        Some(constantData.resolution),
       )
 
       idle(gridAgentBaseData)
@@ -188,7 +187,7 @@ object GridAgent extends DBFSAlgorithm {
     *
     * @param gridAgentBaseData
     *   state data of the actor
-    * @param values
+    * @param constantData
     *   immutable [[GridAgent]] values
     * @param buffer
     *   for [[GridAgentMessage]]s
@@ -198,18 +197,18 @@ object GridAgent extends DBFSAlgorithm {
   private[grid] def idle(
       gridAgentBaseData: GridAgentBaseData
   )(implicit
-      values: GridAgentConstantData,
+      constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgentMessage],
   ): Behavior[GridAgentMessage] = Behaviors.receivePartial {
-    case (_, msg @ WrappedPowerMessage(_)) =>
+    case (_, msg: WrappedPowerMessage) =>
       // needs to be set here to handle if the messages arrive too early
       // before a transition to GridAgentBehaviour took place
       buffer.stash(msg)
       Behaviors.same
 
     case (_, WrappedActivation(activation: Activation)) =>
-      values.environmentRefs.scheduler ! Completion(
-        values.activationAdapter,
+      constantData.environmentRefs.scheduler ! Completion(
+        constantData.activationAdapter,
         Some(activation.tick),
       )
       buffer.unstashAll(simulateGrid(gridAgentBaseData, activation.tick))

@@ -978,8 +978,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             failedResult.cause,
           )
           ctx.self ! FinishGridSimulationTrigger(currentTick)
-          handlePowerFlowFailure(gridAgentBaseData)(ctx, constantData)
-          simulateGrid(gridAgentBaseData, currentTick)
+          handlePowerFlowFailure(gridAgentBaseData, currentTick, ctx)
       }
   }
 
@@ -1100,8 +1099,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         ctx.log.warn("Power flow failed! This incident will be reported!")
         ctx.self ! FinishGridSimulationTrigger(currentTick)
 
-        handlePowerFlowFailure(gridAgentBaseData)
-        simulateGrid(gridAgentBaseData, currentTick)
+        handlePowerFlowFailure(gridAgentBaseData, currentTick, ctx)
       } else {
         ctx.self ! CheckPowerDifferencesTrigger(currentTick)
         checkPowerDifferences(gridAgentBaseData)
@@ -1117,18 +1115,25 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   /** Method for handling failed power flows.
     * @param gridAgentBaseData
     *   state data of the actor
+    * @param currentTick
+    *   of the simulation
     */
   private def handlePowerFlowFailure(
-      gridAgentBaseData: GridAgentBaseData
-  )(implicit
+      gridAgentBaseData: GridAgentBaseData,
+      currentTick: Long,
       ctx: ActorContext[GridAgentMessage],
+  )(implicit
       constantData: GridAgentConstantData,
-  ): Unit = {
+      buffer: StashBuffer[GridAgentMessage],
+  ): Behavior[GridAgentMessage] = {
     constantData.environmentRefs.runtimeEventListener ! PowerFlowFailed
 
     if (gridAgentBaseData.powerFlowParams.stopOnFailure) {
       ctx.log.error("Stopping because of failed power flow.")
+      Behaviors.stopped
     }
+
+    simulateGrid(gridAgentBaseData, currentTick)
   }
 
   /** Normally only reached by the superior (dummy) agent!
@@ -1414,9 +1419,9 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     * itself. If the future is a [[Success]] the message is send, else a
     * [[ReceivedFailure]] with the thrown error is send.
     * @param future
-    *   value
+    *   future message that should be send to the agent after it was processed
     * @param ctx
-    *   context
+    *   [[ActorContext]] of the receiving actor
     */
   private def pipeToSelf(
       future: Future[GridAgentMessage],
