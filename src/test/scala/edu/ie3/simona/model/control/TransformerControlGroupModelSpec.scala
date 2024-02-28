@@ -26,21 +26,22 @@ class TransformerControlGroupModelSpec extends UnitSpec with QuantityMatchers {
         Symbol("buildTransformerControlModels")
       )
     implicit val tolerance: Dimensionless = Each(1e-10)
-    val dut = GridModel invokePrivate buildTransformerControlModels(
-      Set(
-        UUID.fromString(
-          "d4d650be-87b7-4cf6-be7f-03f0bbcde3e3"
+    val dut =
+      TransformerControlGroupModel invokePrivate buildTransformerControlModels(
+        Set(
+          UUID.fromString(
+            "d4d650be-87b7-4cf6-be7f-03f0bbcde3e3"
+          ),
+          UUID.fromString(
+            "08b8d2ca-993d-45cd-9456-f009ecb47bc0"
+          ),
+          UUID.fromString(
+            "324f49e5-1c35-4c49-afb1-3cf41696bf93"
+          ),
         ),
-        UUID.fromString(
-          "08b8d2ca-993d-45cd-9456-f009ecb47bc0"
-        ),
-        UUID.fromString(
-          "324f49e5-1c35-4c49-afb1-3cf41696bf93"
-        ),
-      ),
-      1.1,
-      0.9,
-    )
+        1.1,
+        0.9,
+      )
 
     val uuidToIndex = Map(
       UUID.fromString(
