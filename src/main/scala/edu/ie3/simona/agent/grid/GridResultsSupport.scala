@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import org.apache.pekko.event.LoggingAdapter
 import breeze.math.Complex
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.datamodel.models.result.NodeResult
@@ -29,6 +28,7 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
 import edu.ie3.simona.model.grid._
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.QuantityUtil
+import org.slf4j.Logger
 import squants.space.Degrees
 import squants.{Amperes, Angle, ElectricCurrent}
 import tech.units.indriya.quantity.Quantities
@@ -42,8 +42,6 @@ import scala.math._
   * to their corresponding [[edu.ie3.datamodel.models.result.ResultEntity]]
   */
 private[grid] trait GridResultsSupport {
-
-  protected val log: LoggingAdapter
 
   /** Creates a tuple as [[PowerFlowResultEvent]] s entities based on the
     * provided grid data
@@ -61,7 +59,7 @@ private[grid] trait GridResultsSupport {
   def createResultModels(
       grid: GridModel,
       sweepValueStore: SweepValueStore,
-  )(implicit timestamp: ZonedDateTime): PowerFlowResultEvent = {
+  )(implicit timestamp: ZonedDateTime, log: Logger): PowerFlowResultEvent = {
     // no sanity check for duplicated uuid result data as we expect valid data at this point
     implicit val sweepValueStoreData: Map[UUID, SweepValueStoreData] =
       sweepValueStore.sweepData
@@ -112,6 +110,7 @@ private[grid] trait GridResultsSupport {
       sweepValueStoreData: Map[UUID, SweepValueStoreData],
       iNominal: squants.ElectricCurrent,
       timestamp: ZonedDateTime,
+      log: Logger,
   ): Set[LineResult] = {
     lines.flatMap(lineModel => {
       sweepValueStoreData
@@ -128,7 +127,7 @@ private[grid] trait GridResultsSupport {
             )
           )
         case None =>
-          log.warning(
+          log.warn(
             "Cannot find power flow result data for line {} with nodeA {} and nodeB {}",
             lineModel.uuid,
             lineModel.nodeAUuid,
@@ -159,6 +158,7 @@ private[grid] trait GridResultsSupport {
       sweepValueStoreData: Map[UUID, SweepValueStoreData],
       iNominal: ElectricCurrent,
       timestamp: ZonedDateTime,
+      log: Logger,
   ): Set[Transformer2WResult] = {
     transformers.flatMap(trafo2w => {
       sweepValueStoreData
@@ -175,7 +175,7 @@ private[grid] trait GridResultsSupport {
             )
           )
         case None =>
-          log.warning(
+          log.warn(
             "Cannot find power flow result data for transformer2w {} with hvNode {} and lvNode {}",
             trafo2w.uuid,
             trafo2w.hvNodeUuid,
@@ -206,6 +206,7 @@ private[grid] trait GridResultsSupport {
       sweepValueStoreData: Map[UUID, SweepValueStoreData],
       iNominal: ElectricCurrent,
       timestamp: ZonedDateTime,
+      log: Logger,
   ): Set[PartialTransformer3wResult] = transformers3w.flatMap { trafo3w =>
     {
       (trafo3w.powerFlowCase match {
@@ -233,7 +234,7 @@ private[grid] trait GridResultsSupport {
             )
           )
         case None =>
-          log.warning(
+          log.warn(
             s"Cannot find power flow result data for transformer3w {} with nodeHv {}, nodeMv {}, nodeLv {} and internalNode ${trafo3w.nodeInternalUuid}",
             trafo3w.uuid,
             trafo3w.hvNodeUuid,

@@ -6,8 +6,10 @@
 
 package edu.ie3.simona.ontology.messages
 
+import edu.ie3.simona.agent.grid.GridAgentMessage
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.util.scala.quantities.ReactivePower
+import org.apache.pekko.actor.typed.ActorRef
 import squants.{Dimensionless, Power}
 
 import java.util.UUID
@@ -80,6 +82,7 @@ object PowerMessage {
   final case class RequestGridPowerMessage(
       currentSweepNo: Int,
       nodeUuids: Seq[UUID],
+      sender: ActorRef[GridAgentMessage],
   ) extends PowerRequestMessage
 
   /** Provide complex power at the nodes that the sender's sub grid shares with

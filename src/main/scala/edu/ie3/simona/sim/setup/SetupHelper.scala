@@ -14,6 +14,7 @@ import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.utils.ContainerUtils
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
+import edu.ie3.simona.agent.grid.GridAgentMessage
 import edu.ie3.simona.config.RefSystemParser.ConfigRefSystems
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.InitializationException
@@ -23,8 +24,8 @@ import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.util.ConfigUtil.{GridOutputConfigUtil, OutputConfigUtil}
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
 import edu.ie3.simona.util.{EntityMapperUtil, ResultFileHierarchy}
+import org.apache.pekko.actor.typed.ActorRef
 import edu.ie3.util.quantities.PowerSystemUnits
-import org.apache.pekko.actor.ActorRef
 import squants.electro.Kilovolts
 
 /** Methods to support the setup of a simona simulation
@@ -57,7 +58,7 @@ trait SetupHelper extends LazyLogging {
     */
   def buildGridAgentInitData(
       subGridContainer: SubGridContainer,
-      subGridToActorRef: Map[Int, ActorRef],
+      subGridToActorRef: Map[Int, ActorRef[GridAgentMessage]],
       gridGates: Set[SubGridGate],
       configRefSystems: ConfigRefSystems,
       thermalGrids: Seq[ThermalGrid],
@@ -98,10 +99,10 @@ trait SetupHelper extends LazyLogging {
     *   A mapping from [[SubGridGate]] to corresponding actor reference
     */
   def buildGateToActorRef(
-      subGridToActorRefMap: Map[Int, ActorRef],
+      subGridToActorRefMap: Map[Int, ActorRef[GridAgentMessage]],
       subGridGates: Set[SubGridGate],
       currentSubGrid: Int,
-  ): Map[SubGridGate, ActorRef] =
+  ): Map[SubGridGate, ActorRef[GridAgentMessage]] =
     subGridGates
       .groupBy(gate => (gate.superiorNode, gate.inferiorNode))
       .flatMap(_._2.headOption)
@@ -143,10 +144,10 @@ trait SetupHelper extends LazyLogging {
     *   The actor reference of the sub grid to look for
     */
   def getActorRef(
-      subGridToActorRefMap: Map[Int, ActorRef],
+      subGridToActorRefMap: Map[Int, ActorRef[GridAgentMessage]],
       currentSubGrid: Int,
       queriedSubGrid: Int,
-  ): ActorRef = {
+  ): ActorRef[GridAgentMessage] = {
     subGridToActorRefMap.get(queriedSubGrid) match {
       case Some(hit) => hit
       case _ =>
