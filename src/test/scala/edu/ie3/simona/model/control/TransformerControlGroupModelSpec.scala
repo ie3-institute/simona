@@ -11,7 +11,6 @@ import breeze.math.Complex
 import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.enums.NodeType
-import edu.ie3.simona.model.grid.GridModel
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.matchers.QuantityMatchers
 import squants.{Dimensionless, Each}
@@ -19,7 +18,9 @@ import squants.{Dimensionless, Each}
 import java.util.UUID
 
 class TransformerControlGroupModelSpec extends UnitSpec with QuantityMatchers {
+
   implicit val tolerance: Dimensionless = Each(1e-10)
+
   "Checking the function of transformer control groups" should {
     val buildTransformerControlModels =
       PrivateMethod[TransformerControlGroupModel](

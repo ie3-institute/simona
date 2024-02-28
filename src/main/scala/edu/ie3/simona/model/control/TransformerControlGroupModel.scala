@@ -144,19 +144,14 @@ object TransformerControlGroupModel {
 
   /** Determine the regulation criterion of the nodes to control
     *
-    * @param complexVoltage
-    *   Collection of all known [[MeasurementUnitInput]] s
     * @param vMax
-    *   and
+    *   Maximum voltage limit
     * @param vMin
-    *   Voltage limits of the node
+    *   Minimum voltage limit
     * @return
-    *   The RegulationCriterion in this case a set of node uuids and optional
-    *   voltage deviation
+    *   The regulation need, if applicable
     */
-
   private def regulationFunction(
-      complexVoltage: Complex,
       vMax: Double,
       vMin: Double,
   ): RegulationCriterion = { (voltage: Complex) =>
@@ -218,9 +213,8 @@ object TransformerControlGroupModel {
       vMin: Double,
   ): TransformerControlGroupModel = {
     /* Determine the voltage regulation criterion for each of the available nodes */
-    val voltage = Complex(1.0, 0.0)
     val nodeUuidToRegulationCriterion = nodeUuids.map { uuid =>
-      uuid -> regulationFunction(voltage, vMax, vMin)
+      uuid -> regulationFunction(vMax, vMin)
     }.toMap
 
     TransformerControlGroupModel(
