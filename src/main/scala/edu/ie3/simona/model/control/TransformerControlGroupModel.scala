@@ -12,7 +12,10 @@ import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.TransformerControlGroup
-import edu.ie3.simona.model.control.TransformerControlGroupModel.RegulationCriterion
+import edu.ie3.simona.model.control.TransformerControlGroupModel.{
+  RegulationCriterion,
+  harmonizationFunction,
+}
 import squants.{Dimensionless, Each}
 
 import java.util.UUID
@@ -25,13 +28,9 @@ import scala.jdk.CollectionConverters._
   * @param nodalRegulationCriterion
   *   Mapping from nodal index to a partial function, that determines the
   *   regulation need at this node
-  * @param harmonizeRegulationNeeds
-  *   Partial function to harmonize different, possible contradictory regulation
-  *   needs
   */
 final case class TransformerControlGroupModel(
-    nodalRegulationCriterion: Map[UUID, RegulationCriterion],
-    harmonizeRegulationNeeds: Array[Dimensionless] => Option[Dimensionless],
+    nodalRegulationCriterion: Map[UUID, RegulationCriterion]
 ) {
 
   /** Based on the given successful power flow result, determine the difference
@@ -64,7 +63,7 @@ final case class TransformerControlGroupModel(
     }.flatten
     Option
       .when(regulationNeeds.nonEmpty)(
-        harmonizeRegulationNeeds(regulationNeeds)
+        harmonizationFunction(regulationNeeds)
       )
       .flatten
   }
@@ -161,14 +160,16 @@ object TransformerControlGroupModel {
       complexVoltage: Complex,
       vMax: Double,
       vMin: Double,
-  ): Option[Dimensionless] = {
-    val vMag = complexVoltage.abs
-    vMag match {
-      case mag if mag > vMax =>
-        Some(vMax - mag).map(Each(_))
-      case mag if mag < vMin =>
-        Some(vMin - mag).map(Each(_))
-      case _ => None
+  ): RegulationCriterion = { (voltage: Complex) =>
+    {
+      val vMag = voltage.abs
+      vMag match {
+        case mag if mag > vMax =>
+          Some(vMax - mag).map(Each(_))
+        case mag if mag < vMin =>
+          Some(vMin - mag).map(Each(_))
+        case _ => None
+      }
     }
   }
 
@@ -228,8 +229,7 @@ object TransformerControlGroupModel {
     }.toMap
 
     TransformerControlGroupModel(
-      nodeUuidToRegulationCriterion,
-      harmonizationFunction,
+      nodeUuidToRegulationCriterion
     )
   }
 }
