@@ -604,8 +604,7 @@ object GridModel {
     val transformerControlGroups = simonaConfig.simona.control
       .map { controlConfig =>
         TransformerControlGroupModel.buildControlGroups(
-          controlConfig.transformer,
-          subGridContainer.getRawGrid.getMeasurementUnits.asScala.toSet,
+          controlConfig.transformer
         )
       }
       .getOrElse(Set.empty)

@@ -7,7 +7,6 @@
 package edu.ie3.simona.model.control
 
 import breeze.math.Complex
-import edu.ie3.datamodel.models.input.MeasurementUnitInput
 import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult
 import edu.ie3.simona.config.SimonaConfig
@@ -18,18 +17,16 @@ import edu.ie3.simona.model.control.TransformerControlGroupModel.{
 }
 import squants.{Dimensionless, Each}
 
-import java.util.UUID
-
 /** Business logic for a transformer control group. It's main purpose is to
   * determine, if there is any regulation need and if yes, to what extent (here:
   * voltage raise or reduction to achieve)
   *
-  * @param nodalRegulationCriterion
+  * @param regulationCriterion
   *   Mapping from nodal index to a partial function, that determines the
   *   regulation need at this node
   */
 final case class TransformerControlGroupModel(
-    nodalRegulationCriterion: Map[UUID, RegulationCriterion]
+    regulationCriterion: RegulationCriterion
 ) {
 
   /** Based on the given successful power flow result, determine the difference
@@ -38,33 +35,18 @@ final case class TransformerControlGroupModel(
     *
     * @param result
     *   Power flow result to account for
-    * @param uuidToIndex
-    *   Mapping from node's uuid to nodal index
     * @return
     *   Optional voltage magnitude, that a transformer tap regulation needs to
     *   achieve
     */
   def determineRegulationNeed(
-      result: SuccessFullPowerFlowResult,
-      uuidToIndex: Map[UUID, Int],
+      result: SuccessFullPowerFlowResult
   ): Option[Dimensionless] = {
     val regulationNeeds = result.nodeData.flatMap {
-      case StateData(resultNodeIndex, _, voltage, _) =>
-        /* Find possible matching criterion and evaluate it */
-        nodalRegulationCriterion
-          .find { case (uuid, _) =>
-            val index = uuidToIndex(uuid)
-            index == resultNodeIndex
-          }
-          .map { case (_, criterion) =>
-            criterion(voltage)
-          }
-    }.flatten
-    Option
-      .when(regulationNeeds.nonEmpty)(
-        harmonizeRegulationNeeds(regulationNeeds)
-      )
-      .flatten
+      case StateData(_, _, voltage, _) =>
+        regulationCriterion(voltage)
+    }
+    harmonizeRegulationNeeds(regulationNeeds)
   }
 }
 
@@ -76,71 +58,15 @@ object TransformerControlGroupModel {
     *
     * @param config
     *   List of configs for control groups
-    * @param measurementUnitInput
-    *   Set of [[MeasurementUnitInput]] s
     * @return
     *   A set of control group business models
     */
   def buildControlGroups(
-      config: List[SimonaConfig.TransformerControlGroup],
-      measurementUnitInput: Set[MeasurementUnitInput],
+      config: Iterable[SimonaConfig.TransformerControlGroup]
   ): Set[TransformerControlGroupModel] = config.map {
-    case TransformerControlGroup(measurements, _, vMax, vMin) =>
-      buildTransformerControlGroupModel(
-        measurementUnitInput,
-        measurements.toSet,
-        vMax,
-        vMin,
-      )
+    case TransformerControlGroup(_, _, vMax, vMin) =>
+      TransformerControlGroupModel(regulationFunction(vMax, vMin))
   }.toSet
-
-  /** Build a single control group model. Currently, only limit violation
-    * prevention logic is captured: The nodal regulation need is equal to the
-    * voltage change needed to comply with the given thresholds
-    *
-    * @param measurementUnitInput
-    *   Collection of all known [[MeasurementUnitInput]] s
-    * @param measurementConfigs
-    *   Collection of all uuids, denoting which of the [[MeasurementUnitInput]]
-    *   s does belong to this control group
-    * @param vMax
-    *   Upper permissible voltage magnitude
-    * @param vMin
-    *   Lower permissible voltage magnitude
-    * @return
-    *   A [[TransformerControlGroupModel]]
-    */
-  private def buildTransformerControlGroupModel(
-      measurementUnitInput: Set[MeasurementUnitInput],
-      measurementConfigs: Set[String],
-      vMax: Double,
-      vMin: Double,
-  ): TransformerControlGroupModel = {
-    val nodeUuids =
-      determineNodeUuids(measurementUnitInput, measurementConfigs)
-    buildTransformerControlModels(nodeUuids, vMax, vMin)
-  }
-
-  /** Determine the uuids of the nodes to control
-    *
-    * @param measurementUnitInput
-    *   Collection of all known [[MeasurementUnitInput]] s
-    * @param measurementConfigs
-    *   Collection of all uuids, denoting which of the [[MeasurementUnitInput]]
-    *   s does belong to this control group
-    * @return
-    *   A set of relevant nodal uuids
-    */
-  private def determineNodeUuids(
-      measurementUnitInput: Set[MeasurementUnitInput],
-      measurementConfigs: Set[String],
-  ): Set[UUID] = Set.from(
-    measurementUnitInput
-      .filter(input =>
-        measurementConfigs.contains(input.getUuid.toString) && input.getVMag
-      )
-      .map(_.getNode.getUuid)
-  )
 
   /** Determine the regulation criterion of the nodes to control
     *
@@ -175,7 +101,7 @@ object TransformerControlGroupModel {
   private def harmonizeRegulationNeeds(
       regulationRequests: Array[Dimensionless]
   ): Option[Dimensionless] = {
-    val negativeRequests = regulationRequests.array.filter(_ < Each(0d))
+    val negativeRequests = regulationRequests.filter(_ < Each(0d))
     val positiveRequests = regulationRequests.filter(_ > Each(0d))
 
     (negativeRequests.nonEmpty, positiveRequests.nonEmpty) match {
@@ -194,31 +120,4 @@ object TransformerControlGroupModel {
 
   }
 
-  /** Build a single control group model. Currently, only limit violation
-    * prevention logic is captured: The nodal regulation need is equal to the
-    * voltage change needed to comply with the given thresholds
-    *
-    * @param nodeUuids
-    *   Collection of all relevant node uuids
-    * @param vMax
-    *   Upper permissible voltage magnitude
-    * @param vMin
-    *   Lower permissible voltage magnitude
-    * @return
-    *   A [[TransformerControlGroupModel]]
-    */
-  private def buildTransformerControlModels(
-      nodeUuids: Set[UUID],
-      vMax: Double,
-      vMin: Double,
-  ): TransformerControlGroupModel = {
-    /* Determine the voltage regulation criterion for each of the available nodes */
-    val nodeUuidToRegulationCriterion = nodeUuids.map { uuid =>
-      uuid -> regulationFunction(vMax, vMin)
-    }.toMap
-
-    TransformerControlGroupModel(
-      nodeUuidToRegulationCriterion
-    )
-  }
 }

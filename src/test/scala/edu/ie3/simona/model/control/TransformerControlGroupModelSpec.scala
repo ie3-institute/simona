@@ -11,50 +11,23 @@ import breeze.math.Complex
 import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.enums.NodeType
+import edu.ie3.simona.model.control.TransformerControlGroupModel.RegulationCriterion
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.matchers.QuantityMatchers
 import squants.{Dimensionless, Each}
-
-import java.util.UUID
 
 class TransformerControlGroupModelSpec extends UnitSpec with QuantityMatchers {
 
   implicit val tolerance: Dimensionless = Each(1e-10)
 
   "Checking the function of transformer control groups" should {
-    val buildTransformerControlModels =
-      PrivateMethod[TransformerControlGroupModel](
-        Symbol("buildTransformerControlModels")
-      )
-    implicit val tolerance: Dimensionless = Each(1e-10)
-    val dut =
-      TransformerControlGroupModel invokePrivate buildTransformerControlModels(
-        Set(
-          UUID.fromString(
-            "d4d650be-87b7-4cf6-be7f-03f0bbcde3e3"
-          ),
-          UUID.fromString(
-            "08b8d2ca-993d-45cd-9456-f009ecb47bc0"
-          ),
-          UUID.fromString(
-            "324f49e5-1c35-4c49-afb1-3cf41696bf93"
-          ),
-        ),
-        1.1,
-        0.9,
-      )
+    val regulationFunction =
+      PrivateMethod[RegulationCriterion](Symbol("regulationFunction"))
 
-    val uuidToIndex = Map(
-      UUID.fromString(
-        "d4d650be-87b7-4cf6-be7f-03f0bbcde3e3"
-      ) -> 0,
-      UUID.fromString(
-        "08b8d2ca-993d-45cd-9456-f009ecb47bc0"
-      ) -> 1,
-      UUID.fromString(
-        "324f49e5-1c35-4c49-afb1-3cf41696bf93"
-      ) -> 2,
-    )
+    val regulationCriterion =
+      TransformerControlGroupModel invokePrivate regulationFunction(1.1, 0.9)
+
+    val dut = TransformerControlGroupModel(regulationCriterion)
 
     "return no regulation need, if everything is fine" in {
       val result = ValidNewtonRaphsonPFResult(
@@ -67,7 +40,7 @@ class TransformerControlGroupModelSpec extends UnitSpec with QuantityMatchers {
         DenseMatrix.zeros(1, 1),
       )
 
-      val actual = dut.determineRegulationNeed(result, uuidToIndex)
+      val actual = dut.determineRegulationNeed(result)
 
       actual shouldBe None
     }
@@ -83,7 +56,7 @@ class TransformerControlGroupModelSpec extends UnitSpec with QuantityMatchers {
         DenseMatrix.zeros(1, 1),
       )
 
-      val actual = dut.determineRegulationNeed(result, uuidToIndex)
+      val actual = dut.determineRegulationNeed(result)
 
       actual shouldBe None
     }
@@ -99,7 +72,7 @@ class TransformerControlGroupModelSpec extends UnitSpec with QuantityMatchers {
         DenseMatrix.zeros(1, 1),
       )
 
-      val actual = dut.determineRegulationNeed(result, uuidToIndex)
+      val actual = dut.determineRegulationNeed(result)
 
       actual match {
         case Some(regulationNeed) =>
@@ -119,7 +92,7 @@ class TransformerControlGroupModelSpec extends UnitSpec with QuantityMatchers {
         DenseMatrix.zeros(1, 1),
       )
 
-      val actual = dut.determineRegulationNeed(result, uuidToIndex)
+      val actual = dut.determineRegulationNeed(result)
 
       actual match {
         case Some(regulationNeed) =>
