@@ -498,12 +498,12 @@ object GridModel {
                 val measurementUnit = measurementUnits.getOrElse(
                   measurement,
                   throw new GridAgentInitializationException(
-                    s"${subGridContainer.getGridName} has a transformer control group (${control.transformer.toString}) with a measurement which UUID does not exist in this subnet."
+                    s"${subGridContainer.getGridName} has a transformer control group (${control.transformer.toString}) with a measurement unit whose UUID does not exist in this subnet."
                   ),
                 )
                 if (!measurementUnit.getVMag)
                   throw new GridAgentInitializationException(
-                    s"${subGridContainer.getGridName} has a transformer control group (${control.transformer.toString}) with a measurement which does not measure voltage magnitude."
+                    s"${subGridContainer.getGridName} has a transformer control group (${control.transformer.toString}) with a measurement unit which does not measure voltage magnitude."
                   )
               }
           }
