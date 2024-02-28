@@ -14,12 +14,11 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.TransformerControlGroup
 import edu.ie3.simona.model.control.TransformerControlGroupModel.{
   RegulationCriterion,
-  harmonizationFunction,
+  harmonizeRegulationNeeds,
 }
 import squants.{Dimensionless, Each}
 
 import java.util.UUID
-import scala.jdk.CollectionConverters._
 
 /** Business logic for a transformer control group. It's main purpose is to
   * determine, if there is any regulation need and if yes, to what extent (here:
@@ -63,7 +62,7 @@ final case class TransformerControlGroupModel(
     }.flatten
     Option
       .when(regulationNeeds.nonEmpty)(
-        harmonizationFunction(regulationNeeds)
+        harmonizeRegulationNeeds(regulationNeeds)
       )
       .flatten
   }
@@ -84,7 +83,7 @@ object TransformerControlGroupModel {
     */
   def buildControlGroups(
       config: List[SimonaConfig.TransformerControlGroup],
-      measurementUnitInput: java.util.Set[MeasurementUnitInput],
+      measurementUnitInput: Set[MeasurementUnitInput],
   ): Set[TransformerControlGroupModel] = config.map {
     case TransformerControlGroup(measurements, _, vMax, vMin) =>
       buildTransformerControlGroupModel(
@@ -112,7 +111,7 @@ object TransformerControlGroupModel {
     *   A [[TransformerControlGroupModel]]
     */
   private def buildTransformerControlGroupModel(
-      measurementUnitInput: java.util.Set[MeasurementUnitInput],
+      measurementUnitInput: Set[MeasurementUnitInput],
       measurementConfigs: Set[String],
       vMax: Double,
       vMin: Double,
@@ -133,10 +132,10 @@ object TransformerControlGroupModel {
     *   A set of relevant nodal uuids
     */
   private def determineNodeUuids(
-      measurementUnitInput: java.util.Set[MeasurementUnitInput],
+      measurementUnitInput: Set[MeasurementUnitInput],
       measurementConfigs: Set[String],
   ): Set[UUID] = Set.from(
-    measurementUnitInput.asScala
+    measurementUnitInput
       .filter(input =>
         measurementConfigs.contains(input.getUuid.toString) && input.getVMag
       )
@@ -161,15 +160,12 @@ object TransformerControlGroupModel {
       vMax: Double,
       vMin: Double,
   ): RegulationCriterion = { (voltage: Complex) =>
-    {
-      val vMag = voltage.abs
-      vMag match {
-        case mag if mag > vMax =>
-          Some(vMax - mag).map(Each(_))
-        case mag if mag < vMin =>
-          Some(vMin - mag).map(Each(_))
-        case _ => None
-      }
+    voltage.abs match {
+      case vMag if vMag > vMax =>
+        Some(vMax - vMag).map(Each(_))
+      case vMag if vMag < vMin =>
+        Some(vMin - vMag).map(Each(_))
+      case _ => None
     }
   }
 
@@ -181,28 +177,27 @@ object TransformerControlGroupModel {
     *   None in case of contrary requests, else the highest or lowest voltage
     *   depending of the direction for regulation
     */
+  private def harmonizeRegulationNeeds(
+      regulationRequests: Array[Dimensionless]
+  ): Option[Dimensionless] = {
+    val negativeRequests = regulationRequests.array.filter(_ < Each(0d))
+    val positiveRequests = regulationRequests.filter(_ > Each(0d))
 
-  private def harmonizationFunction
-      : Array[Dimensionless] => Option[Dimensionless] =
-    (regulationRequests: Array[Dimensionless]) => {
-      val negativeRequests = regulationRequests.array.filter(_ < Each(0d))
-      val positiveRequests = regulationRequests.filter(_ > Each(0d))
-
-      (negativeRequests.nonEmpty, positiveRequests.nonEmpty) match {
-        case (true, true) =>
-          /* There are requests for higher and lower voltages at the same time => do nothing! */
-          None
-        case (true, false) =>
-          /* There are only requests for lower voltages => decide for the lowest required voltage */
-          negativeRequests.minOption
-        case (false, true) =>
-          /* There are only requests for higher voltages => decide for the highest required voltage */
-          positiveRequests.maxOption
-        case _ =>
-          None
-      }
-
+    (negativeRequests.nonEmpty, positiveRequests.nonEmpty) match {
+      case (true, true) =>
+        /* There are requests for higher and lower voltages at the same time => do nothing! */
+        None
+      case (true, false) =>
+        /* There are only requests for lower voltages => decide for the lowest required voltage */
+        negativeRequests.minOption
+      case (false, true) =>
+        /* There are only requests for higher voltages => decide for the highest required voltage */
+        positiveRequests.maxOption
+      case _ =>
+        None
     }
+
+  }
 
   /** Build a single control group model. Currently, only limit violation
     * prevention logic is captured: The nodal regulation need is equal to the

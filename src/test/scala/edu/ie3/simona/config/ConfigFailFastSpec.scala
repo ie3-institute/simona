@@ -961,7 +961,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "throw an exception, if the measurements are empty" in {
           val dut = TransformerControlGroup(
-            List.empty[String],
+            List.empty,
             List("a16cf7ca-8bbf-46e1-a74e-ffa6513c89a8"),
             1.02,
             0.98,
@@ -975,7 +975,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         "throw an exception, if the transformers are empty" in {
           val dut = TransformerControlGroup(
             List("6888c53a-7629-4563-ac8e-840f80b03106"),
-            List.empty[String],
+            List.empty,
             1.02,
             0.98,
           )

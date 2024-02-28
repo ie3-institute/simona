@@ -605,7 +605,7 @@ object GridModel {
       .map { controlConfig =>
         TransformerControlGroupModel.buildControlGroups(
           controlConfig.transformer,
-          subGridContainer.getRawGrid.getMeasurementUnits,
+          subGridContainer.getRawGrid.getMeasurementUnits.asScala.toSet,
         )
       }
       .getOrElse(Set.empty)
