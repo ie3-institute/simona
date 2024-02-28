@@ -217,7 +217,7 @@ class GridSpec
           Set.empty[Transformer3wModel],
           switches,
         ),
-        GridControls(Set.empty[TransformerControlGroupModel]),
+        GridControls.empty,
       )
       // get the private method for validation
       val validateConnectivity: PrivateMethod[Unit] =
@@ -246,7 +246,7 @@ class GridSpec
           Set.empty[Transformer3wModel],
           Set.empty[SwitchModel],
         ),
-        GridControls(Set.empty[TransformerControlGroupModel]),
+        GridControls.empty,
       )
 
       // get the private method for validation
@@ -292,7 +292,7 @@ class GridSpec
           Set.empty[Transformer3wModel],
           switches,
         ),
-        GridControls.emptyGridControls,
+        GridControls.empty,
       )
 
       // get the private method for validation
@@ -397,7 +397,7 @@ class GridSpec
             Set.empty[Transformer3wModel],
             switches,
           ),
-          GridControls(Set.empty[TransformerControlGroupModel]),
+          GridControls.empty,
         )
 
         // update the uuidToIndexMap
@@ -449,7 +449,7 @@ class GridSpec
             Set.empty[Transformer3wModel],
             Set.empty[SwitchModel],
           ),
-          GridControls(Set.empty[TransformerControlGroupModel]),
+          GridControls.empty,
         )
 
         // update the uuidToIndexMap

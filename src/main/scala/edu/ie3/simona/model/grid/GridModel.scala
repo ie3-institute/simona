@@ -11,7 +11,6 @@ import breeze.math.Complex
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector._
 import edu.ie3.datamodel.models.input.container.SubGridContainer
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
@@ -465,28 +464,27 @@ object GridModel {
     * @param maybeControlConfig
     *   Config of ControlGroup
     */
-  private def checkControlGroupsForMeasurement(
+  private def validateControlGroups(
       subGridContainer: SubGridContainer,
       maybeControlConfig: Option[SimonaConfig.Simona.Control],
   ): Unit = {
+    maybeControlConfig.foreach { control =>
+      val measurementUnits =
+        subGridContainer.getRawGrid.getMeasurementUnits.asScala
+          .map(measurement => measurement.getUuid -> measurement)
+          .toMap
 
-    val measurementUnits =
-      subGridContainer.getRawGrid.getMeasurementUnits.asScala
-        .map(measurement => measurement.getUuid -> measurement)
-        .toMap
+      val transformerUnits2W =
+        subGridContainer.getRawGrid.getTransformer2Ws.asScala
+          .map(transformer2w => transformer2w.getUuid -> transformer2w)
+          .toMap
 
-    val transformerUnits2W =
-      subGridContainer.getRawGrid.getTransformer2Ws.asScala
-        .map(transformer2w => transformer2w.getUuid -> transformer2w)
-        .toMap
+      val transformerUnits3W =
+        subGridContainer.getRawGrid.getTransformer3Ws.asScala
+          .map(transformer3w => transformer3w.getUuid -> transformer3w)
+          .toMap
 
-    val transformerUnits3W =
-      subGridContainer.getRawGrid.getTransformer3Ws.asScala
-        .map(transformer3w => transformer3w.getUuid -> transformer3w)
-        .toMap
-
-    maybeControlConfig.foreach(control =>
-      control.transformer.foreach(controlGroup =>
+      control.transformer.foreach { controlGroup =>
         controlGroup.transformers.map(UUID.fromString).foreach { transformer =>
           val transformerUnit2W = transformerUnits2W.get(transformer)
           val transformerUnit3W = transformerUnits3W.get(transformer)
@@ -507,9 +505,10 @@ object GridModel {
                   )
               }
           }
+
         }
-      )
-    )
+      }
+    }
   }
 
   private def buildAndValidate(
@@ -602,31 +601,21 @@ object GridModel {
       )
 
     /* Build transformer control groups */
-    val maybeControlConfig: Option[SimonaConfig.Simona.Control] =
-      simonaConfig.simona.control match {
-        case Some(control) => simonaConfig.simona.control
-        case None          => None
-      }
-
-    val transformerControlGroups = maybeControlConfig
+    val transformerControlGroups = simonaConfig.simona.control
       .map { controlConfig =>
         TransformerControlGroupModel.buildControlGroups(
           controlConfig.transformer,
           subGridContainer.getRawGrid.getMeasurementUnits,
         )
       }
-      .getOrElse(Set.empty[TransformerControlGroupModel])
+      .getOrElse(Set.empty)
 
-    /* Build grid related control strategies */
-    val gridControls = GridControls(transformerControlGroups)
-
-    val gridModel =
-      GridModel(
-        subGridContainer.getSubnet,
-        refSystem,
-        gridComponents,
-        gridControls,
-      )
+    val gridModel = GridModel(
+      subGridContainer.getSubnet,
+      refSystem,
+      gridComponents,
+      GridControls(transformerControlGroups),
+    )
 
     /** Check and validates the grid. Especially the consistency of the grid
       * model the connectivity of the grid model if there is InitData for
@@ -637,7 +626,7 @@ object GridModel {
     // validate
     validateConsistency(gridModel)
     validateConnectivity(gridModel)
-    checkControlGroupsForMeasurement(
+    validateControlGroups(
       subGridContainer,
       simonaConfig.simona.control,
     )

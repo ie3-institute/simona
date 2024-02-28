@@ -231,7 +231,7 @@ trait BasicGridWithSwitches extends BasicGrid {
         Set.empty[Transformer3wModel],
         gridSwitches,
       ),
-      GridControls.emptyGridControls,
+      GridControls.empty,
     )
   }
 

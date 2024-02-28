@@ -19,7 +19,5 @@ object GridControls {
 
   /** Represents an empty GridControls group
     */
-  def emptyGridControls: GridControls = GridControls(
-    Set.empty[TransformerControlGroupModel]
-  )
+  def empty: GridControls = GridControls(Set.empty)
 }
