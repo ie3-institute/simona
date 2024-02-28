@@ -6,22 +6,30 @@
 
 package edu.ie3.simona.agent.grid
 
-import org.apache.pekko.actor.ActorRef
 import edu.ie3.simona.ontology.messages.PowerMessage.PowerResponseMessage
-import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage
+import VoltageMessage.ProvideSlackVoltageMessage
+import edu.ie3.simona.agent.grid.GridAgentMessage.InternalMessage
+import org.apache.pekko.actor.typed.ActorRef
 
 /** Serves as a wrapper class that allows for matches against received values in
   * [[DBFSAlgorithm]]
   */
-sealed trait ReceivedValues
+sealed trait ReceivedValues extends InternalMessage
 
 object ReceivedValues {
 
-  type ActorPowerRequestResponse = (ActorRef, PowerResponseMessage)
-  type ActorSlackVoltageRequestResponse = (ActorRef, ProvideSlackVoltageMessage)
+  private type ParticipantPowerRequestResponse =
+    (
+        ActorRef[_],
+        PowerResponseMessage,
+    ) // necessary, because participants are still classic actors
+  private type GridPowerRequestResponse =
+    (ActorRef[GridAgentMessage], PowerResponseMessage)
+  private type ActorSlackVoltageRequestResponse =
+    (ActorRef[GridAgentMessage], ProvideSlackVoltageMessage)
 
   sealed trait ReceivedPowerValues extends ReceivedValues {
-    def values: Vector[ActorPowerRequestResponse]
+    def values: Vector[(ActorRef[_], PowerResponseMessage)]
   }
 
   /** Wrapper for received asset power values (p, q)
@@ -30,7 +38,7 @@ object ReceivedValues {
     *   the asset power values and their senders
     */
   final case class ReceivedAssetPowerValues(
-      values: Vector[ActorPowerRequestResponse]
+      values: Vector[ParticipantPowerRequestResponse]
   ) extends ReceivedPowerValues
 
   /** Wrapper for received grid power values (p, q)
@@ -39,7 +47,7 @@ object ReceivedValues {
     *   the grid power values and their senders
     */
   final case class ReceivedGridPowerValues(
-      values: Vector[ActorPowerRequestResponse]
+      values: Vector[GridPowerRequestResponse]
   ) extends ReceivedPowerValues
 
   /** Wrapper for received slack voltage values (v)
@@ -51,4 +59,11 @@ object ReceivedValues {
       values: Vector[ActorSlackVoltageRequestResponse]
   ) extends ReceivedValues
 
+  /** Wrapper for received exception.
+    * @param exception
+    *   that was received
+    */
+  final case class ReceivedFailure(
+      exception: Throwable
+  ) extends ReceivedValues
 }
