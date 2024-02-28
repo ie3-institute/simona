@@ -546,10 +546,11 @@ class GridSpec
         )
         val expectedUuids = Set(node1, node2).map(_.getUuid)
 
-        val actual = TransformerControlGroupModel invokePrivate determineNodeUuids(
-          measurementUnits,
-          selectedMeasurements,
-        )
+        val actual =
+          TransformerControlGroupModel invokePrivate determineNodeUuids(
+            measurementUnits,
+            selectedMeasurements,
+          )
         actual should contain theSameElementsAs expectedUuids
       }
     }
