@@ -144,6 +144,19 @@ object TransformerControlGroupModel {
       .map(_.getNode.getUuid)
   )
 
+  /** Determine the regulation criterion of the nodes to control
+    *
+    * @param complexVoltage
+    *   Collection of all known [[MeasurementUnitInput]] s
+    * @param vMax
+    *   and
+    * @param vMin
+    *   Voltage limits of the node
+    * @return
+    *   The RegulationCriterion in this case a set of node uuids and optional
+    *   voltage deviation
+    */
+
   private def regulationFunction(
       complexVoltage: Complex,
       vMax: Double,
@@ -158,6 +171,15 @@ object TransformerControlGroupModel {
       case _ => None
     }
   }
+
+  /** Function to harmonize contrary requests for regulation
+    *
+    * @param regulationRequests:
+    *   Array of all regulation requests
+    * @return
+    *   None in case of contrary requests, else the highest or lowest voltage
+    *   depending of the direction for regulation
+    */
 
   private def harmonizationFunction
       : Array[Dimensionless] => Option[Dimensionless] =
