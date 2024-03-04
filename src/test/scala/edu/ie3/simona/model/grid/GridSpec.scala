@@ -10,7 +10,10 @@ import breeze.linalg.DenseMatrix
 import breeze.math.Complex
 import breeze.numerics.abs
 import edu.ie3.datamodel.exceptions.InvalidGridException
+import edu.ie3.datamodel.models.input.MeasurementUnitInput
+import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.exceptions.GridInconsistencyException
+import edu.ie3.simona.model.control.{GridControls, TransformerControlGroupModel}
 import edu.ie3.simona.model.grid.GridModel.GridComponents
 import edu.ie3.simona.test.common.input.{GridInputTestData, LineInputTestData}
 import edu.ie3.simona.test.common.model.grid.{
@@ -18,11 +21,16 @@ import edu.ie3.simona.test.common.model.grid.{
   BasicGridWithSwitches,
   FiveLinesWithNodes,
 }
-import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
+import edu.ie3.simona.test.common.{ConfigTestData, DefaultTestData, UnitSpec}
+import testutils.TestObjectFactory
 
 import java.util.UUID
 
-class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
+class GridSpec
+    extends UnitSpec
+    with LineInputTestData
+    with DefaultTestData
+    with ConfigTestData {
 
   private val _printAdmittanceMatrixOnMismatch
       : (DenseMatrix[Complex], DenseMatrix[Complex]) => Unit = {
@@ -205,6 +213,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
           Set.empty[Transformer3wModel],
           switches,
         ),
+        GridControls.empty,
       )
       // get the private method for validation
       val validateConnectivity: PrivateMethod[Unit] =
@@ -233,6 +242,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
           Set.empty[Transformer3wModel],
           Set.empty[SwitchModel],
         ),
+        GridControls.empty,
       )
 
       // get the private method for validation
@@ -278,6 +288,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
           Set.empty[Transformer3wModel],
           switches,
         ),
+        GridControls.empty,
       )
 
       // get the private method for validation
@@ -382,6 +393,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
             Set.empty[Transformer3wModel],
             switches,
           ),
+          GridControls.empty,
         )
 
         // update the uuidToIndexMap
@@ -433,6 +445,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
             Set.empty[Transformer3wModel],
             Set.empty[SwitchModel],
           ),
+          GridControls.empty,
         )
 
         // update the uuidToIndexMap
@@ -453,7 +466,88 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
         gridModel.nodeUuidToIndexMap.keySet.toVector.sorted should be(
           nodes.map(node => node.uuid).toVector.sorted
         )
+      }
+    }
 
+    "build correct transformer control models" should {
+      /* Testing of distinct transformer control group building can be found in the spec for transformer control groups */
+
+      "determine node uuids correctly" in {
+        val determineNodeUuids =
+          PrivateMethod[Set[UUID]](Symbol("determineNodeUuids"))
+
+        val node0 = TestObjectFactory.buildNodeInput(
+          false,
+          GermanVoltageLevelUtils.MV_10KV,
+          1,
+        )
+        val node1 = TestObjectFactory.buildNodeInput(
+          false,
+          GermanVoltageLevelUtils.MV_10KV,
+          1,
+        )
+        val node2 = TestObjectFactory.buildNodeInput(
+          false,
+          GermanVoltageLevelUtils.MV_10KV,
+          1,
+        )
+        val node3 = TestObjectFactory.buildNodeInput(
+          false,
+          GermanVoltageLevelUtils.MV_10KV,
+          1,
+        )
+
+        val measurementUnits = Set(
+          new MeasurementUnitInput(
+            UUID.fromString("3ad9e076-c02b-4cf9-8720-18e2bb541ede"),
+            "measurement_unit_0",
+            node0,
+            true,
+            false,
+            false,
+            false,
+          ),
+          new MeasurementUnitInput(
+            UUID.fromString("ab66fbb0-ece1-44b9-9341-86a884233ec4"),
+            "measurement_unit_1",
+            node1,
+            true,
+            false,
+            false,
+            false,
+          ),
+          new MeasurementUnitInput(
+            UUID.fromString("93b4d0d8-cc67-41f5-9d5c-1cd6dbb2e70d"),
+            "measurement_unit_2",
+            node2,
+            true,
+            false,
+            false,
+            false,
+          ),
+          new MeasurementUnitInput(
+            UUID.fromString("8e84eb8a-2940-4900-b0ce-0eeb6bca8bae"),
+            "measurement_unit_3",
+            node3,
+            false,
+            false,
+            false,
+            false,
+          ),
+        )
+        val selectedMeasurements = Set(
+          "ab66fbb0-ece1-44b9-9341-86a884233ec4",
+          "93b4d0d8-cc67-41f5-9d5c-1cd6dbb2e70d",
+          "8e84eb8a-2940-4900-b0ce-0eeb6bca8bae",
+        )
+        val expectedUuids = Set(node1, node2).map(_.getUuid)
+
+        val actual =
+          TransformerControlGroupModel invokePrivate determineNodeUuids(
+            measurementUnits,
+            selectedMeasurements,
+          )
+        actual should contain theSameElementsAs expectedUuids
       }
 
     }
@@ -464,6 +558,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
         gridInputModelTestDataRefSystem,
         defaultSimulationStart,
         defaultSimulationEnd,
+        simonaConfig,
       )
 
     }
