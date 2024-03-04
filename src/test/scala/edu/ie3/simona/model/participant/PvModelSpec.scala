@@ -24,7 +24,7 @@ import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import org.scalatest.GivenWhenThen
 import squants.Each
 import squants.energy.Kilowatts
-import squants.space.{Degrees, Radians}
+import squants.space.{Angle, Degrees, Radians}
 import tech.units.indriya.quantity.Quantities.getQuantity
 import tech.units.indriya.unit.Units._
 
@@ -89,6 +89,8 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
     defaultSimulationEnd,
   )
 
+  private implicit val angleTolerance: Angle = Radians(1e-10)
+
   "A PV Model" should {
     "have sMax set to be 10% higher than its sRated" in {
       val actualSMax = pvModel.sMax.toKilowatts
@@ -152,7 +154,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
         val jCalc = pvModel.calcAngleJ(ZonedDateTime.parse(time))
 
         // Then
-        jCalc.toRadians shouldEqual jSol +- 1e-10
+        jCalc should approximate(Radians(jSol))
       }
     }
 
