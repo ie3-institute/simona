@@ -12,7 +12,11 @@ import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.{Csv, InfluxDb1x}
 import edu.ie3.simona.config.SimonaConfig.Simona.Powerflow.Newtonraphson
 import edu.ie3.simona.config.SimonaConfig.Simona.{Powerflow, Time}
-import edu.ie3.simona.config.SimonaConfig.{BaseCsvParams, ResultKafkaParams}
+import edu.ie3.simona.config.SimonaConfig.{
+  BaseCsvParams,
+  ResultKafkaParams,
+  TransformerControlGroup,
+}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
@@ -949,7 +953,78 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             )
           }.getMessage shouldBe "The weather data scheme 'this won't work' is not supported. Supported schemes:\n\ticon\n\tcosmo"
         }
+      }
 
+      "checking the transformer control groups" should {
+        val checkTransformerControl =
+          PrivateMethod[Unit](Symbol("checkTransformerControl"))
+
+        "throw an exception, if the measurements are empty" in {
+          val dut = TransformerControlGroup(
+            List.empty,
+            List("a16cf7ca-8bbf-46e1-a74e-ffa6513c89a8"),
+            1.02,
+            0.98,
+          )
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkTransformerControl(dut)
+          }.getMessage shouldBe s"A transformer control group (${dut.toString}) cannot have no measurements assigned."
+        }
+
+        "throw an exception, if the transformers are empty" in {
+          val dut = TransformerControlGroup(
+            List("6888c53a-7629-4563-ac8e-840f80b03106"),
+            List.empty,
+            1.02,
+            0.98,
+          )
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkTransformerControl(dut)
+          }.getMessage shouldBe s"A transformer control group (${dut.toString}) cannot have no transformers assigned."
+        }
+
+        "throw an exception, if vMax is smaller than vMin" in {
+          val dut = TransformerControlGroup(
+            List("6888c53a-7629-4563-ac8e-840f80b03106"),
+            List("a16cf7ca-8bbf-46e1-a74e-ffa6513c89a8"),
+            0.98,
+            1.02,
+          )
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkTransformerControl(dut)
+          }.getMessage shouldBe s"The minimum permissible voltage magnitude of a transformer control group (${dut.toString}) must be smaller than the maximum permissible voltage magnitude."
+        }
+
+        "throw Exception if vMin is lower than -20% of nominal Voltage" in {
+          val dut = TransformerControlGroup(
+            List("6888c53a-7629-4563-ac8e-840f80b03106"),
+            List("a16cf7ca-8bbf-46e1-a74e-ffa6513c89a8"),
+            1.02,
+            0.79,
+          )
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkTransformerControl(dut)
+          }.getMessage shouldBe s"A control group (${dut.toString}) which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
+            "by invalid parametrization of one control groups where vMin is lower than the lower boundary (0.8 of nominal Voltage)!"
+        }
+
+        "throw Exception if vMax is higher than +20% of nominal Voltage" in {
+          val dut = TransformerControlGroup(
+            List("6888c53a-7629-4563-ac8e-840f80b03106"),
+            List("a16cf7ca-8bbf-46e1-a74e-ffa6513c89a8"),
+            1.21,
+            0.98,
+          )
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkTransformerControl(dut)
+          }.getMessage shouldBe s"A control group (${dut.toString}) which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
+            "by invalid parametrization of one control groups where vMax is higher than the upper boundary (1.2 of nominal Voltage)!"
+        }
       }
     }
 
