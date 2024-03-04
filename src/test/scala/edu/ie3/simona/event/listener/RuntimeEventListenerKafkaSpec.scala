@@ -51,7 +51,7 @@ class RuntimeEventListenerKafkaSpec
       new TopicPartition(testTopic.name, _)
     )
 
-  private val startDateTimeString = "2011-01-01 00:00:00"
+  private val startDateTimeString = "2011-01-01T00:00:00Z"
 
   private val mockSchemaRegistryUrl = "mock://unused:8081"
 

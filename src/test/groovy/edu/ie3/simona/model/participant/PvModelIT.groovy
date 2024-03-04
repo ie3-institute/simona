@@ -131,8 +131,8 @@ trait PvModelITHelper {
     def csvGridSource = CsvJointGridContainerSource.read("it_grid", ";",
         Path.of(this.getClass().getResource("_pv/it/grid_data").toURI()), false)
 
-    def simulationStartDate = TimeUtil.withDefaults.toZonedDateTime("2011-01-01 00:00:00")
-    def simulationEndDate = TimeUtil.withDefaults.toZonedDateTime("2012-01-01 00:00:00")
+    def simulationStartDate = TimeUtil.withDefaults.toZonedDateTime("2011-01-01T00:00:00Z")
+    def simulationEndDate = TimeUtil.withDefaults.toZonedDateTime("2012-01-01T00:00:00Z")
 
     Map<String, PvModel> pvModels = new HashMap<>()
     for (PvInput inputModel : csvGridSource.systemParticipants.pvPlants) {

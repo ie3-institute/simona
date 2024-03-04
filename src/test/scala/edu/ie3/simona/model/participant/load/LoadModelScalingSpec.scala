@@ -39,9 +39,9 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
 
   "Testing correct scaling of load models" when {
     val simulationStartDate =
-      TimeUtil.withDefaults.toZonedDateTime("2019-01-01 00:00:00")
+      TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")
     val simulationEndDate =
-      TimeUtil.withDefaults.toZonedDateTime("2019-12-31 23:59:00")
+      TimeUtil.withDefaults.toZonedDateTime("2019-12-31T23:59:00Z")
 
     "having a profile load model" should {
       val profileLoadInput =

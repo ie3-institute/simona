@@ -58,8 +58,8 @@ class FixedLoadModelTest extends Specification {
   0.95
   )
 
-  def simulationStartDate = TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
-  def simulationEndDate = TimeUtil.withDefaults.toZonedDateTime("2020-12-31 23:59:00")
+  def simulationStartDate = TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
+  def simulationEndDate = TimeUtil.withDefaults.toZonedDateTime("2020-12-31T23:59:00Z")
   def foreSeenOperationInterval =
   SystemComponent.determineOperationInterval(
   simulationStartDate,

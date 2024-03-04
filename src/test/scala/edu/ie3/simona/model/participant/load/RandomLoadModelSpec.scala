@@ -62,9 +62,9 @@ class RandomLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
       )
 
     val simulationStartDate =
-      TimeUtil.withDefaults.toZonedDateTime("2019-01-01 00:00:00")
+      TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")
     val simulationEndDate =
-      TimeUtil.withDefaults.toZonedDateTime("2019-12-31 23:59:00")
+      TimeUtil.withDefaults.toZonedDateTime("2019-12-31T23:59:00Z")
     val foreSeenOperationInterval =
       SystemComponent.determineOperationInterval(
         simulationStartDate,
@@ -114,7 +114,7 @@ class RandomLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
         )
         /* Working day, 61th quarter hour */
         val queryDate =
-          TimeUtil.withDefaults.toZonedDateTime("2019-07-19 15:21:00")
+          TimeUtil.withDefaults.toZonedDateTime("2019-07-19T15:21:00Z")
         val expectedParams = new RandomLoadParameters(
           0.405802458524704,
           0.0671483352780342,

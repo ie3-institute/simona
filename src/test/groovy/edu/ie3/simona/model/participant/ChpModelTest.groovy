@@ -224,7 +224,7 @@ class ChpModelTest extends Specification {
     when:
     def thermalStorage = buildThermalStorage(storageInput, 90)
     def chpModelCaseClass = buildChpModel(thermalStorage)
-    def startDate = TimeUtil.withDefaults.toZonedDateTime("2021-01-01 00:00:00")
+    def startDate = TimeUtil.withDefaults.toZonedDateTime("2021-01-01T00:00:00Z")
     def endDate = startDate.plusSeconds(86400L)
     def chpModelCaseObject = ChpModel.apply(
         chpInput,

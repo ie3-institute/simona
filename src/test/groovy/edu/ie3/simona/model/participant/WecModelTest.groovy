@@ -92,8 +92,8 @@ class WecModelTest extends Specification {
 
   def buildWecModel() {
     return WecModel.apply(inputModel, 1,
-        TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
-        TimeUtil.withDefaults.toZonedDateTime("2020-01-01 01:00:00"))
+        TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z"),
+        TimeUtil.withDefaults.toZonedDateTime("2020-01-01T01:00:00Z"))
   }
 
   @Unroll

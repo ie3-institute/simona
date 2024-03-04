@@ -20,7 +20,7 @@ import java.util.UUID
 trait ThreeWindingResultTestData {
   val inputModel: UUID = UUID.fromString("40d02538-d8dd-421c-8e68-400f1da170c7")
   val time: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2021-06-07 08:43:00")
+    TimeUtil.withDefaults.toZonedDateTime("2021-06-07T08:43:00Z")
   val resultA: PartialTransformer3wResult.PortA =
     PartialTransformer3wResult.PortA(
       time,

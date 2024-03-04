@@ -33,7 +33,7 @@ class PlainWriterSpec extends UnitSpec with GivenWhenThen {
     "should write a plain result correctly" in {
       Given("a full NodeResult")
       val eventId = UUID.randomUUID()
-      val time = TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
+      val time = TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
       val inputModelId = UUID.randomUUID()
       val vMag = Quantities.getQuantity(0.85d, PowerSystemUnits.PU)
       val vAng = Quantities.getQuantity(90d, PowerSystemUnits.DEGREE_GEOM)
@@ -66,7 +66,7 @@ class PlainWriterSpec extends UnitSpec with GivenWhenThen {
     "should write a full result correctly" in {
       Given("a plain NodeResult")
       val eventId = UUID.randomUUID()
-      val time = "2020-01-01 00:00:00"
+      val time = "2020-01-01T00:00:00Z"
       val inputModelId = UUID.randomUUID()
       val vMag = 0.85d
       val vAng = 90d

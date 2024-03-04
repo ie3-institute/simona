@@ -77,7 +77,7 @@ class PrimaryServiceWorkerSpec
       filePath = Paths.get("its_p_" + uuidP),
       fileNamingStrategy = new FileNamingStrategy(),
       simulationStart =
-        TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
+        TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z"),
       timePattern = "yyyy-MM-dd'T'HH:mm:ss'Z'",
     )
 
@@ -109,7 +109,7 @@ class PrimaryServiceWorkerSpec
       val maliciousInitData = CsvInitPrimaryServiceStateData(
         timeSeriesUuid = uuidPq,
         simulationStart =
-          TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
+          TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z"),
         csvSep = ";",
         directoryPath = baseDirectoryPath,
         filePath = Paths.get("its_pq_" + uuidPq),

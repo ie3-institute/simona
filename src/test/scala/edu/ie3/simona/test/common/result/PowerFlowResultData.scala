@@ -24,7 +24,7 @@ import tech.units.indriya.unit.Units
 trait PowerFlowResultData {
 
   private val dummyTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-30 17:26:44")
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-30T17:26:44Z")
   private val dummyInputModel =
     UUID.fromString("e5ac84d3-c7a5-4870-a42d-837920aec9bb")
 
