@@ -11,9 +11,10 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.graph.SubGridTopologyGraph
 import edu.ie3.datamodel.models.input.container.{GridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
-import edu.ie3.simona.actor.SimonaActorNaming._
+import edu.ie3.simona.actor.SimonaActorNaming.RichActorRefFactory
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.agent.grid.GridAgentMessage.CreateGridAgent
+import edu.ie3.simona.agent.grid.{GridAgent, GridAgentMessage}
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.data.ExtData
 import edu.ie3.simona.api.data.ev.{ExtEvData, ExtEvSimulation}
@@ -40,11 +41,12 @@ import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.typed.scaladsl.adapter._
-import org.apache.pekko.actor.{
-  ActorContext => ClassicContext,
-  ActorRef => ClassicRef,
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
+  ClassicActorRefOps,
+  TypedActorContextOps,
+  TypedActorRefOps,
 }
+import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 import java.util.concurrent.LinkedBlockingQueue
 import scala.jdk.CollectionConverters._
@@ -67,7 +69,7 @@ class SimonaStandaloneSetup(
       context: ActorContext[_],
       environmentRefs: EnvironmentRefs,
       resultEventListeners: Seq[ActorRef[ResultEvent]],
-  ): Iterable[ClassicRef] = {
+  ): Iterable[ActorRef[GridAgentMessage]] = {
 
     /* get the grid */
     val subGridTopologyGraph = GridProvider
@@ -87,9 +89,9 @@ class SimonaStandaloneSetup(
     /* Create all agents and map the sub grid id to their actor references */
     val subGridToActorRefMap = buildSubGridToActorRefMap(
       subGridTopologyGraph,
-      context.toClassic,
+      context,
       environmentRefs,
-      resultEventListeners.map(_.toClassic),
+      resultEventListeners,
     )
 
     val keys = ScheduleLock.multiKey(
@@ -132,7 +134,7 @@ class SimonaStandaloneSetup(
           thermalGrids,
         )
 
-        currentActorRef ! GridAgent.Create(gridAgentInitData, key)
+        currentActorRef ! CreateGridAgent(gridAgentInitData, key)
 
         currentActorRef
       }
@@ -318,20 +320,20 @@ class SimonaStandaloneSetup(
 
   def buildSubGridToActorRefMap(
       subGridTopologyGraph: SubGridTopologyGraph,
-      context: ClassicContext,
+      context: ActorContext[_],
       environmentRefs: EnvironmentRefs,
-      systemParticipantListener: Seq[ClassicRef],
-  ): Map[Int, ClassicRef] = {
+      resultEventListeners: Seq[ActorRef[ResultEvent]],
+  ): Map[Int, ActorRef[GridAgentMessage]] = {
     subGridTopologyGraph
       .vertexSet()
       .asScala
       .map(subGridContainer => {
         val gridAgentRef =
-          context.simonaActorOf(
-            GridAgent.props(
+          context.spawn(
+            GridAgent(
               environmentRefs,
               simonaConfig,
-              systemParticipantListener,
+              resultEventListeners,
             ),
             subGridContainer.getSubnet.toString,
           )
