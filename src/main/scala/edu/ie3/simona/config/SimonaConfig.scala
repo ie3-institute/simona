@@ -868,6 +868,45 @@ object SimonaConfig {
 
   }
 
+  final case class TransformerControlGroup(
+      measurements: scala.List[java.lang.String],
+      transformers: scala.List[java.lang.String],
+      vMax: scala.Double,
+      vMin: scala.Double,
+  )
+  object TransformerControlGroup {
+    def apply(
+        c: com.typesafe.config.Config,
+        parentPath: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator,
+    ): SimonaConfig.TransformerControlGroup = {
+      SimonaConfig.TransformerControlGroup(
+        measurements =
+          $_L$_str(c.getList("measurements"), parentPath, $tsCfgValidator),
+        transformers =
+          $_L$_str(c.getList("transformers"), parentPath, $tsCfgValidator),
+        vMax = $_reqDbl(parentPath, c, "vMax", $tsCfgValidator),
+        vMin = $_reqDbl(parentPath, c, "vMin", $tsCfgValidator),
+      )
+    }
+    private def $_reqDbl(
+        parentPath: java.lang.String,
+        c: com.typesafe.config.Config,
+        path: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator,
+    ): scala.Double = {
+      if (c == null) 0
+      else
+        try c.getDouble(path)
+        catch {
+          case e: com.typesafe.config.ConfigException =>
+            $tsCfgValidator.addBadPath(parentPath + path, e)
+            0
+        }
+    }
+
+  }
+
   final case class VoltLvlConfig(
       id: java.lang.String,
       vNom: java.lang.String,
@@ -962,6 +1001,7 @@ object SimonaConfig {
   }
 
   final case class Simona(
+      control: scala.Option[SimonaConfig.Simona.Control],
       event: SimonaConfig.Simona.Event,
       gridConfig: SimonaConfig.Simona.GridConfig,
       input: SimonaConfig.Simona.Input,
@@ -972,6 +1012,41 @@ object SimonaConfig {
       time: SimonaConfig.Simona.Time,
   )
   object Simona {
+    final case class Control(
+        transformer: scala.List[SimonaConfig.TransformerControlGroup]
+    )
+    object Control {
+      def apply(
+          c: com.typesafe.config.Config,
+          parentPath: java.lang.String,
+          $tsCfgValidator: $TsCfgValidator,
+      ): SimonaConfig.Simona.Control = {
+        SimonaConfig.Simona.Control(
+          transformer = $_LSimonaConfig_TransformerControlGroup(
+            c.getList("transformer"),
+            parentPath,
+            $tsCfgValidator,
+          )
+        )
+      }
+      private def $_LSimonaConfig_TransformerControlGroup(
+          cl: com.typesafe.config.ConfigList,
+          parentPath: java.lang.String,
+          $tsCfgValidator: $TsCfgValidator,
+      ): scala.List[SimonaConfig.TransformerControlGroup] = {
+        import scala.jdk.CollectionConverters._
+        cl.asScala
+          .map(cv =>
+            SimonaConfig.TransformerControlGroup(
+              cv.asInstanceOf[com.typesafe.config.ConfigObject].toConfig,
+              parentPath,
+              $tsCfgValidator,
+            )
+          )
+          .toList
+      }
+    }
+
     final case class Event(
         listener: scala.Option[
           scala.List[SimonaConfig.Simona.Event.Listener$Elm]
@@ -2768,6 +2843,16 @@ object SimonaConfig {
         $tsCfgValidator: $TsCfgValidator,
     ): SimonaConfig.Simona = {
       SimonaConfig.Simona(
+        control =
+          if (c.hasPathOrNull("control"))
+            scala.Some(
+              SimonaConfig.Simona.Control(
+                c.getConfig("control"),
+                parentPath + "control.",
+                $tsCfgValidator,
+              )
+            )
+          else None,
         event = SimonaConfig.Simona.Event(
           if (c.hasPathOrNull("event")) c.getConfig("event")
           else com.typesafe.config.ConfigFactory.parseString("event{}"),

@@ -63,13 +63,14 @@ object GridAgent extends DBFSAlgorithm {
         activationAdapter,
       )
 
-      uninitialized(agentValues, buffer)
+      uninitialized(agentValues, buffer, simonaConfig)
     }
   }
 
   private def uninitialized(implicit
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgentMessage],
+      simonaConfig: SimonaConfig,
   ): Behavior[GridAgentMessage] =
     Behaviors.receiveMessagePartial {
       case CreateGridAgent(gridAgentInitData, unlockKey) =>
@@ -78,12 +79,12 @@ object GridAgent extends DBFSAlgorithm {
           INIT_SIM_TICK,
           Some(unlockKey),
         )
-
-        initializing(gridAgentInitData)
+        initializing(gridAgentInitData, simonaConfig)
     }
 
   private def initializing(
-      gridAgentInitData: GridAgentInitData
+      gridAgentInitData: GridAgentInitData,
+      simonaConfig: SimonaConfig,
   )(implicit
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgentMessage],
@@ -124,6 +125,7 @@ object GridAgent extends DBFSAlgorithm {
         TimeUtil.withDefaults.toZonedDateTime(
           constantData.simonaConfig.simona.time.endDateTime
         ),
+        simonaConfig,
       )
 
       val gridAgentController =
