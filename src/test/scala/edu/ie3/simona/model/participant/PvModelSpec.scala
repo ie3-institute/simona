@@ -21,6 +21,7 @@ import edu.ie3.util.scala.quantities.{
   WattsPerSquareMeter,
 }
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
+import org.scalatest.GivenWhenThen
 import squants.Each
 import squants.energy.Kilowatts
 import squants.space.{Degrees, Radians}
@@ -43,8 +44,7 @@ import java.util.UUID
   * formulas. Furthermore, sometimes the example might be slightly adapted to
   * fit our needs.
   */
-
-class PvModelSpec extends UnitSpec with DefaultTestData {
+class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
 
   // build the NodeInputModel (which defines the location of the pv input model)
   // the NodeInputModel needs a GeoReference for the Pv to work
@@ -105,14 +105,14 @@ class PvModelSpec extends UnitSpec with DefaultTestData {
       )
 
       forAll(testCases) { (pVal, qSol) =>
-        // given
+        Given("default adjusted voltage of 1 p.u.")
         val adjustedVoltage = 1
 
-        // when
+        When("the reactive power is calculated")
         val qCalc =
           pvModel.calculateReactivePower(Kilowatts(pVal), Each(adjustedVoltage))
 
-        // then
+        Then("result should be capped if apparent power exceeds limit")
         qCalc shouldEqual Megavars(qSol)
       }
     }
