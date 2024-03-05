@@ -8,22 +8,22 @@ package edu.ie3.simona.api
 
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
-import edu.ie3.simona.api.ExtSimAdapter.{Create, ExtSimAdapterStateData}
+import edu.ie3.simona.api.ExtSimAdapter.{Create, ExtSimAdapterStateData, Stop}
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.api.simulation.ontology.{
   ActivationMessage,
   TerminationCompleted,
   TerminationMessage,
-  CompletionMessage => ExtCompletionMessage
+  CompletionMessage => ExtCompletionMessage,
 }
 import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
-import edu.ie3.simona.ontology.messages.{Activation, StopMessage}
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -45,9 +45,11 @@ object ExtSimAdapter {
     */
   final case class Create(extSimData: ExtSimAdapterData, unlockKey: ScheduleKey)
 
+  final case class Stop(simulationSuccessful: Boolean)
+
   final case class ExtSimAdapterStateData(
       extSimData: ExtSimAdapterData,
-      currentTick: Option[Long] = None
+      currentTick: Option[Long] = None,
   )
 }
 
@@ -59,7 +61,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
     scheduler ! ScheduleActivation(
       self.toTyped,
       INIT_SIM_TICK,
-      Some(unlockKey)
+      Some(unlockKey),
     )
     context become receiveIdle(
       ExtSimAdapterStateData(extSimAdapterData)
@@ -75,7 +77,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
       )
       log.debug(
         "Tick {} has been activated in external simulation",
-        tick
+        tick,
       )
 
       context become receiveIdle(
@@ -91,7 +93,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
       scheduler ! Completion(self.toTyped, newTick)
       log.debug(
         "Tick {} has been completed in external simulation",
-        stateData.currentTick
+        stateData.currentTick,
       )
 
       context become receiveIdle(stateData.copy(currentTick = None))
@@ -104,10 +106,10 @@ final case class ExtSimAdapter(scheduler: ActorRef)
 
       scheduleDataService.getDataService ! ScheduleServiceActivation(
         tick,
-        key
+        key,
       )
 
-    case StopMessage(simulationSuccessful) =>
+    case Stop(simulationSuccessful) =>
       // let external sim know that we have terminated
       stateData.extSimData.queueExtMsg(
         new TerminationMessage(simulationSuccessful)

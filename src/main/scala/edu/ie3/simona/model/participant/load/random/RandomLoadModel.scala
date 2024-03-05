@@ -10,6 +10,7 @@ import de.lmu.ifi.dbs.elki.math.statistics.distribution.GeneralizedExtremeValueD
 import de.lmu.ifi.dbs.elki.utilities.random.RandomFactory
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.LoadReference._
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomRelevantData
@@ -50,11 +51,11 @@ final case class RandomLoadModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    scalingFactor: Double,
+    override val scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double,
-    reference: LoadReference
+    reference: LoadReference,
 ) extends LoadModel[RandomRelevantData](
       uuid,
       id,
@@ -62,7 +63,7 @@ final case class RandomLoadModel(
       scalingFactor,
       qControl,
       sRated,
-      cosPhiRated
+      cosPhiRated,
     ) {
 
   private lazy val energyReferenceScalingFactor = reference match {
@@ -89,14 +90,15 @@ final case class RandomLoadModel(
     */
   @tailrec
   override protected def calculateActivePower(
-      data: RandomRelevantData
+      modelState: ConstantState.type,
+      data: RandomRelevantData,
   ): Power = {
     val gev = getGevDistribution(data.date)
 
     /* Get a next random power (in kW) */
     val randomPower = gev.nextRandom()
     if (randomPower < 0)
-      calculateActivePower(data)
+      calculateActivePower(modelState, data)
     else {
       val profilePower = Kilowatts(randomPower)
       val activePower = reference match {
@@ -109,7 +111,7 @@ final case class RandomLoadModel(
           /* scale the profiles random power based on the energyConsumption/profileEnergyScaling(=1000kWh/year) ratio  */
           profilePower * energyReferenceScalingFactor
       }
-      activePower * scalingFactor
+      activePower
     }
   }
 
@@ -128,7 +130,7 @@ final case class RandomLoadModel(
      * available, yet, instantiate one. */
     val key: GevKey = (
       DayType(dateTime.getDayOfWeek),
-      TimeUtil.withDefaults.getQuarterHourOfDay(dateTime)
+      TimeUtil.withDefaults.getQuarterHourOfDay(dateTime),
     )
     gevStorage.get(key) match {
       case Some(foundIt) => foundIt
@@ -140,7 +142,7 @@ final case class RandomLoadModel(
           gevParameters.my,
           gevParameters.sigma,
           gevParameters.k,
-          randomFactory
+          randomFactory,
         )
         gevStorage += (key -> newGev)
         newGev
@@ -148,7 +150,7 @@ final case class RandomLoadModel(
   }
 }
 
-case object RandomLoadModel {
+object RandomLoadModel {
 
   final case class RandomRelevantData(date: ZonedDateTime)
       extends LoadRelevantData
@@ -178,9 +180,9 @@ case object RandomLoadModel {
       input: LoadInput,
       operationInterval: OperationInterval,
       scalingFactor: Double,
-      reference: LoadReference
+      reference: LoadReference,
   ): RandomLoadModel = {
-    reference match {
+    val model = reference match {
       case ActivePower(power) =>
         val sRatedPowerScaled =
           LoadModel.scaleSRatedActivePower(input, power, 1.1)
@@ -193,7 +195,7 @@ case object RandomLoadModel {
           QControl.apply(input.getqCharacteristics()),
           sRatedPowerScaled,
           input.getCosPhiRated,
-          reference
+          reference,
         )
       case EnergyConsumption(energyConsumption) =>
         val sRatedEnergy = LoadModel.scaleSRatedEnergy(
@@ -201,7 +203,7 @@ case object RandomLoadModel {
           energyConsumption,
           randomMaxPower,
           randomProfileEnergyScaling,
-          1.1
+          1.1,
         )
 
         RandomLoadModel(
@@ -212,8 +214,10 @@ case object RandomLoadModel {
           QControl.apply(input.getqCharacteristics()),
           sRatedEnergy,
           input.getCosPhiRated,
-          reference
+          reference,
         )
     }
+    model.enable()
+    model
   }
 }

@@ -11,23 +11,19 @@ import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.thermal.{
   CylindricalStorageResult,
-  ThermalHouseResult
+  ThermalHouseResult,
 }
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalEnergyDemand,
-  ThermalGridState
+  ThermalGridState,
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
-import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.HouseTemperatureUpperBoundaryReached
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.StorageEmpty
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import squants.energy.{Kilowatts, MegawattHours, Megawatts}
 import squants.{Energy, Power, Temperature}
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import scala.jdk.CollectionConverters.SetHasAsScala
@@ -42,7 +38,7 @@ import scala.jdk.CollectionConverters.SetHasAsScala
   */
 final case class ThermalGrid(
     house: Option[ThermalHouse],
-    storage: Option[ThermalStorage]
+    storage: Option[ThermalStorage],
 ) extends LazyLogging {
 
   /** Determine the energy demand of the total grid at the given instance in
@@ -59,7 +55,7 @@ final case class ThermalGrid(
   def energyDemand(
       tick: Long,
       ambientTemperature: Temperature,
-      state: ThermalGridState
+      state: ThermalGridState,
   ): ThermalEnergyDemand = {
     /* First get the energy demand of the houses */
     val houseDemand = house
@@ -68,7 +64,7 @@ final case class ThermalGrid(
         house.energyDemand(
           tick,
           ambientTemperature,
-          state
+          state,
         )
       }
       .getOrElse(ThermalEnergyDemand.noDemand)
@@ -82,14 +78,11 @@ final case class ThermalGrid(
           val remaining = storage.getMaxEnergyThreshold - usableEnergy
           (
             usableEnergy,
-            remaining
+            remaining,
           )
         }
         .getOrElse(
-          (
-            MegawattHours(0d),
-            MegawattHours(0d)
-          )
+          (MegawattHours(0d), MegawattHours(0d))
         )
     }
 
@@ -98,12 +91,11 @@ final case class ThermalGrid(
         houseDemand.required
       else
         storedEnergy
-    val finallyRemaining =
-      remainingCapacity + usedEnergy
+    val finallyRemaining = remainingCapacity + usedEnergy
 
     ThermalEnergyDemand(
       houseDemand.required - usedEnergy,
-      houseDemand.possible + finallyRemaining
+      houseDemand.possible + finallyRemaining,
     )
   }
 
@@ -123,11 +115,8 @@ final case class ThermalGrid(
       tick: Long,
       state: ThermalGridState,
       ambientTemperature: Temperature,
-      qDot: Power
-  ): (ThermalGridState, Option[ThermalThreshold]) = if (
-    qDot >
-      Kilowatts(0d)
-  )
+      qDot: Power,
+  ): (ThermalGridState, Option[ThermalThreshold]) = if (qDot > Kilowatts(0d))
     handleInfeed(tick, ambientTemperature, state, qDot)
   else
     handleConsumption(tick, ambientTemperature, state, qDot)
@@ -149,71 +138,80 @@ final case class ThermalGrid(
       tick: Long,
       ambientTemperature: Temperature,
       state: ThermalGridState,
-      qDot: Power
+      qDot: Power,
   ): (ThermalGridState, Option[ThermalThreshold]) =
     house.zip(state.houseState) match {
       case Some((thermalHouse, lastHouseState)) =>
         /* Set thermal power exchange with storage to zero */
         // TODO: We would need to issue a storage result model here...
-        val zeroStorageState = storage.zip(state.storageState) match {
+        val updatedStorageState = storage.zip(state.storageState) match {
           case Some((thermalStorage, storageState)) =>
             Some(
               thermalStorage
                 .updateState(
                   tick,
                   Kilowatts(0d),
-                  storageState
+                  storageState,
                 )
                 ._1
             )
           case _ => state.storageState
         }
 
-        thermalHouse.updateState(
-          tick,
-          lastHouseState,
-          ambientTemperature,
-          qDot
-        ) match {
-          case (_, Some(HouseTemperatureUpperBoundaryReached(thresholdTick)))
-              if thresholdTick == tick =>
-            /* The house is already heated up fully, set back the infeed and put it into storage, if available */
-            val (updatedHouseState, maybeHouseThreshold) =
-              thermalHouse.updateState(
-                tick,
-                lastHouseState,
-                ambientTemperature,
-                Kilowatts(0d)
+        val (updatedHouseState, maybeHouseThreshold) =
+          thermalHouse.determineState(
+            tick,
+            lastHouseState,
+            ambientTemperature,
+            qDot,
+          )
+
+        if (
+          thermalHouse.isInnerTemperatureTooHigh(
+            updatedHouseState.innerTemperature
+          )
+        ) {
+          /* The house is already heated up fully, set back the infeed and put it into storage, if available */
+          val (fullHouseState, maybeFullHouseThreshold) =
+            thermalHouse.determineState(
+              tick,
+              lastHouseState,
+              ambientTemperature,
+              Kilowatts(0d),
+            )
+          storage.zip(updatedStorageState) match {
+            case Some((thermalStorage, storageState)) =>
+              val (updatedStorageState, maybeStorageThreshold) =
+                thermalStorage.updateState(tick, qDot, storageState)
+
+              /* Both house and storage are updated. Determine what reaches the next threshold */
+              val nextThreshold = determineMostRecentThreshold(
+                maybeFullHouseThreshold,
+                maybeStorageThreshold,
               )
-            storage.zip(zeroStorageState) match {
-              case Some((thermalStorage, storageState)) =>
-                val (updatedStorageState, maybeStorageThreshold) =
-                  thermalStorage.updateState(tick, qDot, storageState)
 
-                /* Both house and storage are updated. Determine what reaches the next threshold */
-                val nextThreshold = determineMostRecentThreshold(
-                  maybeHouseThreshold,
-                  maybeStorageThreshold
-                )
-
-                (
-                  state.copy(
-                    houseState = Some(updatedHouseState),
-                    storageState = Some(updatedStorageState)
-                  ),
-                  nextThreshold
-                )
-              case None =>
-                /* There is no storage, house determines the next activation */
-                (
-                  state.copy(houseState = Some(updatedHouseState)),
-                  maybeHouseThreshold
-                )
-            }
-          case (updatedState, maybeThreshold) =>
-            /* The house can handle the infeed */
-            (state.copy(houseState = Some(updatedState)), maybeThreshold)
+              (
+                state.copy(
+                  houseState = Some(fullHouseState),
+                  storageState = Some(updatedStorageState),
+                ),
+                nextThreshold,
+              )
+            case None =>
+              /* There is no storage, house determines the next activation */
+              (
+                state.copy(houseState = Some(fullHouseState)),
+                maybeFullHouseThreshold,
+              )
+          }
+        } else {
+          /* The house can handle the infeed */
+          (
+            state.copy(houseState = Some(updatedHouseState)),
+            maybeHouseThreshold,
+          )
         }
+
       case None =>
         storage.zip(state.storageState) match {
           case Some((thermalStorage, storageState)) =>
@@ -221,7 +219,7 @@ final case class ThermalGrid(
               thermalStorage.updateState(tick, qDot, storageState)
             (
               state.copy(storageState = Some(updatedStorageState)),
-              maybeStorageThreshold
+              maybeStorageThreshold,
             )
           case None =>
             throw new InconsistentStateException(
@@ -232,7 +230,7 @@ final case class ThermalGrid(
 
   private def determineMostRecentThreshold(
       maybeHouseThreshold: Option[ThermalThreshold],
-      maybeStorageThreshold: Option[ThermalThreshold]
+      maybeStorageThreshold: Option[ThermalThreshold],
   ): Option[ThermalThreshold] =
     (maybeHouseThreshold, maybeStorageThreshold) match {
       case (Some(houseThreshold), Some(storageThreshold)) =>
@@ -246,6 +244,7 @@ final case class ThermalGrid(
     }
 
   /** Handle consumption (or no infeed) from thermal grid
+    *
     * @param tick
     *   Current tick
     * @param ambientTemperature
@@ -261,16 +260,16 @@ final case class ThermalGrid(
       tick: Long,
       ambientTemperature: Temperature,
       state: ThermalGridState,
-      qDot: Power
+      qDot: Power,
   ): (ThermalGridState, Option[ThermalThreshold]) = {
     /* House will be left with no influx in all cases. Determine if and when a threshold is reached */
     val maybeUpdatedHouseState =
       house.zip(state.houseState).map { case (house, houseState) =>
-        house.updateState(
+        house.determineState(
           tick,
           houseState,
           ambientTemperature,
-          Megawatts(0d)
+          Megawatts(0d),
         )
       }
 
@@ -288,27 +287,27 @@ final case class ThermalGrid(
         state.houseState,
         state.storageState,
         ambientTemperature,
-        qDot
+        qDot,
       )
 
     val nextThreshold = determineMostRecentThreshold(
       revisedHouseState.flatMap(_._2),
-      revisedStorageState.flatMap(_._2)
+      revisedStorageState.flatMap(_._2),
     )
 
     (
       state.copy(
         houseState = revisedHouseState.map(_._1),
-        storageState = revisedStorageState.map(_._1)
+        storageState = revisedStorageState.map(_._1),
       ),
-      nextThreshold
+      nextThreshold,
     )
   }
 
   /** Check, if the storage can heat the house. This is only done, if <ul>
-    * <li>The house has reached it's lower temperature boundary</li> <li>There
-    * is no infeed from external</li> <li>The storage is not empty itself</li>
-    * </ul>
+    * <li>the house has reached it's lower temperature boundary,</li> <li>there
+    * is no infeed from external and</li> <li>the storage is not empty
+    * itself</li> </ul>
     * @param tick
     *   The current tick
     * @param maybeHouseState
@@ -335,32 +334,32 @@ final case class ThermalGrid(
       formerHouseState: Option[ThermalHouseState],
       formerStorageState: Option[ThermalStorageState],
       ambientTemperature: Temperature,
-      qDot: Power
+      qDot: Power,
   ): (
       Option[(ThermalHouseState, Option[ThermalThreshold])],
-      Option[(ThermalStorageState, Option[ThermalThreshold])]
+      Option[(ThermalStorageState, Option[ThermalThreshold])],
   ) = house.zip(maybeHouseState).zip(storage.zip(maybeStorageState)) match {
     case Some(
           (
             (thermalHouse, (houseState, _)),
-            (thermalStorage, (_, maybeStorageThreshold))
+            (thermalStorage, (storageState, _)),
           )
         )
-        if (Math.abs(qDot.toKilowatts) < 10e-3) && thermalHouse
-          .isInnerTemperatureTooLow(
+        if qDot.~=(Kilowatts(0d))(Kilowatts(10e-3)) &&
+          thermalHouse.isInnerTemperatureTooLow(
             houseState.innerTemperature
-          ) && !maybeStorageThreshold.contains(StorageEmpty(tick)) =>
+          ) && !thermalStorage.isEmpty(storageState.storedEnergy) =>
       /* Storage is meant to heat the house only, if there is no infeed from external (+/- 10 W) and the house is cold */
       val revisedStorageState = thermalStorage.updateState(
         tick,
-        thermalStorage.getChargingPower * (-1),
+        thermalStorage.getChargingPower * -1,
         formerStorageState.getOrElse(
           throw new InconsistentStateException(
             "Impossible to find no storage state"
           )
-        )
+        ),
       )
-      val revisedHouseState = thermalHouse.updateState(
+      val revisedHouseState = thermalHouse.determineState(
         tick,
         formerHouseState.getOrElse(
           throw new InconsistentStateException(
@@ -368,7 +367,7 @@ final case class ThermalGrid(
           )
         ),
         ambientTemperature,
-        thermalStorage.getChargingPower
+        thermalStorage.getChargingPower,
       )
       (Some(revisedHouseState), Some(revisedStorageState))
     case _ => (maybeHouseState, maybeStorageState)
@@ -391,17 +390,13 @@ final case class ThermalGrid(
       .map {
         case (
               thermalHouse,
-              ThermalHouseState(tick, innerTemperature, thermalInfeed)
+              ThermalHouseState(tick, innerTemperature, thermalInfeed),
             ) =>
           Seq.empty[ResultEntity] :+ new ThermalHouseResult(
             tick.toDateTime,
             thermalHouse.uuid,
-            Quantities.getQuantity(
-              thermalInfeed.toMegawatts,
-              PowerSystemUnits.MEGAWATT
-            ),
-            Quantities
-              .getQuantity(innerTemperature.toCelsiusScale, Units.CELSIUS)
+            thermalInfeed.toMegawatts.asMegaWatt,
+            innerTemperature.toKelvinScale.asKelvin,
           )
       }
       .getOrElse(Seq.empty[ResultEntity])
@@ -411,20 +406,14 @@ final case class ThermalGrid(
       .map {
         case (
               storage: CylindricalThermalStorage,
-              ThermalStorageState(tick, storedEnergy, qDot)
+              ThermalStorageState(tick, storedEnergy, qDot),
             ) =>
           houseResults :+ new CylindricalStorageResult(
             tick.toDateTime,
             storage.uuid,
-            Quantities.getQuantity(
-              storedEnergy.toMegawattHours,
-              PowerSystemUnits.MEGAWATTHOUR
-            ),
-            Quantities.getQuantity(qDot.toMegawatts, PowerSystemUnits.MEGAWATT),
-            Quantities.getQuantity(
-              storage.maxEnergyThreshold.toKilowattHours / storedEnergy.toKilowattHours,
-              Units.PERCENT
-            )
+            storedEnergy.toMegawattHours.asMegaWattHour,
+            qDot.toMegawatts.asMegaWatt,
+            (storage.maxEnergyThreshold / storedEnergy).asPu,
           )
         case _ =>
           throw new NotImplementedError(
@@ -451,7 +440,7 @@ object ThermalGrid {
       .toSet
     new ThermalGrid(
       houses.headOption,
-      storages.headOption
+      storages.headOption,
     )
   }
 
@@ -463,13 +452,13 @@ object ThermalGrid {
     */
   final case class ThermalGridState(
       houseState: Option[ThermalHouseState],
-      storageState: Option[ThermalStorageState]
+      storageState: Option[ThermalStorageState],
   )
 
   def startingState(thermalGrid: ThermalGrid): ThermalGridState =
     ThermalGridState(
       thermalGrid.house.map(house => ThermalHouse.startingState(house)),
-      thermalGrid.storage.map(_.startingState)
+      thermalGrid.storage.map(_.startingState),
     )
 
   /** Defines the thermal energy demand of a thermal grid. It comprises the
@@ -484,11 +473,11 @@ object ThermalGrid {
     */
   final case class ThermalEnergyDemand private (
       required: Energy,
-      possible: Energy
+      possible: Energy,
   ) {
     def +(rhs: ThermalEnergyDemand): ThermalEnergyDemand = ThermalEnergyDemand(
       required + rhs.required,
-      possible + rhs.possible
+      possible + rhs.possible,
     )
 
     def hasRequiredDemand: Boolean = required > MegawattHours(0d)
@@ -509,23 +498,17 @@ object ThermalGrid {
       */
     def apply(
         required: Energy,
-        possible: Energy
+        possible: Energy,
     ): ThermalEnergyDemand = {
       if (possible < required)
-        new ThermalEnergyDemand(
-          possible,
-          possible
-        )
+        new ThermalEnergyDemand(possible, possible)
       else
-        new ThermalEnergyDemand(
-          required,
-          possible
-        )
+        new ThermalEnergyDemand(required, possible)
     }
 
     def noDemand: ThermalEnergyDemand = ThermalEnergyDemand(
       MegawattHours(0d),
-      MegawattHours(0d)
+      MegawattHours(0d),
     )
   }
 }

@@ -12,7 +12,9 @@ import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.InfluxDb1x
 import edu.ie3.simona.config.SimonaConfig.{
   BaseOutputConfig,
   RefSystemConfig,
-  ResultKafkaParams
+  ResultKafkaParams,
+  Simona,
+  TransformerControlGroup,
 }
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.io.result.ResultSinkType
@@ -22,7 +24,7 @@ import edu.ie3.simona.service.weather.WeatherSource
 import edu.ie3.simona.util.CollectionUtils
 import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
   checkInfluxDb1xParams,
-  checkKafkaParams
+  checkKafkaParams,
 }
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
 import edu.ie3.util.scala.ReflectionTools
@@ -74,7 +76,7 @@ case object ConfigFailFast extends LazyLogging {
       case Failure(exception) =>
         throw new InvalidConfigParameterException(
           "Checking of pekko config failed due to unhandled error.",
-          exception
+          exception,
         )
       case Success(_) =>
     }
@@ -94,7 +96,7 @@ case object ConfigFailFast extends LazyLogging {
       case Failure(exception) =>
         throw new InvalidConfigParameterException(
           "Checking of pekko logging config failed due to unhandled error.",
-          exception
+          exception,
         )
       case _ =>
     }
@@ -143,6 +145,9 @@ case object ConfigFailFast extends LazyLogging {
 
     /* Check power flow resolution configuration */
     checkPowerFlowResolutionConfiguration(simonaConfig.simona.powerflow)
+
+    /* Check control scheme definitions */
+    simonaConfig.simona.control.foreach(checkControlSchemes)
   }
 
   /** Checks for valid sink configuration
@@ -191,7 +196,7 @@ case object ConfigFailFast extends LazyLogging {
         checkInfluxDb1xParams(
           "Sink",
           ResultSinkType.buildInfluxDb1xUrl(influxDb1x),
-          influxDb1x.database
+          influxDb1x.database,
         )
       case Some(Some(kafka: ResultKafkaParams)) =>
         checkKafkaParams(kafka, Seq(kafka.topicNodeRes))
@@ -235,7 +240,7 @@ case object ConfigFailFast extends LazyLogging {
         throw new InvalidConfigParameterException(
           s"Invalid dateTimeString: $dateTimeString." +
             s"Please ensure that your date/time parameter match the following pattern: 'yyyy-MM-dd HH:mm:ss'",
-          e
+          e,
         )
     }
   }
@@ -256,27 +261,27 @@ case object ConfigFailFast extends LazyLogging {
     /* Check basic model configuration parameters common to each participant */
     checkBaseRuntimeConfigs(
       subConfig.load.defaultConfig,
-      subConfig.load.individualConfigs
+      subConfig.load.individualConfigs,
     )
 
     checkBaseRuntimeConfigs(
       subConfig.fixedFeedIn.defaultConfig,
-      subConfig.fixedFeedIn.individualConfigs
+      subConfig.fixedFeedIn.individualConfigs,
     )
 
     checkBaseRuntimeConfigs(
       subConfig.evcs.defaultConfig,
-      subConfig.evcs.individualConfigs
+      subConfig.evcs.individualConfigs,
     )
 
     checkBaseRuntimeConfigs(
       subConfig.pv.defaultConfig,
-      subConfig.pv.individualConfigs
+      subConfig.pv.individualConfigs,
     )
 
     checkBaseRuntimeConfigs(
       subConfig.wec.defaultConfig,
-      subConfig.wec.individualConfigs
+      subConfig.wec.individualConfigs,
     )
 
     /* check model configuration parameters specific to participants */
@@ -304,7 +309,7 @@ case object ConfigFailFast extends LazyLogging {
   private def checkBaseRuntimeConfigs(
       defaultConfig: SimonaConfig.BaseRuntimeConfig,
       individualConfigs: List[SimonaConfig.BaseRuntimeConfig],
-      defaultString: String = "default"
+      defaultString: String = "default",
   ): Unit = {
     // special default config check
     val uuidString = defaultConfig.uuids.mkString(",")
@@ -346,7 +351,7 @@ case object ConfigFailFast extends LazyLogging {
               case e: IllegalArgumentException =>
                 throw new InvalidConfigParameterException(
                   s"The UUID '$uuid' cannot be parsed as it is invalid.",
-                  e
+                  e,
                 )
             }
           )
@@ -369,7 +374,7 @@ case object ConfigFailFast extends LazyLogging {
     */
   private def checkSingleString(
       singleString: String,
-      uuids: List[String]
+      uuids: List[String],
   ): Unit = {
     if (uuids.toVector.size != 1)
       throw new InvalidConfigParameterException(
@@ -388,7 +393,7 @@ case object ConfigFailFast extends LazyLogging {
             case e: IllegalArgumentException =>
               throw new InvalidConfigParameterException(
                 s"Found invalid UUID '$singleEntry' it was meant to be the string '$singleString' or a valid UUID.",
-                e
+                e,
               )
           }
       case None =>
@@ -449,7 +454,7 @@ case object ConfigFailFast extends LazyLogging {
         case Failure(exception) =>
           throw new InvalidConfigParameterException(
             s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to a quantity. Did you provide the volt level with it's unit (e.g. \"20 kV\")?",
-            exception
+            exception,
           )
       }
     }
@@ -548,7 +553,7 @@ case object ConfigFailFast extends LazyLogging {
 
     checkDefaultBaseOutputConfig(
       subConfig.defaultConfig,
-      defaultString = "default"
+      defaultString = "default",
     )
     checkIndividualParticipantsOutputConfigs(subConfig.individualConfigs)
   }
@@ -583,6 +588,61 @@ case object ConfigFailFast extends LazyLogging {
     }
   }
 
+  /** Check the validity of control scheme definitions
+    *
+    * @param control
+    *   Control scheme definitions
+    */
+  private def checkControlSchemes(control: Simona.Control): Unit = {
+    control.transformer.foreach(checkTransformerControl)
+  }
+
+  /** Check the suitability of transformer control group definition.
+    *
+    * One important check cannot be performed at this place, as input data is
+    * not available, yet: Do the measurements belong to a region, that can be
+    * influenced by the transformer? This is partly addressed in
+    * [[edu.ie3.simona.agent.grid.GridAgentFailFast]]
+    *
+    * @param transformerControlGroup
+    *   Transformer control group definition
+    */
+  private def checkTransformerControl(
+      transformerControlGroup: TransformerControlGroup
+  ): Unit = {
+    val lowerBoundary = 0.8
+    val upperBoundary = 1.2
+    transformerControlGroup match {
+      case TransformerControlGroup(measurements, transformers, vMax, vMin) =>
+        if (measurements.isEmpty)
+          throw new InvalidConfigParameterException(
+            s"A transformer control group (${transformerControlGroup.toString}) cannot have no measurements assigned."
+          )
+        if (transformers.isEmpty)
+          throw new InvalidConfigParameterException(
+            s"A transformer control group (${transformerControlGroup.toString}) cannot have no transformers assigned."
+          )
+        if (vMin < 0)
+          throw new InvalidConfigParameterException(
+            "The minimum permissible voltage magnitude of a transformer control group has to be positive."
+          )
+        if (vMax < vMin)
+          throw new InvalidConfigParameterException(
+            s"The minimum permissible voltage magnitude of a transformer control group (${transformerControlGroup.toString}) must be smaller than the maximum permissible voltage magnitude."
+          )
+        if (vMin < lowerBoundary)
+          throw new InvalidConfigParameterException(
+            s"A control group (${transformerControlGroup.toString}) which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
+              s"by invalid parametrization of one control groups where vMin is lower than the lower boundary (0.8 of nominal Voltage)!"
+          )
+        if (vMax > upperBoundary)
+          throw new InvalidConfigParameterException(
+            s"A control group (${transformerControlGroup.toString}) which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
+              s"by invalid parametrization of one control groups where vMax is higher than the upper boundary (1.2 of nominal Voltage)!"
+          )
+    }
+  }
+
   /** Check the default config
     *
     * @param config
@@ -592,7 +652,7 @@ case object ConfigFailFast extends LazyLogging {
     */
   private def checkDefaultBaseOutputConfig(
       config: SimonaConfig.BaseOutputConfig,
-      defaultString: String
+      defaultString: String,
   ): Unit = {
     if (
       StringUtils
@@ -649,7 +709,7 @@ case object ConfigFailFast extends LazyLogging {
       case e: NoSuchElementException =>
         throw new InvalidConfigParameterException(
           s"The identifier '$id' you provided is not valid. Valid input: ${NotifierIdentifier.values.map(_.toString).mkString(",")}",
-          e
+          e,
         )
     }
   }

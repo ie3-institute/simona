@@ -32,7 +32,7 @@ final case class DataCollectionStateData[+PD <: PrimaryDataWithApparentPower[
 ]](
     baseStateData: BaseStateData[PD],
     data: Map[ActorRef, Option[_ <: Data]],
-    yetTriggered: Boolean
+    yetTriggered: Boolean,
 ) extends ParticipantStateData[PD] {
 
   /** Extract the given type of [[Data]] from the list of secondary data

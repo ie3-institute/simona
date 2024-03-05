@@ -9,7 +9,7 @@ package edu.ie3.simona.service.primary
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.actor.typed.scaladsl.adapter.{
   ClassicActorRefOps,
-  TypedActorRefOps
+  TypedActorRefOps,
 }
 import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 import com.dimafeng.testcontainers.{ForAllTestContainer, PostgreSQLContainer}
@@ -19,12 +19,12 @@ import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
   RegistrationFailedMessage,
-  RegistrationSuccessfulMessage
+  RegistrationSuccessfulMessage,
 }
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.test.common.{AgentSpec, TestSpawnerClassic}
@@ -32,6 +32,7 @@ import edu.ie3.simona.test.helper.TestContainerHelper
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import org.scalatest.BeforeAndAfterAll
+import org.testcontainers.utility.DockerImageName
 
 import java.util.UUID
 
@@ -42,7 +43,7 @@ class PrimaryServiceProxySqlIT
         ConfigFactory
           .parseString("""
                      |pekko.loglevel="OFF"
-          """.stripMargin)
+          """.stripMargin),
       )
     )
     with ForAllTestContainer
@@ -51,7 +52,7 @@ class PrimaryServiceProxySqlIT
     with TestSpawnerClassic {
 
   override val container: PostgreSQLContainer = PostgreSQLContainer(
-    "postgres:14.2"
+    DockerImageName.parse("postgres:14.2")
   )
 
   private val simulationStart =
@@ -67,7 +68,7 @@ class PrimaryServiceProxySqlIT
     Iterable(
       "time_series_p.sql",
       "time_series_pqh.sql",
-      "time_series_mapping.sql"
+      "time_series_mapping.sql",
     ).foreach { file =>
       val res = container.execInContainer("psql", "-Utest", "-f/home/" + file)
       res.getStderr shouldBe empty
@@ -87,7 +88,7 @@ class PrimaryServiceProxySqlIT
     userName = container.username,
     password = container.password,
     schemaName = schemaName,
-    timePattern = "yyyy-MM-dd HH:mm:ss"
+    timePattern = "yyyy-MM-dd HH:mm:ss",
   )
 
   private def createProxy(): TestActorRef[PrimaryServiceProxy] = {
@@ -96,16 +97,16 @@ class PrimaryServiceProxySqlIT
         None,
         None,
         None,
-        sqlParams = Some(sqlParams)
+        sqlParams = Some(sqlParams),
       ),
-      simulationStart
+      simulationStart,
     )
 
     TestActorRef(
       PrimaryServiceProxy.props(
         scheduler.ref,
         initData,
-        simulationStart
+        simulationStart,
       )
     )
   }
@@ -131,7 +132,7 @@ class PrimaryServiceProxySqlIT
         proxyRef,
         PrimaryServiceRegistrationMessage(
           UUID.fromString("b86e95b0-e579-4a80-a534-37c7a470a409")
-        )
+        ),
       )
       scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
 
@@ -143,12 +144,14 @@ class PrimaryServiceProxySqlIT
       val workerRef = initActivation.actor
       scheduler.send(
         workerRef.toClassic,
-        Activation(INIT_SIM_TICK)
+        Activation(INIT_SIM_TICK),
       )
 
       scheduler.expectMsg(Completion(workerRef, Some(0)))
 
-      systemParticipantProbe.expectMsg(RegistrationSuccessfulMessage(Some(0L)))
+      systemParticipantProbe.expectMsg(
+        RegistrationSuccessfulMessage(workerRef.toClassic, Some(0L))
+      )
     }
 
     "handle participant request correctly if participant does not have primary data" in {
@@ -163,12 +166,12 @@ class PrimaryServiceProxySqlIT
         proxyRef,
         PrimaryServiceRegistrationMessage(
           UUID.fromString("db958617-e49d-44d3-b546-5f7b62776afd")
-        )
+        ),
       )
 
       scheduler.expectNoMessage()
 
-      systemParticipantProbe.expectMsg(RegistrationFailedMessage)
+      systemParticipantProbe.expectMsg(RegistrationFailedMessage(proxyRef))
     }
   }
 }

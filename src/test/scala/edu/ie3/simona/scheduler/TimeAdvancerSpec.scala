@@ -6,22 +6,20 @@
 
 package edu.ie3.simona.scheduler
 
-import org.apache.pekko.actor.testkit.typed.scaladsl.{
-  ScalaTestWithActorTestKit,
-  TestProbe
-}
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent._
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
-import edu.ie3.simona.scheduler.TimeAdvancer.{StartSimMessage, Stop}
-import edu.ie3.simona.sim.SimMessage
-import edu.ie3.simona.sim.SimMessage.{SimulationFailure, SimulationSuccessful}
+import edu.ie3.simona.scheduler.TimeAdvancer.Start
+import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ScalaTestWithActorTestKit,
+  TestProbe,
+}
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -32,19 +30,24 @@ class TimeAdvancerSpec
     with AnyWordSpecLike
     with should.Matchers {
 
+  /** A high duration in milliseconds for RuntimeEvent duration checking. The
+    * tests should under no circumstance take longer than ten minutes.
+    */
+  private val maxEventDuration: Long = 10 * 60 * 1000
+
   "The TimeAdvancer should work correctly" when {
 
     "started checkWindow but without pauseTick" in {
-      val simulation = TestProbe[SimMessage]("simulation")
+      val simulation = TestProbe[SimonaSim.Request]("simulation")
       val scheduler = TestProbe[Activation]("scheduler")
       val listener = TestProbe[RuntimeEvent]("listener")
 
       val timeAdvancer = spawn(
         TimeAdvancer(
-          simulation.ref.toClassic,
+          simulation.ref,
           Some(listener.ref),
           Some(900),
-          7200
+          7200,
         )
       )
 
@@ -54,7 +57,7 @@ class TimeAdvancerSpec
       scheduler.expectNoMessage()
 
       // start simulation
-      timeAdvancer ! StartSimMessage()
+      timeAdvancer ! Start()
 
       // tick -1 is activated
       scheduler.expectMessage(Activation(INIT_SIM_TICK))
@@ -62,7 +65,10 @@ class TimeAdvancerSpec
 
       // tick -1 is completed
       timeAdvancer ! Completion(scheduler.ref, Some(0))
-      listener.expectMessageType[InitComplete]
+      listener.expectMessageType[InitComplete] match {
+        case InitComplete(duration) =>
+          duration should (be >= 0L and be < maxEventDuration)
+      }
 
       // tick 0 is activated automatically
       scheduler.expectMessage(Activation(0))
@@ -70,9 +76,21 @@ class TimeAdvancerSpec
 
       // tick 0 is completed
       timeAdvancer ! Completion(scheduler.ref, Some(3600))
-      listener.expectMessageType[CheckWindowPassed].tick shouldBe 900
-      listener.expectMessageType[CheckWindowPassed].tick shouldBe 1800
-      listener.expectMessageType[CheckWindowPassed].tick shouldBe 2700
+      listener.expectMessageType[CheckWindowPassed] match {
+        case CheckWindowPassed(tick, duration) =>
+          tick shouldBe 900
+          duration should (be >= 0L and be < maxEventDuration)
+      }
+      listener.expectMessageType[CheckWindowPassed] match {
+        case CheckWindowPassed(tick, duration) =>
+          tick shouldBe 1800
+          duration should (be >= 0L and be < maxEventDuration)
+      }
+      listener.expectMessageType[CheckWindowPassed] match {
+        case CheckWindowPassed(tick, duration) =>
+          tick shouldBe 2700
+          duration should (be >= 0L and be < maxEventDuration)
+      }
 
       // tick 3600 is activated automatically
       scheduler.expectMessage(Activation(3600))
@@ -80,10 +98,26 @@ class TimeAdvancerSpec
 
       // tick 3600 is completed
       timeAdvancer ! Completion(scheduler.ref, Some(7200))
-      listener.expectMessageType[CheckWindowPassed].tick shouldBe 3600
-      listener.expectMessageType[CheckWindowPassed].tick shouldBe 4500
-      listener.expectMessageType[CheckWindowPassed].tick shouldBe 5400
-      listener.expectMessageType[CheckWindowPassed].tick shouldBe 6300
+      listener.expectMessageType[CheckWindowPassed] match {
+        case CheckWindowPassed(tick, duration) =>
+          tick shouldBe 3600
+          duration should (be >= 0L and be < maxEventDuration)
+      }
+      listener.expectMessageType[CheckWindowPassed] match {
+        case CheckWindowPassed(tick, duration) =>
+          tick shouldBe 4500
+          duration should (be >= 0L and be < maxEventDuration)
+      }
+      listener.expectMessageType[CheckWindowPassed] match {
+        case CheckWindowPassed(tick, duration) =>
+          tick shouldBe 5400
+          duration should (be >= 0L and be < maxEventDuration)
+      }
+      listener.expectMessageType[CheckWindowPassed] match {
+        case CheckWindowPassed(tick, duration) =>
+          tick shouldBe 6300
+          duration should (be >= 0L and be < maxEventDuration)
+      }
 
       // tick 7200 is activated automatically
       scheduler.expectMessage(Activation(7200))
@@ -91,20 +125,23 @@ class TimeAdvancerSpec
 
       // tick 7200 is completed
       timeAdvancer ! Completion(scheduler.ref)
-      val doneMsg = listener.expectMessageType[Done]
-      doneMsg.tick shouldBe 7200
-      doneMsg.errorInSim shouldBe false
+      listener.expectMessageType[Done] match {
+        case Done(tick, duration, errorInSim) =>
+          tick shouldBe 7200
+          duration should (be >= 0L and be < maxEventDuration)
+          errorInSim shouldBe false
+      }
 
-      simulation.expectMessage(SimulationSuccessful)
+      simulation.expectMessage(SimonaSim.SimulationEnded)
     }
 
     "started without checkWindow and pauseTick" in {
-      val simulation = TestProbe[SimMessage]("simulation")
+      val simulation = TestProbe[SimonaSim.Request]("simulation")
       val scheduler = TestProbe[Activation]("scheduler")
       val listener = TestProbe[RuntimeEvent]("listener")
 
       val timeAdvancer = spawn(
-        TimeAdvancer(simulation.ref.toClassic, Some(listener.ref), None, 3600)
+        TimeAdvancer(simulation.ref, Some(listener.ref), None, 3600)
       )
 
       timeAdvancer ! ScheduleActivation(scheduler.ref, INIT_SIM_TICK)
@@ -113,7 +150,7 @@ class TimeAdvancerSpec
       scheduler.expectNoMessage()
 
       // start simulation
-      timeAdvancer ! StartSimMessage()
+      timeAdvancer ! Start()
 
       // tick -1 is activated
       scheduler.expectMessage(Activation(INIT_SIM_TICK))
@@ -121,7 +158,10 @@ class TimeAdvancerSpec
 
       // tick -1 is completed
       timeAdvancer ! Completion(scheduler.ref, Some(0))
-      listener.expectMessageType[InitComplete]
+      listener.expectMessageType[InitComplete] match {
+        case InitComplete(duration) =>
+          duration should (be >= 0L and be < maxEventDuration)
+      }
 
       // tick 0 is activated automatically
       scheduler.expectMessage(Activation(0))
@@ -137,24 +177,27 @@ class TimeAdvancerSpec
       // tick 3600 is completed
       timeAdvancer ! Completion(scheduler.ref)
 
-      val doneMsg = listener.expectMessageType[Done]
-      doneMsg.tick shouldBe 3600
-      doneMsg.errorInSim shouldBe false
+      listener.expectMessageType[Done] match {
+        case Done(tick, duration, errorInSim) =>
+          tick shouldBe 3600
+          duration should (be >= 0L and be < maxEventDuration)
+          errorInSim shouldBe false
+      }
 
-      simulation.expectMessage(SimulationSuccessful)
+      simulation.expectMessage(SimonaSim.SimulationEnded)
     }
 
     "paused and started after initialization" in {
-      val simulation = TestProbe[SimMessage]("simulation")
+      val simulation = TestProbe[SimonaSim.Request]("simulation")
       val scheduler = TestProbe[Activation]("scheduler")
       val listener = TestProbe[RuntimeEvent]("listener")
 
       val timeAdvancer = spawn(
         TimeAdvancer(
-          simulation.ref.toClassic,
+          simulation.ref,
           Some(listener.ref),
           Some(900),
-          3600
+          3600,
         )
       )
 
@@ -164,7 +207,7 @@ class TimeAdvancerSpec
       scheduler.expectNoMessage()
 
       // start simulation
-      timeAdvancer ! StartSimMessage(Some(INIT_SIM_TICK))
+      timeAdvancer ! Start(Some(INIT_SIM_TICK))
 
       // tick -1 is activated
       scheduler.expectMessage(Activation(INIT_SIM_TICK))
@@ -172,7 +215,10 @@ class TimeAdvancerSpec
 
       // tick -1 is completed
       timeAdvancer ! Completion(scheduler.ref, Some(3600))
-      listener.expectMessageType[InitComplete]
+      listener.expectMessageType[InitComplete] match {
+        case InitComplete(duration) =>
+          duration should (be >= 0L and be < maxEventDuration)
+      }
       listener.expectMessageType[Ready].tick shouldBe INIT_SIM_TICK
 
       // simulation should be paused
@@ -180,7 +226,7 @@ class TimeAdvancerSpec
       listener.expectNoMessage()
 
       // start again
-      timeAdvancer ! StartSimMessage()
+      timeAdvancer ! Start()
 
       // tick 3600 is activated
       scheduler.expectMessage(Activation(3600))
@@ -189,28 +235,43 @@ class TimeAdvancerSpec
       // tick 3600 is completed
       timeAdvancer ! Completion(scheduler.ref)
       // check window events should only come now, since we paused at -1 before
-      listener.expectMessageType[CheckWindowPassed].tick shouldBe 900
-      listener.expectMessageType[CheckWindowPassed].tick shouldBe 1800
-      listener.expectMessageType[CheckWindowPassed].tick shouldBe 2700
+      listener.expectMessageType[CheckWindowPassed] match {
+        case CheckWindowPassed(tick, duration) =>
+          tick shouldBe 900
+          duration should (be >= 0L and be < maxEventDuration)
+      }
+      listener.expectMessageType[CheckWindowPassed] match {
+        case CheckWindowPassed(tick, duration) =>
+          tick shouldBe 1800
+          duration should (be >= 0L and be < maxEventDuration)
+      }
+      listener.expectMessageType[CheckWindowPassed] match {
+        case CheckWindowPassed(tick, duration) =>
+          tick shouldBe 2700
+          duration should (be >= 0L and be < maxEventDuration)
+      }
 
-      val doneMsg = listener.expectMessageType[Done]
-      doneMsg.tick shouldBe 3600
-      doneMsg.errorInSim shouldBe false
+      listener.expectMessageType[Done] match {
+        case Done(tick, duration, errorInSim) =>
+          tick shouldBe 3600
+          duration should (be >= 0L and be < maxEventDuration)
+          errorInSim shouldBe false
+      }
 
-      simulation.expectMessage(SimulationSuccessful)
+      simulation.expectMessage(SimonaSim.SimulationEnded)
     }
 
     "paused and started and there is a gap between StartSchedule tick and next activation tick" in {
-      val simulation = TestProbe[SimMessage]("simulation")
+      val simulation = TestProbe[SimonaSim.Request]("simulation")
       val scheduler = TestProbe[Activation]("scheduler")
       val listener = TestProbe[RuntimeEvent]("listener")
 
       val timeAdvancer = spawn(
         TimeAdvancer(
-          simulation.ref.toClassic,
+          simulation.ref,
           Some(listener.ref),
           Some(900),
-          5400
+          5400,
         )
       )
       timeAdvancer ! ScheduleActivation(scheduler.ref, INIT_SIM_TICK)
@@ -219,7 +280,7 @@ class TimeAdvancerSpec
       scheduler.expectNoMessage()
 
       // start simulation
-      timeAdvancer ! StartSimMessage(Some(3600))
+      timeAdvancer ! Start(Some(3600))
 
       // tick -1 is activated
       scheduler.expectMessage(Activation(INIT_SIM_TICK))
@@ -227,7 +288,10 @@ class TimeAdvancerSpec
 
       // tick -1 is completed
       timeAdvancer ! Completion(scheduler.ref, Some(0))
-      listener.expectMessageType[InitComplete]
+      listener.expectMessageType[InitComplete] match {
+        case InitComplete(duration) =>
+          duration should (be >= 0L and be < maxEventDuration)
+      }
 
       // tick 0 is activated automatically
       scheduler.expectMessage(Activation(0))
@@ -235,10 +299,26 @@ class TimeAdvancerSpec
 
       // tick 0 is completed
       timeAdvancer ! Completion(scheduler.ref, Some(5400))
-      listener.expectMessageType[CheckWindowPassed].tick shouldBe 900
-      listener.expectMessageType[CheckWindowPassed].tick shouldBe 1800
-      listener.expectMessageType[CheckWindowPassed].tick shouldBe 2700
-      listener.expectMessageType[CheckWindowPassed].tick shouldBe 3600
+      listener.expectMessageType[CheckWindowPassed] match {
+        case CheckWindowPassed(tick, duration) =>
+          tick shouldBe 900
+          duration should (be >= 0L and be < maxEventDuration)
+      }
+      listener.expectMessageType[CheckWindowPassed] match {
+        case CheckWindowPassed(tick, duration) =>
+          tick shouldBe 1800
+          duration should (be >= 0L and be < maxEventDuration)
+      }
+      listener.expectMessageType[CheckWindowPassed] match {
+        case CheckWindowPassed(tick, duration) =>
+          tick shouldBe 2700
+          duration should (be >= 0L and be < maxEventDuration)
+      }
+      listener.expectMessageType[CheckWindowPassed] match {
+        case CheckWindowPassed(tick, duration) =>
+          tick shouldBe 3600
+          duration should (be >= 0L and be < maxEventDuration)
+      }
       listener.expectMessageType[Ready].tick shouldBe 3600
 
       // simulation should be paused
@@ -246,7 +326,7 @@ class TimeAdvancerSpec
       listener.expectNoMessage()
 
       // start again
-      timeAdvancer ! StartSimMessage()
+      timeAdvancer ! Start()
 
       // tick 5400 is activated
       scheduler.expectMessage(Activation(5400))
@@ -254,25 +334,32 @@ class TimeAdvancerSpec
 
       // tick 5400 is completed
       timeAdvancer ! Completion(scheduler.ref)
-      listener.expectMessageType[CheckWindowPassed].tick shouldBe 4500
-      val doneMsg = listener.expectMessageType[Done]
-      doneMsg.tick shouldBe 5400
-      doneMsg.errorInSim shouldBe false
+      listener.expectMessageType[CheckWindowPassed] match {
+        case CheckWindowPassed(tick, duration) =>
+          tick shouldBe 4500
+          duration should (be >= 0L and be < maxEventDuration)
+      }
+      listener.expectMessageType[Done] match {
+        case Done(tick, duration, errorInSim) =>
+          tick shouldBe 5400
+          duration should (be >= 0L and be < maxEventDuration)
+          errorInSim shouldBe false
+      }
 
-      simulation.expectMessage(SimulationSuccessful)
+      simulation.expectMessage(SimonaSim.SimulationEnded)
     }
 
     "paused and endTick - pauseScheduleAtTick == 1" in {
-      val simulation = TestProbe[SimMessage]("simulation")
+      val simulation = TestProbe[SimonaSim.Request]("simulation")
       val scheduler = TestProbe[Activation]("scheduler")
       val listener = TestProbe[RuntimeEvent]("listener")
 
       val timeAdvancer = spawn(
         TimeAdvancer(
-          simulation.ref.toClassic,
+          simulation.ref,
           Some(listener.ref),
           Some(900),
-          3600
+          3600,
         )
       )
       timeAdvancer ! ScheduleActivation(scheduler.ref, INIT_SIM_TICK)
@@ -281,7 +368,7 @@ class TimeAdvancerSpec
       scheduler.expectNoMessage()
 
       // start simulation
-      timeAdvancer ! StartSimMessage(Some(3599))
+      timeAdvancer ! Start(Some(3599))
 
       // tick -1 is activated
       scheduler.expectMessage(Activation(INIT_SIM_TICK))
@@ -289,7 +376,10 @@ class TimeAdvancerSpec
 
       // tick -1 is completed
       timeAdvancer ! Completion(scheduler.ref, Some(0))
-      listener.expectMessageType[InitComplete]
+      listener.expectMessageType[InitComplete] match {
+        case InitComplete(duration) =>
+          duration should (be >= 0L and be < maxEventDuration)
+      }
 
       // tick 0 is activated automatically
       scheduler.expectMessage(Activation(0))
@@ -297,9 +387,21 @@ class TimeAdvancerSpec
 
       // tick 0 is completed
       timeAdvancer ! Completion(scheduler.ref, Some(3600))
-      listener.expectMessageType[CheckWindowPassed].tick shouldBe 900
-      listener.expectMessageType[CheckWindowPassed].tick shouldBe 1800
-      listener.expectMessageType[CheckWindowPassed].tick shouldBe 2700
+      listener.expectMessageType[CheckWindowPassed] match {
+        case CheckWindowPassed(tick, duration) =>
+          tick shouldBe 900
+          duration should (be >= 0L and be < maxEventDuration)
+      }
+      listener.expectMessageType[CheckWindowPassed] match {
+        case CheckWindowPassed(tick, duration) =>
+          tick shouldBe 1800
+          duration should (be >= 0L and be < maxEventDuration)
+      }
+      listener.expectMessageType[CheckWindowPassed] match {
+        case CheckWindowPassed(tick, duration) =>
+          tick shouldBe 2700
+          duration should (be >= 0L and be < maxEventDuration)
+      }
       listener.expectMessageType[Ready].tick shouldBe 3599
 
       // simulation should be paused
@@ -307,7 +409,7 @@ class TimeAdvancerSpec
       listener.expectNoMessage()
 
       // start again
-      timeAdvancer ! StartSimMessage()
+      timeAdvancer ! Start()
 
       // tick 3600 is activated
       scheduler.expectMessage(Activation(3600))
@@ -315,24 +417,27 @@ class TimeAdvancerSpec
 
       // tick 3600 is completed
       timeAdvancer ! Completion(scheduler.ref)
-      val doneMsg = listener.expectMessageType[Done]
-      doneMsg.tick shouldBe 3600
-      doneMsg.errorInSim shouldBe false
+      listener.expectMessageType[Done] match {
+        case Done(tick, duration, errorInSim) =>
+          tick shouldBe 3600
+          duration should (be >= 0L and be < maxEventDuration)
+          errorInSim shouldBe false
+      }
 
-      simulation.expectMessage(SimulationSuccessful)
+      simulation.expectMessage(SimonaSim.SimulationEnded)
     }
 
     "activation has been scheduled after endTick" in {
-      val simulation = TestProbe[SimMessage]("simulation")
+      val simulation = TestProbe[SimonaSim.Request]("simulation")
       val scheduler = TestProbe[Activation]("scheduler")
       val listener = TestProbe[RuntimeEvent]("listener")
 
       val timeAdvancer = spawn(
         TimeAdvancer(
-          simulation.ref.toClassic,
+          simulation.ref,
           Some(listener.ref),
           Some(1800),
-          3600
+          3600,
         )
       )
       timeAdvancer ! ScheduleActivation(scheduler.ref, 0)
@@ -341,7 +446,7 @@ class TimeAdvancerSpec
       scheduler.expectNoMessage()
 
       // start simulation
-      timeAdvancer ! StartSimMessage()
+      timeAdvancer ! Start()
 
       // tick 0 is activated
       scheduler.expectMessage(Activation(0))
@@ -349,30 +454,40 @@ class TimeAdvancerSpec
 
       // tick 0 is completed
       timeAdvancer ! Completion(scheduler.ref, Some(3601))
-      listener.expectMessageType[InitComplete]
-      listener.expectMessageType[CheckWindowPassed].tick shouldBe 1800
+      listener.expectMessageType[InitComplete] match {
+        case InitComplete(duration) =>
+          duration should (be >= 0L and be < maxEventDuration)
+      }
+      listener.expectMessageType[CheckWindowPassed] match {
+        case CheckWindowPassed(tick, duration) =>
+          tick shouldBe 1800
+          duration should (be >= 0L and be < maxEventDuration)
+      }
 
       // tick 3601 should not be activated!
       scheduler.expectNoMessage()
 
-      val doneMsg = listener.expectMessageType[Done]
-      doneMsg.tick shouldBe 3600
-      doneMsg.errorInSim shouldBe false
+      listener.expectMessageType[Done] match {
+        case Done(tick, duration, errorInSim) =>
+          tick shouldBe 3600
+          duration should (be >= 0L and be < maxEventDuration)
+          errorInSim shouldBe false
+      }
 
-      simulation.expectMessage(SimulationSuccessful)
+      simulation.expectMessage(SimonaSim.SimulationEnded)
     }
 
     "no next trigger has been supplied" in {
-      val simulation = TestProbe[SimMessage]("simulation")
+      val simulation = TestProbe[SimonaSim.Request]("simulation")
       val scheduler = TestProbe[Activation]("scheduler")
       val listener = TestProbe[RuntimeEvent]("listener")
 
       val timeAdvancer = spawn(
         TimeAdvancer(
-          simulation.ref.toClassic,
+          simulation.ref,
           Some(listener.ref),
           Some(900),
-          3600
+          3600,
         )
       )
       timeAdvancer ! ScheduleActivation(scheduler.ref, 0)
@@ -381,7 +496,7 @@ class TimeAdvancerSpec
       scheduler.expectNoMessage()
 
       // start simulation
-      timeAdvancer ! StartSimMessage()
+      timeAdvancer ! Start()
 
       // tick 0 is activated
       scheduler.expectMessage(Activation(0))
@@ -389,32 +504,50 @@ class TimeAdvancerSpec
 
       // tick 0 is completed
       timeAdvancer ! Completion(scheduler.ref)
-      listener.expectMessageType[InitComplete]
-      listener.expectMessageType[CheckWindowPassed].tick shouldBe 900
-      listener.expectMessageType[CheckWindowPassed].tick shouldBe 1800
-      listener.expectMessageType[CheckWindowPassed].tick shouldBe 2700
+      listener.expectMessageType[InitComplete] match {
+        case InitComplete(duration) =>
+          duration should (be >= 0L and be < maxEventDuration)
+      }
+      listener.expectMessageType[CheckWindowPassed] match {
+        case CheckWindowPassed(tick, duration) =>
+          tick shouldBe 900
+          duration should (be >= 0L and be < maxEventDuration)
+      }
+      listener.expectMessageType[CheckWindowPassed] match {
+        case CheckWindowPassed(tick, duration) =>
+          tick shouldBe 1800
+          duration should (be >= 0L and be < maxEventDuration)
+      }
+      listener.expectMessageType[CheckWindowPassed] match {
+        case CheckWindowPassed(tick, duration) =>
+          tick shouldBe 2700
+          duration should (be >= 0L and be < maxEventDuration)
+      }
 
       // scheduler should not be activated!
       scheduler.expectNoMessage()
 
-      val doneMsg = listener.expectMessageType[Done]
-      doneMsg.tick shouldBe 3600
-      doneMsg.errorInSim shouldBe false
+      listener.expectMessageType[Done] match {
+        case Done(tick, duration, errorInSim) =>
+          tick shouldBe 3600
+          duration should (be >= 0L and be < maxEventDuration)
+          errorInSim shouldBe false
+      }
 
-      simulation.expectMessage(SimulationSuccessful)
+      simulation.expectMessage(SimonaSim.SimulationEnded)
     }
 
     "endTick < pauseScheduleAtTick" in {
-      val simulation = TestProbe[SimMessage]("simulation")
+      val simulation = TestProbe[SimonaSim.Request]("simulation")
       val scheduler = TestProbe[Activation]("scheduler")
       val listener = TestProbe[RuntimeEvent]("listener")
 
       val timeAdvancer = spawn(
         TimeAdvancer(
-          simulation.ref.toClassic,
+          simulation.ref,
           Some(listener.ref),
           Some(1800),
-          3600
+          3600,
         )
       )
       timeAdvancer ! ScheduleActivation(scheduler.ref, 0)
@@ -423,7 +556,7 @@ class TimeAdvancerSpec
       scheduler.expectNoMessage()
 
       // start simulation
-      timeAdvancer ! StartSimMessage(Some(7200))
+      timeAdvancer ! Start(Some(7200))
 
       // tick 0 is activated
       scheduler.expectMessage(Activation(0))
@@ -431,30 +564,40 @@ class TimeAdvancerSpec
 
       // tick 0 is completed
       timeAdvancer ! Completion(scheduler.ref)
-      listener.expectMessageType[InitComplete]
-      listener.expectMessageType[CheckWindowPassed].tick shouldBe 1800
+      listener.expectMessageType[InitComplete] match {
+        case InitComplete(duration) =>
+          duration should (be >= 0L and be < maxEventDuration)
+      }
+      listener.expectMessageType[CheckWindowPassed] match {
+        case CheckWindowPassed(tick, duration) =>
+          tick shouldBe 1800
+          duration should (be >= 0L and be < maxEventDuration)
+      }
 
       // scheduler should not be activated!
       scheduler.expectNoMessage()
 
-      val doneMsg = listener.expectMessageType[Done]
-      doneMsg.tick shouldBe 3600
-      doneMsg.errorInSim shouldBe false
+      listener.expectMessageType[Done] match {
+        case Done(tick, duration, errorInSim) =>
+          tick shouldBe 3600
+          duration should (be >= 0L and be < maxEventDuration)
+          errorInSim shouldBe false
+      }
 
-      simulation.expectMessage(SimulationSuccessful)
+      simulation.expectMessage(SimonaSim.SimulationEnded)
     }
 
     "endTick == pauseScheduleAtTick" in {
-      val simulation = TestProbe[SimMessage]("simulation")
+      val simulation = TestProbe[SimonaSim.Request]("simulation")
       val scheduler = TestProbe[Activation]("scheduler")
       val listener = TestProbe[RuntimeEvent]("listener")
 
       val timeAdvancer = spawn(
         TimeAdvancer(
-          simulation.ref.toClassic,
+          simulation.ref,
           Some(listener.ref),
           Some(900),
-          1800
+          1800,
         )
       )
       timeAdvancer ! ScheduleActivation(scheduler.ref, 0)
@@ -463,7 +606,7 @@ class TimeAdvancerSpec
       scheduler.expectNoMessage()
 
       // start simulation
-      timeAdvancer ! StartSimMessage(Some(1800))
+      timeAdvancer ! Start(Some(1800))
 
       // tick 0 is activated
       scheduler.expectMessage(Activation(0))
@@ -471,39 +614,49 @@ class TimeAdvancerSpec
 
       // tick 0 is completed
       timeAdvancer ! Completion(scheduler.ref)
-      listener.expectMessageType[InitComplete]
-      listener.expectMessageType[CheckWindowPassed].tick shouldBe 900
+      listener.expectMessageType[InitComplete] match {
+        case InitComplete(duration) =>
+          duration should (be >= 0L and be < maxEventDuration)
+      }
+      listener.expectMessageType[CheckWindowPassed] match {
+        case CheckWindowPassed(tick, duration) =>
+          tick shouldBe 900
+          duration should (be >= 0L and be < maxEventDuration)
+      }
 
       // scheduler should not be activated!
       scheduler.expectNoMessage()
 
-      val doneMsg = listener.expectMessageType[Done]
-      doneMsg.tick shouldBe 1800
-      doneMsg.errorInSim shouldBe false
+      listener.expectMessageType[Done] match {
+        case Done(tick, duration, errorInSim) =>
+          tick shouldBe 1800
+          duration should (be >= 0L and be < maxEventDuration)
+          errorInSim shouldBe false
+      }
 
-      simulation.expectMessage(SimulationSuccessful)
+      simulation.expectMessage(SimonaSim.SimulationEnded)
     }
   }
 
   "The TimeAdvancer should fail and stop" when {
 
     "wrong next tick has been supplied" in {
-      val simulation = TestProbe[SimMessage]("simulation")
+      val simulation = TestProbe[SimonaSim.Request]("simulation")
       val scheduler = TestProbe[Activation]("scheduler")
       val listener = TestProbe[RuntimeEvent]("listener")
 
       val timeAdvancer = spawn(
         TimeAdvancer(
-          simulation.ref.toClassic,
+          simulation.ref,
           Some(listener.ref),
           Some(900),
-          1800
+          1800,
         )
       )
       timeAdvancer ! ScheduleActivation(scheduler.ref, 0)
 
       // start simulation
-      timeAdvancer ! StartSimMessage(Some(1800))
+      timeAdvancer ! Start(Some(1800))
 
       // tick 0 is activated
       scheduler.expectMessage(Activation(0))
@@ -515,92 +668,20 @@ class TimeAdvancerSpec
       listener.expectMessageType[Error].errMsg should include(
         "tick -1, although current active tick was 0"
       )
-      val doneMsg = listener.expectMessageType[Done]
-      doneMsg.tick shouldBe 0
-      doneMsg.errorInSim shouldBe true
+      listener.expectMessageType[Done] match {
+        case Done(tick, duration, errorInSim) =>
+          tick shouldBe 0
+          duration should (be >= 0L and be < maxEventDuration)
+          errorInSim shouldBe true
+      }
 
       // scheduler should not be activated!
       scheduler.expectNoMessage()
 
       scheduler.expectTerminated(timeAdvancer)
 
-      simulation.expectMessage(SimulationFailure)
-    }
-
-    "receiving error message while uninitialized" in {
-      val simulation = TestProbe[SimMessage]("simulation")
-      val scheduler = TestProbe[Activation]("scheduler")
-      val listener = TestProbe[RuntimeEvent]("listener")
-
-      val timeAdvancer = spawn(
-        TimeAdvancer(simulation.ref.toClassic, Some(listener.ref), None, 1800)
-      )
-
-      // Send stop message
-      timeAdvancer ! Stop("Test message")
-
-      // we cannot check the console, thus just check if time advancer died
-      scheduler.expectTerminated(timeAdvancer)
-
-      simulation.expectMessage(SimulationFailure)
-    }
-
-    "receiving error message while inactive" in {
-      val simulation = TestProbe[SimMessage]("simulation")
-      val scheduler = TestProbe[Activation]("scheduler")
-      val listener = TestProbe[RuntimeEvent]("listener")
-
-      val timeAdvancer = spawn(
-        TimeAdvancer(simulation.ref.toClassic, Some(listener.ref), None, 1800)
-      )
-      timeAdvancer ! ScheduleActivation(scheduler.ref, 1)
-
-      // Send stop message
-      timeAdvancer ! Stop("Test message")
-
-      listener.expectMessageType[Error].errMsg should include("Test message")
-      val doneMsg = listener.expectMessageType[Done]
-      doneMsg.tick shouldBe 1
-      doneMsg.errorInSim shouldBe true
-
-      scheduler.expectTerminated(timeAdvancer)
-
-      simulation.expectMessage(SimulationFailure)
-    }
-
-    "receiving error message while active" in {
-      val simulation = TestProbe[SimMessage]("simulation")
-      val scheduler = TestProbe[Activation]("scheduler")
-      val listener = TestProbe[RuntimeEvent]("listener")
-
-      val timeAdvancer = spawn(
-        TimeAdvancer(
-          simulation.ref.toClassic,
-          Some(listener.ref),
-          Some(900),
-          1800
-        )
-      )
-      timeAdvancer ! ScheduleActivation(scheduler.ref, 0)
-
-      // start simulation
-      timeAdvancer ! StartSimMessage()
-
-      // tick 0 is activated
-      scheduler.expectMessage(Activation(0))
-      listener.expectMessage(Simulating(0, 1800))
-
-      // Send stop message
-      timeAdvancer ! Stop("Test message")
-
-      listener.expectMessageType[Error].errMsg should include("Test message")
-      val doneMsg = listener.expectMessageType[Done]
-      doneMsg.tick shouldBe 0
-      doneMsg.errorInSim shouldBe true
-
-      scheduler.expectTerminated(timeAdvancer)
-
-      simulation.expectMessage(SimulationFailure)
+      // No SimulationEnded message
+      simulation.expectNoMessage()
     }
 
   }

@@ -4,14 +4,16 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.ontology.messages
+package edu.ie3.simona.agent.grid
 
-import edu.ie3.simona.ontology.messages.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
-
-import java.util.UUID
+import edu.ie3.simona.agent.grid.GridAgentMessage.InternalMessage
+import edu.ie3.simona.agent.grid.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
+import org.apache.pekko.actor.typed.ActorRef
 import squants.electro.ElectricPotential
 
-sealed trait VoltageMessage
+import java.util.UUID
+
+sealed trait VoltageMessage extends InternalMessage
 
 /** Message that is send between [[edu.ie3.simona.agent.grid.GridAgent]] s to
   * provide voltage information for nodes
@@ -27,7 +29,8 @@ object VoltageMessage {
     */
   final case class RequestSlackVoltageMessage(
       currentSweepNo: Int,
-      nodeUuids: Seq[UUID]
+      nodeUuids: Seq[UUID],
+      sender: ActorRef[GridAgentMessage],
   ) extends VoltageMessage
 
   /** Provide complex voltage at the nodes that the sender's sub grid shares
@@ -38,7 +41,7 @@ object VoltageMessage {
     */
   final case class ProvideSlackVoltageMessage(
       currentSweepNo: Int,
-      nodalSlackVoltages: Seq[ExchangeVoltage]
+      nodalSlackVoltages: Seq[ExchangeVoltage],
   ) extends VoltageMessage
 
   object ProvideSlackVoltageMessage {
@@ -55,7 +58,7 @@ object VoltageMessage {
     final case class ExchangeVoltage(
         nodeUuid: UUID,
         e: ElectricPotential,
-        f: ElectricPotential
+        f: ElectricPotential,
     )
   }
 

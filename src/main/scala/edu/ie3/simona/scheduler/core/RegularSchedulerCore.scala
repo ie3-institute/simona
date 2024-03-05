@@ -6,11 +6,12 @@
 
 package edu.ie3.simona.scheduler.core
 
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.scheduler.core.Core.{
   ActiveCore,
   Actor,
   CoreFactory,
-  InactiveCore
+  InactiveCore,
 }
 import edu.ie3.util.scala.collection.mutable.PriorityMultiBiSet
 
@@ -24,32 +25,43 @@ object RegularSchedulerCore extends CoreFactory {
 
   final case class SchedulerInactive private (
       private val activationQueue: PriorityMultiBiSet[Long, Actor],
-      private val lastActiveTick: Option[Long]
+      private val lastActiveTick: Option[Long],
   ) extends InactiveCore {
-    override def checkActivation(newTick: Long): Boolean =
-      activationQueue.headKeyOption.contains(newTick)
 
-    override def activate(): ActiveCore = {
-      val newActiveTick = activationQueue.headKeyOption.getOrElse(
-        throw new RuntimeException("Nothing scheduled, cannot activate.")
+    override def activate(newTick: Long): ActiveCore = {
+      val nextScheduledTick = activationQueue.headKeyOption.getOrElse(
+        throw new CriticalFailureException(
+          "No activation scheduled, cannot activate."
+        )
       )
-      SchedulerActive(activationQueue, activeTick = newActiveTick)
-    }
 
-    override def checkSchedule(newTick: Long): Boolean =
-      lastActiveTick.forall(newTick >= _ + 1)
+      if (nextScheduledTick != newTick)
+        throw new CriticalFailureException(
+          s"Cannot activate with new tick $newTick because $nextScheduledTick is the next scheduled tick."
+        )
+
+      SchedulerActive(activationQueue, activeTick = newTick)
+    }
 
     override def handleSchedule(
         actor: Actor,
-        newTick: Long
+        newTick: Long,
     ): (Option[Long], InactiveCore) = {
+      lastActiveTick.filter(newTick <= _).foreach { lastActive =>
+        throw new CriticalFailureException(
+          s"Cannot schedule an activation for $actor at tick $newTick because the last active tick is $lastActive"
+        )
+      }
+
       val oldEarliestTick = activationQueue.headKeyOption
 
       activationQueue.set(newTick, actor)
       val newEarliestTick = activationQueue.headKeyOption
 
       val maybeScheduleTick =
-        Option.when(newEarliestTick != oldEarliestTick)(newEarliestTick).flatten
+        Option
+          .when(newEarliestTick != oldEarliestTick)(newEarliestTick)
+          .flatten
 
       (maybeScheduleTick, this)
     }
@@ -59,13 +71,17 @@ object RegularSchedulerCore extends CoreFactory {
   private final case class SchedulerActive(
       private val activationQueue: PriorityMultiBiSet[Long, Actor],
       private val activeActors: Set[Actor] = Set.empty,
-      activeTick: Long
+      activeTick: Long,
   ) extends ActiveCore {
-    override def checkCompletion(actor: Actor): Boolean =
-      activeActors.contains(actor)
 
-    override def handleCompletion(actor: Actor): ActiveCore =
+    override def handleCompletion(actor: Actor): ActiveCore = {
+      if (!activeActors.contains(actor))
+        throw new CriticalFailureException(
+          s"Actor $actor is not part of the expected completing actors"
+        )
+
       copy(activeActors = activeActors.excl(actor))
+    }
 
     override def maybeComplete(): Option[(Option[Long], InactiveCore)] =
       Option.when(
@@ -74,14 +90,19 @@ object RegularSchedulerCore extends CoreFactory {
       ) {
         (
           activationQueue.headKeyOption,
-          SchedulerInactive(activationQueue, Some(activeTick))
+          SchedulerInactive(activationQueue, Some(activeTick)),
         )
       }
 
-    override def checkSchedule(actor: Actor, newTick: Long): Boolean =
-      newTick >= activeTick
+    override def handleSchedule(
+        actor: Actor,
+        newTick: Long,
+    ): ActiveCore = {
+      if (newTick < activeTick)
+        throw new CriticalFailureException(
+          s"Cannot schedule an activation at tick $newTick"
+        )
 
-    override def handleSchedule(actor: Actor, newTick: Long): ActiveCore = {
       activationQueue.set(newTick, actor)
       this
     }

@@ -6,8 +6,10 @@
 
 package edu.ie3.simona.event
 
+import edu.ie3.simona.event.listener.RuntimeEventListener.Request
+
 /** Event type for simulation control */
-sealed trait RuntimeEvent extends Event
+sealed trait RuntimeEvent extends Event with Request
 
 object RuntimeEvent {
 
@@ -80,7 +82,7 @@ object RuntimeEvent {
   final case class Done(
       tick: Long,
       duration: Long,
-      errorInSim: Boolean
+      errorInSim: Boolean,
   ) extends RuntimeEvent
 
   /** Indicates that a power flow calculation has failed. This event is not
