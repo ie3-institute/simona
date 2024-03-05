@@ -236,3 +236,42 @@ Secondary convergence criterion for the power flow calculation is the number of 
 Resolution of the power flow calculation: 
 
   `simona.powerflow.resolution = "3600s"`
+
+## Transformer Control Group configuration
+
+It's possible to add a voltage control function to a transformer or group of transformers. This requires measurements within the network to be under voltage control and at least one corresponding transformer.
+The voltage control will attempt to adjust the voltage by changing the tap position of the corresponding transformer. If changing the tap position would cause a voltage limit to be exceeded, the initial voltage deviation cannot be reduced by the voltage control system.
+
+Transformer control groups must contain at least one transformer and one measurement. And can be configured as shown in this example for two transformer control groups:
+```
+simona.control.transformer = [
+{
+transformers = ["31a2b9bf-e785-4475-aa44-1c34646e8c79"],
+measurements = ["923f2d69-3093-4198-86e4-13d2d1c220f8"],
+vMin = 0.98,
+vMax = 1.02
+}
+, {
+transformers = ["1132dbf4-e8a1-44ae-8415-f42d4497aa1d"],
+measurements = ["7686b818-a0ba-465c-8e4e-f7d3c4e171fc"],
+vMin = 0.98,
+vMax = 1.02
+}
+]
+```
+
+UUID of transformer in control group:
+
+`transformers = ["31a2b9bf-e785-4475-aa44-1c34646e8c79"]`
+
+UUID of measurement in control group:
+
+`measurements = ["923f2d69-3093-4198-86e4-13d2d1c220f8"]`
+
+Minimum Voltage Limit in p.u.:
+
+`vMin = 0.98`
+
+Maximum Voltage Limit in p.u.:
+
+`vMax = 1.02`

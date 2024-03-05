@@ -12,6 +12,7 @@ import edu.ie3.datamodel.models.input.connector.{
   Transformer3WInput,
 }
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.agent.grid.GridAgentMessage
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.ontology.messages.SchedulerMessage
@@ -19,8 +20,9 @@ import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.grid.SubGridGateMokka
-import org.apache.pekko.actor.typed.scaladsl
-import org.apache.pekko.actor.{ActorRef, typed}
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.ActorContext
+import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 import java.util.UUID
 
@@ -29,58 +31,57 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
   override val args: Array[String] = Array.empty[String]
 
   override def runtimeEventListener(
-      context: scaladsl.ActorContext[_]
-  ): typed.ActorRef[RuntimeEventListener.Request] = // todo typed
+      context: ActorContext[_]
+  ): ActorRef[RuntimeEventListener.Request] =
     throw new NotImplementedException(
       "This is a dummy setup"
     )
 
   override def resultEventListener(
-      context: scaladsl.ActorContext[_],
+      context: ActorContext[_],
       extSimulationData: ExtSimSetupData,
-  ): Seq[typed.ActorRef[ResultEventListener.Request]] =
+  ): Seq[ActorRef[ResultEventListener.Request]] =
     throw new NotImplementedException("This is a dummy setup")
 
   override def primaryServiceProxy(
-      context: scaladsl.ActorContext[_],
-      scheduler: typed.ActorRef[SchedulerMessage],
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
       extSimSetupData: ExtSimSetupData,
-  ): ActorRef = throw new NotImplementedException("This is a dummy setup")
+  ): ClassicRef = throw new NotImplementedException("This is a dummy setup")
 
   override def weatherService(
-      context: scaladsl.ActorContext[_],
-      scheduler: typed.ActorRef[SchedulerMessage],
-  ): ActorRef = throw new NotImplementedException("This is a dummy setup")
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
+  ): ClassicRef = throw new NotImplementedException("This is a dummy setup")
 
   override def extSimulations(
-      context: scaladsl.ActorContext[_],
-      scheduler: typed.ActorRef[SchedulerMessage],
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
   ): ExtSimSetupData = throw new NotImplementedException(
     "This is a dummy setup"
   )
 
   override def timeAdvancer(
-      context: scaladsl.ActorContext[_],
-      simulation: typed.ActorRef[SimonaSim.SimulationEnded.type],
-      runtimeEventListener: typed.ActorRef[RuntimeEvent],
-  ): typed.ActorRef[TimeAdvancer.Request] = throw new NotImplementedException(
+      context: ActorContext[_],
+      simulation: ActorRef[SimonaSim.SimulationEnded.type],
+      runtimeEventListener: ActorRef[RuntimeEvent],
+  ): ActorRef[TimeAdvancer.Request] = throw new NotImplementedException(
     "This is a dummy setup"
   )
 
   override def scheduler(
-      context: scaladsl.ActorContext[_],
-      timeAdvancer: typed.ActorRef[TimeAdvancer.Request],
-  ): typed.ActorRef[SchedulerMessage] = throw new NotImplementedException(
+      context: ActorContext[_],
+      timeAdvancer: ActorRef[TimeAdvancer.Request],
+  ): ActorRef[SchedulerMessage] = throw new NotImplementedException(
     "This is a dummy setup"
   )
 
   override def gridAgents(
-      context: scaladsl.ActorContext[_],
+      context: ActorContext[_],
       environmentRefs: EnvironmentRefs,
-      resultEventListeners: Seq[typed.ActorRef[ResultEvent]],
-  ): Iterable[ActorRef] = throw new NotImplementedException(
-    "This is a dummy setup"
-  )
+      resultEventListeners: Seq[ActorRef[ResultEvent]],
+  ): Iterable[ActorRef[GridAgentMessage]] =
+    throw new NotImplementedException("This is a dummy setup")
 
   "Attempting to modify a sub grid gate" should {
     val nodeAUuid = UUID.randomUUID()

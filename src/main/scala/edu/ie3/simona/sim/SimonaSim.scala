@@ -117,7 +117,7 @@ object SimonaSim {
         extSimulationData.extDataServices.values
           .map(_.toTyped)
           .foreach(ctx.watch)
-        gridAgents.foreach(ref => ctx.watch(ref.toTyped))
+        gridAgents.foreach(ref => ctx.watch(ref))
 
         // Start simulation
         timeAdvancer ! TimeAdvancer.Start()
@@ -128,7 +128,7 @@ object SimonaSim {
           primaryServiceProxy.toTyped,
           weatherService.toTyped,
         ) ++
-          gridAgents.map(_.toTyped) ++
+          gridAgents ++
           extSimulationData.extDataServices.values.map(_.toTyped)
 
         idle(
