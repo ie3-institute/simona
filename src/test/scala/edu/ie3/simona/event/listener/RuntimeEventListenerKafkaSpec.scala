@@ -31,8 +31,8 @@ import scala.language.postfixOps
 
 class RuntimeEventListenerKafkaSpec
     extends ScalaTestWithActorTestKit
-    with KafkaSpecLike
     with UnitSpec
+    with KafkaSpecLike
     with GivenWhenThen
     with TableDrivenPropertyChecks {
   private var testConsumer: KafkaConsumer[Bytes, SimonaEndMessage] = _
