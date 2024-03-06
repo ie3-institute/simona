@@ -147,7 +147,7 @@ class ParticipantAgentFundamentalsSpec
   "Determining the activation ticks within operation time" should {
     "throw an exception, if an integer multiple of the resolution does not meet an hour" in {
       val simulationStart =
-        TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00ZZ")
+        TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
       val exception = intercept[AgentInitializationException] {
         mockAgent.firstFullResolutionInSimulation(simulationStart, 47L)
       }
@@ -157,11 +157,11 @@ class ParticipantAgentFundamentalsSpec
     "base on correct first information tick in simulation" in {
       val testData: TableFor3[String, Long, Long] = Table(
         ("simulationStartString", "resolution", "expectedFirstTick"),
-        ("2020-01-01T00:00:00ZZ", 900L, 0L),
-        ("2020-01-01T00:15:00ZZ", 900L, 0L),
-        ("2020-01-01T00:15:10ZZ", 900L, 890L),
-        ("2020-01-01T00:15:00ZZ", 1800L, 900L),
-        ("2020-01-01T00:14:10ZZ", 1800L, 950L),
+        ("2020-01-01T00:00:00Z", 900L, 0L),
+        ("2020-01-01T00:15:00Z", 900L, 0L),
+        ("2020-01-01T00:15:10Z", 900L, 890L),
+        ("2020-01-01T00:15:00Z", 1800L, 900L),
+        ("2020-01-01T00:14:10Z", 1800L, 950L),
       )
 
       forAll(testData) {

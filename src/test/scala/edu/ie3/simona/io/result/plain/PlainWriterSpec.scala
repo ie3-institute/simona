@@ -15,7 +15,6 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import org.scalatest.GivenWhenThen
 import tech.units.indriya.quantity.Quantities
 
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
@@ -25,10 +24,7 @@ class PlainWriterSpec extends UnitSpec with GivenWhenThen {
     val simRunId = UUID.randomUUID()
     val plainWriter = NodeResultWriter(simRunId)
 
-    val timeFormatter =
-      DateTimeFormatter
-        .ofPattern("yyyy-MM-dd HH:mm:ss")
-        .withZone(ZoneId.of("UTC"))
+    val timeFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
 
     "should write a plain result correctly" in {
       Given("a full NodeResult")

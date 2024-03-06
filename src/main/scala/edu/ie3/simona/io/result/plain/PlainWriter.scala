@@ -43,10 +43,7 @@ sealed trait PlainWriter[F <: ResultEntity, P <: PlainResult] {
 }
 
 object PlainWriter {
-  private lazy val timeFormatter =
-    DateTimeFormatter
-      .ofPattern("yyyy-MM-dd HH:mm:ss")
-      .withZone(ZoneId.of("UTC"))
+  private lazy val timeFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
 
   /** Converts [[NodeResult]]s into [[PlainNodeResult]]s and vice versa
     * @param simRunId

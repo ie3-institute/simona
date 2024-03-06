@@ -51,7 +51,7 @@ import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 import tech.units.indriya.unit.Units.AMPERE
 
-import java.util.{Objects, UUID}
+import java.util.UUID
 import scala.math.{cos, sin}
 
 class GridResultsSupportSpec

@@ -80,7 +80,7 @@ class ResultEntityCsvSinkSpec
         fail(
           "Cannot get line that should have been written out by sink!"
         )
-      ) shouldBe "uuid,input_model,p,q,time"
+      ) shouldBe "input_model,p,q,time"
 
       // close sink to ensure that everything is written out
       resultFileSource.close()
@@ -176,7 +176,7 @@ class ResultEntityCsvSinkSpec
         fail(
           "Cannot get line that should have been written out by the listener!"
         )
-      ) shouldBe "e5ac84d3-c7a5-4870-a42d-837920aec9bb,0.01,0.01,2020-01-30T17:26:44Z[UTC]"
+      ) shouldBe "e5ac84d3-c7a5-4870-a42d-837920aec9bb,0.01,0.01,2020-01-30T17:26:44Z"
 
       resultFileSource.close()
 
