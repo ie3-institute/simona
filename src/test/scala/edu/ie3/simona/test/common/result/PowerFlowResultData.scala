@@ -36,7 +36,7 @@ trait PowerFlowResultData {
   )
 
   val dummyPvResultDataString =
-    "e5ac84d3-c7a5-4870-a42d-837920aec9bb,0.01,0.01,2020-01-30T17:26:44Z[UTC]"
+    "e5ac84d3-c7a5-4870-a42d-837920aec9bb,0.01,0.01,2020-01-30T17:26:44Z"
 
   val dummyNodeResult = new NodeResult(
     dummyTime,
@@ -46,7 +46,7 @@ trait PowerFlowResultData {
   )
 
   val dummyNodeResultString =
-    "e5ac84d3-c7a5-4870-a42d-837920aec9bb,2020-01-30T17:26:44Z[UTC],10.0,1.0"
+    "e5ac84d3-c7a5-4870-a42d-837920aec9bb,2020-01-30T17:26:44Z,10.0,1.0"
 
   val dummySwitchResult = new SwitchResult(
     dummyTime,
@@ -55,7 +55,7 @@ trait PowerFlowResultData {
   )
 
   val dummySwitchResultString =
-    "true,e5ac84d3-c7a5-4870-a42d-837920aec9bb,2020-01-30T17:26:44Z[UTC]"
+    "true,e5ac84d3-c7a5-4870-a42d-837920aec9bb,2020-01-30T17:26:44Z"
 
   val dummyTrafo2wResult = new Transformer2WResult(
     dummyTime,
@@ -68,7 +68,7 @@ trait PowerFlowResultData {
   )
 
   val dummyTrafo2wResultDataString =
-    "100.0,100.0,100.0,100.0,e5ac84d3-c7a5-4870-a42d-837920aec9bb,0,2020-01-30T17:26:44Z[UTC]"
+    "100.0,100.0,100.0,100.0,e5ac84d3-c7a5-4870-a42d-837920aec9bb,0,2020-01-30T17:26:44Z"
 
   val dummyLineResult = new LineResult(
     dummyTime,
@@ -80,6 +80,6 @@ trait PowerFlowResultData {
   )
 
   val dummyLineResultDataString =
-    "100.0,100.0,100.0,100.0,e5ac84d3-c7a5-4870-a42d-837920aec9bb,2020-01-30T17:26:44Z[UTC]"
+    "100.0,100.0,100.0,100.0,e5ac84d3-c7a5-4870-a42d-837920aec9bb,2020-01-30T17:26:44Z"
 
 }

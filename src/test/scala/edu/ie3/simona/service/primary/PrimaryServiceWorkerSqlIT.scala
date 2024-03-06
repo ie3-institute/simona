@@ -146,7 +146,7 @@ class PrimaryServiceWorkerSqlIT
               userName = container.username,
               password = container.password,
               schemaName = schemaName,
-              timePattern = "yyyy-MM-dd HH:mm:ss",
+              timePattern = "yyyy-MM-dd'T'HH:mm:ssX",
             ),
             new DatabaseNamingStrategy(),
           )

@@ -78,7 +78,7 @@ class PrimaryServiceWorkerSpec
       fileNamingStrategy = new FileNamingStrategy(),
       simulationStart =
         TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z"),
-      timePattern = "yyyy-MM-dd'T'HH:mm:ss'Z'",
+      timePattern = "yyyy-MM-dd'T'HH:mm:ssX",
     )
 
   private implicit val powerTolerance: squants.Power = Watts(0.1)
@@ -106,20 +106,23 @@ class PrimaryServiceWorkerSpec
     }
 
     "fail, if pointed to the wrong file" in {
+      // time series exists, but is malformed
+      val tsUuid = UUID.fromString("3fbfaa97-cff4-46d4-95ba-a95665e87c27")
+
       val maliciousInitData = CsvInitPrimaryServiceStateData(
-        timeSeriesUuid = uuidPq,
+        timeSeriesUuid = tsUuid,
         simulationStart =
           TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z"),
         csvSep = ";",
         directoryPath = baseDirectoryPath,
-        filePath = Paths.get("its_pq_" + uuidPq),
+        filePath = Paths.get("its_pq_" + tsUuid),
         fileNamingStrategy = new FileNamingStrategy(),
-        timePattern = TimeUtil.withDefaults.getDateTimeFormatter.toString,
+        timePattern = "yyyy-MM-dd'T'HH:mm:ssX",
       )
       service.init(maliciousInitData) match {
         case Failure(exception) =>
           exception.getClass shouldBe classOf[IllegalArgumentException]
-          exception.getMessage shouldBe "Unable to obtain time series with UUID '3fbfaa97-cff4-46d4-95ba-a95665e87c26'. Please check arguments!"
+          exception.getMessage shouldBe "Unable to obtain time series with UUID '3fbfaa97-cff4-46d4-95ba-a95665e87c27'. Please check arguments!"
         case Success(_) =>
           fail("Initialisation with unsupported init data is meant to fail.")
       }
