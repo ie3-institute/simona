@@ -407,9 +407,7 @@ case object WeatherSourceSpec {
       value -> key
     }
 
-    override def getSourceFields(
-        entityClass: Class[_]
-    ): Optional[util.Set[String]] =
+    override def getSourceFields: Optional[util.Set[String]] =
       // only required for validation
       Optional.empty
 

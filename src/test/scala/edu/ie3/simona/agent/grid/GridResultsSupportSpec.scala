@@ -281,7 +281,6 @@ class GridResultsSupportSpec
             )
 
             /* === Examine the result === */
-            Objects.nonNull(actual.getUuid) shouldBe true
             actual.getInputModel shouldBe expectedResult.getInputModel
             QuantityUtil.isEquivalentAbs(
               actual.getiAMag(),

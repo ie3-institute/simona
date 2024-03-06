@@ -148,7 +148,6 @@ class ResultEntityCsvSinkSpec
       val resultEntityProcessor = new ResultEntityProcessor(classOf[PvResult])
 
       val dummyPvResult = new PvResult(
-        UUID.fromString("7f404c4c-fc12-40de-95c9-b5827a40f18b"),
         TimeUtil.withDefaults.toZonedDateTime("2020-01-30T17:26:44Z"),
         UUID.fromString("e5ac84d3-c7a5-4870-a42d-837920aec9bb"),
         Quantities.getQuantity(10, StandardUnits.ACTIVE_POWER_IN),
@@ -177,7 +176,7 @@ class ResultEntityCsvSinkSpec
         fail(
           "Cannot get line that should have been written out by the listener!"
         )
-      ) shouldBe "7f404c4c-fc12-40de-95c9-b5827a40f18b,e5ac84d3-c7a5-4870-a42d-837920aec9bb,0.01,0.01,2020-01-30T17:26:44Z[UTC]"
+      ) shouldBe "e5ac84d3-c7a5-4870-a42d-837920aec9bb,0.01,0.01,2020-01-30T17:26:44Z[UTC]"
 
       resultFileSource.close()
 
@@ -193,7 +192,6 @@ class ResultEntityCsvSinkSpec
       val resultEntityProcessor = new ResultEntityProcessor(classOf[PvResult])
 
       val dummyWecResult = new WecResult(
-        UUID.fromString("7f404c4c-fc12-40de-95c9-b5827a40f18b"),
         TimeUtil.withDefaults.toZonedDateTime("2020-01-30T17:26:44Z"),
         UUID.fromString("e5ac84d3-c7a5-4870-a42d-837920aec9bb"),
         Quantities.getQuantity(10, StandardUnits.ACTIVE_POWER_IN),

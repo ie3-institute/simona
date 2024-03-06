@@ -20,7 +20,7 @@ import java.nio.file.Path
 import scala.jdk.CollectionConverters._
 
 object CsvGridSource {
-  def readThermalGrids(
+  def readThermalGrids( // TODO remove
       csvSep: String,
       baseFolder: Path,
       fileNamingStrategy: FileNamingStrategy,

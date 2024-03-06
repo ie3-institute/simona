@@ -51,6 +51,7 @@ class ProfileLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
           -1,
         ),
         new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
+        null,
         BdewStandardLoadProfile.H0,
         false,
         Quantities.getQuantity(3000d, PowerSystemUnits.KILOWATTHOUR),
