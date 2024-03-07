@@ -536,7 +536,7 @@ object SimonaConfig {
       SimonaConfig.PrimaryDataCsvParams(
         timePattern =
           if (c.hasPathOrNull("timePattern")) c.getString("timePattern")
-          else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'",
+          else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X",
         csvSep = $_reqStr(parentPath, c, "csvSep", $tsCfgValidator),
         directoryPath =
           $_reqStr(parentPath, c, "directoryPath", $tsCfgValidator),
@@ -1275,7 +1275,7 @@ object SimonaConfig {
               password = $_reqStr(parentPath, c, "password", $tsCfgValidator),
               timePattern =
                 if (c.hasPathOrNull("timePattern")) c.getString("timePattern")
-                else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'",
+                else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X",
               url = $_reqStr(parentPath, c, "url", $tsCfgValidator),
               userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator),
             )
@@ -1315,7 +1315,7 @@ object SimonaConfig {
               port = $_reqInt(parentPath, c, "port", $tsCfgValidator),
               timePattern =
                 if (c.hasPathOrNull("timePattern")) c.getString("timePattern")
-                else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'",
+                else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X",
               url = $_reqStr(parentPath, c, "url", $tsCfgValidator),
             )
           }
@@ -1374,7 +1374,7 @@ object SimonaConfig {
                 else "public",
               timePattern =
                 if (c.hasPathOrNull("timePattern")) c.getString("timePattern")
-                else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'",
+                else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X",
               userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator),
             )
           }
@@ -2825,14 +2825,14 @@ object SimonaConfig {
         SimonaConfig.Simona.Time(
           endDateTime =
             if (c.hasPathOrNull("endDateTime")) c.getString("endDateTime")
-            else "2011-05-01 01:00:00",
+            else "2011-05-01T01:00:00Z",
           schedulerReadyCheckWindow =
             if (c.hasPathOrNull("schedulerReadyCheckWindow"))
               Some(c.getInt("schedulerReadyCheckWindow"))
             else None,
           startDateTime =
             if (c.hasPathOrNull("startDateTime")) c.getString("startDateTime")
-            else "2011-05-01 00:00:00",
+            else "2011-05-01T00:00:00Z",
         )
       }
     }

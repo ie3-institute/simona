@@ -35,9 +35,9 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           noException shouldBe thrownBy {
             ConfigFailFast invokePrivate checkTimeConfig(
               new Time(
-                "2020-06-18 13:41:00",
+                "2020-06-18T13:41:00Z",
                 None,
-                "2020-05-18 13:41:00",
+                "2020-05-18T13:41:00Z",
               )
             )
           }
@@ -47,9 +47,9 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate checkTimeConfig(
               new Time(
-                "2020-06-18 13:41:00",
+                "2020-06-18T13:41:00Z",
                 None,
-                "2020-07-18 13:41:00",
+                "2020-07-18T13:41:00Z",
               )
             )
           }.getMessage shouldBe "Invalid time configuration." +
@@ -61,7 +61,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         val createDateTime =
           PrivateMethod[ZonedDateTime](Symbol("createDateTime"))
 
-        val dateTimeString: String = "2020-05-18 13:41:00"
+        val dateTimeString: String = "2020-05-18T13:41:00Z"
 
         "let valid input pass" in {
 

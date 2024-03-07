@@ -60,6 +60,7 @@ trait HpTestData extends DefaultTestData {
     nodeInput,
     thermalBusInput,
     ReactivePowerCharacteristic.parse("cosPhiFixed:{(0.00,0.98)}"),
+    null,
     typeInput,
   )
 

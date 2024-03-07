@@ -69,6 +69,7 @@ trait HpModelTestData {
     nodeInput,
     thermalBus,
     new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
+    null,
     hpTypeInput,
   )
 
