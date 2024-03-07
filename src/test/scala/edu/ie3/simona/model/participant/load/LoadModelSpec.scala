@@ -55,7 +55,6 @@ class LoadModelSpec
                     uuid,
                     id,
                     operationInterval,
-                    scalingFactor,
                     qControl,
                     sRated,
                     cosPhiRated,
@@ -65,7 +64,6 @@ class LoadModelSpec
                 uuid shouldBe loadInput.getUuid
                 id shouldBe loadInput.getId
                 operationInterval shouldBe defaultOperationInterval
-                scalingFactor shouldBe foreSeenScalingFactor
                 qControl shouldBe QControl(loadInput.getqCharacteristics)
                 sRated should approximate(expsRated)
                 cosPhiRated shouldBe loadInput.getCosPhiRated
@@ -104,7 +102,6 @@ class LoadModelSpec
                     uuid,
                     id,
                     operationInterval,
-                    scalingFactor,
                     qControl,
                     sRated,
                     cosPhiRated,
@@ -113,7 +110,6 @@ class LoadModelSpec
                 uuid shouldBe loadInput.getUuid
                 id shouldBe loadInput.getId
                 operationInterval shouldBe defaultOperationInterval
-                scalingFactor shouldBe foreSeenScalingFactor
                 qControl shouldBe QControl(loadInput.getqCharacteristics)
                 sRated should approximate(expsRated)
                 cosPhiRated shouldBe loadInput.getCosPhiRated

@@ -32,8 +32,6 @@ import java.util.UUID
   *   the element's human readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
-  * @param scalingFactor
-  *   Scaling the output of the system
   * @param qControl
   *   Type of reactive power control
   * @param sRated
@@ -45,7 +43,6 @@ final case class FixedFeedInModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    override val scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double,
@@ -57,7 +54,6 @@ final case class FixedFeedInModel(
       uuid,
       id,
       operationInterval,
-      scalingFactor,
       qControl,
       sRated,
       cosPhiRated,
@@ -102,28 +98,30 @@ object FixedFeedInModel extends LazyLogging {
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
   ): FixedFeedInModel = {
+    val scaledInput =
+      inputModel.copy().scale(modelConfiguration.scaling).build()
+
     /* Determine the operation interval */
     val operationInterval: OperationInterval =
       SystemComponent.determineOperationInterval(
         simulationStartDate,
         simulationEndDate,
-        inputModel.getOperationTime,
+        scaledInput.getOperationTime,
       )
 
     // build the fixed feed in model
     val model = FixedFeedInModel(
-      inputModel.getUuid,
-      inputModel.getId,
+      scaledInput.getUuid,
+      scaledInput.getId,
       operationInterval,
-      modelConfiguration.scaling,
-      QControl.apply(inputModel.getqCharacteristics),
+      QControl.apply(scaledInput.getqCharacteristics),
       Kilowatts(
-        inputModel.getsRated
+        scaledInput.getsRated
           .to(PowerSystemUnits.KILOWATT)
           .getValue
           .doubleValue
       ),
-      inputModel.getCosPhiRated,
+      scaledInput.getCosPhiRated,
     )
     model.enable()
     model
