@@ -29,7 +29,7 @@ A list of valid UUIDs of load models, the following configuration should be appl
 
 #### ``scaling``
 
-Universal multiplication factor, that is applied to the models' calculation results. It may be a positive real number.
+Universal factor that is applied to the models' relevant parameters such as maximum power or energy consumption. It may be a positive real number.
 
 #### ``modelBehaviour``
 
