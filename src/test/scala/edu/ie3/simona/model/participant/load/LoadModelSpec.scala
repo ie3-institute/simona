@@ -13,7 +13,7 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.LoadInputTestData
 import org.scalatest.PrivateMethodTester
 import org.scalatest.prop.TableDrivenPropertyChecks
-import squants.energy.{KilowattHours, Watts}
+import squants.energy.{KilowattHours, Power, Watts}
 
 class LoadModelSpec
     extends UnitSpec
@@ -21,34 +21,44 @@ class LoadModelSpec
     with PrivateMethodTester
     with TableDrivenPropertyChecks {
 
-  private implicit val powerTolerance: squants.Power = Watts(1)
+  private implicit val powerTolerance: Power = Watts(1e-3)
 
   "The load model object" should {
-
-    val foreSeenScalingFactor: Double = 1.42
 
     "build a correct ProfileLoadModel from correct input" in {
 
       val params = Table(
-        ("reference", "sRated"),
+        ("reference", "scaling", "sRated"),
         (
           LoadReference.ActivePower(Watts(268.6)),
-          Watts(282.7368421052632),
+          1d,
+          Watts(282.7368),
         ),
         (
           LoadReference.EnergyConsumption(KilowattHours(3000.0)),
-          Watts(848.2105263157896),
+          1d,
+          Watts(848.2105),
+        ),
+        (
+          LoadReference.ActivePower(Watts(268.6)),
+          1.5d,
+          Watts(424.1053),
+        ),
+        (
+          LoadReference.EnergyConsumption(KilowattHours(3000.0)),
+          1.5d,
+          Watts(1272.3158),
         ),
       )
 
       forAll(params) {
-        (foreSeenReference: LoadReference, expsRated: squants.Power) =>
+        (reference: LoadReference, scaling: Double, expectedSRated: Power) =>
           {
             val actual = ProfileLoadModel(
               loadInput,
               defaultOperationInterval,
-              foreSeenScalingFactor,
-              foreSeenReference,
+              scaling,
+              reference,
             )
             inside(actual) {
               case ProfileLoadModel(
@@ -59,16 +69,16 @@ class LoadModelSpec
                     sRated,
                     cosPhiRated,
                     loadProfile,
-                    reference,
+                    actualReference,
                   ) =>
                 uuid shouldBe loadInput.getUuid
                 id shouldBe loadInput.getId
                 operationInterval shouldBe defaultOperationInterval
                 qControl shouldBe QControl(loadInput.getqCharacteristics)
-                sRated should approximate(expsRated)
+                sRated should approximate(expectedSRated)
                 cosPhiRated shouldBe loadInput.getCosPhiRated
                 loadProfile shouldBe loadInput.getLoadProfile
-                reference shouldBe foreSeenReference
+                actualReference shouldBe reference.scale(scaling)
             }
           }
       }
@@ -77,25 +87,37 @@ class LoadModelSpec
     "build a correct RandomLoadModel from correct input" in {
 
       val params = Table(
-        ("reference", "sRated"),
+        ("reference", "scaling", "sRated"),
         (
           LoadReference.ActivePower(Watts(268.6)),
-          Watts(311.0105263157895),
+          1d,
+          Watts(311.0105),
         ),
         (
           LoadReference.EnergyConsumption(KilowattHours(3000.0)),
-          Watts(770.8076055515501),
+          1d,
+          Watts(770.8076),
+        ),
+        (
+          LoadReference.ActivePower(Watts(268.6)),
+          1.5d,
+          Watts(466.5158),
+        ),
+        (
+          LoadReference.EnergyConsumption(KilowattHours(3000.0)),
+          1.5d,
+          Watts(1156.2114),
         ),
       )
 
       forAll(params) {
-        (foreSeenReference: LoadReference, expsRated: squants.Power) =>
+        (reference: LoadReference, scaling: Double, expectedSRated: Power) =>
           {
             val actual = RandomLoadModel(
               loadInput,
               defaultOperationInterval,
-              foreSeenScalingFactor,
-              foreSeenReference,
+              scaling,
+              reference,
             )
             inside(actual) {
               case RandomLoadModel(
@@ -105,15 +127,15 @@ class LoadModelSpec
                     qControl,
                     sRated,
                     cosPhiRated,
-                    reference,
+                    actualReference,
                   ) =>
                 uuid shouldBe loadInput.getUuid
                 id shouldBe loadInput.getId
                 operationInterval shouldBe defaultOperationInterval
                 qControl shouldBe QControl(loadInput.getqCharacteristics)
-                sRated should approximate(expsRated)
+                sRated should approximate(expectedSRated)
                 cosPhiRated shouldBe loadInput.getCosPhiRated
-                reference shouldBe foreSeenReference
+                actualReference shouldBe reference.scale(scaling)
             }
           }
       }
