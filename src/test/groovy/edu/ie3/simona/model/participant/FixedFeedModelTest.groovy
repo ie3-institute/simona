@@ -44,6 +44,7 @@ class FixedFeedModelTest extends Specification {
   -1
   ),
   new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
+  null,
   Quantities.getQuantity(282.74d, VOLTAMPERE),
   0.95
   )

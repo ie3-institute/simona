@@ -79,6 +79,7 @@ class ChpModelTest extends Specification {
         TestObjectFactory.buildNodeInput(false, GermanVoltageLevelUtils.MV_10KV, 0),
         thermalBus,
         new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
+        null,
         chpTypeInput,
         null,
         false)

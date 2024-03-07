@@ -86,6 +86,7 @@ class WecModelTest extends Specification {
         OperationTime.notLimited(),
         nodeInput,
         CosPhiFixed.CONSTANT_CHARACTERISTIC,
+        null,
         typeInput,
         false)
   }
