@@ -82,6 +82,7 @@ class PvModelTest extends Specification {
         OperationTime.notLimited(),
         nodeInput,
         new CosPhiFixed("cosPhiFixed:{(0.0,0.9)}"),
+        null,
         0.20000000298023224,
         getQuantity(-8.926613807678223, DEGREE_GEOM),
         getQuantity(97, PERCENT),

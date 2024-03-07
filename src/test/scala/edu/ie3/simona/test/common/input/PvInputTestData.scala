@@ -43,6 +43,7 @@ trait PvInputTestData
     OperationTime.notLimited(),
     nodeInputNoSlackNs04KvA,
     CosPhiFixed.CONSTANT_CHARACTERISTIC,
+    null,
     1,
     Quantities.getQuantity(12, StandardUnits.AZIMUTH),
     Quantities.getQuantity(10, StandardUnits.EFFICIENCY),
