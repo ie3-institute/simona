@@ -208,7 +208,7 @@ trait PvModelITHelper {
       if (row.get(0).startsWith('\u0000'))
         break
 
-      ZonedDateTime time = ZonedDateTime.parse(row.get(0))
+      ZonedDateTime time = TimeUtil.withDefaults.toZonedDateTime(row.get(0))
       Map<String, Power> modelToPowerMap = new HashMap<>()
       for (int i = 1; i < headers.length; i++) {
         String modelId = headers[i]
