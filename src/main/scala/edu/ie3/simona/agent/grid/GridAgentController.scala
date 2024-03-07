@@ -7,16 +7,9 @@
 package edu.ie3.simona.agent.grid
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.ControlStrategy
-import edu.ie3.datamodel.models.input.container.{
-  SubGridContainer,
-  SystemParticipants,
-  ThermalGrid,
-}
+import edu.ie3.datamodel.models.input.EmInput
+import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.input.system._
-import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
-import edu.ie3.datamodel.models.input.{AssetInput, NodeInput}
-import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.em.EmAgent
@@ -43,17 +36,16 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.adapter._
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
-import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
 import org.slf4j.Logger
 
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.jdk.CollectionConverters._
+import scala.jdk.OptionConverters.RichOptional
 
 /** Holds all methods that should be available to a [[GridAgent]]
   *
@@ -102,12 +94,10 @@ class GridAgentController(
     buildParticipantToActorRef(
       participantsConfig,
       outputConfig,
-      subGridContainer.getSystemParticipants,
       systemParticipants,
       thermalIslandGridsByBusId,
       environmentRefs,
       rootEmConfig,
-      subGridContainer.getSubnet,
     )
   }
 
@@ -129,10 +119,6 @@ class GridAgentController(
       subGridContainer: SubGridContainer,
       environmentRefs: EnvironmentRefs,
   ) = {
-
-    val emParticipants =
-      subGridContainer.getSystemParticipants.getEmSystems.asScala
-        .flatMap(_.getConnectedAssets)
 
     val (notProcessedElements, availableSysParts) =
       subGridContainer.getSystemParticipants
@@ -156,7 +142,7 @@ class GridAgentController(
                   s"Evcs ${evcsInput.getId} has been removed because no ev movements service is present."
                 )
                 (notProcessedElements, availableSystemParticipants)
-              case entity if emParticipants.contains(entity.getUuid) =>
+              case entity if entity.getControllingEm.isPresent =>
                 log.debug(
                   s"System participant {} is part of an energy-managed system and thus not directly connected to the grid.",
                   entity,
@@ -186,7 +172,7 @@ class GridAgentController(
     *   Configuration information for participant models
     * @param outputConfig
     *   Configuration information for output behaviour
-    * @param filteredParticipants
+    * @param participants
     *   Set of system participants to create agents for
     * @param thermalIslandGridsByBusId
     *   Collection of thermal island grids, mapped by their thermal bus uuid
@@ -198,12 +184,10 @@ class GridAgentController(
   private def buildParticipantToActorRef(
       participantsConfig: SimonaConfig.Simona.Runtime.Participant,
       outputConfig: SimonaConfig.Simona.Output.Participant,
-      allParticipants: SystemParticipants,
-      filteredParticipants: Vector[SystemParticipantInput],
+      participants: Vector[SystemParticipantInput],
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
       environmentRefs: EnvironmentRefs,
       rootEmConfig: Option[SimonaConfig.Simona.Runtime.RootEm],
-      subGrid: Int,
   ): Map[UUID, Set[ActorRef[ParticipantMessage]]] = {
     /* Prepare the config util for the participant models, which (possibly) utilizes as map to speed up the initialization
      * phase */
@@ -211,134 +195,86 @@ class GridAgentController(
       ConfigUtil.ParticipantConfigUtil(participantsConfig)
     val outputConfigUtil = ConfigUtil.OutputConfigUtil(outputConfig)
 
-    val emParticipantsUuids =
-      allParticipants.getEmSystems.asScala
-        .flatMap(_.getConnectedAssets)
+    def buildEmsRecursively(
+        emInputs: Map[UUID, EmInput],
+        existingEms: Map[UUID, ActorRef[EmMessage]],
+    ): Map[UUID, ActorRef[EmMessage]] = {
+      val (controlledEmInputs, uncontrolledEms) = emInputs
+        .partitionMap { case (uuid, emInput) =>
+          if (emInput.getControllingEm.isPresent)
+            Left(uuid -> emInput)
+          else {
+            val actor = buildEm(
+              emInput,
+              participantConfigUtil.getOrDefault[EmRuntimeConfig](uuid),
+              outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
+              maybeControllingEm = None,
+              rootEmConfig = rootEmConfig,
+            )
+            Right(uuid -> actor)
+          }
+        }
 
-    val emParticipantMap = allParticipants
-      .allEntitiesAsList()
-      .asScala
-      .filter(sp => emParticipantsUuids.contains(sp.getUuid))
-      .map(sp => sp.getUuid -> sp)
-      .toMap
+      val existingAndUncontrolledEms = existingEms ++ uncontrolledEms.toMap
 
-    val emUnits = allParticipants.getEmSystems.asScala
+      if (controlledEmInputs.nonEmpty) {
+        // EMs that are controlling EMs at this level
+        val controllingEms = controlledEmInputs.toMap.flatMap {
+          case (uuid, emInput) =>
+            emInput.getControllingEm.toScala.map(uuid -> _)
+        }
 
-    val participantToEm = emUnits
-      .flatMap(em => em.getConnectedAssets.toSeq.map(_ -> em.getUuid))
-      .toMap
+        val recursiveEms = buildEmsRecursively(
+          controllingEms,
+          existingAndUncontrolledEms,
+        )
 
-    val (uncontrolledEms, controlledEms) =
-      emUnits.map(em => em -> participantToEm.get(em.getUuid)).partitionMap {
-        case (em, None)           => Left(em)
-        case (em, Some(parentEm)) => Right(em -> parentEm)
+        val controlledEms = controlledEmInputs.map { case (uuid, emInput) =>
+          val controllingEm = emInput.getControllingEm.toScala
+            .map(_.getUuid)
+            .flatMap(uuid => recursiveEms.get(uuid))
+
+          uuid -> buildEm(
+            emInput,
+            participantConfigUtil.getOrDefault[EmRuntimeConfig](uuid),
+            outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
+            maybeControllingEm = controllingEm,
+            rootEmConfig = None,
+          )
+        }.toMap
+
+        recursiveEms ++ controlledEms
+      } else {
+        existingAndUncontrolledEms
       }
-
-    val uncontrolledEmActors = uncontrolledEms.map { em =>
-      buildEm(
-        em,
-        participantConfigUtil.getOrDefault[EmRuntimeConfig](
-          em.getUuid
-        ),
-        outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
-        maybeParentEm = None,
-        rootEmConfig = rootEmConfig,
-      )
     }
 
-    val (emInputs, otherInputs) = filteredParticipants.partition {
-      case _: EmInput => true
-      case _          => false
-    }
+    // all ems that control at least one participant directly
+    val firstLevelEms = participants.flatMap {
+      _.getControllingEm.toScala.map(em => em.getUuid -> em)
+    }.toMap
 
-    if (rootEmConfig.isDefined && emInputs.nonEmpty) {
-      val mockRootEmInput = new EmInput(
-        UUID.fromString(s"11111111-0000-0000-0000-${"%012d".format(subGrid)}"),
-        "Root EmAgent",
-        new NodeInput(
-          UUID.randomUUID(),
-          "Mock node for root EmAgent",
-          1d.asPu,
-          false,
-          new GeometryFactory().createPoint(new Coordinate()),
-          GermanVoltageLevelUtils.LV,
-          0,
-        ),
-        new CosPhiFixed("cosPhiFixed:{(0.00,0.90)}"),
-        emInputs.map(_.getUuid).toArray,
-        ControlStrategy.DefaultControlStrategies.NO_CONTROL_STRATEGY,
-      )
+    val allEms = buildEmsRecursively(firstLevelEms, Map.empty)
 
-      val completeEmParticipantMap =
-        emParticipantMap ++ emInputs.map(sp => sp.getUuid -> sp)
-
-      val actorRef = buildEm(
-        mockRootEmInput,
-        EmRuntimeConfig(
-          calculateMissingReactivePowerWithModel = false,
-          1d,
-          List.empty,
-          pvFlex = false,
-          aggregateFlex = "SIMPLE_SUM",
-        ),
-        outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
-        None,
-        rootEmConfig,
-      )
-
-      // introduce to environment
-      introduceAgentToEnvironment(actorRef.toClassic)
-    }
-
-    rootEmConfig
-      .map(_ => otherInputs)
-      .getOrElse(filteredParticipants)
+    participants
       .map { participant =>
         val node = participant.getNode
-        // build
-        val actorRef =
-          buildParticipantActor(
-            participantsConfig.requestVoltageDeviationThreshold,
-            participantConfigUtil,
-            outputConfigUtil,
-            participant,
-            thermalIslandGridsByBusId,
-            environmentRefs,
-            emParticipantMap,
-          )
+
+        val actorRef = buildParticipantActor(
+          participantsConfig.requestVoltageDeviationThreshold,
+          participantConfigUtil,
+          outputConfigUtil,
+          participant,
+          thermalIslandGridsByBusId,
+          environmentRefs,
+          allEms.get(participant.getUuid),
+        )
         introduceAgentToEnvironment(actorRef)
         // return uuid to actorRef
         node.getUuid -> actorRef
       }
       .toSet[(UUID, ActorRef[ParticipantMessage])]
       .groupMap(entry => entry._1)(entry => entry._2)
-  }
-
-  private def buildControlledEms() = {
-    // TODO recursive
-  }
-
-  // TODO not needed anymore if psdm does this
-  private def matchWithEm[T <: AssetInput](
-      existingEmActors: Map[UUID, ActorRef[EmMessage]],
-      remainingEms: Iterable[(T, UUID)],
-  ): Iterable[(T, ActorRef[EmMessage])] = {
-    remainingEms
-      .map { case (em, parentUuid) =>
-        existingEmActors
-          .get(parentUuid)
-          .map(em -> _)
-          .toRight((em.getUuid, parentUuid))
-      }
-      .partitionMap(identity) match {
-      // only return em actors if there are no missing parent ems
-      case (Nil, matchedAssets) => matchedAssets
-      case (emsAndParents, _) =>
-        val (ems, parents) = emsAndParents.unzip
-        throw new GridAgentInitializationException(
-          s"The parent energy management unit(s) $ems could not be created because the em parent(s) ${parents.toSet} do not exist."
-        )
-    }
   }
 
   private def buildParticipantActor(
@@ -348,8 +284,7 @@ class GridAgentController(
       participantInputModel: SystemParticipantInput,
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
       environmentRefs: EnvironmentRefs,
-      participantEmMap: Map[UUID, SystemParticipantInput],
-      maybeParentEm: Option[ActorRef[FlexResponse]] = None,
+      maybeControllingEm: Option[ActorRef[FlexResponse]] = None,
   ): ActorRef[ParticipantMessage] = participantInputModel match {
     case input: FixedFeedInInput =>
       buildFixedFeedIn(
@@ -363,7 +298,7 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.FixedFeedIn),
-        maybeParentEm,
+        maybeControllingEm,
       )
     case input: LoadInput =>
       buildLoad(
@@ -377,7 +312,7 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.Load),
-        maybeParentEm,
+        maybeControllingEm,
       )
     case input: PvInput =>
       buildPv(
@@ -392,7 +327,7 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.PvPlant),
-        maybeParentEm,
+        maybeControllingEm,
       )
     case input: WecInput =>
       buildWec(
@@ -407,7 +342,7 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.Wec),
-        maybeParentEm,
+        maybeControllingEm,
       )
     case input: EvcsInput =>
       buildEvcs(
@@ -426,7 +361,7 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.Evcs),
-        maybeParentEm,
+        maybeControllingEm,
       )
     case hpInput: HpInput =>
       thermalIslandGridsByBusId.get(hpInput.getThermalBus.getUuid) match {
@@ -441,7 +376,7 @@ class GridAgentController(
             environmentRefs.weather,
             requestVoltageDeviationThreshold,
             outputConfigUtil.getOrDefault(NotifierIdentifier.Hp),
-            maybeParentEm,
+            maybeControllingEm,
           )
         case None =>
           throw new GridAgentInitializationException(
@@ -477,10 +412,10 @@ class GridAgentController(
     *   Maximum deviation in p.u. of request voltages to be considered equal
     * @param outputConfig
     *   Configuration of the output behavior
-    * @param maybeParentEm
+    * @param maybeControllingEm
     *   The parent EmAgent, if applicable
     * @return
-    *   The [[FixedFeedInAgent]] 's [[ClassicActorRef]]
+    *   The [[FixedFeedInAgent]] 's [[ActorRef]]
     */
   private def buildFixedFeedIn(
       fixedFeedInInput: FixedFeedInInput,
@@ -491,7 +426,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeParentEm: Option[ActorRef[FlexResponse]] = None,
+      maybeControllingEm: Option[ActorRef[FlexResponse]] = None,
   ): ActorRef[ParticipantMessage] =
     gridAgentContext.toClassic
       .simonaActorOf(
@@ -507,7 +442,7 @@ class GridAgentController(
             resolution,
             requestVoltageDeviationThreshold,
             outputConfig,
-            maybeParentEm,
+            maybeControllingEm,
           ),
           listener.map(_.toClassic),
         ),
@@ -534,10 +469,10 @@ class GridAgentController(
     *   Maximum deviation in p.u. of request voltages to be considered equal
     * @param outputConfig
     *   Configuration of the output behavior
-    * @param maybeParentEm
+    * @param maybeParmaybeControllingEm
     *   The parent EmAgent, if applicable
     * @return
-    *   The [[LoadAgent]] 's [[ClassicActorRef]]
+    *   The [[LoadAgent]] 's [[ActorRef]]
     */
   private def buildLoad(
       loadInput: LoadInput,
@@ -548,7 +483,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeParentEm: Option[ActorRef[FlexResponse]] = None,
+      maybeParmaybeControllingEm: Option[ActorRef[FlexResponse]] = None,
   ): ActorRef[ParticipantMessage] =
     gridAgentContext.toClassic
       .simonaActorOf(
@@ -564,7 +499,7 @@ class GridAgentController(
             resolution,
             requestVoltageDeviationThreshold,
             outputConfig,
-            maybeParentEm,
+            maybeParmaybeControllingEm,
           ),
           listener.map(_.toClassic),
         ),
@@ -593,10 +528,10 @@ class GridAgentController(
     *   Maximum deviation in p.u. of request voltages to be considered equal
     * @param outputConfig
     *   Configuration of the output behavior
-    * @param maybeParentEm
+    * @param maybeControllingEm
     *   The parent EmAgent, if applicable
     * @return
-    *   The [[PvAgent]] 's [[ClassicActorRef]]
+    *   The [[PvAgent]] 's [[ActorRef]]
     */
   private def buildPv(
       pvInput: PvInput,
@@ -608,7 +543,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeParentEm: Option[ActorRef[FlexResponse]] = None,
+      maybeControllingEm: Option[ActorRef[FlexResponse]] = None,
   ): ActorRef[ParticipantMessage] =
     gridAgentContext.toClassic
       .simonaActorOf(
@@ -624,7 +559,7 @@ class GridAgentController(
             resolution,
             requestVoltageDeviationThreshold,
             outputConfig,
-            maybeParentEm,
+            maybeControllingEm,
           ),
           listener.map(_.toClassic),
         ),
@@ -653,10 +588,10 @@ class GridAgentController(
     *   Maximum deviation in p.u. of request voltages to be considered equal
     * @param outputConfig
     *   Configuration of the output behavior
-    * @param maybeParentEm
+    * @param maybeControllingEm
     *   The parent EmAgent, if applicable
     * @return
-    *   The [[EvcsAgent]] 's [[ClassicActorRef]]
+    *   The [[EvcsAgent]] 's [[ActorRef]]
     */
   private def buildEvcs(
       evcsInput: EvcsInput,
@@ -668,7 +603,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeParentEm: Option[ActorRef[FlexResponse]] = None,
+      maybeControllingEm: Option[ActorRef[FlexResponse]] = None,
   ): ActorRef[ParticipantMessage] =
     gridAgentContext.toClassic
       .simonaActorOf(
@@ -688,7 +623,7 @@ class GridAgentController(
             resolution,
             requestVoltageDeviationThreshold,
             outputConfig,
-            maybeParentEm,
+            maybeControllingEm,
           ),
           listener.map(_.toClassic),
         )
@@ -711,7 +646,7 @@ class GridAgentController(
     *   Permissible voltage magnitude deviation to consider being equal
     * @param outputConfig
     *   Configuration for output notification
-    * @param maybeParentEm
+    * @param maybeControllingEm
     *   The parent EmAgent, if applicable
     * @return
     *   A tuple of actor reference and [[ParticipantInitializeStateData]]
@@ -724,7 +659,7 @@ class GridAgentController(
       weatherService: ClassicRef,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeParentEm: Option[ActorRef[FlexResponse]] = None,
+      maybeControllingEm: Option[ActorRef[FlexResponse]] = None,
   ): ActorRef[ParticipantMessage] =
     gridAgentContext.toClassic
       .simonaActorOf(
@@ -741,7 +676,7 @@ class GridAgentController(
             resolution,
             requestVoltageDeviationThreshold,
             outputConfig,
-            maybeParentEm,
+            maybeControllingEm,
           ),
           listener.map(_.toClassic),
         ),
@@ -770,10 +705,10 @@ class GridAgentController(
     *   Maximum deviation in p.u. of request voltages to be considered equal
     * @param outputConfig
     *   Configuration of the output behavior
-    * @param maybeParentEm
+    * @param maybeControllingEm
     *   The parent EmAgent, if applicable
     * @return
-    *   The [[WecAgent]] 's [[ClassicActorRef]]
+    *   The [[WecAgent]] 's [[ActorRef]]
     */
   private def buildWec(
       wecInput: WecInput,
@@ -785,7 +720,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeParentEm: Option[ActorRef[FlexResponse]] = None,
+      maybeControllingEm: Option[ActorRef[FlexResponse]] = None,
   ): ActorRef[ParticipantMessage] =
     gridAgentContext.toClassic
       .simonaActorOf(
@@ -801,7 +736,7 @@ class GridAgentController(
             resolution,
             requestVoltageDeviationThreshold,
             outputConfig,
-            maybeParentEm,
+            maybeControllingEm,
           ),
           listener.map(_.toClassic),
         ),
@@ -824,7 +759,7 @@ class GridAgentController(
       emInput: EmInput,
       modelConfiguration: EmRuntimeConfig,
       outputConfig: NotifierConfig,
-      maybeParentEm: Option[ActorRef[FlexResponse]] = None,
+      maybeControllingEm: Option[ActorRef[FlexResponse]] = None,
       rootEmConfig: Option[SimonaConfig.Simona.Runtime.RootEm] = None,
   ): ActorRef[EmMessage] =
     gridAgentContext.spawn(
@@ -836,7 +771,7 @@ class GridAgentController(
           .map(_ => "PROPORTIONAL")
           .getOrElse("PRIORITIZED"),
         simulationStartDate,
-        maybeParentEm.toRight(
+        maybeControllingEm.toRight(
           environmentRefs.scheduler
         ),
         rootEmConfig,
