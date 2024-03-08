@@ -11,7 +11,6 @@ import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.factory.timeseries.{
   CosmoIdCoordinateFactory,
   IconIdCoordinateFactory,
-  IdCoordinateFactory,
   SqlIdCoordinateFactory,
 }
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
@@ -22,27 +21,18 @@ import edu.ie3.datamodel.models.value.WeatherValue
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource._
-import edu.ie3.simona.exceptions.{
-  InvalidConfigParameterException,
-  ServiceException,
-}
+import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
   WeightedCoordinates,
-}
-import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.checkBaseCsvParams
-import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
-  checkCouchbaseParams,
-  checkInfluxDb1xParams,
-  checkSqlParams,
 }
 import edu.ie3.simona.service.weather.WeatherSourceWrapper.buildPSDMSource
 import edu.ie3.simona.util.ParsableEnumeration
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
-import org.locationtech.jts.geom.{Coordinate, Point, Polygon}
+import org.locationtech.jts.geom.{Coordinate, Point}
 import squants.motion.MetersPerSecond
 import squants.thermal.Kelvin
 import tech.units.indriya.ComparableQuantity
@@ -353,8 +343,8 @@ object WeatherSource {
           new CsvDataSource(
             csvSep,
             Paths.get(directoryPath),
-            new FileNamingStrategy()
-          )
+            new FileNamingStrategy(),
+          ),
         )
       case Some(
             SqlParams(
@@ -362,14 +352,14 @@ object WeatherSource {
               userName,
               password,
               schemaName,
-              tableName
+              tableName,
             )
           ) =>
         new SqlIdCoordinateSource(
           new SqlConnector(jdbcUrl, userName, password),
           schemaName,
           tableName,
-          new SqlIdCoordinateFactory()
+          new SqlIdCoordinateFactory(),
         )
       case Some(
             _: SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SampleParams

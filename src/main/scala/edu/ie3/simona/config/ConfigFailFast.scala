@@ -12,7 +12,7 @@ import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
   CouchbaseParams,
   InfluxDb1xParams,
   SampleParams,
-  SqlParams
+  SqlParams,
 }
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.InfluxDb1x
 import edu.ie3.simona.config.SimonaConfig.{
@@ -34,7 +34,7 @@ import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
   checkCouchbaseParams,
   checkInfluxDb1xParams,
   checkKafkaParams,
-  checkSqlParams
+  checkSqlParams,
 }
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
 import edu.ie3.util.scala.ReflectionTools
@@ -564,7 +564,7 @@ case object ConfigFailFast extends LazyLogging {
       weatherDataSourceCfg.csvParams,
       weatherDataSourceCfg.influxDb1xParams,
       weatherDataSourceCfg.couchbaseParams,
-      weatherDataSourceCfg.sqlParams
+      weatherDataSourceCfg.sqlParams,
     ).filter(_.isDefined)
 
     // check that only one source is defined
@@ -618,7 +618,7 @@ case object ConfigFailFast extends LazyLogging {
     val definedCoordSources = Vector(
       coordinateSourceConfig.sampleParams,
       coordinateSourceConfig.csvParams,
-      coordinateSourceConfig.sqlParams
+      coordinateSourceConfig.sqlParams,
     ).filter(_.isDefined)
 
     // check that only one source is defined

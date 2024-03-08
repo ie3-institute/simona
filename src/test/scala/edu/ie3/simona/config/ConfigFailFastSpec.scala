@@ -7,11 +7,10 @@
 package edu.ie3.simona.config
 
 import com.typesafe.config.ConfigFactory
-import edu.ie3.datamodel.io.source.csv.CsvWeatherSource
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
   CoordinateSource,
-  SampleParams
+  SampleParams,
 }
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.{Csv, InfluxDb1x}
@@ -939,7 +938,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
                 .SampleParams(true)
             ),
-            None
+            None,
           ),
           None,
           None,
@@ -975,7 +974,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         "detect too many sources" in {
           val tooManySources = weatherDataSource.copy(
             csvParams = Some(csv),
-            sampleParams = Some(sample)
+            sampleParams = Some(sample),
           )
 
           intercept[InvalidConfigParameterException] {
@@ -988,12 +987,12 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             csvParams = Some(csv),
             gridModel = "icon",
             sampleParams = None,
-            sqlParams = None
+            sqlParams = None,
           )
 
           val sampleMismatch = weatherDataSource.copy(
             coordinateSource = csvCoordinateSource,
-            sampleParams = Some(sample)
+            sampleParams = Some(sample),
           )
 
           intercept[InvalidConfigParameterException] {
@@ -1081,7 +1080,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
       val csvParams: BaseCsvParams = BaseCsvParams(
         ",",
         "input",
-        isHierarchic = false
+        isHierarchic = false,
       )
       val sampleParams =
         new SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SampleParams(
@@ -1092,7 +1091,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         csvParams = None,
         gridModel = "icon",
         sampleParams = None,
-        sqlParams = None
+        sqlParams = None,
       )
 
       "detect missing source" in {
@@ -1106,7 +1105,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
       "detect too many sources" in {
         val tooManySources = coordinateSource.copy(
           csvParams = Some(csvParams),
-          sampleParams = Some(sampleParams)
+          sampleParams = Some(sampleParams),
         )
 
         intercept[InvalidConfigParameterException] {
@@ -1117,7 +1116,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
       "detect invalid grid model" in {
         val invalidGridModel = coordinateSource.copy(
           csvParams = Some(csvParams),
-          gridModel = "invalid"
+          gridModel = "invalid",
         )
 
         intercept[InvalidConfigParameterException] {

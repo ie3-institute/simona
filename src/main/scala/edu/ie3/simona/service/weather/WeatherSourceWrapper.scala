@@ -74,7 +74,7 @@ private[weather] final case class WeatherSourceWrapper private (
     source: PsdmWeatherSource,
     override val idCoordinateSource: IdCoordinateSource,
     resolution: Long,
-    maxCoordinateDistance: ComparableQuantity[Length]
+    maxCoordinateDistance: ComparableQuantity[Length],
 )(
     private implicit val simulationStart: ZonedDateTime
 ) extends SimonaWeatherSource
@@ -92,7 +92,7 @@ private[weather] final case class WeatherSourceWrapper private (
     */
   override def getWeather(
       tick: Long,
-      weightedCoordinates: WeatherSource.WeightedCoordinates
+      weightedCoordinates: WeatherSource.WeightedCoordinates,
   ): WeatherMessage.WeatherData = {
     val dateTime = tick.toDateTime
     val interval = new ClosedInterval(dateTime, dateTime)
@@ -100,7 +100,7 @@ private[weather] final case class WeatherSourceWrapper private (
     val results = source
       .getWeather(
         interval,
-        coordinates
+        coordinates,
       )
       .asScala
       .toMap
@@ -126,7 +126,7 @@ private[weather] final case class WeatherSourceWrapper private (
           point, {
             logger.warn(s"Received an unexpected point: $point")
             0d
-          }
+          },
         )
         /* Sum up weight and contributions */
 
@@ -171,8 +171,8 @@ private[weather] final case class WeatherSourceWrapper private (
             diffIrrWeight,
             dirIrrWeight,
             tempWeight,
-            windVelWeight
-          )
+            windVelWeight,
+          ),
         )
     } match {
       case (weatherData: WeatherData, weightSum: WeightSum) =>
@@ -206,7 +206,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       simulationStart: ZonedDateTime,
       idCoordinateSource: IdCoordinateSource,
       resolution: Option[Long],
-      distance: ComparableQuantity[Length]
+      distance: ComparableQuantity[Length],
   ): WeatherSourceWrapper = {
     WeatherSourceWrapper(
       source,
@@ -218,7 +218,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
 
   private[weather] def buildPSDMSource(
       cfgParams: SimonaConfig.Simona.Input.Weather.Datasource,
-      definedWeatherSources: Option[Serializable]
+      definedWeatherSources: Option[Serializable],
   )(implicit
       idCoordinateSource: IdCoordinateSource
   ): Option[PsdmWeatherSource] = {
@@ -237,7 +237,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
             Paths.get(directoryPath),
             new FileNamingStrategy(),
             idCoordinateSource,
-            factory
+            factory,
           )
         )
       case couchbaseParams: CouchbaseParams =>
@@ -246,7 +246,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
           couchbaseParams.url,
           couchbaseParams.bucketName,
           couchbaseParams.userName,
-          couchbaseParams.password
+          couchbaseParams.password,
         )
         Some(
           new CouchbaseWeatherSource(
@@ -255,7 +255,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
             couchbaseParams.coordinateColumnName,
             couchbaseParams.keyPrefix,
             factory,
-            "yyyy-MM-dd'T'HH:mm:ssxxx"
+            "yyyy-MM-dd'T'HH:mm:ssxxx",
           )
         )
       case InfluxDb1xParams(database, _, url) =>
@@ -266,7 +266,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
           new InfluxDbWeatherSource(
             influxDb1xConnector,
             idCoordinateSource,
-            factory
+            factory,
           )
         )
       case sqlParams: SqlParams =>
@@ -274,7 +274,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
         val sqlConnector = new SqlConnector(
           sqlParams.jdbcUrl,
           sqlParams.userName,
-          sqlParams.password
+          sqlParams.password,
         )
         Some(
           new SqlWeatherSource(
@@ -282,7 +282,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
             idCoordinateSource,
             sqlParams.schemaName,
             sqlParams.tableName,
-            factory
+            factory,
           )
         )
       case _ =>
