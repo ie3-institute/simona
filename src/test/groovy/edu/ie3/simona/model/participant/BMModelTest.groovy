@@ -39,8 +39,6 @@ class BMModelTest extends Specification {
   NodeInput nodeInput
   @Shared
   BmTypeInput bmType
-  @Shared
-  double scalingFactor = 1.0d
 
   def setupSpec() {
     // build the NodeInputModel
@@ -64,7 +62,6 @@ class BMModelTest extends Specification {
         UUID.fromString("1b332f94-03e4-4abe-b142-8fceca689c53"),
         "BM Model Test",
         OperationInterval.apply(0L, 86400L),
-        scalingFactor,
         QControl.apply(new CosPhiFixed("cosPhiFixed:{(0.0,1.0)}")),
         Sq.create(190, Kilowatts$.MODULE$),
         bmType.getCosPhiRated(),
@@ -171,7 +168,6 @@ class BMModelTest extends Specification {
         UUID.fromString("8fbaf82d-5170-4636-bd7a-790eccbea880"),
         "BM Model Test",
         OperationInterval.apply(0L, 86400L),
-        scalingFactor,
         QControl.apply(new CosPhiFixed("cosPhiFixed:{(0.0,1.0)}")),
         Sq.create(190, Kilowatts$.MODULE$),
         bmType.getCosPhiRated(),
@@ -224,7 +220,6 @@ class BMModelTest extends Specification {
         UUID.fromString("08a8134d-04b7-45de-a937-9a55fab4e1af"),
         "BM Model Test",
         OperationInterval.apply(0L, 86400L),
-        scalingFactor,
         QControl.apply(new CosPhiFixed("cosPhiFixed:{(0.0,1.0)}")),
         Sq.create(190, Kilowatts$.MODULE$),
         bmType.getCosPhiRated(),

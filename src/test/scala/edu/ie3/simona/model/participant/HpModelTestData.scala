@@ -77,7 +77,6 @@ trait HpModelTestData {
     UUID.randomUUID(),
     "HpModel",
     OperationInterval.apply(0L, 86400L),
-    1.0,
     QControl.CosPhiFixed(0.95),
     Kilowatts(100d),
     0.95,

@@ -7,7 +7,6 @@
 package edu.ie3.simona.model.participant
 
 import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static org.apache.commons.math3.util.FastMath.abs
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.NodeInput
@@ -22,8 +21,6 @@ import edu.ie3.util.scala.quantities.Sq
 import spock.lang.Specification
 import squants.energy.*
 import tech.units.indriya.quantity.Quantities
-
-
 
 class FixedFeedModelTest extends Specification {
 
@@ -65,7 +62,6 @@ class FixedFeedModelTest extends Specification {
         fixedFeedInput.uuid,
         fixedFeedInput.id,
         foreSeenOperationInterval,
-        1.0,
         QControl.apply(fixedFeedInput.qCharacteristics),
         Sq.create(
         fixedFeedInput.sRated
