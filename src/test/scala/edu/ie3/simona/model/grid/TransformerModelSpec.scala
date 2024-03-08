@@ -18,7 +18,7 @@ import edu.ie3.powerflow.model.NodeData.{PresetData, StateData}
 import edu.ie3.powerflow.model.StartData.WithForcedStartVoltages
 import edu.ie3.powerflow.model.enums.NodeType
 import edu.ie3.powerflow.model.{NodeData, PowerFlowResult}
-import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.test.common.model.grid.{
   TapTestData,
   TransformerTestData,
@@ -36,7 +36,10 @@ import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 
-class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
+class TransformerModelSpec
+    extends UnitSpec
+    with TableDrivenPropertyChecks
+    with ConfigTestData {
   val quantityTolerance: Double = 1e-5
   val testingTolerancePf = 1e-9
   implicit val electricCurrentTolerance: squants.electro.ElectricCurrent =
@@ -378,6 +381,7 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
               refSystem,
               defaultSimulationStart,
               defaultSimulationEnd,
+              simonaConfig,
             )
 
             gridModel.gridComponents.transformers

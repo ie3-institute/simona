@@ -21,18 +21,17 @@ import edu.ie3.simona.event.ResultEvent.{
   PowerFlowResultEvent,
 }
 import edu.ie3.simona.io.result.{ResultEntitySink, ResultSinkType}
-import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.test.common.result.PowerFlowResultData
 import edu.ie3.simona.test.common.{IOTestCommons, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
+import edu.ie3.util.TimeUtil
 import edu.ie3.util.io.FileIOUtils
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ActorTestKit,
   ScalaTestWithActorTestKit,
 }
 import org.apache.pekko.testkit.TestKit.awaitCond
-import org.apache.pekko.testkit.TestProbe
 
 import java.io.{File, FileInputStream}
 import java.util.UUID
@@ -140,7 +139,7 @@ class ResultEventListenerSpec
           )
         )
 
-        listener ! StopMessage(true)
+        listener ! DelayedStopHelper.FlushAndStop
         deathWatch expectTerminated (listener, 10 seconds)
       }
     }
@@ -174,7 +173,7 @@ class ResultEventListenerSpec
         )
 
         // stop listener so that result is flushed out
-        listenerRef ! StopMessage(true)
+        listenerRef ! DelayedStopHelper.FlushAndStop
 
         // wait until all lines have been written out:
         awaitCond(
@@ -256,7 +255,7 @@ class ResultEventListenerSpec
         )
 
         // stop listener so that result is flushed out
-        listenerRef ! StopMessage(true)
+        listenerRef ! DelayedStopHelper.FlushAndStop
 
         // wait until all lines have been written out:
         awaitCond(
@@ -340,7 +339,7 @@ class ResultEventListenerSpec
         listener ! powerflow3wResult(resultB)
 
         // stop listener so that result is flushed out
-        listener ! StopMessage(true)
+        listener ! DelayedStopHelper.FlushAndStop
 
         /* Await that the result is written */
         awaitCond(
@@ -359,11 +358,8 @@ class ResultEventListenerSpec
           )
         )
 
-        ("[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12},2.0,1.0,4.0,3.0,6.0,5.0,40d02538-d8dd-421c-8e68-400f1da170c7,-5," + time.toString
-          .replaceAll("\\[", "\\\\["))
-          .replaceAll("\\.", "\\\\.")
-          .r
-          .matches(resultLine) shouldBe true
+        resultLine shouldBe "2.0,1.0,4.0,3.0,6.0,5.0,40d02538-d8dd-421c-8e68-400f1da170c7,-5," + TimeUtil.withDefaults
+          .toString(time)
 
         resultFileSource.close()
       }
@@ -403,7 +399,7 @@ class ResultEventListenerSpec
         // otherwise it might happen, that the shutdown is triggered even before the just send ParticipantResultEvent
         // reached the listener
         // this also triggers the compression of result files
-        listenerRef ! StopMessage(true)
+        listenerRef ! DelayedStopHelper.FlushAndStop
 
         // shutdown the actor system
         system.terminate()
@@ -440,7 +436,7 @@ class ResultEventListenerSpec
           fail(
             "Cannot get line that should have been written out by the listener!"
           )
-        ) shouldBe "7f404c4c-fc12-40de-95c9-b5827a40f18b,e5ac84d3-c7a5-4870-a42d-837920aec9bb,0.01,0.01,2020-01-30T17:26:44Z[UTC]"
+        ) shouldBe "e5ac84d3-c7a5-4870-a42d-837920aec9bb,0.01,0.01,2020-01-30T17:26:44Z"
 
         resultFileSource.close()
       }

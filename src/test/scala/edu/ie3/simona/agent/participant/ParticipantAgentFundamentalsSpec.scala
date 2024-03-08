@@ -147,7 +147,7 @@ class ParticipantAgentFundamentalsSpec
   "Determining the activation ticks within operation time" should {
     "throw an exception, if an integer multiple of the resolution does not meet an hour" in {
       val simulationStart =
-        TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
+        TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
       val exception = intercept[AgentInitializationException] {
         mockAgent.firstFullResolutionInSimulation(simulationStart, 47L)
       }
@@ -157,11 +157,11 @@ class ParticipantAgentFundamentalsSpec
     "base on correct first information tick in simulation" in {
       val testData: TableFor3[String, Long, Long] = Table(
         ("simulationStartString", "resolution", "expectedFirstTick"),
-        ("2020-01-01 00:00:00", 900L, 0L),
-        ("2020-01-01 00:15:00", 900L, 0L),
-        ("2020-01-01 00:15:10", 900L, 890L),
-        ("2020-01-01 00:15:00", 1800L, 900L),
-        ("2020-01-01 00:14:10", 1800L, 950L),
+        ("2020-01-01T00:00:00Z", 900L, 0L),
+        ("2020-01-01T00:15:00Z", 900L, 0L),
+        ("2020-01-01T00:15:10Z", 900L, 890L),
+        ("2020-01-01T00:15:00Z", 1800L, 900L),
+        ("2020-01-01T00:14:10Z", 1800L, 950L),
       )
 
       forAll(testData) {
@@ -192,12 +192,12 @@ class ParticipantAgentFundamentalsSpec
           "operationEnd",
           "expectedTicks",
         ),
-        ("2020-01-01 00:00:00", 900L, 0L, 2700L, List(0L, 900L, 1800L, 2700L)),
-        ("2020-01-01 00:15:00", 900L, 0L, 2700L, List(0L, 900L, 1800L, 2700L)),
-        ("2020-01-01 00:15:00", 900L, 0L, 2699L, List(0L, 900L, 1800L)),
-        ("2020-01-01 00:12:00", 900L, 0L, 2700L, List(180L, 1080L, 1980L)),
+        ("2020-01-01T00:00:00Z", 900L, 0L, 2700L, List(0L, 900L, 1800L, 2700L)),
+        ("2020-01-01T00:15:00Z", 900L, 0L, 2700L, List(0L, 900L, 1800L, 2700L)),
+        ("2020-01-01T00:15:00Z", 900L, 0L, 2699L, List(0L, 900L, 1800L)),
+        ("2020-01-01T00:12:00Z", 900L, 0L, 2700L, List(180L, 1080L, 1980L)),
         (
-          "2020-01-01 00:12:00",
+          "2020-01-01T00:12:00Z",
           900L,
           0L,
           2880L,
@@ -639,8 +639,8 @@ case object ParticipantAgentFundamentalsSpec extends MockitoSugar {
         ConstantState.type,
       ],
     ](
-      TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
-      TimeUtil.withDefaults.toZonedDateTime("2020-01-01 23:59:00"),
+      TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z"),
+      TimeUtil.withDefaults.toZonedDateTime("2020-01-01T23:59:00Z"),
       modelMock,
       None,
       NotifierConfig(

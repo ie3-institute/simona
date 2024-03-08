@@ -49,11 +49,11 @@ class RunSimonaStandaloneIT
           )
           .withValue(
             "simona.time.startDateTime",
-            ConfigValueFactory.fromAnyRef("2011-01-01 00:00:00"),
+            ConfigValueFactory.fromAnyRef("2011-01-01T00:00:00Z"),
           )
           .withValue(
             "simona.time.endDateTime",
-            ConfigValueFactory.fromAnyRef("2011-01-01 02:00:00"),
+            ConfigValueFactory.fromAnyRef("2011-01-01T02:00:00Z"),
           )
           .withFallback(
             ConfigFactory
@@ -82,9 +82,11 @@ class RunSimonaStandaloneIT
       )
 
       /* run simulation */
-      RunSimonaStandalone.run(
+      val successful = RunSimonaStandalone.run(
         simonaStandaloneSetup
       )
+
+      successful shouldBe true
 
       /* check the results */
       // check configs

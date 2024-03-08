@@ -30,7 +30,7 @@ class SampleWeatherSourceSpec
     with MockitoSugar
     with TableDrivenPropertyChecks {
   implicit val simulationStart: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2011-01-01 00:00:00")
+    TimeUtil.withDefaults.toZonedDateTime("2011-01-01T00:00:00Z")
   implicit val toleranceIrradiance: Irradiance = WattsPerSquareMeter(0.1)
   implicit val toleranceVelocity: Velocity = MetersPerSecond(0.01)
   implicit val toleranceTemperature: Temperature = Celsius(0.01)
@@ -80,7 +80,7 @@ class SampleWeatherSourceSpec
 
     val getWeatherPrivate = PrivateMethod[WeatherData](Symbol("getWeather"))
     val tick =
-      TimeUtil.withDefaults.toZonedDateTime("2011-02-01 15:00:00").toTick
+      TimeUtil.withDefaults.toZonedDateTime("2011-02-01T15:00:00Z").toTick
 
     "return correct weather data in value and unit" in {
       val actual = source invokePrivate getWeatherPrivate(tick)
