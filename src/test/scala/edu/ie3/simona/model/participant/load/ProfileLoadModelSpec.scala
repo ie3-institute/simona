@@ -51,6 +51,7 @@ class ProfileLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
           -1,
         ),
         new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
+        null,
         BdewStandardLoadProfile.H0,
         false,
         Quantities.getQuantity(3000d, PowerSystemUnits.KILOWATTHOUR),
@@ -59,9 +60,9 @@ class ProfileLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
       )
 
     val simulationStartDate =
-      TimeUtil.withDefaults.toZonedDateTime("2019-01-01 00:00:00")
+      TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")
     val simulationEndDate =
-      TimeUtil.withDefaults.toZonedDateTime("2019-12-31 23:59:00")
+      TimeUtil.withDefaults.toZonedDateTime("2019-12-31T23:59:00Z")
     val foreSeenOperationInterval =
       SystemComponent.determineOperationInterval(
         simulationStartDate,

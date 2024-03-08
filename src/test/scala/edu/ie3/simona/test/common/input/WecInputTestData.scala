@@ -25,6 +25,7 @@ trait WecInputTestData extends WecTypeInputTestData {
     OperationTime.notLimited(),
     nodeInputNoSlackNs04KvB,
     CosPhiFixed.CONSTANT_CHARACTERISTIC,
+    null,
     wecTypeInputEnerconE82,
     false,
   )

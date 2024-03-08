@@ -82,6 +82,7 @@ class PvModelTest extends Specification {
         OperationTime.notLimited(),
         nodeInput,
         new CosPhiFixed("cosPhiFixed:{(0.0,0.9)}"),
+        null,
         0.20000000298023224,
         getQuantity(-8.926613807678223, DEGREE_GEOM),
         getQuantity(97, PERCENT),
@@ -94,12 +95,10 @@ class PvModelTest extends Specification {
         )
 
     // build the PvModel
-    double scalingFactor = 1.0d
     pvModel = PvModel.apply(
         pvInput.uuid,
         pvInput.id,
         OperationInterval.apply(0L, 86400L),
-        scalingFactor,
         QControl.apply(pvInput.qCharacteristics),
         Sq.create(pvInput.sRated.to(KILOWATT).value.doubleValue(), Kilowatts$.MODULE$),
         pvInput.cosPhiRated,

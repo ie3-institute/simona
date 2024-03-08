@@ -68,7 +68,6 @@ object ApparentPowerAndHeatSpec {
         UUID.randomUUID(),
         "ParticipantMock",
         OperationInterval.apply(0L, 42L),
-        1.0,
         CosPhiFixed(0.97),
         Kilowatts(42d),
         0.97,
@@ -79,39 +78,17 @@ object ApparentPowerAndHeatSpec {
       ] {
     this.enable()
 
-    /** Calculate the heat of the asset. As for electrical assets, positive
-      * values are understood as consumption and negative as production
-      *
-      * @param tick
-      *   Current instant in simulation time
-      * @param data
-      *   Needed calculation relevant data
-      * @return
-      *   Heat production or consumption of the asset
-      */
     override def calculateHeat(
         tick: Long,
         modelState: ConstantState.type,
         data: CalcRelevantData.FixedRelevantData.type,
     ): Power = Megawatts(42d)
 
-    /** Calculate the active power behaviour of the model
-      *
-      * @param data
-      *   Further needed, secondary data
-      * @return
-      *   Active power
-      */
     override protected def calculateActivePower(
         modelState: ConstantState.type,
         data: CalcRelevantData.FixedRelevantData.type,
     ): Power = Megawatts(43d)
 
-    /** @param data
-      * @param lastState
-      * @return
-      *   flex options
-      */
     override def determineFlexOptions(
         data: CalcRelevantData.FixedRelevantData.type,
         lastState: ModelState.ConstantState.type,
@@ -121,14 +98,6 @@ object ApparentPowerAndHeatSpec {
         calculateActivePower(ConstantState, data),
       )
 
-    /** @param data
-      * @param lastState
-      * @param setPower
-      *   power that has been set by EmAgent
-      * @return
-      *   updated relevant data and an indication at which circumstances flex
-      *   options will change next
-      */
     override def handleControlledPowerChange(
         data: CalcRelevantData.FixedRelevantData.type,
         lastState: ModelState.ConstantState.type,

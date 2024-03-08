@@ -7,7 +7,6 @@
 package edu.ie3.simona.model.participant
 
 import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static org.apache.commons.math3.util.FastMath.abs
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.NodeInput
@@ -22,8 +21,6 @@ import edu.ie3.util.scala.quantities.Sq
 import spock.lang.Specification
 import squants.energy.*
 import tech.units.indriya.quantity.Quantities
-
-
 
 class FixedFeedModelTest extends Specification {
 
@@ -44,11 +41,12 @@ class FixedFeedModelTest extends Specification {
   -1
   ),
   new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
+  null,
   Quantities.getQuantity(282.74d, VOLTAMPERE),
   0.95
   )
-  def simulationStartDate = TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
-  def simulationEndDate = TimeUtil.withDefaults.toZonedDateTime("2020-12-31 23:59:00")
+  def simulationStartDate = TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
+  def simulationEndDate = TimeUtil.withDefaults.toZonedDateTime("2020-12-31T23:59:00Z")
   def foreSeenOperationInterval =
   SystemComponent.determineOperationInterval(
   simulationStartDate,
@@ -64,7 +62,6 @@ class FixedFeedModelTest extends Specification {
         fixedFeedInput.uuid,
         fixedFeedInput.id,
         foreSeenOperationInterval,
-        1.0,
         QControl.apply(fixedFeedInput.qCharacteristics),
         Sq.create(
         fixedFeedInput.sRated

@@ -115,7 +115,7 @@ class LoadProfileStoreSpec
 
       /* Collect all available time steps in 2020 */
       val startDate =
-        TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
+        TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
       val testDates =
         Range(0, 35136).map(cnt => startDate.plus(cnt * 15, ChronoUnit.MINUTES))
 

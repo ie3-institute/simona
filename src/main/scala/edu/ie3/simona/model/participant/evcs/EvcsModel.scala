@@ -49,8 +49,6 @@ import scala.collection.immutable.SortedSet
   *   the element's human readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
-  * @param scalingFactor
-  *   Scaling the output of the system
   * @param simulationStartDate
   *   The start date of the simulation
   * @param qControl
@@ -72,7 +70,6 @@ final case class EvcsModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    override val scalingFactor: Double,
     simulationStartDate: ZonedDateTime,
     qControl: QControl,
     sRated: Power,
@@ -87,7 +84,6 @@ final case class EvcsModel(
       uuid,
       id,
       operationInterval,
-      scalingFactor,
       qControl,
       sRated * chargingPoints,
       cosPhiRated,
@@ -958,7 +954,7 @@ object EvcsModel {
   /** A charging schedule for a single EV, consisting of multiple schedule
     * entries that are (primarily) sorted by start tick
     */
-  type ChargingSchedule = SortedSet[ScheduleEntry]
+  private type ChargingSchedule = SortedSet[ScheduleEntry]
 
   /** A schedule map consisting of charging schedules for multiple EVs,
     * referenced by their model UUID
@@ -1049,27 +1045,31 @@ object EvcsModel {
       chargingStrategy: String,
       lowestEvSoc: Double,
   ): EvcsModel = {
+
+    val scaledInput = inputModel.copy().scale(scalingFactor).build()
+
     /* Determine the operation interval */
     val operationInterval: OperationInterval =
       SystemComponent.determineOperationInterval(
         simulationStartDate,
         simulationEndDate,
-        inputModel.getOperationTime,
+        scaledInput.getOperationTime,
       )
 
     val model = EvcsModel(
-      inputModel.getUuid,
-      inputModel.getId,
+      scaledInput.getUuid,
+      scaledInput.getId,
       operationInterval,
-      scalingFactor,
       simulationStartDate,
-      QControl(inputModel.getqCharacteristics),
-      Kilowatts(inputModel.getType.getsRated.to(KILOWATT).getValue.doubleValue),
-      inputModel.getType.getElectricCurrentType,
-      inputModel.getCosPhiRated,
-      inputModel.getChargingPoints,
-      inputModel.getLocationType,
-      inputModel.getV2gSupport,
+      QControl(scaledInput.getqCharacteristics),
+      Kilowatts(
+        scaledInput.getType.getsRated.to(KILOWATT).getValue.doubleValue
+      ),
+      scaledInput.getType.getElectricCurrentType,
+      scaledInput.getCosPhiRated,
+      scaledInput.getChargingPoints,
+      scaledInput.getLocationType,
+      scaledInput.getV2gSupport,
       ChargingStrategy(chargingStrategy),
       lowestEvSoc,
     )

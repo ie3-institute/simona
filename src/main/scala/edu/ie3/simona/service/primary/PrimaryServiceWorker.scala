@@ -37,6 +37,7 @@ import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 
 import java.nio.file.Path
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters.RichOptional
@@ -77,7 +78,10 @@ final case class PrimaryServiceWorker[V <: Value](
           ) =>
         Try {
           /* Set up source and acquire information */
-          val factory = new TimeBasedSimpleValueFactory(valueClass, timePattern)
+          val factory = new TimeBasedSimpleValueFactory(
+            valueClass,
+            DateTimeFormatter.ofPattern(timePattern),
+          )
           val source = new CsvTimeSeriesSource(
             csvSep,
             directoryPath,
@@ -98,7 +102,10 @@ final case class PrimaryServiceWorker[V <: Value](
           ) =>
         Try {
           val factory =
-            new TimeBasedSimpleValueFactory(valueClass, sqlParams.timePattern)
+            new TimeBasedSimpleValueFactory(
+              valueClass,
+              DateTimeFormatter.ofPattern(sqlParams.timePattern),
+            )
 
           val sqlConnector = new SqlConnector(
             sqlParams.jdbcUrl,
