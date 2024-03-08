@@ -25,6 +25,8 @@ import edu.ie3.datamodel.io.source.{
   IdCoordinateSource,
   WeatherSource => PsdmWeatherSource
 }
+import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
   CouchbaseParams,
   InfluxDb1xParams,
@@ -46,7 +48,7 @@ import edu.ie3.util.DoubleUtils.ImplicitDouble
 import edu.ie3.util.interval.ClosedInterval
 import tech.units.indriya.ComparableQuantity
 
-import java.nio.file.Path
+import java.nio.file.Paths
 import java.time.ZonedDateTime
 import javax.measure.quantity.Length
 import scala.jdk.CollectionConverters.{IterableHasAsJava, MapHasAsScala}
@@ -198,128 +200,102 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
   private val DEFAULT_RESOLUTION = 3600L
 
   def apply(
-      csvSep: String,
-      directoryPath: Path
+      source: PsdmWeatherSource
   )(implicit
       simulationStart: ZonedDateTime,
       idCoordinateSource: IdCoordinateSource,
-      timestampPattern: Option[String],
-      scheme: String,
       resolution: Option[Long],
-      maxCoordinateDistance: ComparableQuantity[Length]
+      distance: ComparableQuantity[Length]
   ): WeatherSourceWrapper = {
-    val source = new CsvWeatherSource(
-      csvSep,
-      directoryPath,
-      new FileNamingStrategy(),
-      idCoordinateSource,
-      buildFactory(scheme, timestampPattern)
-    )
-    logger.info(
-      "Successfully initiated CsvWeatherSource as source for WeatherSourceWrapper."
-    )
     WeatherSourceWrapper(
       source,
       idCoordinateSource,
       resolution.getOrElse(DEFAULT_RESOLUTION),
-      maxCoordinateDistance
+      distance
     )
   }
 
-  def apply(
-      couchbaseParams: CouchbaseParams
+  private[weather] def buildPSDMSource(
+      cfgParams: SimonaConfig.Simona.Input.Weather.Datasource,
+      definedWeatherSources: Option[Serializable]
   )(implicit
-      simulationStart: ZonedDateTime,
-      idCoordinateSource: IdCoordinateSource,
-      timestampPattern: Option[String],
-      scheme: String,
-      resolution: Option[Long],
-      maxCoordinateDistance: ComparableQuantity[Length]
-  ): WeatherSourceWrapper = {
-    val couchbaseConnector = new CouchbaseConnector(
-      couchbaseParams.url,
-      couchbaseParams.bucketName,
-      couchbaseParams.userName,
-      couchbaseParams.password
-    )
-    val source = new CouchbaseWeatherSource(
-      couchbaseConnector,
-      idCoordinateSource,
-      couchbaseParams.coordinateColumnName,
-      couchbaseParams.keyPrefix,
-      buildFactory(scheme, timestampPattern),
-      "yyyy-MM-dd'T'HH:mm:ssxxx"
-    )
-    logger.info(
-      "Successfully initiated CouchbaseWeatherSource as source for WeatherSourceWrapper."
-    )
-    WeatherSourceWrapper(
-      source,
-      idCoordinateSource,
-      resolution.getOrElse(DEFAULT_RESOLUTION),
-      maxCoordinateDistance
-    )
-  }
+      idCoordinateSource: IdCoordinateSource
+  ): Option[PsdmWeatherSource] = {
+    implicit val timestampPattern: Option[String] =
+      cfgParams.timestampPattern
+    implicit val scheme: String = cfgParams.scheme
 
-  def apply(
-      influxDbParams: InfluxDb1xParams
-  )(implicit
-      simulationStart: ZonedDateTime,
-      idCoordinateSource: IdCoordinateSource,
-      timestampPattern: Option[String],
-      scheme: String,
-      resolution: Option[Long],
-      maxCoordinateDistance: ComparableQuantity[Length]
-  ): WeatherSourceWrapper = {
-    val influxDb1xConnector =
-      new InfluxDbConnector(influxDbParams.url, influxDbParams.database)
-    val source = new InfluxDbWeatherSource(
-      influxDb1xConnector,
-      idCoordinateSource,
-      buildFactory(scheme, timestampPattern)
-    )
-    logger.info(
-      "Successfully initiated InfluxDbWeatherSource as source for WeatherSourceWrapper."
-    )
-    WeatherSourceWrapper(
-      source,
-      idCoordinateSource,
-      resolution.getOrElse(DEFAULT_RESOLUTION),
-      maxCoordinateDistance
-    )
-  }
+    val factory = buildFactory(scheme, timestampPattern)
 
-  def apply(
-      sqlParams: SqlParams
-  )(implicit
-      simulationStart: ZonedDateTime,
-      idCoordinateSource: IdCoordinateSource,
-      timestampPattern: Option[String],
-      scheme: String,
-      resolution: Option[Long],
-      maxCoordinateDistance: ComparableQuantity[Length]
-  ): WeatherSourceWrapper = {
-    val sqlConnector = new SqlConnector(
-      sqlParams.jdbcUrl,
-      sqlParams.userName,
-      sqlParams.password
-    )
-    val source = new SqlWeatherSource(
-      sqlConnector,
-      idCoordinateSource,
-      sqlParams.schemaName,
-      sqlParams.tableName,
-      buildFactory(scheme, timestampPattern)
-    )
-    logger.info(
-      "Successfully initiated SqlWeatherSource as source for WeatherSourceWrapper."
-    )
-    WeatherSourceWrapper(
-      source,
-      idCoordinateSource,
-      resolution.getOrElse(DEFAULT_RESOLUTION),
-      maxCoordinateDistance
-    )
+    val source = definedWeatherSources.flatMap {
+      case BaseCsvParams(csvSep, directoryPath, _) =>
+        // initializing a csv weather source
+        Some(
+          new CsvWeatherSource(
+            csvSep,
+            Paths.get(directoryPath),
+            new FileNamingStrategy(),
+            idCoordinateSource,
+            factory
+          )
+        )
+      case couchbaseParams: CouchbaseParams =>
+        // initializing a couchbase weather source
+        val couchbaseConnector = new CouchbaseConnector(
+          couchbaseParams.url,
+          couchbaseParams.bucketName,
+          couchbaseParams.userName,
+          couchbaseParams.password
+        )
+        Some(
+          new CouchbaseWeatherSource(
+            couchbaseConnector,
+            idCoordinateSource,
+            couchbaseParams.coordinateColumnName,
+            couchbaseParams.keyPrefix,
+            factory,
+            "yyyy-MM-dd'T'HH:mm:ssxxx"
+          )
+        )
+      case InfluxDb1xParams(database, _, url) =>
+        // initializing an influxDb weather source
+        val influxDb1xConnector =
+          new InfluxDbConnector(url, database)
+        Some(
+          new InfluxDbWeatherSource(
+            influxDb1xConnector,
+            idCoordinateSource,
+            factory
+          )
+        )
+      case sqlParams: SqlParams =>
+        // initializing a sql weather source
+        val sqlConnector = new SqlConnector(
+          sqlParams.jdbcUrl,
+          sqlParams.userName,
+          sqlParams.password
+        )
+        Some(
+          new SqlWeatherSource(
+            sqlConnector,
+            idCoordinateSource,
+            sqlParams.schemaName,
+            sqlParams.tableName,
+            factory
+          )
+        )
+      case _ =>
+        // no weather source is initialized
+        None
+    }
+
+    source.foreach { source =>
+      logger.info(
+        s"Successfully initialized ${source.getClass.getSimpleName} as source for WeatherSourceWrapper."
+      )
+    }
+
+    source
   }
 
   private def buildFactory(scheme: String, timestampPattern: Option[String]) =

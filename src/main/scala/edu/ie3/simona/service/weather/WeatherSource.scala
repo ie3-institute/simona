@@ -31,6 +31,7 @@ import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
   WeightedCoordinates
 }
+import edu.ie3.simona.service.weather.WeatherSourceWrapper.buildPSDMSource
 import edu.ie3.simona.util.ParsableEnumeration
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -292,9 +293,13 @@ object WeatherSource {
       weatherDataSourceCfg.sqlParams
     ).find(_.isDefined).flatten
 
-    implicit val timestampPattern: Option[String] =
-      weatherDataSourceCfg.timestampPattern
-    implicit val scheme: String = weatherDataSourceCfg.scheme
+    if (definedWeatherSources.isEmpty) {
+      // should not happen, due to the config fail fast check
+      throw new SourceException(
+        s"Expected a WeatherSource, but no source where defined in $weatherDataSourceCfg."
+      )
+    }
+
     implicit val resolution: Option[Long] = weatherDataSourceCfg.resolution
     implicit val distance: ComparableQuantity[Length] =
       Quantities.getQuantity(
@@ -302,25 +307,9 @@ object WeatherSource {
         Units.METRE
       )
 
-    definedWeatherSources match {
-      case Some(BaseCsvParams(csvSep, directoryPath, _)) =>
-        WeatherSourceWrapper(
-          csvSep,
-          Paths.get(directoryPath)
-        )
-      case Some(params: CouchbaseParams) =>
-        WeatherSourceWrapper(params)
-      case Some(params: InfluxDb1xParams) =>
-        WeatherSourceWrapper(params)
-      case Some(params: SqlParams) =>
-        WeatherSourceWrapper(params)
-      case Some(_: SampleParams) =>
-        new SampleWeatherSource()(simulationStart)
-      case None =>
-        throw new SourceException(
-          s"Expected a WeatherSource, but no source where defined in $weatherDataSourceCfg."
-        );
-    }
+    buildPSDMSource(weatherDataSourceCfg, definedWeatherSources)
+      .map(WeatherSourceWrapper.apply)
+      .getOrElse(new SampleWeatherSource())
   }
 
   /** Check the provided coordinate id data source configuration to ensure its
