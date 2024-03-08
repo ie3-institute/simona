@@ -90,7 +90,6 @@ class ChpModelTest extends Specification {
         UUID.randomUUID(),
         "ChpModel",
         null,
-        1.0,
         null,
         Sq.create(100, Kilowatts$.MODULE$),
         0.95,

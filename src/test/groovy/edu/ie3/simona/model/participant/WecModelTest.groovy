@@ -104,7 +104,6 @@ class WecModelTest extends Specification {
     then:
     wecModel.uuid() == inputModel.uuid
     wecModel.id() == inputModel.id
-    wecModel.scalingFactor() == 1
     wecModel.sRated() == Sq.create(inputModel.type.sRated.value.doubleValue(), Kilowatts$.MODULE$)
     wecModel.cosPhiRated() == inputModel.type.cosPhiRated
     wecModel.rotorArea() == Sq.create(inputModel.type.rotorArea.value.doubleValue(), SquareMeters$.MODULE$)
