@@ -11,18 +11,17 @@ import org.apache.pekko.actor.typed.{Behavior, PostStop}
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
-import edu.ie3.simona.event.Event
 import edu.ie3.simona.event.ResultEvent.{
+  FlexOptionsResultEvent,
   ParticipantResultEvent,
   PowerFlowResultEvent,
-  ThermalResultEvent
+  ThermalResultEvent,
 }
 import edu.ie3.simona.exceptions.{
   FileHierarchyException,
-  ProcessResultEventException
+  ProcessResultEventException,
 }
 import edu.ie3.simona.io.result._
-import edu.ie3.simona.ontology.messages.StopMessage
 import edu.ie3.simona.util.ResultFileHierarchy
 import org.slf4j.Logger
 
@@ -33,15 +32,13 @@ import scala.util.{Failure, Success, Try}
 
 object ResultEventListener extends Transformer3wResultSupport {
 
-  trait ResultMessage extends Event
+  trait Request
 
   private final case class SinkResponse(
       response: Map[Class[_], ResultEntitySink]
-  ) extends ResultMessage
+  ) extends Request
 
-  private final case class Failed(ex: Exception) extends ResultMessage
-
-  private final case object StopTimeout extends ResultMessage
+  private final case class InitFailed(ex: Exception) extends Request
 
   /** [[ResultEventListener]] base data containing all information the listener
     * needs
@@ -54,8 +51,8 @@ object ResultEventListener extends Transformer3wResultSupport {
       classToSink: Map[Class[_], ResultEntitySink],
       threeWindingResults: Map[
         Transformer3wKey,
-        AggregatedTransformer3wResult
-      ] = Map.empty
+        AggregatedTransformer3wResult,
+      ] = Map.empty,
   )
 
   /** Initialize the sinks for this listener based on the provided collection
@@ -93,8 +90,8 @@ object ResultEventListener extends Transformer3wResultSupport {
                       ResultEntityCsvSink(
                         fileName.replace(".gz", ""),
                         new ResultEntityProcessor(resultClass),
-                        fileName.endsWith(".gz")
-                      )
+                        fileName.endsWith(".gz"),
+                      ),
                     )
                   }
                 } else {
@@ -120,7 +117,7 @@ object ResultEventListener extends Transformer3wResultSupport {
             runId,
             bootstrapServers,
             schemaRegistryUrl,
-            linger
+            linger,
           ) =>
         val classes: Iterable[Class[_ <: ResultEntity]] = Set(
           classOf[NodeResult] // currently, only NodeResults are sent out
@@ -134,8 +131,8 @@ object ResultEventListener extends Transformer3wResultSupport {
                 runId,
                 bootstrapServers,
                 schemaRegistryUrl,
-                linger
-              )
+                linger,
+              ),
             )
           )
         )
@@ -154,7 +151,7 @@ object ResultEventListener extends Transformer3wResultSupport {
   private def handleResult(
       resultEntity: ResultEntity,
       baseData: BaseData,
-      log: Logger
+      log: Logger,
   ): BaseData = {
     handOverToSink(resultEntity, baseData.classToSink, log)
     baseData
@@ -174,14 +171,14 @@ object ResultEventListener extends Transformer3wResultSupport {
   private def handlePartialTransformer3wResult(
       result: PartialTransformer3wResult,
       baseData: BaseData,
-      log: Logger
+      log: Logger,
   ): BaseData = {
     val key = Transformer3wKey(result.input, result.time)
     // retrieve existing partial result or use empty one
     val partialResult =
       baseData.threeWindingResults.getOrElse(
         key,
-        AggregatedTransformer3wResult.EMPTY
+        AggregatedTransformer3wResult.EMPTY,
       )
     // add partial result
     val updatedResults = partialResult.add(result).map { updatedResult =>
@@ -201,7 +198,7 @@ object ResultEventListener extends Transformer3wResultSupport {
       case Failure(exception) =>
         log.warn(
           "Failure when handling partial Transformer3w result",
-          exception
+          exception,
         )
         // on failure, we just continue with previous results
         baseData.threeWindingResults
@@ -221,7 +218,7 @@ object ResultEventListener extends Transformer3wResultSupport {
   private def handOverToSink(
       resultEntity: ResultEntity,
       classToSink: Map[Class[_], ResultEntitySink],
-      log: Logger
+      log: Logger,
   ): Unit =
     Try {
       classToSink
@@ -233,7 +230,7 @@ object ResultEventListener extends Transformer3wResultSupport {
 
   def apply(
       resultFileHierarchy: ResultFileHierarchy
-  ): Behavior[ResultMessage] = Behaviors.setup[ResultMessage] { ctx =>
+  ): Behavior[Request] = Behaviors.setup[Request] { ctx =>
     ctx.log.debug("Starting initialization!")
     resultFileHierarchy.resultSinkType match {
       case _: ResultSinkType.Kafka =>
@@ -243,7 +240,7 @@ object ResultEventListener extends Transformer3wResultSupport {
           s"Events that will be processed: {}",
           resultFileHierarchy.resultEntitiesToConsider
             .map(_.getSimpleName)
-            .mkString(",")
+            .mkString(","),
         )
     }
 
@@ -252,33 +249,32 @@ object ResultEventListener extends Transformer3wResultSupport {
         ResultEventListener.initializeSinks(resultFileHierarchy)
       )
     ) {
-      case Failure(exception: Exception) => Failed(exception)
+      case Failure(exception: Exception) => InitFailed(exception)
       case Success(result)               => SinkResponse(result.toMap)
     }
 
     init()
   }
 
-  private def init(): Behavior[ResultMessage] = Behaviors.withStash(200) {
-    buffer =>
-      Behaviors.receive[ResultMessage] {
-        case (ctx, SinkResponse(response)) =>
-          ctx.log.debug("Initialization complete!")
-          buffer.unstashAll(idle(BaseData(response)))
+  private def init(): Behavior[Request] = Behaviors.withStash(200) { buffer =>
+    Behaviors.receive[Request] {
+      case (ctx, SinkResponse(response)) =>
+        ctx.log.debug("Initialization complete!")
+        buffer.unstashAll(idle(BaseData(response)))
 
-        case (ctx, Failed(ex)) =>
-          ctx.log.error("Unable to setup ResultEventListener.", ex)
-          Behaviors.stopped
+      case (ctx, InitFailed(ex)) =>
+        ctx.log.error("Unable to setup ResultEventListener.", ex)
+        Behaviors.stopped
 
-        case (_, msg) =>
-          // stash all messages
-          buffer.stash(msg)
-          Behaviors.same
-      }
+      case (_, msg) =>
+        // stash all messages
+        buffer.stash(msg)
+        Behaviors.same
+    }
   }
 
-  private def idle(baseData: BaseData): Behavior[ResultMessage] = Behaviors
-    .receive[ResultMessage] {
+  private def idle(baseData: BaseData): Behavior[Request] = Behaviors
+    .receivePartial[Request] {
       case (ctx, ParticipantResultEvent(participantResult)) =>
         val updatedBaseData = handleResult(participantResult, baseData, ctx.log)
         idle(updatedBaseData)
@@ -294,8 +290,8 @@ object ResultEventListener extends Transformer3wResultSupport {
               switchResults,
               lineResults,
               transformer2wResults,
-              transformer3wResults
-            )
+              transformer3wResults,
+            ),
           ) =>
         val updatedBaseData =
           (nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ transformer3wResults)
@@ -304,27 +300,22 @@ object ResultEventListener extends Transformer3wResultSupport {
                 handleResult(resultEntity, currentBaseData, ctx.log)
               case (
                     currentBaseData,
-                    partialTransformerResult: PartialTransformer3wResult
+                    partialTransformerResult: PartialTransformer3wResult,
                   ) =>
                 handlePartialTransformer3wResult(
                   partialTransformerResult,
                   currentBaseData,
-                  ctx.log
+                  ctx.log,
                 )
             }
         idle(updatedBaseData)
 
-      case (ctx, _: StopMessage) =>
-        ctx.log.debug(
-          s"${getClass.getSimpleName} received Stop message, shutting down when no message has been received in 5 seconds."
-        )
-        ctx.setReceiveTimeout(5.seconds, StopTimeout)
-        Behaviors.same
+      case (ctx, FlexOptionsResultEvent(flexOptionsResult)) =>
+        val updatedBaseData = handleResult(flexOptionsResult, baseData, ctx.log)
+        idle(updatedBaseData)
 
-      case (ctx, StopTimeout) =>
-        // there have been no messages for 5 seconds, let's end this
-        ctx.log.debug(s"${getClass.getSimpleName} is now stopped.")
-        Behaviors.stopped
+      case (ctx, msg: DelayedStopHelper.StoppingMsg) =>
+        DelayedStopHelper.handleMsg((ctx, msg))
 
     }
     .receiveSignal { case (ctx, PostStop) =>
@@ -336,7 +327,7 @@ object ResultEventListener extends Transformer3wResultSupport {
           .map { case Transformer3wKey(model, zdt) =>
             s"model '$model' at $zdt"
           }
-          .mkString("\n\t\t")
+          .mkString("\n\t\t"),
       )
 
       // close sinks concurrently to speed up closing (closing calls might be blocking)
@@ -348,7 +339,7 @@ object ResultEventListener extends Transformer3wResultSupport {
             }
           )
         ),
-        5.minutes
+        5.minutes,
       )
 
       ctx.log.debug("Result I/O completed.")

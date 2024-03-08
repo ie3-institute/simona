@@ -46,7 +46,7 @@ trait DefaultTestData {
     SystemComponent.determineOperationInterval(
       defaultSimulationStart,
       defaultSimulationEnd,
-      defaultOperationTime
+      defaultOperationTime,
     )
 
   // default Lat/Long
@@ -60,7 +60,7 @@ trait DefaultTestData {
 
   protected val default400Kva10KvRefSystem: RefSystem = RefSystem(
     Kilowatts(400d),
-    Kilovolts(10d)
+    Kilovolts(10d),
   )
 
   /** Creates a [[SimonaConfig]], that provides the desired participant model
@@ -75,14 +75,14 @@ trait DefaultTestData {
     */
   def createSimonaConfig(
       modelBehaviour: LoadModelBehaviour.Value,
-      reference: LoadReference
+      reference: LoadReference,
   ): SimonaConfig = {
     val typesafeConfig: Config = ConfigFactory.parseString(
       s"""
          |simona.simulationName = "ParticipantAgentTest"
          |
-         |simona.time.startDateTime = "01/01/2020 00:00:00"
-         |simona.time.endDateTime = "01/01/2020 01:00:00"
+         |simona.time.startDateTime = "01/01/2020 00:00:00Z"
+         |simona.time.endDateTime = "01/01/2020 01:00:00Z"
          |
          |simona.input.grid.datasource.id = "csv"
          |simona.output.base.dir = "testOutput/"
@@ -98,6 +98,7 @@ trait DefaultTestData {
          |    notifier = "default"
          |    powerRequestReply = false
          |    simulationResult = false
+         |    flexResult = false
          |}
          |simona.output.participant.individualConfigs = []
          |

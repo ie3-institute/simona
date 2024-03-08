@@ -19,6 +19,7 @@ import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
+import edu.ie3.simona.model.participant.ModelState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.TimeUtil
 import spock.lang.Specification
@@ -50,6 +51,7 @@ class FixedLoadModelTest extends Specification {
   -1
   ),
   new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
+  null,
   BdewStandardLoadProfile.H0,
   false,
   Quantities.getQuantity(3000d, KILOWATTHOUR),
@@ -57,8 +59,8 @@ class FixedLoadModelTest extends Specification {
   0.95
   )
 
-  def simulationStartDate = TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
-  def simulationEndDate = TimeUtil.withDefaults.toZonedDateTime("2020-12-31 23:59:00")
+  def simulationStartDate = TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
+  def simulationEndDate = TimeUtil.withDefaults.toZonedDateTime("2020-12-31T23:59:00Z")
   def foreSeenOperationInterval =
   SystemComponent.determineOperationInterval(
   simulationStartDate,
@@ -104,7 +106,7 @@ class FixedLoadModelTest extends Specification {
 
     then:
     for (cnt in 0..10000) {
-      abs((dut.calculateActivePower(FixedLoadModel.FixedLoadRelevantData$.MODULE$)).toWatts().doubleValue()
+      abs((dut.calculateActivePower(ModelState.ConstantState$.MODULE$, FixedLoadModel.FixedLoadRelevantData$.MODULE$)).toWatts().doubleValue()
           - (expectedPower).toMegawatts().doubleValue()) < wattTolerance
     }
 
@@ -131,7 +133,7 @@ class FixedLoadModelTest extends Specification {
           reference
           )
 
-      abs(dut.calculateActivePower(relevantData).toWatts() - ((expectedPower * scale).doubleValue())) < wattTolerance
+      abs((dut.calculateActivePower(ModelState.ConstantState$.MODULE$, relevantData)).toWatts() - (expectedPower * scale).doubleValue()) < wattTolerance
     }
 
     where:

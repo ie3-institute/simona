@@ -70,10 +70,10 @@ object SystemComponentSpec {
   final case class SystemComponentMock(
       uuid: UUID = UUID.fromString("94b633a2-dfc0-4c28-acf5-d756150e5cde"),
       id: String = "SystemComponentMock",
-      operationInterval: OperationInterval
+      operationInterval: OperationInterval,
   ) extends SystemComponent(
         uuid,
         id,
-        operationInterval
+        operationInterval,
       ) // concrete implementation for testing
 }

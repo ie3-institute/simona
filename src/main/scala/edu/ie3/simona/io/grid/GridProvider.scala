@@ -8,16 +8,20 @@ package edu.ie3.simona.io.grid
 
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
-import edu.ie3.datamodel.io.source.csv.CsvJointGridContainerSource
+import edu.ie3.datamodel.io.source.csv.{
+  CsvJointGridContainerSource,
+  CsvThermalGridSource,
+}
 import edu.ie3.datamodel.models.input.container.{
   JointGridContainer,
-  ThermalGrid
+  ThermalGrid,
 }
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.datamodel.utils.validation.ValidationUtils
 import edu.ie3.simona.config.SimonaConfig
 
 import java.nio.file.Path
+import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
 /** Takes [[edu.ie3.simona.config.SimonaConfig.Simona.Input.Grid.Datasource]] as
@@ -31,7 +35,7 @@ object GridProvider extends LazyLogging {
 
   def gridFromConfig(
       simulationName: String,
-      gridDataSource: SimonaConfig.Simona.Input.Grid.Datasource
+      gridDataSource: SimonaConfig.Simona.Input.Grid.Datasource,
   ): JointGridContainer = {
     GridSourceType(gridDataSource.id.toLowerCase) match {
       case GridSourceType.CSV =>
@@ -41,14 +45,14 @@ object GridProvider extends LazyLogging {
               simulationName,
               params.csvSep,
               Path.of(params.directoryPath),
-              params.isHierarchic
+              params.isHierarchic,
             )
 
             Try(ValidationUtils.check(jointGridContainer)) match {
               case Failure(exception) =>
                 logger.warn(
                   s"Validation of grid ${jointGridContainer.getGridName} failed: \n\t{}",
-                  exception.getMessage
+                  exception.getMessage,
                 )
               case Success(_) =>
                 logger.debug(
@@ -81,12 +85,15 @@ object GridProvider extends LazyLogging {
     case GridSourceType.CSV =>
       gridDataSource.csvParams match {
         case Some(params) =>
-          CsvGridSource
-            .readThermalGrids(
+          CsvThermalGridSource
+            .read(
               params.csvSep,
               Path.of(params.directoryPath),
-              new FileNamingStrategy()
+              new FileNamingStrategy(),
             )
+            .asScala
+            .map(thermalGrid => thermalGrid.bus() -> thermalGrid)
+            .toMap
         case None =>
           throw new RuntimeException(
             "CSVGridSource requires csv params to be set!"

@@ -26,7 +26,7 @@ trait SwitchInputTestData extends NodeInputTestData with DefaultTestData {
     defaultOperationTime,
     nodeInputNoSlackNs04KvA,
     nodeInputNoSlackNs04KvB,
-    true
+    true,
   )
 
   protected val loopSwitchInput: SwitchInput = new SwitchInput(
@@ -36,7 +36,7 @@ trait SwitchInputTestData extends NodeInputTestData with DefaultTestData {
     defaultOperationTime,
     nodeInputNoSlackNs04KvA,
     nodeInputNoSlackNs04KvA,
-    true
+    true,
   )
 
   protected val invalidSwitchInput: SwitchInput = new SwitchInput(
@@ -46,6 +46,6 @@ trait SwitchInputTestData extends NodeInputTestData with DefaultTestData {
     defaultOperationTime,
     nodeInputNoSlackNs04KvA,
     nodeInputNoSlackMs10Kv,
-    true
+    true,
   )
 }

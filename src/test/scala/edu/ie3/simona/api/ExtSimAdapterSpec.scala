@@ -6,27 +6,28 @@
 
 package edu.ie3.simona.api
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{ActorSystem, Terminated}
-import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
+import edu.ie3.simona.api.ExtSimAdapter.Stop
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.api.simulation.ontology.{
   ActivationMessage,
   TerminationCompleted,
   TerminationMessage,
-  CompletionMessage => ExtCompletionMessage
+  CompletionMessage => ExtCompletionMessage,
 }
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
-  ScheduleActivation
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
-import edu.ie3.simona.ontology.messages.{Activation, StopMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.test.common.{TestKitWithShutdown, TestSpawnerClassic}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorSystem, Terminated}
+import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.util.UUID
@@ -41,7 +42,7 @@ class ExtSimAdapterSpec
           .parseString("""
             |pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
             |pekko.loglevel = "INFO"
-            |""".stripMargin)
+            |""".stripMargin),
       )
     )
     with AnyWordSpecLike
@@ -89,7 +90,7 @@ class ExtSimAdapterSpec
       awaitCond(
         !extData.receiveMessageQueue.isEmpty,
         max = 3.seconds,
-        message = "No message received"
+        message = "No message received",
       )
       extData.receiveMessageQueue.size() shouldBe 1
       extData.receiveMessageQueue.take() shouldBe new ActivationMessage(
@@ -129,7 +130,7 @@ class ExtSimAdapterSpec
       awaitCond(
         !extData.receiveMessageQueue.isEmpty,
         max = 3.seconds,
-        message = "No message received"
+        message = "No message received",
       )
       extData.receiveMessageQueue.size() shouldBe 1
       extData.receiveMessageQueue.take()
@@ -164,12 +165,12 @@ class ExtSimAdapterSpec
         val stopWatcher = TestProbe()
         stopWatcher.watch(extSimAdapter)
 
-        extSimAdapter ! StopMessage(simSuccessful)
+        extSimAdapter ! Stop(simSuccessful)
 
         awaitCond(
           !extData.receiveMessageQueue.isEmpty,
           max = 3.seconds,
-          message = "No message received"
+          message = "No message received",
         )
         extData.receiveMessageQueue.size() shouldBe 1
         extData.receiveMessageQueue.take() shouldBe new TerminationMessage(

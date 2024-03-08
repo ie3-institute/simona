@@ -17,7 +17,7 @@ trait SimonaFSMActorLogging extends ActorLogging with SimonaLogging {
       context.system,
       () => stateName,
       this,
-      actorName
+      actorName,
     )
 
 }

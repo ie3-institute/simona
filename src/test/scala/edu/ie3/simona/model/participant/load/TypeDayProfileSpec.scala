@@ -22,13 +22,13 @@ class TypeDayProfileSpec extends UnitSpec {
     "be able to return the correct values on request" in {
       val typeDayProfile = TypeDayProfile(Range(0, 96).map(_.toDouble).toArray)
       typeDayProfile.getQuarterHourEnergy(
-        TimeUtil.withDefaults.toZonedDateTime("2020-04-22 00:15:00")
+        TimeUtil.withDefaults.toZonedDateTime("2020-04-22T00:15:00Z")
       ) shouldBe 1d
       typeDayProfile.getQuarterHourEnergy(
-        TimeUtil.withDefaults.toZonedDateTime("2020-04-22 14:30:00")
+        TimeUtil.withDefaults.toZonedDateTime("2020-04-22T14:30:00Z")
       ) shouldBe 58d
       typeDayProfile.getQuarterHourEnergy(
-        TimeUtil.withDefaults.toZonedDateTime("2020-04-22 19:00:00")
+        TimeUtil.withDefaults.toZonedDateTime("2020-04-22T19:00:00Z")
       ) shouldBe 76d
     }
 

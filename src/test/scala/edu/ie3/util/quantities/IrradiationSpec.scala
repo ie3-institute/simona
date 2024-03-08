@@ -8,7 +8,7 @@ package edu.ie3.util.quantities
 
 import edu.ie3.util.scala.quantities.{
   WattHoursPerSquareMeter,
-  WattsPerSquareMeter
+  WattsPerSquareMeter,
 }
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

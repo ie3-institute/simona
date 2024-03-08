@@ -8,11 +8,12 @@ package edu.ie3.simona.model.participant.load
 
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantData
 import edu.ie3.simona.model.participant.load.LoadReference.{
   ActivePower,
-  EnergyConsumption
+  EnergyConsumption,
 }
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
@@ -45,11 +46,11 @@ final case class FixedLoadModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    scalingFactor: Double,
+    override val scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double,
-    reference: LoadReference
+    reference: LoadReference,
 ) extends LoadModel[FixedLoadRelevantData.type](
       uuid,
       id,
@@ -57,7 +58,7 @@ final case class FixedLoadModel(
       scalingFactor,
       qControl,
       sRated,
-      cosPhiRated
+      cosPhiRated,
     ) {
 
   val activePower: Power = reference match {
@@ -76,8 +77,9 @@ final case class FixedLoadModel(
     *   Active power
     */
   override protected def calculateActivePower(
-      data: FixedLoadRelevantData.type = FixedLoadRelevantData
-  ): Power = activePower * scalingFactor
+      modelState: ConstantState.type,
+      data: FixedLoadRelevantData.type = FixedLoadRelevantData,
+  ): Power = activePower
 }
 
 object FixedLoadModel {
@@ -85,22 +87,26 @@ object FixedLoadModel {
 
   def apply(
       input: LoadInput,
-      operationInterval: OperationInterval,
       scalingFactor: Double,
-      reference: LoadReference
-  ): FixedLoadModel = FixedLoadModel(
-    input.getUuid,
-    input.getId,
-    operationInterval,
-    scalingFactor,
-    QControl(input.getqCharacteristics()),
-    Kilowatts(
-      input.getsRated
-        .to(PowerSystemUnits.KILOWATT)
-        .getValue
-        .doubleValue
-    ),
-    input.getCosPhiRated,
-    reference
-  )
+      operationInterval: OperationInterval,
+      reference: LoadReference,
+  ): FixedLoadModel = {
+    val model = FixedLoadModel(
+      input.getUuid,
+      input.getId,
+      operationInterval,
+      scalingFactor,
+      QControl(input.getqCharacteristics()),
+      Kilowatts(
+        input.getsRated
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue
+      ),
+      input.getCosPhiRated,
+      reference,
+    )
+    model.enable()
+    model
+  }
 }

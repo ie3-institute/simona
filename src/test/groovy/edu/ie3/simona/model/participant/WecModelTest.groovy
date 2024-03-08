@@ -6,9 +6,6 @@
 
 package edu.ie3.simona.model.participant
 
-import squants.energy.Kilowatts$
-import squants.space.SquareMeters$
-
 import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static edu.ie3.datamodel.models.StandardUnits.*
 import static edu.ie3.simona.model.participant.WecModel.WecRelevantData
@@ -33,6 +30,8 @@ import squants.Each$
 import squants.motion.MetersPerSecond$
 import squants.motion.Pascals$
 
+import squants.energy.Kilowatts$
+import squants.space.SquareMeters$
 import squants.thermal.Celsius$
 
 
@@ -87,14 +86,15 @@ class WecModelTest extends Specification {
         OperationTime.notLimited(),
         nodeInput,
         CosPhiFixed.CONSTANT_CHARACTERISTIC,
+        null,
         typeInput,
         false)
   }
 
   def buildWecModel() {
     return WecModel.apply(inputModel, 1,
-        TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
-        TimeUtil.withDefaults.toZonedDateTime("2020-01-01 01:00:00"))
+        TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z"),
+        TimeUtil.withDefaults.toZonedDateTime("2020-01-01T01:00:00Z"))
   }
 
   @Unroll
@@ -121,25 +121,25 @@ class WecModelTest extends Specification {
         new Some (Sq.create(101325d, Pascals$.MODULE$)))
 
     when:
-    def result = wecModel.calculateActivePower(wecData)
+    def result = wecModel.calculateActivePower(ModelState.ConstantState$.MODULE$, wecData)
 
     then:
     Math.abs((result.toWatts() - power.doubleValue())) < TOLERANCE
 
     where:
-    velocity | power
-    1.0d     | 0
-    2.0d     | -2948.80958
-    3.0d     | -24573.41320
-    7.0d     | -522922.23257
-    9.0d     | -1140000
-    13.0d    | -1140000
-    15.0d    | -1140000
-    19.0d    | -1140000
-    23.0d    | -1140000
-    27.0d    | -1140000
-    34.0d    | -24573.39638
-    40.0d    | 0
+    velocity || power
+    1.0d     || 0
+    2.0d     || -2948.80958
+    3.0d     || -24573.41320
+    7.0d     || -522922.23257
+    9.0d     || -1140000
+    13.0d    || -1140000
+    15.0d    || -1140000
+    19.0d    || -1140000
+    23.0d    || -1140000
+    27.0d    || -1140000
+    34.0d    || -24573.39638
+    40.0d    || 0
   }
 
   @Unroll
@@ -150,7 +150,7 @@ class WecModelTest extends Specification {
         Sq.create(temperature, Celsius$.MODULE$), new Some( Sq.create(101325d, Pascals$.MODULE$)))
 
     when:
-    def result = wecModel.calculateActivePower(wecData)
+    def result = wecModel.calculateActivePower(ModelState.ConstantState$.MODULE$, wecData)
 
     then:
     result.toWatts() =~ power

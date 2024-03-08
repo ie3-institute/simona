@@ -5,4 +5,4 @@ The Thermal Grid Model introduces a coupling point to thermal system, equivalent
 
 ## Attributes, Units and Remarks
 
-Please refer to {doc}`PowerSystemDataModel - Thermal Bus <psdm:models/input/participant/thermalbus>` for Attributes and Units used in this Model.
+Please refer to {doc}`PowerSystemDataModel - Thermal Bus <psdm:models/input/thermal/thermalbus>` for Attributes and Units used in this Model.

@@ -9,7 +9,7 @@ package edu.ie3.simona.agent.participant
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
-import edu.ie3.simona.agent.grid.GridAgent.FinishGridSimulationTrigger
+import edu.ie3.simona.agent.participant.ParticipantAgent.FinishParticipantSimulation
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.SimonaConfig
@@ -21,7 +21,7 @@ import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage
+  RequestAssetPowerMessage,
 }
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
@@ -52,7 +52,7 @@ class ParticipantAgent2ListenerSpec
           .parseString("""
             |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
             |pekko.loglevel="OFF"
-        """.stripMargin)
+        """.stripMargin),
       )
     )
     with DefaultTestData
@@ -63,7 +63,7 @@ class ParticipantAgent2ListenerSpec
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
 
   /* Assign this test to receive the result events from agent */
-  override val systemListener: Iterable[ActorRef] = Vector(self)
+  override val systemListener: Iterable[ActorRef] = Iterable(self)
 
   private val testUUID = UUID.randomUUID
   private val testID = "PartAgentExternalMock"
@@ -72,50 +72,51 @@ class ParticipantAgent2ListenerSpec
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
       LoadModelBehaviour.FIX,
-      LoadReference.ActivePower(Kilowatts(0d))
+      LoadReference.ActivePower(Kilowatts(0d)),
     )
 
   private val mockInputModel = mock[SystemParticipantInput]
   when(mockInputModel.getUuid).thenReturn(testUUID)
   when(mockInputModel.getId).thenReturn(testID)
 
-  private val sources = None
+  private val services = Iterable.empty
 
   "A participant agent" should {
     val initStateData: NotifierConfig => ParticipantInitializeStateData[
       SystemParticipantInput,
       BaseRuntimeConfig,
-      ApparentPower
+      ApparentPower,
     ] = outputConfig =>
       ParticipantInitializeStateData[
         SystemParticipantInput,
         BaseRuntimeConfig,
-        ApparentPower
+        ApparentPower,
       ](
         inputModel = mockInputModel,
         modelConfig = mock[BaseRuntimeConfig],
-        secondaryDataServices = sources,
+        secondaryDataServices = services,
         simulationStartDate = defaultSimulationStart,
         simulationEndDate = defaultSimulationEnd,
         resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
         requestVoltageDeviationThreshold =
           simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
         outputConfig = outputConfig,
-        primaryServiceProxy = primaryServiceProxy.ref
+        primaryServiceProxy = primaryServiceProxy.ref,
       )
 
     "inform listeners about new simulation results, when asked to do" in {
       /* Let the agent send announcements, when there is anew request reply */
       val outputConfig = NotifierConfig(
         simulationResultInfo = true,
-        powerRequestReply = false
+        powerRequestReply = false,
+        flexResult = false,
       )
 
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
           scheduler = scheduler.ref,
           initStateData = initStateData(outputConfig),
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -124,7 +125,10 @@ class ParticipantAgent2ListenerSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(mockAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        mockAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref),
+      )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped))
 
@@ -142,11 +146,11 @@ class ParticipantAgent2ListenerSpec
             ) =>
           systemParticipantResult.getP should equalWithTolerance(
             Quantities.getQuantity(2, MEGAWATT),
-            quantityTolerance
+            quantityTolerance,
           )
           systemParticipantResult.getQ should equalWithTolerance(
             Quantities.getQuantity(1, MEGAVAR),
-            quantityTolerance
+            quantityTolerance,
           )
         case _ => fail("Expected a SystemParticipantResult")
       }
@@ -156,14 +160,15 @@ class ParticipantAgent2ListenerSpec
       /* Let the agent send announcements, when there is anew request reply */
       val outputConfig = NotifierConfig(
         simulationResultInfo = false,
-        powerRequestReply = false
+        powerRequestReply = false,
+        flexResult = false,
       )
 
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
           scheduler = scheduler.ref,
           initStateData = initStateData(outputConfig),
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -172,7 +177,10 @@ class ParticipantAgent2ListenerSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(mockAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        mockAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref),
+      )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped))
 
@@ -188,14 +196,15 @@ class ParticipantAgent2ListenerSpec
       /* Let the agent send announcements, when there is anew request reply */
       val outputConfig = NotifierConfig(
         simulationResultInfo = false,
-        powerRequestReply = true
+        powerRequestReply = true,
+        flexResult = false,
       )
 
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
           scheduler = scheduler.ref,
           initStateData = initStateData(outputConfig),
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -204,7 +213,10 @@ class ParticipantAgent2ListenerSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(mockAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        mockAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref),
+      )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped))
 
@@ -217,7 +229,7 @@ class ParticipantAgent2ListenerSpec
       mockAgent ! RequestAssetPowerMessage(
         3000L,
         Each(1d),
-        Each(0d)
+        Each(0d),
       )
 
       /* Wait for original reply (this is the querying agent) */
@@ -229,7 +241,7 @@ class ParticipantAgent2ListenerSpec
         case unknownMsg => fail(s"Received unexpected message: $unknownMsg")
       }
 
-      scheduler.send(mockAgent, FinishGridSimulationTrigger(3000L))
+      scheduler.send(mockAgent, FinishParticipantSimulation(3000L))
 
       /* Wait for the result event (this is the event listener) */
       logger.warn(
@@ -245,14 +257,15 @@ class ParticipantAgent2ListenerSpec
       /* Let the agent send announcements, when there is anew request reply */
       val outputConfig = NotifierConfig(
         simulationResultInfo = false,
-        powerRequestReply = false
+        powerRequestReply = false,
+        flexResult = false,
       )
 
       val mockAgent = TestFSMRef(
         new ParticipantAgentMock(
           scheduler = scheduler.ref,
           initStateData = initStateData(outputConfig),
-          listener = systemListener
+          listener = systemListener,
         )
       )
 
@@ -261,7 +274,10 @@ class ParticipantAgent2ListenerSpec
 
       /* Refuse registration with primary service */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(mockAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        mockAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref),
+      )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped))
 
@@ -275,7 +291,7 @@ class ParticipantAgent2ListenerSpec
       mockAgent ! RequestAssetPowerMessage(
         3000L,
         Each(1d),
-        Each(0d)
+        Each(0d),
       )
 
       /* Wait for original reply (this is the querying agent) */
@@ -287,7 +303,7 @@ class ParticipantAgent2ListenerSpec
         case unknownMsg => fail(s"Received unexpected message: $unknownMsg")
       }
 
-      scheduler.send(mockAgent, FinishGridSimulationTrigger(3000L))
+      scheduler.send(mockAgent, FinishParticipantSimulation(3000L))
 
       /* Make sure nothing else is sent */
       expectNoMessage(noReceiveTimeOut.duration)

@@ -6,8 +6,10 @@
 
 package edu.ie3.simona.ontology.messages
 
+import edu.ie3.simona.agent.grid.GridAgentMessage
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.util.scala.quantities.ReactivePower
+import org.apache.pekko.actor.typed.ActorRef
 import squants.{Dimensionless, Power}
 
 import java.util.UUID
@@ -41,7 +43,7 @@ object PowerMessage {
   final case class RequestAssetPowerMessage(
       currentTick: Long,
       eInPu: Dimensionless,
-      fInPu: Dimensionless
+      fInPu: Dimensionless,
   ) extends PowerRequestMessage
 
   /** Provide power values as a reply to a [[RequestAssetPowerMessage]]
@@ -53,7 +55,7 @@ object PowerMessage {
     */
   final case class AssetPowerChangedMessage(
       override val p: Power,
-      override val q: ReactivePower
+      override val q: ReactivePower,
   ) extends ProvidePowerMessage
 
   /** Provide values as a reply to a [[RequestAssetPowerMessage]]. In contrast
@@ -67,7 +69,7 @@ object PowerMessage {
     */
   final case class AssetPowerUnchangedMessage(
       override val p: Power,
-      override val q: ReactivePower
+      override val q: ReactivePower,
   ) extends ProvidePowerMessage
 
   /** Request complex power at the nodes that the inferior sub grid shares with
@@ -79,7 +81,8 @@ object PowerMessage {
     */
   final case class RequestGridPowerMessage(
       currentSweepNo: Int,
-      nodeUuids: Seq[UUID]
+      nodeUuids: Seq[UUID],
+      sender: ActorRef[GridAgentMessage],
   ) extends PowerRequestMessage
 
   /** Provide complex power at the nodes that the sender's sub grid shares with
@@ -105,7 +108,7 @@ object PowerMessage {
     final case class ExchangePower(
         nodeUuid: UUID,
         override val p: Power,
-        override val q: ReactivePower
+        override val q: ReactivePower,
     ) extends ProvidePowerMessage
   }
 

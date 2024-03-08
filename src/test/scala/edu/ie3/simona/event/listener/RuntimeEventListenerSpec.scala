@@ -9,7 +9,7 @@ package edu.ie3.simona.event.listener
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ActorTestKit,
   LoggingTestKit,
-  ScalaTestWithActorTestKit
+  ScalaTestWithActorTestKit,
 }
 import com.typesafe.config.ConfigValueFactory
 import edu.ie3.simona.config.SimonaConfig
@@ -22,13 +22,11 @@ import edu.ie3.simona.event.RuntimeEvent.{
   Initializing,
   PowerFlowFailed,
   Ready,
-  Simulating
+  Simulating,
 }
+import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.TimeUtil
-import org.scalatest.PrivateMethodTester
-import org.scalatest.matchers.should
-import org.scalatest.wordspec.AnyWordSpecLike
 import org.slf4j.event.Level
 
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
@@ -39,38 +37,33 @@ class RuntimeEventListenerSpec
         // Timeout for LoggingTestKit via TestKitSettings
         // Log message sometimes seem to take a while until caught by the test kit
         "org.apache.pekko.actor.testkit.typed.filter-leeway",
-        ConfigValueFactory.fromAnyRef("30s")
+        ConfigValueFactory.fromAnyRef("30s"),
       )
     )
-    with AnyWordSpecLike
-    with should.Matchers
-    with PrivateMethodTester {
+    with UnitSpec {
 
   // global variables
-  val eventQueue = new LinkedBlockingQueue[RuntimeEvent]()
-  val startDateTimeString = "2011-01-01 00:00:00"
+  val startDateTimeString = "2011-01-01T00:00:00Z"
   val endTick = 3600
   val duration = 10805000
-  val errMsg =
-    "Und wenn du lange in einen Abgrund blickst, blickt der Abgrund auch in dich hinein"
+  val errMsg = "testing error msg"
 
-  // to change for Ready event test cases
   val currentTick = 0
-
-  // build the listener
-  private val listenerRef = spawn(
-    RuntimeEventListener(
-      SimonaConfig.Simona.Runtime.Listener(
-        None,
-        None
-      ),
-      Some(eventQueue),
-      startDateTimeString
-    )
-  )
 
   "A runtime event listener" must {
     "add a valid runtime event to the blocking queue for further processing" in {
+      val eventQueue = new LinkedBlockingQueue[RuntimeEvent]()
+
+      val listenerRef = spawn(
+        RuntimeEventListener(
+          SimonaConfig.Simona.Runtime.Listener(
+            None,
+            None,
+          ),
+          Some(eventQueue),
+          startDateTimeString,
+        )
+      )
 
       //  valid runtime events
       val eventsToQueue: Seq[RuntimeEvent] = List(
@@ -78,7 +71,7 @@ class RuntimeEventListenerSpec
         Ready(currentTick, duration),
         Simulating(currentTick, 0),
         Done(endTick, duration, errorInSim = false),
-        Error(errMsg)
+        Error(errMsg),
       )
 
       for (event <- eventsToQueue) {
@@ -97,6 +90,17 @@ class RuntimeEventListenerSpec
 
     "return valid log messages for each status event" in {
 
+      val listenerRef = spawn(
+        RuntimeEventListener(
+          SimonaConfig.Simona.Runtime.Listener(
+            None,
+            None,
+          ),
+          None,
+          startDateTimeString,
+        )
+      )
+
       def calcTime(curTick: Long): String = {
         TimeUtil.withDefaults.toString(
           curTick.toDateTime(
@@ -113,42 +117,46 @@ class RuntimeEventListenerSpec
         (
           Initializing,
           Level.INFO,
-          "Initializing Agents and Services for Simulation ... "
+          "Initializing Agents and Services for Simulation ... ",
         ),
         (
           InitComplete(0L),
           Level.INFO,
-          s"Initialization complete. (duration: 0h : 0m : 0s )"
+          s"Initialization complete. (duration: 0h : 0m : 0s )",
         ),
         (
           Ready(currentTick, 0L),
           Level.INFO,
-          s"Switched from 'Simulating' to 'Ready'. Last simulated time: ${calcTime(currentTick)}."
+          s"Switched from 'Simulating' to 'Ready'. Last simulated time: ${calcTime(currentTick)}.",
         ),
         (
           Simulating(currentTick, endTick),
           Level.INFO,
-          s"Simulating from ${calcTime(currentTick)} until ${calcTime(endTick)}."
+          s"Simulating from ${calcTime(currentTick)} until ${calcTime(endTick)}.",
         ),
         (
           CheckWindowPassed(currentTick, 0L),
           Level.INFO,
-          s"Simulation until ${calcTime(currentTick)} completed."
+          s"Simulation until ${calcTime(currentTick)} completed.",
         ),
         (
           Done(endTick, duration, errorInSim = false),
           Level.INFO,
-          s"Simulation completed with \u001b[0;32mSUCCESS (Failed PF: 2)\u001b[0;30m in time step ${calcTime(endTick)}. Total runtime: 3h : 0m : 5s "
+          s"Simulation completed with \u001b[0;32mSUCCESS (Failed PF: 2)\u001b[0;30m in time step ${calcTime(endTick)}. Total runtime: 3h : 0m : 5s ",
         ),
         (
           Error(errMsg),
           Level.ERROR,
-          errMsg
-        )
+          errMsg,
+        ),
       )
 
+      val loggingTestKit = LoggingTestKit.empty
+        // logger name for ActorContext loggers (ctx.log) is the class name
+        .withLoggerName(RuntimeEventListener.getClass.getName)
+
       events.foreach { case (event, level, msg) =>
-        LoggingTestKit.empty
+        loggingTestKit
           .withLogLevel(level)
           .withMessageContains(msg)
           .expect {

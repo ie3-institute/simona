@@ -10,11 +10,11 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.io.connectors.{
   CouchbaseConnector,
   InfluxDbConnector,
-  SqlConnector
+  SqlConnector,
 }
 import edu.ie3.datamodel.io.factory.timeseries.{
   CosmoTimeBasedWeatherValueFactory,
-  IconTimeBasedWeatherValueFactory
+  IconTimeBasedWeatherValueFactory,
 }
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.couchbase.CouchbaseWeatherSource
@@ -23,14 +23,14 @@ import edu.ie3.datamodel.io.source.influxdb.InfluxDbWeatherSource
 import edu.ie3.datamodel.io.source.sql.SqlWeatherSource
 import edu.ie3.datamodel.io.source.{
   IdCoordinateSource,
-  WeatherSource => PsdmWeatherSource
+  WeatherSource => PsdmWeatherSource,
 }
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
   CouchbaseParams,
   InfluxDb1xParams,
-  SqlParams
+  SqlParams,
 }
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
@@ -38,7 +38,7 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.weather.WeatherSource.{
   EMPTY_WEATHER_DATA,
   WeatherScheme,
-  toWeatherData
+  toWeatherData,
 }
 import edu.ie3.simona.service.weather.WeatherSourceWrapper.WeightSum
 import edu.ie3.simona.service.weather.{WeatherSource => SimonaWeatherSource}
@@ -50,6 +50,7 @@ import tech.units.indriya.ComparableQuantity
 
 import java.nio.file.Paths
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import javax.measure.quantity.Length
 import scala.jdk.CollectionConverters.{IterableHasAsJava, MapHasAsScala}
 import scala.jdk.OptionConverters.RichOptional
@@ -191,7 +192,7 @@ private[weather] final case class WeatherSourceWrapper private (
     */
   override def getDataTicks(
       requestFrameStart: Long,
-      requestFrameEnd: Long
+      requestFrameEnd: Long,
   ): Array[Long] =
     TickUtil.getTicksInBetween(requestFrameStart, requestFrameEnd, resolution)
 }
@@ -211,7 +212,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       source,
       idCoordinateSource,
       resolution.getOrElse(DEFAULT_RESOLUTION),
-      distance
+      distance,
     )
   }
 
@@ -304,15 +305,23 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
         throw new InitializationException(
           s"Error while initializing WeatherFactory for weather source wrapper: '$scheme' is not a weather scheme. Supported schemes:\n\t${WeatherScheme.values
               .mkString("\n\t")}'",
-          exception
+          exception,
         )
       case Success(WeatherScheme.ICON) =>
         timestampPattern
-          .map(new IconTimeBasedWeatherValueFactory(_))
+          .map(pattern =>
+            new IconTimeBasedWeatherValueFactory(
+              DateTimeFormatter.ofPattern(pattern)
+            )
+          )
           .getOrElse(new IconTimeBasedWeatherValueFactory())
       case Success(WeatherScheme.COSMO) =>
         timestampPattern
-          .map(new CosmoTimeBasedWeatherValueFactory(_))
+          .map(pattern =>
+            new CosmoTimeBasedWeatherValueFactory(
+              DateTimeFormatter.ofPattern(pattern)
+            )
+          )
           .getOrElse(new CosmoTimeBasedWeatherValueFactory())
       case Success(unknownScheme) =>
         throw new InitializationException(
@@ -337,19 +346,19 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       diffIrr: Double,
       dirIrr: Double,
       temp: Double,
-      windVel: Double
+      windVel: Double,
   ) {
     def add(
         diffIrr: Double,
         dirIrr: Double,
         temp: Double,
-        windVel: Double
+        windVel: Double,
     ): WeightSum =
       WeightSum(
         this.diffIrr + diffIrr,
         this.dirIrr + dirIrr,
         this.temp + temp,
-        this.windVel + windVel
+        this.windVel + windVel,
       )
 
     /** Scale the given [[WeatherData]] by dividing by the sum of weights per
@@ -373,7 +382,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
           if (this.temp !~= 0d) temp.divide(this.temp)
           else EMPTY_WEATHER_DATA.temp,
           if (this.windVel !~= 0d) windVel.divide(this.windVel)
-          else EMPTY_WEATHER_DATA.windVel
+          else EMPTY_WEATHER_DATA.windVel,
         )
     }
   }

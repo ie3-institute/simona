@@ -10,13 +10,13 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.io.connectors.{
   CouchbaseConnector,
   InfluxDbConnector,
-  SqlConnector
+  SqlConnector,
 }
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
   SwitchResult,
   Transformer2WResult,
-  Transformer3WResult
+  Transformer3WResult,
 }
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.config.SimonaConfig
@@ -39,7 +39,7 @@ object ConfigUtil {
 
   final case class ParticipantConfigUtil private (
       private val configs: Map[UUID, SimonaConfig.BaseRuntimeConfig],
-      private val defaultConfigs: Map[Class[_], BaseRuntimeConfig]
+      private val defaultConfigs: Map[Class[_], BaseRuntimeConfig],
   ) {
 
     /** Queries for a [[BaseRuntimeConfig]] of type [[T]], that applies for the
@@ -88,7 +88,7 @@ object ConfigUtil {
             subConfig.fixedFeedIn.individualConfigs,
             subConfig.pv.individualConfigs,
             subConfig.evcs.individualConfigs,
-            subConfig.wec.individualConfigs
+            subConfig.wec.individualConfigs,
           ).reduceOption(_ ++ _).getOrElse(Seq.empty)
         ),
         Seq(
@@ -97,8 +97,8 @@ object ConfigUtil {
           subConfig.pv.defaultConfig,
           subConfig.evcs.defaultConfig,
           subConfig.wec.defaultConfig,
-          subConfig.hp.defaultConfig
-        ).map { conf => conf.getClass -> conf }.toMap
+          subConfig.hp.defaultConfig,
+        ).map { conf => conf.getClass -> conf }.toMap,
       )
     }
 
@@ -127,8 +127,8 @@ object ConfigUtil {
       private val defaultConfig: NotifierConfig,
       private val configs: Map[
         NotifierIdentifier.Value,
-        NotifierConfig
-      ]
+        NotifierConfig,
+      ],
   ) {
     def getOrDefault(
         notifierId: NotifierIdentifier.Value
@@ -147,7 +147,7 @@ object ConfigUtil {
         NotifierIdentifier.values -- configs.flatMap {
           case (
                 notifierId,
-                NotifierConfig(resultInfo, _)
+                NotifierConfig(resultInfo, _, _),
               ) if !resultInfo =>
             Some(notifierId)
           case _ => None
@@ -157,7 +157,7 @@ object ConfigUtil {
         configs.flatMap {
           case (
                 notifierId,
-                NotifierConfig(resultInfo, _)
+                NotifierConfig(resultInfo, _, _),
               ) if resultInfo =>
             Some(notifierId)
           case _ => None
@@ -178,24 +178,30 @@ object ConfigUtil {
         case ParticipantBaseOutputConfig(
               _,
               simulationResult,
-              powerRequestReply
+              flexResult,
+              powerRequestReply,
             ) =>
-          NotifierConfig(simulationResult, powerRequestReply)
+          NotifierConfig(simulationResult, powerRequestReply, flexResult)
       }
       val configMap = subConfig.individualConfigs.map {
         case ParticipantBaseOutputConfig(
               notifier,
               simulationResult,
-              powerRequestReply
+              flexResult,
+              powerRequestReply,
             ) =>
           try {
             val id = NotifierIdentifier(notifier)
-            id -> NotifierConfig(simulationResult, powerRequestReply)
+            id -> NotifierConfig(
+              simulationResult,
+              powerRequestReply,
+              flexResult,
+            )
           } catch {
             case e: NoSuchElementException =>
               throw new InvalidConfigParameterException(
                 s"Cannot parse $notifier to known result event notifier.",
-                e
+                e,
               )
           }
       }.toMap
@@ -207,18 +213,26 @@ object ConfigUtil {
     ): OutputConfigUtil = {
       val defaultConfig = subConfig.defaultConfig match {
         case SimpleOutputConfig(_, simulationResult) =>
-          NotifierConfig(simulationResult, powerRequestReply = false)
+          NotifierConfig(
+            simulationResult,
+            powerRequestReply = false,
+            flexResult = false,
+          )
       }
       val configMap = subConfig.individualConfigs.map {
         case SimpleOutputConfig(notifier, simulationResult) =>
           try {
             val id = NotifierIdentifier(notifier)
-            id -> NotifierConfig(simulationResult, powerRequestReply = false)
+            id -> NotifierConfig(
+              simulationResult,
+              powerRequestReply = false,
+              flexResult = false,
+            )
           } catch {
             case e: NoSuchElementException =>
               throw new InvalidConfigParameterException(
                 s"Cannot parse $notifier to known result event notifier.",
-                e
+                e,
               )
           }
       }.toMap
@@ -281,7 +295,7 @@ object ConfigUtil {
       */
     def checkBaseCsvParams(
         params: SimonaConfig.BaseCsvParams,
-        csvParamsName: String
+        csvParamsName: String,
     ): Unit = params match {
       case BaseCsvParams(csvSep, directoryPath, _) =>
         if (!(csvSep.equals(";") || csvSep.equals(",")))
@@ -301,7 +315,7 @@ object ConfigUtil {
     def checkCsvParams(
         csvParamsName: String,
         csvSep: String,
-        folderPath: String
+        folderPath: String,
     ): Unit = {
       if (!(csvSep.equals(";") || csvSep.equals(",")))
         throw new InvalidConfigParameterException(
@@ -356,7 +370,7 @@ object ConfigUtil {
         case Failure(exception) =>
           throw new IllegalArgumentException(
             s"Unable to reach configured SQL database with url '${sql.jdbcUrl}' and user name '${sql.userName}'. Exception: $exception",
-            exception
+            exception,
           )
         case Success(connection) =>
           val validConnection = connection.isValid(5000)
@@ -406,13 +420,13 @@ object ConfigUtil {
           couchbase.url,
           couchbase.bucketName,
           couchbase.userName,
-          couchbase.password
+          couchbase.password,
         )
       ) match {
         case Failure(exception) =>
           throw new IllegalArgumentException(
             s"Unable to reach configured Couchbase database with url '${couchbase.url}', bucket '${couchbase.bucketName}' and user name '${couchbase.userName}'. Exception: $exception",
-            exception
+            exception,
           )
         case Success(connector) =>
           val validConnection = connector.isConnectionValid
@@ -431,7 +445,7 @@ object ConfigUtil {
     def checkInfluxDb1xParams(
         influxDb1xParamsName: String,
         url: String,
-        database: String
+        database: String,
     ): Unit = {
       Try(
         new InfluxDbConnector(url, database).isConnectionValid
@@ -439,7 +453,7 @@ object ConfigUtil {
         case Failure(exception) =>
           throw new IllegalArgumentException(
             s"Unable to reach configured influxDb1x with url '$url' for '$influxDb1xParamsName' configuration and database '$database'. Exception: $exception",
-            exception
+            exception,
           )
         case Success(validConnection) if !validConnection =>
           throw new IllegalArgumentException(
@@ -454,7 +468,7 @@ object ConfigUtil {
 
     def checkKafkaParams(
         kafkaParams: KafkaParams,
-        topics: Seq[String]
+        topics: Seq[String],
     ): Unit = {
       try {
         UUID.fromString(kafkaParams.runId)
@@ -462,7 +476,7 @@ object ConfigUtil {
         case e: IllegalArgumentException =>
           throw new InvalidConfigParameterException(
             s"The UUID '${kafkaParams.runId}' cannot be parsed as it is invalid.",
-            e
+            e,
           )
       }
 
@@ -477,17 +491,17 @@ object ConfigUtil {
         case Failure(ke: KafkaException) =>
           throw new InvalidConfigParameterException(
             s"Exception creating kafka client for broker ${kafkaParams.bootstrapServers}.",
-            ke
+            ke,
           )
         case Failure(ee: ExecutionException) =>
           throw new InvalidConfigParameterException(
             s"Connection with kafka broker ${kafkaParams.bootstrapServers} failed.",
-            ee
+            ee,
           )
         case Failure(other) =>
           throw new InvalidConfigParameterException(
             s"Checking kafka config failed with unexpected exception.",
-            other
+            other,
           )
         case Success(missingTopics) if missingTopics.nonEmpty =>
           throw new InvalidConfigParameterException(
