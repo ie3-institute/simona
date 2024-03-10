@@ -22,6 +22,5 @@ Institute of Energy Systems, Energy Efficiency and Energy Economics at TU Dortmu
 Indices and tables
 ==================
 
-* :ref:`genindex`
 * :ref:`modindex`
-* :ref:`search`
+
