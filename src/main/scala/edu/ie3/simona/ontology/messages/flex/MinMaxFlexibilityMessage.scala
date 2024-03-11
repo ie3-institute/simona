@@ -39,18 +39,7 @@ object MinMaxFlexibilityMessage {
       ref: Power,
       min: Power,
       max: Power,
-  ) extends ProvideFlexOptions {
-
-    /** Checks whether given power fits within the min-max interval and thus
-      * would be a feasible solution
-      * @param power
-      *   The active power to check against the flex options
-      * @return
-      *   Whether the given power is within the min-max interval or not
-      */
-    def fits(power: Power): Boolean =
-      min <= power && power <= max
-  }
+  ) extends ProvideFlexOptions
 
   object ProvideMinMaxFlexOptions {
 

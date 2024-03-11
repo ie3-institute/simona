@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.EmInput
 import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.input.system._
@@ -79,7 +78,7 @@ class GridAgentController(
     resolution: Long,
     listener: Iterable[ActorRef[ResultEvent]],
     log: Logger,
-) extends LazyLogging {
+) {
   def buildSystemParticipants(
       subGridContainer: SubGridContainer,
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],

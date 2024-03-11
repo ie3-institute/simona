@@ -326,11 +326,10 @@ object EmAgent {
         )
       )
 
-      val setPointActivePower = EmTools
-        .determineFlexPower(
-          ownFlexOptions,
-          flexCtrl,
-        )
+      val setPointActivePower = EmTools.determineFlexPower(
+        ownFlexOptions,
+        flexCtrl,
+      )
 
       // flex options calculated by connected agents
       val receivedFlexOptions = flexOptionsCore.getFlexOptions

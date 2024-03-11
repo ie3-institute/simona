@@ -94,17 +94,12 @@ final case class EmModelShell(
     setPoints.map { case (model, power) =>
       val flexOptions =
         minMaxFlexOptions.getOrElse(model, throw new RuntimeException())
-      if (!flexOptions.fits(power))
-        throw new CriticalFailureException(
-          s"Calculated set point $power does not fit flex option"
-        )
+
+      // sanity checks after strat calculation
+      EmTools.checkSetPower(flexOptions, power)
 
       model -> power
     }
-
-    // TODO sanity checks after strat calculation
-    // checkSetPower(flexOptions, power)
-
   }
 
 }
