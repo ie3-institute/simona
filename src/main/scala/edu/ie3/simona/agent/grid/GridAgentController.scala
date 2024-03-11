@@ -202,7 +202,6 @@ class GridAgentController(
       participantConfigUtil,
       outputConfigUtil,
       firstLevelEms,
-      Map.empty,
     )
 
     participants
@@ -226,12 +225,31 @@ class GridAgentController(
       .groupMap(entry => entry._1)(entry => entry._2)
   }
 
+  /** Recursively builds the [[EmAgent]] structure. Recursion starts with
+    * first-level EMs (controlling at least one system participant), and works
+    * its way up to EMs at root level, which are not EM-controlled themselves.
+    * The first level can also be root level.
+    *
+    * @param participantConfigUtil
+    *   Configuration util for participant models
+    * @param outputConfigUtil
+    *   Configuration util for output behaviour
+    * @param emInputs
+    *   EMs of the current level, which can be controlled by further EMs at
+    *   higher levels
+    * @param lastLevelEms
+    *   EMs that have been built by the previous recursion level
+    * @return
+    *   Map from model UUID to EmAgent ActorRef
+    */
   private def buildEmsRecursively(
       participantConfigUtil: ConfigUtil.ParticipantConfigUtil,
       outputConfigUtil: OutputConfigUtil,
       emInputs: Map[UUID, EmInput],
-      existingEms: Map[UUID, ActorRef[EmMessage]],
+      lastLevelEms: Map[UUID, ActorRef[EmMessage]] = Map.empty,
   ): Map[UUID, ActorRef[EmMessage]] = {
+    // For the current level, split controlled and uncontrolled EMs.
+    // Uncontrolled EMs can be built right away.
     val (controlledEmInputs, uncontrolledEms) = emInputs
       .partitionMap { case (uuid, emInput) =>
         if (emInput.getControllingEm.isPresent)
@@ -247,25 +265,29 @@ class GridAgentController(
         }
       }
 
-    val existingAndUncontrolledEms = existingEms ++ uncontrolledEms.toMap
+    val lastLevelAndUncontrolledEms = lastLevelEms ++ uncontrolledEms.toMap
 
     if (controlledEmInputs.nonEmpty) {
-      // EMs that are controlling EMs at this level
+      // For controlled EMs at the current level, more EMs
+      // might need to be built at the next recursion level.
       val controllingEms = controlledEmInputs.toMap.flatMap {
         case (uuid, emInput) =>
           emInput.getControllingEm.toScala.map(uuid -> _)
       }
 
+      // Return value includes last level and uncontrolled EMs of this level
       val recursiveEms = buildEmsRecursively(
         participantConfigUtil,
         outputConfigUtil,
         controllingEms,
-        existingAndUncontrolledEms,
+        lastLevelAndUncontrolledEms,
       )
 
       val controlledEms = controlledEmInputs.map { case (uuid, emInput) =>
         val controllingEm = emInput.getControllingEm.toScala
           .map(_.getUuid)
+          // We do not have to throw errors here because PSDM
+          // already takes care of valid input data
           .flatMap(uuid => recursiveEms.get(uuid))
 
         uuid -> buildEm(
@@ -278,7 +300,7 @@ class GridAgentController(
 
       recursiveEms ++ controlledEms
     } else {
-      existingAndUncontrolledEms
+      lastLevelAndUncontrolledEms
     }
   }
 
@@ -289,7 +311,7 @@ class GridAgentController(
       participantInputModel: SystemParticipantInput,
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
       environmentRefs: EnvironmentRefs,
-      maybeControllingEm: Option[ActorRef[FlexResponse]] = None,
+      maybeControllingEm: Option[ActorRef[FlexResponse]],
   ): ActorRef[ParticipantMessage] = participantInputModel match {
     case input: FixedFeedInInput =>
       buildFixedFeedIn(
@@ -431,7 +453,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeControllingEm: Option[ActorRef[FlexResponse]] = None,
+      maybeControllingEm: Option[ActorRef[FlexResponse]],
   ): ActorRef[ParticipantMessage] =
     gridAgentContext.toClassic
       .simonaActorOf(
@@ -488,7 +510,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeControllingEm: Option[ActorRef[FlexResponse]] = None,
+      maybeControllingEm: Option[ActorRef[FlexResponse]],
   ): ActorRef[ParticipantMessage] =
     gridAgentContext.toClassic
       .simonaActorOf(
@@ -548,7 +570,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeControllingEm: Option[ActorRef[FlexResponse]] = None,
+      maybeControllingEm: Option[ActorRef[FlexResponse]],
   ): ActorRef[ParticipantMessage] =
     gridAgentContext.toClassic
       .simonaActorOf(
@@ -608,7 +630,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeControllingEm: Option[ActorRef[FlexResponse]] = None,
+      maybeControllingEm: Option[ActorRef[FlexResponse]],
   ): ActorRef[ParticipantMessage] =
     gridAgentContext.toClassic
       .simonaActorOf(
@@ -664,7 +686,7 @@ class GridAgentController(
       weatherService: ClassicRef,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeControllingEm: Option[ActorRef[FlexResponse]] = None,
+      maybeControllingEm: Option[ActorRef[FlexResponse]],
   ): ActorRef[ParticipantMessage] =
     gridAgentContext.toClassic
       .simonaActorOf(
@@ -725,7 +747,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeControllingEm: Option[ActorRef[FlexResponse]] = None,
+      maybeControllingEm: Option[ActorRef[FlexResponse]],
   ): ActorRef[ParticipantMessage] =
     gridAgentContext.toClassic
       .simonaActorOf(
@@ -752,19 +774,21 @@ class GridAgentController(
   /** Builds an [[EmAgent]] from given input
     *
     * @param emInput
-    *   Input model
+    *   The input model
     * @param modelConfiguration
     *   Runtime configuration for the agent
     * @param outputConfig
     *   Configuration for output notification
+    * @param maybeControllingEm
+    *   The parent EmAgent, if applicable
     * @return
-    *   A tuple of actor reference and [[ParticipantInitializeStateData]]
+    *   The [[EmAgent]] 's [[ActorRef]]
     */
   private def buildEm(
       emInput: EmInput,
       modelConfiguration: EmRuntimeConfig,
       outputConfig: NotifierConfig,
-      maybeControllingEm: Option[ActorRef[FlexResponse]] = None,
+      maybeControllingEm: Option[ActorRef[FlexResponse]],
   ): ActorRef[EmMessage] =
     gridAgentContext.spawn(
       EmAgent(
