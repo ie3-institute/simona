@@ -50,7 +50,7 @@ class EmAgentSpec
     with SquantsMatchers {
 
   protected implicit val simulationStartDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
 
   private val outputConfig = NotifierConfig(
     simulationResultInfo = true,
