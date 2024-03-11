@@ -101,8 +101,8 @@ class GridAgentController(
 
   /** Takes the provided [[SubGridContainer]] and removes all
     * [[SystemParticipantInput]] of which no agent implementations are available
-    * at the moment or which are connected to some EM system. This method needs
-    * to be adapted whenever a new agent implementation is ready.
+    * at the moment. This method needs to be adapted whenever a new agent
+    * implementation is ready.
     *
     * To disable a filter for a specific system participant, adapt the code
     * below.
@@ -139,12 +139,6 @@ class GridAgentController(
                   if environmentRefs.evDataService.isEmpty =>
                 log.warn(
                   s"Evcs ${evcsInput.getId} has been removed because no ev movements service is present."
-                )
-                (notProcessedElements, availableSystemParticipants)
-              case entity if entity.getControllingEm.isPresent =>
-                log.debug(
-                  s"System participant {} is part of an energy-managed system and thus not directly connected to the grid.",
-                  entity,
                 )
                 (notProcessedElements, availableSystemParticipants)
               case entity =>
