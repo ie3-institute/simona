@@ -13,7 +13,6 @@ import edu.ie3.datamodel.models.input.system._
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.agent.em.EmAgent.EmMessage
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
   ActorEvMovementsService,
@@ -240,8 +239,8 @@ class GridAgentController(
       participantConfigUtil: ConfigUtil.ParticipantConfigUtil,
       outputConfigUtil: OutputConfigUtil,
       emInputs: Map[UUID, EmInput],
-      lastLevelEms: Map[UUID, ActorRef[EmMessage]] = Map.empty,
-  ): Map[UUID, ActorRef[EmMessage]] = {
+      lastLevelEms: Map[UUID, ActorRef[FlexResponse]] = Map.empty,
+  ): Map[UUID, ActorRef[FlexResponse]] = {
     // For the current level, split controlled and uncontrolled EMs.
     // Uncontrolled EMs can be built right away.
     val (controlledEmInputs, uncontrolledEms) = emInputs
@@ -783,7 +782,7 @@ class GridAgentController(
       modelConfiguration: EmRuntimeConfig,
       outputConfig: NotifierConfig,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
-  ): ActorRef[EmMessage] =
+  ): ActorRef[FlexResponse] =
     gridAgentContext.spawn(
       EmAgent(
         emInput,
