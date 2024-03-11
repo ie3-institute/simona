@@ -429,6 +429,5 @@ class EmAgentIT
       }
     }
 
-    // TODO test stacked EmAgents
   }
 }
