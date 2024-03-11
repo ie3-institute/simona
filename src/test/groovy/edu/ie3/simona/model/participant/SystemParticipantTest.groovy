@@ -26,7 +26,6 @@ class SystemParticipantTest extends Specification {
         UUID.fromString("b69f6675-5284-4e28-add5-b76952ec1ec2"),
         "System participant calculateQ Test",
         OperationInterval.apply(0L, 86400L),
-        1d,
         QControl.apply(new CosPhiFixed(varCharacteristicString)),
         Sq.create(200, Kilowatts$.MODULE$),
         1d)
@@ -58,7 +57,6 @@ class SystemParticipantTest extends Specification {
         UUID.fromString("3d28b9f7-929a-48e3-8696-ad2330a04225"),
         "Load calculateQ Test",
         OperationInterval.apply(0L, 86400L),
-        1d,
         QControl.apply(new CosPhiP(varCharacteristicString)),
         Sq.create(102, Kilowatts$.MODULE$),
         1d)
@@ -88,7 +86,6 @@ class SystemParticipantTest extends Specification {
         UUID.fromString("30f84d97-83b4-4b71-9c2d-dbc7ebb1127c"),
         "Generation calculateQ Test",
         OperationInterval.apply(0L, 86400L),
-        1d,
         QControl.apply(new CosPhiP(varCharacteristicString)),
         Sq.create(101, Kilowatts$.MODULE$),
         1d)
@@ -120,7 +117,6 @@ class SystemParticipantTest extends Specification {
         UUID.fromString("d8461624-d142-4360-8e02-c21965ec555e"),
         "System participant calculateQ Test",
         OperationInterval.apply(0L, 86400L),
-        1d,
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
         Sq.create(200, Kilowatts$.MODULE$),
         0.98)
@@ -154,7 +150,6 @@ class SystemParticipantTest extends Specification {
         UUID.fromString("d8461624-d142-4360-8e02-c21965ec555e"),
         "System participant calculateQ Test",
         OperationInterval.apply(0L, 86400L),
-        1d,
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
         Sq.create(200, Kilowatts$.MODULE$),
         1d)
@@ -188,7 +183,6 @@ class SystemParticipantTest extends Specification {
         UUID.fromString("d8461624-d142-4360-8e02-c21965ec555e"),
         "System participant calculateQ Test",
         OperationInterval.apply(0L, 86400L),
-        1d,
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
         Sq.create(200, Kilowatts$.MODULE$),
         0.95)
@@ -222,7 +216,6 @@ class SystemParticipantTest extends Specification {
         UUID.fromString("d8461624-d142-4360-8e02-c21965ec555e"),
         "System participant calculateQ Test",
         OperationInterval.apply(0L, 86400L),
-        1d,
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
         Sq.create(200, Kilowatts$.MODULE$),
         0.95)

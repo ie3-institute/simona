@@ -43,8 +43,6 @@ import scala.collection.SortedSet
   *   the element's human readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
-  * @param scalingFactor
-  *   Scaling the output of the system
   * @param qControl
   *   Type of reactive power control
   * @param sRated
@@ -60,7 +58,6 @@ final case class WecModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    override val scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double,
@@ -70,7 +67,6 @@ final case class WecModel(
       uuid,
       id,
       operationInterval,
-      scalingFactor,
       qControl,
       sRated,
       cosPhiRated,
@@ -264,24 +260,27 @@ object WecModel {
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
   ): WecModel = {
+    val scaledInput = inputModel.copy().scale(scalingFactor).build()
+
     val operationInterval = SystemComponent.determineOperationInterval(
       simulationStartDate,
       simulationEndDate,
-      inputModel.getOperationTime,
+      scaledInput.getOperationTime,
     )
 
     val model = new WecModel(
-      inputModel.getUuid,
-      inputModel.getId,
+      scaledInput.getUuid,
+      scaledInput.getId,
       operationInterval,
-      scalingFactor,
-      QControl(inputModel.getqCharacteristics),
-      Kilowatts(inputModel.getType.getsRated.to(KILOWATT).getValue.doubleValue),
-      inputModel.getType.getCosPhiRated,
-      SquareMeters(
-        inputModel.getType.getRotorArea.to(SQUARE_METRE).getValue.doubleValue
+      QControl(scaledInput.getqCharacteristics),
+      Kilowatts(
+        scaledInput.getType.getsRated.to(KILOWATT).getValue.doubleValue
       ),
-      WecCharacteristic(inputModel.getType.getCpCharacteristic),
+      scaledInput.getType.getCosPhiRated,
+      SquareMeters(
+        scaledInput.getType.getRotorArea.to(SQUARE_METRE).getValue.doubleValue
+      ),
+      WecCharacteristic(scaledInput.getType.getCpCharacteristic),
     )
 
     model.enable()
