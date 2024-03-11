@@ -13,7 +13,8 @@ import edu.ie3.datamodel.models.input.system.{
   PvInput,
   StorageInput,
 }
-import EmModelStrat.tolerance
+import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.model.em.EmModelStrat.tolerance
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import squants.Power
 import squants.energy.Kilowatts
@@ -64,7 +65,11 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
         .reduceOption { (power1, power2) =>
           power1 + power2
         }
-        .getOrElse(throw new RuntimeException("No flexibilities provided"))
+        .getOrElse(
+          throw new CriticalFailureException(
+            "No flexibilities have been provided"
+          )
+        )
 
     val targetDelta = totalRefPower - target
 

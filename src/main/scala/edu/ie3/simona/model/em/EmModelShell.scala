@@ -93,7 +93,12 @@ final case class EmModelShell(
 
     setPoints.map { case (model, power) =>
       val flexOptions =
-        minMaxFlexOptions.getOrElse(model, throw new RuntimeException())
+        minMaxFlexOptions.getOrElse(
+          model,
+          throw new CriticalFailureException(
+            s"Set point for model $model has been calculated by ${modelStrategy.getClass.getSimpleName}, which is not connected to this EM."
+          ),
+        )
 
       // sanity checks after strat calculation
       EmTools.checkSetPower(flexOptions, power)
