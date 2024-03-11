@@ -68,7 +68,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
                   forwardMessage(Some(extSimAdapter.ref)),
                   uniqueName("extSimAdapterForwarder"),
                 )
-                ExtSimSetupData(Iterable(extSim.toClassic), Map.empty)
+                ExtSimSetupData(Iterable(extSim.toClassic), Map.empty, None)
               }
             }
           ),
@@ -453,6 +453,6 @@ object SimonaSimSpec {
         context: ActorContext[_],
         rootScheduler: ActorRef[SchedulerMessage],
     ): ExtSimSetupData =
-      ExtSimSetupData(Iterable.empty, Map.empty)
+      ExtSimSetupData(Iterable.empty, Map.empty, None)
   }
 }
