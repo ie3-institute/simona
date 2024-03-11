@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Printing logs of failed tests [#747](https://github.com/ie3-institute/simona/issues/747)
 - Models for measurements within the grid structure [#89](https://github.com/ie3-institute/simona/issues/89)
 - Config possibility for transformer control groups [#90](https://github.com/ie3-institute/simona/issues/90)
+- Implemented scaling of all relevant input parameters [#764](https://github.com/ie3-institute/simona/issues/764)
+- Consider scaling factor with flex options [#734](https://github.com/ie3-institute/simona/issues/734)
 - Output of accompanying thermal result models
 - Implementation of Energy Management Agents [#204](https://github.com/ie3-institute/simona/issues/204)
 

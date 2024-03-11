@@ -95,12 +95,10 @@ class PvModelTest extends Specification {
         )
 
     // build the PvModel
-    double scalingFactor = 1.0d
     pvModel = PvModel.apply(
         pvInput.uuid,
         pvInput.id,
         OperationInterval.apply(0L, 86400L),
-        scalingFactor,
         QControl.apply(pvInput.qCharacteristics),
         Sq.create(pvInput.sRated.to(KILOWATT).value.doubleValue(), Kilowatts$.MODULE$),
         pvInput.cosPhiRated,
