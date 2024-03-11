@@ -76,7 +76,6 @@ class GridAgentController(
     simulationStartDate: ZonedDateTime,
     simulationEndDate: ZonedDateTime,
     participantsConfig: SimonaConfig.Simona.Runtime.Participant,
-    rootEmConfig: Option[SimonaConfig.Simona.Runtime.RootEm],
     outputConfig: SimonaConfig.Simona.Output.Participant,
     resolution: Long,
     listener: Iterable[ActorRef[ResultEvent]],
@@ -97,7 +96,6 @@ class GridAgentController(
       systemParticipants,
       thermalIslandGridsByBusId,
       environmentRefs,
-      rootEmConfig,
     )
   }
 
@@ -188,7 +186,6 @@ class GridAgentController(
       participants: Vector[SystemParticipantInput],
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
       environmentRefs: EnvironmentRefs,
-      rootEmConfig: Option[SimonaConfig.Simona.Runtime.RootEm],
   ): Map[UUID, Set[ActorRef[ParticipantMessage]]] = {
     /* Prepare the config util for the participant models, which (possibly) utilizes as map to speed up the initialization
      * phase */
@@ -204,7 +201,6 @@ class GridAgentController(
     val allEms = buildEmsRecursively(
       participantConfigUtil,
       outputConfigUtil,
-      rootEmConfig,
       firstLevelEms,
       Map.empty,
     )
@@ -233,7 +229,6 @@ class GridAgentController(
   private def buildEmsRecursively(
       participantConfigUtil: ConfigUtil.ParticipantConfigUtil,
       outputConfigUtil: OutputConfigUtil,
-      rootEmConfig: Option[SimonaConfig.Simona.Runtime.RootEm],
       emInputs: Map[UUID, EmInput],
       existingEms: Map[UUID, ActorRef[EmMessage]],
   ): Map[UUID, ActorRef[EmMessage]] = {
@@ -247,7 +242,6 @@ class GridAgentController(
             participantConfigUtil.getOrDefault[EmRuntimeConfig](uuid),
             outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
             maybeControllingEm = None,
-            rootEmConfig = rootEmConfig,
           )
           Right(uuid -> actor)
         }
@@ -265,7 +259,6 @@ class GridAgentController(
       val recursiveEms = buildEmsRecursively(
         participantConfigUtil,
         outputConfigUtil,
-        rootEmConfig,
         controllingEms,
         existingAndUncontrolledEms,
       )
@@ -280,7 +273,6 @@ class GridAgentController(
           participantConfigUtil.getOrDefault[EmRuntimeConfig](uuid),
           outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
           maybeControllingEm = controllingEm,
-          rootEmConfig = None,
         )
       }.toMap
 
@@ -773,21 +765,19 @@ class GridAgentController(
       modelConfiguration: EmRuntimeConfig,
       outputConfig: NotifierConfig,
       maybeControllingEm: Option[ActorRef[FlexResponse]] = None,
-      rootEmConfig: Option[SimonaConfig.Simona.Runtime.RootEm] = None,
   ): ActorRef[EmMessage] =
     gridAgentContext.spawn(
       EmAgent(
         emInput,
         modelConfiguration,
         outputConfig,
-        rootEmConfig
-          .map(_ => "PROPORTIONAL")
-          .getOrElse("PRIORITIZED"),
+        maybeControllingEm
+          .map(_ => "PRIORITIZED")
+          .getOrElse("PROPORTIONAL"),
         simulationStartDate,
         maybeControllingEm.toRight(
           environmentRefs.scheduler
         ),
-        rootEmConfig,
         listener,
       ),
       actorName(classOf[EmAgent.type], emInput.getId),

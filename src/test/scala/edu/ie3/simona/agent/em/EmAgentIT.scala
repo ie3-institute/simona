@@ -113,7 +113,6 @@ class EmAgentIT
             "PRIORITIZED",
             simulationStartDate,
             parent = Left(scheduler.ref),
-            maybeRootEmConfig = None,
             listener = Iterable(resultListener.ref),
           ),
           "EmAgent1",

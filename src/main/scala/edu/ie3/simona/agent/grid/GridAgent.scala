@@ -136,7 +136,6 @@ object GridAgent extends DBFSAlgorithm {
           TimeUtil.withDefaults
             .toZonedDateTime(constantData.simonaConfig.simona.time.endDateTime),
           constantData.simonaConfig.simona.runtime.participant,
-          constantData.simonaConfig.simona.runtime.rootEm,
           constantData.simonaConfig.simona.output.participant,
           constantData.resolution,
           constantData.listener,

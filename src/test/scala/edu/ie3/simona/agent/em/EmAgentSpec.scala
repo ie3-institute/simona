@@ -82,7 +82,6 @@ class EmAgentSpec
           "PRIORITIZED",
           simulationStartDate,
           parent = Left(scheduler.ref),
-          maybeRootEmConfig = None,
           listener = Iterable(resultListener.ref),
         )
       )
@@ -217,7 +216,6 @@ class EmAgentSpec
           "PRIORITIZED",
           simulationStartDate,
           parent = Left(scheduler.ref),
-          maybeRootEmConfig = None,
           listener = Iterable(resultListener.ref),
         )
       )
@@ -364,7 +362,6 @@ class EmAgentSpec
           "PRIORITIZED",
           simulationStartDate,
           parent = Left(scheduler.ref),
-          maybeRootEmConfig = None,
           listener = Iterable(resultListener.ref),
         )
       )
@@ -522,7 +519,6 @@ class EmAgentSpec
           "PRIORITIZED",
           simulationStartDate,
           parent = Right(parentEmAgent.ref),
-          maybeRootEmConfig = None,
           listener = Iterable(resultListener.ref),
         )
       )
