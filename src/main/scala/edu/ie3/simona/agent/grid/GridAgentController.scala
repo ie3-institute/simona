@@ -470,7 +470,7 @@ class GridAgentController(
     *   Maximum deviation in p.u. of request voltages to be considered equal
     * @param outputConfig
     *   Configuration of the output behavior
-    * @param maybeParmaybeControllingEm
+    * @param maybeControllingEm
     *   The parent EmAgent, if applicable
     * @return
     *   The [[LoadAgent]] 's [[ActorRef]]
@@ -484,7 +484,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      maybeParmaybeControllingEm: Option[ActorRef[FlexResponse]] = None,
+      maybeControllingEm: Option[ActorRef[FlexResponse]] = None,
   ): ActorRef[ParticipantMessage] =
     gridAgentContext.toClassic
       .simonaActorOf(
@@ -500,7 +500,7 @@ class GridAgentController(
             resolution,
             requestVoltageDeviationThreshold,
             outputConfig,
-            maybeParmaybeControllingEm,
+            maybeControllingEm,
           ),
           listener.map(_.toClassic),
         ),
