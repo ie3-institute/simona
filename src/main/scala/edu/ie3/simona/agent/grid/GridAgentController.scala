@@ -130,7 +130,8 @@ class GridAgentController(
                 curSysPart,
               ) =>
             curSysPart match {
-              case entity @ (_: BmInput | _: ChpInput | _: EvInput) =>
+              case entity @ (_: BmInput | _: ChpInput | _: EvInput |
+                  _: StorageInput) =>
                 (
                   notProcessedElements + entity.getClass.getSimpleName,
                   availableSystemParticipants,
