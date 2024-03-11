@@ -196,66 +196,18 @@ class GridAgentController(
       ConfigUtil.ParticipantConfigUtil(participantsConfig)
     val outputConfigUtil = ConfigUtil.OutputConfigUtil(outputConfig)
 
-    def buildEmsRecursively(
-        emInputs: Map[UUID, EmInput],
-        existingEms: Map[UUID, ActorRef[EmMessage]],
-    ): Map[UUID, ActorRef[EmMessage]] = {
-      val (controlledEmInputs, uncontrolledEms) = emInputs
-        .partitionMap { case (uuid, emInput) =>
-          if (emInput.getControllingEm.isPresent)
-            Left(uuid -> emInput)
-          else {
-            val actor = buildEm(
-              emInput,
-              participantConfigUtil.getOrDefault[EmRuntimeConfig](uuid),
-              outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
-              maybeControllingEm = None,
-              rootEmConfig = rootEmConfig,
-            )
-            Right(uuid -> actor)
-          }
-        }
-
-      val existingAndUncontrolledEms = existingEms ++ uncontrolledEms.toMap
-
-      if (controlledEmInputs.nonEmpty) {
-        // EMs that are controlling EMs at this level
-        val controllingEms = controlledEmInputs.toMap.flatMap {
-          case (uuid, emInput) =>
-            emInput.getControllingEm.toScala.map(uuid -> _)
-        }
-
-        val recursiveEms = buildEmsRecursively(
-          controllingEms,
-          existingAndUncontrolledEms,
-        )
-
-        val controlledEms = controlledEmInputs.map { case (uuid, emInput) =>
-          val controllingEm = emInput.getControllingEm.toScala
-            .map(_.getUuid)
-            .flatMap(uuid => recursiveEms.get(uuid))
-
-          uuid -> buildEm(
-            emInput,
-            participantConfigUtil.getOrDefault[EmRuntimeConfig](uuid),
-            outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
-            maybeControllingEm = controllingEm,
-            rootEmConfig = None,
-          )
-        }.toMap
-
-        recursiveEms ++ controlledEms
-      } else {
-        existingAndUncontrolledEms
-      }
-    }
-
-    // all ems that control at least one participant directly
+    // ems that control at least one participant directly
     val firstLevelEms = participants.flatMap {
       _.getControllingEm.toScala.map(em => em.getUuid -> em)
     }.toMap
 
-    val allEms = buildEmsRecursively(firstLevelEms, Map.empty)
+    val allEms = buildEmsRecursively(
+      participantConfigUtil,
+      outputConfigUtil,
+      rootEmConfig,
+      firstLevelEms,
+      Map.empty,
+    )
 
     participants
       .map { participant =>
@@ -276,6 +228,66 @@ class GridAgentController(
       }
       .toSet[(UUID, ActorRef[ParticipantMessage])]
       .groupMap(entry => entry._1)(entry => entry._2)
+  }
+
+  private def buildEmsRecursively(
+      participantConfigUtil: ConfigUtil.ParticipantConfigUtil,
+      outputConfigUtil: OutputConfigUtil,
+      rootEmConfig: Option[SimonaConfig.Simona.Runtime.RootEm],
+      emInputs: Map[UUID, EmInput],
+      existingEms: Map[UUID, ActorRef[EmMessage]],
+  ): Map[UUID, ActorRef[EmMessage]] = {
+    val (controlledEmInputs, uncontrolledEms) = emInputs
+      .partitionMap { case (uuid, emInput) =>
+        if (emInput.getControllingEm.isPresent)
+          Left(uuid -> emInput)
+        else {
+          val actor = buildEm(
+            emInput,
+            participantConfigUtil.getOrDefault[EmRuntimeConfig](uuid),
+            outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
+            maybeControllingEm = None,
+            rootEmConfig = rootEmConfig,
+          )
+          Right(uuid -> actor)
+        }
+      }
+
+    val existingAndUncontrolledEms = existingEms ++ uncontrolledEms.toMap
+
+    if (controlledEmInputs.nonEmpty) {
+      // EMs that are controlling EMs at this level
+      val controllingEms = controlledEmInputs.toMap.flatMap {
+        case (uuid, emInput) =>
+          emInput.getControllingEm.toScala.map(uuid -> _)
+      }
+
+      val recursiveEms = buildEmsRecursively(
+        participantConfigUtil,
+        outputConfigUtil,
+        rootEmConfig,
+        controllingEms,
+        existingAndUncontrolledEms,
+      )
+
+      val controlledEms = controlledEmInputs.map { case (uuid, emInput) =>
+        val controllingEm = emInput.getControllingEm.toScala
+          .map(_.getUuid)
+          .flatMap(uuid => recursiveEms.get(uuid))
+
+        uuid -> buildEm(
+          emInput,
+          participantConfigUtil.getOrDefault[EmRuntimeConfig](uuid),
+          outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
+          maybeControllingEm = controllingEm,
+          rootEmConfig = None,
+        )
+      }.toMap
+
+      recursiveEms ++ controlledEms
+    } else {
+      existingAndUncontrolledEms
+    }
   }
 
   private def buildParticipantActor(
