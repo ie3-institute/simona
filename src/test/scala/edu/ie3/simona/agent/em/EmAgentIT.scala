@@ -147,7 +147,7 @@ class EmAgentIT
           new PvAgent(
             scheduler = scheduler.ref.toClassic,
             initStateData = ParticipantInitializeStateData(
-              pvInput, // TODO pv em
+              pvInput,
               PvRuntimeConfig(
                 calculateMissingReactivePowerWithModel = true,
                 scaling = 2d,
