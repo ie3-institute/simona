@@ -34,8 +34,6 @@ import java.time.ZonedDateTime
   *   the element's human readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
-  * @param scalingFactor
-  *   Scaling the output of the system
   * @param qControl
   *   Type of reactive power control
   * @param sRated
@@ -51,7 +49,6 @@ final case class ChpModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    override val scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double,
@@ -61,7 +58,6 @@ final case class ChpModel(
       uuid,
       id,
       operationInterval,
-      scalingFactor,
       qControl,
       sRated,
       cosPhiRated,
@@ -378,27 +374,28 @@ object ChpModel {
       scalingFactor: Double,
       thermalStorage: ThermalStorage with MutableStorage,
   ): ChpModel = {
+    val scaledInput = chpInput.copy().scale(scalingFactor).build()
+
     val operationInterval = SystemComponent.determineOperationInterval(
       simulationStartDate,
       simulationEndDate,
-      chpInput.getOperationTime,
+      scaledInput.getOperationTime,
     )
 
     val model = new ChpModel(
-      chpInput.getUuid,
-      chpInput.getId,
+      scaledInput.getUuid,
+      scaledInput.getId,
       operationInterval,
-      scalingFactor,
       qControl,
       Kilowatts(
-        chpInput.getType.getsRated
+        scaledInput.getType.getsRated
           .to(PowerSystemUnits.KILOWATT)
           .getValue
           .doubleValue
       ),
-      chpInput.getType.getCosPhiRated,
+      scaledInput.getType.getCosPhiRated,
       Kilowatts(
-        chpInput.getType.getpThermal
+        scaledInput.getType.getpThermal
           .to(PowerSystemUnits.KILOWATT)
           .getValue
           .doubleValue

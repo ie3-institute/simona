@@ -21,7 +21,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptio
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import squants.energy.Megawatts
+import squants.energy.Kilowatts
 import squants.{Energy, Power}
 
 import java.util.UUID
@@ -35,7 +35,6 @@ abstract class LoadModel[D <: LoadRelevantData](
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double,
@@ -43,7 +42,6 @@ abstract class LoadModel[D <: LoadRelevantData](
       uuid,
       id,
       operationInterval,
-      scalingFactor,
       qControl,
       sRated,
       cosPhiRated,
@@ -67,7 +65,7 @@ abstract class LoadModel[D <: LoadRelevantData](
     (lastState, FlexChangeIndicator())
 }
 
-case object LoadModel extends LazyLogging {
+object LoadModel extends LazyLogging {
 
   /** Scale profile based load models' sRated based on a provided active power
     * value
@@ -92,9 +90,9 @@ case object LoadModel extends LazyLogging {
       activePower: Power,
       safetyFactor: Double = 1d,
   ): Power = {
-    val sRated = Megawatts(
+    val sRated = Kilowatts(
       inputModel.getsRated
-        .to(PowerSystemUnits.MEGAWATT)
+        .to(PowerSystemUnits.KILOWATT)
         .getValue
         .doubleValue
     )

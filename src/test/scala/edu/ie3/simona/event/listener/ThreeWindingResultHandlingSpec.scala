@@ -24,20 +24,20 @@ class ThreeWindingResultHandlingSpec
   "Handling three winding results" when {
     "assembling joint values" should {
       val mockAResult = PartialTransformer3wResult.PortA(
-        TimeUtil.withDefaults.toZonedDateTime("2021-06-23 20:51:00"),
+        TimeUtil.withDefaults.toZonedDateTime("2021-06-23T20:51:00Z"),
         UUID.randomUUID(),
         Amperes(1d),
         Degrees(2d),
         -5,
       )
       val mockBResult = PartialTransformer3wResult.PortB(
-        TimeUtil.withDefaults.toZonedDateTime("2021-06-23 20:51:00"),
+        TimeUtil.withDefaults.toZonedDateTime("2021-06-23T20:51:00Z"),
         UUID.randomUUID(),
         Amperes(3d),
         Degrees(4d),
       )
       val mockCResult = PartialTransformer3wResult.PortC(
-        TimeUtil.withDefaults.toZonedDateTime("2021-06-23 20:51:00"),
+        TimeUtil.withDefaults.toZonedDateTime("2021-06-23T20:51:00Z"),
         UUID.randomUUID(),
         Amperes(5d),
         Degrees(6d),

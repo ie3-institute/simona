@@ -123,6 +123,10 @@ final class SampleWeatherSource(
   */
 object SampleWeatherSource {
   object SampleIdCoordinateSource extends IdCoordinateSource {
+    override def getSourceFields: Optional[util.Set[String]] =
+      // only required for validation
+      Optional.empty
+
     override def getCoordinate(id: Int): Optional[Point] =
       Optional.of(NodeInput.DEFAULT_GEO_POSITION)
 
