@@ -7,23 +7,25 @@
 package edu.ie3.simona.sim
 
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.agent.grid.GridAgentMessage
 import edu.ie3.simona.api.ExtSimAdapter
+import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.event.listener.{
   DelayedStopHelper,
   ResultEventListener,
   RuntimeEventListener,
 }
-import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.main.RunSimona.SimonaEnded
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.scheduler.TimeAdvancer
+import edu.ie3.simona.scheduler.core.Core.CoreFactory
+import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.sim.SimonaSim.SimulationEnded
 import edu.ie3.simona.sim.SimonaSimSpec._
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
 import edu.ie3.simona.test.common.UnitSpec
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
-  LogCapturing,
   ScalaTestWithActorTestKit,
   TestProbe,
 }
@@ -58,7 +60,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
             ) {
               override def extSimulations(
                   context: ActorContext[_],
-                  scheduler: ActorRef[SchedulerMessage],
+                  rootScheduler: ActorRef[SchedulerMessage],
               ): ExtSimSetupData = {
                 // We cannot return a TestProbe ref here,
                 // needs to be a proper actor created by context
@@ -66,7 +68,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
                   forwardMessage(Some(extSimAdapter.ref)),
                   uniqueName("extSimAdapterForwarder"),
                 )
-                ExtSimSetupData(Iterable(extSim.toClassic), Map.empty)
+                ExtSimSetupData(Iterable(extSim.toClassic), Map.empty, None)
               }
             }
           ),
@@ -121,7 +123,8 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
               override def scheduler(
                   context: ActorContext[_],
-                  timeAdvancer: ActorRef[TimeAdvancer.Request],
+                  timeAdvancer: ActorRef[SchedulerMessage],
+                  coreFactory: CoreFactory,
               ): ActorRef[SchedulerMessage] = {
                 val throwingActor = context
                   .spawn[SchedulerMessage](
@@ -186,7 +189,8 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
               override def scheduler(
                   context: ActorContext[_],
-                  timeAdvancer: ActorRef[TimeAdvancer.Request],
+                  timeAdvancer: ActorRef[SchedulerMessage],
+                  coreFactory: CoreFactory,
               ): ActorRef[SchedulerMessage] = {
                 val stoppingActor =
                   context.spawn[SchedulerMessage](
@@ -434,20 +438,21 @@ object SimonaSimSpec {
 
     override def scheduler(
         context: ActorContext[_],
-        timeAdvancer: ActorRef[TimeAdvancer.Request],
+        timeAdvancer: ActorRef[SchedulerMessage],
+        coreFactory: CoreFactory = RegularSchedulerCore,
     ): ActorRef[SchedulerMessage] =
       context.spawn(empty, uniqueName("scheduler"))
 
     override def gridAgents(
         context: ActorContext[_],
         environmentRefs: EnvironmentRefs,
-        systemParticipantListener: Seq[ActorRef[ResultEvent]],
-    ): Iterable[ClassicRef] = Iterable.empty
+        resultEventListeners: Seq[ActorRef[ResultEvent]],
+    ): Iterable[ActorRef[GridAgentMessage]] = Iterable.empty
 
     override def extSimulations(
         context: ActorContext[_],
-        scheduler: ActorRef[SchedulerMessage],
+        rootScheduler: ActorRef[SchedulerMessage],
     ): ExtSimSetupData =
-      ExtSimSetupData(Iterable.empty, Map.empty)
+      ExtSimSetupData(Iterable.empty, Map.empty, None)
   }
 }

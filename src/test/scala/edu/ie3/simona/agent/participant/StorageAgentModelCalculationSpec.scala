@@ -71,9 +71,9 @@ class StorageAgentModelCalculationSpec
     with StorageInputTestData {
 
   protected implicit val simulationStartDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
   protected val simulationEndDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 01:00:00")
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T01:00:00Z")
 
   /* Alter the input model to have a voltage sensitive reactive power calculation */
   private val storageInputQv = storageInput
@@ -100,7 +100,7 @@ class StorageAgentModelCalculationSpec
   private val modelConfig = configUtil.getOrDefault[StorageRuntimeConfig](
     storageInputQv.getUuid
   )
-  private val services = None
+  private val services = Iterable.empty
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
   private implicit val powerTolerance: Power = Watts(0.1)
@@ -195,7 +195,7 @@ class StorageAgentModelCalculationSpec
               startDate,
               endDate,
               _,
-              services,
+              secondaryDataServices,
               outputConfig,
               additionalActivationTicks,
               foreseenDataTicks,
@@ -210,7 +210,7 @@ class StorageAgentModelCalculationSpec
           /* Base state data */
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
-          services shouldBe None
+          secondaryDataServices shouldBe services
           outputConfig shouldBe outputConfig
           additionalActivationTicks shouldBe empty
           foreseenDataTicks shouldBe Map.empty

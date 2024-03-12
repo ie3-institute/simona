@@ -9,6 +9,7 @@ package edu.ie3.simona.model.em
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import squants.Power
 import squants.energy.Kilowatts
 
 /** Aggregates flex reference power with the target of reaching 0kW, while
@@ -23,7 +24,7 @@ final case class EmAggregateSelfOpt(pvFlex: Boolean) extends EmAggregateFlex {
       flexOptions: Iterable[
         (_ <: AssetInput, ProvideMinMaxFlexOptions)
       ]
-  ): (squants.Power, squants.Power, squants.Power) = {
+  ): (Power, Power, Power) = {
     val (minSum, maxSum) =
       flexOptions.foldLeft((Kilowatts(0d), Kilowatts(0d))) {
         case (

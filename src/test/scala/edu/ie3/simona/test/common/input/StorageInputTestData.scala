@@ -43,6 +43,7 @@ trait StorageInputTestData extends DefaultTestData with NodeInputTestData {
     OperationTime.notLimited(),
     nodeInputNoSlackNs04KvA,
     CosPhiFixed.CONSTANT_CHARACTERISTIC,
+    null,
     storageTypeInput,
   )
 

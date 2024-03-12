@@ -29,7 +29,6 @@ final case class StorageModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    override val scalingFactor: Double,
     qControl: QControl,
     sRated: squants.Power,
     cosPhiRated: Double,
@@ -43,7 +42,6 @@ final case class StorageModel(
       uuid,
       id,
       operationInterval,
-      scalingFactor,
       qControl,
       sRated,
       cosPhiRated,
@@ -311,19 +309,22 @@ object StorageModel {
       initialSoc: Double,
       targetSoc: Option[Double],
   ): StorageModel = {
+
+    val scaledInput = inputModel.copy().scale(scalingFactor).build()
+
     {
       // TODO have this in some fail fast
       val dod =
-        inputModel.getType.getDod.to(PowerSystemUnits.PU).getValue.doubleValue
+        scaledInput.getType.getDod.to(PowerSystemUnits.PU).getValue.doubleValue
 
       if (initialSoc > dod)
         throw new RuntimeException(
-          s"Storage ${inputModel.getUuid}: Initial SOC can't be lower than DOD"
+          s"Storage ${scaledInput.getUuid}: Initial SOC can't be lower than DOD"
         )
 
       if (targetSoc.exists(_ < dod))
         throw new RuntimeException(
-          s"Storage ${inputModel.getUuid}: Target SOC can't be lower than DOD"
+          s"Storage ${scaledInput.getUuid}: Target SOC can't be lower than DOD"
         )
     }
 
@@ -332,40 +333,39 @@ object StorageModel {
       SystemComponent.determineOperationInterval(
         simulationStartDate,
         simulationEndDate,
-        inputModel.getOperationTime,
+        scaledInput.getOperationTime,
       )
 
     // build the fixed feed in model
     val model = StorageModel(
-      inputModel.getUuid,
-      inputModel.getId,
+      scaledInput.getUuid,
+      scaledInput.getId,
       operationInterval,
-      scalingFactor,
-      QControl.apply(inputModel.getqCharacteristics),
+      QControl.apply(scaledInput.getqCharacteristics),
       Kilowatts(
-        inputModel.getType.getsRated
+        scaledInput.getType.getsRated
           .to(PowerSystemUnits.KILOWATT)
           .getValue
           .doubleValue
       ),
-      inputModel.getType.getCosPhiRated,
+      scaledInput.getType.getCosPhiRated,
       KilowattHours(
-        inputModel.getType.geteStorage
+        scaledInput.getType.geteStorage
           .to(PowerSystemUnits.KILOWATTHOUR)
           .getValue
           .doubleValue
       ),
       Kilowatts(
-        inputModel.getType.getpMax
+        scaledInput.getType.getpMax
           .to(PowerSystemUnits.KILOWATT)
           .getValue
           .doubleValue
       ),
       Each(
-        inputModel.getType.getEta.to(PowerSystemUnits.PU).getValue.doubleValue
+        scaledInput.getType.getEta.to(PowerSystemUnits.PU).getValue.doubleValue
       ),
       Each(
-        inputModel.getType.getDod.to(PowerSystemUnits.PU).getValue.doubleValue
+        scaledInput.getType.getDod.to(PowerSystemUnits.PU).getValue.doubleValue
       ),
       initialSoc,
       targetSoc,

@@ -536,7 +536,7 @@ object SimonaConfig {
       SimonaConfig.PrimaryDataCsvParams(
         timePattern =
           if (c.hasPathOrNull("timePattern")) c.getString("timePattern")
-          else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'",
+          else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X",
         csvSep = $_reqStr(parentPath, c, "csvSep", $tsCfgValidator),
         directoryPath =
           $_reqStr(parentPath, c, "directoryPath", $tsCfgValidator),
@@ -935,6 +935,45 @@ object SimonaConfig {
 
   }
 
+  final case class TransformerControlGroup(
+      measurements: scala.List[java.lang.String],
+      transformers: scala.List[java.lang.String],
+      vMax: scala.Double,
+      vMin: scala.Double,
+  )
+  object TransformerControlGroup {
+    def apply(
+        c: com.typesafe.config.Config,
+        parentPath: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator,
+    ): SimonaConfig.TransformerControlGroup = {
+      SimonaConfig.TransformerControlGroup(
+        measurements =
+          $_L$_str(c.getList("measurements"), parentPath, $tsCfgValidator),
+        transformers =
+          $_L$_str(c.getList("transformers"), parentPath, $tsCfgValidator),
+        vMax = $_reqDbl(parentPath, c, "vMax", $tsCfgValidator),
+        vMin = $_reqDbl(parentPath, c, "vMin", $tsCfgValidator),
+      )
+    }
+    private def $_reqDbl(
+        parentPath: java.lang.String,
+        c: com.typesafe.config.Config,
+        path: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator,
+    ): scala.Double = {
+      if (c == null) 0
+      else
+        try c.getDouble(path)
+        catch {
+          case e: com.typesafe.config.ConfigException =>
+            $tsCfgValidator.addBadPath(parentPath + path, e)
+            0
+        }
+    }
+
+  }
+
   final case class VoltLvlConfig(
       id: java.lang.String,
       vNom: java.lang.String,
@@ -1029,6 +1068,7 @@ object SimonaConfig {
   }
 
   final case class Simona(
+      control: scala.Option[SimonaConfig.Simona.Control],
       event: SimonaConfig.Simona.Event,
       gridConfig: SimonaConfig.Simona.GridConfig,
       input: SimonaConfig.Simona.Input,
@@ -1039,6 +1079,41 @@ object SimonaConfig {
       time: SimonaConfig.Simona.Time,
   )
   object Simona {
+    final case class Control(
+        transformer: scala.List[SimonaConfig.TransformerControlGroup]
+    )
+    object Control {
+      def apply(
+          c: com.typesafe.config.Config,
+          parentPath: java.lang.String,
+          $tsCfgValidator: $TsCfgValidator,
+      ): SimonaConfig.Simona.Control = {
+        SimonaConfig.Simona.Control(
+          transformer = $_LSimonaConfig_TransformerControlGroup(
+            c.getList("transformer"),
+            parentPath,
+            $tsCfgValidator,
+          )
+        )
+      }
+      private def $_LSimonaConfig_TransformerControlGroup(
+          cl: com.typesafe.config.ConfigList,
+          parentPath: java.lang.String,
+          $tsCfgValidator: $TsCfgValidator,
+      ): scala.List[SimonaConfig.TransformerControlGroup] = {
+        import scala.jdk.CollectionConverters._
+        cl.asScala
+          .map(cv =>
+            SimonaConfig.TransformerControlGroup(
+              cv.asInstanceOf[com.typesafe.config.ConfigObject].toConfig,
+              parentPath,
+              $tsCfgValidator,
+            )
+          )
+          .toList
+      }
+    }
+
     final case class Event(
         listener: scala.Option[
           scala.List[SimonaConfig.Simona.Event.Listener$Elm]
@@ -1267,7 +1342,7 @@ object SimonaConfig {
               password = $_reqStr(parentPath, c, "password", $tsCfgValidator),
               timePattern =
                 if (c.hasPathOrNull("timePattern")) c.getString("timePattern")
-                else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'",
+                else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X",
               url = $_reqStr(parentPath, c, "url", $tsCfgValidator),
               userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator),
             )
@@ -1307,7 +1382,7 @@ object SimonaConfig {
               port = $_reqInt(parentPath, c, "port", $tsCfgValidator),
               timePattern =
                 if (c.hasPathOrNull("timePattern")) c.getString("timePattern")
-                else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'",
+                else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X",
               url = $_reqStr(parentPath, c, "url", $tsCfgValidator),
             )
           }
@@ -1366,7 +1441,7 @@ object SimonaConfig {
                 else "public",
               timePattern =
                 if (c.hasPathOrNull("timePattern")) c.getString("timePattern")
-                else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'",
+                else "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X",
               userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator),
             )
           }
@@ -2258,7 +2333,6 @@ object SimonaConfig {
     final case class Runtime(
         listener: SimonaConfig.Simona.Runtime.Listener,
         participant: SimonaConfig.Simona.Runtime.Participant,
-        rootEm: scala.Option[SimonaConfig.Simona.Runtime.RootEm],
         selected_subgrids: scala.Option[scala.List[scala.Int]],
         selected_volt_lvls: scala.Option[scala.List[SimonaConfig.VoltLvlConfig]],
     )
@@ -2733,60 +2807,6 @@ object SimonaConfig {
         }
       }
 
-      final case class RootEm(
-          filePath: java.lang.String,
-          nodeId: java.lang.String,
-          threshold: scala.Double,
-          timeSeriesType: java.lang.String,
-      )
-      object RootEm {
-        def apply(
-            c: com.typesafe.config.Config,
-            parentPath: java.lang.String,
-            $tsCfgValidator: $TsCfgValidator,
-        ): SimonaConfig.Simona.Runtime.RootEm = {
-          SimonaConfig.Simona.Runtime.RootEm(
-            filePath = $_reqStr(parentPath, c, "filePath", $tsCfgValidator),
-            nodeId = $_reqStr(parentPath, c, "nodeId", $tsCfgValidator),
-            threshold = $_reqDbl(parentPath, c, "threshold", $tsCfgValidator),
-            timeSeriesType =
-              $_reqStr(parentPath, c, "timeSeriesType", $tsCfgValidator),
-          )
-        }
-        private def $_reqDbl(
-            parentPath: java.lang.String,
-            c: com.typesafe.config.Config,
-            path: java.lang.String,
-            $tsCfgValidator: $TsCfgValidator,
-        ): scala.Double = {
-          if (c == null) 0
-          else
-            try c.getDouble(path)
-            catch {
-              case e: com.typesafe.config.ConfigException =>
-                $tsCfgValidator.addBadPath(parentPath + path, e)
-                0
-            }
-        }
-
-        private def $_reqStr(
-            parentPath: java.lang.String,
-            c: com.typesafe.config.Config,
-            path: java.lang.String,
-            $tsCfgValidator: $TsCfgValidator,
-        ): java.lang.String = {
-          if (c == null) null
-          else
-            try c.getString(path)
-            catch {
-              case e: com.typesafe.config.ConfigException =>
-                $tsCfgValidator.addBadPath(parentPath + path, e)
-                null
-            }
-        }
-
-      }
-
       def apply(
           c: com.typesafe.config.Config,
           parentPath: java.lang.String,
@@ -2805,16 +2825,6 @@ object SimonaConfig {
             parentPath + "participant.",
             $tsCfgValidator,
           ),
-          rootEm =
-            if (c.hasPathOrNull("rootEm"))
-              scala.Some(
-                SimonaConfig.Simona.Runtime.RootEm(
-                  c.getConfig("rootEm"),
-                  parentPath + "rootEm.",
-                  $tsCfgValidator,
-                )
-              )
-            else None,
           selected_subgrids =
             if (c.hasPathOrNull("selected_subgrids"))
               scala.Some(
@@ -2869,14 +2879,14 @@ object SimonaConfig {
         SimonaConfig.Simona.Time(
           endDateTime =
             if (c.hasPathOrNull("endDateTime")) c.getString("endDateTime")
-            else "2011-05-01 01:00:00",
+            else "2011-05-01T01:00:00Z",
           schedulerReadyCheckWindow =
             if (c.hasPathOrNull("schedulerReadyCheckWindow"))
               Some(c.getInt("schedulerReadyCheckWindow"))
             else None,
           startDateTime =
             if (c.hasPathOrNull("startDateTime")) c.getString("startDateTime")
-            else "2011-05-01 00:00:00",
+            else "2011-05-01T00:00:00Z",
         )
       }
     }
@@ -2887,6 +2897,16 @@ object SimonaConfig {
         $tsCfgValidator: $TsCfgValidator,
     ): SimonaConfig.Simona = {
       SimonaConfig.Simona(
+        control =
+          if (c.hasPathOrNull("control"))
+            scala.Some(
+              SimonaConfig.Simona.Control(
+                c.getConfig("control"),
+                parentPath + "control.",
+                $tsCfgValidator,
+              )
+            )
+          else None,
         event = SimonaConfig.Simona.Event(
           if (c.hasPathOrNull("event")) c.getConfig("event")
           else com.typesafe.config.ConfigFactory.parseString("event{}"),

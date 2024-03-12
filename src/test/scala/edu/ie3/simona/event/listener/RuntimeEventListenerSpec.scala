@@ -43,7 +43,7 @@ class RuntimeEventListenerSpec
     with UnitSpec {
 
   // global variables
-  val startDateTimeString = "2011-01-01 00:00:00"
+  val startDateTimeString = "2011-01-01T00:00:00Z"
   val endTick = 3600
   val duration = 10805000
   val errMsg = "testing error msg"

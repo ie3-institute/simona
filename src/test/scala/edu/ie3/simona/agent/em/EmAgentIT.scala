@@ -65,9 +65,9 @@ class EmAgentIT
 
   // start a bit later so the sun is up
   protected implicit val simulationStartDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 10:00:00")
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T10:00:00Z")
   protected val simulationEndDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-02 02:00:00")
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-02T02:00:00Z")
 
   private val resolution =
     simonaConfig.simona.powerflow.resolution.getSeconds
@@ -113,7 +113,6 @@ class EmAgentIT
             "PRIORITIZED",
             simulationStartDate,
             parent = Left(scheduler.ref),
-            maybeRootEmConfig = None,
             listener = Iterable(resultListener.ref),
           ),
           "EmAgent",
@@ -400,7 +399,6 @@ class EmAgentIT
             "PRIORITIZED",
             simulationStartDate,
             parent = Left(scheduler.ref),
-            maybeRootEmConfig = None,
             listener = Iterable(resultListener.ref),
           ),
           "EmAgent1",
@@ -717,6 +715,5 @@ class EmAgentIT
       }
     }
 
-    // TODO test stacked EmAgents
   }
 }

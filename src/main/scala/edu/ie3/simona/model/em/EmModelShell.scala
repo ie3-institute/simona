@@ -93,18 +93,18 @@ final case class EmModelShell(
 
     setPoints.map { case (model, power) =>
       val flexOptions =
-        minMaxFlexOptions.getOrElse(model, throw new RuntimeException())
-      if (!flexOptions.fits(power))
-        throw new CriticalFailureException(
-          s"Calculated set point $power does not fit flex option"
+        minMaxFlexOptions.getOrElse(
+          model,
+          throw new CriticalFailureException(
+            s"Set point for model $model has been calculated by ${modelStrategy.getClass.getSimpleName}, which is not connected to this EM."
+          ),
         )
+
+      // sanity checks after strat calculation
+      EmTools.checkSetPower(flexOptions, power)
 
       model -> power
     }
-
-    // TODO sanity checks after strat calculation
-    // checkSetPower(flexOptions, power)
-
   }
 
 }
@@ -120,12 +120,18 @@ object EmModelShell {
     val modelStrategy = modelStrat match {
       case "PROPORTIONAL" => ProportionalFlexStrat
       case "PRIORITIZED"  => PrioritizedFlexStrat(modelConfig.pvFlex)
+      case unknown =>
+        throw new CriticalFailureException(s"Unknown model strategy $unknown")
     }
 
     val aggregateFlex = modelConfig.aggregateFlex match {
       case "SELF_OPT_EXCL_PV" => EmAggregateSelfOpt(false)
       case "SELF_OPT"         => EmAggregateSelfOpt(true)
       case "SIMPLE_SUM"       => EmAggregateSimpleSum
+      case unknown =>
+        throw new CriticalFailureException(
+          s"Unknown aggregate flex strategy $unknown"
+        )
     }
 
     EmModelShell(uuid, id, modelStrategy, aggregateFlex)

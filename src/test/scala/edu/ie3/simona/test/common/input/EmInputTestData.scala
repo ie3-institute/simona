@@ -6,29 +6,24 @@
 
 package edu.ie3.simona.test.common.input
 
-import edu.ie3.datamodel.models.input.OperatorInput
+import edu.ie3.datamodel.models.input.{EmInput, OperatorInput}
 import edu.ie3.datamodel.models.input.container.ThermalGrid
+import edu.ie3.datamodel.models.input.system.`type`.chargingpoint.ChargingPointTypeUtils
+import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
 import edu.ie3.datamodel.models.input.system.`type`.{
   HpTypeInput,
   StorageTypeInput,
 }
-import edu.ie3.datamodel.models.input.system.`type`.chargingpoint.ChargingPointTypeUtils
-import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
 import edu.ie3.datamodel.models.input.system.characteristic.{
   CosPhiFixed,
   ReactivePowerCharacteristic,
 }
-import edu.ie3.datamodel.models.input.system.{
-  EmInput,
-  EvcsInput,
-  HpInput,
-  StorageInput,
-}
+import edu.ie3.datamodel.models.input.system.{EvcsInput, HpInput, StorageInput}
 import edu.ie3.datamodel.models.input.thermal.{
   ThermalHouseInput,
   ThermalStorageInput,
 }
-import edu.ie3.datamodel.models.{ControlStrategy, OperationTime, StandardUnits}
+import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
@@ -48,6 +43,15 @@ trait EmInputTestData
     with LoadInputTestData
     with HpTestData {
 
+  protected val emInput = new EmInput(
+    UUID.randomUUID(),
+    "Dummy_EmModel",
+    new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
+    OperationTime.notLimited(),
+    "PRIORITIZED",
+    null,
+  )
+
   protected val evcsInput = new EvcsInput(
     UUID.randomUUID(),
     "Dummy_EvcsModel",
@@ -55,6 +59,7 @@ trait EmInputTestData
     OperationTime.notLimited(),
     nodeInputNoSlackNs04KvA,
     CosPhiFixed.CONSTANT_CHARACTERISTIC,
+    emInput,
     ChargingPointTypeUtils.ChargingStationType2,
     2,
     0.95,
@@ -85,18 +90,8 @@ trait EmInputTestData
     OperationTime.notLimited(),
     nodeInputNoSlackNs04KvA,
     CosPhiFixed.CONSTANT_CHARACTERISTIC,
+    emInput,
     householdStorageTypeInput,
-  )
-
-  protected val emInput = new EmInput(
-    UUID.randomUUID(),
-    "Dummy_EmModel",
-    new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
-    OperationTime.notLimited(),
-    nodeInputNoSlackNs04KvA,
-    CosPhiFixed.CONSTANT_CHARACTERISTIC,
-    Array.empty,
-    ControlStrategy.DefaultControlStrategies.NO_CONTROL_STRATEGY, // FIXME adapt once available
   )
 
   protected val simonaConfig: SimonaConfig =
@@ -141,6 +136,7 @@ trait EmInputTestData
     nodeInput,
     thermalBusInput,
     ReactivePowerCharacteristic.parse("cosPhiFixed:{(0.00,0.98)}"),
+    emInput,
     adaptedTypeInput,
   )
 
