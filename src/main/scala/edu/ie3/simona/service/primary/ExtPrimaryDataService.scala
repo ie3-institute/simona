@@ -90,14 +90,11 @@ final case class ExtPrimaryDataService(
       registrationMessage: ServiceMessage.ServiceRegistrationMessage
   )(implicit
       serviceStateData: ExtPrimaryDataStateData
-  ): Try[ExtPrimaryDataStateData] = {
-    println("Habe erhalten 0")
-    registrationMessage match {
+  ): Try[ExtPrimaryDataStateData] = registrationMessage match {
       case ExtPrimaryDataServiceRegistrationMessage(
             modelUuid,
             requestingActor,
           ) =>
-        println("Habe erhalten")
         Success(handleRegistrationRequest(requestingActor, modelUuid))
       case invalidMessage =>
         Failure(
@@ -106,7 +103,6 @@ final case class ExtPrimaryDataService(
           )
         )
     }
-  }
 
   private def handleRegistrationRequest(
       agentToBeRegistered: ActorRef,
@@ -186,7 +182,7 @@ final case class ExtPrimaryDataService(
           }
     }
 
-    // Verteile Primary Data
+    // Distribute Primary Data
     if (actorToPrimaryData.nonEmpty) {
       val keys =
         ScheduleLock.multiKey(
@@ -217,12 +213,10 @@ final case class ExtPrimaryDataService(
           }
       }
     }
-
-    ( // Message leeren
+    (
       serviceStateData.copy(extPrimaryDataMessage = None),
       None,
     )
-
   }
 
   override protected def handleDataMessage(

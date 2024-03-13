@@ -27,7 +27,8 @@ sealed trait ResultEvent extends Event with ResultEventListener.Request
 object ResultEvent {
 
   final case class ExternalResultEvent(
-      resultEntity: ResultEntity
+      resultEntity: ResultEntity,
+      nextTick: Long
   ) extends ResultEvent
 
   /** Event that holds a calculation result of a
@@ -37,7 +38,8 @@ object ResultEvent {
     *   the calculation result
     */
   final case class ParticipantResultEvent(
-      systemParticipantResult: SystemParticipantResult
+      systemParticipantResult: SystemParticipantResult,
+      nextTick: Option[Long] = None
   ) extends ResultEvent
 
   /** Event, that is triggered every time a thermal model has a new result

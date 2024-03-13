@@ -6,30 +6,26 @@
 
 package edu.ie3.simona.service.results
 
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
-import edu.ie3.simona.api.data.results.ExtResultsData
-import edu.ie3.simona.api.data.results.ontology.{
-  ProvideResultEntities,
-  RequestResultEntities,
-  ResultDataMessageFromExt,
-}
+import edu.ie3.simona.api.data.results.ExtResultData
+import edu.ie3.simona.api.data.results.ontology.{ProvideResultEntities, RequestResultEntities, ResultDataMessageFromExt}
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
-import edu.ie3.simona.ontology.messages.services.ResultMessage.ResultResponseMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.services.DataMessage
-import edu.ie3.simona.service.ServiceStateData.{
-  InitializeServiceStateData,
-  ServiceBaseStateData,
-}
+import edu.ie3.simona.ontology.messages.services.ResultMessage.{ResultResponseMessage, ResultRequestMessage}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
+import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
+import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
+import edu.ie3.simona.service.results.ExtResultDataService.{ExtResultsStateData, InitExtResultData}
 import edu.ie3.simona.service.{ExtDataSupport, SimonaService}
-import edu.ie3.simona.service.results.ExtResultDataService.{
-  ExtResultsStateData,
-  InitExtResultsData,
-}
-
+import edu.ie3.simona.util.ReceiveDataMap
+import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 
+import scala.collection.immutable.SortedSet
 import java.util.UUID
 import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.util.{Failure, Success, Try}
@@ -41,14 +37,19 @@ object ExtResultDataService {
     )
 
   final case class ExtResultsStateData(
-      extResultsData: ExtResultsData,
-      uuidToActorRef: Map[UUID, ActorRef] = Map.empty[UUID, ActorRef],
-      extResultsMessage: Option[ResultDataMessageFromExt] = None,
-      resultStorage: Map[UUID, ResultEntity] = Map.empty,
+                                        extResultsData: ExtResultData,
+                                        subscribers: List[UUID] = List.empty,
+                                        extResultsMessage: Option[ResultDataMessageFromExt] = None,
+                                        resultStorage: Map[UUID, (Option[ResultEntity], Option[Long])] = Map.empty,       // UUID -> Result, nextTick
+                                        maybeNextActivationTick: Option[Long] = None,
+                                        recentResults: ReceiveDataMap[UUID, ResultEntity] = ReceiveDataMap.empty,
+                                        receivedResults: Int = 0,
+                                        resultSink: List[ResultEntity] = List.empty,
+                                        unlockKey: Option[ScheduleKey] = None,
   ) extends ServiceBaseStateData
 
-  final case class InitExtResultsData(
-      extResultsData: ExtResultsData
+  final case class InitExtResultData(
+      extResultsData: ExtResultData
   ) extends InitializeServiceStateData
 }
 
@@ -60,8 +61,19 @@ class ExtResultDataService(override val scheduler: ActorRef)
       initServiceData: InitializeServiceStateData
   ): Try[(ExtResultsStateData, Option[Long])] = {
     initServiceData match {
-      case InitExtResultsData(extResultsData) =>
-        val resultInitializedStateData = ExtResultsStateData(extResultsData)
+      case InitExtResultData(extResultsData) =>
+        val initSubscribers = List(
+          UUID.fromString("de8cfef5-7620-4b9e-9a10-1faebb5a80c0"),
+          UUID.fromString("2560c371-f420-4c2a-b4e6-e04c11b64c03"))
+        val resultInitializedStateData = ExtResultsStateData(
+          extResultsData = extResultsData,
+          subscribers = initSubscribers,
+          resultStorage = Map(
+            UUID.fromString("de8cfef5-7620-4b9e-9a10-1faebb5a80c0") -> (None, Some(0)),
+            UUID.fromString("2560c371-f420-4c2a-b4e6-e04c11b64c03") -> (None, Some(0)),
+          ),
+          recentResults = ReceiveDataMap(initSubscribers.toSet)
+        )
         Success(resultInitializedStateData, None)
 
       case invalidData =>
@@ -96,7 +108,6 @@ class ExtResultDataService(override val scheduler: ActorRef)
       case _: RequestResultEntities =>
         requestResults(tick)
     }
-    (null, None)
   }
 
   /** Handle a message from outside the simulation
@@ -114,7 +125,10 @@ class ExtResultDataService(override val scheduler: ActorRef)
       serviceStateData: ExtResultsStateData
   ): ExtResultsStateData = extMsg match {
     case extResultsMessageFromExt: ResultDataMessageFromExt =>
-      serviceStateData.copy(extResultsMessage = Some(extResultsMessageFromExt))
+      //log.info("Received ResultDataMessageFromExt with content: " + extResultsMessageFromExt)
+      serviceStateData.copy(
+        extResultsMessage = Some(extResultsMessageFromExt)
+      )
   }
 
   /** Handle a message from inside SIMONA sent to external
@@ -130,34 +144,95 @@ class ExtResultDataService(override val scheduler: ActorRef)
       extResponseMsg: DataMessage
   )(implicit serviceStateData: ExtResultsStateData): ExtResultsStateData = {
     extResponseMsg match {
-      case ResultResponseMessage(result) =>
-        if (serviceStateData.uuidToActorRef.contains(result.getUuid)) {
-          // A valid result was sent
-          val updatedResultStorage =
-            serviceStateData.resultStorage + (result.getUuid -> result)
-          if (
-            updatedResultStorage.size == serviceStateData.uuidToActorRef.size
-          ) {
+      case ResultResponseMessage(result, nextTick) =>
+        if (serviceStateData.subscribers.contains(result.getInputModel)) {
+          log.info("[handleDataResponseMessage] Received ResultsResponseMessage with content " + extResponseMsg)
+          log.info("[handleDataResponseMessage] RecentResults " + serviceStateData.recentResults)
+          var updatedReceivedResults = serviceStateData.recentResults.addData(result.getInputModel, result)
+          log.info("[handleDataResponseMessage] AddData to RecentResults -> updatedReceivedResults = " + updatedReceivedResults)
+          var updatedResultStorage =
+            serviceStateData.resultStorage + (result.getInputModel -> (Some(result), nextTick))
+          if (updatedReceivedResults.nonComplete) {
             // all responses received, forward them to external simulation in a bundle
-            serviceStateData.extResultsData.queueExtResponseMsg(
-              new ProvideResultEntities(
-                updatedResultStorage.values.toList.asJava
+            serviceStateData.copy(
+              recentResults = updatedReceivedResults,
+              resultStorage = updatedResultStorage
+            )
+          } else {
+            log.info("Got all ResultResponseMessage -> Now forward to external simulation in a bundle ")
+            var resultList = List.empty[ResultEntity]
+
+            updatedResultStorage.values.foreach(
+              result => resultList = resultList :+ result._1.getOrElse(
+                throw new RuntimeException("There is no result!")
               )
             )
-            serviceStateData.copy(
-              resultStorage = Map.empty
+
+            // all responses received, forward them to external simulation in a bundle
+            serviceStateData.extResultsData.queueExtResponseMsg(
+              new ProvideResultEntities(resultList.asJava)
             )
 
-          } else {
-            // responses are still incomplete
+            //log.info("updatedResultStorage = " + updatedResultStorage)
+
             serviceStateData.copy(
-              resultStorage = updatedResultStorage
+              resultStorage = updatedResultStorage,
+              recentResults = ReceiveDataMap(serviceStateData.subscribers.toSet)
             )
           }
         } else {
-          serviceStateData
+            //log.info("No Subscriber!")
+            serviceStateData
         }
     }
+
+        /*
+
+        if (serviceStateData.recentResults.isDefined) {
+          val updatedReceivedResults = serviceStateData.recentResults.get.addDataWithoutCheck(result.getInputModel, result)
+          // A valid result was sent
+          val updatedResultStorage =
+            serviceStateData.resultStorage + (result.getInputModel -> (Some(result), nextTick))
+          if (
+            updatedReceivedResults.nonComplete
+          ) {
+            // all responses received, forward them to external simulation in a bundle
+            serviceStateData.copy(
+              recentResults = updatedReceivedResults,
+              resultStorage = updatedResultStorage
+            )
+          } else {
+            log.info("Got all ResultResponseMessage -> Now forward to external simulation in a bundle ")
+            var resultList = List.empty[ResultEntity]
+
+            updatedResultStorage.values.foreach(
+              result => resultList = resultList :+ result._1.getOrElse(
+                throw new RuntimeException("There is no result!")
+              )
+            )
+
+            // all responses received, forward them to external simulation in a bundle
+            serviceStateData.extResultsData.queueExtResponseMsg(
+              new ProvideResultEntities(resultList.asJava)
+            )
+
+            //log.info("updatedResultStorage = " + updatedResultStorage)
+
+            serviceStateData.copy(
+              resultStorage = updatedResultStorage,
+              recentResults = None
+            )
+          } else {
+            //log.info("No Subscriber!")
+            serviceStateData
+          }
+        } else { // es wurde noch nicht berechnet, für welche Assets Results
+
+        }
+      case ResultRequestMessage(tick) =>
+
+         */
+
   }
 
   private def requestResults(
@@ -165,7 +240,49 @@ class ExtResultDataService(override val scheduler: ActorRef)
   )(implicit
       serviceStateData: ExtResultsStateData
   ): (ExtResultsStateData, Option[Long]) = {
-    /* has to be filled -> For ReCoDE it isn't necessary that an external simulation requests results */
-    (serviceStateData.copy(), None)
+    log.info(s"[requestResults] for tick $tick and resultStorage ${serviceStateData.resultStorage}")
+    var receiveDataMap = ReceiveDataMap[UUID, ResultEntity](serviceStateData.subscribers.toSet)
+    log.info(s"[requestResults] tick $tick -> created a receivedatamap " + receiveDataMap)
+    serviceStateData.resultStorage.foreach({
+      case (uuid, (res, t)) =>
+          log.info(s"[requestResults] tick = $tick, uuid = $uuid, and time = ${t.getOrElse("Option")}, result = ${res.getOrElse("Option")}")
+          if (t.getOrElse(-1) != tick) { //wenn nicht in diesem Tick gefragt, nehme Wert aus ResultDataStorage
+            receiveDataMap = receiveDataMap.addData(
+              uuid,
+              res.getOrElse(
+                throw new Exception("noResult")
+              )
+            )
+            log.info(s"[requestResults] tick $tick -> added to receivedatamap " + receiveDataMap)
+          }
+    })
+
+    /*
+    var requestedAssets = Set.empty[UUID]
+    serviceStateData.resultStorage.foreach({
+        case (uuid, (_, t)) =>
+          log.info(s"tick = $tick, uuid = $uuid, and time = $t")
+          if (t.getOrElse(throw new Exception("noTick")) == tick) {
+            requestedAssets += uuid
+          }
+      })
+
+     */
+
+
+    log.info(s"[requestResults] tick $tick -> requestResults for " + receiveDataMap)
+
+    if (receiveDataMap.isComplete) {
+      log.info(s"[requestResults] tick $tick -> ReceiveDataMap is complete -> send it right away")
+      serviceStateData.extResultsData.queueExtResponseMsg(new ProvideResultEntities())
+      (serviceStateData.copy(
+        extResultsMessage = None,
+        recentResults = ReceiveDataMap(serviceStateData.subscribers.toSet)), None)
+    } else {
+    (
+      serviceStateData.copy(
+      extResultsMessage = None,
+      recentResults = receiveDataMap
+      ), None)}
   }
 }

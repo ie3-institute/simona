@@ -12,17 +12,12 @@ import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, Stash}
 import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
+import edu.ie3.simona.ontology.messages.services.ResultMessage.ResultResponseMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
-import edu.ie3.simona.service.ServiceStateData.{
-  InitializeServiceStateData,
-  ServiceBaseStateData,
-}
+import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
 import edu.ie3.simona.service.SimonaService.Create
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 
@@ -151,6 +146,7 @@ abstract class SimonaService[
       }
 
     case ScheduleServiceActivation(tick, unlockKey) =>
+      //log.info("Send a ScheduleServiceActivation")
       scheduler ! ScheduleActivation(
         self.toTyped,
         tick,
@@ -159,9 +155,12 @@ abstract class SimonaService[
 
     // activity start trigger for this service
     case Activation(tick) =>
+      //log.info("Got Activation")
       /* The scheduler sends out an activity start trigger. Announce new data to all registered recipients. */
-      val (updatedStateData, maybeNewTriggers) =
+      val (updatedStateData, maybeNewTriggers) = {
         announceInformation(tick)(stateData, context)
+      }
+      //log.info("Send Completion")
       scheduler ! Completion(self.toTyped, maybeNewTriggers)
       context become idle(updatedStateData)
 

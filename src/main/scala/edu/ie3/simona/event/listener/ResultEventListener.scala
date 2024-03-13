@@ -157,12 +157,15 @@ object ResultEventListener extends Transformer3wResultSupport {
       resultEntity: ResultEntity,
       baseData: BaseData,
       log: Logger,
+      nextTick: Option[Long] = None
   ): BaseData = {
     handOverToSink(resultEntity, baseData.classToSink, log)
     if (baseData.extResultDataService.isDefined) {
       handOverToExternalService(
         resultEntity,
         baseData.extResultDataService,
+        log,
+        nextTick
       )
     }
     baseData
@@ -242,11 +245,15 @@ object ResultEventListener extends Transformer3wResultSupport {
   private def handOverToExternalService(
       resultEntity: ResultEntity,
       extResultDataService: Option[ActorRef],
+      log: Logger,
+      nextTick: Option[Long] = None
   ): Unit = Try {
     val extResultDataServiceRef = extResultDataService.getOrElse(
       throw new Exception("No external data service registered!")
     )
-    extResultDataServiceRef ! ResultResponseMessage(resultEntity)
+    //log.info(s"Sending a ResultResponseMessage to $extResultDataServiceRef $resultEntity")
+    extResultDataServiceRef ! ResultResponseMessage(resultEntity, nextTick)
+    //log.info(s"Sended a ResultResponseMessage to $extResultDataServiceRef $resultEntity")
   }
 
   def apply(
@@ -299,8 +306,8 @@ object ResultEventListener extends Transformer3wResultSupport {
 
   private def idle(baseData: BaseData): Behavior[Request] = Behaviors
     .receivePartial[Request] {
-      case (ctx, ParticipantResultEvent(participantResult)) =>
-        val updatedBaseData = handleResult(participantResult, baseData, ctx.log)
+      case (ctx, ParticipantResultEvent(participantResult, nextTick)) =>
+        val updatedBaseData = handleResult(participantResult, baseData, ctx.log, nextTick)
         idle(updatedBaseData)
 
       case (ctx, ThermalResultEvent(thermalResult)) =>

@@ -141,8 +141,8 @@ protected trait ParticipantAgentFundamentals[
 
     /* Confirm final initialization */
     releaseTick()
-    senderToMaybeTick._2.foreach { tick =>
-      scheduler ! Completion(self.toTyped, Some(tick))
+    senderToMaybeTick match { case (_, maybeTick) =>
+      scheduler ! Completion(self.toTyped, maybeTick)
     }
     goto(Idle) using stateData
   }
@@ -538,8 +538,13 @@ protected trait ParticipantAgentFundamentals[
                 msg.unlockKey,
               )
           }
-        case _ =>
-          false
+
+        case _: FromOutsideBaseStateData[_, _] =>
+          scheduler ! ScheduleActivation(
+            self.toTyped,
+            msg.tick,
+            msg.unlockKey,
+          )
       }
     }
 
@@ -1191,6 +1196,77 @@ protected trait ParticipantAgentFundamentals[
     }
   }
 
+  override def answerResultRequestAndStayWithUpdatedStateData(
+                                                               baseStateData: BaseStateData[PD],
+                                                               requestTick: Long,
+                                                               alternativeResult: PD): FSM.State[AgentState, ParticipantStateData[PD]] = {
+    /* Check, if there is any calculation foreseen for this tick. If so, wait with the response. */
+    val activationExpected =
+      baseStateData.additionalActivationTicks.headOption.exists(_ < requestTick)
+    val dataExpected =
+      baseStateData.foreseenDataTicks.values.flatten.exists(_ < requestTick)
+    if (activationExpected || dataExpected) {
+      log.debug(
+        s"Received power request from '{}' for tick '{}', but I'm still waiting for new results before " +
+          s"this tick. Waiting with the response.",
+        sender(),
+        requestTick,
+      )
+      stash()
+      stay() using baseStateData
+    } else {
+      /* Update the voltage value store */
+      val lastNodalVoltage =
+        baseStateData.voltageValueStore.last(requestTick)
+
+      /* Determine the most recent request */
+      val mostRecentRequest =
+        baseStateData.requestValueStore.last(requestTick)
+
+      /* === Check if this request has already been answered with same tick and nodal voltage === */
+      determineFastReplyForResults(
+        baseStateData,
+        mostRecentRequest,
+        requestTick,
+      )
+    }
+
+
+
+
+
+
+
+
+  }
+
+
+  def determineFastReplyForResults(
+                                    baseStateData: BaseStateData[PD],
+                                    mostRecentRequest: Option[(Long, PD)],
+                                    requestTick: Long,
+                                   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
+    mostRecentRequest match {
+      case Some((mostRecentRequestTick, latestProvidedValues))
+        if mostRecentRequestTick == requestTick =>
+        /* A request for this tick has already been answered. Check, if it has been the same request.
+         * if it has been the same request we wanna answer with the same values afterwards, this data MUST always
+         * be available when we already provided data for this tick */
+        baseStateData match {
+          case externalBaseStateData: FromOutsideBaseStateData[M, PD] =>
+            /* When data is provided from outside it is NOT altered depending on the node voltage. Send an
+             * AssetPowerUnchangedMessage */
+              stay() using externalBaseStateData.copy() replying AssetPowerUnchangedMessage(
+                latestProvidedValues.p,
+                latestProvidedValues.q,
+              )
+
+        }
+    }
+  }
+
+
+
   /** Determining the reply to an
     * [[edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage]],
     * send this answer and stay in the current state. If no reply can be
@@ -1788,15 +1864,18 @@ protected trait ParticipantAgentFundamentals[
       baseStateData: BaseStateData[PD],
       tick: Long,
       result: AccompaniedSimulationResult[PD],
-  )(implicit outputConfig: NotifierConfig): Unit =
+  )(implicit outputConfig: NotifierConfig): Unit = {
     if (outputConfig.simulationResultInfo) {
+      var (nextTick, _) = popNextActivationTrigger(baseStateData)
+
       notifyListener(
-        buildResultEvent(baseStateData, tick, result.primaryData)
+        buildResultEvent(baseStateData, tick, result.primaryData, nextTick)
       )
       result.accompanyingResults
         .flatMap(result => buildResultEvent(result))
         .foreach(notifyListener(_))
     }
+  }
 
   /** Update the result value store, inform all registered listeners and go to
     * Idle using the updated base state data
@@ -1919,11 +1998,13 @@ protected trait ParticipantAgentFundamentals[
       baseStateData: BaseStateData[PD],
       tick: Long,
       result: PD,
+      nextTick: Option[Long] = None
   ): ParticipantResultEvent = {
     val uuid = baseStateData.modelUuid
     val dateTime = tick.toDateTime(baseStateData.startDate)
     ParticipantResultEvent(
-      buildResult(uuid, dateTime, result)
+      buildResult(uuid, dateTime, result),
+      nextTick
     )
   }
 
