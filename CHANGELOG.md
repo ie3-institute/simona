@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config possibility for transformer control groups [#90](https://github.com/ie3-institute/simona/issues/90)
 - Implemented scaling of all relevant input parameters [#764](https://github.com/ie3-institute/simona/issues/764)
 - Consider scaling factor with flex options [#734](https://github.com/ie3-institute/simona/issues/734)
+- New documentation index page [#375](https://github.com/ie3-institute/simona/issues/375)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
