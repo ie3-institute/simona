@@ -13,13 +13,7 @@ import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.{
-  Irradiation,
-  Megavars,
-  WattHoursPerSquareMeter,
-  WattsPerSquareMeter,
-}
+import edu.ie3.util.scala.quantities.{Megavars, WattHoursPerSquareMeter}
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import org.scalatest.GivenWhenThen
 import squants.Each
@@ -28,9 +22,9 @@ import squants.space.{Angle, Degrees, Radians}
 import tech.units.indriya.quantity.Quantities.getQuantity
 import tech.units.indriya.unit.Units._
 
-import scala.math.toRadians
 import java.time.ZonedDateTime
 import java.util.UUID
+import scala.math.toRadians
 
 /** Test class that tries to cover all special cases of the current
   * implementation of the PvModel
