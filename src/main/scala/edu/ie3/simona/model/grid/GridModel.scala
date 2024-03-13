@@ -11,8 +11,11 @@ import breeze.math.Complex
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector._
 import edu.ie3.datamodel.models.input.container.SubGridContainer
+import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.GridInconsistencyException
+import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.SystemComponent
+import edu.ie3.simona.model.control.{GridControls, TransformerControlGroupModel}
 import edu.ie3.simona.model.grid.GridModel.GridComponents
 import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseA,
@@ -37,6 +40,7 @@ final case class GridModel(
     subnetNo: Int,
     mainRefSystem: RefSystem,
     gridComponents: GridComponents,
+    gridControls: GridControls,
 ) {
 
   // init nodeUuidToIndexMap
@@ -58,16 +62,21 @@ final case class GridModel(
   def nodeUuidToIndexMap: Map[UUID, Int] = _nodeUuidToIndexMap
 }
 
-case object GridModel {
+object GridModel {
 
   def apply(
       subGridContainer: SubGridContainer,
       refSystem: RefSystem,
       startDate: ZonedDateTime,
       endDate: ZonedDateTime,
-  ): GridModel = {
-    buildAndValidate(subGridContainer, refSystem, startDate, endDate)
-  }
+      simonaConfig: SimonaConfig,
+  ): GridModel = buildAndValidate(
+    subGridContainer,
+    refSystem,
+    startDate,
+    endDate,
+    simonaConfig,
+  )
 
   /** structure that represents all grid components that are needed by a grid
     * model
@@ -446,11 +455,68 @@ case object GridModel {
 
   }
 
+  /** Checks all ControlGroups if a) Transformer of ControlGroup and Measurement
+    * belongs to the same sub grid. b) Measurements are measure voltage
+    * magnitude.
+    *
+    * @param subGridContainer
+    *   Container of all models for this sub grid
+    * @param maybeControlConfig
+    *   Config of ControlGroup
+    */
+  private def validateControlGroups(
+      subGridContainer: SubGridContainer,
+      maybeControlConfig: Option[SimonaConfig.Simona.Control],
+  ): Unit = {
+    maybeControlConfig.foreach { control =>
+      val measurementUnits =
+        subGridContainer.getRawGrid.getMeasurementUnits.asScala
+          .map(measurement => measurement.getUuid -> measurement)
+          .toMap
+
+      val transformerUnits2W =
+        subGridContainer.getRawGrid.getTransformer2Ws.asScala
+          .map(transformer2w => transformer2w.getUuid -> transformer2w)
+          .toMap
+
+      val transformerUnits3W =
+        subGridContainer.getRawGrid.getTransformer3Ws.asScala
+          .map(transformer3w => transformer3w.getUuid -> transformer3w)
+          .toMap
+
+      control.transformer.foreach { controlGroup =>
+        controlGroup.transformers.map(UUID.fromString).foreach { transformer =>
+          val transformerUnit2W = transformerUnits2W.get(transformer)
+          val transformerUnit3W = transformerUnits3W.get(transformer)
+
+          if (transformerUnit2W.isDefined || transformerUnit3W.isDefined) {
+            controlGroup.measurements
+              .map(UUID.fromString)
+              .foreach { measurement =>
+                val measurementUnit = measurementUnits.getOrElse(
+                  measurement,
+                  throw new GridAgentInitializationException(
+                    s"${subGridContainer.getGridName} has a transformer control group (${control.transformer.toString}) with a measurement unit whose UUID does not exist in this subnet."
+                  ),
+                )
+                if (!measurementUnit.getVMag)
+                  throw new GridAgentInitializationException(
+                    s"${subGridContainer.getGridName} has a transformer control group (${control.transformer.toString}) with a measurement unit which does not measure voltage magnitude."
+                  )
+              }
+          }
+
+        }
+      }
+    }
+  }
+
   private def buildAndValidate(
       subGridContainer: SubGridContainer,
       refSystem: RefSystem,
       startDate: ZonedDateTime,
       endDate: ZonedDateTime,
+      simonaConfig: SimonaConfig,
   ): GridModel = {
 
     // build
@@ -534,12 +600,36 @@ case object GridModel {
         switches,
       )
 
-    val gridModel =
-      GridModel(subGridContainer.getSubnet, refSystem, gridComponents)
+    /* Build transformer control groups */
+    val transformerControlGroups = simonaConfig.simona.control
+      .map { controlConfig =>
+        TransformerControlGroupModel.buildControlGroups(
+          subGridContainer.getRawGrid.getMeasurementUnits.asScala.toSet,
+          controlConfig.transformer,
+        )
+      }
+      .getOrElse(Set.empty)
+
+    val gridModel = GridModel(
+      subGridContainer.getSubnet,
+      refSystem,
+      gridComponents,
+      GridControls(transformerControlGroups),
+    )
+
+    /** Check and validates the grid. Especially the consistency of the grid
+      * model the connectivity of the grid model if there is InitData for
+      * superior or inferior GridGates if there exits voltage measurements for
+      * transformerControlGroups
+      */
 
     // validate
     validateConsistency(gridModel)
     validateConnectivity(gridModel)
+    validateControlGroups(
+      subGridContainer,
+      simonaConfig.simona.control,
+    )
 
     // return
     gridModel

@@ -24,7 +24,6 @@ class MockParticipant extends SystemParticipant<CalcRelevantData, Data.PrimaryDa
   UUID uuid,
   String id,
   OperationInterval operationInterval,
-  Double scalingFactor,
   QControl qControl,
   Power sRated,
   Double cosPhiRated
@@ -33,7 +32,6 @@ class MockParticipant extends SystemParticipant<CalcRelevantData, Data.PrimaryDa
     uuid,
     id,
     operationInterval,
-    scalingFactor,
     qControl,
     sRated,
     cosPhiRated
@@ -41,8 +39,8 @@ class MockParticipant extends SystemParticipant<CalcRelevantData, Data.PrimaryDa
   }
 
   @Override
-  Data.PrimaryData.ApparentPower calculatePower(long tick, Dimensionless voltage, ModelState maybeModelState, CalcRelevantData data) {
-    return super.calculateApparentPower(tick, voltage, data)
+  Data.PrimaryData.ApparentPower calculatePower(long tick, Dimensionless voltage, ModelState state, CalcRelevantData data) {
+    return super.calculateApparentPower(tick, voltage, state, data)
   }
 
   @Override

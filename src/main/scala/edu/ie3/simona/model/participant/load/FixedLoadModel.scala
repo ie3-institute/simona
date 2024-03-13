@@ -31,8 +31,6 @@ import java.util.UUID
   *   human readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
-  * @param scalingFactor
-  *   Scaling the output of the system
   * @param qControl
   *   Type of reactive power control
   * @param sRated
@@ -46,7 +44,6 @@ final case class FixedLoadModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    override val scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double,
@@ -55,7 +52,6 @@ final case class FixedLoadModel(
       uuid,
       id,
       operationInterval,
-      scalingFactor,
       qControl,
       sRated,
       cosPhiRated,
@@ -91,19 +87,21 @@ object FixedLoadModel {
       operationInterval: OperationInterval,
       reference: LoadReference,
   ): FixedLoadModel = {
+
+    val scaledInput = input.copy().scale(scalingFactor).build()
+
     val model = FixedLoadModel(
-      input.getUuid,
-      input.getId,
+      scaledInput.getUuid,
+      scaledInput.getId,
       operationInterval,
-      scalingFactor,
-      QControl(input.getqCharacteristics()),
+      QControl(scaledInput.getqCharacteristics()),
       Kilowatts(
-        input.getsRated
+        scaledInput.getsRated
           .to(PowerSystemUnits.KILOWATT)
           .getValue
           .doubleValue
       ),
-      input.getCosPhiRated,
+      scaledInput.getCosPhiRated,
       reference,
     )
     model.enable()

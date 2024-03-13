@@ -79,6 +79,7 @@ class ChpModelTest extends Specification {
         TestObjectFactory.buildNodeInput(false, GermanVoltageLevelUtils.MV_10KV, 0),
         thermalBus,
         new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
+        null,
         chpTypeInput,
         null,
         false)
@@ -89,7 +90,6 @@ class ChpModelTest extends Specification {
         UUID.randomUUID(),
         "ChpModel",
         null,
-        1.0,
         null,
         Sq.create(100, Kilowatts$.MODULE$),
         0.95,
@@ -224,7 +224,7 @@ class ChpModelTest extends Specification {
     when:
     def thermalStorage = buildThermalStorage(storageInput, 90)
     def chpModelCaseClass = buildChpModel(thermalStorage)
-    def startDate = TimeUtil.withDefaults.toZonedDateTime("2021-01-01 00:00:00")
+    def startDate = TimeUtil.withDefaults.toZonedDateTime("2021-01-01T00:00:00Z")
     def endDate = startDate.plusSeconds(86400L)
     def chpModelCaseObject = ChpModel.apply(
         chpInput,

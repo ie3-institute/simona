@@ -87,7 +87,7 @@ class RandomLoadParamStoreSpec
         Table(
           ("timestamp", "expected"),
           (
-            "2019-04-01 05:00:00",
+            "2019-04-01T05:00:00Z",
             RandomLoadParameters(
               0.146539300680161,
               0.0430354326963425,
@@ -95,7 +95,7 @@ class RandomLoadParamStoreSpec
             ),
           ), // Weekday
           (
-            "2019-06-02 00:00:00",
+            "2019-06-02T00:00:00Z",
             RandomLoadParameters(
               0.295997023582459,
               0.0630703344941139,
@@ -103,7 +103,7 @@ class RandomLoadParamStoreSpec
             ),
           ), // Sunday
           (
-            "2019-01-05 02:15:00",
+            "2019-01-05T02:15:00Z",
             RandomLoadParameters(
               0.132398754358292,
               0.0439879409968853,

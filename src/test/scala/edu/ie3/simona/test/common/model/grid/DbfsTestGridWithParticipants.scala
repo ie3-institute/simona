@@ -102,6 +102,7 @@ trait DbfsTestGridWithParticipants extends SubGridGateMokka {
     OperationTime.notLimited(),
     node1,
     new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
+    null,
     LoadProfile.DefaultLoadProfiles.NO_LOAD_PROFILE,
     false,
     Quantities.getQuantity(300000, KILOWATTHOUR): ComparableQuantity[Energy],
@@ -135,7 +136,6 @@ trait DbfsTestGridWithParticipants extends SubGridGateMokka {
       Set.empty[PvInput].asJava,
       Set.empty[StorageInput].asJava,
       Set.empty[WecInput].asJava,
-      Set.empty[EmInput].asJava,
     )
 
     /* Sub grid gates are the apparent gates to superior grids + artificial one to underlying grids */
