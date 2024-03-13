@@ -1,14 +1,14 @@
 /*
- * © 2020. TU Dortmund University,
+ * © 2024. TU Dortmund University,
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
 
 package edu.ie3.simona.agent.participant.markov
 
-import edu.ie3.datamodel.models.input.system.LoadInput
+import edu.ie3.datamodel.models.input.system.MarkovInput
 import edu.ie3.datamodel.models.result.system.{
-  LoadResult,
+  MarkovResult,
   SystemParticipantResult,
 }
 import edu.ie3.simona.agent.ValueStore
@@ -28,27 +28,27 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
-import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
+import edu.ie3.simona.config.SimonaConfig.MarkovRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
+import edu.ie3.simona.model.participant.CalcRelevantData.MarkovRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
-import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantData
-import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
-import edu.ie3.simona.model.participant.load.profile.{
-  LoadProfileStore,
-  ProfileLoadModel,
+import edu.ie3.simona.model.participant.Markov.FixedMarkovModel.FixedMarkovRelevantData
+import edu.ie3.simona.model.participant.Markov.profile.ProfileMarkovModel.ProfileRelevantData
+import edu.ie3.simona.model.participant.Markov.profile.{
+  MarkovProfileStore,
+  ProfileMarkovModel,
 }
-import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomRelevantData
-import edu.ie3.simona.model.participant.load.random.{
-  RandomLoadModel,
-  RandomLoadParamStore,
+import edu.ie3.simona.model.participant.Markov.random.RandomMarkovModel.RandomRelevantData
+import edu.ie3.simona.model.participant.Markov.random.{
+  RandomMarkovModel,
+  RandomMarkovParamStore,
 }
-import edu.ie3.simona.model.participant.load.{
-  FixedLoadModel,
-  LoadModel,
-  LoadReference,
+import edu.ie3.simona.model.participant.Markov.{
+  FixedMarkovModel,
+  MarkovModel,
+  MarkovReference,
 }
 import edu.ie3.simona.model.participant.{FlexChangeIndicator, ModelState}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
@@ -71,9 +71,12 @@ import java.util.UUID
 import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
-protected trait MarkkovAgentFundamentals[LD <: LoadRelevantData, LM <: MarkovModel[
-  LD
-]] extends ParticipantAgentFundamentals[
+protected trait MarkkovAgentFundamentals[
+    LD <: MarkovRelevantData,
+    LM <: MarkovModel[
+      LD
+    ],
+] extends ParticipantAgentFundamentals[
       ApparentPower,
       LD,
       ConstantState.type,
@@ -112,8 +115,8 @@ protected trait MarkkovAgentFundamentals[LD <: LoadRelevantData, LM <: MarkovMod
     *   based on the data source definition
     */
   override def determineModelBaseStateData(
-      inputModel: InputModelContainer[LoadInput],
-      modelConfig: LoadRuntimeConfig,
+      inputModel: InputModelContainer[MarkovInput],
+      modelConfig: MarkovRuntimeConfig,
       services: Iterable[SecondaryDataService[_ <: SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
@@ -140,10 +143,10 @@ protected trait MarkkovAgentFundamentals[LD <: LoadRelevantData, LM <: MarkovMod
      * Also register for services, where needed. */
     val lastTickInSimulation = simulationEndDate.toTick(simulationStartDate)
     val additionalActivationTicks = model match {
-      /* If no secondary data is needed (implicitly by fixed load model), add activation ticks for the simple model */
-      case fixedLoadModel: FixedLoadModel =>
+      /* If no secondary data is needed (implicitly by fixed Markov model), add activation ticks for the simple model */
+      case fixedMarkovModel: FixedMarkovModel =>
         /* As participant agents always return their last known operation point on request, it is sufficient
-         * to let a fixed load model determine it's operation point on:
+         * to let a fixed Markov model determine it's operation point on:
          *  1) The first tick of the simulation
          *  2) The tick, it turns on (in time dependent operation)
          *  3) The tick, it turns off (in time dependent operation)
@@ -151,22 +154,22 @@ protected trait MarkkovAgentFundamentals[LD <: LoadRelevantData, LM <: MarkovMod
          * doesn't affect anything then */
         SortedSet[Long](
           SimonaConstants.FIRST_TICK_IN_SIMULATION,
-          fixedLoadModel.operationInterval.start,
-          fixedLoadModel.operationInterval.end,
+          fixedMarkovModel.operationInterval.start,
+          fixedMarkovModel.operationInterval.end,
         ).filterNot(_ == lastTickInSimulation)
-      case profileLoadModel: ProfileLoadModel =>
+      case profileMarkovModel: ProfileMarkovModel =>
         activationTicksInOperationTime(
           simulationStartDate,
-          LoadProfileStore.resolution.getSeconds,
-          profileLoadModel.operationInterval.start,
-          profileLoadModel.operationInterval.end,
+          MarkovProfileStore.resolution.getSeconds,
+          profileMarkovModel.operationInterval.start,
+          profileMarkovModel.operationInterval.end,
         )
-      case randomLoadModel: RandomLoadModel =>
+      case randomMarkovModel: RandomMarkovModel =>
         activationTicksInOperationTime(
           simulationStartDate,
-          RandomLoadParamStore.resolution.getSeconds,
-          randomLoadModel.operationInterval.start,
-          randomLoadModel.operationInterval.end,
+          RandomMarkovParamStore.resolution.getSeconds,
+          randomMarkovModel.operationInterval.start,
+          randomMarkovModel.operationInterval.end,
         )
       case _ =>
         SortedSet.empty[Long]
@@ -200,8 +203,8 @@ protected trait MarkkovAgentFundamentals[LD <: LoadRelevantData, LM <: MarkovMod
   }
 
   override def buildModel(
-      inputModel: InputModelContainer[LoadInput],
-      modelConfig: LoadRuntimeConfig,
+      inputModel: InputModelContainer[MarkovInput],
+      modelConfig: MarkovRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
   ): LM = {
@@ -211,7 +214,8 @@ protected trait MarkkovAgentFundamentals[LD <: LoadRelevantData, LM <: MarkovMod
         simulationEndDate,
         inputModel.electricalInputModel.getOperationTime,
       )
-    val reference = LoadReference(inputModel.electricalInputModel, modelConfig)
+    val reference =
+      MarkovReference(inputModel.electricalInputModel, modelConfig)
     buildModel(
       inputModel.electricalInputModel,
       operationInterval,
@@ -221,10 +225,10 @@ protected trait MarkkovAgentFundamentals[LD <: LoadRelevantData, LM <: MarkovMod
   }
 
   protected def buildModel(
-      inputModel: LoadInput,
+      inputModel: MarkovInput,
       operationInterval: OperationInterval,
-      modelConfig: LoadRuntimeConfig,
-      reference: LoadReference,
+      modelConfig: MarkovRuntimeConfig,
+      reference: MarkovReference,
   ): LM
 
   override protected def createInitialState(
@@ -310,7 +314,7 @@ protected trait MarkkovAgentFundamentals[LD <: LoadRelevantData, LM <: MarkovMod
       scheduler: ActorRef,
   ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] =
     throw new InconsistentStateException(
-      s"Load model is not able to calculate power with secondary data."
+      s"Markov model is not able to calculate power with secondary data."
     )
 
   /** Determine the average result within the given tick window
@@ -358,7 +362,7 @@ protected trait MarkkovAgentFundamentals[LD <: LoadRelevantData, LM <: MarkovMod
       dateTime: ZonedDateTime,
       result: ApparentPower,
   ): SystemParticipantResult =
-    new LoadResult(
+    new MarkovResult(
       dateTime,
       uuid,
       result.p.toMegawatts.asMegaWatt,
@@ -374,21 +378,21 @@ protected trait MarkkovAgentFundamentals[LD <: LoadRelevantData, LM <: MarkovMod
   ): ModelState.ConstantState.type = modelState
 }
 
-object LoadAgentFundamentals {
-  trait FixedLoadAgentFundamentals
-      extends LoadAgentFundamentals[
-        FixedLoadModel.FixedLoadRelevantData.type,
-        FixedLoadModel,
+object MarkovAgentFundamentals {
+  trait FixedMarkovAgentFundamentals
+      extends MarkovAgentFundamentals[
+        FixedMarkovModel.FixedMarkovRelevantData.type,
+        FixedMarkovModel,
       ] {
-    this: MarkovAgent.FixedLoadAgent =>
+    this: MarkovAgent.FixedMarkovAgent =>
 
     override def buildModel(
-        inputModel: LoadInput,
+        inputModel: MarkovInput,
         operationInterval: OperationInterval,
-        modelConfig: LoadRuntimeConfig,
-        reference: LoadReference,
-    ): FixedLoadModel =
-      FixedLoadModel(
+        modelConfig: MarkovRuntimeConfig,
+        reference: MarkovReference,
+    ): FixedMarkovModel =
+      FixedMarkovModel(
         inputModel,
         modelConfig.scaling,
         operationInterval,
@@ -398,13 +402,13 @@ object LoadAgentFundamentals {
     override protected def createCalcRelevantData(
         baseStateData: ParticipantModelBaseStateData[
           ApparentPower,
-          FixedLoadRelevantData.type,
+          FixedMarkovRelevantData.type,
           ConstantState.type,
-          FixedLoadModel,
+          FixedMarkovModel,
         ],
         tick: Long,
-    ): FixedLoadRelevantData.type =
-      FixedLoadRelevantData
+    ): FixedMarkovRelevantData.type =
+      FixedMarkovRelevantData
 
     /** Partial function, that is able to transfer
       * [[ParticipantModelBaseStateData]] (holding the actual calculation model)
@@ -414,9 +418,9 @@ object LoadAgentFundamentals {
         Long,
         ParticipantModelBaseStateData[
           ApparentPower,
-          FixedLoadRelevantData.type,
+          FixedMarkovRelevantData.type,
           ConstantState.type,
-          FixedLoadModel,
+          FixedMarkovModel,
         ],
         ConstantState.type,
         Dimensionless,
@@ -424,9 +428,9 @@ object LoadAgentFundamentals {
         tick: Long,
         baseStateData: ParticipantModelBaseStateData[
           ApparentPower,
-          FixedLoadRelevantData.type,
+          FixedMarkovRelevantData.type,
           ConstantState.type,
-          FixedLoadModel,
+          FixedMarkovModel,
         ],
         state: ConstantState.type,
         voltage: Dimensionless,
@@ -435,24 +439,24 @@ object LoadAgentFundamentals {
         tick,
         voltage,
         state,
-        FixedLoadRelevantData,
+        FixedMarkovRelevantData,
       )
   }
 
-  trait ProfileLoadAgentFundamentals
-      extends LoadAgentFundamentals[
+  trait ProfileMarkovAgentFundamentals
+      extends MarkovAgentFundamentals[
         ProfileRelevantData,
-        ProfileLoadModel,
+        ProfileMarkovModel,
       ] {
-    this: MarkovAgent.ProfileLoadAgent =>
+    this: MarkovAgent.ProfileMarkovAgent =>
 
     override def buildModel(
-        inputModel: LoadInput,
+        inputModel: MarkovInput,
         operationInterval: OperationInterval,
-        modelConfig: LoadRuntimeConfig,
-        reference: LoadReference,
-    ): ProfileLoadModel =
-      ProfileLoadModel(
+        modelConfig: MarkovRuntimeConfig,
+        reference: MarkovReference,
+    ): ProfileMarkovModel =
+      ProfileMarkovModel(
         inputModel,
         operationInterval,
         modelConfig.scaling,
@@ -464,7 +468,7 @@ object LoadAgentFundamentals {
           ApparentPower,
           ProfileRelevantData,
           ConstantState.type,
-          ProfileLoadModel,
+          ProfileMarkovModel,
         ],
         currentTick: Long,
     ): ProfileRelevantData =
@@ -482,7 +486,7 @@ object LoadAgentFundamentals {
           ApparentPower,
           ProfileRelevantData,
           ConstantState.type,
-          ProfileLoadModel,
+          ProfileMarkovModel,
         ],
         ConstantState.type,
         Dimensionless,
@@ -499,20 +503,20 @@ object LoadAgentFundamentals {
     }
   }
 
-  trait RandomLoadAgentFundamentals
-      extends LoadAgentFundamentals[
+  trait RandomMarkovAgentFundamentals
+      extends MarkovAgentFundamentals[
         RandomRelevantData,
-        RandomLoadModel,
+        RandomMarkovModel,
       ] {
-    this: MarkovAgent.RandomLoadAgent =>
+    this: MarkovAgent.RandomMarkovAgent =>
 
     override def buildModel(
-        inputModel: LoadInput,
+        inputModel: MarkovInput,
         operationInterval: OperationInterval,
-        modelConfig: LoadRuntimeConfig,
-        reference: LoadReference,
-    ): RandomLoadModel =
-      RandomLoadModel(
+        modelConfig: MarkovRuntimeConfig,
+        reference: MarkovReference,
+    ): RandomMarkovModel =
+      RandomMarkovModel(
         inputModel,
         operationInterval,
         modelConfig.scaling,
@@ -524,7 +528,7 @@ object LoadAgentFundamentals {
           ApparentPower,
           RandomRelevantData,
           ConstantState.type,
-          RandomLoadModel,
+          RandomMarkovModel,
         ],
         tick: Long,
     ): RandomRelevantData =
@@ -542,7 +546,7 @@ object LoadAgentFundamentals {
           ApparentPower,
           RandomRelevantData,
           ConstantState.type,
-          RandomLoadModel,
+          RandomMarkovModel,
         ],
         ConstantState.type,
         Dimensionless,
