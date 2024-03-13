@@ -44,7 +44,6 @@ html_static_path = ['_static']
 # PlantUML options
 plantuml = 'plantuml'
 
-
 # Intersphinx for references to external ReadTheDocs
 intersphinx_mapping = {
     'psdm': ('https://powersystemdatamodel.readthedocs.io/en/latest/', None),
