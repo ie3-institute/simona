@@ -87,9 +87,11 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
 
   "A PV Model" should {
     "have sMax set to be 10% higher than its sRated" in {
+      When("sMax is calculated")
       val actualSMax = pvModel.sMax.toKilowatts
       val expectedSMax = pvModel.sRated.toKilowatts * 1.1
 
+      Then("result should match the test data")
       actualSMax shouldBe expectedSMax
     }
 
@@ -144,10 +146,10 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
       )
 
       forAll(testCases) { (time, jSol) =>
-        // When
+        When("the day angle is calculated")
         val jCalc = pvModel.calcAngleJ(ZonedDateTime.parse(time))
 
-        // Then
+        Then("result should match the test data")
         jCalc should approximate(Radians(jSol))
       }
     }
@@ -163,10 +165,10 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
       )
 
       forAll(testCases) { (j, deltaSol) =>
-        // When
+        When("the declination angle is calculated")
         val deltaCalc = pvModel.calcSunDeclinationDelta(Radians(j))
 
-        // Then
+        Then("result should match the test data")
         deltaCalc.toRadians shouldEqual deltaSol +- 1e-6
       }
     }
@@ -261,14 +263,14 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
       )
 
       forAll(testCases) { (time, j, longitude, omegaSol) =>
-        // When
+        When("the hour angle is calculated")
         val omegaCalc = pvModel.calcHourAngleOmega(
           ZonedDateTime.parse(time),
           Radians(j),
           Radians(longitude),
         )
 
-        // Then
+        Then("result should match the test data")
         omegaCalc.toRadians shouldEqual omegaSol +- 1e-10
       }
     }
@@ -287,11 +289,11 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
       )
 
       forAll(testCases) { (latitude, delta, omegaSSSol) =>
-        // When
+        When("the sunset angle is calculated")
         val omegaSSCalc =
           pvModel.calcSunsetAngleOmegaSS(Radians(latitude), Radians(delta))
 
-        // Then
+        Then("result should match the test data")
         omegaSSCalc.toRadians shouldEqual omegaSSSol +- 1e-10
       }
     }
@@ -453,14 +455,14 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
       )
 
       forAll(testCases) { (omega, delta, latitude, alphaSSol) =>
-        // When
+        When("the solar altitude angle is calculated")
         val alphaSCalc = pvModel.calcSolarAltitudeAngleAlphaS(
           Radians(omega),
           Radians(delta),
           Radians(latitude),
         )
 
-        // Then
+        Then("result should match the test data")
         alphaSCalc.toRadians shouldEqual alphaSSol +- 1e-10
       }
     }
@@ -474,10 +476,10 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
       )
 
       forAll(testCases) { (alphaS, thetaZSol) =>
-        // When
+        When("the zenith angle is calculated")
         val thetaZCalc = pvModel.calcZenithAngleThetaZ(Radians(alphaS))
 
-        // Then
+        Then("result should match the test data")
         thetaZCalc.toRadians shouldEqual thetaZSol +- 1e-10
       }
     }
@@ -491,10 +493,10 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
       )
 
       forAll(testCases) { (thetaZ, airMassSol) =>
-        // When
+        When("the air mass is calculated")
         val airMassCalc = pvModel.calcAirMass(Radians(thetaZ))
 
-        // Then
+        Then("result should match the test data")
         airMassCalc shouldEqual airMassSol +- 1e-10
       }
     }
@@ -508,10 +510,10 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
       )
 
       forAll(testCases) { (j, I0Sol) =>
-        // When
+        When("the extraterrestrial radiation is calculated")
         val I0Calc = pvModel.calcExtraterrestrialRadiationI0(Radians(j))
 
-        // Then
+        Then("result should match the test data")
         I0Calc.toWattHoursPerSquareMeter shouldEqual (I0Sol) +- 1e-5
       }
     }
@@ -600,7 +602,9 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
       // west of south.
       forAll(testCases) {
         (latitudeDeg, deltaDeg, omegaDeg, gammaEDeg, alphaEDeg, thetaGOut) =>
-          // When
+          Given("using the input data")
+
+          When("the angle of incidence is calculated")
           val thetaG = pvModel.calcAngleOfIncidenceThetaG(
             Degrees(deltaDeg),
             Degrees(latitudeDeg),
@@ -609,7 +613,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
             Degrees(omegaDeg),
           )
 
-          // Then
+          Then("result should match the test data")
           thetaG.toDegrees shouldEqual thetaGOut +- 1e-10
       }
     }
@@ -650,7 +654,9 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
        */
       forAll(testCases) {
         (latitudeDeg, deltaDeg, omegaDeg, gammaEDeg, alphaEDeg, thetaGOut) =>
-          // When
+          Given("using pre-calculated parameters")
+
+          When("the angle of incidence is calculated")
           val thetaG = pvModel.calcAngleOfIncidenceThetaG(
             Degrees(deltaDeg),
             Degrees(latitudeDeg),
@@ -659,7 +665,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
             Degrees(omegaDeg),
           )
 
-          // Then
+          Then("the result should match the pre-calculated data")
           thetaG.toDegrees shouldEqual thetaGOut +- 1e-10
       }
     }
@@ -701,7 +707,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
             thetaGDeg,
             eBeamSSol,
         ) =>
-          // Given
+          Given("using the input data")
           // Beam Radiation on a horizontal surface
           val eBeamH =
             67.777778d // 1 MJ/m^2 = 277,778 Wh/m^2 -> 0.244 MJ/m^2 = 67.777778 Wh/m^2
@@ -717,7 +723,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
             omegaSR,
           ) // omega1 and omega2
 
-          // When
+          When("the beam radiation is calculated")
           val eBeamSCalc = pvModel.calcBeamRadiationOnSlopedSurface(
             WattHoursPerSquareMeter(eBeamH),
             omegas,
@@ -727,7 +733,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
             Degrees(alphaEDeg),
           )
 
-          // Then
+          Then("result should match the test data")
           eBeamSCalc.toWattHoursPerSquareMeter shouldEqual eBeamSSol +- 1e-10
       }
     }
@@ -743,14 +749,14 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
         (thetaGDeg, thetaZDeg, gammaEDeg, airMass, I0, eDifSSol) =>
           // Reference p.95
           // https://www.sku.ac.ir/Datafiles/BookLibrary/45/John%20A.%20Duffie,%20William%20A.%20Beckman(auth.)-Solar%20Engineering%20of%20Thermal%20Processes,%20Fourth%20Edition%20(2013).pdf
-          // Given
+          Given("using the input data")
           // Beam Radiation on horizontal surface
           val eBeamH =
             67.777778d // 1 MJ/m^2 = 277,778 Wh/m^2 -> 0.244 MJ/m^2 = 67.777778 Wh/m^2
           // Diffuse Radiation on a horizontal surface
           val eDifH = 213.61111d // 0.769 MJ/m^2 = 213,61111 Wh/m^2
 
-          // When
+          When("the diffuse radiation is calculated")
           val eDifSCalc = pvModel.calcDiffuseRadiationOnSlopedSurfacePerez(
             WattHoursPerSquareMeter(eDifH),
             WattHoursPerSquareMeter(eBeamH),
@@ -761,7 +767,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
             Degrees(gammaEDeg),
           )
 
-          // Then
+          Then("result should match the test data")
           eDifSCalc.toWattHoursPerSquareMeter shouldEqual eDifSSol +- 1e-1
       }
     }
@@ -773,14 +779,14 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
       )
 
       forAll(testCases) { (gammaEDeg, albedo, eRefSSol) =>
-        // Given
+        Given("using the input data")
         // Beam Radiation on horizontal surface
         val eBeamH =
           67.777778d // 1 MJ/m^2 = 277,778 Wh/m^2 -> 0.244 MJ/m^2 = 67.777778 Wh/m^2
         // Diffuse Radiation on a horizontal surface
         val eDifH = 213.61111d // 0.769 MJ/m^2 = 213,61111 Wh/m^2
 
-        // When
+        When("the ground reflection is calculated")
         val eRefSCalc = pvModel.calcReflectedRadiationOnSlopedSurface(
           WattHoursPerSquareMeter(eBeamH),
           WattHoursPerSquareMeter(eDifH),
@@ -788,7 +794,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
           albedo,
         )
 
-        // Then
+        Then("result should match the test data")
         eRefSCalc.toWattHoursPerSquareMeter shouldEqual eRefSSol +- 1e-10
       }
     }
