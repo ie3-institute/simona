@@ -236,8 +236,5 @@ final case class ExtPrimaryDataService(
       extResponseMsg: DataMessage
   )(implicit
       serviceStateData: ExtPrimaryDataStateData
-  ): ExtPrimaryDataStateData = {
-    // not implemented
-    null
-  }
+  ): ExtPrimaryDataStateData = serviceStateData
 }

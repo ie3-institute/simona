@@ -8,13 +8,14 @@ package edu.ie3.simona.service.results
 
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import edu.ie3.datamodel.models.result.ResultEntity
+import edu.ie3.simona.agent.grid.GridAgentMessage
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.api.data.results.ExtResultData
 import edu.ie3.simona.api.data.results.ontology.{ProvideResultEntities, RequestResultEntities, ResultDataMessageFromExt}
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.services.DataMessage
-import edu.ie3.simona.ontology.messages.services.ResultMessage.{ResultResponseMessage, ResultRequestMessage}
+import edu.ie3.simona.ontology.messages.services.ResultMessage.{ResultRequestMessage, ResultResponseMessage}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
@@ -23,9 +24,10 @@ import edu.ie3.simona.service.results.ExtResultDataService.{ExtResultsStateData,
 import edu.ie3.simona.service.{ExtDataSupport, SimonaService}
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
+import org.apache.pekko.actor.typed.scaladsl.StashBuffer
 import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 
-import scala.collection.immutable.SortedSet
+import scala.collection.immutable.{Map, SortedSet}
 import java.util.UUID
 import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.util.{Failure, Success, Try}
@@ -46,6 +48,8 @@ object ExtResultDataService {
                                         receivedResults: Int = 0,
                                         resultSink: List[ResultEntity] = List.empty,
                                         unlockKey: Option[ScheduleKey] = None,
+                                        sendedMessage: Boolean = true,
+                                        buffer: StashBuffer[ResultResponseMessage],
   ) extends ServiceBaseStateData
 
   final case class InitExtResultData(
@@ -125,7 +129,6 @@ class ExtResultDataService(override val scheduler: ActorRef)
       serviceStateData: ExtResultsStateData
   ): ExtResultsStateData = extMsg match {
     case extResultsMessageFromExt: ResultDataMessageFromExt =>
-      //log.info("Received ResultDataMessageFromExt with content: " + extResultsMessageFromExt)
       serviceStateData.copy(
         extResultsMessage = Some(extResultsMessageFromExt)
       )
@@ -148,9 +151,9 @@ class ExtResultDataService(override val scheduler: ActorRef)
         if (serviceStateData.subscribers.contains(result.getInputModel)) {
           log.info("[handleDataResponseMessage] Received ResultsResponseMessage with content " + extResponseMsg)
           log.info("[handleDataResponseMessage] RecentResults " + serviceStateData.recentResults)
-          var updatedReceivedResults = serviceStateData.recentResults.addData(result.getInputModel, result)
+          val updatedReceivedResults = serviceStateData.recentResults.addData(result.getInputModel, result)
           log.info("[handleDataResponseMessage] AddData to RecentResults -> updatedReceivedResults = " + updatedReceivedResults)
-          var updatedResultStorage =
+          val updatedResultStorage =
             serviceStateData.resultStorage + (result.getInputModel -> (Some(result), nextTick))
           if (updatedReceivedResults.nonComplete) {
             // all responses received, forward them to external simulation in a bundle
@@ -159,80 +162,37 @@ class ExtResultDataService(override val scheduler: ActorRef)
               resultStorage = updatedResultStorage
             )
           } else {
-            log.info("Got all ResultResponseMessage -> Now forward to external simulation in a bundle ")
+
             var resultList = List.empty[ResultEntity]
 
-            updatedResultStorage.values.foreach(
-              result => resultList = resultList :+ result._1.getOrElse(
-                throw new RuntimeException("There is no result!")
-              )
+
+            updatedReceivedResults.receivedData.values.foreach(
+              result => resultList = resultList :+ result
             )
 
             // all responses received, forward them to external simulation in a bundle
             serviceStateData.extResultsData.queueExtResponseMsg(
               new ProvideResultEntities(resultList.asJava)
             )
-
-            //log.info("updatedResultStorage = " + updatedResultStorage)
-
+            log.info("[handleDataResponseMessage] Got all ResultResponseMessage -> Now forward to external simulation in a bundle: " + resultList)
             serviceStateData.copy(
               resultStorage = updatedResultStorage,
               recentResults = ReceiveDataMap(serviceStateData.subscribers.toSet)
             )
+            /*
+
+            sendResultData(updatedResultStorage)
+            self ! ResultRequestMessage(null)
+              serviceStateData.copy(
+                recentResults = updatedReceivedResults,
+                resultStorage = updatedResultStorage
+              )
+            */
           }
         } else {
-            //log.info("No Subscriber!")
             serviceStateData
         }
     }
-
-        /*
-
-        if (serviceStateData.recentResults.isDefined) {
-          val updatedReceivedResults = serviceStateData.recentResults.get.addDataWithoutCheck(result.getInputModel, result)
-          // A valid result was sent
-          val updatedResultStorage =
-            serviceStateData.resultStorage + (result.getInputModel -> (Some(result), nextTick))
-          if (
-            updatedReceivedResults.nonComplete
-          ) {
-            // all responses received, forward them to external simulation in a bundle
-            serviceStateData.copy(
-              recentResults = updatedReceivedResults,
-              resultStorage = updatedResultStorage
-            )
-          } else {
-            log.info("Got all ResultResponseMessage -> Now forward to external simulation in a bundle ")
-            var resultList = List.empty[ResultEntity]
-
-            updatedResultStorage.values.foreach(
-              result => resultList = resultList :+ result._1.getOrElse(
-                throw new RuntimeException("There is no result!")
-              )
-            )
-
-            // all responses received, forward them to external simulation in a bundle
-            serviceStateData.extResultsData.queueExtResponseMsg(
-              new ProvideResultEntities(resultList.asJava)
-            )
-
-            //log.info("updatedResultStorage = " + updatedResultStorage)
-
-            serviceStateData.copy(
-              resultStorage = updatedResultStorage,
-              recentResults = None
-            )
-          } else {
-            //log.info("No Subscriber!")
-            serviceStateData
-          }
-        } else { // es wurde noch nicht berechnet, für welche Assets Results
-
-        }
-      case ResultRequestMessage(tick) =>
-
-         */
-
   }
 
   private def requestResults(
@@ -245,7 +205,7 @@ class ExtResultDataService(override val scheduler: ActorRef)
     log.info(s"[requestResults] tick $tick -> created a receivedatamap " + receiveDataMap)
     serviceStateData.resultStorage.foreach({
       case (uuid, (res, t)) =>
-          log.info(s"[requestResults] tick = $tick, uuid = $uuid, and time = ${t.getOrElse("Option")}, result = ${res.getOrElse("Option")}")
+        log.info(s"[requestResults] tick = $tick, uuid = $uuid, and time = ${t.getOrElse("Option")}, result = ${res.getOrElse("Option")}")
           if (t.getOrElse(-1) != tick) { //wenn nicht in diesem Tick gefragt, nehme Wert aus ResultDataStorage
             receiveDataMap = receiveDataMap.addData(
               uuid,
@@ -257,24 +217,22 @@ class ExtResultDataService(override val scheduler: ActorRef)
           }
     })
 
-    /*
-    var requestedAssets = Set.empty[UUID]
-    serviceStateData.resultStorage.foreach({
-        case (uuid, (_, t)) =>
-          log.info(s"tick = $tick, uuid = $uuid, and time = $t")
-          if (t.getOrElse(throw new Exception("noTick")) == tick) {
-            requestedAssets += uuid
-          }
-      })
-
-     */
-
-
     log.info(s"[requestResults] tick $tick -> requestResults for " + receiveDataMap)
 
     if (receiveDataMap.isComplete) {
-      log.info(s"[requestResults] tick $tick -> ReceiveDataMap is complete -> send it right away")
-      serviceStateData.extResultsData.queueExtResponseMsg(new ProvideResultEntities())
+      var resultList = List.empty[ResultEntity]
+
+      serviceStateData.resultStorage.values.foreach(
+        result => resultList = resultList :+ result._1.getOrElse(
+          throw new RuntimeException("There is no result!")
+        )
+      )
+
+      log.info(s"[requestResults] tick $tick -> ReceiveDataMap is complete -> send it right away: " + resultList)
+      // all responses received, forward them to external simulation in a bundle
+      serviceStateData.extResultsData.queueExtResponseMsg(
+        new ProvideResultEntities(resultList.asJava)
+      )
       (serviceStateData.copy(
         extResultsMessage = None,
         recentResults = ReceiveDataMap(serviceStateData.subscribers.toSet)), None)
@@ -285,4 +243,25 @@ class ExtResultDataService(override val scheduler: ActorRef)
       recentResults = receiveDataMap
       ), None)}
   }
+
+  private def sendResultData(
+                              resultStorage: Map[UUID, (Option[ResultEntity], Option[Long])]
+                            )(implicit
+                               serviceStateData: ExtResultsStateData
+  ): Unit = {
+    var resultList = List.empty[ResultEntity]
+
+    resultStorage.values.foreach(
+      result => resultList = resultList :+ result._1.getOrElse(
+        throw new RuntimeException("There is no result!")
+      )
+    )
+
+    log.info("sendResultData " + resultList)
+    // all responses received, forward them to external simulation in a bundle
+    serviceStateData.extResultsData.queueExtResponseMsg(
+      new ProvideResultEntities(resultList.asJava)
+    )
+  }
 }
+
