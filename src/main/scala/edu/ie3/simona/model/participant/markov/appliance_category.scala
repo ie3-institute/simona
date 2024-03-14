@@ -1,0 +1,5 @@
+object ApplianceCategory extends Enumeration {
+  type ApplianceCategory = Value
+  val DISH_WASHER, WASHING_MACHINE, DRYER, STOVE, FRIDGE, FREEZER, TELEVISION, VIDEO_RECORDER, PC, TELECOMMUNICATION, LIGHTING, WATER_HEATING, OTHER_LOAD = Value
+}
+
