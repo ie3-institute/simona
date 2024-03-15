@@ -41,22 +41,7 @@ final case class ReceiveDataMap[K, V](
     )
   }
 
-  def addDataWithoutCheck(
-                         key: K,
-                         value: V,
-                         ): ReceiveDataMap[K, V] = {
-
-    if (expectedKeys.contains(key)) {
-      copy(
-        expectedKeys = expectedKeys.excl(key),
-        receivedData.updated(key, value),
-      )
-    } else {
-      copy()
-    }
-  }
-
-  }
+}
 
 object ReceiveDataMap {
 

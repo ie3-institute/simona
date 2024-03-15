@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.event
 
-import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
+import edu.ie3.datamodel.models.result.NodeResult
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
   SwitchResult,
@@ -78,4 +78,5 @@ object ResultEvent {
   final case class FlexOptionsResultEvent(
       flexOptionsResult: FlexOptionsResult
   ) extends ResultEvent
+
 }

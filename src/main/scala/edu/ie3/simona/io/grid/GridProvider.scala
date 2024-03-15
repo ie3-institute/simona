@@ -16,8 +16,6 @@ import edu.ie3.datamodel.models.input.container.{
   JointGridContainer,
   ThermalGrid,
 }
-import edu.ie3.datamodel.io.source.csv.CsvJointGridContainerSource
-import edu.ie3.datamodel.models.input.container.{JointGridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.datamodel.utils.validation.ValidationUtils
 import edu.ie3.simona.config.SimonaConfig

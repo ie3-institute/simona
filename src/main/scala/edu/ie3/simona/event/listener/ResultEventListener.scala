@@ -165,7 +165,6 @@ object ResultEventListener extends Transformer3wResultSupport {
       handOverToExternalService(
         resultEntity,
         baseData.extResultDataService,
-        log,
         nextTick
       )
     }
@@ -246,15 +245,12 @@ object ResultEventListener extends Transformer3wResultSupport {
   private def handOverToExternalService(
       resultEntity: ResultEntity,
       extResultDataService: Option[ActorRef],
-      log: Logger,
       nextTick: Option[Long] = None
   ): Unit = Try {
     val extResultDataServiceRef = extResultDataService.getOrElse(
       throw new Exception("No external data service registered!")
     )
-    //log.info(s"Sending a ResultResponseMessage to $extResultDataServiceRef $resultEntity")
     extResultDataServiceRef ! ResultResponseMessage(resultEntity, nextTick)
-    //log.info(s"Sended a ResultResponseMessage to $extResultDataServiceRef $resultEntity")
   }
 
   def apply(

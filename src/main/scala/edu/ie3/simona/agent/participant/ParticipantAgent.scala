@@ -44,7 +44,6 @@ import edu.ie3.simona.model.participant.{
   SystemParticipant,
 }
 import edu.ie3.simona.ontology.messages.Activation
-
 import edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
@@ -801,12 +800,6 @@ abstract class ParticipantAgent[
       lastState: MS,
       setPower: squants.Power,
   ): (MS, PD, FlexChangeIndicator)
-
-  def answerResultRequestAndStayWithUpdatedStateData(
-                                                      baseStateData: BaseStateData[PD],
-                                                      requestTick: Long,
-                                                      alternativeResult: PD,
-                                                    ): FSM.State[AgentState, ParticipantStateData[PD]]
 
   /** Determining the reply to an
     * [[edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage]],

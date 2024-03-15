@@ -6,12 +6,6 @@
 
 package edu.ie3.simona.service
 
-import edu.ie3.simona.api.data.results.ontology.ResultDataMessageFromExt
-import edu.ie3.simona.event
-import edu.ie3.simona.event.Event
-import edu.ie3.simona.event.listener.DelayedStopHelper
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, Stash}
 import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
@@ -21,7 +15,8 @@ import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
 import edu.ie3.simona.service.SimonaService.Create
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RequestExtPrimaryDataAssets
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, Stash}
 
 import scala.util.{Failure, Success, Try}
 
@@ -108,7 +103,7 @@ abstract class SimonaService[
       }
 
     // not ready yet to handle registrations, stash request away
-    case _: ServiceRegistrationMessage | _: Activation | _: ResultDataMessageFromExt | _: RequestExtPrimaryDataAssets =>
+    case _: ServiceRegistrationMessage | _: Activation =>
       stash()
 
     // unhandled message
@@ -131,7 +126,6 @@ abstract class SimonaService[
 
   private def idleInternal(implicit stateData: S): Receive = {
     // agent registration process
-
     case registrationMsg: ServiceRegistrationMessage =>
       /* Someone asks to register for information from the service */
       handleRegistrationRequest(registrationMsg) match {
@@ -148,7 +142,6 @@ abstract class SimonaService[
       }
 
     case ScheduleServiceActivation(tick, unlockKey) =>
-      //log.info("Send a ScheduleServiceActivation")
       scheduler ! ScheduleActivation(
         self.toTyped,
         tick,
@@ -157,20 +150,11 @@ abstract class SimonaService[
 
     // activity start trigger for this service
     case Activation(tick) =>
-      //log.info("Got Activation")
       /* The scheduler sends out an activity start trigger. Announce new data to all registered recipients. */
-      val (updatedStateData, maybeNewTriggers) = {
+      val (updatedStateData, maybeNewTriggers) =
         announceInformation(tick)(stateData, context)
-      }
-      //log.info("Send Completion")
       scheduler ! Completion(self.toTyped, maybeNewTriggers)
       context become idle(updatedStateData)
-
-      /*
-    case msg: DelayedStopHelper.StoppingMsg =>
-      DelayedStopHelper.handleMsg((context[_], msg))
-
-       */
 
     // unhandled message
     case x =>

@@ -212,9 +212,7 @@ object SimonaSim {
     // if the simulation is successful, we're waiting for the delayed
     // stopping listeners to terminate and thus do not unwatch them here
     actorData.delayedStoppingActors.foreach(
-      actor => {
-        actor ! DelayedStopHelper.FlushAndStop
-      }
+      _ ! DelayedStopHelper.FlushAndStop
     )
 
     maybeStop(

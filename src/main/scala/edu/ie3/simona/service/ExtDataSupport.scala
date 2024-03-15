@@ -7,11 +7,10 @@
 package edu.ie3.simona.service
 
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
-import edu.ie3.simona.ontology.messages.services.{DataMessage, EvMessage}
+import edu.ie3.simona.api.data.results.ontology.ResultDataMessageFromExt
+import edu.ie3.simona.ontology.messages.services.DataMessage
 import edu.ie3.simona.ontology.messages.services.EvMessage.EvResponseMessage
 import edu.ie3.simona.service.ServiceStateData.ServiceBaseStateData
-import edu.ie3.simona.ontology.messages.services.ResultMessage
-import edu.ie3.simona.api.data.results.ontology.ResultDataMessageFromExt
 
 trait ExtDataSupport[
     S <: ServiceBaseStateData
@@ -20,17 +19,7 @@ trait ExtDataSupport[
 
   override def idleExternal(implicit stateData: S): Receive = {
     case extMsg: DataMessageFromExt =>
-      //log.info("Got a DataMessageFromExt with content " + extMsg)
       val updatedStateData = handleDataMessage(extMsg)(stateData)
-      context become idle(updatedStateData)
-
-    case extResponseMsgToExt: ResultMessage =>
-      //log.info("Got a DataResponse with content " + extResponseMsgToExt)
-      val updatedStateData = handleDataResponseMessage(extResponseMsgToExt)(stateData)
-      context become idle(updatedStateData)
-
-    case extResultDataMsg: ResultDataMessageFromExt =>
-      val updatedStateData = handleDataMessage(extResultDataMsg)(stateData)
       context become idle(updatedStateData)
 
     case extResponseMsg: EvResponseMessage =>

@@ -40,7 +40,7 @@ object DelayedStopHelper {
 
     case (ctx, FlushAndStop) =>
       ctx.log.debug(
-        s"$this Received FlushAndStop message, shutting down once no message has been received for 5 seconds."
+        s"Received FlushAndStop message, shutting down once no message has been received for 5 seconds."
       )
       ctx.setReceiveTimeout(5.seconds, StopTimeout)
       Behaviors.same

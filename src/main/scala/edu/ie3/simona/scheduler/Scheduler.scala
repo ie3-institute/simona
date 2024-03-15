@@ -123,8 +123,6 @@ object Scheduler {
         _ ! Activation(newCore.activeTick)
       }
 
-      //println("ScheduleActivation from " + actor + ", nextTick = " + newTick + ", newCore = " + newCore)
-
       active(data, newCore)
 
     case (_, Completion(actor, maybeNewTick)) =>
@@ -139,7 +137,7 @@ object Scheduler {
           toActivate.foreach {
             _ ! Activation(updatedCore.activeTick)
           }
-          //println("Completion from " + actor + ", nextTick = " + maybeNewTick + ", newCore = " + updatedCore)
+
           updatedCore
         }
         .map { newCore =>

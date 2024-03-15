@@ -16,16 +16,8 @@ import edu.ie3.simona.api.data.primarydata.ontology.{
 }
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  ExtPrimaryDataServiceRegistrationMessage,
-  PrimaryServiceRegistrationMessage,
-  WorkerRegistrationMessage,
-  ExtPrimaryDataServiceInitRequestMessage
-}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
-  RegistrationSuccessfulMessage,
-  ExtPrimaryDataServiceInitResponseMessage
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.ExtPrimaryDataServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.{DataMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData.{

@@ -4,18 +4,15 @@ import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.simona.api.data.results.ExtResultData
 import edu.ie3.simona.api.data.results.ontology.{ProvideResultEntities, RequestResultEntities, ResultDataMessageFromExt}
 import edu.ie3.simona.event.listener.DelayedStopHelper
-import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
-import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import org.apache.pekko.actor.typed.{Behavior, PostStop}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
-import org.apache.pekko.actor.ActorContext
 
 import java.util.UUID
 import scala.jdk.CollectionConverters._
@@ -87,7 +84,6 @@ object ExtResultDataProvider {
       initializeStateData: InitExtResultData,
       unlockKey: ScheduleKey,
     ) =>
-      println("Send Completion")
       scheduler ! ScheduleActivation(activationAdapter,
         INIT_SIM_TICK,
         Some(unlockKey))

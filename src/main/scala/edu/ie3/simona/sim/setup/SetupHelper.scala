@@ -24,8 +24,8 @@ import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.util.ConfigUtil.{GridOutputConfigUtil, OutputConfigUtil}
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
 import edu.ie3.simona.util.{EntityMapperUtil, ResultFileHierarchy}
-import edu.ie3.util.quantities.PowerSystemUnits
 import org.apache.pekko.actor.typed.ActorRef
+import edu.ie3.util.quantities.PowerSystemUnits
 import squants.electro.Kilovolts
 
 /** Methods to support the setup of a simona simulation
