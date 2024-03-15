@@ -404,7 +404,7 @@ case class PrimaryServiceProxy(
       timeSeriesUuid: String,
   ): ActorRef = {
     import edu.ie3.simona.actor.SimonaActorNaming._
-    context.system.simonaActorOf(
+    context.simonaActorOf(
       PrimaryServiceWorker.props(scheduler, valueClass),
       timeSeriesUuid,
     )

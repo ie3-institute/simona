@@ -48,8 +48,8 @@ import tech.units.indriya.ComparableQuantity
 
 import java.nio.file.Path
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import javax.measure.quantity.Length
-
 import scala.jdk.CollectionConverters.{IterableHasAsJava, MapHasAsScala}
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
@@ -329,11 +329,19 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
         )
       case Success(WeatherScheme.ICON) =>
         timestampPattern
-          .map(new IconTimeBasedWeatherValueFactory(_))
+          .map(pattern =>
+            new IconTimeBasedWeatherValueFactory(
+              DateTimeFormatter.ofPattern(pattern)
+            )
+          )
           .getOrElse(new IconTimeBasedWeatherValueFactory())
       case Success(WeatherScheme.COSMO) =>
         timestampPattern
-          .map(new CosmoTimeBasedWeatherValueFactory(_))
+          .map(pattern =>
+            new CosmoTimeBasedWeatherValueFactory(
+              DateTimeFormatter.ofPattern(pattern)
+            )
+          )
           .getOrElse(new CosmoTimeBasedWeatherValueFactory())
       case Success(unknownScheme) =>
         throw new InitializationException(

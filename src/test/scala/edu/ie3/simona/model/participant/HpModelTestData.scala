@@ -69,6 +69,7 @@ trait HpModelTestData {
     nodeInput,
     thermalBus,
     new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
+    null,
     hpTypeInput,
   )
 
@@ -76,7 +77,6 @@ trait HpModelTestData {
     UUID.randomUUID(),
     "HpModel",
     OperationInterval.apply(0L, 86400L),
-    1.0,
     QControl.CosPhiFixed(0.95),
     Kilowatts(100d),
     0.95,

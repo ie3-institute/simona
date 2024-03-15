@@ -29,8 +29,6 @@ class FixedFeedInModelSpec
 
   "The fixed feed in model object" should {
 
-    val foreSeenScalingFactor: Double = 1.0
-
     "build a correct FixedFeedModel from correct input" in {
       val simonaConfig: SimonaConfig =
         createSimonaConfig(
@@ -55,7 +53,6 @@ class FixedFeedInModelSpec
               uuid,
               id,
               operationInterval,
-              scalingFactor,
               qControl,
               sRated,
               cosPhiRated,
@@ -63,7 +60,6 @@ class FixedFeedInModelSpec
           uuid shouldBe fixedFeedInput.getUuid
           id shouldBe fixedFeedInput.getId
           operationInterval shouldBe defaultOperationInterval
-          scalingFactor shouldBe foreSeenScalingFactor
           qControl shouldBe QControl(fixedFeedInput.getqCharacteristics)
           sRated should approximate(
             Megawatts(

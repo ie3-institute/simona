@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Printing logs of failed tests [#747](https://github.com/ie3-institute/simona/issues/747)
 - Models for measurements within the grid structure [#89](https://github.com/ie3-institute/simona/issues/89)
 - Config possibility for transformer control groups [#90](https://github.com/ie3-institute/simona/issues/90)
+- Implemented scaling of all relevant input parameters [#764](https://github.com/ie3-institute/simona/issues/764)
+- Consider scaling factor with flex options [#734](https://github.com/ie3-institute/simona/issues/734)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -42,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Small improvements in `ResultEventListener` [#738](https://github.com/ie3-institute/simona/issues/738)
 - Converting `SimonaSim` to pekko typed/terminating SimonSim when initialization fails [#210](https://github.com/ie3-institute/simona/issues/210)
 - Converting the `GridAgent` and the `DBFSAlgorithm` to `pekko typed` [#666](https://github.com/ie3-institute/simona/issues/666)
+- Validation of grid will throw exception instead of just logging errors [#463](https://github.com/ie3-institute/simona/issues/463)
 
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)

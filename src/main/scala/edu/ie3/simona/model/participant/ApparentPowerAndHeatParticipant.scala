@@ -25,7 +25,7 @@ trait ApparentPowerAndHeatParticipant[
       calculateApparentPower(tick, voltage, modelState, data)
     val heat =
       if (isInOperation(tick))
-        calculateHeat(tick, modelState, data) * scalingFactor
+        calculateHeat(tick, modelState, data)
       else
         Megawatts(0d)
 
