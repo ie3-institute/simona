@@ -20,8 +20,12 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ExtPrimaryDataServiceRegistrationMessage,
   PrimaryServiceRegistrationMessage,
   WorkerRegistrationMessage,
+  ExtPrimaryDataServiceInitRequestMessage
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
+  RegistrationSuccessfulMessage,
+  ExtPrimaryDataServiceInitResponseMessage
+}
 import edu.ie3.simona.ontology.messages.services.{DataMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData.{
@@ -50,6 +54,7 @@ object ExtPrimaryDataService {
 
   final case class ExtPrimaryDataStateData(
       extPrimaryData: ExtPrimaryData,
+      subscribers: List[UUID] = List.empty,
       uuidToActorRef: Map[UUID, ActorRef] =
         Map.empty[UUID, ActorRef], // subscribers in SIMONA
       extPrimaryDataMessage: Option[PrimaryDataMessageFromExt] = None,
@@ -72,7 +77,6 @@ final case class ExtPrimaryDataService(
       val primaryDataInitializedStateData = ExtPrimaryDataStateData(
         extPrimaryData
       )
-
       Success(
         primaryDataInitializedStateData,
         None,

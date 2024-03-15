@@ -6,8 +6,11 @@
 
 package edu.ie3.simona.service.primary
 
+import scala.concurrent.duration._
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
+import org.apache.pekko.pattern.ask
+import org.apache.pekko.util.Timeout
 import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformation
@@ -29,6 +32,7 @@ import edu.ie3.datamodel.io.source.{
   TimeSeriesMetaInformationSource,
 }
 import edu.ie3.datamodel.models.value.Value
+import edu.ie3.simona.api.data.primarydata.ExtPrimaryData
 import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
@@ -46,6 +50,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ExtPrimaryDataServiceRegistrationMessage,
   PrimaryServiceRegistrationMessage,
   WorkerRegistrationMessage,
+  RequestExtPrimaryDataAssets
 }
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.{ServiceStateData, SimonaService}
@@ -110,6 +115,7 @@ case class PrimaryServiceProxy(
         initStateData.primaryConfig,
         initStateData.simulationStart,
         initStateData.extSimulation,
+        initStateData.extPrimaryData
       ) match {
         case Success(stateData) =>
           scheduler ! Completion(self.toTyped)
@@ -143,6 +149,7 @@ case class PrimaryServiceProxy(
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime,
       extSimulation: Option[ActorRef],
+      extPrimaryData: Option[ExtPrimaryData]
   ): Try[PrimaryServiceStateData] = {
     createSources(primaryConfig).map {
       case (mappingSource, metaInformationSource) =>
@@ -179,7 +186,7 @@ case class PrimaryServiceProxy(
             simulationStart,
             primaryConfig,
             mappingSource,
-            getSubscribers,
+            extPrimaryData.getOrElse(throw new Exception("External Primary Data Simulation is requested without ExtPrimaryData")).getPrimaryDataAssets.asScala,
             extSimulation,
           )
         } else {
@@ -558,6 +565,7 @@ object PrimaryServiceProxy {
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime,
       extSimulation: Option[ActorRef],
+      extPrimaryData: Option[ExtPrimaryData]
   ) extends InitializeServiceStateData
 
   /** Holding the state of an initialized proxy.

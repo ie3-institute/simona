@@ -12,12 +12,15 @@ import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{DelayedStopHelper, RuntimeEventListener}
 import edu.ie3.simona.main.RunSimona.SimonaEnded
 import edu.ie3.simona.scheduler.TimeAdvancer
+import edu.ie3.simona.service.results.ExtResultDataService
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
 import edu.ie3.util.scala.Scope
 import org.apache.pekko.actor.typed.scaladsl.adapter._
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop, Terminated}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 
 /** Main entrance point to a simona simulation as the guardian actor. This actor
   * starts the initialization of all actors and waits for the simulation to end.
@@ -131,6 +134,16 @@ object SimonaSim {
           gridAgents ++
           extSimulationData.extDataServices.values.map(_.toTyped)
 
+        /*
+        val delayedActors = resultEventListeners.appended(runtimeEventListener).appended(extSimulationData.extResultDataService.getOrElse(
+          throw new Exception("Problem!")
+          ).toTyped[DelayedStopHelper.StoppingMsg])
+
+
+        ctx.log.info(s"delayedActors: $delayedActors")
+        */
+
+
         idle(
           ActorData(
             starter,
@@ -204,10 +217,15 @@ object SimonaSim {
       ref ! ExtSimAdapter.Stop(simulationSuccessful)
     }
 
+    ctx.log.info(s"delayedActors: ${actorData.delayedStoppingActors}")
+
     // if the simulation is successful, we're waiting for the delayed
     // stopping listeners to terminate and thus do not unwatch them here
     actorData.delayedStoppingActors.foreach(
-      _ ! DelayedStopHelper.FlushAndStop
+      actor => {
+        ctx.log.info(s"send FlushAndStop to $actor")
+        actor ! DelayedStopHelper.FlushAndStop
+      }
     )
 
     maybeStop(

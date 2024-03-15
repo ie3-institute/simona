@@ -6,8 +6,10 @@
 
 package edu.ie3.simona.service
 
+import edu.ie3.simona.api.data.results.ontology.ResultDataMessageFromExt
 import edu.ie3.simona.event
 import edu.ie3.simona.event.Event
+import edu.ie3.simona.event.listener.DelayedStopHelper
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, Stash}
 import edu.ie3.simona.logging.SimonaActorLogging
@@ -20,6 +22,7 @@ import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
 import edu.ie3.simona.service.SimonaService.Create
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RequestExtPrimaryDataAssets
 
 import scala.util.{Failure, Success, Try}
 
@@ -106,7 +109,7 @@ abstract class SimonaService[
       }
 
     // not ready yet to handle registrations, stash request away
-    case _: ServiceRegistrationMessage | _: Activation =>
+    case _: ServiceRegistrationMessage | _: Activation | _: ResultDataMessageFromExt | _: RequestExtPrimaryDataAssets =>
       stash()
 
     // unhandled message
@@ -163,6 +166,12 @@ abstract class SimonaService[
       //log.info("Send Completion")
       scheduler ! Completion(self.toTyped, maybeNewTriggers)
       context become idle(updatedStateData)
+
+      /*
+    case msg: DelayedStopHelper.StoppingMsg =>
+      DelayedStopHelper.handleMsg((context[_], msg))
+
+       */
 
     // unhandled message
     case x =>

@@ -159,6 +159,7 @@ class SimonaStandaloneSetup(
           simonaConfig.simona.input.primary,
           simulationStart,
           extSimSetupData.extPrimaryDataService,
+          extSimSetupData.extPrimaryData
         ),
         simulationStart,
       )
@@ -217,6 +218,7 @@ class SimonaStandaloneSetup(
       extPrimaryDataService,
       extSimAdapter,
       simpleExtSim.getPrimaryDataFactory,
+      simpleExtSim.getPrimaryDataAssets
     )
 
     extPrimaryDataService ! SimonaService.Create(
@@ -237,6 +239,7 @@ class SimonaStandaloneSetup(
         extResultDataService,
         extSimAdapter,
         simpleExtSim.getResultDataFactory,
+        simpleExtSim.getResultDataAssets
       )
 
     extResultDataService ! SimonaService.Create(
@@ -248,7 +251,7 @@ class SimonaStandaloneSetup(
       ),
     )
 
-    var simpleExtSimDatas: List[ExtData] = List(extResultData, extPrimaryData)
+    val simpleExtSimDatas: List[ExtData] = List(extResultData, extPrimaryData)
 
     simpleExtSim.setup(
       extSimAdapterData,
@@ -266,7 +269,12 @@ class SimonaStandaloneSetup(
 
     val extSimAdapters = Iterable(extSimAdapter)
 
-    ExtSimSetupData(extSimAdapters, extDataServicesMap)
+    val extDatas = Set(
+      extPrimaryData,
+      extResultData
+    )
+
+    ExtSimSetupData(extSimAdapters, extDataServicesMap, extDatas)
   }
 
   override def timeAdvancer(

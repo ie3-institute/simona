@@ -26,11 +26,6 @@ sealed trait ResultEvent extends Event with ResultEventListener.Request
   */
 object ResultEvent {
 
-  final case class ExternalResultEvent(
-      resultEntity: ResultEntity,
-      nextTick: Long
-  ) extends ResultEvent
-
   /** Event that holds a calculation result of a
     * [[edu.ie3.simona.model.participant.SystemParticipant]]
     *
