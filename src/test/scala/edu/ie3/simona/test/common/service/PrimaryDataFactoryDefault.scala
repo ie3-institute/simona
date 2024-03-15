@@ -14,5 +14,5 @@ class PrimaryDataFactoryDefault extends PrimaryDataFactory {
   /** Should convert an object to an primary data value with a check if the
     * object is primary data
     */
-  override def convertObjectToValue(entity: Any): Value = null
+  override def convert(entity: Any): Value = null
 }

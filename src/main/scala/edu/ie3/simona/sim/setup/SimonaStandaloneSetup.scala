@@ -15,12 +15,11 @@ import edu.ie3.simona.actor.SimonaActorNaming.RichActorRefFactory
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentMessage.CreateGridAgent
 import edu.ie3.simona.agent.grid.{GridAgent, GridAgentMessage}
-import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
+import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.data.ExtData
-import edu.ie3.simona.api.data.ExtDataSimulation
-import edu.ie3.simona.api.data.ev.{ExtEvData, ExtEvSimulation}
-import edu.ie3.simona.api.data.primarydata.{ExtPrimaryData, ExtPrimaryDataSimulation}
-import edu.ie3.simona.api.data.results.{ExtResultData, ExtResultDataSimulation}
+import edu.ie3.simona.api.data.primarydata.ExtPrimaryData
+import edu.ie3.simona.api.data.results.ExtResultData
+import edu.ie3.simona.api.data.results.ontology.ResultDataMessageFromExt
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.config.{ArgsParser, RefSystemParser, SimonaConfig}
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
@@ -29,15 +28,14 @@ import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.grid.GridProvider
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
 import edu.ie3.simona.scheduler.{ScheduleLock, Scheduler, TimeAdvancer}
 import edu.ie3.simona.service.SimonaService
-import edu.ie3.simona.service.ev.ExtEvDataService
-import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
-import edu.ie3.simona.service.primary.{ExtPrimaryDataService, PrimaryServiceProxy}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
-import edu.ie3.simona.service.results.ExtResultDataService
-import edu.ie3.simona.service.results.ExtResultDataService.InitExtResultData
+import edu.ie3.simona.service.primary.{ExtPrimaryDataService, PrimaryServiceProxy}
+import edu.ie3.simona.service.results.ExtResultDataProvider
+import edu.ie3.simona.service.results.ExtResultDataProvider.{InitExtResultData, RequestDataMessageAdapter, RequestScheduleActivationAdapter, WrappedResultDataMessageFromExt}
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.sim.SimonaSim
@@ -45,15 +43,19 @@ import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.TimeUtil
-import org.apache.pekko.actor.typed.ActorRef
+import edu.ie3.simpleextsim.SimpleExtSimulation
+import org.apache.pekko.actor.typed.{ActorRef, Scheduler}
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.adapter.{ClassicActorRefOps, TypedActorContextOps, TypedActorRefOps}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
-
-import edu.ie3.simpleextsim.SimpleExtSimulation
+import org.apache.pekko.actor.typed.scaladsl.AskPattern._
+import org.apache.pekko.util.{Timeout => PekkoTimeout}
 
 import java.util.concurrent.LinkedBlockingQueue
+import scala.concurrent.{Await, ExecutionContext}
 import scala.jdk.CollectionConverters._
+import scala.concurrent.duration.DurationInt
+import scala.jdk.DurationConverters._
 
 /** Sample implementation to run a standalone simulation of simona configured
   * with the provided [[SimonaConfig]] and [[ResultFileHierarchy]]
@@ -194,12 +196,12 @@ class SimonaStandaloneSetup(
 
   override def extSimulations(
       context: ActorContext[_],
-      scheduler: ActorRef[SchedulerMessage],
+      theScheduler: ActorRef[SchedulerMessage],
   ): ExtSimSetupData = {
     val simpleExtSim = new SimpleExtSimulation()
 
     val extSimAdapter = context.toClassic.simonaActorOf(
-      ExtSimAdapter.props(scheduler.toClassic),
+      ExtSimAdapter.props(theScheduler.toClassic),
       s"0",
     )
     val extSimAdapterData = new ExtSimAdapterData(extSimAdapter, args)
@@ -207,11 +209,11 @@ class SimonaStandaloneSetup(
     // send init data right away, init activation is scheduled
     extSimAdapter ! ExtSimAdapter.Create(
       extSimAdapterData,
-      ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
+      ScheduleLock.singleKey(context, theScheduler, INIT_SIM_TICK),
     )
 
     val extPrimaryDataService = context.toClassic.simonaActorOf(
-      ExtPrimaryDataService.props(scheduler.toClassic),
+      ExtPrimaryDataService.props(theScheduler.toClassic),
       s"0-0",
     )
     val extPrimaryData = new ExtPrimaryData(
@@ -225,28 +227,43 @@ class SimonaStandaloneSetup(
       InitExtPrimaryData(extPrimaryData),
       ScheduleLock.singleKey(
         context,
-        scheduler,
+        theScheduler,
         INIT_SIM_TICK,
       ),
     )
 
-    val extResultDataService = context.toClassic.simonaActorOf(
-      ExtResultDataService.props(scheduler.toClassic),
-      s"0-1",
-    )
+
+    val extResultDataProvider = {
+      context.spawn(
+        ExtResultDataProvider(theScheduler),
+        s"ExtResultDataProvider",
+      )
+    }
+
+    implicit val timeout: PekkoTimeout = PekkoTimeout.create(5.seconds.toJava)
+    implicit val scheduler: Scheduler = context.system.scheduler
+
+    val adapterRef = Await.result(
+      extResultDataProvider.ask[ActorRef[ResultDataMessageFromExt]] (ref => RequestDataMessageAdapter(ref)), timeout.duration)
+    val adapterScheduleRef = Await.result(
+      extResultDataProvider.ask[ActorRef[ScheduleServiceActivation]] (ref => RequestScheduleActivationAdapter(ref)), timeout.duration)
+
     val extResultData =
       new ExtResultData(
-        extResultDataService,
+        adapterRef.toClassic,
+        adapterScheduleRef.toClassic,
         extSimAdapter,
         simpleExtSim.getResultDataFactory,
         simpleExtSim.getResultDataAssets
       )
 
-    extResultDataService ! SimonaService.Create(
+    context.log.info(s"extResultData $extResultData")
+
+    extResultDataProvider ! ExtResultDataProvider.Create(
       InitExtResultData(extResultData),
       ScheduleLock.singleKey(
         context,
-        scheduler,
+        theScheduler,
         INIT_SIM_TICK,
       ),
     )
@@ -264,7 +281,7 @@ class SimonaStandaloneSetup(
 
     val extDataServicesMap: Map[Class[_], ClassicRef] = Map(
       classOf[ExtPrimaryDataService] -> extPrimaryDataService,
-      classOf[ExtResultDataService] -> extResultDataService
+      ExtResultDataProvider.getClass -> extResultDataProvider.toClassic
     )
 
     val extSimAdapters = Iterable(extSimAdapter)

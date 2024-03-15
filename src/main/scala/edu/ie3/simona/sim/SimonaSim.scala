@@ -12,7 +12,6 @@ import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{DelayedStopHelper, RuntimeEventListener}
 import edu.ie3.simona.main.RunSimona.SimonaEnded
 import edu.ie3.simona.scheduler.TimeAdvancer
-import edu.ie3.simona.service.results.ExtResultDataService
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
 import edu.ie3.util.scala.Scope
 import org.apache.pekko.actor.typed.scaladsl.adapter._
@@ -131,25 +130,18 @@ object SimonaSim {
           primaryServiceProxy.toTyped,
           weatherService.toTyped,
         ) ++
-          gridAgents ++
-          extSimulationData.extDataServices.values.map(_.toTyped)
+          gridAgents
 
-        /*
         val delayedActors = resultEventListeners.appended(runtimeEventListener).appended(extSimulationData.extResultDataService.getOrElse(
           throw new Exception("Problem!")
           ).toTyped[DelayedStopHelper.StoppingMsg])
-
-
-        ctx.log.info(s"delayedActors: $delayedActors")
-        */
-
 
         idle(
           ActorData(
             starter,
             extSimulationData.extSimAdapters,
             runtimeEventListener,
-            resultEventListeners.appended(runtimeEventListener),
+            delayedActors,
             otherActors,
           )
         )
@@ -217,13 +209,10 @@ object SimonaSim {
       ref ! ExtSimAdapter.Stop(simulationSuccessful)
     }
 
-    ctx.log.info(s"delayedActors: ${actorData.delayedStoppingActors}")
-
     // if the simulation is successful, we're waiting for the delayed
     // stopping listeners to terminate and thus do not unwatch them here
     actorData.delayedStoppingActors.foreach(
       actor => {
-        ctx.log.info(s"send FlushAndStop to $actor")
         actor ! DelayedStopHelper.FlushAndStop
       }
     )

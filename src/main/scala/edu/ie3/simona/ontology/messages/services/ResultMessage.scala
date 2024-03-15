@@ -12,12 +12,6 @@ import edu.ie3.simona.ontology.messages.PowerMessage
 sealed trait ResultMessage extends DataMessage
 
 object ResultMessage {
-  final case class ResultResponseMessage(
-                                          result: ResultEntity,
-                                          nextTick: Option[Long]
-                                        )
-      extends ResultMessage
-  final case class ResultRequestMessage(
-                                         currentTick: Long
-                                       ) extends ResultMessage
+  final case class ResultResponseMessageIdea() extends ResultMessage
 }
+

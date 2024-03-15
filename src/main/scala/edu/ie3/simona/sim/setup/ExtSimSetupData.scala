@@ -6,14 +6,14 @@
 
 package edu.ie3.simona.sim.setup
 
-import org.apache.pekko.actor.ActorRef
-import edu.ie3.simona.service.ev.ExtEvDataService
-import edu.ie3.simona.service.primary.ExtPrimaryDataService
-import edu.ie3.simona.service.results.ExtResultDataService
 import edu.ie3.simona.api.data.ExtData
+import edu.ie3.simona.api.data.ev.ExtEvData
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryData
 import edu.ie3.simona.api.data.results.ExtResultData
-import edu.ie3.simona.api.data.ev.ExtEvData
+import edu.ie3.simona.service.ev.ExtEvDataService
+import edu.ie3.simona.service.primary.ExtPrimaryDataService
+import edu.ie3.simona.service.results.ExtResultDataProvider
+import org.apache.pekko.actor.ActorRef
 
 final case class ExtSimSetupData(
     extSimAdapters: Iterable[ActorRef],
@@ -28,7 +28,7 @@ final case class ExtSimSetupData(
     extDataServices.get(classOf[ExtPrimaryDataService])
 
   def extResultDataService: Option[ActorRef] =
-    extDataServices.get(classOf[ExtResultDataService])
+    extDataServices.get(ExtResultDataProvider.getClass)
 
   def extEvData: Option[ExtEvData] = {
     extDatas.collectFirst { case extData: ExtEvData => extData }

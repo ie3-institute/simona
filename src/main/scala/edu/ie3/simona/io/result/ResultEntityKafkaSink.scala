@@ -13,11 +13,7 @@ import edu.ie3.simona.io.result.plain.PlainWriter.NodeResultWriter
 import edu.ie3.simona.io.result.plain.{PlainResult, PlainWriter}
 import edu.ie3.util.scala.io.ScalaReflectionSerde.reflectionSerializer4S
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG
-import org.apache.kafka.clients.producer.{
-  KafkaProducer,
-  ProducerConfig,
-  ProducerRecord,
-}
+import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, ProducerRecord}
 import org.apache.kafka.common.serialization.{Serdes, Serializer}
 
 import java.util.{Properties, UUID}

@@ -22,7 +22,8 @@ import edu.ie3.simona.exceptions.{
   ProcessResultEventException,
 }
 import edu.ie3.simona.io.result._
-import edu.ie3.simona.ontology.messages.services.ResultMessage.ResultResponseMessage
+import edu.ie3.simona.service.results.ExtResultDataProvider.ResultResponseMessage
+
 import edu.ie3.simona.util.ResultFileHierarchy
 import org.apache.pekko.actor.ActorRef
 import org.slf4j.Logger
