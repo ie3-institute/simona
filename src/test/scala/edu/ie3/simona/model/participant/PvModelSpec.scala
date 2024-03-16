@@ -17,7 +17,7 @@ import edu.ie3.util.scala.quantities.{Irradiation, Megavars, ReactivePower, Watt
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import org.scalatest.GivenWhenThen
 import squants.Each
-import squants.energy.Kilowatts
+import squants.energy.{Kilowatts, Power}
 import squants.space.{Angle, Degrees, Radians}
 import tech.units.indriya.quantity.Quantities.getQuantity
 import tech.units.indriya.unit.Units._
@@ -85,16 +85,17 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
 
   private implicit val angleTolerance: Angle = Radians(1e-10)
   private implicit val irradiationTolerance: Irradiation = WattHoursPerSquareMeter(1e-10)
+  private implicit val PowerTolerance: Power = Kilowatts(1e-10)
   private implicit val reactivePowerTolerance: ReactivePower = Megavars(1e-10)
 
   "A PV Model" should {
     "have sMax set to be 10% higher than its sRated" in {
       When("sMax is calculated")
-      val actualSMax = pvModel.sMax.toKilowatts
-      val expectedSMax = pvModel.sRated.toKilowatts * 1.1
+      val actualSMax = pvModel.sMax
+      val expectedSMax = pvModel.sRated * 1.1
 
       Then("result should match the test data")
-      actualSMax shouldBe expectedSMax
+      actualSMax should approximate(expectedSMax)
     }
 
     "provide reactive power up to 110% of its rated apparent power" in {
@@ -113,7 +114,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
           pvModel.calculateReactivePower(Kilowatts(pVal), Each(adjustedVoltage))
 
         Then("result should be capped if apparent power exceeds limit")
-        qCalc shouldEqual Megavars(qSol)
+        qCalc should approximate(Megavars(qSol))
       }
     }
 
