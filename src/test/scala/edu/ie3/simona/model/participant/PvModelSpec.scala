@@ -13,7 +13,7 @@ import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.scala.quantities.{Megavars, WattHoursPerSquareMeter}
+import edu.ie3.util.scala.quantities.{Irradiation, Megavars, ReactivePower, WattHoursPerSquareMeter}
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import org.scalatest.GivenWhenThen
 import squants.Each
@@ -84,6 +84,8 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
   )
 
   private implicit val angleTolerance: Angle = Radians(1e-10)
+  private implicit val irradiationTolerance: Irradiation = WattHoursPerSquareMeter(1e-05)
+  private implicit val reactivePowerTolerance: ReactivePower = Megavars(1e-10)
 
   "A PV Model" should {
     "have sMax set to be 10% higher than its sRated" in {
@@ -169,7 +171,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
         val deltaCalc = pvModel.calcSunDeclinationDelta(Radians(j))
 
         Then("result should match the test data")
-        deltaCalc.toRadians shouldEqual deltaSol +- 1e-6
+        deltaCalc should approximate(Radians(deltaSol))
       }
     }
 
@@ -271,7 +273,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
         )
 
         Then("result should match the test data")
-        omegaCalc.toRadians shouldEqual omegaSol +- 1e-10
+        omegaCalc should approximate(Radians(omegaSol))
       }
     }
 
@@ -294,7 +296,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
           pvModel.calcSunsetAngleOmegaSS(Radians(latitude), Radians(delta))
 
         Then("result should match the test data")
-        omegaSSCalc.toRadians shouldEqual omegaSSSol +- 1e-10
+        omegaSSCalc should approximate(Radians(omegaSSSol))
       }
     }
 
@@ -463,7 +465,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
         )
 
         Then("result should match the test data")
-        alphaSCalc.toRadians shouldEqual alphaSSol +- 1e-10
+        alphaSCalc should approximate(Radians(alphaSSol))
       }
     }
 
@@ -480,7 +482,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
         val thetaZCalc = pvModel.calcZenithAngleThetaZ(Radians(alphaS))
 
         Then("result should match the test data")
-        thetaZCalc.toRadians shouldEqual thetaZSol +- 1e-10
+        thetaZCalc should approximate(Radians(thetaZSol))
       }
     }
 
@@ -614,7 +616,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
           )
 
           Then("result should match the test data")
-          thetaG.toDegrees shouldEqual thetaGOut +- 1e-10
+          thetaG should approximate(Degrees(thetaGOut))
       }
     }
 
@@ -666,7 +668,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
           )
 
           Then("the result should match the pre-calculated data")
-          thetaG.toDegrees shouldEqual thetaGOut +- 1e-10
+          thetaG should approximate(Degrees(thetaGOut))
       }
     }
 
