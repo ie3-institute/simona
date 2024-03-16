@@ -84,7 +84,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
   )
 
   private implicit val angleTolerance: Angle = Radians(1e-10)
-  private implicit val irradiationTolerance: Irradiation = WattHoursPerSquareMeter(1e-05)
+  private implicit val irradiationTolerance: Irradiation = WattHoursPerSquareMeter(1e-10)
   private implicit val reactivePowerTolerance: ReactivePower = Megavars(1e-10)
 
   "A PV Model" should {
@@ -516,7 +516,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
         val I0Calc = pvModel.calcExtraterrestrialRadiationI0(Radians(j))
 
         Then("result should match the test data")
-        I0Calc.toWattHoursPerSquareMeter shouldEqual (I0Sol) +- 1e-5
+        I0Calc should approximate(WattHoursPerSquareMeter(I0Sol))
       }
     }
 
@@ -736,7 +736,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
           )
 
           Then("result should match the test data")
-          eBeamSCalc.toWattHoursPerSquareMeter shouldEqual eBeamSSol +- 1e-10
+          eBeamSCalc should approximate(WattHoursPerSquareMeter(eBeamSSol))
       }
     }
 
@@ -770,7 +770,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
           )
 
           Then("result should match the test data")
-          eDifSCalc.toWattHoursPerSquareMeter shouldEqual eDifSSol +- 1e-1
+          eDifSCalc should approximate(WattHoursPerSquareMeter(eDifSSol))
       }
     }
 
@@ -797,7 +797,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
         )
 
         Then("result should match the test data")
-        eRefSCalc.toWattHoursPerSquareMeter shouldEqual eRefSSol +- 1e-10
+        eRefSCalc should approximate(WattHoursPerSquareMeter(eRefSSol))
       }
     }
   }
