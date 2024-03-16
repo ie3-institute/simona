@@ -285,7 +285,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
           0.157952297d,
           0.384670567d,
           1.635323424114512d,
-        ), // Example 2.2 Goswami Priciples of Solar Engineering
+        ), // Example 2.2 Goswami Principles of Solar Engineering
       )
 
       forAll(testCases) { (latitude, delta, omegaSSSol) =>
@@ -585,7 +585,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
           30d,
           +10d,
           22.384603601536398d,
-        ), // Goswami Priciples of Solar Engineering Example 2.7a
+        ), // Goswami Principles of Solar Engineering Example 2.7a
         (
           -35.3d,
           -17.51d,
@@ -593,7 +593,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
           30d,
           +170d,
           14.882390116876563d,
-        ), // Goswami Priciples of Solar Engineering Example 2.7b
+        ), // Goswami Principles of Solar Engineering Example 2.7b
       )
 
       // Calculate the angle of incidence of beam radiation on a surface located at a Latitude
