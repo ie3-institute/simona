@@ -85,7 +85,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
 
   private implicit val angleTolerance: Angle = Radians(1e-10)
   private implicit val irradiationTolerance: Irradiation = WattHoursPerSquareMeter(1e-10)
-  private implicit val PowerTolerance: Power = Kilowatts(1e-10)
+  private implicit val powerTolerance: Power = Kilowatts(1e-10)
   private implicit val reactivePowerTolerance: ReactivePower = Megavars(1e-10)
 
   "A PV Model" should {
@@ -500,7 +500,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
         val airMassCalc = pvModel.calcAirMass(Radians(thetaZ))
 
         Then("result should match the test data")
-        airMassCalc shouldEqual airMassSol +- 1e-10
+        airMassCalc shouldEqual airMassSol +- 1e-10 //the "approximate" function does not work for doubles, therefore the "shouldEqual" function is used
       }
     }
 
