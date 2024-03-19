@@ -16,7 +16,7 @@ import squants.Power
 import java.util.UUID
 
 /** Translating input data to a format that can be used by aggregation
-  * strategies, em strats etc. Furthermore, sanity checks on calculated data is
+  * strategies, em strategies etc.. Furthermore, sanity checks on calculated data is
   * performed.
   */
 final case class EmModelShell(
