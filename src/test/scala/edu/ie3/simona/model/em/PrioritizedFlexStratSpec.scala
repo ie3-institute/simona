@@ -301,7 +301,7 @@ class PrioritizedFlexStratSpec
       // flex options should be changed if corresponding
       // agent is not controlled by this strategy
       val cases = Table(
-        ("pvFlex", "inputModel", "expectedAdaptation"),
+        ("curtailRegenerative", "inputModel", "expectedAdaptation"),
         (false, loadInputModel, true),
         (false, pvInputModel, true),
         (false, evcsInputModel, false),
@@ -312,26 +312,27 @@ class PrioritizedFlexStratSpec
         (true, storageInputModel, false),
       )
 
-      forAll(cases) { case (pvFlex, inputModel, expectedAdaptation) =>
-        val flexOptionsIn = ProvideMinMaxFlexOptions(
-          inputModel.getUuid,
-          Kilowatts(1),
-          Kilowatts(-1),
-          Kilowatts(2),
-        )
+      forAll(cases) {
+        case (curtailRegenerative, inputModel, expectedAdaptation) =>
+          val flexOptionsIn = ProvideMinMaxFlexOptions(
+            inputModel.getUuid,
+            Kilowatts(1),
+            Kilowatts(-1),
+            Kilowatts(2),
+          )
 
-        val flexOptionsOut = PrioritizedFlexStrat(pvFlex)
-          .adaptFlexOptions(inputModel, flexOptionsIn)
+          val flexOptionsOut = PrioritizedFlexStrat(curtailRegenerative)
+            .adaptFlexOptions(inputModel, flexOptionsIn)
 
-        if (expectedAdaptation) {
-          flexOptionsOut shouldBe ProvideMinMaxFlexOptions
-            .noFlexOption(
-              inputModel.getUuid,
-              Kilowatts(1),
-            )
-        } else {
-          flexOptionsOut shouldBe flexOptionsIn
-        }
+          if (expectedAdaptation) {
+            flexOptionsOut shouldBe ProvideMinMaxFlexOptions
+              .noFlexOption(
+                inputModel.getUuid,
+                Kilowatts(1),
+              )
+          } else {
+            flexOptionsOut shouldBe flexOptionsIn
+          }
       }
     }
 

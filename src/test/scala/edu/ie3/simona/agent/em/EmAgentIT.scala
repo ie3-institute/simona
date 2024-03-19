@@ -88,7 +88,7 @@ class EmAgentIT
     scaling = 1d,
     uuids = List("default"),
     aggregateFlex = "SELF_OPT",
-    pvFlex = false,
+    curtailRegenerative = false,
   )
 
   private implicit val quantityTolerance: Double = 1e-10d

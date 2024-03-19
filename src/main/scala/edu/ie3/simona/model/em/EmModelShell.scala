@@ -126,9 +126,9 @@ object EmModelShell {
     }
 
     val aggregateFlex = modelConfig.aggregateFlex match {
-      case "SELF_OPT_EXCL_PV" => EmAggregateSelfOpt(false)
-      case "SELF_OPT"         => EmAggregateSelfOpt(true)
-      case "SIMPLE_SUM"       => EmAggregateSimpleSum
+      case "SELF_OPT_EXCL_REG" => EmAggregateSelfOpt(false)
+      case "SELF_OPT"          => EmAggregateSelfOpt(true)
+      case "SIMPLE_SUM"        => EmAggregateSimpleSum
       case unknown =>
         throw new CriticalFailureException(
           s"Unknown aggregate flex strategy $unknown"

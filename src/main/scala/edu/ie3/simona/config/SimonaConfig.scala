@@ -99,7 +99,7 @@ object SimonaConfig {
       SimonaConfig.EmRuntimeConfig(
         aggregateFlex =
           if (c.hasPathOrNull("aggregateFlex")) c.getString("aggregateFlex")
-          else "SELF_OPT_EXCL_PV",
+          else "SELF_OPT_EXCL_REG",
         curtailRegenerative =
           c.hasPathOrNull("curtailRegenerative") && c.getBoolean(
             "curtailRegenerative"

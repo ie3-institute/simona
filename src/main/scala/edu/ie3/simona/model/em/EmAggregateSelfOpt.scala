@@ -7,18 +7,20 @@
 package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
-import edu.ie3.datamodel.models.input.system.PvInput
+import edu.ie3.datamodel.models.input.system.{PvInput, WecInput}
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.Power
 
 /** Aggregates flex reference power with the target of reaching 0kW, while
-  * optionally excluding positive PV potential from the calculation
+  * optionally excluding positive flex potential of PV/WEC from the calculation
   *
-  * @param pvFlex
-  *   Whether to include positive PV flexibility in reference sum calculation
+  * @param curtailRegenerative
+  *   Whether to include positive flexibility of PV/WEC in reference sum
+  *   calculation
   */
-final case class EmAggregateSelfOpt(pvFlex: Boolean) extends EmAggregateFlex {
+final case class EmAggregateSelfOpt(curtailRegenerative: Boolean)
+    extends EmAggregateFlex {
 
   override def aggregateFlexOptions(
       flexOptions: Iterable[
@@ -38,18 +40,18 @@ final case class EmAggregateSelfOpt(pvFlex: Boolean) extends EmAggregateFlex {
       }
 
     val maxRefSum =
-      if (pvFlex)
+      if (curtailRegenerative)
         maxSum
       else
         flexOptions.foldLeft(zeroKW) {
           case (
-                maxSumExclPv,
+                maxSumExclReg,
                 (inputModel, ProvideMinMaxFlexOptions(_, _, addMin, addMax)),
               ) =>
             inputModel match {
-              case _: PvInput =>
-                maxSumExclPv + addMin
-              case _ => maxSumExclPv + addMax
+              case _: PvInput | _: WecInput =>
+                maxSumExclReg + addMin
+              case _ => maxSumExclReg + addMax
             }
         }
 

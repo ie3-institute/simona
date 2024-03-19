@@ -17,7 +17,7 @@ import java.util.UUID
 class EmAggregateSelfOptSpec extends UnitSpec with MockitoSugar {
 
   "The self-optimizing aggregating strategy with PV flex" should {
-    val strat = EmAggregateSelfOpt(pvFlex = true)
+    val strat = EmAggregateSelfOpt(curtailRegenerative = true)
 
     "pick 0kW if possible" in {
       val flexOptions1 = ProvideMinMaxFlexOptions(
@@ -108,7 +108,7 @@ class EmAggregateSelfOptSpec extends UnitSpec with MockitoSugar {
   }
 
   "The self-optimizing aggregating strategy without PV flex" should {
-    val strat = EmAggregateSelfOpt(pvFlex = false)
+    val strat = EmAggregateSelfOpt(curtailRegenerative = false)
 
     "exclude PV max power when normally picking 0kW as target" in {
       val flexOptions1 = ProvideMinMaxFlexOptions(
