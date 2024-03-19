@@ -239,7 +239,7 @@ case object ConfigFailFast extends LazyLogging {
       case e: DateTimeParseException =>
         throw new InvalidConfigParameterException(
           s"Invalid dateTimeString: $dateTimeString." +
-            s"Please ensure that your date/time parameter match the following pattern: 'yyyy-MM-dd HH:mm:ss'",
+            s"Please ensure that your date/time parameter match the following pattern: 'yyyy-MM-dd'T'HH:mm:ss'Z''",
           e,
         )
     }
