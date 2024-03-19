@@ -100,10 +100,10 @@ object ProportionalFlexStrat extends EmModelStrat {
       }
     } else {
       // calculate share of flexibility that each device should carry
-      val normalizedLimit = totalLimit - totalRef
-      val normalizedTarget = target - totalRef
+      val deltaToLimit = totalLimit - totalRef
+      val deltaToTarget = target - totalRef
 
-      val flexShare = normalizedTarget / normalizedLimit
+      val flexShare = deltaToTarget / deltaToLimit
 
       filteredOptions.map { case (uuid, refPower, limitPower) =>
         val diffLimitRef = limitPower - refPower

@@ -28,6 +28,7 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
@@ -229,7 +230,7 @@ class GridAgentController(
     * @param emInputs
     *   EMs of the current level, which can be controlled by further EMs at
     *   higher levels
-    * @param lastLevelEms
+    * @param previousLevelEms
     *   EMs that have been built by the previous recursion level
     * @return
     *   Map from model UUID to EmAgent ActorRef
@@ -238,7 +239,7 @@ class GridAgentController(
       participantConfigUtil: ConfigUtil.ParticipantConfigUtil,
       outputConfigUtil: OutputConfigUtil,
       emInputs: Map[UUID, EmInput],
-      lastLevelEms: Map[UUID, ActorRef[FlexResponse]] = Map.empty,
+      previousLevelEms: Map[UUID, ActorRef[FlexResponse]] = Map.empty,
   ): Map[UUID, ActorRef[FlexResponse]] = {
     // For the current level, split controlled and uncontrolled EMs.
     // Uncontrolled EMs can be built right away.
@@ -257,7 +258,8 @@ class GridAgentController(
         }
       }
 
-    val lastLevelAndUncontrolledEms = lastLevelEms ++ uncontrolledEms.toMap
+    val previousLevelAndUncontrolledEms =
+      previousLevelEms ++ uncontrolledEms.toMap
 
     if (controlledEmInputs.nonEmpty) {
       // For controlled EMs at the current level, more EMs
@@ -267,20 +269,25 @@ class GridAgentController(
           emInput.getControllingEm.toScala.map(uuid -> _)
       }
 
-      // Return value includes last level and uncontrolled EMs of this level
+      // Return value includes previous level and uncontrolled EMs of this level
       val recursiveEms = buildEmsRecursively(
         participantConfigUtil,
         outputConfigUtil,
         controllingEms,
-        lastLevelAndUncontrolledEms,
+        previousLevelAndUncontrolledEms,
       )
 
       val controlledEms = controlledEmInputs.map { case (uuid, emInput) =>
         val controllingEm = emInput.getControllingEm.toScala
           .map(_.getUuid)
-          // We do not have to throw errors here because PSDM
-          // already takes care of valid input data
-          .flatMap(uuid => recursiveEms.get(uuid))
+          .map(uuid =>
+            recursiveEms.getOrElse(
+              uuid,
+              throw new CriticalFailureException(
+                s"Actor for EM $uuid not found."
+              ),
+            )
+          )
 
         uuid -> buildEm(
           emInput,
@@ -292,7 +299,7 @@ class GridAgentController(
 
       recursiveEms ++ controlledEms
     } else {
-      lastLevelAndUncontrolledEms
+      previousLevelAndUncontrolledEms
     }
   }
 
