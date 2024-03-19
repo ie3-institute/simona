@@ -378,7 +378,7 @@ class EmAgentIT
         /* TICK 21600
          LOAD: 0.000269 MW (unchanged)
          PV:  -0.000032 MW
-         Heat pump: Is not running, can run or be turned off
+         Heat pump: Is not running, can run or stay off
          -> flex signal is 0 MW: Heat pump is turned off
          */
 
