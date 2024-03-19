@@ -47,7 +47,7 @@ class PrioritizedFlexStratSpec
     when(storageInputModel.getUuid).thenReturn(st)
 
     "determine flex control dependent on flex options" in {
-      val strat = PrioritizedFlexStrat(pvFlex = false)
+      val strat = PrioritizedFlexStrat(curtailRegenerative = false)
 
       val cases = Table(
         (
@@ -183,8 +183,8 @@ class PrioritizedFlexStratSpec
       }
     }
 
-    "determine flex control dependent on flex options with PV flex enabled" in {
-      val strat = PrioritizedFlexStrat(pvFlex = true)
+    "determine flex control dependent on flex options with curtailment enabled" in {
+      val strat = PrioritizedFlexStrat(curtailRegenerative = true)
 
       val cases = Table(
         (

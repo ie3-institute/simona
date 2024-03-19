@@ -119,7 +119,8 @@ object EmModelShell {
 
     val modelStrategy = modelStrategyName match {
       case "PROPORTIONAL" => ProportionalFlexStrat
-      case "PRIORITIZED"  => PrioritizedFlexStrat(modelConfig.pvFlex)
+      case "PRIORITIZED" =>
+        PrioritizedFlexStrat(modelConfig.curtailRegenerative)
       case unknown =>
         throw new CriticalFailureException(s"Unknown model strategy $unknown")
     }
