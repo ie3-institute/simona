@@ -70,7 +70,7 @@ class PrioritizedFlexStratSpec
         // excess is fully covered by max ev and parts of storage flex
         (0d, 1d, -13d, 2d, -11d, 11d, -2d, 2d, L((ev, 11d), (st, 1d))),
         // excess is fully covered by max ev and max storage flex
-        (0d, 0d, -14d, 2d, -11d, 11d, -2d, 2d, L((ev, 11d), (st, 2d))),
+        (0d, 1d, -14d, 2d, -11d, 11d, -2d, 2d, L((ev, 11d), (st, 2d))),
         // excess is fully covered by max storage flex
         (0d, 0d, -4d, 2d, 0d, 2d, -2d, 2d, L((st, 2d))),
         // excess is partly covered by max ev and max storage flex, -2kW remains
