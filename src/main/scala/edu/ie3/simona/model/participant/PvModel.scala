@@ -113,6 +113,7 @@ final case class PvModel private (
       lat,
       gammaE,
       alphaE,
+      duration,
     )
 
     // === Diffuse Radiation Parameters ===//
@@ -335,7 +336,7 @@ final case class PvModel private (
     val e0 = 1.000110 +
       0.034221 * cos(jInRad) +
       0.001280 * sin(jInRad) +
-      0.000719 * cos(2d * jInRad) +
+      0.00719 * cos(2d * jInRad) +
       0.000077 * sin(2d * jInRad)
 
     // solar constant in W/m2
@@ -407,32 +408,27 @@ final case class PvModel private (
       omegaSS: Angle,
       omegaSR: Angle,
   ): Option[(Angle, Angle)] = {
-    val thetaGInRad = thetaG.toRadians
     val omegaSSInRad = omegaSS.toRadians
     val omegaSRInRad = omegaSR.toRadians
 
     val omegaOneHour = toRadians(15d)
-    val omegaHalfHour = omegaOneHour / 2d
 
     val omega1InRad = omega.toRadians // requested hour
     val omega2InRad = omega1InRad + omegaOneHour // requested hour plus 1 hour
 
-    // (thetaG < 90°): sun is visible
-    // (thetaG > 90°), otherwise: sun is behind the surface  -> no direct radiation
     if (
-      thetaGInRad < toRadians(90)
-      // omega1 and omega2: sun has risen and has not set yet
-      && omega2InRad > omegaSRInRad + omegaHalfHour
-      && omega1InRad < omegaSSInRad - omegaHalfHour
+      // requested time is between sunrise and sunset (+/- one hour)
+      omega1InRad > omegaSRInRad - omegaOneHour
+      && omega1InRad < omegaSSInRad
     ) {
 
       val (finalOmega1, finalOmega2) =
         if (omega1InRad < omegaSRInRad) {
           // requested time earlier than sunrise
-          (omegaSRInRad, omegaSRInRad + omegaOneHour)
-        } else if (omega2InRad > omegaSSInRad) {
-          // sunset earlier than requested time
-          (omegaSSInRad - omegaOneHour, omegaSSInRad)
+          (omegaSRInRad, omega2InRad)
+        } else if (omega1InRad > omegaSSInRad - omegaOneHour) {
+          // requested time is less than one hour before sunset
+          (omega1InRad, omegaSSInRad)
         } else {
           (omega1InRad, omega2InRad)
         }
@@ -462,6 +458,15 @@ final case class PvModel private (
     * @return
     *   the beam radiation on the sloped surface
     */
+
+  def calculateTimeFrame(omegas: Option[(Angle, Angle)]): Double = {
+    omegas match {
+      case Some((omega1, omega2)) =>
+        (omega2 - omega1).toDegrees / 15
+
+      case None => 0d
+    }
+  }
   private def calcBeamRadiationOnSlopedSurface(
       eBeamH: Irradiation,
       omegas: Option[(Angle, Angle)],
@@ -469,6 +474,7 @@ final case class PvModel private (
       latitude: Angle,
       gammaE: Angle,
       alphaE: Angle,
+      duration: Time,
   ): Irradiation = {
 
     omegas match {
@@ -480,6 +486,9 @@ final case class PvModel private (
 
         val omega1InRad = omega1.toRadians
         val omega2InRad = omega2.toRadians
+        // variable that accounts for cases when the integration interval is shorter than 15° (1 hour equivalent), when the time is close to sunrise or sunset
+        val timeFrame =
+          (omega2 - omega1).toDegrees / 15d / duration.toHours // original term: (omega2 - omega1).toRadians * 180 / Math.PI / 15, since a one hour difference equals 15°
 
         val a = ((sin(deltaInRad) * sin(latInRad) * cos(gammaEInRad)
           - sin(deltaInRad) * cos(latInRad) * sin(gammaEInRad) * cos(
@@ -501,7 +510,7 @@ final case class PvModel private (
 
         // in rare cases (close to sunrise) r can become negative (although very small)
         val r = max(a / b, 0d)
-        eBeamH * r
+        eBeamH * r * timeFrame
       case None => WattHoursPerSquareMeter(0d)
     }
   }
@@ -531,6 +540,41 @@ final case class PvModel private (
     * @return
     *   the diffuse radiation on the sloped surface
     */
+
+  private def calcEpsilon(
+      eDifH: Irradiation,
+      eBeamH: Irradiation,
+      thetaZ: Angle,
+  ): Double = {
+    val thetaZInRad = thetaZ.toRadians
+
+    ((eDifH + eBeamH / cos(thetaZInRad)) / eDifH + (5.535d * 1.0e-6) * pow(
+      thetaZ.toDegrees,
+      3,
+    )) /
+      (1d + (5.535d * 1.0e-6) * pow(thetaZ.toDegrees, 3))
+  }
+
+  private def calcEpsilonOld(
+      eDifH: Irradiation,
+      eBeamH: Irradiation,
+      thetaZ: Angle,
+  ): Double = {
+    val thetaZInRad = thetaZ.toRadians
+
+    ((eDifH + eBeamH) / eDifH + (5.535d * 1.0e-6) * pow(thetaZ.toRadians, 3)) /
+      (1d + (5.535d * 1.0e-6) * pow(thetaZ.toRadians, 3))
+  }
+
+  private def firstFraction(
+      eDifH: Irradiation,
+      eBeamH: Irradiation,
+      thetaZ: Angle,
+  ): Double = {
+
+    (eDifH + eBeamH) / eDifH
+  }
+
   private def calcDiffuseRadiationOnSlopedSurfacePerez(
       eDifH: Irradiation,
       eBeamH: Irradiation,
@@ -553,12 +597,12 @@ final case class PvModel private (
 
     if (eDifH.value.doubleValue > 0) {
       // if we have diffuse radiation on horizontal surface we have to check if we have another epsilon due to clouds get the epsilon
-      var epsilon = ((eDifH + eBeamH) / eDifH +
+      var epsilon = ((eDifH + eBeamH / cos(thetaZInRad)) / eDifH +
         (5.535d * 1.0e-6) * pow(
-          thetaZInRad,
+          thetaZ.toDegrees,
           3,
         )) / (1d + (5.535d * 1.0e-6) * pow(
-        thetaZInRad,
+        thetaZ.toDegrees,
         3,
       ))
 
