@@ -232,3 +232,6 @@ deploy.properties
 
 # Ignore Gradle build output directory
 build
+
+# Ignore unwanted input directories
+input/ext_sim

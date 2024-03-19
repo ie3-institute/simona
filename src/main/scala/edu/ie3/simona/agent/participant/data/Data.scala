@@ -13,6 +13,7 @@ import edu.ie3.util.quantities.interfaces.EnergyPrice
 import edu.ie3.util.scala.quantities.{Kilovars, Megavars, ReactivePower}
 import squants.energy.{Power, Kilowatts, Megawatts}
 import tech.units.indriya.ComparableQuantity
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 
 import java.time.ZonedDateTime
 import scala.jdk.OptionConverters.RichOptional
@@ -60,10 +61,7 @@ object Data {
       val qDot: Power
     }
 
-    val ZERO_POWER: ApparentPower = ApparentPower(
-      Megawatts(0d),
-      Megavars(0d),
-    )
+    val ZERO_POWER: ApparentPower = ApparentPower(zeroMW, zeroMVAr)
 
     /** Active power as participant simulation result
       *
@@ -76,7 +74,7 @@ object Data {
       override def toApparentPower: ApparentPower =
         ApparentPower(
           p,
-          Megavars(0d),
+          zeroMVAr,
         )
 
       override def add(q: ReactivePower): ApparentPower =
@@ -116,7 +114,7 @@ object Data {
       override def toApparentPower: ApparentPower =
         ApparentPower(
           p,
-          Megavars(0d),
+          zeroMVAr,
         )
 
       override def add(q: ReactivePower): ApparentPowerAndHeat =

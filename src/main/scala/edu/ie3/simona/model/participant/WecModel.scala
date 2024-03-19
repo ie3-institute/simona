@@ -22,6 +22,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptio
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants._
 import squants.energy.{Kilowatts, Watts}
 import squants.mass.{Kilograms, KilogramsPerCubicMeter}
@@ -195,7 +196,7 @@ final case class WecModel(
   ): ProvideFlexOptions = {
     val power = calculateActivePower(ConstantState, data)
 
-    ProvideMinMaxFlexOptions(uuid, power, power, Kilowatts(0d))
+    ProvideMinMaxFlexOptions(uuid, power, power, zeroKW)
   }
 
   override def handleControlledPowerChange(

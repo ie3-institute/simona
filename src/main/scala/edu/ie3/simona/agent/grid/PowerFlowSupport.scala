@@ -14,14 +14,13 @@ import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidN
 import edu.ie3.powerflow.model.StartData.WithForcedStartVoltages
 import edu.ie3.powerflow.model.enums.NodeType
 import edu.ie3.simona.agent.grid.ReceivedValues.ReceivedSlackVoltageValues
+import edu.ie3.simona.agent.grid.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid._
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvidePowerMessage
-import VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
-import edu.ie3.util.scala.quantities.Kilovars
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import org.slf4j.Logger
 import squants.electro.ElectricPotential
-import squants.energy.Kilowatts
 
 import java.util.UUID
 import scala.collection.mutable
@@ -104,8 +103,8 @@ trait PowerFlowSupport {
               }
               .foldLeft(
                 (
-                  Kilowatts(0d),
-                  Kilovars(0d),
+                  zeroKW,
+                  zeroKVAr,
                 )
               ) { case ((pSum, qSum), powerMessage) =>
                 (
