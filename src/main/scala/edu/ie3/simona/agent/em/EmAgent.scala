@@ -28,10 +28,9 @@ import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMin
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.Megavars
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
-import squants.energy.{Kilowatts, Megawatts}
 
 import java.time.ZonedDateTime
 
@@ -273,7 +272,7 @@ object EmAgent {
           case Left(_) =>
             // We're not em-controlled ourselves,
             // always desire to come as close as possible to 0 kW
-            val setPower = Kilowatts(0)
+            val setPower = zeroKW
 
             val flexControl =
               modelShell.determineFlexControl(allFlexOptions, setPower)
@@ -399,8 +398,8 @@ object EmAgent {
       }
       .getOrElse(
         ApparentPower(
-          Megawatts(0d),
-          Megavars(0d),
+          zeroMW,
+          zeroMVAr,
         )
       )
 

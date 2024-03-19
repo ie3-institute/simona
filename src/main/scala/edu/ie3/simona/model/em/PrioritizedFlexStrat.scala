@@ -16,8 +16,8 @@ import edu.ie3.datamodel.models.input.system.{
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.EmModelStrat.tolerance
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.Power
-import squants.energy.Kilowatts
 
 import java.util.UUID
 
@@ -88,9 +88,9 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
       }
       .filter(_ => pvFlex) // only if enabled
 
-    if (Kilowatts(0d).~=(targetDelta)(tolerance)) {
+    if (zeroKW.~=(targetDelta)(tolerance)) {
       Seq.empty
-    } else if (targetDelta < Kilowatts(0d)) {
+    } else if (targetDelta < zeroKW) {
       // suggested power too low, try to store difference/increase load
 
       val orderedParticipants =
@@ -107,10 +107,10 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
           val flexPotential =
             flexOption.ref - flexOption.max
 
-          if (Kilowatts(0d).~=(remainingExcessPower)(tolerance)) {
+          if (zeroKW.~=(remainingExcessPower)(tolerance)) {
             // we're already there (besides rounding error)
             (issueCtrlMsgs, None)
-          } else if (Kilowatts(0d).~=(flexPotential)(tolerance)) {
+          } else if (zeroKW.~=(flexPotential)(tolerance)) {
             // device does not offer usable flex potential here
             (issueCtrlMsgs, Some(remainingExcessPower))
           } else if (remainingExcessPower < flexPotential) {
@@ -156,10 +156,10 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
           val flexPotential =
             flexOption.ref - flexOption.min
 
-          if (Kilowatts(0d).~=(remainingExcessPower)(tolerance)) {
+          if (zeroKW.~=(remainingExcessPower)(tolerance)) {
             // we're already there (besides rounding error)
             (issueCtrlMsgs, None)
-          } else if (Kilowatts(0d).~=(flexPotential)(tolerance)) {
+          } else if (zeroKW.~=(flexPotential)(tolerance)) {
             // device does not offer usable flex potential here
             (issueCtrlMsgs, Some(remainingExcessPower))
           } else if (remainingExcessPower > flexPotential) {

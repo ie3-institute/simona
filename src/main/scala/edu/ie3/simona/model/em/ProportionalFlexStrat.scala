@@ -10,7 +10,6 @@ import edu.ie3.datamodel.models.input.AssetInput
 import EmModelStrat.tolerance
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import squants.Power
-import squants.energy.Kilowatts
 
 import java.util.UUID
 
@@ -45,20 +44,7 @@ object ProportionalFlexStrat extends EmModelStrat {
       }
 
     // sum up reference, minimum and maximum power of all connected devices
-    val (totalRef, totalMin, totalMax) = flexOptions
-      .foldLeft(
-        (Kilowatts(0d), Kilowatts(0d), Kilowatts(0d))
-      ) {
-        case (
-              (sumRef, sumMin, sumMax),
-              ProvideMinMaxFlexOptions(_, addRef, addMin, addMax),
-            ) =>
-          (
-            sumRef + addRef,
-            sumMin + addMin,
-            sumMax + addMax,
-          )
-      }
+    val (totalRef, totalMin, totalMax) = flexOptions.flexSum
 
     if (target.~=(totalRef)(tolerance)) {
       Seq.empty

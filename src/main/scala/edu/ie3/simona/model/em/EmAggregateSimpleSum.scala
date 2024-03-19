@@ -9,7 +9,6 @@ package edu.ie3.simona.model.em
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import squants.Power
-import squants.energy.Kilowatts
 
 /** Aggregates reference, minimum and maximum power by just simply summing up
   * each value
@@ -21,18 +20,8 @@ object EmAggregateSimpleSum extends EmAggregateFlex {
         (_ <: AssetInput, ProvideMinMaxFlexOptions)
       ]
   ): (Power, Power, Power) = {
-    flexOptions.foldLeft(
-      (Kilowatts(0d), Kilowatts(0d), Kilowatts(0d))
-    ) {
-      case (
-            (sumRef, sumMin, sumMax),
-            (_, ProvideMinMaxFlexOptions(_, addRef, addMin, addMax)),
-          ) =>
-        (
-          sumRef + addRef,
-          sumMin + addMin,
-          sumMax + addMax,
-        )
-    }
+    flexOptions.map { case (_, flex: ProvideMinMaxFlexOptions) =>
+      flex
+    }.flexSum
   }
 }
