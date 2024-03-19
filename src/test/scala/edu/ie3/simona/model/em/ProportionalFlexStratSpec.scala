@@ -31,6 +31,22 @@ class ProportionalFlexStratSpec
 
       val assetInput = mock[AssetInput] // is not used
 
+      /* As an example, this is how the test cases should be interpreted,
+       * using the second test case of target being higher than reference sum:
+       *
+       * We have a target of 3 kW, but a reference power of 1 kW + 0 kW = 1 kW.
+       * Thus, we want to increase load by 2 kW.
+       *
+       * In total, we have a maximum power of 2 kW + 4 kW = 6 kW. This is 5 kW
+       * more than our reference power of 1 kW. Since we need only 2 kW of the
+       * 5 kW potential, we use 40% of the available positive flexibility.
+       *
+       * Specifically, we use 40% of the flex potential 2 kW - 1 kW = 1 kW of
+       * the first unit and 40% of the flex potential 4 kW - 0 kW = 4 kW of the
+       * second unit. Thus we arrive at 1 kW + 40% * 1 kW = 1.4 kW for the
+       * first unit and 0 kW + 40% * 4 kW = 1.6 kW for the second unit.
+       */
+
       val cases = Table(
         (
           "target",
