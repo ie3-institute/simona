@@ -132,6 +132,8 @@ object SimonaSim {
         ) ++
           gridAgents
 
+        ctx.log.info(s"extSimulationData = $extSimulationData")
+
         val delayedActors = resultEventListeners.appended(runtimeEventListener).appended(extSimulationData.extResultDataService.getOrElse(
           throw new Exception("Problem!")
           ).toTyped[DelayedStopHelper.StoppingMsg])

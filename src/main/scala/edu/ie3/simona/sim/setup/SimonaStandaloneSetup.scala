@@ -17,8 +17,9 @@ import edu.ie3.simona.agent.grid.GridAgentMessage.CreateGridAgent
 import edu.ie3.simona.agent.grid.{GridAgent, GridAgentMessage}
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.data.ExtData
-import edu.ie3.simona.api.data.primarydata.ExtPrimaryData
-import edu.ie3.simona.api.data.results.ExtResultData
+import edu.ie3.simona.api.data.ev.{ExtEvData, ExtEvSimulation}
+import edu.ie3.simona.api.data.primarydata.{ExtPrimaryData, ExtPrimaryDataSimulation}
+import edu.ie3.simona.api.data.results.{ExtResultData, ExtResultDataSimulation}
 import edu.ie3.simona.api.data.results.ontology.ResultDataMessageFromExt
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.config.{ArgsParser, RefSystemParser, SimonaConfig}
@@ -31,6 +32,8 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
 import edu.ie3.simona.scheduler.{ScheduleLock, Scheduler, TimeAdvancer}
 import edu.ie3.simona.service.SimonaService
+import edu.ie3.simona.service.ev.ExtEvDataService
+import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.primary.{ExtPrimaryDataService, PrimaryServiceProxy}
@@ -42,7 +45,7 @@ import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
-import edu.ie3.simosaik.simpleextsim.SimpleExtSimulation
+//import edu.ie3.simosaik.simpleextsim.SimpleExtSimulation
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.AskPattern._
@@ -194,7 +197,159 @@ class SimonaStandaloneSetup(
     weatherService
   }
 
+
   override def extSimulations(
+                               context: ActorContext[_],
+                               theScheduler: ActorRef[SchedulerMessage],
+                             ): ExtSimSetupData = {
+    val jars = ExtSimLoader.scanInputFolder()
+
+    val extLinks = jars.flatMap(ExtSimLoader.loadExtLink)
+
+    context.log.info(s"extLinks = $extLinks")
+
+    val (extSimAdapters, extDatasAndServices) =
+      extLinks.zipWithIndex.map { case (extLink, index) =>
+        // external simulation always needs at least an ExtSimAdapter
+        val extSimAdapter = context.toClassic.simonaActorOf(
+          ExtSimAdapter.props(theScheduler.toClassic),
+          s"$index",
+        )
+        val extSimAdapterData = new ExtSimAdapterData(extSimAdapter, args)
+
+        // send init data right away, init activation is scheduled
+        extSimAdapter ! ExtSimAdapter.Create(
+          extSimAdapterData,
+          ScheduleLock.singleKey(context, theScheduler, INIT_SIM_TICK),
+        )
+
+        // setup data services that belong to this external simulation
+        val (extData, extDataServiceToRef): (
+            Iterable[ExtData],
+            Iterable[(Class[_], ClassicRef)],
+          ) =
+          extLink.getExtDataSimulations.asScala.zipWithIndex.map {
+            case (_: ExtEvSimulation, dIndex) =>
+              val extEvDataService = context.toClassic.simonaActorOf(
+                ExtEvDataService.props(theScheduler.toClassic),
+                s"$index-$dIndex",
+              )
+              val extEvData = new ExtEvData(extEvDataService, extSimAdapter)
+
+              extEvDataService ! SimonaService.Create(
+                InitExtEvData(extEvData),
+                ScheduleLock.singleKey(
+                  context,
+                  theScheduler,
+                  INIT_SIM_TICK,
+                ),
+              )
+
+              (extEvData, (classOf[ExtEvDataService], extEvDataService))
+
+            case (extPrimaryDataSimulation: ExtPrimaryDataSimulation, dIndex) =>
+              val extPrimaryDataService = context.toClassic.simonaActorOf(
+                ExtPrimaryDataService.props(theScheduler.toClassic),
+                s"$index-$dIndex",
+              )
+              val extPrimaryData = new ExtPrimaryData(
+                extPrimaryDataService,
+                extSimAdapter,
+                extPrimaryDataSimulation.getPrimaryDataFactory,
+                extPrimaryDataSimulation.getPrimaryDataAssets
+              )
+
+              extPrimaryDataService ! SimonaService.Create(
+                InitExtPrimaryData(extPrimaryData),
+                ScheduleLock.singleKey(
+                  context,
+                  theScheduler,
+                  INIT_SIM_TICK,
+                ),
+              )
+
+              (extPrimaryData, (classOf[ExtPrimaryDataService], extPrimaryDataService))
+
+            case (extResultDataSimulation: ExtResultDataSimulation, dIndex) =>
+
+              val extResultDataProvider = {
+                context.spawn(
+                  ExtResultDataProvider(theScheduler),
+                  s"$index-$dIndex",
+                )
+              }
+
+              implicit val timeout: PekkoTimeout = PekkoTimeout.create(5.seconds.toJava)
+              implicit val scheduler: Scheduler = context.system.scheduler
+
+              val adapterRef = Await.result(
+                extResultDataProvider.ask[ActorRef[ResultDataMessageFromExt]] (ref => RequestDataMessageAdapter(ref)), timeout.duration)
+              val adapterScheduleRef = Await.result(
+                extResultDataProvider.ask[ActorRef[ScheduleServiceActivation]] (ref => RequestScheduleActivationAdapter(ref)), timeout.duration)
+
+              val extResultData =
+                new ExtResultData(
+                  adapterRef.toClassic,
+                  adapterScheduleRef.toClassic,
+                  extSimAdapter,
+                  extResultDataSimulation.getResultDataFactory,
+                  extResultDataSimulation.getResultDataAssets
+                )
+
+              context.log.info(s"extResultData $extResultData")
+
+              extResultDataProvider ! ExtResultDataProvider.Create(
+                InitExtResultData(extResultData),
+                ScheduleLock.singleKey(
+                  context,
+                  theScheduler,
+                  INIT_SIM_TICK,
+                ),
+              )
+              /*
+              val extResultDataService = context.toClassic.simonaActorOf(
+                ExtResultDataProvider.props(scheduler.toClassic),
+                s"$index-$dIndex",
+              )
+              val extResultsData =
+                new ExtResultsData(extResultDataService, extSimAdapter, null)
+
+              extResultDataService ! SimonaService.Create(
+                InitExtResultsData(extResultsData),
+                ScheduleLock.singleKey(
+                  context,
+                  scheduler,
+                  INIT_SIM_TICK,
+                ),
+              )
+               */
+
+              (
+                extResultData,
+                (ExtResultDataProvider.getClass, extResultDataProvider.toClassic),
+              )
+          }.unzip
+
+        extLink.getExtSimulation.setup(
+          extSimAdapterData,
+          extData.toList.asJava,
+        )
+
+        // starting external simulation
+        new Thread(extLink.getExtSimulation, s"External simulation $index").start()
+
+        (extSimAdapter, (extDataServiceToRef, extData))
+      }.unzip
+
+    val extDataServices = extDatasAndServices.map(_._1)
+    val extDatas = extDatasAndServices.flatMap(_._2).toSet
+    context.log.info(s"extDatasAndServices = $extDatasAndServices")
+    ExtSimSetupData(extSimAdapters, extDataServices.flatten.toMap, extDatas)
+  }
+
+  /*
+
+  def extTestSimulations(
       context: ActorContext[_],
       theScheduler: ActorRef[SchedulerMessage],
   ): ExtSimSetupData = {
@@ -293,6 +448,8 @@ class SimonaStandaloneSetup(
 
     ExtSimSetupData(extSimAdapters, extDataServicesMap, extDatas)
   }
+
+   */
 
   override def timeAdvancer(
       context: ActorContext[_],
