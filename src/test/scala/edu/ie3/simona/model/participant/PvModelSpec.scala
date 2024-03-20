@@ -628,7 +628,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
       }
     }
 
-    "deliver equal angles of incidence at different latitudes adjusted by different slope angles" in {
+    "deliver correct angles of incidence at different latitudes and slope angles" in {
       val testCases = Table(
         (
           "latitudeDeg",
