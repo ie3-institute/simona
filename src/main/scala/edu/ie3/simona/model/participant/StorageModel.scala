@@ -19,8 +19,9 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptio
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import squants.Each
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.energy.{KilowattHours, Kilowatts, Watts}
+import squants.{Dimensionless, Each, Energy, Power, Seconds}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -30,12 +31,12 @@ final case class StorageModel(
     id: String,
     operationInterval: OperationInterval,
     qControl: QControl,
-    sRated: squants.Power,
+    sRated: Power,
     cosPhiRated: Double,
-    eStorage: squants.Energy,
-    pMax: squants.Power,
-    eta: squants.Dimensionless,
-    dod: squants.Dimensionless,
+    eStorage: Energy,
+    pMax: Power,
+    eta: Dimensionless,
+    dod: Dimensionless,
     initialSoc: Double, // TODO this is ugly and should be solved in a different way, as this value is only used outside the model
     targetSoc: Option[Double], // TODO only needed for initializing fields
 ) extends SystemParticipant[StorageRelevantData, ApparentPower, StorageState](
@@ -51,12 +52,12 @@ final case class StorageModel(
 
   // Tolerance fitting for capacities up to GWh
   // FIXME make dependent on capacity
-  private implicit val doubleTolerance: squants.Power = Watts(1e-3)
+  private implicit val doubleTolerance: Power = Watts(1e-3)
 
   /** In order to avoid faulty flexibility options, we want to avoid offering
     * charging/discharging that could last less than one second.
     */
-  private val toleranceMargin = pMax * squants.Seconds(1d)
+  private val toleranceMargin = pMax * Seconds(1d)
 
   /** Minimal allowed energy with tolerance margin added
     */
@@ -97,7 +98,7 @@ final case class StorageModel(
     */
   override def calculatePower(
       tick: Long,
-      voltage: squants.Dimensionless,
+      voltage: Dimensionless,
       modelState: StorageState,
       data: StorageRelevantData,
   ): ApparentPower = ???
@@ -105,7 +106,7 @@ final case class StorageModel(
   override protected def calculateActivePower(
       modelState: StorageState,
       data: StorageRelevantData,
-  ): squants.Power =
+  ): Power =
     throw new NotImplementedError(
       "Storage model cannot calculate power without flexibility control."
     )
@@ -125,7 +126,7 @@ final case class StorageModel(
         if (currentStoredEnergy <= targetParams.targetWithPosMargin) {
           if (currentStoredEnergy >= targetParams.targetWithNegMargin) {
             // is within target +/- margin, no charging needed
-            Kilowatts(0d)
+            zeroKW
           } else {
             // below target - margin, charge up to target
             pMax
@@ -137,39 +138,39 @@ final case class StorageModel(
       }
       .getOrElse {
         // no target set
-        Kilowatts(0d)
+        zeroKW
       }
 
     ProvideMinMaxFlexOptions(
       uuid,
       refPower,
-      if (dischargingPossible) pMax * (-1) else Kilowatts(0d),
-      if (chargingPossible) pMax else Kilowatts(0d),
+      if (dischargingPossible) pMax * (-1) else zeroKW,
+      if (chargingPossible) pMax else zeroKW,
     )
   }
 
   override def handleControlledPowerChange(
       data: StorageRelevantData,
       lastState: StorageState,
-      setPower: squants.Power,
+      setPower: Power,
   ): (StorageState, FlexChangeIndicator) = {
     val currentStoredEnergy =
       determineCurrentState(lastState, data.currentTick)
 
     // net power after considering efficiency
     val netPower =
-      if (setPower ~= Kilowatts(0d)) {
+      if (setPower ~= zeroKW) {
         // if power is close to zero, set it to zero
-        Kilowatts(0d)
-      } else if (setPower > Kilowatts(0d)) {
+        zeroKW
+      } else if (setPower > zeroKW) {
         if (isFull(currentStoredEnergy))
-          Kilowatts(0d) // do not keep charging if we're already full
+          zeroKW // do not keep charging if we're already full
         else
           // multiply eta if we're charging
           setPower * eta.toEach
       } else {
         if (isEmpty(currentStoredEnergy))
-          Kilowatts(0d) // do not keep discharging if we're already empty
+          zeroKW // do not keep discharging if we're already empty
         else
           // divide by eta if we're discharging
           // (draining the battery more than we get as output)
@@ -192,7 +193,7 @@ final case class StorageModel(
       currentStoredEnergy <= targetParams.targetWithPosMargin &&
       currentStoredEnergy >= targetParams.targetWithNegMargin
     }
-    val isChargingOrDischarging = netPower != Kilowatts(0d)
+    val isChargingOrDischarging = netPower != zeroKW
     // if we've been triggered just before we hit the minimum or maximum energy,
     // and we're still discharging or charging respectively (happens in edge cases),
     // we already set netPower to zero (see above) and also want to refresh flex options
@@ -200,9 +201,9 @@ final case class StorageModel(
     // Similarly, if the ref target margin area is hit before hitting target SOC, we want
     // to refresh flex options.
     val hasObsoleteFlexOptions =
-      (isFull(currentStoredEnergy) && setPower > Kilowatts(0d)) ||
-        (isEmpty(currentStoredEnergy) && setPower < Kilowatts(0d)) ||
-        (isAtTarget && setPower != Kilowatts(0d))
+      (isFull(currentStoredEnergy) && setPower > zeroKW) ||
+        (isEmpty(currentStoredEnergy) && setPower < zeroKW) ||
+        (isAtTarget && setPower != zeroKW)
 
     val activateAtNextTick =
       ((isEmptyOrFull || isAtTarget) && isChargingOrDischarging) || hasObsoleteFlexOptions
@@ -212,7 +213,7 @@ final case class StorageModel(
       if (!isChargingOrDischarging) {
         // we're at 0 kW, do nothing
         None
-      } else if (netPower > Kilowatts(0d)) {
+      } else if (netPower > zeroKW) {
         // we're charging, calculate time until we're full or at target energy
 
         val closestEnergyTarget = refTargetSoc
@@ -252,16 +253,16 @@ final case class StorageModel(
   private def determineCurrentState(
       lastState: StorageState,
       currentTick: Long,
-  ): squants.Energy = {
+  ): Energy = {
     val timespan = currentTick - lastState.tick
-    val energyChange = lastState.chargingPower * squants.Seconds(timespan)
+    val energyChange = lastState.chargingPower * Seconds(timespan)
 
     val newEnergy = lastState.storedEnergy + energyChange
 
     // don't allow under- or overcharge e.g. due to tick rounding error
     // allow charges below dod though since batteries can start at 0 kWh
     // TODO don't allow SOCs below dod
-    KilowattHours(0d).max(eStorage.min(newEnergy))
+    zeroKWH.max(eStorage.min(newEnergy))
   }
 
   /** @param storedEnergy
@@ -270,7 +271,7 @@ final case class StorageModel(
     *   whether the given stored energy is greater than the maximum charged
     *   energy allowed (minus a tolerance margin)
     */
-  private def isFull(storedEnergy: squants.Energy): Boolean =
+  private def isFull(storedEnergy: Energy): Boolean =
     storedEnergy >= maxEnergyWithMargin
 
   /** @param storedEnergy
@@ -279,7 +280,7 @@ final case class StorageModel(
     *   whether the given stored energy is less than the minimal charged energy
     *   allowed (plus a tolerance margin)
     */
-  private def isEmpty(storedEnergy: squants.Energy): Boolean =
+  private def isEmpty(storedEnergy: Energy): Boolean =
     storedEnergy <= minEnergyWithMargin
 }
 
@@ -290,15 +291,15 @@ object StorageModel {
   ) extends CalcRelevantData
 
   final case class StorageState(
-      storedEnergy: squants.Energy,
-      chargingPower: squants.Power,
+      storedEnergy: Energy,
+      chargingPower: Power,
       tick: Long,
   ) extends ModelState
 
   final case class RefTargetSocParams(
-      targetSoc: squants.Energy,
-      targetWithPosMargin: squants.Energy,
-      targetWithNegMargin: squants.Energy,
+      targetSoc: Energy,
+      targetWithPosMargin: Energy,
+      targetWithNegMargin: Energy,
   )
 
   def apply(

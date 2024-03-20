@@ -49,12 +49,12 @@ import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.ReactivePower
 import org.apache.pekko.actor.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
-import squants.Each
-import squants.energy.Kilowatts
+import squants.{Dimensionless, Each, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -167,7 +167,7 @@ trait StorageAgentFundamentals
       ]
   ): StorageState = StorageState(
     baseStateData.model.eStorage * baseStateData.model.initialSoc,
-    Kilowatts(0d),
+    zeroKW,
     SimonaConstants.INIT_SIM_TICK,
   )
 
@@ -191,7 +191,7 @@ trait StorageAgentFundamentals
         StorageModel,
       ],
       StorageState,
-      squants.Dimensionless,
+      Dimensionless,
   ) => ApparentPower =
     (_, _, _, _) =>
       throw new InvalidRequestException(
@@ -218,7 +218,7 @@ trait StorageAgentFundamentals
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
-        squants.Power => ReactivePower
+        Power => ReactivePower
       ],
   ): ApparentPower = ParticipantAgentFundamentals.averageApparentPower(
     tickToResults,
@@ -331,7 +331,7 @@ trait StorageAgentFundamentals
       ],
       data: StorageRelevantData,
       lastState: StorageState,
-      setPower: squants.Power,
+      setPower: Power,
   ): (StorageState, ApparentPower, FlexChangeIndicator) = {
     val (updatedState, flexChangeIndicator) =
       baseStateData.model.handleControlledPowerChange(data, lastState, setPower)
@@ -367,7 +367,7 @@ trait StorageAgentFundamentals
       tick: Long,
       modelState: StorageState,
       calcRelevantData: StorageRelevantData,
-      nodalVoltage: squants.Dimensionless,
+      nodalVoltage: Dimensionless,
       model: StorageModel,
   ): StorageState = ???
 
