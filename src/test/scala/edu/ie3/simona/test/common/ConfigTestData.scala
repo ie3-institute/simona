@@ -121,6 +121,15 @@ trait ConfigTestData {
       |  individualConfigs = []
       |}
       |
+      |simona.runtime.participant.storage = {
+      |  defaultConfig = {
+      |       calculateMissingReactivePowerWithModel = false
+      |       uuids = ["default"]
+      |       scaling = 1.0
+      |  }
+      |  individualConfigs = []
+      |}
+      |
       |simona.runtime.participant.em = {
       |  defaultConfig = {
       |       calculateMissingReactivePowerWithModel = false
