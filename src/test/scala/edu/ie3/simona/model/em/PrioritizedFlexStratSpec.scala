@@ -47,7 +47,7 @@ class PrioritizedFlexStratSpec
     when(storageInputModel.getUuid).thenReturn(st)
 
     "determine flex control dependent on flex options" in {
-      val strat = PrioritizedFlexStrat(pvFlex = false)
+      val strat = PrioritizedFlexStrat(curtailRegenerative = false)
 
       val cases = Table(
         (
@@ -70,7 +70,7 @@ class PrioritizedFlexStratSpec
         // excess is fully covered by max ev and parts of storage flex
         (0d, 1d, -13d, 2d, -11d, 11d, -2d, 2d, L((ev, 11d), (st, 1d))),
         // excess is fully covered by max ev and max storage flex
-        (0d, 0d, -14d, 2d, -11d, 11d, -2d, 2d, L((ev, 11d), (st, 2d))),
+        (0d, 1d, -14d, 2d, -11d, 11d, -2d, 2d, L((ev, 11d), (st, 2d))),
         // excess is fully covered by max storage flex
         (0d, 0d, -4d, 2d, 0d, 2d, -2d, 2d, L((st, 2d))),
         // excess is partly covered by max ev and max storage flex, -2kW remains
@@ -183,8 +183,8 @@ class PrioritizedFlexStratSpec
       }
     }
 
-    "determine flex control dependent on flex options with PV flex enabled" in {
-      val strat = PrioritizedFlexStrat(pvFlex = true)
+    "determine flex control dependent on flex options with curtailment enabled" in {
+      val strat = PrioritizedFlexStrat(curtailRegenerative = true)
 
       val cases = Table(
         (
@@ -301,7 +301,7 @@ class PrioritizedFlexStratSpec
       // flex options should be changed if corresponding
       // agent is not controlled by this strategy
       val cases = Table(
-        ("pvFlex", "inputModel", "expectedAdaptation"),
+        ("curtailRegenerative", "inputModel", "expectedAdaptation"),
         (false, loadInputModel, true),
         (false, pvInputModel, true),
         (false, evcsInputModel, false),
@@ -312,26 +312,27 @@ class PrioritizedFlexStratSpec
         (true, storageInputModel, false),
       )
 
-      forAll(cases) { case (pvFlex, inputModel, expectedAdaptation) =>
-        val flexOptionsIn = ProvideMinMaxFlexOptions(
-          inputModel.getUuid,
-          Kilowatts(1),
-          Kilowatts(-1),
-          Kilowatts(2),
-        )
+      forAll(cases) {
+        case (curtailRegenerative, inputModel, expectedAdaptation) =>
+          val flexOptionsIn = ProvideMinMaxFlexOptions(
+            inputModel.getUuid,
+            Kilowatts(1),
+            Kilowatts(-1),
+            Kilowatts(2),
+          )
 
-        val flexOptionsOut = PrioritizedFlexStrat(pvFlex)
-          .adaptFlexOptions(inputModel, flexOptionsIn)
+          val flexOptionsOut = PrioritizedFlexStrat(curtailRegenerative)
+            .adaptFlexOptions(inputModel, flexOptionsIn)
 
-        if (expectedAdaptation) {
-          flexOptionsOut shouldBe ProvideMinMaxFlexOptions
-            .noFlexOption(
-              inputModel.getUuid,
-              Kilowatts(1),
-            )
-        } else {
-          flexOptionsOut shouldBe flexOptionsIn
-        }
+          if (expectedAdaptation) {
+            flexOptionsOut shouldBe ProvideMinMaxFlexOptions
+              .noFlexOption(
+                inputModel.getUuid,
+                Kilowatts(1),
+              )
+          } else {
+            flexOptionsOut shouldBe flexOptionsIn
+          }
       }
     }
 

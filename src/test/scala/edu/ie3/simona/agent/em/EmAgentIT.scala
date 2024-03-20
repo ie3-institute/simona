@@ -89,7 +89,7 @@ class EmAgentIT
     scaling = 1d,
     uuids = List("default"),
     aggregateFlex = "SELF_OPT",
-    pvFlex = false,
+    curtailRegenerative = false,
   )
 
   private implicit val quantityTolerance: Double = 1e-10d
@@ -596,7 +596,7 @@ class EmAgentIT
         /* TICK 7200
          LOAD: 0.000269 MW (unchanged)
          PV:  -0.003797 MW
-         Heat pump: running (turned on from last request), can be turned on and stay off
+         Heat pump: running (turned on from last request), can also be turned off
          -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
          -> remaining 0 MW
          */
@@ -630,7 +630,7 @@ class EmAgentIT
         /* TICK 14400
          LOAD: 0.000269 MW (unchanged)
          PV:  -0.000066 MW
-         Heat pump: Is not running, can still run or be turned off
+         Heat pump: Is still running, can still be turned off
          -> flex signal is 0 MW: Heat pump is turned off
          */
 
@@ -664,7 +664,7 @@ class EmAgentIT
         /* TICK 21600
          LOAD: 0.000269 MW (unchanged)
          PV:  -0.000032 MW
-         Heat pump: Is not running, can run or be turned off
+         Heat pump: Is not running, can run or stay off
          -> flex signal is 0 MW: Heat pump is turned off
          */
 
@@ -697,7 +697,7 @@ class EmAgentIT
         /* TICK 28666
          LOAD: 0.000269 MW (unchanged)
          PV:  -0.000032 MW (unchanged)
-         Heat pump: Is turned off and has to be turned on
+         Heat pump: Is turned on again and cannot be turned off
          -> flex signal is no control -> 0.00485 MW
          */
 

@@ -62,8 +62,8 @@ class EmAgentSpec
     calculateMissingReactivePowerWithModel = false,
     scaling = 1d,
     uuids = List("default"),
-    aggregateFlex = "SELF_OPT_EXCL_PV",
-    pvFlex = false,
+    aggregateFlex = "SELF_OPT_EXCL_REG",
+    curtailRegenerative = false,
   )
 
   private implicit val activePowerTolerance: Power = Kilowatts(1e-10)

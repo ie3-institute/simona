@@ -12,29 +12,31 @@ import edu.ie3.datamodel.models.input.system.{
   HpInput,
   PvInput,
   StorageInput,
+  WecInput,
 }
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.EmModelStrat.tolerance
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.Power
-import squants.energy.Kilowatts
 
 import java.util.UUID
 
 /** Determines flex control for connected agents by adhering to a priority
   * hierarchy, with some devices not controlled at all.
   *
-  * @param pvFlex
-  *   Whether PV feed-in can be curtailed or not
+  * @param curtailRegenerative
+  *   Whether PV and WEC feed-in can be curtailed or not
   */
-final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
+final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
+    extends EmModelStrat {
 
-  /** Only heat pumps, battery storages, charging stations and PVs (if enabled)
-    * are controlled by this strategy
+  /** Only heat pumps, battery storages, charging stations and PVs/WECs (if
+    * enabled) are controlled by this strategy
     */
   private val controllableAssets: Seq[Class[_ <: AssetInput]] =
     Seq(classOf[HpInput], classOf[StorageInput], classOf[EvcsInput]) ++ Option
-      .when(pvFlex)(Seq(classOf[PvInput]))
+      .when(curtailRegenerative)(Seq(classOf[PvInput], classOf[WecInput]))
       .getOrElse(Seq.empty)
 
   /** Determine the power of controllable devices by using flexibility according
@@ -86,15 +88,20 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
       .collectFirst { case flex @ (_: PvInput, _) =>
         flex
       }
-      .filter(_ => pvFlex) // only if enabled
+      .filter(_ => curtailRegenerative) // only if enabled
+    val wecOpt = flexOptions
+      .collectFirst { case flex @ (_: WecInput, _) =>
+        flex
+      }
+      .filter(_ => curtailRegenerative) // only if enabled
 
-    if (Kilowatts(0d).~=(targetDelta)(tolerance)) {
+    if (zeroKW.~=(targetDelta)(tolerance)) {
       Seq.empty
-    } else if (targetDelta < Kilowatts(0d)) {
+    } else if (targetDelta < zeroKW) {
       // suggested power too low, try to store difference/increase load
 
       val orderedParticipants =
-        Seq(evcsOpt, storageOpt, heatPumpOpt, pvOpt).flatten
+        Seq(evcsOpt, storageOpt, heatPumpOpt, pvOpt, wecOpt).flatten
 
       orderedParticipants.foldLeft(
         (Seq.empty[(UUID, Power)], Option(targetDelta))
@@ -107,10 +114,10 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
           val flexPotential =
             flexOption.ref - flexOption.max
 
-          if (Kilowatts(0d).~=(remainingExcessPower)(tolerance)) {
+          if (zeroKW.~=(remainingExcessPower)(tolerance)) {
             // we're already there (besides rounding error)
             (issueCtrlMsgs, None)
-          } else if (Kilowatts(0d).~=(flexPotential)(tolerance)) {
+          } else if (zeroKW.~=(flexPotential)(tolerance)) {
             // device does not offer usable flex potential here
             (issueCtrlMsgs, Some(remainingExcessPower))
           } else if (remainingExcessPower < flexPotential) {
@@ -156,10 +163,10 @@ final case class PrioritizedFlexStrat(pvFlex: Boolean) extends EmModelStrat {
           val flexPotential =
             flexOption.ref - flexOption.min
 
-          if (Kilowatts(0d).~=(remainingExcessPower)(tolerance)) {
+          if (zeroKW.~=(remainingExcessPower)(tolerance)) {
             // we're already there (besides rounding error)
             (issueCtrlMsgs, None)
-          } else if (Kilowatts(0d).~=(flexPotential)(tolerance)) {
+          } else if (zeroKW.~=(flexPotential)(tolerance)) {
             // device does not offer usable flex potential here
             (issueCtrlMsgs, Some(remainingExcessPower))
           } else if (remainingExcessPower > flexPotential) {

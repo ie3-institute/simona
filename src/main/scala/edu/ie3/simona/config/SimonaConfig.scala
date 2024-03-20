@@ -84,7 +84,7 @@ object SimonaConfig {
       override val scaling: scala.Double,
       override val uuids: scala.List[java.lang.String],
       aggregateFlex: java.lang.String,
-      pvFlex: scala.Boolean,
+      curtailRegenerative: scala.Boolean,
   ) extends BaseRuntimeConfig(
         calculateMissingReactivePowerWithModel,
         scaling,
@@ -99,8 +99,11 @@ object SimonaConfig {
       SimonaConfig.EmRuntimeConfig(
         aggregateFlex =
           if (c.hasPathOrNull("aggregateFlex")) c.getString("aggregateFlex")
-          else "SELF_OPT_EXCL_PV",
-        pvFlex = c.hasPathOrNull("pvFlex") && c.getBoolean("pvFlex"),
+          else "SELF_OPT_EXCL_REG",
+        curtailRegenerative =
+          c.hasPathOrNull("curtailRegenerative") && c.getBoolean(
+            "curtailRegenerative"
+          ),
         calculateMissingReactivePowerWithModel = $_reqBln(
           parentPath,
           c,
