@@ -597,6 +597,13 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
           +170d,
           14.882390116876563d,
         ), // Goswami Principles of Solar Engineering Example 2.7b
+        (40d, -11.6d, 82.5d, 60d, 0d, 79.11011928744357d),
+        (40d, -11.6d, -82.5d, 60d, 0d, 79.11011928744357d), //inverse hour angle
+        (40d, -11.6d, 78.0d, 60d, 0d, 74.92072065185143d),
+        (40d, -11.6d, -78.0d, 60d, 0d, 74.92072065185143d), //inverse hour angle
+        (45d, -7.15d, -82.5d, 0d, 0d,
+          89.79565474295107d), // Latitude 45 degrees, slope 0 degrees (zenith angle)
+
       )
 
       // Calculate the angle of incidence of beam radiation on a surface located at a Latitude
@@ -631,9 +638,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
           "alphaEDeg",
           "thetaGOut",
         ),
-        (45d, -7.15, -82.5d, 60d, 0d, 80.94904834048776d), // thetaG
-        (45d, -7.15d, -82.5d, 0d, 0d,
-          89.79565474295107d), // Latitude 45 degrees, slope 0 degrees (zenith angle)
+        (45d, -7.15d, -82.5d, 60d, 0d, 80.94904834048776d), // thetaG
         (15d, -7.15, -82.5d, 30d, 0d,
           80.94904834048776d), // same test but 30° South with 30° less sloped surface
         (0d, -7.15, -82.5d, 15d, 0d,
@@ -645,9 +650,8 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
         (52.3d, 23.4337425, 2.15114395d, 0d, 0d,
           28.91315041538251d), // Berlin 21.06. 12:00 => thetaG = 90 - alphaS
         (70.3d, 23.4337425, 2.15114395d, 18d, 0d,
-          28.91315041538251d), // same test but 18° North with 18° sloped surface(40d, -11.6d, 82.5d, 60d, 0d, 79.11011928744357d),
-        (40d, -11.6d, 82.5d, 60d, 0d, 79.11011928744357d),
-        (40d, -11.6d, -78.0d, 60d, 0d, 74.92072065185143d),
+          28.91315041538251d), // same test but 18° North with 18° sloped surface
+
       )
 
       /* Iqbal Figure 1.6.2 - the angle of incidence of a surface sloped by angle beta (gammaE) at latitude phi
