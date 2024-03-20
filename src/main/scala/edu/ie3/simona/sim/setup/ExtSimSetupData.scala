@@ -6,22 +6,27 @@
 
 package edu.ie3.simona.sim.setup
 
+import edu.ie3.simona.ontology.messages.SchedulerMessage
+import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import edu.ie3.simona.api.data.ExtData
 import edu.ie3.simona.api.data.ev.ExtEvData
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryData
 import edu.ie3.simona.api.data.results.ExtResultData
 import edu.ie3.simona.service.ev.ExtEvDataService
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.ActorRef
 import edu.ie3.simona.service.primary.ExtPrimaryDataService
 import edu.ie3.simona.service.results.ExtResultDataProvider
 import org.apache.pekko.actor.ActorRef
 
 final case class ExtSimSetupData(
-    extSimAdapters: Iterable[ActorRef],
-    extDataServices: Map[Class[_], ActorRef],
+    extSimAdapters: Iterable[ClassicRef],
+    extDataServices: Map[Class[_], ClassicRef],
     extDatas: Set[ExtData],
+    extScheduler: Option[ActorRef[SchedulerMessage]],
 ) {
 
-  def evDataService: Option[ActorRef] =
+  def evDataService: Option[ClassicRef] =
     extDataServices.get(classOf[ExtEvDataService])
 
   def extPrimaryDataService: Option[ActorRef] =

@@ -7,6 +7,7 @@
 package edu.ie3.simona.ontology.messages.flex
 
 import edu.ie3.datamodel.models.input.AssetInput
+import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import org.apache.pekko.actor.typed.ActorRef
@@ -32,7 +33,7 @@ object FlexibilityMessage {
   /** Trait that is extended by all messages that are supposed to be received by
     * [[edu.ie3.simona.agent.em.EmAgent]]s.
     */
-  sealed trait FlexResponse {
+  sealed trait FlexResponse extends EmAgent.Request {
     val modelUuid: UUID
   }
 

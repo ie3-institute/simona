@@ -22,8 +22,9 @@ import edu.ie3.simona.model.thermal.ThermalHouse.{
   temperatureTolerance,
 }
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{ThermalConductance, WattsPerKelvin}
-import squants.energy.{KilowattHours, Kilowatts, MegawattHours, Megawatts}
+import squants.energy.KilowattHours
 import squants.thermal.{Kelvin, ThermalCapacity}
 import squants.time.{Hours, Seconds}
 import squants.{Energy, Power, Temperature, Time}
@@ -108,7 +109,7 @@ final case class ThermalHouse(
     val temperatureToTriggerRequiredEnergy =
       if (
         currentInnerTemp <= state.innerTemperature &&
-        state.qDot <= Kilowatts(0d)
+        state.qDot <= zeroKW
       ) {
         // temperature has been decreasing and heat source has been turned off
         // => we have reached target temp before and are now targeting lower temp
@@ -122,7 +123,7 @@ final case class ThermalHouse(
         )
       ) energy(targetTemperature, currentInnerTemp)
       else
-        MegawattHours(0d)
+        zeroMWH
 
     val possibleEnergy =
       if (!isInnerTemperatureTooHigh(currentInnerTemp)) {
@@ -130,7 +131,7 @@ final case class ThermalHouse(
         // there is an amount of optional energy that could be stored
         energy(upperBoundaryTemperature, currentInnerTemp)
       } else
-        MegawattHours(0d)
+        zeroMWH
     ThermalEnergyDemand(requiredEnergy, possibleEnergy)
   }
 
@@ -360,7 +361,7 @@ final case class ThermalHouse(
     ) / artificialDuration
     val resultingQDot = qDotExternal - loss
     if (
-      resultingQDot < Megawatts(0d) && !isInnerTemperatureTooLow(
+      resultingQDot < zeroMW && !isInnerTemperatureTooLow(
         innerTemperature
       )
     ) {
@@ -372,7 +373,7 @@ final case class ThermalHouse(
         resultingQDot,
       ).map(HouseTemperatureLowerBoundaryReached)
     } else if (
-      resultingQDot > Megawatts(0d) && !isInnerTemperatureTooHigh(
+      resultingQDot > zeroMW && !isInnerTemperatureTooHigh(
         innerTemperature
       )
     ) {
@@ -396,7 +397,7 @@ final case class ThermalHouse(
       qDot: Power,
   ): Option[Long] = {
     val flexibleEnergy = energy(higherTemperature, lowerTemperature)
-    if (flexibleEnergy < MegawattHours(0d))
+    if (flexibleEnergy < zeroMWH)
       None
     else {
       val duration = Math.round(
@@ -459,7 +460,7 @@ object ThermalHouse {
     ThermalHouseState(
       -1L,
       house.targetTemperature,
-      Megawatts(0d),
+      zeroMW,
     )
 
   object ThermalHouseThreshold {

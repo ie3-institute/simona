@@ -50,11 +50,11 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import org.apache.pekko.actor.{ActorRef, FSM}
-import squants.energy.Megawatts
 import squants.{Dimensionless, Each, Power}
 
 import java.time.ZonedDateTime
@@ -76,9 +76,9 @@ trait HpAgentFundamentals
   override protected val pdClassTag: ClassTag[ApparentPowerAndHeat] =
     classTag[ApparentPowerAndHeat]
   override val alternativeResult: ApparentPowerAndHeat = ApparentPowerAndHeat(
-    Megawatts(0d),
-    Megavars(0d),
-    Megawatts(0d),
+    zeroMW,
+    zeroMVAr,
+    zeroMW,
   )
 
   /** Partial function, that is able to transfer
@@ -116,8 +116,8 @@ trait HpAgentFundamentals
     isRunning = false,
     -1,
     None,
-    Megawatts(0d),
-    Megawatts(0d),
+    zeroMW,
+    zeroMW,
     ThermalGrid.startingState(thermalGrid),
     None,
   )
