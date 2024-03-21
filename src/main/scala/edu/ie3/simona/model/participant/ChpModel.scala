@@ -18,12 +18,12 @@ import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMin
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
+import edu.ie3.util.scala.quantities.DefaultQuantities._
+import squants.energy.Kilowatts
 import squants.{Energy, Power, Seconds, Time}
-import squants.energy.{KilowattHours, Kilowatts}
-
-import java.util.UUID
 
 import java.time.ZonedDateTime
+import java.util.UUID
 
 /** Model of a combined heat and power plant (CHP) with a [[ThermalStorage]]
   * medium and its current [[ChpState]].
@@ -199,7 +199,7 @@ final case class ChpModel(
       chpData: ChpRelevantData
   ): ChpState = {
     val differenceEnergy = chpEnergy(chpData) - chpData.heatDemand
-    if (differenceEnergy < KilowattHours(0d)) {
+    if (differenceEnergy < zeroKWH) {
       // Returned lack is always zero, because demand is covered.
       storage.tryToTakeAndReturnLack(differenceEnergy * -1)
       calculateStateRunningSurplus(chpData)
