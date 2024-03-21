@@ -22,7 +22,8 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import squants.energy.{Kilowatts, MegawattHours, Megawatts}
+import edu.ie3.util.scala.quantities.DefaultQuantities._
+import squants.energy.Kilowatts
 import squants.{Energy, Power, Temperature}
 
 import java.time.ZonedDateTime
@@ -82,7 +83,7 @@ final case class ThermalGrid(
           )
         }
         .getOrElse(
-          (MegawattHours(0d), MegawattHours(0d))
+          (zeroMWH, zeroMWH)
         )
     }
 
@@ -116,7 +117,7 @@ final case class ThermalGrid(
       state: ThermalGridState,
       ambientTemperature: Temperature,
       qDot: Power,
-  ): (ThermalGridState, Option[ThermalThreshold]) = if (qDot > Kilowatts(0d))
+  ): (ThermalGridState, Option[ThermalThreshold]) = if (qDot > zeroKW)
     handleInfeed(tick, ambientTemperature, state, qDot)
   else
     handleConsumption(tick, ambientTemperature, state, qDot)
@@ -150,7 +151,7 @@ final case class ThermalGrid(
               thermalStorage
                 .updateState(
                   tick,
-                  Kilowatts(0d),
+                  zeroKW,
                   storageState,
                 )
                 ._1
@@ -177,7 +178,7 @@ final case class ThermalGrid(
               tick,
               lastHouseState,
               ambientTemperature,
-              Kilowatts(0d),
+              zeroKW,
             )
           storage.zip(updatedStorageState) match {
             case Some((thermalStorage, storageState)) =>
@@ -269,7 +270,7 @@ final case class ThermalGrid(
           tick,
           houseState,
           ambientTemperature,
-          Megawatts(0d),
+          zeroMW,
         )
       }
 
@@ -345,7 +346,7 @@ final case class ThermalGrid(
             (thermalStorage, (storageState, _)),
           )
         )
-        if qDot.~=(Kilowatts(0d))(Kilowatts(10e-3)) &&
+        if qDot.~=(zeroKW)(Kilowatts(10e-3)) &&
           thermalHouse.isInnerTemperatureTooLow(
             houseState.innerTemperature
           ) && !thermalStorage.isEmpty(storageState.storedEnergy) =>
@@ -480,7 +481,7 @@ object ThermalGrid {
       possible + rhs.possible,
     )
 
-    def hasRequiredDemand: Boolean = required > MegawattHours(0d)
+    def hasRequiredDemand: Boolean = required > zeroMWH
 
     def hasAdditionalDemand: Boolean = possible > required
   }
@@ -507,8 +508,8 @@ object ThermalGrid {
     }
 
     def noDemand: ThermalEnergyDemand = ThermalEnergyDemand(
-      MegawattHours(0d),
-      MegawattHours(0d),
+      zeroMWH,
+      zeroMWH,
     )
   }
 }

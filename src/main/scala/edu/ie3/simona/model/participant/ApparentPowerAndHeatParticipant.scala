@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
-import squants.energy.Megawatts
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.{Dimensionless, Power}
 
 trait ApparentPowerAndHeatParticipant[
@@ -27,7 +27,7 @@ trait ApparentPowerAndHeatParticipant[
       if (isInOperation(tick))
         calculateHeat(tick, modelState, data)
       else
-        Megawatts(0d)
+        zeroMW
 
     ApparentPowerAndHeat(apparentPower.p, apparentPower.q, heat)
   }
