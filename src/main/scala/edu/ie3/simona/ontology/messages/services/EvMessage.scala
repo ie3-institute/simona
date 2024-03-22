@@ -48,7 +48,7 @@ object EvMessage {
       override val tick: Long,
       override val serviceRef: ActorRef,
       override val data: EvData,
-      override val nextDataTick: Option[Long] = None,
+      override val nextDataTick: Option[Long],
       override val unlockKey: Option[ScheduleKey] = None,
   ) extends EvMessage
       with ProvisionMessage[EvData]
@@ -72,7 +72,7 @@ object EvMessage {
   /** Holds arrivals for one charging station
     *
     * @param arrivals
-    *   EVs arriving at the charging station
+    *   EVs arriving at the charging station, which might be empty
     */
   final case class ArrivingEvsData(
       arrivals: Seq[EvModelWrapper]
