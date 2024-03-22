@@ -39,7 +39,7 @@ object DelayedStopHelper {
       : PartialFunction[(ActorContext[T], StoppingMsg), Behavior[T]] = {
 
     case (ctx, FlushAndStop) =>
-      ctx.log.debug(
+      ctx.log.info(
         s"Received FlushAndStop message, shutting down once no message has been received for 5 seconds."
       )
       ctx.setReceiveTimeout(5.seconds, StopTimeout)
@@ -47,7 +47,7 @@ object DelayedStopHelper {
 
     case (ctx, StopTimeout) =>
       // there have been no messages for 5 seconds, let's end this
-      ctx.log.debug(s"${getClass.getSimpleName} is now stopped.")
+      ctx.log.info(s"${getClass.getSimpleName} is now stopped.")
       Behaviors.stopped
   }
 

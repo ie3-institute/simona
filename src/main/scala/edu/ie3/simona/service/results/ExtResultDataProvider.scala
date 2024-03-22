@@ -11,7 +11,7 @@ import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import org.apache.pekko.actor.typed.{ActorRef, Behavior}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop}
 import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
 
 import java.util.UUID
@@ -128,8 +128,9 @@ object ExtResultDataProvider {
   ): Behavior[Request] = Behaviors
     .receivePartial[Request] {
       case (ctx, WrappedActivation(activation: Activation)) =>
-        //info("Received Activation")
+        //ctx.log.info("Received Activation")
         var updatedStateData = serviceStateData
+
         serviceStateData.extResultsMessage.getOrElse(
           throw ServiceException(
             "ExtResultDataService was triggered without ResultDataMessageFromExt available"
@@ -162,7 +163,7 @@ object ExtResultDataProvider {
                   throw new RuntimeException("There is no result!")
                 )
               )
-              //log.info(s"[requestResults] tick $tick -> ReceiveDataMap is complete -> send it right away: " + resultList)
+              //ctx.log.info(s"[requestResults] tick ${msg.tick} -> ReceiveDataMap is complete -> send it right away: " + resultList)
               // all responses received, forward them to external simulation in a bundle
               serviceStateData.extResultData.queueExtResponseMsg(
                 new ProvideResultEntities(resultList.asJava)
@@ -172,6 +173,7 @@ object ExtResultDataProvider {
                 recentResults = None)
 
             } else {
+              //ctx.log.info(s"[requestResults] receiveDataMap was built -> now sending ResultRequestMessage")
               ctx.self ! ResultRequestMessage(msg.tick)
               updatedStateData = serviceStateData.copy(
                                                   extResultsMessage = None,
@@ -191,13 +193,16 @@ object ExtResultDataProvider {
         )
         Behaviors.same
 
-      case (_, extRequestResultEntitiesMsg: WrappedResultDataMessageFromExt) =>
+      case (ctx, extRequestResultEntitiesMsg: WrappedResultDataMessageFromExt) =>
+        //ctx.log.info("Received WrappedResultDataMessageFromExt")
         idle(
           serviceStateData.copy(
             extResultsMessage = Some(extRequestResultEntitiesMsg.extResultDataMessageFromExt)
           ))
 
-      case (_, extResultResponseMsg: ResultResponseMessage) =>
+      case (ctx, extResultResponseMsg: ResultResponseMessage) =>
+        //ctx.log.info("[handleDataResponseMessage] Received ResultsResponseMessage")
+
         if (serviceStateData.recentResults.isDefined) {
           // process dataResponses
           if (serviceStateData.subscribers.contains(extResultResponseMsg.result.getInputModel)) {
@@ -242,82 +247,6 @@ object ExtResultDataProvider {
       case (ctx, msg: DelayedStopHelper.StoppingMsg) =>
         DelayedStopHelper.handleMsg((ctx, msg))
     }
-
-  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-  /*
-  protected def announceInformation(
-                                     tick: Long
-                                   )(implicit
-                                     serviceStateData: ExtResultStateData,
-                                     activationAdapter: ActorRef[Activation],
-                                     resultDataMessageFromExtAdapter: ActorRef[ResultDataMessageFromExt],
-                                     buffer: StashBuffer[Request]
-                                   ): (ExtResultStateData, Option[Long]) = {
-    serviceStateData.extResultsMessage.getOrElse(
-      throw ServiceException(
-        "ExtResultDataService was triggered without ResultDataMessageFromExt available"
-      )
-    ) match {
-      case _: RequestResultEntities =>
-        requestResults(tick)
-    }
-  }
-
-  private def requestResults(
-                              tick: Long
-                            )(implicit
-                              serviceStateData: ExtResultStateData,
-                              activationAdapter: ActorRef[Activation],
-                              buffer: StashBuffer[Request]
-                            ): (ExtResultStateData, Option[Long]) = {
-    //log.info(s"[requestResults] for tick $tick and resultStorage ${serviceStateData.resultStorage}")
-    var receiveDataMap = ReceiveDataMap[UUID, ResultEntity](serviceStateData.subscribers.toSet)
-    //log.info(s"[requestResults] tick $tick -> created a receivedatamap " + receiveDataMap)
-    serviceStateData.resultStorage.foreach({
-      case (uuid, (res, t)) =>
-        //log.info(s"[requestResults] tick = $tick, uuid = $uuid, and time = ${t.getOrElse("Option")}, result = ${res.getOrElse("Option")}")
-        if (t.getOrElse(-1) != tick) { //wenn nicht in diesem Tick gefragt, nehme Wert aus ResultDataStorage
-          receiveDataMap = receiveDataMap.addData(
-            uuid,
-            res.getOrElse(
-              throw new Exception("noResult")
-            )
-          )
-          //log.info(s"[requestResults] tick $tick -> added to receivedatamap " + receiveDataMap)
-        }
-    })
-
-    //log.info(s"[requestResults] tick $tick -> requestResults for " + receiveDataMap)
-
-    if (receiveDataMap.isComplete) {
-      var resultList = List.empty[ResultEntity]
-      serviceStateData.resultStorage.values.foreach(
-        result => resultList = resultList :+ result._1.getOrElse(
-          throw new RuntimeException("There is no result!")
-        )
-      )
-      //log.info(s"[requestResults] tick $tick -> ReceiveDataMap is complete -> send it right away: " + resultList)
-      // all responses received, forward them to external simulation in a bundle
-      serviceStateData.extResultData.queueExtResponseMsg(
-        new ProvideResultEntities(resultList.asJava)
-      )
-      (serviceStateData.copy(
-        extResultsMessage = None,
-        recentResults = None), None)
-
-    } else {
-      (
-        serviceStateData.copy(
-          extResultsMessage = None,
-          recentResults = Some(receiveDataMap)
-        ), None)
-    }
-  }
-
-   */
-
-
-
 
   // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
   final case class ExtResultStateData(

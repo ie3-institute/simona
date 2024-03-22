@@ -105,6 +105,7 @@ trait SimonaSetup {
   def extSimulations(
       context: ActorContext[_],
       rootScheduler: ActorRef[SchedulerMessage],
+      simScheduler: ActorRef[SchedulerMessage],
   ): ExtSimSetupData
 
   /** Creates the time advancer

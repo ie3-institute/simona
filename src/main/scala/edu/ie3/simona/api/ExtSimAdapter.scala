@@ -71,6 +71,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
         "Tick {} has been activated in external simulation",
         tick,
       )
+      log.info("stateData after Activation(" + tick + ") = " + stateData)
 
       context become receiveIdle(
         stateData.copy(currentTick = Some(tick))
@@ -91,6 +92,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
       context become receiveIdle(stateData.copy(currentTick = None))
 
     case scheduleDataService: ScheduleDataServiceMessage =>
+      log.info("stateData after ScheduleDataService = " + stateData)
       val tick = stateData.currentTick.getOrElse(
         throw new RuntimeException("No tick has been triggered")
       )

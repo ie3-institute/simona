@@ -7,25 +7,16 @@
 package edu.ie3.simona.event.listener
 
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
-import org.apache.pekko.actor.typed.{Behavior, PostStop}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop}
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
-import edu.ie3.simona.event.ResultEvent.{
-  FlexOptionsResultEvent,
-  ParticipantResultEvent,
-  PowerFlowResultEvent,
-  ThermalResultEvent,
-}
-import edu.ie3.simona.exceptions.{
-  FileHierarchyException,
-  ProcessResultEventException,
-}
+import edu.ie3.simona.event.ResultEvent.{FlexOptionsResultEvent, ParticipantResultEvent, PowerFlowResultEvent, ThermalResultEvent}
+import edu.ie3.simona.exceptions.{FileHierarchyException, ProcessResultEventException}
 import edu.ie3.simona.io.result._
+import edu.ie3.simona.service.results.ExtResultDataProvider
 import edu.ie3.simona.service.results.ExtResultDataProvider.ResultResponseMessage
-
 import edu.ie3.simona.util.ResultFileHierarchy
-import org.apache.pekko.actor.ActorRef
 import org.slf4j.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -54,7 +45,7 @@ object ResultEventListener extends Transformer3wResultSupport {
     */
   private final case class BaseData(
       classToSink: Map[Class[_], ResultEntitySink],
-      extResultDataService: Option[ActorRef],
+      extResultDataService: Option[ActorRef[ExtResultDataProvider.Request]],
       threeWindingResults: Map[
         Transformer3wKey,
         AggregatedTransformer3wResult,
@@ -244,7 +235,7 @@ object ResultEventListener extends Transformer3wResultSupport {
 
   private def handOverToExternalService(
       resultEntity: ResultEntity,
-      extResultDataService: Option[ActorRef],
+      extResultDataService: Option[ActorRef[ExtResultDataProvider.Request]],
       nextTick: Option[Long] = None
   ): Unit = Try {
     val extResultDataServiceRef = extResultDataService.getOrElse(
@@ -255,7 +246,7 @@ object ResultEventListener extends Transformer3wResultSupport {
 
   def apply(
       resultFileHierarchy: ResultFileHierarchy,
-      extResultDataService: Option[ActorRef] = Option.empty[ActorRef],
+      extResultDataService: Option[ActorRef[ExtResultDataProvider.Request]] = Option.empty[ActorRef[ExtResultDataProvider.Request]],
   ): Behavior[Request] = Behaviors.setup[Request] { ctx =>
     ctx.log.debug("Starting initialization!")
     resultFileHierarchy.resultSinkType match {
@@ -283,7 +274,7 @@ object ResultEventListener extends Transformer3wResultSupport {
   }
 
   private def init(
-      extResultDataService: Option[ActorRef]
+      extResultDataService: Option[ActorRef[ExtResultDataProvider.Request]]
   ): Behavior[Request] = Behaviors.withStash(200) { buffer =>
     Behaviors.receive[Request] {
       case (ctx, SinkResponse(response)) =>
