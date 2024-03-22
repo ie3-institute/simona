@@ -80,7 +80,6 @@ object ServiceMessage {
       * the rest of the simulation
       */
     val nextDataTick: Option[Long]
-    val unlockKey: Option[ScheduleKey]
   }
 
   /** @param serviceRef

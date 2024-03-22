@@ -284,7 +284,6 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
     if (tick == INIT_SIM_TICK) {
       serviceStateData.uuidToActorRef.foreach { case (uuid, actor) =>
-
         val firstTick: Option[Long] = arrivingEvs
           .getOrElse(
             uuid,
@@ -317,7 +316,6 @@ class ExtEvDataService(override val scheduler: ActorRef)
               self,
               ArrivingEvsData(arrivingEvs),
               Some(arrivingEvs.nextTick),
-              unlockKey = Some(key),
             )
           else
             actor ! ScheduleProvisionMessage(
