@@ -273,25 +273,25 @@ class ExtEvDataService(override val scheduler: ActorRef)
       ctx: ActorContext,
   ): (ExtEvStateData, Option[Long]) = {
 
-    val arrivingEvs = allArrivingEvs.asScala
-
-    val keys = ScheduleLock.multiKey(
-      ctx,
-      scheduler.toTyped,
-      tick,
-      serviceStateData.uuidToActorRef.size,
-    )
+    val allArrivingEvsData = allArrivingEvs.asScala
 
     if (tick == INIT_SIM_TICK) {
+      val keys = ScheduleLock.multiKey(
+        ctx,
+        scheduler.toTyped,
+        tick,
+        serviceStateData.uuidToActorRef.size,
+      )
+
       serviceStateData.uuidToActorRef.foreach { case (uuid, actor) =>
-        val firstTick: Option[Long] = arrivingEvs
+        val firstTick: Option[Long] = allArrivingEvsData
           .getOrElse(
             uuid,
             throw new CriticalFailureException(
               s"No initial message found for EVCS $actor($uuid)"
             ),
           )
-          .nextTick
+          .maybeNextTick
 
         actor ! RegistrationSuccessfulMessage(
           self,
@@ -299,33 +299,38 @@ class ExtEvDataService(override val scheduler: ActorRef)
         )
       }
     } else {
-      val actorToEvs = serviceStateData.uuidToActorRef.map {
-        case (uuid, actor) =>
-          actor -> arrivingEvs
-            .get(uuid)
-            .map(_.asScala.map(EvModelWrapper.apply).toSeq)
-            .getOrElse(Seq.empty)
-      }
 
-      if (actorToEvs.nonEmpty) {
-
-        actorToEvs.zip(keys).foreach { case ((actor, arrivingEvs), key) =>
-          if (arrivingEvs.nonEmpty)
-            actor ! ProvideEvDataMessage(
-              tick,
-              self,
-              ArrivingEvsData(arrivingEvs),
-              Some(arrivingEvs.nextTick),
-            )
-          else
-            actor ! ScheduleProvisionMessage(
-              self,
-              tick,
-              unlockKey = key,
-            )
+      val actorToEvsData = allArrivingEvsData
+        .flatMap { case (evcs, arrivingEvsData) =>
+          serviceStateData.uuidToActorRef
+            .get(evcs)
+            .map((_, arrivingEvsData))
+            .orElse {
+              log.warning(
+                "A corresponding actor ref for UUID {} could not be found",
+                evcs,
+              )
+              None
+            }
         }
+        .partitionMap() // TODO
 
+      actorToEvsData.zip(keys).foreach { case ((actor, arrivingEvsData), key) =>
+        if (arrivingEvsData.arrivals.nonEmpty)
+          actor ! ProvideEvDataMessage(
+            tick,
+            self,
+            arrivingEvsData.arrivals,
+            Some(arrivingEvsData.maybeNextTick),
+          )
+        else
+          actor ! ScheduleProvisionMessage(
+            self,
+            tick,
+            unlockKey = key,
+          )
       }
+
     }
 
     (
