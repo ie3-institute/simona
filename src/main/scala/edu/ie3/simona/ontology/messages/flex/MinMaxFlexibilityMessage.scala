@@ -114,4 +114,10 @@ object MinMaxFlexibilityMessage {
     ): ProvideMinMaxFlexOptions =
       ProvideMinMaxFlexOptions(modelUuid, power, power, power)
   }
+
+  /** Indicates that flex options have not changed since last provision
+    * @param modelUuid
+    */
+  case class FlexOptionsUnchanged(override val modelUuid: UUID)
+      extends ProvideFlexOptions
 }

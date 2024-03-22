@@ -72,10 +72,7 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
 }
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
@@ -513,36 +510,6 @@ protected trait ParticipantAgentFundamentals[
             None
         }
       }
-
-    val unexpectedSender = baseStateData.foreseenDataTicks.exists {
-      case (ref, None) => msg.serviceRef == ref
-      case _           => false
-    }
-
-    /* If we have received unexpected data, we also have not been scheduled before */
-    if (unexpectedSender) {
-      baseStateData match {
-        case modelStateData: ParticipantModelBaseStateData[_, _, _, _] =>
-          val maybeEmAgent = modelStateData.flexStateData.map(_.emAgent)
-
-          maybeEmAgent match {
-            case Some(emAgent) =>
-              emAgent ! ScheduleFlexRequest(
-                modelStateData.model.getUuid,
-                msg.tick,
-                msg.unlockKey,
-              )
-            case None =>
-              scheduler ! ScheduleActivation(
-                self.toTyped,
-                msg.tick,
-                msg.unlockKey,
-              )
-          }
-        case _ =>
-          false
-      }
-    }
 
     /* If the sender announces a new next tick, add it to the list of expected ticks, else remove the current entry */
     val foreseenDataTicks =

@@ -22,7 +22,6 @@ import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
-import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceActivationBaseStateData,
@@ -437,6 +436,5 @@ object PrimaryServiceWorker {
       override val serviceRef: ActorRef,
       override val data: PrimaryData,
       override val nextDataTick: Option[Long],
-      override val unlockKey: Option[ScheduleKey] = None,
   ) extends ServiceMessage.ProvisionMessage[PrimaryData]
 }
