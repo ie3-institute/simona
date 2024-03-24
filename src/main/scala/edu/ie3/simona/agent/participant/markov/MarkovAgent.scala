@@ -41,31 +41,13 @@ object MarkovAgent {
       listener: Iterable[ActorRef],
   ): Props =
     MarkovModelBehaviour(initStateData.modelConfig.modelBehaviour) match {
-      case MarkovModelBehaviour.FIX =>
-        Props(new FixedMarkovAgent(scheduler, initStateData, listener))
       case MarkovModelBehaviour.PROFILE =>
         Props(new ProfileMarkovAgent(scheduler, initStateData, listener))
-      case MarkovModelBehaviour.RANDOM =>
-        Props(new RandomMarkovAgent(scheduler, initStateData, listener))
       case unsupported =>
         throw new IllegalArgumentException(
           s"The markov agent behaviour '$unsupported' is currently not supported."
         )
     }
-
-  final class FixedMarkovAgent(
-      scheduler: ActorRef,
-      initStateData: ParticipantInitializeStateData[
-        MarkovInput,
-        MarkovRuntimeConfig,
-        ApparentPower,
-      ],
-      override val listener: Iterable[ActorRef],
-  ) extends MarkovAgent[
-        FixedMarkovModel.FixedMarkovRelevantData.type,
-        FixedMarkovModel,
-      ](scheduler, initStateData, listener)
-      with FixedMarkovAgentFundamentals
 
   final class ProfileMarkovAgent(
       scheduler: ActorRef,
@@ -80,20 +62,6 @@ object MarkovAgent {
         ProfileMarkovModel,
       ](scheduler, initStateData, listener)
       with ProfileMarkovAgentFundamentals
-
-  final class RandomMarkovAgent(
-      scheduler: ActorRef,
-      initStateData: ParticipantInitializeStateData[
-        MarkovInput,
-        MarkovRuntimeConfig,
-        ApparentPower,
-      ],
-      override val listener: Iterable[ActorRef],
-  ) extends MarkovAgent[
-        RandomRelevantData,
-        RandomMarkovModel,
-      ](scheduler, initStateData, listener)
-      with RandomMarkovAgentFundamentals
 }
 
 /** Creating a markov agent

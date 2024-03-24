@@ -143,33 +143,12 @@ protected trait MarkkovAgentFundamentals[
      * Also register for services, where needed. */
     val lastTickInSimulation = simulationEndDate.toTick(simulationStartDate)
     val additionalActivationTicks = model match {
-      /* If no secondary data is needed (implicitly by fixed Markov model), add activation ticks for the simple model */
-      case fixedMarkovModel: FixedMarkovModel =>
-        /* As participant agents always return their last known operation point on request, it is sufficient
-         * to let a fixed Markov model determine it's operation point on:
-         *  1) The first tick of the simulation
-         *  2) The tick, it turns on (in time dependent operation)
-         *  3) The tick, it turns off (in time dependent operation)
-         * Coinciding ticks are summarized and the last tick is removed, as the change in operation status
-         * doesn't affect anything then */
-        SortedSet[Long](
-          SimonaConstants.FIRST_TICK_IN_SIMULATION,
-          fixedMarkovModel.operationInterval.start,
-          fixedMarkovModel.operationInterval.end,
-        ).filterNot(_ == lastTickInSimulation)
       case profileMarkovModel: ProfileMarkovModel =>
         activationTicksInOperationTime(
           simulationStartDate,
           MarkovProfileStore.resolution.getSeconds,
           profileMarkovModel.operationInterval.start,
           profileMarkovModel.operationInterval.end,
-        )
-      case randomMarkovModel: RandomMarkovModel =>
-        activationTicksInOperationTime(
-          simulationStartDate,
-          RandomMarkovParamStore.resolution.getSeconds,
-          randomMarkovModel.operationInterval.start,
-          randomMarkovModel.operationInterval.end,
         )
       case _ =>
         SortedSet.empty[Long]
@@ -379,70 +358,6 @@ protected trait MarkkovAgentFundamentals[
 }
 
 object MarkovAgentFundamentals {
-  trait FixedMarkovAgentFundamentals
-      extends MarkovAgentFundamentals[
-        FixedMarkovModel.FixedMarkovRelevantData.type,
-        FixedMarkovModel,
-      ] {
-    this: MarkovAgent.FixedMarkovAgent =>
-
-    override def buildModel(
-        inputModel: MarkovInput,
-        operationInterval: OperationInterval,
-        modelConfig: MarkovRuntimeConfig,
-        reference: MarkovReference,
-    ): FixedMarkovModel =
-      FixedMarkovModel(
-        inputModel,
-        modelConfig.scaling,
-        operationInterval,
-        reference,
-      )
-
-    override protected def createCalcRelevantData(
-        baseStateData: ParticipantModelBaseStateData[
-          ApparentPower,
-          FixedMarkovRelevantData.type,
-          ConstantState.type,
-          FixedMarkovModel,
-        ],
-        tick: Long,
-    ): FixedMarkovRelevantData.type =
-      FixedMarkovRelevantData
-
-    /** Partial function, that is able to transfer
-      * [[ParticipantModelBaseStateData]] (holding the actual calculation model)
-      * into a pair of active and reactive power
-      */
-    override val calculateModelPowerFunc: (
-        Long,
-        ParticipantModelBaseStateData[
-          ApparentPower,
-          FixedMarkovRelevantData.type,
-          ConstantState.type,
-          FixedMarkovModel,
-        ],
-        ConstantState.type,
-        Dimensionless,
-    ) => ApparentPower = (
-        tick: Long,
-        baseStateData: ParticipantModelBaseStateData[
-          ApparentPower,
-          FixedMarkovRelevantData.type,
-          ConstantState.type,
-          FixedMarkovModel,
-        ],
-        state: ConstantState.type,
-        voltage: Dimensionless,
-    ) =>
-      baseStateData.model.calculatePower(
-        tick,
-        voltage,
-        state,
-        FixedMarkovRelevantData,
-      )
-  }
-
   trait ProfileMarkovAgentFundamentals
       extends MarkovAgentFundamentals[
         ProfileRelevantData,
@@ -487,66 +402,6 @@ object MarkovAgentFundamentals {
           ProfileRelevantData,
           ConstantState.type,
           ProfileMarkovModel,
-        ],
-        ConstantState.type,
-        Dimensionless,
-    ) => ApparentPower = (tick, baseStateData, _, voltage) => {
-      val profileRelevantData =
-        createCalcRelevantData(baseStateData, tick)
-
-      baseStateData.model.calculatePower(
-        currentTick,
-        voltage,
-        ConstantState,
-        profileRelevantData,
-      )
-    }
-  }
-
-  trait RandomMarkovAgentFundamentals
-      extends MarkovAgentFundamentals[
-        RandomRelevantData,
-        RandomMarkovModel,
-      ] {
-    this: MarkovAgent.RandomMarkovAgent =>
-
-    override def buildModel(
-        inputModel: MarkovInput,
-        operationInterval: OperationInterval,
-        modelConfig: MarkovRuntimeConfig,
-        reference: MarkovReference,
-    ): RandomMarkovModel =
-      RandomMarkovModel(
-        inputModel,
-        operationInterval,
-        modelConfig.scaling,
-        reference,
-      )
-
-    override protected def createCalcRelevantData(
-        baseStateData: ParticipantModelBaseStateData[
-          ApparentPower,
-          RandomRelevantData,
-          ConstantState.type,
-          RandomMarkovModel,
-        ],
-        tick: Long,
-    ): RandomRelevantData =
-      RandomRelevantData(
-        tick.toDateTime(baseStateData.startDate)
-      )
-
-    /** Partial function, that is able to transfer
-      * [[ParticipantModelBaseStateData]] (holding the actual calculation model)
-      * into a pair of active and reactive power
-      */
-    override val calculateModelPowerFunc: (
-        Long,
-        ParticipantModelBaseStateData[
-          ApparentPower,
-          RandomRelevantData,
-          ConstantState.type,
-          RandomMarkovModel,
         ],
         ConstantState.type,
         Dimensionless,

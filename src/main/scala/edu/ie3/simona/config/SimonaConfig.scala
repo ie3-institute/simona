@@ -2955,4 +2955,7 @@ object SimonaConfig {
       }
     }
   }
-}
+
+  case class MarkovRuntimeConfig {
+
+  }
