@@ -18,6 +18,7 @@ import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMin
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.energy.Kilowatts
 import squants.{Power, Temperature}
 
@@ -34,8 +35,6 @@ import java.util.UUID
   *   the element's human readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
-  * @param scalingFactor
-  *   Scaling the output of the system
   * @param qControl
   *   Type of reactive power control
   * @param sRated
@@ -53,7 +52,6 @@ final case class HpModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    override val scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double,
@@ -67,7 +65,6 @@ final case class HpModel(
       uuid,
       id,
       operationInterval,
-      scalingFactor,
       qControl,
       sRated,
       cosPhiRated,
@@ -221,14 +218,14 @@ final case class HpModel(
 
     val lowerBoundary =
       if (canBeOutOfOperation)
-        Kilowatts(0d)
+        zeroKW
       else
         updatedState.activePower
     val upperBoundary =
       if (canOperate)
         sRated * cosPhiRated
       else
-        Kilowatts(0d)
+        zeroKW
 
     ProvideMinMaxFlexOptions(
       uuid,
@@ -285,31 +282,32 @@ object HpModel {
       simulationEndDate: ZonedDateTime,
       thermalGrid: ThermalGrid,
   ): HpModel = {
+    val scaledInput = inputModel.copy().scale(scaling).build()
+
     /* Determine the operation interval */
     val operationInterval: OperationInterval =
       SystemComponent.determineOperationInterval(
         simulationStartDate,
         simulationEndDate,
-        inputModel.getOperationTime,
+        scaledInput.getOperationTime,
       )
 
-    val qControl = QControl(inputModel.getqCharacteristics())
+    val qControl = QControl(scaledInput.getqCharacteristics())
 
     val model = new HpModel(
-      inputModel.getUuid,
-      inputModel.getId,
+      scaledInput.getUuid,
+      scaledInput.getId,
       operationInterval,
-      scaling,
       qControl,
       Kilowatts(
-        inputModel.getType.getsRated
+        scaledInput.getType.getsRated
           .to(PowerSystemUnits.KILOWATT)
           .getValue
           .doubleValue
       ),
-      inputModel.getType.getCosPhiRated,
+      scaledInput.getType.getCosPhiRated,
       Kilowatts(
-        inputModel.getType.getpThermal
+        scaledInput.getType.getpThermal
           .to(PowerSystemUnits.KILOWATT)
           .getValue
           .doubleValue
@@ -391,27 +389,28 @@ object HpModel {
       scalingFactor: Double,
       thermalGrid: ThermalGrid,
   ): HpModel = {
+    val scaledInput = hpInput.copy().scale(scalingFactor).build()
+
     val operationInterval = SystemComponent.determineOperationInterval(
       simulationStartDate,
       simulationEndDate,
-      hpInput.getOperationTime,
+      scaledInput.getOperationTime,
     )
 
     val model = new HpModel(
-      hpInput.getUuid,
-      hpInput.getId,
+      scaledInput.getUuid,
+      scaledInput.getId,
       operationInterval,
-      scalingFactor,
       qControl,
       Kilowatts(
-        hpInput.getType.getsRated
+        scaledInput.getType.getsRated
           .to(PowerSystemUnits.KILOWATT)
           .getValue
           .doubleValue
       ),
-      hpInput.getType.getCosPhiRated,
+      scaledInput.getType.getCosPhiRated,
       Kilowatts(
-        hpInput.getType.getpThermal
+        scaledInput.getType.getpThermal
           .to(PowerSystemUnits.KILOWATT)
           .getValue
           .doubleValue

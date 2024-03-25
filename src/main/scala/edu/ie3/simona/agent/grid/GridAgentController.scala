@@ -6,11 +6,12 @@
 
 package edu.ie3.simona.agent.grid
 
-import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.datamodel.models.input.EmInput
 import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.input.system._
 import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
   ActorEvMovementsService,
@@ -27,24 +28,23 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.typed.scaladsl.adapter.{
-  ClassicActorRefOps,
-  TypedActorContextOps,
-  TypedActorRefOps,
-}
+import org.apache.pekko.actor.typed.scaladsl.adapter._
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import org.slf4j.Logger
 
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.jdk.CollectionConverters._
+import scala.jdk.OptionConverters.RichOptional
 
 /** Holds all methods that should be available to a [[GridAgent]]
   *
@@ -79,7 +79,7 @@ class GridAgentController(
     resolution: Long,
     listener: Iterable[ActorRef[ResultEvent]],
     log: Logger,
-) extends LazyLogging {
+) {
   def buildSystemParticipants(
       subGridContainer: SubGridContainer,
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
@@ -101,15 +101,16 @@ class GridAgentController(
   /** Takes the provided [[SubGridContainer]] and removes all
     * [[SystemParticipantInput]] of which no agent implementations are available
     * at the moment. This method needs to be adapted whenever a new agent
-    * implementation is ready. Hopefully, it can be removed soon.
+    * implementation is ready.
     *
-    * To disabled a filter fo a specific asset adapt the code below.
+    * To disable a filter for a specific system participant, adapt the code
+    * below.
     *
     * @param subGridContainer
     *   the original subGrid container
     * @return
-    *   a filtered subGrid container w/o assets no agent implementations exist
-    *   atm
+    *   a filtered subGrid container w/o assets for which no agent
+    *   implementations exist atm
     */
   private def filterSysParts(
       subGridContainer: SubGridContainer,
@@ -185,25 +186,121 @@ class GridAgentController(
       ConfigUtil.ParticipantConfigUtil(participantsConfig)
     val outputConfigUtil = ConfigUtil.OutputConfigUtil(outputConfig)
 
+    // ems that control at least one participant directly
+    val firstLevelEms = participants.flatMap {
+      _.getControllingEm.toScala.map(em => em.getUuid -> em)
+    }.toMap
+
+    val allEms = buildEmsRecursively(
+      participantConfigUtil,
+      outputConfigUtil,
+      firstLevelEms,
+    )
+
     participants
-      .map(participant => {
+      .map { participant =>
         val node = participant.getNode
-        // build
-        val actorRef =
-          buildParticipantActor(
-            participantsConfig.requestVoltageDeviationThreshold,
-            participantConfigUtil,
-            outputConfigUtil,
-            participant,
-            thermalIslandGridsByBusId,
-            environmentRefs,
-          )
+
+        val actorRef = buildParticipantActor(
+          participantsConfig.requestVoltageDeviationThreshold,
+          participantConfigUtil,
+          outputConfigUtil,
+          participant,
+          thermalIslandGridsByBusId,
+          environmentRefs,
+          allEms.get(participant.getUuid),
+        )
         introduceAgentToEnvironment(actorRef)
         // return uuid to actorRef
         node.getUuid -> actorRef
-      })
+      }
       .toSet[(UUID, ActorRef[ParticipantMessage])]
       .groupMap(entry => entry._1)(entry => entry._2)
+  }
+
+  /** Recursively builds the [[EmAgent]] structure. Recursion starts with
+    * first-level EMs (controlling at least one system participant), and works
+    * its way up to EMs at root level, which are not EM-controlled themselves.
+    * The first level can also be root level.
+    *
+    * @param participantConfigUtil
+    *   Configuration util for participant models
+    * @param outputConfigUtil
+    *   Configuration util for output behaviour
+    * @param emInputs
+    *   EMs of the current level, which can be controlled by further EMs at
+    *   higher levels
+    * @param previousLevelEms
+    *   EMs that have been built by the previous recursion level
+    * @return
+    *   Map from model UUID to EmAgent ActorRef
+    */
+  private def buildEmsRecursively(
+      participantConfigUtil: ConfigUtil.ParticipantConfigUtil,
+      outputConfigUtil: OutputConfigUtil,
+      emInputs: Map[UUID, EmInput],
+      previousLevelEms: Map[UUID, ActorRef[FlexResponse]] = Map.empty,
+  ): Map[UUID, ActorRef[FlexResponse]] = {
+    // For the current level, split controlled and uncontrolled EMs.
+    // Uncontrolled EMs can be built right away.
+    val (controlledEmInputs, uncontrolledEms) = emInputs
+      .partitionMap { case (uuid, emInput) =>
+        if (emInput.getControllingEm.isPresent)
+          Left(uuid -> emInput)
+        else {
+          val actor = buildEm(
+            emInput,
+            participantConfigUtil.getOrDefault[EmRuntimeConfig](uuid),
+            outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
+            maybeControllingEm = None,
+          )
+          Right(uuid -> actor)
+        }
+      }
+
+    val previousLevelAndUncontrolledEms =
+      previousLevelEms ++ uncontrolledEms.toMap
+
+    if (controlledEmInputs.nonEmpty) {
+      // For controlled EMs at the current level, more EMs
+      // might need to be built at the next recursion level.
+      val controllingEms = controlledEmInputs.toMap.flatMap {
+        case (uuid, emInput) =>
+          emInput.getControllingEm.toScala.map(uuid -> _)
+      }
+
+      // Return value includes previous level and uncontrolled EMs of this level
+      val recursiveEms = buildEmsRecursively(
+        participantConfigUtil,
+        outputConfigUtil,
+        controllingEms,
+        previousLevelAndUncontrolledEms,
+      )
+
+      val controlledEms = controlledEmInputs.map { case (uuid, emInput) =>
+        val controllingEm = emInput.getControllingEm.toScala
+          .map(_.getUuid)
+          .map(uuid =>
+            recursiveEms.getOrElse(
+              uuid,
+              throw new CriticalFailureException(
+                s"Actor for EM $uuid not found."
+              ),
+            )
+          )
+
+        uuid -> buildEm(
+          emInput,
+          participantConfigUtil.getOrDefault[EmRuntimeConfig](uuid),
+          outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
+          maybeControllingEm = controllingEm,
+        )
+      }.toMap
+
+      recursiveEms ++ controlledEms
+    } else {
+      previousLevelAndUncontrolledEms
+    }
   }
 
   private def buildParticipantActor(
@@ -213,6 +310,7 @@ class GridAgentController(
       participantInputModel: SystemParticipantInput,
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
       environmentRefs: EnvironmentRefs,
+      maybeControllingEm: Option[ActorRef[FlexResponse]],
   ): ActorRef[ParticipantMessage] = participantInputModel match {
     case input: FixedFeedInInput =>
       buildFixedFeedIn(
@@ -226,6 +324,7 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.FixedFeedIn),
+        maybeControllingEm,
       )
     case input: LoadInput =>
       buildLoad(
@@ -239,6 +338,7 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.Load),
+        maybeControllingEm,
       )
     case input: PvInput =>
       buildPv(
@@ -253,6 +353,7 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.PvPlant),
+        maybeControllingEm,
       )
     case input: WecInput =>
       buildWec(
@@ -267,6 +368,7 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.Wec),
+        maybeControllingEm,
       )
     case input: EvcsInput =>
       buildEvcs(
@@ -285,6 +387,7 @@ class GridAgentController(
         resolution,
         requestVoltageDeviationThreshold,
         outputConfigUtil.getOrDefault(NotifierIdentifier.Evcs),
+        maybeControllingEm,
       )
     case hpInput: HpInput =>
       thermalIslandGridsByBusId.get(hpInput.getThermalBus.getUuid) match {
@@ -292,11 +395,14 @@ class GridAgentController(
           buildHp(
             hpInput,
             thermalGrid,
-            participantConfigUtil.getOrDefault(hpInput.getUuid),
+            participantConfigUtil.getOrDefault[HpRuntimeConfig](
+              hpInput.getUuid
+            ),
             environmentRefs.primaryServiceProxy,
             environmentRefs.weather,
             requestVoltageDeviationThreshold,
             outputConfigUtil.getOrDefault(NotifierIdentifier.Hp),
+            maybeControllingEm,
           )
         case None =>
           throw new GridAgentInitializationException(
@@ -332,6 +438,8 @@ class GridAgentController(
     *   Maximum deviation in p.u. of request voltages to be considered equal
     * @param outputConfig
     *   Configuration of the output behavior
+    * @param maybeControllingEm
+    *   The parent EmAgent, if applicable
     * @return
     *   The [[FixedFeedInAgent]] 's [[ActorRef]]
     */
@@ -344,6 +452,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
+      maybeControllingEm: Option[ActorRef[FlexResponse]],
   ): ActorRef[ParticipantMessage] =
     gridAgentContext.toClassic
       .simonaActorOf(
@@ -359,6 +468,7 @@ class GridAgentController(
             resolution,
             requestVoltageDeviationThreshold,
             outputConfig,
+            maybeControllingEm,
           ),
           listener.map(_.toClassic),
         ),
@@ -385,6 +495,8 @@ class GridAgentController(
     *   Maximum deviation in p.u. of request voltages to be considered equal
     * @param outputConfig
     *   Configuration of the output behavior
+    * @param maybeControllingEm
+    *   The parent EmAgent, if applicable
     * @return
     *   The [[LoadAgent]] 's [[ActorRef]]
     */
@@ -397,6 +509,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
+      maybeControllingEm: Option[ActorRef[FlexResponse]],
   ): ActorRef[ParticipantMessage] =
     gridAgentContext.toClassic
       .simonaActorOf(
@@ -412,6 +525,7 @@ class GridAgentController(
             resolution,
             requestVoltageDeviationThreshold,
             outputConfig,
+            maybeControllingEm,
           ),
           listener.map(_.toClassic),
         ),
@@ -440,6 +554,8 @@ class GridAgentController(
     *   Maximum deviation in p.u. of request voltages to be considered equal
     * @param outputConfig
     *   Configuration of the output behavior
+    * @param maybeControllingEm
+    *   The parent EmAgent, if applicable
     * @return
     *   The [[PvAgent]] 's [[ActorRef]]
     */
@@ -453,6 +569,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
+      maybeControllingEm: Option[ActorRef[FlexResponse]],
   ): ActorRef[ParticipantMessage] =
     gridAgentContext.toClassic
       .simonaActorOf(
@@ -468,6 +585,7 @@ class GridAgentController(
             resolution,
             requestVoltageDeviationThreshold,
             outputConfig,
+            maybeControllingEm,
           ),
           listener.map(_.toClassic),
         ),
@@ -496,6 +614,8 @@ class GridAgentController(
     *   Maximum deviation in p.u. of request voltages to be considered equal
     * @param outputConfig
     *   Configuration of the output behavior
+    * @param maybeControllingEm
+    *   The parent EmAgent, if applicable
     * @return
     *   The [[EvcsAgent]] 's [[ActorRef]]
     */
@@ -509,6 +629,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
+      maybeControllingEm: Option[ActorRef[FlexResponse]],
   ): ActorRef[ParticipantMessage] =
     gridAgentContext.toClassic
       .simonaActorOf(
@@ -528,6 +649,7 @@ class GridAgentController(
             resolution,
             requestVoltageDeviationThreshold,
             outputConfig,
+            maybeControllingEm,
           ),
           listener.map(_.toClassic),
         )
@@ -535,6 +657,7 @@ class GridAgentController(
       .toTyped
 
   /** Builds an [[HpAgent]] from given input
+    *
     * @param hpInput
     *   Input model
     * @param thermalGrid
@@ -549,6 +672,8 @@ class GridAgentController(
     *   Permissible voltage magnitude deviation to consider being equal
     * @param outputConfig
     *   Configuration for output notification
+    * @param maybeControllingEm
+    *   The parent EmAgent, if applicable
     * @return
     *   A tuple of actor reference and [[ParticipantInitializeStateData]]
     */
@@ -560,6 +685,7 @@ class GridAgentController(
       weatherService: ClassicRef,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
+      maybeControllingEm: Option[ActorRef[FlexResponse]],
   ): ActorRef[ParticipantMessage] =
     gridAgentContext.toClassic
       .simonaActorOf(
@@ -576,6 +702,7 @@ class GridAgentController(
             resolution,
             requestVoltageDeviationThreshold,
             outputConfig,
+            maybeControllingEm,
           ),
           listener.map(_.toClassic),
         ),
@@ -583,13 +710,13 @@ class GridAgentController(
       )
       .toTyped
 
-  /** Creates a pv agent and determines the needed additional information for
+  /** Creates a wec agent and determines the needed additional information for
     * later initialization of the agent.
     *
     * @param wecInput
     *   WEC input model to derive information from
     * @param modelConfiguration
-    *   User-provided configuration for this specific load model
+    *   User-provided configuration for this specific wec model
     * @param primaryServiceProxy
     *   Reference to the primary data service proxy
     * @param weatherService
@@ -604,6 +731,8 @@ class GridAgentController(
     *   Maximum deviation in p.u. of request voltages to be considered equal
     * @param outputConfig
     *   Configuration of the output behavior
+    * @param maybeControllingEm
+    *   The parent EmAgent, if applicable
     * @return
     *   The [[WecAgent]] 's [[ActorRef]]
     */
@@ -617,6 +746,7 @@ class GridAgentController(
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
+      maybeControllingEm: Option[ActorRef[FlexResponse]],
   ): ActorRef[ParticipantMessage] =
     gridAgentContext.toClassic
       .simonaActorOf(
@@ -632,12 +762,49 @@ class GridAgentController(
             resolution,
             requestVoltageDeviationThreshold,
             outputConfig,
+            maybeControllingEm,
           ),
           listener.map(_.toClassic),
         ),
         wecInput.getId,
       )
       .toTyped
+
+  /** Builds an [[EmAgent]] from given input
+    *
+    * @param emInput
+    *   The input model
+    * @param modelConfiguration
+    *   Runtime configuration for the agent
+    * @param outputConfig
+    *   Configuration for output notification
+    * @param maybeControllingEm
+    *   The parent EmAgent, if applicable
+    * @return
+    *   The [[EmAgent]] 's [[ActorRef]]
+    */
+  private def buildEm(
+      emInput: EmInput,
+      modelConfiguration: EmRuntimeConfig,
+      outputConfig: NotifierConfig,
+      maybeControllingEm: Option[ActorRef[FlexResponse]],
+  ): ActorRef[FlexResponse] =
+    gridAgentContext.spawn(
+      EmAgent(
+        emInput,
+        modelConfiguration,
+        outputConfig,
+        maybeControllingEm
+          .map(_ => "PRIORITIZED")
+          .getOrElse("PROPORTIONAL"),
+        simulationStartDate,
+        maybeControllingEm.toRight(
+          environmentRefs.scheduler
+        ),
+        listener,
+      ),
+      actorName(classOf[EmAgent.type], emInput.getId),
+    )
 
   /** Introduces the given agent to scheduler
     *

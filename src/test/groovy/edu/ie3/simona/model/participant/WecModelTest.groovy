@@ -86,14 +86,15 @@ class WecModelTest extends Specification {
         OperationTime.notLimited(),
         nodeInput,
         CosPhiFixed.CONSTANT_CHARACTERISTIC,
+        null,
         typeInput,
         false)
   }
 
   def buildWecModel() {
     return WecModel.apply(inputModel, 1,
-        TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
-        TimeUtil.withDefaults.toZonedDateTime("2020-01-01 01:00:00"))
+        TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z"),
+        TimeUtil.withDefaults.toZonedDateTime("2020-01-01T01:00:00Z"))
   }
 
   @Unroll
@@ -103,7 +104,6 @@ class WecModelTest extends Specification {
     then:
     wecModel.uuid() == inputModel.uuid
     wecModel.id() == inputModel.id
-    wecModel.scalingFactor() == 1
     wecModel.sRated() == Sq.create(inputModel.type.sRated.value.doubleValue(), Kilowatts$.MODULE$)
     wecModel.cosPhiRated() == inputModel.type.cosPhiRated
     wecModel.rotorArea() == Sq.create(inputModel.type.rotorArea.value.doubleValue(), SquareMeters$.MODULE$)

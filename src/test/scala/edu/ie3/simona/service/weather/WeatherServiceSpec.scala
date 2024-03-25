@@ -65,8 +65,8 @@ class WeatherServiceSpec
   // setup config for scheduler
   private val config = ConfigFactory
     .parseString(s"""
-            simona.time.startDateTime = "2011-01-01 00:00:00"
-            simona.time.endDateTime = "2011-01-01 01:00:00"
+            simona.time.startDateTime = "2011-01-01T00:00:00Z"
+            simona.time.endDateTime = "2011-01-01T01:00:00Z"
             simona.time.schedulerReadyCheckWindow = 900
             simona.input.grid.datasource.id = "csv"
             simona.input.grid.datasource.csvParams.folderPath = "netdata"

@@ -32,7 +32,6 @@ final case class PvModel private (
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    override val scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double,
@@ -47,7 +46,6 @@ final case class PvModel private (
       uuid,
       id,
       operationInterval,
-      scalingFactor,
       qControl,
       sRated,
       cosPhiRated,
@@ -756,45 +754,47 @@ object PvModel {
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
   ): PvModel = {
+
+    val scaledInput = inputModel.copy().scale(scalingFactor).build()
+
     /* Determine the operation interval */
     val operationInterval: OperationInterval =
       SystemComponent.determineOperationInterval(
         simulationStartDate,
         simulationEndDate,
-        inputModel.getOperationTime,
+        scaledInput.getOperationTime,
       )
 
     // moduleSurface and yieldSTC are left out for now
     val model = apply(
-      inputModel.getUuid,
-      inputModel.getId,
+      scaledInput.getUuid,
+      scaledInput.getId,
       operationInterval,
-      scalingFactor,
-      QControl(inputModel.getqCharacteristics),
+      QControl(scaledInput.getqCharacteristics),
       Kilowatts(
-        inputModel.getsRated
+        scaledInput.getsRated
           .to(PowerSystemUnits.KILOWATT)
           .getValue
           .doubleValue
       ),
-      inputModel.getCosPhiRated,
-      Degrees(inputModel.getNode.getGeoPosition.getY),
-      Degrees(inputModel.getNode.getGeoPosition.getX),
-      inputModel.getAlbedo,
+      scaledInput.getCosPhiRated,
+      Degrees(scaledInput.getNode.getGeoPosition.getY),
+      Degrees(scaledInput.getNode.getGeoPosition.getX),
+      scaledInput.getAlbedo,
       Each(
-        inputModel.getEtaConv
+        scaledInput.getEtaConv
           .to(PowerSystemUnits.PU)
           .getValue
           .doubleValue
       ),
       Radians(
-        inputModel.getAzimuth
+        scaledInput.getAzimuth
           .to(RADIAN)
           .getValue
           .doubleValue
       ),
       Radians(
-        inputModel.getElevationAngle
+        scaledInput.getElevationAngle
           .to(RADIAN)
           .getValue
           .doubleValue

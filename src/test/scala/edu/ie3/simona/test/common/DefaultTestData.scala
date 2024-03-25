@@ -81,8 +81,8 @@ trait DefaultTestData {
       s"""
          |simona.simulationName = "ParticipantAgentTest"
          |
-         |simona.time.startDateTime = "01/01/2020 00:00:00"
-         |simona.time.endDateTime = "01/01/2020 01:00:00"
+         |simona.time.startDateTime = "01/01/2020 00:00:00Z"
+         |simona.time.endDateTime = "01/01/2020 01:00:00Z"
          |
          |simona.input.grid.datasource.id = "csv"
          |simona.output.base.dir = "testOutput/"
@@ -201,6 +201,15 @@ trait DefaultTestData {
          |      scaling = 1.0
          |    }
          |  ]
+         |}
+         |
+         |simona.runtime.participant.em = {
+         |  defaultConfig = {
+         |    calculateMissingReactivePowerWithModel = false
+         |    uuids = ["default"]
+         |    scaling = 1.0
+         |  }
+         |  individualConfigs = []
          |}
          |
          |simona.powerflow.maxSweepPowerDeviation = 1E-5 // the maximum allowed deviation in power between two sweeps, before overall convergence is assumed

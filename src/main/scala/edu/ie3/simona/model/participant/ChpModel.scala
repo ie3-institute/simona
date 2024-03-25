@@ -18,12 +18,12 @@ import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMin
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
+import edu.ie3.util.scala.quantities.DefaultQuantities._
+import squants.energy.Kilowatts
 import squants.{Energy, Power, Seconds, Time}
-import squants.energy.{KilowattHours, Kilowatts}
-
-import java.util.UUID
 
 import java.time.ZonedDateTime
+import java.util.UUID
 
 /** Model of a combined heat and power plant (CHP) with a [[ThermalStorage]]
   * medium and its current [[ChpState]].
@@ -34,8 +34,6 @@ import java.time.ZonedDateTime
   *   the element's human readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
-  * @param scalingFactor
-  *   Scaling the output of the system
   * @param qControl
   *   Type of reactive power control
   * @param sRated
@@ -51,7 +49,6 @@ final case class ChpModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    override val scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double,
@@ -61,7 +58,6 @@ final case class ChpModel(
       uuid,
       id,
       operationInterval,
-      scalingFactor,
       qControl,
       sRated,
       cosPhiRated,
@@ -203,7 +199,7 @@ final case class ChpModel(
       chpData: ChpRelevantData
   ): ChpState = {
     val differenceEnergy = chpEnergy(chpData) - chpData.heatDemand
-    if (differenceEnergy < KilowattHours(0d)) {
+    if (differenceEnergy < zeroKWH) {
       // Returned lack is always zero, because demand is covered.
       storage.tryToTakeAndReturnLack(differenceEnergy * -1)
       calculateStateRunningSurplus(chpData)
@@ -378,27 +374,28 @@ object ChpModel {
       scalingFactor: Double,
       thermalStorage: ThermalStorage with MutableStorage,
   ): ChpModel = {
+    val scaledInput = chpInput.copy().scale(scalingFactor).build()
+
     val operationInterval = SystemComponent.determineOperationInterval(
       simulationStartDate,
       simulationEndDate,
-      chpInput.getOperationTime,
+      scaledInput.getOperationTime,
     )
 
     val model = new ChpModel(
-      chpInput.getUuid,
-      chpInput.getId,
+      scaledInput.getUuid,
+      scaledInput.getId,
       operationInterval,
-      scalingFactor,
       qControl,
       Kilowatts(
-        chpInput.getType.getsRated
+        scaledInput.getType.getsRated
           .to(PowerSystemUnits.KILOWATT)
           .getValue
           .doubleValue
       ),
-      chpInput.getType.getCosPhiRated,
+      scaledInput.getType.getCosPhiRated,
       Kilowatts(
-        chpInput.getType.getpThermal
+        scaledInput.getType.getpThermal
           .to(PowerSystemUnits.KILOWATT)
           .getValue
           .doubleValue

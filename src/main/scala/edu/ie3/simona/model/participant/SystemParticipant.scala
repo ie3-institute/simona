@@ -14,6 +14,7 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{
   DefaultQuantities,
   Megavars,
@@ -32,8 +33,6 @@ import java.util.UUID
   *   the element's human readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
-  * @param scalingFactor
-  *   Scaling the output of the system
   * @param qControl
   *   Type of reactive power control
   * @param sRated
@@ -55,7 +54,6 @@ abstract class SystemParticipant[
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    val scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double,
@@ -110,8 +108,8 @@ abstract class SystemParticipant[
       val reactivePower =
         calculateReactivePower(activePower, voltage)
       ApparentPower(
-        activePower * scalingFactor,
-        reactivePower * scalingFactor,
+        activePower,
+        reactivePower,
       )
     } else {
       ApparentPower(
@@ -136,7 +134,9 @@ abstract class SystemParticipant[
   ): Power
 
   /** @param data
+    *   The relevant data for calculation
     * @param lastState
+    *   The last reached state
     * @return
     *   flex options
     */
@@ -146,7 +146,9 @@ abstract class SystemParticipant[
   ): ProvideFlexOptions
 
   /** @param data
+    *   The relevant data for calculation
     * @param lastState
+    *   The last reached state
     * @param setPower
     *   power that has been set by EmAgent
     * @return
@@ -237,7 +239,7 @@ abstract class SystemParticipant[
           logger.warn(
             s"Active power of model exceeds sRated. Set reactive power to 0!"
           )
-          Megavars(0d)
+          zeroMVAr
         } else {
           Megavars(
             Math.sqrt(powerSquaredDifference)
