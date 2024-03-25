@@ -24,4 +24,5 @@ object CalcRelevantData {
     */
   trait LoadRelevantData extends CalcRelevantData
 
+  case class MarkovRelevantData
 }
