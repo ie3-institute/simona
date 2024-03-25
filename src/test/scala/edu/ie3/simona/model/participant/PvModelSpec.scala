@@ -13,7 +13,12 @@ import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.scala.quantities.{Irradiation, Megavars, ReactivePower, WattHoursPerSquareMeter}
+import edu.ie3.util.scala.quantities.{
+  Irradiation,
+  Megavars,
+  ReactivePower,
+  WattHoursPerSquareMeter,
+}
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import org.scalatest.GivenWhenThen
 import squants.Each
@@ -84,7 +89,8 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
   )
 
   private implicit val angleTolerance: Angle = Radians(1e-10)
-  private implicit val irradiationTolerance: Irradiation = WattHoursPerSquareMeter(1e-10)
+  private implicit val irradiationTolerance: Irradiation =
+    WattHoursPerSquareMeter(1e-10)
   private implicit val powerTolerance: Power = Kilowatts(1e-10)
   private implicit val reactivePowerTolerance: ReactivePower = Megavars(1e-10)
 
@@ -500,7 +506,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
         val airMassCalc = pvModel.calcAirMass(Radians(thetaZ))
 
         Then("result should match the test data")
-        airMassCalc shouldEqual airMassSol +- 1e-10 //the "approximate" function does not work for doubles, therefore the "shouldEqual" function is used
+        airMassCalc shouldEqual airMassSol +- 1e-10 // the "approximate" function does not work for doubles, therefore the "shouldEqual" function is used
       }
     }
 
@@ -598,9 +604,11 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
           14.882390116876563d,
         ), // Goswami Principles of Solar Engineering Example 2.7b
         (40d, -11.6d, 82.5d, 60d, 0d, 79.11011928744357d),
-        (40d, -11.6d, -82.5d, 60d, 0d, 79.11011928744357d), //inverse hour angle
+        (40d, -11.6d, -82.5d, 60d, 0d,
+          79.11011928744357d), // inverse hour angle
         (40d, -11.6d, 78.0d, 60d, 0d, 74.92072065185143d),
-        (40d, -11.6d, -78.0d, 60d, 0d, 74.92072065185143d), //inverse hour angle
+        (40d, -11.6d, -78.0d, 60d, 0d,
+          74.92072065185143d), // inverse hour angle
         (45d, -7.15d, -82.5d, 0d, 0d,
           89.79565474295107d), // Latitude 45 degrees, slope 0 degrees (zenith angle)
 
