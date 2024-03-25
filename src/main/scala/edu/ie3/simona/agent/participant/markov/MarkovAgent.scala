@@ -9,11 +9,8 @@ package edu.ie3.simona.agent.participant.markov
 import edu.ie3.datamodel.models.input.system.MarkovInput
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import edu.ie3.simona.agent.participant.markov.MarkovAgentFundamentals.{
-  FixedMarkovAgentFundamentals,
-  ProfileMarkovAgentFundamentals,
-  RandomMarkovAgentFundamentals,
-}
+import edu.ie3.simona.agent.participant.markov.MarkovAgentFundamentals.ProfileMarkovAgentFundamentals
+
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.SimonaConfig.MarkovRuntimeConfig
@@ -24,7 +21,6 @@ import edu.ie3.simona.model.participant.markov.profile.ProfileMarkovModel.Profil
 import edu.ie3.simona.model.participant.markov.random.RandomMarkovModel
 import edu.ie3.simona.model.participant.markov.random.RandomMarkovModel.RandomRelevantData
 import edu.ie3.simona.model.participant.markov.{
-  FixedMarkovModel,
   MarkovModel,
   MarkovModelBehaviour,
 }
@@ -89,13 +85,4 @@ abstract class MarkovAgent[MD <: MarkovRelevantData, MM <: MarkovModel[MD]](
       MM,
     ](scheduler, initStateData)
     with MarkovAgentFundamentals[MD, MM] {
-  /*
-   * "Hey, SIMONA! What is handled in ParticipantAgent?"
-   * "Hey, dude! The following things are handled in ParticipantAgent:
-   *   1) Initialization of Agent
-   *   2) Event reactions in Idle state
-   *   3) Handling of incoming information
-   *   4) Performing model calculations
-   * "
-   */
 }

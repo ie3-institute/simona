@@ -34,19 +34,12 @@ import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.MarkovRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
-import edu.ie3.simona.model.participant.Markov.FixedMarkovModel.FixedMarkovRelevantData
 import edu.ie3.simona.model.participant.Markov.profile.ProfileMarkovModel.ProfileRelevantData
 import edu.ie3.simona.model.participant.Markov.profile.{
   MarkovProfileStore,
   ProfileMarkovModel,
 }
-import edu.ie3.simona.model.participant.Markov.random.RandomMarkovModel.RandomRelevantData
-import edu.ie3.simona.model.participant.Markov.random.{
-  RandomMarkovModel,
-  RandomMarkovParamStore,
-}
 import edu.ie3.simona.model.participant.Markov.{
-  FixedMarkovModel,
   MarkovModel,
   MarkovReference,
 }
