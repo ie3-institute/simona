@@ -180,24 +180,15 @@ final case class ExtPrimaryDataService(
 
     // Distribute Primary Data
     if (actorToPrimaryData.nonEmpty) {
-      val keys =
-        ScheduleLock.multiKey(
-          ctx,
-          scheduler.toTyped,
-          tick,
-          actorToPrimaryData.size,
-        )
-
-      actorToPrimaryData.zip(keys).foreach {
-        case ((actor, primaryDataPerAgent), key) =>
-          primaryDataPerAgent.toPrimaryData match {
+      actorToPrimaryData.foreach {
+        case (actor, value) =>
+          value.toPrimaryData match {
             case Success(primaryData) =>
               actor ! ProvidePrimaryDataMessage(
                 tick,
                 self,
                 primaryData,
-                None,
-                unlockKey = Some(key),
+                None
               )
             case Failure(exception) =>
               /* Processing of data failed */
@@ -209,6 +200,24 @@ final case class ExtPrimaryDataService(
           }
       }
     }
+
+      /*
+      val keys =
+        ScheduleLock.multiKey(
+          ctx,
+          scheduler.toTyped,
+          tick,
+          actorToPrimaryData.size,
+        )
+
+      actorToPrimaryData.zip(keys).foreach {
+        case ((actor, primaryDataPerAgent), key) =>
+          log.info(s"actor $actor, unlockKey $key")
+          primaryDataPerAgent.toPrimaryData v
+      }
+
+       */
+
     (
       serviceStateData.copy(extPrimaryDataMessage = None),
       None,

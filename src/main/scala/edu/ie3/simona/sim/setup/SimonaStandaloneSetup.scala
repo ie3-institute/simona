@@ -359,27 +359,36 @@ class SimonaStandaloneSetup(
       ExtSimAdapter.props(extScheduler.toClassic),
       s"1",
     )
-    val extSimAdapterDataPhase1 = new ExtSimAdapterData(extSimAdapterPhase1, args)
-
-
     val extSimAdapterPhase2 = context.toClassic.simonaActorOf(
       ExtSimAdapter.props(simScheduler.toClassic),
       s"2",
     )
-    val extSimAdapterDataPhase2 = new ExtSimAdapterData(extSimAdapterPhase2, args)
+
+    val extSimAdapters: Map[java.lang.Integer, ClassicRef] = Map(
+      1.asInstanceOf[java.lang.Integer] -> extSimAdapterPhase1,
+      2.asInstanceOf[java.lang.Integer] -> extSimAdapterPhase2
+    )
+
+    val extSimAdapterData = new ExtSimAdapterData(extSimAdapters.asJava, args)
+
 
 
     // send init data right away, init activation is scheduled
     extSimAdapterPhase1 ! ExtSimAdapter.Create(
-      extSimAdapterDataPhase1,
+      extSimAdapterData,
+      1,
       ScheduleLock.singleKey(context, extScheduler, INIT_SIM_TICK),
     )
 
+    /*
     // send init data right away, init activation is scheduled
     extSimAdapterPhase2 ! ExtSimAdapter.Create(
-      extSimAdapterDataPhase2,
+      extSimAdapterData,
+      2,
       ScheduleLock.singleKey(context, simScheduler, INIT_SIM_TICK),
     )
+
+     */
 
     val extPrimaryDataService = context.toClassic.simonaActorOf(
       ExtPrimaryDataService.props(extScheduler.toClassic),
@@ -448,29 +457,30 @@ class SimonaStandaloneSetup(
     )
 
     simpleExtSim.setup(
-      extSimAdapterDataPhase1,
-      extSimAdapterDataPhase2,
+      extSimAdapterData,
       simpleExtSimDatas.asJava,
     )
     // starting external simulation
-    context.log.info("Starting External simulation")
     new Thread(simpleExtSim, s"External simulation")
       .start()
 
     val extDataServicesMap: Map[Class[_], ClassicRef] = Map(
       classOf[ExtPrimaryDataService] -> extPrimaryDataService,
-      //ExtResultDataProvider.getClass -> extResultDataProvider.toClassic
     )
 
     val extDataListenerMap: Map[Class[_], ActorRef[ExtResultDataProvider.Request]] =  Map(
       ExtResultDataProvider.getClass -> extResultDataProvider
     )
 
-    val extSimAdapters = Iterable(extSimAdapterPhase1, extSimAdapterPhase2)
+    val extSimAdaptersIt = Iterable(extSimAdapterPhase1, extSimAdapterPhase2)
 
     val extDatas = simpleExtSimDatas.toSet
-
-    ExtSimSetupData(extSimAdapters, extDataServicesMap, extDataListenerMap, extDatas, Some(extScheduler))
+    extSimAdapterPhase2 ! ExtSimAdapter.Create(
+      extSimAdapterData,
+      2,
+      ScheduleLock.singleKey(context, simScheduler, INIT_SIM_TICK),
+    )
+    ExtSimSetupData(extSimAdaptersIt, extDataServicesMap, extDataListenerMap, extDatas, Some(extScheduler))
   }
 
 

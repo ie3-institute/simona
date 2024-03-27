@@ -35,12 +35,13 @@ object ExtSimAdapter {
     * @param extSimData
     *   The [[ExtSimAdapterData]] of the corresponding external simulation
     */
-  final case class Create(extSimData: ExtSimAdapterData, unlockKey: ScheduleKey)
+  final case class Create(extSimData: ExtSimAdapterData, phase: Int, unlockKey: ScheduleKey)
 
   final case class Stop(simulationSuccessful: Boolean)
 
   final case class ExtSimAdapterStateData(
       extSimData: ExtSimAdapterData,
+      phase: Int,
       currentTick: Option[Long] = None,
   )
 }
@@ -48,7 +49,7 @@ object ExtSimAdapter {
 final case class ExtSimAdapter(scheduler: ActorRef)
     extends Actor
     with SimonaActorLogging {
-  override def receive: Receive = { case Create(extSimAdapterData, unlockKey) =>
+  override def receive: Receive = { case Create(extSimAdapterData, phase, unlockKey) =>
     // triggering first time at init tick
     scheduler ! ScheduleActivation(
       self.toTyped,
@@ -56,7 +57,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
       Some(unlockKey),
     )
     context become receiveIdle(
-      ExtSimAdapterStateData(extSimAdapterData)
+      ExtSimAdapterStateData(extSimAdapterData, phase)
     )
   }
 
@@ -65,13 +66,12 @@ final case class ExtSimAdapter(scheduler: ActorRef)
   ): Receive = {
     case Activation(tick) =>
       stateData.extSimData.queueExtMsg(
-        new ActivationMessage(tick)
+        new ActivationMessage(tick, stateData.phase)
       )
       log.debug(
         "Tick {} has been activated in external simulation",
         tick,
       )
-      log.info("stateData after Activation(" + tick + ") = " + stateData)
 
       context become receiveIdle(
         stateData.copy(currentTick = Some(tick))
@@ -92,7 +92,6 @@ final case class ExtSimAdapter(scheduler: ActorRef)
       context become receiveIdle(stateData.copy(currentTick = None))
 
     case scheduleDataService: ScheduleDataServiceMessage =>
-      log.info("stateData after ScheduleDataService = " + stateData)
       val tick = stateData.currentTick.getOrElse(
         throw new RuntimeException("No tick has been triggered")
       )
@@ -106,7 +105,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
     case Stop(simulationSuccessful) =>
       // let external sim know that we have terminated
       stateData.extSimData.queueExtMsg(
-        new TerminationMessage(simulationSuccessful)
+        new TerminationMessage(simulationSuccessful, stateData.phase)
       )
 
     case _: TerminationCompleted =>
