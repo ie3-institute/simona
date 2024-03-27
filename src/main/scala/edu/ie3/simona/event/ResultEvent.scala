@@ -33,7 +33,8 @@ object ResultEvent {
     *   the calculation result
     */
   final case class ParticipantResultEvent(
-      systemParticipantResult: SystemParticipantResult
+      systemParticipantResult: SystemParticipantResult,
+      nextTick: Option[Long] = None
   ) extends ResultEvent
 
   /** Event, that is triggered every time a thermal model has a new result

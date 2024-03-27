@@ -7,6 +7,8 @@
 package edu.ie3.simona.service
 
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
+import edu.ie3.simona.api.data.results.ontology.ResultDataMessageFromExt
+import edu.ie3.simona.ontology.messages.services.DataMessage
 import edu.ie3.simona.ontology.messages.services.EvMessage.EvResponseMessage
 import edu.ie3.simona.service.ServiceStateData.ServiceBaseStateData
 
@@ -49,6 +51,6 @@ trait ExtDataSupport[
     *   the updated state data
     */
   protected def handleDataResponseMessage(
-      extResponseMsg: EvResponseMessage
+      extResponseMsg: DataMessage
   )(implicit serviceStateData: S): S
 }

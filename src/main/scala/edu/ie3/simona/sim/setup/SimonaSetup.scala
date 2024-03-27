@@ -57,7 +57,8 @@ trait SimonaSetup {
     *   A sequence of actor references to result event listeners
     */
   def resultEventListener(
-      context: ActorContext[_]
+      context: ActorContext[_],
+      extSimulationData: ExtSimSetupData,
   ): Seq[ActorRef[ResultEventListener.Request]]
 
   /** Creates a primary service proxy. The proxy is the first instance to ask
@@ -74,6 +75,7 @@ trait SimonaSetup {
   def primaryServiceProxy(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
+      extSimulationData: ExtSimSetupData,
   ): ClassicRef
 
   /** Creates a weather service
@@ -103,6 +105,7 @@ trait SimonaSetup {
   def extSimulations(
       context: ActorContext[_],
       rootScheduler: ActorRef[SchedulerMessage],
+      simScheduler: ActorRef[SchedulerMessage],
   ): ExtSimSetupData
 
   /** Creates the time advancer

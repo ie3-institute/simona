@@ -18,6 +18,9 @@ import edu.ie3.simona.agent.grid.{GridAgent, GridAgentMessage}
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.data.ExtData
 import edu.ie3.simona.api.data.ev.{ExtEvData, ExtEvSimulation}
+import edu.ie3.simona.api.data.primarydata.{ExtPrimaryData, ExtPrimaryDataSimulation}
+import edu.ie3.simona.api.data.results.{ExtResultData, ExtResultDataSimulation}
+import edu.ie3.simona.api.data.results.ontology.ResultDataMessageFromExt
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.config.{ArgsParser, RefSystemParser, SimonaConfig}
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
@@ -28,31 +31,38 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
 import edu.ie3.simona.scheduler.{ScheduleLock, Scheduler, TimeAdvancer}
 import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
-import edu.ie3.simona.service.primary.PrimaryServiceProxy
+import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
+import edu.ie3.simona.service.primary.{ExtPrimaryDataService, PrimaryServiceProxy}
+import edu.ie3.simona.service.results.ExtResultDataProvider
+import edu.ie3.simona.service.results.ExtResultDataProvider.{InitExtResultData, RequestDataMessageAdapter, RequestScheduleActivationAdapter}
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
+import edu.ie3.simosaik.simpleextsim.SimpleExtSimulation
 import edu.ie3.util.TimeUtil
-import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.typed.scaladsl.adapter.{
-  ClassicActorRefOps,
-  TypedActorContextOps,
-  TypedActorRefOps,
-}
+import org.apache.pekko.actor.typed.scaladsl.AskPattern._
+import org.apache.pekko.actor.typed.scaladsl.adapter.{ClassicActorRefOps, TypedActorContextOps, TypedActorRefOps}
+import org.apache.pekko.actor.typed.{ActorRef, Scheduler}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
+import org.apache.pekko.util.{Timeout => PekkoTimeout}
+import edu.ie3.simona.service.results.ExtResultDataProvider.Request
 
 import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
+import scala.concurrent.Await
+import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters._
+import scala.jdk.DurationConverters._
 
 /** Sample implementation to run a standalone simulation of simona configured
   * with the provided [[SimonaConfig]] and [[ResultFileHierarchy]]
@@ -146,6 +156,7 @@ class SimonaStandaloneSetup(
   override def primaryServiceProxy(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
+      extSimSetupData: ExtSimSetupData,
   ): ClassicRef = {
     val simulationStart = TimeUtil.withDefaults.toZonedDateTime(
       simonaConfig.simona.time.startDateTime
@@ -156,6 +167,8 @@ class SimonaStandaloneSetup(
         InitPrimaryServiceProxyStateData(
           simonaConfig.simona.input.primary,
           simulationStart,
+          extSimSetupData.extPrimaryDataService,
+          extSimSetupData.extPrimaryData
         ),
         simulationStart,
       )
@@ -188,6 +201,7 @@ class SimonaStandaloneSetup(
     weatherService
   }
 
+  /*
   override def extSimulations(
       context: ActorContext[_],
       rootScheduler: ActorRef[SchedulerMessage],
@@ -199,7 +213,7 @@ class SimonaStandaloneSetup(
     if (extLinks.nonEmpty) {
       val extScheduler = scheduler(context, parent = rootScheduler)
 
-      val (extSimAdapters, extDataServices) =
+      val (extSimAdapters, extDatasAndServices) =
         extLinks.zipWithIndex.map { case (extLink, index) =>
           // external simulation always needs at least an ExtSimAdapter
           val extSimAdapter = context.toClassic.simonaActorOf(
@@ -215,9 +229,9 @@ class SimonaStandaloneSetup(
           )
 
           // setup data services that belong to this external simulation
-          val (extData, extDataInit): (
+          val (extData, extDataServiceToRef): (
               Iterable[ExtData],
-              Iterable[(Class[_ <: SimonaService[_]], ClassicRef)],
+              Iterable[(Class[_], ClassicRef)],
           ) =
             extLink.getExtDataSimulations.asScala.zipWithIndex.map {
               case (_: ExtEvSimulation, dIndex) =>
@@ -237,29 +251,238 @@ class SimonaStandaloneSetup(
                 )
 
                 (extEvData, (classOf[ExtEvDataService], extEvDataService))
+
+              case (extPrimaryDataSimulation: ExtPrimaryDataSimulation, dIndex) =>
+                val extPrimaryDataService = context.toClassic.simonaActorOf(
+                  ExtPrimaryDataService.props(extScheduler.toClassic),
+                  s"$index-$dIndex",
+                )
+                val extPrimaryData = new ExtPrimaryData(
+                  extPrimaryDataService,
+                  extSimAdapter,
+                  extPrimaryDataSimulation.getPrimaryDataFactory,
+                  extPrimaryDataSimulation.getPrimaryDataAssets
+                )
+
+                extPrimaryDataSimulation.setExtPrimaryData(extPrimaryData)
+
+                extPrimaryDataService ! SimonaService.Create(
+                  InitExtPrimaryData(extPrimaryData),
+                  ScheduleLock.singleKey(
+                    context,
+                    extScheduler,
+                    INIT_SIM_TICK,
+                  ),
+                )
+
+                (extPrimaryData, (classOf[ExtPrimaryDataService], extPrimaryDataService))
+
+              case (extResultDataSimulation: ExtResultDataSimulation, dIndex) =>
+
+                val extResultDataProvider = {
+                  context.spawn(
+                    ExtResultDataProvider(extScheduler),
+                    s"$index-$dIndex",
+                  )
+                }
+
+                implicit val timeout: PekkoTimeout = PekkoTimeout.create(5.seconds.toJava)
+                implicit val scheduler: Scheduler = context.system.scheduler
+
+                val adapterRef = Await.result(
+                  extResultDataProvider.ask[ActorRef[ResultDataMessageFromExt]] (ref => RequestDataMessageAdapter(ref)), timeout.duration)
+                val adapterScheduleRef = Await.result(
+                  extResultDataProvider.ask[ActorRef[ScheduleServiceActivation]] (ref => RequestScheduleActivationAdapter(ref)), timeout.duration)
+
+                val extResultData =
+                  new ExtResultData(
+                    adapterRef.toClassic,
+                    adapterScheduleRef.toClassic,
+                    extSimAdapter,
+                    extResultDataSimulation.getResultDataFactory,
+                    extResultDataSimulation.getResultDataAssets
+                  )
+
+                extResultDataSimulation.setExtResultData(extResultData)
+
+                extResultDataProvider ! ExtResultDataProvider.Create(
+                  InitExtResultData(extResultData),
+                  ScheduleLock.singleKey(
+                    context,
+                    extScheduler,
+                    INIT_SIM_TICK,
+                  ),
+                )
+
+                (
+                  extResultData,
+                  (ExtResultDataProvider.getClass, extResultDataProvider.toClassic),
+                )
             }.unzip
 
-          extLink.getExtSimulation.setup(
-            extSimAdapterData,
-            extData.toList.asJava,
-          )
+            extLink.getExtSimulation.setup(
+              extSimAdapterData,
+              extData.toList.asJava,
+            )
 
-          // starting external simulation
-          new Thread(extLink.getExtSimulation, s"External simulation $index")
-            .start()
+            // starting external simulation
+            new Thread(extLink.getExtSimulation, s"External simulation $index")
+              .start()
 
-          (extSimAdapter, extDataInit)
+          (extSimAdapter, (extDataServiceToRef, extData))
         }.unzip
+
+      val extDataServices = extDatasAndServices.map(_._1)
+      val extDatas = extDatasAndServices.flatMap(_._2).toSet
 
       ExtSimSetupData(
         extSimAdapters,
         extDataServices.flatten.toMap,
-        Some(extScheduler),
-      )
-    } else {
-      ExtSimSetupData(Iterable.empty, Map.empty, None)
+        extDatas,
+        Some(extScheduler))
+  } else {
+      ExtSimSetupData(Iterable.empty, Map.empty, Set.empty, None)
     }
   }
+
+   */
+
+  override def extSimulations(
+                               context: ActorContext[_],
+                               rootScheduler: ActorRef[SchedulerMessage],
+                               simScheduler: ActorRef[SchedulerMessage],
+  ): ExtSimSetupData = {
+    val extScheduler = scheduler(context, parent = rootScheduler)
+    val simpleExtSim = new SimpleExtSimulation()
+
+    val extSimAdapterPhase1 = context.toClassic.simonaActorOf(
+      ExtSimAdapter.props(extScheduler.toClassic),
+      s"1",
+    )
+    val extSimAdapterPhase2 = context.toClassic.simonaActorOf(
+      ExtSimAdapter.props(simScheduler.toClassic),
+      s"2",
+    )
+
+    val extSimAdapters: Map[java.lang.Integer, ClassicRef] = Map(
+      1.asInstanceOf[java.lang.Integer] -> extSimAdapterPhase1,
+      2.asInstanceOf[java.lang.Integer] -> extSimAdapterPhase2
+    )
+
+    val extSimAdapterData = new ExtSimAdapterData(extSimAdapters.asJava, args)
+
+
+
+    // send init data right away, init activation is scheduled
+    extSimAdapterPhase1 ! ExtSimAdapter.Create(
+      extSimAdapterData,
+      1,
+      ScheduleLock.singleKey(context, extScheduler, INIT_SIM_TICK),
+    )
+
+    /*
+    // send init data right away, init activation is scheduled
+    extSimAdapterPhase2 ! ExtSimAdapter.Create(
+      extSimAdapterData,
+      2,
+      ScheduleLock.singleKey(context, simScheduler, INIT_SIM_TICK),
+    )
+
+     */
+
+    val extPrimaryDataService = context.toClassic.simonaActorOf(
+      ExtPrimaryDataService.props(extScheduler.toClassic),
+      s"0-0",
+    )
+    val extPrimaryData = new ExtPrimaryData(
+      extPrimaryDataService,
+      extSimAdapterPhase1,
+      simpleExtSim.getExtPrimaryDataSimulation.getPrimaryDataFactory,
+      simpleExtSim.getExtPrimaryDataSimulation.getPrimaryDataAssets
+    )
+
+    simpleExtSim.getExtPrimaryDataSimulation.setExtPrimaryData(extPrimaryData)
+
+    extPrimaryDataService ! SimonaService.Create(
+      InitExtPrimaryData(extPrimaryData),
+      ScheduleLock.singleKey(
+        context,
+        extScheduler,
+        INIT_SIM_TICK,
+      ),
+    )
+
+    //Result Data
+
+    val extResultDataProvider = {
+      context.spawn(
+        ExtResultDataProvider(simScheduler),
+        s"ExtResultDataProvider",
+      )
+    }
+
+
+    val timeout: PekkoTimeout = PekkoTimeout.create(5.seconds.toJava)
+    val scheduler2: Scheduler = context.system.scheduler
+
+    val adapterRef = Await.result(
+      extResultDataProvider.ask[ActorRef[ResultDataMessageFromExt]] (ref => RequestDataMessageAdapter(ref))(timeout, scheduler2), timeout.duration)
+    val adapterScheduleRef = Await.result(
+      extResultDataProvider.ask[ActorRef[ScheduleServiceActivation]] (ref => RequestScheduleActivationAdapter(ref))(timeout, scheduler2), timeout.duration)
+
+    val extResultData =
+      new ExtResultData(
+        adapterRef.toClassic,
+        adapterScheduleRef.toClassic,
+        extSimAdapterPhase2,
+        simpleExtSim.getExtResultDataSimulation.getResultDataFactory,
+        simpleExtSim.getExtResultDataSimulation.getResultDataAssets
+      )
+
+    simpleExtSim.getExtResultDataSimulation.setExtResultData(extResultData)
+
+    extResultDataProvider ! ExtResultDataProvider.Create(
+      InitExtResultData(extResultData),
+      ScheduleLock.singleKey(
+        context,
+        simScheduler,
+        INIT_SIM_TICK,
+      ),
+    )
+
+
+    val simpleExtSimDatas: List[ExtData] = List(
+      extResultData,
+      extPrimaryData
+    )
+
+    simpleExtSim.setup(
+      extSimAdapterData,
+      simpleExtSimDatas.asJava,
+    )
+    // starting external simulation
+    new Thread(simpleExtSim, s"External simulation")
+      .start()
+
+    val extDataServicesMap: Map[Class[_], ClassicRef] = Map(
+      classOf[ExtPrimaryDataService] -> extPrimaryDataService,
+    )
+
+    val extDataListenerMap: Map[Class[_], ActorRef[ExtResultDataProvider.Request]] =  Map(
+      ExtResultDataProvider.getClass -> extResultDataProvider
+    )
+
+    val extSimAdaptersIt = Iterable(extSimAdapterPhase1, extSimAdapterPhase2)
+
+    val extDatas = simpleExtSimDatas.toSet
+    extSimAdapterPhase2 ! ExtSimAdapter.Create(
+      extSimAdapterData,
+      2,
+      ScheduleLock.singleKey(context, simScheduler, INIT_SIM_TICK),
+    )
+    ExtSimSetupData(extSimAdaptersIt, extDataServicesMap, extDataListenerMap, extDatas, Some(extScheduler))
+  }
+
 
   override def timeAdvancer(
       context: ActorContext[_],
@@ -309,8 +532,11 @@ class SimonaStandaloneSetup(
       )
 
   override def resultEventListener(
-      context: ActorContext[_]
+      context: ActorContext[_],
+      extSimulationData: ExtSimSetupData,
   ): Seq[ActorRef[ResultEventListener.Request]] = {
+    val extResultDataService: Option[ActorRef[ExtResultDataProvider.Request]] =
+      extSimulationData.extResultDataService
     // append ResultEventListener as well to write raw output files
     ArgsParser
       .parseListenerConfigOption(simonaConfig.simona.event.listener)
@@ -326,7 +552,8 @@ class SimonaStandaloneSetup(
       .toSeq :+ context
       .spawn(
         ResultEventListener(
-          resultFileHierarchy
+          resultFileHierarchy,
+          extResultDataService,
         ),
         ResultEventListener.getClass.getSimpleName,
       )

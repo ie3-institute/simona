@@ -6,27 +6,19 @@
 
 package edu.ie3.simona.api
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
 import edu.ie3.simona.api.ExtSimAdapter.{Create, ExtSimAdapterStateData, Stop}
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
-import edu.ie3.simona.api.simulation.ontology.{
-  ActivationMessage,
-  TerminationCompleted,
-  TerminationMessage,
-  CompletionMessage => ExtCompletionMessage,
-}
+import edu.ie3.simona.api.simulation.ontology.{ActivationMessage, TerminationCompleted, TerminationMessage, CompletionMessage => ExtCompletionMessage}
 import edu.ie3.simona.logging.SimonaActorLogging
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
 import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
 
 import scala.jdk.OptionConverters._
 
@@ -43,12 +35,13 @@ object ExtSimAdapter {
     * @param extSimData
     *   The [[ExtSimAdapterData]] of the corresponding external simulation
     */
-  final case class Create(extSimData: ExtSimAdapterData, unlockKey: ScheduleKey)
+  final case class Create(extSimData: ExtSimAdapterData, phase: Int, unlockKey: ScheduleKey)
 
   final case class Stop(simulationSuccessful: Boolean)
 
   final case class ExtSimAdapterStateData(
       extSimData: ExtSimAdapterData,
+      phase: Int,
       currentTick: Option[Long] = None,
   )
 }
@@ -56,7 +49,7 @@ object ExtSimAdapter {
 final case class ExtSimAdapter(scheduler: ActorRef)
     extends Actor
     with SimonaActorLogging {
-  override def receive: Receive = { case Create(extSimAdapterData, unlockKey) =>
+  override def receive: Receive = { case Create(extSimAdapterData, phase, unlockKey) =>
     // triggering first time at init tick
     scheduler ! ScheduleActivation(
       self.toTyped,
@@ -64,7 +57,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
       Some(unlockKey),
     )
     context become receiveIdle(
-      ExtSimAdapterStateData(extSimAdapterData)
+      ExtSimAdapterStateData(extSimAdapterData, phase)
     )
   }
 
@@ -73,7 +66,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
   ): Receive = {
     case Activation(tick) =>
       stateData.extSimData.queueExtMsg(
-        new ActivationMessage(tick)
+        new ActivationMessage(tick, stateData.phase)
       )
       log.debug(
         "Tick {} has been activated in external simulation",
@@ -112,7 +105,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
     case Stop(simulationSuccessful) =>
       // let external sim know that we have terminated
       stateData.extSimData.queueExtMsg(
-        new TerminationMessage(simulationSuccessful)
+        new TerminationMessage(simulationSuccessful, stateData.phase)
       )
 
     case _: TerminationCompleted =>

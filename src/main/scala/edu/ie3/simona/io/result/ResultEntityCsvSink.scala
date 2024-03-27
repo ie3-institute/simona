@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.io.result
 
-import org.apache.pekko.stream.IOResult
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.exceptions.EntityProcessorException
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
@@ -14,6 +13,7 @@ import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.simona.exceptions.ProcessResultEventException
 import edu.ie3.util.StringUtils
 import edu.ie3.util.io.FileIOUtils
+import org.apache.pekko.stream.IOResult
 
 import java.io.{BufferedWriter, File, FileWriter, Writer}
 import java.lang

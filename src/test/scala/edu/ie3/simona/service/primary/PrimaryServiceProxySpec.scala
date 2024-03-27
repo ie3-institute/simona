@@ -129,6 +129,12 @@ class PrimaryServiceProxySpec
 
   private val scheduler: TestProbe = TestProbe("scheduler")
 
+  private val validExtPrimaryDataService = TestActorRef(
+    new ExtPrimaryDataService(
+      scheduler.ref
+    )
+  )
+
   "Testing a primary service config" should {
     "lead to complaining about too much source definitions" in {
       val maliciousConfig = PrimaryConfig(
@@ -239,6 +245,7 @@ class PrimaryServiceProxySpec
     InitPrimaryServiceProxyStateData(
       validPrimaryConfig,
       simulationStart,
+      None,
     )
   val proxyRef: TestActorRef[PrimaryServiceProxy] = TestActorRef(
     new PrimaryServiceProxy(scheduler.ref, initStateData, simulationStart)
@@ -260,6 +267,7 @@ class PrimaryServiceProxySpec
       proxy invokePrivate prepareStateData(
         maliciousConfig,
         simulationStart,
+        Option.empty,
       ) match {
         case Success(_) =>
           fail("Building state data with missing config should fail")
@@ -280,6 +288,7 @@ class PrimaryServiceProxySpec
       proxy invokePrivate prepareStateData(
         maliciousConfig,
         simulationStart,
+        Option.empty,
       ) match {
         case Success(_) =>
           fail("Building state data with missing config should fail")
@@ -293,6 +302,7 @@ class PrimaryServiceProxySpec
       proxy invokePrivate prepareStateData(
         validPrimaryConfig,
         simulationStart,
+        Option.empty,
       ) match {
         case Success(
               PrimaryServiceStateData(
@@ -301,6 +311,8 @@ class PrimaryServiceProxySpec
                 simulationStart,
                 primaryConfig,
                 mappingSource,
+                _,
+                _,
               )
             ) =>
           modelToTimeSeries shouldBe Map(
@@ -338,6 +350,29 @@ class PrimaryServiceProxySpec
           )
       }
     }
+
+    "build proxy correctly when there is an external simulation" in {
+      proxy invokePrivate prepareStateData(
+        validPrimaryConfig,
+        simulationStart,
+        Some(validExtPrimaryDataService),
+      ) match {
+        case Success(
+              PrimaryServiceStateData(
+                _,
+                _,
+                _,
+                _,
+                _,
+                extSubscribers,
+                extPrimaryDataService,
+              )
+            ) =>
+          extPrimaryDataService should contain(validExtPrimaryDataService)
+          extSubscribers shouldBe Iterable.empty
+      }
+    }
+
   }
 
   "Sending initialization information to an uninitialized actor" should {
@@ -562,6 +597,8 @@ class PrimaryServiceProxySpec
               simulationStart,
               primaryConfig,
               mappingSource,
+              _,
+              _,
             ) =>
           modelToTimeSeries shouldBe proxyStateData.modelToTimeSeries
           timeSeriesToSourceRef shouldBe Map(

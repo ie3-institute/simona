@@ -142,8 +142,8 @@ protected trait ParticipantAgentFundamentals[
 
     /* Confirm final initialization */
     releaseTick()
-    senderToMaybeTick._2.foreach { tick =>
-      scheduler ! Completion(self.toTyped, Some(tick))
+    senderToMaybeTick match { case (_, maybeTick) =>
+      scheduler ! Completion(self.toTyped, maybeTick)
     }
     goto(Idle) using stateData
   }
@@ -539,8 +539,13 @@ protected trait ParticipantAgentFundamentals[
                 msg.unlockKey,
               )
           }
-        case _ =>
-          false
+
+        case _: FromOutsideBaseStateData[_, _] =>
+          scheduler ! ScheduleActivation(
+            self.toTyped,
+            msg.tick,
+            msg.unlockKey,
+          )
       }
     }
 
@@ -1789,15 +1794,17 @@ protected trait ParticipantAgentFundamentals[
       baseStateData: BaseStateData[PD],
       tick: Long,
       result: AccompaniedSimulationResult[PD],
-  )(implicit outputConfig: NotifierConfig): Unit =
+  )(implicit outputConfig: NotifierConfig): Unit = {
     if (outputConfig.simulationResultInfo) {
+      val (nextTick, _) = popNextActivationTrigger(baseStateData)
       notifyListener(
-        buildResultEvent(baseStateData, tick, result.primaryData)
+        buildResultEvent(baseStateData, tick, result.primaryData, nextTick)
       )
       result.accompanyingResults
         .flatMap(result => buildResultEvent(result))
         .foreach(notifyListener(_))
     }
+  }
 
   /** Update the result value store, inform all registered listeners and go to
     * Idle using the updated base state data
@@ -1920,11 +1927,13 @@ protected trait ParticipantAgentFundamentals[
       baseStateData: BaseStateData[PD],
       tick: Long,
       result: PD,
+      nextTick: Option[Long] = None
   ): ParticipantResultEvent = {
     val uuid = baseStateData.modelUuid
     val dateTime = tick.toDateTime(baseStateData.startDate)
     ParticipantResultEvent(
-      buildResult(uuid, dateTime, result)
+      buildResult(uuid, dateTime, result),
+      nextTick
     )
   }
 

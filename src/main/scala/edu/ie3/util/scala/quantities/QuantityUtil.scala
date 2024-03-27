@@ -7,7 +7,6 @@
 package edu.ie3.util.scala.quantities
 
 import edu.ie3.simona.exceptions.QuantityException
-import edu.ie3.util.quantities.{QuantityUtil => PSQuantityUtil}
 import squants.time.{Hours, TimeDerivative, TimeIntegral}
 import squants.{Quantity, Seconds, UnitOfMeasure}
 import tech.units.indriya.ComparableQuantity

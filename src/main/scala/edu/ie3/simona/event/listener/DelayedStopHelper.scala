@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.event.listener
 
+import edu.ie3.simona.service.results.ExtResultDataProvider
 import org.apache.pekko.actor.typed.Behavior
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 
@@ -23,6 +24,7 @@ object DelayedStopHelper {
   sealed trait StoppingMsg
       extends ResultEventListener.Request
       with RuntimeEventListener.Request
+      with ExtResultDataProvider.Request
 
   /** Message indicating that [[RuntimeEventListener]] should stop. Instead of
     * using [[org.apache.pekko.actor.typed.scaladsl.ActorContext.stop]], this
@@ -37,7 +39,7 @@ object DelayedStopHelper {
       : PartialFunction[(ActorContext[T], StoppingMsg), Behavior[T]] = {
 
     case (ctx, FlushAndStop) =>
-      ctx.log.debug(
+      ctx.log.info(
         s"Received FlushAndStop message, shutting down once no message has been received for 5 seconds."
       )
       ctx.setReceiveTimeout(5.seconds, StopTimeout)
@@ -45,7 +47,7 @@ object DelayedStopHelper {
 
     case (ctx, StopTimeout) =>
       // there have been no messages for 5 seconds, let's end this
-      ctx.log.debug(s"${getClass.getSimpleName} is now stopped.")
+      ctx.log.info(s"${getClass.getSimpleName} is now stopped.")
       Behaviors.stopped
   }
 

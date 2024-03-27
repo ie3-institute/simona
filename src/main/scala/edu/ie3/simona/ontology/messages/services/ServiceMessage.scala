@@ -19,6 +19,8 @@ sealed trait ServiceMessage
 
 case object ServiceMessage {
 
+  final case class RequestExtPrimaryDataAssets() extends ServiceMessage {}
+
   /** Message used to register for a service
     */
   trait ServiceRegistrationMessage extends ServiceMessage
@@ -40,6 +42,11 @@ case object ServiceMessage {
     */
   final case class WorkerRegistrationMessage(requestingActor: ActorRef)
       extends ServiceRegistrationMessage
+
+  final case class ExtPrimaryDataServiceRegistrationMessage(
+      modelUuid: UUID,
+      requestingActor: ActorRef,
+  ) extends ServiceRegistrationMessage
 
   sealed trait RegistrationResponseMessage extends ServiceMessage {
     val serviceRef: ActorRef
