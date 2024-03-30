@@ -610,14 +610,16 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
         (40d, -11.6d, -78.0d, 60d, 0d,
           74.92072065185143d), // inverse hour angle
         (45d, -7.15d, -82.5d, 0d, 0d,
-          89.79565474295107d), // Latitude 45 degrees, slope 0 degrees (zenith angle)
+          89.79565474295107d), // Duffie Solar Engineering of Thermal Processes example 2.14.1
 
       )
 
-      // Calculate the angle of incidence of beam radiation on a surface located at a Latitude
-      // at a certain hour angle (solar time) on a given declination (date) if the surface
-      // is tilted by a certain slope from the horizontal and pointed to a certain panel azimuth
-      // west of south.
+      /** Calculate the angle of incidence of beam radiation on a surface located at a latitude
+        * at a certain hour angle (solar time) on a given declination (date) if the surface
+        * is tilted by a certain slope from the horizontal and pointed to a certain panel azimuth
+        * west of south.
+        */
+
       forAll(testCases) {
         (latitudeDeg, deltaDeg, omegaDeg, gammaEDeg, alphaEDeg, thetaGOut) =>
           Given("using the input data")
@@ -662,11 +664,11 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
 
       )
 
-      /* Iqbal Figure 1.6.2 - the angle of incidence of a surface sloped by angle beta (gammaE) at latitude phi
-       should be same as the angle of incidence of an "unsloped" (horizontal) surface (where the angle of incidence is
-       equal to the zenith angle of the sun) positioned at latitude phi - beta. Note that this is only true if the surface
-       is facing directly north or south.
-       */
+      /** Iqbal Figure 1.6.2 - the angle of incidence of a surface sloped by angle beta (gammaE) at latitude phi
+        * should be same as the angle of incidence of an "unsloped" (horizontal) surface (where the angle of incidence is
+        * equal to the zenith angle of the sun) positioned at latitude phi - beta. Note that this is only true if the surface
+        * is facing directly north or south.
+        */
       forAll(testCases) {
         (latitudeDeg, deltaDeg, omegaDeg, gammaEDeg, alphaEDeg, thetaGOut) =>
           Given("using pre-calculated parameters")
@@ -708,10 +710,11 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
         (40d, 60d, -90.0d, -11.6d, 60.0d, 91.0d, 0d), // no direct beam
       )
 
-      // For a given hour angle, the estimate beam radiation on a sloped surface is calculated
-      // for the next 60 minutes.
-      // Reference p.95
-      // https://www.sku.ac.ir/Datafiles/BookLibrary/45/John%20A.%20Duffie,%20William%20A.%20Beckman(auth.)-Solar%20Engineering%20of%20Thermal%20Processes,%20Fourth%20Edition%20(2013).pdf
+      /** For a given hour angle, the estimate beam radiation on a sloped surface is calculated
+        * for the next 60 minutes.
+        * Reference p.95
+        * https://www.sku.ac.ir/Datafiles/BookLibrary/45/John%20A.%20Duffie,%20William%20A.%20Beckman(auth.)-Solar%20Engineering%20of%20Thermal%20Processes,%20Fourth%20Edition%20(2013).pdf
+        */
       forAll(testCases) {
         (
             latitudeDeg,
