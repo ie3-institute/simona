@@ -240,6 +240,8 @@ $$
 ```{eval-rst} 
 * :cite:ts:`Zheng.2017` p. 53, formula 2.3b
 * :cite:ts:`Iqbal.1983`
+* :cite:ts:`Spencer.1971`
+* :cite:ts:`Duffie.2013`
 ```
 
 ### Beam Radiation on Sloped Surface
