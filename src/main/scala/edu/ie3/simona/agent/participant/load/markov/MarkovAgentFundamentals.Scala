@@ -4,13 +4,8 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.participant.markov
+package edu.ie3.simona.agent.participant.load.markov
 
-import edu.ie3.datamodel.models.input.system.MarkovInput
-import edu.ie3.datamodel.models.result.system.{
-  MarkovResult,
-  SystemParticipantResult,
-}
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
@@ -32,16 +27,11 @@ import edu.ie3.simona.config.SimonaConfig.MarkovRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.participant.CalcRelevantData.MarkovRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
-import edu.ie3.simona.model.participant.Markov.profile.ProfileMarkovModel.ProfileRelevantData
-import edu.ie3.simona.model.participant.Markov.profile.{
-  MarkovProfileStore,
-  ProfileMarkovModel,
-}
-import edu.ie3.simona.model.participant.Markov.{
+import edu.ie3.simona.model.participant.MarkovModel.MarkovRelevantData
+import edu.ie3.simona.model.participant.load.markov{
   MarkovModel,
-  MarkovReference,
+  MarkovData,
 }
 import edu.ie3.simona.model.participant.{FlexChangeIndicator, ModelState}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
@@ -64,21 +54,17 @@ import java.util.UUID
 import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
-protected trait MarkkovAgentFundamentals[
-    LD <: MarkovRelevantData,
-    LM <: MarkovModel[
-      LD
-    ],
-] extends ParticipantAgentFundamentals[
+protected trait MarkovAgentFundamentals
+    extends ParticipantAgentFundamentals[
       ApparentPower,
-      LD,
+      MarkovRelevantData,
       ConstantState.type,
       ParticipantStateData[ApparentPower],
-      MarkovInput,
+      MarkovData,
       MarkovRuntimeConfig,
-      LM,
+      MarkovModel,
     ] {
-  this: MarkovAgent[LD, LM] =>
+  this: MarkovAgent =>
   override protected val pdClassTag: ClassTag[ApparentPower] =
     classTag[ApparentPower]
   override val alternativeResult: ApparentPower = ZERO_POWER
@@ -107,8 +93,9 @@ protected trait MarkkovAgentFundamentals[
     *   A child of [[ParticipantModelBaseStateData]] that reflects the behaviour
     *   based on the data source definition
     */
-  override def determineModelBaseStateData(
-      inputModel: InputModelContainer[MarkovInput],
+
+    override def determineModelBaseStateData(
+      inputModel: InputModelContainer[MarkovData],
       modelConfig: MarkovRuntimeConfig,
       services: Iterable[SecondaryDataService[_ <: SecondaryData]],
       simulationStartDate: ZonedDateTime,
@@ -119,9 +106,9 @@ protected trait MarkkovAgentFundamentals[
       maybeEmAgent: Option[TypedActorRef[FlexResponse]],
   ): ParticipantModelBaseStateData[
     ApparentPower,
-    LD,
+    MarkovRelevantData,
     ConstantState.type,
-    LM,
+    MarkovModel,
   ] = {
     /* Build the calculation model */
     val model =
@@ -132,85 +119,30 @@ protected trait MarkkovAgentFundamentals[
         simulationEndDate,
       )
 
-    /* Go and collect all ticks, in which activation is needed in addition to the activations made by incoming data.
-     * Also register for services, where needed. */
-    val lastTickInSimulation = simulationEndDate.toTick(simulationStartDate)
-    val additionalActivationTicks = model match {
-      case profileMarkovModel: ProfileMarkovModel =>
-        activationTicksInOperationTime(
-          simulationStartDate,
-          MarkovProfileStore.resolution.getSeconds,
-          profileMarkovModel.operationInterval.start,
-          profileMarkovModel.operationInterval.end,
-        )
-      case _ =>
-        SortedSet.empty[Long]
-    }
-
-    ParticipantModelBaseStateData[ApparentPower, LD, ConstantState.type, LM](
-      simulationStartDate,
-      simulationEndDate,
-      model,
-      services,
-      outputConfig,
-      additionalActivationTicks,
-      Map.empty,
-      requestVoltageDeviationThreshold,
-      ValueStore.forVoltage(
-        resolution,
-        Each(
-          inputModel.electricalInputModel.getNode
-            .getvTarget()
-            .to(PU)
-            .getValue
-            .doubleValue
-        ),
-      ),
-      ValueStore(resolution),
-      ValueStore(resolution),
-      ValueStore(resolution),
-      ValueStore(resolution),
-      maybeEmAgent.map(FlexControlledData(_, self.toTyped[FlexRequest])),
-    )
-  }
-
-  override def buildModel(
-      inputModel: InputModelContainer[MarkovInput],
-      modelConfig: MarkovRuntimeConfig,
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
-  ): LM = {
-    val operationInterval: OperationInterval =
-      SystemComponent.determineOperationInterval(
-        simulationStartDate,
-        simulationEndDate,
-        inputModel.electricalInputModel.getOperationTime,
-      )
-    val reference =
-      MarkovReference(inputModel.electricalInputModel, modelConfig)
-    buildModel(
-      inputModel.electricalInputModel,
-      operationInterval,
-      modelConfig,
-      reference,
-    )
-  }
-
-  protected def buildModel(
-      inputModel: MarkovInput,
-      operationInterval: OperationInterval,
-      modelConfig: MarkovRuntimeConfig,
-      reference: MarkovReference,
-  ): LM
-
-  override protected def createInitialState(
+override protected def createInitialState(
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
-        LD,
+        MarkovRelevantData,
         ConstantState.type,
-        LM,
+        MarkovModel,
       ]
-  ): ModelState.ConstantState.type = ConstantState
+  ): ModelState.ConstantState.type =
+    ConstantState
+
+ override protected def createCalcRelevantData(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        MarkovRelevantData,
+        ConstantState.type,
+        MarkovModel,
+      ],
+      tick: Long,
+  ): MarkovRelevantData = {
+
+    MarkovRelevantData(
+      None,
+    )
+  }
 
   /** Handle an active power change by flex control.
     * @param tick
@@ -230,11 +162,11 @@ protected trait MarkkovAgentFundamentals[
       tick: Long,
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
-        LD,
+        MarkovRelevantData,
         ConstantState.type,
-        LM,
+        MarkovModel,
       ],
-      data: LD,
+      data: MarkovRelevantData,
       lastState: ConstantState.type,
       setPower: squants.Power,
   ): (ConstantState.type, ApparentPower, FlexChangeIndicator) = {
@@ -253,6 +185,34 @@ protected trait MarkkovAgentFundamentals[
     (updatedState, result, flexChangeIndicator)
   }
 
+   /** Partial function, that is able to transfer
+    * [[ParticipantModelBaseStateData]] (holding the actual calculation model)
+    * into a pair of active and reactive power
+    */
+
+override val calculateModelPowerFunc: (
+      Long,
+      ParticipantModelBaseStateData[
+        ApparentPower,
+        MarkovRelevantData,
+        ConstantState.type,
+        MarkovModel,
+      ],
+      ConstantState.type,
+      Dimensionless,
+  ) => ApparentPower =
+    (
+        _: Long,
+        _: ParticipantModelBaseStateData[
+          ApparentPower,
+          MarkovRelevantData,
+          ConstantState.type,
+          MarkovModel,
+        ],
+        _,
+        _: Dimensionless,
+    ) 
+
   /** Calculate the power output of the participant utilising secondary data.
     * However, it might appear, that not the complete set of secondary data is
     * available for the given tick. This might especially be true, if the actor
@@ -265,7 +225,7 @@ protected trait MarkkovAgentFundamentals[
     *
     * @param baseStateData
     *   The base state data with collected secondary data
-    * @param maybeLastModelState
+    * @param lastModelState
     *   Optional last model state
     * @param currentTick
     *   Tick, the trigger belongs to
@@ -274,12 +234,12 @@ protected trait MarkkovAgentFundamentals[
     * @return
     *   [[Idle]] with updated result values
     */
-  override def calculatePowerWithSecondaryDataAndGoToIdle(
+ override def calculatePowerWithSecondaryDataAndGoToIdle(
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
-        LD,
+        MarkovRelevantData,
         ConstantState.type,
-        LM,
+        MarkovModel,
       ],
       lastModelState: ConstantState.type,
       currentTick: Long,
@@ -341,73 +301,27 @@ protected trait MarkkovAgentFundamentals[
       result.q.toMegavars.asMegaVar,
     )
 
+  /** Update the last known model state with the given external, relevant data
+    *
+    * @param tick
+    *   Tick to update state for
+    * @param modelState
+    *   Last known model state
+    * @param calcRelevantData
+    *   Data, relevant for calculation
+    * @param nodalVoltage
+    *   Current nodal voltage of the agent
+    * @param model
+    *   Model for calculation
+    * @return
+    *   The updated state at given tick under consideration of calculation
+    *   relevant data
+    */
   override protected def updateState(
       tick: Long,
       modelState: ModelState.ConstantState.type,
-      calcRelevantData: LD,
+      calcRelevantData: MarkovRelevantData,
       nodalVoltage: squants.Dimensionless,
-      model: LM,
+      model: MarkovModel,
   ): ModelState.ConstantState.type = modelState
-}
-
-object MarkovAgentFundamentals {
-  trait ProfileMarkovAgentFundamentals
-      extends MarkovAgentFundamentals[
-        ProfileRelevantData,
-        ProfileMarkovModel,
-      ] {
-    this: MarkovAgent.ProfileMarkovAgent =>
-
-    override def buildModel(
-        inputModel: MarkovInput,
-        operationInterval: OperationInterval,
-        modelConfig: MarkovRuntimeConfig,
-        reference: MarkovReference,
-    ): ProfileMarkovModel =
-      ProfileMarkovModel(
-        inputModel,
-        operationInterval,
-        modelConfig.scaling,
-        reference,
-      )
-
-    override protected def createCalcRelevantData(
-        baseStateData: ParticipantModelBaseStateData[
-          ApparentPower,
-          ProfileRelevantData,
-          ConstantState.type,
-          ProfileMarkovModel,
-        ],
-        currentTick: Long,
-    ): ProfileRelevantData =
-      ProfileRelevantData(
-        currentTick.toDateTime(baseStateData.startDate)
-      )
-
-    /** Partial function, that is able to transfer
-      * [[ParticipantModelBaseStateData]] (holding the actual calculation model)
-      * into a pair of active and reactive power
-      */
-    override val calculateModelPowerFunc: (
-        Long,
-        ParticipantModelBaseStateData[
-          ApparentPower,
-          ProfileRelevantData,
-          ConstantState.type,
-          ProfileMarkovModel,
-        ],
-        ConstantState.type,
-        Dimensionless,
-    ) => ApparentPower = (tick, baseStateData, _, voltage) => {
-      val profileRelevantData =
-        createCalcRelevantData(baseStateData, tick)
-
-      baseStateData.model.calculatePower(
-        currentTick,
-        voltage,
-        ConstantState,
-        profileRelevantData,
-      )
-    }
-  }
 }
