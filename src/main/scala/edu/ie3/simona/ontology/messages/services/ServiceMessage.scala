@@ -82,9 +82,14 @@ object ServiceMessage {
     val nextDataTick: Option[Long]
   }
 
-  /** @param serviceRef
+  /** Scheduling a new data provision for given tick with the system participant
+    *
+    * @param serviceRef
+    *   The service to schedule
     * @param tick
+    *   The tick at which the data provision is to be scheduled
     * @param unlockKey
+    *   The unlock key for possibly scheduling an activation
     */
   case class ScheduleProvisionMessage(
       serviceRef: ActorRef,

@@ -300,7 +300,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
       }
     } else {
 
-      val actorToEvsData = allArrivingEvsData
+      val (actorsToSchedule, actorsWithArrivals) = allArrivingEvsData
         .flatMap { case (evcs, arrivingEvsData) =>
           serviceStateData.uuidToActorRef
             .get(evcs)
@@ -313,22 +313,40 @@ class ExtEvDataService(override val scheduler: ActorRef)
               None
             }
         }
-        .partitionMap() // TODO
+        .partitionMap {
+          case (actor, arrivingEvsData) if arrivingEvsData.arrivals.isEmpty =>
+            Left(actor, arrivingEvsData.maybeNextTick)
+          case (actor, arrivingEvsData) =>
+            Right((actor, arrivingEvsData))
+        }
 
-      actorToEvsData.zip(keys).foreach { case ((actor, arrivingEvsData), key) =>
-        if (arrivingEvsData.arrivals.nonEmpty)
-          actor ! ProvideEvDataMessage(
-            tick,
-            self,
-            arrivingEvsData.arrivals,
-            Some(arrivingEvsData.maybeNextTick),
-          )
-        else
-          actor ! ScheduleProvisionMessage(
-            self,
-            tick,
-            unlockKey = key,
-          )
+      if (actorsToSchedule.toSeq.nonEmpty) {
+        val keys = ScheduleLock.multiKey(
+          ctx,
+          scheduler.toTyped,
+          tick,
+          actorsToSchedule.size,
+        )
+
+        actorsToSchedule.zip(keys).foreach {
+          case ((actor, maybeNextTick), key) =>
+            maybeNextTick.foreach { nextTick =>
+              actor ! ScheduleProvisionMessage(
+                self,
+                nextTick,
+                unlockKey = key,
+              )
+            }
+        }
+      }
+
+      actorsWithArrivals.foreach { case (actor, arrivingEvsData) =>
+        actor ! ProvideEvDataMessage(
+          tick,
+          self,
+          arrivingEvsData.arrivals,
+          Some(arrivingEvsData.maybeNextTick),
+        )
       }
 
     }

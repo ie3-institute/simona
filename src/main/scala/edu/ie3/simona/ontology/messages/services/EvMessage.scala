@@ -70,7 +70,7 @@ object EvMessage {
   /** Holds arrivals for one charging station
     *
     * @param arrivals
-    *   EVs arriving at the charging station, which might be empty
+    *   EVs arriving at the charging station
     */
   final case class ArrivingEvsData(
       arrivals: Seq[EvModelWrapper]
