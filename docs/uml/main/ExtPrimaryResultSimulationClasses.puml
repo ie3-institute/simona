@@ -2,222 +2,165 @@
 'https://plantuml.com/class-diagram
 skinparam linetype ortho
 
-package ev-simulation {
+package simple-ext-simulation {
     class ExtLink
-    class ExternalSampleSim
-    class EvModelImpl
-
-    ' adding hidden elements for layout purposes
-    class placeholderA {
-        w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w
+    class SimpleExtSimulation {
+        - ExtPrimaryDataSimulation extPrimaryDataSimulation
+        - ExtResultDataSimulation extResultDataSimulation
     }
-    hide placeholderA
+    class SimplePrimaryDataFactory
 
-    class placeholderB {
-        w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w
-    }
-    hide placeholderB
+    class SimpleResultDataFactory
 
-    ExtLink -[hidden]> placeholderA
-    placeholderA -[hidden]> ExternalSampleSim
-    ExternalSampleSim -[hidden]> placeholderB
-    placeholderB -[hidden]> EvModelImpl
+    SimplePrimaryDataFactory --> SimpleExtSimulation
+    SimpleResultDataFactory --> SimpleExtSimulation
 }
 
 package simona-api {
-    ' MIDDLE PART
-    class ExtEvData {
-        ~ LinkedBlockingQueue<ExtEvResponseMessage> receiveTriggerQueue
+
+    interface ExtData
+
+    class ExtPrimaryData {
         - ActorRef dataService
         - ActorRef extSimAdapter
-        + List<UUID> requestAvailablePublicEvCs()
-        + List<EvModel> sendEvPositions(EvMovementsMessage evMovementsMessage)
-        - void sendData(ExtEvMessage msg)
-        + void queueExtMsg(ExtEvResponseMessage extEvResponse)
+        - PrimaryDataFactory factory
+        - List<UUID> primaryDataAssets
+        ---
+        + void providePrimaryData(Long tick, Map<String, Object> primaryData)
+        + void sendExtMsg(PrimaryDataMessageFromExt msg)
     }
+    ExtPrimaryData --|> ExtData
+
+    class ExtResultData {
+        - ActorRef dataService
+        - ActorRef dataServiceActivation
+        - ActorRef extSimAdapter
+        - ResultDataFactory factory
+        - List<UUID> resultDataAssets
+        ---
+        + List<ResultEntity> requestResults(long tick)
+        + Map<String, Object> requestResultObjects(long tick)
+        ~ Map<String, Object> convertResultsList(List<ResultEntity> results)
+    }
+    ExtResultData --|> ExtData
+
+    ' MIDDLE PART
+    class ExtEvData
+    ExtEvData --|> ExtData
+
+    interface ExtDataSimulation
+
+    class ExtPrimaryDataSimulation {
+        - List<UUID> primaryDataAssets
+        - PrimaryDataFactory primaryDataFactory
+        - ExtPrimaryData extPrimaryData
+        ---
+        + void setExtPrimaryData(ExtPrimaryData extPrimaryData)
+    }
+    ExtPrimaryDataSimulation --|> ExtDataSimulation
+
+    class ExtResultDataSimulation {
+        - List<UUID> resultDataAssets
+        - ResultDataFactory resultDataFactory
+        - ExtResultData extResultData
+        ---
+        + void setExtResultData(ExtResultData extResultData)
+    }
+    ExtResultDataSimulation --|> ExtDataSimulation
+
+    interface PrimaryDataFactory {
+        Value convert(Object entity)
+    }
+    PrimaryDataFactory --> ExtPrimaryDataSimulation
+
+    interface ResultDataFactory {
+        Object convert(ResultEntity entity)
+    }
+    ResultDataFactory --> ExtResultDataSimulation
+
+    SimplePrimaryDataFactory --|> PrimaryDataFactory
+    SimpleResultDataFactory --|> ResultDataFactory
 
     class ExtSimAdapterData {
         ~ LinkedBlockingQueue<ExtTrigger> receiveTriggerQueue
-        - ActorRef extSimAdapter
+        - Map<Integer, ActorRef> extSimAdapters
         + void queueExtMsg(ExtTrigger trigger)
         + void send(ExtTriggerResponse msg)
     }
 
-    interface ExtData
 
     abstract class ExtSimulation {
+        - ExtSimAdapterData data
         + void setup(ExtSimAdapterData data, List<ExtData> adapters)
         + void run()
-        # {abstract} List<Long> doActivity(long tick)
+        # Optional<Long> doActivity(long tick, int phase)
+        # {abstract} Optional<Long> initialize()
+        # {abstract} Optional<Long> doPreActivity(long tick)
+        # {abstract} Optional<Long> doPostActivity(long tick)
     }
+
+    SimpleExtSimulation --|> ExtSimulation
 
     interface ExtEvSimulation {
         + void setExtEvData(ExtEvData evData)
     }
 
-    interface ExtDataSimulation
+    ExtEvSimulation --|> ExtDataSimulation
 
-    ExternalSampleSim --|> ExtSimulation
-    ExternalSampleSim --|> ExtEvSimulation
+    interface DataMessageFromExt
+    interface PrimaryDataMessageFromExt
+    interface ResultDataMessageFromExt
+    interface EvDataMessageFromExt
+    PrimaryDataMessageFromExt --|> DataMessageFromExt
+    ResultDataMessageFromExt --|> DataMessageFromExt
+    EvDataMessageFromExt --|> DataMessageFromExt
 
-    ExtSimulation -[hidden]> ExtDataSimulation
-    ExtEvSimulation -|> ExtDataSimulation
-    ExtEvSimulation --> ExtEvData
-
-    ExtSimulation --> ExtData
-    ExtSimulation --> ExtSimAdapterData
-
-    ExtSimAdapterData -[hidden]> ExtEvData
-    ExtData <|-- ExtEvData
-
-    ' placeholder
-    class plchldr1 {
-        w-w-w-w-w
+    class ProvidePrimaryData {
+        - long tick
+        - Map<UUID, Value> primaryData
     }
-    hide plchldr1
-    class placeholder2 {
-        w-w-w-w-w-w-w-w-w-w-w-w-w-w-w
+    ProvidePrimaryData --|> PrimaryDataMessageFromExt
+
+    class RequestResultEntities {
+        - long tick
     }
-    hide placeholder2
-    class placeholder3 {
-        w-w-w-w-w-w-w-w-w-w-w
+    RequestResultEntities --|> ResultDataMessageFromExt
+
+
+    interface DataResponseMessageToExt
+    interface ResultDataResponseMessageToExt
+    interface EvDataResponseMessageToExt
+
+    ResultDataResponseMessageToExt --|> DataResponseMessageToExt
+    EvDataResponseMessageToExt --|> DataResponseMessageToExt
+    class ProvideResultEntities {
+        + List<ResultEntity> results
     }
-    hide placeholder3
-    class placeholder4 {
-        w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w
-    }
-    hide placeholder4
+    ProvideResultEntities --|> ResultDataResponseMessageToExt
 
-    ExtData -[hidden]> plchldr1
-    plchldr1 -[hidden]> placeholder4
-    placeholder4 -[hidden]> EvMovement
-    ExtSimulation -[hidden]-> placeholder2
-    placeholder2 -[hidden]-> placeholder3
-    placeholder3 -[hidden]-> ExtSimAdapterData
-    placeholder2 -[hidden]> ExtData
+    ExtSimAdapterData --> ExtSimulation
 
-
-    ' RIGHT PART
-    abstract class EvMovement
-    class Arrival
-    class Departure
-    Arrival --|> EvMovement
-    Departure --|> EvMovement
-    Arrival -[hidden]> Departure
-
-    interface EvModel {
-        + UUID getUuid()
-        + String getId()
-        + ComparableQuantity<Power> getSRated()
-        + ComparableQuantity<Energy> getEStorage()
-        + ComparableQuantity<Energy> getStoredEnergy()
-        + EvModel copyWith(ComparableQuantity<Energy> newStoredEnergy)
-    }
-
-    ExtDataSimulation -[hidden]> Arrival
-    EvMovement *-> EvModel
-    EvModelImpl --|> EvModel
-
-
-    interface ExtEvMessage
-    class EvMovementsMessage {
-        - Map<UUID, List<EvMovement>> movements
-    }
-    class RequestEvcsFreeLots
-    RequestEvcsFreeLots --|> ExtEvMessage
-    EvMovementsMessage --|> ExtEvMessage
-    RequestEvcsFreeLots -[hidden]> EvMovementsMessage
-
-    interface ExtEvResponseMessage
-    class AllDepartedEvsRepsonse {
-        - Map<UUID, List<EvMovement>> movements
-    }
-    class ProvideEvcsFreeLots
-    ProvideEvcsFreeLots --|> ExtEvResponseMessage
-    AllDepartedEvsRepsonse --|> ExtEvResponseMessage
-    ExtEvData -> ExtEvMessage
-    ExtEvData -> ExtEvResponseMessage
-    EvMovement -[hidden]-> RequestEvcsFreeLots
-    ExtEvMessage -[hidden]> ExtEvResponseMessage
-    EvMovementsMessage -[hidden]> ProvideEvcsFreeLots
-    ProvideEvcsFreeLots -[hidden]> AllDepartedEvsRepsonse
-
-    class ScheduleDataServiceMessage {
-        - ExtEvDataService dataService
-    }
-    ExtEvResponseMessage -[hidden]> ScheduleDataServiceMessage
-    ExtEvData -> ScheduleDataServiceMessage
-
-
-    ' LEFT PART
     interface ExtLinkInterface {
-        + ExtSimulation getExtSimulation()
-        + List<ExtDataSimulation> getExtDataSimulations()
+        ExtSimulation getExtSimulation()
+        List<ExtDataSimulation> getExtDataSimulation()
     }
-    ExtLinkInterface -[hidden]> ExtSimulation
     ExtLink --|> ExtLinkInterface
 
-    interface ExtTrigger
-    class ActivityStartTrigger {
-        - Long tick
-    }
-    ActivityStartTrigger --|> ExtTrigger
-
-    interface ExtTriggerResponse
-    class CompletionMessage {
-        - List<Long> newTriggers
-    }
-    CompletionMessage --|> ExtTriggerResponse
-
-    ExtTrigger -[hidden]> ExtTriggerResponse
-    ExtTrigger <- ExtSimAdapterData
-    ExtTriggerResponse <- ExtSimAdapterData
+    class ScheduleDataServiceMessage
 }
 
 package simona {
-    abstract class ParticipantAgent
+    class ExtPrimaryDataService
 
-    class EvcsModel
+    ExtPrimaryData --> ExtPrimaryDataService
 
-    class EvcsAgent
+    class ExtResultDataProvider
 
-    interface SecondaryData
-    class EvMovementData {
-        movements: Set[EvMovement]
-    }
-
-    class SimonaSim
-
-    class SimScheduler
-
-    class SimonaStandaloneSetup
-
-    class ExtSimLoader
+    ExtResultData --> ExtResultDataProvider
 
     class ExtSimAdapter
 
-    class ExtEvDataService
-
-    SimScheduler -- SimonaSim
-    SimonaSim *- SimonaStandaloneSetup
-    SimonaStandaloneSetup *- ExtSimLoader
-
-    ExtSimAdapter -- SimScheduler
-    ExtEvDataService -- SimScheduler
-
-    SecondaryData <|-- EvMovementData
-
-    SimonaService <|- ExtEvDataService
-    ExtEvData <--- ExtEvDataService
-
-    ExtSimAdapterData <--- ExtSimAdapter
-
-    ' 1 and n are swapped here due to bug with linetype ortho and labels
-    ExtEvDataService "n" <-> "1" EvcsAgent
-    EvcsAgent --|> ParticipantAgent
-    EvcsAgent *- EvcsModel
-
-    ExtSimAdapter -[hidden]> SimonaService
+    ExtSimAdapterData --> ExtSimAdapter
 }
 
 @enduml

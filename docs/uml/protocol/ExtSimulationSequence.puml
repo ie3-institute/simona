@@ -1,0 +1,28 @@
+@startuml
+
+== Phase 1 ==
+ExtScheduler -> ExtSimAdapter: ! Activation(tick)
+ExtSimAdapter -> ExtSimAdapter: StateData(currentTick = Some(tick))
+ExtSimAdapter -> ExtSimAdapterData: queueExtMessage(ActivationMessage(tick))
+
+ExtSimulation -> ExtPrimaryDataService: ProvidePrimaryData
+ExtSimulation -> ExtSimAdapter: ! ScheduleDataServiceMessage(dataService)
+ExtSimulation -> ExtSimAdapter: ! CompletionMessage(nextTriggers)
+ExtSimAdapter -> ExtScheduler: ! Completion
+ExtSimAdapter -> ExtPrimaryDataService: ! ScheduleServiceActivation(tick, key)
+ExtPrimaryDataService -> ExtScheduler: ! ScheduleActivation(_, tick, _)
+ExtScheduler -> ExtPrimaryDataService: ! Activation(tick)
+
+ExtPrimaryDataService -> ParticipantAgent1: ! ProvisionMessage
+ExtPrimaryDataService -> ParticipantAgent2: ! ProvisionMessage
+ExtPrimaryDataService -> ExtScheduler: ! Completion(_, maybeNextTriggers)
+ExtScheduler -> SimScheduler: ! Completion
+
+== Phase 2 ==
+
+SimScheduler -> ParticipantAgent1: ! Activation(tick)
+SimScheduler -> ParticipantAgent2: ! Activation(tick)
+
+activate ParticipantAgent1
+
+@enduml
