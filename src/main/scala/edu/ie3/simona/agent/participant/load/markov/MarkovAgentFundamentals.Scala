@@ -28,11 +28,10 @@ import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.ModelState.ConstantState
-import edu.ie3.simona.model.participant.MarkovModel.MarkovRelevantData
-import edu.ie3.simona.model.participant.load.markov{
-  MarkovModel,
-  MarkovData,
-}
+import edu.ie3.simona.model.participant.load.markov.MarkovModel.MarkovRelevantData
+import edu.ie3.simona.model.participant.load.markov.MarkovModel
+import edu.ie3.simona.model.participant.load.markov.MarkovData
+
 import edu.ie3.simona.model.participant.{FlexChangeIndicator, ModelState}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexRequest,

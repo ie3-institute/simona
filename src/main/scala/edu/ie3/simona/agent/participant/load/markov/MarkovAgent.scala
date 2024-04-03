@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.participant.load.markov
 
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import edu.ie3.simona.agent.participant.load.LoadAgentFundamentals
+import edu.ie3.simona.agent.participant.load.markov.MarkovAgentFundamentals
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.SimonaConfig.MarkovRuntimeConfig
