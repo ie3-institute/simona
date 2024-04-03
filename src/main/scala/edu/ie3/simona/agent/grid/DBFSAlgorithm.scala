@@ -39,7 +39,7 @@ import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage._
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.scala.quantities.Megavars
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.SquantsUtils.RichElectricPotential
 import org.apache.pekko.actor.typed.scaladsl.AskPattern._
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
@@ -53,7 +53,6 @@ import org.apache.pekko.pattern.ask
 import org.apache.pekko.util.{Timeout => PekkoTimeout}
 import org.slf4j.Logger
 import squants.Each
-import squants.energy.Megawatts
 
 import java.time.{Duration, ZonedDateTime}
 import java.util.UUID
@@ -370,8 +369,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                           case _ =>
                             /* TODO: As long as there are no multiple slack nodes, provide "real" power only for the slack node */
                             (
-                              Megawatts(0d),
-                              Megavars(0d),
+                              zeroMW,
+                              zeroMVAr,
                             )
                         }
                         .getOrElse {
