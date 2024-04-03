@@ -181,7 +181,7 @@ Using the default configuration the universally unique identifier can be set to 
 
     uuids = ["default"]
 
-Choosing the scaling factor of the power output: 
+Choosing the scaling factor of relevant participant parameters such as rated power or annual power consumption: 
 
     scaling = 1.0
 

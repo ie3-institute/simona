@@ -101,7 +101,6 @@ class RandomLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
           loadInput.getUuid,
           loadInput.getId,
           foreSeenOperationInterval,
-          1.0,
           QControl.apply(loadInput.getqCharacteristics()),
           Kilowatts(
             loadInput

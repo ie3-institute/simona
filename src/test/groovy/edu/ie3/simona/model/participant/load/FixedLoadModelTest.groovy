@@ -61,8 +61,7 @@ class FixedLoadModelTest extends Specification {
 
   def simulationStartDate = TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
   def simulationEndDate = TimeUtil.withDefaults.toZonedDateTime("2020-12-31T23:59:00Z")
-  def foreSeenOperationInterval =
-  SystemComponent.determineOperationInterval(
+  def operationInterval = SystemComponent.determineOperationInterval(
   simulationStartDate,
   simulationEndDate,
   loadInput.operationTime
@@ -74,8 +73,7 @@ class FixedLoadModelTest extends Specification {
     def actual = new FixedLoadModel(
         loadInput.uuid,
         loadInput.id,
-        foreSeenOperationInterval,
-        1.0,
+        operationInterval,
         QControl.apply(loadInput.qCharacteristics),
         Sq.create(loadInput.sRated.to(KILOWATT).value.doubleValue(), Kilowatts$.MODULE$),
         loadInput.cosPhiRated,
@@ -96,8 +94,7 @@ class FixedLoadModelTest extends Specification {
     def dut = new FixedLoadModel(
         loadInput.uuid,
         loadInput.id,
-        foreSeenOperationInterval,
-        1.0,
+        operationInterval,
         QControl.apply(loadInput.qCharacteristics),
         Sq.create(loadInput.sRated.to(KILOWATT).value.doubleValue(), Kilowatts$.MODULE$),
         loadInput.cosPhiRated,
@@ -122,14 +119,10 @@ class FixedLoadModelTest extends Specification {
 
     then:
     for (double scale = 0.0; scale <= 2.0; scale += 0.1) {
-      def dut = new FixedLoadModel(
-          loadInput.uuid,
-          loadInput.id,
-          foreSeenOperationInterval,
+      def dut = FixedLoadModel.apply(
+          loadInput,
           scale,
-          QControl.apply(loadInput.qCharacteristics),
-          Sq.create(loadInput.sRated.to(KILOWATT).value.doubleValue(), Kilowatts$.MODULE$),
-          loadInput.cosPhiRated,
+          operationInterval,
           reference
           )
 

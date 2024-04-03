@@ -85,6 +85,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
@@ -1001,7 +1002,7 @@ protected trait ParticipantAgentFundamentals[
           )(p)
     } else { _: Power =>
       /* Use trivial reactive power */
-      Megavars(0d)
+      zeroMVAr
     }
 
   /** Try to get and process the received data
@@ -2051,7 +2052,7 @@ object ParticipantAgentFundamentals {
           "Unable to determine average active power. Apply 0 instead. Cause:\n\t{}",
           exception,
         )
-        Megawatts(0d)
+        zeroMW
     }
 
     val q = QuantityUtil.average[Power, Energy](
@@ -2074,7 +2075,7 @@ object ParticipantAgentFundamentals {
           "Unable to determine average reactive power. Apply 0 instead. Cause:\n\t{}",
           exception,
         )
-        Megavars(0d)
+        zeroMVAr
     }
 
     ApparentPower(p, q)
@@ -2132,7 +2133,7 @@ object ParticipantAgentFundamentals {
           "Unable to determine average thermal power. Apply 0 instead. Cause:\n\t{}",
           exception,
         )
-        Megawatts(0d)
+        zeroMW
     }
 
     ApparentPowerAndHeat(apparentPower.p, apparentPower.q, qDot)

@@ -260,9 +260,11 @@ object SetupHelper {
     ).simulationResultEntitiesToConsider ++
       (OutputConfigUtil(
         outputConfig.participant
-      ).simulationResultIdentifiersToConsider ++ OutputConfigUtil(
+      ).simulationResultIdentifiersToConsider(thermal =
+        false
+      ) ++ OutputConfigUtil(
         outputConfig.thermal
-      ).simulationResultIdentifiersToConsider)
+      ).simulationResultIdentifiersToConsider(thermal = true))
         .map(notifierId => EntityMapperUtil.getResultEntityClass(notifierId)) ++
       (if (outputConfig.flex) Seq(classOf[FlexOptionsResult]) else Seq.empty)
 }
