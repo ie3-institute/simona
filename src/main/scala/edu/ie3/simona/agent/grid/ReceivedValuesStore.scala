@@ -7,6 +7,8 @@
 package edu.ie3.simona.agent.grid
 
 import edu.ie3.datamodel.graph.SubGridGate
+import edu.ie3.simona.agent.grid.GridAgentMessages.SlackVoltageResponse
+import edu.ie3.simona.agent.grid.GridAgentMessages.SlackVoltageResponse.ExchangeVoltage
 import edu.ie3.simona.agent.grid.ReceivedValuesStore.{
   NodeToReceivedPower,
   NodeToReceivedSlackVoltage,
@@ -16,10 +18,7 @@ import edu.ie3.simona.ontology.messages.PowerMessage.{
   PowerResponseMessage,
   ProvidePowerMessage,
 }
-import VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{ActorRef => classicRef}
 
 import java.util.UUID
 
@@ -49,10 +48,53 @@ final case class ReceivedValuesStore private (
 
 object ReceivedValuesStore {
 
+  sealed trait ReceivedValues
+
   type NodeToReceivedPower =
     Map[UUID, Map[ActorRef[_], Option[PowerResponseMessage]]]
   type NodeToReceivedSlackVoltage =
     Map[UUID, Option[ExchangeVoltage]]
+
+  private type ParticipantPowerRequestResponse =
+    (
+        ActorRef[_],
+        PowerResponseMessage,
+    ) // necessary, because participants are still classic actors
+  private type GridPowerRequestResponse =
+    (ActorRef[GridAgent.Request], PowerResponseMessage)
+  private type ActorSlackVoltageRequestResponse =
+    (ActorRef[GridAgent.Request], SlackVoltageResponse)
+
+  sealed trait ReceivedPowerValues extends ReceivedValues {
+    def values: Vector[(ActorRef[_], PowerResponseMessage)]
+  }
+
+  /** Wrapper for received asset power values (p, q)
+    *
+    * @param values
+    *   the asset power values and their senders
+    */
+  final case class ReceivedAssetPowerValues(
+      values: Vector[ParticipantPowerRequestResponse]
+  ) extends ReceivedPowerValues
+
+  /** Wrapper for received grid power values (p, q)
+    *
+    * @param values
+    *   the grid power values and their senders
+    */
+  final case class ReceivedGridPowerValues(
+      values: Vector[GridPowerRequestResponse]
+  ) extends ReceivedPowerValues
+
+  /** Wrapper for received slack voltage values (v)
+    *
+    * @param values
+    *   the slack voltage values and their senders
+    */
+  final case class ReceivedSlackVoltageValues(
+      values: Vector[ActorSlackVoltageRequestResponse]
+  ) extends ReceivedValues
 
   /** Get an empty, ready to be used instance of [[ReceivedValuesStore]]
     * containing an `empty` mapping of [[NodeToReceivedPower]] and
@@ -73,7 +115,7 @@ object ReceivedValuesStore {
   def empty(
       nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]],
       inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef[
-        GridAgentMessage
+        GridAgent.Request
       ]],
       superiorGridNodeUuids: Vector[UUID],
   ): ReceivedValuesStore = {
@@ -101,7 +143,7 @@ object ReceivedValuesStore {
   private def buildEmptyNodeToReceivedPowerMap(
       nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]],
       inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef[
-        GridAgentMessage
+        GridAgent.Request
       ]],
   ): NodeToReceivedPower = {
     /* Collect everything, that I expect from my asset agents */
@@ -165,7 +207,7 @@ object ReceivedValuesStore {
   private def buildEmptyReceiveMaps(
       nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]],
       inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef[
-        GridAgentMessage
+        GridAgent.Request
       ]],
       superiorGridNodeUuids: Vector[UUID],
   ): (NodeToReceivedPower, NodeToReceivedSlackVoltage) = {

@@ -21,13 +21,13 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentConstantData,
   PowerFlowDoneData,
 }
-import edu.ie3.simona.agent.grid.GridAgentMessage._
-import edu.ie3.simona.agent.grid.ReceivedValues._
-import edu.ie3.simona.agent.grid.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
-import edu.ie3.simona.agent.grid.VoltageMessage.{
-  ProvideSlackVoltageMessage,
-  RequestSlackVoltageMessage,
+import edu.ie3.simona.agent.grid.GridAgentMessages.SlackVoltageResponse.ExchangeVoltage
+import edu.ie3.simona.agent.grid.GridAgentMessages.{
+  SlackVoltageRequest,
+  SlackVoltageResponse,
 }
+import edu.ie3.simona.agent.grid.GridAgentMessages._
+import edu.ie3.simona.agent.grid.ReceivedValuesStore._
 import edu.ie3.simona.agent.participant.ParticipantAgent.{
   FinishParticipantSimulation,
   ParticipantMessage,
@@ -78,8 +78,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       currentTick: Long,
   )(implicit
       constantData: GridAgentConstantData,
-      buffer: StashBuffer[GridAgentMessage],
-  ): Behavior[GridAgentMessage] = Behaviors.receivePartial {
+      buffer: StashBuffer[GridAgent.Request],
+  ): Behavior[GridAgent.Request] = Behaviors.receivePartial {
     case (ctx, message) =>
       (message, gridAgentData) match {
         // first part of the grid simulation, same for all gridAgents on all levels
@@ -125,7 +125,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
         // if we receive power values as response on our request, we process them here
         case (
-              receivedValues: ReceivedValues,
+              WrappedValues(receivedValues: ReceivedValues),
               gridAgentBaseData: GridAgentBaseData,
             ) =>
           // we just received either all provided slack voltage values or all provided power values
@@ -179,7 +179,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
         // if we receive a request for slack voltages from our inferior grids we want to answer it
         case (
-              RequestSlackVoltageMessage(
+              SlackVoltageRequest(
                 currentSweepNo,
                 nodeUuids,
                 sender,
@@ -269,9 +269,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             }
           } match {
             case exchangeVoltages =>
-              sender ! ProvideSlackVoltageMessage(
-                currentSweepNo,
-                exchangeVoltages,
+              sender ! WrappedResponse(
+                SlackVoltageResponse(
+                  currentSweepNo,
+                  exchangeVoltages,
+                )
               )
               Behaviors.same
           }
@@ -523,8 +525,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       currentTick: Long,
   )(implicit
       constantData: GridAgentConstantData,
-      buffer: StashBuffer[GridAgentMessage],
-  ): Behavior[GridAgentMessage] = Behaviors.receivePartial {
+      buffer: StashBuffer[GridAgent.Request],
+  ): Behavior[GridAgent.Request] = Behaviors.receivePartial {
     case (ctx, message) =>
       (message, gridAgentData) match {
         // main method for power flow calculations
@@ -615,7 +617,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         // handler for the future provided by `askForAssetPowers` to check if there are any changes in generation/load
         // of assets based on updated nodal voltages
         case (
-              receivedPowerValues: ReceivedPowerValues,
+              WrappedValues(receivedPowerValues: ReceivedPowerValues),
               powerFlowDoneData: PowerFlowDoneData,
             ) =>
           val gridAgentBaseData = powerFlowDoneData.gridAgentBaseData
@@ -678,7 +680,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         // this means we requested an update of the slack voltage values, but for now don't request (and hence don't expect)
         // updated power values for our power flow calculations
         case (
-              receivedSlackValues: ReceivedSlackVoltageValues,
+              WrappedValues(receivedSlackValues: ReceivedSlackVoltageValues),
               gridAgentBaseData: GridAgentBaseData,
             ) =>
           ctx.log.debug(
@@ -836,8 +838,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       gridAgentBaseData: GridAgentBaseData
   )(implicit
       constantData: GridAgentConstantData,
-      buffer: StashBuffer[GridAgentMessage],
-  ): Behavior[GridAgentMessage] = Behaviors.receivePartial {
+      buffer: StashBuffer[GridAgent.Request],
+  ): Behavior[GridAgent.Request] = Behaviors.receivePartial {
 
     case (ctx, CheckPowerDifferencesTrigger(currentTick)) =>
       ctx.log.debug("Starting the power differences check ...")
@@ -1003,12 +1005,12 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       allReceived: Boolean,
       gridAgentBaseData: GridAgentBaseData,
       currentTick: Long,
-      behavior: (GridAgentData, Long) => Behavior[GridAgentMessage],
+      behavior: (GridAgentData, Long) => Behavior[GridAgent.Request],
   )(implicit
-      ctx: ActorContext[GridAgentMessage],
+      ctx: ActorContext[GridAgent.Request],
       constantData: GridAgentConstantData,
-      buffer: StashBuffer[GridAgentMessage],
-  ): Behavior[GridAgentMessage] =
+      buffer: StashBuffer[GridAgent.Request],
+  ): Behavior[GridAgent.Request] =
     if (allReceived) {
       ctx.log.debug(
         "All power values of inferior grids, assets + voltage superior grid slack voltages received."
@@ -1074,12 +1076,12 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       allReceived: Boolean,
       gridAgentBaseData: GridAgentBaseData,
       currentTick: Long,
-      behavior: (GridAgentData, Long) => Behavior[GridAgentMessage],
+      behavior: (GridAgentData, Long) => Behavior[GridAgent.Request],
   )(implicit
-      ctx: ActorContext[GridAgentMessage],
+      ctx: ActorContext[GridAgent.Request],
       constantData: GridAgentConstantData,
-      buffer: StashBuffer[GridAgentMessage],
-  ): Behavior[GridAgentMessage] = {
+      buffer: StashBuffer[GridAgent.Request],
+  ): Behavior[GridAgent.Request] = {
     if (allReceived) {
       ctx.log.debug(
         "All power values of child assets + inferior grids received."
@@ -1120,11 +1122,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   private def handlePowerFlowFailure(
       gridAgentBaseData: GridAgentBaseData,
       currentTick: Long,
-      ctx: ActorContext[GridAgentMessage],
+      ctx: ActorContext[GridAgent.Request],
   )(implicit
       constantData: GridAgentConstantData,
-      buffer: StashBuffer[GridAgentMessage],
-  ): Behavior[GridAgentMessage] = {
+      buffer: StashBuffer[GridAgent.Request],
+  ): Behavior[GridAgent.Request] = {
     constantData.environmentRefs.runtimeEventListener ! PowerFlowFailed
 
     if (gridAgentBaseData.powerFlowParams.stopOnFailure) {
@@ -1154,8 +1156,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       currentTick: Long,
   )(implicit
       constantData: GridAgentConstantData,
-      buffer: StashBuffer[GridAgentMessage],
-  ): Behavior[GridAgentMessage] = {
+      buffer: StashBuffer[GridAgent.Request],
+  ): Behavior[GridAgent.Request] = {
     constantData.environmentRefs.scheduler ! Completion(
       constantData.activationAdapter,
       Some(currentTick),
@@ -1191,7 +1193,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       refSystem: RefSystem,
       askTimeout: Duration,
   )(implicit
-      ctx: ActorContext[GridAgentMessage]
+      ctx: ActorContext[GridAgent.Request]
   ): Boolean = {
     implicit val timeout: PekkoTimeout = PekkoTimeout.create(askTimeout)
     implicit val ec: ExecutionContext = ctx.executionContext
@@ -1242,7 +1244,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             })
           }.toVector
         )
-        .map(res => ReceivedAssetPowerValues(res))
+        .map(res => WrappedValues(ReceivedAssetPowerValues(res)))
 
       pipeToSelf(future, ctx)
       true
@@ -1265,11 +1267,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     */
   private def askInferiorGridsForPowers(
       currentSweepNo: Int,
-      subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgentMessage]],
+      subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
       inferiorGridGates: Seq[SubGridGate],
       askTimeout: Duration,
   )(implicit
-      ctx: ActorContext[GridAgentMessage]
+      ctx: ActorContext[GridAgent.Request]
   ): Boolean = {
     implicit val timeout: PekkoTimeout = PekkoTimeout.create(askTimeout)
     implicit val ec: ExecutionContext = ctx.executionContext
@@ -1298,7 +1300,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             }
             .map { case (inferiorGridAgentRef, inferiorGridGateNodes) =>
               inferiorGridAgentRef
-                .ask[GridAgentMessage](ref =>
+                .ask[GridAgent.Request](ref =>
                   WrappedPowerMessage(
                     RequestGridPowerMessage(
                       currentSweepNo,
@@ -1318,7 +1320,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             }
             .toVector
         )
-        .map(res => ReceivedGridPowerValues(res))
+        .map(res => WrappedValues(ReceivedGridPowerValues(res)))
       pipeToSelf(future, ctx)
       true
     } else false
@@ -1340,11 +1342,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     */
   private def askSuperiorGridsForSlackVoltages(
       currentSweepNo: Int,
-      subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgentMessage]],
+      subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
       superiorGridGates: Vector[SubGridGate],
       askTimeout: Duration,
   )(implicit
-      ctx: ActorContext[GridAgentMessage]
+      ctx: ActorContext[GridAgent.Request]
   ): Boolean = {
     implicit val timeout: PekkoTimeout = PekkoTimeout.create(askTimeout)
     implicit val ec: ExecutionContext = ctx.executionContext
@@ -1362,20 +1364,23 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             .groupBy(subGridGateToActorRef(_))
             .map { case (superiorGridAgent, gridGates) =>
               superiorGridAgent
-                .ask[GridAgentMessage](ref =>
-                  RequestSlackVoltageMessage(
+                .ask[GridAgent.Request](ref =>
+                  SlackVoltageRequest(
                     currentSweepNo,
                     gridGates.map(_.superiorNode.getUuid),
                     ref,
                   )
                 )
-                .map { case providedSlackValues: ProvideSlackVoltageMessage =>
-                  (superiorGridAgent, providedSlackValues)
+                .map {
+                  case WrappedResponse(
+                        providedSlackValues: SlackVoltageResponse
+                      ) =>
+                    (superiorGridAgent, providedSlackValues)
                 }
             }
             .toVector
         )
-        .map(res => ReceivedSlackVoltageValues(res))
+        .map(res => WrappedValues(ReceivedSlackVoltageValues(res)))
       pipeToSelf(future, ctx)
       true
     } else false
@@ -1416,19 +1421,19 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
   /** This method uses [[ActorContext.pipeToSelf()]] to send a future message to
     * itself. If the future is a [[Success]] the message is send, else a
-    * [[ReceivedFailure]] with the thrown error is send.
+    * [[WrappedExceptions]] with the thrown error is send.
     * @param future
     *   future message that should be send to the agent after it was processed
     * @param ctx
     *   [[ActorContext]] of the receiving actor
     */
   private def pipeToSelf(
-      future: Future[GridAgentMessage],
-      ctx: ActorContext[GridAgentMessage],
+      future: Future[GridAgent.Request],
+      ctx: ActorContext[GridAgent.Request],
   ): Unit = {
-    ctx.pipeToSelf[GridAgentMessage](future) {
+    ctx.pipeToSelf[GridAgent.Request](future) {
       case Success(value)     => value
-      case Failure(exception) => ReceivedFailure(exception)
+      case Failure(exception) => WrappedExceptions(exception)
     }
   }
 }

@@ -11,11 +11,11 @@ import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.ReceivedValues.{
+import edu.ie3.simona.agent.grid.ReceivedValuesStore.{
+  NodeToReceivedPower,
   ReceivedPowerValues,
   ReceivedSlackVoltageValues,
 }
-import edu.ie3.simona.agent.grid.ReceivedValuesStore.NodeToReceivedPower
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
@@ -82,7 +82,7 @@ object GridAgentData {
   final case class GridAgentInitData(
       subGridContainer: SubGridContainer,
       thermalIslandGrids: Seq[ThermalGrid],
-      subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgentMessage]],
+      subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
       refSystem: RefSystem,
   ) extends GridAgentData
       with GridAgentDataHelper {
@@ -129,7 +129,7 @@ object GridAgentData {
 
     def apply(
         gridModel: GridModel,
-        subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgentMessage]],
+        subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
         nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]],
         superiorGridNodeUuids: Vector[UUID],
         inferiorGridGates: Vector[SubGridGate],

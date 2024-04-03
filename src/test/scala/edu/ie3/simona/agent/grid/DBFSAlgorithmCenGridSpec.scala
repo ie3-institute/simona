@@ -9,9 +9,8 @@ package edu.ie3.simona.agent.grid
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.agent.grid.GridAgentMessage._
-import edu.ie3.simona.agent.grid.VoltageMessage.ProvideSlackVoltageMessage
-import edu.ie3.simona.agent.grid.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
+import edu.ie3.simona.agent.grid.GridAgentMessages.SlackVoltageResponse.ExchangeVoltage
+import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.model.grid.RefSystem
@@ -252,20 +251,22 @@ class DBFSAlgorithmCenGridSpec
         )
       )
 
-      firstSlackVoltageRequestSender ! ProvideSlackVoltageMessage(
-        firstSweepNo,
-        Seq(
-          ExchangeVoltage(
-            supNodeA.getUuid,
-            Kilovolts(380d),
-            Kilovolts(0d),
+      firstSlackVoltageRequestSender ! WrappedResponse(
+        SlackVoltageResponse(
+          firstSweepNo,
+          Seq(
+            ExchangeVoltage(
+              supNodeA.getUuid,
+              Kilovolts(380d),
+              Kilovolts(0d),
+            ),
+            ExchangeVoltage(
+              supNodeB.getUuid,
+              Kilovolts(380d),
+              Kilovolts(0d),
+            ),
           ),
-          ExchangeVoltage(
-            supNodeB.getUuid,
-            Kilovolts(380d),
-            Kilovolts(0d),
-          ),
-        ),
+        )
       )
 
       // power flow calculation should run now. After it's done,
@@ -298,20 +299,22 @@ class DBFSAlgorithmCenGridSpec
         superiorGridAgent.expectSlackVoltageRequest(secondSweepNo)
 
       // the superior grid would answer with updated slack voltage values
-      secondSlackAskSender ! ProvideSlackVoltageMessage(
-        secondSweepNo,
-        Seq(
-          ExchangeVoltage(
-            supNodeB.getUuid,
-            Kilovolts(374.22694614463d), // 380 kV @ 10°
-            Kilovolts(65.9863075134335d), // 380 kV @ 10°
+      secondSlackAskSender ! WrappedResponse(
+        SlackVoltageResponse(
+          secondSweepNo,
+          Seq(
+            ExchangeVoltage(
+              supNodeB.getUuid,
+              Kilovolts(374.22694614463d), // 380 kV @ 10°
+              Kilovolts(65.9863075134335d), // 380 kV @ 10°
+            ),
+            ExchangeVoltage( // this one should currently be ignored anyways
+              supNodeA.getUuid,
+              Kilovolts(380d),
+              Kilovolts(0d),
+            ),
           ),
-          ExchangeVoltage( // this one should currently be ignored anyways
-            supNodeA.getUuid,
-            Kilovolts(380d),
-            Kilovolts(0d),
-          ),
-        ),
+        )
       )
 
       // After the intermediate power flow calculation, we expect one grid power

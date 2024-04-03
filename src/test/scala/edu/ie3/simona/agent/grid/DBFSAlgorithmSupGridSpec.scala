@@ -10,7 +10,7 @@ import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.agent.grid.GridAgentMessage.{
+import edu.ie3.simona.agent.grid.GridAgentMessages.{
   CreateGridAgent,
   FinishGridSimulationTrigger,
   WrappedActivation,
@@ -65,7 +65,7 @@ class DBFSAlgorithmSupGridSpec
   private val primaryService: TestProbe[ServiceMessage] =
     TestProbe("primaryService")
   private val weatherService = TestProbe("weatherService")
-  private val hvGrid: TestProbe[GridAgentMessage] = TestProbe("hvGrid")
+  private val hvGrid: TestProbe[GridAgent.Request] = TestProbe("hvGrid")
 
   private val environmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,
@@ -78,7 +78,7 @@ class DBFSAlgorithmSupGridSpec
   val resultListener: TestProbe[ResultEvent] = TestProbe("resultListener")
 
   "A GridAgent actor in superior position with async test" should {
-    val superiorGridAgentFSM: ActorRef[GridAgentMessage] = testKit.spawn(
+    val superiorGridAgentFSM: ActorRef[GridAgent.Request] = testKit.spawn(
       GridAgent(
         environmentRefs,
         simonaConfig,
@@ -87,7 +87,7 @@ class DBFSAlgorithmSupGridSpec
     )
 
     s"initialize itself when it receives an init activation" in {
-      val subnetGatesToActorRef: Map[SubGridGate, ActorRef[GridAgentMessage]] =
+      val subnetGatesToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]] =
         ehvSubGridGates.map(gate => gate -> hvGrid.ref).toMap
 
       val gridAgentInitData =
@@ -256,7 +256,7 @@ class DBFSAlgorithmSupGridSpec
           superiorGridAgentFSM ! WrappedActivation(Activation(3600))
 
           // we expect a request for grid power values here for sweepNo $sweepNo
-          val message = hvGrid.expectMessageType[GridAgentMessage]
+          val message = hvGrid.expectMessageType[GridAgent.Request]
 
           val lastSender = message match {
             case WrappedPowerMessage(

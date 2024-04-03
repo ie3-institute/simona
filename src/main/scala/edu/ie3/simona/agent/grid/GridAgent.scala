@@ -13,7 +13,7 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentConstantData,
   GridAgentInitData,
 }
-import edu.ie3.simona.agent.grid.GridAgentMessage._
+import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
@@ -36,12 +36,24 @@ import scala.language.postfixOps
 
 object GridAgent extends DBFSAlgorithm {
 
+  /** Trait for requests made to the [[GridAgent]] */
+  sealed trait Request
+
+  /** Trait for responses of the [[GridAgent]] as a result of [[Request]]s */
+  sealed trait Response
+
+  /** Necessary because we want to extend messages in other classes, but we do
+    * want to keep the messages only available inside this package.
+    */
+  private[grid] trait InternalRequest extends Request
+  private[grid] trait InternalResponse extends Response
+
   def apply(
       environmentRefs: EnvironmentRefs,
       simonaConfig: SimonaConfig,
       listener: Iterable[ActorRef[ResultEvent]],
-  ): Behavior[GridAgentMessage] = Behaviors.withStash(100) { buffer =>
-    Behaviors.setup[GridAgentMessage] { context =>
+  ): Behavior[Request] = Behaviors.withStash(100) { buffer =>
+    Behaviors.setup[Request] { context =>
       context.messageAdapter(msg => WrappedPowerMessage(msg))
       val activationAdapter: ActorRef[Activation] =
         context.messageAdapter[Activation](msg => WrappedActivation(msg))
@@ -69,9 +81,9 @@ object GridAgent extends DBFSAlgorithm {
 
   private def uninitialized(implicit
       constantData: GridAgentConstantData,
-      buffer: StashBuffer[GridAgentMessage],
+      buffer: StashBuffer[Request],
       simonaConfig: SimonaConfig,
-  ): Behavior[GridAgentMessage] =
+  ): Behavior[Request] =
     Behaviors.receiveMessagePartial {
       case CreateGridAgent(gridAgentInitData, unlockKey) =>
         constantData.environmentRefs.scheduler ! ScheduleActivation(
@@ -87,8 +99,8 @@ object GridAgent extends DBFSAlgorithm {
       simonaConfig: SimonaConfig,
   )(implicit
       constantData: GridAgentConstantData,
-      buffer: StashBuffer[GridAgentMessage],
-  ): Behavior[GridAgentMessage] = Behaviors.receivePartial {
+      buffer: StashBuffer[Request],
+  ): Behavior[Request] = Behaviors.receivePartial {
     case (ctx, WrappedActivation(Activation(INIT_SIM_TICK))) =>
       // fail fast sanity checks
       failFast(gridAgentInitData, SimonaActorNaming.actorName(ctx.self))
@@ -192,7 +204,7 @@ object GridAgent extends DBFSAlgorithm {
     * @param constantData
     *   immutable [[GridAgent]] values
     * @param buffer
-    *   for [[GridAgentMessage]]s
+    *   for [[GridAgent.Request]]s
     * @return
     *   a [[Behavior]]
     */
@@ -200,8 +212,8 @@ object GridAgent extends DBFSAlgorithm {
       gridAgentBaseData: GridAgentBaseData
   )(implicit
       constantData: GridAgentConstantData,
-      buffer: StashBuffer[GridAgentMessage],
-  ): Behavior[GridAgentMessage] = Behaviors.receivePartial {
+      buffer: StashBuffer[Request],
+  ): Behavior[Request] = Behaviors.receivePartial {
     case (_, msg: WrappedPowerMessage) =>
       // needs to be set here to handle if the messages arrive too early
       // before a transition to GridAgentBehaviour took place

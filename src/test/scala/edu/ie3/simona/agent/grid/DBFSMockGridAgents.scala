@@ -6,11 +6,14 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.simona.agent.grid.GridAgentMessage.WrappedPowerMessage
-import edu.ie3.simona.agent.grid.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
-import edu.ie3.simona.agent.grid.VoltageMessage.{
-  ProvideSlackVoltageMessage,
-  RequestSlackVoltageMessage,
+import edu.ie3.simona.agent.grid.GridAgentMessages.SlackVoltageResponse.ExchangeVoltage
+import edu.ie3.simona.agent.grid.GridAgentMessages.{
+  SlackVoltageRequest,
+  SlackVoltageResponse,
+}
+import edu.ie3.simona.agent.grid.GridAgentMessages.{
+  WrappedPowerMessage,
+  WrappedResponse,
 }
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.PowerMessage.{
@@ -41,19 +44,19 @@ trait DBFSMockGridAgents extends UnitSpec {
       : squants.electro.ElectricPotential = Volts(1e-6)
 
   sealed trait GAActorAndModel {
-    val gaProbe: TestProbe[GridAgentMessage]
+    val gaProbe: TestProbe[GridAgent.Request]
     val nodeUuids: Seq[UUID]
 
-    def ref: ActorRef[GridAgentMessage] = gaProbe.ref
+    def ref: ActorRef[GridAgent.Request] = gaProbe.ref
   }
 
   final case class InferiorGA(
-      override val gaProbe: TestProbe[GridAgentMessage],
+      override val gaProbe: TestProbe[GridAgent.Request],
       override val nodeUuids: Seq[UUID],
   ) extends GAActorAndModel {
 
-    def expectGridPowerRequest(): ActorRef[GridAgentMessage] = {
-      gaProbe.expectMessageType[GridAgentMessage] match {
+    def expectGridPowerRequest(): ActorRef[GridAgent.Request] = {
+      gaProbe.expectMessageType[GridAgent.Request] match {
         case WrappedPowerMessage(
               requestGridPowerMessage: RequestGridPowerMessage
             ) =>
@@ -67,8 +70,8 @@ trait DBFSMockGridAgents extends UnitSpec {
         expectedSweepNo: Int,
         expectedExchangedVoltages: Seq[ExchangeVoltage],
     ): Unit = {
-      gaProbe.expectMessageType[GridAgentMessage] match {
-        case msg: ProvideSlackVoltageMessage =>
+      gaProbe.expectMessageType[GridAgent.Request] match {
+        case WrappedResponse(msg: SlackVoltageResponse) =>
           msg.currentSweepNo shouldBe expectedSweepNo
 
           msg.nodalSlackVoltages.size shouldBe expectedExchangedVoltages.size
@@ -90,22 +93,22 @@ trait DBFSMockGridAgents extends UnitSpec {
     }
 
     def requestSlackVoltage(
-        receiver: ActorRef[GridAgentMessage],
+        receiver: ActorRef[GridAgent.Request],
         sweepNo: Int,
     ): Unit =
-      receiver ! RequestSlackVoltageMessage(sweepNo, nodeUuids, gaProbe.ref)
+      receiver ! SlackVoltageRequest(sweepNo, nodeUuids, gaProbe.ref)
   }
 
   final case class SuperiorGA(
-      override val gaProbe: TestProbe[GridAgentMessage],
+      override val gaProbe: TestProbe[GridAgent.Request],
       override val nodeUuids: Seq[UUID],
   ) extends GAActorAndModel {
 
     def expectSlackVoltageRequest(
         expectedSweepNo: Int
-    ): ActorRef[GridAgentMessage] = {
-      gaProbe.expectMessageType[GridAgentMessage] match {
-        case requestSlackVoltageMessage: RequestSlackVoltageMessage =>
+    ): ActorRef[GridAgent.Request] = {
+      gaProbe.expectMessageType[GridAgent.Request] match {
+        case requestSlackVoltageMessage: SlackVoltageRequest =>
           requestSlackVoltageMessage.currentSweepNo shouldBe expectedSweepNo
           requestSlackVoltageMessage.nodeUuids should have size nodeUuids.size
           requestSlackVoltageMessage.nodeUuids should contain allElementsOf nodeUuids
@@ -118,7 +121,7 @@ trait DBFSMockGridAgents extends UnitSpec {
         expectedExchangedPowers: Seq[ExchangePower],
         maxDuration: FiniteDuration = 30 seconds,
     ): Unit = {
-      gaProbe.expectMessageType[GridAgentMessage](maxDuration) match {
+      gaProbe.expectMessageType[GridAgent.Request](maxDuration) match {
         case WrappedPowerMessage(msg: ProvideGridPowerMessage) =>
           msg.nodalResidualPower should have size expectedExchangedPowers.size
 
@@ -140,7 +143,7 @@ trait DBFSMockGridAgents extends UnitSpec {
     }
 
     def requestGridPower(
-        receiver: ActorRef[GridAgentMessage],
+        receiver: ActorRef[GridAgent.Request],
         sweepNo: Int,
     ): Unit = {
       receiver ! WrappedPowerMessage(

@@ -9,9 +9,8 @@ package edu.ie3.simona.agent.grid
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.agent.grid.GridAgentMessage._
-import edu.ie3.simona.agent.grid.VoltageMessage.ProvideSlackVoltageMessage
-import edu.ie3.simona.agent.grid.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
+import edu.ie3.simona.agent.grid.GridAgentMessages.SlackVoltageResponse.ExchangeVoltage
+import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
@@ -176,15 +175,17 @@ class DBFSAlgorithmFailedPowerFlowSpec
         )
       )
 
-      slackVoltageRequestSender ! ProvideSlackVoltageMessage(
-        sweepNo,
-        Seq(
-          ExchangeVoltage(
-            supNodeA.getUuid,
-            Kilovolts(380d),
-            Kilovolts(0d),
-          )
-        ),
+      slackVoltageRequestSender ! WrappedResponse(
+        SlackVoltageResponse(
+          sweepNo,
+          Seq(
+            ExchangeVoltage(
+              supNodeA.getUuid,
+              Kilovolts(380d),
+              Kilovolts(0d),
+            )
+          ),
+        )
       )
 
       // power flow calculation should run now. After it's done,
