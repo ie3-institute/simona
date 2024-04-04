@@ -12,14 +12,20 @@ import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
-import edu.ie3.simona.agent.participant.statedata.{BaseStateData, ParticipantStateData}
+import edu.ie3.simona.agent.participant.statedata.{
+  BaseStateData,
+  ParticipantStateData,
+}
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.{FlexChangeIndicator, ModelState}
 import edu.ie3.simona.model.participant.ModelState.ConstantState
-import edu.ie3.simona.model.participant.load.markov.{MarkovModel, MarkovRelevantData}
+import edu.ie3.simona.model.participant.load.markov.{
+  MarkovModel,
+  MarkovRelevantData,
+}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
 import edu.ie3.util.scala.quantities.ReactivePower
 import org.apache.pekko.actor.{ActorRef, FSM, Props, typed}
@@ -27,8 +33,6 @@ import squants.{Dimensionless, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-
-
 
 object MarkovAgent {
   def props(

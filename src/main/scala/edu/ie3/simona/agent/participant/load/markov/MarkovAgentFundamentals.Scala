@@ -127,9 +127,6 @@ override protected def createInitialState(
       tick: Long,
   ): MarkovRelevantData = {
 
-    MarkovRelevantData(
-      None,
-    )
   }
 
   /** Handle an active power change by flex control.
