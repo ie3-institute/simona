@@ -6,37 +6,26 @@
 
 package edu.ie3.simona.agent.participant.load.markov
 
+import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
-  ZERO_POWER,
-}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{ApparentPower, ZERO_POWER}
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
-import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
-  FlexControlledData,
-  ParticipantModelBaseStateData,
-}
+import edu.ie3.simona.agent.participant.statedata.BaseStateData.{FlexControlledData, ParticipantModelBaseStateData}
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
-import edu.ie3.simona.config.SimonaConfig.MarkovRuntimeConfig
+import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.ModelState.ConstantState
-import edu.ie3.simona.model.participant.load.markov.MarkovModel.MarkovRelevantData
-import edu.ie3.simona.model.participant.load.markov.MarkovModel
-import edu.ie3.simona.model.participant.load.markov.MarkovData
-
+import edu.ie3.simona.model.participant.load.markov.{MarkovModel, MarkovRelevantData}
 import edu.ie3.simona.model.participant.{FlexChangeIndicator, ModelState}
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
-  FlexRequest,
-  FlexResponse,
-}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{FlexRequest, FlexResponse}
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits.PU
@@ -59,8 +48,8 @@ protected trait MarkovAgentFundamentals
       MarkovRelevantData,
       ConstantState.type,
       ParticipantStateData[ApparentPower],
-      MarkovData,
-      MarkovRuntimeConfig,
+      LoadInput,
+      LoadRuntimeConfig,
       MarkovModel,
     ] {
   this: MarkovAgent =>
@@ -94,8 +83,8 @@ protected trait MarkovAgentFundamentals
     */
 
     override def determineModelBaseStateData(
-      inputModel: InputModelContainer[MarkovData],
-      modelConfig: MarkovRuntimeConfig,
+      inputModel: InputModelContainer[LoadInput],
+      modelConfig: LoadRuntimeConfig,
       services: Iterable[SecondaryDataService[_ <: SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
@@ -293,7 +282,7 @@ override val calculateModelPowerFunc: (
       dateTime: ZonedDateTime,
       result: ApparentPower,
   ): SystemParticipantResult =
-    new MarkovResult(
+    new LoadResult(
       dateTime,
       uuid,
       result.p.toMegawatts.asMegaWatt,

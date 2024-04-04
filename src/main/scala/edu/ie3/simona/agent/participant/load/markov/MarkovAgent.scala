@@ -6,35 +6,52 @@
 
 package edu.ie3.simona.agent.participant.load.markov
 
+import edu.ie3.datamodel.models.input.system.LoadInput
+import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.ParticipantAgent
+import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import edu.ie3.simona.agent.participant.load.markov.MarkovAgentFundamentals
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
+import edu.ie3.simona.agent.participant.statedata.{BaseStateData, ParticipantStateData}
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
-import edu.ie3.simona.config.SimonaConfig.MarkovRuntimeConfig
+import edu.ie3.simona.agent.state.AgentState
+import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
+import edu.ie3.simona.model.participant.{FlexChangeIndicator, ModelState}
 import edu.ie3.simona.model.participant.ModelState.ConstantState
-import edu.ie3.simona.model.participant.load.markov.MarkovModel
-import edu.ie3.simona.model.participant.load.markov.MarkovData
+import edu.ie3.simona.model.participant.load.markov.{MarkovModel, MarkovRelevantData}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
+import edu.ie3.util.scala.quantities.ReactivePower
+import org.apache.pekko.actor.{ActorRef, FSM, Props, typed}
+import squants.{Dimensionless, Power}
 
-import org.apache.pekko.actor.{ActorRef, Props}
+import java.time.ZonedDateTime
+import java.util.UUID
+
+
 
 object MarkovAgent {
   def props(
       scheduler: ActorRef,
       initStateData: ParticipantInitializeStateData[
-        MarkovData,
-        MarkovRuntimeConfig,
+        LoadInput,
+        LoadRuntimeConfig,
         ApparentPower,
       ],
       listener: Iterable[ActorRef],
   ): Props =
     Props(
-        new MarkovAgent
-          scheduler,
-          initStatedata,
-          listener,
-        )
-    }
+      new MarkovAgent(
+        scheduler,
+        initStateData: ParticipantInitializeStateData[
+          LoadInput,
+          LoadRuntimeConfig,
+          ApparentPower,
+        ],
+        listener,
+      )
+    )
+}
 
 /** Creating a load agent
   *
@@ -43,11 +60,11 @@ object MarkovAgent {
   * @param listener
   *   List of listeners interested in results
   */
-class LoadAgent(
+class MarkovAgent(
     scheduler: ActorRef,
     initStateData: ParticipantInitializeStateData[
-      MarkovData,
-      MarkovRuntimeConfig,
+      LoadInput,
+      LoadRuntimeConfig,
       ApparentPower,
     ],
     override val listener: Iterable[ActorRef],
@@ -56,10 +73,11 @@ class LoadAgent(
       MarkovRelevantData,
       ConstantState.type,
       ParticipantStateData[ApparentPower],
-      MarkovData,
-      MarkovRuntimeConfig,
+      LoadInput,
+      LoadRuntimeConfig,
+      MarkovModel,
     ](scheduler, initStateData)
-    with MarkovAgentFundamentals{
+    with MarkovAgentFundamentals {
   /*
    * "Hey, SIMONA! What is handled in ParticipantAgent?"
    * "Hey, dude! The following things are handled in ParticipantAgent:
