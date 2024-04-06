@@ -14,6 +14,7 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentInitData,
 }
 import edu.ie3.simona.agent.grid.GridAgentMessage._
+import edu.ie3.simona.agent.grid.ReceivedValues.ReceivedFailure
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
@@ -26,13 +27,19 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
-import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
+import org.apache.pekko.actor.typed.scaladsl.{
+  ActorContext,
+  Behaviors,
+  StashBuffer,
+}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
+import scala.concurrent.Future
 import scala.language.postfixOps
+import scala.util.{Failure, Success}
 
 object GridAgent extends DBFSAlgorithm {
 
@@ -227,5 +234,24 @@ object GridAgent extends DBFSAlgorithm {
         s"$actorName has neither superior nor inferior grids! This can either " +
           s"be cause by wrong subnetGate information or invalid parametrization of the simulation!"
       )
+  }
+
+  /** This method uses [[ActorContext.pipeToSelf()]] to send a future message to
+    * itself. If the future is a [[Success]] the message is send, else a
+    * [[ReceivedFailure]] with the thrown error is send.
+    *
+    * @param future
+    *   future message that should be send to the agent after it was processed
+    * @param ctx
+    *   [[ActorContext]] of the receiving actor
+    */
+  private[grid] def pipeToSelf(
+      future: Future[GridAgentMessage],
+      ctx: ActorContext[GridAgentMessage],
+  ): Unit = {
+    ctx.pipeToSelf[GridAgentMessage](future) {
+      case Success(value)     => value
+      case Failure(exception) => ReceivedFailure(exception)
+    }
   }
 }

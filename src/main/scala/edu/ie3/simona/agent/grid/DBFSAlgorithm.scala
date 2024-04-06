@@ -15,7 +15,7 @@ import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.FailedPowerFlowResult.FailedNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.enums.NodeType
-import edu.ie3.simona.agent.grid.GridAgent.idle
+import edu.ie3.simona.agent.grid.GridAgent.{idle, pipeToSelf}
 import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentBaseData,
   GridAgentConstantData,
@@ -57,7 +57,6 @@ import squants.Each
 import java.time.{Duration, ZonedDateTime}
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
 
 /** Trait that is normally mixed into every [[GridAgent]] to enable distributed
   * forward backward sweep (DBFS) algorithm execution. It is considered to be
@@ -1414,21 +1413,4 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     }
   }
 
-  /** This method uses [[ActorContext.pipeToSelf()]] to send a future message to
-    * itself. If the future is a [[Success]] the message is send, else a
-    * [[ReceivedFailure]] with the thrown error is send.
-    * @param future
-    *   future message that should be send to the agent after it was processed
-    * @param ctx
-    *   [[ActorContext]] of the receiving actor
-    */
-  private def pipeToSelf(
-      future: Future[GridAgentMessage],
-      ctx: ActorContext[GridAgentMessage],
-  ): Unit = {
-    ctx.pipeToSelf[GridAgentMessage](future) {
-      case Success(value)     => value
-      case Failure(exception) => ReceivedFailure(exception)
-    }
-  }
 }
