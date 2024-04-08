@@ -10,13 +10,7 @@ import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessages.SlackVoltageResponse.ExchangeVoltage
-import edu.ie3.simona.agent.grid.GridAgentMessages.{
-  CreateGridAgent,
-  FinishGridSimulationTrigger,
-  SlackVoltageResponse,
-  WrappedActivation,
-  WrappedResponse,
-}
+import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower

@@ -10,8 +10,6 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.SlackVoltageResponse.Exchange
 import edu.ie3.simona.agent.grid.GridAgentMessages.{
   SlackVoltageRequest,
   SlackVoltageResponse,
-}
-import edu.ie3.simona.agent.grid.GridAgentMessages.{
   WrappedPowerMessage,
   WrappedResponse,
 }
