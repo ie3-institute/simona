@@ -22,12 +22,7 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
   PowerFlowDoneData,
 }
 import edu.ie3.simona.agent.grid.GridAgentMessages.SlackVoltageResponse.ExchangeVoltage
-import edu.ie3.simona.agent.grid.GridAgentMessages.{
-  SlackVoltageRequest,
-  SlackVoltageResponse,
-}
 import edu.ie3.simona.agent.grid.GridAgentMessages._
-import edu.ie3.simona.agent.grid.ReceivedValuesStore._
 import edu.ie3.simona.agent.participant.ParticipantAgent.{
   FinishParticipantSimulation,
   ParticipantMessage,
@@ -125,7 +120,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
         // if we receive power values as response on our request, we process them here
         case (
-              WrappedValues(receivedValues: ReceivedValues),
+              WrappedResponse(receivedValues: ReceivedValues),
               gridAgentBaseData: GridAgentBaseData,
             ) =>
           // we just received either all provided slack voltage values or all provided power values
@@ -617,7 +612,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         // handler for the future provided by `askForAssetPowers` to check if there are any changes in generation/load
         // of assets based on updated nodal voltages
         case (
-              WrappedValues(receivedPowerValues: ReceivedPowerValues),
+              WrappedResponse(receivedPowerValues: ReceivedPowerValues),
               powerFlowDoneData: PowerFlowDoneData,
             ) =>
           val gridAgentBaseData = powerFlowDoneData.gridAgentBaseData
@@ -680,7 +675,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         // this means we requested an update of the slack voltage values, but for now don't request (and hence don't expect)
         // updated power values for our power flow calculations
         case (
-              WrappedValues(receivedSlackValues: ReceivedSlackVoltageValues),
+              WrappedResponse(receivedSlackValues: ReceivedSlackVoltageValues),
               gridAgentBaseData: GridAgentBaseData,
             ) =>
           ctx.log.debug(
@@ -1244,7 +1239,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             })
           }.toVector
         )
-        .map(res => WrappedValues(ReceivedAssetPowerValues(res)))
+        .map(res => WrappedResponse(ReceivedAssetPowerValues(res)))
 
       pipeToSelf(future, ctx)
       true
@@ -1320,7 +1315,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             }
             .toVector
         )
-        .map(res => WrappedValues(ReceivedGridPowerValues(res)))
+        .map(res => WrappedResponse(ReceivedGridPowerValues(res)))
       pipeToSelf(future, ctx)
       true
     } else false
@@ -1380,7 +1375,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             }
             .toVector
         )
-        .map(res => WrappedValues(ReceivedSlackVoltageValues(res)))
+        .map(res => WrappedResponse(ReceivedSlackVoltageValues(res)))
       pipeToSelf(future, ctx)
       true
     } else false

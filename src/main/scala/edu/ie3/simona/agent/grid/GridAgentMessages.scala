@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.grid
 
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessages.SlackVoltageResponse.ExchangeVoltage
-import edu.ie3.simona.agent.grid.ReceivedValuesStore.ReceivedValues
+import edu.ie3.simona.ontology.messages.PowerMessage.PowerResponseMessage
 import edu.ie3.simona.ontology.messages.{Activation, PowerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import org.apache.pekko.actor.typed.ActorRef
@@ -79,14 +79,60 @@ object GridAgentMessages {
   final case class WrappedActivation(activation: Activation)
       extends GridAgent.InternalRequest
 
+  /** Wrapper for any [[GridAgent.Response]] from [[GridAgent]]s.
+    * @param response
+    *   received response
+    */
   final case class WrappedResponse(response: GridAgent.Response)
       extends GridAgent.InternalRequest
 
+  /** Wrapper for [[PowerMessage]]s.
+    * @param msg
+    *   the received power message
+    */
   final case class WrappedPowerMessage(msg: PowerMessage)
       extends GridAgent.InternalRequest
 
-  final case class WrappedValues(values: ReceivedValues)
-      extends GridAgent.InternalRequest
+  /** Trait for values that can be received as a response to a
+    * [[GridAgent.Request]].
+    */
+  sealed trait ReceivedValues extends GridAgent.InternalResponse
+
+  private type PowerRequestResponse[T] = (ActorRef[T], PowerResponseMessage)
+
+  private type SlackVoltageRequestResponse =
+    (ActorRef[GridAgent.Request], SlackVoltageResponse)
+
+  sealed trait ReceivedPowerValues extends ReceivedValues {
+    def values: Vector[PowerRequestResponse[_]]
+  }
+
+  /** Wrapper for received asset power values (p, q)
+    *
+    * @param values
+    *   the asset power values and their senders
+    */
+  final case class ReceivedAssetPowerValues(
+      values: Vector[PowerRequestResponse[_]]
+  ) extends ReceivedPowerValues
+
+  /** Wrapper for received grid power values (p, q)
+    *
+    * @param values
+    *   the grid power values and their senders
+    */
+  final case class ReceivedGridPowerValues(
+      values: Vector[PowerRequestResponse[GridAgent.Request]]
+  ) extends ReceivedPowerValues
+
+  /** Wrapper for received slack voltage values (v)
+    *
+    * @param values
+    *   the slack voltage values and their senders
+    */
+  final case class ReceivedSlackVoltageValues(
+      values: Vector[SlackVoltageRequestResponse]
+  ) extends ReceivedValues
 
   /** Wrapper for received exception.
     *

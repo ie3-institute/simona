@@ -11,11 +11,11 @@ import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.ReceivedValuesStore.{
-  NodeToReceivedPower,
+import edu.ie3.simona.agent.grid.GridAgentMessages.{
   ReceivedPowerValues,
   ReceivedSlackVoltageValues,
 }
+import edu.ie3.simona.agent.grid.ReceivedValuesStore.NodeToReceivedPower
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
