@@ -186,7 +186,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
       case departingEvsRequest: RequestDepartingEvs =>
         requestDepartingEvs(tick, departingEvsRequest.departures)
       case arrivingEvsProvision: ProvideArrivingEvs =>
-        handleArrivingEvs(tick, arrivingEvsProvision.arrivals)(
+        handleArrivingEvs(tick, null)(
           serviceStateData,
           ctx,
         )
