@@ -19,11 +19,7 @@ import edu.ie3.simona.exceptions.{
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  ScheduleProvisionMessage,
-  ServiceRegistrationMessage,
-}
-import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
@@ -35,11 +31,11 @@ import edu.ie3.simona.service.ev.ExtEvDataService.{
 import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 
 import java.util.UUID
 import scala.jdk.CollectionConverters._
+import scala.jdk.OptionConverters._
 import scala.util.{Failure, Success, Try}
 
 object ExtEvDataService {
@@ -181,6 +177,10 @@ class ExtEvDataService(override val scheduler: ActorRef)
       ExtEvStateData,
       Option[Long],
   ) = {
+    def asScala[E]
+        : java.util.Map[UUID, java.util.List[E]] => Map[UUID, Seq[E]] = map =>
+      map.asScala.view.mapValues(_.asScala.toSeq).toMap
+
     serviceStateData.extEvMessage.getOrElse(
       throw ServiceException(
         "ExtEvDataService was triggered without ExtEvMessage available"
@@ -189,14 +189,14 @@ class ExtEvDataService(override val scheduler: ActorRef)
       case _: RequestEvcsFreeLots =>
         requestFreeLots(tick)
       case departingEvsRequest: RequestDepartingEvs =>
-        requestDepartingEvs(tick, departingEvsRequest.departures)
+        requestDepartingEvs(tick, asScala(departingEvsRequest.departures))
       case arrivingEvsProvision: ProvideArrivingEvs =>
         handleArrivingEvs(
           tick,
-          arrivingEvsProvision.arrivals,
+          asScala(arrivingEvsProvision.arrivals),
+          arrivingEvsProvision.maybeNextTick.toScala.map(Long2long),
         )(
-          serviceStateData,
-          ctx,
+          serviceStateData
         )
     }
   }
@@ -228,16 +228,16 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
   private def requestDepartingEvs(
       tick: Long,
-      requestedDepartingEvs: java.util.Map[UUID, java.util.List[UUID]],
+      requestedDepartingEvs: Map[UUID, Seq[UUID]],
   )(implicit
       serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Long]) = {
 
     val departingEvResponses =
-      requestedDepartingEvs.asScala.flatMap { case (evcs, departingEvs) =>
+      requestedDepartingEvs.flatMap { case (evcs, departingEvs) =>
         serviceStateData.uuidToActorRef.get(evcs) match {
           case Some(evcsActor) =>
-            evcsActor ! DepartingEvsRequest(tick, departingEvs.asScala.toSeq)
+            evcsActor ! DepartingEvsRequest(tick, departingEvs)
 
             Some(evcs)
 
@@ -267,94 +267,46 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
   private def handleArrivingEvs(
       tick: Long,
-      allArrivingEvs: java.util.Map[UUID, java.util.List[EvModel]],
+      allArrivingEvs: Map[UUID, Seq[EvModel]],
+      maybeNextTick: Option[Long],
   )(implicit
-      serviceStateData: ExtEvStateData,
-      ctx: ActorContext,
+      serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Long]) = {
 
-    val allArrivingEvsData = allArrivingEvs.asScala
-
     if (tick == INIT_SIM_TICK) {
-      val keys = ScheduleLock.multiKey(
-        ctx,
-        scheduler.toTyped,
-        tick,
-        serviceStateData.uuidToActorRef.size,
+
+      maybeNextTick.getOrElse(
+        throw new CriticalFailureException(
+          s"After initialization, a first simulation tick needs to be provided by the external mobility simulation."
+        )
       )
 
-      serviceStateData.uuidToActorRef.foreach { case (uuid, actor) =>
-        val firstTick: Option[Long] = allArrivingEvsData
-          .getOrElse(
-            uuid,
-            throw new CriticalFailureException(
-              s"No initial message found for EVCS $actor($uuid)"
-            ),
-          )
-          .maybeNextTick
-
+      serviceStateData.uuidToActorRef.foreach { case (_, actor) =>
         actor ! RegistrationSuccessfulMessage(
           self,
-          firstTick,
+          maybeNextTick,
         )
       }
+
     } else {
+      serviceStateData.uuidToActorRef.foreach { case (evcs, actor) =>
+        val evs =
+          allArrivingEvs.getOrElse(evcs, Seq.empty)
 
-      val (actorsToSchedule, actorsWithArrivals) = allArrivingEvsData
-        .flatMap { case (evcs, arrivingEvsData) =>
-          serviceStateData.uuidToActorRef
-            .get(evcs)
-            .map((_, arrivingEvsData))
-            .orElse {
-              log.warning(
-                "A corresponding actor ref for UUID {} could not be found",
-                evcs,
-              )
-              None
-            }
-        }
-        .partitionMap {
-          case (actor, arrivingEvsData) if arrivingEvsData.arrivals.isEmpty =>
-            Left(actor, arrivingEvsData.maybeNextTick)
-          case (actor, arrivingEvsData) =>
-            Right((actor, arrivingEvsData))
-        }
-
-      if (actorsToSchedule.toSeq.nonEmpty) {
-        val keys = ScheduleLock.multiKey(
-          ctx,
-          scheduler.toTyped,
-          tick,
-          actorsToSchedule.size,
-        )
-
-        actorsToSchedule.zip(keys).foreach {
-          case ((actor, maybeNextTick), key) =>
-            maybeNextTick.foreach { nextTick =>
-              actor ! ScheduleProvisionMessage(
-                self,
-                nextTick,
-                unlockKey = key,
-              )
-            }
-        }
-      }
-
-      actorsWithArrivals.foreach { case (actor, arrivingEvsData) =>
         actor ! ProvideEvDataMessage(
           tick,
           self,
-          arrivingEvsData.arrivals,
-          Some(arrivingEvsData.maybeNextTick),
+          ArrivingEvs(evs.map(EvModelWrapper.apply)),
+          maybeNextTick,
         )
       }
-
     }
 
     (
       serviceStateData.copy(
         extEvMessage = None
       ),
+      // We still don't return the next tick because departures might come earlier
       None,
     )
   }

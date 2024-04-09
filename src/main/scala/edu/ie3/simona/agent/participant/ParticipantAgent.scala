@@ -45,23 +45,19 @@ import edu.ie3.simona.model.participant.{
 }
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexResponse,
   IssueFlexControl,
   RequestFlexOptions,
-  ScheduleFlexRequest,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   PrimaryServiceRegistrationMessage,
   ProvisionMessage,
   RegistrationResponseMessage,
-  ScheduleProvisionMessage,
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.ReactivePower
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import org.apache.pekko.actor.{ActorRef, FSM}
 import squants.{Dimensionless, Power}
@@ -194,14 +190,6 @@ abstract class ParticipantAgent[
         currentTick,
         fromOutsideBaseStateData,
       )
-
-    case Event(
-          msg: ScheduleProvisionMessage,
-          baseStateData: BaseStateData[PD],
-        ) =>
-      val updatedStateData = handleProvisionScheduling(msg, baseStateData)
-
-      stay() using updatedStateData
 
     case Event(
           msg: ProvisionMessage[Data],
@@ -356,18 +344,6 @@ abstract class ParticipantAgent[
         tick,
         scheduler,
       )(stateData.baseStateData.outputConfig)
-
-    case Event(
-          msg: ScheduleProvisionMessage,
-          stateData @ DataCollectionStateData(
-            baseStateData: BaseStateData[PD],
-            _,
-            _,
-          ),
-        ) =>
-      val updatedStateData = handleProvisionScheduling(msg, baseStateData)
-
-      stay() using stateData.copy(baseStateData = updatedStateData)
 
     case Event(
           msg: ProvisionMessage[_],
@@ -649,51 +625,6 @@ abstract class ParticipantAgent[
           }
           .getOrElse(createInitialState(baseStateData))
     }
-
-  private def handleProvisionScheduling(
-      msg: ScheduleProvisionMessage,
-      baseStateData: BaseStateData[PD],
-  ): BaseStateData[PD] = {
-    val foreseenDataTicks =
-      baseStateData.foreseenDataTicks + (msg.serviceRef -> Some(msg.tick))
-
-    val updatedStateData = BaseStateData.updateBaseStateData(
-      baseStateData,
-      baseStateData.resultValueStore,
-      baseStateData.requestValueStore,
-      baseStateData.voltageValueStore,
-      baseStateData.additionalActivationTicks,
-      foreseenDataTicks,
-    )
-
-    updatedStateData match {
-      case modelStateData: ParticipantModelBaseStateData[_, _, _, _] =>
-        val maybeEmAgent = modelStateData.flexStateData.map(_.emAgent)
-
-        maybeEmAgent match {
-          case Some(emAgent) =>
-            emAgent ! ScheduleFlexRequest(
-              modelStateData.model.getUuid,
-              msg.tick,
-              Some(msg.unlockKey),
-            )
-          case None =>
-            scheduler ! ScheduleActivation(
-              self.toTyped,
-              msg.tick,
-              Some(msg.unlockKey),
-            )
-        }
-      case _ =>
-        scheduler ! ScheduleActivation(
-          self.toTyped,
-          msg.tick,
-          Some(msg.unlockKey),
-        )
-    }
-
-    updatedStateData
-  }
 
   /** Handle an incoming data provision message in Idle, try to figure out who's
     * about to send information in this tick as well. Map together all senders

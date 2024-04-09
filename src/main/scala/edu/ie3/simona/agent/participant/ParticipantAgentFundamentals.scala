@@ -1065,9 +1065,9 @@ protected trait ParticipantAgentFundamentals[
         false
     }
 
-    // Only for completing initialization:
-    // if we are EM-managed, there is no new tick for the
-    // scheduler, since we are activated by the EmAgent from now on
+    // If we're completing initialization and we're EM-managed:
+    // There is no new tick for the scheduler,
+    // since we are activated by the EmAgent from now on
     scheduler ! Completion(
       self.toTyped,
       maybeNextTick.filterNot(_ => emManaged),

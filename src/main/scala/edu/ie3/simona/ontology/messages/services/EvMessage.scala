@@ -72,7 +72,7 @@ object EvMessage {
     * @param arrivals
     *   EVs arriving at the charging station
     */
-  final case class ArrivingEvsData(
+  final case class ArrivingEvs(
       arrivals: Seq[EvModelWrapper]
   ) extends EvData {}
 
