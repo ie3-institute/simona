@@ -398,6 +398,8 @@ object SimonaSimSpec {
 
     override val args: Array[String] = Array.empty[String]
 
+    override val logOutputDir: String = ""
+
     override def runtimeEventListener(
         context: ActorContext[_]
     ): ActorRef[RuntimeEventListener.Request] = context.spawn(

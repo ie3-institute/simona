@@ -11,7 +11,6 @@ import edu.ie3.simona.sim.setup.SimonaSetup
 import edu.ie3.util.scala.quantities.QuantityUtil
 import org.apache.pekko.util.Timeout
 
-import java.io.File
 import java.nio.file.Path
 import java.util.Locale
 import scala.concurrent.duration.FiniteDuration
@@ -41,7 +40,7 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
 
     val successful = run(simonaSetup)
 
-    printGoodbye(successful)
+    printGoodbye(successful, simonaSetup.logOutputDir)
 
     // prevents cutting of the log when having a fast simulation
     Thread.sleep(1000)
@@ -56,7 +55,10 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
     )
   }
 
-  private def printGoodbye(successful: Boolean): Unit = {
+  private def printGoodbye(
+      successful: Boolean,
+      outputPath: String = "",
+  ): Unit = {
     val myWords = Array(
       "\"Vielleicht ist heute ein besonders guter Tag zum Sterben.\" - Worf (in Star Trek: Der erste Kontakt)",
       "\"Assimiliert das!\" - Worf (in Star Trek: Der erste Kontakt)",
@@ -75,14 +77,10 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
       // to ensure that the link to the log is printed last
       Thread.sleep(1000)
 
-      val root: Path = Path.of(
-        new File(".").getAbsoluteFile.getParent,
-        "logs",
-        "simona",
-        "simona.log",
-      )
+      val path = Path.of(outputPath).resolve("simona.log").toUri
+
       logger.error(
-        s"Simulation stopped due to the occurrence of an error! The full log can be found here: $root"
+        s"Simulation stopped due to the occurrence of an error! The full log can be found here: $path"
       )
     }
   }
