@@ -10,20 +10,18 @@ import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
+import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangePower
 import edu.ie3.simona.agent.grid.GridAgentMessages.{
   CreateGridAgent,
   FinishGridSimulationTrigger,
+  GridPowerResponse,
+  RequestGridPower,
   WrappedActivation,
-  WrappedPowerMessage,
+  WrappedResponse,
 }
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.model.grid.RefSystem
-import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  ProvideGridPowerMessage,
-  RequestGridPowerMessage,
-}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -135,12 +133,10 @@ class DBFSAlgorithmSupGridSpec
           superiorGridAgentFSM ! WrappedActivation(Activation(3600))
 
           // we expect a request for grid power values here for sweepNo $sweepNo
-          val message = hvGrid.expectMessageType[WrappedPowerMessage]
+          val message = hvGrid.expectMessageType[RequestGridPower]
 
           val lastSender = message match {
-            case WrappedPowerMessage(
-                  requestGridPowerMessage: RequestGridPowerMessage
-                ) =>
+            case requestGridPowerMessage: RequestGridPower =>
               requestGridPowerMessage.currentSweepNo shouldBe sweepNo
               requestGridPowerMessage.nodeUuids should contain allElementsOf requestedConnectionNodeUuids
 
@@ -154,8 +150,8 @@ class DBFSAlgorithmSupGridSpec
           // we return with a fake grid power message
           // / as we are using the ask pattern, we cannot send it to the grid agent directly but have to send it to the
           // / ask sender
-          lastSender ! WrappedPowerMessage(
-            ProvideGridPowerMessage(
+          lastSender ! WrappedResponse(
+            GridPowerResponse(
               requestedConnectionNodeUuids.map { uuid =>
                 ExchangePower(
                   uuid,
@@ -259,9 +255,7 @@ class DBFSAlgorithmSupGridSpec
           val message = hvGrid.expectMessageType[GridAgent.Request]
 
           val lastSender = message match {
-            case WrappedPowerMessage(
-                  requestGridPowerMessage: RequestGridPowerMessage
-                ) =>
+            case requestGridPowerMessage: RequestGridPower =>
               requestGridPowerMessage.currentSweepNo shouldBe sweepNo
               requestGridPowerMessage.nodeUuids should contain allElementsOf requestedConnectionNodeUuids
 
@@ -275,8 +269,8 @@ class DBFSAlgorithmSupGridSpec
           // we return with a fake grid power message
           // / as we are using the ask pattern, we cannot send it to the grid agent directly but have to send it to the
           // / ask sender
-          lastSender ! WrappedPowerMessage(
-            ProvideGridPowerMessage(
+          lastSender ! WrappedResponse(
+            GridPowerResponse(
               requestedConnectionNodeUuids.map { uuid =>
                 ExchangePower(
                   uuid,

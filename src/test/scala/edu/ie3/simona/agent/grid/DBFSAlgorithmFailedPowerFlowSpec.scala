@@ -9,15 +9,13 @@ package edu.ie3.simona.agent.grid
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.agent.grid.GridAgentMessages.SlackVoltageResponse.ExchangeVoltage
+import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
+  ExchangePower,
+  ExchangeVoltage,
+}
 import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.model.grid.RefSystem
-import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  FailedPowerFlow,
-  ProvideGridPowerMessage,
-}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -163,8 +161,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
       // we now answer the request of our centerGridAgent
       // with a fake grid power message and one fake slack voltage message
-      powerRequestSender ! WrappedPowerMessage(
-        ProvideGridPowerMessage(
+      powerRequestSender ! WrappedResponse(
+        GridPowerResponse(
           inferiorGridAgent.nodeUuids.map(nodeUuid =>
             ExchangePower(
               nodeUuid,
@@ -198,7 +196,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       // wait 30 seconds max for power flow to finish
       superiorGridAgent.gaProbe.expectMessage(
         30 seconds,
-        WrappedPowerMessage(FailedPowerFlow),
+        WrappedResponse(FailedPowerFlow),
       )
 
       // normally the slack node would send a FinishGridSimulationTrigger to all

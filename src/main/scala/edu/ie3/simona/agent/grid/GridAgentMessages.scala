@@ -7,11 +7,15 @@
 package edu.ie3.simona.agent.grid
 
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.agent.grid.GridAgentMessages.SlackVoltageResponse.ExchangeVoltage
-import edu.ie3.simona.ontology.messages.PowerMessage.PowerResponseMessage
-import edu.ie3.simona.ontology.messages.{Activation, PowerMessage}
+import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
+  ExchangePower,
+  ExchangeVoltage,
+}
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
+import edu.ie3.util.scala.quantities.ReactivePower
 import org.apache.pekko.actor.typed.ActorRef
+import squants.Power
 import squants.electro.ElectricPotential
 
 import java.util.UUID
@@ -86,19 +90,12 @@ object GridAgentMessages {
   final case class WrappedResponse(response: GridAgent.Response)
       extends GridAgent.InternalRequest
 
-  /** Wrapper for [[PowerMessage]]s.
-    * @param msg
-    *   the received power message
-    */
-  final case class WrappedPowerMessage(msg: PowerMessage)
-      extends GridAgent.InternalRequest
-
   /** Trait for values that can be received as a response to a
     * [[GridAgent.Request]].
     */
   sealed trait ReceivedValues extends GridAgent.InternalResponse
 
-  private type PowerRequestResponse[T] = (ActorRef[T], PowerResponseMessage)
+  private type PowerRequestResponse[T] = (ActorRef[T], PowerResponse)
 
   private type SlackVoltageRequestResponse =
     (ActorRef[GridAgent.Request], SlackVoltageResponse)
@@ -143,6 +140,72 @@ object GridAgentMessages {
       exception: Throwable
   ) extends GridAgent.InternalRequest
 
+  /** Request complex power at the nodes that the inferior sub grid shares with
+    * the sender's sub grid
+    *
+    * @param currentSweepNo
+    *   The current sweep
+    * @param nodeUuids
+    *   The UUIDs of the nodes that are bordering the sender's grid
+    */
+  final case class RequestGridPower(
+      currentSweepNo: Int,
+      nodeUuids: Seq[UUID],
+      sender: ActorRef[GridAgent.Request],
+  ) extends GridAgent.InternalRequest
+
+  sealed trait PowerResponse extends GridAgent.InternalResponse
+
+  sealed trait ProvidedPowerResponse extends PowerResponse {
+    def p: Power
+
+    def q: ReactivePower
+  }
+
+  /** Provide complex power at the nodes that the sender's sub grid shares with
+    * the superior sub grid, as a reply to a [[RequestGridPower]].
+    *
+    * @param nodalResidualPower
+    *   The complex powers of the shared nodes
+    */
+  final case class GridPowerResponse(
+      nodalResidualPower: Seq[ExchangePower]
+  ) extends PowerResponse
+
+  /** Indicate that the power flow calculation failed, as a reply to a
+    * [[RequestGridPower]].
+    */
+  final case object FailedPowerFlow extends PowerResponse
+
+  /** Provide power values as a reply to a
+    * [[edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage]]
+    *
+    * @param p
+    *   Unchanged active power
+    * @param q
+    *   Unchanged reactive power
+    */
+  final case class AssetPowerChangedMessage(
+      override val p: Power,
+      override val q: ReactivePower,
+  ) extends ProvidedPowerResponse
+
+  /** Provide values as a reply to a
+    * [[edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage]].
+    * In contrast to [[AssetPowerChangedMessage]], this message indicates that
+    * the same values for [[p]] and [[q]] has been send again as in the previous
+    * request
+    *
+    * @param p
+    *   Active power from the previous request
+    * @param q
+    *   Reactive power from the previous request
+    */
+  final case class AssetPowerUnchangedMessage(
+      override val p: Power,
+      override val q: ReactivePower,
+  ) extends ProvidedPowerResponse
+
   /** Request complex voltage at the nodes that the superior sub grid shares
     * with the sender's sub grid
     *
@@ -168,7 +231,22 @@ object GridAgentMessages {
       nodalSlackVoltages: Seq[ExchangeVoltage],
   ) extends GridAgent.InternalResponse
 
-  object SlackVoltageResponse {
+  object Responses {
+
+    /** Defining the exchanged power at one interconnection point
+      *
+      * @param nodeUuid
+      *   Unique identifier of the node, at which this residual power did appear
+      * @param p
+      *   Active power from the previous request
+      * @param q
+      *   Reactive power from the previous request
+      */
+    final case class ExchangePower(
+        nodeUuid: UUID,
+        override val p: Power,
+        override val q: ReactivePower,
+    ) extends ProvidedPowerResponse
 
     /** Defining the exchanged voltage at one interconnection point
       *
@@ -185,5 +263,4 @@ object GridAgentMessages {
         f: ElectricPotential,
     )
   }
-
 }

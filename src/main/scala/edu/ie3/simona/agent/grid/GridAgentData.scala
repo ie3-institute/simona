@@ -11,22 +11,13 @@ import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentMessages.{
-  ReceivedPowerValues,
-  ReceivedSlackVoltageValues,
-}
+import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.agent.grid.ReceivedValuesStore.NodeToReceivedPower
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.model.grid.{GridModel, RefSystem}
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  FailedPowerFlow,
-  PowerResponseMessage,
-  ProvideGridPowerMessage,
-  ProvidePowerMessage,
-}
 import org.apache.pekko.actor.typed.ActorRef
 
 import java.time.ZonedDateTime
@@ -266,7 +257,7 @@ object GridAgentData {
               nodeToReceivedPowerValuesMapWithAddedPowerResponse,
               (
                 senderRef,
-                provideGridPowerMessage: ProvideGridPowerMessage,
+                provideGridPowerMessage: GridPowerResponse,
               ),
             ) =>
           /* Go over all includes messages and add them. */
@@ -317,14 +308,14 @@ object GridAgentData {
       *   information
       */
     private def updateNodalReceivedPower(
-        powerResponse: PowerResponseMessage,
+        powerResponse: PowerResponse,
         nodeToReceived: NodeToReceivedPower,
         senderRef: ActorRef[_],
         replace: Boolean,
     ): NodeToReceivedPower = {
       // extract the nodeUuid that corresponds to the sender's actorRef and check if we expect a message from the sender
       val nodeUuid = powerResponse match {
-        case powerValuesMessage: ProvidePowerMessage =>
+        case powerValuesMessage: ProvidedPowerResponse =>
           getNodeUuidForSender(nodeToReceived, senderRef, replace)
             .getOrElse(
               throw new RuntimeException(

@@ -54,7 +54,6 @@ object GridAgent extends DBFSAlgorithm {
       listener: Iterable[ActorRef[ResultEvent]],
   ): Behavior[Request] = Behaviors.withStash(100) { buffer =>
     Behaviors.setup[Request] { context =>
-      context.messageAdapter(msg => WrappedPowerMessage(msg))
       val activationAdapter: ActorRef[Activation] =
         context.messageAdapter[Activation](msg => WrappedActivation(msg))
 
@@ -214,7 +213,7 @@ object GridAgent extends DBFSAlgorithm {
       constantData: GridAgentConstantData,
       buffer: StashBuffer[Request],
   ): Behavior[Request] = Behaviors.receivePartial {
-    case (_, msg: WrappedPowerMessage) =>
+    case (_, msg: WrappedResponse) =>
       // needs to be set here to handle if the messages arrive too early
       // before a transition to GridAgentBehaviour took place
       buffer.stash(msg)

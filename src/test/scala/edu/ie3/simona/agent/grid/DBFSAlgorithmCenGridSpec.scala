@@ -9,13 +9,14 @@ package edu.ie3.simona.agent.grid
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.agent.grid.GridAgentMessages.SlackVoltageResponse.ExchangeVoltage
+import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
+  ExchangePower,
+  ExchangeVoltage,
+}
 import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.model.grid.RefSystem
-import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage
-import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -215,8 +216,8 @@ class DBFSAlgorithmCenGridSpec
       // we now answer the request of our centerGridAgent
       // with three fake grid power messages and one fake slack voltage message
 
-      firstPowerRequestSender11 ! WrappedPowerMessage(
-        ProvideGridPowerMessage(
+      firstPowerRequestSender11 ! WrappedResponse(
+        GridPowerResponse(
           inferiorGrid11.nodeUuids.map(nodeUuid =>
             ExchangePower(
               nodeUuid,
@@ -227,8 +228,8 @@ class DBFSAlgorithmCenGridSpec
         )
       )
 
-      firstPowerRequestSender12 ! WrappedPowerMessage(
-        ProvideGridPowerMessage(
+      firstPowerRequestSender12 ! WrappedResponse(
+        GridPowerResponse(
           inferiorGrid12.nodeUuids.map(nodeUuid =>
             ExchangePower(
               nodeUuid,
@@ -239,8 +240,8 @@ class DBFSAlgorithmCenGridSpec
         )
       )
 
-      firstPowerRequestSender13 ! WrappedPowerMessage(
-        ProvideGridPowerMessage(
+      firstPowerRequestSender13 ! WrappedResponse(
+        GridPowerResponse(
           inferiorGrid13.nodeUuids.map(nodeUuid =>
             ExchangePower(
               nodeUuid,
@@ -383,8 +384,8 @@ class DBFSAlgorithmCenGridSpec
       // we now answer the requests of our centerGridAgent
       // with three fake grid power message
 
-      secondPowerRequestSender11 ! WrappedPowerMessage(
-        ProvideGridPowerMessage(
+      secondPowerRequestSender11 ! WrappedResponse(
+        GridPowerResponse(
           inferiorGrid11.nodeUuids.map(nodeUuid =>
             ExchangePower(
               nodeUuid,
@@ -395,8 +396,8 @@ class DBFSAlgorithmCenGridSpec
         )
       )
 
-      secondPowerRequestSender12 ! WrappedPowerMessage(
-        ProvideGridPowerMessage(
+      secondPowerRequestSender12 ! WrappedResponse(
+        GridPowerResponse(
           inferiorGrid12.nodeUuids.map(nodeUuid =>
             ExchangePower(
               nodeUuid,
@@ -407,8 +408,8 @@ class DBFSAlgorithmCenGridSpec
         )
       )
 
-      secondPowerRequestSender13 ! WrappedPowerMessage(
-        ProvideGridPowerMessage(
+      secondPowerRequestSender13 ! WrappedResponse(
+        GridPowerResponse(
           inferiorGrid13.nodeUuids.map(nodeUuid =>
             ExchangePower(
               nodeUuid,

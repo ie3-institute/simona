@@ -21,17 +21,17 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentConstantData,
   PowerFlowDoneData,
 }
-import edu.ie3.simona.agent.grid.GridAgentMessages.SlackVoltageResponse.ExchangeVoltage
+import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangeVoltage
 import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.agent.participant.ParticipantAgent.{
   FinishParticipantSimulation,
   ParticipantMessage,
+  RequestAssetPowerMessage,
 }
 import edu.ie3.simona.event.RuntimeEvent.PowerFlowFailed
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid.{NodeModel, RefSystem}
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.PowerMessage._
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.scala.quantities.DefaultQuantities._
@@ -277,12 +277,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         // before power flow calc for this sweep we either have to stash() the message to answer it later (in current sweep)
         // or trigger a new run for the next sweepNo
         case (
-              msg @ WrappedPowerMessage(
-                RequestGridPowerMessage(
-                  requestSweepNo,
-                  _,
-                  _,
-                )
+              msg @ RequestGridPower(
+                requestSweepNo,
+                _,
+                _,
               ),
               gridAgentBaseData: GridAgentBaseData,
             ) =>
@@ -313,9 +311,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
         // after power flow calc for this sweepNo
         case (
-              WrappedPowerMessage(
-                RequestGridPowerMessage(_, requestedNodeUuids, sender)
-              ),
+              RequestGridPower(_, requestedNodeUuids, sender),
               powerFlowDoneData @ PowerFlowDoneData(
                 gridAgentBaseData,
                 powerFlowResult,
@@ -377,7 +373,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                         }
                     }
                     .map { case (nodeUuid, (p, q)) =>
-                      ProvideGridPowerMessage.ExchangePower(
+                      Responses.ExchangePower(
                         nodeUuid,
                         p,
                         q,
@@ -407,13 +403,13 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                       )
                     }
 
-                  sender ! WrappedPowerMessage(
-                    ProvideGridPowerMessage(exchangePowers)
+                  sender ! WrappedResponse(
+                    GridPowerResponse(exchangePowers)
                   )
                   simulateGrid(updatedGridAgentBaseData, currentTick)
 
                 case _: FailedNewtonRaphsonPFResult =>
-                  sender ! WrappedPowerMessage(FailedPowerFlow)
+                  sender ! WrappedResponse(FailedPowerFlow)
                   simulateGrid(gridAgentBaseData, currentTick)
               }
             case None =>
@@ -422,7 +418,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                 "I got a grid power request from a subgrid I don't know. Can't answer it properly."
               )
 
-              sender ! WrappedPowerMessage(FailedPowerFlow)
+              sender ! WrappedResponse(FailedPowerFlow)
               Behaviors.same
           }
 
@@ -792,7 +788,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         // (only possible when first simulation triggered and this agent is faster in this state as the request
         // by a superior grid arrives)
         case (
-              msg: WrappedPowerMessage,
+              msg @ WrappedResponse(_: PowerResponse),
               _: GridAgentBaseData,
             ) =>
           ctx.log.debug(
@@ -806,7 +802,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         // (only possible when first simulation triggered and this agent is faster
         // with its power flow calculation in this state as the request by a superior grid arrives)
         case (
-              msg: WrappedPowerMessage,
+              msg @ WrappedResponse(_: PowerResponse),
               _: PowerFlowDoneData,
             ) =>
           ctx.log.debug(
@@ -1296,20 +1292,18 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             .map { case (inferiorGridAgentRef, inferiorGridGateNodes) =>
               inferiorGridAgentRef
                 .ask[GridAgent.Request](ref =>
-                  WrappedPowerMessage(
-                    RequestGridPowerMessage(
-                      currentSweepNo,
-                      inferiorGridGateNodes.distinct,
-                      ref,
-                    )
+                  RequestGridPower(
+                    currentSweepNo,
+                    inferiorGridGateNodes.distinct,
+                    ref,
                   )
                 )
                 .map {
-                  case WrappedPowerMessage(
-                        provideGridPowerMessage: ProvideGridPowerMessage
+                  case WrappedResponse(
+                        provideGridPowerMessage: GridPowerResponse
                       ) =>
                     (inferiorGridAgentRef, provideGridPowerMessage)
-                  case WrappedPowerMessage(FailedPowerFlow) =>
+                  case WrappedResponse(FailedPowerFlow) =>
                     (inferiorGridAgentRef, FailedPowerFlow)
                 }
             }

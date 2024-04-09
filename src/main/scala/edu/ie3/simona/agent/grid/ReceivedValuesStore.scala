@@ -7,16 +7,16 @@
 package edu.ie3.simona.agent.grid
 
 import edu.ie3.datamodel.graph.SubGridGate
-import edu.ie3.simona.agent.grid.GridAgentMessages.SlackVoltageResponse.ExchangeVoltage
+import edu.ie3.simona.agent.grid.GridAgentMessages.{
+  GridPowerResponse,
+  PowerResponse,
+}
+import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangeVoltage
 import edu.ie3.simona.agent.grid.ReceivedValuesStore.{
   NodeToReceivedPower,
   NodeToReceivedSlackVoltage,
 }
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  PowerResponseMessage,
-  ProvidePowerMessage,
-}
 import org.apache.pekko.actor.typed.ActorRef
 
 import java.util.UUID
@@ -48,7 +48,7 @@ final case class ReceivedValuesStore private (
 object ReceivedValuesStore {
 
   type NodeToReceivedPower =
-    Map[UUID, Map[ActorRef[_], Option[PowerResponseMessage]]]
+    Map[UUID, Map[ActorRef[_], Option[PowerResponse]]]
   type NodeToReceivedSlackVoltage =
     Map[UUID, Option[ExchangeVoltage]]
 
@@ -123,7 +123,7 @@ object ReceivedValuesStore {
           val actorRefToMessage = subordinateToReceivedPower
             .getOrElse(
               couplingNodeUuid,
-              Map.empty[ActorRef[_], Option[ProvidePowerMessage]],
+              Map.empty[ActorRef[_], Option[GridPowerResponse]],
             ) + (inferiorSubGridRef -> None)
 
           /* Update the existing map */

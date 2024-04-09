@@ -13,11 +13,13 @@ import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.StartData.WithForcedStartVoltages
 import edu.ie3.powerflow.model.enums.NodeType
-import edu.ie3.simona.agent.grid.GridAgentMessages.ReceivedSlackVoltageValues
-import edu.ie3.simona.agent.grid.GridAgentMessages.SlackVoltageResponse.ExchangeVoltage
+import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangeVoltage
+import edu.ie3.simona.agent.grid.GridAgentMessages.{
+  ProvidedPowerResponse,
+  ReceivedSlackVoltageValues,
+}
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid._
-import edu.ie3.simona.ontology.messages.PowerMessage.ProvidePowerMessage
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import org.slf4j.Logger
 import squants.electro.ElectricPotential
@@ -90,7 +92,7 @@ trait PowerFlowSupport {
             val (p, q) = actorRefsWithPower
               .map { case (_, powerMsg) => powerMsg }
               .collect {
-                case Some(providePowerMessage: ProvidePowerMessage) =>
+                case Some(providePowerMessage: ProvidedPowerResponse) =>
                   providePowerMessage
                 case Some(message) =>
                   throw new RuntimeException(

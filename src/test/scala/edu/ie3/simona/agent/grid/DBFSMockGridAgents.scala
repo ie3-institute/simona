@@ -6,17 +6,16 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.simona.agent.grid.GridAgentMessages.SlackVoltageResponse.ExchangeVoltage
+import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
+  ExchangePower,
+  ExchangeVoltage,
+}
 import edu.ie3.simona.agent.grid.GridAgentMessages.{
+  GridPowerResponse,
+  RequestGridPower,
   SlackVoltageRequest,
   SlackVoltageResponse,
-  WrappedPowerMessage,
   WrappedResponse,
-}
-import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  ProvideGridPowerMessage,
-  RequestGridPowerMessage,
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
@@ -55,9 +54,7 @@ trait DBFSMockGridAgents extends UnitSpec {
 
     def expectGridPowerRequest(): ActorRef[GridAgent.Request] = {
       gaProbe.expectMessageType[GridAgent.Request] match {
-        case WrappedPowerMessage(
-              requestGridPowerMessage: RequestGridPowerMessage
-            ) =>
+        case requestGridPowerMessage: RequestGridPower =>
           requestGridPowerMessage.nodeUuids should contain allElementsOf nodeUuids
 
           requestGridPowerMessage.sender
@@ -120,7 +117,7 @@ trait DBFSMockGridAgents extends UnitSpec {
         maxDuration: FiniteDuration = 30 seconds,
     ): Unit = {
       gaProbe.expectMessageType[GridAgent.Request](maxDuration) match {
-        case WrappedPowerMessage(msg: ProvideGridPowerMessage) =>
+        case WrappedResponse(msg: GridPowerResponse) =>
           msg.nodalResidualPower should have size expectedExchangedPowers.size
 
           expectedExchangedPowers.foreach { expectedPower =>
@@ -144,9 +141,7 @@ trait DBFSMockGridAgents extends UnitSpec {
         receiver: ActorRef[GridAgent.Request],
         sweepNo: Int,
     ): Unit = {
-      receiver ! WrappedPowerMessage(
-        RequestGridPowerMessage(sweepNo, nodeUuids, gaProbe.ref)
-      )
+      receiver ! RequestGridPower(sweepNo, nodeUuids, gaProbe.ref)
     }
   }
 }
