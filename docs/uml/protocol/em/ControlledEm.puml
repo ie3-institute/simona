@@ -1,0 +1,64 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+' set fixed order
+participant Scheduler
+participant EmAgent1
+participant EmAgent2
+participant PvAgent
+participant StorageAgent
+participant WeatherService
+
+autonumber
+
+Scheduler -> WeatherService: Activation
+activate WeatherService
+
+WeatherService -> PvAgent: ProvideWeatherMessage
+
+WeatherService -> Scheduler: Completion
+deactivate WeatherService
+
+Scheduler -> EmAgent1: Activation
+activate EmAgent1
+
+EmAgent1 -> EmAgent2: RequestFlexOptions
+activate EmAgent2
+
+EmAgent2 -> StorageAgent: RequestFlexOptions
+activate StorageAgent
+
+EmAgent2 -> PvAgent: RequestFlexOptions
+activate PvAgent
+
+PvAgent -> EmAgent2: ProvideFlexOptions
+deactivate PvAgent
+
+StorageAgent -> EmAgent2: ProvideFlexOptions
+deactivate StorageAgent
+
+EmAgent2 -> EmAgent1: ProvideFlexOptions
+deactivate EmAgent2
+
+EmAgent1 -> EmAgent2: IssuePowerControl
+activate EmAgent2
+
+EmAgent2 -> PvAgent: IssueNoControl
+activate PvAgent
+
+EmAgent2 -> StorageAgent: IssuePowerControl
+activate StorageAgent
+
+PvAgent -> EmAgent2: FlexCompletion
+deactivate PvAgent
+
+StorageAgent -> EmAgent2: FlexCompletion
+deactivate StorageAgent
+
+EmAgent2 -> EmAgent1: FlexCompletion
+deactivate EmAgent2
+
+EmAgent1 -> Scheduler: Completion
+deactivate EmAgent1
+
+@enduml
