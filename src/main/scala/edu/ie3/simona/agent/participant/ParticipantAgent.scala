@@ -801,11 +801,9 @@ abstract class ParticipantAgent[
       setPower: squants.Power,
   ): (MS, PD, FlexChangeIndicator)
 
-  /** Determining the reply to an
-    * [[RequestAssetPowerMessage]],
-    * send this answer and stay in the current state. If no reply can be
-    * determined (because an activation or incoming data is expected), the
-    * message is stashed.
+  /** Determining the reply to an [[RequestAssetPowerMessage]], send this answer
+    * and stay in the current state. If no reply can be determined (because an
+    * activation or incoming data is expected), the message is stashed.
     *
     * This methods goal is to find a reply as fast as possible, therefore the
     * following options are checked in subsequent order: 1) This request (in
