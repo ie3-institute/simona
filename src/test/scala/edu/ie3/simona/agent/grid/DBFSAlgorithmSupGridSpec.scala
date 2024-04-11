@@ -11,14 +11,7 @@ import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangePower
-import edu.ie3.simona.agent.grid.GridAgentMessages.{
-  CreateGridAgent,
-  FinishGridSimulationTrigger,
-  GridPowerResponse,
-  RequestGridPower,
-  WrappedActivation,
-  WrappedResponse,
-}
+import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.model.grid.RefSystem
@@ -150,16 +143,14 @@ class DBFSAlgorithmSupGridSpec
           // we return with a fake grid power message
           // / as we are using the ask pattern, we cannot send it to the grid agent directly but have to send it to the
           // / ask sender
-          lastSender ! WrappedResponse(
-            GridPowerResponse(
-              requestedConnectionNodeUuids.map { uuid =>
-                ExchangePower(
-                  uuid,
-                  Megawatts(0.0),
-                  Megavars(0.0),
-                )
-              }
-            )
+          lastSender ! GridPowerResponse(
+            requestedConnectionNodeUuids.map { uuid =>
+              ExchangePower(
+                uuid,
+                Megawatts(0.0),
+                Megavars(0.0),
+              )
+            }
           )
 
           // we expect a completion message here and that the agent goes back to simulate grid
@@ -269,16 +260,14 @@ class DBFSAlgorithmSupGridSpec
           // we return with a fake grid power message
           // / as we are using the ask pattern, we cannot send it to the grid agent directly but have to send it to the
           // / ask sender
-          lastSender ! WrappedResponse(
-            GridPowerResponse(
-              requestedConnectionNodeUuids.map { uuid =>
-                ExchangePower(
-                  uuid,
-                  deviations(sweepNo)._1,
-                  deviations(sweepNo)._2,
-                )
-              }
-            )
+          lastSender ! GridPowerResponse(
+            requestedConnectionNodeUuids.map { uuid =>
+              ExchangePower(
+                uuid,
+                deviations(sweepNo)._1,
+                deviations(sweepNo)._2,
+              )
+            }
           )
 
           // we expect a completion message here and that the agent goes back to simulate grid

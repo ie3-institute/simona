@@ -10,13 +10,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
-import edu.ie3.simona.agent.grid.GridAgentMessages.{
-  GridPowerResponse,
-  RequestGridPower,
-  SlackVoltageRequest,
-  SlackVoltageResponse,
-  WrappedResponse,
-}
+import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
 import org.apache.pekko.actor.testkit.typed.scaladsl.TestProbe
@@ -66,7 +60,7 @@ trait DBFSMockGridAgents extends UnitSpec {
         expectedExchangedVoltages: Seq[ExchangeVoltage],
     ): Unit = {
       gaProbe.expectMessageType[GridAgent.Request] match {
-        case WrappedResponse(msg: SlackVoltageResponse) =>
+        case msg: SlackVoltageResponse =>
           msg.currentSweepNo shouldBe expectedSweepNo
 
           msg.nodalSlackVoltages.size shouldBe expectedExchangedVoltages.size
@@ -117,7 +111,7 @@ trait DBFSMockGridAgents extends UnitSpec {
         maxDuration: FiniteDuration = 30 seconds,
     ): Unit = {
       gaProbe.expectMessageType[GridAgent.Request](maxDuration) match {
-        case WrappedResponse(msg: GridPowerResponse) =>
+        case msg: GridPowerResponse =>
           msg.nodalResidualPower should have size expectedExchangedPowers.size
 
           expectedExchangedPowers.foreach { expectedPower =>

@@ -120,7 +120,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
         // if we receive power values as response on our request, we process them here
         case (
-              WrappedResponse(receivedValues: ReceivedValues),
+              receivedValues: ReceivedValues,
               gridAgentBaseData: GridAgentBaseData,
             ) =>
           // we just received either all provided slack voltage values or all provided power values
@@ -264,11 +264,9 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             }
           } match {
             case exchangeVoltages =>
-              sender ! WrappedResponse(
-                SlackVoltageResponse(
-                  currentSweepNo,
-                  exchangeVoltages,
-                )
+              sender ! SlackVoltageResponse(
+                currentSweepNo,
+                exchangeVoltages,
               )
               Behaviors.same
           }
@@ -403,13 +401,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                       )
                     }
 
-                  sender ! WrappedResponse(
-                    GridPowerResponse(exchangePowers)
-                  )
+                  sender ! GridPowerResponse(exchangePowers)
                   simulateGrid(updatedGridAgentBaseData, currentTick)
 
                 case _: FailedNewtonRaphsonPFResult =>
-                  sender ! WrappedResponse(FailedPowerFlow)
+                  sender ! FailedPowerFlow
                   simulateGrid(gridAgentBaseData, currentTick)
               }
             case None =>
@@ -418,7 +414,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                 "I got a grid power request from a subgrid I don't know. Can't answer it properly."
               )
 
-              sender ! WrappedResponse(FailedPowerFlow)
+              sender ! FailedPowerFlow
               Behaviors.same
           }
 
@@ -608,7 +604,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         // handler for the future provided by `askForAssetPowers` to check if there are any changes in generation/load
         // of assets based on updated nodal voltages
         case (
-              WrappedResponse(receivedPowerValues: ReceivedPowerValues),
+              receivedPowerValues: ReceivedPowerValues,
               powerFlowDoneData: PowerFlowDoneData,
             ) =>
           val gridAgentBaseData = powerFlowDoneData.gridAgentBaseData
@@ -671,7 +667,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         // this means we requested an update of the slack voltage values, but for now don't request (and hence don't expect)
         // updated power values for our power flow calculations
         case (
-              WrappedResponse(receivedSlackValues: ReceivedSlackVoltageValues),
+              receivedSlackValues: ReceivedSlackVoltageValues,
               gridAgentBaseData: GridAgentBaseData,
             ) =>
           ctx.log.debug(
@@ -787,29 +783,23 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         // happens only when we received slack data and power values before we received a request to provide grid data
         // (only possible when first simulation triggered and this agent is faster in this state as the request
         // by a superior grid arrives)
-        case (
-              msg @ WrappedResponse(_: PowerResponse),
-              _: GridAgentBaseData,
-            ) =>
+        case (powerResponse: PowerResponse, _: GridAgentBaseData) =>
           ctx.log.debug(
             "Received Request for Grid Power too early. Stashing away"
           )
 
-          buffer.stash(msg)
+          buffer.stash(powerResponse)
           Behaviors.same
 
         // happens only when we received slack data and power values before we received a request to provide grid
         // (only possible when first simulation triggered and this agent is faster
         // with its power flow calculation in this state as the request by a superior grid arrives)
-        case (
-              msg @ WrappedResponse(_: PowerResponse),
-              _: PowerFlowDoneData,
-            ) =>
+        case (powerResponse: PowerResponse, _: PowerFlowDoneData) =>
           ctx.log.debug(
             "Received Request for Grid Power too early. Stashing away"
           )
 
-          buffer.stash(msg)
+          buffer.stash(powerResponse)
           Behaviors.same
 
         case _ =>
@@ -1235,7 +1225,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             })
           }.toVector
         )
-        .map(res => WrappedResponse(ReceivedAssetPowerValues(res)))
+        .map(res => ReceivedAssetPowerValues(res))
 
       pipeToSelf(future, ctx)
       true
@@ -1299,17 +1289,15 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                   )
                 )
                 .map {
-                  case WrappedResponse(
-                        provideGridPowerMessage: GridPowerResponse
-                      ) =>
+                  case provideGridPowerMessage: GridPowerResponse =>
                     (inferiorGridAgentRef, provideGridPowerMessage)
-                  case WrappedResponse(FailedPowerFlow) =>
+                  case FailedPowerFlow =>
                     (inferiorGridAgentRef, FailedPowerFlow)
                 }
             }
             .toVector
         )
-        .map(res => WrappedResponse(ReceivedGridPowerValues(res)))
+        .map(res => ReceivedGridPowerValues(res))
       pipeToSelf(future, ctx)
       true
     } else false
@@ -1360,16 +1348,13 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                     ref,
                   )
                 )
-                .map {
-                  case WrappedResponse(
-                        providedSlackValues: SlackVoltageResponse
-                      ) =>
-                    (superiorGridAgent, providedSlackValues)
+                .map { case providedSlackValues: SlackVoltageResponse =>
+                  (superiorGridAgent, providedSlackValues)
                 }
             }
             .toVector
         )
-        .map(res => WrappedResponse(ReceivedSlackVoltageValues(res)))
+        .map(res => ReceivedSlackVoltageValues(res))
       pipeToSelf(future, ctx)
       true
     } else false

@@ -161,29 +161,25 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
       // we now answer the request of our centerGridAgent
       // with a fake grid power message and one fake slack voltage message
-      powerRequestSender ! WrappedResponse(
-        GridPowerResponse(
-          inferiorGridAgent.nodeUuids.map(nodeUuid =>
-            ExchangePower(
-              nodeUuid,
-              Megawatts(1000.0),
-              Megavars(0.0),
-            )
+      powerRequestSender ! GridPowerResponse(
+        inferiorGridAgent.nodeUuids.map(nodeUuid =>
+          ExchangePower(
+            nodeUuid,
+            Megawatts(1000.0),
+            Megavars(0.0),
           )
         )
       )
 
-      slackVoltageRequestSender ! WrappedResponse(
-        SlackVoltageResponse(
-          sweepNo,
-          Seq(
-            ExchangeVoltage(
-              supNodeA.getUuid,
-              Kilovolts(380d),
-              Kilovolts(0d),
-            )
-          ),
-        )
+      slackVoltageRequestSender ! SlackVoltageResponse(
+        sweepNo,
+        Seq(
+          ExchangeVoltage(
+            supNodeA.getUuid,
+            Kilovolts(380d),
+            Kilovolts(0d),
+          )
+        ),
       )
 
       // power flow calculation should run now. After it's done,
@@ -194,10 +190,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       // the requested power is to high for the grid to handle, therefore the superior grid agent
       // receives a FailedPowerFlow message
       // wait 30 seconds max for power flow to finish
-      superiorGridAgent.gaProbe.expectMessage(
-        30 seconds,
-        WrappedResponse(FailedPowerFlow),
-      )
+      superiorGridAgent.gaProbe.expectMessage(30 seconds, FailedPowerFlow)
 
       // normally the slack node would send a FinishGridSimulationTrigger to all
       // connected inferior grids, because the slack node is just a mock, we imitate this behavior

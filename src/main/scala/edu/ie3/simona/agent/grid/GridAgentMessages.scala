@@ -83,17 +83,10 @@ object GridAgentMessages {
   final case class WrappedActivation(activation: Activation)
       extends GridAgent.InternalRequest
 
-  /** Wrapper for any [[GridAgent.Response]] from [[GridAgent]]s.
-    * @param response
-    *   received response
-    */
-  final case class WrappedResponse(response: GridAgent.Response)
-      extends GridAgent.InternalRequest
-
   /** Trait for values that can be received as a response to a
     * [[GridAgent.Request]].
     */
-  sealed trait ReceivedValues extends GridAgent.InternalResponse
+  sealed trait ReceivedValues extends GridAgent.InternalReply
 
   private type PowerRequestResponse[T] = (ActorRef[T], PowerResponse)
 
@@ -154,7 +147,7 @@ object GridAgentMessages {
       sender: ActorRef[GridAgent.Request],
   ) extends GridAgent.InternalRequest
 
-  sealed trait PowerResponse extends GridAgent.InternalResponse
+  sealed trait PowerResponse extends GridAgent.InternalReply
 
   sealed trait ProvidedPowerResponse extends PowerResponse {
     def p: Power
@@ -229,7 +222,7 @@ object GridAgentMessages {
   final case class SlackVoltageResponse(
       currentSweepNo: Int,
       nodalSlackVoltages: Seq[ExchangeVoltage],
-  ) extends GridAgent.InternalResponse
+  ) extends GridAgent.InternalReply
 
   object Responses {
 

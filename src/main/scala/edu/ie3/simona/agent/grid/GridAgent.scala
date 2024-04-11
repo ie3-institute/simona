@@ -39,14 +39,11 @@ object GridAgent extends DBFSAlgorithm {
   /** Trait for requests made to the [[GridAgent]] */
   sealed trait Request
 
-  /** Trait for responses of the [[GridAgent]] as a result of [[Request]]s */
-  sealed trait Response
-
   /** Necessary because we want to extend messages in other classes, but we do
     * want to keep the messages only available inside this package.
     */
   private[grid] trait InternalRequest extends Request
-  private[grid] trait InternalResponse extends Response
+  private[grid] trait InternalReply extends Request
 
   def apply(
       environmentRefs: EnvironmentRefs,
@@ -213,18 +210,18 @@ object GridAgent extends DBFSAlgorithm {
       constantData: GridAgentConstantData,
       buffer: StashBuffer[Request],
   ): Behavior[Request] = Behaviors.receivePartial {
-    case (_, msg: WrappedResponse) =>
-      // needs to be set here to handle if the messages arrive too early
-      // before a transition to GridAgentBehaviour took place
-      buffer.stash(msg)
-      Behaviors.same
-
     case (_, WrappedActivation(activation: Activation)) =>
       constantData.environmentRefs.scheduler ! Completion(
         constantData.activationAdapter,
         Some(activation.tick),
       )
       buffer.unstashAll(simulateGrid(gridAgentBaseData, activation.tick))
+
+    case (_, msg: Request) =>
+      // needs to be set here to handle if the messages arrive too early
+      // before a transition to GridAgentBehaviour took place
+      buffer.stash(msg)
+      Behaviors.same
   }
 
   private def failFast(

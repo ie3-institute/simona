@@ -160,17 +160,15 @@ class DBFSAlgorithmParticipantSpec
 
       // we now answer the request of our gridAgentsWithParticipants
       // with a fake slack voltage message
-      firstSlackVoltageRequestSender ! WrappedResponse(
-        SlackVoltageResponse(
-          firstSweepNo,
-          Seq(
-            ExchangeVoltage(
-              supNodeA.getUuid,
-              Kilovolts(380d),
-              Kilovolts(0d),
-            )
-          ),
-        )
+      firstSlackVoltageRequestSender ! SlackVoltageResponse(
+        firstSweepNo,
+        Seq(
+          ExchangeVoltage(
+            supNodeA.getUuid,
+            Kilovolts(380d),
+            Kilovolts(0d),
+          )
+        ),
       )
 
       // power flow calculation should run now. After it's done,
@@ -207,17 +205,15 @@ class DBFSAlgorithmParticipantSpec
         superiorGridAgent.expectSlackVoltageRequest(secondSweepNo)
 
       // the superior grid would answer with updated slack voltage values
-      secondSlackAskSender ! WrappedResponse(
-        SlackVoltageResponse(
-          secondSweepNo,
-          Seq(
-            ExchangeVoltage(
-              supNodeA.getUuid,
-              Kilovolts(374.2269461446d),
-              Kilovolts(65.9863075134d),
-            )
-          ),
-        )
+      secondSlackAskSender ! SlackVoltageResponse(
+        secondSweepNo,
+        Seq(
+          ExchangeVoltage(
+            supNodeA.getUuid,
+            Kilovolts(374.2269461446d),
+            Kilovolts(65.9863075134d),
+          )
+        ),
       )
 
       // here the gridAgentWithParticipants has received a second AssetPowerUnchangedMessage

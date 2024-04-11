@@ -216,58 +216,50 @@ class DBFSAlgorithmCenGridSpec
       // we now answer the request of our centerGridAgent
       // with three fake grid power messages and one fake slack voltage message
 
-      firstPowerRequestSender11 ! WrappedResponse(
-        GridPowerResponse(
-          inferiorGrid11.nodeUuids.map(nodeUuid =>
-            ExchangePower(
-              nodeUuid,
-              Megawatts(0.0),
-              Megavars(0.0),
-            )
+      firstPowerRequestSender11 ! GridPowerResponse(
+        inferiorGrid11.nodeUuids.map(nodeUuid =>
+          ExchangePower(
+            nodeUuid,
+            Megawatts(0.0),
+            Megavars(0.0),
           )
         )
       )
 
-      firstPowerRequestSender12 ! WrappedResponse(
-        GridPowerResponse(
-          inferiorGrid12.nodeUuids.map(nodeUuid =>
-            ExchangePower(
-              nodeUuid,
-              Megawatts(0.0),
-              Megavars(0.0),
-            )
+      firstPowerRequestSender12 ! GridPowerResponse(
+        inferiorGrid12.nodeUuids.map(nodeUuid =>
+          ExchangePower(
+            nodeUuid,
+            Megawatts(0.0),
+            Megavars(0.0),
           )
         )
       )
 
-      firstPowerRequestSender13 ! WrappedResponse(
-        GridPowerResponse(
-          inferiorGrid13.nodeUuids.map(nodeUuid =>
-            ExchangePower(
-              nodeUuid,
-              Megawatts(0.0),
-              Megavars(0.0),
-            )
+      firstPowerRequestSender13 ! GridPowerResponse(
+        inferiorGrid13.nodeUuids.map(nodeUuid =>
+          ExchangePower(
+            nodeUuid,
+            Megawatts(0.0),
+            Megavars(0.0),
           )
         )
       )
 
-      firstSlackVoltageRequestSender ! WrappedResponse(
-        SlackVoltageResponse(
-          firstSweepNo,
-          Seq(
-            ExchangeVoltage(
-              supNodeA.getUuid,
-              Kilovolts(380d),
-              Kilovolts(0d),
-            ),
-            ExchangeVoltage(
-              supNodeB.getUuid,
-              Kilovolts(380d),
-              Kilovolts(0d),
-            ),
+      firstSlackVoltageRequestSender ! SlackVoltageResponse(
+        firstSweepNo,
+        Seq(
+          ExchangeVoltage(
+            supNodeA.getUuid,
+            Kilovolts(380d),
+            Kilovolts(0d),
           ),
-        )
+          ExchangeVoltage(
+            supNodeB.getUuid,
+            Kilovolts(380d),
+            Kilovolts(0d),
+          ),
+        ),
       )
 
       // power flow calculation should run now. After it's done,
@@ -300,22 +292,20 @@ class DBFSAlgorithmCenGridSpec
         superiorGridAgent.expectSlackVoltageRequest(secondSweepNo)
 
       // the superior grid would answer with updated slack voltage values
-      secondSlackAskSender ! WrappedResponse(
-        SlackVoltageResponse(
-          secondSweepNo,
-          Seq(
-            ExchangeVoltage(
-              supNodeB.getUuid,
-              Kilovolts(374.22694614463d), // 380 kV @ 10°
-              Kilovolts(65.9863075134335d), // 380 kV @ 10°
-            ),
-            ExchangeVoltage( // this one should currently be ignored anyways
-              supNodeA.getUuid,
-              Kilovolts(380d),
-              Kilovolts(0d),
-            ),
+      secondSlackAskSender ! SlackVoltageResponse(
+        secondSweepNo,
+        Seq(
+          ExchangeVoltage(
+            supNodeB.getUuid,
+            Kilovolts(374.22694614463d), // 380 kV @ 10°
+            Kilovolts(65.9863075134335d), // 380 kV @ 10°
           ),
-        )
+          ExchangeVoltage( // this one should currently be ignored anyways
+            supNodeA.getUuid,
+            Kilovolts(380d),
+            Kilovolts(0d),
+          ),
+        ),
       )
 
       // After the intermediate power flow calculation, we expect one grid power
@@ -384,38 +374,32 @@ class DBFSAlgorithmCenGridSpec
       // we now answer the requests of our centerGridAgent
       // with three fake grid power message
 
-      secondPowerRequestSender11 ! WrappedResponse(
-        GridPowerResponse(
-          inferiorGrid11.nodeUuids.map(nodeUuid =>
-            ExchangePower(
-              nodeUuid,
-              Megawatts(0.0),
-              Megavars(0.0),
-            )
+      secondPowerRequestSender11 ! GridPowerResponse(
+        inferiorGrid11.nodeUuids.map(nodeUuid =>
+          ExchangePower(
+            nodeUuid,
+            Megawatts(0.0),
+            Megavars(0.0),
           )
         )
       )
 
-      secondPowerRequestSender12 ! WrappedResponse(
-        GridPowerResponse(
-          inferiorGrid12.nodeUuids.map(nodeUuid =>
-            ExchangePower(
-              nodeUuid,
-              Megawatts(0.0),
-              Megavars(0.0),
-            )
+      secondPowerRequestSender12 ! GridPowerResponse(
+        inferiorGrid12.nodeUuids.map(nodeUuid =>
+          ExchangePower(
+            nodeUuid,
+            Megawatts(0.0),
+            Megavars(0.0),
           )
         )
       )
 
-      secondPowerRequestSender13 ! WrappedResponse(
-        GridPowerResponse(
-          inferiorGrid13.nodeUuids.map(nodeUuid =>
-            ExchangePower(
-              nodeUuid,
-              Megawatts(0.0),
-              Megavars(0.0),
-            )
+      secondPowerRequestSender13 ! GridPowerResponse(
+        inferiorGrid13.nodeUuids.map(nodeUuid =>
+          ExchangePower(
+            nodeUuid,
+            Megawatts(0.0),
+            Megavars(0.0),
           )
         )
       )
