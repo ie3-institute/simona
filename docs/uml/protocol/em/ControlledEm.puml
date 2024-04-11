@@ -11,6 +11,32 @@ participant WeatherService
 
 autonumber
 
+==Init==
+
+PvAgent -> WeatherService: RegisterForWeatherMessage
+activate PvAgent
+activate WeatherService
+PvAgent -> EmAgent2: RegisterParticipant
+deactivate PvAgent
+
+WeatherService -> PvAgent: RegistrationSuccessfulMessage
+deactivate WeatherService
+activate PvAgent
+PvAgent -> EmAgent2: ScheduleFlexRequest
+deactivate PvAgent
+activate EmAgent2
+
+EmAgent2 -> EmAgent1: ScheduleFlexRequest
+deactivate EmAgent2
+activate EmAgent1
+EmAgent1 -> Scheduler: ScheduleActivation
+deactivate EmAgent1
+
+StorageAgent -> EmAgent2: RegisterParticipant
+StorageAgent -> EmAgent2: ScheduleFlexRequest
+
+==Simulation==
+
 Scheduler -> WeatherService: Activation
 activate WeatherService
 
