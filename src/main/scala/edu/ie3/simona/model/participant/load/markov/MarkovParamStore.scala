@@ -1,25 +1,40 @@
-/*
- * © 2024. TU Dortmund University,
- * Institute of Energy Systems, Energy Efficiency and Energy Economics,
- * Research group Distribution grid planning and operation
- */
-
-package edu.ie3.simona.model.participant.load.markov
-
-import java.io.{InputStreamReader, Reader}
-import java.time.{Duration, ZonedDateTime}
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.simona.exceptions.FileIOException
-import edu.ie3.simona.model.participant.load.DayType // Use for Markov too
-
-import edu.ie3.simona.model.participant.load.markov.SwitchOnProbabilityKey
 import org.apache.commons.csv.{CSVFormat, CSVRecord}
 
+import java.io.{FileInputStream, InputStreamReader, Reader}
+import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
-// appliances
+object MarkovParamStore extends LazyLogging {
 
+  def main(args: Array[String]): Unit = {
+    val filePath = "/load/markov/probabilities/usage_probabilities.csv"
+    val data = readCSV(filePath)
+    Test(data)
+  }
 
+  def readCSV(filePath: String): Map[String, Double] = {
+    val reader: Reader = new InputStreamReader(new FileInputStream(filePath))
+    val csvFormat: CSVFormat = CSVFormat.DEFAULT.withHeader().withDelimiter(';')
+    val csvRecords: Iterable[CSVRecord] = csvFormat.parse(reader).asScala
+    val dataMap = mutable.Map[String, Double]()
 
+    for (record <- csvRecords) {
+      val applianceCategory = record.get("appliance_category")
+      val usageProbabilityStr = record.get("usage_probability")
+      try {
+        val usageProbability = usageProbabilityStr.toDouble
+        dataMap.put(applianceCategory, usageProbability)
+      } catch {
+        case _: NumberFormatException => logger.warn(s"Invalid usage probability format for $applianceCategory: $usageProbabilityStr")
+      }
+    }
+    dataMap.toMap
+  }
 
-// probabilities
+  def Test(data: Map[String, Double]): Unit = {
+    data.foreach { case (applianceCategory, usageProbability) =>
+      println(s"Appliance Category: $applianceCategory, Usage Probability: $usageProbability")
+    }
+  }
+}

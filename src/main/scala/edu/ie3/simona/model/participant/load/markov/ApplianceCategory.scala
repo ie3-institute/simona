@@ -8,11 +8,12 @@ package edu.ie3.simona.model.participant.load.markov
 
 import edu.ie3.simona.util.ParsableEnumeration
 
-final case class MarkovParamStore( )
+final case class ApplianceCategory()
 
-/** Enumeration to list all possible parameters
+/**
+ * Enumeration of all considered appliance types
  */
-case object MarkovParameters extends ParsableEnumeration {
+case object ApplianceCategory extends ParsableEnumeration {
   //val K: Value = Value("k")
 
   val DISH_WASHER: Value = Value("dish_washer")

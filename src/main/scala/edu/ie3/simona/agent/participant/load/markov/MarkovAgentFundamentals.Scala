@@ -3,11 +3,10 @@
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
-
+/**
 package edu.ie3.simona.agent.participant.load.markov
 
 import edu.ie3.datamodel.models.input.system.LoadInput
-import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{ApparentPower, ZERO_POWER}
@@ -21,25 +20,20 @@ import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
-import edu.ie3.simona.model.SystemComponent
+
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.load.markov.{MarkovModel, MarkovRelevantData}
 import edu.ie3.simona.model.participant.{FlexChangeIndicator, ModelState}
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{FlexRequest, FlexResponse}
-import edu.ie3.simona.util.SimonaConstants
-import edu.ie3.simona.util.TickUtil._
-import edu.ie3.util.quantities.PowerSystemUnits.PU
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{FlexResponse}
+
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.ReactivePower
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import org.apache.pekko.actor.{ActorRef, FSM}
-import squants.{Dimensionless, Each, Power}
+import squants.Dimensionless
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.collection.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
 protected trait MarkovAgentFundamentals
@@ -310,3 +304,4 @@ override val calculateModelPowerFunc: (
       model: MarkovModel,
   ): ModelState.ConstantState.type = modelState
 }
+*/
