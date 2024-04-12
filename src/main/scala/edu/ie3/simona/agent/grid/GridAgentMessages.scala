@@ -129,7 +129,7 @@ object GridAgentMessages {
     * @param exception
     *   that was received
     */
-  final case class WrappedExceptions(
+  final case class WrappedException(
       exception: Throwable
   ) extends GridAgent.InternalRequest
 
