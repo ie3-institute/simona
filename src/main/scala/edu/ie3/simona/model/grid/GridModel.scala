@@ -15,7 +15,6 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.control.{GridControls, TransformerControlGroupModel}
 import edu.ie3.simona.model.grid.GridModel.GridComponents
 import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseA,
@@ -40,7 +39,7 @@ final case class GridModel(
     subnetNo: Int,
     mainRefSystem: RefSystem,
     gridComponents: GridComponents,
-    gridControls: GridControls,
+    voltageLimits: VoltageLimits,
 ) {
 
   // init nodeUuidToIndexMap
@@ -67,12 +66,14 @@ object GridModel {
   def apply(
       subGridContainer: SubGridContainer,
       refSystem: RefSystem,
+      voltageLimits: VoltageLimits,
       startDate: ZonedDateTime,
       endDate: ZonedDateTime,
       simonaConfig: SimonaConfig,
   ): GridModel = buildAndValidate(
     subGridContainer,
     refSystem,
+    voltageLimits,
     startDate,
     endDate,
     simonaConfig,
@@ -464,6 +465,7 @@ object GridModel {
     * @param maybeControlConfig
     *   Config of ControlGroup
     */
+  @deprecated
   private def validateControlGroups(
       subGridContainer: SubGridContainer,
       maybeControlConfig: Option[SimonaConfig.Simona.Control],
@@ -514,6 +516,7 @@ object GridModel {
   private def buildAndValidate(
       subGridContainer: SubGridContainer,
       refSystem: RefSystem,
+      voltageLimits: VoltageLimits,
       startDate: ZonedDateTime,
       endDate: ZonedDateTime,
       simonaConfig: SimonaConfig,
@@ -600,21 +603,11 @@ object GridModel {
         switches,
       )
 
-    /* Build transformer control groups */
-    val transformerControlGroups = simonaConfig.simona.control
-      .map { controlConfig =>
-        TransformerControlGroupModel.buildControlGroups(
-          subGridContainer.getRawGrid.getMeasurementUnits.asScala.toSet,
-          controlConfig.transformer,
-        )
-      }
-      .getOrElse(Set.empty)
-
     val gridModel = GridModel(
       subGridContainer.getSubnet,
       refSystem,
       gridComponents,
-      GridControls(transformerControlGroups),
+      voltageLimits,
     )
 
     /** Check and validates the grid. Especially the consistency of the grid
@@ -626,10 +619,6 @@ object GridModel {
     // validate
     validateConsistency(gridModel)
     validateConnectivity(gridModel)
-    validateControlGroups(
-      subGridContainer,
-      simonaConfig.simona.control,
-    )
 
     // return
     gridModel

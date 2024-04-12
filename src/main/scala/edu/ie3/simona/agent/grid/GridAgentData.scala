@@ -11,12 +11,14 @@ import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.agent.grid.GridAgentData.CongestionManagementData.Congestions
 import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.agent.grid.ReceivedValuesStore.NodeToReceivedPower
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.model.grid.{GridModel, RefSystem}
+import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
+import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.Activation
 import org.apache.pekko.actor.typed.ActorRef
 
@@ -75,6 +77,7 @@ object GridAgentData {
       thermalIslandGrids: Seq[ThermalGrid],
       subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
       refSystem: RefSystem,
+      voltageLimits: VoltageLimits,
   ) extends GridAgentData
       with GridAgentDataHelper {
     override protected val subgridGates: Vector[SubGridGate] =
@@ -125,6 +128,7 @@ object GridAgentData {
         superiorGridNodeUuids: Vector[UUID],
         inferiorGridGates: Vector[SubGridGate],
         powerFlowParams: PowerFlowParams,
+        congestionManagementParams: CongestionManagementParams,
         actorName: String,
     ): GridAgentBaseData = {
 
@@ -140,6 +144,7 @@ object GridAgentData {
       GridAgentBaseData(
         GridEnvironment(gridModel, subgridGateToActorRef, nodeToAssetAgents),
         powerFlowParams,
+        congestionManagementParams,
         currentSweepNo,
         ReceivedValuesStore.empty(
           nodeToAssetAgents,
@@ -182,6 +187,8 @@ object GridAgentData {
         ),
         currentSweepNo = 0,
         sweepValueStores = Map.empty[Int, SweepValueStore],
+        congestionManagementParams =
+          gridAgentBaseData.congestionManagementParams.clean,
       )
 
     }
@@ -208,6 +215,7 @@ object GridAgentData {
   final case class GridAgentBaseData private (
       gridEnv: GridEnvironment,
       powerFlowParams: PowerFlowParams,
+      congestionManagementParams: CongestionManagementParams,
       currentSweepNo: Int,
       receivedValueStore: ReceivedValuesStore,
       sweepValueStores: Map[Int, SweepValueStore],
@@ -461,6 +469,115 @@ object GridAgentData {
           superiorGridNodeUuids,
         ),
       )
+    }
+  }
+
+  final case class CongestionManagementData private (
+      gridAgentBaseData: GridAgentBaseData,
+      currentTick: Long,
+      powerFlowResults: PowerFlowResultEvent,
+      congestions: Congestions,
+      inferiorCongestions: Map[ActorRef[GridAgent.Request], Option[Congestions]],
+  ) extends GridAgentData {
+
+    /** Returns true if congestion data from inferior grids is expected and no
+      * data was received yet.
+      */
+    def awaitingInferiorData: Boolean =
+      inferiorCongestions.values.exists(_.isEmpty)
+
+    /** Method for updating the data with the received data.
+      *
+      * @param receivedData
+      *   data that was received
+      * @return
+      *   a updated copy of this data
+      */
+    def handleReceivingData(
+        receivedData: Map[ActorRef[GridAgent.Request], Option[Congestions]]
+    ): CongestionManagementData = {
+      copy(inferiorCongestions = inferiorCongestions ++ receivedData)
+    }
+
+    def inferiorRefs: Set[ActorRef[GridAgent.Request]] =
+      gridAgentBaseData.inferiorGridGates
+        .map(gridAgentBaseData.gridEnv.subgridGateToActorRef(_))
+        .distinct
+        .toSet
+  }
+
+  object CongestionManagementData {
+    def apply(
+        gridAgentBaseData: GridAgentBaseData,
+        currentTick: Long,
+        powerFlowResults: PowerFlowResultEvent,
+    ): CongestionManagementData = {
+      val gridModel = gridAgentBaseData.gridEnv.gridModel
+      val components = gridModel.gridComponents
+      val nodes = components.nodes.map(_.uuid)
+
+      // checking for voltage congestions
+      val voltageLimits = gridModel.voltageLimits
+      val voltageCongestion = powerFlowResults.nodeResults.exists { res =>
+        !voltageLimits.isInLimits(res.getvMag().getValue.doubleValue())
+      }
+
+      // checking for line congestions
+      val linesLimits = components.lines.map { line => line.uuid -> line }.toMap
+      val lineCongestion = powerFlowResults.lineResults.exists { res =>
+        val iA = res.getiAMag().getValue.doubleValue()
+        val iB = res.getiBMag().getValue.doubleValue()
+        val iNom = linesLimits(res.getInputModel).iNom.value
+
+        iA > iNom || iB > iNom
+      }
+
+      // checking for transformer congestions
+      val transformer2w = components.transformers.map { transformer =>
+        transformer.uuid -> transformer
+      }.toMap
+      val transformer2wCongestion =
+        powerFlowResults.transformer2wResults.exists { res =>
+          val transformer = transformer2w(res.getInputModel)
+
+          if (nodes.contains(transformer.hvNodeUuid)) {
+            res.getiAMag().getValue.doubleValue() > transformer.iNomHv.value
+          } else {
+            res.getiBMag().getValue.doubleValue() > transformer.iNomLv.value
+          }
+        }
+
+      // TODO: Add Transformer3w congestion check
+      val transformer3wCongestion = false
+
+      CongestionManagementData(
+        gridAgentBaseData,
+        currentTick,
+        powerFlowResults,
+        Congestions(
+          voltageCongestion,
+          lineCongestion,
+          transformer2wCongestion || transformer3wCongestion,
+        ),
+        gridAgentBaseData.gridEnv.subgridGateToActorRef.values
+          .map(_ -> None)
+          .toMap,
+      )
+    }
+
+    case class Congestions(
+        voltageCongestions: Boolean,
+        lineCongestions: Boolean,
+        transformerCongestions: Boolean,
+    ) {
+
+      def combine(options: Iterable[Congestions]): Congestions =
+        Congestions(
+          voltageCongestions || options.exists(_.voltageCongestions),
+          lineCongestions || options.exists(_.lineCongestions),
+          transformerCongestions || options.exists(_.transformerCongestions),
+        )
+
     }
   }
 

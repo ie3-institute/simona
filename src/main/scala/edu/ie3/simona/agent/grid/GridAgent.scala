@@ -14,8 +14,6 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentInitData,
 }
 import edu.ie3.simona.agent.grid.GridAgentMessages._
-import edu.ie3.simona.agent.grid.GridAgentMessage._
-import edu.ie3.simona.agent.grid.ReceivedValues.ReceivedFailure
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
@@ -42,7 +40,7 @@ import scala.concurrent.Future
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
 
-object GridAgent extends DBFSAlgorithm {
+object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
 
   /** Trait for requests made to the [[GridAgent]] */
   sealed trait Request
@@ -123,6 +121,8 @@ object GridAgent extends DBFSAlgorithm {
 
       ctx.log.debug("Received InitializeTrigger.")
 
+      val cfg = constantData.simonaConfig.simona
+
       // build the assets concurrently
       val subGridContainer = gridAgentInitData.subGridContainer
       val refSystem = gridAgentInitData.refSystem
@@ -135,11 +135,12 @@ object GridAgent extends DBFSAlgorithm {
       val gridModel = GridModel(
         subGridContainer,
         refSystem,
+        gridAgentInitData.voltageLimits,
         TimeUtil.withDefaults.toZonedDateTime(
-          constantData.simonaConfig.simona.time.startDateTime
+          cfg.time.startDateTime
         ),
         TimeUtil.withDefaults.toZonedDateTime(
-          constantData.simonaConfig.simona.time.endDateTime
+          cfg.time.endDateTime
         ),
         simonaConfig,
       )
@@ -150,9 +151,9 @@ object GridAgent extends DBFSAlgorithm {
           constantData.environmentRefs,
           constantData.simStartTime,
           TimeUtil.withDefaults
-            .toZonedDateTime(constantData.simonaConfig.simona.time.endDateTime),
-          constantData.simonaConfig.simona.runtime.participant,
-          constantData.simonaConfig.simona.output.participant,
+            .toZonedDateTime(cfg.time.endDateTime),
+          cfg.runtime.participant,
+          cfg.output.participant,
           constantData.resolution,
           constantData.listener,
           ctx.log,
@@ -182,11 +183,17 @@ object GridAgent extends DBFSAlgorithm {
         gridAgentInitData.superiorGridNodeUuids,
         gridAgentInitData.inferiorGridGates,
         PowerFlowParams(
-          constantData.simonaConfig.simona.powerflow.maxSweepPowerDeviation,
-          constantData.simonaConfig.simona.powerflow.newtonraphson.epsilon.toVector.sorted,
-          constantData.simonaConfig.simona.powerflow.newtonraphson.iterations,
-          constantData.simonaConfig.simona.powerflow.sweepTimeout,
-          constantData.simonaConfig.simona.powerflow.stopOnFailure,
+          cfg.powerflow.maxSweepPowerDeviation,
+          cfg.powerflow.newtonraphson.epsilon.toVector.sorted,
+          cfg.powerflow.newtonraphson.iterations,
+          cfg.powerflow.sweepTimeout,
+          cfg.powerflow.stopOnFailure,
+        ),
+        CongestionManagementParams(
+          cfg.congestionManagement.enable,
+          cfg.congestionManagement.enableTransformerTapping,
+          cfg.congestionManagement.enableTopologyChanges,
+          cfg.congestionManagement.useFlexOptions,
         ),
         SimonaActorNaming.actorName(ctx.self),
       )
@@ -243,5 +250,24 @@ object GridAgent extends DBFSAlgorithm {
         s"$actorName has neither superior nor inferior grids! This can either " +
           s"be cause by wrong subnetGate information or invalid parametrization of the simulation!"
       )
+  }
+
+  /** This method uses [[ActorContext.pipeToSelf()]] to send a future message to
+    * itself. If the future is a [[Success]] the message is send, else a
+    * [[WrappedFailure]] with the thrown error is send.
+    *
+    * @param future
+    *   future message that should be send to the agent after it was processed
+    * @param ctx
+    *   [[ActorContext]] of the receiving actor
+    */
+  private[grid] def pipeToSelf(
+      future: Future[GridAgent.Request],
+      ctx: ActorContext[GridAgent.Request],
+  ): Unit = {
+    ctx.pipeToSelf[GridAgent.Request](future) {
+      case Success(value)     => value
+      case Failure(exception) => WrappedFailure(exception)
+    }
   }
 }

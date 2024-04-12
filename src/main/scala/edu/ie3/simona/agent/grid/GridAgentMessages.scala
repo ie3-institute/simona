@@ -6,7 +6,11 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
+import edu.ie3.simona.agent.grid.GridAgentData.CongestionManagementData.Congestions
+import edu.ie3.simona.agent.grid.GridAgentData.{
+  CongestionManagementData,
+  GridAgentInitData,
+}
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
@@ -14,7 +18,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.util.scala.quantities.ReactivePower
-import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import squants.Power
 import squants.electro.ElectricPotential
 
@@ -256,4 +260,30 @@ object GridAgentMessages {
         f: ElectricPotential,
     )
   }
+
+  // DCM messages
+
+  case object Check extends GridAgent.InternalRequest
+
+  case class CongestionCheckRequest(sender: ActorRef[GridAgent.Request])
+      extends GridAgent.InternalRequest
+
+  case class CongestionResponse(
+      congestions: Congestions,
+      sender: ActorRef[GridAgent.Request],
+  ) extends GridAgent.InternalReply
+
+  case class ReceivedCongestions(congestions: Vector[CongestionResponse])
+      extends GridAgent.InternalRequest
+
+  case class NextStepRequest(
+      next: CongestionManagementData => Behavior[GridAgent.Request]
+  ) extends GridAgent.InternalRequest
+
+  case object StartStep extends GridAgent.InternalRequest
+
+  case object FinishStep extends GridAgent.InternalRequest
+
+  case object GotoIdle extends GridAgent.InternalRequest
+
 }

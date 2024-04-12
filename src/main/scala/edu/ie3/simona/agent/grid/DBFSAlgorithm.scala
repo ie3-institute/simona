@@ -17,6 +17,7 @@ import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidN
 import edu.ie3.powerflow.model.enums.NodeType
 import edu.ie3.simona.agent.grid.GridAgent.{idle, pipeToSelf}
 import edu.ie3.simona.agent.grid.GridAgentData.{
+  CongestionManagementData,
   GridAgentBaseData,
   GridAgentConstantData,
   PowerFlowDoneData,
@@ -28,6 +29,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.{
   ParticipantMessage,
   RequestAssetPowerMessage,
 }
+import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.event.RuntimeEvent.PowerFlowFailed
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid.{NodeModel, RefSystem}
@@ -461,33 +463,59 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               }
           }
 
-          // notify listener about the results
           ctx.log.debug(
-            "Calculate results and sending the results to the listener ..."
+            "Calculate results ..."
           )
-          createAndSendPowerFlowResults(
-            gridAgentBaseData,
-            currentTick.toDateTime(constantData.simStartTime),
-          )(ctx.log, constantData)
+          val results: Option[PowerFlowResultEvent] =
+            gridAgentBaseData.sweepValueStores.lastOption.map {
+              case (_, valueStore) =>
+                createResultModels(
+                  gridAgentBaseData.gridEnv.gridModel,
+                  valueStore,
+                )(currentTick.toDateTime(constantData.simStartTime), ctx.log)
+            }
 
-          // do my cleanup stuff
-          ctx.log.debug("Doing my cleanup stuff")
+          if (
+            gridAgentBaseData.congestionManagementParams.runCongestionManagement && results.isDefined
+          ) {
+            // go to congestion management, if enabled
 
-          // / clean copy of the gridAgentBaseData
-          val cleanedGridAgentBaseData = GridAgentBaseData.clean(
-            gridAgentBaseData,
-            gridAgentBaseData.superiorGridNodeUuids,
-            gridAgentBaseData.inferiorGridGates,
-          )
+            val congestionManagementData = CongestionManagementData(
+              gridAgentBaseData,
+              currentTick,
+              results.getOrElse(
+                throw new DBFSAlgorithmException(
+                  s"No results received for tick $currentTick!"
+                )
+              ),
+            )
 
-          // / inform scheduler that we are done with the whole simulation and request new trigger for next time step
-          constantData.environmentRefs.scheduler ! Completion(
-            constantData.activationAdapter,
-            Some(currentTick + constantData.resolution),
-          )
+            ctx.self ! Check
+            GridAgent.checkForCongestion(congestionManagementData)
+          } else {
 
-          // return to Idle
-          idle(cleanedGridAgentBaseData)
+            // notify listener about the results
+            results.foreach(constantData.notifyListeners)
+
+            // do my cleanup stuff
+            ctx.log.debug("Doing my cleanup stuff")
+
+            // / clean copy of the gridAgentBaseData
+            val cleanedGridAgentBaseData = GridAgentBaseData.clean(
+              gridAgentBaseData,
+              gridAgentBaseData.superiorGridNodeUuids,
+              gridAgentBaseData.inferiorGridGates,
+            )
+
+            // / inform scheduler that we are done with the whole simulation and request new trigger for next time step
+            constantData.environmentRefs.scheduler ! Completion(
+              constantData.activationAdapter,
+              Some(currentTick + constantData.resolution),
+            )
+
+            // return to Idle
+            idle(cleanedGridAgentBaseData)
+          }
 
         case _ =>
           // preventing "match may not be exhaustive"
@@ -1371,6 +1399,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     * @param currentTimestamp
     *   the current time stamp
     */
+  @deprecated
   private def createAndSendPowerFlowResults(
       gridAgentBaseData: GridAgentBaseData,
       currentTimestamp: ZonedDateTime,
@@ -1389,25 +1418,6 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             log,
           )
         )
-    }
-  }
-
-  /** This method uses [[ActorContext.pipeToSelf()]] to send a future message to
-    * itself. If the future is a [[Success]] the message is send, else a
-    * [[WrappedFailure]] with the thrown error is send.
-    *
-    * @param future
-    *   future message that should be send to the agent after it was processed
-    * @param ctx
-    *   [[ActorContext]] of the receiving actor
-    */
-  private def pipeToSelf(
-      future: Future[GridAgent.Request],
-      ctx: ActorContext[GridAgent.Request],
-  ): Unit = {
-    ctx.pipeToSelf[GridAgent.Request](future) {
-      case Success(value)     => value
-      case Failure(exception) => WrappedFailure(exception)
     }
   }
 }

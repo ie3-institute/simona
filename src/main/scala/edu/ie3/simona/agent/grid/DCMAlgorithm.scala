@@ -6,14 +6,16 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.simona.agent.grid.CongestionManagementData.Congestions
-import edu.ie3.simona.agent.grid.GridAgent.pipeToSelf
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentConstantData
-import edu.ie3.simona.agent.grid.GridAgentMessage.{
-  InternalMessage,
-  WrappedActivation,
+import edu.ie3.simona.agent.grid.GridAgent.{idle, pipeToSelf}
+import edu.ie3.simona.agent.grid.GridAgentData.CongestionManagementData.Congestions
+import edu.ie3.simona.agent.grid.GridAgentData.{
+  CongestionManagementData,
+  GridAgentBaseData,
+  GridAgentConstantData,
 }
+import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import org.apache.pekko.actor.typed.scaladsl.AskPattern.Askable
 import org.apache.pekko.actor.typed.scaladsl.{
   ActorContext,
@@ -31,32 +33,11 @@ import scala.concurrent.{ExecutionContext, Future}
   * standard behaviour of a [[GridAgent]].
   */
 trait DCMAlgorithm {
-  case object Check extends InternalMessage
-  case class CongestionRequest(sender: ActorRef[GridAgentMessage])
-      extends InternalMessage
-  case class CongestionResponse(
-      congestions: Congestions,
-      sender: ActorRef[GridAgentMessage],
-  ) extends InternalMessage
-
-  case class ReceivedCongestions(congestions: Vector[CongestionResponse])
-      extends InternalMessage
-
-  case class NextStepRequest(
-      next: (CongestionManagementData, Int) => Behavior[GridAgentMessage]
-  ) extends InternalMessage
-
-  case object StartStep extends InternalMessage
-  case object FinishStep extends InternalMessage
-
-  case object FinishCongestionManagement extends InternalMessage
 
   /** Method that defines the [[Behavior]] for checking if there are any
     * congestion in the grid.
     * @param stateData
     *   of the actor
-    * @param step
-    *   the number of the next congestion management step
     * @param constantData
     *   constant data of the [[GridAgent]]
     * @param buffer
@@ -64,13 +45,12 @@ trait DCMAlgorithm {
     * @return
     *   a [[Behavior]]
     */
-  def checkForCongestion(
-      stateData: CongestionManagementData,
-      step: Int,
+  private[grid] def checkForCongestion(
+      stateData: CongestionManagementData
   )(implicit
       constantData: GridAgentConstantData,
-      buffer: StashBuffer[GridAgentMessage],
-  ): Behavior[GridAgentMessage] = Behaviors.receivePartial {
+      buffer: StashBuffer[GridAgent.Request],
+  ): Behavior[GridAgent.Request] = Behaviors.receivePartial {
 
     case (ctx, Check) =>
       // ask all inferior grids for a congestion check
@@ -78,8 +58,8 @@ trait DCMAlgorithm {
         stateData.inferiorRefs
       )(ctx)
 
-      checkForCongestion(stateData, step)
-    case (ctx, congestionRequest @ CongestionRequest(sender)) =>
+      Behaviors.same
+    case (ctx, congestionRequest @ CongestionCheckRequest(sender)) =>
       // check if waiting for inferior data is needed
       if (stateData.awaitingInferiorData) {
         ctx.log.debug(
@@ -113,10 +93,10 @@ trait DCMAlgorithm {
           updatedStateData.inferiorCongestions.values.flatten
         )
 
-        findNextStep(congestions, updatedStateData, step, ctx)
+        findNextStep(congestions, updatedStateData, ctx)
       } else {
         // un-stash all messages
-        buffer.unstashAll(checkForCongestion(updatedStateData, step))
+        buffer.unstashAll(checkForCongestion(updatedStateData))
       }
 
     case (_, NextStepRequest(next)) =>
@@ -126,19 +106,32 @@ trait DCMAlgorithm {
       )
 
       // switching to the next behavior
-      next.apply(stateData, step)
+      next(stateData)
 
-    case (ctx, FinishCongestionManagement) =>
+    case (ctx, GotoIdle) =>
       // inform my inferior grids about the end of the congestion management
       stateData.inferiorRefs.foreach(
-        _ ! FinishCongestionManagement
+        _ ! GotoIdle
       )
 
-      // switching to simulating grid
-      val currentTick = stateData.currentTick
+      // do my cleanup stuff
+      ctx.log.debug("Doing my cleanup stuff")
 
-      ctx.self ! WrappedActivation(Activation(currentTick))
-      GridAgent.simulateGrid(stateData.gridAgentBaseData, currentTick)
+      // / clean copy of the gridAgentBaseData
+      val cleanedGridAgentBaseData = GridAgentBaseData.clean(
+        stateData.gridAgentBaseData,
+        stateData.gridAgentBaseData.superiorGridNodeUuids,
+        stateData.gridAgentBaseData.inferiorGridGates,
+      )
+
+      // / inform scheduler that we are done with the whole simulation and request new trigger for next time step
+      constantData.environmentRefs.scheduler ! Completion(
+        constantData.activationAdapter,
+        Some(stateData.currentTick + constantData.resolution),
+      )
+
+      // return to Idle
+      idle(cleanedGridAgentBaseData)
   }
 
   /** Method that defines the [[Behavior]] for changing the tapping for
@@ -146,8 +139,6 @@ trait DCMAlgorithm {
     *
     * @param stateData
     *   of the actor
-    * @param step
-    *   the number of the current congestion management step
     * @param constantData
     *   constant data of the [[GridAgent]]
     * @param buffer
@@ -156,20 +147,29 @@ trait DCMAlgorithm {
     *   a [[Behavior]]
     */
   private def updateTransformerTapping(
-      stateData: CongestionManagementData,
-      step: Int,
+      stateData: CongestionManagementData
   )(implicit
       constantData: GridAgentConstantData,
-      buffer: StashBuffer[GridAgentMessage],
-  ): Behavior[GridAgentMessage] = Behaviors.receivePartial {
-    case (ctx, StartStep) =>
+      buffer: StashBuffer[GridAgent.Request],
+  ): Behavior[GridAgent.Request] = Behaviors.receivePartial {
+    case (_, StartStep) =>
       Behaviors.same
     case (ctx, FinishStep) =>
       // inform my inferior grids about the end of this step
       stateData.inferiorRefs.foreach(_ ! FinishStep)
 
-      ctx.self ! Check
-      checkForCongestion(stateData, step + 1)
+      // switching to simulating grid
+      val currentTick = stateData.currentTick
+
+      ctx.self ! WrappedActivation(Activation(currentTick))
+
+      val updatedData = stateData.gridAgentBaseData.copy(
+        congestionManagementParams =
+          stateData.gridAgentBaseData.congestionManagementParams
+            .copy(hasRunTransformerTapping = true)
+      )
+
+      GridAgent.simulateGrid(updatedData, currentTick)
   }
 
   /** Triggers an execution of the pekko `ask` pattern for all congestions in
@@ -183,9 +183,9 @@ trait DCMAlgorithm {
     *   a timeout for the request
     */
   private def askInferiorGridsForCongestionCheck(
-      subGridActorRefs: Set[ActorRef[GridAgentMessage]]
+      subGridActorRefs: Set[ActorRef[GridAgent.Request]]
   )(implicit
-      ctx: ActorContext[GridAgentMessage],
+      ctx: ActorContext[GridAgent.Request],
       askTimeout: Timeout = Timeout(10, SECONDS),
   ): Unit = {
 
@@ -198,7 +198,7 @@ trait DCMAlgorithm {
         .sequence(
           subGridActorRefs.map { inferiorGridAgentRef =>
             inferiorGridAgentRef
-              .ask(ref => CongestionRequest(ref))
+              .ask(ref => CongestionCheckRequest(ref))
               .map { case response: CongestionResponse => response }
           }.toVector
         )
@@ -212,8 +212,6 @@ trait DCMAlgorithm {
     *   information if there is any congestion in the grid
     * @param stateData
     *   current state data
-    * @param step
-    *   the number of the next step
     * @param ctx
     *   actor context
     * @param constantData
@@ -226,12 +224,11 @@ trait DCMAlgorithm {
   private def findNextStep(
       congestions: Congestions,
       stateData: CongestionManagementData,
-      step: Int,
-      ctx: ActorContext[GridAgentMessage],
+      ctx: ActorContext[GridAgent.Request],
   )(implicit
       constantData: GridAgentConstantData,
-      buffer: StashBuffer[GridAgentMessage],
-  ): Behavior[GridAgentMessage] = {
+      buffer: StashBuffer[GridAgent.Request],
+  ): Behavior[GridAgent.Request] = {
 
     // checking for any congestion in the complete grid
     if (
@@ -241,20 +238,14 @@ trait DCMAlgorithm {
         s"No congestions found. Finishing the congestion management."
       )
 
-      ctx.self ! FinishCongestionManagement
-      checkForCongestion(stateData, step)
+      ctx.self ! GotoIdle
+      checkForCongestion(stateData)
     } else {
-      step match {
-        case 0 =>
-          ctx.self ! NextStepRequest(updateTransformerTapping)
-          checkForCongestion(stateData, step)
 
-        // TODO: Add more congestion management steps
 
-        case _ =>
-          ctx.self ! FinishCongestionManagement
-          checkForCongestion(stateData, step)
-      }
+
+
+      ???
     }
   }
 
