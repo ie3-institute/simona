@@ -1395,7 +1395,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
   /** This method uses [[ActorContext.pipeToSelf()]] to send a future message to
     * itself. If the future is a [[Success]] the message is send, else a
-    * [[WrappedException]] with the thrown error is send.
+    * [[WrappedFailure]] with the thrown error is send.
     *
     * @param future
     *   future message that should be send to the agent after it was processed
@@ -1408,7 +1408,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   ): Unit = {
     ctx.pipeToSelf[GridAgent.Request](future) {
       case Success(value)     => value
-      case Failure(exception) => WrappedException(exception)
+      case Failure(exception) => WrappedFailure(exception)
     }
   }
 }
