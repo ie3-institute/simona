@@ -13,6 +13,7 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentConstantData,
   GridAgentInitData,
 }
+import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.agent.grid.GridAgentMessage._
 import edu.ie3.simona.agent.grid.ReceivedValues.ReceivedFailure
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
@@ -43,13 +44,21 @@ import scala.util.{Failure, Success}
 
 object GridAgent extends DBFSAlgorithm {
 
+  /** Trait for requests made to the [[GridAgent]] */
+  sealed trait Request
+
+  /** Necessary because we want to extend messages in other classes, but we do
+    * want to keep the messages only available inside this package.
+    */
+  private[grid] trait InternalRequest extends Request
+  private[grid] trait InternalReply extends Request
+
   def apply(
       environmentRefs: EnvironmentRefs,
       simonaConfig: SimonaConfig,
       listener: Iterable[ActorRef[ResultEvent]],
-  ): Behavior[GridAgentMessage] = Behaviors.withStash(100) { buffer =>
-    Behaviors.setup[GridAgentMessage] { context =>
-      context.messageAdapter(msg => WrappedPowerMessage(msg))
+  ): Behavior[Request] = Behaviors.withStash(100) { buffer =>
+    Behaviors.setup[Request] { context =>
       val activationAdapter: ActorRef[Activation] =
         context.messageAdapter[Activation](msg => WrappedActivation(msg))
 
@@ -76,9 +85,9 @@ object GridAgent extends DBFSAlgorithm {
 
   private def uninitialized(implicit
       constantData: GridAgentConstantData,
-      buffer: StashBuffer[GridAgentMessage],
+      buffer: StashBuffer[Request],
       simonaConfig: SimonaConfig,
-  ): Behavior[GridAgentMessage] =
+  ): Behavior[Request] =
     Behaviors.receiveMessagePartial {
       case CreateGridAgent(gridAgentInitData, unlockKey) =>
         constantData.environmentRefs.scheduler ! ScheduleActivation(
@@ -94,8 +103,8 @@ object GridAgent extends DBFSAlgorithm {
       simonaConfig: SimonaConfig,
   )(implicit
       constantData: GridAgentConstantData,
-      buffer: StashBuffer[GridAgentMessage],
-  ): Behavior[GridAgentMessage] = Behaviors.receivePartial {
+      buffer: StashBuffer[Request],
+  ): Behavior[Request] = Behaviors.receivePartial {
     case (ctx, WrappedActivation(Activation(INIT_SIM_TICK))) =>
       // fail fast sanity checks
       failFast(gridAgentInitData, SimonaActorNaming.actorName(ctx.self))
@@ -199,7 +208,7 @@ object GridAgent extends DBFSAlgorithm {
     * @param constantData
     *   immutable [[GridAgent]] values
     * @param buffer
-    *   for [[GridAgentMessage]]s
+    *   for [[GridAgent.Request]]s
     * @return
     *   a [[Behavior]]
     */
@@ -207,20 +216,20 @@ object GridAgent extends DBFSAlgorithm {
       gridAgentBaseData: GridAgentBaseData
   )(implicit
       constantData: GridAgentConstantData,
-      buffer: StashBuffer[GridAgentMessage],
-  ): Behavior[GridAgentMessage] = Behaviors.receivePartial {
-    case (_, msg: WrappedPowerMessage) =>
-      // needs to be set here to handle if the messages arrive too early
-      // before a transition to GridAgentBehaviour took place
-      buffer.stash(msg)
-      Behaviors.same
-
+      buffer: StashBuffer[Request],
+  ): Behavior[Request] = Behaviors.receivePartial {
     case (_, WrappedActivation(activation: Activation)) =>
       constantData.environmentRefs.scheduler ! Completion(
         constantData.activationAdapter,
         Some(activation.tick),
       )
       buffer.unstashAll(simulateGrid(gridAgentBaseData, activation.tick))
+
+    case (_, msg: Request) =>
+      // needs to be set here to handle if the messages arrive too early
+      // before a transition to GridAgentBehaviour took place
+      buffer.stash(msg)
+      Behaviors.same
   }
 
   private def failFast(
@@ -234,24 +243,5 @@ object GridAgent extends DBFSAlgorithm {
         s"$actorName has neither superior nor inferior grids! This can either " +
           s"be cause by wrong subnetGate information or invalid parametrization of the simulation!"
       )
-  }
-
-  /** This method uses [[ActorContext.pipeToSelf()]] to send a future message to
-    * itself. If the future is a [[Success]] the message is send, else a
-    * [[ReceivedFailure]] with the thrown error is send.
-    *
-    * @param future
-    *   future message that should be send to the agent after it was processed
-    * @param ctx
-    *   [[ActorContext]] of the receiving actor
-    */
-  private[grid] def pipeToSelf(
-      future: Future[GridAgentMessage],
-      ctx: ActorContext[GridAgentMessage],
-  ): Unit = {
-    ctx.pipeToSelf[GridAgentMessage](future) {
-      case Success(value)     => value
-      case Failure(exception) => ReceivedFailure(exception)
-    }
   }
 }
