@@ -240,6 +240,8 @@ $$
 ```{eval-rst} 
 * :cite:ts:`Zheng.2017` p. 53, formula 2.3b
 * :cite:ts:`Iqbal.1983`
+* :cite:ts:`Spencer.1971`
+* :cite:ts:`Duffie.2013`
 ```
 
 ### Beam Radiation on Sloped Surface
@@ -309,6 +311,8 @@ A cloud index is defined by
 $$
 \epsilon = \frac{\frac{E_{dif,H} + E_{beam,H}}{E_{dif,H}} + 5.535 \cdot 10^{-6} \cdot \theta_{z}^3}{1 + 5.535 \cdot 10^{-6} \cdot \theta_{z}^3}
 $$
+
+where the angle $theta_{z}$ is in **degrees**.
 
 Calculating a brightness index
 
@@ -412,6 +416,7 @@ $$
 * :cite:ts:`Perez.1987`
 * :cite:ts:`Perez.1990`
 * :cite:ts:`Myers.2017` p. 96f
+* :cite:ts:`Duffie.2013` p. 95f
 ```
 
 ### Reflected Radiation on Sloped Surface
