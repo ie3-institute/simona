@@ -13,8 +13,8 @@ import edu.ie3.datamodel.models.input.container.{GridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.actor.SimonaActorNaming.RichActorRefFactory
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentMessage.CreateGridAgent
-import edu.ie3.simona.agent.grid.{GridAgent, GridAgentMessage}
+import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.agent.grid.GridAgentMessages.CreateGridAgent
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.data.ExtData
 import edu.ie3.simona.api.data.ev.{ExtEvData, ExtEvSimulation}
@@ -73,7 +73,7 @@ class SimonaStandaloneSetup(
       context: ActorContext[_],
       environmentRefs: EnvironmentRefs,
       resultEventListeners: Seq[ActorRef[ResultEvent]],
-  ): Iterable[ActorRef[GridAgentMessage]] = {
+  ): Iterable[ActorRef[GridAgent.Request]] = {
 
     /* get the grid */
     val subGridTopologyGraph = GridProvider
@@ -338,7 +338,7 @@ class SimonaStandaloneSetup(
       context: ActorContext[_],
       environmentRefs: EnvironmentRefs,
       resultEventListeners: Seq[ActorRef[ResultEvent]],
-  ): Map[Int, ActorRef[GridAgentMessage]] = {
+  ): Map[Int, ActorRef[GridAgent.Request]] = {
     subGridTopologyGraph
       .vertexSet()
       .asScala
