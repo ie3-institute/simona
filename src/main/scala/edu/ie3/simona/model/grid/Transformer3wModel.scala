@@ -28,7 +28,7 @@ import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
 import squants.electro.{Kilovolts, Ohms, Siemens}
-import squants.energy.Megawatts
+import squants.energy.{Megawatts, Watts}
 import tech.units.indriya.AbstractUnit
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{OHM, SIEMENS}
@@ -66,6 +66,9 @@ import scala.math.BigDecimal.RoundingMode
   *   number of parallel transformers
   * @param powerFlowCase
   *   the [[Transformer3wPowerFlowCase]]
+  * @param iNom
+  *   the nominal current at the port that is defined by the
+  *   [[Transformer3wPowerFlowCase]]
   * @param r
   *   resistance r, real part of the transformer impedance z (referenced to the
   *   nominal impedance of the grid) in p.u.
@@ -91,6 +94,7 @@ final case class Transformer3wModel(
     override protected val transformerTappingModel: TransformerTappingModel,
     amount: Int,
     powerFlowCase: Transformer3wPowerFlowCase,
+    iNom: squants.electro.ElectricCurrent,
     protected val r: squants.Dimensionless,
     protected val x: squants.Dimensionless,
     protected val g: squants.Dimensionless,
@@ -258,6 +262,27 @@ case object Transformer3wModel extends LazyLogging {
           .setScale(5, RoundingMode.HALF_UP)
     }
 
+    val iNom = powerFlowCase match {
+      case PowerFlowCaseA =>
+        Watts(
+          trafo3wType.getsRatedA().to(VOLTAMPERE).getValue.doubleValue()
+        ) / Math.sqrt(3) / Kilovolts(
+          trafo3wType.getvRatedA().to(KILOVOLT).getValue.doubleValue()
+        )
+      case PowerFlowCaseB =>
+        Watts(
+          trafo3wType.getsRatedB().to(VOLTAMPERE).getValue.doubleValue()
+        ) / Math.sqrt(3) / Kilovolts(
+          trafo3wType.getvRatedB().to(KILOVOLT).getValue.doubleValue()
+        )
+      case PowerFlowCaseC =>
+        Watts(
+          trafo3wType.getsRatedC().to(VOLTAMPERE).getValue.doubleValue()
+        ) / Math.sqrt(3) / Kilovolts(
+          trafo3wType.getvRatedC().to(KILOVOLT).getValue.doubleValue()
+        )
+    }
+
     val operationInterval =
       SystemComponent.determineOperationInterval(
         startDate,
@@ -277,6 +302,7 @@ case object Transformer3wModel extends LazyLogging {
       transformerTappingModel,
       transformer3wInput.getParallelDevices,
       powerFlowCase,
+      iNom,
       r,
       x,
       g,

@@ -190,7 +190,6 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
           cfg.powerflow.stopOnFailure,
         ),
         CongestionManagementParams(
-          cfg.congestionManagement.enable,
           cfg.congestionManagement.enableTransformerTapping,
           cfg.congestionManagement.enableTopologyChanges,
           cfg.congestionManagement.useFlexOptions,

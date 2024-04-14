@@ -263,8 +263,6 @@ object GridAgentMessages {
 
   // DCM messages
 
-  case object Check extends GridAgent.InternalRequest
-
   case class CongestionCheckRequest(sender: ActorRef[GridAgent.Request])
       extends GridAgent.InternalRequest
 
@@ -280,10 +278,16 @@ object GridAgentMessages {
       next: CongestionManagementData => Behavior[GridAgent.Request]
   ) extends GridAgent.InternalRequest
 
+  /** Message that indicates all actors that the current step is started.
+    */
   case object StartStep extends GridAgent.InternalRequest
 
+  /** Message that indicates all actors that the current step is finished.
+    */
   case object FinishStep extends GridAgent.InternalRequest
 
+  /** Message that indicates all actors that the next state is the idle state.
+    */
   case object GotoIdle extends GridAgent.InternalRequest
 
 }

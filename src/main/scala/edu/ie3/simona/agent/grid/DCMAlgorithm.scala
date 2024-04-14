@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.grid
 
 import edu.ie3.simona.agent.grid.GridAgent.{idle, pipeToSelf}
-import edu.ie3.simona.agent.grid.GridAgentData.CongestionManagementData.Congestions
 import edu.ie3.simona.agent.grid.GridAgentData.{
   CongestionManagementData,
   GridAgentBaseData,
@@ -17,12 +16,8 @@ import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import org.apache.pekko.actor.typed.scaladsl.AskPattern.Askable
-import org.apache.pekko.actor.typed.scaladsl.{
-  ActorContext,
-  Behaviors,
-  StashBuffer,
-}
-import org.apache.pekko.actor.typed.{ActorRef, Behavior, Scheduler}
+import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
+import org.apache.pekko.actor.typed.{Behavior, Scheduler}
 import org.apache.pekko.util.Timeout
 
 import scala.concurrent.duration.SECONDS
@@ -52,13 +47,27 @@ trait DCMAlgorithm {
       buffer: StashBuffer[GridAgent.Request],
   ): Behavior[GridAgent.Request] = Behaviors.receivePartial {
 
-    case (ctx, Check) =>
-      // ask all inferior grids for a congestion check
-      askInferiorGridsForCongestionCheck(
-        stateData.inferiorRefs
-      )(ctx)
+    case (ctx, StartStep) =>
+      // request congestion check if we have inferior grids
+      if (stateData.inferiorRefs.nonEmpty) {
+        implicit val askTimeout: Timeout = Timeout(10, SECONDS)
+        implicit val ec: ExecutionContext = ctx.executionContext
+        implicit val scheduler: Scheduler = ctx.system.scheduler
+
+        val future = Future
+          .sequence(
+            stateData.inferiorRefs.map { inferiorGridAgentRef =>
+              inferiorGridAgentRef
+                .ask(ref => CongestionCheckRequest(ref))
+                .map { case response: CongestionResponse => response }
+            }.toVector
+          )
+          .map(res => ReceivedCongestions(res))
+        pipeToSelf(future, ctx)
+      }
 
       Behaviors.same
+
     case (ctx, congestionRequest @ CongestionCheckRequest(sender)) =>
       // check if waiting for inferior data is needed
       if (stateData.awaitingInferiorData) {
@@ -80,11 +89,10 @@ trait DCMAlgorithm {
       }
 
       Behaviors.same
+
     case (ctx, ReceivedCongestions(congestions)) =>
       // updating the state data with received data from inferior grids
-      val updatedStateData = stateData.handleReceivingData(
-        congestions.map { msg => msg.sender -> Some(msg.congestions) }.toMap
-      )
+      val updatedStateData = stateData.handleReceivingData(congestions)
 
       if (updatedStateData.gridAgentBaseData.isSuperior) {
         // if we are the superior grid, we find the next behavior
@@ -93,7 +101,40 @@ trait DCMAlgorithm {
           updatedStateData.inferiorCongestions.values.flatten
         )
 
-        findNextStep(congestions, updatedStateData, ctx)
+        // checking for any congestion in the complete grid
+        if (!congestions.any) {
+          ctx.log.debug(
+            s"No congestions found. Finishing the congestion management."
+          )
+
+          ctx.self ! GotoIdle
+          checkForCongestion(updatedStateData)
+        } else {
+          val steps =
+            updatedStateData.gridAgentBaseData.congestionManagementParams
+
+          val msg =
+            if (
+              congestions.voltageCongestions && steps.runTransformerTapping && !steps.hasRunTransformerTapping
+            ) {
+              NextStepRequest(updateTransformerTapping)
+            } else if (
+              congestions.lineCongestions && steps.runTopologyChanges && !steps.hasRunTopologyChanges
+            ) {
+              NextStepRequest(useTopologyChanges)
+            } else if (congestions.any && !steps.useFlexOptions) {
+              NextStepRequest(usePlexOptions)
+            } else {
+              ctx.log.info(
+                s"There were some congestions that could not be resolved for timestamp: ${updatedStateData.currentTick}"
+              )
+              GotoIdle
+            }
+
+          ctx.self ! msg
+          checkForCongestion(updatedStateData)
+        }
+
       } else {
         // un-stash all messages
         buffer.unstashAll(checkForCongestion(updatedStateData))
@@ -153,7 +194,10 @@ trait DCMAlgorithm {
       buffer: StashBuffer[GridAgent.Request],
   ): Behavior[GridAgent.Request] = Behaviors.receivePartial {
     case (_, StartStep) =>
+      // TODO: Implement a proper behavior
+
       Behaviors.same
+
     case (ctx, FinishStep) =>
       // inform my inferior grids about the end of this step
       stateData.inferiorRefs.foreach(_ ! FinishStep)
@@ -161,92 +205,74 @@ trait DCMAlgorithm {
       // switching to simulating grid
       val currentTick = stateData.currentTick
 
-      ctx.self ! WrappedActivation(Activation(currentTick))
-
       val updatedData = stateData.gridAgentBaseData.copy(
         congestionManagementParams =
           stateData.gridAgentBaseData.congestionManagementParams
             .copy(hasRunTransformerTapping = true)
       )
 
+      // simulate grid after changing the transformer tapping
+      ctx.self ! WrappedActivation(Activation(currentTick))
       GridAgent.simulateGrid(updatedData, currentTick)
   }
 
-  /** Triggers an execution of the pekko `ask` pattern for all congestions in
-    * inferior grids (if any) of this [[GridAgent]].
-    *
-    * @param subGridActorRefs
-    *   a set of [[ActorRef]]s to all inferior grids
-    * @param ctx
-    *   actor context
-    * @param askTimeout
-    *   a timeout for the request
-    */
-  private def askInferiorGridsForCongestionCheck(
-      subGridActorRefs: Set[ActorRef[GridAgent.Request]]
-  )(implicit
-      ctx: ActorContext[GridAgent.Request],
-      askTimeout: Timeout = Timeout(10, SECONDS),
-  ): Unit = {
-
-    // request congestion check if we have inferior grids
-    if (subGridActorRefs.nonEmpty) {
-      implicit val ec: ExecutionContext = ctx.executionContext
-      implicit val scheduler: Scheduler = ctx.system.scheduler
-
-      val future = Future
-        .sequence(
-          subGridActorRefs.map { inferiorGridAgentRef =>
-            inferiorGridAgentRef
-              .ask(ref => CongestionCheckRequest(ref))
-              .map { case response: CongestionResponse => response }
-          }.toVector
-        )
-        .map(res => ReceivedCongestions(res))
-      pipeToSelf(future, ctx)
-    }
-  }
-
-  /** Method to determine the next congestion management step.
-    * @param congestions
-    *   information if there is any congestion in the grid
-    * @param stateData
-    *   current state data
-    * @param ctx
-    *   actor context
-    * @param constantData
-    *   constant data of the [[GridAgent]]
-    * @param buffer
-    *   for stashed messages
-    * @return
-    *   a [[Behavior]]
-    */
-  private def findNextStep(
-      congestions: Congestions,
-      stateData: CongestionManagementData,
-      ctx: ActorContext[GridAgent.Request],
-  )(implicit
+  // TODO: Implement a proper behavior
+  private def useTopologyChanges(stateData: CongestionManagementData)(implicit
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgent.Request],
-  ): Behavior[GridAgent.Request] = {
-
-    // checking for any congestion in the complete grid
-    if (
-      !congestions.voltageCongestions && !congestions.lineCongestions && !congestions.transformerCongestions
-    ) {
+  ): Behavior[GridAgent.Request] = Behaviors.receivePartial {
+    case (ctx, StartStep) =>
+      // for now this step is skipped
       ctx.log.debug(
-        s"No congestions found. Finishing the congestion management."
+        s"Using topology changes to resolve a congestion is not implemented yet. Skipping this step!"
       )
 
-      ctx.self ! GotoIdle
-      checkForCongestion(stateData)
-    } else {
+      ctx.self ! FinishStep
+      Behaviors.same
 
+    case (ctx, FinishStep) =>
+      // inform my inferior grids about the end of this step
+      stateData.inferiorRefs.foreach(_ ! FinishStep)
 
+      val updatedGridAgentData = stateData.gridAgentBaseData.copy(
+        congestionManagementParams =
+          stateData.gridAgentBaseData.congestionManagementParams
+            .copy(hasRunTopologyChanges = true)
+      )
 
-
-      ???
-    }
+      ctx.self ! StartStep
+      checkForCongestion(
+        stateData.copy(gridAgentBaseData = updatedGridAgentData)
+      )
   }
 
+  // TODO: Implement a proper behavior
+  private def usePlexOptions(stateData: CongestionManagementData)(implicit
+      constantData: GridAgentConstantData,
+      buffer: StashBuffer[GridAgent.Request],
+  ): Behavior[GridAgent.Request] = Behaviors.receivePartial {
+    case (ctx, StartStep) =>
+      // for now this step is skipped
+      ctx.log.debug(
+        s"Using flex options to resolve a congestion is not implemented yet. Skipping this step!"
+      )
+
+      ctx.self ! FinishStep
+      Behaviors.same
+
+    case (ctx, FinishStep) =>
+      // inform my inferior grids about the end of this step
+      stateData.inferiorRefs.foreach(_ ! FinishStep)
+
+      val updatedGridAgentData = stateData.gridAgentBaseData.copy(
+        congestionManagementParams =
+          stateData.gridAgentBaseData.congestionManagementParams
+            .copy(hasRunTopologyChanges = true)
+      )
+
+      ctx.self ! StartStep
+      checkForCongestion(
+        stateData.copy(gridAgentBaseData = updatedGridAgentData)
+      )
+  }
 }

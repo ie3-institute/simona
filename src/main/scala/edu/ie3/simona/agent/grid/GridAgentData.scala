@@ -18,6 +18,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
+import edu.ie3.simona.model.grid.GridModel.GridComponents
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.Activation
 import org.apache.pekko.actor.typed.ActorRef
@@ -494,9 +495,11 @@ object GridAgentData {
       *   a updated copy of this data
       */
     def handleReceivingData(
-        receivedData: Map[ActorRef[GridAgent.Request], Option[Congestions]]
+        receivedData: Vector[CongestionResponse]
     ): CongestionManagementData = {
-      copy(inferiorCongestions = inferiorCongestions ++ receivedData)
+      val mappedData =
+        receivedData.map(res => res.sender -> Some(res.congestions)).toMap
+      copy(inferiorCongestions = inferiorCongestions ++ mappedData)
     }
 
     def inferiorRefs: Set[ActorRef[GridAgent.Request]] =
@@ -513,17 +516,40 @@ object GridAgentData {
         powerFlowResults: PowerFlowResultEvent,
     ): CongestionManagementData = {
       val gridModel = gridAgentBaseData.gridEnv.gridModel
-      val components = gridModel.gridComponents
-      val nodes = components.nodes.map(_.uuid)
+
+      val congestions = getCongestions(
+        powerFlowResults,
+        gridModel.gridComponents,
+        gridModel.voltageLimits,
+      )
+
+      CongestionManagementData(
+        gridAgentBaseData,
+        currentTick,
+        powerFlowResults,
+        congestions,
+        gridAgentBaseData.gridEnv.subgridGateToActorRef.values
+          .map(_ -> None)
+          .toMap,
+      )
+    }
+
+    private def getCongestions(
+        powerFlowResults: PowerFlowResultEvent,
+        gridComponents: GridComponents,
+        voltageLimits: VoltageLimits,
+    ): Congestions = {
+      val nodes = gridComponents.nodes.map(_.uuid)
 
       // checking for voltage congestions
-      val voltageLimits = gridModel.voltageLimits
       val voltageCongestion = powerFlowResults.nodeResults.exists { res =>
         !voltageLimits.isInLimits(res.getvMag().getValue.doubleValue())
       }
 
       // checking for line congestions
-      val linesLimits = components.lines.map { line => line.uuid -> line }.toMap
+      val linesLimits = gridComponents.lines.map { line =>
+        line.uuid -> line
+      }.toMap
       val lineCongestion = powerFlowResults.lineResults.exists { res =>
         val iA = res.getiAMag().getValue.doubleValue()
         val iB = res.getiBMag().getValue.doubleValue()
@@ -533,7 +559,7 @@ object GridAgentData {
       }
 
       // checking for transformer congestions
-      val transformer2w = components.transformers.map { transformer =>
+      val transformer2w = gridComponents.transformers.map { transformer =>
         transformer.uuid -> transformer
       }.toMap
       val transformer2wCongestion =
@@ -547,21 +573,18 @@ object GridAgentData {
           }
         }
 
-      // TODO: Add Transformer3w congestion check
-      val transformer3wCongestion = false
+      val transformer3w = gridComponents.transformers3w.map { transformer =>
+        transformer.uuid -> transformer
+      }.toMap
+      val transformer3wCongestion =
+        powerFlowResults.transformer3wResults.exists { res =>
+          res.currentMagnitude > transformer3w(res.input).iNom
+        }
 
-      CongestionManagementData(
-        gridAgentBaseData,
-        currentTick,
-        powerFlowResults,
-        Congestions(
-          voltageCongestion,
-          lineCongestion,
-          transformer2wCongestion || transformer3wCongestion,
-        ),
-        gridAgentBaseData.gridEnv.subgridGateToActorRef.values
-          .map(_ -> None)
-          .toMap,
+      Congestions(
+        voltageCongestion,
+        lineCongestion,
+        transformer2wCongestion || transformer3wCongestion,
       )
     }
 
@@ -570,6 +593,9 @@ object GridAgentData {
         lineCongestions: Boolean,
         transformerCongestions: Boolean,
     ) {
+
+      def any: Boolean =
+        voltageCongestions || lineCongestions || transformerCongestions
 
       def combine(options: Iterable[Congestions]): Congestions =
         Congestions(
@@ -580,5 +606,4 @@ object GridAgentData {
 
     }
   }
-
 }

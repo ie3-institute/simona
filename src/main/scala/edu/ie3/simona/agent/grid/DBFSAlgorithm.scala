@@ -490,7 +490,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               ),
             )
 
-            ctx.self ! Check
+            ctx.self ! StartStep
             GridAgent.checkForCongestion(congestionManagementData)
           } else {
 

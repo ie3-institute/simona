@@ -11,8 +11,6 @@ package edu.ie3.simona.agent.grid
   * is set to false, no congestion management is run and all the other
   * parameters are ignored
   *
-  * @param runCongestionManagement
-  *   defines if the congestion managements should run at all
   * @param runTransformerTapping
   *   defines if the transformer tapping should be used for tappable
   *   transformers
@@ -23,13 +21,16 @@ package edu.ie3.simona.agent.grid
   *   resolve congestions
   */
 final case class CongestionManagementParams(
-    runCongestionManagement: Boolean,
     runTransformerTapping: Boolean,
     runTopologyChanges: Boolean,
     useFlexOptions: Boolean,
     hasRunTransformerTapping: Boolean = false,
     hasRunTopologyChanges: Boolean = false,
 ) {
+
+  def runCongestionManagement: Boolean =
+    runTransformerTapping || runTopologyChanges || useFlexOptions
+
   def clean: CongestionManagementParams = {
     copy(hasRunTransformerTapping = false, hasRunTopologyChanges = false)
   }
