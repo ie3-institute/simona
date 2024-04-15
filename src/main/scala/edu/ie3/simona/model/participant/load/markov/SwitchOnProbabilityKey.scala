@@ -32,7 +32,7 @@ object SwitchOnProbabilityKey {
     SwitchOnProbabilityKey(season, dayType, quarterlyHourOfDay)
   }
 
-  def getSeason(dateTime: LocalDateTime): Season = {
+  private def getSeason(dateTime: LocalDateTime): Season = {
     val month = dateTime.getMonthValue
     if (month >= 3 && month <= 5) Season.Spring
     else if (month >= 6 && month <= 8) Season.Summer
@@ -40,13 +40,13 @@ object SwitchOnProbabilityKey {
     else Season.Winter
   }
 
-  def getDayType(dateTime: LocalDateTime): DayType = {
+  private def getDayType(dateTime: LocalDateTime): DayType = {
     val dayOfWeek = dateTime.getDayOfWeek.getValue
     if (dayOfWeek >= 1 && dayOfWeek <= 5) DayType.Weekday
     else DayType.Weekend
   }
 
-  def getQuarterlyHourOfDay(dateTime: LocalDateTime): Int = {
+  private def getQuarterlyHourOfDay(dateTime: LocalDateTime): Int = {
     val hour = dateTime.getHour
     val minute = dateTime.getMinute
     val quarter = minute / 15
