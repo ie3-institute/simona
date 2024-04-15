@@ -20,22 +20,6 @@ import squants.energy.{Kilowatts, Megawatts}
 /** Parser to parse [[RefSystem]] provided via [[SimonaConfig]]
   */
 object RefSystemParser {
-  private val defaultRefSystems: Map[VoltageLevel, RefSystem] = Map(
-    GermanVoltageLevelUtils.LV -> RefSystem(Kilowatts(100), Volts(400)),
-    GermanVoltageLevelUtils.MV_10KV -> RefSystem(Megawatts(40), Kilovolts(10)),
-    GermanVoltageLevelUtils.MV_20KV -> RefSystem(Megawatts(60), Kilovolts(20)),
-    GermanVoltageLevelUtils.MV_30KV -> RefSystem(Megawatts(150), Kilovolts(30)),
-    GermanVoltageLevelUtils.HV -> RefSystem(Megawatts(600), Kilovolts(110)),
-    GermanVoltageLevelUtils.EHV_220KV -> RefSystem(
-      Megawatts(800),
-      Kilovolts(220),
-    ),
-    GermanVoltageLevelUtils.EHV_380KV -> RefSystem(
-      Megawatts(1000),
-      Kilovolts(380),
-    ),
-  )
-
   final case class ConfigRefSystems(
       private val gridIdRefSystems: Map[Int, RefSystem],
       private val voltLvLRefSystems: Map[VoltageLevel, RefSystem],
@@ -76,8 +60,36 @@ object RefSystemParser {
 
     if (configRefSystems.isEmpty) {
       // if no config was provided, the default refSystems are used
-
-      ConfigRefSystems(Map.empty, defaultRefSystems)
+      ConfigRefSystems(
+        Map.empty,
+        Map(
+          GermanVoltageLevelUtils.LV -> RefSystem(Kilowatts(100), Volts(400)),
+          GermanVoltageLevelUtils.MV_10KV -> RefSystem(
+            Megawatts(40),
+            Kilovolts(10),
+          ),
+          GermanVoltageLevelUtils.MV_20KV -> RefSystem(
+            Megawatts(60),
+            Kilovolts(20),
+          ),
+          GermanVoltageLevelUtils.MV_30KV -> RefSystem(
+            Megawatts(150),
+            Kilovolts(30),
+          ),
+          GermanVoltageLevelUtils.HV -> RefSystem(
+            Megawatts(600),
+            Kilovolts(110),
+          ),
+          GermanVoltageLevelUtils.EHV_220KV -> RefSystem(
+            Megawatts(800),
+            Kilovolts(220),
+          ),
+          GermanVoltageLevelUtils.EHV_380KV -> RefSystem(
+            Megawatts(1000),
+            Kilovolts(380),
+          ),
+        ),
+      )
     } else {
       // units for parsing are not initialized by default
       // hence we call them manually
