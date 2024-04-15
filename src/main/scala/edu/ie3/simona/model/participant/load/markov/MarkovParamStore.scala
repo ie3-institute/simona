@@ -27,7 +27,7 @@ object MarkovParamStore extends LazyLogging {
 
   private def getDefaultReader: Reader = {
     logger.info(
-      //
+      "test"
     )
     new InputStreamReader(
       getClass.getResourceAsStream("/load/markov/probabilities/usage_probabilities/usage_probabilities.csv")
