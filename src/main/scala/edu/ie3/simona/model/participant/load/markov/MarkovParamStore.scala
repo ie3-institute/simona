@@ -7,7 +7,18 @@ import org.apache.commons.csv.CSVFormat
 import scala.jdk.CollectionConverters._
 
 object MarkovParamStore extends LazyLogging {
-  def loadDefaultApplianceProbabilities(): Map[String, Double] = {
+
+  // Usage Probabilities
+  def main(args: Array[String]): Unit = {
+
+    val probabilitiesMap = Usage_Probabilities()
+    println("Test Funktion: Geladene Gerätewahrscheinlichkeiten:")
+    probabilitiesMap.foreach { case (appliance, probability) =>
+      println(s"$appliance -> $probability")
+    }
+  }
+
+  def Usage_Probabilities(): Map[String, Double] = {
     val reader = getDefaultReader
     val csvParser = CSVFormat.DEFAULT
       .withDelimiter(';')
@@ -27,10 +38,14 @@ object MarkovParamStore extends LazyLogging {
 
   private def getDefaultReader: Reader = {
     logger.info(
-      "test"
+      "Markov Usage_Probabilities parameters file 'usage_probability.csv' from jar."
     )
     new InputStreamReader(
       getClass.getResourceAsStream("/load/markov/probabilities/usage_probabilities/usage_probabilities.csv")
     )
   }
+
+  // Switch On Probabilities
+
+
 }
