@@ -492,12 +492,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             ctx.self ! StartStep
             GridAgent.checkForCongestion(congestionManagementData)
           } else {
-
-            // notify listener about the results
-            results.foreach(constantData.notifyListeners)
-
             // clean up agent and go back to idle
-            GridAgent.gotoIdle(gridAgentBaseData, currentTick, ctx)
+            GridAgent.gotoIdle(gridAgentBaseData, currentTick, results, ctx)
           }
 
         case _ =>

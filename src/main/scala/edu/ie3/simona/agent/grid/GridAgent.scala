@@ -17,6 +17,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
+import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.grid.GridModel
 import edu.ie3.simona.ontology.messages.Activation
@@ -242,11 +243,16 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
   private[grid] def gotoIdle(
       gridAgentBaseData: GridAgentBaseData,
       currentTick: Long,
+      results: Option[PowerFlowResultEvent],
       ctx: ActorContext[Request],
   )(implicit
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgent.Request],
   ): Behavior[Request] = {
+
+    // notify listener about the results
+    results.foreach(constantData.notifyListeners)
+
     // do my cleanup stuff
     ctx.log.debug("Doing my cleanup stuff")
 
@@ -264,7 +270,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     )
 
     // return to Idle
-    idle(cleanedGridAgentBaseData)
+    buffer.unstashAll(idle(cleanedGridAgentBaseData))
   }
 
   /** This method uses [[ActorContext.pipeToSelf()]] to send a future message to

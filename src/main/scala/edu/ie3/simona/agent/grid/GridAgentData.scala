@@ -191,9 +191,7 @@ object GridAgentData {
         congestionManagementParams =
           gridAgentBaseData.congestionManagementParams.clean,
       )
-
     }
-
   }
 
   /** The base aka default data of a [[GridAgent]]. Contains information on the

@@ -144,121 +144,8 @@ class DCMAlgorithmCenGridSpec
     s"skip simulate grid and check for congestions correctly if no congestions occurred" in {
       skipSimulation()
 
-      val congestions = Congestions(
-        voltageCongestions = false,
-        lineCongestions = false,
-        transformerCongestions = false,
-      )
-
-      centerGridAgent ! CongestionCheckRequest(superiorGridAgent.ref)
-
-      // we expect a request for grid congestion values here
-      val congestionCheckRequestSender11 =
-        inferiorGrid11.expectMessageType[CongestionCheckRequest]
-      val congestionCheckRequestSender12 =
-        inferiorGrid12.expectMessageType[CongestionCheckRequest]
-      val congestionCheckRequestSender13 =
-        inferiorGrid13.expectMessageType[CongestionCheckRequest]
-
-      // send congestions
-      congestionCheckRequestSender11.sender ! CongestionResponse(
-        congestions,
-        inferiorGrid11.ref,
-      )
-      congestionCheckRequestSender12.sender ! CongestionResponse(
-        congestions,
-        inferiorGrid12.ref,
-      )
-      congestionCheckRequestSender13.sender ! CongestionResponse(
-        congestions,
-        inferiorGrid13.ref,
-      )
-
-      // we expect no congestions in the whole grid
-      val allCongestions = superiorGridAgent
-        .expectMessageType[CongestionResponse](30.seconds)
-        .congestions
-      allCongestions shouldBe congestions
-
-      // telling all inferior grids to go back to idle
-      centerGridAgent ! GotoIdle
-
-      inferiorGrid11.expectMessageType[GotoIdle.type]
-      inferiorGrid12.expectMessageType[GotoIdle.type]
-      inferiorGrid13.expectMessageType[GotoIdle.type]
-
-      // expect a completion message from the superior grid
-      scheduler.expectMessageType[Completion] match {
-        case Completion(_, Some(7200)) =>
-        case x =>
-          fail(
-            s"Invalid message received when expecting a completion message for simulate grid! Message was $x"
-          )
-      }
-    }
-
-    s"handle unresolvable congestions correctly" in {
-      skipSimulation()
-
-      val congestions = Congestions(
-        voltageCongestions = false,
-        lineCongestions = false,
-        transformerCongestions = false,
-      )
-
-      // transformer congestion cannot be resolved, because using flex options is not
-      // enable by the provided config
-      val unresolvableCongestion = Congestions(
-        voltageCongestions = false,
-        lineCongestions = false,
-        transformerCongestions = true,
-      )
-
-      centerGridAgent ! CongestionCheckRequest(superiorGridAgent.ref)
-
-      // we expect a request for grid congestion values here
-      val congestionCheckRequestSender11 =
-        inferiorGrid11.expectMessageType[CongestionCheckRequest]
-      val congestionCheckRequestSender12 =
-        inferiorGrid12.expectMessageType[CongestionCheckRequest]
-      val congestionCheckRequestSender13 =
-        inferiorGrid13.expectMessageType[CongestionCheckRequest]
-
-      // send congestions
-      congestionCheckRequestSender11.sender ! CongestionResponse(
-        congestions,
-        inferiorGrid11.ref,
-      )
-      congestionCheckRequestSender12.sender ! CongestionResponse(
-        congestions,
-        inferiorGrid12.ref,
-      )
-      congestionCheckRequestSender13.sender ! CongestionResponse(
-        unresolvableCongestion,
-        inferiorGrid13.ref,
-      )
-
-      // we expect no congestions in the whole grid
-      val allCongestions = superiorGridAgent
-        .expectMessageType[CongestionResponse](30.seconds)
-        .congestions
-      allCongestions shouldBe unresolvableCongestion
-
-      // telling all inferior grids to go back to idle
-      centerGridAgent ! GotoIdle
-
-      inferiorGrid11.expectMessageType[GotoIdle.type]
-      inferiorGrid12.expectMessageType[GotoIdle.type]
-      inferiorGrid13.expectMessageType[GotoIdle.type]
-
-      // expect a completion message from the superior grid
-      scheduler.expectMessageType[Completion] match {
-        case Completion(_, Some(7200)) =>
-        case x =>
-          fail(
-            s"Invalid message received when expecting a completion message for simulate grid! Message was $x"
-          )
-      }
+      cmStart()
+      cmFinish()
     }
 
     s"update transformer tapping correctly" in {
@@ -270,6 +157,68 @@ class DCMAlgorithmCenGridSpec
         transformerCongestions = false,
       )
 
+      cmStart(congestions)
+
+      // initiate transformer tapping
+      centerGridAgent ! NextStepRequest(
+        CongestionManagementParams.CongestionManagementSteps.TransformerTapping
+      )
+
+      // inferior grids should receive a next state message to go to a congestion management step
+      inferiorGrid11.expectMessageType[NextStepRequest]
+      inferiorGrid12.expectMessageType[NextStepRequest]
+      inferiorGrid13.expectMessageType[NextStepRequest]
+
+      // skipping the step for now
+      // TODO: Update test after implementing transformer tapping
+      centerGridAgent ! FinishStep
+      inferiorGrid11.expectMessageType[FinishStep.type]
+      inferiorGrid12.expectMessageType[FinishStep.type]
+      inferiorGrid13.expectMessageType[FinishStep.type]
+
+      // skipping the simulation
+      skipSimulation(true)
+      cmStart()
+      cmFinish()
+    }
+
+    /** Method to reduce duplicate code
+      * @param midTest
+      *   to check if this is in the middle of a test or at the beginning
+      */
+    def skipSimulation(midTest: Boolean = false): Unit = {
+      if (!midTest) {
+        centerGridAgent ! WrappedActivation(Activation(3600))
+
+        // we expect a completion message
+        scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
+      } else {
+        inferiorGrid11.expectMessageType[RequestGridPower]
+        inferiorGrid12.expectMessageType[RequestGridPower]
+        inferiorGrid13.expectMessageType[RequestGridPower]
+        superiorGridAgent.expectMessageType[SlackVoltageRequest]
+      }
+
+      // skip simulation and go to congestion check
+      centerGridAgent ! FinishGridSimulationTrigger(3600)
+
+      // inferior grid receives a FinishGridSimulationTrigger and goes into the congestion check state
+      inferiorGrid11.expectMessage(FinishGridSimulationTrigger(3600))
+      inferiorGrid12.expectMessage(FinishGridSimulationTrigger(3600))
+      inferiorGrid13.expectMessage(FinishGridSimulationTrigger(3600))
+    }
+
+    /** Method to reduce duplicate code
+      * @param congestions
+      *   to be send to the [[centerGridAgent]] (default: no congestions)
+      */
+    def cmStart(
+        congestions: Congestions = Congestions(
+          voltageCongestions = false,
+          lineCongestions = false,
+          transformerCongestions = false,
+        )
+    ): Unit = {
       centerGridAgent ! CongestionCheckRequest(superiorGridAgent.ref)
 
       // we expect a request for grid congestion values here
@@ -299,41 +248,12 @@ class DCMAlgorithmCenGridSpec
         .expectMessageType[CongestionResponse](30.seconds)
         .congestions
       allCongestions shouldBe congestions
+    }
 
-      centerGridAgent ! NextStepRequest(
-        CongestionManagementParams.CongestionManagementSteps.TransformerTapping
-      )
-
-      // inferior grids should receive a next state message to go to a congestion management step
-      inferiorGrid11.expectMessageType[NextStepRequest]
-      inferiorGrid12.expectMessageType[NextStepRequest]
-      inferiorGrid13.expectMessageType[NextStepRequest]
-
-      // skipping the step for now
-      // TODO: Update test after implementing transformer tapping
-      centerGridAgent ! FinishStep
-      inferiorGrid11.expectMessageType[FinishStep.type]
-      inferiorGrid12.expectMessageType[FinishStep.type]
-      inferiorGrid13.expectMessageType[FinishStep.type]
-
-      // skipping the simulation
-      inferiorGrid11.expectMessageType[RequestGridPower]
-      inferiorGrid12.expectMessageType[RequestGridPower]
-      inferiorGrid13.expectMessageType[RequestGridPower]
-      superiorGridAgent.expectMessageType[SlackVoltageRequest]
-
-      centerGridAgent ! FinishGridSimulationTrigger(3600)
-
-      // inferior grid receives a FinishGridSimulationTrigger and goes into the congestion check state
-      inferiorGrid11.expectMessage(FinishGridSimulationTrigger(3600))
-      inferiorGrid12.expectMessage(FinishGridSimulationTrigger(3600))
-      inferiorGrid13.expectMessage(FinishGridSimulationTrigger(3600))
-
-      // we expect a request for grid congestion values here
-      inferiorGrid11.expectMessageType[CongestionCheckRequest]
-      inferiorGrid12.expectMessageType[CongestionCheckRequest]
-      inferiorGrid13.expectMessageType[CongestionCheckRequest]
-
+    /** Method to reduce duplicate code
+      */
+    def cmFinish(): Unit = {
+      // telling all inferior grids to go back to idle
       centerGridAgent ! GotoIdle
 
       // inferior should receive a next state message to go to the idle state
@@ -349,21 +269,6 @@ class DCMAlgorithmCenGridSpec
             s"Invalid message received when expecting a completion message for simulate grid! Message was $x"
           )
       }
-    }
-
-    def skipSimulation(): Unit = {
-      centerGridAgent ! WrappedActivation(Activation(3600))
-
-      // we expect a completion message
-      scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
-
-      // skip simulation and go to congestion check
-      centerGridAgent ! FinishGridSimulationTrigger(3600)
-
-      // inferior grid receives a FinishGridSimulationTrigger and goes into the congestion check state
-      inferiorGrid11.expectMessage(FinishGridSimulationTrigger(3600))
-      inferiorGrid12.expectMessage(FinishGridSimulationTrigger(3600))
-      inferiorGrid13.expectMessage(FinishGridSimulationTrigger(3600))
     }
   }
 }
