@@ -71,7 +71,7 @@ class DCMAlgorithmSupGridSpec
 
   val resultListener: TestProbe[ResultEvent] = TestProbe("resultListener")
 
-  "A GridAgent actor in superior position" should {
+  "A GridAgent actor in superior position with async test" should {
     val superiorGridAgent: ActorRef[GridAgent.Request] = testKit.spawn(
       GridAgent(
         environmentRefs,

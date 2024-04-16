@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
+import edu.ie3.simona.agent.grid.CongestionManagementParams.CongestionManagementSteps._
 import edu.ie3.simona.agent.grid.GridAgent.pipeToSelf
 import edu.ie3.simona.agent.grid.GridAgentData.{
   CongestionManagementData,
@@ -81,7 +82,7 @@ trait DCMAlgorithm {
         // sends the results to the superior grid
         sender ! CongestionResponse(
           stateData.congestions.combine(
-            stateData.inferiorCongestions.values.flatten
+            stateData.inferiorCongestionMap.values.flatten
           ),
           ctx.self,
         )
@@ -97,7 +98,7 @@ trait DCMAlgorithm {
         // if we are the superior grid, we find the next behavior
 
         val congestions = updatedStateData.congestions.combine(
-          updatedStateData.inferiorCongestions.values.flatten
+          updatedStateData.inferiorCongestionMap.values.flatten
         )
 
         // checking for any congestion in the complete grid
@@ -113,16 +114,14 @@ trait DCMAlgorithm {
             updatedStateData.gridAgentBaseData.congestionManagementParams
 
           val msg =
-            if (
-              congestions.voltageCongestions && steps.runTransformerTapping && !steps.hasRunTransformerTapping
-            ) {
-              NextStepRequest(updateTransformerTapping)
+            if (congestions.voltageCongestions && steps.runTransformerTapping) {
+              NextStepRequest(TransformerTapping)
             } else if (
-              congestions.lineCongestions && steps.runTopologyChanges && !steps.hasRunTopologyChanges
+              congestions.lineCongestions && steps.runTopologyChanges
             ) {
-              NextStepRequest(useTopologyChanges)
+              NextStepRequest(TopologyChanges)
             } else if (congestions.any && steps.useFlexOptions) {
-              NextStepRequest(usePlexOptions)
+              NextStepRequest(UsingFlexibilities)
             } else {
               val timestamp =
                 constantData.simStartTime.plusSeconds(stateData.currentTick)
@@ -150,7 +149,12 @@ trait DCMAlgorithm {
 
       // switching to the next behavior
       ctx.self ! StartStep
-      next(stateData)
+
+      next match {
+        case TransformerTapping => updateTransformerTapping(stateData)
+        case TopologyChanges    => useTopologyChanges(stateData)
+        case UsingFlexibilities => useFlexOptions(stateData)
+      }
 
     case (ctx, GotoIdle) =>
       // inform my inferior grids about the end of the congestion management
@@ -184,7 +188,7 @@ trait DCMAlgorithm {
     *   a [[Behavior]]
     */
   // TODO: Implement a proper behavior
-  private def updateTransformerTapping(
+  private[grid] def updateTransformerTapping(
       stateData: CongestionManagementData
   )(implicit
       constantData: GridAgentConstantData,
@@ -218,7 +222,8 @@ trait DCMAlgorithm {
   }
 
   // TODO: Implement a proper behavior
-  private def useTopologyChanges(stateData: CongestionManagementData)(implicit
+  private[grid] def useTopologyChanges(stateData: CongestionManagementData)(
+      implicit
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgent.Request],
   ): Behavior[GridAgent.Request] = Behaviors.receivePartial {
@@ -248,7 +253,7 @@ trait DCMAlgorithm {
   }
 
   // TODO: Implement a proper behavior
-  private def usePlexOptions(stateData: CongestionManagementData)(implicit
+  private[grid] def useFlexOptions(stateData: CongestionManagementData)(implicit
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgent.Request],
   ): Behavior[GridAgent.Request] = Behaviors.receivePartial {

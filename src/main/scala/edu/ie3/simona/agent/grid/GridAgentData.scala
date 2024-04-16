@@ -478,14 +478,16 @@ object GridAgentData {
       currentTick: Long,
       powerFlowResults: PowerFlowResultEvent,
       congestions: Congestions,
-      inferiorCongestions: Map[ActorRef[GridAgent.Request], Option[Congestions]],
+      inferiorCongestionMap: Map[ActorRef[GridAgent.Request], Option[
+        Congestions
+      ]],
   ) extends GridAgentData {
 
     /** Returns true if congestion data from inferior grids is expected and no
       * data was received yet.
       */
     def awaitingInferiorData: Boolean =
-      inferiorCongestions.values.exists(_.isEmpty)
+      inferiorCongestionMap.values.exists(_.isEmpty)
 
     /** Method for updating the data with the received data.
       *
@@ -499,14 +501,11 @@ object GridAgentData {
     ): CongestionManagementData = {
       val mappedData =
         receivedData.map(res => res.sender -> Some(res.congestions)).toMap
-      copy(inferiorCongestions = inferiorCongestions ++ mappedData)
+      copy(inferiorCongestionMap = inferiorCongestionMap ++ mappedData)
     }
 
     def inferiorRefs: Set[ActorRef[GridAgent.Request]] =
-      gridAgentBaseData.inferiorGridGates
-        .map(gridAgentBaseData.gridEnv.subgridGateToActorRef(_))
-        .distinct
-        .toSet
+      inferiorCongestionMap.keySet
   }
 
   object CongestionManagementData {
@@ -523,14 +522,30 @@ object GridAgentData {
         gridModel.voltageLimits,
       )
 
+      // extracting one inferior ref for all inferior grids
+      val inferiorCongestionMap = gridAgentBaseData.inferiorGridGates
+        .map { inferiorGridGate =>
+          gridAgentBaseData.gridEnv.subgridGateToActorRef(
+            inferiorGridGate
+          ) -> inferiorGridGate.superiorNode.getUuid
+        }
+        .groupMap {
+          // Group the gates by target actor, so that only one request is sent per grid agent
+          case (inferiorGridAgentRef, _) =>
+            inferiorGridAgentRef
+        } { case (_, inferiorGridGates) =>
+          inferiorGridGates
+        }
+        .map { case (inferiorGridAgentRef, _) =>
+          inferiorGridAgentRef -> None
+        }
+
       CongestionManagementData(
         gridAgentBaseData,
         currentTick,
         powerFlowResults,
         congestions,
-        gridAgentBaseData.gridEnv.subgridGateToActorRef.values
-          .map(_ -> None)
-          .toMap,
+        inferiorCongestionMap,
       )
     }
 
