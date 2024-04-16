@@ -14,16 +14,29 @@ object MarkovParamStore extends LazyLogging {
   def main(args: Array[String]): Unit = {
 
     val probabilitiesMap = Usage_Probabilities()
-    println("Test Funktion: Geladene Gerätewahrscheinlichkeiten:")
+    println("Test Function: Usage_Probabilities:")
     probabilitiesMap.foreach { case (appliance, probability) =>
       println(s"$appliance -> $probability")
     }
 
     val averageHHMap = Average_HH()
-    println("Test Funktion: Durchschnittliche Haushaltsnutzungszeiten:")
+    println("Test Function: Average:")
     averageHHMap.foreach { case (appliance, value) =>
       println(s"$appliance -> $value")
     }
+
+    val FlatMap = Flat()
+    println("Test Function: Flat:")
+    FlatMap.foreach { case (appliance, value) =>
+      println(s"$appliance -> $value")
+    }
+
+    val HouseMap = House()
+    println("Test Function: House:")
+    HouseMap.foreach { case (appliance, value) =>
+      println(s"$appliance -> $value")
+    }
+
   }
   // Usage Probabilities
   def Usage_Probabilities(): Map[String, Double] = {
@@ -85,5 +98,62 @@ object MarkovParamStore extends LazyLogging {
     )
   }
 
+  // By Flat // By House
+  private def Flat(): Map[String, Double] = {
+    val reader = getDefaultReaderForFlat
+    val csvParser = CSVFormat.DEFAULT
+      .withDelimiter(';')
+      .parse(reader)
+
+    val records = csvParser.getRecords.asScala
+
+    val FlatMap = records.headOption match {
+      case Some(headerRecord) =>
+        val applianceNames = headerRecord.iterator().asScala.toSeq
+        val valuesRecord = records.drop(1).headOption.getOrElse(csvParser.iterator().next())
+        val FlatValues = valuesRecord.iterator().asScala.map(_.toDouble)
+        applianceNames.zip(FlatValues).toMap
+      case None =>
+        Map.empty[String, Double]
+    }
+
+    reader.close()
+    FlatMap
+  }
+
+  private def House(): Map[String, Double] = {
+    val reader = getDefaultReaderForHouse
+    val csvParser = CSVFormat.DEFAULT
+      .withDelimiter(';')
+      .parse(reader)
+
+    val records = csvParser.getRecords.asScala
+
+    val HouseMap = records.headOption match {
+      case Some(headerRecord) =>
+        val applianceNames = headerRecord.iterator().asScala.toSeq
+        val valuesRecord = records.drop(1).headOption.getOrElse(csvParser.iterator().next())
+        val HouseValues = valuesRecord.iterator().asScala.map(_.toDouble)
+        applianceNames.zip(HouseValues).toMap
+      case None =>
+        Map.empty[String, Double]
+    }
+
+    reader.close()
+    HouseMap
+  }
+
+  private def getDefaultReaderForFlat: Reader = {
+    logger.info("Markov Flat parameters file 'flat.csv.csv' from jar.")
+    new InputStreamReader(
+      getClass.getResourceAsStream("/load/markov/appliances/flat.csv")
+    )
+  }
+  private def getDefaultReaderForHouse: Reader = {
+    logger.info("Markov House parameters file 'flat.csv.csv' from jar.")
+    new InputStreamReader(
+      getClass.getResourceAsStream("/load/markov/appliances/house.csv")
+    )
+  }
 
 }

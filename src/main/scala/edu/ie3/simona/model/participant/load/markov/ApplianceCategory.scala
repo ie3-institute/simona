@@ -16,6 +16,7 @@ final case class ApplianceCategory()
 case object ApplianceCategory extends ParsableEnumeration {
   //val K: Value = Value("k")
 
+  val TYPE: Value = Value("type")
   val DISH_WASHER: Value = Value("dish_washer")
   val WASHING_MACHINE: Value = Value("washing_machine")
   val DRYER: Value = Value("dryer")
