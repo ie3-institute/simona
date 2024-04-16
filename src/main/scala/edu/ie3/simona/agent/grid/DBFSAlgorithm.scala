@@ -15,7 +15,7 @@ import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.FailedPowerFlowResult.FailedNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.enums.NodeType
-import edu.ie3.simona.agent.grid.GridAgent.{idle, pipeToSelf}
+import edu.ie3.simona.agent.grid.GridAgent.pipeToSelf
 import edu.ie3.simona.agent.grid.GridAgentData.{
   CongestionManagementData,
   GridAgentBaseData,
@@ -475,20 +475,19 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                 )(currentTick.toDateTime(constantData.simStartTime), ctx.log)
             }
 
+          // check if congestion management is enabled
           if (
-            gridAgentBaseData.congestionManagementParams.runCongestionManagement && results.isDefined
+            gridAgentBaseData.congestionManagementParams.runCongestionManagement
           ) {
-            // go to congestion management, if enabled
 
-            val congestionManagementData = CongestionManagementData(
-              gridAgentBaseData,
-              currentTick,
-              results.getOrElse(
-                throw new DBFSAlgorithmException(
-                  s"No results received for tick $currentTick!"
-                )
-              ),
-            )
+            // get result or build empty data
+            val congestionManagementData = results
+              .map(res =>
+                CongestionManagementData(gridAgentBaseData, currentTick, res)
+              )
+              .getOrElse(
+                CongestionManagementData.empty(gridAgentBaseData, currentTick)
+              )
 
             ctx.self ! StartStep
             GridAgent.checkForCongestion(congestionManagementData)
@@ -497,24 +496,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             // notify listener about the results
             results.foreach(constantData.notifyListeners)
 
-            // do my cleanup stuff
-            ctx.log.debug("Doing my cleanup stuff")
-
-            // / clean copy of the gridAgentBaseData
-            val cleanedGridAgentBaseData = GridAgentBaseData.clean(
-              gridAgentBaseData,
-              gridAgentBaseData.superiorGridNodeUuids,
-              gridAgentBaseData.inferiorGridGates,
-            )
-
-            // / inform scheduler that we are done with the whole simulation and request new trigger for next time step
-            constantData.environmentRefs.scheduler ! Completion(
-              constantData.activationAdapter,
-              Some(currentTick + constantData.resolution),
-            )
-
-            // return to Idle
-            idle(cleanedGridAgentBaseData)
+            // clean up agent and go back to idle
+            GridAgent.gotoIdle(gridAgentBaseData, currentTick, ctx)
           }
 
         case _ =>

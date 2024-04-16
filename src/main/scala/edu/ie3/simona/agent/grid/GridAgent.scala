@@ -193,6 +193,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
           cfg.congestionManagement.enableTransformerTapping,
           cfg.congestionManagement.enableTopologyChanges,
           cfg.congestionManagement.useFlexOptions,
+          cfg.congestionManagement.timeout,
         ),
         SimonaActorNaming.actorName(ctx.self),
       )
@@ -238,17 +239,32 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       Behaviors.same
   }
 
-  private def failFast(
-      gridAgentInitData: GridAgentInitData,
-      actorName: String,
-  ): Unit = {
-    if (
-      gridAgentInitData.superiorGridGates.isEmpty && gridAgentInitData.inferiorGridGates.isEmpty
+  private[grid] def gotoIdle(
+      gridAgentBaseData: GridAgentBaseData,
+      currentTick: Long,
+      ctx: ActorContext[Request],
+  )(implicit
+      constantData: GridAgentConstantData,
+      buffer: StashBuffer[GridAgent.Request],
+  ): Behavior[Request] = {
+    // do my cleanup stuff
+    ctx.log.debug("Doing my cleanup stuff")
+
+    // / clean copy of the gridAgentBaseData
+    val cleanedGridAgentBaseData = GridAgentBaseData.clean(
+      gridAgentBaseData,
+      gridAgentBaseData.superiorGridNodeUuids,
+      gridAgentBaseData.inferiorGridGates,
     )
-      throw new GridAgentInitializationException(
-        s"$actorName has neither superior nor inferior grids! This can either " +
-          s"be cause by wrong subnetGate information or invalid parametrization of the simulation!"
-      )
+
+    // / inform scheduler that we are done with the whole simulation and request new trigger for next time step
+    constantData.environmentRefs.scheduler ! Completion(
+      constantData.activationAdapter,
+      Some(currentTick + constantData.resolution),
+    )
+
+    // return to Idle
+    idle(cleanedGridAgentBaseData)
   }
 
   /** This method uses [[ActorContext.pipeToSelf()]] to send a future message to
@@ -268,5 +284,18 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       case Success(value)     => value
       case Failure(exception) => WrappedFailure(exception)
     }
+  }
+
+  private def failFast(
+      gridAgentInitData: GridAgentInitData,
+      actorName: String,
+  ): Unit = {
+    if (
+      gridAgentInitData.superiorGridGates.isEmpty && gridAgentInitData.inferiorGridGates.isEmpty
+    )
+      throw new GridAgentInitializationException(
+        s"$actorName has neither superior nor inferior grids! This can either " +
+          s"be cause by wrong subnetGate information or invalid parametrization of the simulation!"
+      )
   }
 }

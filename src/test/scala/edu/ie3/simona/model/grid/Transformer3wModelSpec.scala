@@ -17,7 +17,7 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.Transformer3wTestData
 import edu.ie3.util.quantities.PowerSystemUnits._
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor4}
-import squants.Each
+import squants.{Amperes, Each}
 import tech.units.indriya.quantity.Quantities
 
 import scala.math.BigDecimal.RoundingMode
@@ -27,6 +27,8 @@ class Transformer3wModelSpec
     with TableDrivenPropertyChecks
     with Transformer3wTestData {
   val testingTolerance = 1e-5
+  implicit val electricCurrentTolerance: squants.electro.ElectricCurrent =
+    Amperes(1e-8)
   implicit val dimensionlessTolerance: squants.Dimensionless = Each(1e-8)
 
   "A three winding transformer input model" should {
@@ -67,6 +69,7 @@ class Transformer3wModelSpec
               transformerTappingModel,
               amount,
               powerFlowCase,
+              iNom,
               r,
               x,
               g,
@@ -85,6 +88,7 @@ class Transformer3wModelSpec
           transformerTappingModel shouldBe expectedTappingModel
           amount shouldBe transformer3wInput.getParallelDevices
           powerFlowCase shouldBe PowerFlowCaseA
+          iNom shouldBe Amperes(182.3211376388292)
           r should approximate(Each(1.03878e-3))
           x should approximate(Each(166.34349e-3))
           g should approximate(Each(1.874312e-6))
@@ -142,6 +146,7 @@ class Transformer3wModelSpec
               transformerTappingModel,
               amount,
               powerFlowCase,
+              iNom,
               r,
               x,
               g,
@@ -160,6 +165,7 @@ class Transformer3wModelSpec
           transformerTappingModel shouldBe expectedTappingModel
           amount shouldBe transformer3wInput.getParallelDevices
           powerFlowCase shouldBe PowerFlowCaseB
+          iNom shouldBe Amperes(314.9183286488868)
           r should approximate(Each(240.9972299e-6))
           x should approximate(Each(24.99307479224e-3))
           g should approximate(Each(0d))
@@ -217,6 +223,7 @@ class Transformer3wModelSpec
               transformerTappingModel,
               amount,
               powerFlowCase,
+              iNom,
               r,
               x,
               g,
@@ -235,6 +242,7 @@ class Transformer3wModelSpec
           transformerTappingModel shouldBe expectedTappingModel
           amount shouldBe transformer3wInput.getParallelDevices
           powerFlowCase shouldBe PowerFlowCaseC
+          iNom shouldBe Amperes(1154.7005383792516)
           r should approximate(Each(3.185595567e-6))
           x should approximate(Each(556.0941828e-6))
           g should approximate(Each(0d))

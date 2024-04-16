@@ -213,7 +213,7 @@ class GridSpec
           Set.empty[Transformer3wModel],
           switches,
         ),
-        GridControls.empty,
+        defaultVoltageLimits,
       )
       // get the private method for validation
       val validateConnectivity: PrivateMethod[Unit] =
@@ -242,7 +242,7 @@ class GridSpec
           Set.empty[Transformer3wModel],
           Set.empty[SwitchModel],
         ),
-        GridControls.empty,
+        defaultVoltageLimits,
       )
 
       // get the private method for validation
@@ -288,7 +288,7 @@ class GridSpec
           Set.empty[Transformer3wModel],
           switches,
         ),
-        GridControls.empty,
+        defaultVoltageLimits,
       )
 
       // get the private method for validation
@@ -393,7 +393,7 @@ class GridSpec
             Set.empty[Transformer3wModel],
             switches,
           ),
-          GridControls.empty,
+          defaultVoltageLimits,
         )
 
         // update the uuidToIndexMap
@@ -445,7 +445,7 @@ class GridSpec
             Set.empty[Transformer3wModel],
             Set.empty[SwitchModel],
           ),
-          GridControls.empty,
+          defaultVoltageLimits,
         )
 
         // update the uuidToIndexMap
@@ -556,6 +556,7 @@ class GridSpec
       GridModel(
         validTestGridInputModel,
         gridInputModelTestDataRefSystem,
+        defaultVoltageLimits,
         defaultSimulationStart,
         defaultSimulationEnd,
         simonaConfig,

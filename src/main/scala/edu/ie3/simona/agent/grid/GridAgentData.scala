@@ -534,6 +534,21 @@ object GridAgentData {
       )
     }
 
+    def empty(
+        gridAgentBaseData: GridAgentBaseData,
+        currentTick: Long,
+    ): CongestionManagementData = apply(
+      gridAgentBaseData,
+      currentTick,
+      PowerFlowResultEvent(
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+      ),
+    )
+
     private def getCongestions(
         powerFlowResults: PowerFlowResultEvent,
         gridComponents: GridComponents,

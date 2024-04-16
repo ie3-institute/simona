@@ -6,21 +6,18 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.simona.agent.grid.GridAgent.{idle, pipeToSelf}
+import edu.ie3.simona.agent.grid.GridAgent.pipeToSelf
 import edu.ie3.simona.agent.grid.GridAgentData.{
   CongestionManagementData,
-  GridAgentBaseData,
   GridAgentConstantData,
 }
 import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import org.apache.pekko.actor.typed.scaladsl.AskPattern.Askable
 import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
 import org.apache.pekko.actor.typed.{Behavior, Scheduler}
 import org.apache.pekko.util.Timeout
 
-import scala.concurrent.duration.SECONDS
 import scala.concurrent.{ExecutionContext, Future}
 
 /** Trait that is normally mixed into every [[GridAgent]] to enable distributed
@@ -50,7 +47,9 @@ trait DCMAlgorithm {
     case (ctx, StartStep) =>
       // request congestion check if we have inferior grids
       if (stateData.inferiorRefs.nonEmpty) {
-        implicit val askTimeout: Timeout = Timeout(10, SECONDS)
+        implicit val askTimeout: Timeout = Timeout.create(
+          stateData.gridAgentBaseData.congestionManagementParams.timeout
+        )
         implicit val ec: ExecutionContext = ctx.executionContext
         implicit val scheduler: Scheduler = ctx.system.scheduler
 
@@ -122,11 +121,14 @@ trait DCMAlgorithm {
               congestions.lineCongestions && steps.runTopologyChanges && !steps.hasRunTopologyChanges
             ) {
               NextStepRequest(useTopologyChanges)
-            } else if (congestions.any && !steps.useFlexOptions) {
+            } else if (congestions.any && steps.useFlexOptions) {
               NextStepRequest(usePlexOptions)
             } else {
+              val timestamp =
+                constantData.simStartTime.plusSeconds(stateData.currentTick)
+
               ctx.log.info(
-                s"There were some congestions that could not be resolved for timestamp: ${updatedStateData.currentTick}"
+                s"There were some congestions that could not be resolved for timestamp: $timestamp."
               )
               GotoIdle
             }
@@ -140,13 +142,14 @@ trait DCMAlgorithm {
         buffer.unstashAll(checkForCongestion(updatedStateData))
       }
 
-    case (_, NextStepRequest(next)) =>
+    case (ctx, NextStepRequest(next)) =>
       // inform my inferior grids about the next behavior
       stateData.inferiorRefs.foreach(
         _ ! NextStepRequest(next)
       )
 
       // switching to the next behavior
+      ctx.self ! StartStep
       next(stateData)
 
     case (ctx, GotoIdle) =>
@@ -155,24 +158,17 @@ trait DCMAlgorithm {
         _ ! GotoIdle
       )
 
-      // do my cleanup stuff
-      ctx.log.debug("Doing my cleanup stuff")
-
-      // / clean copy of the gridAgentBaseData
-      val cleanedGridAgentBaseData = GridAgentBaseData.clean(
+      // clean up agent and go back to idle
+      GridAgent.gotoIdle(
         stateData.gridAgentBaseData,
-        stateData.gridAgentBaseData.superiorGridNodeUuids,
-        stateData.gridAgentBaseData.inferiorGridGates,
+        stateData.currentTick,
+        ctx,
       )
 
-      // / inform scheduler that we are done with the whole simulation and request new trigger for next time step
-      constantData.environmentRefs.scheduler ! Completion(
-        constantData.activationAdapter,
-        Some(stateData.currentTick + constantData.resolution),
-      )
+    case (ctx, msg) =>
+      ctx.log.error(s"$msg")
 
-      // return to Idle
-      idle(cleanedGridAgentBaseData)
+      Behaviors.same
   }
 
   /** Method that defines the [[Behavior]] for changing the tapping for
@@ -187,15 +183,20 @@ trait DCMAlgorithm {
     * @return
     *   a [[Behavior]]
     */
+  // TODO: Implement a proper behavior
   private def updateTransformerTapping(
       stateData: CongestionManagementData
   )(implicit
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgent.Request],
   ): Behavior[GridAgent.Request] = Behaviors.receivePartial {
-    case (_, StartStep) =>
-      // TODO: Implement a proper behavior
+    case (ctx, StartStep) =>
+      // for now this step is skipped
+      ctx.log.debug(
+        s"Using transformer taping to resolve a congestion is not implemented yet. Skipping this step!"
+      )
 
+      ctx.self ! FinishStep
       Behaviors.same
 
     case (ctx, FinishStep) =>

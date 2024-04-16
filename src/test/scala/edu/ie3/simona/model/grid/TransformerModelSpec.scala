@@ -379,6 +379,7 @@ class TransformerModelSpec
             val gridModel = GridModel(
               grid,
               refSystem,
+              voltageLimits,
               defaultSimulationStart,
               defaultSimulationEnd,
               simonaConfig,

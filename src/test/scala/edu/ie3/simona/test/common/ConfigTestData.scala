@@ -136,6 +136,11 @@ trait ConfigTestData {
       |simona.powerflow.newtonraphson.iterations = 50
       |
       |simona.gridConfig.refSystems = []
+      |simona.gridConfig.voltageLimits = []
+      |
+      |simona.congestionManagement.enableTransformerTapping = false
+      |simona.congestionManagement.enableTopologyChanges = false
+      |simona.congestionManagement.useFlexOptions = false
       |""".stripMargin
   )
   protected val simonaConfig: SimonaConfig = SimonaConfig(typesafeConfig)
