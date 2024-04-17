@@ -22,6 +22,7 @@ import edu.ie3.simona.model.grid.GridModel.GridComponents
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.Activation
 import org.apache.pekko.actor.typed.ActorRef
+import squants.electro.Kilovolts
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -514,7 +515,7 @@ object GridAgentData {
     ): CongestionManagementData = {
       val gridModel = gridAgentBaseData.gridEnv.gridModel
 
-      val congestions = getCongestions(
+      val congestions = findCongestions(
         powerFlowResults,
         gridModel.gridComponents,
         gridModel.voltageLimits,
@@ -562,12 +563,11 @@ object GridAgentData {
       ),
     )
 
-    private def getCongestions(
+    private def findCongestions(
         powerFlowResults: PowerFlowResultEvent,
         gridComponents: GridComponents,
         voltageLimits: VoltageLimits,
     ): Congestions = {
-      val nodes = gridComponents.nodes.map(_.uuid)
 
       // checking for voltage congestions
       val voltageCongestion = powerFlowResults.nodeResults.exists { res =>
@@ -594,11 +594,12 @@ object GridAgentData {
         powerFlowResults.transformer2wResults.exists { res =>
           val transformer = transformer2w(res.getInputModel)
 
-          if (nodes.contains(transformer.hvNodeUuid)) {
+          val iA =
             res.getiAMag().getValue.doubleValue() > transformer.iNomHv.value
-          } else {
+          val iB =
             res.getiBMag().getValue.doubleValue() > transformer.iNomLv.value
-          }
+
+          iA || iB
         }
 
       val transformer3w = gridComponents.transformers3w.map { transformer =>
