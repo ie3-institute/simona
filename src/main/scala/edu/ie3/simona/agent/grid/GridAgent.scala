@@ -194,6 +194,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
           cfg.congestionManagement.enableTransformerTapping,
           cfg.congestionManagement.enableTopologyChanges,
           cfg.congestionManagement.useFlexOptions,
+          cfg.congestionManagement.maxOptimizationIterations,
           cfg.congestionManagement.timeout,
         ),
         SimonaActorNaming.actorName(ctx.self),

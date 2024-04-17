@@ -1086,6 +1086,7 @@ object SimonaConfig {
     final case class CongestionManagement(
         enableTopologyChanges: scala.Boolean,
         enableTransformerTapping: scala.Boolean,
+        maxOptimizationIterations: scala.Int,
         timeout: java.time.Duration,
         useFlexOptions: scala.Boolean,
     )
@@ -1103,6 +1104,10 @@ object SimonaConfig {
           enableTransformerTapping = c.hasPathOrNull(
             "enableTransformerTapping"
           ) && c.getBoolean("enableTransformerTapping"),
+          maxOptimizationIterations =
+            if (c.hasPathOrNull("maxOptimizationIterations"))
+              c.getInt("maxOptimizationIterations")
+            else 1,
           timeout =
             if (c.hasPathOrNull("timeout")) c.getDuration("timeout")
             else java.time.Duration.parse("PT30S"),

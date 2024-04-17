@@ -26,28 +26,30 @@ final case class CongestionManagementParams(
     transformerTapping: Boolean,
     topologyChanges: Boolean,
     flexOptions: Boolean,
+    maxOptimizationIterations: Int,
     timeout: Duration,
+    iteration: Int = 0,
     hasRunTransformerTapping: Boolean = false,
-    hasRunTopologyChanges: Boolean = false,
+    hasUsedFlexOptions: Boolean = false,
 ) {
 
   def runCongestionManagement: Boolean =
     transformerTapping || topologyChanges || flexOptions
 
   def runTransformerTapping: Boolean =
-    transformerTapping && !hasRunTransformerTapping
+    transformerTapping && !hasRunTransformerTapping && runOptimization
 
-  def runTopologyChanges: Boolean = topologyChanges && !hasRunTopologyChanges
+  def runTopologyChanges: Boolean = topologyChanges && runOptimization
 
-  def useFlexOptions: Boolean = flexOptions
+  def useFlexOptions: Boolean = flexOptions && !hasUsedFlexOptions
 
   def clean: CongestionManagementParams = {
-    copy(hasRunTransformerTapping = false, hasRunTopologyChanges = false)
+    copy(
+      hasRunTransformerTapping = false,
+      hasUsedFlexOptions = false,
+      iteration = 0,
+    )
   }
-}
 
-object CongestionManagementParams {
-  object CongestionManagementSteps extends Enumeration {
-    val TransformerTapping, TopologyChanges, UsingFlexibilities = Value
-  }
+  private def runOptimization: Boolean = iteration < maxOptimizationIterations
 }

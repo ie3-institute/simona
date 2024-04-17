@@ -22,7 +22,6 @@ import edu.ie3.simona.model.grid.GridModel.GridComponents
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.Activation
 import org.apache.pekko.actor.typed.ActorRef
-import squants.electro.Kilovolts
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -505,6 +504,34 @@ object GridAgentData {
 
     def inferiorRefs: Set[ActorRef[GridAgent.Request]] =
       inferiorCongestionMap.keySet
+
+    def cleanAfterTransformerTapping: GridAgentBaseData = {
+      val params = gridAgentBaseData.congestionManagementParams
+      val updatedParams = params.copy(hasRunTransformerTapping = true)
+
+      gridAgentBaseData.copy(congestionManagementParams = updatedParams)
+    }
+
+    def cleanAfterTopologyChange: GridAgentBaseData = {
+      val params = gridAgentBaseData.congestionManagementParams
+
+      // updating the params to the next iteration
+      val updatedParams = params.copy(
+        hasRunTransformerTapping = false,
+        iteration = params.iteration + 1,
+      )
+
+      gridAgentBaseData.copy(congestionManagementParams = updatedParams)
+    }
+
+    def cleanAfterFlexOptions: GridAgentBaseData = {
+      val params = gridAgentBaseData.congestionManagementParams
+      val updatedData = params.copy(
+        hasUsedFlexOptions = true
+      )
+
+      gridAgentBaseData.copy(congestionManagementParams = updatedData)
+    }
   }
 
   object CongestionManagementData {
@@ -626,13 +653,18 @@ object GridAgentData {
       def any: Boolean =
         voltageCongestions || lineCongestions || transformerCongestions
 
+      def assetCongestion: Boolean = lineCongestions || transformerCongestions
+
       def combine(options: Iterable[Congestions]): Congestions =
         Congestions(
           voltageCongestions || options.exists(_.voltageCongestions),
           lineCongestions || options.exists(_.lineCongestions),
           transformerCongestions || options.exists(_.transformerCongestions),
         )
+    }
 
+    object CongestionManagementSteps extends Enumeration {
+      val TransformerTapping, TopologyChanges, UsingFlexibilities = Value
     }
   }
 }

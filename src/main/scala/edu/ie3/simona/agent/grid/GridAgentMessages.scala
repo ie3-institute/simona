@@ -6,11 +6,11 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.simona.agent.grid.GridAgentData.CongestionManagementData.Congestions
-import edu.ie3.simona.agent.grid.GridAgentData.{
-  CongestionManagementData,
-  GridAgentInitData,
+import edu.ie3.simona.agent.grid.GridAgentData.CongestionManagementData.{
+  CongestionManagementSteps,
+  Congestions,
 }
+import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
@@ -18,7 +18,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.util.scala.quantities.ReactivePower
-import org.apache.pekko.actor.typed.{ActorRef, Behavior}
+import org.apache.pekko.actor.typed.ActorRef
 import squants.Power
 import squants.electro.ElectricPotential
 
@@ -274,7 +274,7 @@ object GridAgentMessages {
       extends GridAgent.InternalRequest
 
   case class NextStepRequest(
-      nextStep: CongestionManagementParams.CongestionManagementSteps.Value
+      nextStep: CongestionManagementSteps.Value
   ) extends GridAgent.InternalRequest
 
   /** Message that indicates all actors that the current step is started.

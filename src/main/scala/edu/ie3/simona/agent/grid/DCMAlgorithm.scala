@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.simona.agent.grid.CongestionManagementParams.CongestionManagementSteps._
+import edu.ie3.simona.agent.grid.GridAgentData.CongestionManagementData.CongestionManagementSteps._
 import edu.ie3.simona.agent.grid.GridAgent.pipeToSelf
 import edu.ie3.simona.agent.grid.GridAgentData.{
   CongestionManagementData,
@@ -132,7 +132,7 @@ trait DCMAlgorithm {
             if (congestions.voltageCongestions && steps.runTransformerTapping) {
               NextStepRequest(TransformerTapping)
             } else if (
-              congestions.lineCongestions && steps.runTopologyChanges
+              congestions.assetCongestion && steps.runTopologyChanges
             ) {
               NextStepRequest(TopologyChanges)
             } else if (congestions.any && steps.useFlexOptions) {
@@ -227,22 +227,12 @@ trait DCMAlgorithm {
       // inform my inferior grids about the end of this step
       stateData.inferiorRefs.foreach(_ ! FinishStep)
 
-      // switching to simulating grid
-      val currentTick = stateData.currentTick
-
-      val gridAgentBaseData = stateData.gridAgentBaseData
-      val updatedData = gridAgentBaseData.copy(congestionManagementParams =
-        gridAgentBaseData.congestionManagementParams
-          .copy(hasRunTransformerTapping = true)
-      )
-
       // simulate grid after changing the transformer tapping
-      clearAndGotoSimulateGrid(updatedData, currentTick, ctx)
-
-    case (ctx, msg: GridAgent.Request) =>
-      ctx.log.error(s"Received unsupported msg: $msg. Stash away!")
-      buffer.stash(msg)
-      Behaviors.same
+      clearAndGotoSimulateGrid(
+        stateData.cleanAfterTransformerTapping,
+        stateData.currentTick,
+        ctx,
+      )
   }
 
   // TODO: Implement a proper behavior
@@ -255,7 +245,7 @@ trait DCMAlgorithm {
       if (stateData.gridAgentBaseData.isSuperior) {
         // for now this step is skipped
         ctx.log.warn(
-          s"Using transformer taping to resolve a congestion is not implemented yet. Skipping this step!"
+          s"Using topology changes to resolve a congestion is not implemented yet. Skipping this step!"
         )
 
         ctx.self ! FinishStep
@@ -267,19 +257,12 @@ trait DCMAlgorithm {
       // inform my inferior grids about the end of this step
       stateData.inferiorRefs.foreach(_ ! FinishStep)
 
-      val gridAgentBaseData = stateData.gridAgentBaseData
-      val updatedData = gridAgentBaseData.copy(congestionManagementParams =
-        gridAgentBaseData.congestionManagementParams
-          .copy(hasRunTopologyChanges = true)
+      // simulate grid after using topology changes
+      clearAndGotoSimulateGrid(
+        stateData.cleanAfterTopologyChange,
+        stateData.currentTick,
+        ctx,
       )
-
-      ctx.self ! StartStep
-      checkForCongestion(stateData.copy(gridAgentBaseData = updatedData))
-
-    case (ctx, msg: GridAgent.Request) =>
-      ctx.log.error(s"Received unsupported msg: $msg. Stash away!")
-      buffer.stash(msg)
-      Behaviors.same
   }
 
   // TODO: Implement a proper behavior
@@ -291,7 +274,7 @@ trait DCMAlgorithm {
       if (stateData.gridAgentBaseData.isSuperior) {
         // for now this step is skipped
         ctx.log.warn(
-          s"Using transformer taping to resolve a congestion is not implemented yet. Skipping this step!"
+          s"Using flex options to resolve a congestion is not implemented yet. Skipping this step!"
         )
 
         ctx.self ! FinishStep
@@ -303,17 +286,12 @@ trait DCMAlgorithm {
       // inform my inferior grids about the end of this step
       stateData.inferiorRefs.foreach(_ ! FinishStep)
 
-      GridAgent.gotoIdle(
-        stateData.gridAgentBaseData,
+      // simulate grid after finishing the congestion management
+      clearAndGotoSimulateGrid(
+        stateData.cleanAfterFlexOptions,
         stateData.currentTick,
-        Some(stateData.powerFlowResults),
         ctx,
       )
-
-    case (ctx, msg: GridAgent.Request) =>
-      ctx.log.error(s"Received unsupported msg: $msg. Stash away!")
-      buffer.stash(msg)
-      Behaviors.same
   }
 
   private def clearAndGotoSimulateGrid(
