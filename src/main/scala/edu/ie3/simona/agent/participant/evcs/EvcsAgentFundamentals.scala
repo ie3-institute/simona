@@ -512,6 +512,12 @@ protected trait EvcsAgentFundamentals
       stateDataStore = updatedStateDataStore
     )
 
+    determineResultsAnnounceUpdateValueStore(
+      lastState,
+      currentTick,
+      modelBaseStateData,
+    )
+
     // We're only here if we're not flex-controlled, thus sending a Completion is always right
     goToIdleReplyCompletionAndScheduleTriggerForNextAction(
       updatedBaseStateData,
