@@ -389,7 +389,6 @@ protected trait EvcsAgentFundamentals
     EvcsState,
     EvcsModel,
   ] = {
-    implicit val tolerance: ZonedDateTime = baseStateData.endDate
     val evServiceRef = getService[ActorEvMovementsService](
       baseStateData.services
     )
@@ -455,9 +454,6 @@ protected trait EvcsAgentFundamentals
         newState,
       ),
       resultValueStore = updatedResultValueStore,
-      additionalActivationTicks = baseStateData.additionalActivationTicks.union(
-        Set(baseStateData.endDate.toTick)
-      ),
     )
   }
 
