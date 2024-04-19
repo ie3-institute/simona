@@ -207,7 +207,7 @@ final case class EvcsModel(
     * @return
     *   The charged EV
     */
-  private def chargeEv(
+  def chargeEv(
       ev: EvModelWrapper,
       schedule: ChargingSchedule,
       lastSchedulingTick: Long,
