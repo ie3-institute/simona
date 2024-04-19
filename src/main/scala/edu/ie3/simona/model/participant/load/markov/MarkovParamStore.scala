@@ -2,7 +2,7 @@ package edu.ie3.simona.model.participant.load.markov
 
 import edu.ie3.simona.model.participant.load.markov.ApplianceCategory
 
-import java.io.{InputStreamReader, Reader}
+import java.io.{File, FileReader, InputStreamReader, Reader}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.model.participant.load.markov.SwitchOnProbabilityKey.SwitchOnProbabilityKey
 import org.apache.commons.csv.CSVFormat
@@ -36,6 +36,15 @@ object MarkovParamStore extends LazyLogging {
     HouseMap.foreach { case (appliance, value) =>
       println(s"$appliance -> $value")
     }
+
+      val incomeData = Income()
+      incomeData.foreach { case (incomeRange, appliancesData) =>
+        println(s"Income Range: $incomeRange")
+        appliancesData.foreach { case (appliance, value) =>
+          println(s"$appliance -> $value")
+        }
+      }
+
 
   }
   // Usage Probabilities
@@ -156,4 +165,44 @@ object MarkovParamStore extends LazyLogging {
     )
   }
 
+  // By Income
+
+  def Income(): Map[String, Map[String, Double]] = {
+    val IncomeMap = collection.mutable.Map.empty[String, Map[String, Double]]
+
+    val reader = getDefaultReaderIncome
+    val records = CSVFormat.DEFAULT.withDelimiter(';').withFirstRecordAsHeader().parse(reader)
+
+    val headers = records.getHeaderNames.asScala.toList
+
+    if (headers.nonEmpty) {
+      val incomeHeader = headers.head
+      val applianceHeaders = headers.tail
+
+      records.forEach { record =>
+      val incomeRange = record.get(incomeHeader)
+      val appliancesData = applianceHeaders.map { header =>
+        val appliance = header
+        val value = record.get(header).replace(',', '.').toDouble
+        (appliance, value)
+      }.toMap
+      IncomeMap.put(incomeRange, appliancesData)
+    }
+    }
+
+
+    reader.close()
+    IncomeMap.toMap
+  }
+
+    def getDefaultReaderIncome: Reader = {
+    logger.info("Markov Income parameters file 'by_income.csv' from jar.")
+    new InputStreamReader(
+      getClass.getResourceAsStream("/load/markov/appliances/by_income.csv")
+    )
+  }
+
+
 }
+
+
