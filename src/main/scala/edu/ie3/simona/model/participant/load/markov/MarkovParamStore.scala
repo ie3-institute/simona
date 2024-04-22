@@ -3,11 +3,10 @@ package edu.ie3.simona.model.participant.load.markov
 
 import java.io.{InputStreamReader, Reader}
 import com.typesafe.scalalogging.LazyLogging
-
 import org.apache.commons.csv.CSVFormat
 import scala.collection.mutable.{Map => MutableMap}
-
 import scala.jdk.CollectionConverters._
+
 
 object MarkovParamStore extends LazyLogging {
 
@@ -52,6 +51,17 @@ object MarkovParamStore extends LazyLogging {
       println(s"inhabitants Category: $inhabitantsCategory")
       appliancesMap.foreach { case (appliance, probability) =>
         println(s"  $appliance -> $probability")
+      }
+    }
+
+    val loadTSList = LoadTS()
+    loadTSList.zipWithIndex.foreach { case (loadTSMap, index) =>
+      println(s"Load TS Map $index:")
+      loadTSMap.foreach { case (appliance, hourlyLoadMap) =>
+        println(s"  Appliance: $appliance")
+        hourlyLoadMap.foreach { case (hour, load) =>
+          println(s"    Hour $hour: $load")
+        }
       }
     }
 
@@ -236,6 +246,37 @@ object MarkovParamStore extends LazyLogging {
     logger.info("Markov Inhabitants parameters file 'by_inhabitants.csv' from jar.")
     new InputStreamReader(
       getClass.getResourceAsStream("/load/markov/appliances/by_inhabitants.csv")
+    )
+  }
+
+  // Load TS
+
+  private def LoadTS(): List[Map[String, Map[Int, Double]]] = {
+    val reader = getDefaultReaderLoad_TS
+    val csvParser = CSVFormat.DEFAULT.withDelimiter(';').withFirstRecordAsHeader().parse(reader)
+    val records = csvParser.getRecords.asScala.toList
+
+    val loadTSList = records.map { record =>
+      val loadTSMap = MutableMap[String, Map[Int, Double]]()
+
+      csvParser.getHeaderNames.asScala.foreach { appliance =>
+        val hourlyLoadMap = MutableMap[Int, Double]()
+
+        loadTSMap += (appliance -> hourlyLoadMap.toMap)
+      }
+
+
+      loadTSMap.toMap
+    }
+
+    reader.close()
+    loadTSList
+  }
+
+  private def getDefaultReaderLoad_TS: Reader = {
+    logger.info("Markov Load_TS parameters file 'by_inhabitants.csv' from jar.")
+    new InputStreamReader(
+      getClass.getResourceAsStream("/load/markov/appliances/load_ts.csv")
     )
   }
 
