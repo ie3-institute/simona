@@ -1,14 +1,12 @@
 package edu.ie3.simona.model.participant.load.markov
 
-import edu.ie3.simona.model.participant.load.markov.ApplianceCategory
 
-import java.io.{File, FileReader, InputStreamReader, Reader}
+import java.io.{InputStreamReader, Reader}
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.simona.model.participant.load.markov.SwitchOnProbabilityKey.SwitchOnProbabilityKey
+
 import org.apache.commons.csv.CSVFormat
 import scala.collection.mutable.{Map => MutableMap}
 
-import scala.collection.convert.ImplicitConversions.{`iterable AsScalaIterable`, `map AsJavaMap`}
 import scala.jdk.CollectionConverters._
 
 object MarkovParamStore extends LazyLogging {
@@ -48,10 +46,19 @@ object MarkovParamStore extends LazyLogging {
       }
     }
 
+    val inhabitantsMap = inhabitants()
+    println("Test Function: Inhabitants:")
+    inhabitantsMap.foreach { case (inhabitantsCategory, appliancesMap) =>
+      println(s"inhabitants Category: $inhabitantsCategory")
+      appliancesMap.foreach { case (appliance, probability) =>
+        println(s"  $appliance -> $probability")
+      }
+    }
+
 
   }
   // Usage Probabilities
-  def Usage_Probabilities(): Map[String, Double] = {
+  private def Usage_Probabilities(): Map[String, Double] = {
     val reader = getDefaultReader
     val csvParser = CSVFormat.DEFAULT
       .withDelimiter(';')
@@ -169,7 +176,7 @@ object MarkovParamStore extends LazyLogging {
   }
 
   // By Income
-  def income(): MutableMap[String, Map[String, Double]] = {
+  private def income(): MutableMap[String, Map[String, Double]] = {
     val reader = getDefaultReaderIncome
     val csvParser = CSVFormat.DEFAULT.withDelimiter(';').withFirstRecordAsHeader().parse(reader)
     val records = csvParser.getRecords.asScala.toSeq
@@ -197,6 +204,38 @@ object MarkovParamStore extends LazyLogging {
     logger.info("Markov Income parameters file 'by_income.csv' from jar.")
     new InputStreamReader(
       getClass.getResourceAsStream("/load/markov/appliances/by_income.csv")
+    )
+  }
+
+  // By Inhabitants
+
+  private def inhabitants(): MutableMap[String, Map[String, Double]] = {
+    val reader = getDefaultReaderInhabitants
+    val csvParser = CSVFormat.DEFAULT.withDelimiter(';').withFirstRecordAsHeader().parse(reader)
+    val records = csvParser.getRecords.asScala.toSeq
+
+    val inhabitantsMap = MutableMap[String, Map[String, Double]]()
+
+    records.foreach { record =>
+      val inhabitantCategory = record.get(0)
+      val appliancesMap = MutableMap[String, Double]()
+
+      for (i <- 1 until record.size()) {
+        val appliance = csvParser.getHeaderNames.get(i)
+        val value = record.get(i).toDouble
+        appliancesMap += (appliance -> value)
+      }
+
+      inhabitantsMap += (inhabitantCategory -> appliancesMap.toMap)
+    }
+    reader.close()
+    inhabitantsMap
+  }
+
+  private def getDefaultReaderInhabitants: Reader = {
+    logger.info("Markov Inhabitants parameters file 'by_inhabitants.csv' from jar.")
+    new InputStreamReader(
+      getClass.getResourceAsStream("/load/markov/appliances/by_inhabitants.csv")
     )
   }
 
