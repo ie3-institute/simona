@@ -293,7 +293,7 @@ final case class EvcsModel(
             )
           }
         }
-        .groupBy { case _ -> entry =>
+        .groupBy { case (_, entry) =>
           entry.tickStart
         }
         .to(SortedMap)
