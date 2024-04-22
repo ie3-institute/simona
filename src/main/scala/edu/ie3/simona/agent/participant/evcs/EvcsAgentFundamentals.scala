@@ -435,18 +435,17 @@ protected trait EvcsAgentFundamentals
         baseStateData,
       )
 
-    // filter(_.tickStop > currentTick)
-    // TODO is it possible to remove also the schedules that ended at currentTick? -> probably yes, test required
-    val schedulesOfStayingEvs: EvcsModel.ScheduleMap = stayingEvs.flatMap {
-      ev =>
-        val filteredSchedule = filterSchedulesForTick(
-          ev,
-          lastState.tick,
-          tick,
-          lastState.schedule,
-        )
-        filteredSchedule
-    }.toMap
+    val stayingSchedules =
+      lastState.schedule
+        .filterNot(requestedDepartingEvs.contains)
+        .view
+        .mapValues {
+          // Remove schedules that ended before or at current tick.
+          // Schedule entries ending at current tick do not have any
+          // impact on the schedule from the current tick on
+          _.filter(_.tickStop > tick)
+        }
+        .toMap
 
     val newState = EvcsState(stayingEvs, schedulesOfStayingEvs, tick)
 
