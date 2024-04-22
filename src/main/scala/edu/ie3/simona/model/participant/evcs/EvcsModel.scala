@@ -327,7 +327,7 @@ final case class EvcsModel(
         // and those that have ended before or at tick
         val (stillActive, endedEntries) = lastActiveEntries.partition {
           case (_, entry) =>
-            entry.tickStop > tick
+            (entry.tickStart < tick && entry.tickStop > tick)
         }
         // entries that become active with tick
         val newActiveEntries =
