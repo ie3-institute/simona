@@ -447,7 +447,7 @@ protected trait EvcsAgentFundamentals
         }
         .toMap
 
-    val newState = EvcsState(stayingEvs, schedulesOfStayingEvs, tick)
+    val newState = EvcsState(stayingEvs, stayingSchedules, tick)
 
     baseStateData.copy(
       stateDataStore = ValueStore.updateValueStore(
