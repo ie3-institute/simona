@@ -17,6 +17,7 @@ import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidN
 import edu.ie3.powerflow.model.enums.NodeType
 import edu.ie3.simona.agent.grid.GridAgent.pipeToSelf
 import edu.ie3.simona.agent.grid.GridAgentData.{
+  AwaitingData,
   CongestionManagementData,
   GridAgentBaseData,
   GridAgentConstantData,
@@ -490,7 +491,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               )
 
             ctx.self ! StartStep
-            GridAgent.checkForCongestion(congestionManagementData)
+            GridAgent.checkForCongestion(
+              congestionManagementData,
+              AwaitingData(congestionManagementData.inferiorGrids),
+            )
           } else {
             // clean up agent and go back to idle
             GridAgent.gotoIdle(gridAgentBaseData, currentTick, results, ctx)

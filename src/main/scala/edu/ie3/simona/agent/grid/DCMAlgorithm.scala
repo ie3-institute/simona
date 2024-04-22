@@ -6,9 +6,11 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.simona.agent.grid.GridAgentData.CongestionManagementData.CongestionManagementSteps._
 import edu.ie3.simona.agent.grid.GridAgent.pipeToSelf
+import edu.ie3.simona.agent.grid.GridAgentData.CongestionManagementData.CongestionManagementSteps._
+import edu.ie3.simona.agent.grid.GridAgentData.CongestionManagementData.Congestions
 import edu.ie3.simona.agent.grid.GridAgentData.{
+  AwaitingData,
   CongestionManagementData,
   GridAgentBaseData,
   GridAgentConstantData,
@@ -44,7 +46,8 @@ trait DCMAlgorithm {
     *   a [[Behavior]]
     */
   private[grid] def checkForCongestion(
-      stateData: CongestionManagementData
+      stateData: CongestionManagementData,
+      awaitingData: AwaitingData[Congestions],
   )(implicit
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgent.Request],
@@ -64,7 +67,9 @@ trait DCMAlgorithm {
             stateData.inferiorRefs.map { inferiorGridAgentRef =>
               inferiorGridAgentRef
                 .ask(ref => CongestionCheckRequest(ref))
-                .map { case response: CongestionResponse => response }
+                .map { case response: CongestionResponse =>
+                  (response.sender, response.congestions)
+                }
             }.toVector
           )
           .map(res => ReceivedCongestions(res))
@@ -75,7 +80,7 @@ trait DCMAlgorithm {
 
     case (ctx, congestionRequest @ CongestionCheckRequest(sender)) =>
       // check if waiting for inferior data is needed
-      if (stateData.awaitingInferiorData) {
+      if (awaitingData.isDone) {
         ctx.log.debug(
           s"Received request for congestions before all data from inferior grids were received. Stashing away."
         )
@@ -94,9 +99,7 @@ trait DCMAlgorithm {
 
         // sends the results to the superior grid
         sender ! CongestionResponse(
-          congestions.combine(
-            stateData.inferiorCongestionMap.values.flatten
-          ),
+          congestions.combine(awaitingData.values),
           ctx.self,
         )
       }
@@ -105,14 +108,12 @@ trait DCMAlgorithm {
 
     case (ctx, ReceivedCongestions(congestions)) =>
       // updating the state data with received data from inferior grids
-      val updatedStateData = stateData.handleReceivingData(congestions)
+      val updatedData = awaitingData.handleReceivingData(congestions)
 
-      if (updatedStateData.gridAgentBaseData.isSuperior) {
+      if (stateData.gridAgentBaseData.isSuperior) {
         // if we are the superior grid, we find the next behavior
 
-        val congestions = updatedStateData.congestions.combine(
-          updatedStateData.inferiorCongestionMap.values.flatten
-        )
+        val congestions = stateData.congestions.combine(updatedData.values)
 
         // checking for any congestion in the complete grid
         if (!congestions.any) {
@@ -121,15 +122,16 @@ trait DCMAlgorithm {
           )
 
           ctx.self ! GotoIdle
-          checkForCongestion(updatedStateData)
+          checkForCongestion(stateData, updatedData)
         } else {
           ctx.log.warn(s"Congestions: $congestions")
 
-          val steps =
-            updatedStateData.gridAgentBaseData.congestionManagementParams
+          val steps = stateData.gridAgentBaseData.congestionManagementParams
 
           val msg =
-            if (congestions.voltageCongestions && steps.runTransformerTapping) {
+            if (
+              (congestions.voltageCongestions || congestions.lineCongestions) && steps.runTransformerTapping
+            ) {
               NextStepRequest(TransformerTapping)
             } else if (
               congestions.assetCongestion && steps.runTopologyChanges
@@ -148,12 +150,12 @@ trait DCMAlgorithm {
             }
 
           ctx.self ! msg
-          checkForCongestion(updatedStateData)
+          checkForCongestion(stateData, updatedData)
         }
 
       } else {
         // un-stash all messages
-        buffer.unstashAll(checkForCongestion(updatedStateData))
+        buffer.unstashAll(checkForCongestion(stateData, updatedData))
       }
 
     case (ctx, NextStepRequest(next)) =>
@@ -167,9 +169,20 @@ trait DCMAlgorithm {
 
       next match {
         case TransformerTapping =>
-          buffer.unstashAll(updateTransformerTapping(stateData))
-        case TopologyChanges => buffer.unstashAll(useTopologyChanges(stateData))
-        case UsingFlexibilities => buffer.unstashAll(useFlexOptions(stateData))
+          buffer.unstashAll(
+            updateTransformerTapping(
+              stateData,
+              AwaitingData(stateData.inferiorGrids),
+            )
+          )
+        case TopologyChanges =>
+          buffer.unstashAll(
+            useTopologyChanges(stateData, AwaitingData(stateData.inferiorGrids))
+          )
+        case UsingFlexibilities =>
+          buffer.unstashAll(
+            useFlexOptions(stateData, AwaitingData(stateData.inferiorGrids))
+          )
       }
 
     case (ctx, GotoIdle) =>
@@ -206,7 +219,8 @@ trait DCMAlgorithm {
     */
   // TODO: Implement a proper behavior
   private[grid] def updateTransformerTapping(
-      stateData: CongestionManagementData
+      stateData: CongestionManagementData,
+      awaitingData: AwaitingData[_],
   )(implicit
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgent.Request],
@@ -236,8 +250,10 @@ trait DCMAlgorithm {
   }
 
   // TODO: Implement a proper behavior
-  private[grid] def useTopologyChanges(stateData: CongestionManagementData)(
-      implicit
+  private[grid] def useTopologyChanges(
+      stateData: CongestionManagementData,
+      awaitingData: AwaitingData[_],
+  )(implicit
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgent.Request],
   ): Behavior[GridAgent.Request] = Behaviors.receivePartial {
@@ -266,7 +282,10 @@ trait DCMAlgorithm {
   }
 
   // TODO: Implement a proper behavior
-  private[grid] def useFlexOptions(stateData: CongestionManagementData)(implicit
+  private[grid] def useFlexOptions(
+      stateData: CongestionManagementData,
+      awaitingData: AwaitingData[_],
+  )(implicit
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgent.Request],
   ): Behavior[GridAgent.Request] = Behaviors.receivePartial {

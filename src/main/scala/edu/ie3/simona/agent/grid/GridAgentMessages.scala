@@ -270,8 +270,9 @@ object GridAgentMessages {
       sender: ActorRef[GridAgent.Request],
   ) extends GridAgent.InternalReply
 
-  case class ReceivedCongestions(congestions: Vector[CongestionResponse])
-      extends GridAgent.InternalRequest
+  case class ReceivedCongestions(
+      congestions: Vector[(ActorRef[GridAgent.Request], Congestions)]
+  ) extends GridAgent.InternalRequest
 
   case class NextStepRequest(
       nextStep: CongestionManagementSteps.Value

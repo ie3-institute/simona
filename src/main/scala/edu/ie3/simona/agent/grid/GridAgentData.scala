@@ -59,6 +59,41 @@ object GridAgentData {
     }
   }
 
+  final case class AwaitingData[T] private (
+      inferiorGridMap: Map[ActorRef[GridAgent.Request], Option[T]]
+  ) {
+
+    /** Returns true if congestion data from inferior grids is expected and no
+      * data was received yet.
+      */
+    def isDone: Boolean =
+      inferiorGridMap.values.exists(_.isEmpty)
+
+    def values: Iterable[T] = inferiorGridMap.values.flatten.toSeq
+
+    /** Method for updating the data with the received data.
+      *
+      * @param receivedData
+      *   data that was received
+      * @return
+      *   a updated copy of this data
+      */
+    def handleReceivingData(
+        receivedData: Vector[(ActorRef[GridAgent.Request], T)]
+    ): AwaitingData[T] = {
+      val mappedData = receivedData.map(res => res._1 -> Some(res._2)).toMap
+      copy(inferiorGridMap = inferiorGridMap ++ mappedData)
+    }
+  }
+
+  object AwaitingData {
+    def apply[T](
+        inferiorGrids: Seq[ActorRef[GridAgent.Request]]
+    ): AwaitingData[T] = {
+      AwaitingData(inferiorGrids.map(ref => ref -> None).toMap)
+    }
+  }
+
   /** Data that is send to the [[GridAgent]] directly after startup. It contains
     * the main information for initialization. This data should include all
     * [[GridAgent]] individual data, for data that is the same for all
@@ -476,34 +511,10 @@ object GridAgentData {
       currentTick: Long,
       powerFlowResults: PowerFlowResultEvent,
       congestions: Congestions,
-      inferiorCongestionMap: Map[ActorRef[GridAgent.Request], Option[
-        Congestions
-      ]],
+      inferiorGrids: Seq[ActorRef[GridAgent.Request]],
   ) extends GridAgentData {
 
-    /** Returns true if congestion data from inferior grids is expected and no
-      * data was received yet.
-      */
-    def awaitingInferiorData: Boolean =
-      inferiorCongestionMap.values.exists(_.isEmpty)
-
-    /** Method for updating the data with the received data.
-      *
-      * @param receivedData
-      *   data that was received
-      * @return
-      *   a updated copy of this data
-      */
-    def handleReceivingData(
-        receivedData: Vector[CongestionResponse]
-    ): CongestionManagementData = {
-      val mappedData =
-        receivedData.map(res => res.sender -> Some(res.congestions)).toMap
-      copy(inferiorCongestionMap = inferiorCongestionMap ++ mappedData)
-    }
-
-    def inferiorRefs: Set[ActorRef[GridAgent.Request]] =
-      inferiorCongestionMap.keySet
+    def inferiorRefs: Set[ActorRef[GridAgent.Request]] = inferiorGrids.toSet
 
     def cleanAfterTransformerTapping: GridAgentBaseData = {
       val params = gridAgentBaseData.congestionManagementParams
@@ -549,7 +560,7 @@ object GridAgentData {
       )
 
       // extracting one inferior ref for all inferior grids
-      val inferiorCongestionMap = gridAgentBaseData.inferiorGridGates
+      val inferiorGrids = gridAgentBaseData.inferiorGridGates
         .map { inferiorGridGate =>
           gridAgentBaseData.gridEnv.subgridGateToActorRef(
             inferiorGridGate
@@ -563,15 +574,16 @@ object GridAgentData {
           inferiorGridGates
         }
         .map { case (inferiorGridAgentRef, _) =>
-          inferiorGridAgentRef -> None
+          inferiorGridAgentRef
         }
+        .toSeq
 
       CongestionManagementData(
         gridAgentBaseData,
         currentTick,
         powerFlowResults,
         congestions,
-        inferiorCongestionMap,
+        inferiorGrids,
       )
     }
 
