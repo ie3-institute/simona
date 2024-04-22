@@ -40,6 +40,7 @@ import tech.units.indriya.unit.Units.PERCENT
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.collection.SortedMap
+import scala.collection.convert.ImplicitConversions.`collection asJava`
 import scala.collection.immutable.SortedSet
 
 /** EV charging station model
@@ -279,23 +280,24 @@ final case class EvcsModel(
       }
     }
 
-    val entriesByStartTick = prefilteredSchedules.toSeq
-      .flatMap { case (evUuid, entries) =>
-        // unsorted for speedier execution
-        entries.unsorted.map { entry =>
-          // trim down entries to the currently
-          // considered window of the charging schedule
-          evUuid -> trimScheduleEntry(
-            entry,
-            lastTick,
-            currentTick,
-          )
+    val entriesByStartTick: SortedMap[Long, Iterable[(UUID, ScheduleEntry)]] =
+      prefilteredSchedules.toSeq
+        .flatMap { case (evUuid, entries) =>
+          // unsorted for speedier execution
+          entries.unsorted.map { entry =>
+            // trim down entries to the currently
+            // considered window of the charging schedule
+            evUuid -> trimScheduleEntry(
+              entry,
+              lastTick,
+              currentTick,
+            )
+          }
         }
-      }
-      .groupBy { case (_, entry) =>
-        entry.tickStart
-      }
-      .to(SortedMap)
+        .groupBy { case (_, entry) =>
+          entry.tickStart
+        }
+        .to(SortedMap)
 
     val startAndStopTicks = prefilteredSchedules.values
       .flatMap {
@@ -308,17 +310,15 @@ final case class EvcsModel(
       // the last tick needs to be present
       .incl(lastTick)
 
-    // in order to create 0kW entries for EVs that do not
-    // start charging right away at lastTick, create mock
-    // schedule entries that end before lastTick
-    val startingSchedules = lastEvMap.keys.map {
-      _ -> ScheduleEntry(lastTick, lastTick, zeroKW)
-    }
+    val updatedSchedulesByStartTick: Iterable[(UUID, ScheduleEntry)] =
+      entriesByStartTick.flatMap { case (_, entries) =>
+        entries.map(identity)
+      }
 
     val (currentEvs, currentSchedules, evResults, evcsResults) =
       startAndStopTicks.foldLeft(
         lastEvMap,
-        startingSchedules,
+        updatedSchedulesByStartTick,
         Seq.empty[EvResult],
         Seq.empty[EvcsResult],
       ) { case ((evMap, lastActiveEntries, evResults, evcsResults), tick) =>
@@ -330,17 +330,11 @@ final case class EvcsModel(
           case (_, entry) =>
             entry.tickStop > tick
         }
-        // entries that become active with tick
-        val newActiveEntries =
-          entriesByStartTick.getOrElse(tick, Iterable.empty).toMap
 
-        // for those entries that ended with tick and that
-        // do not have a directly connected entry after that,
-        // add 0 kW entries
         val noChargingEvResults =
           endedEntries
             .filterNot { case evUuid -> _ =>
-              newActiveEntries.contains(evUuid)
+              stillActive.contains(evUuid)
             }
             .map { case evUuid -> _ =>
               val ev = evMap(evUuid)
@@ -353,10 +347,8 @@ final case class EvcsModel(
               )
             }
 
-        // create result and update EVs with the
-        // newly active entries
         val (updatedEvMap, chargingEvResults) =
-          newActiveEntries.foldLeft(evMap, Seq.empty[EvResult]) {
+          stillActive.foldLeft(evMap, Seq.empty[EvResult]) {
             case ((evMap, results), evUuid -> entry) =>
               val ev = evMap(evUuid)
 
@@ -378,7 +370,7 @@ final case class EvcsModel(
               )
           }
 
-        val currentActiveEntries = stillActive ++ newActiveEntries
+        val currentActiveEntries = stillActive
 
         // create the EVCS result with all currently active entries
         val evcsP = currentActiveEntries.foldLeft(zeroKW) {

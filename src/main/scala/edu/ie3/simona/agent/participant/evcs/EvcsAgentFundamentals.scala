@@ -40,10 +40,11 @@ import edu.ie3.simona.exceptions.agent.{
   InvalidRequestException,
 }
 import edu.ie3.simona.model.participant.FlexChangeIndicator
-import edu.ie3.simona.model.participant.evcs.EvcsModel
+import edu.ie3.simona.model.participant.evcs.{EvModelWrapper, EvcsModel}
 import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsRelevantData,
   EvcsState,
+  ScheduleEntry,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexRequest,
@@ -58,12 +59,13 @@ import edu.ie3.util.scala.quantities.Megavars
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import org.apache.pekko.actor.{ActorRef, FSM}
-import squants.energy.Megawatts
+import squants.energy.{Kilowatts, Megawatts}
 import squants.{Dimensionless, Each}
 
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.collection.SortedSet
+
 import scala.reflect.{ClassTag, classTag}
 
 protected trait EvcsAgentFundamentals
@@ -433,19 +435,20 @@ protected trait EvcsAgentFundamentals
         baseStateData,
       )
 
-    val stayingSchedules =
-      lastState.schedule
-        .filterNot(requestedDepartingEvs.contains)
-        .view
-        .mapValues {
-          // Remove schedules that ended before or at current tick.
-          // Schedule entries ending at current tick do not have any
-          // impact on the schedule from the current tick on
-          _.filter(_.tickStop > tick)
-        }
-        .toMap
+    // filter(_.tickStop > currentTick)
+    // TODO is it possible to remove also the schedules that ended at currentTick? -> probably yes, test required
+    val schedulesOfStayingEvs: EvcsModel.ScheduleMap = stayingEvs.flatMap {
+      ev =>
+        val filteredSchedule = filterSchedulesForTick(
+          ev,
+          lastState.tick,
+          tick,
+          lastState.schedule,
+        )
+        filteredSchedule
+    }.toMap
 
-    val newState = EvcsState(stayingEvs, stayingSchedules, tick)
+    val newState = EvcsState(stayingEvs, schedulesOfStayingEvs, tick)
 
     baseStateData.copy(
       stateDataStore = ValueStore.updateValueStore(
@@ -455,6 +458,39 @@ protected trait EvcsAgentFundamentals
       ),
       resultValueStore = updatedResultValueStore,
     )
+  }
+
+  private def filterSchedulesForTick(
+      ev: EvModelWrapper,
+      lastTick: Long,
+      currentTick: Long,
+      schedules: EvcsModel.ScheduleMap,
+  ): EvcsModel.ScheduleMap = {
+
+    // in order to create 0kW entries for EVs that do not
+    // start charging right away at lastTick, create mock
+    // schedule entries that end before lastTick
+    val defaultEntry = ScheduleEntry(lastTick, lastTick, Kilowatts(0d))
+
+    schedules.get(ev.uuid) match {
+      case Some(schedule) =>
+        val updatedSchedule = schedule
+          .filter(entry =>
+            currentTick >= entry.tickStart && currentTick <= entry.tickStop
+          )
+          .map(entry =>
+            if (currentTick >= entry.tickStart && currentTick <= entry.tickStop)
+              entry
+            else
+              defaultEntry
+          )
+        schedules + (ev.uuid -> updatedSchedule)
+
+      case None =>
+        throw new RuntimeException(
+          s"The ev ${ev.uuid} couldn't be found in the schedules."
+        )
+    }
   }
 
   /** Handles data message that contains information on arriving EVs. Updates
