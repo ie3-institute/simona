@@ -333,6 +333,9 @@ final case class EvcsModel(
         val newActiveEntries =
           entriesByStartTick.getOrElse(tick, Iterable.empty).toMap
 
+        // for those entries that ended with tick and that
+        // do not have a directly connected entry after that,
+        // add 0 kW entries
         val noChargingEvResults =
           endedEntries
             .filterNot { case evUuid -> _ =>
