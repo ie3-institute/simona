@@ -40,7 +40,6 @@ import tech.units.indriya.unit.Units.PERCENT
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.collection.SortedMap
-import scala.collection.convert.ImplicitConversions.`collection asJava`
 import scala.collection.immutable.SortedSet
 
 /** EV charging station model
@@ -330,11 +329,14 @@ final case class EvcsModel(
           case (_, entry) =>
             entry.tickStop > tick
         }
+        // entries that become active with tick
+        val newActiveEntries =
+          entriesByStartTick.getOrElse(tick, Iterable.empty).toMap
 
         val noChargingEvResults =
           endedEntries
             .filterNot { case evUuid -> _ =>
-              stillActive.contains(evUuid)
+              newActiveEntries.contains(evUuid)
             }
             .map { case evUuid -> _ =>
               val ev = evMap(evUuid)
@@ -347,8 +349,10 @@ final case class EvcsModel(
               )
             }
 
+        // create result and update EVs with the
+        // newly active entries
         val (updatedEvMap, chargingEvResults) =
-          stillActive.foldLeft(evMap, Seq.empty[EvResult]) {
+          newActiveEntries.foldLeft(evMap, Seq.empty[EvResult]) {
             case ((evMap, results), evUuid -> entry) =>
               val ev = evMap(evUuid)
 
@@ -370,7 +374,7 @@ final case class EvcsModel(
               )
           }
 
-        val currentActiveEntries = stillActive
+        val currentActiveEntries = stillActive ++ newActiveEntries
 
         // create the EVCS result with all currently active entries
         val evcsP = currentActiveEntries.foldLeft(zeroKW) {
