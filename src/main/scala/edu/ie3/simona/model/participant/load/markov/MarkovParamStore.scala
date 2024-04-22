@@ -6,7 +6,9 @@ import java.io.{File, FileReader, InputStreamReader, Reader}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.model.participant.load.markov.SwitchOnProbabilityKey.SwitchOnProbabilityKey
 import org.apache.commons.csv.CSVFormat
+import scala.collection.mutable.{Map => MutableMap}
 
+import scala.collection.convert.ImplicitConversions.{`iterable AsScalaIterable`, `map AsJavaMap`}
 import scala.jdk.CollectionConverters._
 
 object MarkovParamStore extends LazyLogging {
@@ -37,13 +39,14 @@ object MarkovParamStore extends LazyLogging {
       println(s"$appliance -> $value")
     }
 
-      val incomeData = Income()
-      incomeData.foreach { case (incomeRange, appliancesData) =>
-        println(s"Income Range: $incomeRange")
-        appliancesData.foreach { case (appliance, value) =>
-          println(s"$appliance -> $value")
-        }
+    val incomeMap = income()
+    println("Test Function: Income:")
+    incomeMap.foreach { case (incomeCategory, appliancesMap) =>
+      println(s"Income Category: $incomeCategory")
+      appliancesMap.foreach { case (appliance, probability) =>
+        println(s"  $appliance -> $probability")
       }
+    }
 
 
   }
@@ -159,43 +162,38 @@ object MarkovParamStore extends LazyLogging {
     )
   }
   private def getDefaultReaderForHouse: Reader = {
-    logger.info("Markov House parameters file 'flat.csv.csv' from jar.")
+    logger.info("Markov House parameters file 'house.csv.csv' from jar.")
     new InputStreamReader(
       getClass.getResourceAsStream("/load/markov/appliances/house.csv")
     )
   }
 
   // By Income
-
-  def Income(): Map[String, Map[String, Double]] = {
-    val IncomeMap = collection.mutable.Map.empty[String, Map[String, Double]]
-
+  def income(): MutableMap[String, Map[String, Double]] = {
     val reader = getDefaultReaderIncome
-    val records = CSVFormat.DEFAULT.withDelimiter(';').withFirstRecordAsHeader().parse(reader)
+    val csvParser = CSVFormat.DEFAULT.withDelimiter(';').withFirstRecordAsHeader().parse(reader)
+    val records = csvParser.getRecords.asScala.toSeq
 
-    val headers = records.getHeaderNames.asScala.toList
+    val incomeMap = MutableMap[String, Map[String, Double]]()
 
-    if (headers.nonEmpty) {
-      val incomeHeader = headers.head
-      val applianceHeaders = headers.tail
+    records.foreach { record =>
+      val incomeCategory = record.get(0)
+      val appliancesMap = MutableMap[String, Double]()
 
-      records.forEach { record =>
-      val incomeRange = record.get(incomeHeader)
-      val appliancesData = applianceHeaders.map { header =>
-        val appliance = header
-        val value = record.get(header).replace(',', '.').toDouble
-        (appliance, value)
-      }.toMap
-      IncomeMap.put(incomeRange, appliancesData)
+      for (i <- 1 until record.size()) {
+        val appliance = csvParser.getHeaderNames.get(i)
+        val value = record.get(i).toDouble
+        appliancesMap += (appliance -> value)
+      }
+
+      incomeMap += (incomeCategory -> appliancesMap.toMap)
     }
-    }
-
-
     reader.close()
-    IncomeMap.toMap
+    incomeMap
+
   }
 
-    def getDefaultReaderIncome: Reader = {
+    private def getDefaultReaderIncome: Reader = {
     logger.info("Markov Income parameters file 'by_income.csv' from jar.")
     new InputStreamReader(
       getClass.getResourceAsStream("/load/markov/appliances/by_income.csv")
