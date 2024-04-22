@@ -460,6 +460,26 @@ protected trait EvcsAgentFundamentals
     )
   }
 
+  /** Filters schedules for a given Ev and returns all entries within range of a
+    * given Tick
+    *
+    * @param ev
+    *   the EvModelWrapper for which the the schedules should be filtered
+    * @param lastTick
+    *   the last Tick
+    * @param currentTick
+    *   the current Tick
+    * @param schedules
+    *   the map of schedules that should be filtered
+    * @return
+    *   If Ev is in schedules:
+    *   - the [[ChargingSchedule]] of that Ev for the currentTick or if there
+    *     isn't
+    *   - an default [[ChargingSchedule]] with zero Power will be returned If
+    *     the Ev isn't in schedules a [[RuntimeException]] will be thrown since
+    *     it should be in the schedules.
+    */
+
   private def filterSchedulesForTick(
       ev: EvModelWrapper,
       lastTick: Long,
