@@ -87,6 +87,10 @@ final case class TransformerModel(
     with TransformerTapping {
 
   private val tapSide = transformerTappingModel.tapSide
+
+  /** Returns a copy of the [[TransformerTappingModel]]
+    */
+  def tappingModelCopy: TransformerTappingModel = transformerTappingModel.copy()
 }
 
 case object TransformerModel {

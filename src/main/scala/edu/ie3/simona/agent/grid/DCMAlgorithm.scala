@@ -7,8 +7,8 @@
 package edu.ie3.simona.agent.grid
 
 import edu.ie3.simona.agent.grid.GridAgent.pipeToSelf
-import edu.ie3.simona.agent.grid.GridAgentData.CongestionManagementData.CongestionManagementSteps._
-import edu.ie3.simona.agent.grid.GridAgentData.CongestionManagementData.Congestions
+import edu.ie3.simona.agent.grid.CongestionManagementSupport.CongestionManagementSteps._
+import edu.ie3.simona.agent.grid.CongestionManagementSupport.Congestions
 import edu.ie3.simona.agent.grid.GridAgentData.{
   AwaitingData,
   CongestionManagementData,
@@ -32,7 +32,7 @@ import scala.concurrent.{ExecutionContext, Future}
   * congestion management (DCM) algorithm execution. It is considered to be the
   * standard behaviour of a [[GridAgent]].
   */
-trait DCMAlgorithm {
+trait DCMAlgorithm extends CongestionManagementSupport {
 
   /** Method that defines the [[Behavior]] for checking if there are any
     * congestion in the grid.

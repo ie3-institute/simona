@@ -13,7 +13,7 @@ import edu.ie3.datamodel.models.result.connector.{
   Transformer2WResult,
 }
 import edu.ie3.simona.agent.grid.GridAgentData.CongestionManagementData
-import edu.ie3.simona.agent.grid.GridAgentData.CongestionManagementData.Congestions
+import edu.ie3.simona.agent.grid.CongestionManagementSupport.Congestions
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid

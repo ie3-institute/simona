@@ -166,6 +166,10 @@ final case class Transformer3wModel(
         )
     }
   }
+
+  /** Returns a copy of the [[TransformerTappingModel]]
+    */
+  def tappingModelCopy: TransformerTappingModel = transformerTappingModel.copy()
 }
 
 case object Transformer3wModel extends LazyLogging {

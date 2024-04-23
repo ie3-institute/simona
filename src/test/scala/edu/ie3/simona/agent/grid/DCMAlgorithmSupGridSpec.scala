@@ -10,7 +10,7 @@ import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentData.CongestionManagementData.Congestions
+import edu.ie3.simona.agent.grid.CongestionManagementSupport.Congestions
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.config.SimonaConfig

@@ -9,13 +9,22 @@ package edu.ie3.simona.test.common.model.grid
 import java.util.UUID
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.NodeInput
+import edu.ie3.datamodel.models.input.connector.`type`.{
+  Transformer2WTypeInput,
+  Transformer3WTypeInput,
+}
 import edu.ie3.datamodel.models.input.connector.{
   ConnectorPort,
   Transformer2WInput,
   Transformer3WInput,
 }
+import edu.ie3.simona.model.grid.{Transformer3wModel, TransformerModel}
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.mockito.Mockito._
 import org.scalatestplus.mockito.MockitoSugar
+import tech.units.indriya.ComparableQuantity
+
+import javax.measure.quantity.{ElectricPotential, Power}
 
 /** Hold my cup of coffee and let me mock you some models.
   */
@@ -57,6 +66,18 @@ trait SubGridGateMokka extends MockitoSugar {
     transformer
   }
 
+  protected def mockTransformer2w(
+      uuid: UUID,
+      nodeA: NodeInput,
+      nodeB: NodeInput,
+  ): Transformer2WInput = {
+    val transformer = mock[Transformer2WInput]
+    when(transformer.getNodeA).thenReturn(nodeA)
+    when(transformer.getNodeB).thenReturn(nodeB)
+    when(transformer.getUuid).thenReturn(uuid)
+    transformer
+  }
+
   /** Mocks a transformer, that only holds information on what nodes are
     * connected
     *
@@ -86,6 +107,26 @@ trait SubGridGateMokka extends MockitoSugar {
     when(transformer.getNodeB).thenReturn(nodeB)
     when(transformer.getNodeC).thenReturn(nodeC)
     when(transformer.getNodeInternal).thenReturn(internalNode)
+    transformer
+  }
+
+  protected def mockTransformer3w(
+      uuid: UUID,
+      nodeA: NodeInput,
+      nodeASubnet: Int,
+      nodeB: NodeInput,
+      nodeC: NodeInput,
+  ): Transformer3WInput = {
+    val internalNode = mock[NodeInput]
+    when(internalNode.getUuid).thenReturn(UUID.randomUUID())
+    when(internalNode.getSubnet).thenReturn(nodeASubnet)
+
+    val transformer = mock[Transformer3WInput]
+    when(transformer.getNodeA).thenReturn(nodeA)
+    when(transformer.getNodeB).thenReturn(nodeB)
+    when(transformer.getNodeC).thenReturn(nodeC)
+    when(transformer.getNodeInternal).thenReturn(internalNode)
+    when(transformer.getUuid).thenReturn(uuid)
     transformer
   }
 

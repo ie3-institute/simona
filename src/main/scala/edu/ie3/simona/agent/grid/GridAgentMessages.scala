@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.simona.agent.grid.GridAgentData.CongestionManagementData.{
+import edu.ie3.simona.agent.grid.CongestionManagementSupport.{
   CongestionManagementSteps,
   Congestions,
 }

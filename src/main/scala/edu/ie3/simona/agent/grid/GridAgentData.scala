@@ -11,7 +11,7 @@ import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentData.CongestionManagementData.Congestions
+import edu.ie3.simona.agent.grid.CongestionManagementSupport.Congestions
 import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.agent.grid.ReceivedValuesStore.NodeToReceivedPower
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
@@ -610,7 +610,7 @@ object GridAgentData {
 
       // checking for voltage congestions
       val voltageCongestion = powerFlowResults.nodeResults.exists { res =>
-        !voltageLimits.isInLimits(res.getvMag().getValue.doubleValue())
+        !voltageLimits.isInLimits(res.getvMag())
       }
 
       // checking for line congestions
@@ -654,29 +654,6 @@ object GridAgentData {
         lineCongestion,
         transformer2wCongestion || transformer3wCongestion,
       )
-    }
-
-    case class Congestions(
-        voltageCongestions: Boolean,
-        lineCongestions: Boolean,
-        transformerCongestions: Boolean,
-    ) {
-
-      def any: Boolean =
-        voltageCongestions || lineCongestions || transformerCongestions
-
-      def assetCongestion: Boolean = lineCongestions || transformerCongestions
-
-      def combine(options: Iterable[Congestions]): Congestions =
-        Congestions(
-          voltageCongestions || options.exists(_.voltageCongestions),
-          lineCongestions || options.exists(_.lineCongestions),
-          transformerCongestions || options.exists(_.transformerCongestions),
-        )
-    }
-
-    object CongestionManagementSteps extends Enumeration {
-      val TransformerTapping, TopologyChanges, UsingFlexibilities = Value
     }
   }
 }
