@@ -309,15 +309,17 @@ final case class EvcsModel(
       // the last tick needs to be present
       .incl(lastTick)
 
-    val updatedSchedulesByStartTick: Iterable[(UUID, ScheduleEntry)] =
-      entriesByStartTick.flatMap { case (_, entries) =>
-        entries.map(identity)
-      }
+    // in order to create 0kW entries for EVs that do not
+    // start charging right away at lastTick, create mock
+    // schedule entries that end before lastTick
+    val startingSchedules = lastEvMap.keys.map {
+      _ -> ScheduleEntry(lastTick, lastTick, zeroKW)
+    }
 
     val (currentEvs, currentSchedules, evResults, evcsResults) =
       startAndStopTicks.foldLeft(
         lastEvMap,
-        updatedSchedulesByStartTick,
+        startingSchedules,
         Seq.empty[EvResult],
         Seq.empty[EvcsResult],
       ) { case ((evMap, lastActiveEntries, evResults, evcsResults), tick) =>
