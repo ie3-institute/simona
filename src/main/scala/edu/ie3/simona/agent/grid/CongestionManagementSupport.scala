@@ -14,7 +14,6 @@ import edu.ie3.simona.exceptions.ResultException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.grid.GridModel.GridComponents
 import edu.ie3.simona.model.grid.{
-  Transformer3wModel,
   TransformerModel,
   TransformerTappingModel,
   VoltageLimits,
@@ -75,8 +74,9 @@ trait CongestionManagementSupport {
     *   voltage limits
     * @param gridComponents
     *   all components of the grid
-    * @param transformers
-    *   map: inferior grid to connecting transformer
+    * @param transformerTapping
+    *   map: inferior grid to [[TransformerTappingModel]] as the used
+    *   transformer
     * @param inferiorRange
     *   map: inferior grid to voltage range
     * @return
@@ -85,7 +85,9 @@ trait CongestionManagementSupport {
       powerFlowResultEvent: PowerFlowResultEvent,
       voltageLimits: VoltageLimits,
       gridComponents: GridComponents,
-      transformers: Map[ActorRef[GridAgent.Request], SystemComponent],
+      transformerTapping: Map[ActorRef[
+        GridAgent.Request
+      ], TransformerTappingModel],
       inferiorRange: Map[ActorRef[GridAgent.Request], VoltageRange],
   ): VoltageRange = {
     // calculate voltage range
@@ -118,21 +120,8 @@ trait CongestionManagementSupport {
     } else {
       // if there are inferior grids, update the voltage range
 
-      val tappingModels = transformers.map { case (ref, component) =>
-        component match {
-          case transformerModel: TransformerModel =>
-            ref -> transformerModel.tappingModelCopy
-          case transformer3wModel: Transformer3wModel =>
-            ref -> transformer3wModel.tappingModelCopy
-          case unsupported =>
-            throw new IllegalArgumentException(
-              s"Unsupported value: $unsupported!"
-            )
-        }
-      }
-
       updatedRange.updateWithInferiorRanges(
-        tappingModels,
+        transformerTapping,
         inferiorRange,
       )
     }
@@ -264,15 +253,17 @@ object CongestionManagementSupport {
           (
             range.deltaPlus
               .add(possibleMinus)
-              .isGreaterThanOrEqualTo(infRange.deltaPlus),
+              .isLessThanOrEqualTo(infRange.deltaPlus),
             range.deltaMinus
-              .subtract(possiblePlus)
-              .isLessThanOrEqualTo(infRange.deltaMinus),
+              .add(possiblePlus)
+              .isGreaterThanOrEqualTo(infRange.deltaMinus),
           ) match {
             case (true, true) =>
               range
             case (true, false) =>
-              range.copy(deltaMinus = infRange.deltaMinus.add(possiblePlus))
+              range.copy(deltaMinus =
+                infRange.deltaMinus.subtract(possiblePlus)
+              )
             case (false, true) =>
               range.copy(deltaPlus = infRange.deltaPlus.subtract(possibleMinus))
             case (false, false) =>
@@ -286,13 +277,13 @@ object CongestionManagementSupport {
             range.deltaMinus.isLessThanOrEqualTo(infRange.deltaMinus),
           ) match {
             case (true, true) =>
-              range
-            case (true, false) =>
-              range.copy(deltaMinus = infRange.deltaMinus)
-            case (false, true) =>
-              range.copy(deltaPlus = infRange.deltaPlus)
-            case (false, false) =>
               infRange
+            case (true, false) =>
+              range.copy(deltaPlus = infRange.deltaPlus)
+            case (false, true) =>
+              range.copy(deltaMinus = infRange.deltaMinus)
+            case (false, false) =>
+              range
           }
         }
       }
