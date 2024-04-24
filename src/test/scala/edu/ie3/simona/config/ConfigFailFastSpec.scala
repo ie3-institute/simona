@@ -77,7 +77,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               "total non-sense"
             )
           }.getMessage shouldBe "Invalid dateTimeString: total non-sense." +
-            "Please ensure that your date/time parameter match the following pattern: 'yyyy-MM-dd HH:mm:ss'"
+            "Please ensure that your date/time parameter match the following pattern: 'yyyy-MM-dd'T'HH:mm:ss'Z''"
         }
       }
 
