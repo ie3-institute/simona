@@ -15,6 +15,10 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.datamodel.models.result.thermal.ThermalUnitResult
 import edu.ie3.simona.agent.ValueStore
+import edu.ie3.simona.agent.grid.GridAgentMessages.{
+  AssetPowerChangedMessage,
+  AssetPowerUnchangedMessage,
+}
 import edu.ie3.simona.agent.participant.ParticipantAgent.StartCalculationTrigger
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals.RelevantResultValues
 import edu.ie3.simona.agent.participant.data.Data
@@ -68,10 +72,6 @@ import edu.ie3.simona.model.participant.{
   SystemParticipant,
 }
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -85,6 +85,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
@@ -1001,7 +1002,7 @@ protected trait ParticipantAgentFundamentals[
           )(p)
     } else { _: Power =>
       /* Use trivial reactive power */
-      Megavars(0d)
+      zeroMVAr
     }
 
   /** Try to get and process the received data
@@ -1192,7 +1193,7 @@ protected trait ParticipantAgentFundamentals[
   }
 
   /** Determining the reply to an
-    * [[edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage]],
+    * [[edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage]],
     * send this answer and stay in the current state. If no reply can be
     * determined (because an activation or incoming data is expected), the
     * message is stashed.
@@ -1373,7 +1374,7 @@ protected trait ParticipantAgentFundamentals[
   }
 
   /** Determine a reply on a
-    * [[edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage]]
+    * [[edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage]]
     * by looking up the detailed simulation results, averaging them and
     * returning the equivalent state transition.
     *
@@ -2051,7 +2052,7 @@ object ParticipantAgentFundamentals {
           "Unable to determine average active power. Apply 0 instead. Cause:\n\t{}",
           exception,
         )
-        Megawatts(0d)
+        zeroMW
     }
 
     val q = QuantityUtil.average[Power, Energy](
@@ -2074,7 +2075,7 @@ object ParticipantAgentFundamentals {
           "Unable to determine average reactive power. Apply 0 instead. Cause:\n\t{}",
           exception,
         )
-        Megavars(0d)
+        zeroMVAr
     }
 
     ApparentPower(p, q)
@@ -2132,7 +2133,7 @@ object ParticipantAgentFundamentals {
           "Unable to determine average thermal power. Apply 0 instead. Cause:\n\t{}",
           exception,
         )
-        Megawatts(0d)
+        zeroMW
     }
 
     ApparentPowerAndHeat(apparentPower.p, apparentPower.q, qDot)
