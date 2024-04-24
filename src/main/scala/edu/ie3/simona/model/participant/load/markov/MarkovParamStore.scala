@@ -4,9 +4,13 @@ package edu.ie3.simona.model.participant.load.markov
 import java.io.{InputStreamReader, Reader}
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.csv.CSVFormat
+
 import scala.collection.mutable.{Map => MutableMap}
 import scala.jdk.CollectionConverters._
 
+final case class MarkovParamStore() {
+
+}
 
 object MarkovParamStore extends LazyLogging {
 
@@ -52,23 +56,11 @@ object MarkovParamStore extends LazyLogging {
       appliancesMap.foreach { case (appliance, probability) =>
         println(s"  $appliance -> $probability")
       }
-    }
-
-    val loadTSList = LoadTS()
-    loadTSList.zipWithIndex.foreach { case (loadTSMap, index) =>
-      println(s"Load TS Map $index:")
-      loadTSMap.foreach { case (appliance, hourlyLoadMap) =>
-        println(s"  Appliance: $appliance")
-        hourlyLoadMap.foreach { case (hour, load) =>
-          println(s"    Hour $hour: $load")
-        }
-      }
-    }
-
+     }
 
   }
   // Usage Probabilities
-  private def Usage_Probabilities(): Map[String, Double] = {
+  def Usage_Probabilities(): Map[String, Double] = {
     val reader = getDefaultReader
     val csvParser = CSVFormat.DEFAULT
       .withDelimiter(';')
@@ -98,7 +90,7 @@ object MarkovParamStore extends LazyLogging {
   // Switch On Probabilities
 
   // Average HH
-  private def Average_HH(): Map[String, Double] = {
+  def Average_HH(): Map[String, Double] = {
     val reader = getDefaultReaderForAverageHH
     val csvParser = CSVFormat.DEFAULT
       .withDelimiter(';')
@@ -128,7 +120,7 @@ object MarkovParamStore extends LazyLogging {
   }
 
   // By Flat // By House
-  private def Flat(): Map[String, Double] = {
+  def Flat(): Map[String, Double] = {
     val reader = getDefaultReaderForFlat
     val csvParser = CSVFormat.DEFAULT
       .withDelimiter(';')
@@ -150,7 +142,7 @@ object MarkovParamStore extends LazyLogging {
     FlatMap
   }
 
-  private def House(): Map[String, Double] = {
+  def House(): Map[String, Double] = {
     val reader = getDefaultReaderForHouse
     val csvParser = CSVFormat.DEFAULT
       .withDelimiter(';')
@@ -186,7 +178,7 @@ object MarkovParamStore extends LazyLogging {
   }
 
   // By Income
-  private def income(): MutableMap[String, Map[String, Double]] = {
+  def income(): MutableMap[String, Map[String, Double]] = {
     val reader = getDefaultReaderIncome
     val csvParser = CSVFormat.DEFAULT.withDelimiter(';').withFirstRecordAsHeader().parse(reader)
     val records = csvParser.getRecords.asScala.toSeq
@@ -219,7 +211,7 @@ object MarkovParamStore extends LazyLogging {
 
   // By Inhabitants
 
-  private def inhabitants(): MutableMap[String, Map[String, Double]] = {
+  def inhabitants(): MutableMap[String, Map[String, Double]] = {
     val reader = getDefaultReaderInhabitants
     val csvParser = CSVFormat.DEFAULT.withDelimiter(';').withFirstRecordAsHeader().parse(reader)
     val records = csvParser.getRecords.asScala.toSeq
@@ -251,7 +243,7 @@ object MarkovParamStore extends LazyLogging {
 
   // Load TS
 
-  private def LoadTS(): List[Map[String, Map[Int, Double]]] = {
+  def LoadTS(): List[Map[String, Map[Int, Double]]] = {
     val reader = getDefaultReaderLoad_TS
     val csvParser = CSVFormat.DEFAULT.withDelimiter(';').withFirstRecordAsHeader().parse(reader)
     val records = csvParser.getRecords.asScala.toList
@@ -259,11 +251,6 @@ object MarkovParamStore extends LazyLogging {
     val loadTSList = records.map { record =>
       val loadTSMap = MutableMap[String, Map[Int, Double]]()
 
-      csvParser.getHeaderNames.asScala.foreach { appliance =>
-        val hourlyLoadMap = MutableMap[Int, Double]()
-
-        loadTSMap += (appliance -> hourlyLoadMap.toMap)
-      }
 
 
       loadTSMap.toMap
