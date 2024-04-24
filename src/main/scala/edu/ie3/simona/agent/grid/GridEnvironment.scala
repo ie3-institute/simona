@@ -26,6 +26,6 @@ import java.util.UUID
   */
 final case class GridEnvironment(
     gridModel: GridModel,
-    subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgentMessage]],
+    subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
     nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]],
 )
