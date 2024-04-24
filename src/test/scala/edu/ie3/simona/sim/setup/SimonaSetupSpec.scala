@@ -12,11 +12,13 @@ import edu.ie3.datamodel.models.input.connector.{
   Transformer3WInput,
 }
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentMessage
+import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.scheduler.TimeAdvancer
+import edu.ie3.simona.scheduler.core.Core.CoreFactory
+import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.grid.SubGridGateMokka
@@ -54,7 +56,7 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
 
   override def extSimulations(
       context: ActorContext[_],
-      scheduler: ActorRef[SchedulerMessage],
+      rootScheduler: ActorRef[SchedulerMessage],
   ): ExtSimSetupData = throw new NotImplementedException(
     "This is a dummy setup"
   )
@@ -69,7 +71,8 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
 
   override def scheduler(
       context: ActorContext[_],
-      timeAdvancer: ActorRef[TimeAdvancer.Request],
+      timeAdvancer: ActorRef[SchedulerMessage],
+      coreFactory: CoreFactory = RegularSchedulerCore,
   ): ActorRef[SchedulerMessage] = throw new NotImplementedException(
     "This is a dummy setup"
   )
@@ -78,7 +81,7 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
       context: ActorContext[_],
       environmentRefs: EnvironmentRefs,
       resultEventListeners: Seq[ActorRef[ResultEvent]],
-  ): Iterable[ActorRef[GridAgentMessage]] =
+  ): Iterable[ActorRef[GridAgent.Request]] =
     throw new NotImplementedException("This is a dummy setup")
 
   "Attempting to modify a sub grid gate" should {

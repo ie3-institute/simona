@@ -13,8 +13,9 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.EnergyPrice
-import squants.energy.{Kilowatts, Megawatts}
+import squants.energy.Megawatts
 import squants.{Dimensionless, Money, Power, Temperature}
 
 import java.time.ZonedDateTime
@@ -230,7 +231,7 @@ final case class BMModel(
   ): ProvideFlexOptions = {
     val power = calculateActivePower(lastState, data)
 
-    ProvideMinMaxFlexOptions(uuid, power, power, Kilowatts(0d))
+    ProvideMinMaxFlexOptions(uuid, power, power, zeroKW)
   }
 
   override def handleControlledPowerChange(
