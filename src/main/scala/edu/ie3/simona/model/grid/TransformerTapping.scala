@@ -7,6 +7,9 @@
 package edu.ie3.simona.model.grid
 
 import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import tech.units.indriya.ComparableQuantity
+
 import javax.measure.Quantity
 import javax.measure.quantity.Dimensionless
 import tech.units.indriya.quantity.Quantities
@@ -29,6 +32,13 @@ trait TransformerTapping {
   /** Returns [[TransformerTappingModel.autoTap]].
     */
   def hasAutoTap: Boolean = transformerTappingModel.autoTap
+
+  def deltaV: ComparableQuantity[Dimensionless] =
+    transformerTappingModel.deltaV.getValue.doubleValue().asPu
+
+  def maxTapIncrease: Int = transformerTappingModel.tapMax - currentTapPos
+
+  def maxTapDecrease: Int = currentTapPos - transformerTappingModel.tapMin
 
   def currentTapPos: Int = transformerTappingModel.currentTapPos
 

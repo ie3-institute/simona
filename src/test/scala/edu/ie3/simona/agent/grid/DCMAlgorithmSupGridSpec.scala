@@ -10,7 +10,10 @@ import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.CongestionManagementSupport.Congestions
+import edu.ie3.simona.agent.grid.CongestionManagementSupport.{
+  Congestions,
+  VoltageRange,
+}
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.config.SimonaConfig
@@ -26,6 +29,7 @@ import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped, UnitSpec}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
@@ -89,8 +93,8 @@ class DCMAlgorithmSupGridSpec
           ehvGridContainer,
           Seq.empty[ThermalGrid],
           subnetGatesToActorRef,
-          RefSystem("5000 MVA", "380 kV"),
-          VoltageLimits(0.9, 1.1),
+          RefSystem("5000 MVA", "110 kV"),
+          VoltageLimits(0.9, 1.05),
         )
 
       val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
@@ -173,9 +177,19 @@ class DCMAlgorithmSupGridSpec
       // inferior should receive a next state message to go to a congestion management step
       hvGrid.expectMessageType[NextStepRequest]
 
-      // skipping the step for now
-      // TODO: Update test after implementing transformer tapping
-      superiorGridAgent ! FinishStep
+      hvGrid.expectMessageType[RequestVoltageOptions] match {
+        case RequestVoltageOptions(sender) =>
+          sender ! VoltageRangeResponse(
+            hvGrid.ref,
+            VoltageRange(0.04.asPu, 0.asPu),
+          )
+      }
+
+      hvGrid.expectMessageType[VoltageDeltaResponse](120.seconds) match {
+        case VoltageDeltaResponse(delta) =>
+          delta should equalWithTolerance(0.03.asPu)
+      }
+
       hvGrid.expectMessageType[FinishStep.type]
 
       // skipping the simulation
@@ -221,7 +235,7 @@ class DCMAlgorithmSupGridSpec
         }
 
       // send congestions
-      lastSender ! CongestionResponse(congestions, hvGrid.ref)
+      lastSender ! CongestionResponse(hvGrid.ref, congestions)
     }
 
     def gotoSimulateGrid(): Unit = {

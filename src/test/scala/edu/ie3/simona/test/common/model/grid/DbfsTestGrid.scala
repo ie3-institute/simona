@@ -13,7 +13,10 @@ import edu.ie3.datamodel.models.input.connector.`type`.{
   LineTypeInput,
   Transformer2WTypeInput,
 }
-import edu.ie3.datamodel.models.input.container.RawGridElements
+import edu.ie3.datamodel.models.input.container.{
+  JointGridContainer,
+  RawGridElements,
+}
 import edu.ie3.datamodel.models.input.system.characteristic.OlmCharacteristicInput
 import edu.ie3.datamodel.models.input.{
   MeasurementUnitInput,
@@ -268,7 +271,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     1,
     trafoType,
     0,
-    false,
+    true,
   )
   protected val transformer2 = new Transformer2WInput(
     UUID.fromString("ceccd8cb-29dc-45d6-8a13-4b0033c5f1ef"),
@@ -280,7 +283,7 @@ trait DbfsTestGrid extends SubGridGateMokka {
     1,
     trafoType,
     0,
-    false,
+    true,
   )
 
   protected val (hvGridContainer, hvSubGridGates) = {
@@ -389,11 +392,11 @@ trait DbfsTestGrid extends SubGridGateMokka {
   }
 
   protected val (ehvGridContainer, ehvSubGridGates) = {
-    val nodes = Set(supNodeA)
+    val nodes = Set(supNodeA, node1)
     val rawGridElements = new RawGridElements(
       nodes.asJava,
       Set.empty[LineInput].asJava,
-      Set.empty[Transformer2WInput].asJava,
+      Set(transformer1).asJava,
       Set.empty[Transformer3WInput].asJava,
       Set.empty[SwitchInput].asJava,
       Set.empty[MeasurementUnitInput].asJava,

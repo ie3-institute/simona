@@ -34,7 +34,7 @@ trait CongestionManagementSupport {
   /** Method for retrieving all needed information for transformers.
     * @param inferiorGrids
     *   sequence of inferior grids
-    * @param subGridGateToActorRef
+    * @param subgridGateToActorRef
     *   mapping of [[SubGridGate]]s to inferior grids
     * @param gridComponents
     *   the [[GridComponents]] to consider
@@ -43,7 +43,7 @@ trait CongestionManagementSupport {
     */
   def getTransformerInfos(
       inferiorGrids: Seq[ActorRef[GridAgent.Request]],
-      subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
+      subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
       gridComponents: GridComponents,
   ): (
       Map[ActorRef[GridAgent.Request], TransformerModel],
@@ -52,13 +52,13 @@ trait CongestionManagementSupport {
   ) = {
     val transformerMap = getTransformer(
       inferiorGrids,
-      subGridGateToActorRef,
+      subgridGateToActorRef,
       gridComponents,
     )
 
     val transformer3wMap = getTransformer3w(
       inferiorGrids,
-      subGridGateToActorRef,
+      subgridGateToActorRef,
       gridComponents,
     )
 
@@ -73,7 +73,7 @@ trait CongestionManagementSupport {
     * refs.
     * @param inferiorGrids
     *   set of [[ActorRef]]s
-    * @param subGridGateToActorRef
+    * @param subgridGateToActorRef
     *   map: [[SubGridGate]] to [[ActorRef]]
     * @param gridComponents
     *   all components of the grid
@@ -82,7 +82,7 @@ trait CongestionManagementSupport {
     */
   def getTransformer(
       inferiorGrids: Seq[ActorRef[GridAgent.Request]],
-      subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
+      subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
       gridComponents: GridComponents,
   ): Map[ActorRef[GridAgent.Request], TransformerModel] = {
     val transformerMap =
@@ -90,7 +90,7 @@ trait CongestionManagementSupport {
         .map(transformer => transformer.uuid -> transformer)
         .toMap
 
-    subGridGateToActorRef
+    subgridGateToActorRef
       .flatMap { entry =>
         val ref = entry._2
         Option.when(inferiorGrids.contains(ref))(ref -> entry._1)
@@ -106,7 +106,7 @@ trait CongestionManagementSupport {
     *
     * @param inferiorGrids
     *   set of [[ActorRef]]s
-    * @param subGridGateToActorRef
+    * @param subgridGateToActorRef
     *   map: [[SubGridGate]] to [[ActorRef]]
     * @param gridComponents
     *   all components of the grid
@@ -115,7 +115,7 @@ trait CongestionManagementSupport {
     */
   def getTransformer3w(
       inferiorGrids: Seq[ActorRef[GridAgent.Request]],
-      subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
+      subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
       gridComponents: GridComponents,
   ): Map[ActorRef[GridAgent.Request], Transformer3wModel] = {
     val transformerMap =
@@ -123,7 +123,7 @@ trait CongestionManagementSupport {
         .map(transformer => transformer.uuid -> transformer)
         .toMap
 
-    subGridGateToActorRef
+    subgridGateToActorRef
       .flatMap { entry =>
         val ref = entry._2
         Option.when(inferiorGrids.contains(ref))(ref -> entry._1)
@@ -393,6 +393,38 @@ object CongestionManagementSupport {
         deltaMinus,
         suggestion,
       )
+    }
+
+    def combineSuggestions(
+        ranges: Set[VoltageRange]
+    ): ComparableQuantity[Dimensionless] = {
+      ranges.headOption match {
+        case Some(value) =>
+          if (ranges.size == 1) {
+            value.suggestion
+          } else {
+            ranges
+              .foldLeft(value) { case (combined, current) =>
+                (
+                  combined.deltaPlus.isGreaterThanOrEqualTo(current.deltaPlus),
+                  combined.deltaMinus.isLessThanOrEqualTo(current.deltaMinus),
+                ) match {
+                  case (true, true) =>
+                    current
+                  case (true, false) =>
+                    combined.copy(deltaPlus = current.deltaPlus)
+                  case (false, true) =>
+                    combined.copy(deltaMinus = current.deltaMinus)
+                  case (false, false) =>
+                    combined
+                }
+              }
+              .suggestion
+          }
+        case None =>
+          // no suggestion found => no tapping suggestion
+          0.asPu
+      }
     }
   }
 

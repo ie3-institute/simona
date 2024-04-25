@@ -89,8 +89,8 @@ trait DCMAlgorithm extends CongestionManagementSupport {
 
         // sends the results to the superior grid
         sender ! CongestionResponse(
-          congestions.combine(awaitingData.values),
           ctx.self,
+          congestions.combine(awaitingData.values),
         )
       }
 
@@ -255,8 +255,8 @@ trait DCMAlgorithm extends CongestionManagementSupport {
         )
 
         sender ! VoltageRangeResponse(
-          range,
           ctx.self,
+          range,
         )
       }
 
@@ -271,7 +271,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
         // because the slack grid should always have 1 pu
 
         ctx.self ! VoltageDeltaResponse(0.asPu)
-        Behaviors.same
+        updateTransformerTapping(stateData, updatedData)
       } else {
         // un-stash all messages
         buffer.unstashAll(updateTransformerTapping(stateData, updatedData))
@@ -281,47 +281,62 @@ trait DCMAlgorithm extends CongestionManagementSupport {
       // if we are the superior grid to another grid, we check for transformer tapping option
       // and send the new delta to the inferior grid
 
-      val inferiorRefs = stateData.inferiorRefs
-
-      if (inferiorRefs.nonEmpty) {
+      if (stateData.inferiorRefs.nonEmpty) {
         // we calculate a voltage delta for all inferior grids
+        val inferiorData = awaitingData.mappedValues
 
         val gridEnv = stateData.gridAgentBaseData.gridEnv
         val gridModel = gridEnv.gridModel
         val gridComponents = gridModel.gridComponents
 
-        val (transformer2ws, transformer3ws, _) =
-          getTransformerInfos(
-            stateData.inferiorGrids,
-            gridEnv.subgridGateToActorRef,
-            gridComponents,
-          )
+        val (transformer2ws, transformer3ws, _) = getTransformerInfos(
+          stateData.inferiorGrids,
+          gridEnv.subgridGateToActorRef,
+          gridComponents,
+        )
 
-        // update inferior grid connected by a two winding transformer
-        transformer2ws.foreach { case (ref, model) =>
-          if (model.hasAutoTap) {
-            // the given transformer can be tapped, calculate the new tap pos
-
-            // TODO: Add code
-
-          } else {
-            // no tapping possible, just send the delta to the inferior grid
-            ref ! VoltageDeltaResponse(delta)
-          }
-        }
-
-        // update inferior grid connected by a three winding transformer
         val transformer3wMap =
           gridComponents.transformers3w.map(t => t.uuid -> t).toMap
 
-        transformer3ws.groupBy(_._2.uuid).foreach { case (uuid, refMap) =>
-          val transformer = transformer3wMap(uuid)
+        val modelMap = transformer2ws
+          .groupBy(_._2) ++ transformer3ws.groupBy(_._2.uuid).map {
+          case (uuid, refMap) =>
+            transformer3wMap(uuid) -> refMap
+        }
+
+        modelMap.foreach { case (model, refMap) =>
           val refs = refMap.keySet
 
-          if (transformer.hasAutoTap) {
+          if (model.hasAutoTap) {
             // the given transformer can be tapped, calculate the new tap pos
 
-            // TODO: Add code
+            val suggestion =
+              VoltageRange.combineSuggestions(refs.map(inferiorData))
+
+            val tapOption = model.computeDeltaTap(suggestion)
+            val deltaV = if (tapOption == 0) {
+              // we can not change the voltage as we would like to
+              if (suggestion.isLessThan(0.asPu)) {
+                // if suggestion < 0, we decrease the voltage as much as we can
+
+                val tapChange = model.maxTapDecrease
+                model.decrTapPos(tapChange)
+
+                model.deltaV.multiply(tapChange)
+              } else {
+                // we increase the voltage as much as we can
+                val tapChange = model.maxTapIncrease
+                model.decrTapPos(tapChange)
+
+                model.deltaV.multiply(tapChange)
+              }
+            } else {
+              // we can change the voltage without a problem
+              model.updateTapPos(tapOption)
+              model.deltaV.multiply(tapOption)
+            }
+
+            refs.foreach(_ ! VoltageDeltaResponse(deltaV.divide(100)))
           } else {
             // no tapping possible, just send the delta to the inferior grid
             refs.foreach(_ ! VoltageDeltaResponse(delta))

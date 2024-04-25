@@ -232,16 +232,16 @@ class DCMAlgorithmCenGridSpec
 
       // send congestions
       congestionCheckRequestSender11.sender ! CongestionResponse(
-        congestions,
         inferiorGrid11.ref,
+        congestions,
       )
       congestionCheckRequestSender12.sender ! CongestionResponse(
-        congestions,
         inferiorGrid12.ref,
+        congestions,
       )
       congestionCheckRequestSender13.sender ! CongestionResponse(
-        congestions,
         inferiorGrid13.ref,
+        congestions,
       )
 
       // we expect transformer congestions in the whole grid

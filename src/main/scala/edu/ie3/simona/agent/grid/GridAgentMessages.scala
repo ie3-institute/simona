@@ -271,8 +271,8 @@ object GridAgentMessages {
   }
 
   sealed trait CMReceiveResponse[T] extends GridAgent.InternalReply {
-    def value: T
     def sender: ActorRef[GridAgent.Request]
+    def value: T
   }
 
   sealed trait CMResponse[T] extends GridAgent.InternalReply {
@@ -285,8 +285,8 @@ object GridAgentMessages {
   ) extends CMRequest
 
   case class CongestionResponse(
-      override val value: Congestions,
       override val sender: ActorRef[GridAgent.Request],
+      override val value: Congestions,
   ) extends CMReceiveResponse[Congestions]
 
   case class ReceivedCongestions(
@@ -299,8 +299,8 @@ object GridAgentMessages {
   ) extends CMRequest
 
   case class VoltageRangeResponse(
-      override val value: VoltageRange,
       override val sender: ActorRef[GridAgent.Request],
+      override val value: VoltageRange,
   ) extends CMReceiveResponse[VoltageRange]
 
   case class ReceivedVoltageRange(
