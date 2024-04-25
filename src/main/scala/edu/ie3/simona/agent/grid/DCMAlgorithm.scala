@@ -6,9 +6,12 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.simona.agent.grid.GridAgent.pipeToSelf
 import edu.ie3.simona.agent.grid.CongestionManagementSupport.CongestionManagementSteps._
-import edu.ie3.simona.agent.grid.CongestionManagementSupport.Congestions
+import edu.ie3.simona.agent.grid.CongestionManagementSupport.{
+  Congestions,
+  VoltageRange,
+}
+import edu.ie3.simona.agent.grid.GridAgent.pipeToSelf
 import edu.ie3.simona.agent.grid.GridAgentData.{
   AwaitingData,
   CongestionManagementData,
@@ -17,13 +20,14 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
 }
 import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.apache.pekko.actor.typed.scaladsl.AskPattern.Askable
 import org.apache.pekko.actor.typed.scaladsl.{
   ActorContext,
   Behaviors,
   StashBuffer,
 }
-import org.apache.pekko.actor.typed.{Behavior, Scheduler}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior, Scheduler}
 import org.apache.pekko.util.Timeout
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -55,32 +59,18 @@ trait DCMAlgorithm extends CongestionManagementSupport {
 
     case (ctx, StartStep) =>
       // request congestion check if we have inferior grids
-      if (stateData.inferiorRefs.nonEmpty) {
-        implicit val askTimeout: Timeout = Timeout.create(
-          stateData.gridAgentBaseData.congestionManagementParams.timeout
-        )
-        implicit val ec: ExecutionContext = ctx.executionContext
-        implicit val scheduler: Scheduler = ctx.system.scheduler
-
-        val future = Future
-          .sequence(
-            stateData.inferiorRefs.map { inferiorGridAgentRef =>
-              inferiorGridAgentRef
-                .ask(ref => CongestionCheckRequest(ref))
-                .map { case response: CongestionResponse =>
-                  (response.sender, response.congestions)
-                }
-            }.toVector
-          )
-          .map(res => ReceivedCongestions(res))
-        pipeToSelf(future, ctx)
-      }
+      askInferior(
+        stateData,
+        CongestionCheckRequest,
+        ReceivedCongestions,
+        ctx,
+      )
 
       Behaviors.same
 
     case (ctx, congestionRequest @ CongestionCheckRequest(sender)) =>
       // check if waiting for inferior data is needed
-      if (awaitingData.isDone) {
+      if (!awaitingData.isDone) {
         ctx.log.debug(
           s"Received request for congestions before all data from inferior grids were received. Stashing away."
         )
@@ -217,24 +207,130 @@ trait DCMAlgorithm extends CongestionManagementSupport {
     * @return
     *   a [[Behavior]]
     */
-  // TODO: Implement a proper behavior
   private[grid] def updateTransformerTapping(
       stateData: CongestionManagementData,
-      awaitingData: AwaitingData[_],
+      awaitingData: AwaitingData[VoltageRange],
   )(implicit
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgent.Request],
   ): Behavior[GridAgent.Request] = Behaviors.receivePartial {
     case (ctx, StartStep) =>
-      if (stateData.gridAgentBaseData.isSuperior) {
-        // for now this step is skipped
-        ctx.log.warn(
-          s"Using transformer taping to resolve a congestion is not implemented yet. Skipping this step!"
+      // request congestion check if we have inferior grids
+      askInferior(
+        stateData,
+        RequestVoltageOptions,
+        ReceivedVoltageRange,
+        ctx,
+      )
+
+      Behaviors.same
+
+    case (ctx, voltageRangeRequest @ RequestVoltageOptions(sender)) =>
+      // check if waiting for inferior data is needed
+      if (!awaitingData.isDone) {
+        ctx.log.debug(
+          s"Received request for congestions before all data from inferior grids were received. Stashing away."
         )
 
-        ctx.self ! FinishStep
+        // stash away the message, because we need to wait for data from inferior grids
+        buffer.stash(voltageRangeRequest)
+      } else {
+        // calculate the voltage range for this grid
+        val gridEnv = stateData.gridAgentBaseData.gridEnv
+        val gridModel = gridEnv.gridModel
+        val gridComponents = gridModel.gridComponents
+
+        val (_, _, tappingModels) = getTransformerInfos(
+          stateData.inferiorGrids,
+          gridEnv.subgridGateToActorRef,
+          gridComponents,
+        )
+
+        val range = calculateVoltageOptions(
+          stateData.powerFlowResults,
+          gridModel.voltageLimits,
+          gridModel.gridComponents,
+          tappingModels,
+          awaitingData.mappedValues,
+        )
+
+        sender ! VoltageRangeResponse(
+          range,
+          ctx.self,
+        )
       }
 
+      Behaviors.same
+
+    case (ctx, ReceivedVoltageRange(voltageRange)) =>
+      // updating the state data with received data from inferior grids
+      val updatedData = awaitingData.handleReceivingData(voltageRange)
+
+      if (stateData.gridAgentBaseData.isSuperior) {
+        // there should be no voltage change in the superior grid,
+        // because the slack grid should always have 1 pu
+
+        ctx.self ! VoltageDeltaResponse(0.asPu)
+        Behaviors.same
+      } else {
+        // un-stash all messages
+        buffer.unstashAll(updateTransformerTapping(stateData, updatedData))
+      }
+
+    case (ctx, VoltageDeltaResponse(delta)) =>
+      // if we are the superior grid to another grid, we check for transformer tapping option
+      // and send the new delta to the inferior grid
+
+      val inferiorRefs = stateData.inferiorRefs
+
+      if (inferiorRefs.nonEmpty) {
+        // we calculate a voltage delta for all inferior grids
+
+        val gridEnv = stateData.gridAgentBaseData.gridEnv
+        val gridModel = gridEnv.gridModel
+        val gridComponents = gridModel.gridComponents
+
+        val (transformer2ws, transformer3ws, _) =
+          getTransformerInfos(
+            stateData.inferiorGrids,
+            gridEnv.subgridGateToActorRef,
+            gridComponents,
+          )
+
+        // update inferior grid connected by a two winding transformer
+        transformer2ws.foreach { case (ref, model) =>
+          if (model.hasAutoTap) {
+            // the given transformer can be tapped, calculate the new tap pos
+
+            // TODO: Add code
+
+          } else {
+            // no tapping possible, just send the delta to the inferior grid
+            ref ! VoltageDeltaResponse(delta)
+          }
+        }
+
+        // update inferior grid connected by a three winding transformer
+        val transformer3wMap =
+          gridComponents.transformers3w.map(t => t.uuid -> t).toMap
+
+        transformer3ws.groupBy(_._2.uuid).foreach { case (uuid, refMap) =>
+          val transformer = transformer3wMap(uuid)
+          val refs = refMap.keySet
+
+          if (transformer.hasAutoTap) {
+            // the given transformer can be tapped, calculate the new tap pos
+
+            // TODO: Add code
+          } else {
+            // no tapping possible, just send the delta to the inferior grid
+            refs.foreach(_ ! VoltageDeltaResponse(delta))
+          }
+        }
+      }
+
+      // all work is done in this grid, finish this step
+      ctx.self ! FinishStep
       Behaviors.same
 
     case (ctx, FinishStep) =>
@@ -313,6 +409,64 @@ trait DCMAlgorithm extends CongestionManagementSupport {
       )
   }
 
+  /** Method to ask all inferior grids a [[CMRequest]].
+    *
+    * @param stateData
+    *   current state data
+    * @param askMsgBuilder
+    *   function to build the asked message
+    * @param resMsgBuilder
+    *   function to build the returned message
+    * @param ctx
+    *   actor context to use
+    * @tparam T
+    *   type of data
+    */
+  private def askInferior[T](
+      stateData: CongestionManagementData,
+      askMsgBuilder: ActorRef[GridAgent.Request] => CMRequest,
+      resMsgBuilder: Vector[(ActorRef[GridAgent.Request], T)] => CMResponse[T],
+      ctx: ActorContext[GridAgent.Request],
+  ): Unit = {
+
+    if (stateData.inferiorRefs.nonEmpty) {
+      implicit val askTimeout: Timeout = Timeout.create(
+        stateData.gridAgentBaseData.congestionManagementParams.timeout
+      )
+      implicit val ec: ExecutionContext = ctx.executionContext
+      implicit val scheduler: Scheduler = ctx.system.scheduler
+
+      val future = Future
+        .sequence(
+          stateData.inferiorRefs.map { inferiorGridAgentRef =>
+            inferiorGridAgentRef
+              .ask(askMsgBuilder)
+              .map { case response: CMReceiveResponse[T] =>
+                (response.sender, response.value)
+              }
+          }.toVector
+        )
+        .map(resMsgBuilder)
+      pipeToSelf(future, ctx)
+    }
+
+  }
+
+  /** Method to clear all data and go to the [[DBFSAlgorithm.simulateGrid]].
+    *
+    * @param gridAgentBaseData
+    *   to clear
+    * @param currentTick
+    *   to use
+    * @param ctx
+    *   actor context
+    * @param constantData
+    *   constant grid agent data
+    * @param buffer
+    *   for buffered messages
+    * @return
+    *   a new [[Behavior]]
+    */
   private def clearAndGotoSimulateGrid(
       gridAgentBaseData: GridAgentBaseData,
       currentTick: Long,

@@ -247,7 +247,7 @@ class DCMAlgorithmCenGridSpec
       // we expect transformer congestions in the whole grid
       val allCongestions = superiorGridAgent
         .expectMessageType[CongestionResponse](30.seconds)
-        .congestions
+        .value
       allCongestions shouldBe congestions
     }
 

@@ -78,16 +78,14 @@ class CongestionManagementSupportSpec
         Set.empty,
       )
 
-      val map = getTransformer(
+      val (transformer2ws, transformer3ws, _) = getTransformerInfos(
         inferiorGrids,
         gridGates,
         gridComponents,
       )
 
-      map shouldBe Map(
-        inferior1.ref -> transformer1,
-        inferior2.ref -> transformer2,
-      )
+      transformer2ws shouldBe Map(inferior1.ref -> transformer1)
+      transformer3ws shouldBe Map(inferior2.ref -> transformer2)
     }
 
     "calculates the possible voltage delta for lines correctly" in {

@@ -71,6 +71,11 @@ object GridAgentData {
 
     def values: Iterable[T] = inferiorGridMap.values.flatten.toSeq
 
+    def mappedValues: Map[ActorRef[GridAgent.Request], T] =
+      inferiorGridMap.flatMap { case (ref, option) =>
+        option.map(value => ref -> value)
+      }
+
     /** Method for updating the data with the received data.
       *
       * @param receivedData

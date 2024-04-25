@@ -11,9 +11,9 @@ import edu.ie3.datamodel.models.result.connector.LineResult
 import edu.ie3.simona.agent.grid.CongestionManagementSupport.VoltageRange
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.exceptions.ResultException
-import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.grid.GridModel.GridComponents
 import edu.ie3.simona.model.grid.{
+  Transformer3wModel,
   TransformerModel,
   TransformerTappingModel,
   VoltageLimits,
@@ -31,6 +31,44 @@ import javax.measure.quantity.Dimensionless
   */
 trait CongestionManagementSupport {
 
+  /** Method for retrieving all needed information for transformers.
+    * @param inferiorGrids
+    *   sequence of inferior grids
+    * @param subGridGateToActorRef
+    *   mapping of [[SubGridGate]]s to inferior grids
+    * @param gridComponents
+    *   the [[GridComponents]] to consider
+    * @return
+    *   transformer information
+    */
+  def getTransformerInfos(
+      inferiorGrids: Seq[ActorRef[GridAgent.Request]],
+      subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
+      gridComponents: GridComponents,
+  ): (
+      Map[ActorRef[GridAgent.Request], TransformerModel],
+      Map[ActorRef[GridAgent.Request], Transformer3wModel],
+      Map[ActorRef[GridAgent.Request], TransformerTappingModel],
+  ) = {
+    val transformerMap = getTransformer(
+      inferiorGrids,
+      subGridGateToActorRef,
+      gridComponents,
+    )
+
+    val transformer3wMap = getTransformer3w(
+      inferiorGrids,
+      subGridGateToActorRef,
+      gridComponents,
+    )
+
+    val tappingModels = transformerMap.map(e =>
+      e._1 -> e._2.tappingModelCopy
+    ) ++ transformer3wMap.map(e => e._1 -> e._2.tappingModelCopy)
+
+    (transformerMap, transformer3wMap, tappingModels)
+  }
+
   /** Method for mapping the [[TransformerModel]]s to the given inferior grid
     * refs.
     * @param inferiorGrids
@@ -46,24 +84,53 @@ trait CongestionManagementSupport {
       inferiorGrids: Seq[ActorRef[GridAgent.Request]],
       subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
       gridComponents: GridComponents,
-  ): Map[ActorRef[GridAgent.Request], SystemComponent] = {
-    val transformer2wMap =
+  ): Map[ActorRef[GridAgent.Request], TransformerModel] = {
+    val transformerMap =
       gridComponents.transformers
         .map(transformer => transformer.uuid -> transformer)
         .toMap
-
-    val transformer3wMap = gridComponents.transformers3w
-      .map(transformer => transformer.uuid -> transformer)
-      .toMap
 
     subGridGateToActorRef
       .flatMap { entry =>
         val ref = entry._2
         Option.when(inferiorGrids.contains(ref))(ref -> entry._1)
       }
-      .map { case (ref, gate) =>
+      .flatMap { case (ref, gate) =>
         val uuid = gate.link().getUuid
-        ref -> transformer2wMap.getOrElse(uuid, transformer3wMap(uuid))
+        transformerMap.get(uuid).map(value => ref -> value)
+      }
+  }
+
+  /** Method for mapping the [[Transformer3wModel]]s to the given inferior grid
+    * refs.
+    *
+    * @param inferiorGrids
+    *   set of [[ActorRef]]s
+    * @param subGridGateToActorRef
+    *   map: [[SubGridGate]] to [[ActorRef]]
+    * @param gridComponents
+    *   all components of the grid
+    * @return
+    *   a map: [[ActorRef]] to transformer model
+    */
+  def getTransformer3w(
+      inferiorGrids: Seq[ActorRef[GridAgent.Request]],
+      subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
+      gridComponents: GridComponents,
+  ): Map[ActorRef[GridAgent.Request], Transformer3wModel] = {
+    val transformerMap =
+      gridComponents.transformers3w
+        .map(transformer => transformer.uuid -> transformer)
+        .toMap
+
+    subGridGateToActorRef
+      .flatMap { entry =>
+        val ref = entry._2
+        Option.when(inferiorGrids.contains(ref))(ref -> entry._1)
+      }
+      .flatMap { case (ref, gate) =>
+        val uuid = gate.link().getUuid
+        transformerMap.get(uuid).map(value => ref -> value)
       }
   }
 

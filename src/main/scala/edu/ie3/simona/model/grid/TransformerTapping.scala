@@ -26,6 +26,10 @@ trait TransformerTapping {
 
   protected var tapRatio: Double = _
 
+  /** Returns [[TransformerTappingModel.autoTap]].
+    */
+  def hasAutoTap: Boolean = transformerTappingModel.autoTap
+
   def currentTapPos: Int = transformerTappingModel.currentTapPos
 
   /** Initialize the tapping model. Should be called after creating the

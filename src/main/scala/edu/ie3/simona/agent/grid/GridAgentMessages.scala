@@ -9,6 +9,7 @@ package edu.ie3.simona.agent.grid
 import edu.ie3.simona.agent.grid.CongestionManagementSupport.{
   CongestionManagementSteps,
   Congestions,
+  VoltageRange,
 }
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
@@ -21,8 +22,10 @@ import edu.ie3.util.scala.quantities.ReactivePower
 import org.apache.pekko.actor.typed.ActorRef
 import squants.Power
 import squants.electro.ElectricPotential
+import tech.units.indriya.ComparableQuantity
 
 import java.util.UUID
+import javax.measure.quantity.Dimensionless
 
 /** Defines all messages that can be received by a [[GridAgent]] without the
   * need for an adapter.
@@ -262,17 +265,51 @@ object GridAgentMessages {
   }
 
   // DCM messages
-  case class CongestionCheckRequest(sender: ActorRef[GridAgent.Request])
-      extends GridAgent.InternalRequest
+
+  sealed trait CMRequest extends GridAgent.InternalRequest {
+    def sender: ActorRef[GridAgent.Request]
+  }
+
+  sealed trait CMReceiveResponse[T] extends GridAgent.InternalReply {
+    def value: T
+    def sender: ActorRef[GridAgent.Request]
+  }
+
+  sealed trait CMResponse[T] extends GridAgent.InternalReply {
+    def values: Vector[(ActorRef[GridAgent.Request], T)]
+  }
+
+  // general congestion messages
+  case class CongestionCheckRequest(
+      override val sender: ActorRef[GridAgent.Request]
+  ) extends CMRequest
 
   case class CongestionResponse(
-      congestions: Congestions,
-      sender: ActorRef[GridAgent.Request],
-  ) extends GridAgent.InternalReply
+      override val value: Congestions,
+      override val sender: ActorRef[GridAgent.Request],
+  ) extends CMReceiveResponse[Congestions]
 
   case class ReceivedCongestions(
-      congestions: Vector[(ActorRef[GridAgent.Request], Congestions)]
-  ) extends GridAgent.InternalRequest
+      override val values: Vector[(ActorRef[GridAgent.Request], Congestions)]
+  ) extends CMResponse[Congestions]
+
+  // transformer tapping messages
+  case class RequestVoltageOptions(
+      override val sender: ActorRef[GridAgent.Request]
+  ) extends CMRequest
+
+  case class VoltageRangeResponse(
+      override val value: VoltageRange,
+      override val sender: ActorRef[GridAgent.Request],
+  ) extends CMReceiveResponse[VoltageRange]
+
+  case class ReceivedVoltageRange(
+      override val values: Vector[(ActorRef[GridAgent.Request], VoltageRange)]
+  ) extends CMResponse[VoltageRange]
+
+  case class VoltageDeltaResponse(
+      delta: ComparableQuantity[Dimensionless]
+  ) extends GridAgent.InternalReply
 
   case class NextStepRequest(
       nextStep: CongestionManagementSteps.Value
