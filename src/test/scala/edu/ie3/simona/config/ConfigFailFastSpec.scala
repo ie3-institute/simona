@@ -142,7 +142,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "throw an InvalidConfigParametersException when the gridId is malformed" in {
 
-          val malformedGridIds = List("10--100", "MS", "10..100")
+          val malformedGridIds = List("10--100", "MV", "10..100")
 
           malformedGridIds.foreach(malformedGridId => {
 
@@ -197,7 +197,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 |  {
                 |   sNom="100",
                 |   vNom="0.4 kV",
-                |   voltLvls = [{id = "MS", vNom = "10 kV"},{id = "HS", vNom = "110 kV"}]
+                |   voltLvls = [{id = "MV", vNom = "10 kV"},{id = "HV", vNom = "110 kV"}]
                 |   }
                 |]""".stripMargin
             )
@@ -209,7 +209,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             faultySimonaConfig.simona.gridConfig.refSystems.foreach(refSystem =>
               ConfigFailFast invokePrivate checkRefSystem(refSystem)
             )
-          }.getMessage shouldBe "Invalid value for sNom from provided refSystem RefSystemConfig(None,100,0.4 kV,Some(List(VoltLvlConfig(MS,10 kV), VoltLvlConfig(HS,110 kV)))). Is a valid unit provided?"
+          }.getMessage shouldBe "Invalid value for sNom from provided refSystem RefSystemConfig(None,100,0.4 kV,Some(List(VoltLvlConfig(MV,10 kV), VoltLvlConfig(HV,110 kV)))). Is a valid unit provided?"
 
         }
 
@@ -221,7 +221,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 |  {
                 |   sNom="100 MVA",
                 |   vNom="0.4",
-                |   voltLvls = [{id = "MS", vNom = "10 kV"},{id = "HS", vNom = "110 kV"}]
+                |   voltLvls = [{id = "MV", vNom = "10 kV"},{id = "HV", vNom = "110 kV"}]
                 |   }
                 |]""".stripMargin
             )
@@ -233,7 +233,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             faultySimonaConfig.simona.gridConfig.refSystems.foreach(refSystem =>
               ConfigFailFast invokePrivate checkRefSystem(refSystem)
             )
-          }.getMessage shouldBe "Invalid value for vNom from provided refSystem RefSystemConfig(None,100 MVA,0.4,Some(List(VoltLvlConfig(MS,10 kV), VoltLvlConfig(HS,110 kV)))). Is a valid unit provided?"
+          }.getMessage shouldBe "Invalid value for vNom from provided refSystem RefSystemConfig(None,100 MVA,0.4,Some(List(VoltLvlConfig(MV,10 kV), VoltLvlConfig(HV,110 kV)))). Is a valid unit provided?"
 
         }
 
@@ -244,13 +244,13 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 |  {
                 |   sNom="100 MVA",
                 |   vNom="0.4 kV",
-                |   voltLvls = [{id = "MS", vNom = "10 kV"},{id = "HS", vNom = "110 kV"}]
+                |   voltLvls = [{id = "MV", vNom = "10 kV"},{id = "HV", vNom = "110 kV"}]
                 |   gridIds = ["1","1-10","10...100"]
                 |   },
                 |   {
                 |   sNom="1000 MVA",
                 |   vNom="10kV",
-                |   voltLvls = [{id = "HS", vNom = "110 kV"},{id = "HoeS", vNom = "380 kV"}]
+                |   voltLvls = [{id = "HV", vNom = "110 kV"},{id = "EHV", vNom = "380 kV"}]
                 |   gridIds = ["1-3","3...6","10...100"]
                 |   }
                 |]""".stripMargin
