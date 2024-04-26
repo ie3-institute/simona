@@ -113,43 +113,51 @@ object RefSystemParser {
           }
         }
 
-        val gridIdRefSystems =
-          parsedRefSystems.groupBy(_._1).map { case (gridId, values) =>
-            (gridId.toString.toInt, values.map(_._2).head)
+        val gridIdRefSystemsList: List[(Int, RefSystem)] =
+          parsedRefSystems.flatMap {
+            case (gridId: Int, refSystems) =>
+              refSystems match {
+                case refSystem: RefSystem => Some(gridId -> refSystem)
+                case _                    => None
+              }
+            case _ => None
           }
 
-        val voltLvLRefSystems =
-          parsedRefSystems.groupBy(_._2).view.mapValues(_.map(_._1).toSet)
+        val gridIdRefSystems: Map[Int, RefSystem] =
+          gridIdRefSystemsList.toMap
 
-        if (
-          CollectionUtils.listHasDuplicates(
-            gridIdRefSystems.toList.map { case (gridId, _) => gridId }
-          )
-        )
+        if (CollectionUtils.listHasDuplicates(gridIdRefSystemsList)) {
           throw new InvalidConfigParameterException(
             "The provided gridIds in simona.gridConfig.refSystems contain duplicates. " +
               "Please check if there are either duplicate entries or overlapping ranges!"
           )
+        }
 
-        if (
-          CollectionUtils.listHasDuplicates(
-            voltLvLRefSystems.toList.map { case (voltLvl, _) => voltLvl }
-          )
-        )
+        val voltLvLRefSystemsList: List[(VoltageLevel, RefSystem)] =
+          parsedRefSystems.flatMap {
+            case (voltLvl: VoltageLevel, refSystems) =>
+              refSystems match {
+                case refSystem: RefSystem => Some(voltLvl -> refSystem)
+                case _                    => None
+              }
+            case _ => None
+          }
+
+        val voltLvLRefSystems: Map[VoltageLevel, RefSystem] =
+          voltLvLRefSystemsList.toMap
+
+        if (CollectionUtils.listHasDuplicates(voltLvLRefSystemsList))
           throw new InvalidConfigParameterException(
             "The provided voltLvls in simona.gridConfig.refSystems contain duplicates. " +
               "Please check your configuration for duplicates in voltLvl entries!"
           )
 
-        val voltLvLRefSysToMap =
-          parsedRefSystems
-            .groupBy(_._1.asInstanceOf[VoltageLevel])
-            .view
-            .mapValues(_.map(_._2).head)
+        val voltLvLRefSys: Map[VoltageLevel, RefSystem] =
+          parsedRefSystems.collect { case (voltLvl: VoltageLevel, values) =>
+            (voltLvl, values)
+          }.toMap
 
-        val voltLvLRefSystemsMap: Map[VoltageLevel, RefSystem] =
-          voltLvLRefSysToMap.toMap
-        ConfigRefSystems(gridIdRefSystems, voltLvLRefSystemsMap)
+        ConfigRefSystems(gridIdRefSystems, voltLvLRefSys)
       case _ => defaultRefSystems
     }
   }
