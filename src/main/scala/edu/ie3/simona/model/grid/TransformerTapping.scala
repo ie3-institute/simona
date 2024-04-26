@@ -33,12 +33,16 @@ trait TransformerTapping {
     */
   def hasAutoTap: Boolean = transformerTappingModel.autoTap
 
+  def tapMax: Int = transformerTappingModel.tapMax
+
+  def tapMin: Int = transformerTappingModel.tapMin
+
   def deltaV: ComparableQuantity[Dimensionless] =
     transformerTappingModel.deltaV.getValue.doubleValue().asPu
 
-  def maxTapIncrease: Int = transformerTappingModel.tapMax - currentTapPos
+  def maxTapIncrease: Int = tapMax - currentTapPos
 
-  def maxTapDecrease: Int = currentTapPos - transformerTappingModel.tapMin
+  def maxTapDecrease: Int = currentTapPos - tapMin
 
   def currentTapPos: Int = transformerTappingModel.currentTapPos
 

@@ -66,7 +66,7 @@ object GridAgentData {
     /** Returns true if congestion data from inferior grids is expected and no
       * data was received yet.
       */
-    def isDone: Boolean =
+    def notDone: Boolean =
       inferiorGridMap.values.exists(_.isEmpty)
 
     def values: Iterable[T] = inferiorGridMap.values.flatten.toSeq
@@ -75,6 +75,9 @@ object GridAgentData {
       inferiorGridMap.flatMap { case (ref, option) =>
         option.map(value => ref -> value)
       }
+
+    def update(sender: ActorRef[GridAgent.Request], data: T): AwaitingData[T] =
+      handleReceivingData(Vector((sender, data)))
 
     /** Method for updating the data with the received data.
       *

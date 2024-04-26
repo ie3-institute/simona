@@ -18,7 +18,7 @@ import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
-import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
+import edu.ie3.simona.model.grid.{RefSystem, TransformerModel, VoltageLimits}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -36,6 +36,8 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 }
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
+import squants.electro.Kilovolts
+import squants.energy.Kilowatts
 
 import scala.concurrent.duration.DurationInt
 
@@ -177,11 +179,18 @@ class DCMAlgorithmSupGridSpec
       // inferior should receive a next state message to go to a congestion management step
       hvGrid.expectMessageType[NextStepRequest]
 
+      val tappingModel = TransformerModel(
+        transformer1,
+        RefSystem(Kilowatts(600), Kilovolts(110)),
+        start,
+        end,
+      )
+
       hvGrid.expectMessageType[RequestVoltageOptions] match {
         case RequestVoltageOptions(sender) =>
           sender ! VoltageRangeResponse(
             hvGrid.ref,
-            VoltageRange(0.04.asPu, 0.asPu),
+            (VoltageRange(0.04.asPu, (-0.01).asPu), tappingModel),
           )
       }
 

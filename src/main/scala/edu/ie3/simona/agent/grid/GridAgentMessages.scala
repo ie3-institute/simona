@@ -16,6 +16,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
+import edu.ie3.simona.model.grid.TransformerTapping
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.util.scala.quantities.ReactivePower
@@ -300,12 +301,14 @@ object GridAgentMessages {
 
   case class VoltageRangeResponse(
       override val sender: ActorRef[GridAgent.Request],
-      override val value: VoltageRange,
-  ) extends CMReceiveResponse[VoltageRange]
+      override val value: (VoltageRange, TransformerTapping),
+  ) extends CMReceiveResponse[(VoltageRange, TransformerTapping)]
 
   case class ReceivedVoltageRange(
-      override val values: Vector[(ActorRef[GridAgent.Request], VoltageRange)]
-  ) extends CMResponse[VoltageRange]
+      override val values: Vector[
+        (ActorRef[GridAgent.Request], (VoltageRange, TransformerTapping))
+      ]
+  ) extends CMResponse[(VoltageRange, TransformerTapping)]
 
   case class VoltageDeltaResponse(
       delta: ComparableQuantity[Dimensionless]

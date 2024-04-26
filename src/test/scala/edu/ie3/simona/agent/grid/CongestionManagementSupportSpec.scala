@@ -6,14 +6,12 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.datamodel.graph.SubGridGate
-import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.datamodel.models.result.NodeResult
 import edu.ie3.datamodel.models.result.connector.LineResult
 import edu.ie3.simona.agent.grid.CongestionManagementSupport.VoltageRange
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.model.grid.GridModel.GridComponents
-import edu.ie3.simona.model.grid.{TransformerTappingModel, VoltageLimits}
+import edu.ie3.simona.model.grid.VoltageLimits
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.grid.{
   GridComponentsMokka,
@@ -26,8 +24,6 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   TestProbe,
 }
 import org.apache.pekko.actor.typed.ActorRef
-
-import java.util.UUID
 
 class CongestionManagementSupportSpec
     extends ScalaTestWithActorTestKit
@@ -48,45 +44,6 @@ class CongestionManagementSupportSpec
 
     val inferiorGrids: Seq[ActorRef[GridAgent.Request]] =
       Seq(inferior1.ref, inferior2.ref)
-
-    "map all transformers to inferior grids" in {
-      val nodeHv = mockNode(UUID.randomUUID(), 100)
-      val node30kV = mockNode(UUID.randomUUID(), 30)
-      val node20kV = mockNode(UUID.randomUUID(), 20)
-      val node10kV = mockNode(UUID.randomUUID(), 10)
-
-      val transformer2w = mockTransformer2w(UUID.randomUUID(), nodeHv, node30kV)
-      val transformer3w =
-        mockTransformer3w(UUID.randomUUID(), nodeHv, 100, node20kV, node10kV)
-
-      val transformer1 = mockTransformerModel(transformer2w.getUuid)
-      val transformer2 = mockTransformer3wModel(transformer3w.getUuid)
-
-      val gridGates = Map(
-        SubGridGate.fromTransformer2W(transformer2w) -> inferior1.ref,
-        SubGridGate.fromTransformer3W(
-          transformer3w,
-          ConnectorPort.B,
-        ) -> inferior2.ref,
-      )
-
-      val gridComponents = GridComponents(
-        Seq.empty,
-        Set.empty,
-        Set(transformer1, mockTransformerModel(UUID.randomUUID())),
-        Set(transformer2),
-        Set.empty,
-      )
-
-      val (transformer2ws, transformer3ws, _) = getTransformerInfos(
-        inferiorGrids,
-        gridGates,
-        gridComponents,
-      )
-
-      transformer2ws shouldBe Map(inferior1.ref -> transformer1)
-      transformer3ws shouldBe Map(inferior2.ref -> transformer2)
-    }
 
     "calculates the possible voltage delta for lines correctly" in {
       val node1 = nodeModel()
@@ -186,7 +143,6 @@ class CongestionManagementSupportSpec
         VoltageLimits(0.9, 1.1),
         gridComponents,
         Map.empty,
-        Map.empty,
       )
 
       range.deltaPlus should equalWithTolerance(0.05.asPu)
@@ -212,10 +168,12 @@ class CongestionManagementSupportSpec
         Set.empty,
       )
 
-      val tappingModel =
-        TransformerTappingModel(0.01.asPu, 0, 3, -3, 0, autoTap = true)
-      val tappingMap =
-        Map(inferior1.ref -> tappingModel, inferior2.ref -> tappingModel)
+      val tappingModel = mockTransformerModel(
+        autoTap = true,
+        tapMax = 3,
+        tapMin = -3,
+        deltaV = 0.01.asPu,
+      )
 
       val powerFlowResult = buildPowerFlowResultEvent(
         Set(
@@ -235,10 +193,9 @@ class CongestionManagementSupportSpec
         powerFlowResult,
         VoltageLimits(0.9, 1.1),
         gridComponents,
-        tappingMap,
         Map(
-          inferior1.ref -> VoltageRange(0.1.asPu, 0.01.asPu),
-          inferior2.ref -> VoltageRange(0.01.asPu, (-0.04).asPu),
+          inferior1.ref -> (VoltageRange(0.1.asPu, 0.01.asPu), tappingModel),
+          inferior2.ref -> (VoltageRange(0.01.asPu, (-0.04).asPu), tappingModel),
         ),
       )
 
@@ -349,9 +306,7 @@ class CongestionManagementSupportSpec
       val range = VoltageRange(0.05.asPu, (-0.05).asPu)
 
       val tappingModel =
-        TransformerTappingModel(0.15.asPu, 0, 10, -10, 0, autoTap = false)
-      val tappingMap =
-        Map(inferior1.ref -> tappingModel, inferior2.ref -> tappingModel)
+        mockTransformerModel(tapMax = 10, tapMin = -10, deltaV = 0.01.asPu)
 
       val cases = Table(
         ("range1", "range2", "expected"),
@@ -379,8 +334,10 @@ class CongestionManagementSupportSpec
 
       forAll(cases) { (range1, range2, expected) =>
         val updatedRange = range.updateWithInferiorRanges(
-          tappingMap,
-          Map(inferior1.ref -> range1, inferior2.ref -> range2),
+          Map(
+            inferior1.ref -> (range1, tappingModel),
+            inferior2.ref -> (range2, tappingModel),
+          )
         )
 
         updatedRange.deltaPlus should equalWithTolerance(expected.deltaPlus)
@@ -391,10 +348,13 @@ class CongestionManagementSupportSpec
     "be updated with inferior voltage ranges and with tapping correctly" in {
       val range = VoltageRange(0.05.asPu, (-0.05).asPu)
 
-      val tappingModel =
-        TransformerTappingModel(0.01.asPu, 7, 10, -10, 0, autoTap = true)
-      val tappingMap =
-        Map(inferior1.ref -> tappingModel, inferior2.ref -> tappingModel)
+      val tappingModel = mockTransformerModel(
+        autoTap = true,
+        currentTapPos = 7,
+        tapMax = 10,
+        tapMin = -10,
+        deltaV = 0.01.asPu,
+      )
 
       val cases = Table(
         ("range1", "range2", "expected"),
@@ -422,8 +382,10 @@ class CongestionManagementSupportSpec
 
       forAll(cases) { (range1, range2, expected) =>
         val updatedRange = range.updateWithInferiorRanges(
-          tappingMap,
-          Map(inferior1.ref -> range1, inferior2.ref -> range2),
+          Map(
+            inferior1.ref -> (range1, tappingModel),
+            inferior2.ref -> (range2, tappingModel),
+          )
         )
 
         updatedRange.deltaPlus should equalWithTolerance(expected.deltaPlus)

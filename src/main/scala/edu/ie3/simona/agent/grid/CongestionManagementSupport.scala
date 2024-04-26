@@ -6,15 +6,13 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.result.connector.LineResult
 import edu.ie3.simona.agent.grid.CongestionManagementSupport.VoltageRange
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.exceptions.ResultException
 import edu.ie3.simona.model.grid.GridModel.GridComponents
 import edu.ie3.simona.model.grid.{
-  Transformer3wModel,
-  TransformerModel,
+  TransformerTapping,
   TransformerTappingModel,
   VoltageLimits,
 }
@@ -31,131 +29,25 @@ import javax.measure.quantity.Dimensionless
   */
 trait CongestionManagementSupport {
 
-  /** Method for retrieving all needed information for transformers.
-    * @param inferiorGrids
-    *   sequence of inferior grids
-    * @param subgridGateToActorRef
-    *   mapping of [[SubGridGate]]s to inferior grids
-    * @param gridComponents
-    *   the [[GridComponents]] to consider
-    * @return
-    *   transformer information
-    */
-  def getTransformerInfos(
-      inferiorGrids: Seq[ActorRef[GridAgent.Request]],
-      subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
-      gridComponents: GridComponents,
-  ): (
-      Map[ActorRef[GridAgent.Request], TransformerModel],
-      Map[ActorRef[GridAgent.Request], Transformer3wModel],
-      Map[ActorRef[GridAgent.Request], TransformerTappingModel],
-  ) = {
-    val transformerMap = getTransformer(
-      inferiorGrids,
-      subgridGateToActorRef,
-      gridComponents,
-    )
-
-    val transformer3wMap = getTransformer3w(
-      inferiorGrids,
-      subgridGateToActorRef,
-      gridComponents,
-    )
-
-    val tappingModels = transformerMap.map(e =>
-      e._1 -> e._2.tappingModelCopy
-    ) ++ transformer3wMap.map(e => e._1 -> e._2.tappingModelCopy)
-
-    (transformerMap, transformer3wMap, tappingModels)
-  }
-
-  /** Method for mapping the [[TransformerModel]]s to the given inferior grid
-    * refs.
-    * @param inferiorGrids
-    *   set of [[ActorRef]]s
-    * @param subgridGateToActorRef
-    *   map: [[SubGridGate]] to [[ActorRef]]
-    * @param gridComponents
-    *   all components of the grid
-    * @return
-    *   a map: [[ActorRef]] to transformer model
-    */
-  def getTransformer(
-      inferiorGrids: Seq[ActorRef[GridAgent.Request]],
-      subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
-      gridComponents: GridComponents,
-  ): Map[ActorRef[GridAgent.Request], TransformerModel] = {
-    val transformerMap =
-      gridComponents.transformers
-        .map(transformer => transformer.uuid -> transformer)
-        .toMap
-
-    subgridGateToActorRef
-      .flatMap { entry =>
-        val ref = entry._2
-        Option.when(inferiorGrids.contains(ref))(ref -> entry._1)
-      }
-      .flatMap { case (ref, gate) =>
-        val uuid = gate.link().getUuid
-        transformerMap.get(uuid).map(value => ref -> value)
-      }
-  }
-
-  /** Method for mapping the [[Transformer3wModel]]s to the given inferior grid
-    * refs.
-    *
-    * @param inferiorGrids
-    *   set of [[ActorRef]]s
-    * @param subgridGateToActorRef
-    *   map: [[SubGridGate]] to [[ActorRef]]
-    * @param gridComponents
-    *   all components of the grid
-    * @return
-    *   a map: [[ActorRef]] to transformer model
-    */
-  def getTransformer3w(
-      inferiorGrids: Seq[ActorRef[GridAgent.Request]],
-      subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
-      gridComponents: GridComponents,
-  ): Map[ActorRef[GridAgent.Request], Transformer3wModel] = {
-    val transformerMap =
-      gridComponents.transformers3w
-        .map(transformer => transformer.uuid -> transformer)
-        .toMap
-
-    subgridGateToActorRef
-      .flatMap { entry =>
-        val ref = entry._2
-        Option.when(inferiorGrids.contains(ref))(ref -> entry._1)
-      }
-      .flatMap { case (ref, gate) =>
-        val uuid = gate.link().getUuid
-        transformerMap.get(uuid).map(value => ref -> value)
-      }
-  }
-
   /** Method to calculate the range of possible voltage changes.
+    *
     * @param powerFlowResultEvent
     *   results from simulating the grid
     * @param voltageLimits
     *   voltage limits
     * @param gridComponents
     *   all components of the grid
-    * @param transformerTapping
-    *   map: inferior grid to [[TransformerTappingModel]] as the used
-    *   transformer
-    * @param inferiorRange
-    *   map: inferior grid to voltage range
+    * @param inferiorData
+    *   map: inferior grid to [[VoltageRange]] and [[TransformerTappingModel]]
     * @return
     */
   def calculateVoltageOptions(
       powerFlowResultEvent: PowerFlowResultEvent,
       voltageLimits: VoltageLimits,
       gridComponents: GridComponents,
-      transformerTapping: Map[ActorRef[
+      inferiorData: Map[ActorRef[
         GridAgent.Request
-      ], TransformerTappingModel],
-      inferiorRange: Map[ActorRef[GridAgent.Request], VoltageRange],
+      ], (VoltageRange, TransformerTapping)],
   ): VoltageRange = {
     // calculate voltage range
     val nodeResMap = powerFlowResultEvent.nodeResults
@@ -181,16 +73,13 @@ trait CongestionManagementSupport {
     )
     val updatedRange = range.updateWithLineDelta(deltaV)
 
-    if (inferiorRange.isEmpty) {
+    if (inferiorData.isEmpty) {
       // if there are no inferior grids, return the voltage range
       updatedRange
     } else {
       // if there are inferior grids, update the voltage range
 
-      updatedRange.updateWithInferiorRanges(
-        transformerTapping,
-        inferiorRange,
-      )
+      updatedRange.updateWithInferiorRanges(inferiorData)
     }
   }
 
@@ -293,29 +182,23 @@ object CongestionManagementSupport {
     }
 
     /** Method to update this voltage range with inferior voltage ranges
-      * @param tappingModels
-      *   map: inferior grid to [[TransformerTappingModel]]
-      * @param inferiorRange
-      *   map: inferior grid to [[VoltageRange]]
+      * @param inferiorData
+      *   map: inferior grid to [[VoltageRange]] and [[TransformerTappingModel]]
       * @return
       *   a new [[VoltageRange]]
       */
     def updateWithInferiorRanges(
-        tappingModels: Map[ActorRef[
+        inferiorData: Map[ActorRef[
           GridAgent.Request
-        ], TransformerTappingModel],
-        inferiorRange: Map[ActorRef[GridAgent.Request], VoltageRange],
+        ], (VoltageRange, TransformerTapping)]
     ): VoltageRange = {
 
-      inferiorRange.foldLeft(this) { case (range, (ref, infRange)) =>
-        // getting the tapping model
-        val tappingModel: TransformerTappingModel = tappingModels(ref)
-
-        if (tappingModel.autoTap) {
-          val currentPos = tappingModel.currentTapPos
-          val deltaV = tappingModel.deltaV
-          val possiblePlus = deltaV.multiply(tappingModel.tapMax - currentPos)
-          val possibleMinus = deltaV.multiply(tappingModel.tapMin - currentPos)
+      inferiorData.foldLeft(this) { case (range, (ref, (infRange, tapping))) =>
+        if (tapping.hasAutoTap) {
+          val currentPos = tapping.currentTapPos
+          val deltaV = tapping.deltaV
+          val possiblePlus = deltaV.multiply(tapping.tapMax - currentPos)
+          val possibleMinus = deltaV.multiply(tapping.tapMin - currentPos)
 
           (
             range.deltaPlus

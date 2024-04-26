@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
+import edu.ie3.simona.agent.grid.CongestionManagementSupport.VoltageRange
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
@@ -18,8 +19,10 @@ import org.apache.pekko.actor.typed.ActorRef
 import squants.Power
 import squants.electro.Volts
 import squants.energy.Megawatts
+import tech.units.indriya.ComparableQuantity
 
 import java.util.UUID
+import javax.measure.quantity.Dimensionless
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.language.postfixOps
 
@@ -86,6 +89,10 @@ trait DBFSMockGridAgents extends UnitSpec {
         sweepNo: Int,
     ): Unit =
       receiver ! SlackVoltageRequest(sweepNo, nodeUuids, gaProbe.ref)
+
+    def expectVoltageRangeRequest(): ActorRef[GridAgent.Request] = {
+      gaProbe.expectMessageType[RequestVoltageOptions].sender
+    }
   }
 
   final case class SuperiorGA(
@@ -136,6 +143,20 @@ trait DBFSMockGridAgents extends UnitSpec {
         sweepNo: Int,
     ): Unit = {
       receiver ! RequestGridPower(sweepNo, nodeUuids, gaProbe.ref)
+    }
+
+    def expectVoltageRangeResponse(
+        voltageRange: VoltageRange,
+        maxDuration: FiniteDuration = 30 seconds,
+    ): ActorRef[GridAgent.Request] = {
+      gaProbe.expectMessageType[VoltageRangeResponse](maxDuration) match {
+        case VoltageRangeResponse(sender, (range, _)) =>
+          range.deltaPlus shouldBe voltageRange.deltaPlus
+          range.deltaMinus shouldBe voltageRange.deltaMinus
+          range.suggestion shouldBe voltageRange.suggestion
+
+          sender
+      }
     }
   }
 }

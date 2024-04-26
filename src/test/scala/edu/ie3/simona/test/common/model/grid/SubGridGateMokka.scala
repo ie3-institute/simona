@@ -6,25 +6,18 @@
 
 package edu.ie3.simona.test.common.model.grid
 
-import java.util.UUID
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.NodeInput
-import edu.ie3.datamodel.models.input.connector.`type`.{
-  Transformer2WTypeInput,
-  Transformer3WTypeInput,
-}
 import edu.ie3.datamodel.models.input.connector.{
   ConnectorPort,
   Transformer2WInput,
   Transformer3WInput,
 }
-import edu.ie3.simona.model.grid.{Transformer3wModel, TransformerModel}
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.datamodel.models.voltagelevels.VoltageLevel
 import org.mockito.Mockito._
 import org.scalatestplus.mockito.MockitoSugar
-import tech.units.indriya.ComparableQuantity
 
-import javax.measure.quantity.{ElectricPotential, Power}
+import java.util.UUID
 
 /** Hold my cup of coffee and let me mock you some models.
   */
@@ -43,6 +36,29 @@ trait SubGridGateMokka extends MockitoSugar {
     val node = mock[NodeInput]
     when(node.getUuid).thenReturn(uuid)
     when(node.getSubnet).thenReturn(subnet)
+    node
+  }
+
+  /** Mocks a node with it's basic needed information
+    *
+    * @param uuid
+    *   Unique identifier of the node
+    * @param subnet
+    *   Sub net number
+    * @param voltLvl
+    *   [[VoltageLevel]] of the node
+    * @return
+    *   [[NodeInput]] with these information
+    */
+  protected def mockNode(
+      uuid: UUID,
+      subnet: Int,
+      voltLvl: VoltageLevel,
+  ): NodeInput = {
+    val node = mock[NodeInput]
+    when(node.getUuid).thenReturn(uuid)
+    when(node.getSubnet).thenReturn(subnet)
+    when(node.getVoltLvl).thenReturn(voltLvl)
     node
   }
 

@@ -13,23 +13,27 @@ import edu.ie3.datamodel.models.input.connector.`type`.{
   LineTypeInput,
   Transformer2WTypeInput,
 }
-import edu.ie3.datamodel.models.input.container.{
-  JointGridContainer,
-  RawGridElements,
-}
+import edu.ie3.datamodel.models.input.container.RawGridElements
 import edu.ie3.datamodel.models.input.system.characteristic.OlmCharacteristicInput
 import edu.ie3.datamodel.models.input.{
   MeasurementUnitInput,
   NodeInput,
   OperatorInput,
 }
-import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
+import edu.ie3.datamodel.models.voltagelevels.{
+  CommonVoltageLevel,
+  GermanVoltageLevelUtils,
+}
 import edu.ie3.datamodel.utils.GridAndGeoUtils
+import edu.ie3.simona.model.grid.{RefSystem, TransformerModel}
 import edu.ie3.simona.util.TestGridFactory
 import edu.ie3.util.quantities.PowerSystemUnits._
+import squants.electro.Kilovolts
+import squants.energy.Kilowatts
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
+import java.time.ZonedDateTime
 import java.util.UUID
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
@@ -50,7 +54,7 @@ import scala.jdk.CollectionConverters._
   * (3)----(4)
   * }}}
   */
-trait DbfsTestGrid extends SubGridGateMokka {
+trait DbfsTestGrid extends SubGridGateMokka with GridComponentsMokka {
   // 4 HV nodes, 1 slack EHV node
   protected val node1 = new NodeInput(
     UUID.fromString("78c5d473-e01b-44c4-afd2-e4ff3c4a5d7c"),
@@ -126,6 +130,26 @@ trait DbfsTestGrid extends SubGridGateMokka {
    * MS1_01 @ 11 -> 1676e48c-5353-4f06-b671-c579cf6a7072 @ 11
    * MS3_01 @ 13 -> 9237e237-01e9-446f-899f-c3b5cf69d288 @ 13
    */
+  protected val node13_1: NodeInput = mockNode(
+    UUID.fromString("1129b00d-3d89-4a4a-8ae1-2a56041b95aa"),
+    13,
+    GermanVoltageLevelUtils.MV_10KV,
+  )
+  protected val node12: NodeInput = mockNode(
+    UUID.fromString("139c435d-e550-48d8-b590-ee897621f42a"),
+    12,
+    GermanVoltageLevelUtils.MV_10KV,
+  )
+  protected val node11: NodeInput = mockNode(
+    UUID.fromString("1676e48c-5353-4f06-b671-c579cf6a7072"),
+    11,
+    GermanVoltageLevelUtils.MV_10KV,
+  )
+  protected val node13_2: NodeInput = mockNode(
+    UUID.fromString("9237e237-01e9-446f-899f-c3b5cf69d288"),
+    13,
+    GermanVoltageLevelUtils.MV_10KV,
+  )
 
   // 5 lines between the nodes
   protected val lineType1 = new LineTypeInput(
@@ -260,6 +284,23 @@ trait DbfsTestGrid extends SubGridGateMokka {
     -5,
     5,
   )
+  private val trafoType10kV = new Transformer2WTypeInput(
+    UUID.randomUUID(),
+    "HV-10kV",
+    Quantities.getQuantity(5.415, OHM),
+    Quantities.getQuantity(108.165, OHM),
+    Quantities.getQuantity(200000.0, KILOVOLTAMPERE),
+    Quantities.getQuantity(110.0, KILOVOLT),
+    Quantities.getQuantity(10.0, KILOVOLT),
+    Quantities.getQuantity(555.5, NANOSIEMENS),
+    Quantities.getQuantity(-1.27, NANOSIEMENS),
+    Quantities.getQuantity(1.5, PERCENT),
+    Quantities.getQuantity(0, RADIAN),
+    false,
+    0,
+    -5,
+    5,
+  )
 
   protected val transformer1 = new Transformer2WInput(
     UUID.fromString("6e9d912b-b652-471b-84d2-6ed571e53a7b"),
@@ -285,6 +326,71 @@ trait DbfsTestGrid extends SubGridGateMokka {
     0,
     true,
   )
+  protected val transformer11 = new Transformer2WInput(
+    UUID.randomUUID(),
+    "HV-MV-Trafo_11",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    OperationTime.notLimited(),
+    node1,
+    node11,
+    1,
+    trafoType10kV,
+    0,
+    false,
+  )
+  protected val transformer12 = new Transformer2WInput(
+    UUID.randomUUID(),
+    "HV-MV-Trafo_12",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    OperationTime.notLimited(),
+    node2,
+    node12,
+    1,
+    trafoType10kV,
+    0,
+    false,
+  )
+  protected val transformer13_1 = new Transformer2WInput(
+    UUID.randomUUID(),
+    "HV-MV-Trafo_13_1",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    OperationTime.notLimited(),
+    node4,
+    node13_1,
+    1,
+    trafoType10kV,
+    0,
+    false,
+  )
+  protected val transformer13_2 = new Transformer2WInput(
+    UUID.randomUUID(),
+    "HV-MV-Trafo_13_2",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    OperationTime.notLimited(),
+    node4,
+    node13_2,
+    1,
+    trafoType10kV,
+    0,
+    false,
+  )
+
+  protected val start: ZonedDateTime = ZonedDateTime.now()
+  protected val end: ZonedDateTime = start.plusHours(3)
+
+  protected val mvTransformers: Map[UUID, TransformerModel] = Seq(
+    transformer11,
+    transformer12,
+    transformer13_1,
+    transformer13_2,
+  ).map { model =>
+    model.getUuid -> TransformerModel(
+      model,
+      RefSystem(Kilowatts(30), Kilovolts(10)),
+      start,
+      end,
+    )
+  }.toMap
 
   protected val (hvGridContainer, hvSubGridGates) = {
     // LinkedHashSet in order to preserve the given order.
@@ -312,30 +418,10 @@ trait DbfsTestGrid extends SubGridGateMokka {
           SubGridGate.fromTransformer3W(transformer, ConnectorPort.C),
         )
       ) ++ Seq(
-        build2wSubGridGate(
-          node4.getUuid,
-          1,
-          UUID.fromString("1129b00d-3d89-4a4a-8ae1-2a56041b95aa"),
-          13,
-        ),
-        build2wSubGridGate(
-          node2.getUuid,
-          1,
-          UUID.fromString("139c435d-e550-48d8-b590-ee897621f42a"),
-          12,
-        ),
-        build2wSubGridGate(
-          node1.getUuid,
-          1,
-          UUID.fromString("1676e48c-5353-4f06-b671-c579cf6a7072"),
-          11,
-        ),
-        build2wSubGridGate(
-          node3.getUuid,
-          1,
-          UUID.fromString("9237e237-01e9-446f-899f-c3b5cf69d288"),
-          13,
-        ),
+        new SubGridGate(transformer13_1, node4, node13_1),
+        new SubGridGate(transformer12, node2, node12),
+        new SubGridGate(transformer11, node1, node11),
+        new SubGridGate(transformer13_2, node3, node13_2),
       )
 
     (

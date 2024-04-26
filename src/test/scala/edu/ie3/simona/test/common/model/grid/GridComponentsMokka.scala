@@ -12,11 +12,14 @@ import edu.ie3.simona.model.grid.{
   Transformer3wModel,
   TransformerModel,
 }
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
 import squants.Amperes
+import tech.units.indriya.ComparableQuantity
 
 import java.util.UUID
+import javax.measure.quantity.Dimensionless
 
 /** Hold my cup of coffee and let me mock you some models.
   */
@@ -45,9 +48,23 @@ trait GridComponentsMokka extends MockitoSugar {
     line
   }
 
-  protected def mockTransformerModel(uuid: UUID): TransformerModel = {
+  protected def mockTransformerModel(
+      uuid: UUID = UUID.randomUUID(),
+      autoTap: Boolean = false,
+      tapMax: Int = 5,
+      tapMin: Int = -5,
+      currentTapPos: Int = 0,
+      deltaV: ComparableQuantity[Dimensionless] = 0.015.asPu,
+  ): TransformerModel = {
     val transformer = mock[TransformerModel]
     when(transformer.uuid).thenReturn(uuid)
+
+    when(transformer.hasAutoTap).thenReturn(autoTap)
+    when(transformer.tapMax).thenReturn(tapMax)
+    when(transformer.tapMin).thenReturn(tapMin)
+    when(transformer.currentTapPos).thenReturn(currentTapPos)
+    when(transformer.deltaV).thenReturn(deltaV)
+
     transformer
   }
 

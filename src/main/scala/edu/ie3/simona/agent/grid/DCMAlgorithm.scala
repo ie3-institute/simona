@@ -19,6 +19,7 @@ import edu.ie3.simona.agent.grid.GridAgentData.{
   GridAgentConstantData,
 }
 import edu.ie3.simona.agent.grid.GridAgentMessages._
+import edu.ie3.simona.model.grid.TransformerTapping
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.apache.pekko.actor.typed.scaladsl.AskPattern.Askable
@@ -70,7 +71,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
 
     case (ctx, congestionRequest @ CongestionCheckRequest(sender)) =>
       // check if waiting for inferior data is needed
-      if (!awaitingData.isDone) {
+      if (awaitingData.notDone) {
         ctx.log.debug(
           s"Received request for congestions before all data from inferior grids were received. Stashing away."
         )
@@ -209,7 +210,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
     */
   private[grid] def updateTransformerTapping(
       stateData: CongestionManagementData,
-      awaitingData: AwaitingData[VoltageRange],
+      awaitingData: AwaitingData[(VoltageRange, TransformerTapping)],
   )(implicit
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgent.Request],
@@ -227,7 +228,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
 
     case (ctx, voltageRangeRequest @ RequestVoltageOptions(sender)) =>
       // check if waiting for inferior data is needed
-      if (!awaitingData.isDone) {
+      if (awaitingData.notDone) {
         ctx.log.debug(
           s"Received request for congestions before all data from inferior grids were received. Stashing away."
         )
@@ -240,23 +241,28 @@ trait DCMAlgorithm extends CongestionManagementSupport {
         val gridModel = gridEnv.gridModel
         val gridComponents = gridModel.gridComponents
 
-        val (_, _, tappingModels) = getTransformerInfos(
-          stateData.inferiorGrids,
-          gridEnv.subgridGateToActorRef,
-          gridComponents,
-        )
+        val transformers =
+          (gridComponents.transformers ++ gridComponents.transformers3w)
+            .map(t => t.uuid -> t)
+            .toMap
+        val transformersToSup = gridEnv.subgridGateToActorRef
+          .find(_._2 == sender)
+          .map(_._1.link().getUuid)
+          .getOrElse(
+            throw new IllegalArgumentException(s"No superior actor ref found!")
+          )
+        val transformer = transformers(transformersToSup)
 
         val range = calculateVoltageOptions(
           stateData.powerFlowResults,
           gridModel.voltageLimits,
           gridModel.gridComponents,
-          tappingModels,
           awaitingData.mappedValues,
         )
 
         sender ! VoltageRangeResponse(
           ctx.self,
-          range,
+          (range, transformer),
         )
       }
 
@@ -283,81 +289,68 @@ trait DCMAlgorithm extends CongestionManagementSupport {
 
       if (stateData.inferiorRefs.nonEmpty) {
         // we calculate a voltage delta for all inferior grids
-        val inferiorData = awaitingData.mappedValues
 
-        val gridEnv = stateData.gridAgentBaseData.gridEnv
-        val gridModel = gridEnv.gridModel
-        val gridComponents = gridModel.gridComponents
-
-        val (transformer2ws, transformer3ws, _) = getTransformerInfos(
-          stateData.inferiorGrids,
-          gridEnv.subgridGateToActorRef,
-          gridComponents,
-        )
-
-        val transformer3wMap =
-          gridComponents.transformers3w.map(t => t.uuid -> t).toMap
-
-        val modelMap = transformer2ws
-          .groupBy(_._2) ++ transformer3ws.groupBy(_._2.uuid).map {
-          case (uuid, refMap) =>
-            transformer3wMap(uuid) -> refMap
-        }
-
-        modelMap.foreach { case (model, refMap) =>
-          val refs = refMap.keySet
-
-          if (model.hasAutoTap) {
-            // the given transformer can be tapped, calculate the new tap pos
-
-            val suggestion =
-              VoltageRange.combineSuggestions(refs.map(inferiorData))
-
-            val tapOption = model.computeDeltaTap(suggestion)
-            val deltaV = if (tapOption == 0) {
-              // we can not change the voltage as we would like to
-              if (suggestion.isLessThan(0.asPu)) {
-                // if suggestion < 0, we decrease the voltage as much as we can
-
-                val tapChange = model.maxTapDecrease
-                model.decrTapPos(tapChange)
-
-                model.deltaV.multiply(tapChange)
-              } else {
-                // we increase the voltage as much as we can
-                val tapChange = model.maxTapIncrease
-                model.decrTapPos(tapChange)
-
-                model.deltaV.multiply(tapChange)
+        awaitingData.mappedValues.groupBy(_._2._2).foreach {
+          case (tappingModel, refMap) =>
+            val inferiorRanges: Map[ActorRef[GridAgent.Request], VoltageRange] =
+              refMap.map { case (value, (range, _)) =>
+                value -> range
               }
-            } else {
-              // we can change the voltage without a problem
-              model.updateTapPos(tapOption)
-              model.deltaV.multiply(tapOption)
-            }
 
-            refs.foreach(_ ! VoltageDeltaResponse(deltaV.divide(100)))
-          } else {
-            // no tapping possible, just send the delta to the inferior grid
-            refs.foreach(_ ! VoltageDeltaResponse(delta))
-          }
+            val refs: Set[ActorRef[GridAgent.Request]] = inferiorRanges.keySet
+
+            if (tappingModel.hasAutoTap) {
+              // the given transformer can be tapped, calculate the new tap pos
+
+              val suggestion =
+                VoltageRange
+                  .combineSuggestions(inferiorRanges.values.toSet)
+                  .subtract(delta)
+
+              val tapOption = tappingModel.computeDeltaTap(suggestion)
+              val deltaV = if (tapOption == 0) {
+                // we can not change the voltage as we would like to
+                if (suggestion.isLessThan(0.asPu)) {
+                  // if suggestion < 0, we decrease the voltage as much as we can
+
+                  val tapChange = tappingModel.maxTapDecrease
+                  tappingModel.decrTapPos(tapChange)
+
+                  tappingModel.deltaV.multiply(tapChange)
+                } else {
+                  // we increase the voltage as much as we can
+                  val tapChange = tappingModel.maxTapIncrease
+                  tappingModel.decrTapPos(tapChange)
+
+                  tappingModel.deltaV.multiply(tapChange)
+                }
+              } else {
+                // we can change the voltage without a problem
+                tappingModel.updateTapPos(tapOption)
+                tappingModel.deltaV.multiply(tapOption)
+              }
+
+              refs.foreach(_ ! VoltageDeltaResponse(deltaV.divide(100)))
+            } else {
+              // no tapping possible, just send the delta to the inferior grid
+              refs.foreach(_ ! VoltageDeltaResponse(delta))
+            }
         }
       }
 
       // all work is done in this grid, finish this step
-      ctx.self ! FinishStep
-      Behaviors.same
-
-    case (ctx, FinishStep) =>
-      // inform my inferior grids about the end of this step
-      stateData.inferiorRefs.foreach(_ ! FinishStep)
-
       // simulate grid after changing the transformer tapping
-      clearAndGotoSimulateGrid(
-        stateData.cleanAfterTransformerTapping,
-        stateData.currentTick,
-        ctx,
+      buffer.unstashAll(
+        clearAndGotoSimulateGrid(
+          stateData.cleanAfterTransformerTapping,
+          stateData.currentTick,
+          ctx,
+        )
       )
+
+    case (_, msg) =>
+      buffer.stash(msg)
+      Behaviors.same
   }
 
   // TODO: Implement a proper behavior
@@ -498,11 +491,14 @@ trait DCMAlgorithm extends CongestionManagementSupport {
     )
 
     ctx.self ! WrappedActivation(Activation(currentTick))
-    GridAgent.simulateGrid(
-      cleanedData.copy(congestionManagementParams =
-        gridAgentBaseData.congestionManagementParams
-      ),
-      currentTick,
+
+    buffer.unstashAll(
+      GridAgent.simulateGrid(
+        cleanedData.copy(congestionManagementParams =
+          gridAgentBaseData.congestionManagementParams
+        ),
+        currentTick,
+      )
     )
   }
 }

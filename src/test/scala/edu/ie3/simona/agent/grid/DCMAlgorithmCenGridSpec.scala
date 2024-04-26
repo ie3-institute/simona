@@ -10,37 +10,37 @@ import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.CongestionManagementSupport.CongestionManagementSteps.TransformerTapping
-import edu.ie3.simona.agent.grid.CongestionManagementSupport.Congestions
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.agent.grid.GridAgentMessages.{
-  CongestionCheckRequest,
-  CongestionResponse,
-  CreateGridAgent,
-  FinishGridSimulationTrigger,
-  FinishStep,
-  GotoIdle,
-  NextStepRequest,
-  RequestGridPower,
-  SlackVoltageRequest,
-  WrappedActivation,
+import edu.ie3.simona.agent.grid.CongestionManagementSupport.{
+  Congestions,
+  VoltageRange,
 }
+import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
+import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
+  ExchangePower,
+  ExchangeVoltage,
+}
+import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
+import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.Megavars
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
+import squants.electro.Kilovolts
+import squants.energy.Megawatts
 
 import scala.concurrent.duration.DurationInt
 
@@ -63,20 +63,20 @@ class DCMAlgorithmCenGridSpec
   private val primaryService = TestProbe("primaryService")
   private val weatherService = TestProbe("weatherService")
 
-  private val superiorGridAgent: TestProbe[GridAgent.Request] = TestProbe(
-    "superiorGridAgent_1000"
+  private val superiorGridAgent = SuperiorGA(
+    TestProbe("superiorGridAgent_1000"),
+    Seq(supNodeA.getUuid, supNodeB.getUuid),
   )
 
-  private val inferiorGrid11: TestProbe[GridAgent.Request] = TestProbe(
-    "inferiorGridAgent_11"
-  )
+  private val inferiorGrid11 =
+    InferiorGA(TestProbe("inferiorGridAgent_11"), Seq(node1.getUuid))
 
-  private val inferiorGrid12: TestProbe[GridAgent.Request] = TestProbe(
-    "inferiorGridAgent_12"
-  )
+  private val inferiorGrid12 =
+    InferiorGA(TestProbe("inferiorGridAgent_12"), Seq(node2.getUuid))
 
-  private val inferiorGrid13: TestProbe[GridAgent.Request] = TestProbe(
-    "inferiorGridAgent_13"
+  private val inferiorGrid13 = InferiorGA(
+    TestProbe("inferiorGridAgent_13"),
+    Seq(node3.getUuid, node4.getUuid),
   )
 
   private val environmentRefs = EnvironmentRefs(
@@ -143,14 +143,15 @@ class DCMAlgorithmCenGridSpec
     }
 
     s"skip simulate grid and check for congestions correctly if no congestions occurred" in {
-      skipSimulation()
-
+      goToSimulateGrid()
+      simulateGrid()
       cmStart()
       cmFinish()
     }
 
     s"update transformer tapping correctly" in {
-      skipSimulation()
+      goToSimulateGrid()
+      simulateGrid()
 
       val congestions = Congestions(
         voltageCongestions = true,
@@ -166,47 +167,374 @@ class DCMAlgorithmCenGridSpec
       )
 
       // inferior grids should receive a next state message to go to a congestion management step
-      inferiorGrid11.expectMessageType[NextStepRequest]
-      inferiorGrid12.expectMessageType[NextStepRequest]
-      inferiorGrid13.expectMessageType[NextStepRequest]
+      inferiorGrid11.gaProbe.expectMessageType[NextStepRequest]
+      inferiorGrid12.gaProbe.expectMessageType[NextStepRequest]
+      inferiorGrid13.gaProbe.expectMessageType[NextStepRequest]
 
-      // skipping the step for now
-      // TODO: Update test after implementing transformer tapping
-      centerGridAgent ! FinishStep
-      inferiorGrid11.expectMessageType[FinishStep.type]
-      inferiorGrid12.expectMessageType[FinishStep.type]
-      inferiorGrid13.expectMessageType[FinishStep.type]
+      // ask the center grid for the voltage options
+      centerGridAgent ! RequestVoltageOptions(superiorGridAgent.ref)
 
-      // skipping the simulation
-      skipSimulation(true)
+      // the inferior grids should receive a VoltageRangeRequest
+      val voltageRangeRequester11 = inferiorGrid11.expectVoltageRangeRequest()
+      val voltageRangeRequester12 = inferiorGrid12.expectVoltageRangeRequest()
+      val voltageRangeRequester13 = inferiorGrid13.expectVoltageRangeRequest()
+
+      // each inferior grid will send its voltage range to the center grid
+      voltageRangeRequester11 ! VoltageRangeResponse(
+        inferiorGrid11.ref,
+        (
+          VoltageRange(0.05.asPu, (-0.05).asPu),
+          mvTransformers(transformer11.getUuid),
+        ),
+      )
+      voltageRangeRequester12 ! VoltageRangeResponse(
+        inferiorGrid12.ref,
+        (VoltageRange(0.03.asPu, 0.asPu), mvTransformers(transformer12.getUuid)),
+      )
+      voltageRangeRequester13 ! VoltageRangeResponse(
+        inferiorGrid13.ref,
+        (
+          VoltageRange(0.06.asPu, (-0.04).asPu),
+          mvTransformers(transformer13_1.getUuid),
+        ),
+      )
+
+      // the superior grid should receive a voltage range from the center grid
+      val voltageDeltaRequest = superiorGridAgent.expectVoltageRangeResponse(
+        VoltageRange(0.03.asPu, 0.asPu)
+      )
+
+      // send a new delta to the center grid
+      voltageDeltaRequest ! VoltageDeltaResponse(0.01.asPu)
+
+      inferiorGrid11.gaProbe
+        .expectMessageType[VoltageDeltaResponse]
+        .delta should equalWithTolerance(0.01.asPu)
+      inferiorGrid12.gaProbe
+        .expectMessageType[VoltageDeltaResponse]
+        .delta should equalWithTolerance(0.01.asPu)
+      inferiorGrid13.gaProbe
+        .expectMessageType[VoltageDeltaResponse]
+        .delta should equalWithTolerance(0.01.asPu)
+
+      skipSimulation()
       cmStart()
       cmFinish()
     }
 
-    /** Method to reduce duplicate code
-      * @param midTest
-      *   to check if this is in the middle of a test or at the beginning
-      */
-    def skipSimulation(midTest: Boolean = false): Unit = {
-      if (!midTest) {
-        centerGridAgent ! WrappedActivation(Activation(3600))
+    def goToSimulateGrid(): Unit = {
+      centerGridAgent ! WrappedActivation(Activation(3600))
 
-        // we expect a completion message
-        scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
-      } else {
-        inferiorGrid11.expectMessageType[RequestGridPower]
-        inferiorGrid12.expectMessageType[RequestGridPower]
-        inferiorGrid13.expectMessageType[RequestGridPower]
-        superiorGridAgent.expectMessageType[SlackVoltageRequest]
-      }
+      // we expect a completion message
+      scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
+    }
+
+    def skipSimulation(): Unit = {
+      inferiorGrid11.gaProbe.expectMessageType[RequestGridPower]
+      inferiorGrid12.gaProbe.expectMessageType[RequestGridPower]
+      inferiorGrid13.gaProbe.expectMessageType[RequestGridPower]
+      superiorGridAgent.gaProbe.expectMessageType[SlackVoltageRequest]
 
       // skip simulation and go to congestion check
       centerGridAgent ! FinishGridSimulationTrigger(3600)
 
       // inferior grid receives a FinishGridSimulationTrigger and goes into the congestion check state
-      inferiorGrid11.expectMessage(FinishGridSimulationTrigger(3600))
-      inferiorGrid12.expectMessage(FinishGridSimulationTrigger(3600))
-      inferiorGrid13.expectMessage(FinishGridSimulationTrigger(3600))
+      inferiorGrid11.gaProbe.expectMessage(FinishGridSimulationTrigger(3600))
+      inferiorGrid12.gaProbe.expectMessage(FinishGridSimulationTrigger(3600))
+      inferiorGrid13.gaProbe.expectMessage(FinishGridSimulationTrigger(3600))
+    }
+
+    /** Method to reduce duplicate code. This runs a simple simulation based on
+      * the [[DBFSAlgorithmCenGridSpec]].
+      */
+    def simulateGrid(): Unit = {
+      // start the simulation
+      val firstSweepNo = 0
+
+      // send the start grid simulation trigger
+      centerGridAgent ! WrappedActivation(Activation(3600))
+
+      /* We expect one grid power request message per inferior grid */
+
+      val firstPowerRequestSender11 = inferiorGrid11.expectGridPowerRequest()
+
+      val firstPowerRequestSender12 = inferiorGrid12.expectGridPowerRequest()
+
+      val firstPowerRequestSender13 = inferiorGrid13.expectGridPowerRequest()
+
+      // we expect a request for voltage values of two nodes
+      // (voltages are requested by our agent under test from the superior grid)
+      val firstSlackVoltageRequestSender =
+        superiorGridAgent.expectSlackVoltageRequest(firstSweepNo)
+
+      // normally the inferior grid agents ask for the slack voltage as well to do their power flow calculations
+      // we simulate this behaviour now by doing the same for our three inferior grid agents
+      inferiorGrid11.requestSlackVoltage(centerGridAgent, firstSweepNo)
+
+      inferiorGrid12.requestSlackVoltage(centerGridAgent, firstSweepNo)
+
+      inferiorGrid13.requestSlackVoltage(centerGridAgent, firstSweepNo)
+
+      // as we are in the first sweep, all provided slack voltages should be equal
+      // to 1 p.u. (in physical values, here: 110kV) from the superior grid agent perspective
+      // (here: centerGridAgent perspective)
+      inferiorGrid11.expectSlackVoltageProvision(
+        firstSweepNo,
+        Seq(
+          ExchangeVoltage(
+            node1.getUuid,
+            Kilovolts(110d),
+            Kilovolts(0d),
+          )
+        ),
+      )
+
+      inferiorGrid12.expectSlackVoltageProvision(
+        firstSweepNo,
+        Seq(
+          ExchangeVoltage(
+            node2.getUuid,
+            Kilovolts(110d),
+            Kilovolts(0d),
+          )
+        ),
+      )
+
+      inferiorGrid13.expectSlackVoltageProvision(
+        firstSweepNo,
+        Seq(
+          ExchangeVoltage(
+            node3.getUuid,
+            Kilovolts(110d),
+            Kilovolts(0d),
+          ),
+          ExchangeVoltage(
+            node4.getUuid,
+            Kilovolts(110d),
+            Kilovolts(0d),
+          ),
+        ),
+      )
+
+      // we now answer the request of our centerGridAgent
+      // with three fake grid power messages and one fake slack voltage message
+
+      firstPowerRequestSender11 ! GridPowerResponse(
+        inferiorGrid11.nodeUuids.map(nodeUuid =>
+          ExchangePower(
+            nodeUuid,
+            Megawatts(0.0),
+            Megavars(0.0),
+          )
+        )
+      )
+
+      firstPowerRequestSender12 ! GridPowerResponse(
+        inferiorGrid12.nodeUuids.map(nodeUuid =>
+          ExchangePower(
+            nodeUuid,
+            Megawatts(0.0),
+            Megavars(0.0),
+          )
+        )
+      )
+
+      firstPowerRequestSender13 ! GridPowerResponse(
+        inferiorGrid13.nodeUuids.map(nodeUuid =>
+          ExchangePower(
+            nodeUuid,
+            Megawatts(0.0),
+            Megavars(0.0),
+          )
+        )
+      )
+
+      firstSlackVoltageRequestSender ! SlackVoltageResponse(
+        firstSweepNo,
+        Seq(
+          ExchangeVoltage(
+            supNodeA.getUuid,
+            Kilovolts(380d),
+            Kilovolts(0d),
+          ),
+          ExchangeVoltage(
+            supNodeB.getUuid,
+            Kilovolts(380d),
+            Kilovolts(0d),
+          ),
+        ),
+      )
+
+      // power flow calculation should run now. After it's done,
+      // our test agent should now be ready to provide the grid power values,
+      // hence we ask for them and expect a corresponding response
+      superiorGridAgent.requestGridPower(centerGridAgent, firstSweepNo)
+
+      superiorGridAgent.expectGridPowerProvision(
+        Seq(
+          ExchangePower(
+            supNodeA.getUuid,
+            Megawatts(0.0),
+            Megavars(0.0),
+          ),
+          ExchangePower(
+            supNodeB.getUuid,
+            Megawatts(0.160905770717798),
+            Megavars(-1.4535602349123878),
+          ),
+        )
+      )
+
+      // we start a second sweep by asking for next sweep values which should trigger the whole procedure again
+      val secondSweepNo = 1
+
+      superiorGridAgent.requestGridPower(centerGridAgent, secondSweepNo)
+
+      // the agent now should ask for updated slack voltages from the superior grid
+      val secondSlackAskSender =
+        superiorGridAgent.expectSlackVoltageRequest(secondSweepNo)
+
+      // the superior grid would answer with updated slack voltage values
+      secondSlackAskSender ! SlackVoltageResponse(
+        secondSweepNo,
+        Seq(
+          ExchangeVoltage(
+            supNodeB.getUuid,
+            Kilovolts(374.22694614463d), // 380 kV @ 10°
+            Kilovolts(65.9863075134335d), // 380 kV @ 10°
+          ),
+          ExchangeVoltage( // this one should currently be ignored anyways
+            supNodeA.getUuid,
+            Kilovolts(380d),
+            Kilovolts(0d),
+          ),
+        ),
+      )
+
+      // After the intermediate power flow calculation, we expect one grid power
+      // request message per inferior subgrid
+
+      val secondPowerRequestSender11 =
+        inferiorGrid11.expectGridPowerRequest()
+
+      val secondPowerRequestSender12 =
+        inferiorGrid12.expectGridPowerRequest()
+
+      val secondPowerRequestSender13 =
+        inferiorGrid13.expectGridPowerRequest()
+
+      // normally the inferior grid agents ask for the slack voltage as well to do their power flow calculations
+      // we simulate this behaviour now by doing the same for our three inferior grid agents
+
+      inferiorGrid11.requestSlackVoltage(centerGridAgent, secondSweepNo)
+
+      inferiorGrid12.requestSlackVoltage(centerGridAgent, secondSweepNo)
+
+      inferiorGrid13.requestSlackVoltage(centerGridAgent, secondSweepNo)
+
+      // as we are in the second sweep, all provided slack voltages should be unequal
+      // to 1 p.u. (in physical values, here: 110kV) from the superior grid agent perspective
+      // (here: centerGridAgent perspective)
+
+      inferiorGrid11.expectSlackVoltageProvision(
+        secondSweepNo,
+        Seq(
+          ExchangeVoltage(
+            node1.getUuid,
+            Kilovolts(108.487669651919932d),
+            Kilovolts(19.101878551141232d),
+          )
+        ),
+      )
+
+      inferiorGrid12.expectSlackVoltageProvision(
+        secondSweepNo,
+        Seq(
+          ExchangeVoltage(
+            node2.getUuid,
+            Kilovolts(108.449088870497683d),
+            Kilovolts(19.10630456834157630d),
+          )
+        ),
+      )
+
+      inferiorGrid13.expectSlackVoltageProvision(
+        secondSweepNo,
+        Seq(
+          ExchangeVoltage(
+            node3.getUuid,
+            Kilovolts(108.470028019077087d),
+            Kilovolts(19.104403047662570d),
+          ),
+          ExchangeVoltage(
+            node4.getUuid,
+            Kilovolts(108.482524607256866d),
+            Kilovolts(19.1025584700935336d),
+          ),
+        ),
+      )
+
+      // we now answer the requests of our centerGridAgent
+      // with three fake grid power message
+
+      secondPowerRequestSender11 ! GridPowerResponse(
+        inferiorGrid11.nodeUuids.map(nodeUuid =>
+          ExchangePower(
+            nodeUuid,
+            Megawatts(0.0),
+            Megavars(0.0),
+          )
+        )
+      )
+
+      secondPowerRequestSender12 ! GridPowerResponse(
+        inferiorGrid12.nodeUuids.map(nodeUuid =>
+          ExchangePower(
+            nodeUuid,
+            Megawatts(0.0),
+            Megavars(0.0),
+          )
+        )
+      )
+
+      secondPowerRequestSender13 ! GridPowerResponse(
+        inferiorGrid13.nodeUuids.map(nodeUuid =>
+          ExchangePower(
+            nodeUuid,
+            Megawatts(0.0),
+            Megavars(0.0),
+          )
+        )
+      )
+
+      // we expect that the GridAgent unstashes the messages and return a value for our power request
+      superiorGridAgent.expectGridPowerProvision(
+        Seq(
+          ExchangePower(
+            supNodeA.getUuid,
+            Megawatts(0.0),
+            Megavars(0.0),
+          ),
+          ExchangePower(
+            supNodeB.getUuid,
+            Megawatts(0.16090577067051856),
+            Megavars(-1.4535602358772026),
+          ),
+        )
+      )
+
+      // normally the slack node would send a FinishGridSimulationTrigger to all
+      // connected inferior grids, because the slack node is just a mock, we imitate this behavior
+      centerGridAgent ! FinishGridSimulationTrigger(3600)
+
+      // after a FinishGridSimulationTrigger is send the inferior grids, they themselves will send the
+      // Trigger forward the trigger to their connected inferior grids. Therefore the inferior grid
+      // agent should receive a FinishGridSimulationTrigger
+      inferiorGrid11.gaProbe.expectMessage(FinishGridSimulationTrigger(3600))
+
+      inferiorGrid12.gaProbe.expectMessage(FinishGridSimulationTrigger(3600))
+
+      inferiorGrid13.gaProbe.expectMessage(FinishGridSimulationTrigger(3600))
     }
 
     /** Method to reduce duplicate code
@@ -224,28 +552,34 @@ class DCMAlgorithmCenGridSpec
 
       // we expect a request for grid congestion values here
       val congestionCheckRequestSender11 =
-        inferiorGrid11.expectMessageType[CongestionCheckRequest]
+        inferiorGrid11.gaProbe
+          .expectMessageType[CongestionCheckRequest](10.seconds)
+          .sender
       val congestionCheckRequestSender12 =
-        inferiorGrid12.expectMessageType[CongestionCheckRequest]
+        inferiorGrid12.gaProbe
+          .expectMessageType[CongestionCheckRequest](10.seconds)
+          .sender
       val congestionCheckRequestSender13 =
-        inferiorGrid13.expectMessageType[CongestionCheckRequest]
+        inferiorGrid13.gaProbe
+          .expectMessageType[CongestionCheckRequest](10.seconds)
+          .sender
 
       // send congestions
-      congestionCheckRequestSender11.sender ! CongestionResponse(
+      congestionCheckRequestSender11 ! CongestionResponse(
         inferiorGrid11.ref,
         congestions,
       )
-      congestionCheckRequestSender12.sender ! CongestionResponse(
+      congestionCheckRequestSender12 ! CongestionResponse(
         inferiorGrid12.ref,
         congestions,
       )
-      congestionCheckRequestSender13.sender ! CongestionResponse(
+      congestionCheckRequestSender13 ! CongestionResponse(
         inferiorGrid13.ref,
         congestions,
       )
 
       // we expect transformer congestions in the whole grid
-      val allCongestions = superiorGridAgent
+      val allCongestions = superiorGridAgent.gaProbe
         .expectMessageType[CongestionResponse](30.seconds)
         .value
       allCongestions shouldBe congestions
@@ -258,9 +592,9 @@ class DCMAlgorithmCenGridSpec
       centerGridAgent ! GotoIdle
 
       // inferior should receive a next state message to go to the idle state
-      inferiorGrid11.expectMessageType[GotoIdle.type]
-      inferiorGrid12.expectMessageType[GotoIdle.type]
-      inferiorGrid13.expectMessageType[GotoIdle.type]
+      inferiorGrid11.gaProbe.expectMessageType[GotoIdle.type]
+      inferiorGrid12.gaProbe.expectMessageType[GotoIdle.type]
+      inferiorGrid13.gaProbe.expectMessageType[GotoIdle.type]
 
       // expect a completion message from the superior grid
       scheduler.expectMessageType[Completion] match {
