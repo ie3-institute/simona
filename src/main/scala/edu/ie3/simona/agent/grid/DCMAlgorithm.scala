@@ -57,7 +57,6 @@ trait DCMAlgorithm extends CongestionManagementSupport {
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgent.Request],
   ): Behavior[GridAgent.Request] = Behaviors.receivePartial {
-
     case (ctx, StartStep) =>
       // request congestion check if we have inferior grids
       askInferior(
@@ -301,7 +300,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
       // and send the new delta to the inferior grid
 
       ctx.log.warn(
-        s"For Grid ${stateData.gridAgentBaseData.gridEnv.gridModel.subnetNo}, received delta: $delta"
+        s"Grid ${stateData.gridAgentBaseData.gridEnv.gridModel.subnetNo}, received delta: $delta"
       )
 
       if (stateData.inferiorRefs.nonEmpty) {
@@ -333,37 +332,25 @@ trait DCMAlgorithm extends CongestionManagementSupport {
                 .combineSuggestions(inferiorRanges)
                 .subtract(delta)
 
-            val tapOption = tappingModel.computeDeltaTap(suggestion)
-            val deltaV = if (tapOption == 0) {
-              // we can not change the voltage as we would like to
-              if (suggestion.isLessThan(0.asPu)) {
-                // if suggestion < 0, we decrease the voltage as much as we can
+            val (tapChange, deltaV) = calculateTapAndVoltage(
+              suggestion,
+              tappingModel.deltaV.divide(100),
+              tappingModel.currentTapPos,
+              tappingModel.tapMax,
+              tappingModel.tapMin,
+            )
 
-                val tapChange = tappingModel.maxTapDecrease
-                tappingModel.decrTapPos(tapChange)
-
-                tappingModel.deltaV.multiply(tapChange)
-              } else {
-                // we increase the voltage as much as we can
-                val tapChange = tappingModel.maxTapIncrease
-                tappingModel.decrTapPos(tapChange)
-
-                tappingModel.deltaV.multiply(tapChange)
-              }
+            if (tapChange > 0) {
+              tappingModel.incrTapPos(tapChange)
             } else {
-              // we can change the voltage without a problem
-              tappingModel.updateTapPos(tapOption)
-              tappingModel.deltaV.multiply(tapOption)
+              tappingModel.decrTapPos(tapChange * -1)
             }
 
             ctx.log.warn(
-              s"For inferior grids $refs, " +
-                s"suggestion: $suggestion, delta: ${deltaV.divide(100)}, " +
-                s"maxIncrease: ${tappingModel.deltaV.multiply(tappingModel.maxTapIncrease).divide(100)}," +
-                s"maxDecrease: ${tappingModel.deltaV.multiply(tappingModel.maxTapDecrease).divide(100)}"
+              s"For inferior grids $refs, suggestion: $suggestion, delta: $deltaV"
             )
 
-            refs.foreach(_ ! VoltageDeltaResponse(deltaV.divide(100)))
+            refs.foreach(_ ! VoltageDeltaResponse(deltaV))
           } else {
             // no tapping possible, just send the delta to the inferior grid
             refs.foreach(_ ! VoltageDeltaResponse(delta))

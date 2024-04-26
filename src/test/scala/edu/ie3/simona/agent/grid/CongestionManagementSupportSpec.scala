@@ -45,6 +45,30 @@ class CongestionManagementSupportSpec
     val inferiorGrids: Seq[ActorRef[GridAgent.Request]] =
       Seq(inferior1.ref, inferior2.ref)
 
+    "calculate the tap and voltage change" in {
+      val currentTap = 1
+      val tapMax = 5
+      val tapMin = -5
+      val delta = 0.015.asPu // 15 % per tap
+
+      val cases = Table(
+        ("suggestion", "expectedTap", "expectedDelta"),
+        (0.02.asPu, -1, 0.015.asPu),
+        ((-0.02).asPu, 1, (-0.015).asPu),
+        (0.031.asPu, -2, 0.03.asPu),
+        (0.05.asPu, -3, 0.045.asPu),
+        ((-0.06).asPu, 4, (-0.06).asPu),
+      )
+
+      forAll(cases) { (suggestion, expectedTap, expectedDelta) =>
+        val (actualTap, actualDelta) =
+          calculateTapAndVoltage(suggestion, delta, currentTap, tapMax, tapMin)
+
+        actualTap shouldBe expectedTap
+        actualDelta should equalWithTolerance(expectedDelta)
+      }
+    }
+
     "calculates the possible voltage delta for lines correctly" in {
       val node1 = nodeModel()
       val node2 = nodeModel()

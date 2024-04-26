@@ -29,6 +29,29 @@ import javax.measure.quantity.Dimensionless
   */
 trait CongestionManagementSupport {
 
+  def calculateTapAndVoltage(
+      suggestion: ComparableQuantity[Dimensionless],
+      delta: ComparableQuantity[Dimensionless],
+      currentTap: Int,
+      tapMax: Int,
+      tapMin: Int,
+  ): (Int, ComparableQuantity[Dimensionless]) = {
+    val tapNeeded = suggestion.divide(delta).multiply(-1).getValue.doubleValue()
+
+    val increase = tapMax - currentTap
+    val decrease = tapMin - currentTap
+
+    val taps = if (tapNeeded >= increase) {
+      increase
+    } else if (tapNeeded <= decrease) {
+      decrease
+    } else {
+      tapNeeded.round.toInt
+    }
+
+    (taps, delta.multiply(taps * -1))
+  }
+
   /** Method to calculate the range of possible voltage changes.
     *
     * @param powerFlowResultEvent
@@ -193,7 +216,7 @@ object CongestionManagementSupport {
         ], (VoltageRange, TransformerTapping)]
     ): VoltageRange = {
 
-      inferiorData.foldLeft(this) { case (range, (ref, (infRange, tapping))) =>
+      inferiorData.foldLeft(this) { case (range, (_, (infRange, tapping))) =>
         if (tapping.hasAutoTap) {
           val currentPos = tapping.currentTapPos
           val deltaV = tapping.deltaV
