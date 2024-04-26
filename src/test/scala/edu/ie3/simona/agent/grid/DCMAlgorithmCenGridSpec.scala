@@ -183,39 +183,42 @@ class DCMAlgorithmCenGridSpec
       voltageRangeRequester11 ! VoltageRangeResponse(
         inferiorGrid11.ref,
         (
-          VoltageRange(0.05.asPu, (-0.05).asPu),
+          VoltageRange((-0.01).asPu, (-0.02).asPu),
           mvTransformers(transformer11.getUuid),
         ),
       )
       voltageRangeRequester12 ! VoltageRangeResponse(
         inferiorGrid12.ref,
-        (VoltageRange(0.03.asPu, 0.asPu), mvTransformers(transformer12.getUuid)),
+        (
+          VoltageRange(0.07.asPu, 0.01.asPu),
+          mvTransformers(transformer12.getUuid),
+        ),
       )
       voltageRangeRequester13 ! VoltageRangeResponse(
         inferiorGrid13.ref,
         (
-          VoltageRange(0.06.asPu, (-0.04).asPu),
+          VoltageRange(0.06.asPu, 0.asPu),
           mvTransformers(transformer13_1.getUuid),
         ),
       )
 
       // the superior grid should receive a voltage range from the center grid
       val voltageDeltaRequest = superiorGridAgent.expectVoltageRangeResponse(
-        VoltageRange(0.03.asPu, 0.asPu)
+        VoltageRange(0.06.asPu, 0.01.asPu, 0.03.asPu)
       )
 
       // send a new delta to the center grid
-      voltageDeltaRequest ! VoltageDeltaResponse(0.01.asPu)
+      voltageDeltaRequest ! VoltageDeltaResponse(0.04.asPu)
 
       inferiorGrid11.gaProbe
         .expectMessageType[VoltageDeltaResponse]
-        .delta should equalWithTolerance(0.01.asPu)
+        .delta should equalWithTolerance((-0.01).asPu)
       inferiorGrid12.gaProbe
         .expectMessageType[VoltageDeltaResponse]
-        .delta should equalWithTolerance(0.01.asPu)
+        .delta should equalWithTolerance(0.04.asPu)
       inferiorGrid13.gaProbe
         .expectMessageType[VoltageDeltaResponse]
-        .delta should equalWithTolerance(0.01.asPu)
+        .delta should equalWithTolerance(0.04.asPu)
 
       skipSimulation()
       cmStart()

@@ -31,25 +31,11 @@ trait CongestionManagementSupport {
 
   def calculateTapAndVoltage(
       suggestion: ComparableQuantity[Dimensionless],
-      delta: ComparableQuantity[Dimensionless],
-      currentTap: Int,
-      tapMax: Int,
-      tapMin: Int,
+      tapping: TransformerTapping,
   ): (Int, ComparableQuantity[Dimensionless]) = {
-    val tapNeeded = suggestion.divide(delta).multiply(-1).getValue.doubleValue()
-
-    val increase = tapMax - currentTap
-    val decrease = tapMin - currentTap
-
-    val taps = if (tapNeeded >= increase) {
-      increase
-    } else if (tapNeeded <= decrease) {
-      decrease
-    } else {
-      tapNeeded.round.toInt
-    }
-
-    (taps, delta.multiply(taps * -1))
+    val taps = tapping.computeDeltaTap(suggestion)
+    val delta = tapping.deltaV.getValue.doubleValue() * taps / 100
+    (taps, delta.asPu)
   }
 
   /** Method to calculate the range of possible voltage changes.
@@ -89,20 +75,22 @@ trait CongestionManagementSupport {
     )
 
     // updating the voltage range prevent or cure line congestions
+    /*
     val deltaV = calculatePossibleVoltageDeltaForLines(
       nodeResMap,
       powerFlowResultEvent.lineResults,
       gridComponents,
     )
     val updatedRange = range.updateWithLineDelta(deltaV)
+     */
 
     if (inferiorData.isEmpty) {
       // if there are no inferior grids, return the voltage range
-      updatedRange
+      range
     } else {
       // if there are inferior grids, update the voltage range
 
-      updatedRange.updateWithInferiorRanges(inferiorData)
+      range.updateWithInferiorRanges(inferiorData)
     }
   }
 
@@ -269,35 +257,36 @@ object CongestionManagementSupport {
         deltaMinus: ComparableQuantity[Dimensionless],
     ): VoltageRange = {
 
-      val suggestion = (
-        deltaPlus.isGreaterThanOrEqualTo(0.asPu),
-        deltaMinus.isLessThanOrEqualTo(0.asPu),
-      ) match {
-        case (true, true) =>
-          // calculate an equal distance to 1 pu
-          deltaPlus.add(deltaMinus)
-        case (false, true) =>
-          // violation of the upper voltage limit
-          if (deltaPlus.isGreaterThan(deltaMinus)) {
-            // if deltaPlus > deltaMinus, we can decrease the voltage by deltaPlus
-            deltaPlus
-          } else deltaMinus
-        case (true, false) =>
-          // violation of the upper voltage limit
+      val plus = deltaPlus.getValue.doubleValue()
+      val minus = deltaMinus.getValue.doubleValue()
 
-          if (deltaMinus.isLessThan(deltaPlus)) {
-            // if deltaMinus < deltaPlus, we can increase the voltage by deltaMinus
-            deltaMinus
-          } else deltaPlus
+      val value = (plus > 0, minus < 0) match {
+        case (true, true) =>
+          (plus - minus) / 2
+        case (false, true) if plus > minus =>
+          (plus.abs + minus.abs) / -2
+        case (false, true) =>
+          plus
+        case (true, false) if plus > minus =>
+          (plus + minus) / 2
+        case (true, false) =>
+          minus
         case (false, false) =>
-          // violation of both limit
-          deltaPlus
+          plus
+      }
+
+      val factor = 1e3
+
+      val suggestion = if (value < 0) {
+        (value * factor).floor / factor
+      } else {
+        (value * factor).ceil / factor
       }
 
       VoltageRange(
         deltaPlus,
         deltaMinus,
-        suggestion,
+        suggestion.asPu,
       )
     }
 

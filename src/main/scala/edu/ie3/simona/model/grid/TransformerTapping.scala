@@ -42,7 +42,7 @@ trait TransformerTapping {
 
   def maxTapIncrease: Int = tapMax - currentTapPos
 
-  def maxTapDecrease: Int = currentTapPos - tapMin
+  def maxTapDecrease: Int = tapMin - currentTapPos
 
   def currentTapPos: Int = transformerTappingModel.currentTapPos
 

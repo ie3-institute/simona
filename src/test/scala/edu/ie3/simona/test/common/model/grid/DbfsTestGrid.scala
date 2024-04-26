@@ -20,10 +20,7 @@ import edu.ie3.datamodel.models.input.{
   NodeInput,
   OperatorInput,
 }
-import edu.ie3.datamodel.models.voltagelevels.{
-  CommonVoltageLevel,
-  GermanVoltageLevelUtils,
-}
+import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.datamodel.utils.GridAndGeoUtils
 import edu.ie3.simona.model.grid.{RefSystem, TransformerModel}
 import edu.ie3.simona.util.TestGridFactory
@@ -294,7 +291,7 @@ trait DbfsTestGrid extends SubGridGateMokka with GridComponentsMokka {
     Quantities.getQuantity(10.0, KILOVOLT),
     Quantities.getQuantity(555.5, NANOSIEMENS),
     Quantities.getQuantity(-1.27, NANOSIEMENS),
-    Quantities.getQuantity(1.5, PERCENT),
+    Quantities.getQuantity(1, PERCENT),
     Quantities.getQuantity(0, RADIAN),
     false,
     0,
@@ -336,7 +333,7 @@ trait DbfsTestGrid extends SubGridGateMokka with GridComponentsMokka {
     1,
     trafoType10kV,
     0,
-    false,
+    true,
   )
   protected val transformer12 = new Transformer2WInput(
     UUID.randomUUID(),

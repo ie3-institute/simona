@@ -11,7 +11,11 @@ import edu.ie3.datamodel.models.result.connector.LineResult
 import edu.ie3.simona.agent.grid.CongestionManagementSupport.VoltageRange
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.model.grid.GridModel.GridComponents
-import edu.ie3.simona.model.grid.VoltageLimits
+import edu.ie3.simona.model.grid.{
+  TransformerModel,
+  TransformerTappingModel,
+  VoltageLimits,
+}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.grid.{
   GridComponentsMokka,
@@ -19,11 +23,14 @@ import edu.ie3.simona.test.common.model.grid.{
 }
 import edu.ie3.simona.test.common.result.ResultMokka
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.OperationInterval
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.ActorRef
+import squants.{Amperes, Each}
+
+import java.util.UUID
 
 class CongestionManagementSupportSpec
     extends ScalaTestWithActorTestKit
@@ -42,27 +49,47 @@ class CongestionManagementSupportSpec
 
   "CongestionManagementSupport" should {
 
-    val inferiorGrids: Seq[ActorRef[GridAgent.Request]] =
-      Seq(inferior1.ref, inferior2.ref)
-
     "calculate the tap and voltage change" in {
-      val currentTap = 1
-      val tapMax = 5
-      val tapMin = -5
-      val delta = 0.015.asPu // 15 % per tap
+      val tappingModel = TransformerTappingModel(
+        deltaV = 1.5.asPercent,
+        currentTapPos = 1,
+        tapMax = 5,
+        tapMin = -5,
+        tapNeutr = 0,
+        autoTap = true,
+      )
+
+      val tapping = TransformerModel(
+        UUID.randomUUID(),
+        id = "dummy",
+        operationInterval = OperationInterval(0L, 1L),
+        hvNodeUuid = UUID.randomUUID(),
+        lvNodeUuid = UUID.randomUUID(),
+        tappingModel,
+        amount = 1,
+        voltRatioNominal = BigDecimal(110),
+        iNomHv = Amperes(1),
+        iNomLv = Amperes(10),
+        r = Each(1),
+        x = Each(1),
+        g = Each(1),
+        b = Each(1),
+      )
 
       val cases = Table(
         ("suggestion", "expectedTap", "expectedDelta"),
-        (0.02.asPu, -1, 0.015.asPu),
-        ((-0.02).asPu, 1, (-0.015).asPu),
-        (0.031.asPu, -2, 0.03.asPu),
-        (0.05.asPu, -3, 0.045.asPu),
-        ((-0.06).asPu, 4, (-0.06).asPu),
+        (0.02.asPu, 1, 0.015.asPu),
+        ((-0.02).asPu, -1, (-0.015).asPu),
+        (0.031.asPu, 2, 0.03.asPu),
+        (0.05.asPu, 3, 0.045.asPu),
+        ((-0.06).asPu, -4, (-0.06).asPu),
+        ((-0.1).asPu, -6, (-0.09).asPu), // max decrease
+        (0.1.asPu, 4, 0.06.asPu), // max increase
       )
 
       forAll(cases) { (suggestion, expectedTap, expectedDelta) =>
         val (actualTap, actualDelta) =
-          calculateTapAndVoltage(suggestion, delta, currentTap, tapMax, tapMin)
+          calculateTapAndVoltage(suggestion, tapping)
 
         actualTap shouldBe expectedTap
         actualDelta should equalWithTolerance(expectedDelta)
@@ -171,7 +198,7 @@ class CongestionManagementSupportSpec
 
       range.deltaPlus should equalWithTolerance(0.05.asPu)
       range.deltaMinus should equalWithTolerance((-0.03).asPu)
-      range.suggestion should equalWithTolerance(0.02.asPu)
+      range.suggestion should equalWithTolerance(0.041.asPu)
     }
 
     "calculates the voltage range for a middle grid correctly" in {
@@ -194,6 +221,7 @@ class CongestionManagementSupportSpec
 
       val tappingModel = mockTransformerModel(
         autoTap = true,
+        currentTapPos = 0,
         tapMax = 3,
         tapMin = -3,
         deltaV = 0.01.asPu,
@@ -225,7 +253,7 @@ class CongestionManagementSupportSpec
 
       range.deltaPlus should equalWithTolerance(0.04.asPu)
       range.deltaMinus should equalWithTolerance((-0.02).asPu)
-      range.suggestion should equalWithTolerance(0.02.asPu)
+      range.suggestion should equalWithTolerance(0.041.asPu)
     }
 
     def buildPowerFlowResultEvent(
@@ -248,16 +276,16 @@ class CongestionManagementSupportSpec
     "calculate the suggestion correctly" in {
       val cases = Table(
         ("deltaPlus", "deltaMinus", "expected"),
-        (0.05.asPu, (-0.05).asPu, 0.asPu), // no voltage limit violation
+        (0.05.asPu, (-0.03).asPu, 0.04.asPu), // no voltage limit violation
         (
           (-0.01).asPu,
           (-0.02).asPu,
-          (-0.01).asPu,
+          (-0.015).asPu,
         ), // upper voltage limit violation, decreasing voltage
         (
           0.02.asPu,
           0.01.asPu,
-          0.01.asPu,
+          0.015.asPu,
         ), // lower voltage limit violation, increasing voltage
         (
           (-0.01).asPu,
@@ -267,10 +295,12 @@ class CongestionManagementSupportSpec
       )
 
       forAll(cases) { (deltaPlus, deltaMinus, expected) =>
-        VoltageRange(
+        val suggestion = VoltageRange(
           deltaPlus,
           deltaMinus,
-        ).suggestion should equalWithTolerance(expected)
+        ).suggestion
+
+        suggestion should equalWithTolerance(expected)
       }
 
     }
@@ -330,7 +360,13 @@ class CongestionManagementSupportSpec
       val range = VoltageRange(0.05.asPu, (-0.05).asPu)
 
       val tappingModel =
-        mockTransformerModel(tapMax = 10, tapMin = -10, deltaV = 0.01.asPu)
+        mockTransformerModel(
+          autoTap = false,
+          currentTapPos = 0,
+          tapMax = 10,
+          tapMin = -10,
+          deltaV = 0.01.asPu,
+        )
 
       val cases = Table(
         ("range1", "range2", "expected"),

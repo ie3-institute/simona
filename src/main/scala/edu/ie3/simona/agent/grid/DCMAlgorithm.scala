@@ -247,6 +247,8 @@ trait DCMAlgorithm extends CongestionManagementSupport {
 
         val voltage = gridModel.mainRefSystem.nominalVoltage.value.asKiloVolt
 
+        // TODO: Consider two transformers connected to different nodes in subgrid
+
         val transformerToSup = gridEnv.subgridGateToActorRef
           .find(
             _._1
@@ -321,6 +323,8 @@ trait DCMAlgorithm extends CongestionManagementSupport {
             tapping -> value.keySet
           }
 
+        // TODO: Consider two transformers connected to different nodes in subgrid
+
         tappingModels.foreach { case (tappingModel, refs) =>
           val inferiorRanges = refs.map(refMap)
 
@@ -334,23 +338,20 @@ trait DCMAlgorithm extends CongestionManagementSupport {
 
             val (tapChange, deltaV) = calculateTapAndVoltage(
               suggestion,
-              tappingModel.deltaV.divide(100),
-              tappingModel.currentTapPos,
-              tappingModel.tapMax,
-              tappingModel.tapMin,
+              tappingModel,
             )
 
             if (tapChange > 0) {
-              tappingModel.incrTapPos(tapChange)
+              tappingModel.decrTapPos(tapChange)
             } else {
-              tappingModel.decrTapPos(tapChange * -1)
+              tappingModel.incrTapPos(tapChange)
             }
 
             ctx.log.warn(
               s"For inferior grids $refs, suggestion: $suggestion, delta: $deltaV"
             )
 
-            refs.foreach(_ ! VoltageDeltaResponse(deltaV))
+            refs.foreach(_ ! VoltageDeltaResponse(deltaV.add(delta)))
           } else {
             // no tapping possible, just send the delta to the inferior grid
             refs.foreach(_ ! VoltageDeltaResponse(delta))
