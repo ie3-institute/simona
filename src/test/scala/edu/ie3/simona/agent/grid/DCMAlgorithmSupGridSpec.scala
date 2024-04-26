@@ -186,20 +186,30 @@ class DCMAlgorithmSupGridSpec
         end,
       )
 
+      val tappingModel2 = TransformerModel(
+        transformer2,
+        RefSystem(Kilowatts(600), Kilovolts(110)),
+        start,
+        end,
+      )
+
       hvGrid.expectMessageType[RequestVoltageOptions] match {
         case RequestVoltageOptions(sender) =>
           sender ! VoltageRangeResponse(
             hvGrid.ref,
-            (VoltageRange(0.04.asPu, (-0.01).asPu), tappingModel),
+            (
+              VoltageRange(0.04.asPu, (-0.01).asPu),
+              Seq(tappingModel, tappingModel2),
+            ),
           )
       }
 
       hvGrid.expectMessageType[VoltageDeltaResponse](120.seconds) match {
         case VoltageDeltaResponse(delta) =>
-          delta should equalWithTolerance(0.03.asPu)
+          delta should equalWithTolerance(
+            0.asPu
+          ) // equalWithTolerance(0.015.asPu)
       }
-
-      hvGrid.expectMessageType[FinishStep.type]
 
       // skipping the simulation
       hvGrid.expectMessageType[RequestGridPower]

@@ -31,11 +31,19 @@ trait CongestionManagementSupport {
 
   def calculateTapAndVoltage(
       suggestion: ComparableQuantity[Dimensionless],
-      tapping: TransformerTapping,
+      tappings: Seq[TransformerTapping],
   ): (Int, ComparableQuantity[Dimensionless]) = {
-    val taps = tapping.computeDeltaTap(suggestion)
-    val delta = tapping.deltaV.getValue.doubleValue() * taps / 100
-    (taps, delta.asPu)
+
+    if (tappings.size == 1) {
+      val tapping = tappings(0)
+
+      val taps = tapping.computeDeltaTap(suggestion)
+      val delta = tapping.deltaV.getValue.doubleValue() * taps / 100
+      (taps, delta.asPu)
+    } else {
+      // TODO: Consider two transformers connected to different nodes in subgrid
+      (0, 0.asPu)
+    }
   }
 
   /** Method to calculate the range of possible voltage changes.
@@ -56,7 +64,7 @@ trait CongestionManagementSupport {
       gridComponents: GridComponents,
       inferiorData: Map[ActorRef[
         GridAgent.Request
-      ], (VoltageRange, TransformerTapping)],
+      ], (VoltageRange, Seq[TransformerTapping])],
   ): VoltageRange = {
     // calculate voltage range
     val nodeResMap = powerFlowResultEvent.nodeResults
@@ -201,15 +209,31 @@ object CongestionManagementSupport {
     def updateWithInferiorRanges(
         inferiorData: Map[ActorRef[
           GridAgent.Request
-        ], (VoltageRange, TransformerTapping)]
+        ], (VoltageRange, Seq[TransformerTapping])]
     ): VoltageRange = {
 
-      inferiorData.foldLeft(this) { case (range, (_, (infRange, tapping))) =>
-        if (tapping.hasAutoTap) {
-          val currentPos = tapping.currentTapPos
-          val deltaV = tapping.deltaV
-          val possiblePlus = deltaV.multiply(tapping.tapMax - currentPos)
-          val possibleMinus = deltaV.multiply(tapping.tapMin - currentPos)
+      inferiorData.foldLeft(this) { case (range, (_, (infRange, tappings))) =>
+        // allow tapping only if all transformers support tapping
+        if (tappings.forall(_.hasAutoTap)) {
+
+          val tappingRanges = tappings.map { tapping =>
+            val currentPos = tapping.currentTapPos
+            val deltaV = tapping.deltaV
+            val increase = deltaV.multiply(tapping.tapMax - currentPos)
+            val decrease = deltaV.multiply(tapping.tapMin - currentPos)
+
+            (increase, decrease)
+          }
+
+          val (possiblePlus, possibleMinus) = if (tappings.size == 1) {
+            tappingRanges(0)
+          } else {
+            // check for possible increase and decrease that can be applied to all transformers
+            (
+              tappingRanges.map(_._1).minOption.getOrElse(0.asPu),
+              tappingRanges.map(_._2).maxOption.getOrElse(0.asPu),
+            )
+          }
 
           (
             range.deltaPlus

@@ -89,7 +89,7 @@ class CongestionManagementSupportSpec
 
       forAll(cases) { (suggestion, expectedTap, expectedDelta) =>
         val (actualTap, actualDelta) =
-          calculateTapAndVoltage(suggestion, tapping)
+          calculateTapAndVoltage(suggestion, Seq(tapping))
 
         actualTap shouldBe expectedTap
         actualDelta should equalWithTolerance(expectedDelta)
@@ -246,8 +246,12 @@ class CongestionManagementSupportSpec
         VoltageLimits(0.9, 1.1),
         gridComponents,
         Map(
-          inferior1.ref -> (VoltageRange(0.1.asPu, 0.01.asPu), tappingModel),
-          inferior2.ref -> (VoltageRange(0.01.asPu, (-0.04).asPu), tappingModel),
+          inferior1.ref -> (VoltageRange(0.1.asPu, 0.01.asPu), Seq(
+            tappingModel
+          )),
+          inferior2.ref -> (VoltageRange(0.01.asPu, (-0.04).asPu), Seq(
+            tappingModel
+          )),
         ),
       )
 
@@ -395,8 +399,8 @@ class CongestionManagementSupportSpec
       forAll(cases) { (range1, range2, expected) =>
         val updatedRange = range.updateWithInferiorRanges(
           Map(
-            inferior1.ref -> (range1, tappingModel),
-            inferior2.ref -> (range2, tappingModel),
+            inferior1.ref -> (range1, Seq(tappingModel)),
+            inferior2.ref -> (range2, Seq(tappingModel)),
           )
         )
 
@@ -443,8 +447,8 @@ class CongestionManagementSupportSpec
       forAll(cases) { (range1, range2, expected) =>
         val updatedRange = range.updateWithInferiorRanges(
           Map(
-            inferior1.ref -> (range1, tappingModel),
-            inferior2.ref -> (range2, tappingModel),
+            inferior1.ref -> (range1, Seq(tappingModel)),
+            inferior2.ref -> (range2, Seq(tappingModel)),
           )
         )
 

@@ -184,21 +184,24 @@ class DCMAlgorithmCenGridSpec
         inferiorGrid11.ref,
         (
           VoltageRange((-0.01).asPu, (-0.02).asPu),
-          mvTransformers(transformer11.getUuid),
+          Seq(mvTransformers(transformer11.getUuid)),
         ),
       )
       voltageRangeRequester12 ! VoltageRangeResponse(
         inferiorGrid12.ref,
         (
           VoltageRange(0.07.asPu, 0.01.asPu),
-          mvTransformers(transformer12.getUuid),
+          Seq(mvTransformers(transformer12.getUuid)),
         ),
       )
       voltageRangeRequester13 ! VoltageRangeResponse(
         inferiorGrid13.ref,
         (
           VoltageRange(0.06.asPu, 0.asPu),
-          mvTransformers(transformer13_1.getUuid),
+          Seq(
+            mvTransformers(transformer13_1.getUuid),
+            mvTransformers(transformer13_2.getUuid),
+          ),
         ),
       )
 

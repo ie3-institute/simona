@@ -475,11 +475,11 @@ trait DbfsTestGrid extends SubGridGateMokka with GridComponentsMokka {
   }
 
   protected val (ehvGridContainer, ehvSubGridGates) = {
-    val nodes = Set(supNodeA, node1)
+    val nodes = Set(supNodeA)
     val rawGridElements = new RawGridElements(
       nodes.asJava,
       Set.empty[LineInput].asJava,
-      Set(transformer1).asJava,
+      Set.empty[Transformer2WInput].asJava,
       Set.empty[Transformer3WInput].asJava,
       Set.empty[SwitchInput].asJava,
       Set.empty[MeasurementUnitInput].asJava,

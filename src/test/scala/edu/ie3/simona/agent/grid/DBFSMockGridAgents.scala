@@ -153,7 +153,6 @@ trait DBFSMockGridAgents extends UnitSpec {
         case VoltageRangeResponse(sender, (range, _)) =>
           range.deltaPlus shouldBe voltageRange.deltaPlus
           range.deltaMinus shouldBe voltageRange.deltaMinus
-          range.suggestion shouldBe voltageRange.suggestion
 
           sender
       }

@@ -209,7 +209,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
     */
   private[grid] def updateTransformerTapping(
       stateData: CongestionManagementData,
-      awaitingData: AwaitingData[(VoltageRange, TransformerTapping)],
+      awaitingData: AwaitingData[(VoltageRange, Seq[TransformerTapping])],
   )(implicit
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgent.Request],
@@ -247,10 +247,8 @@ trait DCMAlgorithm extends CongestionManagementSupport {
 
         val voltage = gridModel.mainRefSystem.nominalVoltage.value.asKiloVolt
 
-        // TODO: Consider two transformers connected to different nodes in subgrid
-
         val transformerToSup = gridEnv.subgridGateToActorRef
-          .find(
+          .filter(
             _._1
               .superiorNode()
               .getVoltLvl
@@ -258,10 +256,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
               .isGreaterThan(voltage)
           )
           .map(_._1.link().getUuid)
-          .getOrElse(
-            throw new IllegalArgumentException(s"No superior actor ref found!")
-          )
-        val transformer = transformers(transformerToSup)
+        val transformer = transformerToSup.map(transformers).toSeq
 
         val range = calculateVoltageOptions(
           stateData.powerFlowResults,
@@ -323,12 +318,10 @@ trait DCMAlgorithm extends CongestionManagementSupport {
             tapping -> value.keySet
           }
 
-        // TODO: Consider two transformers connected to different nodes in subgrid
-
-        tappingModels.foreach { case (tappingModel, refs) =>
+        tappingModels.foreach { case (tappingModels, refs) =>
           val inferiorRanges = refs.map(refMap)
 
-          if (tappingModel.hasAutoTap) {
+          if (tappingModels.forall(_.hasAutoTap)) {
             // the given transformer can be tapped, calculate the new tap pos
 
             val suggestion =
@@ -338,13 +331,13 @@ trait DCMAlgorithm extends CongestionManagementSupport {
 
             val (tapChange, deltaV) = calculateTapAndVoltage(
               suggestion,
-              tappingModel,
+              tappingModels,
             )
 
             if (tapChange > 0) {
-              tappingModel.decrTapPos(tapChange)
+              tappingModels.foreach(_.decrTapPos(tapChange))
             } else {
-              tappingModel.incrTapPos(tapChange)
+              tappingModels.foreach(_.incrTapPos(tapChange))
             }
 
             ctx.log.warn(

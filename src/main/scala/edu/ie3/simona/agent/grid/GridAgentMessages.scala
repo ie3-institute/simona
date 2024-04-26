@@ -301,14 +301,14 @@ object GridAgentMessages {
 
   case class VoltageRangeResponse(
       override val sender: ActorRef[GridAgent.Request],
-      override val value: (VoltageRange, TransformerTapping),
-  ) extends CMReceiveResponse[(VoltageRange, TransformerTapping)]
+      override val value: (VoltageRange, Seq[TransformerTapping]),
+  ) extends CMReceiveResponse[(VoltageRange, Seq[TransformerTapping])]
 
   case class ReceivedVoltageRange(
       override val values: Vector[
-        (ActorRef[GridAgent.Request], (VoltageRange, TransformerTapping))
+        (ActorRef[GridAgent.Request], (VoltageRange, Seq[TransformerTapping]))
       ]
-  ) extends CMResponse[(VoltageRange, TransformerTapping)]
+  ) extends CMResponse[(VoltageRange, Seq[TransformerTapping])]
 
   case class VoltageDeltaResponse(
       delta: ComparableQuantity[Dimensionless]
