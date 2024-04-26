@@ -245,19 +245,32 @@ trait DCMAlgorithm extends CongestionManagementSupport {
           (gridComponents.transformers ++ gridComponents.transformers3w)
             .map(t => t.uuid -> t)
             .toMap
-        val transformersToSup = gridEnv.subgridGateToActorRef
-          .find(_._2 == sender)
+
+        val voltage = gridModel.mainRefSystem.nominalVoltage.value.asKiloVolt
+
+        val transformerToSup = gridEnv.subgridGateToActorRef
+          .find(
+            _._1
+              .superiorNode()
+              .getVoltLvl
+              .getNominalVoltage
+              .isGreaterThan(voltage)
+          )
           .map(_._1.link().getUuid)
           .getOrElse(
             throw new IllegalArgumentException(s"No superior actor ref found!")
           )
-        val transformer = transformers(transformersToSup)
+        val transformer = transformers(transformerToSup)
 
         val range = calculateVoltageOptions(
           stateData.powerFlowResults,
           gridModel.voltageLimits,
           gridModel.gridComponents,
           awaitingData.mappedValues,
+        )
+
+        ctx.log.warn(
+          s"For Grid ${stateData.gridAgentBaseData.gridEnv.gridModel.subnetNo}, range: $range"
         )
 
         sender ! VoltageRangeResponse(
@@ -287,54 +300,74 @@ trait DCMAlgorithm extends CongestionManagementSupport {
       // if we are the superior grid to another grid, we check for transformer tapping option
       // and send the new delta to the inferior grid
 
+      ctx.log.warn(
+        s"For Grid ${stateData.gridAgentBaseData.gridEnv.gridModel.subnetNo}, received delta: $delta"
+      )
+
       if (stateData.inferiorRefs.nonEmpty) {
         // we calculate a voltage delta for all inferior grids
 
-        awaitingData.mappedValues.groupBy(_._2._2).foreach {
-          case (tappingModel, refMap) =>
-            val inferiorRanges: Map[ActorRef[GridAgent.Request], VoltageRange] =
-              refMap.map { case (value, (range, _)) =>
-                value -> range
-              }
+        val receivedData = awaitingData.mappedValues
 
-            val refs: Set[ActorRef[GridAgent.Request]] = inferiorRanges.keySet
+        val refMap = receivedData.map { case (ref, (range, _)) =>
+          ref -> range
+        }
 
-            if (tappingModel.hasAutoTap) {
-              // the given transformer can be tapped, calculate the new tap pos
+        val tappingModels = receivedData
+          .map { case (value, (_, tapping)) =>
+            (value, tapping)
+          }
+          .groupBy(_._2)
+          .map { case (tapping, value) =>
+            tapping -> value.keySet
+          }
 
-              val suggestion =
-                VoltageRange
-                  .combineSuggestions(inferiorRanges.values.toSet)
-                  .subtract(delta)
+        tappingModels.foreach { case (tappingModel, refs) =>
+          val inferiorRanges = refs.map(refMap)
 
-              val tapOption = tappingModel.computeDeltaTap(suggestion)
-              val deltaV = if (tapOption == 0) {
-                // we can not change the voltage as we would like to
-                if (suggestion.isLessThan(0.asPu)) {
-                  // if suggestion < 0, we decrease the voltage as much as we can
+          if (tappingModel.hasAutoTap) {
+            // the given transformer can be tapped, calculate the new tap pos
 
-                  val tapChange = tappingModel.maxTapDecrease
-                  tappingModel.decrTapPos(tapChange)
+            val suggestion =
+              VoltageRange
+                .combineSuggestions(inferiorRanges)
+                .subtract(delta)
 
-                  tappingModel.deltaV.multiply(tapChange)
-                } else {
-                  // we increase the voltage as much as we can
-                  val tapChange = tappingModel.maxTapIncrease
-                  tappingModel.decrTapPos(tapChange)
+            val tapOption = tappingModel.computeDeltaTap(suggestion)
+            val deltaV = if (tapOption == 0) {
+              // we can not change the voltage as we would like to
+              if (suggestion.isLessThan(0.asPu)) {
+                // if suggestion < 0, we decrease the voltage as much as we can
 
-                  tappingModel.deltaV.multiply(tapChange)
-                }
+                val tapChange = tappingModel.maxTapDecrease
+                tappingModel.decrTapPos(tapChange)
+
+                tappingModel.deltaV.multiply(tapChange)
               } else {
-                // we can change the voltage without a problem
-                tappingModel.updateTapPos(tapOption)
-                tappingModel.deltaV.multiply(tapOption)
-              }
+                // we increase the voltage as much as we can
+                val tapChange = tappingModel.maxTapIncrease
+                tappingModel.decrTapPos(tapChange)
 
-              refs.foreach(_ ! VoltageDeltaResponse(deltaV.divide(100)))
+                tappingModel.deltaV.multiply(tapChange)
+              }
             } else {
-              // no tapping possible, just send the delta to the inferior grid
-              refs.foreach(_ ! VoltageDeltaResponse(delta))
+              // we can change the voltage without a problem
+              tappingModel.updateTapPos(tapOption)
+              tappingModel.deltaV.multiply(tapOption)
             }
+
+            ctx.log.warn(
+              s"For inferior grids $refs, " +
+                s"suggestion: $suggestion, delta: ${deltaV.divide(100)}, " +
+                s"maxIncrease: ${tappingModel.deltaV.multiply(tappingModel.maxTapIncrease).divide(100)}," +
+                s"maxDecrease: ${tappingModel.deltaV.multiply(tappingModel.maxTapDecrease).divide(100)}"
+            )
+
+            refs.foreach(_ ! VoltageDeltaResponse(deltaV.divide(100)))
+          } else {
+            // no tapping possible, just send the delta to the inferior grid
+            refs.foreach(_ ! VoltageDeltaResponse(delta))
+          }
         }
       }
 

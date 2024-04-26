@@ -251,7 +251,7 @@ object CongestionManagementSupport {
         deltaMinus.isLessThanOrEqualTo(0.asPu),
       ) match {
         case (true, true) =>
-          // calculate ann equal distance to 1 pu
+          // calculate an equal distance to 1 pu
           deltaPlus.add(deltaMinus)
         case (false, true) =>
           // violation of the upper voltage limit
