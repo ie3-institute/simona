@@ -141,7 +141,15 @@ object RefSystemParser {
               "Please check your configuration for duplicates in voltLvl entries!"
           )
 
-        ConfigRefSystems(configRefSystems.toMap, refSystems.toMap)
+        val voltLvLRefSysToMap =
+          parsedRefSystems
+            .groupBy(_._1.asInstanceOf[VoltageLevel])
+            .view
+            .mapValues(_.map(_._2).head)
+
+        val voltLvLRefSystemsMap: Map[VoltageLevel, RefSystem] =
+          voltLvLRefSysToMap.toMap
+        ConfigRefSystems(gridIdRefSystems, voltLvLRefSystemsMap)
       case _ => defaultRefSystems
     }
   }
