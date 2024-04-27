@@ -309,14 +309,11 @@ trait DCMAlgorithm extends CongestionManagementSupport {
           ref -> range
         }
 
-        val tappingModels = receivedData
-          .map { case (value, (_, tapping)) =>
-            (value, tapping)
-          }
-          .groupBy(_._2)
-          .map { case (tapping, value) =>
-            tapping -> value.keySet
-          }
+        val tappingModels =
+          groupTappingModels(
+            receivedData.map { case (ref, (_, tappings)) => ref -> tappings },
+            stateData.gridAgentBaseData.gridEnv.gridModel.gridComponents.transformers3w,
+          )
 
         tappingModels.foreach { case (tappingModels, refs) =>
           val inferiorRanges = refs.map(refMap)
@@ -331,7 +328,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
 
             val (tapChange, deltaV) = calculateTapAndVoltage(
               suggestion,
-              tappingModels,
+              tappingModels.toSeq,
             )
 
             if (tapChange > 0) {

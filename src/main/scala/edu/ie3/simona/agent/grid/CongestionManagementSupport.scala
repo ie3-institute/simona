@@ -9,9 +9,11 @@ package edu.ie3.simona.agent.grid
 import edu.ie3.datamodel.models.result.connector.LineResult
 import edu.ie3.simona.agent.grid.CongestionManagementSupport.VoltageRange
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
-import edu.ie3.simona.exceptions.ResultException
+import edu.ie3.simona.exceptions.{GridInconsistencyException, ResultException}
 import edu.ie3.simona.model.grid.GridModel.GridComponents
 import edu.ie3.simona.model.grid.{
+  Transformer3wModel,
+  TransformerModel,
   TransformerTapping,
   TransformerTappingModel,
   VoltageLimits,
@@ -28,6 +30,51 @@ import javax.measure.quantity.Dimensionless
   * management.
   */
 trait CongestionManagementSupport {
+
+  def groupTappingModels(
+      receivedData: Map[ActorRef[GridAgent.Request], Seq[TransformerTapping]],
+      transformer3ws: Set[Transformer3wModel],
+  ): Map[Set[TransformerTapping], Set[ActorRef[GridAgent.Request]]] = {
+    val transformer3wMap = transformer3ws.map(t => t.uuid -> t).toMap
+
+    receivedData.foldLeft(
+      Map.empty[Set[TransformerTapping], Set[ActorRef[GridAgent.Request]]]
+    ) { case (combined, (ref, tappings)) =>
+      val updated: Set[TransformerTapping] = tappings.map {
+        case transformerModel: TransformerModel =>
+          transformerModel
+        case transformer3wModel: Transformer3wModel =>
+          transformer3wMap.getOrElse(
+            transformer3wModel.uuid,
+            throw new GridInconsistencyException(
+              s"No three winding transformer found."
+            ),
+          )
+        case unsupported =>
+          throw new IllegalArgumentException(
+            s"The transformer type ${unsupported.getClass} is not supported."
+          )
+      }.toSet
+
+      val keyOption = combined.keySet.find { keys =>
+        updated.exists(key => keys.contains(key))
+      }
+
+      keyOption
+        .map { key =>
+          val refs = combined(key)
+          val updatedMap = combined.removed(key)
+
+          val newKey = key ++ updated
+          val newValue = refs ++ Set(ref)
+
+          updatedMap ++ Map(newKey -> newValue)
+        }
+        .getOrElse {
+          combined ++ Map(updated -> Set(ref))
+        }
+    }
+  }
 
   def calculateTapAndVoltage(
       suggestion: ComparableQuantity[Dimensionless],
@@ -216,6 +263,7 @@ object CongestionManagementSupport {
         // allow tapping only if all transformers support tapping
         if (tappings.forall(_.hasAutoTap)) {
 
+          // TODO: Enhance tests, to tests these changes
           val tappingRanges = tappings.map { tapping =>
             val currentPos = tapping.currentTapPos
             val deltaV = tapping.deltaV
@@ -315,7 +363,7 @@ object CongestionManagementSupport {
     }
 
     def combineSuggestions(
-        ranges: Set[VoltageRange]
+        ranges: Iterable[VoltageRange]
     ): ComparableQuantity[Dimensionless] = {
       ranges.headOption match {
         case Some(value) =>

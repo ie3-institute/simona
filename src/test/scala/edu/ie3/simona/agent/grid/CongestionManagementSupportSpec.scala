@@ -49,6 +49,51 @@ class CongestionManagementSupportSpec
 
   "CongestionManagementSupport" should {
 
+    "group transformers correctly" in {
+      // grid 1 is connected via a transformer2w and one port of a transformer3w
+      // grid 2 is connected via one port of a transformer3w
+      // grid 3 is connected via a transformer2w
+      // grid 4 is connected via two transformer2ws
+
+      val (transformer3wA, transformer3wB, transformer3wC) =
+        mockTransformer3wModel()
+      val transformer1 = mockTransformerModel()
+      val ref1 = TestProbe[GridAgent.Request]("ref1").ref
+      val ref2 = TestProbe[GridAgent.Request]("ref2").ref
+
+      val ref3 = TestProbe[GridAgent.Request]("ref3").ref
+      val transformer3 = mockTransformerModel()
+
+      val ref4 = TestProbe[GridAgent.Request]("ref4").ref
+      val transformer4_1 = mockTransformerModel()
+      val transformer4_2 = mockTransformerModel()
+
+      val receivedData = Map(
+        ref1 -> Seq(
+          transformer1,
+          transformer3wB,
+        ), // connected with both transformer2w and transformer3w
+        ref2 -> Seq(transformer3wC), // connected with a transformer3w
+        ref3 -> Seq(transformer3), // connected with just one transformer model
+        ref4 -> Seq(
+          transformer4_1,
+          transformer4_2,
+        ), // connected with two transformer2w
+      )
+
+      val grouped = groupTappingModels(
+        receivedData,
+        Set(transformer3wA),
+      )
+
+      grouped shouldBe Map(
+        Set(transformer1, transformer3wA) -> Set(ref1, ref2),
+        Set(transformer3) -> Set(ref3),
+        Set(transformer4_1, transformer4_2) -> Set(ref4),
+      )
+
+    }
+
     "calculate the tap and voltage change" in {
       val tappingModel = TransformerTappingModel(
         deltaV = 1.5.asPercent,
@@ -219,7 +264,7 @@ class CongestionManagementSupportSpec
         Set.empty,
       )
 
-      val tappingModel = mockTransformerModel(
+      val tappingModel = mockTransformerTappingModel(
         autoTap = true,
         currentTapPos = 0,
         tapMax = 3,
@@ -364,7 +409,7 @@ class CongestionManagementSupportSpec
       val range = VoltageRange(0.05.asPu, (-0.05).asPu)
 
       val tappingModel =
-        mockTransformerModel(
+        mockTransformerTappingModel(
           autoTap = false,
           currentTapPos = 0,
           tapMax = 10,
@@ -412,7 +457,7 @@ class CongestionManagementSupportSpec
     "be updated with inferior voltage ranges and with tapping correctly" in {
       val range = VoltageRange(0.05.asPu, (-0.05).asPu)
 
-      val tappingModel = mockTransformerModel(
+      val tappingModel = mockTransformerTappingModel(
         autoTap = true,
         currentTapPos = 7,
         tapMax = 10,

@@ -6,14 +6,8 @@
 
 package edu.ie3.simona.test.common.model.grid
 
-import edu.ie3.simona.model.grid.{
-  LineModel,
-  NodeModel,
-  Transformer3wModel,
-  TransformerModel,
-  TransformerTappingModel,
-}
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase._
+import edu.ie3.simona.model.grid._
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
 import squants.Amperes
@@ -49,7 +43,7 @@ trait GridComponentsMokka extends MockitoSugar {
     line
   }
 
-  protected def mockTransformerModel(
+  protected def mockTransformerTappingModel(
       uuid: UUID = UUID.randomUUID(),
       autoTap: Boolean,
       tapMax: Int,
@@ -69,13 +63,32 @@ trait GridComponentsMokka extends MockitoSugar {
     transformer
   }
 
-  protected def mockTransformer3wModel(
-      uuid: UUID
-  ): Transformer3wModel = {
-    val transformer = mock[Transformer3wModel]
+  protected def mockTransformerModel(
+      uuid: UUID = UUID.randomUUID()
+  ): TransformerModel = {
+    val transformer = mock[TransformerModel]
     when(transformer.uuid).thenReturn(uuid)
 
     transformer
+  }
+
+  protected def mockTransformer3wModel(
+      uuid: UUID = UUID.randomUUID()
+  ): (Transformer3wModel, Transformer3wModel, Transformer3wModel) = {
+    val transformerA = mock[Transformer3wModel]
+    val transformerB = mock[Transformer3wModel]
+    val transformerC = mock[Transformer3wModel]
+    when(transformerA.uuid).thenReturn(uuid)
+    when(transformerB.uuid).thenReturn(uuid)
+    when(transformerC.uuid).thenReturn(uuid)
+
+    when(transformerA.powerFlowCase).thenReturn(PowerFlowCaseA)
+    when(transformerB.powerFlowCase).thenReturn(
+      Transformer3wPowerFlowCase.PowerFlowCaseB
+    )
+    when(transformerC.powerFlowCase).thenReturn(PowerFlowCaseC)
+
+    (transformerA, transformerB, transformerC)
   }
 
 }
