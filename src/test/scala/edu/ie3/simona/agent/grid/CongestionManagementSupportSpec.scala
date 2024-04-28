@@ -11,11 +11,7 @@ import edu.ie3.datamodel.models.result.connector.LineResult
 import edu.ie3.simona.agent.grid.CongestionManagementSupport.VoltageRange
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.model.grid.GridModel.GridComponents
-import edu.ie3.simona.model.grid.{
-  TransformerModel,
-  TransformerTappingModel,
-  VoltageLimits,
-}
+import edu.ie3.simona.model.grid.VoltageLimits
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.grid.{
   GridComponentsMokka,
@@ -23,14 +19,10 @@ import edu.ie3.simona.test.common.model.grid.{
 }
 import edu.ie3.simona.test.common.result.ResultMokka
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.OperationInterval
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import squants.{Amperes, Each}
-
-import java.util.UUID
 
 class CongestionManagementSupportSpec
     extends ScalaTestWithActorTestKit
@@ -100,13 +92,12 @@ class CongestionManagementSupportSpec
 
       val cases = Table(
         ("suggestion", "expectedTap", "expectedDelta"),
-        (0.02.asPu, 1, 0.015.asPu),
-        ((-0.02).asPu, -1, (-0.015).asPu),
-        (0.031.asPu, 2, 0.03.asPu),
-        (0.05.asPu, 3, 0.045.asPu),
-        ((-0.06).asPu, -4, (-0.06).asPu),
-        ((-0.1).asPu, -6, (-0.09).asPu), // max decrease
-        (0.1.asPu, 4, 0.06.asPu), // max increase
+        (0.02.asPu, -1, 0.015.asPu),
+        ((-0.02).asPu, 1, (-0.015).asPu),
+        (0.031.asPu, -2, 0.03.asPu),
+        (0.05.asPu, -3, 0.045.asPu),
+        ((-0.1).asPu, 4, (-0.06).asPu), // max tap increase
+        (0.1.asPu, -6, 0.09.asPu), // max tap decrease
       )
 
       forAll(cases) { (suggestion, expectedTap, expectedDelta) =>
@@ -122,8 +113,7 @@ class CongestionManagementSupportSpec
       val tappingModel1 = dummyTappingModel()
       val tappingModel2 = dummyTappingModel(
         deltaV = 1.2.asPercent,
-        tapMin = -5,
-        tapMax = 3,
+        tapMin = -3,
         currentTapPos = 0,
       )
       val tappingModel3 = dummyTappingModel(deltaV = 1.49.asPercent)
@@ -150,37 +140,37 @@ class CongestionManagementSupportSpec
         (
           0.02.asPu,
           modelCase1,
-          Map(transformer11 -> 1, transformer12 -> 1),
+          Map(transformer11 -> -1, transformer12 -> -1),
           0.015.asPu,
         ),
         (
           0.038.asPu,
           modelCase1,
-          Map(transformer11 -> 2, transformer12 -> 2),
+          Map(transformer11 -> -2, transformer12 -> -2),
           0.03.asPu,
         ),
         (
           (-0.06).asPu,
           modelCase1,
-          Map(transformer11 -> -4, transformer12 -> -4),
+          Map(transformer11 -> 4, transformer12 -> 4),
           (-0.06).asPu,
         ),
         (
           0.02.asPu,
           modelCase2,
-          Map(transformer21 -> 1, transformer22 -> 1),
+          Map(transformer21 -> -1, transformer22 -> -1),
           0.012.asPu,
         ),
         (
           0.038.asPu,
           modelCase2,
-          Map(transformer21 -> 3, transformer22 -> 3),
+          Map(transformer21 -> -3, transformer22 -> -3),
           0.036.asPu,
         ),
         (
           (-0.06).asPu,
           modelCase2,
-          Map(transformer21 -> -5, transformer22 -> -5),
+          Map(transformer21 -> 5, transformer22 -> 5),
           (-0.06).asPu,
         ),
         (
@@ -198,25 +188,25 @@ class CongestionManagementSupportSpec
         (
           (-0.06).asPu,
           modelCase3,
-          Map(transformer31 -> -4, transformer32 -> -5),
+          Map(transformer31 -> 4, transformer32 -> 5),
           (-0.06).asPu,
         ),
         (
           0.02.asPu,
           modelCase4,
-          Map(transformer41 -> 1, transformer42 -> 1),
+          Map(transformer41 -> -1, transformer42 -> -1),
           0.0149.asPu,
         ),
         (
           0.038.asPu,
           modelCase4,
-          Map(transformer41 -> 2, transformer42 -> 2),
+          Map(transformer41 -> -2, transformer42 -> -2),
           0.0298.asPu,
         ),
         (
           (-0.06).asPu,
           modelCase4,
-          Map(transformer41 -> -4, transformer42 -> -4),
+          Map(transformer41 -> 4, transformer42 -> 4),
           (-0.0596).asPu,
         ),
       )
@@ -332,7 +322,7 @@ class CongestionManagementSupportSpec
 
       range.deltaPlus should equalWithTolerance(0.05.asPu)
       range.deltaMinus should equalWithTolerance((-0.03).asPu)
-      range.suggestion should equalWithTolerance(0.041.asPu)
+      range.suggestion should equalWithTolerance(0.011.asPu)
     }
 
     "calculates the voltage range for a middle grid correctly" in {
@@ -391,7 +381,7 @@ class CongestionManagementSupportSpec
 
       range.deltaPlus should equalWithTolerance(0.04.asPu)
       range.deltaMinus should equalWithTolerance((-0.02).asPu)
-      range.suggestion should equalWithTolerance(0.041.asPu)
+      range.suggestion should equalWithTolerance(0.011.asPu)
     }
 
     def buildPowerFlowResultEvent(
@@ -414,7 +404,7 @@ class CongestionManagementSupportSpec
     "calculate the suggestion correctly" in {
       val cases = Table(
         ("deltaPlus", "deltaMinus", "expected"),
-        (0.05.asPu, (-0.03).asPu, 0.04.asPu), // no voltage limit violation
+        (0.05.asPu, (-0.03).asPu, 0.011.asPu), // no voltage limit violation
         (
           (-0.01).asPu,
           (-0.02).asPu,

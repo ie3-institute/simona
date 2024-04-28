@@ -81,22 +81,24 @@ trait CongestionManagementSupport {
       tappings: Seq[TransformerTapping],
   ): (Map[TransformerTapping, Int], ComparableQuantity[Dimensionless]) = {
 
+    val inverted = suggestion.multiply(-1)
+
     if (tappings.size == 1) {
       val tapping = tappings(0)
 
-      val taps = tapping.computeDeltaTap(suggestion)
-      val delta = tapping.deltaV.getValue.doubleValue() * taps / 100
+      val taps = tapping.computeDeltaTap(inverted)
+      val delta = tapping.deltaV.getValue.doubleValue() * taps / -100
       (Map(tapping -> taps), delta.asPu)
     } else {
 
       val possibleChange = tappings.map { tapping =>
-        val taps = tapping.computeDeltaTap(suggestion)
+        val taps = tapping.computeDeltaTap(inverted)
         val delta = tapping.deltaV.getValue.doubleValue() * taps / 100
         tapping -> (taps, delta)
       }.toMap
 
       // finds the smallest possible delta, because we are limited by that transformer
-      val option = if (suggestion.isGreaterThan(0.asPu)) {
+      val option = if (inverted.isGreaterThan(0.asPu)) {
         possibleChange.minByOption(_._2._2)
       } else {
         possibleChange.maxByOption(_._2._2)
@@ -108,7 +110,7 @@ trait CongestionManagementSupport {
 
           val changes = tappings.map { tapping =>
             val taps = tapping.computeDeltaTap(max)
-            val delta = tapping.deltaV.getValue.doubleValue() * taps / 100
+            val delta = tapping.deltaV.getValue.doubleValue() * taps / -100
 
             tapping -> (taps, delta)
           }.toMap
@@ -119,7 +121,7 @@ trait CongestionManagementSupport {
           }
 
           if (check) {
-            (changes.map(t => t._1 -> t._2._1), max)
+            (changes.map(t => t._1 -> t._2._1), max.multiply(-1))
           } else {
             (tappings.map(t => t -> 0).toMap, 0.asPu)
           }
