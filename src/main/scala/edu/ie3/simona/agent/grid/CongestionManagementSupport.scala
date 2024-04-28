@@ -79,17 +79,54 @@ trait CongestionManagementSupport {
   def calculateTapAndVoltage(
       suggestion: ComparableQuantity[Dimensionless],
       tappings: Seq[TransformerTapping],
-  ): (Int, ComparableQuantity[Dimensionless]) = {
+  ): (Map[TransformerTapping, Int], ComparableQuantity[Dimensionless]) = {
 
     if (tappings.size == 1) {
       val tapping = tappings(0)
 
       val taps = tapping.computeDeltaTap(suggestion)
       val delta = tapping.deltaV.getValue.doubleValue() * taps / 100
-      (taps, delta.asPu)
+      (Map(tapping -> taps), delta.asPu)
     } else {
-      // TODO: Consider two transformers connected to different nodes in subgrid
-      (0, 0.asPu)
+
+      val possibleChange = tappings.map { tapping =>
+        val taps = tapping.computeDeltaTap(suggestion)
+        val delta = tapping.deltaV.getValue.doubleValue() * taps / 100
+        tapping -> (taps, delta)
+      }.toMap
+
+      // finds the smallest possible delta, because we are limited by that transformer
+      val option = if (suggestion.isGreaterThan(0.asPu)) {
+        possibleChange.minByOption(_._2._2)
+      } else {
+        possibleChange.maxByOption(_._2._2)
+      }
+
+      option.map(_._2._2) match {
+        case Some(maxValue) =>
+          val max = maxValue.asPu
+
+          val changes = tappings.map { tapping =>
+            val taps = tapping.computeDeltaTap(max)
+            val delta = tapping.deltaV.getValue.doubleValue() * taps / 100
+
+            tapping -> (taps, delta)
+          }.toMap
+
+          val check = changes.forall { case (_, (_, delta)) =>
+            // check if all deltas are in a range of plus minus 0.1 %
+            Math.abs(Math.abs(maxValue) - Math.abs(delta)) < 1e-3
+          }
+
+          if (check) {
+            (changes.map(t => t._1 -> t._2._1), max)
+          } else {
+            (tappings.map(t => t -> 0).toMap, 0.asPu)
+          }
+
+        case None =>
+          (tappings.map(t => t -> 0).toMap, 0.asPu)
+      }
     }
   }
 
@@ -130,22 +167,20 @@ trait CongestionManagementSupport {
     )
 
     // updating the voltage range prevent or cure line congestions
-    /*
     val deltaV = calculatePossibleVoltageDeltaForLines(
       nodeResMap,
       powerFlowResultEvent.lineResults,
       gridComponents,
     )
     val updatedRange = range.updateWithLineDelta(deltaV)
-     */
 
     if (inferiorData.isEmpty) {
       // if there are no inferior grids, return the voltage range
-      range
+      updatedRange
     } else {
       // if there are inferior grids, update the voltage range
 
-      range.updateWithInferiorRanges(inferiorData)
+      updatedRange.updateWithInferiorRanges(inferiorData)
     }
   }
 
@@ -332,19 +367,10 @@ object CongestionManagementSupport {
       val plus = deltaPlus.getValue.doubleValue()
       val minus = deltaMinus.getValue.doubleValue()
 
-      val value = (plus > 0, minus < 0) match {
-        case (true, true) =>
-          (plus - minus) / 2
-        case (false, true) if plus > minus =>
-          (plus.abs + minus.abs) / -2
-        case (false, true) =>
-          plus
-        case (true, false) if plus > minus =>
-          (plus + minus) / 2
-        case (true, false) =>
-          minus
-        case (false, false) =>
-          plus
+      val value = if (plus > minus) {
+        (plus + minus) / 2
+      } else {
+        plus
       }
 
       val factor = 1e3

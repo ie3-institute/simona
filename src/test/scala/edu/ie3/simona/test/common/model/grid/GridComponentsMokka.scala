@@ -8,9 +8,11 @@ package edu.ie3.simona.test.common.model.grid
 
 import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase._
 import edu.ie3.simona.model.grid._
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.OperationInterval
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
-import squants.Amperes
+import squants.{Amperes, Each}
 import tech.units.indriya.ComparableQuantity
 
 import java.util.UUID
@@ -42,6 +44,65 @@ trait GridComponentsMokka extends MockitoSugar {
 
     line
   }
+
+  protected def dummyTappingModel(
+      deltaV: ComparableQuantity[Dimensionless] = 1.5.asPercent,
+      currentTapPos: Int = 1,
+      tapMax: Int = 5,
+      tapMin: Int = -5,
+      tapNeutr: Int = 0,
+      autoTap: Boolean = true,
+  ): TransformerTappingModel =
+    TransformerTappingModel(
+      deltaV,
+      currentTapPos,
+      tapMax,
+      tapMin,
+      tapNeutr,
+      autoTap,
+    )
+
+  protected def dummyTransformerModel(
+      tappingModel: TransformerTappingModel
+  ): TransformerModel =
+    TransformerModel(
+      UUID.randomUUID(),
+      id = "dummy",
+      operationInterval = OperationInterval(0L, 1L),
+      hvNodeUuid = UUID.randomUUID(),
+      lvNodeUuid = UUID.randomUUID(),
+      tappingModel,
+      amount = 1,
+      voltRatioNominal = BigDecimal(110),
+      iNomHv = Amperes(1),
+      iNomLv = Amperes(10),
+      r = Each(1),
+      x = Each(1),
+      g = Each(1),
+      b = Each(1),
+    )
+
+  protected def dummyTransformer3wModel(
+      tappingModel: TransformerTappingModel
+  ): Transformer3wModel =
+    Transformer3wModel(
+      UUID.randomUUID(),
+      id = "dummy",
+      operationInterval = OperationInterval(0L, 1L),
+      hvNodeUuid = UUID.randomUUID(),
+      mvNodeUuid = UUID.randomUUID(),
+      lvNodeUuid = UUID.randomUUID(),
+      nodeInternalUuid = UUID.randomUUID(),
+      voltRatioNominal = BigDecimal(110),
+      tappingModel,
+      amount = 1,
+      powerFlowCase = PowerFlowCaseA,
+      iNom = Amperes(1),
+      r = Each(1),
+      x = Each(1),
+      g = Each(1),
+      b = Each(1),
+    )
 
   protected def mockTransformerTappingModel(
       uuid: UUID = UUID.randomUUID(),

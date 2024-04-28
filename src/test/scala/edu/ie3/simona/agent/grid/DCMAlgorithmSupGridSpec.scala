@@ -206,9 +206,7 @@ class DCMAlgorithmSupGridSpec
 
       hvGrid.expectMessageType[VoltageDeltaResponse](120.seconds) match {
         case VoltageDeltaResponse(delta) =>
-          delta should equalWithTolerance(
-            0.asPu
-          ) // equalWithTolerance(0.015.asPu)
+          delta should equalWithTolerance(0.015.asPu)
       }
 
       // skipping the simulation

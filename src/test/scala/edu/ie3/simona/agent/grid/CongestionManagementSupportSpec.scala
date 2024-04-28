@@ -94,32 +94,9 @@ class CongestionManagementSupportSpec
 
     }
 
-    "calculate the tap and voltage change" in {
-      val tappingModel = TransformerTappingModel(
-        deltaV = 1.5.asPercent,
-        currentTapPos = 1,
-        tapMax = 5,
-        tapMin = -5,
-        tapNeutr = 0,
-        autoTap = true,
-      )
-
-      val tapping = TransformerModel(
-        UUID.randomUUID(),
-        id = "dummy",
-        operationInterval = OperationInterval(0L, 1L),
-        hvNodeUuid = UUID.randomUUID(),
-        lvNodeUuid = UUID.randomUUID(),
-        tappingModel,
-        amount = 1,
-        voltRatioNominal = BigDecimal(110),
-        iNomHv = Amperes(1),
-        iNomLv = Amperes(10),
-        r = Each(1),
-        x = Each(1),
-        g = Each(1),
-        b = Each(1),
-      )
+    "calculate the tap and voltage change for one transformer" in {
+      val tappingModel = dummyTappingModel()
+      val tapping = dummyTransformerModel(tappingModel)
 
       val cases = Table(
         ("suggestion", "expectedTap", "expectedDelta"),
@@ -136,9 +113,121 @@ class CongestionManagementSupportSpec
         val (actualTap, actualDelta) =
           calculateTapAndVoltage(suggestion, Seq(tapping))
 
-        actualTap shouldBe expectedTap
+        actualTap shouldBe Map(tapping -> expectedTap)
         actualDelta should equalWithTolerance(expectedDelta)
       }
+    }
+
+    "calculate the tap and voltage change for multiple transformers" in {
+      val tappingModel1 = dummyTappingModel()
+      val tappingModel2 = dummyTappingModel(
+        deltaV = 1.2.asPercent,
+        tapMin = -5,
+        tapMax = 3,
+        currentTapPos = 0,
+      )
+      val tappingModel3 = dummyTappingModel(deltaV = 1.49.asPercent)
+
+      val transformer11 = dummyTransformerModel(tappingModel1)
+      val transformer12 = dummyTransformerModel(tappingModel1)
+
+      val transformer21 = dummyTransformerModel(tappingModel2)
+      val transformer22 = dummyTransformer3wModel(tappingModel2)
+
+      val transformer31 = dummyTransformerModel(tappingModel1)
+      val transformer32 = dummyTransformer3wModel(tappingModel2)
+
+      val transformer41 = dummyTransformerModel(tappingModel1)
+      val transformer42 = dummyTransformer3wModel(tappingModel3)
+
+      val modelCase1 = Seq(transformer11, transformer12)
+      val modelCase2 = Seq(transformer21, transformer22)
+      val modelCase3 = Seq(transformer31, transformer32)
+      val modelCase4 = Seq(transformer41, transformer42)
+
+      val cases = Table(
+        ("suggestion", "models", "expectedTaps", "expectedDelta"),
+        (
+          0.02.asPu,
+          modelCase1,
+          Map(transformer11 -> 1, transformer12 -> 1),
+          0.015.asPu,
+        ),
+        (
+          0.038.asPu,
+          modelCase1,
+          Map(transformer11 -> 2, transformer12 -> 2),
+          0.03.asPu,
+        ),
+        (
+          (-0.06).asPu,
+          modelCase1,
+          Map(transformer11 -> -4, transformer12 -> -4),
+          (-0.06).asPu,
+        ),
+        (
+          0.02.asPu,
+          modelCase2,
+          Map(transformer21 -> 1, transformer22 -> 1),
+          0.012.asPu,
+        ),
+        (
+          0.038.asPu,
+          modelCase2,
+          Map(transformer21 -> 3, transformer22 -> 3),
+          0.036.asPu,
+        ),
+        (
+          (-0.06).asPu,
+          modelCase2,
+          Map(transformer21 -> -5, transformer22 -> -5),
+          (-0.06).asPu,
+        ),
+        (
+          0.02.asPu,
+          modelCase3,
+          Map(transformer31 -> 0, transformer32 -> 0),
+          0.asPu,
+        ),
+        (
+          0.038.asPu,
+          modelCase3,
+          Map(transformer31 -> 0, transformer32 -> 0),
+          0.asPu,
+        ),
+        (
+          (-0.06).asPu,
+          modelCase3,
+          Map(transformer31 -> -4, transformer32 -> -5),
+          (-0.06).asPu,
+        ),
+        (
+          0.02.asPu,
+          modelCase4,
+          Map(transformer41 -> 1, transformer42 -> 1),
+          0.0149.asPu,
+        ),
+        (
+          0.038.asPu,
+          modelCase4,
+          Map(transformer41 -> 2, transformer42 -> 2),
+          0.0298.asPu,
+        ),
+        (
+          (-0.06).asPu,
+          modelCase4,
+          Map(transformer41 -> -4, transformer42 -> -4),
+          (-0.0596).asPu,
+        ),
+      )
+
+      forAll(cases) { (suggestion, models, expectedTaps, expectedDelta) =>
+        val (tapChanges, delta) = calculateTapAndVoltage(suggestion, models)
+
+        tapChanges shouldBe expectedTaps
+        delta should equalWithTolerance(expectedDelta)
+      }
+
     }
 
     "calculates the possible voltage delta for lines correctly" in {

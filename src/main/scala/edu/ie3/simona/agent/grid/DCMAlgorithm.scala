@@ -327,21 +327,27 @@ trait DCMAlgorithm extends CongestionManagementSupport {
                 .subtract(delta)
 
             val (tapChange, deltaV) = calculateTapAndVoltage(
-              suggestion,
+              suggestion.multiply(-1),
               tappingModels.toSeq,
             )
 
-            if (tapChange > 0) {
-              tappingModels.foreach(_.decrTapPos(tapChange))
-            } else {
-              tappingModels.foreach(_.incrTapPos(tapChange))
+            tapChange.foreach { case (tapping, tapChange) =>
+              if (tapChange > 0) {
+                tapping.incrTapPos(tapChange)
+              } else if (tapChange < 0) {
+                tapping.decrTapPos(tapChange)
+              } else {
+                // no change, do nothing
+              }
             }
 
+            val actualDelta = deltaV.multiply(-1)
+
             ctx.log.warn(
-              s"For inferior grids $refs, suggestion: $suggestion, delta: $deltaV"
+              s"For inferior grids $refs, suggestion: $suggestion, delta: $actualDelta"
             )
 
-            refs.foreach(_ ! VoltageDeltaResponse(deltaV.add(delta)))
+            refs.foreach(_ ! VoltageDeltaResponse(actualDelta.add(delta)))
           } else {
             // no tapping possible, just send the delta to the inferior grid
             refs.foreach(_ ! VoltageDeltaResponse(delta))
