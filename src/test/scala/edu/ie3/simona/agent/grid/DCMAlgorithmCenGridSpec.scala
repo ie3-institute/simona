@@ -38,11 +38,10 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
+import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
-
-import scala.concurrent.duration.DurationInt
 
 class DCMAlgorithmCenGridSpec
     extends ScalaTestWithActorTestKit
@@ -90,77 +89,97 @@ class DCMAlgorithmCenGridSpec
   val resultListener: TestProbe[ResultEvent] = TestProbe("resultListener")
 
   "A GridAgent actor in center position with async test" should {
+    val noCongestions = Congestions(
+      voltageCongestions = false,
+      lineCongestions = false,
+      transformerCongestions = false,
+    )
 
-    val centerGridAgent =
-      testKit.spawn(
-        GridAgent(
-          environmentRefs,
-          config,
-          listener = Iterable(resultListener.ref),
-        )
+    val voltageCongestions = noCongestions.copy(voltageCongestions = true)
+
+    s"simulate grid and check for congestions correctly if no congestions occurred" in {
+      val centerGridAgent = initAgentAndGotoSimulateGrid()
+      simulateGrid(centerGridAgent)
+
+      centerGridAgent ! CongestionCheckRequest(superiorGridAgent.ref)
+
+      // we expect a request for grid congestion values here
+      val congestionCheckRequestSender11 =
+        inferiorGrid11.expectCongestionCheckRequest()
+      val congestionCheckRequestSender12 =
+        inferiorGrid12.expectCongestionCheckRequest()
+      val congestionCheckRequestSender13 =
+        inferiorGrid13.expectCongestionCheckRequest()
+
+      // send congestions
+      congestionCheckRequestSender11 ! CongestionResponse(
+        inferiorGrid11.ref,
+        noCongestions,
       )
-    s"initialize itself when it receives an init activation" in {
-
-      // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
-      val subGridGateToActorRef = hvSubGridGates.map {
-        case gate if gate.getInferiorSubGrid == hvGridContainer.getSubnet =>
-          gate -> superiorGridAgent.ref
-        case gate =>
-          val actor = gate.getInferiorSubGrid match {
-            case 11 => inferiorGrid11
-            case 12 => inferiorGrid12
-            case 13 => inferiorGrid13
-          }
-          gate -> actor.ref
-      }.toMap
-
-      val gridAgentInitData =
-        GridAgentInitData(
-          hvGridContainer,
-          Seq.empty[ThermalGrid],
-          subGridGateToActorRef,
-          RefSystem("2000 MVA", "110 kV"),
-          VoltageLimits(0.9, 1.1),
-        )
-
-      val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      // lock activation scheduled
-      scheduler.expectMessageType[ScheduleActivation]
-
-      centerGridAgent ! CreateGridAgent(
-        gridAgentInitData,
-        key,
+      congestionCheckRequestSender12 ! CongestionResponse(
+        inferiorGrid12.ref,
+        noCongestions,
+      )
+      congestionCheckRequestSender13 ! CongestionResponse(
+        inferiorGrid13.ref,
+        noCongestions,
       )
 
-      val scheduleActivationMsg =
-        scheduler.expectMessageType[ScheduleActivation]
-      scheduleActivationMsg.tick shouldBe INIT_SIM_TICK
-      scheduleActivationMsg.unlockKey shouldBe Some(key)
-      val gridAgentActivation = scheduleActivationMsg.actor
+      // check the received congestions
+      superiorGridAgent.expectCongestionResponse(noCongestions)
 
-      centerGridAgent ! WrappedActivation(Activation(INIT_SIM_TICK))
-      scheduler.expectMessage(Completion(gridAgentActivation, Some(3600)))
+      // there are no congestions
+      // tell all inferior grids to go back to idle
+      centerGridAgent ! GotoIdle
+
+      // inferior should receive a next state message to go to the idle state
+      inferiorGrid11.gaProbe.expectMessageType[GotoIdle.type]
+      inferiorGrid12.gaProbe.expectMessageType[GotoIdle.type]
+      inferiorGrid13.gaProbe.expectMessageType[GotoIdle.type]
+
+      // expect a completion message from the superior grid
+      scheduler.expectMessageType[Completion] match {
+        case Completion(_, Some(7200)) =>
+        case x =>
+          fail(
+            s"Invalid message received when expecting a completion message for simulate grid! Message was $x"
+          )
+      }
     }
 
-    s"skip simulate grid and check for congestions correctly if no congestions occurred" in {
-      goToSimulateGrid()
-      simulateGrid()
-      cmStart()
-      cmFinish()
-    }
+    s"simulate grid and update transformer tapping correctly" in {
+      val centerGridAgent = initAgentAndGotoSimulateGrid()
+      simulateGrid(centerGridAgent)
 
-    s"update transformer tapping correctly" in {
-      goToSimulateGrid()
-      simulateGrid()
+      // aks for congestion check
+      centerGridAgent ! CongestionCheckRequest(superiorGridAgent.ref)
 
-      val congestions = Congestions(
-        voltageCongestions = true,
-        lineCongestions = false,
-        transformerCongestions = false,
+      // we expect a request for grid congestion values here
+      val congestionCheckRequestSender11 =
+        inferiorGrid11.expectCongestionCheckRequest()
+      val congestionCheckRequestSender12 =
+        inferiorGrid12.expectCongestionCheckRequest()
+      val congestionCheckRequestSender13 =
+        inferiorGrid13.expectCongestionCheckRequest()
+
+      // send congestions
+      congestionCheckRequestSender11 ! CongestionResponse(
+        inferiorGrid11.ref,
+        voltageCongestions,
+      )
+      congestionCheckRequestSender12 ! CongestionResponse(
+        inferiorGrid12.ref,
+        voltageCongestions,
+      )
+      congestionCheckRequestSender13 ! CongestionResponse(
+        inferiorGrid13.ref,
+        voltageCongestions,
       )
 
-      cmStart(congestions)
+      // check the received congestions
+      superiorGridAgent.expectCongestionResponse(voltageCongestions)
 
+      // found voltage congestions in the grid
       // initiate transformer tapping
       centerGridAgent ! NextStepRequest(
         TransformerTapping
@@ -223,19 +242,131 @@ class DCMAlgorithmCenGridSpec
         .expectMessageType[VoltageDeltaResponse]
         .delta should equalWithTolerance(0.04.asPu)
 
-      skipSimulation()
-      cmStart()
-      cmFinish()
+      skipSimulation(centerGridAgent)
+
+      // aks for congestion check
+      centerGridAgent ! CongestionCheckRequest(superiorGridAgent.ref)
+
+      // we expect a request for grid congestion values here
+      val congestionCheckRequestSender21 =
+        inferiorGrid11.expectCongestionCheckRequest()
+      val congestionCheckRequestSender22 =
+        inferiorGrid12.expectCongestionCheckRequest()
+      val congestionCheckRequestSender23 =
+        inferiorGrid13.expectCongestionCheckRequest()
+
+      // send congestions
+      congestionCheckRequestSender21 ! CongestionResponse(
+        inferiorGrid11.ref,
+        noCongestions,
+      )
+      congestionCheckRequestSender22 ! CongestionResponse(
+        inferiorGrid12.ref,
+        noCongestions,
+      )
+      congestionCheckRequestSender23 ! CongestionResponse(
+        inferiorGrid13.ref,
+        noCongestions,
+      )
+
+      // check the received congestions
+      superiorGridAgent.expectCongestionResponse(noCongestions)
+
+      // there are no congestions
+      // tell all inferior grids to go back to idle
+      centerGridAgent ! GotoIdle
+
+      // inferior should receive a next state message to go to the idle state
+      inferiorGrid11.gaProbe.expectMessageType[GotoIdle.type]
+      inferiorGrid12.gaProbe.expectMessageType[GotoIdle.type]
+      inferiorGrid13.gaProbe.expectMessageType[GotoIdle.type]
+
+      // expect a completion message from the superior grid
+      scheduler.expectMessageType[Completion] match {
+        case Completion(_, Some(7200)) =>
+        case x =>
+          fail(
+            s"Invalid message received when expecting a completion message for simulate grid! Message was $x"
+          )
+      }
     }
 
-    def goToSimulateGrid(): Unit = {
+    // helper methods
+
+    /** Method to initialize a superior grid agent with the given config. The
+      * grid agent is already in the simulateGrid state.
+      *
+      * @param simonaConfig
+      *   that enables or disables certain congestion management steps
+      * @return
+      *   the [[ActorRef]] of the created superior grid agent
+      */
+    def initAgentAndGotoSimulateGrid(
+        simonaConfig: SimonaConfig = config
+    ): ActorRef[GridAgent.Request] = {
+      val centerGridAgent =
+        testKit.spawn(
+          GridAgent(
+            environmentRefs,
+            simonaConfig,
+            listener = Iterable(resultListener.ref),
+          )
+        )
+
+      // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
+      val subGridGateToActorRef = hvSubGridGates.map {
+        case gate if gate.getInferiorSubGrid == hvGridContainer.getSubnet =>
+          gate -> superiorGridAgent.ref
+        case gate =>
+          val actor = gate.getInferiorSubGrid match {
+            case 11 => inferiorGrid11
+            case 12 => inferiorGrid12
+            case 13 => inferiorGrid13
+          }
+          gate -> actor.ref
+      }.toMap
+
+      val gridAgentInitData =
+        GridAgentInitData(
+          hvGridContainer,
+          Seq.empty[ThermalGrid],
+          subGridGateToActorRef,
+          RefSystem("2000 MVA", "110 kV"),
+          VoltageLimits(0.9, 1.1),
+        )
+
+      val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
+
+      centerGridAgent ! CreateGridAgent(
+        gridAgentInitData,
+        key,
+      )
+
+      val scheduleActivationMsg =
+        scheduler.expectMessageType[ScheduleActivation]
+      scheduleActivationMsg.tick shouldBe INIT_SIM_TICK
+      scheduleActivationMsg.unlockKey shouldBe Some(key)
+      val gridAgentActivation = scheduleActivationMsg.actor
+
+      centerGridAgent ! WrappedActivation(Activation(INIT_SIM_TICK))
+      scheduler.expectMessage(Completion(gridAgentActivation, Some(3600)))
+
+      // goto simulate grid
       centerGridAgent ! WrappedActivation(Activation(3600))
 
       // we expect a completion message
       scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
+
+      centerGridAgent
     }
 
-    def skipSimulation(): Unit = {
+    /** Method to skip a simulation step.
+      * @param centerGridAgent
+      *   center grid agent
+      */
+    def skipSimulation(centerGridAgent: ActorRef[GridAgent.Request]): Unit = {
       inferiorGrid11.gaProbe.expectMessageType[RequestGridPower]
       inferiorGrid12.gaProbe.expectMessageType[RequestGridPower]
       inferiorGrid13.gaProbe.expectMessageType[RequestGridPower]
@@ -253,7 +384,7 @@ class DCMAlgorithmCenGridSpec
     /** Method to reduce duplicate code. This runs a simple simulation based on
       * the [[DBFSAlgorithmCenGridSpec]].
       */
-    def simulateGrid(): Unit = {
+    def simulateGrid(centerGridAgent: ActorRef[GridAgent.Request]): Unit = {
       // start the simulation
       val firstSweepNo = 0
 
@@ -543,73 +674,5 @@ class DCMAlgorithmCenGridSpec
       inferiorGrid13.gaProbe.expectMessage(FinishGridSimulationTrigger(3600))
     }
 
-    /** Method to reduce duplicate code
-      * @param congestions
-      *   to be send to the [[centerGridAgent]] (default: no congestions)
-      */
-    def cmStart(
-        congestions: Congestions = Congestions(
-          voltageCongestions = false,
-          lineCongestions = false,
-          transformerCongestions = false,
-        )
-    ): Unit = {
-      centerGridAgent ! CongestionCheckRequest(superiorGridAgent.ref)
-
-      // we expect a request for grid congestion values here
-      val congestionCheckRequestSender11 =
-        inferiorGrid11.gaProbe
-          .expectMessageType[CongestionCheckRequest](10.seconds)
-          .sender
-      val congestionCheckRequestSender12 =
-        inferiorGrid12.gaProbe
-          .expectMessageType[CongestionCheckRequest](10.seconds)
-          .sender
-      val congestionCheckRequestSender13 =
-        inferiorGrid13.gaProbe
-          .expectMessageType[CongestionCheckRequest](10.seconds)
-          .sender
-
-      // send congestions
-      congestionCheckRequestSender11 ! CongestionResponse(
-        inferiorGrid11.ref,
-        congestions,
-      )
-      congestionCheckRequestSender12 ! CongestionResponse(
-        inferiorGrid12.ref,
-        congestions,
-      )
-      congestionCheckRequestSender13 ! CongestionResponse(
-        inferiorGrid13.ref,
-        congestions,
-      )
-
-      // we expect transformer congestions in the whole grid
-      val allCongestions = superiorGridAgent.gaProbe
-        .expectMessageType[CongestionResponse](30.seconds)
-        .value
-      allCongestions shouldBe congestions
-    }
-
-    /** Method to reduce duplicate code
-      */
-    def cmFinish(): Unit = {
-      // telling all inferior grids to go back to idle
-      centerGridAgent ! GotoIdle
-
-      // inferior should receive a next state message to go to the idle state
-      inferiorGrid11.gaProbe.expectMessageType[GotoIdle.type]
-      inferiorGrid12.gaProbe.expectMessageType[GotoIdle.type]
-      inferiorGrid13.gaProbe.expectMessageType[GotoIdle.type]
-
-      // expect a completion message from the superior grid
-      scheduler.expectMessageType[Completion] match {
-        case Completion(_, Some(7200)) =>
-        case x =>
-          fail(
-            s"Invalid message received when expecting a completion message for simulate grid! Message was $x"
-          )
-      }
-    }
   }
 }

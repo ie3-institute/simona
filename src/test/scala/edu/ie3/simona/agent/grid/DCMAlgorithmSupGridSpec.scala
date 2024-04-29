@@ -78,15 +78,191 @@ class DCMAlgorithmSupGridSpec
   val resultListener: TestProbe[ResultEvent] = TestProbe("resultListener")
 
   "A GridAgent actor in superior position with async test" should {
-    val superiorGridAgent: ActorRef[GridAgent.Request] = testKit.spawn(
-      GridAgent(
-        environmentRefs,
-        config,
-        listener = Iterable(resultListener.ref),
-      )
+    val refSystem = RefSystem(Kilowatts(600), Kilovolts(110))
+
+    val tappingModel = TransformerModel(
+      transformer1,
+      refSystem,
+      start,
+      end,
     )
 
-    s"initialize itself when it receives an init activation" in {
+    val tappingModel2 = TransformerModel(
+      transformer2,
+      refSystem,
+      start,
+      end,
+    )
+
+    s"skip simulate grid and check for congestions correctly if no congestions occurred" in {
+      val superiorGridAgent = initAgentAndGotoSimulateGrid()
+
+      val lastSender = skipSimulationAndGetNextStep(superiorGridAgent)
+
+      lastSender ! CongestionResponse(
+        hvGrid.ref,
+        Congestions(
+          voltageCongestions = false,
+          lineCongestions = false,
+          transformerCongestions = false,
+        ),
+      )
+
+      // inferior should receive a next state message to go to the idle state
+      hvGrid.expectMessageType[GotoIdle.type]
+
+      // expect a completion message from the superior grid
+      scheduler.expectMessageType[Completion] match {
+        case Completion(_, Some(7200)) =>
+        case x =>
+          fail(
+            s"Invalid message received when expecting a completion message for simulate grid! Message was $x"
+          )
+      }
+    }
+
+    s"skip simulate grid and handle unresolvable congestions correctly" in {
+      val superiorGridAgent = initAgentAndGotoSimulateGrid()
+
+      // transformer congestion cannot be resolved, because using flex options is not
+      // enable by the provided config
+      val lastSender = skipSimulationAndGetNextStep(superiorGridAgent)
+
+      lastSender ! CongestionResponse(
+        hvGrid.ref,
+        Congestions(
+          voltageCongestions = false,
+          lineCongestions = false,
+          transformerCongestions = true,
+        ),
+      )
+
+      // inferior should receive a next state message to go to the idle state
+      hvGrid.expectMessageType[GotoIdle.type]
+
+      // expect a completion message from the superior grid
+      scheduler.expectMessageType[Completion] match {
+        case Completion(_, Some(7200)) =>
+        case x =>
+          fail(
+            s"Invalid message received when expecting a completion message for simulate grid! Message was $x"
+          )
+      }
+    }
+
+    s"skip simulate grid and update transformer tapping correctly" in {
+      val superiorGridAgent = initAgentAndGotoSimulateGrid()
+
+      val lastSender1 = skipSimulationAndGetNextStep(superiorGridAgent)
+
+      // send congestions
+      lastSender1 ! CongestionResponse(
+        hvGrid.ref,
+        Congestions(
+          voltageCongestions = true,
+          lineCongestions = false,
+          transformerCongestions = false,
+        ),
+      )
+
+      // inferior should receive a next state message to go to a congestion management step
+      hvGrid.expectMessageType[NextStepRequest]
+
+      hvGrid.expectMessageType[RequestVoltageOptions] match {
+        case RequestVoltageOptions(sender) =>
+          sender ! VoltageRangeResponse(
+            hvGrid.ref,
+            (
+              VoltageRange(0.04.asPu, (-0.01).asPu),
+              Seq(tappingModel, tappingModel2),
+            ),
+          )
+      }
+
+      hvGrid.expectMessageType[VoltageDeltaResponse](120.seconds) match {
+        case VoltageDeltaResponse(delta) =>
+          delta should equalWithTolerance(0.015.asPu)
+      }
+
+      // skipping the simulation
+      hvGrid.expectMessageType[RequestGridPower]
+
+      val lastSender2 = skipSimulationAndGetNextStep(superiorGridAgent)
+
+      // send congestions
+      lastSender2 ! CongestionResponse(
+        hvGrid.ref,
+        Congestions(
+          voltageCongestions = false,
+          lineCongestions = false,
+          transformerCongestions = false,
+        ),
+      )
+
+      // inferior should receive a next state message to go to the idle state
+      hvGrid.expectMessageType[GotoIdle.type]
+
+      // expect a completion message from the superior grid
+      // after all steps are finished
+      scheduler.expectMessageType[Completion](10.seconds) match {
+        case Completion(_, Some(7200)) =>
+        case x =>
+          fail(
+            s"Invalid message received when expecting a completion message for simulate grid! Message was $x"
+          )
+      }
+    }
+
+    // helper methods
+
+    /** There is no need to perform an actual simulation of the grid, therefor
+      * we can use this method to skip the
+      * @param superiorGridAgent
+      *   the superior grid agent
+      * @return
+      *   the [[ActorRef]] of the last sender
+      */
+    def skipSimulationAndGetNextStep(
+        superiorGridAgent: ActorRef[GridAgent.Request]
+    ): ActorRef[GridAgent.Request] = {
+      // skip simulation and go to congestion check
+      superiorGridAgent ! FinishGridSimulationTrigger(3600)
+
+      // inferior grid receives a FinishGridSimulationTrigger and goes into the congestion check state
+      hvGrid.expectMessage(FinishGridSimulationTrigger(3600))
+
+      // we expect a request for grid congestion values here
+      val lastSender =
+        hvGrid.expectMessageType[CongestionCheckRequest](10.seconds) match {
+          case CongestionCheckRequest(sender) => sender
+          case x =>
+            fail(
+              s"Invalid message received when expecting a request for grid congestion values! Message was $x"
+            )
+        }
+
+      // return the last sender
+      lastSender
+    }
+
+    /** Method to initialize a superior grid agent with the given config. The
+      * grid agent is already in the simulateGrid state.
+      * @param simonaConfig
+      *   that enables or disables certain congestion management steps
+      * @return
+      *   the [[ActorRef]] of the created superior grid agent
+      */
+    def initAgentAndGotoSimulateGrid(
+        simonaConfig: SimonaConfig = config
+    ): ActorRef[GridAgent.Request] = {
+      val superiorGridAgent: ActorRef[GridAgent.Request] = testKit.spawn(
+        GridAgent(
+          environmentRefs,
+          simonaConfig,
+          listener = Iterable(resultListener.ref),
+        )
+      )
+
       val subnetGatesToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]] =
         ehvSubGridGates.map(gate => gate -> hvGrid.ref).toMap
 
@@ -113,153 +289,14 @@ class DCMAlgorithmSupGridSpec
 
       superiorGridAgent ! WrappedActivation(Activation(INIT_SIM_TICK))
       scheduler.expectMessage(Completion(gridAgentActivation, Some(3600)))
-    }
 
-    s"skip simulate grid and check for congestions correctly if no congestions occurred" in {
-      gotoSimulateGrid()
-
-      skipSimulationAndGetNextStep(
-        Congestions(
-          voltageCongestions = false,
-          lineCongestions = false,
-          transformerCongestions = false,
-        )
-      )
-
-      // inferior should receive a next state message to go to the idle state
-      hvGrid.expectMessageType[GotoIdle.type]
-
-      // expect a completion message from the superior grid
-      scheduler.expectMessageType[Completion] match {
-        case Completion(_, Some(7200)) =>
-        case x =>
-          fail(
-            s"Invalid message received when expecting a completion message for simulate grid! Message was $x"
-          )
-      }
-    }
-
-    s"handle unresolvable congestions correctly" in {
-      gotoSimulateGrid()
-
-      // transformer congestion cannot be resolved, because using flex options is not
-      // enable by the provided config
-      skipSimulationAndGetNextStep(
-        Congestions(
-          voltageCongestions = false,
-          lineCongestions = false,
-          transformerCongestions = true,
-        )
-      )
-
-      // inferior should receive a next state message to go to the idle state
-      hvGrid.expectMessageType[GotoIdle.type]
-
-      // expect a completion message from the superior grid
-      scheduler.expectMessageType[Completion] match {
-        case Completion(_, Some(7200)) =>
-        case x =>
-          fail(
-            s"Invalid message received when expecting a completion message for simulate grid! Message was $x"
-          )
-      }
-    }
-
-    s"update transformer tapping correctly" in {
-      gotoSimulateGrid()
-
-      skipSimulationAndGetNextStep(
-        Congestions(
-          voltageCongestions = true,
-          lineCongestions = false,
-          transformerCongestions = false,
-        )
-      )
-
-      // inferior should receive a next state message to go to a congestion management step
-      hvGrid.expectMessageType[NextStepRequest]
-
-      val tappingModel = TransformerModel(
-        transformer1,
-        RefSystem(Kilowatts(600), Kilovolts(110)),
-        start,
-        end,
-      )
-
-      val tappingModel2 = TransformerModel(
-        transformer2,
-        RefSystem(Kilowatts(600), Kilovolts(110)),
-        start,
-        end,
-      )
-
-      hvGrid.expectMessageType[RequestVoltageOptions] match {
-        case RequestVoltageOptions(sender) =>
-          sender ! VoltageRangeResponse(
-            hvGrid.ref,
-            (
-              VoltageRange(0.04.asPu, (-0.01).asPu),
-              Seq(tappingModel, tappingModel2),
-            ),
-          )
-      }
-
-      hvGrid.expectMessageType[VoltageDeltaResponse](120.seconds) match {
-        case VoltageDeltaResponse(delta) =>
-          delta should equalWithTolerance(0.015.asPu)
-      }
-
-      // skipping the simulation
-      hvGrid.expectMessageType[RequestGridPower]
-
-      skipSimulationAndGetNextStep(
-        Congestions(
-          voltageCongestions = false,
-          lineCongestions = false,
-          transformerCongestions = false,
-        )
-      )
-
-      // inferior should receive a next state message to go to the idle state
-      hvGrid.expectMessageType[GotoIdle.type]
-
-      // expect a completion message from the superior grid
-      // after all steps are finished
-      scheduler.expectMessageType[Completion](10.seconds) match {
-        case Completion(_, Some(7200)) =>
-        case x =>
-          fail(
-            s"Invalid message received when expecting a completion message for simulate grid! Message was $x"
-          )
-      }
-    }
-
-    def skipSimulationAndGetNextStep(congestions: Congestions): Unit = {
-      // skip simulation and go to congestion check
-      superiorGridAgent ! FinishGridSimulationTrigger(3600)
-
-      // inferior grid receives a FinishGridSimulationTrigger and goes into the congestion check state
-      hvGrid.expectMessage(FinishGridSimulationTrigger(3600))
-
-      // we expect a request for grid congestion values here
-      val lastSender =
-        hvGrid.expectMessageType[CongestionCheckRequest](10.seconds) match {
-          case CongestionCheckRequest(sender) => sender
-          case x =>
-            fail(
-              s"Invalid message received when expecting a request for grid congestion values! Message was $x"
-            )
-        }
-
-      // send congestions
-      lastSender ! CongestionResponse(hvGrid.ref, congestions)
-    }
-
-    def gotoSimulateGrid(): Unit = {
+      // goto simulate grid
       superiorGridAgent ! WrappedActivation(Activation(3600))
 
       // we expect a completion message
       scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
+
+      superiorGridAgent
     }
   }
 }

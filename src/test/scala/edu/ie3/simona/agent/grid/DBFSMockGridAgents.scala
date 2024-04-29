@@ -6,7 +6,10 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.simona.agent.grid.CongestionManagementSupport.VoltageRange
+import edu.ie3.simona.agent.grid.CongestionManagementSupport.{
+  Congestions,
+  VoltageRange,
+}
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
@@ -90,6 +93,12 @@ trait DBFSMockGridAgents extends UnitSpec {
     ): Unit =
       receiver ! SlackVoltageRequest(sweepNo, nodeUuids, gaProbe.ref)
 
+    def expectCongestionCheckRequest(
+        maxDuration: FiniteDuration = 30 seconds
+    ): ActorRef[GridAgent.Request] = {
+      gaProbe.expectMessageType[CongestionCheckRequest](maxDuration).sender
+    }
+
     def expectVoltageRangeRequest(): ActorRef[GridAgent.Request] = {
       gaProbe.expectMessageType[RequestVoltageOptions].sender
     }
@@ -143,6 +152,20 @@ trait DBFSMockGridAgents extends UnitSpec {
         sweepNo: Int,
     ): Unit = {
       receiver ! RequestGridPower(sweepNo, nodeUuids, gaProbe.ref)
+    }
+
+    def expectCongestionResponse(
+        congestions: Congestions,
+        maxDuration: FiniteDuration = 30 seconds,
+    ): ActorRef[GridAgent.Request] = {
+      gaProbe.expectMessageType[CongestionResponse](maxDuration) match {
+        case CongestionResponse(sender, value) =>
+          value.voltageCongestions shouldBe congestions.voltageCongestions
+          value.lineCongestions shouldBe congestions.lineCongestions
+          value.transformerCongestions shouldBe congestions.transformerCongestions
+
+          sender
+      }
     }
 
     def expectVoltageRangeResponse(

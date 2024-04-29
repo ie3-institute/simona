@@ -189,7 +189,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
         ctx,
       )
 
-    case (ctx, msg: GridAgent.Request) =>
+    case (ctx, msg) =>
       ctx.log.error(s"Received unsupported msg: $msg. Stash away!")
       buffer.stash(msg)
       Behaviors.same
@@ -363,7 +363,8 @@ trait DCMAlgorithm extends CongestionManagementSupport {
         )
       )
 
-    case (_, msg) =>
+    case (ctx, msg) =>
+      ctx.log.error(s"Received unsupported msg: $msg. Stash away!")
       buffer.stash(msg)
       Behaviors.same
   }
@@ -398,6 +399,11 @@ trait DCMAlgorithm extends CongestionManagementSupport {
         stateData.currentTick,
         ctx,
       )
+
+    case (ctx, msg) =>
+      ctx.log.error(s"Received unsupported msg: $msg. Stash away!")
+      buffer.stash(msg)
+      Behaviors.same
   }
 
   // TODO: Implement a proper behavior
@@ -430,6 +436,11 @@ trait DCMAlgorithm extends CongestionManagementSupport {
         stateData.currentTick,
         ctx,
       )
+
+    case (ctx, msg) =>
+      ctx.log.error(s"Received unsupported msg: $msg. Stash away!")
+      buffer.stash(msg)
+      Behaviors.same
   }
 
   /** Method to ask all inferior grids a [[CMRequest]].

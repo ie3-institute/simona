@@ -206,6 +206,8 @@ class GridAgentDataSpec extends UnitSpec with DbfsTestGrid with ConfigTestData {
       )
     }
 
+    // TODO: Add cleaning method tests
+
   }
 
 }
