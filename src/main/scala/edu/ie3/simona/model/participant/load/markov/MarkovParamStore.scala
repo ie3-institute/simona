@@ -1,10 +1,11 @@
 package edu.ie3.simona.model.participant.load.markov
 
 
-import java.io.{InputStreamReader, Reader}
+import java.io.{File, InputStreamReader, Reader}
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.csv.CSVFormat
 
+import scala.collection.mutable
 import scala.collection.mutable.{Map => MutableMap}
 import scala.jdk.CollectionConverters._
 
@@ -57,6 +58,16 @@ object MarkovParamStore extends LazyLogging {
         println(s"  $appliance -> $probability")
       }
      }
+
+    def printLoadTSData(loadTSData: mutable.Map[String, Seq[Int]]): Unit = {
+      println("Gerätedaten:")
+      loadTSData.foreach { case (appliance, values) =>
+        println(s"$appliance: ${values.mkString(", ")}")
+      }
+    }
+
+    val loadTSData = Load_TS()
+    printLoadTSData(loadTSData)
 
   }
   // Usage Probabilities
@@ -241,31 +252,32 @@ object MarkovParamStore extends LazyLogging {
     )
   }
 
-  // Load TS
-
-  def LoadTS(): List[Map[String, Map[Int, Double]]] = {
-    val reader = getDefaultReaderLoad_TS
+  //Load_TS
+  def Load_TS(): mutable.Map[String, Seq[Int]] = {
+    val reader = getDefaultReaderLoadTS
     val csvParser = CSVFormat.DEFAULT.withDelimiter(';').withFirstRecordAsHeader().parse(reader)
-    val records = csvParser.getRecords.asScala.toList
+    val records = csvParser.getRecords.asScala.toSeq
+    val header = csvParser.getHeaderNames.asScala.toSeq
+    val load_TS = mutable.Map[String, Seq[Int]]()
 
-    val loadTSList = records.map { record =>
-      val loadTSMap = MutableMap[String, Map[Int, Double]]()
-
-
-
-      loadTSMap.toMap
+    for (record <- records) {
+      for (i <- header.indices) {
+        val applianceCategory = header(i)
+        val value = record.get(i).toInt
+        val existingValues = load_TS.getOrElse(applianceCategory, Seq())
+        load_TS.put(applianceCategory, existingValues :+ value)
+      }
     }
-
     reader.close()
-    loadTSList
+    load_TS
   }
-
-  private def getDefaultReaderLoad_TS: Reader = {
-    logger.info("Markov Load_TS parameters file 'by_inhabitants.csv' from jar.")
+    def getDefaultReaderLoadTS: Reader = {
+    logger.info("Markov Income parameters file 'load_ts.csv' from jar.")
     new InputStreamReader(
       getClass.getResourceAsStream("/load/markov/appliances/load_ts.csv")
     )
   }
+
 
 
 }
