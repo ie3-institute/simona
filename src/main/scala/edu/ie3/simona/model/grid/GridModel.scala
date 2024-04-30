@@ -29,7 +29,6 @@ import org.jgrapht.graph.{DefaultEdge, SimpleGraph}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 import scala.collection.immutable.ListSet
 import scala.jdk.CollectionConverters._
 
@@ -386,7 +385,7 @@ object GridModel {
     if (!inspector.isConnected) {
       val lastEntryConnectedSet =
         inspector.connectedSets().asScala.lastOption match {
-          case Some(entry) => entry.mkString("{", ", ", "}")
+          case Some(entry) => entry.toString
           case None        => ""
         }
       throw new GridInconsistencyException(

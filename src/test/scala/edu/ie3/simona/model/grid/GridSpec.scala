@@ -254,7 +254,7 @@ class GridSpec
           GridModel invokePrivate validateConnectivity(gridModel)
         }
 
-      exception.getMessage shouldBe "The grid with subnetNo 1 is not connected! Please ensure that all elements are connected correctly and inOperation is set to true! Elements which are unconnected: {4ab4904e-dde3-4591-8eb5-3e0ca4fd8e3d}"
+      exception.getMessage shouldBe "The grid with subnetNo 1 is not connected! Please ensure that all elements are connected correctly and inOperation is set to true! Elements which are unconnected: [4ab4904e-dde3-4591-8eb5-3e0ca4fd8e3d]"
 
     }
 
