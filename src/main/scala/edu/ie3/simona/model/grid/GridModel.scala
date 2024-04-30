@@ -29,6 +29,7 @@ import org.jgrapht.graph.{DefaultEdge, SimpleGraph}
 
 import java.time.ZonedDateTime
 import java.util.UUID
+import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 import scala.collection.immutable.ListSet
 import scala.jdk.CollectionConverters._
 
@@ -383,8 +384,14 @@ object GridModel {
       new ConnectivityInspector(graph)
 
     if (!inspector.isConnected) {
+      val lastEntryConnectedSet =
+        inspector.connectedSets().asScala.lastOption match {
+          case Some(entry) => entry.mkString("{", ", ", "}")
+          case None        => ""
+        }
       throw new GridInconsistencyException(
-        s"The grid with subnetNo ${gridModel.subnetNo} is not connected! Please ensure that all elements are connected correctly and inOperation is set to true!"
+        s"The grid with subnetNo ${gridModel.subnetNo} is not connected! Please ensure that all elements are connected correctly and inOperation is set to true!" +
+          s" Elements which are unconnected: $lastEntryConnectedSet"
       )
     }
 
