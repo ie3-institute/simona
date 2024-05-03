@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
+import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.datamodel.models.result.connector.LineResult
 import edu.ie3.simona.agent.grid.CongestionManagementSupport.VoltageRange
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
@@ -80,17 +81,20 @@ trait CongestionManagementSupport {
       suggestion: ComparableQuantity[Dimensionless],
       tappings: Seq[TransformerTapping],
   ): (Map[TransformerTapping, Int], ComparableQuantity[Dimensionless]) = {
-
     val inverted = suggestion.multiply(-1)
 
-    if (tappings.size == 1) {
+    if (tappings.exists(_.tapSide != ConnectorPort.A)) {
+      // for now only work if all transformers have the tapping at the hv side
+      return (tappings.map(t => t -> 0).toMap, 0.asPu)
+    }
+
+    val option = if (tappings.size == 1) {
       val tapping = tappings(0)
 
       val taps = tapping.computeDeltaTap(inverted)
       val delta = tapping.deltaV.getValue.doubleValue() * taps / -100
-      (Map(tapping -> taps), delta.asPu)
+      Some(Map(tapping -> taps), delta.asPu)
     } else {
-
       val possibleChange = tappings.map { tapping =>
         val taps = tapping.computeDeltaTap(inverted)
         val delta = tapping.deltaV.getValue.doubleValue() * taps / 100
@@ -121,15 +125,17 @@ trait CongestionManagementSupport {
           }
 
           if (check) {
-            (changes.map(t => t._1 -> t._2._1), max.multiply(-1))
+            Some(changes.map(t => t._1 -> t._2._1), max.multiply(-1))
           } else {
-            (tappings.map(t => t -> 0).toMap, 0.asPu)
+            None
           }
 
         case None =>
-          (tappings.map(t => t -> 0).toMap, 0.asPu)
+          None
       }
     }
+
+    option.getOrElse((tappings.map(t => t -> 0).toMap, 0.asPu))
   }
 
   /** Method to calculate the range of possible voltage changes.

@@ -50,12 +50,6 @@ final case class TransformerTappingModel(
 
   def currentTapPos: Int = _currentTapPos
 
-  def maxIncrease: Quantity[Dimensionless] =
-    deltaV.multiply(tapMax - currentTapPos)
-
-  def maxDecrease: Quantity[Dimensionless] =
-    deltaV.multiply(tapMin - currentTapPos)
-
   /** Increase tap position by the provided number of delta taps
     *
     * @param deltaTap

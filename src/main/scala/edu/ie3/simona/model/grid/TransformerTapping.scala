@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.grid
 
+import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import tech.units.indriya.ComparableQuantity
@@ -40,11 +41,9 @@ trait TransformerTapping {
   def deltaV: ComparableQuantity[Dimensionless] =
     transformerTappingModel.deltaV.getValue.doubleValue().asPu
 
-  def maxTapIncrease: Int = tapMax - currentTapPos
-
-  def maxTapDecrease: Int = tapMin - currentTapPos
-
   def currentTapPos: Int = transformerTappingModel.currentTapPos
+
+  def tapSide: ConnectorPort = transformerTappingModel.tapSide
 
   /** Initialize the tapping model. Should be called after creating the
     * implementing model
