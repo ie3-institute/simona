@@ -223,13 +223,13 @@ class GridSpec
 
     }
 
-    "throw an InvalidGridException if a grid is not connected" in new FiveLinesWithNodes {
+    "throw an InvalidGridException if a grid is not connected" in new BasicGridWithSwitches {
       // enable nodes
       override val nodes: Seq[NodeModel] = super.nodes
       nodes.foreach(_.enable())
 
       // remove a line from the grid
-      val adaptedLines: Set[LineModel] = lines - line0To1
+      val adaptedLines: Set[LineModel] = lines - line3To4
 
       // get the grid from the raw data
       val gridModel = new GridModel(
@@ -238,7 +238,7 @@ class GridSpec
         GridComponents(
           nodes,
           adaptedLines,
-          Set.empty[TransformerModel],
+          Set(transformer2wModel),
           Set.empty[Transformer3wModel],
           Set.empty[SwitchModel],
         ),
