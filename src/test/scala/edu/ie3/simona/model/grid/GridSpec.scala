@@ -261,8 +261,8 @@ class GridSpec
           GridModel invokePrivate validateConnectivity(gridModel)
         }
 
-      exception.getMessage shouldBe "The grid with subnetNo 1 is not connected! Please ensure that all elements are connected correctly and inOperation is set to true!"
-
+      exception.getMessage shouldBe "The grid with subnetNo 1 is not connected! Please ensure that all elements are" +
+        s" connected correctly and inOperation is set to true! Unconnected Nodes: [${node4.uuid}]"
     }
 
     "throw an InvalidGridException if two switches are connected @ the same node" in new BasicGridWithSwitches {

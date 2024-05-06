@@ -382,9 +382,16 @@ object GridModel {
     val inspector: ConnectivityInspector[UUID, DefaultEdge] =
       new ConnectivityInspector(graph)
 
+
     if (!inspector.isConnected) {
+      val lastEntryConnectedSet =
+        inspector.connectedSets().asScala.lastOption match {
+          case Some(entry) => entry.toString
+          case None        => ""
+        }
       throw new GridInconsistencyException(
-        s"The grid with subnetNo ${gridModel.subnetNo} is not connected! Please ensure that all elements are connected correctly and inOperation is set to true!"
+        s"The grid with subnetNo ${gridModel.subnetNo} is not connected! Please ensure that all elements are connected correctly and inOperation is set to true!" +
+          s" Unconnected Nodes: $lastEntryConnectedSet"
       )
     }
 
