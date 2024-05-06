@@ -50,9 +50,8 @@ final case class StorageModel(
 
   private val minEnergy = eStorage * dod.toEach
 
-  // Tolerance fitting for capacities up to GWh
-  // FIXME make dependent on capacity
-  private implicit val doubleTolerance: Power = Watts(1e-3)
+  // max Tolerance 1W till GWh storage
+  private implicit val doubleTolerance: Power = eStorage/Seconds(1) * 3.6e-12
 
   /** In order to avoid faulty flexibility options, we want to avoid offering
     * charging/discharging that could last less than one second.
