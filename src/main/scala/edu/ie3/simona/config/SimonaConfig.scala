@@ -1136,7 +1136,7 @@ object SimonaConfig {
     }
 
     final case class GridConfig(
-        refSystems: scala.List[SimonaConfig.RefSystemConfig]
+        refSystems: scala.Option[scala.List[SimonaConfig.RefSystemConfig]]
     )
     object GridConfig {
       def apply(
@@ -1145,11 +1145,16 @@ object SimonaConfig {
           $tsCfgValidator: $TsCfgValidator,
       ): SimonaConfig.Simona.GridConfig = {
         SimonaConfig.Simona.GridConfig(
-          refSystems = $_LSimonaConfig_RefSystemConfig(
-            c.getList("refSystems"),
-            parentPath,
-            $tsCfgValidator,
-          )
+          refSystems =
+            if (c.hasPathOrNull("refSystems"))
+              scala.Some(
+                $_LSimonaConfig_RefSystemConfig(
+                  c.getList("refSystems"),
+                  parentPath,
+                  $tsCfgValidator,
+                )
+              )
+            else None
         )
       }
       private def $_LSimonaConfig_RefSystemConfig(
