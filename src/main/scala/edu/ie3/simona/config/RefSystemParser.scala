@@ -93,29 +93,23 @@ object RefSystemParser {
 
         val parsedRefSystems = refSystems.flatMap { configRefSystem =>
           val refSystem = RefSystem(configRefSystem.sNom, configRefSystem.vNom)
-          val parsedGridIds =
-            configRefSystem.gridIds.getOrElse(Seq.empty).flatMap { gridId =>
-              gridId match {
-                case ConfigConventions.gridIdDotRange(from, to) =>
-                  (from.toInt to to.toInt)
-                    .map(gridId => (gridId, refSystem))
-                case ConfigConventions.gridIdMinusRange(from, to) =>
-                  (from.toInt to to.toInt)
-                    .map(gridId => (gridId, refSystem))
-                case ConfigConventions.singleGridId(singleGridId) =>
-                  Seq((singleGridId.toInt, refSystem))
-                case unknownGridIdFormat =>
-                  throw new InvalidConfigParameterException(
-                    s"Unknown gridId format $unknownGridIdFormat provided for refSystem $configRefSystem"
-                  )
-              }
-            }
 
-          val parsedVoltLvls =
-            configRefSystem.voltLvls.getOrElse(Seq.empty).map { voltLvlDef =>
-              (VoltLvlParser.from(voltLvlDef), refSystem)
-            }
-          parsedGridIds ++ parsedVoltLvls
+          configRefSystem.gridIds.getOrElse(Seq.empty).flatMap {
+            case ConfigConventions.gridIdDotRange(from, to) =>
+              (from.toInt to to.toInt)
+                .map(gridId => (gridId, refSystem))
+            case ConfigConventions.gridIdMinusRange(from, to) =>
+              (from.toInt to to.toInt)
+                .map(gridId => (gridId, refSystem))
+            case ConfigConventions.singleGridId(singleGridId) =>
+              Seq((singleGridId.toInt, refSystem))
+            case unknownGridIdFormat =>
+              throw new InvalidConfigParameterException(
+                s"Unknown gridId format $unknownGridIdFormat provided for refSystem $configRefSystem"
+              )
+          } ++ configRefSystem.voltLvls.getOrElse(Seq.empty).map { voltLvlDef =>
+            (VoltLvlParser.from(voltLvlDef), refSystem)
+          }
         }
 
         val gridIdRefSystemsList: List[(Int, RefSystem)] =
