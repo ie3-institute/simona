@@ -26,7 +26,7 @@ class RefSystemParserSpec extends UnitSpec {
       PrivateMethod[Map[String, RefSystem]](Symbol("voltLvLRefSystems"))
 
     "return the default ref systems if no config was provided" in {
-      val defaults = RefSystemParser.parse(List.empty)
+      val defaults = RefSystemParser.parse(Some(List.empty))
 
       defaults invokePrivate gridIdRefSystems() shouldBe Map.empty
 
@@ -57,33 +57,35 @@ class RefSystemParserSpec extends UnitSpec {
     }
 
     "parse provided valid simona config refSystems correctly" in {
-      val validRefSystems: List[SimonaConfig.RefSystemConfig] =
-        List(
-          new RefSystemConfig(
-            gridIds = Some(List("1", "2-10", "15...20")),
-            sNom = "100 MVA",
-            vNom = "10 kV",
-            voltLvls = Some(
-              List(VoltLvlConfig("MV", "10 kV"), VoltLvlConfig("MV", "20 kV"))
+      val validRefSystems: Option[List[SimonaConfig.RefSystemConfig]] =
+        Some(
+          List(
+            new RefSystemConfig(
+              gridIds = Some(List("1", "2-10", "15...20")),
+              sNom = "100 MVA",
+              vNom = "10 kV",
+              voltLvls = Some(
+                List(VoltLvlConfig("MV", "10 kV"), VoltLvlConfig("MV", "20 kV"))
+              ),
             ),
-          ),
-          new RefSystemConfig(
-            gridIds = Some(List("100")),
-            sNom = "5000 MVA",
-            vNom = "110 kV",
-            voltLvls = Some(
-              List(
-                VoltLvlConfig("HV", "110 kV"),
-                VoltLvlConfig("EHV", "380 kV"),
-              )
+            new RefSystemConfig(
+              gridIds = Some(List("100")),
+              sNom = "5000 MVA",
+              vNom = "110 kV",
+              voltLvls = Some(
+                List(
+                  VoltLvlConfig("HV", "110 kV"),
+                  VoltLvlConfig("EHV", "380 kV"),
+                )
+              ),
             ),
-          ),
-          new RefSystemConfig(
-            gridIds = None,
-            sNom = "5000 MVA",
-            vNom = "110 kV",
-            voltLvls = None,
-          ),
+            new RefSystemConfig(
+              gridIds = None,
+              sNom = "5000 MVA",
+              vNom = "110 kV",
+              voltLvls = None,
+            ),
+          )
         )
 
       val configRefSystems = RefSystemParser.parse(validRefSystems)
@@ -121,72 +123,78 @@ class RefSystemParserSpec extends UnitSpec {
 
     }
 
-    "throw an InvalidConfigParameterException when provided gridIds contains duplicate entries" in {
+    "throw an InvalidConfigParameterException when provided gridIds contain duplicate entries" in {
 
-      val validRefSystems: List[SimonaConfig.RefSystemConfig] =
-        List(
-          new RefSystemConfig(
-            gridIds = Some(List("1", "2", "2-10", "15...20")),
-            sNom = "100 MVA",
-            vNom = "10 kV",
-            voltLvls = Some(
-              List(VoltLvlConfig("MV", "10 kV"), VoltLvlConfig("MV", "20 kV"))
+      val validRefSystems: Option[List[SimonaConfig.RefSystemConfig]] =
+        Some(
+          List(
+            new RefSystemConfig(
+              gridIds = Some(List("1", "2", "2", "2-10", "15...20")),
+              sNom = "100 MVA",
+              vNom = "10 kV",
+              voltLvls = Some(
+                List(VoltLvlConfig("MV", "10 kV"), VoltLvlConfig("MV", "20 kV"))
+              ),
+            )
+          )
+        )
+      intercept[InvalidConfigParameterException] {
+        RefSystemParser.parse(validRefSystems)
+      }.getMessage shouldBe s"The provided gridIds in simona.gridConfig.refSystems contain duplicates. Please check if there are either duplicate entries or overlapping ranges!"
+
+    }
+
+    "throw an InvalidConfigParameterException when provided voltLvls contain duplicate entries" in {
+
+      val validRefSystems: Option[List[SimonaConfig.RefSystemConfig]] =
+        Some(
+          List(
+            new RefSystemConfig(
+              gridIds = None,
+              sNom = "100 MVA",
+              vNom = "10 kV",
+              voltLvls = Some(
+                List(VoltLvlConfig("MV", "10 kV"), VoltLvlConfig("MV", "20 kV"))
+              ),
+            ),
+            new RefSystemConfig(
+              gridIds = None,
+              sNom = "100 MVA",
+              vNom = "10 kV",
+              voltLvls = Some(
+                List(VoltLvlConfig("MV", "10 kV"), VoltLvlConfig("MV", "20 kV"))
+              ),
             ),
           )
         )
       intercept[InvalidConfigParameterException] {
         RefSystemParser.parse(validRefSystems)
-      }.getMessage shouldBe s"The provided gridIds in simona.gridConfig.refSystems contains duplicates. Please check if there are either duplicate entries or overlapping ranges!"
-
-    }
-
-    "throw an InvalidConfigParameterException when provided voltLvls contains duplicate entries" in {
-
-      val validRefSystems: List[SimonaConfig.RefSystemConfig] =
-        List(
-          new RefSystemConfig(
-            gridIds = None,
-            sNom = "100 MVA",
-            vNom = "10 kV",
-            voltLvls = Some(
-              List(VoltLvlConfig("MV", "10 kV"), VoltLvlConfig("MV", "20 kV"))
-            ),
-          ),
-          new RefSystemConfig(
-            gridIds = None,
-            sNom = "100 MVA",
-            vNom = "10 kV",
-            voltLvls = Some(
-              List(VoltLvlConfig("MV", "10 kV"), VoltLvlConfig("MV", "20 kV"))
-            ),
-          ),
-        )
-      intercept[InvalidConfigParameterException] {
-        RefSystemParser.parse(validRefSystems)
-      }.getMessage shouldBe s"The provided voltLvls in simona.gridConfig.refSystems contains duplicates. Please check your configuration for duplicates in voltLvl entries!"
+      }.getMessage shouldBe s"The provided voltLvls in simona.gridConfig.refSystems contain duplicates. Please check your configuration for duplicates in voltLvl entries!"
 
     }
 
     "throw an InvalidConfigParameterException when the provided gridId format is unknown" in {
 
-      val validRefSystems: List[SimonaConfig.RefSystemConfig] =
-        List(
-          new RefSystemConfig(
-            gridIds = Some(List("asd")),
-            sNom = "100 MVA",
-            vNom = "10 kV",
-            voltLvls = Some(
-              List(VoltLvlConfig("MV", "10 kV"), VoltLvlConfig("MV", "20 kV"))
+      val validRefSystems: Option[List[SimonaConfig.RefSystemConfig]] =
+        Some(
+          List(
+            new RefSystemConfig(
+              gridIds = Some(List("asd")),
+              sNom = "100 MVA",
+              vNom = "10 kV",
+              voltLvls = Some(
+                List(VoltLvlConfig("MV", "10 kV"), VoltLvlConfig("MV", "20 kV"))
+              ),
             ),
-          ),
-          new RefSystemConfig(
-            gridIds = None,
-            sNom = "100 MVA",
-            vNom = "10 kV",
-            voltLvls = Some(
-              List(VoltLvlConfig("MV", "10 kV"), VoltLvlConfig("MV", "20 kV"))
+            new RefSystemConfig(
+              gridIds = None,
+              sNom = "100 MVA",
+              vNom = "10 kV",
+              voltLvls = Some(
+                List(VoltLvlConfig("MV", "10 kV"), VoltLvlConfig("MV", "20 kV"))
+              ),
             ),
-          ),
+          )
         )
       intercept[InvalidConfigParameterException] {
         RefSystemParser.parse(validRefSystems)
@@ -198,24 +206,29 @@ class RefSystemParserSpec extends UnitSpec {
 
   "A valid ConfigRefSystem" must {
 
-    val validRefSystems: List[SimonaConfig.RefSystemConfig] =
-      List(
-        new RefSystemConfig(
-          gridIds = Some(List("1", "2-10", "15...20")),
-          sNom = "100 MVA",
-          vNom = "10 kV",
-          voltLvls = Some(
-            List(VoltLvlConfig("MV", "10 kV"), VoltLvlConfig("MV", "20 kV"))
+    val validRefSystems: Option[List[SimonaConfig.RefSystemConfig]] =
+      Some(
+        List(
+          new RefSystemConfig(
+            gridIds = Some(List("1", "2-10", "15...20")),
+            sNom = "100 MVA",
+            vNom = "10 kV",
+            voltLvls = Some(
+              List(VoltLvlConfig("MV", "10 kV"), VoltLvlConfig("MV", "20 kV"))
+            ),
           ),
-        ),
-        new RefSystemConfig(
-          gridIds = Some(List("100")),
-          sNom = "5000 MVA",
-          vNom = "110 kV",
-          voltLvls = Some(
-            List(VoltLvlConfig("HV", "110 kV"), VoltLvlConfig("EHV", "380 kV"))
+          new RefSystemConfig(
+            gridIds = Some(List("100")),
+            sNom = "5000 MVA",
+            vNom = "110 kV",
+            voltLvls = Some(
+              List(
+                VoltLvlConfig("HV", "110 kV"),
+                VoltLvlConfig("EHV", "380 kV"),
+              )
+            ),
           ),
-        ),
+        )
       )
 
     val configRefSystems = RefSystemParser.parse(validRefSystems)
