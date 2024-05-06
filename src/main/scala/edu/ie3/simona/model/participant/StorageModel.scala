@@ -310,22 +310,6 @@ object StorageModel {
 
     val scaledInput = inputModel.copy().scale(scalingFactor).build()
 
-    {
-      // TODO have this in some fail fast
-      val dod =
-        scaledInput.getType.getDod.to(PowerSystemUnits.PU).getValue.doubleValue
-
-      if (initialSoc > dod)
-        throw new RuntimeException(
-          s"Storage ${scaledInput.getUuid}: Initial SOC can't be lower than DOD"
-        )
-
-      if (targetSoc.exists(_ < dod))
-        throw new RuntimeException(
-          s"Storage ${scaledInput.getUuid}: Target SOC can't be lower than DOD"
-        )
-    }
-
     /* Determine the operation interval */
     val operationInterval: OperationInterval =
       SystemComponent.determineOperationInterval(

@@ -196,6 +196,15 @@ The load reference can scale the load model behaviour to reach the given annual 
 If an individual configuration is to be assigned, the default configuration parameters must be adjusted accordingly.
 Runtime configurations of other system participants are done similarly, except that model behavior and reference are not defined.
 
+### Storage runtime configuration
+
+The storage model requires default parameter for the inital state of charge (Soc) and the target Soc for electrical energy storages. Soc's need to be between 0.0 and <= 1.0. 
+
+    initialSoc = "0.0"
+    targetSoc = "1.0"
+
+Individual configuration can be assigned accordingly.
+
 ## Event configuration 
 
 Tba:

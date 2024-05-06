@@ -22,8 +22,8 @@ import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
 import edu.ie3.util.TimeUtil
 
-import java.time.{Duration, ZonedDateTime}
 import java.time.temporal.ChronoUnit
+import java.time.{Duration, ZonedDateTime}
 
 class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
   "Validating the configs" when {
@@ -1024,6 +1024,126 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             ConfigFailFast invokePrivate checkTransformerControl(dut)
           }.getMessage shouldBe s"A control group (${dut.toString}) which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
             "by invalid parametrization of one control groups where vMax is higher than the upper boundary (1.2 of nominal Voltage)!"
+        }
+      }
+    }
+
+    "checking the parameterization of storages" should {
+      val checkStorageConfigs =
+        PrivateMethod[Unit](Symbol("checkStoragesConfig"))
+
+      "throw exception if default initial SOC is negative" in {
+
+        val defaultConfig: SimonaConfig.StorageRuntimeConfig =
+          SimonaConfig.StorageRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            1.0,
+            List(java.util.UUID.randomUUID().toString),
+            -0.5,
+            Some(0.8),
+          )
+        val storageConfig = SimonaConfig.Simona.Runtime.Participant
+          .Storage(defaultConfig, List.empty)
+
+        intercept[RuntimeException] {
+          ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
+        }.getMessage shouldBe "StorageRuntimeConfig: Default initial SOC needs to be between 0.0 and 1.0."
+      }
+
+      "throw exception if default target SOC is negative" in {
+        val defaultConfig: SimonaConfig.StorageRuntimeConfig =
+          SimonaConfig.StorageRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            1.0,
+            List(java.util.UUID.randomUUID().toString),
+            0.5,
+            Some(-0.8),
+          )
+        val storageConfig = SimonaConfig.Simona.Runtime.Participant
+          .Storage(defaultConfig, List.empty)
+
+        intercept[RuntimeException] {
+          ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
+        }.getMessage shouldBe "StorageRuntimeConfig: Default target SOC needs to be between 0.0 and 1.0."
+      }
+
+      "throw exception if individual initial SOC is negative" in {
+        val uuid = java.util.UUID.randomUUID().toString
+        val defaultConfig: SimonaConfig.StorageRuntimeConfig =
+          SimonaConfig.StorageRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            1.0,
+            List(java.util.UUID.randomUUID().toString),
+            0.5,
+            Some(0.8),
+          )
+        val individualConfig: List[SimonaConfig.StorageRuntimeConfig] = List(
+          SimonaConfig.StorageRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            1.0,
+            List(uuid),
+            -0.5,
+            Some(0.8),
+          )
+        )
+        val storageConfig = SimonaConfig.Simona.Runtime.Participant
+          .Storage(defaultConfig, individualConfig)
+
+        intercept[RuntimeException] {
+          ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
+        }.getMessage shouldBe s"StorageRuntimeConfig: List($uuid) initial SOC needs to be between 0.0 and 1.0."
+      }
+
+      "throw exception if individual target SOC is negative" in {
+        val uuid = java.util.UUID.randomUUID().toString
+        val defaultConfig: SimonaConfig.StorageRuntimeConfig =
+          SimonaConfig.StorageRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            1.0,
+            List(java.util.UUID.randomUUID().toString),
+            0.5,
+            Some(0.8),
+          )
+        val individualConfig: List[SimonaConfig.StorageRuntimeConfig] = List(
+          SimonaConfig.StorageRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            1.0,
+            List(uuid),
+            0.5,
+            Some(-0.8),
+          )
+        )
+        val storageConfig = SimonaConfig.Simona.Runtime.Participant
+          .Storage(defaultConfig, individualConfig)
+
+        intercept[RuntimeException] {
+          ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
+        }.getMessage shouldBe s"StorageRuntimeConfig: List($uuid) target SOC needs to be between 0.0 and 1.0."
+      }
+
+      "not throw exception if all parameters are in parameter range" in {
+        val defaultConfig: SimonaConfig.StorageRuntimeConfig =
+          SimonaConfig.StorageRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            1.0,
+            List(java.util.UUID.randomUUID().toString),
+            0.5,
+            Some(0.8),
+          )
+        val individualConfig: List[SimonaConfig.StorageRuntimeConfig] = List(
+          SimonaConfig.StorageRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            1.0,
+            List(java.util.UUID.randomUUID().toString),
+            0.5,
+            Some(0.8),
+          )
+        )
+        val storageConfig = SimonaConfig.Simona.Runtime.Participant
+          .Storage(defaultConfig, individualConfig)
+
+        noException should be thrownBy {
+          ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
         }
       }
     }
