@@ -62,6 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixing randomly failing test in `RuntimeEventListenerSpec` etc. [#709](https://github.com/ie3-institute/simona/issues/709)
 - Fixed config start and end datetime parsing hint [#767](https://github.com/ie3-institute/simona/issues/767)
 - ConfigFailFast after making configuration of `RefSystem` via config optional [#797](https://github.com/ie3-institute/simona/issues/797)
+- Fixed grid within GridSpec test [#806](https://github.com/ie3-institute/simona/issues/806)
 
 ## [3.0.0] - 2023-08-07
 
