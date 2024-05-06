@@ -20,7 +20,7 @@ import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMin
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities._
-import squants.energy.{KilowattHours, Kilowatts, Watts}
+import squants.energy.{KilowattHours, Kilowatts}
 import squants.{Dimensionless, Each, Energy, Power, Seconds}
 
 import java.time.ZonedDateTime
@@ -48,10 +48,10 @@ final case class StorageModel(
       cosPhiRated,
     ) {
 
-  private val minEnergy = eStorage * dod.toEach
+  private val minEnergy = zeroKWH
 
   // max Tolerance 1W till GWh storage
-  private implicit val doubleTolerance: Power = eStorage/Seconds(1) * 3.6e-12
+  private implicit val doubleTolerance: Power = eStorage / Seconds(1) * 3.6e-12
 
   /** In order to avoid faulty flexibility options, we want to avoid offering
     * charging/discharging that could last less than one second.
@@ -259,9 +259,7 @@ final case class StorageModel(
     val newEnergy = lastState.storedEnergy + energyChange
 
     // don't allow under- or overcharge e.g. due to tick rounding error
-    // allow charges below dod though since batteries can start at 0 kWh
-    // TODO don't allow SOCs below dod
-    zeroKWH.max(eStorage.min(newEnergy))
+    minEnergy.max(eStorage.min(newEnergy))
   }
 
   /** @param storedEnergy
@@ -371,7 +369,7 @@ object StorageModel {
       targetSoc,
     )
 
-    // TODO include activePowerGradient, lifeTime, lifeCycle ?
+    // TODO include activePowerGradient,?
 
     model.enable()
     model
