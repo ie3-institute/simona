@@ -223,7 +223,7 @@ class GridSpec
 
     }
 
-    "throw an InvalidGridException if a grid is not connected" in new BasicGridWithSwitches {
+    "throw an InvalidGridException if a grid is not connected" in new FiveLinesWithNodes {
       // enable nodes
       override val nodes: Seq[NodeModel] = super.nodes
       nodes.foreach(_.enable())
@@ -238,7 +238,7 @@ class GridSpec
         GridComponents(
           nodes,
           adaptedLines,
-          Set(transformer2wModel),
+          Set.empty[TransformerModel],
           Set.empty[Transformer3wModel],
           Set.empty[SwitchModel],
         ),
