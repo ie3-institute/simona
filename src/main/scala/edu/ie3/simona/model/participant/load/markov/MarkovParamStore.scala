@@ -29,17 +29,15 @@ object MarkovParamStore extends LazyLogging {
       println(s"$appliance -> $value")
     }
 
-    val FlatMap = Flat()
-    println("Test Function: Flat:")
-    FlatMap.foreach { case (appliance, value) =>
-      println(s"$appliance -> $value")
+    val typeMap = Type()
+    println("Test Function: Type:")
+    typeMap.foreach { case (typeCategory, appliancesMap) =>
+      println(s"type Category: $typeCategory")
+      appliancesMap.foreach { case (appliance, probability) =>
+        println(s"  $appliance -> $probability")
+      }
     }
 
-    val HouseMap = House()
-    println("Test Function: House:")
-    HouseMap.foreach { case (appliance, value) =>
-      println(s"$appliance -> $value")
-    }
 
     val incomeMap = income()
     println("Test Function: Income:")
@@ -57,7 +55,7 @@ object MarkovParamStore extends LazyLogging {
       appliancesMap.foreach { case (appliance, probability) =>
         println(s"  $appliance -> $probability")
       }
-     }
+    }
 
     def printLoadTSData(loadTSData: mutable.Map[String, Seq[Int]]): Unit = {
       println("Gerätedaten:")
@@ -68,6 +66,13 @@ object MarkovParamStore extends LazyLogging {
 
     val loadTSData = Load_TS()
     printLoadTSData(loadTSData)
+
+    val dishWasher = SOP(getDefaultReaderForSOP("/load/markov/probabilities/switch_on_probabilities/dish_washer.csv"))
+    println("Test Function: dish_washer")
+    dishWasher.foreach { case (appliance, values) =>
+      println(s"$appliance: ${values.mkString(", ")}")
+    }
+
 
   }
   // Usage Probabilities
@@ -100,6 +105,32 @@ object MarkovParamStore extends LazyLogging {
 
   // Switch On Probabilities
 
+  def SOP(reader: Reader): mutable.Map[String, Seq[Double]] = {
+    val csvParser = CSVFormat.DEFAULT.parse(reader)
+    val records = csvParser.getRecords.asScala.toSeq
+    val header = csvParser.getHeaderNames.asScala.toSeq
+    val switchonprob = mutable.Map[String, Seq[Double]]()
+
+    for (record <- records) {
+      for (i <- header.indices) {
+        val applianceCategory = header(i)
+        val value = record.get(i).toDouble
+        val existingValues = switchonprob.getOrElse(applianceCategory, Seq())
+        switchonprob.put(applianceCategory, existingValues :+ value)
+      }
+    }
+    reader.close()
+    switchonprob
+  }
+
+  def getDefaultReaderForSOP(filePath: String): Reader = {
+    logger.info("Markov Average_HH parameters folder 'Switch on Probabilities' from jar.")
+    new InputStreamReader(
+      getClass.getResourceAsStream(filePath)
+    )
+  }
+
+
   // Average HH
   def Average_HH(): Map[String, Double] = {
     val reader = getDefaultReaderForAverageHH
@@ -130,63 +161,38 @@ object MarkovParamStore extends LazyLogging {
     )
   }
 
-  // By Flat // By House
-  def Flat(): Map[String, Double] = {
-    val reader = getDefaultReaderForFlat
-    val csvParser = CSVFormat.DEFAULT
-      .withDelimiter(';')
-      .parse(reader)
+  // By_Type
+  def Type(): MutableMap[String, Map[String, Double]] = {
+    val reader = getDefaultReaderType
+    val csvParser = CSVFormat.DEFAULT.withDelimiter(';').withFirstRecordAsHeader().parse(reader)
+    val records = csvParser.getRecords.asScala.toSeq
 
-    val records = csvParser.getRecords.asScala
+    val TypeMap = MutableMap[String, Map[String, Double]]()
 
-    val FlatMap = records.headOption match {
-      case Some(headerRecord) =>
-        val applianceNames = headerRecord.iterator().asScala.toSeq
-        val valuesRecord = records.drop(1).headOption.getOrElse(csvParser.iterator().next())
-        val FlatValues = valuesRecord.iterator().asScala.map(_.toDouble)
-        applianceNames.zip(FlatValues).toMap
-      case None =>
-        Map.empty[String, Double]
+    records.foreach { record =>
+      val TypeCategory = record.get(0)
+      val appliancesMap = MutableMap[String, Double]()
+
+      for (i <- 1 until record.size()) {
+        val appliance = csvParser.getHeaderNames.get(i)
+        val value = record.get(i).toDouble
+        appliancesMap += (appliance -> value)
+      }
+
+      TypeMap += (TypeCategory -> appliancesMap.toMap)
     }
-
     reader.close()
-    FlatMap
+    TypeMap
+
   }
 
-  def House(): Map[String, Double] = {
-    val reader = getDefaultReaderForHouse
-    val csvParser = CSVFormat.DEFAULT
-      .withDelimiter(';')
-      .parse(reader)
-
-    val records = csvParser.getRecords.asScala
-
-    val HouseMap = records.headOption match {
-      case Some(headerRecord) =>
-        val applianceNames = headerRecord.iterator().asScala.toSeq
-        val valuesRecord = records.drop(1).headOption.getOrElse(csvParser.iterator().next())
-        val HouseValues = valuesRecord.iterator().asScala.map(_.toDouble)
-        applianceNames.zip(HouseValues).toMap
-      case None =>
-        Map.empty[String, Double]
-    }
-
-    reader.close()
-    HouseMap
-  }
-
-  private def getDefaultReaderForFlat: Reader = {
-    logger.info("Markov Flat parameters file 'flat.csv.csv' from jar.")
+  private def getDefaultReaderType: Reader = {
+    logger.info("Markov Income parameters file 'by_Type.csv' from jar.")
     new InputStreamReader(
-      getClass.getResourceAsStream("/load/markov/appliances/flat.csv")
+      getClass.getResourceAsStream("/load/markov/appliances/by_Type.csv")
     )
   }
-  private def getDefaultReaderForHouse: Reader = {
-    logger.info("Markov House parameters file 'house.csv.csv' from jar.")
-    new InputStreamReader(
-      getClass.getResourceAsStream("/load/markov/appliances/house.csv")
-    )
-  }
+
 
   // By Income
   def income(): MutableMap[String, Map[String, Double]] = {
