@@ -47,6 +47,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Converting `SimonaSim` to pekko typed/terminating SimonSim when initialization fails [#210](https://github.com/ie3-institute/simona/issues/210)
 - Converting the `GridAgent` and the `DBFSAlgorithm` to `pekko typed` [#666](https://github.com/ie3-institute/simona/issues/666)
 - Validation of grid will throw exception instead of just logging errors [#463](https://github.com/ie3-institute/simona/issues/463)
+- Refactoring of `GridAgent` messages [#736](https://github.com/ie3-institute/simona/issues/736)
+- Rewrote PVModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Making configuration of `RefSystem` via config optional [#769](https://github.com/ie3-institute/simona/issues/769)
 
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
@@ -57,6 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed some compiler warnings [#657](https://github.com/ie3-institute/simona/issues/657)
 - Fixing false negative in ref system voltage validation [#706](https://github.com/ie3-institute/simona/issues/706)
 - Fixing randomly failing test in `RuntimeEventListenerSpec` etc. [#709](https://github.com/ie3-institute/simona/issues/709)
+- Fixed config start and end datetime parsing hint [#767](https://github.com/ie3-institute/simona/issues/767)
 
 ## [3.0.0] - 2023-08-07
 

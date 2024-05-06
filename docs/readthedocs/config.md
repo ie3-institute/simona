@@ -204,20 +204,28 @@ Tba:
 
 ## Grid configuration 
 
+The reference system contains a list of voltage levels. Each element includes the nominal apparent power, the nominal 
+voltage and the separate configuration of each voltage level. The voltage level configuration is composed of the identifier 
+and the nominal voltage.
+
+The configuration of a reference system is optional. If no configuration is provided by the user, the default
+[reference system](models/reference_system) that includes all common german voltage levels is used. For those users 
+who need other voltage levels than the common german voltage levels or different nominal apparent powers, they can configure
+their reference systems as shown below.
+
 The reference system can be configured as follows: 
 
 ```
 simona.gridConfig.refSystems = [
-  {sNom = "100 kVA", vNom = "0.4 kV", voltLvls = [{id = "NS", vNom = "0.4 kV"}]},
-  {sNom = "60 MVA", vNom = "20 kV", voltLvls = [{id = "MS", vNom = "20 kV"}]},
-  {sNom = "600 MVA", vNom = "110 kV", voltLvls = [{id = "HS", vNom = "110 kV"}]},
-  {sNom = "1000 MVA", vNom = "380 kV", voltLvls = [{id = "HoeS", vNom = "380 kV"}]}
+  {sNom = "100 kVA", vNom = "0.4 kV", voltLvls = [{id = "LV", vNom = "0.4 kV"}]},
+  {sNom = "60 MVA", vNom = "20 kV", voltLvls = [{id = "MV", vNom = "20 kV"}]},
+  {sNom = "600 MVA", vNom = "110 kV", voltLvls = [{id = "HV", vNom = "110 kV"}]},
+  {sNom = "1000 MVA", vNom = "380 kV", voltLvls = [{id = "EHV", vNom = "380 kV"}]}
 ]
 ```
 
-The reference system contains a list of voltage levels. Each element includes the nominal apparent power, the nominal voltage and the separate configuration of each voltage level. The voltage level configuration is composed of the identifier and the nominal voltage.
-
-Further typical voltage levels which can be used in the simulation and the configuration of individual reference systems are described in the documentation of [reference system](models/reference_system).
+Further typical voltage levels which can be used in the simulation and the configuration of individual reference systems
+are described in the documentation of [reference system](models/reference_system).
 
 ## Power flow configuration 
 
