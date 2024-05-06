@@ -382,7 +382,6 @@ object GridModel {
     val inspector: ConnectivityInspector[UUID, DefaultEdge] =
       new ConnectivityInspector(graph)
 
-
     if (!inspector.isConnected) {
       val lastEntryConnectedSet =
         inspector.connectedSets().asScala.lastOption match {
