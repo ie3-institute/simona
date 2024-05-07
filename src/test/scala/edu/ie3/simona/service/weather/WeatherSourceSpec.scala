@@ -6,16 +6,8 @@
 
 package edu.ie3.simona.service.weather
 
-import edu.ie3.datamodel.io.factory.timeseries.{
-  CosmoIdCoordinateFactory,
-  IconIdCoordinateFactory,
-  IdCoordinateFactory,
-}
 import edu.ie3.datamodel.io.source.IdCoordinateSource
-import edu.ie3.simona.exceptions.{
-  InvalidConfigParameterException,
-  ServiceException,
-}
+import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
@@ -35,7 +27,7 @@ import java.util.Optional
 import javax.measure.quantity.Length
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
 
 class WeatherSourceSpec extends UnitSpec {
   private val coordinate0 = GeoUtils.buildPoint(51.47, 7.41)
@@ -47,29 +39,17 @@ class WeatherSourceSpec extends UnitSpec {
         9,
       ) match {
         case Failure(exception: ServiceException) =>
-          exception.getMessage shouldBe "There are not enough coordinates for averaging. Found 8 within the given distance of 400000 m but need 9. Please make sure that there are enough coordinates within the given distance."
+          exception.getMessage shouldBe "There are not enough coordinates for averaging. Found 4 within the given distance of 400000 m but need 9. Please make sure that there are enough coordinates within the given distance."
         case _ => fail("You shall not pass!")
       }
     }
     "issue a ServiceException, if there are not enough coordinates in max distance available" in {
       DummyWeatherSource.getNearestCoordinatesWithDistances(
         AgentCoordinates(coordinate0.getY, coordinate0.getX),
-        9,
+        5,
       ) match {
         case Failure(exception: ServiceException) =>
-          exception.getMessage shouldBe "There are not enough coordinates for averaging. Found 8 within the given distance of 400000 m but need 9. Please make sure that there are enough coordinates within the given distance."
-        case _ => fail("You shall not pass!")
-      }
-    }
-
-    "issue a ServiceException, if the queried coordinate is not surrounded by the found weather coordinates" in {
-      val agentCoordinates = AgentCoordinates(51.3, 7.3)
-      DummyWeatherSource.getNearestCoordinatesWithDistances(
-        agentCoordinates,
-        4,
-      ) match {
-        case Failure(exception: ServiceException) =>
-          exception.getMessage shouldBe "The queried point shall be surrounded by 4 weather coordinates, which are in each quadrant. This is not the case."
+          exception.getMessage shouldBe "There are not enough coordinates for averaging. Found 4 within the given distance of 400000 m but need 5. Please make sure that there are enough coordinates within the given distance."
         case _ => fail("You shall not pass!")
       }
     }
@@ -244,7 +224,7 @@ class WeatherSourceSpec extends UnitSpec {
         case Failure(exception: ServiceException) =>
           exception.getMessage shouldBe "Determination of coordinate weights failed."
           exception.getCause shouldBe ServiceException(
-            "There are not enough coordinates for averaging. Found 8 within the given distance of 400000 m but need 9. Please make sure that there are enough coordinates within the given distance."
+            "There are not enough coordinates for averaging. Found 4 within the given distance of 400000 m but need 9. Please make sure that there are enough coordinates within the given distance."
           )
         case _ => fail("You shall not pass!")
       }
@@ -415,5 +395,14 @@ case object WeatherSourceSpec {
     ): util.List[CoordinateDistance] = {
       calculateCoordinateDistances(coordinate, n, coordinateToId.keySet.asJava)
     }
+
+    override def findCornerPoints(
+        coordinate: Point,
+        distance: ComparableQuantity[Length],
+    ): util.List[CoordinateDistance] =
+      findCornerPoints(
+        coordinate,
+        getClosestCoordinates(coordinate, 9, distance),
+      )
   }
 }

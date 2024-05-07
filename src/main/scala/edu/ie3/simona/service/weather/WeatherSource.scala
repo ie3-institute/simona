@@ -100,54 +100,27 @@ trait WeatherSource {
   ): Try[Iterable[CoordinateDistance]] = {
     val queryPoint = coordinate.toPoint
 
-    /* Go and get the nearest coordinates, that are known to the weather source */
-    val nearestCoords = idCoordinateSource
-      .getClosestCoordinates(
-        queryPoint,
-        amountOfInterpolationCoords,
-        maxCoordinateDistance,
+    /* Go and get the corner coordinates, that are within a given distance */
+    val possibleCornerPoints = idCoordinateSource.findCornerPoints(
+      queryPoint,
+      maxCoordinateDistance,
+    )
+
+    val nr = possibleCornerPoints.size()
+
+    if (nr == 1) {
+      // found one exact match
+      Success(possibleCornerPoints.asScala)
+    } else if (nr == amountOfInterpolationCoords) {
+      // found enough points for interpolating
+      Success(possibleCornerPoints.asScala)
+    } else {
+      Failure(
+        ServiceException(
+          s"There are not enough coordinates for averaging. Found ${possibleCornerPoints.size()} within the given distance of " +
+            s"$maxCoordinateDistance but need $amountOfInterpolationCoords. Please make sure that there are enough coordinates within the given distance."
+        )
       )
-      .asScala
-
-    nearestCoords.find(coordinateDistance =>
-      coordinateDistance.getCoordinateB.equalsExact(queryPoint, 1e-6)
-    ) match {
-      case Some(exactHit) =>
-        /* The queried coordinate hit one of the weather coordinates. Don't average and take it directly */
-        Success(Vector(exactHit))
-      case None =>
-        /* There aren't enough coordinates inside the given distance */
-        if (nearestCoords.size < amountOfInterpolationCoords) {
-          Failure(
-            ServiceException(
-              s"There are not enough coordinates for averaging. Found ${nearestCoords.size} within the given distance of " +
-                s"$maxCoordinateDistance but need $amountOfInterpolationCoords. Please make sure that there are enough coordinates within the given distance."
-            )
-          )
-        } else {
-          /* Check, if the queried coordinate is surrounded at each quadrant */
-          val (topLeft, topRight, bottomLeft, bottomRight) = nearestCoords
-            .map(_.getCoordinateB)
-            .foldLeft((false, false, false, false)) {
-              case ((tl, tr, bl, br), point) =>
-                (
-                  tl || (point.getX < queryPoint.getX && point.getY > queryPoint.getY),
-                  tr || (point.getX > queryPoint.getX && point.getY > queryPoint.getY),
-                  bl || (point.getX < queryPoint.getX && point.getY < queryPoint.getY),
-                  br || (point.getX > queryPoint.getX && point.getY < queryPoint.getY),
-                )
-            }
-
-          /* There has to be a coordinate in each quadrant */
-          if (topLeft && topRight && bottomLeft && bottomRight)
-            Success(nearestCoords)
-          else
-            Failure(
-              ServiceException(
-                s"The queried point shall be surrounded by $amountOfInterpolationCoords weather coordinates, which are in each quadrant. This is not the case."
-              )
-            )
-        }
     }
   }
 
