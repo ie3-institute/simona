@@ -124,7 +124,8 @@ case object ConfigFailFast extends LazyLogging {
 
     // check if the provided combinations of refSystems provided are valid
     val refSystems = simonaConfig.simona.gridConfig.refSystems
-    refSystems.foreach(checkRefSystem)
+    if (refSystems.isDefined)
+      refSystems.foreach(refsys => checkRefSystem(refsys))
 
     /* Check all participant model configurations */
     checkParticipantRuntimeConfiguration(
@@ -249,7 +250,7 @@ case object ConfigFailFast extends LazyLogging {
       case e: DateTimeParseException =>
         throw new InvalidConfigParameterException(
           s"Invalid dateTimeString: $dateTimeString." +
-            s"Please ensure that your date/time parameter match the following pattern: 'yyyy-MM-dd HH:mm:ss'",
+            s"Please ensure that your date/time parameter match the following pattern: 'yyyy-MM-dd'T'HH:mm:ss'Z''",
           e,
         )
     }
@@ -441,67 +442,71 @@ case object ConfigFailFast extends LazyLogging {
     * @param refSystem
     *   the [[SimonaConfig.RefSystemConfig]] that should be checked
     */
-  private def checkRefSystem(refSystem: RefSystemConfig): Unit = {
 
-    val voltLvls =
-      refSystem.voltLvls.getOrElse(List.empty[SimonaConfig.VoltLvlConfig])
-    val gridIds = refSystem.gridIds.getOrElse(List.empty[String])
+  private def checkRefSystem(refSystems: List[RefSystemConfig]): Unit = {
+    refSystems.foreach { refSystem =>
+      {
+        val voltLvls =
+          refSystem.voltLvls.getOrElse(List.empty[SimonaConfig.VoltLvlConfig])
+        val gridIds = refSystem.gridIds.getOrElse(List.empty[String])
 
-    if (voltLvls.isEmpty && gridIds.isEmpty)
-      throw new InvalidConfigParameterException(
-        "The provided values for voltLvls and gridIds are empty! " +
-          s"At least one of these optional parameters has to be provided for a valid refSystem! " +
-          s"Provided refSystem is: $refSystem."
-      )
-
-    voltLvls.foreach { voltLvl =>
-      Try(Quantities.getQuantity(voltLvl.vNom)) match {
-        case Success(quantity) =>
-          if (!quantity.getUnit.isCompatible(Units.VOLT))
-            throw new InvalidConfigParameterException(
-              s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to electrical potential! Please provide the volt level with its unit, e.g. \"20 kV\""
-            )
-        case Failure(exception) =>
+        if (voltLvls.isEmpty && gridIds.isEmpty)
           throw new InvalidConfigParameterException(
-            s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to a quantity. Did you provide the volt level with it's unit (e.g. \"20 kV\")?",
-            exception,
+            "The provided values for voltLvls and gridIds are empty! " +
+              s"At least one of these optional parameters has to be provided for a valid refSystem! " +
+              s"Provided refSystem is: $refSystem."
+          )
+
+        voltLvls.foreach { voltLvl =>
+          Try(Quantities.getQuantity(voltLvl.vNom)) match {
+            case Success(quantity) =>
+              if (!quantity.getUnit.isCompatible(Units.VOLT))
+                throw new InvalidConfigParameterException(
+                  s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to electrical potential! Please provide the volt level with its unit, e.g. \"20 kV\""
+                )
+            case Failure(exception) =>
+              throw new InvalidConfigParameterException(
+                s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to a quantity. Did you provide the volt level with it's unit (e.g. \"20 kV\")?",
+                exception,
+              )
+          }
+        }
+
+        gridIds.foreach {
+          case gridIdRange @ ConfigConventions.gridIdDotRange(from, to) =>
+            rangeCheck(from.toInt, to.toInt, gridIdRange)
+          case gridIdRange @ ConfigConventions.gridIdMinusRange(from, to) =>
+            rangeCheck(from.toInt, to.toInt, gridIdRange)
+          case ConfigConventions.singleGridId(_) =>
+          case gridId =>
+            throw new InvalidConfigParameterException(
+              s"The provided gridId $gridId is malformed!"
+            )
+        }
+
+        refSystem.sNom match {
+          case ConfigConventions.refSystemQuantRegex(_) =>
+          case _ =>
+            throw new InvalidConfigParameterException(
+              s"Invalid value for sNom from provided refSystem $refSystem. Is a valid unit provided?"
+            )
+        }
+
+        refSystem.vNom match {
+          case ConfigConventions.refSystemQuantRegex(_) =>
+          case _ =>
+            throw new InvalidConfigParameterException(
+              s"Invalid value for vNom from provided refSystem $refSystem. Is a valid unit provided?"
+            )
+        }
+      }
+
+      def rangeCheck(from: Int, to: Int, gridIdRange: String): Unit = {
+        if (from >= to)
+          throw new InvalidConfigParameterException(
+            s"Invalid gridId Range $gridIdRange. Start $from cannot be equals or bigger than end $to."
           )
       }
-    }
-
-    gridIds.foreach {
-      case gridIdRange @ ConfigConventions.gridIdDotRange(from, to) =>
-        rangeCheck(from.toInt, to.toInt, gridIdRange)
-      case gridIdRange @ ConfigConventions.gridIdMinusRange(from, to) =>
-        rangeCheck(from.toInt, to.toInt, gridIdRange)
-      case ConfigConventions.singleGridId(_) =>
-      case gridId =>
-        throw new InvalidConfigParameterException(
-          s"The provided gridId $gridId is malformed!"
-        )
-    }
-
-    refSystem.sNom match {
-      case ConfigConventions.refSystemQuantRegex(_) =>
-      case _ =>
-        throw new InvalidConfigParameterException(
-          s"Invalid value for sNom from provided refSystem $refSystem. Is a valid unit provided?"
-        )
-    }
-
-    refSystem.vNom match {
-      case ConfigConventions.refSystemQuantRegex(_) =>
-      case _ =>
-        throw new InvalidConfigParameterException(
-          s"Invalid value for vNom from provided refSystem $refSystem. Is a valid unit provided?"
-        )
-    }
-
-    def rangeCheck(from: Int, to: Int, gridIdRange: String): Unit = {
-      if (from >= to)
-        throw new InvalidConfigParameterException(
-          s"Invalid gridId Range $gridIdRange. Start $from cannot be equals or bigger than end $to."
-        )
     }
   }
 

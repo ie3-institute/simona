@@ -55,7 +55,7 @@ final case class PvModel private (
   /** Override sMax as the power output of a pv unit could become easily up to
     * 10% higher than the sRated value found in the technical sheets
     */
-  override protected val sMax: Power = sRated * 1.1
+  override val sMax: Power = sRated * 1.1
 
   /** Permissible maximum active power feed in (therefore negative) */
   protected val pMax: Power = sMax * cosPhiRated * -1d
@@ -154,7 +154,7 @@ final case class PvModel private (
     * @return
     *   day angle J
     */
-  private def calcAngleJ(time: ZonedDateTime): Angle = {
+  def calcAngleJ(time: ZonedDateTime): Angle = {
     val day = time.getDayOfYear // day of the year
     val j = 2d * Math.PI * ((day - 1d) / 365)
     Radians(j)
@@ -170,7 +170,7 @@ final case class PvModel private (
     * @return
     *   declination angle
     */
-  private def calcSunDeclinationDelta(
+  def calcSunDeclinationDelta(
       angleJ: Angle
   ): Angle = {
     val jInRad = angleJ.toRadians
@@ -198,7 +198,7 @@ final case class PvModel private (
     * @return
     *   hour angle omega
     */
-  private def calcHourAngleOmega(
+  def calcHourAngleOmega(
       time: ZonedDateTime,
       angleJ: Angle,
       longitude: Angle,
@@ -228,7 +228,7 @@ final case class PvModel private (
     * @return
     *   sunset angle omegaSS
     */
-  private def calcSunsetAngleOmegaSS(
+  def calcSunsetAngleOmegaSS(
       latitude: Angle,
       delta: Angle,
   ): Angle = {
@@ -256,7 +256,7 @@ final case class PvModel private (
     * @return
     *   solar altitude angle alphaS
     */
-  private def calcSolarAltitudeAngleAlphaS(
+  def calcSolarAltitudeAngleAlphaS(
       omega: Angle,
       delta: Angle,
       latitude: Angle,
@@ -285,7 +285,7 @@ final case class PvModel private (
     * @return
     *   the zenith angle
     */
-  private def calcZenithAngleThetaZ(
+  def calcZenithAngleThetaZ(
       alphaS: Angle
   ): Angle = {
     val alphaSInRad = alphaS.toRadians
@@ -303,7 +303,7 @@ final case class PvModel private (
     * @return
     *   air mass
     */
-  private def calcAirMass(thetaZ: Angle): Double = {
+  def calcAirMass(thetaZ: Angle): Double = {
     val thetaZInRad = thetaZ.toRadians
 
     // radius of the earth in kilometers
@@ -326,7 +326,7 @@ final case class PvModel private (
     * @return
     *   extraterrestrial radiation I0
     */
-  private def calcExtraterrestrialRadiationI0(
+  def calcExtraterrestrialRadiationI0(
       angleJ: Angle
   ): Irradiation = {
     val jInRad = angleJ.toRadians
@@ -361,7 +361,7 @@ final case class PvModel private (
     * @return
     *   angle of incidence thetaG
     */
-  private def calcAngleOfIncidenceThetaG(
+  def calcAngleOfIncidenceThetaG(
       delta: Angle,
       latitude: Angle,
       gammaE: Angle,
@@ -401,7 +401,7 @@ final case class PvModel private (
     *   omega1 and omega encapsulated in an Option, if applicable. None
     *   otherwise
     */
-  private def calculateBeamOmegas(
+  def calculateBeamOmegas(
       thetaG: Angle,
       omega: Angle,
       omegaSS: Angle,
@@ -462,7 +462,7 @@ final case class PvModel private (
     * @return
     *   the beam radiation on the sloped surface
     */
-  private def calcBeamRadiationOnSlopedSurface(
+  def calcBeamRadiationOnSlopedSurface(
       eBeamH: Irradiation,
       omegas: Option[(Angle, Angle)],
       delta: Angle,
@@ -531,7 +531,7 @@ final case class PvModel private (
     * @return
     *   the diffuse radiation on the sloped surface
     */
-  private def calcDiffuseRadiationOnSlopedSurfacePerez(
+  def calcDiffuseRadiationOnSlopedSurfacePerez(
       eDifH: Irradiation,
       eBeamH: Irradiation,
       airMass: Double,
@@ -634,7 +634,7 @@ final case class PvModel private (
     * @return
     *   the reflected radiation on the sloped surface eRefS
     */
-  private def calcReflectedRadiationOnSlopedSurface(
+  def calcReflectedRadiationOnSlopedSurface(
       eBeamH: Irradiation,
       eDifH: Irradiation,
       gammaE: Angle,
