@@ -1,0 +1,59 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+
+if () then (excess feed-in)
+  if (EVCS exists?) then (yes)
+    :asset = EVCS;
+    (A)
+  endif
+  if (Battery exists?) then (yes)
+    :asset = Battery;
+    (A)
+  endif
+  if (Heat pump exists?) then (yes)
+    :asset = Heat pump;
+    (A)
+  endif
+  if (PV exists?) then (yes)
+    :asset = PV;
+    (A)
+  endif
+  if (WEC exists?) then (yes)
+    :asset = WEC;
+    (A)
+  endif
+else (excess load)
+  if (Battery exists?) then (yes)
+    :asset = Battery;
+    (A)
+  endif
+  if (EVCS exists?) then (yes)
+    :asset = EVCS;
+    (A)
+  endif
+  if (Heat pump exists?) then (yes)
+    :asset = Heat pump;
+    (A)
+  endif
+endif
+
+stop
+
+(A)
+if (flexibility demand already satisfied?) then (no)
+  if (asset offers flexibility) then (yes)
+    if (flexibility covers demand) then (fully)
+      :remainingDemand = 0;
+    else (partially)
+      :remainingDemand -= flex;
+    endif
+  else (no)
+  endif
+else (yes)
+endif
+
+stop
+
+@enduml

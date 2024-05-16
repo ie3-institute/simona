@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implemented scaling of all relevant input parameters [#764](https://github.com/ie3-institute/simona/issues/764)
 - Consider scaling factor with flex options [#734](https://github.com/ie3-institute/simona/issues/734)
 - Implementation of Energy Management Agents [#204](https://github.com/ie3-institute/simona/issues/204)
+- Providing documentation for EmAgent protocols and algorithms [#774](https://github.com/ie3-institute/simona/issues/774)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
