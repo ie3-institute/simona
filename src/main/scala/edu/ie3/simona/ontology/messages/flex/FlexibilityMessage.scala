@@ -85,6 +85,8 @@ object FlexibilityMessage {
     */
   trait ProvideFlexOptions extends FlexResponse
 
+  trait ProvideEmSetPoints extends EmAgent.Request
+
   /** Message that issues flexibility control to a flex options provider, i.e. a
     * feasible set point is delivered that the flex options provider should
     * adhere to
