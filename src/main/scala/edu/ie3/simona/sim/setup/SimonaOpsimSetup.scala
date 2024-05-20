@@ -47,8 +47,8 @@ import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
-import edu.ie3.simopsim.OpsimSimulator
-import edu.ie3.simosaik.MosaikSimulation
+import edu.ie3.simopsim.OpsimEmSimulator
+import edu.ie3.simpleextsim.{SimpleExtSimulation, SimpleExtSimulationWithEm}
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.AskPattern._
@@ -70,7 +70,7 @@ import scala.jdk.DurationConverters._
   * @version 0.1
   * @since 01.07.20
   */
-class SimonaMosaikSetup(
+class SimonaOpsimSetup(
     val typeSafeConfig: Config,
     simonaConfig: SimonaConfig,
     resultFileHierarchy: ResultFileHierarchy,
@@ -350,23 +350,154 @@ class SimonaMosaikSetup(
   override def extSimulations(
                                context: ActorContext[_],
                                rootScheduler: ActorRef[SchedulerMessage],
-                               simScheduler: ActorRef[SchedulerMessage]
+                               simScheduler: ActorRef[SchedulerMessage],
                              ): ExtSimSetupData = {
-    mosaikAsExtSimulation(
+    opsimSimulationWithEm(
       context, rootScheduler, simScheduler
     )
   }
 
-  def mosaikAsExtSimulation(
+  def opsimSimulationWithEm(
+                           context: ActorContext[_],
+                           rootScheduler: ActorRef[SchedulerMessage],
+                           simScheduler: ActorRef[SchedulerMessage],
+                         ): ExtSimSetupData = {
+    val simulationStart = TimeUtil.withDefaults.toZonedDateTime(
+      simonaConfig.simona.time.startDateTime
+    )
+    val extScheduler = scheduler(context, parent = rootScheduler)
+    val opsimSim = new OpsimEmSimulator("amqp://guest:guest@localhost:5672/myvhost")
+
+    val extSimAdapterPhase1 = context.toClassic.simonaActorOf(
+      ExtSimAdapter.props(extScheduler.toClassic),
+      s"1",
+    )
+    val extSimAdapterPhase2 = context.toClassic.simonaActorOf(
+      ExtSimAdapter.props(simScheduler.toClassic),
+      s"2",
+    )
+
+    val extSimAdapters: Map[java.lang.Integer, ClassicRef] = Map(
+      1.asInstanceOf[java.lang.Integer] -> extSimAdapterPhase1,
+      2.asInstanceOf[java.lang.Integer] -> extSimAdapterPhase2
+    )
+
+    val extSimAdapterData = new ExtSimAdapterData(extSimAdapters.asJava, args)
+
+
+
+    // send init data right away, init activation is scheduled
+    extSimAdapterPhase1 ! ExtSimAdapter.Create(
+      extSimAdapterData,
+      1,
+      ScheduleLock.singleKey(context, extScheduler, INIT_SIM_TICK),
+    )
+
+    val extEmDataService = context.toClassic.simonaActorOf(
+      ExtEmDataService.props(extScheduler.toClassic),
+      s"0-0",
+    )
+    val extEmData = new ExtEmData(
+      extEmDataService,
+      extSimAdapterPhase1,
+      opsimSim.getExtEmDataSimulation.getEmDataFactory,
+      opsimSim.getExtEmDataSimulation.getControlledEms
+    )
+
+    opsimSim.getExtEmDataSimulation.setExtEmData(extEmData)
+
+    extEmDataService ! SimonaService.Create(
+      InitExtEmData(extEmData),
+      ScheduleLock.singleKey(
+        context,
+        extScheduler,
+        INIT_SIM_TICK,
+      ),
+    )
+
+    //Result Data
+
+    val extResultDataProvider = {
+      context.spawn(
+        ExtResultDataProvider(simScheduler),
+        s"ExtResultDataProvider",
+      )
+    }
+
+
+    val timeout: PekkoTimeout = PekkoTimeout.create(5.seconds.toJava)
+    val scheduler2: Scheduler = context.system.scheduler
+
+    val adapterRef = Await.result(
+      extResultDataProvider.ask[ActorRef[ResultDataMessageFromExt]] (ref => RequestDataMessageAdapter(ref))(timeout, scheduler2), timeout.duration)
+    val adapterScheduleRef = Await.result(
+      extResultDataProvider.ask[ActorRef[ScheduleServiceActivation]] (ref => RequestScheduleActivationAdapter(ref))(timeout, scheduler2), timeout.duration)
+
+    val extResultData =
+      new ExtResultData(
+        adapterRef.toClassic,
+        adapterScheduleRef.toClassic,
+        extSimAdapterPhase2,
+        opsimSim.getExtResultDataSimulation.getResultDataFactory,
+        opsimSim.getExtResultDataSimulation.getResultDataAssets,
+        simulationStart
+      )
+
+    opsimSim.getExtResultDataSimulation.setExtResultData(extResultData)
+
+    extResultDataProvider ! ExtResultDataProvider.Create(
+      InitExtResultData(extResultData),
+      ScheduleLock.singleKey(
+        context,
+        simScheduler,
+        INIT_SIM_TICK,
+      ),
+    )
+
+
+    val simpleExtSimDatas: List[ExtData] = List(
+      extResultData,
+      extEmData
+    )
+
+    opsimSim.setup(
+      extSimAdapterData,
+      simpleExtSimDatas.asJava,
+    )
+    // starting external simulation
+    new Thread(opsimSim, s"External simulation")
+      .start()
+
+    val extDataServicesMap: Map[Class[_], ClassicRef] = Map(
+      classOf[ExtEmDataService] -> extEmDataService,
+    )
+
+    val extDataListenerMap: Map[Class[_], ActorRef[ExtResultDataProvider.Request]] =  Map(
+      ExtResultDataProvider.getClass -> extResultDataProvider
+    )
+
+    val extSimAdaptersIt = Iterable(extSimAdapterPhase1, extSimAdapterPhase2)
+
+    val extDatas = simpleExtSimDatas.toSet
+    extSimAdapterPhase2 ! ExtSimAdapter.Create(
+      extSimAdapterData,
+      2,
+      ScheduleLock.singleKey(context, simScheduler, INIT_SIM_TICK),
+    )
+    ExtSimSetupData(extSimAdaptersIt, extDataServicesMap, extDataListenerMap, extDatas, Some(extScheduler))
+  }
+
+
+  def simpleExtSimulation(
                                context: ActorContext[_],
                                rootScheduler: ActorRef[SchedulerMessage],
-                               simScheduler: ActorRef[SchedulerMessage]
+                               simScheduler: ActorRef[SchedulerMessage],
   ): ExtSimSetupData = {
     val simulationStart = TimeUtil.withDefaults.toZonedDateTime(
       simonaConfig.simona.time.startDateTime
     )
     val extScheduler = scheduler(context, parent = rootScheduler)
-    val mosaikExtSim = new MosaikSimulation("127.0.0.1:37699")
+    val simpleExtSim = new SimpleExtSimulation()
 
     val extSimAdapterPhase1 = context.toClassic.simonaActorOf(
       ExtSimAdapter.props(extScheduler.toClassic),
@@ -400,11 +531,11 @@ class SimonaMosaikSetup(
     val extPrimaryData = new ExtPrimaryData(
       extPrimaryDataService,
       extSimAdapterPhase1,
-      mosaikExtSim.getExtPrimaryDataSimulation.getPrimaryDataFactory,
-      mosaikExtSim.getExtPrimaryDataSimulation.getPrimaryDataAssets
+      simpleExtSim.getExtPrimaryDataSimulation.getPrimaryDataFactory,
+      simpleExtSim.getExtPrimaryDataSimulation.getPrimaryDataAssets
     )
 
-    mosaikExtSim.getExtPrimaryDataSimulation.setExtPrimaryData(extPrimaryData)
+    simpleExtSim.getExtPrimaryDataSimulation.setExtPrimaryData(extPrimaryData)
 
     extPrimaryDataService ! SimonaService.Create(
       InitExtPrimaryData(extPrimaryData),
@@ -438,12 +569,12 @@ class SimonaMosaikSetup(
         adapterRef.toClassic,
         adapterScheduleRef.toClassic,
         extSimAdapterPhase2,
-        mosaikExtSim.getExtResultDataSimulation.getResultDataFactory,
-        mosaikExtSim.getExtResultDataSimulation.getResultDataAssets,
+        simpleExtSim.getExtResultDataSimulation.getResultDataFactory,
+        simpleExtSim.getExtResultDataSimulation.getResultDataAssets,
         simulationStart
       )
 
-    mosaikExtSim.getExtResultDataSimulation.setExtResultData(extResultData)
+    simpleExtSim.getExtResultDataSimulation.setExtResultData(extResultData)
 
     extResultDataProvider ! ExtResultDataProvider.Create(
       InitExtResultData(extResultData),
@@ -460,15 +591,13 @@ class SimonaMosaikSetup(
       extPrimaryData
     )
 
-    mosaikExtSim.setup(
+    simpleExtSim.setup(
       extSimAdapterData,
       simpleExtSimDatas.asJava,
     )
     // starting external simulation
-    new Thread(mosaikExtSim, s"External simulation")
+    new Thread(simpleExtSim, s"External simulation")
       .start()
-
-
 
     val extDataServicesMap: Map[Class[_], ClassicRef] = Map(
       classOf[ExtPrimaryDataService] -> extPrimaryDataService,
@@ -609,15 +738,14 @@ class SimonaMosaikSetup(
 /** Companion object to provide [[SetupHelper]] methods for
   * [[SimonaStandaloneSetup]]
   */
-object SimonaMosaikSetup extends LazyLogging with SetupHelper {
-
+object SimonaOpsimSetup extends LazyLogging with SetupHelper {
   def apply(
       typeSafeConfig: Config,
       resultFileHierarchy: ResultFileHierarchy,
       runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
       mainArgs: Array[String] = Array.empty[String],
-  ): SimonaMosaikSetup =
-    new SimonaMosaikSetup(
+  ): SimonaOpsimSetup =
+    new SimonaOpsimSetup(
       typeSafeConfig,
       SimonaConfig(typeSafeConfig),
       resultFileHierarchy,

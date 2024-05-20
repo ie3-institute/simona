@@ -151,7 +151,7 @@ object ResultEventListener extends Transformer3wResultSupport {
       log: Logger,
       nextTick: Option[Long] = None
   ): BaseData = {
-    log.info("Got Result " + resultEntity)
+    //log.info("Got Result " + resultEntity)
     handOverToSink(resultEntity, baseData.classToSink, log)
     if (baseData.extResultDataService.isDefined) {
       handOverToExternalService(

@@ -191,15 +191,24 @@ class GridAgentController(
       _.getControllingEm.toScala.map(em => em.getUuid -> em)
     }.toMap
 
+    //log.info(s"firstLevelEms = $firstLevelEms")
+
     val allEms = buildEmsRecursively(
       participantConfigUtil,
       outputConfigUtil,
       firstLevelEms,
+      extEmDataService = environmentRefs.emDataService
     )
+
+    log.info(s"Built allEms = $allEms")
+    log.info(s"Particpants = $participants")
 
     participants
       .map { participant =>
+        log.info(s"Built Participant = $participant")
         val node = participant.getNode
+
+
 
         val actorRef = buildParticipantActor(
           participantsConfig.requestVoltageDeviationThreshold,
@@ -208,7 +217,14 @@ class GridAgentController(
           participant,
           thermalIslandGridsByBusId,
           environmentRefs,
-          allEms.get(participant.getUuid),
+          participant.getControllingEm.toScala.map(_.getUuid).map(
+            uuid => allEms.getOrElse(
+              uuid,
+              throw new CriticalFailureException(
+                s"Actor for EM $uuid not found."
+              ),
+            ),
+          )
         )
         introduceAgentToEnvironment(actorRef)
         // return uuid to actorRef
@@ -240,6 +256,7 @@ class GridAgentController(
       outputConfigUtil: OutputConfigUtil,
       emInputs: Map[UUID, EmInput],
       previousLevelEms: Map[UUID, ActorRef[FlexResponse]] = Map.empty,
+      extEmDataService: Option[ClassicRef] = None
   ): Map[UUID, ActorRef[FlexResponse]] = {
     // For the current level, split controlled and uncontrolled EMs.
     // Uncontrolled EMs can be built right away.
@@ -261,6 +278,9 @@ class GridAgentController(
     val previousLevelAndUncontrolledEms =
       previousLevelEms ++ uncontrolledEms.toMap
 
+    log.info(s"controlledEmInputs = $controlledEmInputs")
+    log.info(s"previousLevelAndUncontrolledEms = $previousLevelAndUncontrolledEms")
+
     if (controlledEmInputs.nonEmpty) {
       // For controlled EMs at the current level, more EMs
       // might need to be built at the next recursion level.
@@ -268,16 +288,20 @@ class GridAgentController(
         case (uuid, emInput) =>
           emInput.getControllingEm.toScala.map(uuid -> _)
       }
-
+      log.info(s"now build controlled Ems -> These are possible controllers = $controllingEms")
       // Return value includes previous level and uncontrolled EMs of this level
       val recursiveEms = buildEmsRecursively(
         participantConfigUtil,
         outputConfigUtil,
         controllingEms,
         previousLevelAndUncontrolledEms,
+        extEmDataService = extEmDataService
       )
+      log.info(s"-> after recursion recursiveEms = $recursiveEms")
 
       val controlledEms = controlledEmInputs.map { case (uuid, emInput) =>
+        log.info(s"-> uuid = $uuid, emInput = $emInput")
+        /*
         val controllingEm = emInput.getControllingEm.toScala
           .map(_.getUuid)
           .map(uuid =>
@@ -289,6 +313,15 @@ class GridAgentController(
             )
           )
 
+         */
+        val controllingEm = Some(recursiveEms.getOrElse(
+          uuid,
+          throw new CriticalFailureException(
+            s"Actor for EM $uuid not found."
+          ),
+        ))
+        log.info(s"-> contorllingEm = $controllingEm")
+
         uuid -> buildEm(
           emInput,
           participantConfigUtil.getOrDefault[EmRuntimeConfig](uuid),
@@ -296,7 +329,7 @@ class GridAgentController(
           maybeControllingEm = controllingEm,
         )
       }.toMap
-
+      log.info(s"-> controlledEms = $controlledEms, recursiveEms = $recursiveEms")
       recursiveEms ++ controlledEms
     } else {
       previousLevelAndUncontrolledEms
@@ -788,7 +821,8 @@ class GridAgentController(
       modelConfiguration: EmRuntimeConfig,
       outputConfig: NotifierConfig,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
-  ): ActorRef[FlexResponse] =
+  ): ActorRef[FlexResponse] = {
+    log.info("Spawn Em = " + emInput + ", maybeControlling Em = " + maybeControllingEm)
     gridAgentContext.spawn(
       EmAgent(
         emInput,
@@ -802,9 +836,11 @@ class GridAgentController(
           environmentRefs.scheduler
         ),
         listener,
+        environmentRefs.emDataService
       ),
       actorName(classOf[EmAgent.type], emInput.getId),
     )
+  }
 
   /** Introduces the given agent to scheduler
     *

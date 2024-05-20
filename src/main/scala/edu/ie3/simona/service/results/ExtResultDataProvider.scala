@@ -53,7 +53,7 @@ object ExtResultDataProvider {
 
   def apply(
             scheduler: ActorRef[SchedulerMessage]
-           ): Behavior[Request] =  Behaviors.withStash(500) { buffer =>
+           ): Behavior[Request] =  Behaviors.withStash(5000) { buffer =>
     Behaviors.setup[Request] { ctx =>
       //ctx.log.info("Starting initialization!")
       val activationAdapter: ActorRef[Activation] = ctx.messageAdapter[Activation](msg => WrappedActivation(msg))

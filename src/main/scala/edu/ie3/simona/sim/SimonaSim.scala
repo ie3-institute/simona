@@ -103,6 +103,7 @@ object SimonaSim {
           primaryServiceProxy,
           weatherService,
           extSimulationData.evDataService,
+          extSimulationData.extEmDataService
         )
 
         val resultEventListeners =

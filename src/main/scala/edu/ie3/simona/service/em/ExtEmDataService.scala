@@ -6,16 +6,18 @@ import edu.ie3.simona.api.data.em.ontology.{EmDataMessageFromExt, ProvideEmData}
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.IssuePowerControl
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.ExtPrimaryDataServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{FlexRequest, IssuePowerControl, ProvideExtEmSetPoint, RequestFlexOptions}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.ExtEmDataServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.{DataMessage, ServiceMessage}
 import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
-import edu.ie3.simona.service.em.ExtEmDataService.{ExtEmDataStateData, InitExtEmData}
-import edu.ie3.simona.service.primary.ExtPrimaryDataService.{ExtPrimaryDataStateData, InitExtPrimaryData}
+import edu.ie3.simona.service.em.ExtEmDataService.{ExtEmDataStateData, InitExtEmData, WrappedIssuePowerControl}
 import edu.ie3.simona.service.{ExtDataSupport, SimonaService}
-import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.{ActorContext, Props, ActorRef => ClassicRef}
 import squants.Power
 import squants.energy.Kilowatts
+import edu.ie3.simona.agent.em.EmAgent
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{RegistrationSuccessfulMessage, WrappedRegistrationSuccessfulMessage}
 
 import java.util.UUID
 import scala.jdk.CollectionConverters.MapHasAsScala
@@ -23,27 +25,32 @@ import scala.util.{Failure, Success, Try}
 
 object ExtEmDataService {
 
-  def props(scheduler: ActorRef): Props =
+  def props(scheduler: ClassicRef): Props =
     Props(
-      new ExtEmDataService(scheduler: ActorRef)
+      new ExtEmDataService(scheduler: ClassicRef)
     )
 
   final case class ExtEmDataStateData(
                                             extEmData: ExtEmData,
                                             subscribers: List[UUID] = List.empty,
-                                            uuidToActorRef: Map[UUID, ActorRef] = Map.empty[UUID, ActorRef], // subscribers in SIMONA
+                                            uuidToActorRef: Map[UUID, ActorRef[EmAgent.Request]] = Map.empty[UUID, ActorRef[EmAgent.Request]], // subscribers in SIMONA
+                                            uuidToAdapterRef: Map[UUID, ActorRef[FlexRequest]] = Map.empty[UUID, ActorRef[FlexRequest]], // subscribers in SIMONA
                                             extEmDataMessage: Option[EmDataMessageFromExt] = None,
                                           ) extends ServiceBaseStateData
 
   case class InitExtEmData(
                                  extEmData: ExtEmData
                                ) extends InitializeServiceStateData
+
+  final case class WrappedIssuePowerControl(
+                                            issuePowerControl: IssuePowerControl
+                                          ) extends EmAgent.Request
 }
 
 
 
 final case class ExtEmDataService(
-                                        override val scheduler: ActorRef
+                                        override val scheduler: ClassicRef
                                       ) extends SimonaService[ExtEmDataStateData](scheduler)
   with ExtDataSupport[ExtEmDataStateData] {
 
@@ -64,7 +71,16 @@ final case class ExtEmDataService(
   override def init(initServiceData: InitializeServiceStateData): Try[(ExtEmDataStateData, Option[Long])] = initServiceData match {
     case InitExtEmData(extEmData) =>
       val emDataInitializedStateData = ExtEmDataStateData(
-        extEmData
+        extEmData,
+        subscribers = List(
+          UUID.fromString("c3a7e9f5-b492-4c85-af2d-1e93f6a25443"),
+          UUID.fromString("f9dc7ce6-658c-4101-a12f-d58bb889286b"),
+          UUID.fromString("957938b7-0476-4fab-a1b3-6ce8615857b3")
+        )
+        //subscribers = List(
+        //  UUID.fromString("fd1a8de9-722a-4304-8799-e1e976d9979c"),
+        //  UUID.fromString("ff0b995a-86ff-4f4d-987e-e475a64f2180")
+        //)
       )
       Success(
         emDataInitializedStateData,
@@ -93,11 +109,12 @@ final case class ExtEmDataService(
                                                     registrationMessage: ServiceMessage.ServiceRegistrationMessage
                                                   )(
     implicit serviceStateData: ExtEmDataStateData): Try[ExtEmDataStateData] = registrationMessage match {
-    case ExtPrimaryDataServiceRegistrationMessage(
+    case ExtEmDataServiceRegistrationMessage(
       modelUuid,
       requestingActor,
+      flexAdapter
     ) =>
-      null
+      Success(handleEmRegistrationRequest(modelUuid, requestingActor, flexAdapter))
     case invalidMessage =>
       Failure(
         InvalidRegistrationRequestException(
@@ -105,6 +122,25 @@ final case class ExtEmDataService(
         )
       )
   }
+
+  private def handleEmRegistrationRequest(
+                                           modelUuid: UUID,
+                                           modelActorRef: ActorRef[EmAgent.Request],
+                                           flexAdapterRef: ActorRef[FlexRequest]
+                                         )(
+                                           implicit serviceStateData: ExtEmDataStateData): ExtEmDataStateData = {
+    if (serviceStateData.subscribers.contains(modelUuid)) {
+      modelActorRef ! WrappedRegistrationSuccessfulMessage(RegistrationSuccessfulMessage(self, None))
+      serviceStateData.copy(
+        uuidToActorRef = serviceStateData.uuidToActorRef + (modelUuid -> modelActorRef),
+        uuidToAdapterRef = serviceStateData.uuidToAdapterRef + (modelUuid -> flexAdapterRef)
+      )
+    } else {
+      serviceStateData
+    }
+  }
+
+
   /** Send out the information to all registered recipients
    *
    * @param tick
@@ -139,7 +175,7 @@ final case class ExtEmDataService(
     ) = {
     val actorToEmData = emData.asScala.flatMap {
       case (agent, emDataPerAgent) =>
-        serviceStateData.uuidToActorRef
+        serviceStateData.uuidToAdapterRef
           .get(agent)
           .map((_, convertToSetPoint(emDataPerAgent)))
           .orElse {
@@ -150,10 +186,13 @@ final case class ExtEmDataService(
             None
           }
     }
+    log.info(s"Received ActorToEmData = $actorToEmData")
 
     if (actorToEmData.nonEmpty) {
+      log.info("ProvideEmData")
+
       actorToEmData.foreach {
-        case (actor, setPoint) => actor ! IssuePowerControl(
+        case (actor, setPoint) => actor ! ProvideExtEmSetPoint(
           tick,
           setPoint
         )
@@ -179,8 +218,10 @@ final case class ExtEmDataService(
    */
   override protected def handleDataMessage(extMsg: DataMessageFromExt)(implicit serviceStateData: ExtEmDataStateData): ExtEmDataStateData = {
     extMsg match {
-      case extEmDataMessage: EmDataMessageFromExt => serviceStateData.copy(
-        extEmDataMessage = Some(extEmDataMessage)
+      case extEmDataMessage: EmDataMessageFromExt =>
+        log.info("Received EmDataMessageFromExt")
+        serviceStateData.copy(
+          extEmDataMessage = Some(extEmDataMessage)
       )
     }
   }

@@ -275,8 +275,12 @@ protected trait ParticipantAgentFundamentals[
       val awaitRegistrationResponsesFrom =
         registerForServices(inputModel.electricalInputModel, services)
 
+      log.info(s"Participant Agent maybeEmAgent $maybeEmAgent")
       // register with EM if applicable
       maybeEmAgent.foreach { emAgent =>
+        log.info(s"Agent ${
+          inputModel.electricalInputModel.getUuid
+        } register for Em!")
         emAgent ! RegisterParticipant(
           inputModel.electricalInputModel.getUuid,
           self.toTyped[FlexRequest],

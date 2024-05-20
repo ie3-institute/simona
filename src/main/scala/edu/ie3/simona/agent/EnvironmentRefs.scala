@@ -31,4 +31,5 @@ final case class EnvironmentRefs(
     primaryServiceProxy: ClassicRef,
     weather: ClassicRef,
     evDataService: Option[ClassicRef],
+    emDataService: Option[ClassicRef]
 )
