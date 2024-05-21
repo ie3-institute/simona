@@ -243,7 +243,7 @@ class EvcsModelSpec
             "firstResultIndex",
             "lastResultIndex",
           ),
-          (3600L, 10800L, 1, 5),
+          (1800L, 10800L, 0, 5),
           (3600L, 10000L, 1, 5),
           (2700L, 9000L, 0, 4),
           (3600L, 9000L, 1, 4),
