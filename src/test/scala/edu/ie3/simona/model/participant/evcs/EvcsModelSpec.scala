@@ -475,7 +475,12 @@ class EvcsModelSpec
           1800,
         )
         val ev2atTick1800 =
-          evcsStandardModelWithFixedUUID.chargeEv(ev2, schedule2, 900, 1800)
+          evcsStandardModelWithFixedUUID.chargeEv(
+            ev2,
+            schedule2,
+            900,
+            1800,
+          )
 
         // Tick 2700
         val lastState1800 = EvcsState(
