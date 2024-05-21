@@ -106,7 +106,6 @@ final case class EmModelShell(
       model -> power
     }
   }
-
 }
 
 object EmModelShell {

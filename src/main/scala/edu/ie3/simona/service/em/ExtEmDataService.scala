@@ -186,11 +186,9 @@ final case class ExtEmDataService(
             None
           }
     }
-    log.info(s"Received ActorToEmData = $actorToEmData")
+    log.debug(s"Received ActorToEmData = $actorToEmData")
 
     if (actorToEmData.nonEmpty) {
-      log.info("ProvideEmData")
-
       actorToEmData.foreach {
         case (actor, setPoint) => actor ! ProvideExtEmSetPoint(
           tick,
@@ -219,7 +217,6 @@ final case class ExtEmDataService(
   override protected def handleDataMessage(extMsg: DataMessageFromExt)(implicit serviceStateData: ExtEmDataStateData): ExtEmDataStateData = {
     extMsg match {
       case extEmDataMessage: EmDataMessageFromExt =>
-        log.info("Received EmDataMessageFromExt")
         serviceStateData.copy(
           extEmDataMessage = Some(extEmDataMessage)
       )

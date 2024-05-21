@@ -140,6 +140,7 @@ object ExtResultDataProvider {
             //ctx.log.info(s"[requestResults] for tick ${msg.tick} and resultStorage ${serviceStateData.resultStorage}")
             var receiveDataMap = ReceiveDataMap[UUID, ResultEntity](serviceStateData.subscribers.toSet)
             //ctx.log.info(s"[requestResults] tick ${msg.tick} -> created a receivedatamap " + receiveDataMap)
+            /*
             serviceStateData.resultStorage.foreach({
               case (uuid, (res, t)) =>
                 //ctx.log.info(s"[requestResults] tick = ${msg.tick}, uuid = $uuid, and time = ${t.getOrElse("Option")}, result = ${res.getOrElse("Option")}")
@@ -153,6 +154,8 @@ object ExtResultDataProvider {
                   //ctx.log.info(s"[requestResults] tick ${msg.tick} -> added to receivedatamap " + receiveDataMap)
                 }
             })
+
+             */
 
             //ctx.log.info(s"[requestResults] tick ${msg.tick} -> requestResults for " + receiveDataMap)
 
