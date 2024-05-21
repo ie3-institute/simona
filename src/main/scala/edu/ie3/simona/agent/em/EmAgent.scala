@@ -142,7 +142,7 @@ object EmAgent {
     val modelShell = EmModelShell(
       inputModel.getUuid,
       inputModel.getId,
-      modelStrategy,
+      inputModel.getControlStrategy,
       modelConfig,
     )
 
