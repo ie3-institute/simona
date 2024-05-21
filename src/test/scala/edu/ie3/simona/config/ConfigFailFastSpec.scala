@@ -22,8 +22,8 @@ import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
 import edu.ie3.util.TimeUtil
 
-import java.time.{Duration, ZonedDateTime}
 import java.time.temporal.ChronoUnit
+import java.time.{Duration, ZonedDateTime}
 
 class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
   "Validating the configs" when {
@@ -77,7 +77,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               "total non-sense"
             )
           }.getMessage shouldBe "Invalid dateTimeString: total non-sense." +
-            "Please ensure that your date/time parameter match the following pattern: 'yyyy-MM-dd HH:mm:ss'"
+            "Please ensure that your date/time parameter match the following pattern: 'yyyy-MM-dd'T'HH:mm:ss'Z''"
         }
       }
 
@@ -142,7 +142,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "throw an InvalidConfigParametersException when the gridId is malformed" in {
 
-          val malformedGridIds = List("10--100", "MS", "10..100")
+          val malformedGridIds = List("10--100", "MV", "10..100")
 
           malformedGridIds.foreach(malformedGridId => {
 
@@ -156,12 +156,14 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                    |]""".stripMargin)
             val faultyConfig =
               refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
-            val faultySimonaConfig = SimonaConfig(faultyConfig)
+            val faultySimonaConfig: List[SimonaConfig] =
+              List(SimonaConfig(faultyConfig))
 
             intercept[InvalidConfigParameterException] {
-              faultySimonaConfig.simona.gridConfig.refSystems.foreach(
-                refSystem =>
+              faultySimonaConfig.foreach(conf =>
+                conf.simona.gridConfig.refSystems.foreach(refSystem =>
                   ConfigFailFast invokePrivate checkRefSystem(refSystem)
+                )
               )
             }.getMessage shouldBe s"The provided gridId $malformedGridId is malformed!"
 
@@ -180,11 +182,14 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 |]""".stripMargin)
           val faultyConfig =
             refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
-          val faultySimonaConfig = SimonaConfig(faultyConfig)
+          val faultySimonaConfig: List[SimonaConfig] =
+            List(SimonaConfig(faultyConfig))
 
           intercept[InvalidConfigParameterException] {
-            faultySimonaConfig.simona.gridConfig.refSystems.foreach(refSystem =>
-              ConfigFailFast invokePrivate checkRefSystem(refSystem)
+            faultySimonaConfig.foreach(conf =>
+              conf.simona.gridConfig.refSystems.foreach(refSystem =>
+                ConfigFailFast invokePrivate checkRefSystem(refSystem)
+              )
             )
           }.getMessage shouldBe "The given nominal voltage 'foo' cannot be parsed to a quantity. Did you provide the volt level with it's unit (e.g. \"20 kV\")?"
 
@@ -197,19 +202,22 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 |  {
                 |   sNom="100",
                 |   vNom="0.4 kV",
-                |   voltLvls = [{id = "MS", vNom = "10 kV"},{id = "HS", vNom = "110 kV"}]
+                |   voltLvls = [{id = "MV", vNom = "10 kV"},{id = "HV", vNom = "110 kV"}]
                 |   }
                 |]""".stripMargin
             )
           val faultyConfig =
             refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
-          val faultySimonaConfig = SimonaConfig(faultyConfig)
+          val faultySimonaConfig: List[SimonaConfig] =
+            List(SimonaConfig(faultyConfig))
 
           intercept[InvalidConfigParameterException] {
-            faultySimonaConfig.simona.gridConfig.refSystems.foreach(refSystem =>
-              ConfigFailFast invokePrivate checkRefSystem(refSystem)
+            faultySimonaConfig.foreach(conf =>
+              conf.simona.gridConfig.refSystems.foreach(refSystem =>
+                ConfigFailFast invokePrivate checkRefSystem(refSystem)
+              )
             )
-          }.getMessage shouldBe "Invalid value for sNom from provided refSystem RefSystemConfig(None,100,0.4 kV,Some(List(VoltLvlConfig(MS,10 kV), VoltLvlConfig(HS,110 kV)))). Is a valid unit provided?"
+          }.getMessage shouldBe "Invalid value for sNom from provided refSystem RefSystemConfig(None,100,0.4 kV,Some(List(VoltLvlConfig(MV,10 kV), VoltLvlConfig(HV,110 kV)))). Is a valid unit provided?"
 
         }
 
@@ -221,19 +229,22 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 |  {
                 |   sNom="100 MVA",
                 |   vNom="0.4",
-                |   voltLvls = [{id = "MS", vNom = "10 kV"},{id = "HS", vNom = "110 kV"}]
+                |   voltLvls = [{id = "MV", vNom = "10 kV"},{id = "HV", vNom = "110 kV"}]
                 |   }
                 |]""".stripMargin
             )
           val faultyConfig =
             refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
-          val faultySimonaConfig = SimonaConfig(faultyConfig)
+          val faultySimonaConfig: List[SimonaConfig] =
+            List(SimonaConfig(faultyConfig))
 
           intercept[InvalidConfigParameterException] {
-            faultySimonaConfig.simona.gridConfig.refSystems.foreach(refSystem =>
-              ConfigFailFast invokePrivate checkRefSystem(refSystem)
+            faultySimonaConfig.foreach(conf =>
+              conf.simona.gridConfig.refSystems.foreach(refSystem =>
+                ConfigFailFast invokePrivate checkRefSystem(refSystem)
+              )
             )
-          }.getMessage shouldBe "Invalid value for vNom from provided refSystem RefSystemConfig(None,100 MVA,0.4,Some(List(VoltLvlConfig(MS,10 kV), VoltLvlConfig(HS,110 kV)))). Is a valid unit provided?"
+          }.getMessage shouldBe "Invalid value for vNom from provided refSystem RefSystemConfig(None,100 MVA,0.4,Some(List(VoltLvlConfig(MV,10 kV), VoltLvlConfig(HV,110 kV)))). Is a valid unit provided?"
 
         }
 
@@ -244,24 +255,26 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 |  {
                 |   sNom="100 MVA",
                 |   vNom="0.4 kV",
-                |   voltLvls = [{id = "MS", vNom = "10 kV"},{id = "HS", vNom = "110 kV"}]
+                |   voltLvls = [{id = "MV", vNom = "10 kV"},{id = "HV", vNom = "110 kV"}]
                 |   gridIds = ["1","1-10","10...100"]
                 |   },
                 |   {
                 |   sNom="1000 MVA",
                 |   vNom="10kV",
-                |   voltLvls = [{id = "HS", vNom = "110 kV"},{id = "HoeS", vNom = "380 kV"}]
+                |   voltLvls = [{id = "HV", vNom = "110 kV"},{id = "EHV", vNom = "380 kV"}]
                 |   gridIds = ["1-3","3...6","10...100"]
                 |   }
                 |]""".stripMargin
             )
           val config =
             refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
-          val simonaConfig = SimonaConfig(config)
+          val simonaConfig = List(SimonaConfig(config))
 
-          simonaConfig.simona.gridConfig.refSystems.foreach(refSystem => {
-            ConfigFailFast invokePrivate checkRefSystem(refSystem)
-          })
+          simonaConfig.foreach(conf =>
+            conf.simona.gridConfig.refSystems.foreach(refSystem => {
+              ConfigFailFast invokePrivate checkRefSystem(refSystem)
+            })
+          )
 
         }
       }
