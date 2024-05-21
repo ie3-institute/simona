@@ -468,13 +468,12 @@ class EvcsModelSpec
             1800,
             Each(1d),
           )
-        val ev1atTick1800 =
-          evcsStandardModelWithFixedUUID.chargeEv(
-            ev1atTick900,
-            schedule1,
-            900,
-            1800,
-          )
+        val ev1atTick1800 = evcsStandardModelWithFixedUUID.chargeEv(
+          ev1atTick900,
+          schedule1,
+          900,
+          1800,
+        )
         val ev2atTick1800 =
           evcsStandardModelWithFixedUUID.chargeEv(ev2, schedule2, 900, 1800)
 
