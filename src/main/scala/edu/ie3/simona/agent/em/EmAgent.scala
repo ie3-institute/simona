@@ -323,7 +323,7 @@ object EmAgent {
                 )
               } else { // We got set points
                 setPower = emData.extEmDataServiceData.dataProvisionMessage.map(setPoint => setPoint.setPower).getOrElse(throw new RuntimeException("Got a wrong set point!"))
-                ctx.log.info(s"[UNCONTROLLED] EM Agent ${ctx.self}: Got a external Set Power = $setPower")
+                ctx.log.debug(s"[UNCONTROLLED] EM Agent ${ctx.self}: Got a external Set Power = $setPower")
                 updatedEmData = emData.copy(
                   extEmDataServiceData = emData.extEmDataServiceData.copy(
                     dataProvisionMessage = None
