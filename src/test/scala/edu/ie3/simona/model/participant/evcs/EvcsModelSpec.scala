@@ -598,6 +598,8 @@ class EvcsModelSpec
           )
 
         // Expected Results and Assertion
+        // Tick: 900
+        // Nothing happened so far
         actualEvResults900 should have size 0
         val expectedEvcsResults900 = List(
           new EvcsResult(
@@ -615,6 +617,8 @@ class EvcsModelSpec
             actual.getQ shouldBe expected.getQ
         }
 
+        // Tick: 1800
+        // 1 Entry for results of ev charging in tick 900
         actualEvResults1800 should have size 1
         val expectedResults1800: List[EvResult] = List(
           new EvResult(
@@ -650,6 +654,8 @@ class EvcsModelSpec
             actual.getQ shouldBe expected.getQ
         }
 
+        // Tick: 2700
+        // 2 Entries for results of ev charging in tick 1800
         actualEvResults2700 should have size 2
         val expectedResults2700: List[EvResult] = List(
           new EvResult(
@@ -692,6 +698,7 @@ class EvcsModelSpec
             actual.getQ shouldBe expected.getQ
         }
 
+        // Tick: 3600
         // 3 Entries for results of ev charging in tick 2700 and 1 entry for leaving ev at tick 3600
         actualEvResults3600 should have size 4
         val expectedEvResults3600: List[EvResult] = List(
@@ -749,6 +756,7 @@ class EvcsModelSpec
             actual.getQ shouldBe expected.getQ
         }
 
+        // Tick: 4500
         // 2 Entries for results of ev charging in tick 3600 and 1 entry for leaving ev at tick 4500
         actualEvResults4500 should have size 3
         val expectedEvResults4500: List[EvResult] = List(
@@ -798,6 +806,8 @@ class EvcsModelSpec
             actual.getP shouldBe expected.getP
             actual.getQ shouldBe expected.getQ
         }
+
+        // Tick: 5400
         // 1 Entries for results of ev charging in tick 4500 and 1 entry for leaving ev at tick 5400
         actualEvResults5400 should have size 2
         val expectedEvResults5400: List[EvResult] = List(
@@ -841,6 +851,8 @@ class EvcsModelSpec
             actual.getQ shouldBe expected.getQ
         }
 
+        // Tick: 6300
+        // no evs charging after 5400, thus we only expect zero power at the charging station
         actualEvResults6300 should have size 0
 
         val expectedEvcsResults6300 = List(
