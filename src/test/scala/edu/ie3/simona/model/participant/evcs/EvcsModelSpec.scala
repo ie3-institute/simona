@@ -243,7 +243,7 @@ class EvcsModelSpec
             "firstResultIndex",
             "lastResultIndex",
           ),
-          (3600L, 10800L, 1, 5),
+          (1800L, 10800L, 0, 5),
           (3600L, 10000L, 1, 5),
           (2700L, 9000L, 0, 4),
           (3600L, 9000L, 1, 4),
@@ -452,13 +452,13 @@ class EvcsModelSpec
             900,
             Each(1d),
           )
-        val ev1_900 =
+        val ev1atTick900 =
           evcsStandardModelWithFixedUUID.chargeEv(ev1, schedule1, 0, 900)
 
         // Tick 1800
         val lastState900 = EvcsState(
-          Seq(ev1_900),
-          Map(ev1_900.uuid -> schedule1),
+          Seq(ev1atTick900),
+          Map(ev1atTick900.uuid -> schedule1),
           900,
         )
 
@@ -468,15 +468,24 @@ class EvcsModelSpec
             1800,
             Each(1d),
           )
-        val ev1_1800 =
-          evcsStandardModelWithFixedUUID.chargeEv(ev1_900, schedule1, 900, 1800)
-        val ev2_1800 =
-          evcsStandardModelWithFixedUUID.chargeEv(ev2, schedule2, 900, 1800)
+        val ev1atTick1800 = evcsStandardModelWithFixedUUID.chargeEv(
+          ev1atTick900,
+          schedule1,
+          900,
+          1800,
+        )
+        val ev2atTick1800 =
+          evcsStandardModelWithFixedUUID.chargeEv(
+            ev2,
+            schedule2,
+            900,
+            1800,
+          )
 
         // Tick 2700
         val lastState1800 = EvcsState(
-          Seq(ev1_1800, ev2_1800),
-          Map(ev1_1800.uuid -> schedule1, ev2_1800.uuid -> schedule2),
+          Seq(ev1atTick1800, ev2atTick1800),
+          Map(ev1atTick1800.uuid -> schedule1, ev2atTick1800.uuid -> schedule2),
           1800,
         )
 
@@ -486,28 +495,28 @@ class EvcsModelSpec
             2700,
             Each(1d),
           )
-        val ev1_2700 = evcsStandardModelWithFixedUUID.chargeEv(
-          ev1_1800,
+        val ev1atTick2700 = evcsStandardModelWithFixedUUID.chargeEv(
+          ev1atTick1800,
           schedule1,
           1800,
           2700,
         )
-        val ev2_2700 = evcsStandardModelWithFixedUUID.chargeEv(
-          ev2_1800,
+        val ev2atTick2700 = evcsStandardModelWithFixedUUID.chargeEv(
+          ev2atTick1800,
           schedule2,
           1800,
           2700,
         )
-        val ev3_2700 =
+        val ev3atTick2700 =
           evcsStandardModelWithFixedUUID.chargeEv(ev3, schedule3, 1800, 2700)
 
         // Tick 3600
         val lastState2700 = EvcsState(
-          Seq(ev1_2700, ev2_2700, ev3_2700),
+          Seq(ev1atTick2700, ev2atTick2700, ev3atTick2700),
           Map(
-            ev1_2700.uuid -> schedule1,
-            ev2_2700.uuid -> schedule2,
-            ev3_2700.uuid -> schedule3,
+            ev1atTick2700.uuid -> schedule1,
+            ev2atTick2700.uuid -> schedule2,
+            ev3atTick2700.uuid -> schedule3,
           ),
           2700,
         )
@@ -518,14 +527,14 @@ class EvcsModelSpec
             3600,
             Each(1d),
           )
-        val ev2_3600 = evcsStandardModelWithFixedUUID.chargeEv(
-          ev2_2700,
+        val ev2atTick3600 = evcsStandardModelWithFixedUUID.chargeEv(
+          ev2atTick2700,
           schedule2,
           2700,
           3600,
         )
-        val ev3_3600 = evcsStandardModelWithFixedUUID.chargeEv(
-          ev3_2700,
+        val ev3atTick3600 = evcsStandardModelWithFixedUUID.chargeEv(
+          ev3atTick2700,
           schedule3,
           2700,
           3600,
@@ -533,10 +542,10 @@ class EvcsModelSpec
 
         // Tick 4500
         val lastState3600 = EvcsState(
-          Seq(ev2_3600, ev3_3600),
+          Seq(ev2atTick3600, ev3atTick3600),
           Map(
-            ev2_3600.uuid -> schedule2,
-            ev3_3600.uuid -> schedule3,
+            ev2atTick3600.uuid -> schedule2,
+            ev3atTick3600.uuid -> schedule3,
           ),
           3600,
         )
@@ -548,8 +557,8 @@ class EvcsModelSpec
             Each(1d),
           )
 
-        val ev3_4500 = evcsStandardModelWithFixedUUID.chargeEv(
-          ev3_3600,
+        val ev3atTick4500 = evcsStandardModelWithFixedUUID.chargeEv(
+          ev3atTick3600,
           schedule3,
           3600,
           4500,
@@ -557,8 +566,8 @@ class EvcsModelSpec
 
         // Tick 5400
         val lastState4500 = EvcsState(
-          Seq(ev3_4500),
-          Map(ev3_4500.uuid -> schedule3),
+          Seq(ev3atTick4500),
+          Map(ev3atTick4500.uuid -> schedule3),
           4500,
         )
 
@@ -568,8 +577,8 @@ class EvcsModelSpec
             5400,
             Each(1d),
           )
-        val ev3_5400 = evcsStandardModelWithFixedUUID.chargeEv(
-          ev3_4500,
+        val ev3atTick5400 = evcsStandardModelWithFixedUUID.chargeEv(
+          ev3atTick4500,
           schedule3,
           4500,
           5400,
@@ -589,6 +598,8 @@ class EvcsModelSpec
           )
 
         // Expected Results and Assertion
+        // Tick: 900
+        // Nothing happened so far
         actualEvResults900 should have size 0
         val expectedEvcsResults900 = List(
           new EvcsResult(
@@ -606,6 +617,8 @@ class EvcsModelSpec
             actual.getQ shouldBe expected.getQ
         }
 
+        // Tick: 1800
+        // 1 Entry for results of ev charging in tick 900
         actualEvResults1800 should have size 1
         val expectedResults1800: List[EvResult] = List(
           new EvResult(
@@ -641,6 +654,8 @@ class EvcsModelSpec
             actual.getQ shouldBe expected.getQ
         }
 
+        // Tick: 2700
+        // 2 Entries for results of ev charging in tick 1800
         actualEvResults2700 should have size 2
         val expectedResults2700: List[EvResult] = List(
           new EvResult(
@@ -683,6 +698,7 @@ class EvcsModelSpec
             actual.getQ shouldBe expected.getQ
         }
 
+        // Tick: 3600
         // 3 Entries for results of ev charging in tick 2700 and 1 entry for leaving ev at tick 3600
         actualEvResults3600 should have size 4
         val expectedEvResults3600: List[EvResult] = List(
@@ -740,6 +756,7 @@ class EvcsModelSpec
             actual.getQ shouldBe expected.getQ
         }
 
+        // Tick: 4500
         // 2 Entries for results of ev charging in tick 3600 and 1 entry for leaving ev at tick 4500
         actualEvResults4500 should have size 3
         val expectedEvResults4500: List[EvResult] = List(
@@ -789,6 +806,8 @@ class EvcsModelSpec
             actual.getP shouldBe expected.getP
             actual.getQ shouldBe expected.getQ
         }
+
+        // Tick: 5400
         // 1 Entries for results of ev charging in tick 4500 and 1 entry for leaving ev at tick 5400
         actualEvResults5400 should have size 2
         val expectedEvResults5400: List[EvResult] = List(
@@ -832,6 +851,8 @@ class EvcsModelSpec
             actual.getQ shouldBe expected.getQ
         }
 
+        // Tick: 6300
+        // no evs charging after 5400, thus we only expect zero power at the charging station
         actualEvResults6300 should have size 0
 
         val expectedEvcsResults6300 = List(
