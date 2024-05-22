@@ -43,7 +43,7 @@ trait TransformerTapping {
 
   def currentTapPos: Int = transformerTappingModel.currentTapPos
 
-  def tapSide: ConnectorPort = transformerTappingModel.tapSide
+  def getTapSide: ConnectorPort = transformerTappingModel.tapSide
 
   /** Initialize the tapping model. Should be called after creating the
     * implementing model

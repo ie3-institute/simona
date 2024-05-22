@@ -83,7 +83,7 @@ trait CongestionManagementSupport {
   ): (Map[TransformerTapping, Int], ComparableQuantity[Dimensionless]) = {
     val inverted = suggestion.multiply(-1)
 
-    if (tappings.exists(_.tapSide != ConnectorPort.A)) {
+    if (tappings.exists(_.getTapSide != ConnectorPort.A)) {
       // for now only work if all transformers have the tapping at the hv side
       return (tappings.map(t => t -> 0).toMap, 0.asPu)
     }

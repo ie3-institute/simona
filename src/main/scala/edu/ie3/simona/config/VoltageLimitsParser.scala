@@ -29,91 +29,93 @@ object VoltageLimitsParser {
   }
 
   def parse(
-      configVoltageLimits: List[SimonaConfig.VoltageLimitsConfig]
+      configVoltageLimits: Option[List[SimonaConfig.VoltageLimitsConfig]]
   ): ConfigVoltageLimits = {
+    val distributionVoltageLimits = VoltageLimits(0.9, 1.1)
 
-    if (configVoltageLimits.isEmpty) {
-      val voltageLimit = VoltageLimits(0.9, 1.1)
+    val defaultVoltageLimits = ConfigVoltageLimits(
+      Map.empty,
+      Map(
+        GermanVoltageLevelUtils.LV -> distributionVoltageLimits,
+        GermanVoltageLevelUtils.MV_10KV -> distributionVoltageLimits,
+        GermanVoltageLevelUtils.MV_20KV -> distributionVoltageLimits,
+        GermanVoltageLevelUtils.MV_30KV -> distributionVoltageLimits,
+        GermanVoltageLevelUtils.HV -> distributionVoltageLimits,
+        GermanVoltageLevelUtils.EHV_220KV -> VoltageLimits(0.9, 1.118),
+        GermanVoltageLevelUtils.EHV_380KV -> VoltageLimits(0.9, 1.05),
+      ),
+    )
 
-      ConfigVoltageLimits(
-        Map.empty,
-        Map(
-          GermanVoltageLevelUtils.LV -> voltageLimit,
-          GermanVoltageLevelUtils.MV_10KV -> voltageLimit,
-          GermanVoltageLevelUtils.MV_20KV -> voltageLimit,
-          GermanVoltageLevelUtils.MV_30KV -> voltageLimit,
-          GermanVoltageLevelUtils.HV -> voltageLimit,
-          GermanVoltageLevelUtils.EHV_220KV -> VoltageLimits(0.9, 1.118),
-          GermanVoltageLevelUtils.EHV_380KV -> VoltageLimits(0.9, 1.05),
-        ),
-      )
+    configVoltageLimits match {
+      case Some(voltageLimits) if voltageLimits.nonEmpty =>
+        val parsedVoltageLimits = voltageLimits.flatMap { configVoltageLimit =>
+          val voltageLimits =
+            VoltageLimits(configVoltageLimit.vMin, configVoltageLimit.vMax)
 
-    } else {
-
-      val voltageLimits = configVoltageLimits.map { configVoltageLimit =>
-        (
-          configVoltageLimit,
-          VoltageLimits(configVoltageLimit.vMin, configVoltageLimit.vMax),
-        )
-      }
-
-      val gridIdVoltageLimits = voltageLimits.flatMap { case (config, limits) =>
-        config.gridIds
-          .map {
-            _.flatMap { gridId =>
-              {
-                val allGridIds = gridId match {
-                  case ConfigConventions.gridIdDotRange(from, to) =>
-                    from.toInt to to.toInt
-                  case ConfigConventions.gridIdMinusRange(from, to) =>
-                    from.toInt to to.toInt
-                  case ConfigConventions.singleGridId(singleGridId) =>
-                    Seq(singleGridId.toInt)
-                  case unknownGridIdFormat =>
-                    throw new InvalidConfigParameterException(
-                      s"Unknown gridId format $unknownGridIdFormat provided for voltage limits $config"
-                    )
-                }
-
-                allGridIds.map(gridId => (gridId, limits))
-              }
-            }
+          configVoltageLimit.gridIds.getOrElse(Seq.empty).flatMap {
+            case ConfigConventions.gridIdDotRange(from, to) =>
+              from.toInt to to.toInt
+            case ConfigConventions.gridIdMinusRange(from, to) =>
+              from.toInt to to.toInt
+            case ConfigConventions.singleGridId(singleGridId) =>
+              Seq(singleGridId.toInt)
+            case unknownGridIdFormat =>
+              throw new InvalidConfigParameterException(
+                s"Unknown gridId format $unknownGridIdFormat provided for voltage limits $configVoltageLimit"
+              )
+          } ++ configVoltageLimit.voltLvls.getOrElse(Seq.empty).map {
+            voltLvlDef =>
+              (VoltLvlParser.from(voltLvlDef), voltageLimits)
           }
-          .getOrElse(Seq.empty[(Int, VoltageLimits)])
-      }
+        }
 
-      val voltLvlVoltageLimits = voltageLimits.flatMap {
-        case (configRefSystem, parsedRefSystem) =>
-          configRefSystem.voltLvls
-            .map {
-              _.map { voltLvlDef =>
-                (VoltLvlParser.from(voltLvlDef), parsedRefSystem)
+        val gridIdVoltageLimitsList: List[(Int, VoltageLimits)] =
+          parsedVoltageLimits.flatMap {
+            case (gridId: Int, refSystems) =>
+              refSystems match {
+                case voltageLimits: VoltageLimits =>
+                  Some(gridId -> voltageLimits)
+                case _ => None
               }
-            }
-            .getOrElse(Seq.empty)
-      }
+            case _ => None
+          }
 
-      // check for duplicates of gridIds and voltLevels which will be the key for the following map conversion
-      if (
-        CollectionUtils.listHasDuplicates(
-          gridIdVoltageLimits.map { case (gridId, _) => gridId }
-        )
-      )
-        throw new InvalidConfigParameterException(
-          s"The provided gridIds in simona.gridConfig.voltageLimits contains duplicates. " +
-            s"Please check if there are either duplicate entries or overlapping ranges!"
-        )
-      if (
-        CollectionUtils.listHasDuplicates(
-          voltLvlVoltageLimits.map { case (voltLvl, _) => voltLvl }
-        )
-      )
-        throw new InvalidConfigParameterException(
-          s"The provided voltLvls in simona.gridConfig.voltageLimits contains duplicates. " +
-            s"Please check your configuration for duplicates in voltLvl entries!"
-        )
+        val gridIdVoltageLimits: Map[Int, VoltageLimits] =
+          gridIdVoltageLimitsList.toMap
 
-      ConfigVoltageLimits(gridIdVoltageLimits.toMap, voltLvlVoltageLimits.toMap)
+        if (CollectionUtils.listHasDuplicates(gridIdVoltageLimitsList)) {
+          throw new InvalidConfigParameterException(
+            s"The provided gridIds in simona.gridConfig.voltageLimits contains duplicates. " +
+              s"Please check if there are either duplicate entries or overlapping ranges!"
+          )
+        }
+
+        val voltLvLVoltageLimitsList: List[(VoltageLevel, VoltageLimits)] =
+          parsedVoltageLimits.flatMap {
+            case (voltLvl: VoltageLevel, refSystems) =>
+              refSystems match {
+                case voltageLimits: VoltageLimits =>
+                  Some(voltLvl -> voltageLimits)
+                case _ => None
+              }
+            case _ => None
+          }
+
+        if (CollectionUtils.listHasDuplicates(voltLvLVoltageLimitsList))
+          throw new InvalidConfigParameterException(
+            s"The provided voltLvls in simona.gridConfig.voltageLimits contains duplicates. " +
+              s"Please check your configuration for duplicates in voltLvl entries!"
+          )
+
+        val voltLvLVoltageLimits: Map[VoltageLevel, VoltageLimits] =
+          parsedVoltageLimits.collect {
+            case (voltLvl: VoltageLevel, values: VoltageLimits) =>
+              (voltLvl, values)
+          }.toMap
+
+        ConfigVoltageLimits(gridIdVoltageLimits, voltLvLVoltageLimits)
+
+      case _ => defaultVoltageLimits
     }
   }
 
