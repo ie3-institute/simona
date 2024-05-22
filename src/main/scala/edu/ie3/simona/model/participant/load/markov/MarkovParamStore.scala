@@ -210,7 +210,7 @@ object MarkovParamStore extends LazyLogging {
 
   //Load_TS
 
-  def Load_TS(): mutable.Map[String, Seq[Int]] = {
+  def load_TS(): mutable.Map[String, Seq[Int]] = {
     val reader = getDefaultReaderLoadTS
     val customFormat = CSVFormat.DEFAULT.builder().setHeader().build()
     val csvParser = new CSVParser(reader, customFormat)
