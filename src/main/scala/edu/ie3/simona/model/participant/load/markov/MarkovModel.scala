@@ -13,6 +13,7 @@ import edu.ie3.simona.model.participant.load.markov.MarkovParamStore.{Average_HH
 import edu.ie3.simona.model.participant.{CalcRelevantData, FlexChangeIndicator, ModelState, SystemParticipant}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.ReactivePower
 import squants.energy.Power
 import squants.{Dimensionless, Power}
 
@@ -54,7 +55,7 @@ final case class MarkovModel(
    */
   override def calculatePower(tick: Long, voltage: Dimensionless, modelState: ModelState.ConstantState.type, data: MarkovRelevantData): ApparentPower = {
     val activePower = calculateActivePower(modelState, data)
-    val reactivePower = activePower * Math.tan(Math.acos(cosPhiRated))
+    val reactivePower = calculateReactivePower(activePower, voltage)
 
     ApparentPower(activePower, reactivePower)
   }
