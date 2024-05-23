@@ -60,7 +60,7 @@ object RefSystemParser {
     val defaultRefSystems = ConfigRefSystems(
       Map.empty,
       Map(
-        GermanVoltageLevelUtils.LV -> RefSystem(Kilowatts(100), Volts(400)),
+        GermanVoltageLevelUtils.LV -> RefSystem(Kilowatts(100), Kilovolts(0.4)),
         GermanVoltageLevelUtils.MV_10KV -> RefSystem(
           Megawatts(40),
           Kilovolts(10),

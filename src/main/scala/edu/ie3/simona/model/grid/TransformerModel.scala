@@ -273,15 +273,14 @@ case object TransformerModel {
     val trafoType = transformerInput.getType
 
     // check if transformer params are given for the low voltage side
-    val vRef = refSystem.nominalVoltage
+    val vRef =
+      refSystem.nominalVoltage.toKilovolts // directly converting the value to a double in kV
     if (
       Math.abs(
-        vRef.value
-          .doubleValue() - trafoType.getvRatedA.getValue.doubleValue()
+        vRef - trafoType.getvRatedA.getValue.doubleValue()
       )
         < Math.abs(
-          vRef.value
-            .doubleValue() - trafoType.getvRatedB.getValue.doubleValue()
+          vRef - trafoType.getvRatedB.getValue.doubleValue()
         )
     )
       throw new InvalidGridException(
