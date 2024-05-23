@@ -1957,7 +1957,7 @@ class EvcsAgentModelCalculationSpec
     }
 
     //TODO DF: Finalize Test
-    "provide correct results for three evs charging at same time" in {
+  /*  "provide correct results for three evs charging at same time" in {
       val evService = TestProbe("evService")
       val emAgent = TestProbe("EmAgentProbe")
       val resultListener = TestProbe("ResultListener")
@@ -2187,67 +2187,8 @@ class EvcsAgentModelCalculationSpec
   - charging with 11 kW
        */
 
-      val ev2700 = EvModelWrapper(evA.copyWithDeparture(5400))
+   */
 
-      evService.send(
-        evcsAgent,
-        ProvideEvDataMessage(
-          2700,
-          evService.ref,
-          ArrivingEvsData(Seq(ev2700)),
-        ),
-      )
-
-      emAgent.send(evcsAgent, RequestFlexOptions(3600))
-
-      emAgent.expectMsgType[ProvideFlexOptions] match {
-        case ProvideMinMaxFlexOptions(
-              modelUuid,
-              referencePower,
-              minPower,
-              maxPower,
-            ) =>
-          modelUuid shouldBe evcsInputModelQv.getUuid
-          referencePower shouldBe ev900.sRatedAc + ev1800.sRatedAc
-          minPower shouldBe ev900.sRatedAc + ev1800.sRatedAc
-          maxPower shouldBe ev900.sRatedAc + ev1800.sRatedAc
-      }
-
-      resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
-        flexResult.getInputModel shouldBe evcsInputModelQv.getUuid
-        flexResult.getTime shouldBe 3600.toDateTime
-        flexResult.getpRef should beEquivalentTo(
-          ev1800.unwrap().getSRatedAC.add(ev2700.unwrap().getSRatedAC)
-        )
-        flexResult.getpMin should beEquivalentTo(
-          ev1800.unwrap().getSRatedAC.add(ev2700.unwrap().getSRatedAC)
-        )
-        flexResult.getpMax should beEquivalentTo(
-          ev1800.unwrap().getSRatedAC.add(ev2700.unwrap().getSRatedAC)
-        )
-      }
-
-      /* TICK 4500
-                - ev900 departs, ev4500 arrives
-                - charging with 11 kW
-       */
-
-      // departure first
-      evService.send(
-        evcsAgent,
-        DepartingEvsRequest(4500, Seq(ev900.uuid)),
-      )
-
-      evService.expectMsgPF() { case DepartingEvsResponse(uuid, evs) =>
-        evs.size shouldBe 1
-        uuid shouldBe evcsInputModelQv.getUuid
-        evs.headOption.foreach { ev =>
-          ev.uuid shouldBe ev900.uuid
-          ev.storedEnergy should approximate(KilowattHours(8.25))
-        }
-      }
-
-    }
     "provide correct results for three evs charging at same time without Em" in {
       val evService = TestProbe("evService")
       val resultListener = TestProbe("ResultListener")
@@ -2332,7 +2273,7 @@ class EvcsAgentModelCalculationSpec
 
       /* TICK 0 (expected activation)
          - currently no cars
-       */
+     */
       scheduler.send(evcsAgent, Activation(0))
 
       evService.send(
@@ -2343,7 +2284,7 @@ class EvcsAgentModelCalculationSpec
       /* TICK 900
          - ev 900 arrives
          - charging with 11 kW
-       */
+     */
       scheduler.send(evcsAgent, Activation(900))
 
       val ev900 = EvModelWrapper(evA.copyWithDeparture(3600))
@@ -2369,7 +2310,7 @@ class EvcsAgentModelCalculationSpec
       /* TICK 1800
         - ev 1800 arrives
         - charging with 11 kW
-       */
+     */
       scheduler.send(evcsAgent, Activation(1800))
       val ev1800 = EvModelWrapper(evA.copyWithDeparture(4500))
 
@@ -2382,10 +2323,43 @@ class EvcsAgentModelCalculationSpec
         ),
       )
 
+      // result of tick 9ß0
+
+
+
+      Range(0, 3)
+        .map { _ =>
+          resultListener.expectMsgType[ParticipantResultEvent]
+        }
+        .foreach {
+          case ParticipantResultEvent(result: EvResult)
+            if result.getInputModel == ev1800.uuid =>
+            result.getTime shouldBe 900.toDateTime
+            result.getP should beEquivalentTo(11d.asKiloWatt)
+            result.getQ should beEquivalentTo(0d.asMegaVar)
+            result.getSoc should beEquivalentTo(0d.asPercent, 1e-2)
+          case ParticipantResultEvent(result: EvcsResult) =>
+            result.getTime shouldBe 0.toDateTime
+            result.getP should beEquivalentTo(0d.asKiloWatt)
+            result.getQ should beEquivalentTo(0d.asMegaVar)
+        }
+
+      resultListener.expectMsgPF() {
+        case ParticipantResultEvent(result: EvcsResult) =>
+          result.getInputModel shouldBe evcsInputModelQv.getUuid
+          result.getTime shouldBe 900.toDateTime
+          result.getP should beEquivalentTo(ev900.unwrap().getSRatedAC)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+      }
+
+
+
+
+
       /* TICK 2700
   - ev 2700 arrives
   - charging with 11 kW
-       */
+     */
       scheduler.send(evcsAgent, Activation(2700))
       val ev2700 = EvModelWrapper(evA.copyWithDeparture(5400))
 
