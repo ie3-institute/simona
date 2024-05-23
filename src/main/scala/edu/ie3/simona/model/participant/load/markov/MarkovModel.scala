@@ -6,17 +6,16 @@
 
 package edu.ie3.simona.model.participant.load.markov
 
+import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.model.participant.load.LoadReference
 import edu.ie3.simona.model.participant.load.markov.MarkovParamStore._
-import edu.ie3.simona.model.participant.{
-  CalcRelevantData,
-  FlexChangeIndicator,
-  ModelState,
-  SystemParticipant,
-}
+import edu.ie3.simona.model.participant.{CalcRelevantData, FlexChangeIndicator, ModelState, SystemParticipant}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import squants.Dimensionless
 import squants.energy.{Kilowatts, Power}
@@ -126,4 +125,36 @@ class MarkovRelevantData extends CalcRelevantData {
   val by_Inhabitants_Map = inhabitants()
   val by_Type_Map = Type()
   val load_Ts_Map = load_TS()
+}
+
+
+object MarkovModel {
+  case object MarkovRelevantData extends LoadRelevantData
+
+  def apply(
+    input: LoadInput,
+    scalingFactor: Double,
+    operationInterval: OperationInterval,
+    reference: LoadReference,
+  ): MarkovModel = {
+
+    val scaledInput = input.copy().scale(scalingFactor).build()
+
+    val model = MarkovModel(
+      scaledInput.getUuid,
+      scaledInput.getId,
+      operationInterval,
+      QControl(scaledInput.getqCharacteristics()),
+      Kilowatts(
+        scaledInput.getsRated
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue
+      ),
+      scaledInput.getCosPhiRated
+    )
+    model.enable()
+    model
+  }
+
 }
