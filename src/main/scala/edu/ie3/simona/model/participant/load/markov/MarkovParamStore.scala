@@ -6,36 +6,32 @@
 
 package edu.ie3.simona.model.participant.load.markov
 
-
 import java.io.{InputStreamReader, Reader}
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.csv.{CSVFormat, CSVParser}
-
 
 import scala.collection.mutable
 import scala.collection.mutable.{Map => MutableMap}
 import scala.jdk.CollectionConverters._
 
 /** Storage for a collection of MarkovAgent parameters.
- */
+  */
 
-final case class MarkovParamStore() {
+final case class MarkovParamStore() {}
 
-}
-
-/** MarkovPramStore reads values from CSV files and returns them as Maps,
-  * where the keys represent different parameters and the values are the corresponding values.
- */
+/** MarkovPramStore reads values from CSV files and returns them as Maps, where
+  * the keys represent different parameters and the values are the corresponding
+  * values.
+  */
 
 object MarkovParamStore extends LazyLogging {
 
-  def main(args: Array[String]): Unit = {
+  def main(args: Array[String]): Unit = {}
 
-  }
-
-  /** This function reads the usage probabilities from a CSV file and returns them as a Map,
-    * where the keys are the appliance categories and the values are the corresponding probabilities.
-   */
+  /** This function reads the usage probabilities from a CSV file and returns
+    * them as a Map, where the keys are the appliance categories and the values
+    * are the corresponding probabilities.
+    */
 
   // Usage Probabilities
 
@@ -54,15 +50,17 @@ object MarkovParamStore extends LazyLogging {
   }
 
   /** @return
-   *   A reader pointing to the default Usage_Probabilities parameter location
-   */
+    *   A reader pointing to the default Usage_Probabilities parameter location
+    */
 
   private def getDefaultReader: Reader = {
     logger.info(
       "Markov Usage_Probabilities parameters file 'usage_probability.csv' from jar."
     )
     new InputStreamReader(
-      getClass.getResourceAsStream("/load/markov/probabilities/usage_probabilities/usage_probabilities.csv")
+      getClass.getResourceAsStream(
+        "/load/markov/probabilities/usage_probabilities/usage_probabilities.csv"
+      )
     )
   }
 
@@ -90,7 +88,9 @@ object MarkovParamStore extends LazyLogging {
   def getDefaultReadersop_Dish_Washer: Reader = {
     logger.info("Markov Income parameters file 'dish_washer.csv' from jar.")
     new InputStreamReader(
-      getClass.getResourceAsStream("/load/markov/probabilities/switch_on_probabilities/dish_washer.csv")
+      getClass.getResourceAsStream(
+        "/load/markov/probabilities/switch_on_probabilities/dish_washer.csv"
+      )
     )
   }
 
@@ -103,7 +103,8 @@ object MarkovParamStore extends LazyLogging {
     val averageHHMap = records.headOption match {
       case Some(headerRecord) =>
         val applianceNames = headerRecord.iterator().asScala.toSeq
-        val valuesRecord = records.drop(1).headOption.getOrElse(csvParser.iterator().next())
+        val valuesRecord =
+          records.drop(1).headOption.getOrElse(csvParser.iterator().next())
         val averageHHValues = valuesRecord.iterator().asScala.map(_.toDouble)
         applianceNames.zip(averageHHValues).toMap
       case None =>
@@ -208,7 +209,7 @@ object MarkovParamStore extends LazyLogging {
     )
   }
 
-  //Load_TS
+  // Load_TS
 
   def load_TS(): mutable.Map[String, Seq[Int]] = {
     val reader = getDefaultReaderLoadTS
@@ -236,5 +237,3 @@ object MarkovParamStore extends LazyLogging {
     )
   }
 }
-
-

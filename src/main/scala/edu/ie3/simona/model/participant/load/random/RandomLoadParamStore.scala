@@ -83,7 +83,7 @@ case object RandomLoadParamStore extends LazyLogging {
     * @param reader
     *   a reader that is providing random load parameters from a CSV file
     */
-  def  initializeDayTypeValues(
+  def initializeDayTypeValues(
       reader: Reader
   ): Map[DayType.Value, TypeDayParameters] = {
     val parser = csvParser.parse(reader)

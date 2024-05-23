@@ -23,7 +23,11 @@ object SwitchOnProbabilityKey {
     case object Weekend extends DayType
   }
 
-  case class SwitchOnProbabilityKey(season: Season, dayType: DayType, quarterlyHourOfDay: Int)
+  case class SwitchOnProbabilityKey(
+      season: Season,
+      dayType: DayType,
+      quarterlyHourOfDay: Int,
+  )
 
   def extractFromDateTime(dateTime: LocalDateTime): SwitchOnProbabilityKey = {
     val season = getSeason(dateTime)

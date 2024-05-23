@@ -10,11 +10,10 @@ import edu.ie3.simona.util.ParsableEnumeration
 
 final case class ApplianceCategory()
 
-/**
- * Enumeration of all considered appliance types
- */
+/** Enumeration of all considered appliance types
+  */
 case object ApplianceCategory extends ParsableEnumeration {
-  //val K: Value = Value("k")
+  // val K: Value = Value("k")
 
   val DISH_WASHER: Value = Value("dish_washer")
   val WASHING_MACHINE: Value = Value("washing_machine")
