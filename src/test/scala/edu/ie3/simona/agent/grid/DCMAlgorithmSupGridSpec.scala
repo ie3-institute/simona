@@ -54,6 +54,7 @@ class DCMAlgorithmSupGridSpec
     with TestSpawnerTyped {
 
   private val cmConfig = ConfigFactory.parseString("""
+      |simona.congestionManagement.enable = true
       |simona.congestionManagement.enableTransformerTapping = true
       |""".stripMargin)
 

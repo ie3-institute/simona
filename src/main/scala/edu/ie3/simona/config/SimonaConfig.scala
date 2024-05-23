@@ -1084,6 +1084,7 @@ object SimonaConfig {
   )
   object Simona {
     final case class CongestionManagement(
+        enable: scala.Boolean,
         enableTopologyChanges: scala.Boolean,
         enableTransformerTapping: scala.Boolean,
         maxOptimizationIterations: scala.Int,
@@ -1097,6 +1098,7 @@ object SimonaConfig {
           $tsCfgValidator: $TsCfgValidator,
       ): SimonaConfig.Simona.CongestionManagement = {
         SimonaConfig.Simona.CongestionManagement(
+          enable = c.hasPathOrNull("enable") && c.getBoolean("enable"),
           enableTopologyChanges =
             c.hasPathOrNull("enableTopologyChanges") && c.getBoolean(
               "enableTopologyChanges"

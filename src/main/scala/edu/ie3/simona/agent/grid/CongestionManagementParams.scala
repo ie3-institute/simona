@@ -9,10 +9,11 @@ package edu.ie3.simona.agent.grid
 import java.time.Duration
 
 /** Holds all congestion management configuration parameters used in
-  * [[edu.ie3.simona.agent.grid]]. If the parameter [[runCongestionManagement]]
-  * is set to false, no congestion management is run and all the other
-  * parameters are ignored
+  * [[edu.ie3.simona.agent.grid]]. If the parameter [[enabled]] is set to false,
+  * no congestion management is run and all the other parameters are ignored
   *
+  * @param enabled
+  *   defines if the congestion management is active and can be run
   * @param transformerTapping
   *   defines if the transformer tapping should be used for tappable
   *   transformers
@@ -23,6 +24,7 @@ import java.time.Duration
   *   resolve congestions
   */
 final case class CongestionManagementParams(
+    enabled: Boolean,
     transformerTapping: Boolean,
     topologyChanges: Boolean,
     flexOptions: Boolean,
@@ -32,10 +34,6 @@ final case class CongestionManagementParams(
     hasRunTransformerTapping: Boolean = false,
     hasUsedFlexOptions: Boolean = false,
 ) {
-
-  def runCongestionManagement: Boolean =
-    transformerTapping || topologyChanges || flexOptions
-
   def runTransformerTapping: Boolean =
     transformerTapping && !hasRunTransformerTapping && runOptimization
 

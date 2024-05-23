@@ -280,12 +280,10 @@ case object TransformerModel {
     val vRef = refSystem.nominalVoltage
     if (
       Math.abs(
-        vRef.value
-          .doubleValue() - trafoType.getvRatedA.getValue.doubleValue()
+        vRef.toKilovolts - trafoType.getvRatedA.getValue.doubleValue()
       )
         < Math.abs(
-          vRef.value
-            .doubleValue() - trafoType.getvRatedB.getValue.doubleValue()
+          vRef.toKilovolts - trafoType.getvRatedB.getValue.doubleValue()
         )
     )
       throw new InvalidGridException(
