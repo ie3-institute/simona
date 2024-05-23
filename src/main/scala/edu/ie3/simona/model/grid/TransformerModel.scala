@@ -273,8 +273,7 @@ case object TransformerModel {
     val trafoType = transformerInput.getType
 
     // check if transformer params are given for the low voltage side
-    val vRef =
-      refSystem.nominalVoltage.toKilovolts // directly converting the value to a double with unit kV
+    val vRef = refSystem.nominalVoltage.toKilovolts
     if (
       Math.abs(
         vRef - trafoType.getvRatedA.to(KILOVOLT).getValue.doubleValue()
