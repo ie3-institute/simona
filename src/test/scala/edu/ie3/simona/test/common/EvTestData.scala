@@ -29,4 +29,12 @@ trait EvTestData {
     Quantities.getQuantity(80d, PowerSystemUnits.KILOWATTHOUR),
     200,
   )
+  protected val evC: MockEvModel = new MockEvModel(
+    UUID.fromString("f9d85f84-817b-43af-9a7d-8d207f55a4a8"),
+    "evC",
+    Quantities.getQuantity(22d, PowerSystemUnits.KILOWATT),
+    Quantities.getQuantity(22d, PowerSystemUnits.KILOWATT),
+    Quantities.getQuantity(120d, PowerSystemUnits.KILOWATTHOUR),
+    200,
+  )
 }
