@@ -100,15 +100,20 @@ object ExtResultDataProvider {
                             buffer: StashBuffer[Request]): Behavior[Request] = {
     Behaviors.receivePartial {
       case (_, WrappedActivation(Activation(INIT_SIM_TICK))) =>
-        val initSubscribers = initServiceData.extResultData.getResultDataAssets.asScala.toList
+        val initGridSubscribers = initServiceData.extResultData.getGridResultDataAssets.asScala.toList
+        val initParticipantSubscribers = initServiceData.extResultData.getParticpantResultDataAssets.asScala.toList
 
         var initResultStorage = Map.empty[UUID, (Option[ResultEntity], Option[Long])]
-        initSubscribers.foreach(
+        initParticipantSubscribers.foreach(
          uuid => initResultStorage = initResultStorage + (uuid -> (None, Some(0L)))
+        )
+        initGridSubscribers.foreach(
+          uuid => initResultStorage = initResultStorage + (uuid -> (None, Some(initServiceData.extResultData.getPowerFlowResolution)))
         )
         val resultInitializedStateData = ExtResultStateData(
          extResultData = initServiceData.extResultData,
-         subscribers = initSubscribers,
+         gridSubscribers = initGridSubscribers,
+         participantSubscribers = initParticipantSubscribers,
          resultStorage = initResultStorage
         )
         scheduler ! Completion(
@@ -138,7 +143,12 @@ object ExtResultDataProvider {
         ) match {
           case msg: RequestResultEntities =>
             //ctx.log.info(s"[requestResults] for tick ${msg.tick} and resultStorage ${serviceStateData.resultStorage}")
-            var receiveDataMap = ReceiveDataMap[UUID, ResultEntity](serviceStateData.subscribers.toSet)
+            var receiveDataMap = ReceiveDataMap.empty[UUID, ResultEntity]
+            if (activation.tick == 0L) {
+              receiveDataMap = ReceiveDataMap[UUID, ResultEntity](serviceStateData.participantSubscribers.toSet)
+            } else {
+              receiveDataMap = ReceiveDataMap[UUID, ResultEntity]((serviceStateData.participantSubscribers ++ serviceStateData.gridSubscribers).toSet)
+            }
             //ctx.log.info(s"[requestResults] tick ${msg.tick} -> created a receivedatamap " + receiveDataMap)
             /*
             serviceStateData.resultStorage.foreach({
@@ -159,13 +169,15 @@ object ExtResultDataProvider {
 
             //ctx.log.info(s"[requestResults] tick ${msg.tick} -> requestResults for " + receiveDataMap)
 
+            var resultList = List.empty[ResultEntity]
             if (receiveDataMap.isComplete) {
-              var resultList = List.empty[ResultEntity]
-              serviceStateData.resultStorage.values.foreach(
-                result => resultList = resultList :+ result._1.getOrElse(
-                  throw new RuntimeException("There is no result!")
+              if (receiveDataMap.getExpectedKeys.nonEmpty) {
+                serviceStateData.resultStorage.values.foreach(
+                  result => resultList = resultList :+ result._1.getOrElse(
+                    throw new RuntimeException("There is no result!")
+                  )
                 )
-              )
+              }
               //ctx.log.info(s"[requestResults] tick ${msg.tick} -> ReceiveDataMap is complete -> send it right away: " + resultList)
               // all responses received, forward them to external simulation in a bundle
               serviceStateData.extResultData.queueExtResponseMsg(
@@ -208,7 +220,8 @@ object ExtResultDataProvider {
 
         if (serviceStateData.recentResults.isDefined) {
           // process dataResponses
-          if (serviceStateData.subscribers.contains(extResultResponseMsg.result.getInputModel)) {
+          if (serviceStateData.recentResults.getOrElse(throw new Exception("no Receive Data Map!")).getExpectedKeys.contains(extResultResponseMsg.result.getInputModel)) {
+          //if (serviceStateData.participantSubscribers.contains(extResultResponseMsg.result.getInputModel) || serviceStateData.gridSubscribers.contains(extResultResponseMsg.result.getInputModel)) {
             //ctx.log.info("[handleDataResponseMessage] Received ResultsResponseMessage with content " + extResultResponseMsg)
             //ctx.log.info("[handleDataResponseMessage] RecentResults " + serviceStateData.recentResults)
             val updatedReceivedResults = serviceStateData.recentResults.getOrElse(throw new Exception("noMap")).addData(extResultResponseMsg.result.getInputModel, extResultResponseMsg.result)
@@ -254,11 +267,14 @@ object ExtResultDataProvider {
   // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
   final case class ExtResultStateData(
                                         extResultData: ExtResultData,
-                                        subscribers: List[UUID] = List.empty,
+                                        gridSubscribers: List[UUID] = List.empty,
+                                        participantSubscribers: List[UUID] = List.empty,
                                         extResultsMessage: Option[ResultDataMessageFromExt] = None,
                                         resultStorage: Map[UUID, (Option[ResultEntity], Option[Long])] = Map.empty,       // UUID -> Result, nextTick
                                         maybeNextActivationTick: Option[Long] = None,
                                         recentResults: Option[ReceiveDataMap[UUID, ResultEntity]] = None,
                                       )
-  final case class InitExtResultData(extResultData: ExtResultData)
+  final case class InitExtResultData(
+                                      extResultData: ExtResultData
+                                    )
 }

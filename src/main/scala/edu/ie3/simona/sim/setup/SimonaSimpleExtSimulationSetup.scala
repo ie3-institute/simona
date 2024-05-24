@@ -57,6 +57,7 @@ import org.apache.pekko.actor.typed.{ActorRef, Scheduler}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import org.apache.pekko.util.{Timeout => PekkoTimeout}
 
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
 import scala.concurrent.Await
@@ -365,6 +366,9 @@ class SimonaSimpleExtSimulationSetup(
     val simulationStart = TimeUtil.withDefaults.toZonedDateTime(
       simonaConfig.simona.time.startDateTime
     )
+    val powerFlowResolution = simonaConfig.simona.powerflow.resolution.get(
+      ChronoUnit.SECONDS
+    )
     val extScheduler = scheduler(context, parent = rootScheduler)
     val simpleExtSim = new SimpleExtSimulationWithEm()
 
@@ -439,8 +443,10 @@ class SimonaSimpleExtSimulationSetup(
         adapterScheduleRef.toClassic,
         extSimAdapterPhase2,
         simpleExtSim.getExtResultDataSimulation.getResultDataFactory,
-        simpleExtSim.getExtResultDataSimulation.getResultDataAssets,
-        simulationStart
+        simpleExtSim.getExtResultDataSimulation.getGridResultDataAssets,
+        simpleExtSim.getExtResultDataSimulation.getParticipantResultDataAssets,
+        simulationStart,
+        powerFlowResolution
       )
 
     simpleExtSim.getExtResultDataSimulation.setExtResultData(extResultData)
@@ -487,136 +493,6 @@ class SimonaSimpleExtSimulationSetup(
     ExtSimSetupData(extSimAdaptersIt, extDataServicesMap, extDataListenerMap, extDatas, Some(extScheduler))
   }
 
-
-  def simpleExtSimulation(
-                               context: ActorContext[_],
-                               rootScheduler: ActorRef[SchedulerMessage],
-                               simScheduler: ActorRef[SchedulerMessage],
-  ): ExtSimSetupData = {
-    val simulationStart = TimeUtil.withDefaults.toZonedDateTime(
-      simonaConfig.simona.time.startDateTime
-    )
-    val extScheduler = scheduler(context, parent = rootScheduler)
-    val simpleExtSim = new SimpleExtSimulation()
-
-    val extSimAdapterPhase1 = context.toClassic.simonaActorOf(
-      ExtSimAdapter.props(extScheduler.toClassic),
-      s"1",
-    )
-    val extSimAdapterPhase2 = context.toClassic.simonaActorOf(
-      ExtSimAdapter.props(simScheduler.toClassic),
-      s"2",
-    )
-
-    val extSimAdapters: Map[java.lang.Integer, ClassicRef] = Map(
-      1.asInstanceOf[java.lang.Integer] -> extSimAdapterPhase1,
-      2.asInstanceOf[java.lang.Integer] -> extSimAdapterPhase2
-    )
-
-    val extSimAdapterData = new ExtSimAdapterData(extSimAdapters.asJava, args)
-
-
-
-    // send init data right away, init activation is scheduled
-    extSimAdapterPhase1 ! ExtSimAdapter.Create(
-      extSimAdapterData,
-      1,
-      ScheduleLock.singleKey(context, extScheduler, INIT_SIM_TICK),
-    )
-
-    val extPrimaryDataService = context.toClassic.simonaActorOf(
-      ExtPrimaryDataService.props(extScheduler.toClassic),
-      s"0-0",
-    )
-    val extPrimaryData = new ExtPrimaryData(
-      extPrimaryDataService,
-      extSimAdapterPhase1,
-      simpleExtSim.getExtPrimaryDataSimulation.getPrimaryDataFactory,
-      simpleExtSim.getExtPrimaryDataSimulation.getPrimaryDataAssets
-    )
-
-    simpleExtSim.getExtPrimaryDataSimulation.setExtPrimaryData(extPrimaryData)
-
-    extPrimaryDataService ! SimonaService.Create(
-      InitExtPrimaryData(extPrimaryData),
-      ScheduleLock.singleKey(
-        context,
-        extScheduler,
-        INIT_SIM_TICK,
-      ),
-    )
-
-    //Result Data
-
-    val extResultDataProvider = {
-      context.spawn(
-        ExtResultDataProvider(simScheduler),
-        s"ExtResultDataProvider",
-      )
-    }
-
-
-    val timeout: PekkoTimeout = PekkoTimeout.create(5.seconds.toJava)
-    val scheduler2: Scheduler = context.system.scheduler
-
-    val adapterRef = Await.result(
-      extResultDataProvider.ask[ActorRef[ResultDataMessageFromExt]] (ref => RequestDataMessageAdapter(ref))(timeout, scheduler2), timeout.duration)
-    val adapterScheduleRef = Await.result(
-      extResultDataProvider.ask[ActorRef[ScheduleServiceActivation]] (ref => RequestScheduleActivationAdapter(ref))(timeout, scheduler2), timeout.duration)
-
-    val extResultData =
-      new ExtResultData(
-        adapterRef.toClassic,
-        adapterScheduleRef.toClassic,
-        extSimAdapterPhase2,
-        simpleExtSim.getExtResultDataSimulation.getResultDataFactory,
-        simpleExtSim.getExtResultDataSimulation.getResultDataAssets,
-        simulationStart
-      )
-
-    simpleExtSim.getExtResultDataSimulation.setExtResultData(extResultData)
-
-    extResultDataProvider ! ExtResultDataProvider.Create(
-      InitExtResultData(extResultData),
-      ScheduleLock.singleKey(
-        context,
-        simScheduler,
-        INIT_SIM_TICK,
-      ),
-    )
-
-
-    val simpleExtSimDatas: List[ExtData] = List(
-      extResultData,
-      extPrimaryData
-    )
-
-    simpleExtSim.setup(
-      extSimAdapterData,
-      simpleExtSimDatas.asJava,
-    )
-    // starting external simulation
-    new Thread(simpleExtSim, s"External simulation")
-      .start()
-
-    val extDataServicesMap: Map[Class[_], ClassicRef] = Map(
-      classOf[ExtPrimaryDataService] -> extPrimaryDataService,
-    )
-
-    val extDataListenerMap: Map[Class[_], ActorRef[ExtResultDataProvider.Request]] =  Map(
-      ExtResultDataProvider.getClass -> extResultDataProvider
-    )
-
-    val extSimAdaptersIt = Iterable(extSimAdapterPhase1, extSimAdapterPhase2)
-
-    val extDatas = simpleExtSimDatas.toSet
-    extSimAdapterPhase2 ! ExtSimAdapter.Create(
-      extSimAdapterData,
-      2,
-      ScheduleLock.singleKey(context, simScheduler, INIT_SIM_TICK),
-    )
-    ExtSimSetupData(extSimAdaptersIt, extDataServicesMap, extDataListenerMap, extDatas, Some(extScheduler))
-  }
 
   override def timeAdvancer(
       context: ActorContext[_],

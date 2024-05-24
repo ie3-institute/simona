@@ -41,6 +41,8 @@ final case class ReceiveDataMap[K, V](
     )
   }
 
+  def getExpectedKeys: Set[K] = expectedKeys
+
 }
 
 object ReceiveDataMap {

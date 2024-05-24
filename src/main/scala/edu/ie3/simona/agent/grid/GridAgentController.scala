@@ -200,12 +200,12 @@ class GridAgentController(
       extEmDataService = environmentRefs.emDataService
     )
 
-    log.info(s"Built allEms = $allEms")
-    log.info(s"Particpants = $participants")
+    //log.info(s"Built allEms = $allEms")
+    //log.info(s"Particpants = $participants")
 
     participants
       .map { participant =>
-        log.info(s"Built Participant = $participant")
+        //log.info(s"Built Participant = $participant")
         val node = participant.getNode
 
 
@@ -278,8 +278,8 @@ class GridAgentController(
     val previousLevelAndUncontrolledEms =
       previousLevelEms ++ uncontrolledEms.toMap
 
-    log.info(s"controlledEmInputs = $controlledEmInputs")
-    log.info(s"previousLevelAndUncontrolledEms = $previousLevelAndUncontrolledEms")
+    //log.info(s"controlledEmInputs = $controlledEmInputs")
+    //log.info(s"previousLevelAndUncontrolledEms = $previousLevelAndUncontrolledEms")
 
     if (controlledEmInputs.nonEmpty) {
       // For controlled EMs at the current level, more EMs
@@ -288,7 +288,7 @@ class GridAgentController(
         case (uuid, emInput) =>
           emInput.getControllingEm.toScala.map(uuid -> _)
       }
-      log.info(s"now build controlled Ems -> These are possible controllers = $controllingEms")
+      //log.info(s"now build controlled Ems -> These are possible controllers = $controllingEms")
       // Return value includes previous level and uncontrolled EMs of this level
       val recursiveEms = buildEmsRecursively(
         participantConfigUtil,
@@ -297,10 +297,10 @@ class GridAgentController(
         previousLevelAndUncontrolledEms,
         extEmDataService = extEmDataService
       )
-      log.info(s"-> after recursion recursiveEms = $recursiveEms")
+      //log.info(s"-> after recursion recursiveEms = $recursiveEms")
 
       val controlledEms = controlledEmInputs.map { case (uuid, emInput) =>
-        log.info(s"-> uuid = $uuid, emInput = $emInput")
+        //log.info(s"-> uuid = $uuid, emInput = $emInput")
         /*
         val controllingEm = emInput.getControllingEm.toScala
           .map(_.getUuid)
@@ -320,7 +320,7 @@ class GridAgentController(
             s"Actor for EM $uuid not found."
           ),
         ))
-        log.info(s"-> contorllingEm = $controllingEm")
+        //log.info(s"-> contorllingEm = $controllingEm")
 
         uuid -> buildEm(
           emInput,
@@ -329,7 +329,7 @@ class GridAgentController(
           maybeControllingEm = controllingEm,
         )
       }.toMap
-      log.info(s"-> controlledEms = $controlledEms, recursiveEms = $recursiveEms")
+      //log.info(s"-> controlledEms = $controlledEms, recursiveEms = $recursiveEms")
       recursiveEms ++ controlledEms
     } else {
       previousLevelAndUncontrolledEms
@@ -822,7 +822,7 @@ class GridAgentController(
       outputConfig: NotifierConfig,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
   ): ActorRef[FlexResponse] = {
-    log.info("Spawn Em = " + emInput + ", maybeControlling Em = " + maybeControllingEm)
+    //log.info("Spawn Em = " + emInput + ", maybeControlling Em = " + maybeControllingEm)
     gridAgentContext.spawn(
       EmAgent(
         emInput,

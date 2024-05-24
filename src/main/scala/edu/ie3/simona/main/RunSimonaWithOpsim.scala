@@ -37,6 +37,7 @@ object RunSimonaWithOpsim extends RunSimona[SimonaOpsimSetup] {
       parsedConfig,
       SimonaOpsimSetup.buildResultFileHierarchy(parsedConfig),
       mainArgs = arguments.mainArgs,
+      opsimIP = arguments.extAddress
     )
   }
 

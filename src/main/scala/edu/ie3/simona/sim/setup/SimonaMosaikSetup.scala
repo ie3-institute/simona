@@ -57,6 +57,7 @@ import org.apache.pekko.actor.typed.{ActorRef, Scheduler}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import org.apache.pekko.util.{Timeout => PekkoTimeout}
 
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
 import scala.concurrent.Await
@@ -76,6 +77,7 @@ class SimonaMosaikSetup(
     resultFileHierarchy: ResultFileHierarchy,
     runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
     override val args: Array[String],
+    mosaikIP: Option[String] = None
 ) extends SimonaSetup {
 
   override def gridAgents(
@@ -362,11 +364,17 @@ class SimonaMosaikSetup(
                                rootScheduler: ActorRef[SchedulerMessage],
                                simScheduler: ActorRef[SchedulerMessage]
   ): ExtSimSetupData = {
+    val mosaikAddress = mosaikIP.getOrElse(
+      "127.0.0.1:5678"
+    )
     val simulationStart = TimeUtil.withDefaults.toZonedDateTime(
       simonaConfig.simona.time.startDateTime
     )
+    val powerFlowResolution = simonaConfig.simona.powerflow.resolution.get(
+      ChronoUnit.SECONDS
+    )
     val extScheduler = scheduler(context, parent = rootScheduler)
-    val mosaikExtSim = new MosaikSimulation("127.0.0.1:37699")
+    val mosaikExtSim = new MosaikSimulation(mosaikAddress)
 
     val extSimAdapterPhase1 = context.toClassic.simonaActorOf(
       ExtSimAdapter.props(extScheduler.toClassic),
@@ -439,8 +447,10 @@ class SimonaMosaikSetup(
         adapterScheduleRef.toClassic,
         extSimAdapterPhase2,
         mosaikExtSim.getExtResultDataSimulation.getResultDataFactory,
-        mosaikExtSim.getExtResultDataSimulation.getResultDataAssets,
-        simulationStart
+        mosaikExtSim.getExtResultDataSimulation.getGridResultDataAssets,
+        mosaikExtSim.getExtResultDataSimulation.getParticipantResultDataAssets,
+        simulationStart,
+        powerFlowResolution
       )
 
     mosaikExtSim.getExtResultDataSimulation.setExtResultData(extResultData)
@@ -616,6 +626,7 @@ object SimonaMosaikSetup extends LazyLogging with SetupHelper {
       resultFileHierarchy: ResultFileHierarchy,
       runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
       mainArgs: Array[String] = Array.empty[String],
+      mosaikIP: Option[String] = None
   ): SimonaMosaikSetup =
     new SimonaMosaikSetup(
       typeSafeConfig,
@@ -623,5 +634,6 @@ object SimonaMosaikSetup extends LazyLogging with SetupHelper {
       resultFileHierarchy,
       runtimeEventQueue,
       mainArgs,
+      mosaikIP
     )
 }

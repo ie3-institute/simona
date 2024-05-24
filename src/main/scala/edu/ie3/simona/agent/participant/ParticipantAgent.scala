@@ -301,7 +301,7 @@ abstract class ParticipantAgent[
             maybeEmAgent,
           ),
         ) =>
-      log.info("Will perform model calculations")
+      log.debug("Will perform model calculations")
       initializeParticipantForModelCalculation(
         inputModel,
         modelConfig,
