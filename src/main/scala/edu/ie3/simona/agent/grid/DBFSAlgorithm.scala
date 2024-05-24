@@ -9,7 +9,10 @@ package edu.ie3.simona.agent.grid
 import breeze.linalg.{DenseMatrix, DenseVector}
 import breeze.math.Complex
 import edu.ie3.datamodel.graph.SubGridGate
-import edu.ie3.powerflow.model.FailureCause.CalculationFailed
+import edu.ie3.powerflow.model.FailureCause.{
+  CalculationFailed,
+  MaxIterationsReached,
+}
 import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.FailedPowerFlowResult.FailedNewtonRaphsonPFResult
@@ -404,7 +407,16 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                   sender ! GridPowerResponse(exchangePowers)
                   simulateGrid(updatedGridAgentBaseData, currentTick)
 
-                case _: FailedNewtonRaphsonPFResult =>
+                case failedResult: FailedNewtonRaphsonPFResult =>
+                  if (failedResult.cause == MaxIterationsReached) {
+                    ctx.log.warn(
+                      "Power flow in grid {} failed after {} iterations. Cause: {}",
+                      ctx.self,
+                      failedResult.iteration,
+                      failedResult.cause,
+                    )
+                  }
+
                   sender ! FailedPowerFlow
                   simulateGrid(gridAgentBaseData, currentTick)
               }
@@ -1113,9 +1125,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     if (gridAgentBaseData.powerFlowParams.stopOnFailure) {
       ctx.log.error("Stopping because of failed power flow.")
       Behaviors.stopped
-    } else {
-      simulateGrid(gridAgentBaseData, currentTick)
-    }
+    } else simulateGrid(gridAgentBaseData, currentTick)
   }
 
   /** Normally only reached by the superior (dummy) agent!
