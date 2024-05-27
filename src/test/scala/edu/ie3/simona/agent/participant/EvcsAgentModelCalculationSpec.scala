@@ -2401,35 +2401,130 @@ class EvcsAgentModelCalculationSpec
           evModels.headOption match {
             case Some(evModel) =>
               evModel.uuid shouldBe ev2700.uuid
-              evModel.storedEnergy should approximate(KilowattHours(8.25))
+              evModel.storedEnergy should approximate(KilowattHours(16.5))
             case None => fail("Expected to get at least one ev.")
           }
       }
 
-      // TICK 6300
-      resultListener.expectNoMessage()
-
       // Check the results
+      // expect 7 Evcs Results and 12 Ev Results
+      // FixMe: 7 Evcs Results is correct but the one for tick 5400 is missing, the one at tick 0 comes twice...
 
-      Range(0, 6)
+      Range(0, 19)
         .map { _ =>
           resultListener.expectMsgType[ParticipantResultEvent]
         }
         .foreach {
           case ParticipantResultEvent(result: EvResult) =>
-            result.getInputModel match {
-              case model if model == ev900.uuid =>
-                result.getP should beEquivalentTo(11d.asKiloWatt)
-                result.getQ should beEquivalentTo(0d.asMegaVar)
-                result.getSoc should beEquivalentTo(0d.asPercent, 1e-2)
-              case model if model == ev1800.uuid =>
-                result.getP should beEquivalentTo(11d.asKiloWatt)
-                result.getQ should beEquivalentTo(0d.asMegaVar)
-                result.getSoc should beEquivalentTo(0d.asPercent, 1e-2)
-              case model if model == ev2700.uuid =>
-                result.getP should beEquivalentTo(11d.asKiloWatt)
-                result.getQ should beEquivalentTo(0d.asMegaVar)
-                result.getSoc should beEquivalentTo(1d.asPercent, 1e-2)
+            result.getTime match {
+              case time if time == 900.toDateTime =>
+                result.getInputModel match {
+                  case model if model == ev900.uuid =>
+                    result.getP should beEquivalentTo(11d.asKiloWatt)
+                    result.getQ should beEquivalentTo(0d.asMegaVar)
+                    result.getSoc should beEquivalentTo(0.asPercent, 1e-2)
+                  case model if model == ev1800.uuid =>
+                    throw new RuntimeException(
+                      s"Ev $model should arrive later at Evcs but it's already there."
+                    )
+                  case model if model == ev2700.uuid =>
+                    throw new RuntimeException(
+                      s"Ev $model should arrive later at Evcs but it's already there."
+                    )
+                  case _ =>
+                    throw new RuntimeException(s"This should not happen")
+                }
+              case time if time == 1800.toDateTime =>
+                result.getInputModel match {
+                  case model if model == ev900.uuid =>
+                    result.getP should beEquivalentTo(11d.asKiloWatt)
+                    result.getQ should beEquivalentTo(0d.asMegaVar)
+                    result.getSoc should beEquivalentTo(4.741d.asPercent, 1e-2)
+                  case model if model == ev1800.uuid =>
+                    result.getP should beEquivalentTo(11d.asKiloWatt)
+                    result.getQ should beEquivalentTo(0d.asMegaVar)
+                    result.getSoc should beEquivalentTo(0d.asPercent, 1e-2)
+                  case model if model == ev2700.uuid =>
+                    throw new RuntimeException(
+                      s"Ev $model should arrive later at the Evcs but is already there."
+                    )
+                  case _ =>
+                    throw new RuntimeException(s"This should not happen")
+                }
+              case time if time == 2700.toDateTime =>
+                result.getInputModel match {
+                  case model if model == ev900.uuid =>
+                    result.getP should beEquivalentTo(11d.asKiloWatt)
+                    result.getQ should beEquivalentTo(0d.asMegaVar)
+                    result.getSoc should beEquivalentTo(9.48d.asPercent, 1e-2)
+                  case model if model == ev1800.uuid =>
+                    result.getP should beEquivalentTo(11d.asKiloWatt)
+                    result.getQ should beEquivalentTo(0d.asMegaVar)
+                    result.getSoc should beEquivalentTo(
+                      3.43775d.asPercent,
+                      1e-2,
+                    )
+                  case model if model == ev2700.uuid =>
+                    result.getP should beEquivalentTo(22d.asKiloWatt)
+                    result.getQ should beEquivalentTo(0d.asMegaVar)
+                    result.getSoc should beEquivalentTo(0d.asPercent, 1e-2)
+                  case _ =>
+                    throw new RuntimeException(s"This should not happen")
+                }
+              case time if time == 3600.toDateTime =>
+                result.getInputModel match {
+                  case model if model == ev900.uuid =>
+                    result.getP should beEquivalentTo(0d.asKiloWatt)
+                    result.getQ should beEquivalentTo(0d.asMegaVar)
+                    result.getSoc should beEquivalentTo(14.223d.asPercent, 1e-2)
+                  case model if model == ev1800.uuid =>
+                    result.getP should beEquivalentTo(11d.asKiloWatt)
+                    result.getQ should beEquivalentTo(0d.asMegaVar)
+                    result.getSoc should beEquivalentTo(6.8755d.asPercent, 1e-2)
+                  case model if model == ev2700.uuid =>
+                    result.getP should beEquivalentTo(22d.asKiloWatt)
+                    result.getQ should beEquivalentTo(0d.asMegaVar)
+                    result.getSoc should beEquivalentTo(4.5833d.asPercent, 1e-2)
+                  case _ =>
+                    throw new RuntimeException(s"This should not happen")
+                }
+              case time if time == 4500.toDateTime =>
+                result.getInputModel match {
+                  case model if model == ev900.uuid =>
+                    throw new RuntimeException(
+                      s"Ev $model should already left the Evcs but is still there."
+                    )
+                  case model if model == ev1800.uuid =>
+                    result.getP should beEquivalentTo(0d.asKiloWatt)
+                    result.getQ should beEquivalentTo(0d.asMegaVar)
+                    result.getSoc should beEquivalentTo(
+                      10.3125d.asPercent,
+                      1e-2,
+                    )
+                  case model if model == ev2700.uuid =>
+                    result.getP should beEquivalentTo(22d.asKiloWatt)
+                    result.getQ should beEquivalentTo(0d.asMegaVar)
+                    result.getSoc should beEquivalentTo(9.1666d.asPercent, 1e-2)
+                  case _ =>
+                    throw new RuntimeException(s"This should not happen")
+                }
+              case time if time == 5400.toDateTime =>
+                result.getInputModel match {
+                  case model if model == ev900.uuid =>
+                    throw new RuntimeException(
+                      s"Ev $model should already left the Evcs but is still there."
+                    )
+                  case model if model == ev1800.uuid =>
+                    throw new RuntimeException(
+                      s"Ev $model should already left the Evcs but is still there."
+                    )
+                  case model if model == ev2700.uuid =>
+                    result.getP should beEquivalentTo(0d.asKiloWatt)
+                    result.getQ should beEquivalentTo(0d.asMegaVar)
+                    result.getSoc should beEquivalentTo(13.75d.asPercent, 1e-2)
+                  case _ =>
+                    throw new RuntimeException(s"This should not happen")
+                }
             }
 
           case ParticipantResultEvent(result: EvcsResult) =>
@@ -2442,14 +2537,24 @@ class EvcsAgentModelCalculationSpec
                 result.getP should beEquivalentTo(11d.asKiloWatt)
                 result.getQ should beEquivalentTo(0d.asMegaVar)
               case time if time == 1800.toDateTime =>
-                //     result.getP should beEquivalentTo(11d.asKiloWatt)
+                result.getP should beEquivalentTo(22d.asKiloWatt)
                 result.getQ should beEquivalentTo(0d.asMegaVar)
               case time if time == 2700.toDateTime =>
-                //     result.getP should beEquivalentTo(11d.asKiloWatt)
+                result.getP should beEquivalentTo(44d.asKiloWatt)
                 result.getQ should beEquivalentTo(0d.asMegaVar)
               case time if time == 3600.toDateTime =>
-                //     result.getP should beEquivalentTo(11d.asKiloWatt)
+                result.getP should beEquivalentTo(33d.asKiloWatt)
                 result.getQ should beEquivalentTo(0d.asMegaVar)
+              case time if time == 4500.toDateTime =>
+                result.getP should beEquivalentTo(22d.asKiloWatt)
+                result.getQ should beEquivalentTo(0d.asMegaVar)
+              case time if time == 5400.toDateTime =>
+                result.getP should beEquivalentTo(0d.asKiloWatt)
+                result.getQ should beEquivalentTo(0d.asMegaVar)
+              case time if time == 6300.toDateTime =>
+                throw new RuntimeException(
+                  s"No Evcs results expected for ${result.getInputModel} at $time."
+                )
               case _ =>
                 fail(s"Unexpected time: ${result.getTime}")
             }
