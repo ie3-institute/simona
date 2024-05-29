@@ -64,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ConfigFailFast after making configuration of `RefSystem` via config optional [#797](https://github.com/ie3-institute/simona/issues/797)
 - Default RefSystem using the unit `Volt` for low voltage grids [#811](https://github.com/ie3-institute/simona/issues/811)
 - Fixed grid within GridSpec test [#806](https://github.com/ie3-institute/simona/issues/806)
+- Fixed log entry after power flow calculation [#814](https://github.com/ie3-institute/simona/issues/814)
 
 ## [3.0.0] - 2023-08-07
 

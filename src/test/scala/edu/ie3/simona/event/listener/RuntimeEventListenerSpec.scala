@@ -142,7 +142,7 @@ class RuntimeEventListenerSpec
         (
           Done(endTick, duration, errorInSim = false),
           Level.INFO,
-          s"Simulation completed with \u001b[0;32mSUCCESS (Failed PF: 2)\u001b[0;30m in time step ${calcTime(endTick)}. Total runtime: 3h : 0m : 5s ",
+          s"Simulation completed with \u001b[0;32mSUCCESS (Failed PF: 2)\u001b[0;0m in time step ${calcTime(endTick)}. Total runtime: 3h : 0m : 5s ",
         ),
         (
           Error(errMsg),
