@@ -88,56 +88,19 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             gridAgentBaseData.currentSweepNo,
           )
 
-          // we start the grid simulation by requesting the p/q values of all the nodes we are responsible for
-          // as well as the slack voltage power from our superior grid
-          // 1. assets p/q values
-          askForAssetPowers(
-            currentTick,
-            gridAgentBaseData.sweepValueStores
-              .get(gridAgentBaseData.currentSweepNo),
-            gridAgentBaseData.gridEnv.nodeToAssetAgents,
-            gridAgentBaseData.gridEnv.gridModel.mainRefSystem,
-            gridAgentBaseData.powerFlowParams.sweepTimeout,
-          )(ctx)
-
-          // 2. inferior grids p/q values
-          askInferiorGridsForPowers(
-            gridAgentBaseData.currentSweepNo,
-            gridAgentBaseData.gridEnv.subgridGateToActorRef,
-            gridAgentBaseData.inferiorGridGates,
-            gridAgentBaseData.powerFlowParams.sweepTimeout,
-          )(ctx)
-
-          // 3. superior grids slack voltage
-          askSuperiorGridsForSlackVoltages(
-            gridAgentBaseData.currentSweepNo,
-            gridAgentBaseData.gridEnv.subgridGateToActorRef,
-            gridAgentBaseData.superiorGridGates,
-            gridAgentBaseData.powerFlowParams.sweepTimeout,
-          )(ctx)
+          // Request data from child assets and grids
+          requestInitialData(gridAgentBaseData, currentTick, ctx)
 
           simulateGrid(gridAgentBaseData, activation.tick)
 
         // if we receive power values as response on our request, we process them here
+        // Handle received power and voltage values
         case (
               receivedValues: ReceivedValues,
               gridAgentBaseData: GridAgentBaseData,
             ) =>
-          // we just received either all provided slack voltage values or all provided power values
-          val updatedGridAgentBaseData: GridAgentBaseData =
-            receivedValues match {
-              case receivedPowers: ReceivedPowerValues =>
-                /* Can be a message from an asset or a message from an inferior grid */
-                gridAgentBaseData.updateWithReceivedPowerValues(receivedPowers)
-              case receivedSlacks: ReceivedSlackVoltageValues =>
-                gridAgentBaseData.updateWithReceivedSlackVoltages(
-                  receivedSlacks
-                )
-              case unknownReceivedValues =>
-                throw new DBFSAlgorithmException(
-                  s"Received unknown values: $unknownReceivedValues"
-                )
-            }
+          val updatedGridAgentBaseData =
+            updateWithReceivedValues(receivedValues, gridAgentBaseData)
 
           // check if we have enough data for a power flow calculation or a
           // power differences check (if the grid agent is a superior agent)
@@ -145,15 +108,14 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           // if there are failing ones, escalate the failure to the superior grid (if any),
           // if not go to power flow or power differences check
           // if we haven't received everything yet, stay and wait
+
           val allValuesReceived =
             updatedGridAgentBaseData.allRequestedDataReceived
-
           ctx.log.debug(
-            "{}",
             if (allValuesReceived)
               "Got answers for all my requests for Slack Voltages and Power Values."
             else
-              "Still waiting for answers my requests for Slack Voltages and Power Values.",
+              "Still waiting for answers to my requests for Slack Voltages and Power Values."
           )
 
           if (gridAgentBaseData.isSuperior) {
@@ -172,142 +134,35 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             )(ctx, constantData, buffer)
           }
 
-        // if we receive a request for slack voltages from our inferior grids we want to answer it
+        // Handle slack voltage requests
         case (
-              SlackVoltageRequest(
-                currentSweepNo,
-                nodeUuids,
-                sender,
-              ),
+              SlackVoltageRequest(currentSweepNo, nodeUuids, sender),
               gridAgentBaseData: GridAgentBaseData,
             ) =>
-          ctx.log.debug(
-            s"Received Slack Voltages request from {} for nodes {} and sweepNo: {}",
-            sender,
+          handleSlackVoltageRequest(
+            currentSweepNo,
             nodeUuids,
-            gridAgentBaseData.currentSweepNo,
+            sender,
+            gridAgentBaseData,
+            ctx,
           )
-
-          nodeUuids.map { nodeUuid =>
-            // we either have voltages ready calculated (not the first sweep) or we don't have them here
-            // -> return calculated value or target voltage as physical value
-            (gridAgentBaseData.sweepValueStores.get(currentSweepNo) match {
-              case Some(result) =>
-                Some(result, currentSweepNo)
-              case None =>
-                // this happens if this agent is either a) the superior grid agent, because it will always get a request for
-                // the next sweep, as it triggers calculations for the next sweep or b) at all other
-                // (non last downstream grid agents) in sweep 0
-                ctx.log.debug(
-                  "Unable to find slack voltage for nodes '{}' in sweep '{}'. Try to get voltage of previous sweep.",
-                  nodeUuids,
-                  currentSweepNo,
-                )
-                gridAgentBaseData.sweepValueStores
-                  .get(currentSweepNo - 1)
-                  .map((_, currentSweepNo - 1))
-            }).map { case (result, sweepNo) =>
-              // get nodeUUID
-              result.sweepData.find(_.nodeUuid == nodeUuid) match {
-                case Some(sweepValueStoreData) =>
-                  val slackVoltageInPu = sweepValueStoreData.stateData.voltage
-                  val mainRefSystem =
-                    gridAgentBaseData.gridEnv.gridModel.mainRefSystem
-                  (
-                    mainRefSystem.vInSi(slackVoltageInPu.real),
-                    mainRefSystem.vInSi(slackVoltageInPu.imag),
-                  )
-                case None =>
-                  throw new DBFSAlgorithmException(
-                    s"Requested nodeUuid $nodeUuid " +
-                      s"not found in sweep value store data for sweepNo: $sweepNo. This indicates" +
-                      s"either a wrong processing of a previous sweep result or inconsistencies in grid model data!"
-                  )
-              }
-            }.getOrElse {
-              ctx.log.debug(
-                "Unable to get slack voltage for node '{}' in sweeps '{}' and '{}'. Returning target voltage.",
-                nodeUuid,
-                currentSweepNo,
-                currentSweepNo - 1,
-              )
-
-              val refSystem =
-                gridAgentBaseData.gridEnv.gridModel.mainRefSystem
-
-              /* Determine the slack node voltage under consideration of the target voltage set point */
-              val vTarget =
-                gridAgentBaseData.gridEnv.gridModel.gridComponents.nodes
-                  .find { case NodeModel(uuid, _, _, isSlack, _, _) =>
-                    uuid == nodeUuid && isSlack
-                  }
-                  .map(_.vTarget)
-                  .getOrElse(Each(1d))
-              val vSlack =
-                refSystem.nominalVoltage.multiplyWithDimensionles(vTarget)
-
-              (
-                vSlack,
-                refSystem.vInSi(0d),
-              )
-            } match {
-              case (slackE, slackF) =>
-                ctx.log.debug(
-                  s"Provide {} to {} for node {} and sweepNo: {}",
-                  s"$slackE, $slackF",
-                  sender,
-                  nodeUuid,
-                  gridAgentBaseData.currentSweepNo,
-                )
-
-                ExchangeVoltage(nodeUuid, slackE, slackF)
-            }
-          } match {
-            case exchangeVoltages =>
-              sender ! SlackVoltageResponse(
-                currentSweepNo,
-                exchangeVoltages,
-              )
-              Behaviors.same
-          }
 
         // receive grid power values message request from superior grids
         // before power flow calc for this sweep we either have to stash() the message to answer it later (in current sweep)
         // or trigger a new run for the next sweepNo
         case (
-              msg @ RequestGridPower(
-                requestSweepNo,
-                _,
-                _,
-              ),
+              msg @ RequestGridPower(requestSweepNo, _, _),
               gridAgentBaseData: GridAgentBaseData,
             ) =>
-          if (gridAgentBaseData.currentSweepNo == requestSweepNo) {
-            ctx.log.debug(
-              s"Received request for grid power values for sweepNo {} before my first power flow calc. Stashing away.",
-              requestSweepNo,
-            )
+          handleGridPowerRequestBeforeCalculation(
+            requestSweepNo,
+            msg,
+            gridAgentBaseData,
+            currentTick,
+            ctx,
+          )
 
-            buffer.stash(msg)
-
-            Behaviors.same
-          } else {
-            ctx.log.debug(
-              s"Received request for grid power values for a NEW sweep (request: {}, my: {})",
-              requestSweepNo,
-              gridAgentBaseData.currentSweepNo,
-            )
-            ctx.self ! PrepareNextSweepTrigger(currentTick)
-
-            buffer.stash(msg)
-
-            simulateGrid(
-              gridAgentBaseData.copy(currentSweepNo = requestSweepNo),
-              currentTick,
-            )
-          }
-
-        // after power flow calc for this sweepNo
+        // Handle grid power requests after power flow calculation for this sweepNo
         case (
               RequestGridPower(_, requestedNodeUuids, sender),
               powerFlowDoneData @ PowerFlowDoneData(
@@ -316,184 +171,376 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                 pendingRequestAnswers,
               ),
             ) =>
-          /* Determine the subgrid number of the grid agent, that has sent the request */
-          val firstRequestedNodeUuid = requestedNodeUuids.headOption.getOrElse(
-            throw new DBFSAlgorithmException(
-              "Did receive a grid power request but without specified nodes"
-            )
+          handleGridPowerRequestAfterCalculation(
+            requestedNodeUuids,
+            sender,
+            powerFlowDoneData,
+            currentTick,
+            ctx,
           )
-
-          gridAgentBaseData.gridEnv.subgridGateToActorRef
-            .map { case (subGridGate, _) => subGridGate.superiorNode }
-            .find(_.getUuid == firstRequestedNodeUuid)
-            .map(_.getSubnet) match {
-            case Some(requestingSubgridNumber) =>
-              powerFlowResult match {
-                case validNewtonRaphsonPFResult: ValidNewtonRaphsonPFResult =>
-                  val exchangePowers = requestedNodeUuids
-                    .map { nodeUuid =>
-                      /* Figure out the node index for each requested node */
-                      nodeUuid -> gridAgentBaseData.gridEnv.gridModel.nodeUuidToIndexMap
-                        .get(nodeUuid)
-                        .flatMap { nodeIndex =>
-                          /* Find matching node result */
-                          validNewtonRaphsonPFResult.nodeData.find(stateData =>
-                            stateData.index == nodeIndex
-                          )
-                        }
-                        .map {
-                          case StateData(_, nodeType, _, power)
-                              if nodeType == NodeType.SL =>
-                            val refSystem =
-                              gridAgentBaseData.gridEnv.gridModel.mainRefSystem
-                            val (pInPu, qInPu) =
-                              (power.real, power.imag)
-                            // The power flow result data provides the nodal residual power at the slack node.
-                            // A feed-in case from the inferior grid TO the superior grid leads to positive residual power at the
-                            // inferior grid's *slack node* (superior grid seems to be a load to the inferior grid).
-                            // To model the exchanged power from the superior grid's point of view, -1 has to be multiplied.
-                            // (Inferior grid is a feed in facility to superior grid, which is negative then). Analogously for load case.
-                            (
-                              refSystem.pInSi(pInPu) * (-1),
-                              refSystem.qInSi(qInPu) * (-1),
-                            )
-                          case _ =>
-                            /* TODO: As long as there are no multiple slack nodes, provide "real" power only for the slack node */
-                            (
-                              zeroMW,
-                              zeroMVAr,
-                            )
-                        }
-                        .getOrElse {
-                          throw new DBFSAlgorithmException(
-                            s"Got a request for power @ node with uuid $requestedNodeUuids but cannot find it in my result data!"
-                          )
-                        }
-                    }
-                    .map { case (nodeUuid, (p, q)) =>
-                      Responses.ExchangePower(
-                        nodeUuid,
-                        p,
-                        q,
-                      )
-                    }
-
-                  /* Determine the remaining replies */
-                  val stillPendingRequestAnswers =
-                    pendingRequestAnswers.filterNot(
-                      _ == requestingSubgridNumber
-                    )
-
-                  // update the sweep value store and clear all received maps
-                  // note: normally it is expected that this has to be done after power flow calculations but for the sake
-                  // of having it only once in the code we put this here. Otherwise it would have to been put before EVERY
-                  // return with a valid power flow result (currently happens already in two situations)
-                  val updatedGridAgentBaseData =
-                    if (stillPendingRequestAnswers.isEmpty) {
-                      gridAgentBaseData.storeSweepDataAndClearReceiveMaps(
-                        validNewtonRaphsonPFResult,
-                        gridAgentBaseData.superiorGridNodeUuids,
-                        gridAgentBaseData.inferiorGridGates,
-                      )
-                    } else {
-                      powerFlowDoneData.copy(pendingRequestAnswers =
-                        stillPendingRequestAnswers
-                      )
-                    }
-
-                  sender ! GridPowerResponse(exchangePowers)
-                  simulateGrid(updatedGridAgentBaseData, currentTick)
-
-                case _: FailedNewtonRaphsonPFResult =>
-                  sender ! FailedPowerFlow
-                  simulateGrid(gridAgentBaseData, currentTick)
-              }
-            case None =>
-              /* It is not possible to determine, who has asked */
-              ctx.log.error(
-                "I got a grid power request from a subgrid I don't know. Can't answer it properly."
-              )
-
-              sender ! FailedPowerFlow
-              Behaviors.same
-          }
 
         // called when a grid power values request from a superior grid is received
         // which is similar to a new sweep and causes a) a power flow with updated slack voltage values and
         // b) afterwards a request for updated power values from inferior grids and assets with updated voltage values
         // based on the just carried out power flow
+        // Handle next sweep trigger
         case (
               PrepareNextSweepTrigger(_),
               gridAgentBaseData: GridAgentBaseData,
             ) =>
-          // request the updated slack voltages from the superior grid
-          askSuperiorGridsForSlackVoltages(
-            gridAgentBaseData.currentSweepNo,
-            gridAgentBaseData.gridEnv.subgridGateToActorRef,
-            gridAgentBaseData.superiorGridGates,
-            gridAgentBaseData.powerFlowParams.sweepTimeout,
-          )(ctx)
+          requestUpdatedSlackVoltages(
+            gridAgentBaseData,
+            currentTick,
+            ctx,
+          )
 
-          ctx.log.debug(s"Going to HandlePowerFlowCalculation")
-
+          ctx.log.debug("Going to HandlePowerFlowCalculation")
           handlePowerFlowCalculations(gridAgentBaseData, currentTick)
 
-        // last step which should includes a) information on inferior grids about finish and
-        // b) cleanup of receiveMaps and sweepStore
+        // Handle finish grid simulation trigger
         case (
               FinishGridSimulationTrigger(currentTick),
               gridAgentBaseData: GridAgentBaseData,
             ) =>
-          // inform my child grids about the end of this grid simulation
-          gridAgentBaseData.inferiorGridGates
-            .map {
-              gridAgentBaseData.gridEnv.subgridGateToActorRef(_)
-            }
-            .distinct
-            .foreach(
-              _ ! FinishGridSimulationTrigger(currentTick)
-            )
-
-          // inform every system participant about the end of this grid simulation
-          gridAgentBaseData.gridEnv.nodeToAssetAgents.foreach {
-            case (_, actors) =>
-              actors.foreach { actor =>
-                actor ! FinishParticipantSimulation(currentTick)
-              }
-          }
-
-          // notify listener about the results
-          ctx.log.debug(
-            "Calculate results and sending the results to the listener ..."
-          )
-          createAndSendPowerFlowResults(
-            gridAgentBaseData,
-            currentTick.toDateTime(constantData.simStartTime),
-          )(ctx.log, constantData)
-
-          // do my cleanup stuff
-          ctx.log.debug("Doing my cleanup stuff")
-
-          // / clean copy of the gridAgentBaseData
-          val cleanedGridAgentBaseData = GridAgentBaseData.clean(
-            gridAgentBaseData,
-            gridAgentBaseData.superiorGridNodeUuids,
-            gridAgentBaseData.inferiorGridGates,
-          )
-
-          // / inform scheduler that we are done with the whole simulation and request new trigger for next time step
-          constantData.environmentRefs.scheduler ! Completion(
-            constantData.activationAdapter,
-            Some(currentTick + constantData.resolution),
-          )
-
-          // return to Idle
-          idle(cleanedGridAgentBaseData)
+          finishGridSimulation(gridAgentBaseData, currentTick, ctx)
 
         case _ =>
           // preventing "match may not be exhaustive"
           Behaviors.unhandled
       }
+  }
+
+  // Helper methods for different parts of the simulation
+  private def requestInitialData(
+      gridAgentBaseData: GridAgentBaseData,
+      currentTick: Long,
+      ctx: ActorContext[GridAgent.Request],
+  ): Unit = {
+    // we start the grid simulation by requesting the p/q values of all the nodes we are responsible for
+    // as well as the slack voltage power from our superior grid
+    // 1. assets p/q values
+    askForAssetPowers(
+      currentTick,
+      gridAgentBaseData.sweepValueStores
+        .get(gridAgentBaseData.currentSweepNo),
+      gridAgentBaseData.gridEnv.nodeToAssetAgents,
+      gridAgentBaseData.gridEnv.gridModel.mainRefSystem,
+      gridAgentBaseData.powerFlowParams.sweepTimeout,
+    )(ctx)
+
+    // 2. inferior grids p/q values
+    askInferiorGridsForPowers(
+      gridAgentBaseData.currentSweepNo,
+      gridAgentBaseData.gridEnv.subgridGateToActorRef,
+      gridAgentBaseData.inferiorGridGates,
+      gridAgentBaseData.powerFlowParams.sweepTimeout,
+    )(ctx)
+
+    // 3. superior grids slack voltage
+    askSuperiorGridsForSlackVoltages(
+      gridAgentBaseData.currentSweepNo,
+      gridAgentBaseData.gridEnv.subgridGateToActorRef,
+      gridAgentBaseData.superiorGridGates,
+      gridAgentBaseData.powerFlowParams.sweepTimeout,
+    )(ctx)
+  }
+
+  private def updateWithReceivedValues(
+      receivedValues: ReceivedValues,
+      gridAgentBaseData: GridAgentBaseData,
+  ): GridAgentBaseData = {
+
+    // we just received either all provided slack voltage values or all provided power values
+    receivedValues match {
+      case receivedPowers: ReceivedPowerValues =>
+        /* Can be a message from an asset or a message from an inferior grid */
+        gridAgentBaseData.updateWithReceivedPowerValues(receivedPowers)
+      case receivedSlacks: ReceivedSlackVoltageValues =>
+        gridAgentBaseData.updateWithReceivedSlackVoltages(
+          receivedSlacks
+        )
+      case unknownReceivedValues =>
+        throw new DBFSAlgorithmException(
+          s"Received unknown values: $unknownReceivedValues"
+        )
+    }
+
+  }
+
+  private def handleSlackVoltageRequest(
+      currentSweepNo: Int,
+      nodeUuids: Seq[UUID],
+      sender: ActorRef[SlackVoltageResponse],
+      gridAgentBaseData: GridAgentBaseData,
+      ctx: ActorContext[_],
+  ): Behavior[GridAgent.Request] = {
+    // if we receive a request for slack voltages from our inferior grids we want to answer it
+    ctx.log.debug(
+      s"Received Slack Voltages request from {} for nodes {} and sweepNo: {}",
+      sender,
+      nodeUuids,
+      gridAgentBaseData.currentSweepNo,
+    )
+
+    nodeUuids.map { nodeUuid =>
+      // we either have voltages ready calculated (not the first sweep) or we don't have them here
+      // -> return calculated value or target voltage as physical value
+      (gridAgentBaseData.sweepValueStores.get(currentSweepNo) match {
+        case Some(result) =>
+          Some(result, currentSweepNo)
+        case None =>
+          // this happens if this agent is either a) the superior grid agent, because it will always get a request for
+          // the next sweep, as it triggers calculations for the next sweep or b) at all other
+          // (non last downstream grid agents) in sweep 0
+          ctx.log.debug(
+            "Unable to find slack voltage for nodes '{}' in sweep '{}'. Try to get voltage of previous sweep.",
+            nodeUuids,
+            currentSweepNo,
+          )
+          gridAgentBaseData.sweepValueStores
+            .get(currentSweepNo - 1)
+            .map((_, currentSweepNo - 1))
+      }).map { case (result, sweepNo) =>
+        // get nodeUUID
+        result.sweepData.find(_.nodeUuid == nodeUuid) match {
+          case Some(sweepValueStoreData) =>
+            val slackVoltageInPu = sweepValueStoreData.stateData.voltage
+            val mainRefSystem =
+              gridAgentBaseData.gridEnv.gridModel.mainRefSystem
+            (
+              mainRefSystem.vInSi(slackVoltageInPu.real),
+              mainRefSystem.vInSi(slackVoltageInPu.imag),
+            )
+          case None =>
+            throw new DBFSAlgorithmException(
+              s"Requested nodeUuid $nodeUuid " +
+                s"not found in sweep value store data for sweepNo: $sweepNo. This indicates" +
+                s"either a wrong processing of a previous sweep result or inconsistencies in grid model data!"
+            )
+        }
+      }.getOrElse {
+        ctx.log.debug(
+          "Unable to get slack voltage for node '{}' in sweeps '{}' and '{}'. Returning target voltage.",
+          nodeUuid,
+          currentSweepNo,
+          currentSweepNo - 1,
+        )
+
+        val refSystem =
+          gridAgentBaseData.gridEnv.gridModel.mainRefSystem
+
+        /* Determine the slack node voltage under consideration of the target voltage set point */
+        val vTarget =
+          gridAgentBaseData.gridEnv.gridModel.gridComponents.nodes
+            .find { case NodeModel(uuid, _, _, isSlack, _, _) =>
+              uuid == nodeUuid && isSlack
+            }
+            .map(_.vTarget)
+            .getOrElse(Each(1d))
+        val vSlack =
+          refSystem.nominalVoltage.multiplyWithDimensionles(vTarget)
+
+        (
+          vSlack,
+          refSystem.vInSi(0d),
+        )
+      } match {
+        case (slackE, slackF) =>
+          ctx.log.debug(
+            s"Provide {} to {} for node {} and sweepNo: {}",
+            s"$slackE, $slackF",
+            sender,
+            nodeUuid,
+            gridAgentBaseData.currentSweepNo,
+          )
+
+          ExchangeVoltage(nodeUuid, slackE, slackF)
+      }
+    } match {
+      case exchangeVoltages =>
+        sender ! SlackVoltageResponse(
+          currentSweepNo,
+          exchangeVoltages,
+        )
+        Behaviors.same
+    }
+  }
+  private def handleGridPowerRequestBeforeCalculation(
+      requestSweepNo: Int,
+      msg: RequestGridPower,
+      gridAgentBaseData: GridAgentBaseData,
+      currentTick: Long,
+      ctx: ActorContext[GridAgent.Request],
+  )(implicit
+      constantData: GridAgentConstantData,
+      buffer: StashBuffer[GridAgent.Request],
+  ): Behavior[GridAgent.Request] = {
+    if (gridAgentBaseData.currentSweepNo == requestSweepNo) {
+      ctx.log.debug(
+        s"Received request for grid power values for sweepNo {} before my first power flow calc. Stashing away.",
+        requestSweepNo,
+      )
+
+      buffer.stash(msg)
+
+      Behaviors.same
+    } else {
+      ctx.log.debug(
+        s"Received request for grid power values for a NEW sweep (request: {}, my: {})",
+        requestSweepNo,
+        gridAgentBaseData.currentSweepNo,
+      )
+      ctx.self ! PrepareNextSweepTrigger(currentTick)
+
+      buffer.stash(msg)
+
+      simulateGrid(
+        gridAgentBaseData.copy(currentSweepNo = requestSweepNo),
+        currentTick,
+      )
+    }
+  }
+
+  private def handleGridPowerRequestAfterCalculation(
+      requestedNodeUuids: Seq[UUID],
+      sender: ActorRef[GridAgentMessages.PowerResponse],
+      powerFlowDoneData: PowerFlowDoneData,
+      currentTick: Long,
+      ctx: ActorContext[GridAgent.Request],
+  )(implicit
+      buffer: StashBuffer[GridAgent.Request],
+      constantData: GridAgentConstantData,
+  ): Behavior[GridAgent.Request] = {
+
+    // Extract the necessary variables
+    val gridAgentBaseData = powerFlowDoneData.gridAgentBaseData
+    val powerFlowResult = powerFlowDoneData.powerFlowResult
+    val pendingRequestAnswers = powerFlowDoneData.pendingRequestAnswers
+
+    // Determine the subgrid number of the grid agent that has sent the request
+    val firstRequestedNodeUuid = requestedNodeUuids.headOption.getOrElse(
+      throw new DBFSAlgorithmException(
+        "Did receive a grid power request but without specified nodes"
+      )
+    )
+
+    gridAgentBaseData.gridEnv.subgridGateToActorRef
+      .collectFirst {
+        case (subGridGate, _)
+            if subGridGate.superiorNode.getUuid == firstRequestedNodeUuid =>
+          subGridGate.superiorNode.getSubnet
+      } match {
+      case Some(requestingSubgridNumber) =>
+        powerFlowResult match {
+          case validNewtonRaphsonPFResult: ValidNewtonRaphsonPFResult =>
+            val exchangePowers = requestedNodeUuids
+              .map { nodeUuid =>
+                // Figure out the node index for each requested node
+                nodeUuid -> gridAgentBaseData.gridEnv.gridModel.nodeUuidToIndexMap
+                  .get(nodeUuid)
+                  .flatMap { nodeIndex =>
+                    // Find matching node result
+                    validNewtonRaphsonPFResult.nodeData.find(stateData =>
+                      stateData.index == nodeIndex
+                    )
+                  }
+                  .map {
+                    case StateData(_, nodeType, _, power)
+                        if nodeType == NodeType.SL =>
+                      val refSystem =
+                        gridAgentBaseData.gridEnv.gridModel.mainRefSystem
+                      val (pInPu, qInPu) = (power.real, power.imag)
+                      // The power flow result data provides the nodal residual power at the slack node.
+                      // A feed-in case from the inferior grid TO the superior grid leads to positive residual power at the
+                      // inferior grid's *slack node* (superior grid seems to be a load to the inferior grid).
+                      // To model the exchanged power from the superior grid's point of view, -1 has to be multiplied.
+                      // (Inferior grid is a feed in facility to superior grid, which is negative then). Analogously for load case.
+                      (
+                        refSystem.pInSi(pInPu) * (-1),
+                        refSystem.qInSi(qInPu) * (-1),
+                      )
+                    case _ =>
+                      // As long as there are no multiple slack nodes, provide "real" power only for the slack node
+                      (
+                        zeroMW,
+                        zeroMVAr,
+                      )
+                  }
+                  .getOrElse {
+                    throw new DBFSAlgorithmException(
+                      s"Got a request for power @ node with uuid $requestedNodeUuids but cannot find it in my result data!"
+                    )
+                  }
+              }
+              .map { case (nodeUuid, (p, q)) =>
+                Responses.ExchangePower(
+                  nodeUuid,
+                  p,
+                  q,
+                )
+              }
+
+            // Determine the remaining replies
+            val stillPendingRequestAnswers =
+              pendingRequestAnswers.filterNot(
+                _ == requestingSubgridNumber
+              )
+
+            // Update the sweep value store and clear all received maps
+            // Note: normally it is expected that this has to be done after power flow calculations but for the sake
+            // of having it only once in the code we put this here. Otherwise it would have to been put before EVERY
+            // return with a valid power flow result (currently happens already in two situations)
+            val updatedGridAgentBaseData =
+              if (stillPendingRequestAnswers.isEmpty) {
+                gridAgentBaseData.storeSweepDataAndClearReceiveMaps(
+                  validNewtonRaphsonPFResult,
+                  gridAgentBaseData.superiorGridNodeUuids,
+                  gridAgentBaseData.inferiorGridGates,
+                )
+              } else {
+                powerFlowDoneData.copy(pendingRequestAnswers =
+                  stillPendingRequestAnswers
+                )
+              }
+
+            sender ! GridAgentMessages.GridPowerResponse(exchangePowers)
+            simulateGrid(updatedGridAgentBaseData, currentTick)
+
+          case _: FailedNewtonRaphsonPFResult =>
+            sender ! GridAgentMessages.FailedPowerFlow
+            simulateGrid(gridAgentBaseData, currentTick)
+        }
+      case None =>
+        // It is not possible to determine who has asked
+        ctx.log.error(
+          "I got a grid power request from a subgrid I don't know. Can't answer it properly."
+        )
+
+        sender ! GridAgentMessages.FailedPowerFlow
+        simulateGrid(gridAgentBaseData, currentTick)
+    }
+  }
+
+  private def requestUpdatedSlackVoltages(
+      gridAgentBaseData: GridAgentBaseData,
+      currentTick: Long,
+      ctx: ActorContext[_],
+  )(implicit
+      buffer: StashBuffer[GridAgent.Request],
+      constantData: GridAgentConstantData,
+  ): Unit = {
+    val typedCtx = ctx.asInstanceOf[ActorContext[GridAgent.Request]]
+
+    askSuperiorGridsForSlackVoltages(
+      gridAgentBaseData.currentSweepNo,
+      gridAgentBaseData.gridEnv.subgridGateToActorRef,
+      gridAgentBaseData.superiorGridGates,
+      gridAgentBaseData.powerFlowParams.sweepTimeout,
+    )(typedCtx)
+
+    ctx.log.debug("Going to HandlePowerFlowCalculation")
+
+    handlePowerFlowCalculations(gridAgentBaseData, currentTick)
   }
 
   /** Method that defines the [[Behavior]] for handling the power flow
@@ -808,6 +855,63 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       }
   }
 
+  private def finishGridSimulation(
+      gridAgentBaseData: GridAgentBaseData,
+      currentTick: Long,
+      ctx: ActorContext[_],
+  )(implicit
+      constantData: GridAgentConstantData,
+      buffer: StashBuffer[GridAgent.Request],
+  ): Behavior[GridAgent.Request] = {
+
+    // last step which should includes a) information on inferior grids about finish and
+    // b) cleanup of receiveMaps and sweepStore
+
+    // inform my child grids about the end of this grid simulation
+    gridAgentBaseData.inferiorGridGates
+      .map {
+        gridAgentBaseData.gridEnv.subgridGateToActorRef(_)
+      }
+      .distinct
+      .foreach(
+        _ ! FinishGridSimulationTrigger(currentTick)
+      )
+
+    // inform every system participant about the end of this grid simulation
+    gridAgentBaseData.gridEnv.nodeToAssetAgents.foreach { case (_, actors) =>
+      actors.foreach { actor =>
+        actor ! FinishParticipantSimulation(currentTick)
+      }
+    }
+
+    // notify listener about the results
+    ctx.log.debug(
+      "Calculate results and sending the results to the listener ..."
+    )
+    createAndSendPowerFlowResults(
+      gridAgentBaseData,
+      currentTick.toDateTime(constantData.simStartTime),
+    )(ctx.log, constantData)
+
+    // do my cleanup stuff
+    ctx.log.debug("Doing my cleanup stuff")
+
+    // / clean copy of the gridAgentBaseData
+    val cleanedGridAgentBaseData = GridAgentBaseData.clean(
+      gridAgentBaseData,
+      gridAgentBaseData.superiorGridNodeUuids,
+      gridAgentBaseData.inferiorGridGates,
+    )
+
+    // / inform scheduler that we are done with the whole simulation and request new trigger for next time step
+    constantData.environmentRefs.scheduler ! Completion(
+      constantData.activationAdapter,
+      Some(currentTick + constantData.resolution),
+    )
+    // return to Idle
+    idle(cleanedGridAgentBaseData)
+  }
+
   /** Method used for checking the power difference. <p> This method should only
     * be reached by the superior (dummy) grid agent.
     * @param gridAgentBaseData
@@ -1113,9 +1217,9 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     if (gridAgentBaseData.powerFlowParams.stopOnFailure) {
       ctx.log.error("Stopping because of failed power flow.")
       Behaviors.stopped
+    } else {
+      simulateGrid(gridAgentBaseData, currentTick)
     }
-
-    simulateGrid(gridAgentBaseData, currentTick)
   }
 
   /** Normally only reached by the superior (dummy) agent!
