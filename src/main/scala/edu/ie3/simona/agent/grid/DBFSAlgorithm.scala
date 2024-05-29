@@ -211,6 +211,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   }
 
   // Helper methods for different parts of the simulation
+  // TODO ScalaDoc
   private def requestInitialData(
       gridAgentBaseData: GridAgentBaseData,
       currentTick: Long,
@@ -245,6 +246,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     )(ctx)
   }
 
+  // TODO ScalaDoc
   private def updateWithReceivedValues(
       receivedValues: ReceivedValues,
       gridAgentBaseData: GridAgentBaseData,
@@ -266,7 +268,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     }
 
   }
-
+  // TODO ScalaDoc
   private def handleSlackVoltageRequest(
       currentSweepNo: Int,
       nodeUuids: Seq[UUID],
@@ -365,6 +367,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         Behaviors.same
     }
   }
+  // TODO ScalaDoc
   private def handleGridPowerRequestBeforeCalculation(
       requestSweepNo: Int,
       msg: RequestGridPower,
@@ -400,7 +403,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       )
     }
   }
-
+  // TODO ScalaDoc
   private def handleGridPowerRequestAfterCalculation(
       requestedNodeUuids: Seq[UUID],
       sender: ActorRef[GridAgentMessages.PowerResponse],
@@ -520,23 +523,21 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         simulateGrid(gridAgentBaseData, currentTick)
     }
   }
-
-  private def requestUpdatedSlackVoltages(
+  // TODO ScalaDoc
+  private def requestUpdatedSlackVoltages[T <: GridAgent.Request](
       gridAgentBaseData: GridAgentBaseData,
       currentTick: Long,
-      ctx: ActorContext[_],
+      ctx: ActorContext[GridAgent.Request],
   )(implicit
       buffer: StashBuffer[GridAgent.Request],
       constantData: GridAgentConstantData,
   ): Unit = {
-    val typedCtx = ctx.asInstanceOf[ActorContext[GridAgent.Request]]
-
     askSuperiorGridsForSlackVoltages(
       gridAgentBaseData.currentSweepNo,
       gridAgentBaseData.gridEnv.subgridGateToActorRef,
       gridAgentBaseData.superiorGridGates,
       gridAgentBaseData.powerFlowParams.sweepTimeout,
-    )(typedCtx)
+    )(ctx)
 
     ctx.log.debug("Going to HandlePowerFlowCalculation")
 
