@@ -210,8 +210,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       }
   }
 
-  // Helper methods for different parts of the simulation
-  // TODO ScalaDoc
+  /** Helper method for [[simulateGrid()]] Requesting for active and reactive
+    * power values of all nodes within this [[GridAgent]] and return it. Same
+    * for slack voltage power from superior grid.
+    */
   private def requestInitialData(
       gridAgentBaseData: GridAgentBaseData,
       currentTick: Long,
@@ -246,7 +248,9 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     )(ctx)
   }
 
-  // TODO ScalaDoc
+  /** Helper method for [[simulateGrid()]] Updates the values stores with
+    * received data.
+    */
   private def updateWithReceivedValues(
       receivedValues: ReceivedValues,
       gridAgentBaseData: GridAgentBaseData,
@@ -268,7 +272,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     }
 
   }
-  // TODO ScalaDoc
+
+  /** Helper method for [[simulateGrid()]] Handles all requests for slack
+    * voltages from inferior grids.
+    */
   private def handleSlackVoltageRequest(
       currentSweepNo: Int,
       nodeUuids: Seq[UUID],
@@ -367,7 +374,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         Behaviors.same
     }
   }
-  // TODO ScalaDoc
+
+  /** Helper method for [[simulateGrid()]] Handles all power requests **before**
+    * the next calculation step.
+    */
   private def handleGridPowerRequestBeforeCalculation(
       requestSweepNo: Int,
       msg: RequestGridPower,
@@ -403,7 +413,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       )
     }
   }
-  // TODO ScalaDoc
+
+  /** Helper method for [[simulateGrid()]] Handles all power requests **after**
+    * the calculation step done before.
+    */
   private def handleGridPowerRequestAfterCalculation(
       requestedNodeUuids: Seq[UUID],
       sender: ActorRef[GridAgentMessages.PowerResponse],
@@ -523,7 +536,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         simulateGrid(gridAgentBaseData, currentTick)
     }
   }
-  // TODO ScalaDoc
+
+  /** Helper method for [[simulateGrid()]] Ask its superior grids for updated
+    * slack voltages and handles the necessary power flow calculations.
+    */
   private def requestUpdatedSlackVoltages[T <: GridAgent.Request](
       gridAgentBaseData: GridAgentBaseData,
       currentTick: Long,
@@ -855,6 +871,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           Behaviors.unhandled
       }
   }
+
+  /** Helper method for [[simulateGrid()]] which contains all final steps.
+    * Mainly informs all entities about finishing simulation of this tick and do
+    * clean up.
+    */
 
   private def finishGridSimulation(
       gridAgentBaseData: GridAgentBaseData,
