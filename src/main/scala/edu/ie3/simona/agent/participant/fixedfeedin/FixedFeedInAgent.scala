@@ -8,13 +8,17 @@ package edu.ie3.simona.agent.participant.fixedfeedin
 
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPowerData,
+  PrimaryDataWithApparentPower,
+}
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.SimonaConfig.FixedFeedInRuntimeConfig
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.FixedFeedInModel
 import edu.ie3.simona.model.participant.ModelState.ConstantState
+import edu.ie3.util.scala.quantities.ApparentPower
 import org.apache.pekko.actor.{ActorRef, Props}
 
 object FixedFeedInAgent {
@@ -24,6 +28,7 @@ object FixedFeedInAgent {
         FixedFeedInInput,
         FixedFeedInRuntimeConfig,
         ApparentPower,
+        ApparentPowerData,
       ],
       listener: Iterable[ActorRef],
   ): Props =
@@ -43,13 +48,14 @@ class FixedFeedInAgent(
       FixedFeedInInput,
       FixedFeedInRuntimeConfig,
       ApparentPower,
+      ApparentPowerData,
     ],
     override val listener: Iterable[ActorRef],
 ) extends ParticipantAgent[
-      ApparentPower,
+      ApparentPowerData,
       FixedRelevantData.type,
       ConstantState.type,
-      ParticipantStateData[ApparentPower],
+      ParticipantStateData[ApparentPower, ApparentPowerData],
       FixedFeedInInput,
       FixedFeedInRuntimeConfig,
       FixedFeedInModel,

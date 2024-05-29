@@ -29,7 +29,7 @@ trait ApparentPowerAndHeatParticipant[
       else
         zeroMW
 
-    ApparentPowerAndHeat(apparentPower.p, apparentPower.q, heat)
+    ApparentPowerAndHeat(apparentPower, heat)
   }
 
   /** Calculate the heat of the asset. As for electrical assets, positive values

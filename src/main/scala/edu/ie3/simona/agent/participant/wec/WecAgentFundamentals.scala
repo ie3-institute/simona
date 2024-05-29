@@ -16,6 +16,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgent._
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower,
+  ApparentPowerData,
   ZERO_POWER,
 }
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
@@ -48,7 +49,11 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.ReactivePower
+import edu.ie3.util.scala.quantities.{
+  ApparentPower,
+  Megavoltampere,
+  ReactivePower,
+}
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import org.apache.pekko.actor.{ActorRef, FSM}
@@ -61,18 +66,18 @@ import scala.reflect.{ClassTag, classTag}
 
 protected trait WecAgentFundamentals
     extends ParticipantAgentFundamentals[
-      ApparentPower,
+      ApparentPowerData,
       WecRelevantData,
       ConstantState.type,
-      ParticipantStateData[ApparentPower],
+      ParticipantStateData[ApparentPower, ApparentPowerData],
       WecInput,
       WecRuntimeConfig,
       WecModel,
     ] {
   this: WecAgent =>
-  override protected val pdClassTag: ClassTag[ApparentPower] =
-    classTag[ApparentPower]
-  override val alternativeResult: ApparentPower = ZERO_POWER
+  override protected val pdClassTag: ClassTag[ApparentPowerData] =
+    classTag[ApparentPowerData]
+  override val alternativeResult: ApparentPowerData = ZERO_POWER
 
   /** Determines the needed base state data in dependence of the foreseen
     * simulation mode of the agent.
@@ -109,7 +114,7 @@ protected trait WecAgentFundamentals
       outputConfig: NotifierConfig,
       maybeEmAgent: Option[TypedActorRef[FlexResponse]],
   ): ParticipantModelBaseStateData[
-    ApparentPower,
+    ApparentPowerData,
     WecRelevantData,
     ConstantState.type,
     WecModel,
@@ -130,7 +135,7 @@ protected trait WecAgentFundamentals
       )
 
     ParticipantModelBaseStateData[
-      ApparentPower,
+      ApparentPowerData,
       WecRelevantData,
       ConstantState.type,
       WecModel,
@@ -175,7 +180,7 @@ protected trait WecAgentFundamentals
 
   override protected def createInitialState(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ApparentPowerData,
         WecRelevantData,
         ConstantState.type,
         WecModel,
@@ -185,7 +190,7 @@ protected trait WecAgentFundamentals
 
   override protected def createCalcRelevantData(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ApparentPowerData,
         WecRelevantData,
         ConstantState.type,
         WecModel,
@@ -238,7 +243,7 @@ protected trait WecAgentFundamentals
   def handleControlledPowerChange(
       tick: Long,
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ApparentPowerData,
         WecRelevantData,
         ConstantState.type,
         WecModel,
@@ -246,7 +251,7 @@ protected trait WecAgentFundamentals
       data: WecRelevantData,
       lastState: ConstantState.type,
       setPower: squants.Power,
-  ): (ConstantState.type, ApparentPower, FlexChangeIndicator) = {
+  ): (ConstantState.type, ApparentPowerData, FlexChangeIndicator) = {
     /* Calculate result */
     val voltage = getAndCheckNodalVoltage(baseStateData, tick)
 
@@ -254,7 +259,7 @@ protected trait WecAgentFundamentals
       setPower,
       voltage,
     )
-    val result = ApparentPower(setPower, reactivePower)
+    val result = ApparentPowerData(Megavoltampere(setPower, reactivePower))
 
     /* Handle the request within the model */
     val (updatedState, flexChangeIndicator) =
@@ -269,18 +274,18 @@ protected trait WecAgentFundamentals
   override val calculateModelPowerFunc: (
       Long,
       ParticipantModelBaseStateData[
-        ApparentPower,
+        ApparentPowerData,
         WecRelevantData,
         ConstantState.type,
         WecModel,
       ],
       ConstantState.type,
       Dimensionless,
-  ) => ApparentPower =
+  ) => ApparentPowerData =
     (
         _: Long,
         _: ParticipantModelBaseStateData[
-          ApparentPower,
+          ApparentPowerData,
           WecRelevantData,
           ConstantState.type,
           WecModel,
@@ -315,7 +320,7 @@ protected trait WecAgentFundamentals
     */
   override def calculatePowerWithSecondaryDataAndGoToIdle(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ApparentPowerData,
         WecRelevantData,
         ConstantState.type,
         WecModel,
@@ -323,7 +328,10 @@ protected trait WecAgentFundamentals
       lastModelState: ConstantState.type,
       currentTick: Long,
       scheduler: ActorRef,
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
+  ): FSM.State[AgentState, ParticipantStateData[
+    ApparentPower,
+    ApparentPowerData,
+  ]] = {
     val voltage =
       getAndCheckNodalVoltage(baseStateData, currentTick)
 
@@ -362,13 +370,13 @@ protected trait WecAgentFundamentals
     *   The averaged result
     */
   override def averageResults(
-      tickToResults: Map[Long, ApparentPower],
+      tickToResults: Map[Long, ApparentPowerData],
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         Power => ReactivePower
       ] = None,
-  ): ApparentPower =
+  ): ApparentPowerData =
     ParticipantAgentFundamentals.averageApparentPower(
       tickToResults,
       windowStart,
@@ -391,7 +399,7 @@ protected trait WecAgentFundamentals
   override protected def buildResult(
       uuid: UUID,
       dateTime: ZonedDateTime,
-      result: ApparentPower,
+      result: ApparentPowerData,
   ): SystemParticipantResult =
     new WecResult(
       dateTime,

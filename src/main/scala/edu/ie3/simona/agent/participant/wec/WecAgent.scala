@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.participant.wec
 
 import edu.ie3.datamodel.models.input.system.WecInput
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
@@ -17,6 +17,7 @@ import edu.ie3.simona.config.SimonaConfig.WecRuntimeConfig
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.WecModel
 import edu.ie3.simona.model.participant.WecModel._
+import edu.ie3.util.scala.quantities.ApparentPower
 import org.apache.pekko.actor.{ActorRef, Props}
 
 object WecAgent {
@@ -26,6 +27,7 @@ object WecAgent {
         WecInput,
         WecRuntimeConfig,
         ApparentPower,
+        ApparentPowerData,
       ],
       listener: Iterable[ActorRef],
   ): Props =
@@ -55,13 +57,14 @@ class WecAgent(
       WecInput,
       WecRuntimeConfig,
       ApparentPower,
+      ApparentPowerData,
     ],
     override val listener: Iterable[ActorRef],
 ) extends ParticipantAgent[
-      ApparentPower,
+      ApparentPowerData,
       WecRelevantData,
       ConstantState.type,
-      ParticipantStateData[ApparentPower],
+      ParticipantStateData[ApparentPower, ApparentPowerData],
       WecInput,
       WecRuntimeConfig,
       WecModel,

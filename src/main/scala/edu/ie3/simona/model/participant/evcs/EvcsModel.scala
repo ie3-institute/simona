@@ -11,7 +11,7 @@ import edu.ie3.datamodel.models.ElectricCurrentType
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
 import edu.ie3.datamodel.models.result.system.{EvResult, EvcsResult}
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerData
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.evcs.EvcsModel._
@@ -19,7 +19,6 @@ import edu.ie3.simona.model.participant.evcs.uncontrolled.{
   ConstantPowerCharging,
   MaximumPowerCharging,
 }
-import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.simona.model.participant.{
   CalcRelevantData,
   FlexChangeIndicator,
@@ -32,7 +31,10 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.OperationInterval
-import squants.energy.{KilowattHours, Kilowatts}
+import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltampere}
+import squants.energy.Kilowatts
+import squants.space.Degrees
 import squants.time.Seconds
 import squants.{Dimensionless, Energy, Power}
 import tech.units.indriya.unit.Units.PERCENT
@@ -73,7 +75,7 @@ final case class EvcsModel(
     operationInterval: OperationInterval,
     simulationStartDate: ZonedDateTime,
     qControl: QControl,
-    sRated: Power,
+    sRated: ApparentPower,
     currentType: ElectricCurrentType,
     cosPhiRated: Double,
     chargingPoints: Int,
@@ -81,12 +83,12 @@ final case class EvcsModel(
     vehicle2grid: Boolean,
     strategy: ChargingStrategy.Value,
     lowestEvSoc: Double,
-) extends SystemParticipant[EvcsRelevantData, ApparentPower, EvcsState](
+) extends SystemParticipant[EvcsRelevantData, ApparentPowerData, EvcsState](
       uuid,
       id,
       operationInterval,
       qControl,
-      sRated * chargingPoints,
+      sRated.scale(chargingPoints),
       cosPhiRated,
     )
     with LazyLogging
@@ -500,12 +502,12 @@ final case class EvcsModel(
   ): Power = {
     val evPower = currentType match {
       case ElectricCurrentType.AC =>
-        ev.sRatedAc
+        ev.sRatedAc.withZeroDegrees
       case ElectricCurrentType.DC =>
         ev.sRatedDc
     }
     /* Limit the charging power to the minimum of ev's and evcs' permissible power */
-    evPower.min(sRated)
+    evPower.min(sRated.withZeroDegrees)
   }
 
   override def calculatePower(
@@ -513,7 +515,7 @@ final case class EvcsModel(
       voltage: Dimensionless,
       modelState: EvcsState,
       data: EvcsRelevantData,
-  ): ApparentPower =
+  ): ApparentPowerData =
     throw new NotImplementedError("Use calculatePowerAndEvSoc() instead.")
 
   override protected def calculateActivePower(
@@ -1062,8 +1064,9 @@ object EvcsModel {
       operationInterval,
       simulationStartDate,
       QControl(scaledInput.getqCharacteristics),
-      Kilowatts(
-        scaledInput.getType.getsRated.to(KILOWATT).getValue.doubleValue
+      Kilovoltampere(
+        scaledInput.getType.getsRated.to(KILOWATT).getValue.doubleValue,
+        Degrees(0),
       ),
       scaledInput.getType.getElectricCurrentType,
       scaledInput.getCosPhiRated,

@@ -23,9 +23,9 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.StartCalculationTrigger
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals.RelevantResultValues
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
+  ActivePower,
   ApparentPowerAndHeat,
-  EnrichableData,
+  ApparentPowerData,
   PrimaryDataWithApparentPower,
 }
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
@@ -86,7 +86,7 @@ import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
-import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
+import edu.ie3.util.scala.quantities._
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import org.apache.pekko.actor.{ActorRef, FSM, PoisonPill}
@@ -106,10 +106,10 @@ import scala.util.{Failure, Success, Try}
 /** Useful functions to use in [[ParticipantAgent]] s
   */
 protected trait ParticipantAgentFundamentals[
-    PD <: PrimaryDataWithApparentPower[PD],
+    PD <: PrimaryDataWithApparentPower,
     CD <: CalcRelevantData,
     MS <: ModelState,
-    D <: ParticipantStateData[PD],
+    D <: ParticipantStateData[ApparentPower, PD],
     I <: SystemParticipantInput,
     MC <: SimonaConfig.BaseRuntimeConfig,
     M <: SystemParticipant[CD, PD, MS],
@@ -128,7 +128,7 @@ protected trait ParticipantAgentFundamentals[
       outputConfig: NotifierConfig,
       senderToMaybeTick: (ActorRef, Option[Long]),
       scheduler: ActorRef,
-  ): FSM.State[AgentState, ParticipantStateData[PD]] = {
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower, PD]] = {
     val stateData = determineFromOutsideBaseStateData(
       inputModel,
       modelConfig,
@@ -269,7 +269,7 @@ protected trait ParticipantAgentFundamentals[
       outputConfig: NotifierConfig,
       scheduler: ActorRef,
       maybeEmAgent: Option[TypedActorRef[FlexResponse]],
-  ): FSM.State[AgentState, ParticipantStateData[PD]] =
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower, PD]] =
     try {
       /* Register for services */
       val awaitRegistrationResponsesFrom =
@@ -432,7 +432,7 @@ protected trait ParticipantAgentFundamentals[
       scheduler: ActorRef,
       registrationResponse: RegistrationResponseMessage,
       stateData: CollectRegistrationConfirmMessages[PD],
-  ): FSM.State[AgentState, ParticipantStateData[PD]] =
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower, PD]] =
     registrationResponse match {
       case RegistrationResponseMessage.RegistrationSuccessfulMessage(
             serviceRef,
@@ -495,7 +495,7 @@ protected trait ParticipantAgentFundamentals[
       msg: ProvisionMessage[Data],
       baseStateData: BaseStateData[PD],
       scheduler: ActorRef,
-  ): FSM.State[AgentState, ParticipantStateData[PD]] = {
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower, PD]] = {
     /* Figure out, who is going to send data in this tick */
     val expectedSenders = baseStateData.foreseenDataTicks
       .flatMap { case (actorRef, optTick) =>
@@ -594,7 +594,7 @@ protected trait ParticipantAgentFundamentals[
       scheduler: ActorRef,
   )(implicit
       outputConfig: NotifierConfig
-  ): FSM.State[AgentState, ParticipantStateData[PD]] = {
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower, PD]] = {
     if (!stateData.data.exists(_._2.isEmpty) && isYetTriggered) {
       /* We got everything we expect and we are yet triggered */
       stateData.baseStateData match {
@@ -895,7 +895,7 @@ protected trait ParticipantAgentFundamentals[
       currentTick: Long,
       scheduler: ActorRef,
       nodalVoltage: squants.Dimensionless,
-  ): FSM.State[AgentState, ParticipantStateData[PD]] = {
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower, PD]] = {
     val calcRelevantData =
       createCalcRelevantData(baseStateData, currentTick)
 
@@ -1022,22 +1022,22 @@ protected trait ParticipantAgentFundamentals[
       .flatMap { case (_, maybeData) =>
         maybeData
       }
-      .fold[Try[PrimaryData]] {
+      .fold[Try[PrimaryData[_]]] {
         Failure(
           new IllegalStateException(
             "Not able to determine the most recent result, although it should have been sent."
           )
         )
       } {
-        case result: PrimaryData
+        case result: PrimaryData[_]
             if pdClassTag.runtimeClass.equals(result.getClass) =>
           Success(result)
-        case primaryData: PrimaryData =>
+        case primaryData: PrimaryData[_] =>
           primaryData match {
-            case pd: EnrichableData[_] =>
+            case pd: ActivePower =>
               val q =
                 reactivePowerFunction(pd.p)
-              val enriched = pd.add(q)
+              val enriched = pd.withReactivePower(q)
               if (pdClassTag.runtimeClass.equals(enriched.getClass))
                 Success(enriched)
               else
@@ -1075,7 +1075,7 @@ protected trait ParticipantAgentFundamentals[
   def goToIdleReplyCompletionAndScheduleTriggerForNextAction(
       baseStateData: BaseStateData[PD],
       scheduler: ActorRef,
-  ): FSM.State[AgentState, ParticipantStateData[PD]] = {
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower, PD]] = {
     /* Determine the very next tick, where activation is required */
     val (maybeNextTick, updatedBaseStateData) =
       popNextActivationTrigger(baseStateData)
@@ -1225,7 +1225,7 @@ protected trait ParticipantAgentFundamentals[
       eInPu: Dimensionless,
       fInPu: Dimensionless,
       alternativeResult: PD,
-  ): FSM.State[AgentState, ParticipantStateData[PD]] = {
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower, PD]] = {
     /* Check, if there is any calculation foreseen for this tick. If so, wait with the response. */
     val activationExpected =
       baseStateData.additionalActivationTicks.headOption.exists(_ < requestTick)
@@ -1313,7 +1313,7 @@ protected trait ParticipantAgentFundamentals[
       voltageValueStore: ValueStore[Dimensionless],
       nodalVoltage: Dimensionless,
       lastNodalVoltage: Option[(Long, Dimensionless)],
-  ): Option[FSM.State[AgentState, ParticipantStateData[PD]]] = {
+  ): Option[FSM.State[AgentState, ParticipantStateData[ApparentPower, PD]]] = {
     implicit val outputConfig: NotifierConfig =
       baseStateData.outputConfig
     mostRecentRequest match {
@@ -1400,7 +1400,7 @@ protected trait ParticipantAgentFundamentals[
       nodalVoltage: Dimensionless,
       updatedVoltageValueStore: ValueStore[Dimensionless],
       alternativeResult: PD,
-  ): FSM.State[AgentState, ParticipantStateData[PD]] = {
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower, PD]] = {
     /* No fast reply possible --> Some calculations have to be made */
     mostRecentRequest match {
       case Some((lastRequestTick, _)) if lastRequestTick > requestTick =>
@@ -1497,7 +1497,7 @@ protected trait ParticipantAgentFundamentals[
       requestTick: Long,
       resultValueStore: ValueStore[PD],
       requestValueStore: ValueStore[PD],
-  ): Option[RelevantResultValues[PD]] = {
+  ): Option[RelevantResultValues[ApparentPower, PD]] = {
     /* The actual tick window for averaging is the last request tick and this request tick (both including) */
     val (averagingWindowStart, averagingWindowEnd) =
       determineTickWindow(requestTick, requestValueStore)
@@ -1589,12 +1589,12 @@ protected trait ParticipantAgentFundamentals[
     */
   final def averagePowerAndStay(
       baseData: BaseStateData[PD],
-      relevantResults: RelevantResultValues[PD],
+      relevantResults: RelevantResultValues[ApparentPower, PD],
       requestTick: Long,
       nodalVoltage: Dimensionless,
       voltageValueStore: ValueStore[Dimensionless],
       alternativeResult: PD,
-  ): FSM.State[AgentState, ParticipantStateData[PD]] = {
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower, PD]] = {
     if (relevantResults.relevantData.nonEmpty) {
       averagePowerAndStay(
         baseData,
@@ -1650,7 +1650,7 @@ protected trait ParticipantAgentFundamentals[
       windowEndTick: Long,
       nodalVoltage: Dimensionless,
       voltageValueStore: ValueStore[Dimensionless],
-  ): FSM.State[AgentState, ParticipantStateData[PD]] = {
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower, PD]] = {
     val averageResult = determineAverageResult(
       baseData,
       tickToResult,
@@ -1751,7 +1751,7 @@ protected trait ParticipantAgentFundamentals[
       averageResult: PD,
       requestTick: Long,
       voltageValueStore: ValueStore[Dimensionless],
-  ): FSM.State[AgentState, ParticipantStateData[PD]] = {
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower, PD]] = {
     val updatedRequestValueStore =
       ValueStore.updateValueStore(
         baseStateData.requestValueStore,
@@ -1768,8 +1768,11 @@ protected trait ParticipantAgentFundamentals[
     )
 
     averageResult.toApparentPower match {
-      case ApparentPower(p, q) =>
-        stay() using nextStateData replying AssetPowerChangedMessage(p, q)
+      case ApparentPowerData(power) =>
+        stay() using nextStateData replying AssetPowerChangedMessage(
+          power.activePower,
+          power.reactivePower,
+        )
     }
   }
 
@@ -1818,7 +1821,7 @@ protected trait ParticipantAgentFundamentals[
       baseStateData: BaseStateData[PD],
       result: AccompaniedSimulationResult[PD],
       relevantData: CD,
-  ): FSM.State[AgentState, ParticipantStateData[PD]] = {
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower, PD]] = {
     /* Update the value stores */
     val updatedValueStore =
       ValueStore.updateValueStore(
@@ -1891,7 +1894,7 @@ protected trait ParticipantAgentFundamentals[
   override def finalizeTickAfterPF(
       baseStateData: BaseStateData[PD],
       currentTick: Long,
-  ): FSM.State[AgentState, ParticipantStateData[PD]] = {
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower, PD]] = {
     baseStateData.requestValueStore.last(currentTick).foreach {
       case (_, data) =>
         // forward information to result listeners after power flow convergence
@@ -2010,7 +2013,7 @@ object ParticipantAgentFundamentals {
     * @tparam PD
     *   Type of primary data, that is relevant for the next calculation
     */
-  final case class RelevantResultValues[+PD <: PrimaryData](
+  final case class RelevantResultValues[P, +PD <: PrimaryData[P]](
       windowStart: Long,
       windowEnd: Long,
       relevantData: Map[Long, PD],
@@ -2030,14 +2033,14 @@ object ParticipantAgentFundamentals {
     *   The averaged apparent power
     */
   def averageApparentPower(
-      tickToResults: Map[Long, ApparentPower],
+      tickToResults: Map[Long, ApparentPowerData],
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         Power => ReactivePower
       ] = None,
       log: LoggingAdapter,
-  ): ApparentPower = {
+  ): ApparentPowerData = {
     val p = QuantityUtil.average[Power, Energy](
       tickToResults.map { case (tick, pd) =>
         tick -> pd.p
@@ -2061,8 +2064,8 @@ object ParticipantAgentFundamentals {
           case Some(qFunc) =>
             // NOTE: The type conversion to Megawatts is done to satisfy the methods type constraints
             // and is undone after unpacking the results
-            tick -> Megawatts(qFunc(pd.toApparentPower.p).toMegavars)
-          case None => tick -> Megawatts(pd.toApparentPower.q.toMegavars)
+            tick -> Megawatts(qFunc(pd.p).toMegavars)
+          case None => tick -> Megawatts(pd.q.toMegavars)
         }
       },
       windowStart,
@@ -2078,7 +2081,7 @@ object ParticipantAgentFundamentals {
         zeroMVAr
     }
 
-    ApparentPower(p, q)
+    ApparentPowerData(Megavoltampere(p, q))
   }
 
   /** Determine the average apparent power within the given tick window
@@ -2104,11 +2107,16 @@ object ParticipantAgentFundamentals {
       log: LoggingAdapter,
   ): ApparentPowerAndHeat = {
 
-    val tickToResultsApparentPower: Map[Long, ApparentPower] =
+    val tickToResultsApparentPower: Map[Long, ApparentPowerData] =
       tickToResults.map { case (tick, pd) =>
         (
           tick,
-          ApparentPower(Megawatts(pd.p.toMegawatts), Megavars(pd.q.toMegavars)),
+          ApparentPowerData(
+            Megavoltampere(
+              Megawatts(pd.p.toMegawatts),
+              Megavars(pd.q.toMegavars),
+            )
+          ),
         )
       }
 
@@ -2136,7 +2144,7 @@ object ParticipantAgentFundamentals {
         zeroMW
     }
 
-    ApparentPowerAndHeat(apparentPower.p, apparentPower.q, qDot)
+    ApparentPowerAndHeat(apparentPower.power, qDot)
   }
 
 }

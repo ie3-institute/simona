@@ -8,7 +8,10 @@ package edu.ie3.simona.model.participant
 
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPowerData,
+  PrimaryDataWithApparentPower,
+}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
@@ -18,8 +21,10 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptio
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltampere}
 import squants.Power
 import squants.energy.Kilowatts
+import squants.space.Degrees
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -44,11 +49,11 @@ final case class FixedFeedInModel(
     id: String,
     operationInterval: OperationInterval,
     qControl: QControl,
-    sRated: Power,
+    sRated: ApparentPower,
     cosPhiRated: Double,
 ) extends SystemParticipant[
       FixedRelevantData.type,
-      ApparentPower,
+      ApparentPowerData,
       ConstantState.type,
     ](
       uuid,
@@ -72,7 +77,7 @@ final case class FixedFeedInModel(
       modelState: ConstantState.type,
       data: FixedRelevantData.type = FixedRelevantData,
   ): Power =
-    sRated * (-1) * cosPhiRated
+    sRated.withZeroDegrees * (-1) * cosPhiRated
 
   override def determineFlexOptions(
       data: FixedRelevantData.type,
@@ -115,11 +120,12 @@ object FixedFeedInModel extends LazyLogging {
       scaledInput.getId,
       operationInterval,
       QControl.apply(scaledInput.getqCharacteristics),
-      Kilowatts(
+      Kilovoltampere(
         scaledInput.getsRated
           .to(PowerSystemUnits.KILOWATT)
           .getValue
-          .doubleValue
+          .doubleValue,
+        Degrees(0),
       ),
       scaledInput.getCosPhiRated,
     )

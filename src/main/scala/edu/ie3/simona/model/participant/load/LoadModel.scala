@@ -8,7 +8,7 @@ package edu.ie3.simona.model.participant.load
 
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.LoadInput
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerData
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
@@ -21,6 +21,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptio
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.ApparentPower
 import squants.energy.Kilowatts
 import squants.{Energy, Power}
 
@@ -36,9 +37,9 @@ abstract class LoadModel[D <: LoadRelevantData](
     id: String,
     operationInterval: OperationInterval,
     qControl: QControl,
-    sRated: Power,
+    sRated: ApparentPower,
     cosPhiRated: Double,
-) extends SystemParticipant[D, ApparentPower, ConstantState.type](
+) extends SystemParticipant[D, ApparentPowerData, ConstantState.type](
       uuid,
       id,
       operationInterval,

@@ -9,6 +9,7 @@ package edu.ie3.simona.agent.participant.statedata
 import org.apache.pekko.actor.ActorRef
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
+import edu.ie3.util.scala.quantities.ApparentPower
 
 import scala.reflect.{ClassTag, classTag}
 
@@ -27,13 +28,11 @@ import scala.reflect.{ClassTag, classTag}
   *   Type of the [[PrimaryDataWithApparentPower]], that the model will produce
   *   or receive as primary data
   */
-final case class DataCollectionStateData[+PD <: PrimaryDataWithApparentPower[
-  PD
-]](
+final case class DataCollectionStateData[+PD <: PrimaryDataWithApparentPower](
     baseStateData: BaseStateData[PD],
     data: Map[ActorRef, Option[_ <: Data]],
     yetTriggered: Boolean,
-) extends ParticipantStateData[PD] {
+) extends ParticipantStateData[ApparentPower, PD] {
 
   /** Extract the given type of [[Data]] from the list of secondary data
     *

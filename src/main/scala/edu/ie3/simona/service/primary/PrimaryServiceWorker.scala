@@ -300,7 +300,7 @@ final case class PrimaryServiceWorker[V <: Value](
     */
   private def announcePrimaryData(
       tick: Long,
-      primaryData: PrimaryData,
+      primaryData: PrimaryData[_],
       serviceBaseStateData: PrimaryServiceInitializedStateData[V],
   ): (
       PrimaryServiceInitializedStateData[V],
@@ -435,8 +435,8 @@ object PrimaryServiceWorker {
   final case class ProvidePrimaryDataMessage(
       override val tick: Long,
       override val serviceRef: ActorRef,
-      override val data: PrimaryData,
+      override val data: PrimaryData[_],
       override val nextDataTick: Option[Long],
       override val unlockKey: Option[ScheduleKey] = None,
-  ) extends ServiceMessage.ProvisionMessage[PrimaryData]
+  ) extends ServiceMessage.ProvisionMessage[PrimaryData[_]]
 }

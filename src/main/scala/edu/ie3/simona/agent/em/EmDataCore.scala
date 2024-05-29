@@ -6,10 +6,10 @@
 
 package edu.ie3.simona.agent.em
 
+import edu.ie3.simona.agent.em.EmAgent.Actor
+import edu.ie3.simona.agent.em.FlexCorrespondenceStore.WithTime
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerData
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import EmAgent.Actor
-import FlexCorrespondenceStore.WithTime
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.util.scala.collection.mutable.PriorityMultiBiSet
 import squants.Power
@@ -162,7 +162,7 @@ object EmDataCore {
 
     /** Returns relevant results for all connected agents.
       */
-    def getResults: Iterable[ApparentPower] =
+    def getResults: Iterable[ApparentPowerData] =
       correspondences.store.values.flatMap(_.receivedResult.map(_.get))
 
   }

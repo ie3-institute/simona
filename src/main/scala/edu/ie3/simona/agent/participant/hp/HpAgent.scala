@@ -16,6 +16,7 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.Participa
 import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
 import edu.ie3.simona.model.participant.HpModel
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
+import edu.ie3.util.scala.quantities.ApparentPower
 import org.apache.pekko.actor.{ActorRef, Props}
 
 object HpAgent {
@@ -24,6 +25,7 @@ object HpAgent {
       initStateData: ParticipantInitializeStateData[
         HpInput,
         HpRuntimeConfig,
+        ApparentPower,
         ApparentPowerAndHeat,
       ],
       listener: Iterable[ActorRef],
@@ -46,6 +48,7 @@ class HpAgent(
     initStateData: ParticipantInitializeStateData[
       HpInput,
       HpRuntimeConfig,
+      ApparentPower,
       ApparentPowerAndHeat,
     ],
     override val listener: Iterable[ActorRef],
@@ -54,7 +57,8 @@ class HpAgent(
       HpRelevantData,
       HpState,
       ParticipantStateData[
-        ApparentPowerAndHeat
+        ApparentPower,
+        ApparentPowerAndHeat,
       ],
       HpInput,
       HpRuntimeConfig,

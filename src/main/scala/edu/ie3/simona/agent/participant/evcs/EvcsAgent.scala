@@ -8,7 +8,8 @@ package edu.ie3.simona.agent.participant.evcs
 
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
+  ApparentPowerData,
+  PrimaryDataWithApparentPower,
   ZERO_POWER,
 }
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
@@ -31,7 +32,7 @@ import edu.ie3.simona.ontology.messages.services.EvMessage.{
   DepartingEvsRequest,
   EvFreeLotsRequest,
 }
-import edu.ie3.util.scala.quantities.ReactivePower
+import edu.ie3.util.scala.quantities.{ApparentPower, ReactivePower}
 import org.apache.pekko.actor.{ActorRef, Props}
 import squants.Power
 
@@ -42,6 +43,7 @@ object EvcsAgent {
         EvcsInput,
         EvcsRuntimeConfig,
         ApparentPower,
+        ApparentPowerData,
       ],
       listener: Iterable[ActorRef],
   ): Props =
@@ -64,25 +66,26 @@ class EvcsAgent(
       EvcsInput,
       EvcsRuntimeConfig,
       ApparentPower,
+      ApparentPowerData,
     ],
     override val listener: Iterable[ActorRef],
 ) extends ParticipantAgent[
-      ApparentPower,
+      ApparentPowerData,
       EvcsRelevantData,
       EvcsState,
-      ParticipantStateData[ApparentPower],
+      ParticipantStateData[ApparentPower, ApparentPowerData],
       EvcsInput,
       EvcsRuntimeConfig,
       EvcsModel,
     ](scheduler, initStateData)
     with EvcsAgentFundamentals {
-  override val alternativeResult: ApparentPower = ZERO_POWER
+  override val alternativeResult: ApparentPowerData = ZERO_POWER
 
   when(Idle) {
     case Event(
           EvFreeLotsRequest(tick),
           modelBaseStateData: ParticipantModelBaseStateData[
-            ApparentPower,
+            ApparentPowerData,
             EvcsRelevantData,
             EvcsState,
             EvcsModel,
@@ -94,7 +97,7 @@ class EvcsAgent(
     case Event(
           DepartingEvsRequest(tick, departingEvs),
           modelBaseStateData: ParticipantModelBaseStateData[
-            ApparentPower,
+            ApparentPowerData,
             EvcsRelevantData,
             EvcsState,
             EvcsModel,
@@ -119,13 +122,13 @@ class EvcsAgent(
     *   The averaged result
     */
   override def averageResults(
-      tickToResults: Map[Long, ApparentPower],
+      tickToResults: Map[Long, ApparentPowerData],
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         Power => ReactivePower
       ],
-  ): ApparentPower =
+  ): ApparentPowerData =
     ParticipantAgentFundamentals.averageApparentPower(
       tickToResults,
       windowStart,

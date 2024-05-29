@@ -11,9 +11,10 @@ import edu.ie3.datamodel.models.input.system.characteristic.ReactivePowerCharact
 import edu.ie3.simona.exceptions.QControlException
 import edu.ie3.simona.model.system.Characteristic
 import edu.ie3.simona.model.system.Characteristic.XYPair
-import edu.ie3.util.quantities.PowerSystemUnits.PU
+import edu.ie3.util.quantities.PowerSystemUnits.{MEGAWATT, PU}
 import edu.ie3.util.scala.quantities.DefaultQuantities._
-import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
+import edu.ie3.util.scala.quantities.{ApparentPower, Megavars, ReactivePower}
+import squants.energy.Megawatts
 import squants.{Dimensionless, Each, Power}
 import tech.units.indriya.AbstractUnit
 
@@ -44,7 +45,7 @@ sealed trait QControl {
     *   The function
     */
   def activeToReactivePowerFunc(
-      sRated: Power,
+      sRated: ApparentPower,
       cosPhiRated: Double,
       nodalVoltage: Dimensionless,
   ): Power => ReactivePower
@@ -117,11 +118,11 @@ object QControl {
       *   The function
       */
     override def activeToReactivePowerFunc(
-        sRated: Power,
+        sRated: ApparentPower,
         cosPhiRated: Double,
         nodalVoltage: Dimensionless,
-    ): Power => ReactivePower = { activePower: Power =>
-      _cosPhiMultiplication(cosPhi, activePower)
+    ): Power => ReactivePower = { power: Power =>
+      _cosPhiMultiplication(cosPhi, power)
     }
   }
 
@@ -169,19 +170,24 @@ object QControl {
       *   The function
       */
     override def activeToReactivePowerFunc(
-        sRated: Power,
+        sRated: ApparentPower,
         cosPhiRated: Double,
         nodalVoltage: Dimensionless,
     ): Power => ReactivePower = { activePower: Power =>
       val qMaxFromP = Megavars(
         sqrt(
-          pow(sRated.toMegawatts, 2) -
+          pow(sRated.withZeroDegrees.toMegawatts, 2) -
             pow(activePower.toMegawatts, 2)
         )
       )
 
       val qFromCharacteristic =
-        q(nodalVoltage, Megavars((sRated * sin(acos(cosPhiRated))).toMegawatts))
+        q(
+          nodalVoltage,
+          Megavars(
+            (sRated.withZeroDegrees * sin(acos(cosPhiRated))).toMegawatts
+          ),
+        )
       qMaxPossible(qMaxFromP, qFromCharacteristic)
     }
 
@@ -244,13 +250,13 @@ object QControl {
       *   The function
       */
     override def activeToReactivePowerFunc(
-        sRated: Power,
+        sRated: ApparentPower,
         cosPhiRated: Double,
         nodalVoltage: Dimensionless,
     ): Power => ReactivePower = { activePower: Power =>
       /* cosphi( P / P_N ) = cosphi( P / (S_N * cosphi_rated) ) */
       val pInPu =
-        activePower / (sRated * cosPhiRated)
+        activePower / (sRated.withZeroDegrees * cosPhiRated)
       val instantCosPhi = cosPhi(Each(pInPu))
       _cosPhiMultiplication(instantCosPhi.value.doubleValue, activePower)
     }

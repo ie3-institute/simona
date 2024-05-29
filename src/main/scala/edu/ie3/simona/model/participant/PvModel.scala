@@ -7,7 +7,10 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.input.system.PvInput
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPowerData,
+  PrimaryDataWithApparentPower,
+}
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.PvModel.PvRelevantData
@@ -33,7 +36,7 @@ final case class PvModel private (
     id: String,
     operationInterval: OperationInterval,
     qControl: QControl,
-    sRated: Power,
+    sRated: ApparentPower,
     cosPhiRated: Double,
     private val lat: Angle,
     private val lon: Angle,
@@ -42,7 +45,11 @@ final case class PvModel private (
     private val alphaE: Angle,
     private val gammaE: Angle,
     private val moduleSurface: Area = SquareMeters(1d),
-) extends SystemParticipant[PvRelevantData, ApparentPower, ConstantState.type](
+) extends SystemParticipant[
+      PvRelevantData,
+      ApparentPowerData,
+      ConstantState.type,
+    ](
       uuid,
       id,
       operationInterval,
@@ -55,15 +62,16 @@ final case class PvModel private (
   /** Override sMax as the power output of a pv unit could become easily up to
     * 10% higher than the sRated value found in the technical sheets
     */
-  override val sMax: Power = sRated * 1.1
+  override val sMax: ApparentPower = sRated.scale(1.1)
 
   /** Permissible maximum active power feed in (therefore negative) */
-  protected val pMax: Power = sMax * cosPhiRated * -1d
+  protected val pMax: Power = sMax.withZeroDegrees * cosPhiRated * -1d
 
   /** Reference yield at standard testing conditions (STC) */
   private val yieldSTC = WattsPerSquareMeter(1000d)
 
-  private val activationThreshold = sRated * cosPhiRated * 0.001 * -1d
+  private val activationThreshold =
+    sRated.withZeroDegrees * cosPhiRated * 0.001 * -1d
 
   /** Calculate the active power behaviour of the model
     *
@@ -691,7 +699,7 @@ final case class PvModel private (
       eTotalInWhPerSM * moduleSurface.toSquareMeters * etaConv.toEach * (genCorr * tempCorr)
 
     /* Calculate the foreseen active power output without boundary condition adaptions */
-    val proposal = sRated * (-1) * (
+    val proposal = sRated.withZeroDegrees * (-1) * (
       actYield / irradiationSTC
     ) * cosPhiRated
 
@@ -771,11 +779,12 @@ object PvModel {
       scaledInput.getId,
       operationInterval,
       QControl(scaledInput.getqCharacteristics),
-      Kilowatts(
+      Kilovoltampere(
         scaledInput.getsRated
           .to(PowerSystemUnits.KILOWATT)
           .getValue
-          .doubleValue
+          .doubleValue,
+        Degrees(0),
       ),
       scaledInput.getCosPhiRated,
       Degrees(scaledInput.getNode.getGeoPosition.getY),

@@ -15,7 +15,7 @@ import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
+  ApparentPowerData,
   ZERO_POWER,
 }
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
@@ -50,7 +50,11 @@ import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.ReactivePower
+import edu.ie3.util.scala.quantities.{
+  ApparentPower,
+  Megavoltampere,
+  ReactivePower,
+}
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import org.apache.pekko.actor.{ActorRef, FSM}
@@ -63,18 +67,18 @@ import scala.reflect.{ClassTag, classTag}
 
 protected trait FixedFeedInAgentFundamentals
     extends ParticipantAgentFundamentals[
-      ApparentPower,
+      ApparentPowerData,
       FixedRelevantData.type,
       ConstantState.type,
-      ParticipantStateData[ApparentPower],
+      ParticipantStateData[ApparentPower, ApparentPowerData],
       FixedFeedInInput,
       FixedFeedInRuntimeConfig,
       FixedFeedInModel,
     ] {
   this: FixedFeedInAgent =>
-  override protected val pdClassTag: ClassTag[ApparentPower] =
-    classTag[ApparentPower]
-  override val alternativeResult: ApparentPower = ZERO_POWER
+  override protected val pdClassTag: ClassTag[ApparentPowerData] =
+    classTag[ApparentPowerData]
+  override val alternativeResult: ApparentPowerData = ZERO_POWER
 
   /** Determines the needed base state data in dependence of the foreseen
     * simulation mode of the agent.
@@ -111,7 +115,7 @@ protected trait FixedFeedInAgentFundamentals
       outputConfig: NotifierConfig,
       maybeEmAgent: Option[TypedActorRef[FlexResponse]],
   ): ParticipantModelBaseStateData[
-    ApparentPower,
+    ApparentPowerData,
     FixedRelevantData.type,
     ConstantState.type,
     FixedFeedInModel,
@@ -143,7 +147,7 @@ protected trait FixedFeedInAgentFundamentals
       ).filterNot(_ == lastTickInSimulation)
 
     ParticipantModelBaseStateData[
-      ApparentPower,
+      ApparentPowerData,
       FixedRelevantData.type,
       ConstantState.type,
       FixedFeedInModel,
@@ -188,7 +192,7 @@ protected trait FixedFeedInAgentFundamentals
 
   override protected def createInitialState(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ApparentPowerData,
         FixedRelevantData.type,
         ConstantState.type,
         FixedFeedInModel,
@@ -197,7 +201,7 @@ protected trait FixedFeedInAgentFundamentals
 
   override protected def createCalcRelevantData(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ApparentPowerData,
         FixedRelevantData.type,
         ConstantState.type,
         FixedFeedInModel,
@@ -223,7 +227,7 @@ protected trait FixedFeedInAgentFundamentals
   def handleControlledPowerChange(
       tick: Long,
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ApparentPowerData,
         FixedRelevantData.type,
         ConstantState.type,
         FixedFeedInModel,
@@ -239,7 +243,7 @@ protected trait FixedFeedInAgentFundamentals
       setPower,
       voltage,
     )
-    val result = ApparentPower(setPower, reactivePower)
+    val result = Megavoltampere(setPower, reactivePower)
 
     /* Handle the request within the model */
     val (updatedState, flexChangeIndicator) =
@@ -250,17 +254,17 @@ protected trait FixedFeedInAgentFundamentals
   override val calculateModelPowerFunc: (
       Long,
       ParticipantModelBaseStateData[
-        ApparentPower,
+        ApparentPowerData,
         FixedRelevantData.type,
         ConstantState.type,
         FixedFeedInModel,
       ],
       ConstantState.type,
       Dimensionless,
-  ) => ApparentPower = (
+  ) => ApparentPowerData = (
       currentTick: Long,
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ApparentPowerData,
         FixedRelevantData.type,
         ConstantState.type,
         FixedFeedInModel,
@@ -305,7 +309,7 @@ protected trait FixedFeedInAgentFundamentals
     */
   override def calculatePowerWithSecondaryDataAndGoToIdle(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ApparentPowerData,
         FixedRelevantData.type,
         ConstantState.type,
         FixedFeedInModel,
@@ -313,7 +317,10 @@ protected trait FixedFeedInAgentFundamentals
       lastModelState: ConstantState.type,
       currentTick: Long,
       scheduler: ActorRef,
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] =
+  ): FSM.State[AgentState, ParticipantStateData[
+    ApparentPower,
+    ApparentPowerData,
+  ]] =
     throw new InvalidRequestException(
       "Request to calculate power with secondary data cannot be processed in a fixed feed in agent."
     )
@@ -332,13 +339,13 @@ protected trait FixedFeedInAgentFundamentals
     *   The averaged result
     */
   override def averageResults(
-      tickToResults: Map[Long, ApparentPower],
+      tickToResults: Map[Long, ApparentPowerData],
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         Power => ReactivePower
       ] = None,
-  ): ApparentPower =
+  ): ApparentPowerData =
     ParticipantAgentFundamentals.averageApparentPower(
       tickToResults,
       windowStart,
@@ -361,7 +368,7 @@ protected trait FixedFeedInAgentFundamentals
   override protected def buildResult(
       uuid: UUID,
       dateTime: ZonedDateTime,
-      result: ApparentPower,
+      result: ApparentPowerData,
   ): SystemParticipantResult =
     new FixedFeedInResult(
       dateTime,

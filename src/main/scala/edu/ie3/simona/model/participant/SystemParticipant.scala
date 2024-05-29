@@ -6,20 +6,14 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
-  PrimaryDataWithApparentPower,
-}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities._
-import edu.ie3.util.scala.quantities.{
-  DefaultQuantities,
-  Megavars,
-  ReactivePower,
-}
+import edu.ie3.util.scala.quantities._
 import squants.Dimensionless
 import squants.energy.{Kilowatts, Power}
 
@@ -48,14 +42,14 @@ import java.util.UUID
   */
 abstract class SystemParticipant[
     CD <: CalcRelevantData,
-    +PD <: PrimaryDataWithApparentPower[PD],
+    +PD <: PrimaryDataWithApparentPower,
     MS <: ModelState,
 ](
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
     qControl: QControl,
-    sRated: Power,
+    sRated: ApparentPower,
     cosPhiRated: Double,
 ) extends SystemComponent(uuid, id, operationInterval) {
 
@@ -64,7 +58,7 @@ abstract class SystemParticipant[
     * overwritten if the system participant's apparent power can be higher than
     * sRated.
     */
-  protected val sMax: Power = sRated
+  protected val sMax: ApparentPower = sRated
 
   /** Calculate the power behaviour based on the given data.
     *
@@ -107,12 +101,12 @@ abstract class SystemParticipant[
       val activePower = calculateActivePower(modelState, data)
       val reactivePower =
         calculateReactivePower(activePower, voltage)
-      ApparentPower(
+      Megavoltampere(
         activePower,
         reactivePower,
       )
     } else {
-      ApparentPower(
+      Megavoltampere(
         DefaultQuantities.zeroMW,
         DefaultQuantities.zeroMVAr,
       )
@@ -221,7 +215,7 @@ abstract class SystemParticipant[
       )
 
       // tolerance for double inaccuracies
-      val sMaxWithTolerance = sMax * 1.00001d
+      val sMaxWithTolerance = sMax.withZeroDegrees * 1.00001d
 
       if (apparentPower > sMaxWithTolerance) {
         logger.debug(
@@ -232,7 +226,7 @@ abstract class SystemParticipant[
             s"in correspondence to the existing active power $activePower."
         )
 
-        val powerSquaredDifference = Math.pow(sMax.toMegawatts, 2) -
+        val powerSquaredDifference = Math.pow(sMax.toMegavoltampere.value, 2) -
           Math.pow(activePower.toMegawatts, 2)
 
         if (powerSquaredDifference < 0) {

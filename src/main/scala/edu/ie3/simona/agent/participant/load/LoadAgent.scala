@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.participant.load
 
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerData
 import edu.ie3.simona.agent.participant.load.LoadAgentFundamentals.{
   FixedLoadAgentFundamentals,
   ProfileLoadAgentFundamentals,
@@ -28,6 +28,7 @@ import edu.ie3.simona.model.participant.load.{
   LoadModel,
   LoadModelBehaviour,
 }
+import edu.ie3.util.scala.quantities.ApparentPower
 import org.apache.pekko.actor.{ActorRef, Props}
 
 object LoadAgent {
@@ -37,6 +38,7 @@ object LoadAgent {
         LoadInput,
         LoadRuntimeConfig,
         ApparentPower,
+        ApparentPowerData,
       ],
       listener: Iterable[ActorRef],
   ): Props =
@@ -59,6 +61,7 @@ object LoadAgent {
         LoadInput,
         LoadRuntimeConfig,
         ApparentPower,
+        ApparentPowerData,
       ],
       override val listener: Iterable[ActorRef],
   ) extends LoadAgent[
@@ -73,6 +76,7 @@ object LoadAgent {
         LoadInput,
         LoadRuntimeConfig,
         ApparentPower,
+        ApparentPowerData,
       ],
       override val listener: Iterable[ActorRef],
   ) extends LoadAgent[
@@ -87,6 +91,7 @@ object LoadAgent {
         LoadInput,
         LoadRuntimeConfig,
         ApparentPower,
+        ApparentPowerData,
       ],
       override val listener: Iterable[ActorRef],
   ) extends LoadAgent[
@@ -109,13 +114,14 @@ abstract class LoadAgent[LD <: LoadRelevantData, LM <: LoadModel[LD]](
       LoadInput,
       LoadRuntimeConfig,
       ApparentPower,
+      ApparentPowerData,
     ],
     override val listener: Iterable[ActorRef],
 ) extends ParticipantAgent[
-      ApparentPower,
+      ApparentPowerData,
       LD,
       ConstantState.type,
-      ParticipantStateData[ApparentPower],
+      ParticipantStateData[ApparentPower, ApparentPowerData],
       LoadInput,
       LoadRuntimeConfig,
       LM,

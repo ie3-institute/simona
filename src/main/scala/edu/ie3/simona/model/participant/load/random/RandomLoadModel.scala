@@ -17,6 +17,8 @@ import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomReleva
 import edu.ie3.simona.model.participant.load.{DayType, LoadModel, LoadReference}
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltampere}
+import edu.ie3.util.scala.quantities.ApparentPower.PowerConversion
 import squants.Power
 import squants.energy.{KilowattHours, Kilowatts, Watts}
 
@@ -50,7 +52,7 @@ final case class RandomLoadModel(
     id: String,
     operationInterval: OperationInterval,
     qControl: QControl,
-    sRated: Power,
+    sRated: ApparentPower,
     cosPhiRated: Double,
     reference: LoadReference,
 ) extends LoadModel[RandomRelevantData](
@@ -201,7 +203,7 @@ object RandomLoadModel {
       scaledInput.getId,
       operationInterval,
       QControl.apply(scaledInput.getqCharacteristics()),
-      scaledSRated,
+      scaledSRated.asApparent(Kilovoltampere),
       scaledInput.getCosPhiRated,
       scaledReference,
     )

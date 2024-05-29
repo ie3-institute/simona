@@ -51,7 +51,11 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
-import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
+import edu.ie3.util.scala.quantities.{
+  ApparentPower,
+  Megavoltampere,
+  ReactivePower,
+}
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import org.apache.pekko.actor.{ActorRef, FSM}
@@ -67,7 +71,7 @@ trait HpAgentFundamentals
       ApparentPowerAndHeat,
       HpRelevantData,
       HpState,
-      ParticipantStateData[ApparentPowerAndHeat],
+      ParticipantStateData[ApparentPower, ApparentPowerAndHeat],
       HpInput,
       HpRuntimeConfig,
       HpModel,
@@ -76,8 +80,7 @@ trait HpAgentFundamentals
   override protected val pdClassTag: ClassTag[ApparentPowerAndHeat] =
     classTag[ApparentPowerAndHeat]
   override val alternativeResult: ApparentPowerAndHeat = ApparentPowerAndHeat(
-    zeroMW,
-    zeroMVAr,
+    Megavoltampere(zeroMW, zeroMVAr),
     zeroMW,
   )
 
@@ -218,7 +221,10 @@ trait HpAgentFundamentals
       lastModelState: HpState,
       currentTick: Long,
       scheduler: ActorRef,
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPowerAndHeat]] = {
+  ): FSM.State[AgentState, ParticipantStateData[
+    ApparentPower,
+    ApparentPowerAndHeat,
+  ]] = {
 
     /* Determine needed information */
     val voltage =

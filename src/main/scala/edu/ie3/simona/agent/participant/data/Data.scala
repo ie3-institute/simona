@@ -7,13 +7,12 @@
 package edu.ie3.simona.agent.participant.data
 
 import edu.ie3.datamodel.models.value._
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.interfaces.EnergyPrice
-import edu.ie3.util.scala.quantities.{Kilovars, Megavars, ReactivePower}
-import squants.energy.{Power, Kilowatts, Megawatts}
-import tech.units.indriya.ComparableQuantity
 import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities._
+import squants.energy.{Kilowatts, Power}
+import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
 import scala.jdk.OptionConverters.RichOptional
@@ -34,25 +33,26 @@ object Data {
     * model invocation. Anyway, primary data has to have at least active power
     * given
     */
-  sealed trait PrimaryData extends Data {
-    val p: Power
-    def toApparentPower: ApparentPower
+  sealed trait PrimaryData[T] extends Data {
+    val power: T
+
+    def p: Power
+
+    def q: ReactivePower
   }
 
   object PrimaryData {
 
-    sealed trait EnrichableData[E <: PrimaryDataWithApparentPower[E]] {
-      def add(q: ReactivePower): E
-    }
+    sealed trait PrimaryDataWithPower extends PrimaryData[Power] {
+      override def p: Power = power
 
-    /** Denoting all primary data, that carry apparent power
-      */
-    sealed trait PrimaryDataWithApparentPower[
-        +T <: PrimaryDataWithApparentPower[T]
-    ] extends PrimaryData {
-      val q: ReactivePower
+      override def q: ReactivePower = zeroMVAr
 
-      def withReactivePower(q: ReactivePower): T
+      def toApparentPower: ApparentPowerData = ApparentPowerData(
+        Megavoltampere(power)
+      )
+
+      def withReactivePower(q: ReactivePower): PrimaryDataWithApparentPower
     }
 
     /** Adding thermal power
@@ -61,101 +61,85 @@ object Data {
       val qDot: Power
     }
 
-    val ZERO_POWER: ApparentPower = ApparentPower(zeroMW, zeroMVAr)
+    val ZERO_POWER: ApparentPowerData = ApparentPowerData(
+      Megavoltampere(zeroMW, zeroMVAr)
+    )
+
+    sealed trait PrimaryDataWithApparentPower
+        extends PrimaryData[ApparentPower] {
+      override def p: Power = power.activePower
+
+      override def q: ReactivePower = power.reactivePower
+
+      def toApparentPower: ApparentPowerData = ApparentPowerData(power)
+
+      def withReactivePower(q: ReactivePower): PrimaryDataWithApparentPower
+    }
 
     /** Active power as participant simulation result
       *
-      * @param p
+      * @param power
       *   Active power
       */
-    final case class ActivePower(override val p: Power)
-        extends PrimaryData
-        with EnrichableData[ApparentPower] {
-      override def toApparentPower: ApparentPower =
-        ApparentPower(
-          p,
-          zeroMVAr,
-        )
-
-      override def add(q: ReactivePower): ApparentPower =
-        ApparentPower(p, q)
+    final case class ActivePower(power: Power) extends PrimaryDataWithPower {
+      def withReactivePower(q: ReactivePower): PrimaryDataWithApparentPower =
+        ApparentPowerData(Megavoltampere(power, q))
     }
 
-    /** Active and Reactive power as participant simulation result
-      *
-      * @param p
-      *   Active power
-      * @param q
-      *   Reactive power
-      */
-    final case class ApparentPower(
-        override val p: Power,
-        override val q: ReactivePower,
-    ) extends PrimaryDataWithApparentPower[ApparentPower] {
-      override def toApparentPower: ApparentPower = this
-
-      override def withReactivePower(q: ReactivePower): ApparentPower =
-        copy(q = q)
+    final case class ApparentPowerData(power: ApparentPower)
+        extends PrimaryDataWithApparentPower {
+      def withReactivePower(q: ReactivePower): PrimaryDataWithApparentPower =
+        ApparentPowerData(Megavoltampere(power.activePower, q))
     }
 
     /** Active power and heat demand as participant simulation result
       *
-      * @param p
+      * @param power
       *   Active power
       * @param qDot
       *   Heat demand
       */
     final case class ActivePowerAndHeat(
-        override val p: Power,
+        override val power: Power,
         override val qDot: Power,
-    ) extends PrimaryData
-        with Heat
-        with EnrichableData[ApparentPowerAndHeat] {
-      override def toApparentPower: ApparentPower =
-        ApparentPower(
-          p,
-          zeroMVAr,
-        )
+    ) extends PrimaryDataWithPower
+        with Heat {
 
-      override def add(q: ReactivePower): ApparentPowerAndHeat =
-        ApparentPowerAndHeat(p, q, qDot)
+      def withReactivePower(q: ReactivePower): ApparentPowerAndHeat =
+        ApparentPowerAndHeat(Megavoltampere(power, q), qDot)
     }
 
     /** Apparent power and heat demand as participant simulation result
       *
-      * @param p
-      *   Active power
-      * @param q
-      *   Reactive power
+      * @param power
+      *   Apparent power consisting of active and reactive power
       * @param qDot
       *   Heat demand
       */
     final case class ApparentPowerAndHeat(
-        override val p: Power,
-        override val q: ReactivePower,
+        override val power: ApparentPower,
         override val qDot: Power,
-    ) extends PrimaryDataWithApparentPower[ApparentPowerAndHeat]
+    ) extends PrimaryDataWithApparentPower
         with Heat {
-      override def toApparentPower: ApparentPower =
-        ApparentPower(p, q)
-
       override def withReactivePower(q: ReactivePower): ApparentPowerAndHeat =
-        copy(q = q)
+        ApparentPowerAndHeat(Megavoltampere(power.activePower, q), qDot)
     }
 
     implicit class RichValue(private val value: Value) {
-      def toPrimaryData: Try[PrimaryData] =
+      def toPrimaryData: Try[PrimaryData[_]] =
         value match {
           case hs: HeatAndSValue =>
             (hs.getP.toScala, hs.getQ.toScala, hs.getHeatDemand.toScala) match {
               case (Some(p), Some(q), Some(qDot)) =>
                 Success(
                   ApparentPowerAndHeat(
-                    Kilowatts(
-                      p.to(PowerSystemUnits.KILOWATT).getValue.doubleValue
-                    ),
-                    Kilovars(
-                      q.to(PowerSystemUnits.KILOVAR).getValue.doubleValue
+                    Kilovoltampere(
+                      Kilowatts(
+                        p.to(PowerSystemUnits.KILOWATT).getValue.doubleValue
+                      ),
+                      Kilovars(
+                        q.to(PowerSystemUnits.KILOVAR).getValue.doubleValue
+                      ),
                     ),
                     Kilowatts(
                       qDot.to(PowerSystemUnits.KILOWATT).getValue.doubleValue
@@ -173,13 +157,15 @@ object Data {
             (s.getP.toScala, s.getQ.toScala) match {
               case (Some(p), Some(q)) =>
                 Success(
-                  ApparentPower(
-                    Kilowatts(
-                      p.to(PowerSystemUnits.KILOWATT).getValue.doubleValue
-                    ),
-                    Kilovars(
-                      q.to(PowerSystemUnits.KILOVAR).getValue.doubleValue
-                    ),
+                  ApparentPowerData(
+                    Kilovoltampere(
+                      Kilowatts(
+                        p.to(PowerSystemUnits.KILOWATT).getValue.doubleValue
+                      ),
+                      Kilovars(
+                        q.to(PowerSystemUnits.KILOVAR).getValue.doubleValue
+                      ),
+                    )
                   )
                 )
               case _ =>

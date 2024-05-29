@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.em
 
 import edu.ie3.datamodel.models.input.EmInput
 import edu.ie3.datamodel.models.result.system.{EmResult, FlexOptionsResult}
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerData
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.FlexControlledData
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
@@ -29,6 +29,7 @@ import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities.Megavoltampere
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
@@ -394,12 +395,16 @@ object EmAgent {
     // calc result
     val result = inactiveCore.getResults
       .reduceOption { (power1, power2) =>
-        ApparentPower(power1.p + power2.p, power1.q + power2.q)
+        ApparentPowerData(
+          Megavoltampere(power1.p + power2.p, power1.q + power2.q)
+        )
       }
       .getOrElse(
-        ApparentPower(
-          zeroMW,
-          zeroMVAr,
+        ApparentPowerData(
+          Megavoltampere(
+            zeroMW,
+            zeroMVAr,
+          )
         )
       )
 

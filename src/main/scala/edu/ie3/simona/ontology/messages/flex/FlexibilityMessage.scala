@@ -8,7 +8,7 @@ package edu.ie3.simona.ontology.messages.flex
 
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerData
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import org.apache.pekko.actor.typed.ActorRef
 import squants.Power
@@ -136,7 +136,7 @@ object FlexibilityMessage {
     */
   final case class FlexCtrlCompletion(
       override val modelUuid: UUID,
-      result: ApparentPower,
+      result: ApparentPowerData,
       requestAtNextActivation: Boolean = false,
       requestAtTick: Option[Long] = None,
   ) extends FlexResponse

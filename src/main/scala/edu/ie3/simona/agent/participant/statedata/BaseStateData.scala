@@ -21,6 +21,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexResponse,
   ProvideFlexOptions,
 }
+import edu.ie3.util.scala.quantities.ApparentPower
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.{ActorRef => ClassicActorRef}
 import squants.Dimensionless
@@ -36,8 +37,8 @@ import scala.collection.SortedSet
   *   Type of [[PrimaryDataWithApparentPower]], that the represented Participant
   *   produces
   */
-trait BaseStateData[+PD <: PrimaryDataWithApparentPower[PD]]
-    extends ParticipantStateData[PD] {
+trait BaseStateData[+PD <: PrimaryDataWithApparentPower]
+    extends ParticipantStateData[ApparentPower, PD] {
 
   /** The date, that fits the tick 0
     */
@@ -97,7 +98,7 @@ object BaseStateData {
     *   Restricting the model to a certain class
     */
   trait ModelBaseStateData[
-      +PD <: PrimaryDataWithApparentPower[PD],
+      +PD <: PrimaryDataWithApparentPower,
       CD <: CalcRelevantData,
       MS <: ModelState,
       +M <: SystemParticipant[_ <: CalcRelevantData, PD, MS],
@@ -155,7 +156,7 @@ object BaseStateData {
     _ <: CalcRelevantData,
     P,
     _,
-  ], +P <: PrimaryDataWithApparentPower[P]](
+  ], +P <: PrimaryDataWithApparentPower](
       model: M,
       override val startDate: ZonedDateTime,
       override val endDate: ZonedDateTime,
@@ -206,7 +207,7 @@ object BaseStateData {
     *   Type of model, the base state data is attached to
     */
   final case class ParticipantModelBaseStateData[
-      +PD <: PrimaryDataWithApparentPower[PD],
+      +PD <: PrimaryDataWithApparentPower,
       CD <: CalcRelevantData,
       MS <: ModelState,
       M <: SystemParticipant[_ <: CalcRelevantData, PD, MS],
@@ -271,7 +272,7 @@ object BaseStateData {
     * @return
     *   A copy of the base data with updated value stores
     */
-  def updateBaseStateData[PD <: PrimaryDataWithApparentPower[PD]](
+  def updateBaseStateData[PD <: PrimaryDataWithApparentPower](
       baseStateData: BaseStateData[PD],
       updatedResultValueStore: ValueStore[PD],
       updatedRequestValueStore: ValueStore[PD],

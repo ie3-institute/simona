@@ -13,7 +13,8 @@ import edu.ie3.simona.event.notifier.NotifierConfig
   * information needed to initialize a
   * [[edu.ie3.simona.agent.participant.ParticipantAgent]]
   */
-trait InitializeStateData[+PD <: PrimaryData] extends ParticipantStateData[PD] {
+trait InitializeStateData[P, +PD <: PrimaryData[P]]
+    extends ParticipantStateData[P, PD] {
 
   /** Config for the output behaviour of simulation results
     */
@@ -21,9 +22,9 @@ trait InitializeStateData[+PD <: PrimaryData] extends ParticipantStateData[PD] {
 }
 
 object InitializeStateData {
-  final case class TrivialInitializeStateData[+PD <: PrimaryData](
+  final case class TrivialInitializeStateData[P, +PD <: PrimaryData[P]](
       resultEventEmitter: String
-  ) extends InitializeStateData[PD] {
+  ) extends InitializeStateData[P, PD] {
     val outputConfig: NotifierConfig = NotifierConfig(
       simulationResultInfo = false,
       powerRequestReply = true,

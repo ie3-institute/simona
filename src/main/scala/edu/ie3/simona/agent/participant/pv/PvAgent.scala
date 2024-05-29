@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.participant.pv
 
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
@@ -17,6 +17,7 @@ import edu.ie3.simona.config.SimonaConfig.PvRuntimeConfig
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.PvModel
 import edu.ie3.simona.model.participant.PvModel.PvRelevantData
+import edu.ie3.util.scala.quantities.ApparentPower
 import org.apache.pekko.actor.{ActorRef, Props}
 
 object PvAgent {
@@ -26,6 +27,7 @@ object PvAgent {
         PvInput,
         PvRuntimeConfig,
         ApparentPower,
+        ApparentPowerData,
       ],
       listener: Iterable[ActorRef],
   ): Props =
@@ -55,13 +57,14 @@ class PvAgent(
       PvInput,
       PvRuntimeConfig,
       ApparentPower,
+      ApparentPowerData,
     ],
     override val listener: Iterable[ActorRef],
 ) extends ParticipantAgent[
-      ApparentPower,
+      ApparentPowerData,
       PvRelevantData,
       ConstantState.type,
-      ParticipantStateData[ApparentPower],
+      ParticipantStateData[ApparentPower, ApparentPowerData],
       PvInput,
       PvRuntimeConfig,
       PvModel,

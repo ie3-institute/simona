@@ -6,16 +6,19 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPowerData,
+  PrimaryDataWithApparentPower,
+}
 import squants.Dimensionless
 
 trait ApparentPowerParticipant[CD <: CalcRelevantData, MS <: ModelState] {
-  this: SystemParticipant[CD, ApparentPower, MS] =>
+  this: SystemParticipant[CD, PrimaryDataWithApparentPower, MS] =>
   override def calculatePower(
       tick: Long,
       voltage: Dimensionless,
       modelState: MS,
       data: CD,
-  ): ApparentPower =
-    calculateApparentPower(tick, voltage, modelState, data)
+  ): ApparentPowerData =
+    ApparentPowerData(calculateApparentPower(tick, voltage, modelState, data))
 }

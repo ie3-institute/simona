@@ -26,12 +26,13 @@ import edu.ie3.simona.model.participant.{
 }
 import edu.ie3.simona.ontology.messages.services.EvMessage.RegisterForEvDataMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
+import edu.ie3.util.scala.quantities.ApparentPower
 
 trait ServiceRegistration[
-    PD <: PrimaryDataWithApparentPower[PD],
+    PD <: PrimaryDataWithApparentPower,
     CD <: CalcRelevantData,
     MS <: ModelState,
-    D <: ParticipantStateData[PD],
+    D <: ParticipantStateData[ApparentPower, PD],
     I <: SystemParticipantInput,
     MC <: SimonaConfig.BaseRuntimeConfig,
     M <: SystemParticipant[CD, PD, MS],

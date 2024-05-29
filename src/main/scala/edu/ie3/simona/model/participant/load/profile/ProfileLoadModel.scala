@@ -15,6 +15,8 @@ import edu.ie3.simona.model.participant.load.LoadReference._
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
 import edu.ie3.simona.model.participant.load.{LoadModel, LoadReference}
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltampere}
+import edu.ie3.util.scala.quantities.ApparentPower.PowerConversion
 import squants.Power
 
 import java.time.ZonedDateTime
@@ -44,7 +46,7 @@ final case class ProfileLoadModel(
     id: String,
     operationInterval: OperationInterval,
     qControl: QControl,
-    sRated: Power,
+    sRated: ApparentPower,
     cosPhiRated: Double,
     loadProfile: StandardLoadProfile,
     reference: LoadReference,
@@ -137,7 +139,7 @@ object ProfileLoadModel {
       scaledInput.getId,
       operationInterval,
       QControl.apply(scaledInput.getqCharacteristics()),
-      scaledSRated,
+      scaledSRated.asApparent(Kilovoltampere),
       scaledInput.getCosPhiRated,
       scaledInput.getLoadProfile.asInstanceOf[StandardLoadProfile],
       scaledReference,

@@ -15,7 +15,7 @@ import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
+  ApparentPowerData,
   ZERO_POWER,
 }
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
@@ -53,7 +53,11 @@ import edu.ie3.simona.service.weather.WeatherService.FALLBACK_WEATHER_STEM_DISTA
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.ReactivePower
+import edu.ie3.util.scala.quantities.{
+  ApparentPower,
+  Megavoltampere,
+  ReactivePower,
+}
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import org.apache.pekko.actor.{ActorRef, FSM}
@@ -66,18 +70,18 @@ import scala.reflect.{ClassTag, classTag}
 
 protected trait PvAgentFundamentals
     extends ParticipantAgentFundamentals[
-      ApparentPower,
+      ApparentPowerData,
       PvRelevantData,
       ConstantState.type,
-      ParticipantStateData[ApparentPower],
+      ParticipantStateData[ApparentPower, ApparentPowerData],
       PvInput,
       PvRuntimeConfig,
       PvModel,
     ] {
   this: PvAgent =>
-  override protected val pdClassTag: ClassTag[ApparentPower] =
-    classTag[ApparentPower]
-  override val alternativeResult: ApparentPower = ZERO_POWER
+  override protected val pdClassTag: ClassTag[ApparentPowerData] =
+    classTag[ApparentPowerData]
+  override val alternativeResult: ApparentPowerData = ZERO_POWER
 
   /** Determines the needed base state data in dependence of the foreseen
     * simulation mode of the agent.
@@ -114,7 +118,7 @@ protected trait PvAgentFundamentals
       outputConfig: NotifierConfig,
       maybeEmAgent: Option[TypedActorRef[FlexResponse]],
   ): ParticipantModelBaseStateData[
-    ApparentPower,
+    ApparentPowerData,
     PvRelevantData,
     ConstantState.type,
     PvModel,
@@ -135,7 +139,7 @@ protected trait PvAgentFundamentals
       )
 
     ParticipantModelBaseStateData[
-      ApparentPower,
+      ApparentPowerData,
       PvRelevantData,
       ConstantState.type,
       PvModel,
@@ -180,7 +184,7 @@ protected trait PvAgentFundamentals
 
   override protected def createInitialState(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ApparentPowerData,
         PvRelevantData,
         ConstantState.type,
         PvModel,
@@ -190,7 +194,7 @@ protected trait PvAgentFundamentals
 
   override protected def createCalcRelevantData(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ApparentPowerData,
         PvRelevantData,
         ConstantState.type,
         PvModel,
@@ -262,7 +266,7 @@ protected trait PvAgentFundamentals
   override def handleControlledPowerChange(
       tick: Long,
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ApparentPowerData,
         PvRelevantData,
         ConstantState.type,
         PvModel,
@@ -270,7 +274,7 @@ protected trait PvAgentFundamentals
       data: PvRelevantData,
       lastState: ConstantState.type,
       setPower: squants.Power,
-  ): (ConstantState.type, ApparentPower, FlexChangeIndicator) = {
+  ): (ConstantState.type, ApparentPowerData, FlexChangeIndicator) = {
     /* Calculate result */
     val voltage = getAndCheckNodalVoltage(baseStateData, tick)
 
@@ -278,7 +282,7 @@ protected trait PvAgentFundamentals
       setPower,
       voltage,
     )
-    val result = ApparentPower(setPower, reactivePower)
+    val result = ApparentPowerData(Megavoltampere(setPower, reactivePower))
 
     /* Handle the request within the model */
     val (updatedState, flexChangeIndicator) =
@@ -293,7 +297,7 @@ protected trait PvAgentFundamentals
   override val calculateModelPowerFunc: (
       Long,
       ParticipantModelBaseStateData[
-        ApparentPower,
+        ApparentPowerData,
         PvRelevantData,
         ConstantState.type,
         PvModel,
@@ -329,7 +333,7 @@ protected trait PvAgentFundamentals
     */
   override def calculatePowerWithSecondaryDataAndGoToIdle(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ApparentPowerData,
         PvRelevantData,
         ConstantState.type,
         PvModel,
@@ -337,7 +341,10 @@ protected trait PvAgentFundamentals
       lastModelState: ConstantState.type,
       currentTick: Long,
       scheduler: ActorRef,
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
+  ): FSM.State[AgentState, ParticipantStateData[
+    ApparentPower,
+    ApparentPowerData,
+  ]] = {
     val voltage =
       getAndCheckNodalVoltage(baseStateData, currentTick)
 
@@ -376,13 +383,13 @@ protected trait PvAgentFundamentals
     *   The averaged result
     */
   override def averageResults(
-      tickToResults: Map[Long, ApparentPower],
+      tickToResults: Map[Long, ApparentPowerData],
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         Power => ReactivePower
       ] = None,
-  ): ApparentPower =
+  ): ApparentPowerData =
     ParticipantAgentFundamentals.averageApparentPower(
       tickToResults,
       windowStart,
@@ -405,7 +412,7 @@ protected trait PvAgentFundamentals
   override protected def buildResult(
       uuid: UUID,
       dateTime: ZonedDateTime,
-      result: ApparentPower,
+      result: ApparentPowerData,
   ): SystemParticipantResult =
     new PvResult(
       dateTime,

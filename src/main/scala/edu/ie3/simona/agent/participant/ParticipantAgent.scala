@@ -58,7 +58,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   RegistrationResponseMessage,
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import edu.ie3.util.scala.quantities.ReactivePower
+import edu.ie3.util.scala.quantities.{ApparentPower, ReactivePower}
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import org.apache.pekko.actor.{ActorRef, FSM}
@@ -90,18 +90,18 @@ import scala.reflect.ClassTag
   * @since 2019-07-04
   */
 abstract class ParticipantAgent[
-    PD <: PrimaryDataWithApparentPower[PD],
+    PD <: PrimaryDataWithApparentPower,
     CD <: CalcRelevantData,
     MS <: ModelState,
-    D <: ParticipantStateData[PD],
+    D <: ParticipantStateData[ApparentPower, PD],
     I <: SystemParticipantInput,
     MC <: SimonaConfig.BaseRuntimeConfig,
     M <: SystemParticipant[CD, PD, MS],
 ](
     scheduler: ActorRef,
-    initStateData: ParticipantInitializeStateData[I, MC, PD],
+    initStateData: ParticipantInitializeStateData[I, MC, ApparentPower, PD],
 )(implicit val tag: ClassTag[MS])
-    extends SimonaAgent[ParticipantStateData[PD]] {
+    extends SimonaAgent[ParticipantStateData[ApparentPower, PD]] {
 
   val alternativeResult: PD
 
@@ -118,13 +118,16 @@ abstract class ParticipantAgent[
 
   // general agent states
   // first fsm state of the agent
-  startWith(Uninitialized, ParticipantUninitializedStateData[PD]())
+  startWith(
+    Uninitialized,
+    ParticipantUninitializedStateData[ApparentPower, PD](),
+  )
 
   when(Uninitialized) {
     /* Initialize the agent */
     case Event(
           Activation(INIT_SIM_TICK),
-          _: ParticipantUninitializedStateData[PD],
+          _: ParticipantUninitializedStateData[ApparentPower, PD],
         ) =>
       /* Ask the primary service proxy for data. If some is available, it will delegate the request to a worker and
        * that will confirm, otherwise, a failed registration is announced. */
@@ -529,7 +532,7 @@ abstract class ParticipantAgent[
       outputConfig: NotifierConfig,
       senderToMaybeTick: (ActorRef, Option[Long]),
       scheduler: ActorRef,
-  ): FSM.State[AgentState, ParticipantStateData[PD]]
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower, PD]]
 
   /** Abstract definition of initialization method, implementation in
     * [[ParticipantAgentFundamentals]]
@@ -567,7 +570,7 @@ abstract class ParticipantAgent[
       outputConfig: NotifierConfig,
       scheduler: ActorRef,
       maybeEmAgent: Option[TypedActorRef[FlexResponse]],
-  ): FSM.State[AgentState, ParticipantStateData[PD]]
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower, PD]]
 
   /** Handles the responses from service providers, this actor has registered
     * itself with. Stay in [[HandleInformation]] as long as responses are
@@ -584,7 +587,7 @@ abstract class ParticipantAgent[
       scheduler: ActorRef,
       registrationResponse: RegistrationResponseMessage,
       stateData: CollectRegistrationConfirmMessages[PD],
-  ): FSM.State[AgentState, ParticipantStateData[PD]]
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower, PD]]
 
   /** Handle an [[Activation]] received in [[Idle]]. Prepare the foreseen
     * senders in this tick and go over to [[HandleInformation]].
@@ -600,7 +603,7 @@ abstract class ParticipantAgent[
   private def handleActivationAndGoToHandleInformation(
       tick: Long,
       baseStateData: BaseStateData[PD],
-  ): FSM.State[AgentState, ParticipantStateData[PD]] = {
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower, PD]] = {
     /* Hold tick, as we are about to changes states for a while */
     holdTick(tick)
 
@@ -663,7 +666,7 @@ abstract class ParticipantAgent[
       msg: ProvisionMessage[Data],
       baseStateData: BaseStateData[PD],
       scheduler: ActorRef,
-  ): FSM.State[AgentState, ParticipantStateData[PD]]
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower, PD]]
 
   /** Checks, if all data is available and change state accordingly. Three cases
     * are possible: 1) There is still something missing: Stay here and wait 2)
@@ -695,7 +698,7 @@ abstract class ParticipantAgent[
       scheduler: ActorRef,
   )(implicit
       outputConfig: NotifierConfig
-  ): FSM.State[AgentState, ParticipantStateData[PD]]
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower, PD]]
 
   /** Abstractly calculate the power output of the participant without needing
     * any secondary data. The next state is [[Idle]], sending a
@@ -722,7 +725,7 @@ abstract class ParticipantAgent[
       currentTick: Long,
       scheduler: ActorRef,
       nodalVoltage: Dimensionless,
-  ): FSM.State[AgentState, ParticipantStateData[PD]]
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower, PD]]
 
   /** Abstractly calculate the power output of the participant utilising
     * secondary data. However, it might appear, that not the complete set of
@@ -752,7 +755,7 @@ abstract class ParticipantAgent[
       lastModelState: MS,
       currentTick: Long,
       scheduler: ActorRef,
-  ): FSM.State[AgentState, ParticipantStateData[PD]]
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower, PD]]
 
   protected def createInitialState(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M]
@@ -832,7 +835,7 @@ abstract class ParticipantAgent[
       eInPu: Dimensionless,
       fInPu: Dimensionless,
       alternativeResult: PD,
-  ): FSM.State[AgentState, ParticipantStateData[PD]]
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower, PD]]
 
   /** Abstract definition to notify result listeners from every participant
     * agent after power flow convergence
@@ -863,7 +866,7 @@ abstract class ParticipantAgent[
   def finalizeTickAfterPF(
       baseStateData: BaseStateData[PD],
       currentTick: Long,
-  ): FSM.State[AgentState, ParticipantStateData[PD]]
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower, PD]]
 }
 
 object ParticipantAgent {
@@ -903,7 +906,7 @@ object ParticipantAgent {
     *   nodal voltage
     */
   def getAndCheckNodalVoltage(
-      baseStateData: BaseStateData[_ <: PrimaryData],
+      baseStateData: BaseStateData[_ <: PrimaryData[ApparentPower]],
       currentTick: Long,
   ): Dimensionless = {
     baseStateData.voltageValueStore.last(currentTick) match {
