@@ -15,6 +15,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangeVoltage,
 }
 import edu.ie3.simona.agent.grid.GridAgentMessages._
+import edu.ie3.simona.model.grid.TransformerTapping
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
 import org.apache.pekko.actor.testkit.typed.scaladsl.TestProbe
@@ -171,13 +172,13 @@ trait DBFSMockGridAgents extends UnitSpec {
     def expectVoltageRangeResponse(
         voltageRange: VoltageRange,
         maxDuration: FiniteDuration = 30 seconds,
-    ): ActorRef[GridAgent.Request] = {
+    ): (ActorRef[GridAgent.Request], Seq[TransformerTapping]) = {
       gaProbe.expectMessageType[VoltageRangeResponse](maxDuration) match {
-        case VoltageRangeResponse(sender, (range, _)) =>
+        case VoltageRangeResponse(sender, (range, tappings)) =>
           range.deltaPlus shouldBe voltageRange.deltaPlus
           range.deltaMinus shouldBe voltageRange.deltaMinus
 
-          sender
+          (sender, tappings)
       }
     }
   }

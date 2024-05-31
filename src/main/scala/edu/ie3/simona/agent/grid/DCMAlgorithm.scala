@@ -82,7 +82,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
         val congestions = stateData.congestions
 
         if (congestions.any) {
-          ctx.log.warn(
+          ctx.log.info(
             s"In the grid ${stateData.gridAgentBaseData.gridEnv.gridModel.subnetNo}, the following congestions were found: $congestions"
           )
         }
@@ -114,7 +114,9 @@ trait DCMAlgorithm extends CongestionManagementSupport {
           ctx.self ! GotoIdle
           checkForCongestion(stateData, updatedData)
         } else {
-          ctx.log.warn(s"Congestions: $congestions")
+          ctx.log.warn(
+            s"Congestion overall: $congestions"
+          ) // TODO: Change to debug
 
           val steps = stateData.gridAgentBaseData.congestionManagementParams
 
@@ -190,7 +192,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
       )
 
     case (ctx, msg) =>
-      ctx.log.error(s"Received unsupported msg: $msg. Stash away!")
+      ctx.log.debug(s"Received unsupported msg: $msg. Stash away!")
       buffer.stash(msg)
       Behaviors.same
   }
@@ -240,6 +242,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
         val gridModel = gridEnv.gridModel
         val gridComponents = gridModel.gridComponents
 
+        // map all known transformers to their uuid
         val transformers =
           (gridComponents.transformers ++ gridComponents.transformers3w)
             .map(t => t.uuid -> t)
@@ -247,6 +250,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
 
         val voltage = gridModel.mainRefSystem.nominalVoltage.value.asKiloVolt
 
+        // find all transformers to superior grids
         val transformerToSup = gridEnv.subgridGateToActorRef
           .filter(
             _._1
@@ -258,7 +262,8 @@ trait DCMAlgorithm extends CongestionManagementSupport {
           .map(_._1.link().getUuid)
         val transformer = transformerToSup.map(transformers).toSeq
 
-        val range = calculateVoltageOptions(
+        // calculate the voltage range with the received data
+        val range = calculatePossibleVoltageRange(
           stateData.powerFlowResults,
           gridModel.voltageLimits,
           gridModel.gridComponents,
@@ -266,7 +271,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
         )
 
         ctx.log.warn(
-          s"For Grid ${stateData.gridAgentBaseData.gridEnv.gridModel.subnetNo}, range: $range"
+          s"For Grid ${stateData.gridAgentBaseData.gridEnv.gridModel.subnetNo}, voltage range: $range"
         )
 
         sender ! VoltageRangeResponse(
@@ -298,26 +303,33 @@ trait DCMAlgorithm extends CongestionManagementSupport {
 
       ctx.log.warn(
         s"Grid ${stateData.gridAgentBaseData.gridEnv.gridModel.subnetNo}, received delta: $delta"
-      )
+      ) // TODO: Change to debug
 
       if (stateData.inferiorRefs.nonEmpty) {
         // we calculate a voltage delta for all inferior grids
 
         val receivedData = awaitingData.mappedValues
 
+        // map the actor ref to the possible voltage range
         val refMap = receivedData.map { case (ref, (range, _)) =>
           ref -> range
         }
 
-        val tappingModels =
+        // groups all tapping models
+        // necessary, because to make sure the tapping is change by the same value between two grids,
+        // we need to know all transformers that are relevant as well as all actor refs to check their
+        // possible voltage ranges
+        val groups =
           groupTappingModels(
             receivedData.map { case (ref, (_, tappings)) => ref -> tappings },
             stateData.gridAgentBaseData.gridEnv.gridModel.gridComponents.transformers3w,
           )
 
-        tappingModels.foreach { case (tappingModels, refs) =>
+        groups.foreach { case (tappingModels, refs) =>
+          // get all possible voltage ranges of the inferior grids
           val inferiorRanges = refs.map(refMap)
 
+          // check if all transformers support tapping
           if (tappingModels.forall(_.hasAutoTap)) {
             // the given transformer can be tapped, calculate the new tap pos
 
@@ -326,11 +338,13 @@ trait DCMAlgorithm extends CongestionManagementSupport {
                 .combineSuggestions(inferiorRanges)
                 .subtract(delta)
 
+            // calculating the tap changes for all transformers and the resulting voltage delta
             val (tapChange, deltaV) = calculateTapAndVoltage(
               suggestion,
               tappingModels.toSeq,
             )
 
+            // change the tap pos of all transformers
             tapChange.foreach { case (tapping, tapChange) =>
               if (tapChange > 0) {
                 tapping.incrTapPos(tapChange)
@@ -343,8 +357,9 @@ trait DCMAlgorithm extends CongestionManagementSupport {
 
             ctx.log.warn(
               s"For inferior grids $refs, suggestion: $suggestion, delta: $deltaV"
-            )
+            ) // TODO: Change to debug
 
+            // send the resulting voltage delta to all inferior grids
             refs.foreach(_ ! VoltageDeltaResponse(deltaV.add(delta)))
           } else {
             // no tapping possible, just send the delta to the inferior grid
@@ -353,7 +368,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
         }
       }
 
-      // all work is done in this grid, finish this step
+      // all work is done in this grid, therefore finish this step
       // simulate grid after changing the transformer tapping
       buffer.unstashAll(
         clearAndGotoSimulateGrid(
@@ -364,7 +379,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
       )
 
     case (ctx, msg) =>
-      ctx.log.error(s"Received unsupported msg: $msg. Stash away!")
+      ctx.log.debug(s"Received unsupported msg: $msg. Stash away!")
       buffer.stash(msg)
       Behaviors.same
   }
@@ -401,7 +416,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
       )
 
     case (ctx, msg) =>
-      ctx.log.error(s"Received unsupported msg: $msg. Stash away!")
+      ctx.log.debug(s"Received unsupported msg: $msg. Stash away!")
       buffer.stash(msg)
       Behaviors.same
   }
@@ -438,7 +453,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
       )
 
     case (ctx, msg) =>
-      ctx.log.error(s"Received unsupported msg: $msg. Stash away!")
+      ctx.log.debug(s"Received unsupported msg: $msg. Stash away!")
       buffer.stash(msg)
       Behaviors.same
   }

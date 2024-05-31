@@ -53,12 +53,15 @@ class DCMAlgorithmSupGridSpec
     with DbfsTestGrid
     with TestSpawnerTyped {
 
-  private val cmConfig = ConfigFactory.parseString("""
+  // config with congestion management and transformer tapping enabled
+  private val tappingEnabledConfig = ConfigFactory.parseString("""
       |simona.congestionManagement.enable = true
       |simona.congestionManagement.enableTransformerTapping = true
       |""".stripMargin)
 
-  private val config = SimonaConfig(cmConfig.withFallback(typesafeConfig))
+  private val configWithTransformerTapping = SimonaConfig(
+    tappingEnabledConfig.withFallback(typesafeConfig)
+  )
 
   private val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
   private val runtimeEvents: TestProbe[RuntimeEvent] =
@@ -96,10 +99,12 @@ class DCMAlgorithmSupGridSpec
     )
 
     s"skip simulate grid and check for congestions correctly if no congestions occurred" in {
-      val superiorGridAgent = initAgentAndGotoSimulateGrid()
+      val superiorGridAgent =
+        initAgentAndGotoSimulateGrid(configWithTransformerTapping)
 
       val lastSender = skipSimulationAndGetNextStep(superiorGridAgent)
 
+      // send the requesting grid agent a CongestionResponse with no congestions
       lastSender ! CongestionResponse(
         hvGrid.ref,
         Congestions(
@@ -109,7 +114,8 @@ class DCMAlgorithmSupGridSpec
         ),
       )
 
-      // inferior should receive a next state message to go to the idle state
+      // since their are no congestions the inferior should receive
+      // a next state message to go to the idle state
       hvGrid.expectMessageType[GotoIdle.type]
 
       // expect a completion message from the superior grid
@@ -123,12 +129,13 @@ class DCMAlgorithmSupGridSpec
     }
 
     s"skip simulate grid and handle unresolvable congestions correctly" in {
-      val superiorGridAgent = initAgentAndGotoSimulateGrid()
+      val superiorGridAgent =
+        initAgentAndGotoSimulateGrid(configWithTransformerTapping)
 
-      // transformer congestion cannot be resolved, because using flex options is not
-      // enable by the provided config
       val lastSender = skipSimulationAndGetNextStep(superiorGridAgent)
 
+      // voltage congestion cannot be resolved, because using flex options is not
+      // enable by the provided config
       lastSender ! CongestionResponse(
         hvGrid.ref,
         Congestions(
@@ -138,7 +145,8 @@ class DCMAlgorithmSupGridSpec
         ),
       )
 
-      // inferior should receive a next state message to go to the idle state
+      // since the congestion management can't resolve the congestions
+      // the inferior should receive a next state message to go to the idle state
       hvGrid.expectMessageType[GotoIdle.type]
 
       // expect a completion message from the superior grid
@@ -152,11 +160,12 @@ class DCMAlgorithmSupGridSpec
     }
 
     s"skip simulate grid and update transformer tapping correctly" in {
-      val superiorGridAgent = initAgentAndGotoSimulateGrid()
+      val superiorGridAgent =
+        initAgentAndGotoSimulateGrid(configWithTransformerTapping)
 
       val lastSender1 = skipSimulationAndGetNextStep(superiorGridAgent)
 
-      // send congestions
+      // sending the superior grid a solvable congestion
       lastSender1 ! CongestionResponse(
         hvGrid.ref,
         Congestions(
@@ -166,9 +175,16 @@ class DCMAlgorithmSupGridSpec
         ),
       )
 
-      // inferior should receive a next state message to go to a congestion management step
+      // since the received congestion can be resolved the inferior should
+      // receive a next state message to go to a congestion management step
       hvGrid.expectMessageType[NextStepRequest]
 
+      // both transformer models should have their default tap pos
+      tappingModel.currentTapPos shouldBe 0
+      tappingModel2.currentTapPos shouldBe 0
+
+      // the inferior will receive a request to send the possible voltage range
+      // and send a VoltageRangeResponse to the superior grid
       hvGrid.expectMessageType[RequestVoltageOptions] match {
         case RequestVoltageOptions(sender) =>
           sender ! VoltageRangeResponse(
@@ -180,17 +196,23 @@ class DCMAlgorithmSupGridSpec
           )
       }
 
+      // the inferior will receive a voltage delta from the superior grid
+      // after the superior grid change the transformer tapping
       hvGrid.expectMessageType[VoltageDeltaResponse](120.seconds) match {
         case VoltageDeltaResponse(delta) =>
           delta should equalWithTolerance(0.015.asPu)
       }
+
+      // both transformer models tap pos should have changed by the same amount
+      tappingModel.currentTapPos shouldBe -1
+      tappingModel2.currentTapPos shouldBe -1
 
       // skipping the simulation
       hvGrid.expectMessageType[RequestGridPower]
 
       val lastSender2 = skipSimulationAndGetNextStep(superiorGridAgent)
 
-      // send congestions
+      // sending the superior grid that no more congestions are present
       lastSender2 ! CongestionResponse(
         hvGrid.ref,
         Congestions(
@@ -200,7 +222,8 @@ class DCMAlgorithmSupGridSpec
         ),
       )
 
-      // inferior should receive a next state message to go to the idle state
+      // since their are no congestions the inferior should receive
+      // a next state message to go to the idle state
       hvGrid.expectMessageType[GotoIdle.type]
 
       // expect a completion message from the superior grid
@@ -254,8 +277,10 @@ class DCMAlgorithmSupGridSpec
       *   the [[ActorRef]] of the created superior grid agent
       */
     def initAgentAndGotoSimulateGrid(
-        simonaConfig: SimonaConfig = config
+        simonaConfig: SimonaConfig
     ): ActorRef[GridAgent.Request] = {
+      // init a superior grid agent with the given config
+      // that enabled certain congestion management options
       val superiorGridAgent: ActorRef[GridAgent.Request] = testKit.spawn(
         GridAgent(
           environmentRefs,

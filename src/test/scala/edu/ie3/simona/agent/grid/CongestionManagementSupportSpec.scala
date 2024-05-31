@@ -42,11 +42,6 @@ class CongestionManagementSupportSpec
   "CongestionManagementSupport" should {
 
     "group transformers correctly" in {
-      // grid 1 is connected via a transformer2w and one port of a transformer3w
-      // grid 2 is connected via one port of a transformer3w
-      // grid 3 is connected via a transformer2w
-      // grid 4 is connected via two transformer2ws
-
       val (transformer3wA, transformer3wB, transformer3wC) =
         mockTransformer3wModel()
       val transformer1 = mockTransformerModel()
@@ -60,6 +55,10 @@ class CongestionManagementSupportSpec
       val transformer4_1 = mockTransformerModel()
       val transformer4_2 = mockTransformerModel()
 
+      // grid 1 is connected via a transformer2w and one port of a transformer3w
+      // grid 2 is connected via one port of a transformer3w
+      // grid 3 is connected via a transformer2w
+      // grid 4 is connected via two transformer2ws
       val receivedData = Map(
         ref1 -> Seq(
           transformer1,
@@ -78,6 +77,14 @@ class CongestionManagementSupportSpec
         Set(transformer3wA),
       )
 
+      // explanation for the expected groups:
+      // since both grid 1 and grid 2 are connected by the same transformer3w they must be tapped by the same voltage delta
+      // since grid 1 is also connected by transformer 1, both transformer are building a group together
+      // the group contain the refs for both grids
+      //
+      // since grid 3 is only connected by a transformer2w, the group contains only this transformer and one ref
+      //
+      // since grid 4 is connected by two transformer2w, the group contains both transformers and the ref of grid 4
       grouped shouldBe Map(
         Set(transformer1, transformer3wA) -> Set(ref1, ref2),
         Set(transformer3) -> Set(ref3),
@@ -250,7 +257,7 @@ class CongestionManagementSupportSpec
               mockLineResult(line13.uuid, 11.asAmpere, 10.9.asAmpere),
             ),
           ),
-          0.093.asPu,
+          0.093.asPu, // min voltage increase to resolve line congestion
         ),
         (
           buildPowerFlowResultEvent(
@@ -264,7 +271,7 @@ class CongestionManagementSupportSpec
               mockLineResult(line13.uuid, 8.asAmpere, 8.asAmpere),
             ),
           ),
-          (-0.0651).asPu,
+          (-0.0651).asPu, // max voltage decrease until line congestion occur
         ),
       )
 
@@ -313,7 +320,7 @@ class CongestionManagementSupportSpec
         ),
       )
 
-      val range = calculateVoltageOptions(
+      val range = calculatePossibleVoltageRange(
         powerFlowResult,
         VoltageLimits(0.9, 1.1),
         gridComponents,
@@ -365,7 +372,9 @@ class CongestionManagementSupportSpec
         ),
       )
 
-      val range = calculateVoltageOptions(
+      // the voltage range of the given grid is limited by the voltage range
+      // of the inferior grids and the possible transformer tapping
+      val range = calculatePossibleVoltageRange(
         powerFlowResult,
         VoltageLimits(0.9, 1.1),
         gridComponents,
@@ -409,17 +418,17 @@ class CongestionManagementSupportSpec
           (-0.01).asPu,
           (-0.02).asPu,
           (-0.015).asPu,
-        ), // upper voltage limit violation, decreasing voltage
+        ), // upper voltage limit violation (both are negative), decreasing voltage
         (
           0.02.asPu,
           0.01.asPu,
           0.015.asPu,
-        ), // lower voltage limit violation, increasing voltage
+        ), // lower voltage limit violation (both are positive), increasing voltage
         (
           (-0.01).asPu,
           0.01.asPu,
           (-0.01).asPu,
-        ), // violation of both voltage limits, decreasing voltage
+        ), // violation of both voltage limits (upper negative, lower positive), decreasing voltage
       )
 
       forAll(cases) { (deltaPlus, deltaMinus, expected) =>
@@ -430,7 +439,6 @@ class CongestionManagementSupportSpec
 
         suggestion should equalWithTolerance(expected)
       }
-
     }
 
     "be updated with a line voltage delta correctly" in {

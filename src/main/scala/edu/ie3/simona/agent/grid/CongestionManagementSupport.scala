@@ -12,6 +12,7 @@ import edu.ie3.simona.agent.grid.CongestionManagementSupport.VoltageRange
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.exceptions.{GridInconsistencyException, ResultException}
 import edu.ie3.simona.model.grid.GridModel.GridComponents
+import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.PowerFlowCaseA
 import edu.ie3.simona.model.grid.{
   Transformer3wModel,
   TransformerModel,
@@ -32,19 +33,49 @@ import javax.measure.quantity.Dimensionless
   */
 trait CongestionManagementSupport {
 
+  /** Method for grouping transformers with their [[ActorRef]]s. A group consist
+    * of all transformers connecting another grid with this grid and the
+    * [[ActorRef]] of the other grid.
+    *
+    * <p> If the other grid is connected by a port of [[Transformer3wModel]],
+    * only the model with [[PowerFlowCaseA]] is inside the returned map, due to
+    * the way the tapping works. Because the tapping also effects the other port
+    * of the [[Transformer3wModel]], the [[ActorRef]] of that grid needs to be
+    * in the same group and also all of its other connecting transformers,
+    *
+    * <p> Examples: <p> - grid 0 -> grid 1: [[TransformerModel]] <p> - grid 0 ->
+    * grid 1: [[Transformer3wModel]] port B <p> - grid 0 -> grid 2:
+    * [[Transformer3wModel]] port C <p> - grid 0 -> grid 3: [[TransformerModel]]
+    * <p> - grid 0 -> grid 4: two [[TransformerModel]]
+    *
+    * <p> Result: <p> - Group 1: one [[TransformerModel]] and one
+    * [[Transformer3wModel]] to [[ActorRef]]s of grid 1 and 2 <p> - Group 2: one
+    * [[TransformerModel]] to [[ActorRef]] of grid 3 <p> - Group 3: two
+    * [[TransformerModel]] to [[ActorRef]] of grid 4
+    *
+    * @param receivedData
+    *   map: actor ref to connecting transformers
+    * @param transformer3ws
+    *   set of [[Transformer3wModel]] with [[PowerFlowCaseA]]
+    * @return
+    *   a map: set of transformers to set of [[ActorRef]]s
+    */
   def groupTappingModels(
       receivedData: Map[ActorRef[GridAgent.Request], Seq[TransformerTapping]],
       transformer3ws: Set[Transformer3wModel],
   ): Map[Set[TransformerTapping], Set[ActorRef[GridAgent.Request]]] = {
     val transformer3wMap = transformer3ws.map(t => t.uuid -> t).toMap
 
+    // builds all groups
     receivedData.foldLeft(
       Map.empty[Set[TransformerTapping], Set[ActorRef[GridAgent.Request]]]
     ) { case (combined, (ref, tappings)) =>
+      // get all transformer models
       val updated: Set[TransformerTapping] = tappings.map {
         case transformerModel: TransformerModel =>
           transformerModel
         case transformer3wModel: Transformer3wModel =>
+          // in case of a three winding transformer, we need the model of the port A
           transformer3wMap.getOrElse(
             transformer3wModel.uuid,
             throw new GridInconsistencyException(
@@ -57,10 +88,13 @@ trait CongestionManagementSupport {
           )
       }.toSet
 
+      // find a group that already contains one of the given transformer models
       val keyOption = combined.keySet.find { keys =>
         updated.exists(key => keys.contains(key))
       }
 
+      // if a key is found, add the current transformer models and the ref to that group
+      // else add a new group
       keyOption
         .map { key =>
           val refs = combined(key)
@@ -77,24 +111,44 @@ trait CongestionManagementSupport {
     }
   }
 
+  /** Method for calculating the tap pos changes for all given transformers and
+    * the voltage delta.
+    *
+    * <p> NOTE: This method currently only support tapping of the higher voltage
+    * side of a given transformer.
+    *
+    * @param suggestion
+    *   given delta suggestion
+    * @param tappings
+    *   a set of all transformers
+    * @return
+    *   a map: model to tap pos change and resulting voltage delta
+    */
   def calculateTapAndVoltage(
       suggestion: ComparableQuantity[Dimensionless],
       tappings: Seq[TransformerTapping],
   ): (Map[TransformerTapping, Int], ComparableQuantity[Dimensionless]) = {
+    // inverting the suggestion, because it is given for the lv side
     val inverted = suggestion.multiply(-1)
 
+    // check if all transformer have the tapping at the hv side
+    // lv side tapping for transformer2ws is currently not supported
     if (tappings.exists(_.getTapSide != ConnectorPort.A)) {
       // for now only work if all transformers have the tapping at the hv side
       return (tappings.map(t => t -> 0).toMap, 0.asPu)
     }
 
+    // calculate a tap option for each transformer
     val option = if (tappings.size == 1) {
+      // if only one transformer is given, we only need to calculate one result
       val tapping = tappings(0)
 
       val taps = tapping.computeDeltaTap(inverted)
       val delta = tapping.deltaV.getValue.doubleValue() * taps / -100
       Some(Map(tapping -> taps), delta.asPu)
     } else {
+      // if multiple transformers are used, we need to find an option, that works
+      // for all transformers
       val possibleChange = tappings.map { tapping =>
         val taps = tapping.computeDeltaTap(inverted)
         val delta = tapping.deltaV.getValue.doubleValue() * taps / 100
@@ -102,16 +156,18 @@ trait CongestionManagementSupport {
       }.toMap
 
       // finds the smallest possible delta, because we are limited by that transformer
-      val option = if (inverted.isGreaterThan(0.asPu)) {
+      val possibleOption = if (inverted.isGreaterThan(0.asPu)) {
         possibleChange.minByOption(_._2._2)
       } else {
         possibleChange.maxByOption(_._2._2)
       }
 
-      option.map(_._2._2) match {
+      // adapt all tapping the the possible option
+      possibleOption.map(_._2._2) match {
         case Some(maxValue) =>
           val max = maxValue.asPu
 
+          // calculate tap changes
           val changes = tappings.map { tapping =>
             val taps = tapping.computeDeltaTap(max)
             val delta = tapping.deltaV.getValue.doubleValue() * taps / -100
@@ -135,10 +191,11 @@ trait CongestionManagementSupport {
       }
     }
 
+    // return the option ore no tapping
     option.getOrElse((tappings.map(t => t -> 0).toMap, 0.asPu))
   }
 
-  /** Method to calculate the range of possible voltage changes.
+  /** Method to calculate the possible range of voltage changes.
     *
     * @param powerFlowResultEvent
     *   results from simulating the grid
@@ -150,7 +207,7 @@ trait CongestionManagementSupport {
     *   map: inferior grid to [[VoltageRange]] and [[TransformerTappingModel]]
     * @return
     */
-  def calculateVoltageOptions(
+  def calculatePossibleVoltageRange(
       powerFlowResultEvent: PowerFlowResultEvent,
       voltageLimits: VoltageLimits,
       gridComponents: GridComponents,
@@ -216,7 +273,7 @@ trait CongestionManagementSupport {
 
     val lineMap = gridComponents.lines.map(line => line.uuid -> line).toMap
 
-    // calculates the
+    // calculates the utilisation of each line
     val lineUtilisation = lineResMap.map { case (uuid, res) =>
       val iNom = lineMap(uuid).iNom
       val diffA = Amperes(res.getiAMag().getValue.doubleValue()) / iNom
@@ -225,6 +282,7 @@ trait CongestionManagementSupport {
       uuid -> Math.max(diffA, diffB)
     }
 
+    // find the maximale utilisation
     val maxUtilisation = lineUtilisation
       .maxByOption(_._2)
       .getOrElse(throw new ResultException(s"No line result found!"))
@@ -235,6 +293,7 @@ trait CongestionManagementSupport {
     val resA = res.getiAMag()
     val resB = res.getiBMag()
 
+    // calculate the voltage change limits
     val deltaV = if (resA.isGreaterThan(resB)) {
       val nodeRes = nodeResults(line.nodeAUuid).getValue.doubleValue()
       val current = resA.getValue.doubleValue()
@@ -256,7 +315,19 @@ trait CongestionManagementSupport {
 
 object CongestionManagementSupport {
 
-  case class VoltageRange(
+  /** Object that contains information about possible voltage changes. <p> If
+    * the delta plus is negative -> upper voltage violation <p> If the delta
+    * minus is positive -> lower voltage violation <p> If both above cases
+    * happen at the same time the the suggestion is set to the delta plus,
+    * because having a too high voltage is more severe
+    * @param deltaPlus
+    *   maximale possible voltage increase
+    * @param deltaMinus
+    *   maximale possible voltage decrease
+    * @param suggestion
+    *   for voltage change
+    */
+  final case class VoltageRange(
       deltaPlus: ComparableQuantity[Dimensionless],
       deltaMinus: ComparableQuantity[Dimensionless],
       suggestion: ComparableQuantity[Dimensionless],

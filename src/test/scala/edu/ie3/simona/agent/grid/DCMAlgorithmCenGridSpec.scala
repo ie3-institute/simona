@@ -50,12 +50,14 @@ class DCMAlgorithmCenGridSpec
     with DbfsTestGrid
     with TestSpawnerTyped {
 
-  private val cmConfig = ConfigFactory.parseString("""
+  private val tappingEnabledConfig = ConfigFactory.parseString("""
       |simona.congestionManagement.enable = true
       |simona.congestionManagement.enableTransformerTapping = true
       |""".stripMargin)
 
-  private val config = SimonaConfig(cmConfig.withFallback(typesafeConfig))
+  private val configWithTransformerTapping = SimonaConfig(
+    tappingEnabledConfig.withFallback(typesafeConfig)
+  )
 
   private val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
   private val runtimeEvents: TestProbe[RuntimeEvent] =
@@ -99,9 +101,13 @@ class DCMAlgorithmCenGridSpec
     val voltageCongestions = noCongestions.copy(voltageCongestions = true)
 
     s"simulate grid and check for congestions correctly if no congestions occurred" in {
-      val centerGridAgent = initAgentAndGotoSimulateGrid()
+      // init grid agent and simulate the grid
+      val centerGridAgent =
+        initAgentAndGotoSimulateGrid(configWithTransformerTapping)
       simulateGrid(centerGridAgent)
 
+      // after the simulation ends the center grid should receive a CongestionCheckRequest
+      // from the superior grid
       centerGridAgent ! CongestionCheckRequest(superiorGridAgent.ref)
 
       // we expect a request for grid congestion values here
@@ -112,7 +118,8 @@ class DCMAlgorithmCenGridSpec
       val congestionCheckRequestSender13 =
         inferiorGrid13.expectCongestionCheckRequest()
 
-      // send congestions
+      // send the center grid messages that indicate that no congestion occurred
+      // in the inferior grids
       congestionCheckRequestSender11 ! CongestionResponse(
         inferiorGrid11.ref,
         noCongestions,
@@ -126,11 +133,11 @@ class DCMAlgorithmCenGridSpec
         noCongestions,
       )
 
-      // check the received congestions
+      // after the center grid agent has processed all received congestions
+      // the superior grid will receive a congestion response
       superiorGridAgent.expectCongestionResponse(noCongestions)
 
-      // there are no congestions
-      // tell all inferior grids to go back to idle
+      // since there are no congestions tell all inferior grids to go back to idle
       centerGridAgent ! GotoIdle
 
       // inferior should receive a next state message to go to the idle state
@@ -149,10 +156,13 @@ class DCMAlgorithmCenGridSpec
     }
 
     s"simulate grid and update transformer tapping correctly" in {
-      val centerGridAgent = initAgentAndGotoSimulateGrid()
+      // init grid agent and simulate the grid
+      val centerGridAgent =
+        initAgentAndGotoSimulateGrid(configWithTransformerTapping)
       simulateGrid(centerGridAgent)
 
-      // aks for congestion check
+      // after the simulation ends the center grid should receive a CongestionCheckRequest
+      // from the superior grid
       centerGridAgent ! CongestionCheckRequest(superiorGridAgent.ref)
 
       // we expect a request for grid congestion values here
@@ -163,43 +173,55 @@ class DCMAlgorithmCenGridSpec
       val congestionCheckRequestSender13 =
         inferiorGrid13.expectCongestionCheckRequest()
 
-      // send congestions
+      // send the center grid messages that indicate that congestions occurred
+      // in some inferior grids
       congestionCheckRequestSender11 ! CongestionResponse(
         inferiorGrid11.ref,
         voltageCongestions,
       )
       congestionCheckRequestSender12 ! CongestionResponse(
         inferiorGrid12.ref,
-        voltageCongestions,
+        noCongestions,
       )
       congestionCheckRequestSender13 ! CongestionResponse(
         inferiorGrid13.ref,
         voltageCongestions,
       )
 
-      // check the received congestions
+      // after the center grid agent has processed all received congestions
+      // the superior grid will receive a congestion response
       superiorGridAgent.expectCongestionResponse(voltageCongestions)
 
-      // found voltage congestions in the grid
-      // initiate transformer tapping
+      // since the superior grid receives a message the shows that there is at
+      // least one congestion in the grid, it starts the congestions management
+      // because there are voltage congestions and the transformet tapping has
+      // not run yet, the next step is the transformer tapping
       centerGridAgent ! NextStepRequest(
         TransformerTapping
       )
 
-      // inferior grids should receive a next state message to go to a congestion management step
-      inferiorGrid11.gaProbe.expectMessageType[NextStepRequest]
-      inferiorGrid12.gaProbe.expectMessageType[NextStepRequest]
-      inferiorGrid13.gaProbe.expectMessageType[NextStepRequest]
+      // inferior grids should receive a next state message to go to the transformer tapping step
+      inferiorGrid11.gaProbe
+        .expectMessageType[NextStepRequest]
+        .nextStep shouldBe TransformerTapping
+      inferiorGrid12.gaProbe
+        .expectMessageType[NextStepRequest]
+        .nextStep shouldBe TransformerTapping
+      inferiorGrid13.gaProbe
+        .expectMessageType[NextStepRequest]
+        .nextStep shouldBe TransformerTapping
 
-      // ask the center grid for the voltage options
+      // since the transformer tapping was started, the superior grid
+      // requests the possible voltage range from the center grid
       centerGridAgent ! RequestVoltageOptions(superiorGridAgent.ref)
 
-      // the inferior grids should receive a VoltageRangeRequest
+      // the center grid will request the voltage ranges from its inferior grid
+      // therefore the inferior grids should receive a VoltageRangeRequest
       val voltageRangeRequester11 = inferiorGrid11.expectVoltageRangeRequest()
       val voltageRangeRequester12 = inferiorGrid12.expectVoltageRangeRequest()
       val voltageRangeRequester13 = inferiorGrid13.expectVoltageRangeRequest()
 
-      // each inferior grid will send its voltage range to the center grid
+      // each inferior grid will send its possible voltage range to the center grid
       voltageRangeRequester11 ! VoltageRangeResponse(
         inferiorGrid11.ref,
         (
@@ -225,24 +247,38 @@ class DCMAlgorithmCenGridSpec
         ),
       )
 
+      // after the center grid received all voltage ranges
       // the superior grid should receive a voltage range from the center grid
-      val voltageDeltaRequest = superiorGridAgent.expectVoltageRangeResponse(
-        VoltageRange(0.06.asPu, 0.01.asPu, 0.03.asPu)
-      )
+      val (voltageDeltaRequest, tappingModels) =
+        superiorGridAgent.expectVoltageRangeResponse(
+          VoltageRange(0.06.asPu, 0.01.asPu, 0.03.asPu)
+        )
 
-      // send a new delta to the center grid
-      voltageDeltaRequest ! VoltageDeltaResponse(0.04.asPu)
+      // the superior grid will update the transformer tappings
+      // and send the the resulting voltage delta to the center grid
+      tappingModels.foreach(_.decrTapPos(2))
+      voltageDeltaRequest ! VoltageDeltaResponse(0.03.asPu)
 
+      // the inferior grids should receive a voltage delta from the center grid
       inferiorGrid11.gaProbe
         .expectMessageType[VoltageDeltaResponse]
         .delta should equalWithTolerance((-0.01).asPu)
       inferiorGrid12.gaProbe
         .expectMessageType[VoltageDeltaResponse]
-        .delta should equalWithTolerance(0.04.asPu)
+        .delta should equalWithTolerance(0.03.asPu)
       inferiorGrid13.gaProbe
         .expectMessageType[VoltageDeltaResponse]
-        .delta should equalWithTolerance(0.04.asPu)
+        .delta should equalWithTolerance(0.03.asPu)
 
+      // this transformer can e tapped
+      mvTransformers(transformer11.getUuid).currentTapPos shouldBe 4
+
+      // these transformers can't be tapped and should keep their default tap pos
+      mvTransformers(transformer12.getUuid).currentTapPos shouldBe 0
+      mvTransformers(transformer13_1.getUuid).currentTapPos shouldBe 0
+      mvTransformers(transformer13_1.getUuid).currentTapPos shouldBe 0
+
+      // skipping this simulation step
       skipSimulation(centerGridAgent)
 
       // aks for congestion check
@@ -270,11 +306,11 @@ class DCMAlgorithmCenGridSpec
         noCongestions,
       )
 
-      // check the received congestions
+      // after the simulation ends the center grid should receive a CongestionCheckRequest
+      // from the superior grid
       superiorGridAgent.expectCongestionResponse(noCongestions)
 
-      // there are no congestions
-      // tell all inferior grids to go back to idle
+      // since there are no congestions tell all inferior grids to go back to idle
       centerGridAgent ! GotoIdle
 
       // inferior should receive a next state message to go to the idle state
@@ -303,7 +339,7 @@ class DCMAlgorithmCenGridSpec
       *   the [[ActorRef]] of the created superior grid agent
       */
     def initAgentAndGotoSimulateGrid(
-        simonaConfig: SimonaConfig = config
+        simonaConfig: SimonaConfig
     ): ActorRef[GridAgent.Request] = {
       val centerGridAgent =
         testKit.spawn(
