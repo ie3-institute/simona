@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implemented scaling of all relevant input parameters [#764](https://github.com/ie3-institute/simona/issues/764)
 - Consider scaling factor with flex options [#734](https://github.com/ie3-institute/simona/issues/734)
 - Implementation of Energy Management Agents [#204](https://github.com/ie3-institute/simona/issues/204)
+- Providing documentation for EmAgent protocols and algorithms [#774](https://github.com/ie3-institute/simona/issues/774)
 - New documentation index page [#375](https://github.com/ie3-institute/simona/issues/375)
 
 ### Changed
@@ -60,6 +61,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed some compiler warnings [#657](https://github.com/ie3-institute/simona/issues/657)
 - Fixing false negative in ref system voltage validation [#706](https://github.com/ie3-institute/simona/issues/706)
 - Fixing randomly failing test in `RuntimeEventListenerSpec` etc. [#709](https://github.com/ie3-institute/simona/issues/709)
+- Fixed config start and end datetime parsing hint [#767](https://github.com/ie3-institute/simona/issues/767)
+- ConfigFailFast after making configuration of `RefSystem` via config optional [#797](https://github.com/ie3-institute/simona/issues/797)
+- Default RefSystem using the unit `Volt` for low voltage grids [#811](https://github.com/ie3-institute/simona/issues/811)
+- Fixed grid within GridSpec test [#806](https://github.com/ie3-institute/simona/issues/806)
+- Fixed log entry after power flow calculation [#814](https://github.com/ie3-institute/simona/issues/814)
 
 ## [3.0.0] - 2023-08-07
 
