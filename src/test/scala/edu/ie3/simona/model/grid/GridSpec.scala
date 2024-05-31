@@ -229,7 +229,14 @@ class GridSpec
       nodes.foreach(_.enable())
 
       // remove a line from the grid
-      val adaptedLines: Set[LineModel] = lines - line0To1
+      val adaptedLines = lines - line3To4
+      adaptedLines.foreach(_.enable())
+
+      // enable transformer
+      transformer2wModel.enable()
+
+      // enable switches
+      switches.foreach(_.enable())
 
       // get the grid from the raw data
       val gridModel = new GridModel(
@@ -240,7 +247,7 @@ class GridSpec
           adaptedLines,
           Set(transformer2wModel),
           Set.empty[Transformer3wModel],
-          Set.empty[SwitchModel],
+          switches,
         ),
         GridControls.empty,
       )
