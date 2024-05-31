@@ -510,9 +510,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             GridAgent.gotoIdle(gridAgentBaseData, currentTick, results, ctx)
           }
 
-        case _ =>
-          // preventing "match may not be exhaustive"
-          Behaviors.unhandled
+        case (message, _) =>
+          ctx.log.debug(s"Received the message $message to early. Stash away!")
+          buffer.stash(message)
+          Behaviors.same
       }
   }
 
@@ -822,9 +823,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           buffer.stash(powerResponse)
           Behaviors.same
 
-        case _ =>
-          // preventing "match may not be exhaustive"
-          Behaviors.unhandled
+        case (message, _) =>
+          ctx.log.debug(s"Received the message $message to early. Stash away!")
+          buffer.stash(message)
+          Behaviors.same
       }
   }
 
