@@ -2104,7 +2104,7 @@ class EvcsAgentModelCalculationSpec
 
       /* TICK 2700
   - ev2700 arrives
-  - charging with 11 kW
+  - charging with 22 kW
        */
       scheduler.send(evcsAgent, Activation(2700))
       val ev2700 = EvModelWrapper(evC.copyWithDeparture(5400))
