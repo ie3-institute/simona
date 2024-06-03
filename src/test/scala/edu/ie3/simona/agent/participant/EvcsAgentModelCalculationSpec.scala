@@ -2129,7 +2129,8 @@ class EvcsAgentModelCalculationSpec
           evcs shouldBe evcsInputModel.getUuid
           evModels should have size 1
           evModels.headOption match {
-            case Some(evModel) if evModel.uuid == ev900.uuid =>
+            case Some(evModel) =>
+              evModel.uuid shouldBe ev900.uuid
               evModel.storedEnergy should approximate(KilowattHours(8.25))
             case None => fail("Expected to get at least one ev.")
           }
