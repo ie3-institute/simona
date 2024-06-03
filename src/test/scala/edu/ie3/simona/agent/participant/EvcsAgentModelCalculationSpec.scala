@@ -2070,8 +2070,8 @@ class EvcsAgentModelCalculationSpec
       )
 
       /* TICK 900
-         - ev900 arrives
-         - charging with 11 kW
+       * - ev900 arrives
+       * - charging with 11 kW
        */
       scheduler.send(evcsAgent, Activation(900))
 
@@ -2087,8 +2087,8 @@ class EvcsAgentModelCalculationSpec
       )
 
       /* TICK 1800
-        - ev1800 arrives
-        - charging with 11 kW
+       * - ev1800 arrives
+       * - charging with 11 kW
        */
       scheduler.send(evcsAgent, Activation(1800))
       val ev1800 = EvModelWrapper(evB.copyWithDeparture(4500))
@@ -2103,8 +2103,8 @@ class EvcsAgentModelCalculationSpec
       )
 
       /* TICK 2700
-  - ev2700 arrives
-  - charging with 22 kW
+       * - ev2700 arrives
+       * - charging with 22 kW
        */
       scheduler.send(evcsAgent, Activation(2700))
       val ev2700 = EvModelWrapper(evC.copyWithDeparture(5400))
