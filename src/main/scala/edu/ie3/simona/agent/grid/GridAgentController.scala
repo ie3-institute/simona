@@ -652,7 +652,8 @@ class GridAgentController(
             maybeControllingEm,
           ),
           listener.map(_.toClassic),
-        )
+        ),
+        evcsInput.getId,
       )
       .toTyped
 
