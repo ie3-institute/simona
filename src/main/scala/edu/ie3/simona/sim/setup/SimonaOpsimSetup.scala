@@ -47,8 +47,7 @@ import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
-import edu.ie3.simopsim.OpsimEmSimulator
-import edu.ie3.simpleextsim.{SimpleExtSimulation, SimpleExtSimulationWithEm}
+import edu.ie3.simopsim.OpsimEmSimulation
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.AskPattern._
@@ -57,6 +56,7 @@ import org.apache.pekko.actor.typed.{ActorRef, Scheduler}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import org.apache.pekko.util.{Timeout => PekkoTimeout}
 
+import java.nio.file.Path
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
@@ -77,7 +77,8 @@ class SimonaOpsimSetup(
     resultFileHierarchy: ResultFileHierarchy,
     runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
     override val args: Array[String],
-    opsimIP: Option[String] = None
+    opsimIP: Option[String] = None,
+    opsimMappingPath: Option[String] = None,
 ) extends SimonaSetup {
 
   override def gridAgents(
@@ -365,6 +366,7 @@ class SimonaOpsimSetup(
                            simScheduler: ActorRef[SchedulerMessage],
                          ): ExtSimSetupData = {
     val opsimAddress = opsimIP.getOrElse(throw new RuntimeException("Cannot connect to Opsim, because there is no address!"))
+    val opsimMapping = opsimMappingPath.getOrElse(throw new RuntimeException("Cannot connect to Opsim, because there is no mapping!"))
     val simulationStart = TimeUtil.withDefaults.toZonedDateTime(
       simonaConfig.simona.time.startDateTime
     )
@@ -372,7 +374,7 @@ class SimonaOpsimSetup(
       ChronoUnit.SECONDS
     )
     val extScheduler = scheduler(context, parent = rootScheduler)
-    val opsimSim = new OpsimEmSimulator(opsimAddress)
+    val opsimSim = new OpsimEmSimulation(opsimAddress, Path.of(opsimMapping))
 
     val extSimAdapterPhase1 = context.toClassic.simonaActorOf(
       ExtSimAdapter.props(extScheduler.toClassic),
@@ -443,7 +445,6 @@ class SimonaOpsimSetup(
       adapterRef.toClassic,
       adapterScheduleRef.toClassic,
       extSimAdapterPhase2,
-      opsimSim.getExtResultDataSimulation.getResultDataFactory,
       opsimSim.getExtResultDataSimulation.getGridResultDataAssets,
       opsimSim.getExtResultDataSimulation.getParticipantResultDataAssets,
       simulationStart,
@@ -620,7 +621,8 @@ object SimonaOpsimSetup extends LazyLogging with SetupHelper {
       resultFileHierarchy: ResultFileHierarchy,
       runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
       mainArgs: Array[String] = Array.empty[String],
-      opsimIP: Option[String] = None
+      opsimIP: Option[String] = None,
+      opsimMapping: Option[String] = None
   ): SimonaOpsimSetup =
     new SimonaOpsimSetup(
       typeSafeConfig,
@@ -628,6 +630,7 @@ object SimonaOpsimSetup extends LazyLogging with SetupHelper {
       resultFileHierarchy,
       runtimeEventQueue,
       mainArgs,
-      opsimIP
+      opsimIP,
+      opsimMapping
     )
 }

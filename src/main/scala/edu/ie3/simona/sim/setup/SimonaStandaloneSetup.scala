@@ -15,14 +15,6 @@ import edu.ie3.simona.actor.SimonaActorNaming.RichActorRefFactory
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentMessage.CreateGridAgent
 import edu.ie3.simona.agent.grid.{GridAgent, GridAgentMessage}
-import edu.ie3.simona.api.ExtSimAdapter
-import edu.ie3.simona.api.data.ExtData
-import edu.ie3.simona.api.data.em.ExtEmData
-import edu.ie3.simona.api.data.ev.{ExtEvData, ExtEvSimulation}
-import edu.ie3.simona.api.data.primarydata.{ExtPrimaryData, ExtPrimaryDataSimulation}
-import edu.ie3.simona.api.data.results.{ExtResultData, ExtResultDataSimulation}
-import edu.ie3.simona.api.data.results.ontology.ResultDataMessageFromExt
-import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.config.{ArgsParser, RefSystemParser, SimonaConfig}
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
@@ -32,18 +24,11 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
 import edu.ie3.simona.scheduler.{ScheduleLock, Scheduler, TimeAdvancer}
 import edu.ie3.simona.service.SimonaService
-import edu.ie3.simona.service.em.ExtEmDataService
-import edu.ie3.simona.service.em.ExtEmDataService.InitExtEmData
-import edu.ie3.simona.service.ev.ExtEvDataService
-import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
-import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
+import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
-import edu.ie3.simona.service.primary.{ExtPrimaryDataService, PrimaryServiceProxy}
 import edu.ie3.simona.service.results.ExtResultDataProvider
-import edu.ie3.simona.service.results.ExtResultDataProvider.{InitExtResultData, RequestDataMessageAdapter, RequestScheduleActivationAdapter}
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.sim.SimonaSim
@@ -51,23 +36,14 @@ import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.TimeUtil
+import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.typed.scaladsl.AskPattern._
 import org.apache.pekko.actor.typed.scaladsl.adapter.{ClassicActorRefOps, TypedActorContextOps, TypedActorRefOps}
-import org.apache.pekko.actor.typed.{ActorRef, Scheduler}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
-import org.apache.pekko.util.{Timeout => PekkoTimeout}
-import edu.ie3.simona.service.results.ExtResultDataProvider.Request
-import edu.ie3.simopsim.OpsimSimulator
-import edu.ie3.simosaik.MosaikSimulation
-import edu.ie3.simpleextsim.SimpleExtSimulation
 
 import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
-import scala.concurrent.Await
-import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters._
-import scala.jdk.DurationConverters._
 
 /** Sample implementation to run a standalone simulation of simona configured
   * with the provided [[SimonaConfig]] and [[ResultFileHierarchy]]

@@ -146,8 +146,7 @@ object EmAgent {
       modelConfig,
     )
 
-    ctx.log.info(s"EMAgent ${modelShell.uuid} with $modelShell")
-    ctx.log.info(s"EMAgent ${modelShell.uuid} goes to inactive!")
+    ctx.log.debug(s"EMAgent ${modelShell.uuid} with $modelShell")
 
     inactive(
       constantData,

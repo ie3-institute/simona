@@ -17,7 +17,6 @@ import edu.ie3.simona.agent.grid.GridAgentMessage.CreateGridAgent
 import edu.ie3.simona.agent.grid.{GridAgent, GridAgentMessage}
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.data.ExtData
-import edu.ie3.simona.api.data.em.ExtEmData
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryData
 import edu.ie3.simona.api.data.results.ExtResultData
 import edu.ie3.simona.api.data.results.ontology.ResultDataMessageFromExt
@@ -34,8 +33,6 @@ import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.scheduler.{ScheduleLock, Scheduler, TimeAdvancer}
 import edu.ie3.simona.service.SimonaService
-import edu.ie3.simona.service.em.ExtEmDataService
-import edu.ie3.simona.service.em.ExtEmDataService.InitExtEmData
 import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.primary.{ExtPrimaryDataService, PrimaryServiceProxy}
@@ -47,7 +44,6 @@ import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
-import edu.ie3.simopsim.OpsimSimulator
 import edu.ie3.simosaik.MosaikSimulation
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
@@ -57,6 +53,7 @@ import org.apache.pekko.actor.typed.{ActorRef, Scheduler}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import org.apache.pekko.util.{Timeout => PekkoTimeout}
 
+import java.nio.file.Path
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
@@ -77,7 +74,8 @@ class SimonaMosaikSetup(
     resultFileHierarchy: ResultFileHierarchy,
     runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
     override val args: Array[String],
-    mosaikIP: Option[String] = None
+    mosaikIP: Option[String] = None,
+    mosaikMappingPath: Option[String] = None
 ) extends SimonaSetup {
 
   override def gridAgents(
@@ -367,6 +365,7 @@ class SimonaMosaikSetup(
     val mosaikAddress = mosaikIP.getOrElse(
       "127.0.0.1:5678"
     )
+    val mosaikMapping = mosaikMappingPath.getOrElse(throw new RuntimeException("Cannot connect to Mosaik, because there is no mapping!"))
     val simulationStart = TimeUtil.withDefaults.toZonedDateTime(
       simonaConfig.simona.time.startDateTime
     )
@@ -374,7 +373,7 @@ class SimonaMosaikSetup(
       ChronoUnit.SECONDS
     )
     val extScheduler = scheduler(context, parent = rootScheduler)
-    val mosaikExtSim = new MosaikSimulation(mosaikAddress)
+    val mosaikExtSim = new MosaikSimulation(mosaikAddress, Path.of(mosaikMapping))
 
     val extSimAdapterPhase1 = context.toClassic.simonaActorOf(
       ExtSimAdapter.props(extScheduler.toClassic),
@@ -446,7 +445,6 @@ class SimonaMosaikSetup(
         adapterRef.toClassic,
         adapterScheduleRef.toClassic,
         extSimAdapterPhase2,
-        mosaikExtSim.getExtResultDataSimulation.getResultDataFactory,
         mosaikExtSim.getExtResultDataSimulation.getGridResultDataAssets,
         mosaikExtSim.getExtResultDataSimulation.getParticipantResultDataAssets,
         simulationStart,
@@ -626,7 +624,8 @@ object SimonaMosaikSetup extends LazyLogging with SetupHelper {
       resultFileHierarchy: ResultFileHierarchy,
       runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
       mainArgs: Array[String] = Array.empty[String],
-      mosaikIP: Option[String] = None
+      mosaikIP: Option[String] = None,
+      mosaikMappingPath: Option[String] = None
   ): SimonaMosaikSetup =
     new SimonaMosaikSetup(
       typeSafeConfig,
@@ -634,6 +633,7 @@ object SimonaMosaikSetup extends LazyLogging with SetupHelper {
       resultFileHierarchy,
       runtimeEventQueue,
       mainArgs,
-      mosaikIP
+      mosaikIP,
+      mosaikMappingPath
     )
 }

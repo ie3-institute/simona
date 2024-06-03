@@ -29,9 +29,6 @@ object RunSimonaWithMosaik extends RunSimona[SimonaMosaikSetup] {
     // get the config and prepare it with the provided args
     val (arguments, parsedConfig) = ArgsParser.prepareConfig(args)
 
-    print("arguments:")
-    print(arguments)
-
     // config fail fast check
     val simonaConfig = SimonaConfig(parsedConfig)
     ConfigFailFast.check(parsedConfig, simonaConfig)
@@ -40,7 +37,8 @@ object RunSimonaWithMosaik extends RunSimona[SimonaMosaikSetup] {
       parsedConfig,
       SimonaMosaikSetup.buildResultFileHierarchy(parsedConfig),
       mainArgs = arguments.mainArgs,
-      mosaikIP = arguments.extAddress
+      mosaikIP = arguments.extAddress,
+      mosaikMappingPath = arguments.mappingPath
     )
   }
 

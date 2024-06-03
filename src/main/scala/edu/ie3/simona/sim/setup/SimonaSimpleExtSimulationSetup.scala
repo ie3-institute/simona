@@ -18,7 +18,6 @@ import edu.ie3.simona.agent.grid.{GridAgent, GridAgentMessage}
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.data.ExtData
 import edu.ie3.simona.api.data.em.ExtEmData
-import edu.ie3.simona.api.data.primarydata.ExtPrimaryData
 import edu.ie3.simona.api.data.results.ExtResultData
 import edu.ie3.simona.api.data.results.ontology.ResultDataMessageFromExt
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
@@ -36,9 +35,8 @@ import edu.ie3.simona.scheduler.{ScheduleLock, Scheduler, TimeAdvancer}
 import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.service.em.ExtEmDataService.InitExtEmData
-import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
+import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
-import edu.ie3.simona.service.primary.{ExtPrimaryDataService, PrimaryServiceProxy}
 import edu.ie3.simona.service.results.ExtResultDataProvider
 import edu.ie3.simona.service.results.ExtResultDataProvider.{InitExtResultData, RequestDataMessageAdapter, RequestScheduleActivationAdapter}
 import edu.ie3.simona.service.weather.WeatherService
@@ -47,8 +45,6 @@ import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
-import edu.ie3.simopsim.OpsimSimulator
-import edu.ie3.simpleextsim.{SimpleExtSimulation, SimpleExtSimulationWithEm}
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.AskPattern._
@@ -363,6 +359,7 @@ class SimonaSimpleExtSimulationSetup(
                            rootScheduler: ActorRef[SchedulerMessage],
                            simScheduler: ActorRef[SchedulerMessage],
                          ): ExtSimSetupData = {
+    /*
     val simulationStart = TimeUtil.withDefaults.toZonedDateTime(
       simonaConfig.simona.time.startDateTime
     )
@@ -491,6 +488,9 @@ class SimonaSimpleExtSimulationSetup(
       ScheduleLock.singleKey(context, simScheduler, INIT_SIM_TICK),
     )
     ExtSimSetupData(extSimAdaptersIt, extDataServicesMap, extDataListenerMap, extDatas, Some(extScheduler))
+
+     */
+    ???
   }
 
 
