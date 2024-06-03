@@ -6,8 +6,13 @@
 
 package edu.ie3.simona.logging
 
-import akka.actor.{Actor, ActorSystem, ExtendedActorSystem}
-import akka.event.{LogSource, LoggingAdapter, LoggingBus, LoggingFilter}
+import org.apache.pekko.actor.{Actor, ActorSystem, ExtendedActorSystem}
+import org.apache.pekko.event.{
+  LogSource,
+  LoggingAdapter,
+  LoggingBus,
+  LoggingFilter,
+}
 import edu.ie3.simona.actor.SimonaActorNaming
 
 private[logging] trait SimonaLogging {
@@ -28,7 +33,7 @@ object SimonaLogging {
       system: ActorSystem,
       state: () => S,
       logSource: T,
-      agentName: String
+      agentName: String,
   ): LoggingAdapter = {
     val (str, clazz) = LogSource(logSource, system)
     SimonaBusLogging(
@@ -36,14 +41,14 @@ object SimonaLogging {
       str,
       clazz,
       logFilter(system),
-      () => fsmPrefix(agentName, state)
+      () => fsmPrefix(agentName, state),
     )
   }
 
   private[logging] def createAdapter[T: LogSource](
       system: ActorSystem,
       logSource: T,
-      agentName: String
+      agentName: String,
   ): LoggingAdapter = {
     val (str, clazz) = LogSource(logSource, system)
     SimonaBusLogging(
@@ -51,7 +56,7 @@ object SimonaLogging {
       str,
       clazz,
       logFilter(system),
-      () => actorPrefix(agentName)
+      () => actorPrefix(agentName),
     )
   }
 
@@ -74,10 +79,10 @@ object SimonaLogging {
       logSource: String,
       logClass: Class[_],
       loggingFilter: LoggingFilter,
-      prefix: () => String
+      prefix: () => String,
   ) extends LoggingAdapter {
 
-    import akka.event.Logging._
+    import org.apache.pekko.event.Logging._
 
     def isErrorEnabled: Boolean =
       loggingFilter.isErrorEnabled(logClass, logSource)

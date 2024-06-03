@@ -13,7 +13,7 @@ import com.typesafe.config.{ConfigRenderOptions, Config => TypesafeConfig}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.io.naming.{
   EntityPersistenceNamingStrategy,
-  FileNamingStrategy
+  FileNamingStrategy,
 }
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.simona.exceptions.FileHierarchyException
@@ -39,7 +39,7 @@ final case class ResultFileHierarchy(
     private val resultEntityPathConfig: ResultEntityPathConfig,
     private val configureLogger: String => Unit = LogbackConfiguration.default,
     private val addTimeStampToOutputDir: Boolean = true,
-    private val createDirs: Boolean = false
+    private val createDirs: Boolean = false,
 ) extends LazyLogging {
 
   private val fileSeparator: String = File.separator
@@ -76,8 +76,8 @@ final case class ResultFileHierarchy(
                 resultEntityClass,
                 csv,
                 rawOutputDataDir,
-                fileSeparator
-              )
+                fileSeparator,
+              ),
             )
           )
           .toMap
@@ -101,7 +101,7 @@ final case class ResultFileHierarchy(
     graphOutputDir,
     kpiOutputDir,
     tmpDir,
-    logOutputDir
+    logOutputDir,
   )
 
   // needs to be the latest call because otherwise the values are null as they are not initialized yet
@@ -152,7 +152,7 @@ object ResultFileHierarchy extends LazyLogging {
     */
   final case class ResultEntityPathConfig(
       resultEntitiesToConsider: Set[Class[_ <: ResultEntity]],
-      resultSinkType: ResultSinkType
+      resultSinkType: ResultSinkType,
   )
 
   /** @param modelClass
@@ -171,7 +171,7 @@ object ResultFileHierarchy extends LazyLogging {
       modelClass: Class[_ <: ResultEntity],
       csvSink: Csv,
       rawOutputDataDir: String,
-      fileSeparator: String
+      fileSeparator: String,
   ): String = {
     val fileEnding =
       if (csvSink.fileFormat.startsWith("."))
@@ -180,7 +180,7 @@ object ResultFileHierarchy extends LazyLogging {
     val namingStrategy = new FileNamingStrategy(
       new EntityPersistenceNamingStrategy(
         csvSink.filePrefix,
-        csvSink.fileSuffix
+        csvSink.fileSuffix,
       )
     )
     val filename =
@@ -194,7 +194,7 @@ object ResultFileHierarchy extends LazyLogging {
 
     rawOutputDataDir
       .concat(fileSeparator)
-      .concat(filename)
+      .concat(filename.toString)
       .concat(fileEnding)
   }
 
@@ -209,7 +209,7 @@ object ResultFileHierarchy extends LazyLogging {
     */
   def prepareDirectories(
       config: TypesafeConfig,
-      resultFileHierarchy: ResultFileHierarchy
+      resultFileHierarchy: ResultFileHierarchy,
   ): Unit = {
     // create output directories if they are not present yet
     if (!runOutputDirExists(resultFileHierarchy))
@@ -217,7 +217,7 @@ object ResultFileHierarchy extends LazyLogging {
 
     logger.info(
       "Processing configs for simulation: {}.",
-      config.getString("simona.simulationName")
+      config.getString("simona.simulationName"),
     )
 
     val outFile =

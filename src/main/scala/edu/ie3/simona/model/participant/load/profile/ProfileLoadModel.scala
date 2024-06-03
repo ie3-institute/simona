@@ -6,20 +6,19 @@
 
 package edu.ie3.simona.model.participant.load.profile
 
-import edu.ie3.datamodel.models.profile.StandardLoadProfile
 import edu.ie3.datamodel.models.input.system.LoadInput
+import edu.ie3.datamodel.models.profile.StandardLoadProfile
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.LoadReference._
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
 import edu.ie3.simona.model.participant.load.{LoadModel, LoadReference}
-import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.scala.OperationInterval
-import tech.units.indriya.ComparableQuantity
+import squants.Power
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.{Dimensionless, Power}
 
 /** Power model consuming power according to standard load profiles
   *
@@ -29,8 +28,6 @@ import javax.measure.quantity.{Dimensionless, Power}
   *   human readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
-  * @param scalingFactor
-  *   Scaling the output of the system
   * @param qControl
   *   Type of reactive power control
   * @param sRated
@@ -46,20 +43,18 @@ final case class ProfileLoadModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    scalingFactor: Double,
     qControl: QControl,
-    sRated: ComparableQuantity[Power],
+    sRated: Power,
     cosPhiRated: Double,
     loadProfile: StandardLoadProfile,
-    reference: LoadReference
+    reference: LoadReference,
 ) extends LoadModel[ProfileRelevantData](
       uuid,
       id,
       operationInterval,
-      scalingFactor,
       qControl,
       sRated,
-      cosPhiRated
+      cosPhiRated,
     ) {
 
   private val loadProfileStore: LoadProfileStore = LoadProfileStore()
@@ -71,10 +66,7 @@ final case class ProfileLoadModel(
   private lazy val energyReferenceScalingFactor =
     reference match {
       case EnergyConsumption(energyConsumption) =>
-        energyConsumption
-          .divide(LoadProfileStore.defaultLoadProfileEnergyScaling)
-          .asType(classOf[Dimensionless])
-          .to(PU)
+        energyConsumption / LoadProfileStore.defaultLoadProfileEnergyScaling
       case _ =>
         throw new IllegalArgumentException(
           s"Applying energy reference scaling factor for reference mode '$reference' is not supported!"
@@ -89,33 +81,26 @@ final case class ProfileLoadModel(
     *   Active power
     */
   override protected def calculateActivePower(
-      data: ProfileRelevantData
-  ): ComparableQuantity[Power] = {
+      modelState: ConstantState.type,
+      data: ProfileRelevantData,
+  ): Power = {
     /* The power comes in W and is delivered all 15 minutes */
-    val averagePower: ComparableQuantity[Power] = loadProfileStore
+    val averagePower: Power = loadProfileStore
       .entry(data.date, loadProfile)
 
-    val activePower = reference match {
+    reference match {
       case ActivePower(activePower) =>
         /* scale the reference active power based on the profiles averagePower/maxPower ratio */
-        val referenceScalingFactor = averagePower
-          .divide(profileMaxPower)
-          .asType(classOf[Dimensionless])
-          .to(PU)
-          .getValue
-          .doubleValue()
-        activePower.multiply(referenceScalingFactor)
+        val referenceScalingFactor = averagePower / profileMaxPower
+        activePower * referenceScalingFactor
       case _: EnergyConsumption =>
         /* scale the profiles average power based on the energyConsumption/profileEnergyScaling(=1000kWh/year) ratio  */
-        averagePower
-          .multiply(energyReferenceScalingFactor)
-          .asType(classOf[Power])
+        averagePower * energyReferenceScalingFactor
     }
-    activePower.multiply(scalingFactor)
   }
 }
 
-case object ProfileLoadModel {
+object ProfileLoadModel {
 
   final case class ProfileRelevantData(date: ZonedDateTime)
       extends LoadRelevantData
@@ -124,43 +109,41 @@ case object ProfileLoadModel {
       input: LoadInput,
       operationInterval: OperationInterval,
       scalingFactor: Double,
-      reference: LoadReference
-  ): ProfileLoadModel = reference match {
-    case LoadReference.ActivePower(power) =>
-      val sRatedPowerScaled = LoadModel.scaleSRatedActivePower(input, power)
-      ProfileLoadModel(
-        input.getUuid,
-        input.getId,
-        operationInterval,
-        scalingFactor,
-        QControl.apply(input.getqCharacteristics()),
-        sRatedPowerScaled,
-        input.getCosPhiRated,
-        input.getLoadProfile.asInstanceOf[StandardLoadProfile],
-        reference
-      )
+      reference: LoadReference,
+  ): ProfileLoadModel = {
 
-    case LoadReference.EnergyConsumption(energyConsumption) =>
-      val loadProfileMax =
-        LoadProfileStore().maxPower(
-          input.getLoadProfile.asInstanceOf[StandardLoadProfile]
+    val scaledReference = reference.scale(scalingFactor)
+    val scaledInput = input.copy().scale(scalingFactor).build()
+
+    val scaledSRated = scaledReference match {
+      case LoadReference.ActivePower(power) =>
+        LoadModel.scaleSRatedActivePower(scaledInput, power)
+
+      case LoadReference.EnergyConsumption(energyConsumption) =>
+        val loadProfileMax =
+          LoadProfileStore().maxPower(
+            scaledInput.getLoadProfile.asInstanceOf[StandardLoadProfile]
+          )
+        LoadModel.scaleSRatedEnergy(
+          scaledInput,
+          energyConsumption,
+          loadProfileMax,
+          LoadProfileStore.defaultLoadProfileEnergyScaling,
         )
-      val sRatedEnergy = LoadModel.scaleSRatedEnergy(
-        input,
-        energyConsumption,
-        loadProfileMax,
-        LoadProfileStore.defaultLoadProfileEnergyScaling
-      )
-      ProfileLoadModel(
-        input.getUuid,
-        input.getId,
-        operationInterval,
-        scalingFactor,
-        QControl.apply(input.getqCharacteristics()),
-        sRatedEnergy,
-        input.getCosPhiRated,
-        input.getLoadProfile.asInstanceOf[StandardLoadProfile],
-        reference
-      )
+    }
+
+    val model = ProfileLoadModel(
+      scaledInput.getUuid,
+      scaledInput.getId,
+      operationInterval,
+      QControl.apply(scaledInput.getqCharacteristics()),
+      scaledSRated,
+      scaledInput.getCosPhiRated,
+      scaledInput.getLoadProfile.asInstanceOf[StandardLoadProfile],
+      scaledReference,
+    )
+
+    model.enable()
+    model
   }
 }

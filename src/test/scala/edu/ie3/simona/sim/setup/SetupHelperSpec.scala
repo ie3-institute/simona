@@ -7,28 +7,38 @@
 package edu.ie3.simona.sim.setup
 
 import java.util.UUID
-
-import akka.actor.ActorRef
-import akka.testkit.TestException
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.testkit.TestException
 import edu.ie3.datamodel.models.input.MeasurementUnitInput
 import edu.ie3.datamodel.models.input.connector.{
   Transformer2WInput,
-  Transformer3WInput
+  Transformer3WInput,
 }
 import edu.ie3.datamodel.models.input.container.{
   JointGridContainer,
-  RawGridElements
+  RawGridElements,
 }
+import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.GridInputTestData
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ScalaTestWithActorTestKit,
+  TestProbe,
+}
 
 import scala.jdk.CollectionConverters._
 
-class SetupHelperSpec extends UnitSpec with GridInputTestData {
+class SetupHelperSpec
+    extends ScalaTestWithActorTestKit
+    with UnitSpec
+    with GridInputTestData {
 
   private final object SetupHelperInstance extends SetupHelper
 
   "A setup helper" should {
+    val actorRef: ActorRef[GridAgent.Request] =
+      TestProbe[GridAgent.Request]("mock_grid_agent").ref
+
     "reduce multiple SubGridGates between the same superior and inferior nodes to one unique SubGridGate" in {
 
       // build dummy grid with two transformers between the same nodes based on the basic grid input test data
@@ -42,7 +52,7 @@ class SetupHelperSpec extends UnitSpec with GridInputTestData {
         adaptedTransformerInputModel.getParallelDevices,
         adaptedTransformerInputModel.getType,
         adaptedTransformerInputModel.getTapPos,
-        adaptedTransformerInputModel.isAutoTap
+        adaptedTransformerInputModel.isAutoTap,
       )
       val adaptedTransformers = transformers + secondTransformer
 
@@ -52,14 +62,14 @@ class SetupHelperSpec extends UnitSpec with GridInputTestData {
         adaptedTransformers.asJava,
         Set.empty[Transformer3WInput].asJava,
         switches.asJava,
-        Set.empty[MeasurementUnitInput].asJava
+        Set.empty[MeasurementUnitInput].asJava,
       )
 
       val gridModel = new JointGridContainer(
         "TestGrid",
         rawGridElements,
         validTestGridInputModel.getSystemParticipants,
-        validTestGridInputModel.getGraphics
+        validTestGridInputModel.getGraphics,
       )
 
       val subGrids = gridModel.getSubGridTopologyGraph
@@ -73,17 +83,17 @@ class SetupHelperSpec extends UnitSpec with GridInputTestData {
       val superiorGrid = subGrids
         .getOrElse(
           1,
-          throw TestException("Cannot get subGrid with id 1 from test data!")
+          throw TestException("Cannot get subGrid with id 1 from test data!"),
         )
 
       val inferiorGrid = subGrids
         .getOrElse(
           100,
-          throw TestException("Cannot get subGrid with id 100 from test data!")
+          throw TestException("Cannot get subGrid with id 100 from test data!"),
         )
 
       val subGridToActorRefMap =
-        Map(1 -> ActorRef.noSender, 100 -> ActorRef.noSender)
+        Map(1 -> actorRef, 100 -> actorRef)
 
       // subGrid gates should be the same for this case
       gridModel.getSubGridTopologyGraph.edgesOf(
@@ -102,14 +112,14 @@ class SetupHelperSpec extends UnitSpec with GridInputTestData {
         .buildGateToActorRef(
           subGridToActorRefMap,
           subGridGates,
-          superiorGrid.getSubnet
+          superiorGrid.getSubnet,
         )
         .size shouldBe 1
       SetupHelperInstance
         .buildGateToActorRef(
           subGridToActorRefMap,
           subGridGates,
-          inferiorGrid.getSubnet
+          inferiorGrid.getSubnet,
         )
         .size shouldBe 1
 

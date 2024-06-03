@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.service.primary
 
-import akka.actor.{ActorRef, Props}
+import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.factory.timeseries.TimeBasedSimpleValueFactory
 import edu.ie3.datamodel.io.naming.timeseries.ColumnScheme
@@ -20,22 +20,24 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.RichValue
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
-import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
-  ServiceActivationBaseStateData
+  ServiceActivationBaseStateData,
 }
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   PrimaryServiceInitializedStateData,
-  ProvidePrimaryDataMessage
+  ProvidePrimaryDataMessage,
 }
 import edu.ie3.simona.service.{ServiceStateData, SimonaService}
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 
+import java.nio.file.Path
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters.RichOptional
@@ -43,7 +45,7 @@ import scala.util.{Failure, Success, Try}
 
 final case class PrimaryServiceWorker[V <: Value](
     override protected val scheduler: ActorRef,
-    valueClass: Class[V]
+    valueClass: Class[V],
 ) extends SimonaService[PrimaryServiceInitializedStateData[V]](scheduler) {
 
   /** Initialize the actor with the given information. Try to figure out the
@@ -53,15 +55,15 @@ final case class PrimaryServiceWorker[V <: Value](
     * @param initServiceData
     *   the data that should be used for initialization
     * @return
-    *   the state data of this service actor and optional triggers that should
-    *   be included in the completion message
+    *   the state data of this service actor and optional tick that should be
+    *   included in the completion message
     */
   override def init(
       initServiceData: ServiceStateData.InitializeServiceStateData
   ): Try[
     (
         PrimaryServiceInitializedStateData[V],
-        Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
+        Option[Long],
     )
   ] = {
     (initServiceData match {
@@ -72,11 +74,14 @@ final case class PrimaryServiceWorker[V <: Value](
             directoryPath,
             filePath,
             fileNamingStrategy,
-            timePattern
+            timePattern,
           ) =>
         Try {
           /* Set up source and acquire information */
-          val factory = new TimeBasedSimpleValueFactory(valueClass, timePattern)
+          val factory = new TimeBasedSimpleValueFactory(
+            valueClass,
+            DateTimeFormatter.ofPattern(timePattern),
+          )
           val source = new CsvTimeSeriesSource(
             csvSep,
             directoryPath,
@@ -84,7 +89,7 @@ final case class PrimaryServiceWorker[V <: Value](
             timeSeriesUuid,
             filePath,
             valueClass,
-            factory
+            factory,
           )
           (source, simulationStart)
         }
@@ -93,16 +98,19 @@ final case class PrimaryServiceWorker[V <: Value](
             timeSeriesUuid: UUID,
             simulationStart: ZonedDateTime,
             sqlParams: SqlParams,
-            namingStrategy: DatabaseNamingStrategy
+            namingStrategy: DatabaseNamingStrategy,
           ) =>
         Try {
           val factory =
-            new TimeBasedSimpleValueFactory(valueClass, sqlParams.timePattern)
+            new TimeBasedSimpleValueFactory(
+              valueClass,
+              DateTimeFormatter.ofPattern(sqlParams.timePattern),
+            )
 
           val sqlConnector = new SqlConnector(
             sqlParams.jdbcUrl,
             sqlParams.userName,
-            sqlParams.password
+            sqlParams.password,
           )
 
           val source = new SqlTimeSeriesSource(
@@ -111,7 +119,7 @@ final case class PrimaryServiceWorker[V <: Value](
             namingStrategy,
             timeSeriesUuid,
             valueClass,
-            factory
+            factory,
           )
 
           (source, simulationStart)
@@ -147,14 +155,9 @@ final case class PrimaryServiceWorker[V <: Value](
           maybeNextTick,
           furtherActivationTicks,
           simulationStart,
-          source
+          source,
         )
-      val triggerMessage =
-        ServiceActivationBaseStateData.tickToScheduleTriggerMessages(
-          maybeNextTick,
-          self
-        )
-      (initializedStateData, triggerMessage)
+      (initializedStateData, maybeNextTick)
     }
   }
 
@@ -175,7 +178,8 @@ final case class PrimaryServiceWorker[V <: Value](
   ): Try[PrimaryServiceInitializedStateData[V]] = registrationMessage match {
     case ServiceMessage.WorkerRegistrationMessage(requestingActor) =>
       requestingActor ! RegistrationSuccessfulMessage(
-        serviceStateData.maybeNextActivationTick
+        self,
+        serviceStateData.maybeNextActivationTick,
       )
       val subscribers = serviceStateData.subscribers :+ requestingActor
       Success(serviceStateData.copy(subscribers = subscribers))
@@ -201,9 +205,12 @@ final case class PrimaryServiceWorker[V <: Value](
     */
   override protected def announceInformation(
       tick: Long
-  )(implicit serviceBaseStateData: PrimaryServiceInitializedStateData[V]): (
+  )(implicit
+      serviceBaseStateData: PrimaryServiceInitializedStateData[V],
+      ctx: ActorContext,
+  ): (
       PrimaryServiceInitializedStateData[V],
-      Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
+      Option[Long],
   ) = {
     /* Get the information to distribute */
     val wallClockTime = tick.toDateTime(serviceBaseStateData.startDateTime)
@@ -215,15 +222,14 @@ final case class PrimaryServiceWorker[V <: Value](
         log.warning(
           s"I expected to get data for tick '{}' ({}), but data is not available",
           tick,
-          wallClockTime
+          wallClockTime,
         )
         updateStateDataAndBuildTriggerMessages(serviceBaseStateData)
     }
   }
 
   /** Pop the next activation tick, remove it from given base state data and
-    * hand back the updated state data together with an Option on a sequence of
-    * [[edu.ie3.simona.ontology.messages.SchedulerMessage#ScheduleTriggerMessage]]
+    * hand back the updated state data together with an Option on a next tick
     *
     * @param baseStateData
     *   The base state data to update
@@ -235,21 +241,16 @@ final case class PrimaryServiceWorker[V <: Value](
       baseStateData: PrimaryServiceInitializedStateData[V]
   ): (
       PrimaryServiceInitializedStateData[V],
-      Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
+      Option[Long],
   ) = {
     val (maybeNextActivationTick, remainderActivationTicks) =
       baseStateData.activationTicks.pop
-    val triggerMessages =
-      ServiceActivationBaseStateData.tickToScheduleTriggerMessages(
-        maybeNextActivationTick,
-        self
-      )
     (
       baseStateData.copy(
         maybeNextActivationTick = maybeNextActivationTick,
-        activationTicks = remainderActivationTicks
+        activationTicks = remainderActivationTicks,
       ),
-      triggerMessages
+      maybeNextActivationTick,
     )
   }
 
@@ -268,10 +269,10 @@ final case class PrimaryServiceWorker[V <: Value](
   private def processDataAndAnnounce(
       tick: Long,
       value: V,
-      serviceBaseStateData: PrimaryServiceInitializedStateData[V]
+      serviceBaseStateData: PrimaryServiceInitializedStateData[V],
   ): (
       PrimaryServiceInitializedStateData[V],
-      Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
+      Option[Long],
   ) = value.toPrimaryData match {
     case Success(primaryData) =>
       announcePrimaryData(tick, primaryData, serviceBaseStateData)
@@ -280,7 +281,7 @@ final case class PrimaryServiceWorker[V <: Value](
       log.warning(
         "Unable to convert received value to primary data. Skipped that data." +
           "\nException: {}",
-        exception
+        exception,
       )
       updateStateDataAndBuildTriggerMessages(serviceBaseStateData)
   }
@@ -300,25 +301,23 @@ final case class PrimaryServiceWorker[V <: Value](
   private def announcePrimaryData(
       tick: Long,
       primaryData: PrimaryData,
-      serviceBaseStateData: PrimaryServiceInitializedStateData[V]
+      serviceBaseStateData: PrimaryServiceInitializedStateData[V],
   ): (
       PrimaryServiceInitializedStateData[V],
-      Option[Seq[SchedulerMessage.ScheduleTriggerMessage]]
+      Option[Long],
   ) = {
     val (maybeNextTick, remainderActivationTicks) =
       serviceBaseStateData.activationTicks.pop
-    val triggerMessages = ServiceActivationBaseStateData
-      .tickToScheduleTriggerMessages(maybeNextTick, self)
     val updatedStateData =
       serviceBaseStateData.copy(
         maybeNextActivationTick = maybeNextTick,
-        activationTicks = remainderActivationTicks
+        activationTicks = remainderActivationTicks,
       )
 
     val provisionMessage =
-      ProvidePrimaryDataMessage(tick, primaryData, maybeNextTick)
+      ProvidePrimaryDataMessage(tick, self, primaryData, maybeNextTick)
     serviceBaseStateData.subscribers.foreach(_ ! provisionMessage)
-    (updatedStateData, triggerMessages)
+    (updatedStateData, maybeNextTick)
   }
 }
 
@@ -331,12 +330,12 @@ object PrimaryServiceWorker {
     ColumnScheme.ACTIVE_POWER,
     ColumnScheme.ACTIVE_POWER_AND_HEAT_DEMAND,
     ColumnScheme.APPARENT_POWER,
-    ColumnScheme.APPARENT_POWER_AND_HEAT_DEMAND
+    ColumnScheme.APPARENT_POWER_AND_HEAT_DEMAND,
   )
 
   def props[V <: Value](
       scheduler: ActorRef,
-      valueClass: Class[V]
+      valueClass: Class[V],
   ): Props =
     Props(new PrimaryServiceWorker(scheduler, valueClass))
 
@@ -374,10 +373,10 @@ object PrimaryServiceWorker {
       override val timeSeriesUuid: UUID,
       override val simulationStart: ZonedDateTime,
       csvSep: String,
-      directoryPath: String,
-      filePath: String,
+      directoryPath: Path,
+      filePath: Path,
       fileNamingStrategy: FileNamingStrategy,
-      timePattern: String
+      timePattern: String,
   ) extends InitPrimaryServiceStateData
 
   /** Specific implementation of [[InitPrimaryServiceStateData]], if the source
@@ -396,7 +395,7 @@ object PrimaryServiceWorker {
       override val timeSeriesUuid: UUID,
       override val simulationStart: ZonedDateTime,
       sqlParams: SqlParams,
-      databaseNamingStrategy: DatabaseNamingStrategy
+      databaseNamingStrategy: DatabaseNamingStrategy,
   ) extends InitPrimaryServiceStateData
 
   /** Class carrying the state of a fully initialized [[PrimaryServiceWorker]]
@@ -421,7 +420,7 @@ object PrimaryServiceWorker {
         SortedDistinctSeq.empty,
       startDateTime: ZonedDateTime,
       source: TimeSeriesSource[V],
-      subscribers: Vector[ActorRef] = Vector.empty[ActorRef]
+      subscribers: Vector[ActorRef] = Vector.empty[ActorRef],
   ) extends ServiceActivationBaseStateData
 
   /** Provide primary data to subscribes
@@ -435,7 +434,9 @@ object PrimaryServiceWorker {
     */
   final case class ProvidePrimaryDataMessage(
       override val tick: Long,
+      override val serviceRef: ActorRef,
       override val data: PrimaryData,
-      override val nextDataTick: Option[Long]
+      override val nextDataTick: Option[Long],
+      override val unlockKey: Option[ScheduleKey] = None,
   ) extends ServiceMessage.ProvisionMessage[PrimaryData]
 }

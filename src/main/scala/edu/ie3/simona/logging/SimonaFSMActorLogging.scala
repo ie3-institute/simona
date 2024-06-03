@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.logging
 
-import akka.actor.{ActorLogging, FSM}
-import akka.event.LoggingAdapter
+import org.apache.pekko.actor.{ActorLogging, FSM}
+import org.apache.pekko.event.LoggingAdapter
 
 trait SimonaFSMActorLogging extends ActorLogging with SimonaLogging {
   this: FSM[_, _] =>
@@ -17,7 +17,7 @@ trait SimonaFSMActorLogging extends ActorLogging with SimonaLogging {
       context.system,
       () => stateName,
       this,
-      actorName
+      actorName,
     )
 
 }

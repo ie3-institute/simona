@@ -75,7 +75,8 @@ node {
           // normally main pipeline is only triggered by merge of release or hotfixes OR manually triggered
           // if manually triggered for deploy, no PR should be created
           if (params.deploy != "true") {
-            handleDevPr(sshCredentialsId, orgName, projectName, currentBranchName)
+            // Disabled for now
+            // handleDevPr(sshCredentialsId, orgName, projectName, currentBranchName)
           }
         }
       }
@@ -140,9 +141,9 @@ node {
 
           // get the sonatype credentials stored in the jenkins secure keychain
           withCredentials([
-            usernamePassword(credentialsId: mavenCentralCredentialsId, usernameVariable: 'mavencentral_username', passwordVariable: 'mavencentral_password'),
-            file(credentialsId: mavenCentralSignKeyFileId, variable: 'mavenCentralKeyFile'),
-            usernamePassword(credentialsId: mavenCentralSignKeyId, passwordVariable: 'signingPassword', usernameVariable: 'signingKeyId')
+            usernamePassword(credentialsId: mavenCentralCredentialsId, usernameVariable: 'MAVENCENTRAL_USER', passwordVariable: 'MAVENCENTRAL_PASS'),
+            file(credentialsId: mavenCentralSignKeyFileId, variable: 'MAVENCENTRAL_KEYFILE'),
+            usernamePassword(credentialsId: mavenCentralSignKeyId, usernameVariable: 'MAVENCENTRAL_SIGNINGKEYID', passwordVariable: 'MAVENCENTRAL_SIGNINGPASS')
           ]) {
 
             /*
@@ -154,17 +155,15 @@ node {
                 returnStdout: true
                 )
 
-            String deployGradleTasks = "--refresh-dependencies " +
-                "publish -Puser=${env.mavencentral_username} " +
-                "-Ppassword=${env.mavencentral_password} " +
-                "-Psigning.keyId=${env.signingKeyId} " +
-                "-Psigning.password=${env.signingPassword} " +
-                "-Psigning.secretKeyRingFile=${env.mavenCentralKeyFile} " +
+            String deployGradleTasks = '--refresh-dependencies test ' +
+                'publish -Puser=${MAVENCENTRAL_USER} ' +
+                '-Ppassword=${MAVENCENTRAL_PASS} ' +
+                '-Psigning.keyId=${MAVENCENTRAL_SIGNINGKEYID} ' +
+                '-Psigning.password=${MAVENCENTRAL_SIGNINGPASS} ' +
+                '-Psigning.secretKeyRingFile=${MAVENCENTRAL_KEYFILE} ' +
                 "-PdeployVersion='$projectVersion'"
 
-            // see https://docs.gradle.org/6.0.1/release-notes.html "Publication of SHA256 and SHA512 checksums"
-            def preventSHACheckSums = "-Dorg.gradle.internal.publish.checksums.insecure=true"
-            gradle("${deployGradleTasks} $preventSHACheckSums", projectName)
+            gradle(deployGradleTasks, projectName)
           }
 
           if (env.BRANCH_NAME == "main") {
@@ -453,7 +452,6 @@ def constantBranchesProps() {
     [
       string(defaultValue: '', description: '', name: 'deploy', trim: true)
     ]),
-    [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false],
     [$class: 'ThrottleJobProperty', categories: [], limitOneJobWithMatchingParams: false, maxConcurrentPerNode: 0, maxConcurrentTotal: 0, paramsToUseForLimit: '', throttleEnabled: true, throttleOption: 'project']
   ])
 }

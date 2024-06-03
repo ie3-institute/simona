@@ -26,8 +26,8 @@ class SystemComponentTest extends Specification {
 
   def "Determine the correct operation interval"(Option<ZonedDateTime> operationStart, Option<ZonedDateTime> operationEnd,  OperationInterval expected) {
     given:
-    ZonedDateTime simulationStart = TimeUtil.withDefaults.toZonedDateTime("2019-01-01 00:00:00")
-    ZonedDateTime simulationEnd = TimeUtil.withDefaults.toZonedDateTime("2019-01-02 00:00:00")
+    ZonedDateTime simulationStart = TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")
+    ZonedDateTime simulationEnd = TimeUtil.withDefaults.toZonedDateTime("2019-01-02T00:00:00Z")
 
     if(operationStart.defined)
       operationTimeBuilder.withStart(operationStart.get())
@@ -43,19 +43,19 @@ class SystemComponentTest extends Specification {
 
     where:
     operationStart | operationEnd | expected
-    Option.apply(TimeUtil.withDefaults.toZonedDateTime("2019-01-01 00:00:00")) | Option.apply(TimeUtil.withDefaults.toZonedDateTime("2019-01-02 00:00:00")) | OperationInterval.apply(0L, 86400L)
-    Option.apply(TimeUtil.withDefaults.toZonedDateTime("2019-01-02 00:00:00")) | Option.apply(TimeUtil.withDefaults.toZonedDateTime("2019-01-02 00:00:00")) | OperationInterval.apply(86400L, 86400L)
-    Option.apply(TimeUtil.withDefaults.toZonedDateTime("2019-01-01 00:00:00")) | Option.apply(TimeUtil.withDefaults.toZonedDateTime("2019-01-01 00:00:00")) | OperationInterval.apply(0L, 0L)
-    Option.apply(null)                                                               | Option.apply(TimeUtil.withDefaults.toZonedDateTime("2019-01-01 00:00:00")) | OperationInterval.apply(0L, 0L)
-    Option.apply(TimeUtil.withDefaults.toZonedDateTime("2019-01-02 00:00:00")) | Option.apply(null)                                                                 | OperationInterval.apply(86400L, 86400L)
+    Option.apply(TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")) | Option.apply(TimeUtil.withDefaults.toZonedDateTime("2019-01-02T00:00:00Z")) | OperationInterval.apply(0L, 86400L)
+    Option.apply(TimeUtil.withDefaults.toZonedDateTime("2019-01-02T00:00:00Z")) | Option.apply(TimeUtil.withDefaults.toZonedDateTime("2019-01-02T00:00:00Z")) | OperationInterval.apply(86400L, 86400L)
+    Option.apply(TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")) | Option.apply(TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")) | OperationInterval.apply(0L, 0L)
+    Option.apply(null)                                                               | Option.apply(TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")) | OperationInterval.apply(0L, 0L)
+    Option.apply(TimeUtil.withDefaults.toZonedDateTime("2019-01-02T00:00:00Z")) | Option.apply(null)                                                                 | OperationInterval.apply(86400L, 86400L)
   }
 
   def "Reject an operation end, that is before the operation start"() {
     given:
-    ZonedDateTime simulationStart = TimeUtil.withDefaults.toZonedDateTime("2019-01-01 00:00:00")
-    ZonedDateTime simulationEnd = TimeUtil.withDefaults.toZonedDateTime("2019-01-02 00:00:00")
-    operationTimeBuilder.withStart(TimeUtil.withDefaults.toZonedDateTime("2019-01-02 00:00:00"))
-    operationTimeBuilder.withEnd(TimeUtil.withDefaults.toZonedDateTime("2019-01-01 00:00:00"))
+    ZonedDateTime simulationStart = TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")
+    ZonedDateTime simulationEnd = TimeUtil.withDefaults.toZonedDateTime("2019-01-02T00:00:00Z")
+    operationTimeBuilder.withStart(TimeUtil.withDefaults.toZonedDateTime("2019-01-02T00:00:00Z"))
+    operationTimeBuilder.withEnd(TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z"))
     OperationTime operationTime = operationTimeBuilder.build()
 
     when:

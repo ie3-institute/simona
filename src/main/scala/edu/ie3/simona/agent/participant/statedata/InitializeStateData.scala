@@ -7,7 +7,7 @@
 package edu.ie3.simona.agent.participant.statedata
 
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 
 /** Trait to denote all state data that are meant to carry additional
   * information needed to initialize a
@@ -17,16 +17,17 @@ trait InitializeStateData[+PD <: PrimaryData] extends ParticipantStateData[PD] {
 
   /** Config for the output behaviour of simulation results
     */
-  val outputConfig: ParticipantNotifierConfig
+  val outputConfig: NotifierConfig
 }
 
-case object InitializeStateData {
+object InitializeStateData {
   final case class TrivialInitializeStateData[+PD <: PrimaryData](
       resultEventEmitter: String
   ) extends InitializeStateData[PD] {
-    val outputConfig: ParticipantNotifierConfig = ParticipantNotifierConfig(
+    val outputConfig: NotifierConfig = NotifierConfig(
       simulationResultInfo = false,
-      powerRequestReply = true
+      powerRequestReply = true,
+      flexResult = false,
     )
   }
 }

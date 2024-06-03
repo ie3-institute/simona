@@ -8,12 +8,9 @@ package edu.ie3.simona.model.grid
 
 import breeze.numerics.pow
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.util.quantities.PowerSystemUnits._
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
+import squants.Each
 
 import java.util.UUID
-import javax.measure.quantity.Dimensionless
 
 /** Provides methods to calculate the branch and phase-to-ground susceptance as
   * well as conductance of a grid asset to be represented by π equivalent
@@ -25,28 +22,28 @@ trait PiEquivalentCircuit extends LazyLogging {
 
   /** Resistance (real part) of the branch impedance in p.u.
     */
-  protected def r: ComparableQuantity[Dimensionless]
+  protected def r: squants.Dimensionless
 
-  private val rVal: Double = r.to(PU).getValue.doubleValue()
+  private val rVal: Double = r.toEach
 
   /** Reactance (imaginary part) of the branch impedance in p.u.
     */
-  protected def x: ComparableQuantity[Dimensionless]
+  protected def x: squants.Dimensionless
 
-  private val xVal: Double = x.to(PU).getValue.doubleValue()
+  private val xVal: Double = x.toEach
 
   /** Conductance (real part) of the TOTAL phase-to-ground admittance in p.u.
     */
-  protected def g: ComparableQuantity[Dimensionless]
+  protected def g: squants.Dimensionless
 
-  private val gVal: Double = g.to(PU).getValue.doubleValue()
+  private val gVal: Double = g.toEach
 
   /** Susceptance (imaginary part) of the TOTAL phase-to-ground admittance in
     * p.u.
     */
-  protected def b: ComparableQuantity[Dimensionless]
+  protected def b: squants.Dimensionless
 
-  private val bVal: Double = b.to(PU).getValue.doubleValue()
+  private val bVal: Double = b.toEach
 
   /** Computes the branch conductance of the grid element. Formula:
     *
@@ -60,13 +57,13 @@ trait PiEquivalentCircuit extends LazyLogging {
     * @return
     *   branch conductance g_ij between node i and j of the element in p.u.
     */
-  protected def gij(): ComparableQuantity[Dimensionless] = {
+  protected def gij(): squants.Dimensionless = {
     val gijVal: Double = {
       if (rVal == 0) 0
       else if (xVal == 0) 1 / rVal
       else rVal / (pow(rVal, 2) + pow(xVal, 2))
     }
-    Quantities.getQuantity(gijVal, PU)
+    Each(gijVal)
   }
 
   /** Computes the branch susceptance of the grid element.
@@ -82,13 +79,13 @@ trait PiEquivalentCircuit extends LazyLogging {
     * @return
     *   branch susceptance b_ij between node i and j of the element in p.u.
     */
-  protected def bij(): ComparableQuantity[Dimensionless] = {
+  protected def bij(): squants.Dimensionless = {
     val bijVal = {
       if (xVal == 0) 0
       else if (rVal == 0) -1 / xVal
       else -xVal / (pow(rVal, 2) + pow(xVal, 2))
     }
-    Quantities.getQuantity(bijVal, PU)
+    Each(bijVal)
   }
 
   /** "Computes" the TOTAL phase-to-ground conductance of the grid element.
@@ -96,8 +93,8 @@ trait PiEquivalentCircuit extends LazyLogging {
     * @return
     *   phase-to-ground conductance g_0 in p.u.
     */
-  protected def g0(): ComparableQuantity[Dimensionless] = {
-    Quantities.getQuantity(gVal, PU)
+  protected def g0(): squants.Dimensionless = {
+    Each(gVal)
   }
 
   /** "Computes" the TOTAL phase-to-ground susceptance of the grid element.
@@ -105,8 +102,8 @@ trait PiEquivalentCircuit extends LazyLogging {
     * @return
     *   phase-to-ground susceptance b_0 in p.u.
     */
-  protected def b0(): ComparableQuantity[Dimensionless] = {
-    Quantities.getQuantity(bVal, PU)
+  protected def b0(): squants.Dimensionless = {
+    Each(bVal)
   }
 
   /** Simple method that displays a warning if the provided values seem
@@ -128,7 +125,7 @@ trait PiEquivalentCircuit extends LazyLogging {
         r,
         x,
         g,
-        b
+        b,
       )
   }
 

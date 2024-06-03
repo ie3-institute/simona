@@ -10,16 +10,16 @@ import edu.ie3.datamodel.models.input.connector.{
   LineInput,
   SwitchInput,
   Transformer2WInput,
-  Transformer3WInput
+  Transformer3WInput,
 }
 import edu.ie3.datamodel.models.input.container.{
   RawGridElements,
-  SubGridContainer
+  SubGridContainer,
 }
 import edu.ie3.datamodel.models.input.{MeasurementUnitInput, NodeInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils.{
   HV,
-  MV_10KV
+  MV_10KV,
 }
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.test.common.DefaultTestData
@@ -90,7 +90,7 @@ trait GridInputTestData
       inputNode15,
       inputNode16,
       inputNode17,
-      inputNode18
+      inputNode18,
     )
 
   // create the lines
@@ -120,7 +120,7 @@ trait GridInputTestData
       line1_13,
       line14_2,
       line0_15,
-      line16_3
+      line16_3,
     )
 
   // create the switches
@@ -144,7 +144,7 @@ trait GridInputTestData
     transformerInput.getParallelDevices,
     transformerInput.getType,
     transformerInput.getTapPos,
-    transformerInput.isAutoTap
+    transformerInput.isAutoTap,
   )
 
   val transformers: Set[Transformer2WInput] = Set(adaptedTransformerInputModel)
@@ -163,7 +163,7 @@ trait GridInputTestData
       transformers.asJava,
       Set.empty[Transformer3WInput].asJava,
       switches.asJava,
-      Set.empty[MeasurementUnitInput].asJava
+      Set.empty[MeasurementUnitInput].asJava,
     )
     TestGridFactory.createSubGrid(
       rawGridElements = rawGridElements

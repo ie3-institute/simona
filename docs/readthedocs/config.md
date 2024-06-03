@@ -55,6 +55,7 @@ simona.input.weather.datasource = {
   scheme = "icon"
   sampleParams.use = true
   coordinateSource.sampleParams.use = true
+  maxCoordinateDistance = 50000
 }
 ```
 
@@ -69,6 +70,7 @@ simona.input.weather.datasource = {
   
     - The sample values should only be used to test the functionality. The performance of a reasonable simulation with sensitive results should be based on real weather data.
     - Supported weather data sources are: influxdb1x, csv, sql, couchbase, sample
+  - The parameter `maxCoordinateDistance` is used to specify the radius in which weather data should be searched in. The given distance should be in meter.
 
 Further model classes which can be used to parse a data set as input to power system simulations are described in [PSDM](https://powersystemdatamodel.readthedocs.io/en/latest/models/models.html#time-series). 
 Data sources and data sinks are explained in the [I/O-capabilities](https://powersystemdatamodel.readthedocs.io/en/latest/io/basiciousage.html) section of the PSDM. 
@@ -179,7 +181,7 @@ Using the default configuration the universally unique identifier can be set to 
 
     uuids = ["default"]
 
-Choosing the scaling factor of the power output: 
+Choosing the scaling factor of relevant participant parameters such as rated power or annual power consumption: 
 
     scaling = 1.0
 
@@ -202,20 +204,28 @@ Tba:
 
 ## Grid configuration 
 
+The reference system contains a list of voltage levels. Each element includes the nominal apparent power, the nominal 
+voltage and the separate configuration of each voltage level. The voltage level configuration is composed of the identifier 
+and the nominal voltage.
+
+The configuration of a reference system is optional. If no configuration is provided by the user, the default
+[reference system](models/reference_system) that includes all common german voltage levels is used. For those users 
+who need other voltage levels than the common german voltage levels or different nominal apparent powers, they can configure
+their reference systems as shown below.
+
 The reference system can be configured as follows: 
 
 ```
 simona.gridConfig.refSystems = [
-  {sNom = "100 kVA", vNom = "0.4 kV", voltLvls = [{id = "NS", vNom = "0.4 kV"}]},
-  {sNom = "60 MVA", vNom = "20 kV", voltLvls = [{id = "MS", vNom = "20 kV"}]},
-  {sNom = "600 MVA", vNom = "110 kV", voltLvls = [{id = "HS", vNom = "110 kV"}]},
-  {sNom = "1000 MVA", vNom = "380 kV", voltLvls = [{id = "HoeS", vNom = "380 kV"}]}
+  {sNom = "100 kVA", vNom = "0.4 kV", voltLvls = [{id = "LV", vNom = "0.4 kV"}]},
+  {sNom = "60 MVA", vNom = "20 kV", voltLvls = [{id = "MV", vNom = "20 kV"}]},
+  {sNom = "600 MVA", vNom = "110 kV", voltLvls = [{id = "HV", vNom = "110 kV"}]},
+  {sNom = "1000 MVA", vNom = "380 kV", voltLvls = [{id = "EHV", vNom = "380 kV"}]}
 ]
 ```
 
-The reference system contains a list of voltage levels. Each element includes the nominal apparent power, the nominal voltage and the separate configuration of each voltage level. The voltage level configuration is composed of the identifier and the nominal voltage.
-
-Further typical voltage levels which can be used in the simulation and the configuration of individual reference systems are described in the documentation of [reference system](models/reference_system).
+Further typical voltage levels which can be used in the simulation and the configuration of individual reference systems
+are described in the documentation of [reference system](models/reference_system).
 
 ## Power flow configuration 
 
@@ -234,3 +244,42 @@ Secondary convergence criterion for the power flow calculation is the number of 
 Resolution of the power flow calculation: 
 
   `simona.powerflow.resolution = "3600s"`
+
+## Transformer Control Group configuration
+
+It's possible to add a voltage control function to a transformer or group of transformers. This requires measurements within the network to be under voltage control and at least one corresponding transformer.
+The voltage control will attempt to adjust the voltage by changing the tap position of the corresponding transformer. If changing the tap position would cause a voltage limit to be exceeded, the initial voltage deviation cannot be reduced by the voltage control system.
+
+Transformer control groups must contain at least one transformer and one measurement. And can be configured as shown in this example for two transformer control groups:
+```
+simona.control.transformer = [
+{
+transformers = ["31a2b9bf-e785-4475-aa44-1c34646e8c79"],
+measurements = ["923f2d69-3093-4198-86e4-13d2d1c220f8"],
+vMin = 0.98,
+vMax = 1.02
+}
+, {
+transformers = ["1132dbf4-e8a1-44ae-8415-f42d4497aa1d"],
+measurements = ["7686b818-a0ba-465c-8e4e-f7d3c4e171fc"],
+vMin = 0.98,
+vMax = 1.02
+}
+]
+```
+
+UUID of transformer in control group:
+
+`transformers = ["31a2b9bf-e785-4475-aa44-1c34646e8c79"]`
+
+UUID of measurement in control group:
+
+`measurements = ["923f2d69-3093-4198-86e4-13d2d1c220f8"]`
+
+Minimum Voltage Limit in p.u.:
+
+`vMin = 0.98`
+
+Maximum Voltage Limit in p.u.:
+
+`vMax = 1.02`

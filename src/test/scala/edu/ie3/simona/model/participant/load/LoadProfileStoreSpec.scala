@@ -6,28 +6,24 @@
 
 package edu.ie3.simona.model.participant.load
 
-import java.io.InputStreamReader
-import java.time.ZonedDateTime
-import java.time.temporal.ChronoUnit
-
-import breeze.numerics.abs
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile._
 import edu.ie3.datamodel.models.profile.StandardLoadProfile
 import edu.ie3.simona.model.participant.load.profile.{
   LoadProfileKey,
   LoadProfileStore,
-  TypeDayProfile
+  TypeDayProfile,
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATTHOUR, WATTHOUR}
-import javax.measure.quantity.Energy
 import org.scalatest.PrivateMethodTester
 import org.scalatest.prop.TableDrivenPropertyChecks
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.{MINUTE, WATT}
+import squants.energy.{KilowattHours, Watts}
+import squants.time.Minutes
+
+import java.io.InputStreamReader
+import java.time.ZonedDateTime
+import java.time.temporal.ChronoUnit
 
 class LoadProfileStoreSpec
     extends UnitSpec
@@ -52,34 +48,33 @@ class LoadProfileStoreSpec
           (
             "2019-04-01T05:00:00+02:00[Europe/Berlin]",
             L0,
-            55.6d
+            55.6d,
           ), // Weekday, transitional, 20th quarter hour
           (
             "2019-06-02T00:00:00+02:00[Europe/Berlin]",
             G0,
-            68.8d
+            68.8d,
           ), // Sunday, summer, 0th quarter hour
           (
             "2019-01-05T02:15:00+01:00[Europe/Berlin]",
             H0,
-            52.8d
+            52.8d,
           ), // Saturday, winter, 9th quarter hour, 5th day -> dynamization factor 1.2473
           (
             "2019-07-21T01:00:00+02:00[Europe/Berlin]",
             H0,
-            58.1d
-          ) // Sunday, summer, 4th quarter hour, 202nd day -> dynamization factor 0.7847
+            58.1d,
+          ), // Sunday, summer, 4th quarter hour, 202nd day -> dynamization factor 0.7847
         )
 
       forAll(params) {
         (
             timestamp: String,
             loadProfile: StandardLoadProfile,
-            paramValue: Double
+            paramValue: Double,
         ) =>
           val time = ZonedDateTime.parse(timestamp)
-          val param =
-            Quantities.getQuantity(paramValue, WATT)
+          val param = Watts(paramValue)
 
           customStore.entry(time, loadProfile) shouldBe param
       }
@@ -91,13 +86,12 @@ class LoadProfileStoreSpec
           ("profile", "maxParamValue"),
           (H0, 268.6d),
           (L0, 240.4d),
-          (G0, 240.4d)
+          (G0, 240.4d),
         )
 
       forAll(maxParams) {
         (loadProfile: StandardLoadProfile, maxParamValue: Double) =>
-          val maxParam =
-            Quantities.getQuantity(maxParamValue, WATT)
+          val maxParam = Watts(maxParamValue)
 
           customStore.maxPower(loadProfile) shouldBe maxParam
       }
@@ -111,17 +105,17 @@ class LoadProfileStoreSpec
         ](Symbol("profileMap"))()).keySet.map(_.standardLoadProfile)
 
       /* List the expected annual energy consumption */
-      val expectedEnergyConsumption
-          : Map[StandardLoadProfile, ComparableQuantity[Energy]] = Map(
-        H0 -> Quantities.getQuantity(1000d, KILOWATTHOUR),
-        L0 -> Quantities.getQuantity(1002d, KILOWATTHOUR),
-        /* TODO: Check, if this is correct */
-        G0 -> Quantities.getQuantity(1022d, KILOWATTHOUR)
-      )
+      val expectedEnergyConsumption: Map[StandardLoadProfile, squants.Energy] =
+        Map(
+          H0 -> KilowattHours(1000.0),
+          L0 -> KilowattHours(1002.0),
+          /* TODO: Check, if this is correct */
+          G0 -> KilowattHours(1022.0),
+        )
 
       /* Collect all available time steps in 2020 */
       val startDate =
-        TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
+        TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
       val testDates =
         Range(0, 35136).map(cnt => startDate.plus(cnt * 15, ChronoUnit.MINUTES))
 
@@ -137,26 +131,19 @@ class LoadProfileStoreSpec
         }
 
         /* Sum up value throughout the year (2020 is a leap year) */
-        val annualEnergy: ComparableQuantity[Energy] = testDates
+        val annualEnergy: squants.Energy = testDates
           .foldLeft(
-            Quantities.getQuantity(0d, WATTHOUR)
+            KilowattHours(0.0)
           )((integrationState, dateTime) => {
             val currentEnergy = customStore
-              .entry(dateTime, profile)
-              .multiply(Quantities.getQuantity(15, MINUTE))
-              .asType(classOf[Energy])
-            integrationState.add(currentEnergy)
+              .entry(dateTime, profile) * Minutes(15.0)
+            integrationState + currentEnergy
           })
-          .to(KILOWATTHOUR)
+
+        implicit val powerTolerance: squants.Energy = KilowattHours(1.0)
 
         /* Check the deviation against the expected value (deviation should be smaller than 1 kWh) */
-        abs(
-          annualEnergy
-            .subtract(expected)
-            .to(KILOWATTHOUR)
-            .getValue
-            .doubleValue()
-        ) < 1 shouldBe true
+        annualEnergy should approximate(expected)
       })
     }
   }

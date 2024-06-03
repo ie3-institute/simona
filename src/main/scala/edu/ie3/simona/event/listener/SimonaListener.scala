@@ -6,6 +6,6 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.Actor
+import org.apache.pekko.actor.Actor
 
 trait SimonaListener extends Actor

@@ -6,22 +6,16 @@
 
 package edu.ie3.simona.agent.participant.data
 
-import java.time.ZonedDateTime
-import edu.ie3.datamodel.models.StandardUnits
-import edu.ie3.datamodel.models.value.{
-  HeatAndPValue,
-  HeatAndSValue,
-  PValue,
-  SValue,
-  Value
-}
+import edu.ie3.datamodel.models.value._
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.interfaces.EnergyPrice
-
-import javax.measure.quantity.Power
+import edu.ie3.util.scala.quantities.{Kilovars, Megavars, ReactivePower}
+import squants.energy.{Power, Kilowatts, Megawatts}
 import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 
+import java.time.ZonedDateTime
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
@@ -41,15 +35,14 @@ object Data {
     * given
     */
   sealed trait PrimaryData extends Data {
-    val p: ComparableQuantity[Power]
-
+    val p: Power
     def toApparentPower: ApparentPower
   }
 
   object PrimaryData {
 
     sealed trait EnrichableData[E <: PrimaryDataWithApparentPower[E]] {
-      def add(q: ComparableQuantity[Power]): E
+      def add(q: ReactivePower): E
     }
 
     /** Denoting all primary data, that carry apparent power
@@ -57,37 +50,34 @@ object Data {
     sealed trait PrimaryDataWithApparentPower[
         +T <: PrimaryDataWithApparentPower[T]
     ] extends PrimaryData {
-      val q: ComparableQuantity[Power]
+      val q: ReactivePower
 
-      def withReactivePower(q: ComparableQuantity[Power]): T
+      def withReactivePower(q: ReactivePower): T
     }
 
     /** Adding thermal power
       */
     sealed trait Heat {
-      val qDot: ComparableQuantity[Power]
+      val qDot: Power
     }
 
-    val ZERO_POWER: ApparentPower = ApparentPower(
-      Quantities.getQuantity(0d, StandardUnits.ACTIVE_POWER_RESULT),
-      Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_RESULT)
-    )
+    val ZERO_POWER: ApparentPower = ApparentPower(zeroMW, zeroMVAr)
 
     /** Active power as participant simulation result
       *
       * @param p
       *   Active power
       */
-    final case class ActivePower(override val p: ComparableQuantity[Power])
+    final case class ActivePower(override val p: Power)
         extends PrimaryData
         with EnrichableData[ApparentPower] {
       override def toApparentPower: ApparentPower =
         ApparentPower(
           p,
-          Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_RESULT)
+          zeroMVAr,
         )
 
-      override def add(q: ComparableQuantity[Power]): ApparentPower =
+      override def add(q: ReactivePower): ApparentPower =
         ApparentPower(p, q)
     }
 
@@ -99,14 +89,13 @@ object Data {
       *   Reactive power
       */
     final case class ApparentPower(
-        override val p: ComparableQuantity[Power],
-        override val q: ComparableQuantity[Power]
+        override val p: Power,
+        override val q: ReactivePower,
     ) extends PrimaryDataWithApparentPower[ApparentPower] {
       override def toApparentPower: ApparentPower = this
 
-      override def withReactivePower(
-          q: ComparableQuantity[Power]
-      ): ApparentPower = copy(q = q)
+      override def withReactivePower(q: ReactivePower): ApparentPower =
+        copy(q = q)
     }
 
     /** Active power and heat demand as participant simulation result
@@ -117,18 +106,18 @@ object Data {
       *   Heat demand
       */
     final case class ActivePowerAndHeat(
-        override val p: ComparableQuantity[Power],
-        override val qDot: ComparableQuantity[Power]
+        override val p: Power,
+        override val qDot: Power,
     ) extends PrimaryData
         with Heat
         with EnrichableData[ApparentPowerAndHeat] {
       override def toApparentPower: ApparentPower =
         ApparentPower(
           p,
-          Quantities.getQuantity(0d, StandardUnits.REACTIVE_POWER_RESULT)
+          zeroMVAr,
         )
 
-      override def add(q: ComparableQuantity[Power]): ApparentPowerAndHeat =
+      override def add(q: ReactivePower): ApparentPowerAndHeat =
         ApparentPowerAndHeat(p, q, qDot)
     }
 
@@ -142,17 +131,16 @@ object Data {
       *   Heat demand
       */
     final case class ApparentPowerAndHeat(
-        override val p: ComparableQuantity[Power],
-        override val q: ComparableQuantity[Power],
-        override val qDot: ComparableQuantity[Power]
+        override val p: Power,
+        override val q: ReactivePower,
+        override val qDot: Power,
     ) extends PrimaryDataWithApparentPower[ApparentPowerAndHeat]
         with Heat {
       override def toApparentPower: ApparentPower =
         ApparentPower(p, q)
 
-      override def withReactivePower(
-          q: ComparableQuantity[Power]
-      ): ApparentPowerAndHeat = copy(q = q)
+      override def withReactivePower(q: ReactivePower): ApparentPowerAndHeat =
+        copy(q = q)
     }
 
     implicit class RichValue(private val value: Value) {
@@ -161,7 +149,19 @@ object Data {
           case hs: HeatAndSValue =>
             (hs.getP.toScala, hs.getQ.toScala, hs.getHeatDemand.toScala) match {
               case (Some(p), Some(q), Some(qDot)) =>
-                Success(ApparentPowerAndHeat(p, q, qDot))
+                Success(
+                  ApparentPowerAndHeat(
+                    Kilowatts(
+                      p.to(PowerSystemUnits.KILOWATT).getValue.doubleValue
+                    ),
+                    Kilovars(
+                      q.to(PowerSystemUnits.KILOVAR).getValue.doubleValue
+                    ),
+                    Kilowatts(
+                      qDot.to(PowerSystemUnits.KILOWATT).getValue.doubleValue
+                    ),
+                  )
+                )
               case _ =>
                 Failure(
                   new IllegalArgumentException(
@@ -171,7 +171,17 @@ object Data {
             }
           case s: SValue =>
             (s.getP.toScala, s.getQ.toScala) match {
-              case (Some(p), Some(q)) => Success(ApparentPower(p, q))
+              case (Some(p), Some(q)) =>
+                Success(
+                  ApparentPower(
+                    Kilowatts(
+                      p.to(PowerSystemUnits.KILOWATT).getValue.doubleValue
+                    ),
+                    Kilovars(
+                      q.to(PowerSystemUnits.KILOVAR).getValue.doubleValue
+                    ),
+                  )
+                )
               case _ =>
                 Failure(
                   new IllegalArgumentException(
@@ -181,7 +191,17 @@ object Data {
             }
           case hp: HeatAndPValue =>
             (hp.getP.toScala, hp.getHeatDemand.toScala) match {
-              case (Some(p), Some(qDot)) => Success(ActivePowerAndHeat(p, qDot))
+              case (Some(p), Some(qDot)) =>
+                Success(
+                  ActivePowerAndHeat(
+                    Kilowatts(
+                      p.to(PowerSystemUnits.KILOWATT).getValue.doubleValue
+                    ),
+                    Kilowatts(
+                      qDot.to(PowerSystemUnits.KILOWATT).getValue.doubleValue
+                    ),
+                  )
+                )
               case _ =>
                 Failure(
                   new IllegalArgumentException(
@@ -191,7 +211,14 @@ object Data {
             }
           case p: PValue =>
             p.getP.toScala match {
-              case Some(p) => Success(ActivePower(p))
+              case Some(p) =>
+                Success(
+                  ActivePower(
+                    Kilowatts(
+                      p.to(PowerSystemUnits.KILOWATT).getValue.doubleValue
+                    )
+                  )
+                )
               case _ =>
                 Failure(
                   new IllegalArgumentException(

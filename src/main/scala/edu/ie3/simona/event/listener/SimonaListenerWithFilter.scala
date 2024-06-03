@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import edu.ie3.simona.event.Event
 import edu.ie3.simona.logging.SimonaActorLogging
 
@@ -49,7 +49,7 @@ abstract class SimonaListenerWithFilter(eventsToProcess: Option[List[String]])
       case _ =>
         log.debug(
           "Skipping event {} as it is not in the list of events to process.",
-          event.id
+          event.id,
         )
     }
   }

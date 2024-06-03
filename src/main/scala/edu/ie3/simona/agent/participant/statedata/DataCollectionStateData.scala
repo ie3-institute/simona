@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.statedata
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 
@@ -21,8 +21,7 @@ import scala.reflect.{ClassTag, classTag}
   *   A mapping from senders' [[ActorRef]] s to [[Option]] s on the provided
   *   data (None if not yet received)
   * @param yetTriggered
-  *   Boolean, if an
-  *   [[edu.ie3.simona.ontology.trigger.Trigger.ActivityStartTrigger]] has yet
+  *   True, if an [[edu.ie3.simona.ontology.messages.Activation]] has already
   *   arrived
   * @tparam PD
   *   Type of the [[PrimaryDataWithApparentPower]], that the model will produce
@@ -33,7 +32,7 @@ final case class DataCollectionStateData[+PD <: PrimaryDataWithApparentPower[
 ]](
     baseStateData: BaseStateData[PD],
     data: Map[ActorRef, Option[_ <: Data]],
-    yetTriggered: Boolean
+    yetTriggered: Boolean,
 ) extends ParticipantStateData[PD] {
 
   /** Extract the given type of [[Data]] from the list of secondary data

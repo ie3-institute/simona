@@ -6,6 +6,8 @@
 
 package edu.ie3.simona.model.participant
 
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.OperatorInput
@@ -15,11 +17,10 @@ import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.TimeUtil
+import edu.ie3.util.scala.quantities.Sq
 import spock.lang.Specification
+import squants.energy.*
 import tech.units.indriya.quantity.Quantities
-
-import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static org.apache.commons.math3.util.FastMath.abs
 
 class FixedFeedModelTest extends Specification {
 
@@ -40,20 +41,20 @@ class FixedFeedModelTest extends Specification {
   -1
   ),
   new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
+  null,
   Quantities.getQuantity(282.74d, VOLTAMPERE),
   0.95
   )
-  def simulationStartDate = TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
-  def simulationEndDate = TimeUtil.withDefaults.toZonedDateTime("2020-12-31 23:59:00")
+  def simulationStartDate = TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
+  def simulationEndDate = TimeUtil.withDefaults.toZonedDateTime("2020-12-31T23:59:00Z")
   def foreSeenOperationInterval =
   SystemComponent.determineOperationInterval(
   simulationStartDate,
   simulationEndDate,
   fixedFeedInput.operationTime
   )
-  def testingTolerance = 1e-6 // Equals to 1 W power
 
-  def expectedPower = fixedFeedInput.sRated * -1 * fixedFeedInput.cosPhiRated * 1.0
+  def expectedPower = Sq.create(fixedFeedInput.sRated.value.doubleValue() * -1 * fixedFeedInput.cosPhiRated * 1.0, Kilowatts$.MODULE$)
 
   def "A fixed feed model should return approximately correct power calculations"() {
     when:
@@ -61,13 +62,18 @@ class FixedFeedModelTest extends Specification {
         fixedFeedInput.uuid,
         fixedFeedInput.id,
         foreSeenOperationInterval,
-        1.0,
         QControl.apply(fixedFeedInput.qCharacteristics),
-        fixedFeedInput.sRated,
+        Sq.create(
+        fixedFeedInput.sRated
+        .to(KILOWATT)
+        .value.doubleValue()
+        .doubleValue(),
+        Kilowatts$.MODULE$
+        ),
         fixedFeedInput.cosPhiRated
         )
 
     then:
-    abs((actualModel.calculateActivePower(CalcRelevantData.FixedRelevantData$.MODULE$)).subtract(expectedPower).to(MEGAWATT).value.doubleValue()) < testingTolerance
+    actualModel.calculateActivePower(ModelState.ConstantState$.MODULE$, CalcRelevantData.FixedRelevantData$.MODULE$) =~ expectedPower
   }
 }

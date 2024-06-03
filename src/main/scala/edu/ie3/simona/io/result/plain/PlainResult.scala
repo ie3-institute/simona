@@ -23,8 +23,6 @@ object PlainResult {
     *   the simulation run id
     * @param time
     *   the current time, formatted by [[PlainWriter.createSimpleTimeStamp]]
-    * @param uuid
-    *   the uuid identifying this result event
     * @param inputModel
     *   the uuid of the model that created this event
     * @param vMag
@@ -37,9 +35,8 @@ object PlainResult {
   final case class PlainNodeResult(
       simRunId: UUID,
       time: String,
-      uuid: UUID,
       inputModel: UUID,
       vMag: Double,
-      vAng: Double
+      vAng: Double,
   ) extends PlainResult
 }
