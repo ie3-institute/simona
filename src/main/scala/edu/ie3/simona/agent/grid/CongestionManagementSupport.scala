@@ -375,7 +375,7 @@ object CongestionManagementSupport {
 
       inferiorData.foldLeft(this) { case (range, (_, (infRange, tappings))) =>
         // allow tapping only if all transformers support tapping
-        if (tappings.forall(_.hasAutoTap)) {
+        val (plus, minus) = if (tappings.forall(_.hasAutoTap)) {
 
           // TODO: Enhance tests, to tests these changes
           val tappingRanges = tappings.map { tapping =>
@@ -406,15 +406,13 @@ object CongestionManagementSupport {
               .isGreaterThanOrEqualTo(infRange.deltaMinus),
           ) match {
             case (true, true) =>
-              range
+              (range.deltaPlus, range.deltaMinus)
             case (true, false) =>
-              range.copy(deltaMinus =
-                infRange.deltaMinus.subtract(possiblePlus)
-              )
+              (range.deltaPlus, infRange.deltaMinus.subtract(possiblePlus))
             case (false, true) =>
-              range.copy(deltaPlus = infRange.deltaPlus.subtract(possibleMinus))
+              (infRange.deltaPlus.subtract(possibleMinus), range.deltaMinus)
             case (false, false) =>
-              infRange
+              (infRange.deltaPlus, infRange.deltaMinus)
           }
         } else {
           // no tapping possible, just update the range
@@ -424,15 +422,17 @@ object CongestionManagementSupport {
             range.deltaMinus.isLessThanOrEqualTo(infRange.deltaMinus),
           ) match {
             case (true, true) =>
-              infRange
+              (infRange.deltaPlus, infRange.deltaMinus)
             case (true, false) =>
-              range.copy(deltaPlus = infRange.deltaPlus)
+              (infRange.deltaPlus, range.deltaMinus)
             case (false, true) =>
-              range.copy(deltaMinus = infRange.deltaMinus)
+              (range.deltaPlus, infRange.deltaMinus)
             case (false, false) =>
-              range
+              (range.deltaPlus, range.deltaMinus)
           }
         }
+
+        VoltageRange(plus, minus)
       }
     }
   }
