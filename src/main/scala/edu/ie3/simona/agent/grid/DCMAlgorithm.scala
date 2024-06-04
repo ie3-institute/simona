@@ -211,7 +211,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
     */
   private[grid] def updateTransformerTapping(
       stateData: CongestionManagementData,
-      awaitingData: AwaitingData[(VoltageRange, Seq[TransformerTapping])],
+      awaitingData: AwaitingData[(VoltageRange, Set[TransformerTapping])],
   )(implicit
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgent.Request],
@@ -245,22 +245,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
         // map all known transformers to their uuid
         val transformers =
           (gridComponents.transformers ++ gridComponents.transformers3w)
-            .map(t => t.uuid -> t)
-            .toMap
-
-        val voltage = gridModel.mainRefSystem.nominalVoltage.value.asKiloVolt
-
-        // find all transformers to superior grids
-        val transformerToSup = gridEnv.subgridGateToActorRef
-          .filter(
-            _._1
-              .superiorNode()
-              .getVoltLvl
-              .getNominalVoltage
-              .isGreaterThan(voltage)
-          )
-          .map(_._1.link().getUuid)
-        val transformer = transformerToSup.map(transformers).toSeq
+            .map(_.asInstanceOf[TransformerTapping])
 
         // calculate the voltage range with the received data
         val range = calculatePossibleVoltageRange(
@@ -276,7 +261,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
 
         sender ! VoltageRangeResponse(
           ctx.self,
-          (range, transformer),
+          (range, transformers),
         )
       }
 

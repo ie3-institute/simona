@@ -11,7 +11,7 @@ import edu.ie3.datamodel.models.result.connector.LineResult
 import edu.ie3.simona.agent.grid.CongestionManagementSupport.VoltageRange
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.model.grid.GridModel.GridComponents
-import edu.ie3.simona.model.grid.VoltageLimits
+import edu.ie3.simona.model.grid.{TransformerTapping, VoltageLimits}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.grid.{
   GridComponentsMokka,
@@ -23,6 +23,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
+import org.apache.pekko.actor.typed.ActorRef
 
 class CongestionManagementSupportSpec
     extends ScalaTestWithActorTestKit
@@ -59,14 +60,15 @@ class CongestionManagementSupportSpec
       // grid 2 is connected via one port of a transformer3w
       // grid 3 is connected via a transformer2w
       // grid 4 is connected via two transformer2ws
-      val receivedData = Map(
-        ref1 -> Seq(
+      val receivedData
+          : Map[ActorRef[GridAgent.Request], Set[TransformerTapping]] = Map(
+        ref1 -> Set(
           transformer1,
           transformer3wB,
         ), // connected with both transformer2w and transformer3w
-        ref2 -> Seq(transformer3wC), // connected with a transformer3w
-        ref3 -> Seq(transformer3), // connected with just one transformer model
-        ref4 -> Seq(
+        ref2 -> Set(transformer3wC), // connected with a transformer3w
+        ref3 -> Set(transformer3), // connected with just one transformer model
+        ref4 -> Set(
           transformer4_1,
           transformer4_2,
         ), // connected with two transformer2w
@@ -379,10 +381,10 @@ class CongestionManagementSupportSpec
         VoltageLimits(0.9, 1.1),
         gridComponents,
         Map(
-          inferior1.ref -> (VoltageRange(0.1.asPu, 0.01.asPu), Seq(
+          inferior1.ref -> (VoltageRange(0.1.asPu, 0.01.asPu), Set(
             tappingModel
           )),
-          inferior2.ref -> (VoltageRange(0.01.asPu, (-0.04).asPu), Seq(
+          inferior2.ref -> (VoltageRange(0.01.asPu, (-0.04).asPu), Set(
             tappingModel
           )),
         ),
@@ -531,8 +533,8 @@ class CongestionManagementSupportSpec
       forAll(cases) { (range1, range2, expected) =>
         val updatedRange = range.updateWithInferiorRanges(
           Map(
-            inferior1.ref -> (range1, Seq(tappingModel)),
-            inferior2.ref -> (range2, Seq(tappingModel)),
+            inferior1.ref -> (range1, Set(tappingModel)),
+            inferior2.ref -> (range2, Set(tappingModel)),
           )
         )
 
@@ -579,8 +581,8 @@ class CongestionManagementSupportSpec
       forAll(cases) { (range1, range2, expected) =>
         val updatedRange = range.updateWithInferiorRanges(
           Map(
-            inferior1.ref -> (range1, Seq(tappingModel)),
-            inferior2.ref -> (range2, Seq(tappingModel)),
+            inferior1.ref -> (range1, Set(tappingModel)),
+            inferior2.ref -> (range2, Set(tappingModel)),
           )
         )
 

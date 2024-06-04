@@ -172,7 +172,7 @@ trait DBFSMockGridAgents extends UnitSpec {
     def expectVoltageRangeResponse(
         voltageRange: VoltageRange,
         maxDuration: FiniteDuration = 30 seconds,
-    ): (ActorRef[GridAgent.Request], Seq[TransformerTapping]) = {
+    ): (ActorRef[GridAgent.Request], Set[TransformerTapping]) = {
       gaProbe.expectMessageType[VoltageRangeResponse](maxDuration) match {
         case VoltageRangeResponse(sender, (range, tappings)) =>
           range.deltaPlus shouldBe voltageRange.deltaPlus

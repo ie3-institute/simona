@@ -61,7 +61,7 @@ trait CongestionManagementSupport {
     *   a map: set of transformers to set of [[ActorRef]]s
     */
   def groupTappingModels(
-      receivedData: Map[ActorRef[GridAgent.Request], Seq[TransformerTapping]],
+      receivedData: Map[ActorRef[GridAgent.Request], Set[TransformerTapping]],
       transformer3ws: Set[Transformer3wModel],
   ): Map[Set[TransformerTapping], Set[ActorRef[GridAgent.Request]]] = {
     val transformer3wMap = transformer3ws.map(t => t.uuid -> t).toMap
@@ -213,7 +213,7 @@ trait CongestionManagementSupport {
       gridComponents: GridComponents,
       inferiorData: Map[ActorRef[
         GridAgent.Request
-      ], (VoltageRange, Seq[TransformerTapping])],
+      ], (VoltageRange, Set[TransformerTapping])],
   ): VoltageRange = {
     // calculate voltage range
     val nodeResMap = powerFlowResultEvent.nodeResults
@@ -370,7 +370,7 @@ object CongestionManagementSupport {
     def updateWithInferiorRanges(
         inferiorData: Map[ActorRef[
           GridAgent.Request
-        ], (VoltageRange, Seq[TransformerTapping])]
+        ], (VoltageRange, Set[TransformerTapping])]
     ): VoltageRange = {
 
       inferiorData.foldLeft(this) { case (range, (_, (infRange, tappings))) =>
@@ -385,7 +385,7 @@ object CongestionManagementSupport {
             val decrease = deltaV.multiply(tapping.tapMin - currentPos)
 
             (increase, decrease)
-          }
+          }.toSeq
 
           val (possiblePlus, possibleMinus) = if (tappings.size == 1) {
             tappingRanges(0)

@@ -226,21 +226,21 @@ class DCMAlgorithmCenGridSpec
         inferiorGrid11.ref,
         (
           VoltageRange((-0.01).asPu, (-0.02).asPu),
-          Seq(mvTransformers(transformer11.getUuid)),
+          Set(mvTransformers(transformer11.getUuid)),
         ),
       )
       voltageRangeRequester12 ! VoltageRangeResponse(
         inferiorGrid12.ref,
         (
           VoltageRange(0.07.asPu, 0.01.asPu),
-          Seq(mvTransformers(transformer12.getUuid)),
+          Set(mvTransformers(transformer12.getUuid)),
         ),
       )
       voltageRangeRequester13 ! VoltageRangeResponse(
         inferiorGrid13.ref,
         (
           VoltageRange(0.06.asPu, 0.asPu),
-          Seq(
+          Set(
             mvTransformers(transformer13_1.getUuid),
             mvTransformers(transformer13_2.getUuid),
           ),
@@ -256,6 +256,7 @@ class DCMAlgorithmCenGridSpec
 
       // the superior grid will update the transformer tappings
       // and send the the resulting voltage delta to the center grid
+      tappingModels.size shouldBe 2
       tappingModels.foreach(_.decrTapPos(2))
       voltageDeltaRequest ! VoltageDeltaResponse(0.03.asPu)
 
@@ -270,7 +271,7 @@ class DCMAlgorithmCenGridSpec
         .expectMessageType[VoltageDeltaResponse]
         .delta should equalWithTolerance(0.03.asPu)
 
-      // this transformer can e tapped
+      // this transformer can be tapped
       mvTransformers(transformer11.getUuid).currentTapPos shouldBe 4
 
       // these transformers can't be tapped and should keep their default tap pos

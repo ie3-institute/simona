@@ -191,7 +191,7 @@ class DCMAlgorithmSupGridSpec
             hvGrid.ref,
             (
               VoltageRange(0.04.asPu, (-0.01).asPu),
-              Seq(tappingModel, tappingModel2),
+              Set(tappingModel, tappingModel2),
             ),
           )
       }
