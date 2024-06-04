@@ -12,6 +12,7 @@ import edu.ie3.datamodel.models.result.system.{
   SystemParticipantResult,
 }
 import edu.ie3.simona.agent.ValueStore
+import edu.ie3.simona.agent.grid.GridAgentMessages.AssetPowerChangedMessage
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
@@ -44,7 +45,6 @@ import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsRelevantData,
   EvcsState,
 }
-import edu.ie3.simona.ontology.messages.PowerMessage.AssetPowerChangedMessage
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexRequest,
   FlexResponse,
@@ -520,7 +520,7 @@ protected trait EvcsAgentFundamentals
   }
 
   /** Determine a reply on a
-    * [[edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage]]
+    * [[edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage]]
     * by looking up the detailed simulation results, averaging them and
     * returning the equivalent state transition.
     *

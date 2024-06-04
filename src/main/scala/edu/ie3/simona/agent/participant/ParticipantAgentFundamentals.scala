@@ -15,6 +15,10 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.datamodel.models.result.thermal.ThermalUnitResult
 import edu.ie3.simona.agent.ValueStore
+import edu.ie3.simona.agent.grid.GridAgentMessages.{
+  AssetPowerChangedMessage,
+  AssetPowerUnchangedMessage,
+}
 import edu.ie3.simona.agent.participant.ParticipantAgent.StartCalculationTrigger
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals.RelevantResultValues
 import edu.ie3.simona.agent.participant.data.Data
@@ -68,10 +72,6 @@ import edu.ie3.simona.model.participant.{
   SystemParticipant,
 }
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -1198,7 +1198,7 @@ protected trait ParticipantAgentFundamentals[
   }
 
   /** Determining the reply to an
-    * [[edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage]],
+    * [[edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage]],
     * send this answer and stay in the current state. If no reply can be
     * determined (because an activation or incoming data is expected), the
     * message is stashed.
@@ -1379,7 +1379,7 @@ protected trait ParticipantAgentFundamentals[
   }
 
   /** Determine a reply on a
-    * [[edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage]]
+    * [[edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage]]
     * by looking up the detailed simulation results, averaging them and
     * returning the equivalent state transition.
     *
