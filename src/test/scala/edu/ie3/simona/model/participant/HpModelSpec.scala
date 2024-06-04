@@ -237,7 +237,73 @@ class HpModelSpec
             : TableFor3[ThermalGridState, HpState, (Double, Double, Double)] =
           Table(
             ("thermalState", "lastState", "expectedValues"),
+            // House is below lower temperature boundary
+            (
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(15), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+              ),
+              HpState(
+                isRunning = false,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(0.0),
+                Kilowatts(0.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(15), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
+                  ),
+                ),
+                None,
+              ),
+              (95.0, 95.0, 95.0),
+            ),
+            // House is between target temperature and lower temperature boundary, Hp actually running
+            (
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+              ),
+              HpState(
+                isRunning = true,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(95.0),
+                Kilowatts(80.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(19), Kilowatts(80))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
+                  ),
+                ),
+                None,
+              ),
+              (95.0, 0.0, 95.0),
+            ),
 
+            // House is between target temperature and lower temperature boundary, Hp actually not running
+            (
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+              ),
+              HpState(
+                isRunning = false,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(0.0),
+                Kilowatts(0.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
+                  ),
+                ),
+                None,
+              ),
+              (0.0, 0.0, 95.0),
+            ),
             // Storage and house have remaining capacity
             (
               ThermalGridState(
