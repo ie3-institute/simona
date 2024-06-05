@@ -1,3 +1,0 @@
-uuid,albedo,azimuth,cos_phi_rated,elevation_angle,eta_conv,id,k_g,k_t,market_reaction,node,operates_from,operates_until,operator,q_characteristics,s_rated
-de8cfef5-7620-4b9e-9a10-1faebb5a80c0,0.20000000298023224,4.093344211578369,0.8999999761581421,37.69556427001953,97.0,NS_NET116_S1_5_PV,0.8999999761581421,1.0,false,92301422-94ae-48ab-89c7-a69eea9450b2,,,,"cosPhiFixed:{(0.0,0.9)}",30.0
-2560c371-f420-4c2a-b4e6-e04c11b64c03,0.20000000298023224,0.7802008390426636,0.8999999761581421,40.086585998535156,98.0,NS_NET116_S3_2_PV,0.8999999761581421,1.0,false,550ebca7-1455-44eb-9431-ffbf08e58bd4,,,,"cosPhiFixed:{(0.0,0.9)}",30.0

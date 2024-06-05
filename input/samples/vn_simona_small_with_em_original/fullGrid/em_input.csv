@@ -1,5 +1,0 @@
-uuid,control_strategy,parent_em,id,operates_from,operates_until,operator
-fd1a8de9-722a-4304-8799-e1e976d9979c,self_optimization,c40d5386-d2ab-49f8-a1b4-02991b68f502,EM_NS_Node_3,,,
-ff0b995a-86ff-4f4d-987e-e475a64f2180,self_optimization,5f4c7c32-0e14-4f88-b727-467f270624e2,EM_NS_Node_4,,,
-c40d5386-d2ab-49f8-a1b4-02991b68f502,self_optimization,,EM_Ext_Interface_3,,,
-5f4c7c32-0e14-4f88-b727-467f270624e2,self_optimization,,EM_Ext_Interface_4,,,
