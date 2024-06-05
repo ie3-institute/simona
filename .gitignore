@@ -235,9 +235,3 @@ build
 
 # Ignore unwanted input directories
 input/ext_sim
-/input/samples/simopsimtestgrid_reduced/
-/input/samples/simopsimtestgrid_reduced_reference/
-/input/samples/simopsimtestgrid_reduced_withoutem/
-/input/samples/vn_simona_ns/
-/input/samples/vn_simona_small_with_em/
-/input/samples/vn_simona_small_with_em_original/
