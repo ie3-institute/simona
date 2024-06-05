@@ -362,18 +362,20 @@ class SimonaMosaikSetup(
                                rootScheduler: ActorRef[SchedulerMessage],
                                simScheduler: ActorRef[SchedulerMessage]
   ): ExtSimSetupData = {
-    val mosaikAddress = mosaikIP.getOrElse(
-      "127.0.0.1:5678"
-    )
+
+    val mosaikAddress = mosaikIP.getOrElse("127.0.0.1:5678")
     val mosaikMapping = mosaikMappingPath.getOrElse(throw new RuntimeException("Cannot connect to Mosaik, because there is no mapping!"))
+    val mosaikExtSim = new MosaikSimulation(mosaikAddress, Path.of(mosaikMapping))
+
     val simulationStart = TimeUtil.withDefaults.toZonedDateTime(
       simonaConfig.simona.time.startDateTime
     )
+
     val powerFlowResolution = simonaConfig.simona.powerflow.resolution.get(
       ChronoUnit.SECONDS
     )
+
     val extScheduler = scheduler(context, parent = rootScheduler)
-    val mosaikExtSim = new MosaikSimulation(mosaikAddress, Path.of(mosaikMapping))
 
     val extSimAdapterPhase1 = context.toClassic.simonaActorOf(
       ExtSimAdapter.props(extScheduler.toClassic),
@@ -391,7 +393,9 @@ class SimonaMosaikSetup(
 
     val extSimAdapterData = new ExtSimAdapterData(extSimAdapters.asJava, args)
 
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+    // --- Primary Data ---
 
     // send init data right away, init activation is scheduled
     extSimAdapterPhase1 ! ExtSimAdapter.Create(
@@ -404,14 +408,13 @@ class SimonaMosaikSetup(
       ExtPrimaryDataService.props(extScheduler.toClassic),
       s"0-0",
     )
-    val extPrimaryData = new ExtPrimaryData(
-      extPrimaryDataService,
-      extSimAdapterPhase1,
-      mosaikExtSim.getExtPrimaryDataSimulation.getPrimaryDataFactory,
-      mosaikExtSim.getExtPrimaryDataSimulation.getPrimaryDataAssets
-    )
 
-    mosaikExtSim.getExtPrimaryDataSimulation.setExtPrimaryData(extPrimaryData)
+    val extPrimaryData = mosaikExtSim.getExtPrimaryData
+
+    extPrimaryData.setActorRefs(
+      extPrimaryDataService,
+      extSimAdapterPhase1
+    )
 
     extPrimaryDataService ! SimonaService.Create(
       InitExtPrimaryData(extPrimaryData),
@@ -422,7 +425,9 @@ class SimonaMosaikSetup(
       ),
     )
 
-    //Result Data
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+    //--- Result Data ---
 
     val extResultDataProvider = {
       context.spawn(
@@ -430,7 +435,6 @@ class SimonaMosaikSetup(
         s"ExtResultDataProvider",
       )
     }
-
 
     val timeout: PekkoTimeout = PekkoTimeout.create(5.seconds.toJava)
     val scheduler2: Scheduler = context.system.scheduler
@@ -440,18 +444,18 @@ class SimonaMosaikSetup(
     val adapterScheduleRef = Await.result(
       extResultDataProvider.ask[ActorRef[ScheduleServiceActivation]] (ref => RequestScheduleActivationAdapter(ref))(timeout, scheduler2), timeout.duration)
 
-    val extResultData =
-      new ExtResultData(
-        adapterRef.toClassic,
-        adapterScheduleRef.toClassic,
-        extSimAdapterPhase2,
-        mosaikExtSim.getExtResultDataSimulation.getGridResultDataAssets,
-        mosaikExtSim.getExtResultDataSimulation.getParticipantResultDataAssets,
-        simulationStart,
-        powerFlowResolution
-      )
+    val extResultData = mosaikExtSim.getExtResultData
 
-    mosaikExtSim.getExtResultDataSimulation.setExtResultData(extResultData)
+    extResultData.setActorRefs(
+      adapterRef.toClassic,
+      adapterScheduleRef.toClassic,
+      extSimAdapterPhase2
+    )
+
+    extResultData.setSimulationData(
+      simulationStart,
+      powerFlowResolution
+    )
 
     extResultDataProvider ! ExtResultDataProvider.Create(
       InitExtResultData(extResultData),

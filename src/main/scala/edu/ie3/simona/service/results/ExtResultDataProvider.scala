@@ -101,7 +101,7 @@ object ExtResultDataProvider {
     Behaviors.receivePartial {
       case (_, WrappedActivation(Activation(INIT_SIM_TICK))) =>
         val initGridSubscribers = initServiceData.extResultData.getGridResultDataAssets.asScala.toList
-        val initParticipantSubscribers = initServiceData.extResultData.getParticpantResultDataAssets.asScala.toList
+        val initParticipantSubscribers = initServiceData.extResultData.getParticipantResultDataAssets.asScala.toList
 
         var initResultStorage = Map.empty[UUID, (Option[ResultEntity], Option[Long])]
         initParticipantSubscribers.foreach(

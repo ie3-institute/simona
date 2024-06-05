@@ -403,14 +403,12 @@ class SimonaOpsimSetup(
       ExtEmDataService.props(extScheduler.toClassic),
       s"0-0",
     )
-    val extEmData = new ExtEmData(
-      extEmDataService,
-      extSimAdapterPhase1,
-      opsimSim.getExtEmDataSimulation.getEmDataFactory,
-      opsimSim.getExtEmDataSimulation.getControlledEms
-    )
+    val extEmData = opsimSim.getExtEmData
 
-    opsimSim.getExtEmDataSimulation.setExtEmData(extEmData)
+    extEmData.setActorRefs(
+      extEmDataService,
+      extSimAdapterPhase1
+    )
 
     extEmDataService ! SimonaService.Create(
       InitExtEmData(extEmData),
@@ -439,17 +437,18 @@ class SimonaOpsimSetup(
     val adapterScheduleRef = Await.result(
       extResultDataProvider.ask[ActorRef[ScheduleServiceActivation]] (ref => RequestScheduleActivationAdapter(ref))(timeout, scheduler2), timeout.duration)
 
-    val extResultData = new ExtResultData(
+    val extResultData = opsimSim.getExtResultData
+
+    extResultData.setActorRefs(
       adapterRef.toClassic,
       adapterScheduleRef.toClassic,
-      extSimAdapterPhase2,
-      opsimSim.getExtResultDataSimulation.getGridResultDataAssets,
-      opsimSim.getExtResultDataSimulation.getParticipantResultDataAssets,
+      extSimAdapterPhase2
+    )
+
+    extResultData.setSimulationData(
       simulationStart,
       powerFlowResolution
     )
-
-    opsimSim.getExtResultDataSimulation.setExtResultData(extResultData)
 
     extResultDataProvider ! ExtResultDataProvider.Create(
       InitExtResultData(extResultData),
