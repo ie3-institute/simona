@@ -186,7 +186,9 @@ class DCMAlgorithmSupGridSpec
       // the inferior will receive a request to send the possible voltage range
       // and send a VoltageRangeResponse to the superior grid
       hvGrid.expectMessageType[RequestVoltageOptions] match {
-        case RequestVoltageOptions(sender) =>
+        case RequestVoltageOptions(sender, subnet) =>
+          subnet shouldBe 1000
+
           sender ! VoltageRangeResponse(
             hvGrid.ref,
             (

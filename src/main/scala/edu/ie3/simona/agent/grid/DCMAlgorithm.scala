@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.simona.agent.grid.CongestionManagementSupport.CongestionManagementSteps._
 import edu.ie3.simona.agent.grid.CongestionManagementSupport.{
   Congestions,
@@ -218,17 +217,19 @@ trait DCMAlgorithm extends CongestionManagementSupport {
       buffer: StashBuffer[GridAgent.Request],
   ): Behavior[GridAgent.Request] = Behaviors.receivePartial {
     case (ctx, StartStep) =>
+      val subnet = stateData.gridAgentBaseData.gridEnv.gridModel.subnetNo
+
       // request congestion check if we have inferior grids
       askInferior(
         stateData,
-        RequestVoltageOptions,
+        ref => RequestVoltageOptions(ref, subnet),
         ReceivedVoltageRange,
         ctx,
       )
 
       Behaviors.same
 
-    case (ctx, voltageRangeRequest @ RequestVoltageOptions(sender)) =>
+    case (ctx, voltageRangeRequest @ RequestVoltageOptions(sender, subnet)) =>
       // check if waiting for inferior data is needed
       if (awaitingData.notDone) {
         ctx.log.debug(
@@ -243,21 +244,9 @@ trait DCMAlgorithm extends CongestionManagementSupport {
         val gridModel = gridEnv.gridModel
         val gridComponents = gridModel.gridComponents
 
-        // get the subnet number of the upper grid
-        val supGridNr = gridEnv.subgridGateToActorRef
-          .find(_._2 == sender)
-          .getOrElse(
-            throw new InvalidGridException(
-              s"No SubGridGate found for superior grid of $sender!"
-            )
-          )
-          ._1
-          .superiorNode()
-          .getSubnet
-
         // filter all transformers that are connecting this grid to the superior grid
         val nodesInSuperiorGrid =
-          gridComponents.nodes.filter(_.subnet == supGridNr).map(_.uuid)
+          gridComponents.nodes.filter(_.subnet == subnet).map(_.uuid)
         val transformers = gridComponents.transformers.filter(t =>
           nodesInSuperiorGrid.contains(t.hvNodeUuid)
         )

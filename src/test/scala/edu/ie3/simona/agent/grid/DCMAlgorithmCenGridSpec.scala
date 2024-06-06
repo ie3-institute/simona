@@ -213,7 +213,7 @@ class DCMAlgorithmCenGridSpec
 
       // since the transformer tapping was started, the superior grid
       // requests the possible voltage range from the center grid
-      centerGridAgent ! RequestVoltageOptions(superiorGridAgent.ref)
+      centerGridAgent ! RequestVoltageOptions(superiorGridAgent.ref, 1000)
 
       // the center grid will request the voltage ranges from its inferior grid
       // therefore the inferior grids should receive a VoltageRangeRequest

@@ -296,7 +296,8 @@ object GridAgentMessages {
 
   // transformer tapping messages
   case class RequestVoltageOptions(
-      override val sender: ActorRef[GridAgent.Request]
+      override val sender: ActorRef[GridAgent.Request],
+      subnet: Int,
   ) extends CMRequest
 
   case class VoltageRangeResponse(
