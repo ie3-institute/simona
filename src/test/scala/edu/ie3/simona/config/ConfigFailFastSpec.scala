@@ -698,9 +698,9 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           }
         }
 
-        val checkIndividualParticipantsOutputConfigs =
+        val checkIndividualOutputConfigs =
           PrivateMethod[Unit](
-            Symbol("checkIndividualParticipantsOutputConfigs")
+            Symbol("checkIndividualOutputConfigs")
           )
 
         "let distinct configs pass" in {
@@ -726,8 +726,9 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           )
 
           noException shouldBe thrownBy {
-            ConfigFailFast invokePrivate checkIndividualParticipantsOutputConfigs(
-              validInput
+            ConfigFailFast invokePrivate checkIndividualOutputConfigs(
+              validInput,
+              "participant",
             )
           }
         }
@@ -755,8 +756,9 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           )
 
           intercept[InvalidConfigParameterException](
-            ConfigFailFast invokePrivate checkIndividualParticipantsOutputConfigs(
-              invalidInput
+            ConfigFailFast invokePrivate checkIndividualOutputConfigs(
+              invalidInput,
+              "participant",
             )
           ).getMessage shouldBe "There are multiple output configurations for participant types 'load'."
         }
@@ -786,9 +788,9 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           }
         }
 
-        val checkIndividualThermalOutputConfigs =
+        val checkIndividualOutputConfigs =
           PrivateMethod[Unit](
-            Symbol("checkIndividualThermalOutputConfigs")
+            Symbol("checkIndividualOutputConfigs")
           )
 
         "let distinct configs pass" in {
@@ -804,8 +806,9 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           )
 
           noException shouldBe thrownBy {
-            ConfigFailFast invokePrivate checkIndividualThermalOutputConfigs(
-              validInput
+            ConfigFailFast invokePrivate checkIndividualOutputConfigs(
+              validInput,
+              "thermal",
             )
           }
         }
@@ -827,10 +830,11 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           )
 
           intercept[InvalidConfigParameterException](
-            ConfigFailFast invokePrivate checkIndividualThermalOutputConfigs(
-              invalidInput
+            ConfigFailFast invokePrivate checkIndividualOutputConfigs(
+              invalidInput,
+              "thermal",
             )
-          ).getMessage shouldBe "There are multiple output configurations for participant types 'house'."
+          ).getMessage shouldBe "There are multiple output configurations for thermal types 'house'."
         }
       }
 

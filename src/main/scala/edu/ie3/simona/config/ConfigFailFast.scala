@@ -555,11 +555,10 @@ case object ConfigFailFast extends LazyLogging {
         )
     )
 
-    checkDefaultBaseOutputConfig(
-      subConfig.defaultConfig,
-      defaultString = "default",
-    )
-    checkIndividualParticipantsOutputConfigs(subConfig.individualConfigs)
+    implicit val elementType: String = "participant"
+
+    checkDefaultBaseOutputConfig(subConfig.defaultConfig)
+    checkIndividualOutputConfigs(subConfig.individualConfigs)
   }
 
   /** Check the config sub tree for output parameterization
@@ -570,11 +569,9 @@ case object ConfigFailFast extends LazyLogging {
   private def checkThermalOutputConfig(
       subConfig: SimonaConfig.Simona.Output.Thermal
   ): Unit = {
-    checkDefaultBaseOutputConfig(
-      subConfig.defaultConfig,
-      defaultString = "default",
-    )
-    checkIndividualThermalOutputConfigs(subConfig.individualConfigs)
+    implicit val elementType: String = "thermal"
+    checkDefaultBaseOutputConfig(subConfig.defaultConfig)
+    checkIndividualOutputConfigs(subConfig.individualConfigs)
   }
 
   /** Checks resolution of power flow calculation
@@ -671,26 +668,26 @@ case object ConfigFailFast extends LazyLogging {
     */
   private def checkDefaultBaseOutputConfig(
       config: SimonaConfig.BaseOutputConfig,
-      defaultString: String,
-  ): Unit = {
+      defaultString: String = "default",
+  )(implicit elementType: String): Unit = {
     if (
       StringUtils
         .cleanString(config.notifier)
         .toLowerCase != StringUtils.cleanString(defaultString).toLowerCase
     )
       logger.warn(
-        s"You provided '${config.notifier}' as model type for the default participant output config. This will not be considered!"
+        s"You provided '${config.notifier}' as model type for the default $elementType output config. This will not be considered!"
       )
   }
 
-  /** Checks the participant output configurations on duplicates
+  /** Checks the given output configurations on duplicates
     *
     * @param configs
     *   List of individual config entries
     */
-  private def checkIndividualParticipantsOutputConfigs(
+  private def checkIndividualOutputConfigs(
       configs: List[SimonaConfig.BaseOutputConfig]
-  ): Unit = {
+  )(implicit elementType: String): Unit = {
     val duplicateKeys = configs
       .map(config => StringUtils.cleanString(config.notifier).toLowerCase())
       .groupMapReduce(identity)(_ => 1)(_ + _)
@@ -701,37 +698,21 @@ case object ConfigFailFast extends LazyLogging {
 
     if (duplicateKeys.nonEmpty)
       throw new InvalidConfigParameterException(
-        s"There are multiple output configurations for participant types '${duplicateKeys.mkString(",")}'."
+        s"There are multiple output configurations for $elementType types '${duplicateKeys.mkString(",")}'."
       )
 
-    implicit val participantNotifiers: Set[NotifierIdentifier.Value] =
-      NotifierIdentifier.getParticipantIdentifiers
-    configs.foreach(checkBaseOutputConfig)
-  }
-
-  /** Checks the thermal output configurations on duplicates
-    *
-    * @param configs
-    *   List of individual config entries
-    */
-  private def checkIndividualThermalOutputConfigs(
-      configs: List[SimonaConfig.BaseOutputConfig]
-  ): Unit = {
-    val duplicateKeys = configs
-      .map(config => StringUtils.cleanString(config.notifier).toLowerCase())
-      .groupMapReduce(identity)(_ => 1)(_ + _)
-      .filter { case (_, count) =>
-        count > 1
+    implicit val exceptedNotifiers: Set[NotifierIdentifier.Value] =
+      elementType match {
+        case "participant" =>
+          NotifierIdentifier.getParticipantIdentifiers
+        case "thermal" =>
+          NotifierIdentifier.getThermalIdentifiers
+        case other =>
+          throw new InvalidConfigParameterException(
+            s"The output config for $other has no notifiers!"
+          )
       }
-      .keys
 
-    if (duplicateKeys.nonEmpty)
-      throw new InvalidConfigParameterException(
-        s"There are multiple output configurations for participant types '${duplicateKeys.mkString(",")}'."
-      )
-
-    implicit val thermalNotifiers: Set[NotifierIdentifier.Value] =
-      NotifierIdentifier.getThermalIdentifiers
     configs.foreach(checkBaseOutputConfig)
   }
 
