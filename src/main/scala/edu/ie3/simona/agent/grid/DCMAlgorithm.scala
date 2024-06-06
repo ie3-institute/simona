@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
+import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.simona.agent.grid.CongestionManagementSupport.CongestionManagementSteps._
 import edu.ie3.simona.agent.grid.CongestionManagementSupport.{
   Congestions,
@@ -242,10 +243,31 @@ trait DCMAlgorithm extends CongestionManagementSupport {
         val gridModel = gridEnv.gridModel
         val gridComponents = gridModel.gridComponents
 
-        // map all known transformers to their uuid
-        val transformers =
-          (gridComponents.transformers ++ gridComponents.transformers3w)
-            .map(_.asInstanceOf[TransformerTapping])
+        // get the subnet number of the upper grid
+        val supGridNr = gridEnv.subgridGateToActorRef
+          .find(_._2 == sender)
+          .getOrElse(
+            throw new InvalidGridException(
+              s"No SubGridGate found for superior grid of $sender!"
+            )
+          )
+          ._1
+          .superiorNode()
+          .getSubnet
+
+        // filter all transformers that are connecting this grid to the superior grid
+        val nodesInSuperiorGrid =
+          gridComponents.nodes.filter(_.subnet == supGridNr).map(_.uuid)
+        val transformers = gridComponents.transformers.filter(t =>
+          nodesInSuperiorGrid.contains(t.hvNodeUuid)
+        )
+        val transformers3w = gridComponents.transformers3w.filter(t =>
+          nodesInSuperiorGrid.contains(t.hvNodeUuid)
+        )
+
+        val allTransformers = (transformers ++ transformers3w).map(
+          _.asInstanceOf[TransformerTapping]
+        )
 
         // calculate the voltage range with the received data
         val range = calculatePossibleVoltageRange(
@@ -261,7 +283,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
 
         sender ! VoltageRangeResponse(
           ctx.self,
-          (range, transformers),
+          (range, allTransformers),
         )
       }
 

@@ -243,7 +243,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               /* Determine the slack node voltage under consideration of the target voltage set point */
               val vTarget =
                 gridAgentBaseData.gridEnv.gridModel.gridComponents.nodes
-                  .find { case NodeModel(uuid, _, _, isSlack, _, _) =>
+                  .find { case NodeModel(uuid, _, _, isSlack, _, _, _) =>
                     uuid == nodeUuid && isSlack
                   }
                   .map(_.vTarget)
