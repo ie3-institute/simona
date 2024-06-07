@@ -1,26 +1,26 @@
 package edu.ie3.simona.service.em
 
 import edu.ie3.datamodel.models.value.PValue
+import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.em.ExtEmData
 import edu.ie3.simona.api.data.em.ontology.{EmDataMessageFromExt, ProvideEmData}
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{FlexRequest, IssuePowerControl, ProvideExtEmSetPoint, RequestFlexOptions}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{FlexRequest, IssuePowerControl, ProvideExtEmSetPoint}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ExtEmDataServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{RegistrationSuccessfulMessage, WrappedRegistrationSuccessfulMessage}
 import edu.ie3.simona.ontology.messages.services.{DataMessage, ServiceMessage}
 import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
-import edu.ie3.simona.service.em.ExtEmDataService.{ExtEmDataStateData, InitExtEmData, WrappedIssuePowerControl}
+import edu.ie3.simona.service.em.ExtEmDataService.{ExtEmDataStateData, InitExtEmData}
 import edu.ie3.simona.service.{ExtDataSupport, SimonaService}
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.{ActorContext, Props, ActorRef => ClassicRef}
 import squants.Power
 import squants.energy.Kilowatts
-import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{RegistrationSuccessfulMessage, WrappedRegistrationSuccessfulMessage}
 
 import java.util.UUID
-import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.{CollectionHasAsScala, MapHasAsScala}
 import scala.util.{Failure, Success, Try}
 
 object ExtEmDataService {
@@ -72,15 +72,7 @@ final case class ExtEmDataService(
     case InitExtEmData(extEmData) =>
       val emDataInitializedStateData = ExtEmDataStateData(
         extEmData,
-        subscribers = List(
-          UUID.fromString("c3a7e9f5-b492-4c85-af2d-1e93f6a25443"),
-          UUID.fromString("f9dc7ce6-658c-4101-a12f-d58bb889286b"),
-          UUID.fromString("957938b7-0476-4fab-a1b3-6ce8615857b3")
-        )
-        //subscribers = List(
-        //  UUID.fromString("fd1a8de9-722a-4304-8799-e1e976d9979c"),
-        //  UUID.fromString("ff0b995a-86ff-4f4d-987e-e475a64f2180")
-        //)
+        subscribers = extEmData.getControlledEms.asScala.toList
       )
       Success(
         emDataInitializedStateData,

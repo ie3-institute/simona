@@ -1933,6 +1933,7 @@ protected trait ParticipantAgentFundamentals[
     val dateTime = tick.toDateTime(baseStateData.startDate)
     ParticipantResultEvent(
       buildResult(uuid, dateTime, result),
+      tick,
       nextTick
     )
   }

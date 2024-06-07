@@ -149,12 +149,14 @@ object ResultEventListener extends Transformer3wResultSupport {
       resultEntity: ResultEntity,
       baseData: BaseData,
       log: Logger,
+      tick: Long = -2L,
       nextTick: Option[Long] = None
   ): BaseData = {
     //log.info("Got Result " + resultEntity)
     handOverToSink(resultEntity, baseData.classToSink, log)
     if (baseData.extResultDataService.isDefined) {
       handOverToExternalService(
+        tick,
         resultEntity,
         baseData.extResultDataService,
         nextTick
@@ -235,14 +237,15 @@ object ResultEventListener extends Transformer3wResultSupport {
     }
 
   private def handOverToExternalService(
-      resultEntity: ResultEntity,
-      extResultDataService: Option[ActorRef[ExtResultDataProvider.Request]],
-      nextTick: Option[Long] = None
+                                       tick: Long,
+                                        resultEntity: ResultEntity,
+                                        extResultDataService: Option[ActorRef[ExtResultDataProvider.Request]],
+                                        nextTick: Option[Long] = None
   ): Unit = Try {
     val extResultDataServiceRef = extResultDataService.getOrElse(
       throw new Exception("No external data service registered!")
     )
-    extResultDataServiceRef ! ResultResponseMessage(resultEntity, nextTick)
+    extResultDataServiceRef ! ResultResponseMessage(resultEntity, tick, nextTick)
   }
 
   def apply(
@@ -295,8 +298,8 @@ object ResultEventListener extends Transformer3wResultSupport {
 
   private def idle(baseData: BaseData): Behavior[Request] = Behaviors
     .receivePartial[Request] {
-      case (ctx, ParticipantResultEvent(participantResult, nextTick)) =>
-        val updatedBaseData = handleResult(participantResult, baseData, ctx.log, nextTick)
+      case (ctx, ParticipantResultEvent(participantResult, tick, nextTick)) =>
+        val updatedBaseData = handleResult(participantResult, baseData, ctx.log, tick, nextTick)
         idle(updatedBaseData)
 
       case (ctx, ThermalResultEvent(thermalResult)) =>
@@ -311,13 +314,14 @@ object ResultEventListener extends Transformer3wResultSupport {
               lineResults,
               transformer2wResults,
               transformer3wResults,
+              tick
             ),
           ) =>
         val updatedBaseData =
           (nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ transformer3wResults)
             .foldLeft(baseData) {
               case (currentBaseData, resultEntity: ResultEntity) =>
-                handleResult(resultEntity, currentBaseData, ctx.log)
+                handleResult(resultEntity, currentBaseData, ctx.log, tick)
               case (
                     currentBaseData,
                     partialTransformerResult: PartialTransformer3wResult,
@@ -331,7 +335,7 @@ object ResultEventListener extends Transformer3wResultSupport {
         idle(updatedBaseData)
 
       case (ctx, FlexOptionsResultEvent(flexOptionsResult)) =>
-        val updatedBaseData = handleResult(flexOptionsResult, baseData, ctx.log)
+        val updatedBaseData = handleResult(flexOptionsResult, baseData, ctx.log, -3L)
         idle(updatedBaseData)
 
       case (ctx, msg: DelayedStopHelper.StoppingMsg) =>

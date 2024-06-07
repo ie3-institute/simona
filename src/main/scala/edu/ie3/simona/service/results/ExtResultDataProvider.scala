@@ -1,6 +1,7 @@
 package edu.ie3.simona.service.results
 
 import edu.ie3.datamodel.models.result.ResultEntity
+import edu.ie3.datamodel.models.result.system.PvResult
 import edu.ie3.simona.api.data.results.ExtResultData
 import edu.ie3.simona.api.data.results.ontology.{ProvideResultEntities, RequestResultEntities, ResultDataMessageFromExt}
 import edu.ie3.simona.event.listener.DelayedStopHelper
@@ -15,6 +16,7 @@ import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop}
 import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
 
 import java.util.UUID
+import scala.collection.immutable.Set
 import scala.jdk.CollectionConverters._
 
 object ExtResultDataProvider {
@@ -35,6 +37,7 @@ object ExtResultDataProvider {
   /** ResultEventListener -> ExtResultDataProvider */
   final case class ResultResponseMessage(
                                           result: ResultEntity,
+                                          tick: Long,
                                           nextTick: Option[Long]
                                         )
     extends Request
@@ -55,7 +58,6 @@ object ExtResultDataProvider {
             scheduler: ActorRef[SchedulerMessage]
            ): Behavior[Request] =  Behaviors.withStash(5000) { buffer =>
     Behaviors.setup[Request] { ctx =>
-      //ctx.log.info("Starting initialization!")
       val activationAdapter: ActorRef[Activation] = ctx.messageAdapter[Activation](msg => WrappedActivation(msg))
       val resultDataMessageFromExtAdapter: ActorRef[ResultDataMessageFromExt] = ctx.messageAdapter[ResultDataMessageFromExt](msg => WrappedResultDataMessageFromExt(msg))
       val scheduleServiceActivationAdapter: ActorRef[ScheduleServiceActivation] = ctx.messageAdapter[ScheduleServiceActivation](msg => WrappedScheduleServiceActivationAdapter(msg))
@@ -99,22 +101,18 @@ object ExtResultDataProvider {
                             resultDataMessageFromExtAdapter: ActorRef[ResultDataMessageFromExt],
                             buffer: StashBuffer[Request]): Behavior[Request] = {
     Behaviors.receivePartial {
-      case (_, WrappedActivation(Activation(INIT_SIM_TICK))) =>
+      case (ctx, WrappedActivation(Activation(INIT_SIM_TICK))) =>
         val initGridSubscribers = initServiceData.extResultData.getGridResultDataAssets.asScala.toList
         val initParticipantSubscribers = initServiceData.extResultData.getParticipantResultDataAssets.asScala.toList
 
-        var initResultStorage = Map.empty[UUID, (Option[ResultEntity], Option[Long])]
-        initParticipantSubscribers.foreach(
-         uuid => initResultStorage = initResultStorage + (uuid -> (None, Some(0L)))
-        )
-        initGridSubscribers.foreach(
-          uuid => initResultStorage = initResultStorage + (uuid -> (None, Some(initServiceData.extResultData.getPowerFlowResolution)))
-        )
+        var initResultSchedule = Map.empty[Long, Set[UUID]]
+        initResultSchedule = initResultSchedule + (0L -> initParticipantSubscribers.toSet)
+        initResultSchedule = initResultSchedule + (initServiceData.extResultData.getPowerFlowResolution.longValue() -> initGridSubscribers.toSet)
+
         val resultInitializedStateData = ExtResultStateData(
-         extResultData = initServiceData.extResultData,
-         gridSubscribers = initGridSubscribers,
-         participantSubscribers = initParticipantSubscribers,
-         resultStorage = initResultStorage
+          extResultData = initServiceData.extResultData,
+          currentTick = INIT_SIM_TICK,
+          extResultScheduler = initResultSchedule
         )
         scheduler ! Completion(
           activationAdapter,
@@ -133,7 +131,8 @@ object ExtResultDataProvider {
   ): Behavior[Request] = Behaviors
     .receivePartial[Request] {
       case (ctx, WrappedActivation(activation: Activation)) =>
-        //ctx.log.info("Received Activation")
+        val thisCurrentTick = activation.tick
+        //ctx.log.info(s"+++++++ Received Activation for tick $thisCurrentTick ++++++")
         var updatedStateData = serviceStateData
 
         serviceStateData.extResultsMessage.getOrElse(
@@ -141,59 +140,43 @@ object ExtResultDataProvider {
             "ExtResultDataService was triggered without ResultDataMessageFromExt available"
           )
         ) match {
-          case msg: RequestResultEntities =>
+          case msg: RequestResultEntities =>      // ExtResultDataProvider wurde aktiviert und es wurden Nachrichten von ExtSimulation angefragt
             //ctx.log.info(s"[requestResults] for tick ${msg.tick} and resultStorage ${serviceStateData.resultStorage}")
-            var receiveDataMap = ReceiveDataMap.empty[UUID, ResultEntity]
-            if (activation.tick == 0L) {
-              receiveDataMap = ReceiveDataMap[UUID, ResultEntity](serviceStateData.participantSubscribers.toSet)
-            } else {
-              receiveDataMap = ReceiveDataMap[UUID, ResultEntity]((serviceStateData.participantSubscribers ++ serviceStateData.gridSubscribers).toSet)
-            }
-            //ctx.log.info(s"[requestResults] tick ${msg.tick} -> created a receivedatamap " + receiveDataMap)
-            /*
-            serviceStateData.resultStorage.foreach({
-              case (uuid, (res, t)) =>
-                //ctx.log.info(s"[requestResults] tick = ${msg.tick}, uuid = $uuid, and time = ${t.getOrElse("Option")}, result = ${res.getOrElse("Option")}")
-                if (t.getOrElse(-1L) != msg.tick) { //wenn nicht in diesem Tick gefragt, nehme Wert aus ResultDataStorage
-                  receiveDataMap = receiveDataMap.addData(
-                    uuid,
-                    res.getOrElse(
-                      throw new Exception("noResult")
-                    )
-                  )
-                  //ctx.log.info(s"[requestResults] tick ${msg.tick} -> added to receivedatamap " + receiveDataMap)
-                }
-            })
+            //ctx.log.info(s"[requestResults] for tick ${msg.tick} and extResultScheduler ${serviceStateData.extResultScheduler}")
+            var updatedSchedule = serviceStateData.extResultScheduler
+            val expectedKeys = serviceStateData.extResultScheduler.getOrElse(
+              activation.tick,
+              Set()
+            ) ++ serviceStateData.extResultScheduler.getOrElse(-2L, Set())
+            val receiveDataMap = ReceiveDataMap[UUID, ResultEntity](expectedKeys)
+            updatedSchedule = updatedSchedule.-(activation.tick)
 
-             */
+            //ctx.log.info(s"[requestResults] tick ${msg.tick} -> updatedSchedule = $updatedSchedule")
+            //ctx.log.info(s"[requestResults] tick ${msg.tick} -> receiveDataMap = $receiveDataMap")
 
-            //ctx.log.info(s"[requestResults] tick ${msg.tick} -> requestResults for " + receiveDataMap)
-
-            var resultList = List.empty[ResultEntity]
             if (receiveDataMap.isComplete) {
-              if (receiveDataMap.getExpectedKeys.nonEmpty) {
-                serviceStateData.resultStorage.values.foreach(
-                  result => resultList = resultList :+ result._1.getOrElse(
-                    throw new RuntimeException("There is no result!")
-                  )
-                )
-              }
-              //ctx.log.info(s"[requestResults] tick ${msg.tick} -> ReceiveDataMap is complete -> send it right away: " + resultList)
-              // all responses received, forward them to external simulation in a bundle
+              // --- There are no expected results for this tick! Send the send right away!
+              //ctx.log.info(s"[requestResults] tick ${msg.tick} -> ReceiveDataMap is complete -> send it right away: " + serviceStateData.resultStorage)
+
               serviceStateData.extResultData.queueExtResponseMsg(
-                new ProvideResultEntities(resultList.asJava)
+                new ProvideResultEntities(serviceStateData.resultStorage.asJava)
               )
+              //ctx.log.info("++++++++++++++++++ sended ExtResultData +++++++++++++++++++++++")
               updatedStateData = serviceStateData.copy(
                 extResultsMessage = None,
-                recentResults = None)
-
+                receiveDataMap = None,
+                extResultScheduler = updatedSchedule,
+                currentTick = thisCurrentTick
+              )
             } else {
               //ctx.log.info(s"[requestResults] receiveDataMap was built -> now sending ResultRequestMessage")
               ctx.self ! ResultRequestMessage(msg.tick)
               updatedStateData = serviceStateData.copy(
-                                                  extResultsMessage = None,
-                                                  recentResults = Some(receiveDataMap)
-                                                )
+                extResultsMessage = None,
+                receiveDataMap = Some(receiveDataMap),
+                extResultScheduler = updatedSchedule,
+                currentTick = thisCurrentTick
+              )
             }
         }
 
@@ -216,38 +199,74 @@ object ExtResultDataProvider {
           ))
 
       case (ctx, extResultResponseMsg: ResultResponseMessage) =>
-        //ctx.log.info("[handleDataResponseMessage] Received ResultsResponseMessage")
-
-        if (serviceStateData.recentResults.isDefined) {
+        if (serviceStateData.receiveDataMap.isDefined) {
           // process dataResponses
-          if (serviceStateData.recentResults.getOrElse(throw new Exception("no Receive Data Map!")).getExpectedKeys.contains(extResultResponseMsg.result.getInputModel)) {
-          //if (serviceStateData.participantSubscribers.contains(extResultResponseMsg.result.getInputModel) || serviceStateData.gridSubscribers.contains(extResultResponseMsg.result.getInputModel)) {
-            //ctx.log.info("[handleDataResponseMessage] Received ResultsResponseMessage with content " + extResultResponseMsg)
-            //ctx.log.info("[handleDataResponseMessage] RecentResults " + serviceStateData.recentResults)
-            val updatedReceivedResults = serviceStateData.recentResults.getOrElse(throw new Exception("noMap")).addData(extResultResponseMsg.result.getInputModel, extResultResponseMsg.result)
-            //ctx.log.info("[handleDataResponseMessage] AddData to RecentResults -> updatedReceivedResults = " + updatedReceivedResults)
-            val updatedResultStorage =
-              serviceStateData.resultStorage + (extResultResponseMsg.result.getInputModel -> (Some(extResultResponseMsg.result), extResultResponseMsg.nextTick))
-            if (updatedReceivedResults.nonComplete) {
-              // all responses received, forward them to external simulation in a bundle
-              idle(serviceStateData.copy(
-                recentResults = Some(updatedReceivedResults),
-                resultStorage = updatedResultStorage
-              ))
+          if (serviceStateData.receiveDataMap.getOrElse(throw new Exception("There is no activation yet! Receive Data Map does not exist!")).getExpectedKeys.contains(extResultResponseMsg.result.getInputModel)) {
+            //ctx.log.info(s"[hDRM] Process ResultsResponseMsg = $extResultResponseMsg")
+            //ctx.log.info(s"[hDRM] receiveDataMap ${serviceStateData.receiveDataMap}")
+            //ctx.log.info(s"[hDRM] MsgTick=${extResultResponseMsg.tick}, ServiceStateDataTick=${serviceStateData.currentTick}")
+
+            // --- Add received results to receiveDataMap
+
+            if (extResultResponseMsg.tick == -4L || extResultResponseMsg.tick == serviceStateData.currentTick) {    //FIXME Not expected results are unconsidered
+              val updatedReceiveDataMap = serviceStateData
+                .receiveDataMap
+                .getOrElse(
+                  throw new Exception("noMap")
+                ).addData(
+                  extResultResponseMsg.result.getInputModel,
+                  extResultResponseMsg.result
+                )
+
+              //ctx.log.info("[hDRM] AddData to RecentResults -> updatedReceivedResults = " + updatedReceiveDataMap)
+
+              // --- Update ResultStorage and Schedule
+
+              val updatedResultStorage = serviceStateData.resultStorage + (extResultResponseMsg.result.getInputModel -> extResultResponseMsg.result)
+              var updatedResultSchedule = serviceStateData.extResultScheduler
+              //ctx.log.info(s"[hDRM] updatedResultSchedule = $updatedResultSchedule")
+
+              updatedResultSchedule = extResultResponseMsg.nextTick.fold {
+                updatedResultSchedule.updated(
+                  -3L,
+                  updatedResultSchedule.getOrElse(-3L, Set[UUID]()) + extResultResponseMsg.result.getInputModel
+                )
+              } {
+                newTick =>
+                  //ctx.log.info(s"[hDRM] update schedule = $newTick, uuid = ${extResultResponseMsg.result.getInputModel}")
+                  updatedResultSchedule.updated(
+                    newTick,
+                    updatedResultSchedule.getOrElse(newTick, Set[UUID]()) + extResultResponseMsg.result.getInputModel
+                  )
+              }
+
+              //ctx.log.info(s"[hDRM] updatedResultSchedule = $updatedResultSchedule")
+              //ctx.log.info(s"[hDRM] updatedResultStorage = $updatedResultStorage")
+
+              // --- Check, if all expected results has been received
+
+              if (updatedReceiveDataMap.nonComplete) {
+                // There are still results missing...
+                idle(serviceStateData.copy(
+                  receiveDataMap = Some(updatedReceiveDataMap),
+                  resultStorage = updatedResultStorage,
+                  extResultScheduler = updatedResultSchedule
+                ))
+              } else {
+                // all responses received, forward them to external simulation in a bundle
+                serviceStateData.extResultData.queueExtResponseMsg(
+                  new ProvideResultEntities(updatedResultStorage.asJava)
+                )
+                //ctx.log.info("[hDRM] Got all ResultResponseMessage -> Now forward to external simulation in a bundle: " + updatedResultStorage)
+                //ctx.log.info("++++++++++++++++++ sended ExtResultData +++++++++++++++++++++++")
+                idle(serviceStateData.copy(
+                  receiveDataMap = None,
+                  resultStorage = updatedResultStorage,
+                  extResultScheduler = updatedResultSchedule
+                ))
+              }
             } else {
-              var resultList = List.empty[ResultEntity]
-              updatedReceivedResults.receivedData.values.foreach(
-                result => resultList = resultList :+ result
-              )
-              // all responses received, forward them to external simulation in a bundle
-              serviceStateData.extResultData.queueExtResponseMsg(
-                new ProvideResultEntities(resultList.asJava)
-              )
-              //log.info("[handleDataResponseMessage] Got all ResultResponseMessage -> Now forward to external simulation in a bundle: " + resultList)
-              idle(serviceStateData.copy(
-                resultStorage = updatedResultStorage,
-                recentResults = None
-              ))
+              idle(serviceStateData)
             }
           } else {
             idle(serviceStateData)
@@ -257,7 +276,9 @@ object ExtResultDataProvider {
           buffer.stash(extResultResponseMsg)
           idle(serviceStateData)
         }
-      case (_, msg: ResultRequestMessage) =>
+
+      case (ctx, msg: ResultRequestMessage) =>
+        //ctx.log.info(s"[handleDataResponseMessage] Received ResultRequestMessage $msg -> Now unstash all buffered messages!")
         buffer.unstashAll(idle(serviceStateData))
 
       case (ctx, msg: DelayedStopHelper.StoppingMsg) =>
@@ -267,12 +288,11 @@ object ExtResultDataProvider {
   // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
   final case class ExtResultStateData(
                                         extResultData: ExtResultData,
-                                        gridSubscribers: List[UUID] = List.empty,
-                                        participantSubscribers: List[UUID] = List.empty,
+                                        currentTick: Long,
                                         extResultsMessage: Option[ResultDataMessageFromExt] = None,
-                                        resultStorage: Map[UUID, (Option[ResultEntity], Option[Long])] = Map.empty,       // UUID -> Result, nextTick
-                                        maybeNextActivationTick: Option[Long] = None,
-                                        recentResults: Option[ReceiveDataMap[UUID, ResultEntity]] = None,
+                                        resultStorage: Map[UUID, ResultEntity] = Map.empty,
+                                        extResultScheduler: Map[Long, Set[UUID]] = Map.empty,
+                                        receiveDataMap: Option[ReceiveDataMap[UUID, ResultEntity]] = None,
                                       )
   final case class InitExtResultData(
                                       extResultData: ExtResultData

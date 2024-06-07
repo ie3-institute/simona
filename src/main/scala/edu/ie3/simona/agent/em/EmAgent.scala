@@ -482,7 +482,9 @@ object EmAgent {
           modelShell.uuid,
           result.p.toMegawatts.asMegaWatt,
           result.q.toMegavars.asMegaVar,
-        )
+        ),
+        tick = lastActiveTick,
+        nextTick = inactiveCore.nextActiveTick
       )
     }
 
