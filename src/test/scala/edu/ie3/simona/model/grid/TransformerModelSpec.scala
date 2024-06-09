@@ -281,7 +281,7 @@ class TransformerModelSpec
             transformerModelTapHv.updateTapPos(currentTapPos)
             transformerModelTapHv.computeDeltaTap(
               vChange,
-              deadBand,
+              deadBand = deadBand,
             ) shouldBe expected
           }
       }

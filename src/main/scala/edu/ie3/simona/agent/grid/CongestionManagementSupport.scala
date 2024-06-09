@@ -114,9 +114,6 @@ trait CongestionManagementSupport {
   /** Method for calculating the tap pos changes for all given transformers and
     * the voltage delta.
     *
-    * <p> NOTE: This method currently only support tapping of the higher voltage
-    * side of a given transformer.
-    *
     * @param suggestion
     *   given delta suggestion
     * @param tappings
@@ -128,9 +125,6 @@ trait CongestionManagementSupport {
       suggestion: ComparableQuantity[Dimensionless],
       tappings: Seq[TransformerTapping],
   ): (Map[TransformerTapping, Int], ComparableQuantity[Dimensionless]) = {
-    // inverting the suggestion, because it is given for the lv side
-    val inverted = suggestion.multiply(-1)
-
     // check if all transformer have the tapping at the hv side
     // lv side tapping for transformer2ws is currently not supported
     if (tappings.exists(_.getTapSide != ConnectorPort.A)) {
@@ -143,20 +137,18 @@ trait CongestionManagementSupport {
       // if only one transformer is given, we only need to calculate one result
       val tapping = tappings(0)
 
-      val taps = tapping.computeDeltaTap(inverted)
-      val delta = tapping.deltaV.getValue.doubleValue() * taps / -100
-      Some(Map(tapping -> taps), delta.asPu)
+      val (taps, delta) = tapping.computeDeltas(suggestion, ConnectorPort.B)
+      Some(Map(tapping -> taps), delta)
     } else {
       // if multiple transformers are used, we need to find an option, that works
       // for all transformers
       val possibleChange = tappings.map { tapping =>
-        val taps = tapping.computeDeltaTap(inverted)
-        val delta = tapping.deltaV.getValue.doubleValue() * taps / 100
+        val (taps, delta) = tapping.computeDeltas(suggestion, ConnectorPort.B)
         tapping -> (taps, delta)
       }.toMap
 
       // finds the smallest possible delta, because we are limited by that transformer
-      val possibleOption = if (inverted.isGreaterThan(0.asPu)) {
+      val possibleOption = if (suggestion.isGreaterThan(0.asPu)) {
         possibleChange.minByOption(_._2._2)
       } else {
         possibleChange.maxByOption(_._2._2)
@@ -165,23 +157,24 @@ trait CongestionManagementSupport {
       // adapt all tapping the the possible option
       possibleOption.map(_._2._2) match {
         case Some(maxValue) =>
-          val max = maxValue.asPu
+          val maxAsDouble = maxValue.getValue.doubleValue()
 
           // calculate tap changes
           val changes = tappings.map { tapping =>
-            val taps = tapping.computeDeltaTap(max)
-            val delta = tapping.deltaV.getValue.doubleValue() * taps / -100
+            val (taps, delta) = tapping.computeDeltas(maxValue, ConnectorPort.B)
 
             tapping -> (taps, delta)
           }.toMap
 
           val check = changes.forall { case (_, (_, delta)) =>
             // check if all deltas are in a range of plus minus 0.1 %
-            Math.abs(Math.abs(maxValue) - Math.abs(delta)) < 1e-3
+            Math.abs(
+              Math.abs(maxAsDouble) - Math.abs(delta.getValue.doubleValue())
+            ) < 1e-3
           }
 
           if (check) {
-            Some(changes.map(t => t._1 -> t._2._1), max.multiply(-1))
+            Some(changes.map(t => t._1 -> t._2._1), maxValue)
           } else {
             None
           }
@@ -244,7 +237,6 @@ trait CongestionManagementSupport {
       updatedRange
     } else {
       // if there are inferior grids, update the voltage range
-
       updatedRange.updateWithInferiorRanges(inferiorData)
     }
   }
@@ -332,6 +324,13 @@ object CongestionManagementSupport {
       deltaMinus: ComparableQuantity[Dimensionless],
       suggestion: ComparableQuantity[Dimensionless],
   ) {
+
+    def isInRange(
+        delta: ComparableQuantity[Dimensionless]
+    ): Boolean =
+      delta.isGreaterThanOrEqualTo(deltaMinus) && delta.isLessThanOrEqualTo(
+        deltaPlus
+      )
 
     /** Method to update this voltage range with line voltage delta.
       * @param deltaV
@@ -460,11 +459,21 @@ object CongestionManagementSupport {
         (value * factor).ceil / factor
       }
 
-      VoltageRange(
-        deltaPlus,
-        deltaMinus,
-        suggestion.asPu,
-      )
+      // check if tapping is required
+      if (plus < 0 || minus > 0) {
+        VoltageRange(
+          deltaPlus,
+          deltaMinus,
+          suggestion.asPu,
+        )
+      } else {
+        // the voltage in this range is fine, set the suggested voltage change to zero
+        VoltageRange(
+          deltaPlus,
+          deltaMinus,
+          0.asPu,
+        )
+      }
     }
 
     def combineSuggestions(

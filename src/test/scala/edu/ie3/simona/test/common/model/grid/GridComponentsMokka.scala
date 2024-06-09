@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.test.common.model.grid
 
+import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase._
 import edu.ie3.simona.model.grid._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
@@ -52,6 +53,7 @@ trait GridComponentsMokka extends MockitoSugar {
       tapMin: Int = -5,
       tapNeutr: Int = 0,
       autoTap: Boolean = true,
+      tapSide: ConnectorPort = ConnectorPort.A,
   ): TransformerTappingModel =
     TransformerTappingModel(
       deltaV,
@@ -60,6 +62,7 @@ trait GridComponentsMokka extends MockitoSugar {
       tapMin,
       tapNeutr,
       autoTap,
+      tapSide,
     )
 
   protected def dummyTransformerModel(

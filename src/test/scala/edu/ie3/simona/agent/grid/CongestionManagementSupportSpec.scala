@@ -331,7 +331,7 @@ class CongestionManagementSupportSpec
 
       range.deltaPlus should equalWithTolerance(0.05.asPu)
       range.deltaMinus should equalWithTolerance((-0.03).asPu)
-      range.suggestion should equalWithTolerance(0.011.asPu)
+      range.suggestion should equalWithTolerance(0.asPu)
     }
 
     "calculates the voltage range for a middle grid correctly" in {
@@ -392,7 +392,7 @@ class CongestionManagementSupportSpec
 
       range.deltaPlus should equalWithTolerance(0.04.asPu)
       range.deltaMinus should equalWithTolerance((-0.02).asPu)
-      range.suggestion should equalWithTolerance(0.011.asPu)
+      range.suggestion should equalWithTolerance(0.asPu)
     }
 
     def buildPowerFlowResultEvent(
@@ -415,7 +415,7 @@ class CongestionManagementSupportSpec
     "calculate the suggestion correctly" in {
       val cases = Table(
         ("deltaPlus", "deltaMinus", "expected"),
-        (0.05.asPu, (-0.03).asPu, 0.011.asPu), // no voltage limit violation
+        (0.05.asPu, (-0.03).asPu, 0.asPu), // no voltage limit violation
         (
           (-0.01).asPu,
           (-0.02).asPu,

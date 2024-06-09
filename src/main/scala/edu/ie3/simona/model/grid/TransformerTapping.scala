@@ -74,12 +74,15 @@ trait TransformerTapping {
     tapRatio = transformerTappingModel.decrTapPos(deltaTap)
 
   /** Determine the amount of tap positions to increase oder decrease in order
-    * to meet the desired change in voltage magnitude. For details on the
-    * implementation see [[TransformerTappingModel.computeDeltaTap()]]
+    * to meet the desired change in voltage magnitude at the given transformer
+    * side. For details on the implementation see
+    * [[TransformerTappingModel.computeDeltaTap()]]
     *
     * @param vChangeRequest
     *   desired change in voltage magnitude (> 0 --> increase voltage, < 0 -->
     *   decrease voltage)
+    * @param tapSide
+    *   the side of the transformer at which the given voltage change is desired
     * @param deadBand
     *   as a portion of the transformer voltage ratio per tap, it defaults to 75
     *   % of the deltaV of a tap
@@ -89,8 +92,52 @@ trait TransformerTapping {
     */
   def computeDeltaTap(
       vChangeRequest: Quantity[Dimensionless],
+      tapSide: ConnectorPort = ConnectorPort.A,
       deadBand: Quantity[Dimensionless] = Quantities.getQuantity(0.75, PU),
-  ): Int =
-    transformerTappingModel.computeDeltaTap(vChangeRequest, deadBand)
+  ): Int = {
+    if (tapSide == transformerTappingModel.tapSide) {
+      transformerTappingModel.computeDeltaTap(vChangeRequest, deadBand)
+    } else {
+      transformerTappingModel.computeDeltaTap(
+        vChangeRequest.multiply(-1),
+        deadBand,
+      )
+    }
+  }
+
+  /** Determine the amount of tap positions to increase oder decrease in order
+    * to meet the desired change in voltage magnitude at the given transformer
+    * side. For details on the implementation see
+    * [[TransformerTappingModel.computeDeltaTap()]] and the resulting voltage
+    * delta.
+    *
+    * @param vChangeRequest
+    *   desired change in voltage magnitude (> 0 --> increase voltage, < 0 -->
+    *   decrease voltage)
+    * @param tapSide
+    *   the side of the transformer at which the given voltage change is desired
+    * @param deadBand
+    *   as a portion of the transformer voltage ratio per tap, it defaults to 75
+    *   % of the deltaV of a tap
+    * @return
+    *   the needed in- or decrease of the transformer tap position to reach the
+    *   desired change in voltage magnitude or zero if not possible and the
+    *   resulting voltage delta
+    */
+  def computeDeltas(
+      vChangeRequest: Quantity[Dimensionless],
+      tapSide: ConnectorPort = ConnectorPort.A,
+      deadBand: Quantity[Dimensionless] = Quantities.getQuantity(0.75, PU),
+  ): (Int, ComparableQuantity[Dimensionless]) = {
+    val taps = computeDeltaTap(vChangeRequest, tapSide, deadBand)
+    val deltaV =
+      transformerTappingModel.deltaV.to(PU).getValue.doubleValue() * taps
+
+    if (tapSide == transformerTappingModel.tapSide) {
+      (taps, deltaV.asPu)
+    } else {
+      (taps, deltaV.asPu.multiply(-1))
+    }
+  }
 
 }
