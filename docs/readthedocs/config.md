@@ -147,6 +147,33 @@ simona.output.participant.individualConfigs = [
 ]
 ```
 
+#### Output configuration of thermal elements
+
+To use the default configuration the default notifier has to be used. By setting "simulationResult" to true, the thermal elements is enabled to return its results.
+
+```
+simona.output.thermal.defaultConfig = {
+  notifier = "default",
+  simulationResult = true
+}
+```
+
+The default configuration applies to all models except the ones with individual configurations assigned.
+If individual configurations have to be performed for certain thermal elements, these must be listed with the corresponding notifier as in the following example.
+
+```
+simona.output.thermal.individualConfigs = [
+  {
+    notifier = "house",
+    simulationResult = true
+  },
+  {
+    notifier = "cylindricalstorage",
+    simulationResult = true
+  }
+]
+```
+
 Further model classes which can be used to load the outcome of a system simulation are described in [PSDM](https://powersystemdatamodel.readthedocs.io/en/latest/models/models.html#result).
 Data sources and data sinks are explained in the [I/O-capabilities](https://powersystemdatamodel.readthedocs.io/en/latest/io/basiciousage.html) section of the PSDM.
 
