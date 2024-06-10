@@ -680,23 +680,27 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "identify faulty notifier identifiers" in {
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast invokePrivate checkNotifierIdentifier("whatever")
-          }.getMessage shouldBe s"The identifier 'whatever' you provided is not valid. Valid input: ${NotifierIdentifier.values.map(_.toString).mkString(",")}"
+            ConfigFailFast invokePrivate checkNotifierIdentifier(
+              "whatever",
+              NotifierIdentifier.getParticipantIdentifiers,
+            )
+          }.getMessage shouldBe s"The identifier 'whatever' you provided is not valid. Valid input: ${NotifierIdentifier.getParticipantIdentifiers.map(_.toString).mkString(",")}"
         }
 
         "let all valid notifier identifiers pass" in {
           noException shouldBe thrownBy {
-            NotifierIdentifier.values.map(id =>
+            NotifierIdentifier.getParticipantIdentifiers.map(id =>
               ConfigFailFast invokePrivate checkNotifierIdentifier(
-                id.toString
+                id.toString,
+                NotifierIdentifier.getParticipantIdentifiers,
               )
             )
           }
         }
 
-        val checkIndividualParticipantsOutputConfigs =
+        val checkIndividualOutputConfigs =
           PrivateMethod[Unit](
-            Symbol("checkIndividualParticipantsOutputConfigs")
+            Symbol("checkIndividualOutputConfigs")
           )
 
         "let distinct configs pass" in {
@@ -722,8 +726,9 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           )
 
           noException shouldBe thrownBy {
-            ConfigFailFast invokePrivate checkIndividualParticipantsOutputConfigs(
-              validInput
+            ConfigFailFast invokePrivate checkIndividualOutputConfigs(
+              validInput,
+              "participant",
             )
           }
         }
@@ -751,10 +756,85 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           )
 
           intercept[InvalidConfigParameterException](
-            ConfigFailFast invokePrivate checkIndividualParticipantsOutputConfigs(
-              invalidInput
+            ConfigFailFast invokePrivate checkIndividualOutputConfigs(
+              invalidInput,
+              "participant",
             )
           ).getMessage shouldBe "There are multiple output configurations for participant types 'load'."
+        }
+      }
+
+      "Checking thermal output configs" should {
+        val checkNotifierIdentifier =
+          PrivateMethod[Unit](Symbol("checkNotifierIdentifier"))
+
+        "identify faulty notifier identifiers" in {
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkNotifierIdentifier(
+              "whatever",
+              NotifierIdentifier.getThermalIdentifiers,
+            )
+          }.getMessage shouldBe s"The identifier 'whatever' you provided is not valid. Valid input: ${NotifierIdentifier.getThermalIdentifiers.map(_.toString).mkString(",")}"
+        }
+
+        "let all valid notifier identifiers pass" in {
+          noException shouldBe thrownBy {
+            Set("house", "cylindricalstorage").map(id =>
+              ConfigFailFast invokePrivate checkNotifierIdentifier(
+                id,
+                NotifierIdentifier.getThermalIdentifiers,
+              )
+            )
+          }
+        }
+
+        val checkIndividualOutputConfigs =
+          PrivateMethod[Unit](
+            Symbol("checkIndividualOutputConfigs")
+          )
+
+        "let distinct configs pass" in {
+          val validInput = List(
+            SimonaConfig.SimpleOutputConfig(
+              notifier = "house",
+              simulationResult = false,
+            ),
+            SimonaConfig.SimpleOutputConfig(
+              notifier = "cylindricalstorage",
+              simulationResult = false,
+            ),
+          )
+
+          noException shouldBe thrownBy {
+            ConfigFailFast invokePrivate checkIndividualOutputConfigs(
+              validInput,
+              "thermal",
+            )
+          }
+        }
+
+        "throw an exception, when there is a duplicate entry for the same model type" in {
+          val invalidInput = List(
+            SimonaConfig.SimpleOutputConfig(
+              notifier = "house",
+              simulationResult = false,
+            ),
+            SimonaConfig.SimpleOutputConfig(
+              notifier = "cylindricalstorage",
+              simulationResult = false,
+            ),
+            SimonaConfig.SimpleOutputConfig(
+              notifier = "house",
+              simulationResult = false,
+            ),
+          )
+
+          intercept[InvalidConfigParameterException](
+            ConfigFailFast invokePrivate checkIndividualOutputConfigs(
+              invalidInput,
+              "thermal",
+            )
+          ).getMessage shouldBe "There are multiple output configurations for thermal types 'house'."
         }
       }
 
