@@ -491,7 +491,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           idle(cleanedGridAgentBaseData)
 
         case (message, _) =>
-          ctx.log.debug(s"Received the message $message to early. Stash away!")
+          ctx.log.debug(s"Received the message $message too early. Stash away!")
           buffer.stash(message)
           Behaviors.same
       }
@@ -804,7 +804,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           Behaviors.same
 
         case (message, _) =>
-          ctx.log.debug(s"Received the message $message to early. Stash away!")
+          ctx.log.debug(s"Received the message $message too early. Stash away!")
           buffer.stash(message)
           Behaviors.same
       }
