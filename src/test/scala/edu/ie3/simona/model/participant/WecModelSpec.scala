@@ -9,7 +9,10 @@ package edu.ie3.simona.model.participant
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.system.WecInput
 import edu.ie3.datamodel.models.input.system.`type`.WecTypeInput
-import edu.ie3.datamodel.models.input.system.characteristic.{ReactivePowerCharacteristic, WecCharacteristicInput}
+import edu.ie3.datamodel.models.input.system.characteristic.{
+  ReactivePowerCharacteristic,
+  WecCharacteristicInput,
+}
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.participant.WecModel.WecRelevantData
