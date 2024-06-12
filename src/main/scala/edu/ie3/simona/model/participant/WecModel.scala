@@ -154,7 +154,7 @@ final case class WecModel(
     * @return
     *   betz coefficient cₚ
     */
-  private def determineBetzCoefficient(
+  def determineBetzCoefficient(
       windVelocity: Velocity
   ): Dimensionless = {
     betzCurve.interpolateXy(windVelocity) match {
@@ -174,7 +174,7 @@ final case class WecModel(
     *   current air pressure
     * @return
     */
-  private def calculateAirDensity(
+  def calculateAirDensity(
       temperature: Temperature,
       airPressure: Option[Pressure],
   ): Density = {
