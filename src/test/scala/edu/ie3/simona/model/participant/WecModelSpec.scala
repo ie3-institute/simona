@@ -6,13 +6,15 @@
 
 package edu.ie3.simona.model.participant
 
-
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.system.WecInput
 import edu.ie3.datamodel.models.input.system.`type`.WecTypeInput
-import edu.ie3.datamodel.models.input.system.characteristic.{ReactivePowerCharacteristic, WecCharacteristicInput}
+import edu.ie3.datamodel.models.input.system.characteristic.{
+  ReactivePowerCharacteristic,
+  WecCharacteristicInput,
+}
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
@@ -66,7 +68,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
     Quantities.getQuantity(20, METRE),
   )
 
- val inputModel = new WecInput(
+  val inputModel = new WecInput(
     UUID.randomUUID(),
     "WecTypeInput",
     nodeInput,
@@ -89,29 +91,27 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
 
     "check build method of companion object" in {
       val wecModel = buildWecModel()
-
       wecModel.uuid shouldBe inputModel.getUuid
       wecModel.id shouldBe inputModel.getId
       wecModel.rotorArea shouldBe typeInput.getRotorArea
       wecModel.cosPhiRated shouldBe typeInput.getCosPhiRated
-      wecModel.sRated shouldBe typeInput.getsRated()
-      wecModel.betzCurve shouldBe
+      wecModel.sRated shouldBe typeInput.getsRated
+      wecModel.betzCurve shouldBe typeInput.getCpCharacteristic
     }
-
 
     "determine Betz coefficient correctly" in {
       val wecModel = buildWecModel()
       val velocities = Seq(2.0, 2.5, 18.0, 27.0, 34.0, 40.0)
-      val expectedBetzResults = Seq(0.115933516, 0.2010945555, 0.108671106, 0.032198846, 0.000196644, 0.0)
-
-      velocities.zip(expectedBetzResults).foreach { case (velocity, betzResult) =>
-        val windVel = Sq.create(velocity, MetersPerSecond)
-        val betzFactor = wecModel.determineBetzCoefficient(windVel)
-        val expected = Sq.create(betzResult, Each)
-        betzFactor shouldEqual expected
+      val expectedBetzResults = Seq(0.115933516, 0.2010945555, 0.108671106,
+        0.032198846, 0.000196644, 0.0)
+      velocities.zip(expectedBetzResults).foreach {
+        case (velocity, betzResult) =>
+          val windVel = Sq.create(velocity, MetersPerSecond)
+          val betzFactor = wecModel.determineBetzCoefficient(windVel)
+          val expected = Sq.create(betzResult, Each)
+          betzFactor shouldEqual expected
       }
     }
-
 
     "calculate active power output depending on velocity" in {
       val wecModel = buildWecModel()
@@ -146,19 +146,20 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
         // test cases where no air pressure is given
         (0.0, -1.0, 1.2041),
         (5.0, -1.0, 1.2041),
-        (40.0, -1.0, 1.2041)
+        (40.0, -1.0, 1.2041),
       )
 
       testCases.foreach { case (temperature, pressure, densityResult) =>
         val temperatureV = Sq.create(temperature, Celsius)
-        val pressureV = if (pressure > 0) Some(Sq.create(pressure, Pascals)) else Option.empty
+        val pressureV =
+          if (pressure > 0) Some(Sq.create(pressure, Pascals)) else Option.empty
 
-        val airDensity = wecModel.calculateAirDensity(temperatureV, pressureV).toKilogramsPerCubicMeter
+        val airDensity = wecModel
+          .calculateAirDensity(temperatureV, pressureV)
+          .toKilogramsPerCubicMeter
         math.abs(airDensity - densityResult) should be < TOLERANCE
       }
     }
-
-
 
     "calculate active power output depending on temperature" in {
       val wecModel = buildWecModel()
