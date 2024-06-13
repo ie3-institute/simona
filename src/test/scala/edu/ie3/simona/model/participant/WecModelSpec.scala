@@ -29,7 +29,7 @@ import tech.units.indriya.unit.Units.{METRE, PERCENT, SQUARE_METRE}
 import java.util.UUID
 class WecModelSpec extends UnitSpec with DefaultTestData {
 
-  val tolerance: Double = 1e-5
+  val TOLERANCE: Double = 1e-5
 
   val nodeInput = new NodeInput(
     UUID.fromString("ad39d0b9-5ad6-4588-8d92-74c7d7de9ace"),
