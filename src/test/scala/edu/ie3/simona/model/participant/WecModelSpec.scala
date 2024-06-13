@@ -64,7 +64,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
         "(46.0,0.0), (47.0,0.0), (48.0,0.0), (49.0,0.0), (50.0,0.0)}"
     ),
     Quantities.getQuantity(15, PERCENT),
-    Quantities.getQuantity(5281, SQUARE_METRE),
+    Quantities.getQuantity(5281.0, SQUARE_METRE),
     Quantities.getQuantity(20, METRE),
   )
 
