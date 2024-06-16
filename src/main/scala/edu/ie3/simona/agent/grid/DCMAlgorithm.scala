@@ -184,10 +184,16 @@ trait DCMAlgorithm extends CongestionManagementSupport {
       )
 
       // clean up agent and go back to idle
+      val powerFlowResults = if (stateData.congestions.any) {
+        stateData.powerFlowResults.copy(congestionResults =
+          Seq(stateData.getCongestionResult(constantData.simStartTime))
+        )
+      } else stateData.powerFlowResults
+
       GridAgent.gotoIdle(
         stateData.gridAgentBaseData,
         stateData.currentTick,
-        Some(stateData.powerFlowResults),
+        Some(powerFlowResults),
         ctx,
       )
 

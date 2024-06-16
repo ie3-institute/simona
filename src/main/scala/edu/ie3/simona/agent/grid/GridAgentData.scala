@@ -8,6 +8,7 @@ package edu.ie3.simona.agent.grid
 
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
+import edu.ie3.datamodel.models.result.CongestionResult
 import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.simona.agent.EnvironmentRefs
@@ -521,6 +522,20 @@ object GridAgentData {
       congestions: Congestions,
       inferiorGrids: Seq[ActorRef[GridAgent.Request]],
   ) extends GridAgentData {
+
+    def getCongestionResult(startTime: ZonedDateTime): CongestionResult = {
+      val gridModel = gridAgentBaseData.gridEnv.gridModel
+
+      new CongestionResult(
+        startTime.plusSeconds(currentTick),
+        gridModel.subnetNo,
+        gridModel.voltageLimits.vMin,
+        gridModel.voltageLimits.vMax,
+        congestions.voltageCongestions,
+        congestions.lineCongestions,
+        congestions.transformerCongestions,
+      )
+    }
 
     def inferiorRefs: Set[ActorRef[GridAgent.Request]] = inferiorGrids.toSet
 

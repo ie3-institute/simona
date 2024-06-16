@@ -278,6 +278,7 @@ object SimonaConfig {
   }
 
   final case class GridOutputConfig(
+      congestions: scala.Boolean,
       lines: scala.Boolean,
       nodes: scala.Boolean,
       notifier: java.lang.String,
@@ -292,6 +293,8 @@ object SimonaConfig {
         $tsCfgValidator: $TsCfgValidator,
     ): SimonaConfig.GridOutputConfig = {
       SimonaConfig.GridOutputConfig(
+        congestions =
+          c.hasPathOrNull("congestions") && c.getBoolean("congestions"),
         lines = c.hasPathOrNull("lines") && c.getBoolean("lines"),
         nodes = c.hasPathOrNull("nodes") && c.getBoolean("nodes"),
         notifier = $_reqStr(parentPath, c, "notifier", $tsCfgValidator),

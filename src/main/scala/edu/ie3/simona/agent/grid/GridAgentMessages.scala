@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
+import edu.ie3.datamodel.models.result.CongestionResult
 import edu.ie3.simona.agent.grid.CongestionManagementSupport.{
   CongestionManagementSteps,
   Congestions,
@@ -281,54 +282,54 @@ object GridAgentMessages {
   }
 
   // general congestion messages
-  case class CongestionCheckRequest(
+  final case class CongestionCheckRequest(
       override val sender: ActorRef[GridAgent.Request]
   ) extends CMRequest
 
-  case class CongestionResponse(
+  final case class CongestionResponse(
       override val sender: ActorRef[GridAgent.Request],
       override val value: Congestions,
   ) extends CMReceiveResponse[Congestions]
 
-  case class ReceivedCongestions(
+  final case class ReceivedCongestions(
       override val values: Vector[(ActorRef[GridAgent.Request], Congestions)]
   ) extends CMResponse[Congestions]
 
   // transformer tapping messages
-  case class RequestVoltageOptions(
+  final case class RequestVoltageOptions(
       override val sender: ActorRef[GridAgent.Request],
       subnet: Int,
   ) extends CMRequest
 
-  case class VoltageRangeResponse(
+  final case class VoltageRangeResponse(
       override val sender: ActorRef[GridAgent.Request],
       override val value: (VoltageRange, Set[TransformerTapping]),
   ) extends CMReceiveResponse[(VoltageRange, Set[TransformerTapping])]
 
-  case class ReceivedVoltageRange(
+  final case class ReceivedVoltageRange(
       override val values: Vector[
         (ActorRef[GridAgent.Request], (VoltageRange, Set[TransformerTapping]))
       ]
   ) extends CMResponse[(VoltageRange, Set[TransformerTapping])]
 
-  case class VoltageDeltaResponse(
+  final case class VoltageDeltaResponse(
       delta: ComparableQuantity[Dimensionless]
   ) extends GridAgent.InternalReply
 
-  case class NextStepRequest(
+  final case class NextStepRequest(
       nextStep: CongestionManagementSteps.Value
   ) extends GridAgent.InternalRequest
 
   /** Message that indicates all actors that the current step is started.
     */
-  case object StartStep extends GridAgent.InternalRequest
+  final case object StartStep extends GridAgent.InternalRequest
 
   /** Message that indicates all actors that the current step is finished.
     */
-  case object FinishStep extends GridAgent.InternalRequest
+  final case object FinishStep extends GridAgent.InternalRequest
 
   /** Message that indicates all actors that the next state is the idle state.
     */
-  case object GotoIdle extends GridAgent.InternalRequest
+  final case object GotoIdle extends GridAgent.InternalRequest
 
 }
