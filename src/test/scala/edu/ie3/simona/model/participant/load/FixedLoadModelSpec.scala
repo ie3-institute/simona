@@ -13,13 +13,14 @@ import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.participant.load.LoadReference.ActivePower
+import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.model.participant.load.LoadReference.{ActivePower, EnergyConsumption}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.Power
-import squants.energy.Watts
+import squants.energy.{KilowattHours, Kilowatts, Watts}
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
@@ -28,7 +29,7 @@ class FixedLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
 
   private implicit val tolerance: Power = Watts(1d)
 
-  "Having a fixed load model" when {
+  "A fixed load model" should {
     val loadInput =
       new LoadInput(
         UUID.fromString("4eeaf76a-ec17-4fc3-872d-34b7d6004b03"),
@@ -66,37 +67,27 @@ class FixedLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
         loadInput.getOperationTime,
       )
 
-    "A fixed load model" should {
+    "be instantiated from valid input correctly" in {
+      val testData = Table(
+        ("reference", "expectedReferenceActivePower"),
+        (ActivePower(Watts(268.6)), 268.6),
+        (EnergyConsumption(KilowattHours(3000d)), 342.24)
+      )
 
-      "A fixed load model should be instantiated from valid input correctly" in {
-
-        val testData = Table(
-          ("reference", "expectedSRated"),
-          (ActivePower(Watts(268.6)), Watts(3342.24)),
+      forAll(testData) { (reference, expectedReferenceActivePower: Double) =>
+        val actual = new FixedLoadModel(
+          loadInput.getUuid,
+          loadInput.getId,
+          foreSeenOperationInterval,
+          QControl.apply(loadInput.getqCharacteristics),
+          Kilowatts(loadInput.getsRated.to(PowerSystemUnits.KILOWATT).getValue.doubleValue()),
+          loadInput.getCosPhiRated,
+          reference
         )
 
-        forAll(testData) { (reference, expectedSRated: Power) =>
-          val actual = FixedLoadModel(
-            loadInput,
-            foreSeenOperationInterval,
-            1.0,
-            reference
-          )
-
-          actual.sRated shouldbe approximate(expectedSRated)
-        }
+        math.abs(actual.activePower.toWatts - expectedReferenceActivePower) should be < tolerance.toWatts
       }
-
-      }
-
-      "A fixed load model should return approximately the same power in 10,000 calculations" in {
-      }
-
-      "A fixed load model considers the (global) scaling factor correctly" in {
-
-      }
-
-
     }
 
+  }
 }
