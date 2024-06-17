@@ -20,7 +20,8 @@ import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.Sq
-import squants.Each
+import squants.{Each, Power}
+import squants.energy.{Power, Watts}
 import squants.motion.{MetersPerSecond, Pascals}
 import squants.thermal.Celsius
 import tech.units.indriya.quantity.Quantities
@@ -29,7 +30,7 @@ import tech.units.indriya.unit.Units.{METRE, PERCENT, SQUARE_METRE}
 import java.util.UUID
 class WecModelSpec extends UnitSpec with DefaultTestData {
 
-  private implicit val powerTolerance: Power Watts(1e-5)
+  private implicit val powerTolerance: Power = Watts(1e-5)
 
   val nodeInput = new NodeInput(
     UUID.fromString("ad39d0b9-5ad6-4588-8d92-74c7d7de9ace"),
@@ -129,7 +130,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
         )
         val result =
           wecModel.calculateActivePower(ModelState.ConstantState, wecData)
-        math.abs(result.toWatts - power) should be < powerTolerance 
+        math.abs(result.toWatts - power) should be < powerTolerance
       }
     }
 
@@ -157,7 +158,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
         val airDensity = wecModel
           .calculateAirDensity(temperatureV, pressureV)
           .toKilogramsPerCubicMeter
-        math.abs(airDensity - densityResult) should be < powerTolerance 
+        math.abs(airDensity - densityResult) should be < powerTolerance
       }
     }
 
@@ -174,7 +175,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
         )
         val result =
           wecModel.calculateActivePower(ModelState.ConstantState, wecData)
-        result.toWatts shouldEqual power +- powerTolerance 
+        result.toWatts shouldEqual Watts(power) +- powerTolerance
       }
     }
   }
