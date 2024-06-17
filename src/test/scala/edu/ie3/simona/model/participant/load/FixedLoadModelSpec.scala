@@ -26,6 +26,8 @@ import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
 
+
+
 class FixedLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
 
   private implicit val tolerance: Power = Watts(1d)
@@ -81,12 +83,19 @@ class FixedLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
           loadInput.getId,
           foreSeenOperationInterval,
           QControl.apply(loadInput.getqCharacteristics),
-          Kilowatts(loadInput.getsRated.to(PowerSystemUnits.KILOWATT).getValue.doubleValue()),
+          Kilowatts(
+            loadInput.getsRated
+              .to(PowerSystemUnits.KILOWATT)
+              .getValue
+              .doubleValue()
+          ),
           loadInput.getCosPhiRated,
-          reference
+          reference,
         )
 
-        math.abs(actual.activePower.toWatts - expectedReferenceActivePower) should be < tolerance.toWatts
+        math.abs(
+          actual.activePower.toWatts - expectedReferenceActivePower
+        ) should be < tolerance.toWatts
       }
     }
 
@@ -95,7 +104,7 @@ class FixedLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
       val testData = Table(
         ("reference", "expectedPower"),
         (ActivePower(Watts(268.6)), Watts(268.6)),
-        (EnergyConsumption(KilowattHours(3000d)), Watts(342.24))
+        (EnergyConsumption(KilowattHours(3000d)), Watts(342.24)),
       )
 
       forAll(testData) { (reference, expectedPower: Power) =>
@@ -104,20 +113,59 @@ class FixedLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
           loadInput.getId,
           foreSeenOperationInterval,
           QControl.apply(loadInput.getqCharacteristics),
-          Kilowatts(loadInput.getsRated.to(PowerSystemUnits.KILOWATT).getValue.doubleValue()),
+          Kilowatts(
+            loadInput.getsRated
+              .to(PowerSystemUnits.KILOWATT)
+              .getValue
+              .doubleValue()
+          ),
           loadInput.getCosPhiRated,
-          reference
+          reference,
         )
 
-        for (_ <- 0 until 10000){
-          math.abs(dut.calculateActivePower(ModelState.ConstantState, FixedLoadModel.FixedLoadRelevantData).toWatts - expectedPower.toWatts) should be < tolerance.toWatts
+        for (_ <- 0 until 10000) {
+          math.abs(
+            dut
+              .calculateActivePower(
+                ModelState.ConstantState,
+                FixedLoadModel.FixedLoadRelevantData,
+              )
+              .toWatts - expectedPower.toWatts
+          ) should be < tolerance.toWatts
         }
       }
+    }
 
+    "consider the (global) scaling factor correctly" in {
+      val testData = Table(
+        ("reference", "expectedPower"),
+        (ActivePower(Watts(268.6)), Watts(268.6)),
+        (EnergyConsumption(KilowattHours(3000d)), Watts(342.24))
+      )
 
+      forAll(testData) { (reference, expectedPower: Power) =>
+        val relevantData = FixedLoadModel.FixedLoadRelevantData
 
+        var scale = 0.0
+        while (scale <= 2.0) {
+          val scaledSRated = Kilowatts(loadInput.getsRated.to(PowerSystemUnits.KILOWATT).getValue.doubleValue() * scale)
+          val dut = new FixedLoadModel(
+            loadInput.getUuid,
+            loadInput.getId,
+            foreSeenOperationInterval,
+            QControl.apply(loadInput.getqCharacteristics),
+            scaledSRated,
+            loadInput.getCosPhiRated,
+            reference
+          )
 
+          val calculatedPower = dut.calculateActivePower(ModelState.ConstantState, relevantData).toWatts
+          val expectedScaledPower = expectedPower.toWatts * scale
+          math.abs(calculatedPower - expectedScaledPower) should be < tolerance.toWatts
+
+          scale += 0.1
+        }
       }
-
+    }
   }
 }
