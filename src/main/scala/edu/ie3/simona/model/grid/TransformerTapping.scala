@@ -105,6 +105,30 @@ trait TransformerTapping {
     }
   }
 
+  /** Determines all possible voltage deltas that can be achieved by tapping.
+    * @param tapSide
+    *   side of the tapping
+    * @return
+    *   a list of possible voltage deltas
+    */
+  def possibleDeltas(
+      tapSide: ConnectorPort = ConnectorPort.A
+  ): List[ComparableQuantity[Dimensionless]] = {
+    if (hasAutoTap) {
+      val plus = tapMax - currentTapPos
+      val minus = tapMin - currentTapPos
+
+      val range =
+        Range.inclusive(minus, plus).map(deltaV.multiply(_).divide(100)).toList
+
+      if (tapSide == transformerTappingModel.tapSide) {
+        range
+      } else {
+        range.map(_.multiply(-1)).sortBy(_.getValue.doubleValue())
+      }
+    } else List(0.asPu)
+  }
+
   /** Determine the amount of tap positions to increase oder decrease in order
     * to meet the desired change in voltage magnitude at the given transformer
     * side. For details on the implementation see

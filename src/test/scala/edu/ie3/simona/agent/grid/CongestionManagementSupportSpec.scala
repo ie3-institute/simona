@@ -125,7 +125,6 @@ class CongestionManagementSupportSpec
         tapMin = -3,
         currentTapPos = 0,
       )
-      val tappingModel3 = dummyTappingModel(deltaV = 1.49.asPercent)
 
       val transformer11 = dummyTransformerModel(tappingModel1)
       val transformer12 = dummyTransformerModel(tappingModel1)
@@ -136,13 +135,9 @@ class CongestionManagementSupportSpec
       val transformer31 = dummyTransformerModel(tappingModel1)
       val transformer32 = dummyTransformer3wModel(tappingModel2)
 
-      val transformer41 = dummyTransformerModel(tappingModel1)
-      val transformer42 = dummyTransformer3wModel(tappingModel3)
-
       val modelCase1 = Seq(transformer11, transformer12)
       val modelCase2 = Seq(transformer21, transformer22)
       val modelCase3 = Seq(transformer31, transformer32)
-      val modelCase4 = Seq(transformer41, transformer42)
 
       val cases = Table(
         ("suggestion", "models", "expectedTaps", "expectedDelta"),
@@ -199,24 +194,6 @@ class CongestionManagementSupportSpec
           modelCase3,
           Map(transformer31 -> 4, transformer32 -> 5),
           (-0.06).asPu,
-        ),
-        (
-          0.02.asPu,
-          modelCase4,
-          Map(transformer41 -> -1, transformer42 -> -1),
-          0.0149.asPu,
-        ),
-        (
-          0.038.asPu,
-          modelCase4,
-          Map(transformer41 -> -2, transformer42 -> -2),
-          0.0298.asPu,
-        ),
-        (
-          (-0.06).asPu,
-          modelCase4,
-          Map(transformer41 -> 4, transformer42 -> 4),
-          (-0.0596).asPu,
         ),
       )
 

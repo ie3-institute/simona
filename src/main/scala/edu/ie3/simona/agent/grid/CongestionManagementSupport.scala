@@ -13,13 +13,7 @@ import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.exceptions.{GridInconsistencyException, ResultException}
 import edu.ie3.simona.model.grid.GridModel.GridComponents
 import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.PowerFlowCaseA
-import edu.ie3.simona.model.grid.{
-  Transformer3wModel,
-  TransformerModel,
-  TransformerTapping,
-  TransformerTappingModel,
-  VoltageLimits,
-}
+import edu.ie3.simona.model.grid._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.apache.pekko.actor.typed.ActorRef
 import squants.electro.Amperes
@@ -125,67 +119,64 @@ trait CongestionManagementSupport {
       suggestion: ComparableQuantity[Dimensionless],
       tappings: Seq[TransformerTapping],
   ): (Map[TransformerTapping, Int], ComparableQuantity[Dimensionless]) = {
-    // check if all transformer have the tapping at the hv side
-    // lv side tapping for transformer2ws is currently not supported
-    if (tappings.exists(_.getTapSide != ConnectorPort.A)) {
-      // for now only work if all transformers have the tapping at the hv side
-      return (tappings.map(t => t -> 0).toMap, 0.asPu)
-    }
+    val noTapping = (tappings.map(t => t -> 0).toMap, 0.asPu)
 
     // calculate a tap option for each transformer
-    val option = if (tappings.size == 1) {
-      // if only one transformer is given, we only need to calculate one result
-      val tapping = tappings(0)
+    if (tappings.forall(_.hasAutoTap)) {
+      val possibleDeltas = tappings.map(_.possibleDeltas(ConnectorPort.B))
 
-      val (taps, delta) = tapping.computeDeltas(suggestion, ConnectorPort.B)
-      Some(Map(tapping -> taps), delta)
-    } else {
-      // if multiple transformers are used, we need to find an option, that works
-      // for all transformers
-      val possibleChange = tappings.map { tapping =>
-        val (taps, delta) = tapping.computeDeltas(suggestion, ConnectorPort.B)
-        tapping -> (taps, delta)
-      }.toMap
-
-      // finds the smallest possible delta, because we are limited by that transformer
-      val possibleOption = if (suggestion.isGreaterThan(0.asPu)) {
-        possibleChange.minByOption(_._2._2)
+      if (possibleDeltas.exists(_.size < 2)) {
+        // there is a transformer that cannot be taped
+        noTapping
       } else {
-        possibleChange.maxByOption(_._2._2)
-      }
 
-      // adapt all tapping the the possible option
-      possibleOption.map(_._2._2) match {
-        case Some(maxValue) =>
-          val maxAsDouble = maxValue.getValue.doubleValue()
-
-          // calculate tap changes
-          val changes = tappings.map { tapping =>
-            val (taps, delta) = tapping.computeDeltas(maxValue, ConnectorPort.B)
-
-            tapping -> (taps, delta)
-          }.toMap
-
-          val check = changes.forall { case (_, (_, delta)) =>
-            // check if all deltas are in a range of plus minus 0.1 %
-            Math.abs(
-              Math.abs(maxAsDouble) - Math.abs(delta.getValue.doubleValue())
-            ) < 1e-3
-          }
-
-          if (check) {
-            Some(changes.map(t => t._1 -> t._2._1), maxValue)
+        // reduce all possible deltas
+        val reducedOptions = possibleDeltas.map { deltas =>
+          if (deltas.exists(_.isEquivalentTo(suggestion))) {
+            List(suggestion)
           } else {
-            None
+            val minOption = deltas.filter(_.isLessThan(suggestion)).lastOption
+            val maxOption = deltas.find(_.isGreaterThan(suggestion))
+
+            // check possible deltas
+            (minOption, maxOption) match {
+              case (Some(min), Some(max)) => List(min, max)
+              case (Some(min), _)         => List(min)
+              case (_, Some(max))         => List(max)
+              case _                      => List()
+            }
           }
+        }
 
-        case None =>
-          None
+        // filter the possible options
+        val filteredOptions = reducedOptions.flatten
+          .groupBy(identity)
+          .filter(_._2.size == reducedOptions.size)
+          .flatMap(_._2.headOption)
+
+        // find the best suitable delta
+        val deltaOption = if (suggestion.isGreaterThan(0.asPu)) {
+          filteredOptions.minByOption(_.getValue.doubleValue())
+        } else {
+          filteredOptions.maxByOption(_.getValue.doubleValue())
+        }
+
+        // the actual delta that can be used for all transformers
+        val delta = deltaOption.getOrElse(0.asPu)
+
+        val deltas = tappings
+          .map(model => model -> model.computeDeltas(delta, ConnectorPort.B))
+          .toMap
+
+        val taps = deltas.map { case (tapping, (tap, _)) => tapping -> tap }
+        val actualDelta = deltas.map(_._2._2).toSeq(0)
+
+        (taps, actualDelta)
       }
+    } else {
+      // return no tappings if there is at least one transformer that cannot be taped
+      noTapping
     }
-
-    // return the option ore no tapping
-    option.getOrElse((tappings.map(t => t -> 0).toMap, 0.asPu))
   }
 
   /** Method to calculate the possible range of voltage changes.
