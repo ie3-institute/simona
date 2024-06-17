@@ -13,6 +13,7 @@ import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
+import edu.ie3.simona.model.participant.ModelState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.LoadReference.{ActivePower, EnergyConsumption}
 import edu.ie3.simona.test.common.UnitSpec
@@ -88,6 +89,35 @@ class FixedLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
         math.abs(actual.activePower.toWatts - expectedReferenceActivePower) should be < tolerance.toWatts
       }
     }
+
+    "return approximately the same power in 10,000 calculations" in {
+
+      val testData = Table(
+        ("reference", "expectedPower"),
+        (ActivePower(Watts(268.6)), Watts(268.6)),
+        (EnergyConsumption(KilowattHours(3000d)), Watts(342.24))
+      )
+
+      forAll(testData) { (reference, expectedPower: Power) =>
+        val dut = new FixedLoadModel(
+          loadInput.getUuid,
+          loadInput.getId,
+          foreSeenOperationInterval,
+          QControl.apply(loadInput.getqCharacteristics),
+          Kilowatts(loadInput.getsRated.to(PowerSystemUnits.KILOWATT).getValue.doubleValue()),
+          loadInput.getCosPhiRated,
+          reference
+        )
+
+        for (_ <- 0 until 10000){
+          math.abs(dut.calculateActivePower(ModelState.ConstantState, FixedLoadModel.FixedLoadRelevantData).toWatts - expectedPower.toWatts) should be < tolerance.toWatts
+        }
+      }
+
+
+
+
+      }
 
   }
 }
