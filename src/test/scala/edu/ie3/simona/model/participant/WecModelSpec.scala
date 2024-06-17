@@ -132,7 +132,10 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
         )
         val result =
           wecModel.calculateActivePower(ModelState.ConstantState, wecData)
-        math.abs(result.toWatts - Watts) should be < powerTolerance
+        val expectedPower = Watts(power)
+        math.abs(
+          result.toWatts - expectedPower.toWatts
+        ) should be < powerTolerance.toWatts
       }
     }
 
