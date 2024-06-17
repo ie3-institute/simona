@@ -157,8 +157,12 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
         val pressureV =
           if (pressure > 0) Some(Sq.create(pressure, Pascals)) else Option.empty
 
-        val airDensity = wecModel.calculateAirDensity(temperatureV, pressureV).toKilogramsPerCubicMeter
-        math.abs(airDensity - densityResult) should be < densityTolerance.toKilogramsPerCubicMeter
+        val airDensity = wecModel
+          .calculateAirDensity(temperatureV, pressureV)
+          .toKilogramsPerCubicMeter
+        math.abs(
+          airDensity - densityResult
+        ) should be < densityTolerance.toKilogramsPerCubicMeter
       }
     }
 
