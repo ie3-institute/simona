@@ -11,10 +11,7 @@ import edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.system.WecInput
 import edu.ie3.datamodel.models.input.system.`type`.WecTypeInput
-import edu.ie3.datamodel.models.input.system.characteristic.{
-  ReactivePowerCharacteristic,
-  WecCharacteristicInput,
-}
+import edu.ie3.datamodel.models.input.system.characteristic.{ReactivePowerCharacteristic, WecCharacteristicInput}
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
@@ -22,6 +19,7 @@ import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.Sq
 import squants.{Each, Power}
 import squants.energy.Watts
+import squants.mass.{Density, KilogramsPerCubicMeter}
 import squants.motion.{MetersPerSecond, Pascals}
 import squants.thermal.Celsius
 import tech.units.indriya.quantity.Quantities
@@ -30,6 +28,8 @@ import tech.units.indriya.unit.Units.{METRE, PERCENT, SQUARE_METRE}
 import java.util.UUID
 class WecModelSpec extends UnitSpec with DefaultTestData {
 
+
+  private implicit val densityTolerance: Density = KilogramsPerCubicMeter(1e-5)
   private implicit val powerTolerance: Power = Watts(1e-5)
 
   val nodeInput = new NodeInput(
@@ -130,7 +130,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
         )
         val result =
           wecModel.calculateActivePower(ModelState.ConstantState, wecData)
-        math.abs(result.toWatts - power) should be < powerTolerance
+        math.abs(result.toWatts - Watts(power)) should be < powerTolerance
       }
     }
 
@@ -158,7 +158,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
         val airDensity = wecModel
           .calculateAirDensity(temperatureV, pressureV)
           .toKilogramsPerCubicMeter
-        math.abs(airDensity - densityResult) should be < powerTolerance
+        math.abs(airDensity - densityResult) should be < densityTolerance
       }
     }
 
