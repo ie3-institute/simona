@@ -21,7 +21,7 @@ import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.Sq
 import squants.{Each, Power}
-import squants.energy.{Power, Watts}
+import squants.energy.Watts
 import squants.motion.{MetersPerSecond, Pascals}
 import squants.thermal.Celsius
 import tech.units.indriya.quantity.Quantities
