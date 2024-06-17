@@ -98,5 +98,5 @@ class FixedLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
 
 
     }
-  }
+
 }
