@@ -140,7 +140,7 @@ class FixedLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
     "consider the (global) scaling factor correctly" in {
       val testData = Table(
         ("reference", "expectedPower"),
-        (ActivePower(Watts(268.6)), Watts(268.6)),
+        (ActivePower(Watts(268.6d)), Watts(268.6)),
         (EnergyConsumption(KilowattHours(3000d)), Watts(342.24)),
       )
 
