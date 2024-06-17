@@ -15,7 +15,10 @@ import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.ModelState
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.load.LoadReference.{ActivePower, EnergyConsumption}
+import edu.ie3.simona.model.participant.load.LoadReference.{
+  ActivePower,
+  EnergyConsumption,
+}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -25,8 +28,6 @@ import squants.energy.{KilowattHours, Kilowatts, Watts}
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
-
-
 
 class FixedLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
 
@@ -48,7 +49,7 @@ class FixedLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
           false,
           NodeInput.DEFAULT_GEO_POSITION,
           GermanVoltageLevelUtils.LV,
-          -1
+          -1,
         ),
         new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
         null,
@@ -56,7 +57,7 @@ class FixedLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
         false,
         Quantities.getQuantity(3000d, PowerSystemUnits.KILOWATTHOUR),
         Quantities.getQuantity(282.74d, PowerSystemUnits.VOLTAMPERE),
-        0.95
+        0.95,
       )
 
     val simulationStartDate =
@@ -74,7 +75,7 @@ class FixedLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
       val testData = Table(
         ("reference", "expectedReferenceActivePower"),
         (ActivePower(Watts(268.6)), 268.6),
-        (EnergyConsumption(KilowattHours(3000d)), 342.24)
+        (EnergyConsumption(KilowattHours(3000d)), 342.24),
       )
 
       forAll(testData) { (reference, expectedReferenceActivePower: Double) =>
@@ -140,7 +141,7 @@ class FixedLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
       val testData = Table(
         ("reference", "expectedPower"),
         (ActivePower(Watts(268.6)), Watts(268.6)),
-        (EnergyConsumption(KilowattHours(3000d)), Watts(342.24))
+        (EnergyConsumption(KilowattHours(3000d)), Watts(342.24)),
       )
 
       forAll(testData) { (reference, expectedPower: Power) =>
@@ -148,7 +149,12 @@ class FixedLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
 
         var scale = 0.0
         while (scale <= 2.0) {
-          val scaledSRated = Kilowatts(loadInput.getsRated.to(PowerSystemUnits.KILOWATT).getValue.doubleValue() * scale)
+          val scaledSRated = Kilowatts(
+            loadInput.getsRated
+              .to(PowerSystemUnits.KILOWATT)
+              .getValue
+              .doubleValue() * scale
+          )
           val dut = new FixedLoadModel(
             loadInput.getUuid,
             loadInput.getId,
@@ -156,12 +162,16 @@ class FixedLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
             QControl.apply(loadInput.getqCharacteristics),
             scaledSRated,
             loadInput.getCosPhiRated,
-            reference
+            reference,
           )
 
-          val calculatedPower = dut.calculateActivePower(ModelState.ConstantState, relevantData).toWatts
+          val calculatedPower = dut
+            .calculateActivePower(ModelState.ConstantState, relevantData)
+            .toWatts
           val expectedScaledPower = expectedPower.toWatts * scale
-          math.abs(calculatedPower - expectedScaledPower) should be < tolerance.toWatts
+          math.abs(
+            calculatedPower - expectedScaledPower
+          ) should be < tolerance.toWatts
 
           scale += 0.1
         }
