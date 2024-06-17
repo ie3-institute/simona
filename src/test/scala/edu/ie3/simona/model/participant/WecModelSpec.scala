@@ -29,7 +29,7 @@ import tech.units.indriya.unit.Units.{METRE, PERCENT, SQUARE_METRE}
 import java.util.UUID
 class WecModelSpec extends UnitSpec with DefaultTestData {
 
-  val TOLERANCE: Double = 1e-5
+  private implicit val powerTolerance: Power Watts(1e-5)
 
   val nodeInput = new NodeInput(
     UUID.fromString("ad39d0b9-5ad6-4588-8d92-74c7d7de9ace"),
@@ -129,7 +129,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
         )
         val result =
           wecModel.calculateActivePower(ModelState.ConstantState, wecData)
-        math.abs(result.toWatts - power) should be < TOLERANCE
+        math.abs(result.toWatts - power) should be < powerTolerance 
       }
     }
 
@@ -157,7 +157,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
         val airDensity = wecModel
           .calculateAirDensity(temperatureV, pressureV)
           .toKilogramsPerCubicMeter
-        math.abs(airDensity - densityResult) should be < TOLERANCE
+        math.abs(airDensity - densityResult) should be < powerTolerance 
       }
     }
 
@@ -174,7 +174,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
         )
         val result =
           wecModel.calculateActivePower(ModelState.ConstantState, wecData)
-        result.toWatts shouldEqual power +- TOLERANCE
+        result.toWatts shouldEqual power +- powerTolerance 
       }
     }
   }
