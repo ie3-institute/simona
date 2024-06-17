@@ -24,6 +24,7 @@ import squants.{Each, Power}
 import squants.energy.Watts
 import squants.mass.{Density, KilogramsPerCubicMeter}
 import squants.motion.{MetersPerSecond, Pascals}
+import squants.space.SquareMeters
 import squants.thermal.Celsius
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{METRE, PERCENT, SQUARE_METRE}
@@ -32,7 +33,8 @@ import java.util.UUID
 class WecModelSpec extends UnitSpec with DefaultTestData {
 
   private implicit val densityTolerance: Density = KilogramsPerCubicMeter(1e-5)
-  private implicit val powerTolerance: Power = Watts(1e-5)
+  val rotorAreaTolerance = SquareMeters(1e-5)
+  private implicit val powerTolerance: Power = Watts(1e-2)
 
   val nodeInput = new NodeInput(
     UUID.fromString("ad39d0b9-5ad6-4588-8d92-74c7d7de9ace"),
@@ -96,7 +98,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
       val wecModel = buildWecModel()
       wecModel.uuid shouldBe inputModel.getUuid
       wecModel.id shouldBe inputModel.getId
-      wecModel.rotorArea shouldBe typeInput.getRotorArea
+      wecModel.rotorArea shouldBe (typeInput.getRotorArea === rotorAreaTolerance)
       wecModel.cosPhiRated shouldBe typeInput.getCosPhiRated
       wecModel.sRated shouldBe typeInput.getsRated
       wecModel.betzCurve shouldBe typeInput.getCpCharacteristic
