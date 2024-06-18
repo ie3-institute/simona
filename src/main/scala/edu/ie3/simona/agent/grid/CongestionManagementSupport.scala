@@ -8,7 +8,10 @@ package edu.ie3.simona.agent.grid
 
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.datamodel.models.result.connector.LineResult
-import edu.ie3.simona.agent.grid.CongestionManagementSupport.VoltageRange
+import edu.ie3.simona.agent.grid.CongestionManagementSupport.{
+  TappingGroup,
+  VoltageRange,
+}
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.exceptions.{GridInconsistencyException, ResultException}
 import edu.ie3.simona.model.grid.GridModel.GridComponents
@@ -52,57 +55,62 @@ trait CongestionManagementSupport {
     * @param transformer3ws
     *   set of [[Transformer3wModel]] with [[PowerFlowCaseA]]
     * @return
-    *   a map: set of transformers to set of [[ActorRef]]s
+    *   a set of [[TappingGroup]]s
     */
   def groupTappingModels(
       receivedData: Map[ActorRef[GridAgent.Request], Set[TransformerTapping]],
       transformer3ws: Set[Transformer3wModel],
-  ): Map[Set[TransformerTapping], Set[ActorRef[GridAgent.Request]]] = {
+  ): Set[TappingGroup] = {
     val transformer3wMap = transformer3ws.map(t => t.uuid -> t).toMap
 
     // builds all groups
-    receivedData.foldLeft(
-      Map.empty[Set[TransformerTapping], Set[ActorRef[GridAgent.Request]]]
-    ) { case (combined, (ref, tappings)) =>
-      // get all transformer models
-      val updated: Set[TransformerTapping] = tappings.map {
-        case transformerModel: TransformerModel =>
-          transformerModel
-        case transformer3wModel: Transformer3wModel =>
-          // in case of a three winding transformer, we need the model of the port A
-          transformer3wMap.getOrElse(
-            transformer3wModel.uuid,
-            throw new GridInconsistencyException(
-              s"No three winding transformer found."
-            ),
-          )
-        case unsupported =>
-          throw new IllegalArgumentException(
-            s"The transformer type ${unsupported.getClass} is not supported."
-          )
-      }.toSet
+    receivedData
+      .foldLeft(
+        Map.empty[Set[TransformerTapping], Set[ActorRef[GridAgent.Request]]]
+      ) { case (combined, (ref, tappings)) =>
+        // get all transformer models
+        val updated: Set[TransformerTapping] = tappings.map {
+          case transformerModel: TransformerModel =>
+            transformerModel
+          case transformer3wModel: Transformer3wModel =>
+            // in case of a three winding transformer, we need the model of the port A
+            transformer3wMap.getOrElse(
+              transformer3wModel.uuid,
+              throw new GridInconsistencyException(
+                s"No three winding transformer found."
+              ),
+            )
+          case unsupported =>
+            throw new IllegalArgumentException(
+              s"The transformer type ${unsupported.getClass} is not supported."
+            )
+        }.toSet
 
-      // find a group that already contains one of the given transformer models
-      val keyOption = combined.keySet.find { keys =>
-        updated.exists(key => keys.contains(key))
+        // find a group that already contains one of the given transformer models
+        val keyOption = combined.keySet.find { keys =>
+          updated.exists(key => keys.contains(key))
+        }
+
+        // if a key is found, add the current transformer models and the ref to that group
+        // else add a new group
+        keyOption
+          .map { key =>
+            val refs = combined(key)
+            val updatedMap = combined.removed(key)
+
+            val newKey = key ++ updated
+            val newValue = refs ++ Set(ref)
+
+            updatedMap ++ Map(newKey -> newValue)
+          }
+          .getOrElse {
+            combined ++ Map(updated -> Set(ref))
+          }
       }
-
-      // if a key is found, add the current transformer models and the ref to that group
-      // else add a new group
-      keyOption
-        .map { key =>
-          val refs = combined(key)
-          val updatedMap = combined.removed(key)
-
-          val newKey = key ++ updated
-          val newValue = refs ++ Set(ref)
-
-          updatedMap ++ Map(newKey -> newValue)
-        }
-        .getOrElse {
-          combined ++ Map(updated -> Set(ref))
-        }
-    }
+      .map { case (tappingModels, refs) =>
+        TappingGroup(refs, tappingModels)
+      }
+      .toSet
   }
 
   /** Method for calculating the tap pos changes for all given transformers and
@@ -298,6 +306,17 @@ trait CongestionManagementSupport {
 
 object CongestionManagementSupport {
 
+  /** A group of [[TransformerTapping]] with all associated [[ActorRef]]s.
+    * @param refs
+    *   a set of [[ActorRef]]s
+    * @param tappingModels
+    *   a set of [[TransformerTapping]]
+    */
+  final case class TappingGroup(
+      refs: Set[ActorRef[GridAgent.Request]],
+      tappingModels: Set[TransformerTapping],
+  )
+
   /** Object that contains information about possible voltage changes. <p> If
     * the delta plus is negative -> upper voltage violation <p> If the delta
     * minus is positive -> lower voltage violation <p> If both above cases
@@ -437,10 +456,17 @@ object CongestionManagementSupport {
       val minus = deltaMinus.getValue.doubleValue()
 
       val value = if (plus > minus) {
+        // we could have a voltage violation of one limit
         (plus + minus) / 2
-      } else {
+      } else if (plus > 0 && minus > 0) {
+        // we have a voltage violation of the lower limit
+        // since the upper limit is fine, we can increase the voltage a bit
         plus
-      }
+      } else if (plus < 0 && minus < 0) {
+        // we have a voltage violation of the upper limit
+        // since the lower limit is fine, we can decrease the voltage a bit
+        minus
+      } else 0 // we have a voltage violation of both limits, we can't fix this
 
       val factor = 1e3
 

@@ -8,7 +8,10 @@ package edu.ie3.simona.agent.grid
 
 import edu.ie3.datamodel.models.result.NodeResult
 import edu.ie3.datamodel.models.result.connector.LineResult
-import edu.ie3.simona.agent.grid.CongestionManagementSupport.VoltageRange
+import edu.ie3.simona.agent.grid.CongestionManagementSupport.{
+  TappingGroup,
+  VoltageRange,
+}
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.model.grid.GridModel.GridComponents
 import edu.ie3.simona.model.grid.{TransformerTapping, VoltageLimits}
@@ -74,7 +77,7 @@ class CongestionManagementSupportSpec
         ), // connected with two transformer2w
       )
 
-      val grouped = groupTappingModels(
+      val groups = groupTappingModels(
         receivedData,
         Set(transformer3wA),
       )
@@ -87,12 +90,11 @@ class CongestionManagementSupportSpec
       // since grid 3 is only connected by a transformer2w, the group contains only this transformer and one ref
       //
       // since grid 4 is connected by two transformer2w, the group contains both transformers and the ref of grid 4
-      grouped shouldBe Map(
-        Set(transformer1, transformer3wA) -> Set(ref1, ref2),
-        Set(transformer3) -> Set(ref3),
-        Set(transformer4_1, transformer4_2) -> Set(ref4),
+      groups shouldBe Set(
+        TappingGroup(Set(ref1, ref2), Set(transformer1, transformer3wA)),
+        TappingGroup(Set(ref3), Set(transformer3)),
+        TappingGroup(Set(ref4), Set(transformer4_1, transformer4_2)),
       )
-
     }
 
     "calculate the tap and voltage change for one transformer" in {
@@ -404,10 +406,20 @@ class CongestionManagementSupportSpec
           0.015.asPu,
         ), // lower voltage limit violation (both are positive), increasing voltage
         (
+          0.01.asPu,
+          0.02.asPu,
+          0.01.asPu,
+        ), // violation of both lower limit, upper > 0, increase voltage to the upper limit
+        (
+          (-0.02).asPu,
+          (-0.01).asPu,
+          (-0.01).asPu,
+        ), // violation of both upper limit, lower < 0, decrease voltage to the lower limit
+        (
           (-0.01).asPu,
           0.01.asPu,
-          (-0.01).asPu,
-        ), // violation of both voltage limits (upper negative, lower positive), decreasing voltage
+          0.asPu,
+        ), // violation of both voltage limits (upper negative, lower positive), do nothing
       )
 
       forAll(cases) { (deltaPlus, deltaMinus, expected) =>

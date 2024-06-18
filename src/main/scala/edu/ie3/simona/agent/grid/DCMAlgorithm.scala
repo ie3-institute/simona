@@ -9,6 +9,7 @@ package edu.ie3.simona.agent.grid
 import edu.ie3.simona.agent.grid.CongestionManagementSupport.CongestionManagementSteps._
 import edu.ie3.simona.agent.grid.CongestionManagementSupport.{
   Congestions,
+  TappingGroup,
   VoltageRange,
 }
 import edu.ie3.simona.agent.grid.GridAgent.pipeToSelf
@@ -327,7 +328,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
             stateData.gridAgentBaseData.gridEnv.gridModel.gridComponents.transformers3w,
           )
 
-        groups.foreach { case (tappingModels, refs) =>
+        groups.foreach { case TappingGroup(refs, tappingModels) =>
           // get all possible voltage ranges of the inferior grids
           val inferiorRanges = refs.map(refMap)
 
