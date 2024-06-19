@@ -129,6 +129,10 @@ trait CongestionManagementSupport {
   ): (Map[TransformerTapping, Int], ComparableQuantity[Dimensionless]) = {
     val noTapping = (tappings.map(t => t -> 0).toMap, 0.asPu)
 
+    if (suggestion.isEquivalentTo(0.asPu)) {
+      return noTapping
+    }
+
     // calculate a tap option for each transformer
     if (tappings.forall(_.hasAutoTap)) {
       val possibleDeltas = tappings.map(_.possibleDeltas(ConnectorPort.B))
