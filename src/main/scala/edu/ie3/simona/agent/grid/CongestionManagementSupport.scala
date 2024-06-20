@@ -530,7 +530,7 @@ object CongestionManagementSupport {
     }
   }
 
-  case class Congestions(
+  final case class Congestions(
       voltageCongestions: Boolean,
       lineCongestions: Boolean,
       transformerCongestions: Boolean,

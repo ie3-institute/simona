@@ -44,8 +44,8 @@ import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.{QuantityUtil => ScalaQuantityUtil}
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.Each
-import squants.electro.{Amperes, ElectricCurrent, Volts}
-import squants.energy.Kilowatts
+import squants.electro.{Amperes, Volts}
+import squants.energy.{Kilowatts, Watts}
 import squants.space.Degrees
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
@@ -445,6 +445,7 @@ class GridResultsSupportSpec
         1,
         PowerFlowCaseA,
         Amperes(100),
+        Watts(10),
         Each(0.1d),
         Each(0.2d),
         Each(0.3d),

@@ -13,6 +13,7 @@ import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.OperationInterval
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
+import squants.energy.Watts
 import squants.{Amperes, Each}
 import tech.units.indriya.ComparableQuantity
 
@@ -79,6 +80,7 @@ trait GridComponentsMokka extends MockitoSugar {
       voltRatioNominal = BigDecimal(110),
       iNomHv = Amperes(1),
       iNomLv = Amperes(10),
+      sRated = Watts(1),
       r = Each(1),
       x = Each(1),
       g = Each(1),
@@ -101,6 +103,7 @@ trait GridComponentsMokka extends MockitoSugar {
       amount = 1,
       powerFlowCase = PowerFlowCaseA,
       iNom = Amperes(1),
+      sRated = Watts(1),
       r = Each(1),
       x = Each(1),
       g = Each(1),

@@ -27,8 +27,9 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
+import squants.Power
 import squants.electro.{Kilovolts, Ohms, Siemens}
-import squants.energy.{Megawatts, Watts}
+import squants.energy.{Kilowatts, Megawatts, Watts}
 import tech.units.indriya.AbstractUnit
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{OHM, SIEMENS}
@@ -69,6 +70,9 @@ import scala.math.BigDecimal.RoundingMode
   * @param iNom
   *   the nominal current at the port that is defined by the
   *   [[Transformer3wPowerFlowCase]]
+  * @param sRated
+  *   the rated power at the port that is defined by the
+  *   [[Transformer3wPowerFlowCase]]
   * @param r
   *   resistance r, real part of the transformer impedance z (referenced to the
   *   nominal impedance of the grid) in p.u.
@@ -95,6 +99,7 @@ final case class Transformer3wModel(
     amount: Int,
     powerFlowCase: Transformer3wPowerFlowCase,
     iNom: squants.electro.ElectricCurrent,
+    sRated: Power,
     protected val r: squants.Dimensionless,
     protected val x: squants.Dimensionless,
     protected val g: squants.Dimensionless,
@@ -166,10 +171,6 @@ final case class Transformer3wModel(
         )
     }
   }
-
-  /** Returns a copy of the [[TransformerTappingModel]]
-    */
-  def tappingModelCopy: TransformerTappingModel = transformerTappingModel.copy()
 }
 
 case object Transformer3wModel extends LazyLogging {
@@ -266,25 +267,37 @@ case object Transformer3wModel extends LazyLogging {
           .setScale(5, RoundingMode.HALF_UP)
     }
 
-    val iNom = powerFlowCase match {
+    val (iNom, sRated) = powerFlowCase match {
       case PowerFlowCaseA =>
-        Watts(
+        val power = Watts(
           trafo3wType.getsRatedA().to(VOLTAMPERE).getValue.doubleValue()
-        ) / Math.sqrt(3) / Kilovolts(
+        )
+
+        val current = power / Math.sqrt(3) / Kilovolts(
           trafo3wType.getvRatedA().to(KILOVOLT).getValue.doubleValue()
         )
+
+        (current, power)
       case PowerFlowCaseB =>
-        Watts(
+        val power = Watts(
           trafo3wType.getsRatedB().to(VOLTAMPERE).getValue.doubleValue()
-        ) / Math.sqrt(3) / Kilovolts(
+        )
+
+        val current = power / Math.sqrt(3) / Kilovolts(
           trafo3wType.getvRatedB().to(KILOVOLT).getValue.doubleValue()
         )
+
+        (current, power)
       case PowerFlowCaseC =>
-        Watts(
+        val power = Watts(
           trafo3wType.getsRatedC().to(VOLTAMPERE).getValue.doubleValue()
-        ) / Math.sqrt(3) / Kilovolts(
+        )
+
+        val current = power / Math.sqrt(3) / Kilovolts(
           trafo3wType.getvRatedC().to(KILOVOLT).getValue.doubleValue()
         )
+
+        (current, power)
     }
 
     val operationInterval =
@@ -307,6 +320,7 @@ case object Transformer3wModel extends LazyLogging {
       transformer3wInput.getParallelDevices,
       powerFlowCase,
       iNom,
+      sRated,
       r,
       x,
       g,

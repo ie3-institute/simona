@@ -19,6 +19,7 @@ import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.util.quantities.PowerSystemUnits.PU
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import squants.electro.Kilovolts
 import squants.energy.Kilowatts
 import tech.units.indriya.quantity.Quantities
@@ -54,6 +55,7 @@ class GridAgentDataSpec extends UnitSpec with DbfsTestGrid with ConfigTestData {
         emptyResults,
         gridModel.gridComponents,
         gridModel.voltageLimits,
+        gridModel.mainRefSystem.nominalVoltage,
       ) shouldBe Congestions(
         voltageCongestions = false,
         lineCongestions = false,
@@ -102,6 +104,7 @@ class GridAgentDataSpec extends UnitSpec with DbfsTestGrid with ConfigTestData {
         results,
         gridModel.gridComponents,
         gridModel.voltageLimits,
+        gridModel.mainRefSystem.nominalVoltage,
       ) shouldBe Congestions(
         voltageCongestions = true,
         lineCongestions = false,
@@ -158,6 +161,7 @@ class GridAgentDataSpec extends UnitSpec with DbfsTestGrid with ConfigTestData {
         results,
         gridModel.gridComponents,
         gridModel.voltageLimits,
+        gridModel.mainRefSystem.nominalVoltage,
       ) shouldBe Congestions(
         voltageCongestions = false,
         lineCongestions = true,
@@ -166,13 +170,28 @@ class GridAgentDataSpec extends UnitSpec with DbfsTestGrid with ConfigTestData {
     }
 
     "find transformer2w congestions correctly" in {
+
+      val nodeResult1 = new NodeResult(
+        startTime,
+        node1.getUuid,
+        0.9.asPu,
+        0.asDegreeGeom,
+      )
+
+      val nodeResult2 = new NodeResult(
+        startTime,
+        node2.getUuid,
+        1.0.asPu,
+        0.asDegreeGeom,
+      )
+
       val transformerResult1 = new Transformer2WResult(
         startTime,
         transformer1.getUuid,
-        Quantities.getQuantity(300d, StandardUnits.ELECTRIC_CURRENT_MAGNITUDE),
+        Quantities.getQuantity(308d, StandardUnits.ELECTRIC_CURRENT_MAGNITUDE),
         Quantities.getQuantity(0, StandardUnits.VOLTAGE_ANGLE),
         Quantities
-          .getQuantity(1036.3, StandardUnits.ELECTRIC_CURRENT_MAGNITUDE),
+          .getQuantity(1064, StandardUnits.ELECTRIC_CURRENT_MAGNITUDE),
         Quantities.getQuantity(0, StandardUnits.VOLTAGE_ANGLE),
         0,
       )
@@ -182,13 +201,13 @@ class GridAgentDataSpec extends UnitSpec with DbfsTestGrid with ConfigTestData {
         transformer2.getUuid,
         Quantities.getQuantity(310d, StandardUnits.ELECTRIC_CURRENT_MAGNITUDE),
         Quantities.getQuantity(0, StandardUnits.VOLTAGE_ANGLE),
-        Quantities.getQuantity(1070d, StandardUnits.ELECTRIC_CURRENT_MAGNITUDE),
+        Quantities.getQuantity(1071d, StandardUnits.ELECTRIC_CURRENT_MAGNITUDE),
         Quantities.getQuantity(0, StandardUnits.VOLTAGE_ANGLE),
         0,
       )
 
       val results = PowerFlowResultEvent(
-        Seq.empty,
+        Seq(nodeResult1, nodeResult2),
         Seq.empty,
         Seq.empty,
         Seq(transformerResult1, transformerResult2),
@@ -199,6 +218,7 @@ class GridAgentDataSpec extends UnitSpec with DbfsTestGrid with ConfigTestData {
         results,
         gridModel.gridComponents,
         gridModel.voltageLimits,
+        gridModel.mainRefSystem.nominalVoltage,
       ) shouldBe Congestions(
         voltageCongestions = false,
         lineCongestions = false,

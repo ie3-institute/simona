@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
+import breeze.numerics.sqrt
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.result.CongestionResult
@@ -23,6 +24,7 @@ import edu.ie3.simona.model.grid.GridModel.GridComponents
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.Activation
 import org.apache.pekko.actor.typed.ActorRef
+import squants.electro.ElectricPotential
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -580,6 +582,7 @@ object GridAgentData {
         powerFlowResults,
         gridModel.gridComponents,
         gridModel.voltageLimits,
+        gridModel.mainRefSystem.nominalVoltage,
       )
 
       // extracting one inferior ref for all inferior grids
@@ -629,10 +632,14 @@ object GridAgentData {
         powerFlowResults: PowerFlowResultEvent,
         gridComponents: GridComponents,
         voltageLimits: VoltageLimits,
+        vNom: ElectricPotential,
     ): Congestions = {
 
+      val nodeRes =
+        powerFlowResults.nodeResults.map(res => res.getInputModel -> res).toMap
+
       // checking for voltage congestions
-      val voltageCongestion = powerFlowResults.nodeResults.exists { res =>
+      val voltageCongestion = nodeRes.values.exists { res =>
         !voltageLimits.isInLimits(res.getvMag())
       }
 
@@ -656,12 +663,14 @@ object GridAgentData {
         powerFlowResults.transformer2wResults.exists { res =>
           val transformer = transformer2w(res.getInputModel)
 
-          val iA =
-            res.getiAMag().getValue.doubleValue() > transformer.iNomHv.value
-          val iB =
-            res.getiBMag().getValue.doubleValue() > transformer.iNomLv.value
+          val vMag = nodeRes(
+            transformer.lvNodeUuid
+          ).getvMag().getValue.doubleValue() * vNom.toKilovolts
 
-          iA || iB
+          sqrt(3.0) * res
+            .getiBMag()
+            .getValue
+            .doubleValue() * vMag > transformer.sRated.toKilowatts
         }
 
       val transformer3w = gridComponents.transformers3w.map { transformer =>
@@ -669,7 +678,15 @@ object GridAgentData {
       }.toMap
       val transformer3wCongestion =
         powerFlowResults.transformer3wResults.exists { res =>
-          res.currentMagnitude > transformer3w(res.input).iNom
+          val transformer = transformer3w(res.input)
+
+          val vMag = nodeRes(
+            transformer.lvNodeUuid
+          ).getvMag().getValue.doubleValue() * vNom.toKilovolts
+
+          sqrt(
+            3.0
+          ) * res.currentMagnitude.value * vMag > transformer.sRated.toKilowatts
         }
 
       Congestions(
