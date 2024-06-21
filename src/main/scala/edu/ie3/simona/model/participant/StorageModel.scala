@@ -373,8 +373,6 @@ object StorageModel {
       targetSoc,
     )
 
-    // TODO include activePowerGradient,?
-
     model.enable()
     model
   }
