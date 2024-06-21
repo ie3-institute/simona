@@ -376,6 +376,6 @@ trait StorageAgentFundamentals
       calcRelevantData: StorageRelevantData,
       nodalVoltage: Dimensionless,
       model: StorageModel,
-  ): StorageState = ???
+  ): StorageState = ??? // TODO implement?
 
 }
