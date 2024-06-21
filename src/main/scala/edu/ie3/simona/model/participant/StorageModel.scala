@@ -54,7 +54,8 @@ final case class StorageModel(
   private implicit val doubleTolerance: Power = eStorage / Seconds(1) * 3.6e-12
 
   /** In order to avoid faulty flexibility options, we want to avoid offering
-    * charging/discharging that could last less than one second.
+    * charging/discharging that could last less than our smallest possible time
+    * delta, which is one second.
     */
   private val toleranceMargin = pMax * Seconds(1d)
 
