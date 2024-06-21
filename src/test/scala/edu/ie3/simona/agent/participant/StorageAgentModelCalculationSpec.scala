@@ -461,9 +461,9 @@ class StorageAgentModelCalculationSpec
       )
 
       // after 2 hours, we're at: 111.95296 kWh
-      // net power = -12.961kW * 0.92 = -11.92412kW
-      // time to discharge until lowest energy (40 kWh) ~= 6.03423648873h = 21723 ticks (rounded) from now
-      // current tick is 36000, thus: 36000 + 21723 = 57723
+      // net power = -12.961kW / 0.92 = -14.08804348kW
+      // time to discharge until lowest energy (0 kWh) ~= 7.946664856h = 28608 ticks (rounded) from now
+      // current tick is 36000, thus: 36000 + 28608 = 64608
       emAgent.expectMsgPF() {
         case FlexCtrlCompletion(
               modelUuid,
@@ -475,7 +475,7 @@ class StorageAgentModelCalculationSpec
           result.p should approximate(pMax * -1)
           result.q should approximate(Megavars(0))
           requestAtNextActivation shouldBe false
-          requestAtTick shouldBe Some(57723)
+          requestAtTick shouldBe Some(64608)
       }
 
       resultListener.expectMsgPF() {
@@ -496,10 +496,10 @@ class StorageAgentModelCalculationSpec
 
       emAgent.send(storageAgent, IssuePowerControl(43200, Kilowatts(12)))
 
-      // after 2 hours, we're at: 88.10472 kWh
+      // after 2 hours, we're at: 83.77687304 kWh
       // net power = 12 * 0.92 = 11.04 kW
-      // time to charge until full ~= 10.135442029h = 36488 ticks (rounded) from now
-      // current tick is 43200, thus: 43200 + 36488 = 79688
+      // time to charge until full ~= 10.52745715h = 37899 ticks (rounded) from now
+      // current tick is 43200, thus: 43200 + 37899 = 81099
       emAgent.expectMsgPF() {
         case FlexCtrlCompletion(
               modelUuid,
@@ -511,7 +511,7 @@ class StorageAgentModelCalculationSpec
           result.p should approximate(Kilowatts(12))
           result.q should approximate(Megavars(0))
           requestAtNextActivation shouldBe false
-          requestAtTick shouldBe Some(79688)
+          requestAtTick shouldBe Some(81099)
       }
 
       resultListener.expectMsgPF() {
@@ -520,16 +520,16 @@ class StorageAgentModelCalculationSpec
           result.getTime shouldBe 43200.toDateTime(simulationStartDate)
           result.getP should beEquivalentTo(12d.asKiloWatt)
           result.getQ should beEquivalentTo(0d.asMegaVar)
-          result.getSoc should beEquivalentTo(44.05236d.asPercent)
+          result.getSoc should beEquivalentTo(41.88843652173913d.asPercent)
       }
 
-      /* TICK 79688 (expected activation)
+      /* TICK 81099 (expected activation)
          - discharging with 12 kW
          - expecting changing flex options indicator (discharging from full)
        */
 
       // Request flex options
-      emAgent.send(storageAgent, RequestFlexOptions(79688))
+      emAgent.send(storageAgent, RequestFlexOptions(81099))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -546,7 +546,7 @@ class StorageAgentModelCalculationSpec
 
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
         flexResult.getInputModel shouldBe storageInputQv.getUuid
-        flexResult.getTime shouldBe 79688.toDateTime(simulationStartDate)
+        flexResult.getTime shouldBe 81099.toDateTime(simulationStartDate)
         flexResult.getpRef should beEquivalentTo(0d.asKiloWatt)
         flexResult.getpMin should beEquivalentTo(
           storageInputQv.getType.getpMax().multiply(-1)
@@ -554,12 +554,12 @@ class StorageAgentModelCalculationSpec
         flexResult.getpMax should beEquivalentTo(0d.asKiloWatt)
       }
 
-      emAgent.send(storageAgent, IssuePowerControl(79688, Kilowatts(-12)))
+      emAgent.send(storageAgent, IssuePowerControl(81099, Kilowatts(-12)))
 
       // we're full now at 200 kWh
-      // net power = -12 * 0.92 = -11.04 kW
-      // time to discharge until lowest energy ~= 14.4927536232h = 52174 ticks (rounded) from now
-      // current tick is 79688, thus: 79688 + 52174 = 131862
+      // net power = -12 / 0.92 = -13.04347826 kW
+      // time to discharge until empty ~= 15.33333333h = 55200 ticks from now
+      // current tick is 79688, thus: 81099 + 55200 = 136299
       emAgent.expectMsgPF() {
         case FlexCtrlCompletion(
               modelUuid,
@@ -571,25 +571,25 @@ class StorageAgentModelCalculationSpec
           result.p should approximate(Kilowatts(-12))
           result.q should approximate(Megavars(0))
           requestAtNextActivation shouldBe true
-          requestAtTick shouldBe Some(131862)
+          requestAtTick shouldBe Some(136299)
       }
 
       resultListener.expectMsgPF() {
         case ParticipantResultEvent(result: StorageResult) =>
           result.getInputModel shouldBe storageInputQv.getUuid
-          result.getTime shouldBe 79688.toDateTime(simulationStartDate)
+          result.getTime shouldBe 81099.toDateTime(simulationStartDate)
           result.getP should beEquivalentTo((-12d).asKiloWatt)
           result.getQ should beEquivalentTo(0d.asMegaVar)
           result.getSoc should beEquivalentTo(100d.asPercent)
       }
 
-      /* TICK 131862 (expected activation)
+      /* TICK 136299 (expected activation)
          - no charging
          - expecting no changing flex options indicator
        */
 
       // Request flex options
-      emAgent.send(storageAgent, RequestFlexOptions(131862))
+      emAgent.send(storageAgent, RequestFlexOptions(136299))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -606,13 +606,13 @@ class StorageAgentModelCalculationSpec
 
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
         flexResult.getInputModel shouldBe storageInputQv.getUuid
-        flexResult.getTime shouldBe 131862.toDateTime(simulationStartDate)
+        flexResult.getTime shouldBe 136299.toDateTime(simulationStartDate)
         flexResult.getpRef should beEquivalentTo(0d.asKiloWatt)
         flexResult.getpMin should beEquivalentTo(0d.asKiloWatt)
         flexResult.getpMax should beEquivalentTo(storageInputQv.getType.getpMax)
       }
 
-      emAgent.send(storageAgent, IssuePowerControl(131862, Kilowatts(0d)))
+      emAgent.send(storageAgent, IssuePowerControl(136299, Kilowatts(0d)))
 
       // we're not charging or discharging, no new expected tick
       emAgent.expectMsgPF() {
@@ -632,10 +632,10 @@ class StorageAgentModelCalculationSpec
       resultListener.expectMsgPF() {
         case ParticipantResultEvent(result: StorageResult) =>
           result.getInputModel shouldBe storageInputQv.getUuid
-          result.getTime shouldBe 131862.toDateTime(simulationStartDate)
+          result.getTime shouldBe 136299.toDateTime(simulationStartDate)
           result.getP should beEquivalentTo(0.asKiloWatt)
           result.getQ should beEquivalentTo(0d.asMegaVar)
-          result.getSoc should beEquivalentTo(19.999866666667d.asPercent)
+          result.getSoc should beEquivalentTo(0d.asPercent)
       }
 
     }
