@@ -156,9 +156,9 @@ class StorageModelTest extends Specification {
     // exactly at ref power target
     50         || 0    | -10  | 10
     // within margin above ref power target
-    50.0024    || 0    | -10  | 10
+    50.0030    || 0    | -10  | 10
     // above margin of ref power target
-    50.0026    || -10  | -10  | 10
+    50.0031    || -10  | -10  | 10
     // at mid-level charge
     60         || -10  | -10  | 10
     // fully charged
@@ -207,11 +207,11 @@ class StorageModelTest extends Specification {
     50         | 5        || 4.5      | false         | true         | 10 * 3600 / 0.9
     50         | 10       || 9        | false         | true         | 5 * 3600 / 0.9
     // discharging on half full
-    50         | -5       || -4.5     | false         | true         | 10 * 3600 / 0.9
-    50         | -10      || -9       | false         | true         | 5 * 3600 / 0.9
+    50         | -4.5     || -5       | false         | true         | 10 * 3600
+    50         | -9       || -10      | false         | true         | 5 * 3600
     // discharging on full
-    100        | -5       || -4.5     | true          | true         | 20 * 3600 / 0.9
-    100        | -10      || -9       | true          | true         | 10 * 3600 / 0.9
+    100        | -4.5     || -5       | true          | true         | 20 * 3600
+    100        | -9       || -10      | true          | true         | 10 * 3600
   }
 
   def "Handle controlled power change with ref target SOC"() {
@@ -256,11 +256,11 @@ class StorageModelTest extends Specification {
     50         | 5        || 4.5      | true          | true         | 10 * 3600 / 0.9
     50         | 10       || 9        | true          | true         | 5 * 3600 / 0.9
     // discharging on target ref
-    50         | -5       || -4.5     | true          | true         | 10 * 3600 / 0.9
-    50         | -10      || -9       | true          | true         | 5 * 3600 / 0.9
+    50         | -4.5     || -5       | true          | true         | 10 * 3600
+    50         | -9       || -10      | true          | true         | 5 * 3600
     // discharging on full
-    100        | -5       || -4.5     | true          | true         | 10 * 3600 / 0.9
-    100        | -10      || -9       | true          | true         | 5 * 3600 / 0.9
+    100        | -4.5     || -5       | true          | true         | 10 * 3600
+    100        | -9       || -10      | true          | true         | 5 * 3600
   }
 
   def "Handle the edge case of discharging in tolerance margins"() {
@@ -335,15 +335,15 @@ class StorageModelTest extends Specification {
     def result = storageModel.handleControlledPowerChange(
     data,
     oldState,
-    Sq.create(-10d, Kilowatts$.MODULE$)
+    Sq.create(-9d, Kilowatts$.MODULE$)
     )
 
     then:
-    Math.abs(result._1.chargingPower().toKilowatts() - (-9d)) < TOLERANCE
+    Math.abs(result._1.chargingPower().toKilowatts() - (-10d)) < TOLERANCE
     result._1.tick() == startTick + 1
     Math.abs(result._1.storedEnergy().toKilowattHours() - oldState.storedEnergy().toKilowattHours()) < TOLERANCE
     def flexChangeIndication = result._2
-    flexChangeIndication.changesAtTick() == Option.apply(startTick + 1L + 12001L)
+    flexChangeIndication.changesAtTick() == Option.apply(startTick + 1L + 10801L)
     flexChangeIndication.changesAtNextActivation()
   }
 

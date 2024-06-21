@@ -70,8 +70,8 @@ final case class StorageModel(
   private val refTargetSoc = targetSoc.map { target =>
     val targetEnergy = eStorage * target
 
-    val targetWithPosMargin = // FIXME this should be division
-      targetEnergy + (toleranceMargin * eta.toEach)
+    val targetWithPosMargin =
+      targetEnergy + (toleranceMargin / eta.toEach)
 
     val targetWithNegMargin =
       targetEnergy - (toleranceMargin * eta.toEach)
@@ -177,7 +177,7 @@ final case class StorageModel(
         else
           // divide by eta if we're discharging
           // (draining the battery more than we get as output)
-          setPower * eta.toEach // FIXME this should be division. Check as well with SoC Calculation.
+          setPower / eta.toEach
       }
 
     val currentState =
