@@ -583,6 +583,7 @@ object GridAgentData {
         gridModel.gridComponents,
         gridModel.voltageLimits,
         gridModel.mainRefSystem.nominalVoltage,
+        gridModel.subnetNo,
       )
 
       // extracting one inferior ref for all inferior grids
@@ -633,15 +634,22 @@ object GridAgentData {
         gridComponents: GridComponents,
         voltageLimits: VoltageLimits,
         vNom: ElectricPotential,
+        subnetNo: Int,
     ): Congestions = {
 
       val nodeRes =
         powerFlowResults.nodeResults.map(res => res.getInputModel -> res).toMap
 
+      // filter nodes in subnet
+      val nodesInSubnet =
+        gridComponents.nodes.filter(_.subnet == subnetNo).map(_.uuid)
+
       // checking for voltage congestions
-      val voltageCongestion = nodeRes.values.exists { res =>
-        !voltageLimits.isInLimits(res.getvMag())
-      }
+      val voltageCongestion = nodeRes.values
+        .filter(res => nodesInSubnet.contains(res.getInputModel))
+        .exists { res =>
+          !voltageLimits.isInLimits(res.getvMag())
+        }
 
       // checking for line congestions
       val linesLimits = gridComponents.lines.map { line =>

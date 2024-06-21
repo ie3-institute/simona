@@ -56,6 +56,7 @@ class GridAgentDataSpec extends UnitSpec with DbfsTestGrid with ConfigTestData {
         gridModel.gridComponents,
         gridModel.voltageLimits,
         gridModel.mainRefSystem.nominalVoltage,
+        gridModel.subnetNo,
       ) shouldBe Congestions(
         voltageCongestions = false,
         lineCongestions = false,
@@ -105,6 +106,7 @@ class GridAgentDataSpec extends UnitSpec with DbfsTestGrid with ConfigTestData {
         gridModel.gridComponents,
         gridModel.voltageLimits,
         gridModel.mainRefSystem.nominalVoltage,
+        gridModel.subnetNo,
       ) shouldBe Congestions(
         voltageCongestions = true,
         lineCongestions = false,
@@ -162,6 +164,7 @@ class GridAgentDataSpec extends UnitSpec with DbfsTestGrid with ConfigTestData {
         gridModel.gridComponents,
         gridModel.voltageLimits,
         gridModel.mainRefSystem.nominalVoltage,
+        gridModel.subnetNo,
       ) shouldBe Congestions(
         voltageCongestions = false,
         lineCongestions = true,
@@ -219,6 +222,7 @@ class GridAgentDataSpec extends UnitSpec with DbfsTestGrid with ConfigTestData {
         gridModel.gridComponents,
         gridModel.voltageLimits,
         gridModel.mainRefSystem.nominalVoltage,
+        gridModel.subnetNo,
       ) shouldBe Congestions(
         voltageCongestions = false,
         lineCongestions = false,
