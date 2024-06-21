@@ -100,7 +100,10 @@ final case class StorageModel(
       voltage: Dimensionless,
       modelState: StorageState,
       data: StorageRelevantData,
-  ): ApparentPower = ???
+  ): ApparentPower =
+    throw new NotImplementedError(
+      "Storage model cannot calculate power without flexibility control."
+    )
 
   override protected def calculateActivePower(
       modelState: StorageState,
