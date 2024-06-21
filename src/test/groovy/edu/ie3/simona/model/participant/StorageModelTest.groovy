@@ -113,17 +113,17 @@ class StorageModelTest extends Specification {
     100          | 0         | 1         || 0    | -10  | 0
     // CHANGED STATE
     // discharged to empty
-    10           | -10       | 3600      || 0    | 0    | 10
+    10           | -9        | 3600      || 0    | 0    | 10
     // almost discharged to lowest allowed charge
-    10           | -10       | 3590      || 0    | -10  | 10
+    10           | -9        | 3590      || 0    | -10  | 10
     // charged to mid-level charge
-    40           | 10        | 3600      || 0    | -10  | 10
+    41           | 10        | 3600      || 0    | -10  | 10
     // discharged to mid-level charge
-    60           | -10       | 3600      || 0    | -10  | 10
+    60           | -9        | 3600      || 0    | -10  | 10
     // almost fully charged
-    95           | 4.98      | 3600      || 0    | -10  | 10
+    95.5         | 4.98      | 3600      || 0    | -10  | 10
     // fully charged
-    95           | 5         | 3600      || 0    | -10  | 0
+    95.5         | 5         | 3600      || 0    | -10  | 0
   }
 
   def "Calculate flex options with target SOC"() {
@@ -199,19 +199,19 @@ class StorageModelTest extends Specification {
     50         | 0        || 0        | false         | false        | 0
     100        | 0        || 0        | false         | false        | 0
     // charging on empty
-    0          | 1        || 0.9      | true          | true         | 100 * 3600 / 0.9
-    0          | 2.5      || 2.25     | true          | true         | 40 * 3600 / 0.9
-    0          | 5        || 4.5      | true          | true         | 20 * 3600 / 0.9
-    0          | 10       || 9        | true          | true         | 10 * 3600 / 0.9
+    0          | 1        || 1        | true          | true         | 100 * 3600 / 0.9
+    0          | 2.5      || 2.5      | true          | true         | 40 * 3600 / 0.9
+    0          | 5        || 5        | true          | true         | 20 * 3600 / 0.9
+    0          | 10       || 10       | true          | true         | 10 * 3600 / 0.9
     // charging on half full
-    50         | 5        || 4.5      | false         | true         | 10 * 3600 / 0.9
-    50         | 10       || 9        | false         | true         | 5 * 3600 / 0.9
+    50         | 5        || 5        | false         | true         | 10 * 3600 / 0.9
+    50         | 10       || 10       | false         | true         | 5 * 3600 / 0.9
     // discharging on half full
-    50         | -4.5     || -5       | false         | true         | 10 * 3600
-    50         | -9       || -10      | false         | true         | 5 * 3600
+    50         | -4.5     || -4.5     | false         | true         | 10 * 3600
+    50         | -9       || -9       | false         | true         | 5 * 3600
     // discharging on full
-    100        | -4.5     || -5       | true          | true         | 20 * 3600
-    100        | -9       || -10      | true          | true         | 10 * 3600
+    100        | -4.5     || -4.5     | true          | true         | 20 * 3600
+    100        | -9       || -9       | true          | true         | 10 * 3600
   }
 
   def "Handle controlled power change with ref target SOC"() {
@@ -248,19 +248,19 @@ class StorageModelTest extends Specification {
     50         | 0        || 0        | false         | false        | 0
     100        | 0        || 0        | false         | false        | 0
     // charging on empty
-    0          | 1        || 0.9      | true          | true         | 50 * 3600 / 0.9
-    0          | 2.5      || 2.25     | true          | true         | 20 * 3600 / 0.9
-    0          | 5        || 4.5      | true          | true         | 10 * 3600 / 0.9
-    0          | 10       || 9        | true          | true         | 5 * 3600 / 0.9
+    0          | 1        || 1        | true          | true         | 50 * 3600 / 0.9
+    0          | 2.5      || 2.5      | true          | true         | 20 * 3600 / 0.9
+    0          | 5        || 5        | true          | true         | 10 * 3600 / 0.9
+    0          | 10       || 10       | true          | true         | 5 * 3600 / 0.9
     // charging on target ref
-    50         | 5        || 4.5      | true          | true         | 10 * 3600 / 0.9
-    50         | 10       || 9        | true          | true         | 5 * 3600 / 0.9
+    50         | 5        || 5        | true          | true         | 10 * 3600 / 0.9
+    50         | 10       || 10       | true          | true         | 5 * 3600 / 0.9
     // discharging on target ref
-    50         | -4.5     || -5       | true          | true         | 10 * 3600
-    50         | -9       || -10      | true          | true         | 5 * 3600
+    50         | -4.5     || -4.5     | true          | true         | 10 * 3600
+    50         | -9       || -9       | true          | true         | 5 * 3600
     // discharging on full
-    100        | -4.5     || -5       | true          | true         | 10 * 3600
-    100        | -9       || -10      | true          | true         | 5 * 3600
+    100        | -4.5     || -4.5     | true          | true         | 10 * 3600
+    100        | -9       || -9       | true          | true         | 5 * 3600
   }
 
   def "Handle the edge case of discharging in tolerance margins"() {
@@ -339,7 +339,7 @@ class StorageModelTest extends Specification {
     )
 
     then:
-    Math.abs(result._1.chargingPower().toKilowatts() - (-10d)) < TOLERANCE
+    Math.abs(result._1.chargingPower().toKilowatts() - (-9d)) < TOLERANCE
     result._1.tick() == startTick + 1
     Math.abs(result._1.storedEnergy().toKilowattHours() - oldState.storedEnergy().toKilowattHours()) < TOLERANCE
     def flexChangeIndication = result._2
@@ -367,7 +367,7 @@ class StorageModelTest extends Specification {
     )
 
     then:
-    Math.abs(result._1.chargingPower().toKilowatts() - (4.5d)) < TOLERANCE
+    Math.abs(result._1.chargingPower().toKilowatts() - (5d)) < TOLERANCE
     result._1.tick() == startTick + 1
     Math.abs(result._1.storedEnergy().toKilowattHours() - oldState.storedEnergy().toKilowattHours()) < TOLERANCE
     def flexChangeIndication = result._2

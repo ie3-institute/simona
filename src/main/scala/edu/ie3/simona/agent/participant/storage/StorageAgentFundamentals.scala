@@ -335,16 +335,23 @@ trait StorageAgentFundamentals
   ): (StorageState, ApparentPower, FlexChangeIndicator) = {
     val (updatedState, flexChangeIndicator) =
       baseStateData.model.handleControlledPowerChange(data, lastState, setPower)
+    // In edge cases, the model does not accept the given set power
+    // and returns an adapted value
+    val updatedSetPower = updatedState.chargingPower
 
     val voltage = getAndCheckNodalVoltage(baseStateData, tick)
     val reactivePower = baseStateData.model.calculateReactivePower(
-      setPower,
+      updatedSetPower,
       voltage,
     )
 
     // TODO: Actually change state and calculate the next tick, when something happens
 
-    (updatedState, ApparentPower(setPower, reactivePower), flexChangeIndicator)
+    (
+      updatedState,
+      ApparentPower(updatedSetPower, reactivePower),
+      flexChangeIndicator,
+    )
   }
 
   /** Update the last known model state with the given external, relevant data

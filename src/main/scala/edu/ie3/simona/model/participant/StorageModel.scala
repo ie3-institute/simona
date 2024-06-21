@@ -152,6 +152,16 @@ final case class StorageModel(
     )
   }
 
+  private def calcNetPower(setPower: Power): Power =
+    if (setPower > zeroKW) {
+      // multiply eta if we're charging
+      setPower * eta.toEach
+    } else {
+      // divide by eta if we're discharging
+      // (draining the battery more than we get as output)
+      setPower / eta.toEach
+    }
+
   override def handleControlledPowerChange(
       data: StorageRelevantData,
       lastState: StorageState,
@@ -160,32 +170,28 @@ final case class StorageModel(
     val currentStoredEnergy =
       determineCurrentState(lastState, data.currentTick)
 
-    // net power after considering efficiency
-    val netPower =
-      if (setPower ~= zeroKW) {
+    val adaptedSetPower =
+      if (
         // if power is close to zero, set it to zero
+        (setPower ~= zeroKW)
+        // do not keep charging if we're already full
+        || (setPower > zeroKW && isFull(currentStoredEnergy))
+        // do not keep discharging if we're already empty
+        || (setPower < zeroKW && isEmpty(currentStoredEnergy))
+      )
         zeroKW
-      } else if (setPower > zeroKW) {
-        if (isFull(currentStoredEnergy))
-          zeroKW // do not keep charging if we're already full
-        else
-          // multiply eta if we're charging
-          setPower * eta.toEach
-      } else {
-        if (isEmpty(currentStoredEnergy))
-          zeroKW // do not keep discharging if we're already empty
-        else
-          // divide by eta if we're discharging
-          // (draining the battery more than we get as output)
-          setPower / eta.toEach
-      }
+      else
+        setPower
+
+    // net power after considering efficiency
+    val netPower = calcNetPower(adaptedSetPower)
 
     val currentState =
       StorageState(
         currentStoredEnergy,
-        netPower,
+        adaptedSetPower,
         data.currentTick,
-      ) // FIXME this should be setPower instead of netPower ? Because the EM receives / sees Power after considering eta / output power. Internal "discharging" needs to be done with netpower! Check whether EM get's setpower or netPower.
+      )
 
     // if the storage is at minimum or maximum charged energy AND we are charging
     // or discharging, flex options will be different at the next activation
@@ -258,7 +264,8 @@ final case class StorageModel(
       currentTick: Long,
   ): Energy = {
     val timespan = currentTick - lastState.tick
-    val energyChange = lastState.chargingPower * Seconds(timespan)
+    val netPower = calcNetPower(lastState.chargingPower)
+    val energyChange = netPower * Seconds(timespan)
 
     val newEnergy = lastState.storedEnergy + energyChange
 
@@ -291,6 +298,15 @@ object StorageModel {
       currentTick: Long
   ) extends CalcRelevantData
 
+  /** @param storedEnergy
+    *   The amount of currently stored energy
+    * @param chargingPower
+    *   The power with which the storage is (dis-)charging, valid until the next
+    *   state. Gross value that is valid outside the model, i.e. before
+    *   considering efficiency etc.
+    * @param tick
+    *   The tick at which this state is valid
+    */
   final case class StorageState(
       storedEnergy: Energy,
       chargingPower: Power,
