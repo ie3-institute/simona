@@ -9,13 +9,7 @@ package edu.ie3.simona.config
 import com.typesafe.config.{Config, ConfigException}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.InfluxDb1x
-import edu.ie3.simona.config.SimonaConfig.{
-  BaseOutputConfig,
-  RefSystemConfig,
-  ResultKafkaParams,
-  Simona,
-  TransformerControlGroup,
-}
+import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
@@ -114,7 +108,8 @@ case object ConfigFailFast extends LazyLogging {
 
     // check if the provided combinations of refSystems provided are valid
     val refSystems = simonaConfig.simona.gridConfig.refSystems
-    refSystems.foreach(checkRefSystem)
+    if (refSystems.isDefined)
+      refSystems.foreach(refsys => checkRefSystem(refsys))
 
     /* Check all participant model configurations */
     checkParticipantRuntimeConfiguration(
@@ -141,6 +136,11 @@ case object ConfigFailFast extends LazyLogging {
     /* Check all output configurations for participant models */
     checkParticipantsOutputConfig(
       simonaConfig.simona.output.participant
+    )
+
+    /* Check all output configurations for thermal models */
+    checkThermalOutputConfig(
+      simonaConfig.simona.output.thermal
     )
 
     /* Check power flow resolution configuration */
@@ -239,7 +239,7 @@ case object ConfigFailFast extends LazyLogging {
       case e: DateTimeParseException =>
         throw new InvalidConfigParameterException(
           s"Invalid dateTimeString: $dateTimeString." +
-            s"Please ensure that your date/time parameter match the following pattern: 'yyyy-MM-dd HH:mm:ss'",
+            s"Please ensure that your date/time parameter match the following pattern: 'yyyy-MM-dd'T'HH:mm:ss'Z''",
           e,
         )
     }
@@ -428,70 +428,74 @@ case object ConfigFailFast extends LazyLogging {
 
   /** Sanity checks for a [[SimonaConfig.RefSystemConfig]]
     *
-    * @param refSystem
-    *   the [[SimonaConfig.RefSystemConfig]] that should be checked
+    * @param refSystems
+    *   a list of [[SimonaConfig.RefSystemConfig]]s that should be checked
     */
-  private def checkRefSystem(refSystem: RefSystemConfig): Unit = {
 
-    val voltLvls =
-      refSystem.voltLvls.getOrElse(List.empty[SimonaConfig.VoltLvlConfig])
-    val gridIds = refSystem.gridIds.getOrElse(List.empty[String])
+  private def checkRefSystem(refSystems: List[RefSystemConfig]): Unit = {
+    refSystems.foreach { refSystem =>
+      {
+        val voltLvls =
+          refSystem.voltLvls.getOrElse(List.empty[SimonaConfig.VoltLvlConfig])
+        val gridIds = refSystem.gridIds.getOrElse(List.empty[String])
 
-    if (voltLvls.isEmpty && gridIds.isEmpty)
-      throw new InvalidConfigParameterException(
-        "The provided values for voltLvls and gridIds are empty! " +
-          s"At least one of these optional parameters has to be provided for a valid refSystem! " +
-          s"Provided refSystem is: $refSystem."
-      )
-
-    voltLvls.foreach { voltLvl =>
-      Try(Quantities.getQuantity(voltLvl.vNom)) match {
-        case Success(quantity) =>
-          if (!quantity.getUnit.isCompatible(Units.VOLT))
-            throw new InvalidConfigParameterException(
-              s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to electrical potential! Please provide the volt level with its unit, e.g. \"20 kV\""
-            )
-        case Failure(exception) =>
+        if (voltLvls.isEmpty && gridIds.isEmpty)
           throw new InvalidConfigParameterException(
-            s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to a quantity. Did you provide the volt level with it's unit (e.g. \"20 kV\")?",
-            exception,
+            "The provided values for voltLvls and gridIds are empty! " +
+              s"At least one of these optional parameters has to be provided for a valid refSystem! " +
+              s"Provided refSystem is: $refSystem."
+          )
+
+        voltLvls.foreach { voltLvl =>
+          Try(Quantities.getQuantity(voltLvl.vNom)) match {
+            case Success(quantity) =>
+              if (!quantity.getUnit.isCompatible(Units.VOLT))
+                throw new InvalidConfigParameterException(
+                  s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to electrical potential! Please provide the volt level with its unit, e.g. \"20 kV\""
+                )
+            case Failure(exception) =>
+              throw new InvalidConfigParameterException(
+                s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to a quantity. Did you provide the volt level with it's unit (e.g. \"20 kV\")?",
+                exception,
+              )
+          }
+        }
+
+        gridIds.foreach {
+          case gridIdRange @ ConfigConventions.gridIdDotRange(from, to) =>
+            rangeCheck(from.toInt, to.toInt, gridIdRange)
+          case gridIdRange @ ConfigConventions.gridIdMinusRange(from, to) =>
+            rangeCheck(from.toInt, to.toInt, gridIdRange)
+          case ConfigConventions.singleGridId(_) =>
+          case gridId =>
+            throw new InvalidConfigParameterException(
+              s"The provided gridId $gridId is malformed!"
+            )
+        }
+
+        refSystem.sNom match {
+          case ConfigConventions.refSystemQuantRegex(_) =>
+          case _ =>
+            throw new InvalidConfigParameterException(
+              s"Invalid value for sNom from provided refSystem $refSystem. Is a valid unit provided?"
+            )
+        }
+
+        refSystem.vNom match {
+          case ConfigConventions.refSystemQuantRegex(_) =>
+          case _ =>
+            throw new InvalidConfigParameterException(
+              s"Invalid value for vNom from provided refSystem $refSystem. Is a valid unit provided?"
+            )
+        }
+      }
+
+      def rangeCheck(from: Int, to: Int, gridIdRange: String): Unit = {
+        if (from >= to)
+          throw new InvalidConfigParameterException(
+            s"Invalid gridId Range $gridIdRange. Start $from cannot be equals or bigger than end $to."
           )
       }
-    }
-
-    gridIds.foreach {
-      case gridIdRange @ ConfigConventions.gridIdDotRange(from, to) =>
-        rangeCheck(from.toInt, to.toInt, gridIdRange)
-      case gridIdRange @ ConfigConventions.gridIdMinusRange(from, to) =>
-        rangeCheck(from.toInt, to.toInt, gridIdRange)
-      case ConfigConventions.singleGridId(_) =>
-      case gridId =>
-        throw new InvalidConfigParameterException(
-          s"The provided gridId $gridId is malformed!"
-        )
-    }
-
-    refSystem.sNom match {
-      case ConfigConventions.refSystemQuantRegex(_) =>
-      case _ =>
-        throw new InvalidConfigParameterException(
-          s"Invalid value for sNom from provided refSystem $refSystem. Is a valid unit provided?"
-        )
-    }
-
-    refSystem.vNom match {
-      case ConfigConventions.refSystemQuantRegex(_) =>
-      case _ =>
-        throw new InvalidConfigParameterException(
-          s"Invalid value for vNom from provided refSystem $refSystem. Is a valid unit provided?"
-        )
-    }
-
-    def rangeCheck(from: Int, to: Int, gridIdRange: String): Unit = {
-      if (from >= to)
-        throw new InvalidConfigParameterException(
-          s"Invalid gridId Range $gridIdRange. Start $from cannot be equals or bigger than end $to."
-        )
     }
   }
 
@@ -551,11 +555,23 @@ case object ConfigFailFast extends LazyLogging {
         )
     )
 
-    checkDefaultBaseOutputConfig(
-      subConfig.defaultConfig,
-      defaultString = "default",
-    )
-    checkIndividualParticipantsOutputConfigs(subConfig.individualConfigs)
+    implicit val elementType: String = "participant"
+
+    checkDefaultBaseOutputConfig(subConfig.defaultConfig)
+    checkIndividualOutputConfigs(subConfig.individualConfigs)
+  }
+
+  /** Check the config sub tree for output parameterization
+    *
+    * @param subConfig
+    *   Output sub config tree for participants
+    */
+  private def checkThermalOutputConfig(
+      subConfig: SimonaConfig.Simona.Output.Thermal
+  ): Unit = {
+    implicit val elementType: String = "thermal"
+    checkDefaultBaseOutputConfig(subConfig.defaultConfig)
+    checkIndividualOutputConfigs(subConfig.individualConfigs)
   }
 
   /** Checks resolution of power flow calculation
@@ -652,26 +668,26 @@ case object ConfigFailFast extends LazyLogging {
     */
   private def checkDefaultBaseOutputConfig(
       config: SimonaConfig.BaseOutputConfig,
-      defaultString: String,
-  ): Unit = {
+      defaultString: String = "default",
+  )(implicit elementType: String): Unit = {
     if (
       StringUtils
         .cleanString(config.notifier)
         .toLowerCase != StringUtils.cleanString(defaultString).toLowerCase
     )
       logger.warn(
-        s"You provided '${config.notifier}' as model type for the default participant output config. This will not be considered!"
+        s"You provided '${config.notifier}' as model type for the default $elementType output config. This will not be considered!"
       )
   }
 
-  /** Checks the participant output configurations on duplicates
+  /** Checks the given output configurations on duplicates
     *
     * @param configs
     *   List of individual config entries
     */
-  private def checkIndividualParticipantsOutputConfigs(
+  private def checkIndividualOutputConfigs(
       configs: List[SimonaConfig.BaseOutputConfig]
-  ): Unit = {
+  )(implicit elementType: String): Unit = {
     val duplicateKeys = configs
       .map(config => StringUtils.cleanString(config.notifier).toLowerCase())
       .groupMapReduce(identity)(_ => 1)(_ + _)
@@ -682,8 +698,20 @@ case object ConfigFailFast extends LazyLogging {
 
     if (duplicateKeys.nonEmpty)
       throw new InvalidConfigParameterException(
-        s"There are multiple output configurations for participant types '${duplicateKeys.mkString(",")}'."
+        s"There are multiple output configurations for $elementType types '${duplicateKeys.mkString(",")}'."
       )
+
+    implicit val exceptedNotifiers: Set[NotifierIdentifier.Value] =
+      elementType match {
+        case "participant" =>
+          NotifierIdentifier.getParticipantIdentifiers
+        case "thermal" =>
+          NotifierIdentifier.getThermalIdentifiers
+        case other =>
+          throw new InvalidConfigParameterException(
+            s"The output config for $other has no notifiers!"
+          )
+      }
 
     configs.foreach(checkBaseOutputConfig)
   }
@@ -692,23 +720,39 @@ case object ConfigFailFast extends LazyLogging {
     *
     * @param config
     *   to be checked
+    * @param exceptedNotifiers
+    *   a set of all valid identifiers
     */
-  private def checkBaseOutputConfig(config: BaseOutputConfig): Unit = {
-    checkNotifierIdentifier(config.notifier)
+  private def checkBaseOutputConfig(
+      config: BaseOutputConfig
+  )(implicit exceptedNotifiers: Set[NotifierIdentifier.Value]): Unit = {
+    checkNotifierIdentifier(config.notifier, exceptedNotifiers)
   }
 
   /** Check the validity of the identifier String
     *
     * @param id
     *   identifier String to check
+    * @param exceptedNotifiers
+    *   a set of all valid identifiers
     */
-  private def checkNotifierIdentifier(id: String): Unit = {
+  private def checkNotifierIdentifier(
+      id: String,
+      exceptedNotifiers: Set[NotifierIdentifier.Value],
+  ): Unit = {
     try {
-      NotifierIdentifier(id)
+      val notifier = NotifierIdentifier(id)
+
+      if (!exceptedNotifiers.contains(notifier)) {
+        throw new InvalidConfigParameterException(
+          s"The identifier '$id' you provided is not valid. Valid input: ${exceptedNotifiers.map(_.toString).mkString(",")}"
+        )
+      }
+
     } catch {
       case e: NoSuchElementException =>
         throw new InvalidConfigParameterException(
-          s"The identifier '$id' you provided is not valid. Valid input: ${NotifierIdentifier.values.map(_.toString).mkString(",")}",
+          s"The identifier '$id' you provided is not valid. Valid input: ${exceptedNotifiers.map(_.toString).mkString(",")}",
           e,
         )
     }

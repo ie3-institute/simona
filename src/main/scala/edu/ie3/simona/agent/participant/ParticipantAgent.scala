@@ -9,6 +9,7 @@ package edu.ie3.simona.agent.participant
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.participant.ParticipantAgent.{
   FinishParticipantSimulation,
+  RequestAssetPowerMessage,
   StartCalculationTrigger,
   getAndCheckNodalVoltage,
 }
@@ -44,7 +45,6 @@ import edu.ie3.simona.model.participant.{
   SystemParticipant,
 }
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexResponse,
   IssueFlexControl,
@@ -781,11 +781,9 @@ abstract class ParticipantAgent[
       setPower: squants.Power,
   ): (MS, PD, FlexChangeIndicator)
 
-  /** Determining the reply to an
-    * [[edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage]],
-    * send this answer and stay in the current state. If no reply can be
-    * determined (because an activation or incoming data is expected), the
-    * message is stashed.
+  /** Determining the reply to an [[RequestAssetPowerMessage]], send this answer
+    * and stay in the current state. If no reply can be determined (because an
+    * activation or incoming data is expected), the message is stashed.
     *
     * This methods goal is to find a reply as fast as possible, therefore the
     * following options are checked in subsequent order: 1) This request (in
@@ -851,6 +849,22 @@ abstract class ParticipantAgent[
 object ParticipantAgent {
 
   trait ParticipantMessage
+
+  /** Request the power values for the requested tick from an AssetAgent and
+    * provide the latest nodal voltage
+    *
+    * @param currentTick
+    *   The tick that power values are requested for
+    * @param eInPu
+    *   Real part of the complex, dimensionless nodal voltage
+    * @param fInPu
+    *   Imaginary part of the complex, dimensionless nodal voltage
+    */
+  final case class RequestAssetPowerMessage(
+      currentTick: Long,
+      eInPu: Dimensionless,
+      fInPu: Dimensionless,
+  ) extends ParticipantMessage
 
   final case class FinishParticipantSimulation(tick: Long)
       extends ParticipantMessage

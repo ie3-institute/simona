@@ -32,6 +32,7 @@ models/hp_model
 models/load_model
 models/pv_model
 models/wec_model
+models/em
 ```
 
 ## Measurement and Control

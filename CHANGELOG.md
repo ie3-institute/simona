@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implemented scaling of all relevant input parameters [#764](https://github.com/ie3-institute/simona/issues/764)
 - Consider scaling factor with flex options [#734](https://github.com/ie3-institute/simona/issues/734)
 - Implementation of Energy Management Agents [#204](https://github.com/ie3-institute/simona/issues/204)
+- Providing documentation for EmAgent protocols and algorithms [#774](https://github.com/ie3-institute/simona/issues/774)
+- Option to flush out `CylindricalStorageResults` [#826](https://github.com/ie3-institute/simona/issues/826)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -46,6 +48,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Converting `SimonaSim` to pekko typed/terminating SimonSim when initialization fails [#210](https://github.com/ie3-institute/simona/issues/210)
 - Converting the `GridAgent` and the `DBFSAlgorithm` to `pekko typed` [#666](https://github.com/ie3-institute/simona/issues/666)
 - Validation of grid will throw exception instead of just logging errors [#463](https://github.com/ie3-institute/simona/issues/463)
+- Refactoring of `GridAgent` messages [#736](https://github.com/ie3-institute/simona/issues/736)
+- Rewrote PVModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Making configuration of `RefSystem` via config optional [#769](https://github.com/ie3-institute/simona/issues/769)
 - External simulation should provide detailed information about next tick per agent [#776](https://github.com/ie3-institute/simona/issues/776)
 
 ### Fixed
@@ -57,6 +62,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed some compiler warnings [#657](https://github.com/ie3-institute/simona/issues/657)
 - Fixing false negative in ref system voltage validation [#706](https://github.com/ie3-institute/simona/issues/706)
 - Fixing randomly failing test in `RuntimeEventListenerSpec` etc. [#709](https://github.com/ie3-institute/simona/issues/709)
+- Fixed config start and end datetime parsing hint [#767](https://github.com/ie3-institute/simona/issues/767)
+- ConfigFailFast after making configuration of `RefSystem` via config optional [#797](https://github.com/ie3-institute/simona/issues/797)
+- Default RefSystem using the unit `Volt` for low voltage grids [#811](https://github.com/ie3-institute/simona/issues/811)
+- Fixed grid within GridSpec test [#806](https://github.com/ie3-institute/simona/issues/806)
+- Fixed log entry after power flow calculation [#814](https://github.com/ie3-institute/simona/issues/814)
 
 ## [3.0.0] - 2023-08-07
 

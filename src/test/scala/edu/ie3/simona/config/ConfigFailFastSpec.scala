@@ -22,8 +22,8 @@ import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
 import edu.ie3.util.TimeUtil
 
-import java.time.{Duration, ZonedDateTime}
 import java.time.temporal.ChronoUnit
+import java.time.{Duration, ZonedDateTime}
 
 class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
   "Validating the configs" when {
@@ -77,7 +77,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               "total non-sense"
             )
           }.getMessage shouldBe "Invalid dateTimeString: total non-sense." +
-            "Please ensure that your date/time parameter match the following pattern: 'yyyy-MM-dd HH:mm:ss'"
+            "Please ensure that your date/time parameter match the following pattern: 'yyyy-MM-dd'T'HH:mm:ss'Z''"
         }
       }
 
@@ -142,7 +142,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "throw an InvalidConfigParametersException when the gridId is malformed" in {
 
-          val malformedGridIds = List("10--100", "MS", "10..100")
+          val malformedGridIds = List("10--100", "MV", "10..100")
 
           malformedGridIds.foreach(malformedGridId => {
 
@@ -156,12 +156,14 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                    |]""".stripMargin)
             val faultyConfig =
               refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
-            val faultySimonaConfig = SimonaConfig(faultyConfig)
+            val faultySimonaConfig: List[SimonaConfig] =
+              List(SimonaConfig(faultyConfig))
 
             intercept[InvalidConfigParameterException] {
-              faultySimonaConfig.simona.gridConfig.refSystems.foreach(
-                refSystem =>
+              faultySimonaConfig.foreach(conf =>
+                conf.simona.gridConfig.refSystems.foreach(refSystem =>
                   ConfigFailFast invokePrivate checkRefSystem(refSystem)
+                )
               )
             }.getMessage shouldBe s"The provided gridId $malformedGridId is malformed!"
 
@@ -180,11 +182,14 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 |]""".stripMargin)
           val faultyConfig =
             refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
-          val faultySimonaConfig = SimonaConfig(faultyConfig)
+          val faultySimonaConfig: List[SimonaConfig] =
+            List(SimonaConfig(faultyConfig))
 
           intercept[InvalidConfigParameterException] {
-            faultySimonaConfig.simona.gridConfig.refSystems.foreach(refSystem =>
-              ConfigFailFast invokePrivate checkRefSystem(refSystem)
+            faultySimonaConfig.foreach(conf =>
+              conf.simona.gridConfig.refSystems.foreach(refSystem =>
+                ConfigFailFast invokePrivate checkRefSystem(refSystem)
+              )
             )
           }.getMessage shouldBe "The given nominal voltage 'foo' cannot be parsed to a quantity. Did you provide the volt level with it's unit (e.g. \"20 kV\")?"
 
@@ -197,19 +202,22 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 |  {
                 |   sNom="100",
                 |   vNom="0.4 kV",
-                |   voltLvls = [{id = "MS", vNom = "10 kV"},{id = "HS", vNom = "110 kV"}]
+                |   voltLvls = [{id = "MV", vNom = "10 kV"},{id = "HV", vNom = "110 kV"}]
                 |   }
                 |]""".stripMargin
             )
           val faultyConfig =
             refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
-          val faultySimonaConfig = SimonaConfig(faultyConfig)
+          val faultySimonaConfig: List[SimonaConfig] =
+            List(SimonaConfig(faultyConfig))
 
           intercept[InvalidConfigParameterException] {
-            faultySimonaConfig.simona.gridConfig.refSystems.foreach(refSystem =>
-              ConfigFailFast invokePrivate checkRefSystem(refSystem)
+            faultySimonaConfig.foreach(conf =>
+              conf.simona.gridConfig.refSystems.foreach(refSystem =>
+                ConfigFailFast invokePrivate checkRefSystem(refSystem)
+              )
             )
-          }.getMessage shouldBe "Invalid value for sNom from provided refSystem RefSystemConfig(None,100,0.4 kV,Some(List(VoltLvlConfig(MS,10 kV), VoltLvlConfig(HS,110 kV)))). Is a valid unit provided?"
+          }.getMessage shouldBe "Invalid value for sNom from provided refSystem RefSystemConfig(None,100,0.4 kV,Some(List(VoltLvlConfig(MV,10 kV), VoltLvlConfig(HV,110 kV)))). Is a valid unit provided?"
 
         }
 
@@ -221,19 +229,22 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 |  {
                 |   sNom="100 MVA",
                 |   vNom="0.4",
-                |   voltLvls = [{id = "MS", vNom = "10 kV"},{id = "HS", vNom = "110 kV"}]
+                |   voltLvls = [{id = "MV", vNom = "10 kV"},{id = "HV", vNom = "110 kV"}]
                 |   }
                 |]""".stripMargin
             )
           val faultyConfig =
             refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
-          val faultySimonaConfig = SimonaConfig(faultyConfig)
+          val faultySimonaConfig: List[SimonaConfig] =
+            List(SimonaConfig(faultyConfig))
 
           intercept[InvalidConfigParameterException] {
-            faultySimonaConfig.simona.gridConfig.refSystems.foreach(refSystem =>
-              ConfigFailFast invokePrivate checkRefSystem(refSystem)
+            faultySimonaConfig.foreach(conf =>
+              conf.simona.gridConfig.refSystems.foreach(refSystem =>
+                ConfigFailFast invokePrivate checkRefSystem(refSystem)
+              )
             )
-          }.getMessage shouldBe "Invalid value for vNom from provided refSystem RefSystemConfig(None,100 MVA,0.4,Some(List(VoltLvlConfig(MS,10 kV), VoltLvlConfig(HS,110 kV)))). Is a valid unit provided?"
+          }.getMessage shouldBe "Invalid value for vNom from provided refSystem RefSystemConfig(None,100 MVA,0.4,Some(List(VoltLvlConfig(MV,10 kV), VoltLvlConfig(HV,110 kV)))). Is a valid unit provided?"
 
         }
 
@@ -244,24 +255,26 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 |  {
                 |   sNom="100 MVA",
                 |   vNom="0.4 kV",
-                |   voltLvls = [{id = "MS", vNom = "10 kV"},{id = "HS", vNom = "110 kV"}]
+                |   voltLvls = [{id = "MV", vNom = "10 kV"},{id = "HV", vNom = "110 kV"}]
                 |   gridIds = ["1","1-10","10...100"]
                 |   },
                 |   {
                 |   sNom="1000 MVA",
                 |   vNom="10kV",
-                |   voltLvls = [{id = "HS", vNom = "110 kV"},{id = "HoeS", vNom = "380 kV"}]
+                |   voltLvls = [{id = "HV", vNom = "110 kV"},{id = "EHV", vNom = "380 kV"}]
                 |   gridIds = ["1-3","3...6","10...100"]
                 |   }
                 |]""".stripMargin
             )
           val config =
             refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
-          val simonaConfig = SimonaConfig(config)
+          val simonaConfig = List(SimonaConfig(config))
 
-          simonaConfig.simona.gridConfig.refSystems.foreach(refSystem => {
-            ConfigFailFast invokePrivate checkRefSystem(refSystem)
-          })
+          simonaConfig.foreach(conf =>
+            conf.simona.gridConfig.refSystems.foreach(refSystem => {
+              ConfigFailFast invokePrivate checkRefSystem(refSystem)
+            })
+          )
 
         }
       }
@@ -667,23 +680,27 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "identify faulty notifier identifiers" in {
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast invokePrivate checkNotifierIdentifier("whatever")
-          }.getMessage shouldBe s"The identifier 'whatever' you provided is not valid. Valid input: ${NotifierIdentifier.values.map(_.toString).mkString(",")}"
+            ConfigFailFast invokePrivate checkNotifierIdentifier(
+              "whatever",
+              NotifierIdentifier.getParticipantIdentifiers,
+            )
+          }.getMessage shouldBe s"The identifier 'whatever' you provided is not valid. Valid input: ${NotifierIdentifier.getParticipantIdentifiers.map(_.toString).mkString(",")}"
         }
 
         "let all valid notifier identifiers pass" in {
           noException shouldBe thrownBy {
-            NotifierIdentifier.values.map(id =>
+            NotifierIdentifier.getParticipantIdentifiers.map(id =>
               ConfigFailFast invokePrivate checkNotifierIdentifier(
-                id.toString
+                id.toString,
+                NotifierIdentifier.getParticipantIdentifiers,
               )
             )
           }
         }
 
-        val checkIndividualParticipantsOutputConfigs =
+        val checkIndividualOutputConfigs =
           PrivateMethod[Unit](
-            Symbol("checkIndividualParticipantsOutputConfigs")
+            Symbol("checkIndividualOutputConfigs")
           )
 
         "let distinct configs pass" in {
@@ -709,8 +726,9 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           )
 
           noException shouldBe thrownBy {
-            ConfigFailFast invokePrivate checkIndividualParticipantsOutputConfigs(
-              validInput
+            ConfigFailFast invokePrivate checkIndividualOutputConfigs(
+              validInput,
+              "participant",
             )
           }
         }
@@ -738,10 +756,85 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           )
 
           intercept[InvalidConfigParameterException](
-            ConfigFailFast invokePrivate checkIndividualParticipantsOutputConfigs(
-              invalidInput
+            ConfigFailFast invokePrivate checkIndividualOutputConfigs(
+              invalidInput,
+              "participant",
             )
           ).getMessage shouldBe "There are multiple output configurations for participant types 'load'."
+        }
+      }
+
+      "Checking thermal output configs" should {
+        val checkNotifierIdentifier =
+          PrivateMethod[Unit](Symbol("checkNotifierIdentifier"))
+
+        "identify faulty notifier identifiers" in {
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkNotifierIdentifier(
+              "whatever",
+              NotifierIdentifier.getThermalIdentifiers,
+            )
+          }.getMessage shouldBe s"The identifier 'whatever' you provided is not valid. Valid input: ${NotifierIdentifier.getThermalIdentifiers.map(_.toString).mkString(",")}"
+        }
+
+        "let all valid notifier identifiers pass" in {
+          noException shouldBe thrownBy {
+            Set("house", "cylindricalstorage").map(id =>
+              ConfigFailFast invokePrivate checkNotifierIdentifier(
+                id,
+                NotifierIdentifier.getThermalIdentifiers,
+              )
+            )
+          }
+        }
+
+        val checkIndividualOutputConfigs =
+          PrivateMethod[Unit](
+            Symbol("checkIndividualOutputConfigs")
+          )
+
+        "let distinct configs pass" in {
+          val validInput = List(
+            SimonaConfig.SimpleOutputConfig(
+              notifier = "house",
+              simulationResult = false,
+            ),
+            SimonaConfig.SimpleOutputConfig(
+              notifier = "cylindricalstorage",
+              simulationResult = false,
+            ),
+          )
+
+          noException shouldBe thrownBy {
+            ConfigFailFast invokePrivate checkIndividualOutputConfigs(
+              validInput,
+              "thermal",
+            )
+          }
+        }
+
+        "throw an exception, when there is a duplicate entry for the same model type" in {
+          val invalidInput = List(
+            SimonaConfig.SimpleOutputConfig(
+              notifier = "house",
+              simulationResult = false,
+            ),
+            SimonaConfig.SimpleOutputConfig(
+              notifier = "cylindricalstorage",
+              simulationResult = false,
+            ),
+            SimonaConfig.SimpleOutputConfig(
+              notifier = "house",
+              simulationResult = false,
+            ),
+          )
+
+          intercept[InvalidConfigParameterException](
+            ConfigFailFast invokePrivate checkIndividualOutputConfigs(
+              invalidInput,
+              "thermal",
+            )
+          ).getMessage shouldBe "There are multiple output configurations for thermal types 'house'."
         }
       }
 
