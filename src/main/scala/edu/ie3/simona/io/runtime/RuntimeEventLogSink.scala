@@ -59,9 +59,9 @@ final case class RuntimeEventLogSink(
       case Done(currentTick, duration, errorInSim) =>
         val simStatus =
           if (errorInSim)
-            s"\u001b[0;31mERROR (Failed PF: ${runtimeStats.failedPowerFlows})\u001b[0;30m"
+            s"\u001b[0;31mERROR (Failed PF: ${runtimeStats.failedPowerFlows})\u001b[0;0m"
           else
-            s"\u001b[0;32mSUCCESS (Failed PF: ${runtimeStats.failedPowerFlows})\u001b[0;30m"
+            s"\u001b[0;32mSUCCESS (Failed PF: ${runtimeStats.failedPowerFlows})\u001b[0;0m"
         log.info(
           s"******* Simulation completed with $simStatus in time step ${calcTime(currentTick)}. Total runtime: ${convertDuration(duration)} *******"
         )
