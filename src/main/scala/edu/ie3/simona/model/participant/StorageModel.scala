@@ -177,9 +177,9 @@ final case class StorageModel(
       if (
         // if power is close to zero, set it to zero
         (setPower ~= zeroKW)
-        // do not keep charging if we're already full
+        // do not keep charging if we're already full (including safety margin)
         || (setPower > zeroKW && isFull(currentStoredEnergy))
-        // do not keep discharging if we're already empty
+        // do not keep discharging if we're already empty (including safety margin)
         || (setPower < zeroKW && isEmpty(currentStoredEnergy))
       )
         zeroKW
