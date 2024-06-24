@@ -86,19 +86,6 @@ final case class StorageModel(
     )
   }
 
-  /** Calculate the power behaviour based on the given data.
-    *
-    * @param tick
-    *   Regarded instant in simulation
-    * @param voltage
-    *   Nodal voltage magnitude
-    * @param modelState
-    *   Current state of the model
-    * @param data
-    *   Further needed, secondary data
-    * @return
-    *   A tuple of active and reactive power
-    */
   override def calculatePower(
       tick: Long,
       voltage: Dimensionless,
