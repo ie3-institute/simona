@@ -316,6 +316,14 @@ object StorageModel {
       tick: Long,
   ) extends ModelState
 
+  /** @param targetSoc
+    *   The SOC that the StorageModel aims at, i.e. that it prefers to
+    *   charge/discharge towards
+    * @param targetWithPosMargin
+    *   The targetSoc plus a tolerance margin
+    * @param targetWithNegMargin
+    *   The targetSoc minus a tolerance margin
+    */
   final case class RefTargetSocParams(
       targetSoc: Energy,
       targetWithPosMargin: Energy,
