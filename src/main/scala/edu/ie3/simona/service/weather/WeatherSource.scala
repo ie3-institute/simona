@@ -106,21 +106,20 @@ trait WeatherSource {
       maxCoordinateDistance,
     )
 
-    val nr = possibleCornerPoints.size()
-
-    if (nr == 1) {
-      // found one exact match
-      Success(possibleCornerPoints.asScala)
-    } else if (nr == amountOfInterpolationCoords) {
-      // found enough points for interpolating
-      Success(possibleCornerPoints.asScala)
-    } else {
-      Failure(
-        ServiceException(
-          s"There are not enough coordinates for averaging. Found ${possibleCornerPoints.size()} within the given distance of " +
-            s"$maxCoordinateDistance but need $amountOfInterpolationCoords. Please make sure that there are enough coordinates within the given distance."
+    possibleCornerPoints.size() match {
+      case 1 =>
+        // found one exact match
+        Success(possibleCornerPoints.asScala)
+      case nr if nr == amountOfInterpolationCoords =>
+        // found enough points for interpolating
+        Success(possibleCornerPoints.asScala)
+      case invalidNo =>
+        Failure(
+          ServiceException(
+            s"There are not enough coordinates for averaging. Found $invalidNo within the given distance of " +
+              s"$maxCoordinateDistance but need $amountOfInterpolationCoords. Please make sure that there are enough coordinates within the given distance."
+          )
         )
-      )
     }
   }
 
