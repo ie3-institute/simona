@@ -66,7 +66,8 @@ class SimonaStandaloneSetup(
     resultFileHierarchy: ResultFileHierarchy,
     runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
     override val args: Array[String],
-    override val logOutputDir: String,
+)(
+    override val logOutputDir: String = resultFileHierarchy.logOutputDir
 ) extends SimonaSetup {
 
   override def gridAgents(
@@ -392,6 +393,5 @@ object SimonaStandaloneSetup extends LazyLogging with SetupHelper {
       resultFileHierarchy,
       runtimeEventQueue,
       mainArgs,
-      resultFileHierarchy.logOutputDir,
-    )
+    )()
 }
