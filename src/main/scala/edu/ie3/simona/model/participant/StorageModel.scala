@@ -37,8 +37,8 @@ final case class StorageModel(
     pMax: Power,
     eta: Dimensionless,
     dod: Dimensionless,
-    initialSoc: Double, // TODO this is ugly and should be solved in a different way, as this value is only used outside the model
-    targetSoc: Option[Double], // TODO only needed for initializing fields
+    initialSoc: Double,
+    targetSoc: Option[Double],
 ) extends SystemParticipant[StorageRelevantData, ApparentPower, StorageState](
       uuid,
       id,
