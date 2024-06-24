@@ -177,6 +177,10 @@ object SampleWeatherSource {
         coordinate,
         getClosestCoordinates(coordinate, 9, distance),
       )
+
+    override def validate(): Unit = {
+      /* nothing to do here */
+    }
   }
 
   // these lists contain the hourly weather values for each first of the month of 2011 + january of

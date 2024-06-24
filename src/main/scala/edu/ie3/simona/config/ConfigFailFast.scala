@@ -15,14 +15,6 @@ import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
   SqlParams,
 }
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.InfluxDb1x
-import edu.ie3.simona.config.SimonaConfig.{
-  BaseCsvParams,
-  BaseOutputConfig,
-  RefSystemConfig,
-  ResultKafkaParams,
-  Simona,
-  TransformerControlGroup,
-}
 import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.io.result.ResultSinkType

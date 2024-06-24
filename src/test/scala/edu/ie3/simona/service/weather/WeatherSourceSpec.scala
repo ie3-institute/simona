@@ -404,5 +404,9 @@ case object WeatherSourceSpec {
         coordinate,
         getClosestCoordinates(coordinate, 9, distance),
       )
+
+    override def validate(): Unit = {
+      /* nothing to do here */
+    }
   }
 }

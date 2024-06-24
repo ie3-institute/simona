@@ -32,7 +32,6 @@ import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.quantities.PowerSystemUnits._
 import squants.energy.Kilowatts
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units._
 
 import java.util.UUID
 import scala.jdk.CollectionConverters.SeqHasAsJava
@@ -78,9 +77,6 @@ trait EmInputTestData
     Quantities.getQuantity(5d, KILOWATT),
     Quantities.getQuantity(0.03, PU_PER_HOUR),
     Quantities.getQuantity(0.95, PU),
-    Quantities.getQuantity(20d, PERCENT),
-    Quantities.getQuantity(50000d, HOUR),
-    100000,
   )
 
   protected val householdStorageInput = new StorageInput(
