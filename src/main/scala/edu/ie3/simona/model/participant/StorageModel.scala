@@ -266,9 +266,9 @@ final case class StorageModel(
       lastState: StorageState,
       currentTick: Long,
   ): Energy = {
-    val timespan = currentTick - lastState.tick
+    val timespan = Seconds(currentTick - lastState.tick)
     val netPower = calcNetPower(lastState.chargingPower)
-    val energyChange = netPower * Seconds(timespan)
+    val energyChange = netPower * timespan
 
     val newEnergy = lastState.storedEnergy + energyChange
 
