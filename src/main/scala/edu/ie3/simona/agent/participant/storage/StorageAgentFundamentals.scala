@@ -345,8 +345,6 @@ trait StorageAgentFundamentals
       voltage,
     )
 
-    // TODO: Actually change state and calculate the next tick, when something happens
-
     (
       updatedState,
       ApparentPower(updatedSetPower, reactivePower),
