@@ -50,22 +50,25 @@ final case class StorageModel(
 
   private val minEnergy = zeroKWH
 
-  // max Tolerance 1W till GWh storage
-  private implicit val doubleTolerance: Power = eStorage / Seconds(1) * 3.6e-12
+  /** Tolerance for power comparisons. Amounts to 1 W for 1 GWh storage
+    */
+  private implicit val powerTolerance: Power = eStorage / Seconds(1) / 3.6e12
 
   /** In order to avoid faulty flexibility options, we want to avoid offering
     * charging/discharging that could last less than our smallest possible time
     * delta, which is one second.
     */
-  private val toleranceMargin = pMax * Seconds(1d)
+  private val toleranceMargin: Energy = pMax * Seconds(1d)
 
   /** Minimal allowed energy with tolerance margin added
     */
-  private val minEnergyWithMargin = minEnergy + (toleranceMargin / eta.toEach)
+  private val minEnergyWithMargin: Energy =
+    minEnergy + (toleranceMargin / eta.toEach)
 
   /** Maximum allowed energy with tolerance margin added
     */
-  private val maxEnergyWithMargin = eStorage - (toleranceMargin * eta.toEach)
+  private val maxEnergyWithMargin: Energy =
+    eStorage - (toleranceMargin * eta.toEach)
 
   private val refTargetSoc = targetSoc.map { target =>
     val targetEnergy = eStorage * target
