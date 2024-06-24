@@ -50,13 +50,26 @@ final case class StorageModel(
 
   private val minEnergy = zeroKWH
 
-  /** Tolerance for power comparisons. Amounts to 1 W for 1 GWh storage
+  /** Tolerance for power comparisons. With very small (dis-)charging powers,
+    * problems can occur when calculating the future tick at which storage is
+    * full or empty. For sufficiently large time frames, the maximum Long value
+    * ([[Long.MaxValue]]) can be exceeded, thus the Long value overflows and we
+    * get undefined behavior.
+    *
+    * Thus, small (dis-)charging powers compared to storage capacity have to be
+    * set to zero. The given tolerance value below amounts to 1 W for 1 GWh
+    * storage capacity and is sufficient in preventing Long overflows.
     */
   private implicit val powerTolerance: Power = eStorage / Seconds(1) / 3.6e12
 
-  /** In order to avoid faulty flexibility options, we want to avoid offering
-    * charging/discharging that could last less than our smallest possible time
-    * delta, which is one second.
+  /** In order to avoid faulty behavior of storages, we want to avoid offering
+    * charging/discharging when storage is very close to full, empty or to a
+    * target.
+    *
+    * In particular, we want to avoid offering the option to (dis-)charge if
+    * that operation could last less than our smallest possible time step, which
+    * is one second. Thus, we establish a safety margin of the energy
+    * (dis-)charged with maximum power in one second.
     */
   private val toleranceMargin: Energy = pMax * Seconds(1d)
 
