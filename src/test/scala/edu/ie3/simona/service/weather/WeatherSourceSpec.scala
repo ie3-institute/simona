@@ -456,5 +456,7 @@ case object WeatherSourceSpec {
         distance: ComparableQuantity[Length],
     ): util.List[CoordinateDistance] =
       calculateCoordinateDistances(coordinate, 4, coordinateToId.keySet.asJava)
+
+    override def validate(): Unit = ???
   }
 }

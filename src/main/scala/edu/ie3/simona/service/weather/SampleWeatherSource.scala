@@ -173,6 +173,8 @@ object SampleWeatherSource {
         point: Point,
         comparableQuantity: ComparableQuantity[Length],
     ): util.List[CoordinateDistance] = Vector.empty[CoordinateDistance].asJava
+
+    override def validate(): Unit = ???
   }
 
   // these lists contain the hourly weather values for each first of the month of 2011 + january of
