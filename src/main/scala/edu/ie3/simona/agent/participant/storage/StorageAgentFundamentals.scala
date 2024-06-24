@@ -374,6 +374,9 @@ trait StorageAgentFundamentals
       calcRelevantData: StorageRelevantData,
       nodalVoltage: Dimensionless,
       model: StorageModel,
-  ): StorageState = ??? // TODO implement?
+  ): StorageState =
+    throw new InvalidRequestException(
+      "StorageAgent cannot be used without EM control"
+    )
 
 }
