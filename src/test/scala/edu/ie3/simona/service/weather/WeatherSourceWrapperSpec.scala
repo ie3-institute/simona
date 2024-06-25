@@ -318,9 +318,7 @@ object WeatherSourceWrapperSpec {
       ),
     )
 
-    override def getSourceFields[C <: WeatherValue](
-        entityClass: Class[C]
-    ): Optional[util.Set[String]] =
+    override def getSourceFields: Optional[util.Set[String]] =
       // only required for validation
       Optional.empty
 
