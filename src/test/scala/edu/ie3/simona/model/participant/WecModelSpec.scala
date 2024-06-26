@@ -11,7 +11,10 @@ import edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.system.WecInput
 import edu.ie3.datamodel.models.input.system.`type`.WecTypeInput
-import edu.ie3.datamodel.models.input.system.characteristic.{ReactivePowerCharacteristic, WecCharacteristicInput}
+import edu.ie3.datamodel.models.input.system.characteristic.{
+  ReactivePowerCharacteristic,
+  WecCharacteristicInput,
+}
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
@@ -94,10 +97,14 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
       val wecModel = buildWecModel()
       wecModel.uuid shouldBe inputModel.getUuid
       wecModel.id shouldBe inputModel.getId
-      wecModel.rotorArea.toSquareMeters shouldBe (typeInput.getRotorArea.toSystemUnit.getValue.doubleValue() +- 1e-5)
+      wecModel.rotorArea.toSquareMeters shouldBe (typeInput.getRotorArea.toSystemUnit.getValue
+        .doubleValue() +- 1e-5)
       wecModel.cosPhiRated shouldBe typeInput.getCosPhiRated
-      wecModel.sRated.toWatts shouldBe (typeInput.getsRated.toSystemUnit.getValue.doubleValue() +- 1e-5)
-      wecModel.betzCurve shouldBe new WecModel.WecCharacteristic.apply(inputModel.getType.getCpCharacteristic)
+      wecModel.sRated.toWatts shouldBe (typeInput.getsRated.toSystemUnit.getValue
+        .doubleValue() +- 1e-5)
+      wecModel.betzCurve shouldBe WecModel.WecCharacteristic.apply(
+        inputModel.getType.getCpCharacteristic
+      )
     }
 
     "determine Betz coefficient correctly" in {
