@@ -13,7 +13,7 @@ plugins {
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
   id "com.github.johnrengelman.shadow" version "8.1.1" // fat jar
   id "org.sonarqube" version "5.0.0.4638" // sonarqube
-  id "org.scoverage" version "8.0.3" // scala code coverage scoverage
+  id "org.scoverage" version "8.1" // scala code coverage scoverage
   id "com.github.maiflai.scalatest" version "0.32" // run scalatest without specific spec task
   id 'org.hidetake.ssh' version '2.11.2'
   id 'net.thauvin.erik.gradle.semver' version '1.0.4' // semantic versioning
@@ -75,7 +75,7 @@ dependencies {
     /* Exclude our own nested dependencies */
     exclude group: 'com.github.ie3-institute'
   }
-  implementation('com.github.ie3-institute:PowerSystemDataModel:5.0.1') {
+  implementation('com.github.ie3-institute:PowerSystemDataModel:5.1.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
