@@ -195,7 +195,7 @@ trait StorageAgentFundamentals
   ) => ApparentPower =
     (_, _, _, _) =>
       throw new InvalidRequestException(
-        "PV model cannot be run without secondary data."
+        "Storage model cannot be run without secondary data."
       )
 
   override def calculatePowerWithSecondaryDataAndGoToIdle(
