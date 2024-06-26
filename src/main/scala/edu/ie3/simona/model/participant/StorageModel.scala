@@ -36,7 +36,6 @@ final case class StorageModel(
     eStorage: Energy,
     pMax: Power,
     eta: Dimensionless,
-    dod: Dimensionless,
     initialSoc: Double,
     targetSoc: Option[Double],
 ) extends SystemParticipant[StorageRelevantData, ApparentPower, StorageState](
@@ -376,9 +375,6 @@ object StorageModel {
       ),
       Each(
         scaledInput.getType.getEta.to(PowerSystemUnits.PU).getValue.doubleValue
-      ),
-      Each(
-        scaledInput.getType.getDod.to(PowerSystemUnits.PU).getValue.doubleValue
       ),
       initialSoc,
       targetSoc,
