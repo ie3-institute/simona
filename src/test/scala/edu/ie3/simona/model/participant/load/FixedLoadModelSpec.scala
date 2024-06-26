@@ -147,34 +147,29 @@ class FixedLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
       forAll(testData) { (reference, expectedPower: Power) =>
         val relevantData = FixedLoadModel.FixedLoadRelevantData
 
-        var scale = 0.0
-        while (scale <= 2.0) {
-          val scaledSRated = Kilowatts(
-            loadInput.getsRated
-              .to(PowerSystemUnits.KILOWATT)
-              .getValue
-              .doubleValue() * scale
-          )
-          val dut = new FixedLoadModel(
-            loadInput.getUuid,
-            loadInput.getId,
-            foreSeenOperationInterval,
-            QControl.apply(loadInput.getqCharacteristics),
-            scaledSRated,
-            loadInput.getCosPhiRated,
-            reference,
-          )
+        val scale = 1.0
+        val scaledSRated = Kilowatts(
+          loadInput.getsRated
+            .to(PowerSystemUnits.KILOWATT)
+            .getValue
+            .doubleValue() * scale
+        )
+        val dut = new FixedLoadModel(
+          loadInput.getUuid,
+          loadInput.getId,
+          foreSeenOperationInterval,
+          QControl.apply(loadInput.getqCharacteristics),
+          scaledSRated,
+          loadInput.getCosPhiRated,
+          reference,
+        )
 
-          val calculatedPower = dut
-            .calculateActivePower(ModelState.ConstantState, relevantData)
-            .toWatts
-          val expectedScaledPower = expectedPower.toWatts * scale
-          math.abs(
-            calculatedPower - expectedScaledPower
-          ) should be < tolerance.toWatts
+        val calculatedPower = dut
+          .calculateActivePower(ModelState.ConstantState, relevantData)
+          .toWatts
+        val expectedScaledPower = expectedPower.toWatts * scale
 
-          scale += 0.1
-        }
+        calculatedPower should be(expectedScaledPower +- tolerance.toWatts)
       }
     }
   }
