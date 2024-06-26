@@ -54,9 +54,6 @@ class StorageModelTest extends Specification {
     getQuantity(10d, KILOWATT),
     getQuantity(0.03, PU_PER_HOUR),
     getQuantity(0.9, PU),
-    getQuantity(20d, PERCENT),
-    getQuantity(43800.0, HOUR),
-    100000
     )
 
     inputModel = new StorageInput(
