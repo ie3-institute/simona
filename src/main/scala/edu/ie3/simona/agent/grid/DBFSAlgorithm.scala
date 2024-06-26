@@ -634,17 +634,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               "Assets have changed their exchanged power with the grid. Update nodal powers and prepare new power flow."
             )
             val updatedGridAgentBaseData: GridAgentBaseData =
-              receivedPowerValues match {
-                case receivedPowers: ReceivedPowerValues =>
-                  gridAgentBaseData.updateWithReceivedPowerValues(
-                    receivedPowers,
-                    replace = true,
-                  )
-                case unknownValuesReceived =>
-                  throw new DBFSAlgorithmException(
-                    s"Received unsuitable values: $unknownValuesReceived"
-                  )
-              }
+              gridAgentBaseData.updateWithReceivedPowerValues(
+                receivedPowerValues,
+                replace = true,
+              )
 
             // check if we have enough data for a power flow calculation
             // if yes, go to the powerflow
@@ -1019,12 +1012,12 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           "Received Failed Power Flow Result. Escalate to my parent."
         )
 
-        // we want to answer the requests from our parent
         val powerFlowDoneData = PowerFlowDoneData(
           gridAgentBaseData,
           FailedNewtonRaphsonPFResult(-1, CalculationFailed),
         )
 
+        // we want to answer the requests from our parent
         buffer.unstashAll(behavior(powerFlowDoneData, currentTick))
       } else {
         ctx.self ! DoPowerFlowTrigger(
