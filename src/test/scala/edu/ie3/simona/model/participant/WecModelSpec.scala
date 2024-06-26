@@ -11,10 +11,7 @@ import edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.system.WecInput
 import edu.ie3.datamodel.models.input.system.`type`.WecTypeInput
-import edu.ie3.datamodel.models.input.system.characteristic.{
-  ReactivePowerCharacteristic,
-  WecCharacteristicInput,
-}
+import edu.ie3.datamodel.models.input.system.characteristic.{ReactivePowerCharacteristic, WecCharacteristicInput}
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
@@ -24,17 +21,16 @@ import squants.{Each, Power}
 import squants.energy.Watts
 import squants.mass.{Density, KilogramsPerCubicMeter}
 import squants.motion.{MetersPerSecond, Pascals}
-import squants.space.SquareMeters
 import squants.thermal.Celsius
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{METRE, PERCENT, SQUARE_METRE}
 
 import java.util.UUID
+
 class WecModelSpec extends UnitSpec with DefaultTestData {
 
   private implicit val densityTolerance: Density = KilogramsPerCubicMeter(1e-5)
-  val rotorAreaTolerance = SquareMeters(1e-5)
-  private implicit val powerTolerance: Power = Watts(1e-2)
+  private implicit val powerTolerance: Power = Watts(1e-5)
 
   val nodeInput = new NodeInput(
     UUID.fromString("ad39d0b9-5ad6-4588-8d92-74c7d7de9ace"),
@@ -53,7 +49,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
     "WecTypeInput",
     Quantities.getQuantity(1000, PowerSystemUnits.EURO),
     Quantities.getQuantity(1000, PowerSystemUnits.EURO_PER_MEGAWATTHOUR),
-    Quantities.getQuantity(1200, PowerSystemUnits.KILOWATT),
+    Quantities.getQuantity(1200.0, PowerSystemUnits.KILOVOLTAMPERE),
     0.95,
     new WecCharacteristicInput(
       "cP:{(0.0,0.0), (1.0,0.0), (2.0,0.115933516), (3.0,0.286255595), (4.0,0.39610618), " +
@@ -98,10 +94,10 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
       val wecModel = buildWecModel()
       wecModel.uuid shouldBe inputModel.getUuid
       wecModel.id shouldBe inputModel.getId
-      wecModel.rotorArea shouldBe (typeInput.getRotorArea === rotorAreaTolerance)
+      wecModel.rotorArea.toSquareMeters shouldBe (typeInput.getRotorArea.toSystemUnit.getValue.doubleValue() +- 1e-5)
       wecModel.cosPhiRated shouldBe typeInput.getCosPhiRated
-      wecModel.sRated shouldBe typeInput.getsRated
-      wecModel.betzCurve shouldBe typeInput.getCpCharacteristic
+      wecModel.sRated.toWatts shouldBe (typeInput.getsRated.toSystemUnit.getValue.doubleValue() +- 1e-5)
+      wecModel.betzCurve shouldBe new WecModel.WecCharacteristic.apply(inputModel.getType.getCpCharacteristic)
     }
 
     "determine Betz coefficient correctly" in {
@@ -184,7 +180,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
         )
         val result =
           wecModel.calculateActivePower(ModelState.ConstantState, wecData)
-        result.toWatts shouldEqual Watts(power) +- powerTolerance
+        result.toWatts shouldBe power.doubleValue() +- powerTolerance.toWatts
       }
     }
   }
