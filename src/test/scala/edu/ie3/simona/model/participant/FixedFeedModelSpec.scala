@@ -7,8 +7,7 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.OperationTime
-import edu.ie3.datamodel.models.input.NodeInput
-import edu.ie3.datamodel.models.input.OperatorInput
+import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
