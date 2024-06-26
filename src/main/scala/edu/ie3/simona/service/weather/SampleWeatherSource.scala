@@ -168,6 +168,18 @@ object SampleWeatherSource {
       else
         Vector.empty[CoordinateDistance].asJava
     }
+
+    override def findCornerPoints(
+        point: Point,
+        distance: ComparableQuantity[Length],
+    ): util.List[CoordinateDistance] = {
+      // just a dummy implementation, because this is just a sample weather source
+      getClosestCoordinates(point, 4, distance)
+    }
+
+    override def validate(): Unit = {
+      /* nothing to do here */
+    }
   }
 
   // these lists contain the hourly weather values for each first of the month of 2011 + january of

@@ -721,9 +721,10 @@ class ConfigUtilSpec
         ),
       )
       val configUtil = OutputConfigUtil(inputConfig)
-      val expectedResult: Set[Value] = NotifierIdentifier.values -- Vector(
-        NotifierIdentifier.PvPlant
-      ) -- NotifierIdentifier.getThermalIdentifiers.toVector
+      val expectedResult: Set[Value] =
+        NotifierIdentifier.getParticipantIdentifiers -- Vector(
+          NotifierIdentifier.PvPlant
+        )
 
       configUtil.simulationResultIdentifiersToConsider(
         false
