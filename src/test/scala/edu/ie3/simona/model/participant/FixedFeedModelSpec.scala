@@ -19,8 +19,7 @@ import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.Sq
 import org.scalatest.prop.TableDrivenPropertyChecks
-import squants.Power
-import squants.energy.Watts
+import squants.energy.{Kilowatts, Power, Watts}
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
@@ -69,7 +68,7 @@ class FixedFeedModelSpec extends UnitSpec with TableDrivenPropertyChecks {
         .to(PowerSystemUnits.KILOWATT)
         .getValue
         .doubleValue() * -1 * fixedFeedInput.getCosPhiRated * 1.0,
-      PowerSystemUnits.KILOWATT,
+      Kilowatts,
     )
 
     "The fixed feed model" should {
@@ -84,16 +83,15 @@ class FixedFeedModelSpec extends UnitSpec with TableDrivenPropertyChecks {
               .getsRated()
               .to(PowerSystemUnits.KILOWATT)
               .getValue
-              .doubleValue()
               .doubleValue(),
-            PowerSystemUnits.KILOWATT,
+            Kilowatts,
           ),
           fixedFeedInput.getCosPhiRated,
         )
 
         actualModel.calculateActivePower(
-          ModelState.ConstanteState,
-          FixedFeedModel.FixedRelevantData,
+          ModelState.ConstantState,
+          CalcRelevantData.FixedRelevantData,
         ) =~ expectedPower
       }
     }
