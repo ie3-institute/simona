@@ -18,11 +18,4 @@ Institute of Energy Systems, Energy Efficiency and Energy Economics at TU Dortmu
    models
    developersguide
    references
-   allpages
-
-Indices and tables
-==================
-
-For more information, please visit the :doc:`All Pages <allpages>` page.
-
-
+   index

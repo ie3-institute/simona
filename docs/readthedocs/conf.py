@@ -37,7 +37,7 @@ source_encoding = 'utf-8-sig'
 html_theme = 'sphinx_rtd_theme'
 html_short_title = "simona"
 htmlhelp_basename = 'simona-doc'
-html_use_index = True
+html_use_index = False
 html_show_sourcelink = False
 html_static_path = ['_static']
 
