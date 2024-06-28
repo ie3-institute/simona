@@ -9,8 +9,7 @@ package edu.ie3.simona.model.grid
 import edu.ie3.util.scala.quantities.Sq
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import squants.Dimensionless
-import squants.Each
+import squants.{Dimensionless, Each}
 import squants.electro.{Amperes, ElectricPotential, Kilovolts, Ohms, Volts}
 import squants.energy.{Megawatts, Power, Watts}
 
