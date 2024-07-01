@@ -9,10 +9,7 @@ package edu.ie3.simona.agent.grid
 import breeze.linalg.{DenseMatrix, DenseVector}
 import breeze.math.Complex
 import edu.ie3.datamodel.graph.SubGridGate
-import edu.ie3.powerflow.model.FailureCause.{
-  CalculationFailed,
-  MaxIterationsReached,
-}
+import edu.ie3.powerflow.model.FailureCause.CalculationFailed
 import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.FailedPowerFlowResult.FailedNewtonRaphsonPFResult
