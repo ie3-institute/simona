@@ -450,5 +450,17 @@ case object WeatherSourceSpec {
     ): util.List[CoordinateDistance] = {
       calculateCoordinateDistances(coordinate, n, coordinateToId.keySet.asJava)
     }
+
+    override def findCornerPoints(
+        point: Point,
+        distance: ComparableQuantity[Length],
+    ): util.List[CoordinateDistance] = {
+      // just a dummy implementation
+      getClosestCoordinates(point, 4, distance)
+    }
+
+    override def validate(): Unit = {
+      /* nothing to do here */
+    }
   }
 }
