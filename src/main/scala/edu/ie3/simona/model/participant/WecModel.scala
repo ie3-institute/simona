@@ -214,7 +214,7 @@ object WecModel {
   /** This class is initialized with a [[WecCharacteristicInput]], which
     * contains the needed betz curve.
     */
-  final case class WecCharacteristic (
+  final case class WecCharacteristic(
       override val xyCoordinates: SortedSet[
         XYPair[Velocity, Dimensionless]
       ]
