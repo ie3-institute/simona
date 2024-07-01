@@ -30,6 +30,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
+import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
@@ -70,16 +71,18 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
   "A GridAgent actor in center position with async test" should {
 
-    val centerGridAgent =
-      testKit.spawn(
-        GridAgent(
-          environmentRefs,
-          simonaConfig,
-          listener = Iterable(resultListener.ref),
+    // since the grid agent is stopped after a failed power flow
+    // we need to initialize the agent for each test
+    def initAndGoToSimulateGrid: ActorRef[GridAgent.Request] = {
+      val centerGridAgent =
+        testKit.spawn(
+          GridAgent(
+            environmentRefs,
+            simonaConfig,
+            listener = Iterable(resultListener.ref),
+          )
         )
-      )
 
-    s"initialize itself when it receives an init activation" in {
       // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
       val subGridGateToActorRef = hvSubGridGatesPF.map {
         case gate if gate.getInferiorSubGrid == hvGridContainerPF.getSubnet =>
@@ -117,18 +120,19 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
       centerGridAgent ! WrappedActivation(Activation(INIT_SIM_TICK))
       scheduler.expectMessage(Completion(gridAgentActivation, Some(3600)))
-    }
-
-    s"go to SimulateGrid when it receives an activation" in {
 
       // send init data to agent
       centerGridAgent ! WrappedActivation(Activation(3600))
 
       // we expect a completion message
       scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
+
+      centerGridAgent
     }
 
     s"start the simulation when an activation is sent is sent, handle failed power flow if it occurs" in {
+      val centerGridAgent = initAndGoToSimulateGrid
+
       val sweepNo = 0
 
       // send the start grid simulation trigger
@@ -210,5 +214,79 @@ class DBFSAlgorithmFailedPowerFlowSpec
       runtimeEvents.expectNoMessage()
     }
 
+    s"inform its superior GridAgent if a failed power flow occurred" in {
+      val centerGridAgent = initAndGoToSimulateGrid
+
+      val sweepNo = 0
+
+      // send the start grid simulation trigger
+      centerGridAgent ! WrappedActivation(Activation(3600))
+
+      // we expect a request for grid power values here for sweepNo $sweepNo
+      val powerRequestSender = inferiorGridAgent.expectGridPowerRequest()
+
+      // we expect a request for voltage values of slack node
+      val slackVoltageRequestSender =
+        superiorGridAgent.expectSlackVoltageRequest(sweepNo)
+
+      // normally the inferior grid agents ask for the slack voltage as well to do their power flow calculation
+      // we simulate this behaviour now by doing the same for our inferior grid agent
+      inferiorGridAgent.requestSlackVoltage(centerGridAgent, sweepNo)
+
+      // as we are in the first sweep, provided slack voltage should be equal
+      // to 1 p.u. (in physical value, here: 110kV) from the superior grid agent perspective
+      // (here: centerGridAgent perspective)
+      inferiorGridAgent.expectSlackVoltageProvision(
+        sweepNo,
+        Seq(
+          ExchangeVoltage(
+            node1.getUuid,
+            Kilovolts(110d),
+            Kilovolts(0d),
+          )
+        ),
+      )
+
+      // we have a failed power flow in the inferior grid
+      // and send this info to the center grid
+      powerRequestSender ! FailedPowerFlow
+
+      slackVoltageRequestSender ! SlackVoltageResponse(
+        sweepNo,
+        Seq(
+          ExchangeVoltage(
+            supNodeA.getUuid,
+            Kilovolts(380d),
+            Kilovolts(0d),
+          )
+        ),
+      )
+
+      // power flow calculation should run now. After it's done,
+      // our test agent should now be ready to provide the grid power values,
+      // hence we ask for them and expect a corresponding response
+      superiorGridAgent.requestGridPower(centerGridAgent, sweepNo)
+
+      // the center grid should forward the failed power flow message to the superior grid
+      superiorGridAgent.gaProbe.expectMessage(30 seconds, FailedPowerFlow)
+
+      // normally the slack node would send a FinishGridSimulationTrigger to all
+      // connected inferior grids, because the slack node is just a mock, we imitate this behavior
+      centerGridAgent ! FinishGridSimulationTrigger(3600)
+
+      // after a FinishGridSimulationTrigger is send to the inferior grids, they themselves will
+      // forward the trigger to their connected inferior grids. Therefore the inferior grid agent
+      // should receive a FinishGridSimulationTrigger
+      inferiorGridAgent.gaProbe.expectMessage(FinishGridSimulationTrigger(3600))
+
+      // after all grids have received a FinishGridSimulationTrigger, the scheduler should receive a Completion
+      scheduler.expectMessageType[Completion].newTick shouldBe Some(7200)
+
+      resultListener.expectNoMessage()
+
+      // PowerFlowFailed events are only sent by the slack subgrid
+      runtimeEvents.expectNoMessage()
+    }
   }
+
 }

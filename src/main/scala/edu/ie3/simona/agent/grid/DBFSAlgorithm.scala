@@ -407,16 +407,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                   sender ! GridPowerResponse(exchangePowers)
                   simulateGrid(updatedGridAgentBaseData, currentTick)
 
-                case failedResult: FailedNewtonRaphsonPFResult =>
-                  if (failedResult.cause == MaxIterationsReached) {
-                    ctx.log.warn(
-                      "Power flow in grid {} failed after {} iterations. Cause: {}",
-                      ctx.self,
-                      failedResult.iteration,
-                      failedResult.cause,
-                    )
-                  }
-
+                case _: FailedNewtonRaphsonPFResult =>
                   sender ! FailedPowerFlow
                   simulateGrid(gridAgentBaseData, currentTick)
               }
@@ -607,7 +598,9 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                   failedNewtonRaphsonPFResult,
                 )
               ctx.log.warn(
-                "Power flow calculation before asking for updated powers did finally not converge!"
+                s"Subgrid {}: Power flow calculation before asking for updated powers did finally not converge! Cause: {}",
+                gridModel.subnetNo,
+                failedNewtonRaphsonPFResult.cause,
               )
               // we can answer the stashed grid power requests now and report a failed power flow back
               buffer.unstashAll(simulateGrid(powerFlowDoneData, currentTick))
@@ -1018,7 +1011,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         )
 
         // we want to answer the requests from our parent
-        buffer.unstashAll(behavior(powerFlowDoneData, currentTick))
+        buffer.unstashAll(simulateGrid(powerFlowDoneData, currentTick))
       } else {
         ctx.self ! DoPowerFlowTrigger(
           currentTick,
