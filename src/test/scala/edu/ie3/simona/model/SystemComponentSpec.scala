@@ -16,10 +16,8 @@ import java.time.ZonedDateTime
 
 class SystemComponentSpec extends AnyFlatSpec with Matchers {
 
-  var operationTimeBuilder: OperationTime.OperationTimeBuilder = _
-
-  def setup(): Unit = {
-    operationTimeBuilder = OperationTime.builder()
+  def setup(): OperationTime.OperationTimeBuilder = {
+    OperationTime.builder()
   }
 
   "SystemComponent" should "determine the correct operation interval" in {
@@ -58,7 +56,7 @@ class SystemComponentSpec extends AnyFlatSpec with Matchers {
     )
 
     for ((operationStart, operationEnd, expected) <- testCases) {
-      setup()
+      val operationTimeBuilder = setup()
 
       operationStart.foreach(operationTimeBuilder.withStart)
       operationEnd.foreach(operationTimeBuilder.withEnd)
@@ -82,7 +80,7 @@ class SystemComponentSpec extends AnyFlatSpec with Matchers {
     val simulationEnd: ZonedDateTime =
       TimeUtil.withDefaults.toZonedDateTime("2019-01-02T00:00:00Z")
 
-    setup()
+    val operationTimeBuilder = setup()
 
     operationTimeBuilder.withStart(
       TimeUtil.withDefaults.toZonedDateTime("2019-01-02T00:00:00Z")
