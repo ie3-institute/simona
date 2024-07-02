@@ -61,13 +61,12 @@ class FixedFeedModelSpec extends UnitSpec with TableDrivenPropertyChecks {
         fixedFeedInput.getOperationTime,
       )
 
-    val expectedPower = Sq.create(
+    val expectedPower = Kilowatts(
       fixedFeedInput
         .getsRated()
         .to(PowerSystemUnits.KILOWATT)
         .getValue
-        .doubleValue() * -1 * fixedFeedInput.getCosPhiRated * 1.0,
-      Kilowatts,
+        .doubleValue() * -1 * fixedFeedInput.getCosPhiRated
     )
 
     "The fixed feed model" should {
