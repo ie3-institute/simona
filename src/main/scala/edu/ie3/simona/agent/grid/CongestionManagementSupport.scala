@@ -116,18 +116,19 @@ trait CongestionManagementSupport {
   /** Method for calculating the tap pos changes for all given transformers and
     * the voltage delta.
     *
-    * @param suggestion
-    *   given delta suggestion
+    * @param range
+    *   given voltage range
     * @param tappings
     *   a set of all transformers
     * @return
     *   a map: model to tap pos change and resulting voltage delta
     */
   def calculateTapAndVoltage(
-      suggestion: ComparableQuantity[Dimensionless],
+      range: VoltageRange,
       tappings: Seq[TransformerTapping],
   ): (Map[TransformerTapping, Int], ComparableQuantity[Dimensionless]) = {
     val noTapping = (tappings.map(t => t -> 0).toMap, 0.asPu)
+    val suggestion = range.suggestion
 
     if (suggestion.isEquivalentTo(0.asPu)) {
       return noTapping
@@ -135,59 +136,125 @@ trait CongestionManagementSupport {
 
     // calculate a tap option for each transformer
     if (tappings.forall(_.hasAutoTap)) {
-      val possibleDeltas = tappings.map(_.possibleDeltas(ConnectorPort.B))
+      val possibleDeltas = tappings.map(
+        _.possibleDeltas(range.deltaPlus, range.deltaMinus, ConnectorPort.B)
+      )
 
-      if (possibleDeltas.exists(_.size < 2)) {
-        // there is a transformer that cannot be taped
-        noTapping
+      val deltaOption = if (possibleDeltas.exists(_.isEmpty)) {
+        // there is a transformer that cannot be tapped
+        None
+      } else if (possibleDeltas.exists(_.size == 1)) {
+        // there is a transformer that can only be tapped by one delta
+        val delta = possibleDeltas.flatten.toSet
+
+        if (delta.size == 1) {
+          // all transformer have the same delta
+          Some(delta.toSeq(0))
+        } else None
+
       } else {
-
-        // reduce all possible deltas
-        val reducedOptions = possibleDeltas.map { deltas =>
-          if (deltas.exists(_.isEquivalentTo(suggestion))) {
-            List(suggestion)
-          } else {
-            val minOption = deltas.filter(_.isLessThan(suggestion)).lastOption
-            val maxOption = deltas.find(_.isGreaterThan(suggestion))
-
-            // check possible deltas
-            (minOption, maxOption) match {
-              case (Some(min), Some(max)) => List(min, max)
-              case (Some(min), _)         => List(min)
-              case (_, Some(max))         => List(max)
-              case _                      => List()
-            }
-          }
-        }
-
-        // filter the possible options
-        val filteredOptions = reducedOptions.flatten
-          .groupBy(identity)
-          .filter(_._2.size == reducedOptions.size)
-          .flatMap(_._2.headOption)
-
-        // find the best suitable delta
-        val deltaOption = if (suggestion.isGreaterThan(0.asPu)) {
-          filteredOptions.minByOption(_.getValue.doubleValue())
-        } else {
-          filteredOptions.maxByOption(_.getValue.doubleValue())
-        }
-
         // the actual delta that can be used for all transformers
-        val delta = deltaOption.getOrElse(0.asPu)
+        val delta = findCommonDelta(suggestion, possibleDeltas)
 
-        val deltas = tappings
-          .map(model => model -> model.computeDeltas(delta, ConnectorPort.B))
-          .toMap
+        Some(delta)
+      }
 
-        val taps = deltas.map { case (tapping, (tap, _)) => tapping -> tap }
-        val actualDelta = deltas.map(_._2._2).toSeq(0)
+      deltaOption match {
+        case Some(delta) =>
+          val deltas = tappings
+            .map(model => model -> model.computeDeltas(delta, ConnectorPort.B))
+            .toMap
 
-        (taps, actualDelta)
+          val taps = deltas.map { case (tapping, (tap, _)) => tapping -> tap }
+          val actualDelta = deltas.map(_._2._2).toSeq(0)
+
+          (taps, actualDelta)
+
+        case None =>
+          noTapping
       }
     } else {
       // return no tappings if there is at least one transformer that cannot be taped
       noTapping
+    }
+  }
+
+  /** Method for finding a common delta that can be applied to all transformers.
+    * @param suggestion
+    *   the given suggestion
+    * @param possibleDeltas
+    *   the possible deltas for each transformer
+    * @return
+    *   either a common delta or zero
+    */
+  def findCommonDelta(
+      suggestion: ComparableQuantity[Dimensionless],
+      possibleDeltas: Seq[List[ComparableQuantity[Dimensionless]]],
+  ): ComparableQuantity[Dimensionless] = {
+    // reduce all possible deltas
+    val reducedOptions = possibleDeltas.map { deltas =>
+      if (deltas.exists(_.isEquivalentTo(suggestion))) {
+        List(suggestion)
+      } else {
+        val minOption =
+          deltas.filter(_.isLessThan(suggestion)).sorted.lastOption
+        val maxOption = deltas.sorted.find(_.isGreaterThan(suggestion))
+
+        // check possible deltas
+        (minOption, maxOption) match {
+          case (Some(min), Some(max)) => List(min, max)
+          case (Some(min), _)         => List(min)
+          case (_, Some(max))         => List(max)
+          case _                      => List()
+        }
+      }
+    }
+
+    // filter the possible options
+    val filteredOptions: Set[ComparableQuantity[Dimensionless]] =
+      reducedOptions.flatten
+        .groupBy(identity)
+        .filter(_._2.size == reducedOptions.size)
+        .keySet
+
+    // find the best suitable delta
+    filteredOptions.size match {
+      case 0 => 0.asPu
+      case 1 => filteredOptions.toSeq(0)
+      case _ =>
+        if (filteredOptions.exists(_.isEquivalentTo(suggestion))) {
+          suggestion
+        } else {
+
+          val minOption = filteredOptions
+            .filter(_.isLessThan(suggestion))
+            .lastOption
+            .map(_.getValue.doubleValue())
+          val maxOption = filteredOptions
+            .find(_.isGreaterThan(suggestion))
+            .map(_.getValue.doubleValue())
+
+          (minOption, maxOption) match {
+            case (Some(min), Some(max)) =>
+              val suggestionDouble = suggestion.getValue.doubleValue()
+
+              if (
+                Math.abs(suggestionDouble - min) < Math.abs(
+                  suggestionDouble - max
+                )
+              ) {
+                min.asPu
+              } else max.asPu
+
+            case (Some(min), _) =>
+              min.asPu
+            case (_, Some(max)) =>
+              max.asPu
+            case _ =>
+              0.asPu
+
+          }
+        }
     }
   }
 
@@ -527,6 +594,22 @@ object CongestionManagementSupport {
           // no suggestion found => no tapping suggestion
           0.asPu
       }
+    }
+
+    def combine(
+        ranges: Iterable[VoltageRange],
+        offset: ComparableQuantity[Dimensionless],
+    ): VoltageRange = {
+      val minPlus = ranges.minByOption(_.deltaPlus).map(_.deltaPlus)
+      val maxMinus = ranges.maxByOption(_.deltaMinus).map(_.deltaMinus)
+
+      (minPlus, maxMinus) match {
+        case (Some(plus), Some(minus)) =>
+          VoltageRange(plus.subtract(offset), minus.subtract(offset))
+        case _ =>
+          VoltageRange(0.asPu, 0.asPu)
+      }
+
     }
   }
 

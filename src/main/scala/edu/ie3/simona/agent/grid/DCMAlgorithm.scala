@@ -334,10 +334,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
           if (tappingModels.forall(_.hasAutoTap)) {
             // the given transformer can be tapped, calculate the new tap pos
 
-            val suggestion =
-              VoltageRange
-                .combineSuggestions(inferiorRanges)
-                .subtract(delta)
+            val suggestion = VoltageRange.combine(inferiorRanges, delta)
 
             // calculating the tap changes for all transformers and the resulting voltage delta
             val (tapChange, deltaV) = calculateTapAndVoltage(

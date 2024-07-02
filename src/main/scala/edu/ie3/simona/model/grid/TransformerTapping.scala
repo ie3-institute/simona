@@ -112,7 +112,9 @@ trait TransformerTapping {
     *   a list of possible voltage deltas
     */
   def possibleDeltas(
-      tapSide: ConnectorPort = ConnectorPort.A
+      maxIncrease: ComparableQuantity[Dimensionless],
+      maxDecrease: ComparableQuantity[Dimensionless],
+      tapSide: ConnectorPort = ConnectorPort.A,
   ): List[ComparableQuantity[Dimensionless]] = {
     if (hasAutoTap) {
       val plus = tapMax - currentTapPos
@@ -121,11 +123,17 @@ trait TransformerTapping {
       val range =
         Range.inclusive(minus, plus).map(deltaV.multiply(_).divide(100)).toList
 
-      if (tapSide == transformerTappingModel.tapSide) {
+      val values = if (tapSide == transformerTappingModel.tapSide) {
         range
       } else {
         range.map(_.multiply(-1)).sortBy(_.getValue.doubleValue())
       }
+
+      values.filter(value =>
+        value.isLessThanOrEqualTo(maxIncrease) && value.isGreaterThanOrEqualTo(
+          maxDecrease
+        )
+      )
     } else List(0.asPu)
   }
 

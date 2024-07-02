@@ -102,18 +102,30 @@ class CongestionManagementSupportSpec
       val tapping = dummyTransformerModel(tappingModel)
 
       val cases = Table(
-        ("suggestion", "expectedTap", "expectedDelta"),
-        (0.02.asPu, -1, 0.015.asPu),
-        ((-0.02).asPu, 1, (-0.015).asPu),
-        (0.031.asPu, -2, 0.03.asPu),
-        (0.05.asPu, -3, 0.045.asPu),
-        ((-0.1).asPu, 4, (-0.06).asPu), // max tap increase
-        (0.1.asPu, -6, 0.09.asPu), // max tap decrease
+        ("range", "expectedTap", "expectedDelta"),
+        (VoltageRange(0.025.asPu, 0.015.asPu, 0.02.asPu), -1, 0.015.asPu),
+        (
+          VoltageRange((-0.015).asPu, (-0.025).asPu, (-0.02).asPu),
+          1,
+          (-0.015).asPu,
+        ),
+        (VoltageRange(0.041.asPu, 0.021.asPu, 0.031.asPu), -2, 0.03.asPu),
+        (VoltageRange(0.05.asPu, 0.03.asPu, 0.05.asPu), -3, 0.045.asPu),
+        (
+          VoltageRange(0.asPu, (-0.2).asPu, (-0.1).asPu),
+          4,
+          (-0.06).asPu,
+        ), // max tap increase
+        (
+          VoltageRange(0.2.asPu, 0.asPu, 0.1.asPu),
+          -6,
+          0.09.asPu,
+        ), // max tap decrease
       )
 
-      forAll(cases) { (suggestion, expectedTap, expectedDelta) =>
+      forAll(cases) { (range, expectedTap, expectedDelta) =>
         val (actualTap, actualDelta) =
-          calculateTapAndVoltage(suggestion, Seq(tapping))
+          calculateTapAndVoltage(range, Seq(tapping))
 
         actualTap shouldBe Map(tapping -> expectedTap)
         actualDelta should equalWithTolerance(expectedDelta)
@@ -144,68 +156,124 @@ class CongestionManagementSupportSpec
       val cases = Table(
         ("suggestion", "models", "expectedTaps", "expectedDelta"),
         (
-          0.02.asPu,
+          VoltageRange(0.1.asPu, (-0.1).asPu, 0.02.asPu),
           modelCase1,
           Map(transformer11 -> -1, transformer12 -> -1),
           0.015.asPu,
         ),
         (
-          0.038.asPu,
+          VoltageRange(0.1.asPu, (-0.1).asPu, 0.038.asPu),
           modelCase1,
-          Map(transformer11 -> -2, transformer12 -> -2),
-          0.03.asPu,
+          Map(transformer11 -> -3, transformer12 -> -3),
+          0.045.asPu,
         ),
         (
-          (-0.06).asPu,
+          VoltageRange(0.1.asPu, (-0.1).asPu, (-0.06).asPu),
           modelCase1,
           Map(transformer11 -> 4, transformer12 -> 4),
           (-0.06).asPu,
         ),
         (
-          0.02.asPu,
+          VoltageRange(0.1.asPu, (-0.1).asPu, 0.02.asPu),
           modelCase2,
-          Map(transformer21 -> -1, transformer22 -> -1),
-          0.012.asPu,
+          Map(transformer21 -> -2, transformer22 -> -2),
+          0.024.asPu,
         ),
         (
-          0.038.asPu,
+          VoltageRange(0.1.asPu, (-0.1).asPu, 0.038.asPu),
           modelCase2,
           Map(transformer21 -> -3, transformer22 -> -3),
           0.036.asPu,
         ),
         (
-          (-0.06).asPu,
+          VoltageRange(0.1.asPu, (-0.1).asPu, (-0.06).asPu),
           modelCase2,
           Map(transformer21 -> 5, transformer22 -> 5),
           (-0.06).asPu,
         ),
         (
-          0.02.asPu,
+          VoltageRange(0.1.asPu, (-0.1).asPu, 0.02.asPu),
           modelCase3,
           Map(transformer31 -> 0, transformer32 -> 0),
           0.asPu,
         ),
         (
-          0.038.asPu,
+          VoltageRange(0.1.asPu, (-0.1).asPu, 0.038.asPu),
           modelCase3,
           Map(transformer31 -> 0, transformer32 -> 0),
           0.asPu,
         ),
         (
-          (-0.06).asPu,
+          VoltageRange(0.1.asPu, (-0.1).asPu, (-0.06).asPu),
           modelCase3,
           Map(transformer31 -> 4, transformer32 -> 5),
           (-0.06).asPu,
         ),
       )
 
-      forAll(cases) { (suggestion, models, expectedTaps, expectedDelta) =>
-        val (tapChanges, delta) = calculateTapAndVoltage(suggestion, models)
+      forAll(cases) { (range, models, expectedTaps, expectedDelta) =>
+        val (tapChanges, delta) = calculateTapAndVoltage(range, models)
 
         tapChanges shouldBe expectedTaps
         delta should equalWithTolerance(expectedDelta)
       }
 
+    }
+
+    "calculate the common delta correctly" in {
+
+      val cases = Table(
+        ("suggestion", "possibleDeltas", "expected"),
+        (0.015.asPu, Seq(List(0.03.asPu, 0.015.asPu, 0.asPu)), 0.015.asPu),
+        (
+          0.012.asPu,
+          Seq(List(0.03.asPu, 0.02.asPu, 0.01.asPu, 0.asPu)),
+          0.01.asPu,
+        ),
+        (0.006.asPu, Seq(List(0.03.asPu, 0.015.asPu, 0.asPu)), 0.asPu),
+        (
+          0.03.asPu,
+          Seq(
+            List(0.06.asPu, 0.03.asPu, 0.asPu),
+            List(0.045.asPu, 0.03.asPu, 0.015.asPu, 0.asPu),
+          ),
+          0.03.asPu,
+        ),
+        (
+          0.03.asPu,
+          Seq(List(0.06.asPu, 0.03.asPu), List(0.03.asPu, 0.015.asPu)),
+          0.03.asPu,
+        ),
+        (
+          0.035.asPu,
+          Seq(
+            List(0.06.asPu, 0.03.asPu, 0.asPu),
+            List(0.045.asPu, 0.03.asPu, 0.015.asPu, 0.asPu),
+          ),
+          0.03.asPu,
+        ),
+        (
+          0.02.asPu,
+          Seq(List(0.06.asPu, 0.03.asPu), List(0.03.asPu, 0.015.asPu)),
+          0.03.asPu,
+        ),
+        (
+          0.06.asPu,
+          Seq(List(0.06.asPu, 0.03.asPu), List(0.03.asPu, 0.015.asPu)),
+          0.asPu,
+        ),
+        (
+          (-0.02).asPu,
+          Seq(List(0.06.asPu, 0.03.asPu), List(0.03.asPu, 0.015.asPu)),
+          0.asPu,
+        ),
+      )
+
+      forAll(cases) { (suggestion, possibleDeltas, expected) =>
+        val delta = findCommonDelta(suggestion, possibleDeltas)
+
+        delta should equalWithTolerance(expected)
+      }
     }
 
     "calculates the possible voltage delta for lines correctly" in {

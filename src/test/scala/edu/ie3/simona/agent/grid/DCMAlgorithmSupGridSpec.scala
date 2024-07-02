@@ -192,7 +192,7 @@ class DCMAlgorithmSupGridSpec
           sender ! VoltageRangeResponse(
             hvGrid.ref,
             (
-              VoltageRange(0.04.asPu, 0.01.asPu),
+              VoltageRange(0.025.asPu, 0.01.asPu),
               Set(tappingModel, tappingModel2),
             ),
           )
