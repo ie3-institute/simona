@@ -69,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed grid within GridSpec test [#806](https://github.com/ie3-institute/simona/issues/806)
 - Fixed log entry after power flow calculation [#814](https://github.com/ie3-institute/simona/issues/814)
 - Delete "Indices and tables" on the index page [#375](https://github.com/ie3-institute/simona/issues/375)
+- Fixed provision of controllingEms within buildParticipantToActorRef [#841](https://github.com/ie3-institute/simona/issues/841)
 
 ## [3.0.0] - 2023-08-07
 
