@@ -269,6 +269,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
           gridModel.voltageLimits,
           gridModel.gridComponents,
           awaitingData.mappedValues,
+          gridModel.subnetNo,
         )
 
         ctx.log.warn(

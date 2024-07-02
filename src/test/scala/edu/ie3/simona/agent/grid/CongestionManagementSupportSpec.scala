@@ -374,6 +374,7 @@ class CongestionManagementSupportSpec
         VoltageLimits(0.9, 1.1),
         gridComponents,
         Map.empty,
+        subnetNo = 1,
       )
 
       range.deltaPlus should equalWithTolerance(0.05.asPu)
@@ -435,6 +436,7 @@ class CongestionManagementSupportSpec
             tappingModel
           )),
         ),
+        subnetNo = 1,
       )
 
       range.deltaPlus should equalWithTolerance(0.04.asPu)

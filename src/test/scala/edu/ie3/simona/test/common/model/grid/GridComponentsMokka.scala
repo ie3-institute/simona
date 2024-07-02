@@ -25,10 +25,12 @@ import javax.measure.quantity.Dimensionless
 trait GridComponentsMokka extends MockitoSugar {
 
   protected def nodeModel(
-      uuid: UUID = UUID.randomUUID()
+      uuid: UUID = UUID.randomUUID(),
+      subnetNo: Int = 1,
   ): NodeModel = {
     val node = mock[NodeModel]
     when(node.uuid).thenReturn(uuid)
+    when(node.subnet).thenReturn(subnetNo)
     node
   }
 

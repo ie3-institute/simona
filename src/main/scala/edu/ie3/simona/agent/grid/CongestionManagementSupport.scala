@@ -277,9 +277,15 @@ trait CongestionManagementSupport {
       inferiorData: Map[ActorRef[
         GridAgent.Request
       ], (VoltageRange, Set[TransformerTapping])],
+      subnetNo: Int,
   ): VoltageRange = {
+    // filter nodes in subnet
+    val nodesInSubnet =
+      gridComponents.nodes.filter(_.subnet == subnetNo).map(_.uuid)
+
     // calculate voltage range
     val nodeResMap = powerFlowResultEvent.nodeResults
+      .filter(res => nodesInSubnet.contains(res.getInputModel))
       .map(res => res.getInputModel -> res.getvMag())
       .toMap
     val minVoltage = nodeResMap
@@ -365,7 +371,7 @@ trait CongestionManagementSupport {
       val nodeRes = nodeResults(line.nodeBUuid).getValue.doubleValue()
       val current = resB.getValue.doubleValue()
       val deltaI = line.iNom.value - current
-      (nodeRes * current) / (current + deltaI) * -1
+      (nodeRes * deltaI) / (current + deltaI) * -1
     }
 
     // deltaV < 0 => tapping down possible
@@ -604,8 +610,14 @@ object CongestionManagementSupport {
       val maxMinus = ranges.maxByOption(_.deltaMinus).map(_.deltaMinus)
 
       (minPlus, maxMinus) match {
+        case (Some(plus), Some(minus)) if offset.isEquivalentTo(0.asPu) =>
+          VoltageRange(plus, minus)
         case (Some(plus), Some(minus)) =>
-          VoltageRange(plus.subtract(offset), minus.subtract(offset))
+          VoltageRange(
+            plus.subtract(offset),
+            minus.subtract(offset),
+            offset.multiply(-1),
+          )
         case _ =>
           VoltageRange(0.asPu, 0.asPu)
       }
