@@ -208,7 +208,7 @@ class GridAgentController(
           participant,
           thermalIslandGridsByBusId,
           environmentRefs,
-          allEms.get(participant.getUuid),
+          allEms.get(participant.getControllingEm.get().getUuid),
         )
         introduceAgentToEnvironment(actorRef)
         // return uuid to actorRef
