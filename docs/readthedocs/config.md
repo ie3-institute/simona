@@ -225,7 +225,7 @@ Runtime configurations of other system participants are done similarly, except t
 
 ### Storage runtime configuration
 
-The storage model takes parameters for the inital state of charge (SOC) and the target SOC for electrical energy storages, with 0.0 <= SOC <= 1.0.
+The storage model takes parameters for the initial state of charge (SOC) and the target SOC for electrical energy storages, with 0.0 <= SOC <= 1.0.
 The initial SOC defaults to 0%, while the target SOC is optional. When no target SOC is set, the reference behavior (see flexibility messages) of storages is 0 kW. 
 
     initialSoc = "0.0"
