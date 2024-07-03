@@ -201,9 +201,10 @@ class GridAgentController(
       .map { participant =>
         val node = participant.getNode
 
-        val controllingEm: Option[UUID] =
-          participant.getControllingEm.toScala.map(_.getUuid)
-        val emActorRef = controllingEm.flatMap(allEms.get)
+        val controllingEm =
+          participant.getControllingEm.toScala.flatMap(em => Option(em.getUuid))
+        val emActorRef = controllingEm.flatMap(uuid => allEms.get(uuid))
+
         val actorRef = buildParticipantActor(
           participantsConfig.requestVoltageDeviationThreshold,
           participantConfigUtil,
