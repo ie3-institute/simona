@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implementation of Energy Management Agents [#204](https://github.com/ie3-institute/simona/issues/204)
 - Providing documentation for EmAgent protocols and algorithms [#774](https://github.com/ie3-institute/simona/issues/774)
 - Option to flush out `CylindricalStorageResults` [#826](https://github.com/ie3-institute/simona/issues/826)
+- Printing the directory of log to terminal upon simulation failure [#626](https://github.com/ie3-institute/simona/issues/626)
 - Implementation of StorageAgent [#309](https://github.com/ie3-institute/simona/issues/309)
 
 ### Changed
@@ -68,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Default RefSystem using the unit `Volt` for low voltage grids [#811](https://github.com/ie3-institute/simona/issues/811)
 - Fixed grid within GridSpec test [#806](https://github.com/ie3-institute/simona/issues/806)
 - Fixed log entry after power flow calculation [#814](https://github.com/ie3-institute/simona/issues/814)
+- Delete "Indices and tables" on the index page [#375](https://github.com/ie3-institute/simona/issues/375)
 
 ## [3.0.0] - 2023-08-07
 
