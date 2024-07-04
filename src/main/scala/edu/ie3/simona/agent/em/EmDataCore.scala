@@ -7,7 +7,9 @@
 package edu.ie3.simona.agent.em
 
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPower => ComplexPower
+}
 import EmAgent.Actor
 import FlexCorrespondenceStore.WithTime
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
@@ -162,7 +164,7 @@ object EmDataCore {
 
     /** Returns relevant results for all connected agents.
       */
-    def getResults: Iterable[ApparentPower] =
+    def getResults: Iterable[ComplexPower] =
       correspondences.store.values.flatMap(_.receivedResult.map(_.get))
 
   }

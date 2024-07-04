@@ -7,7 +7,9 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.input.system.HpInput
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPowerAndHeat => ComplexPowerAndHeat
+}
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.participant.control.QControl
@@ -17,8 +19,12 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptio
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.DefaultQuantities
 import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities.{
+  ApparentPower,
+  DefaultQuantities,
+  Kilovoltamperes,
+}
 import squants.energy.Kilowatts
 import squants.{Power, Temperature}
 
@@ -53,13 +59,13 @@ final case class HpModel(
     id: String,
     operationInterval: OperationInterval,
     qControl: QControl,
-    sRated: Power,
+    sRated: ApparentPower,
     cosPhiRated: Double,
     pThermal: Power,
     thermalGrid: ThermalGrid,
 ) extends SystemParticipant[
       HpRelevantData,
-      ApparentPowerAndHeat,
+      ComplexPowerAndHeat,
       HpState,
     ](
       uuid,
@@ -72,7 +78,7 @@ final case class HpModel(
     with ApparentPowerAndHeatParticipant[HpRelevantData, HpState] {
 
   private val pRated: Power =
-    sRated * cosPhiRated
+    sRated.toPower * cosPhiRated
 
   /** As this is a state-full model (with respect to the current operation
     * condition and inner temperature), the power calculation operates on the
@@ -223,7 +229,7 @@ final case class HpModel(
         updatedState.activePower
     val upperBoundary =
       if (canOperate)
-        sRated * cosPhiRated
+        sRated.toPower * cosPhiRated
       else
         zeroKW
 
@@ -258,7 +264,7 @@ final case class HpModel(
       setPower: Power,
   ): (HpState, FlexChangeIndicator) = {
     /* If the setpoint value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
-    val turnOn = setPower > (sRated * cosPhiRated * 0.5)
+    val turnOn = setPower > (sRated.toPower * cosPhiRated * 0.5)
     val updatedState = calcState(lastState, data, turnOn)
 
     (
@@ -299,7 +305,7 @@ object HpModel {
       scaledInput.getId,
       operationInterval,
       qControl,
-      Kilowatts(
+      Kilovoltamperes(
         scaledInput.getType.getsRated
           .to(PowerSystemUnits.KILOWATT)
           .getValue
@@ -402,7 +408,7 @@ object HpModel {
       scaledInput.getId,
       operationInterval,
       qControl,
-      Kilowatts(
+      Kilovoltamperes(
         scaledInput.getType.getsRated
           .to(PowerSystemUnits.KILOWATT)
           .getValue

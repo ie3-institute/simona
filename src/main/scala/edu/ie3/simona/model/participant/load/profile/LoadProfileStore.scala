@@ -17,6 +17,7 @@ import edu.ie3.simona.model.participant.load.profile.LoadProfileStore.{
   initializeTypeDayValues,
 }
 import edu.ie3.simona.model.participant.load.{DayType, profile}
+import edu.ie3.util.scala.quantities.{ApparentPower, Voltamperes}
 import org.apache.commons.csv.CSVFormat
 import squants.energy.{KilowattHours, Watts}
 
@@ -88,10 +89,10 @@ class LoadProfileStore private (val reader: Reader) {
     */
   def maxPower(
       loadProfile: StandardLoadProfile
-  ): squants.Power = {
+  ): ApparentPower = {
     maxParamMap.get(loadProfile) match {
       case Some(value) =>
-        Watts(value)
+        Voltamperes(value)
       case None =>
         throw new RuntimeException(
           "Max value for ConsumerType " + loadProfile.toString + " not found"

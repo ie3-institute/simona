@@ -8,7 +8,9 @@ package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.input.system.WecInput
 import edu.ie3.datamodel.models.input.system.characteristic.WecCharacteristicInput
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPower => ComplexPower
+}
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.WecModel.{
@@ -23,8 +25,9 @@ import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMin
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants._
-import squants.energy.{Kilowatts, Watts}
+import squants.energy.Watts
 import squants.mass.{Kilograms, KilogramsPerCubicMeter}
 import squants.motion.{MetersPerSecond, Pressure}
 import squants.space.SquareMeters
@@ -60,11 +63,11 @@ final case class WecModel(
     id: String,
     operationInterval: OperationInterval,
     qControl: QControl,
-    sRated: Power,
+    sRated: ApparentPower,
     cosPhiRated: Double,
     rotorArea: Area,
     betzCurve: WecCharacteristic,
-) extends SystemParticipant[WecRelevantData, ApparentPower, ConstantState.type](
+) extends SystemParticipant[WecRelevantData, ComplexPower, ConstantState.type](
       uuid,
       id,
       operationInterval,
@@ -95,7 +98,7 @@ final case class WecModel(
       wecData: WecRelevantData,
   ): Power = {
     val activePower = determinePower(wecData)
-    val pMax = sMax * cosPhiRated
+    val pMax = sMax.toPower * cosPhiRated
 
     (if (activePower > pMax) {
        logger.warn(
@@ -274,7 +277,7 @@ object WecModel {
       scaledInput.getId,
       operationInterval,
       QControl(scaledInput.getqCharacteristics),
-      Kilowatts(
+      Kilovoltamperes(
         scaledInput.getType.getsRated.to(KILOWATT).getValue.doubleValue
       ),
       scaledInput.getType.getCosPhiRated,

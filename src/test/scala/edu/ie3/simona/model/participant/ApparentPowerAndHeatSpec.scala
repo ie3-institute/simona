@@ -11,12 +11,17 @@ import edu.ie3.simona.model.participant.ApparentPowerAndHeatSpec.ApparentPowerAn
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
-import squants.energy.{Kilowatts, Megawatts, Watts}
+import edu.ie3.util.scala.quantities.{
+  Kilovoltamperes,
+  Megavars,
+  ReactivePower,
+  Vars,
+}
+import squants.energy.{Megawatts, Watts}
 import squants.{Each, Power}
 
 import java.util.UUID
@@ -69,7 +74,7 @@ object ApparentPowerAndHeatSpec {
         "ParticipantMock",
         OperationInterval.apply(0L, 42L),
         CosPhiFixed(0.97),
-        Kilowatts(42d),
+        Kilovoltamperes(42d),
         0.97,
       )
       with ApparentPowerAndHeatParticipant[

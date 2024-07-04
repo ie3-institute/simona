@@ -15,6 +15,7 @@ import edu.ie3.simona.model.participant.load.LoadReference._
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
 import edu.ie3.simona.model.participant.load.{LoadModel, LoadReference}
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.ApparentPower
 import squants.Power
 
 import java.time.ZonedDateTime
@@ -44,7 +45,7 @@ final case class ProfileLoadModel(
     id: String,
     operationInterval: OperationInterval,
     qControl: QControl,
-    sRated: Power,
+    sRated: ApparentPower,
     cosPhiRated: Double,
     loadProfile: StandardLoadProfile,
     reference: LoadReference,
@@ -91,7 +92,7 @@ final case class ProfileLoadModel(
     reference match {
       case ActivePower(activePower) =>
         /* scale the reference active power based on the profiles averagePower/maxPower ratio */
-        val referenceScalingFactor = averagePower / profileMaxPower
+        val referenceScalingFactor = averagePower / profileMaxPower.toPower
         activePower * referenceScalingFactor
       case _: EnergyConsumption =>
         /* scale the profiles average power based on the energyConsumption/profileEnergyScaling(=1000kWh/year) ratio  */

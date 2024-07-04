@@ -8,7 +8,9 @@ package edu.ie3.simona.agent.participant.load
 
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPower => ComplexPower
+}
 import edu.ie3.simona.agent.participant.load.LoadAgentFundamentals.{
   FixedLoadAgentFundamentals,
   ProfileLoadAgentFundamentals,
@@ -36,7 +38,7 @@ object LoadAgent {
       initStateData: ParticipantInitializeStateData[
         LoadInput,
         LoadRuntimeConfig,
-        ApparentPower,
+        ComplexPower,
       ],
       listener: Iterable[ActorRef],
   ): Props =
@@ -58,7 +60,7 @@ object LoadAgent {
       initStateData: ParticipantInitializeStateData[
         LoadInput,
         LoadRuntimeConfig,
-        ApparentPower,
+        ComplexPower,
       ],
       override val listener: Iterable[ActorRef],
   ) extends LoadAgent[
@@ -72,7 +74,7 @@ object LoadAgent {
       initStateData: ParticipantInitializeStateData[
         LoadInput,
         LoadRuntimeConfig,
-        ApparentPower,
+        ComplexPower,
       ],
       override val listener: Iterable[ActorRef],
   ) extends LoadAgent[
@@ -86,7 +88,7 @@ object LoadAgent {
       initStateData: ParticipantInitializeStateData[
         LoadInput,
         LoadRuntimeConfig,
-        ApparentPower,
+        ComplexPower,
       ],
       override val listener: Iterable[ActorRef],
   ) extends LoadAgent[
@@ -108,14 +110,14 @@ abstract class LoadAgent[LD <: LoadRelevantData, LM <: LoadModel[LD]](
     initStateData: ParticipantInitializeStateData[
       LoadInput,
       LoadRuntimeConfig,
-      ApparentPower,
+      ComplexPower,
     ],
     override val listener: Iterable[ActorRef],
 ) extends ParticipantAgent[
-      ApparentPower,
+      ComplexPower,
       LD,
       ConstantState.type,
-      ParticipantStateData[ApparentPower],
+      ParticipantStateData[ComplexPower],
       LoadInput,
       LoadRuntimeConfig,
       LM,

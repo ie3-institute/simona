@@ -8,7 +8,9 @@ package edu.ie3.simona.agent.participant.fixedfeedin
 
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPower => ComplexPower
+}
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.SimonaConfig.FixedFeedInRuntimeConfig
@@ -23,7 +25,7 @@ object FixedFeedInAgent {
       initStateData: ParticipantInitializeStateData[
         FixedFeedInInput,
         FixedFeedInRuntimeConfig,
-        ApparentPower,
+        ComplexPower,
       ],
       listener: Iterable[ActorRef],
   ): Props =
@@ -42,14 +44,14 @@ class FixedFeedInAgent(
     initStateData: ParticipantInitializeStateData[
       FixedFeedInInput,
       FixedFeedInRuntimeConfig,
-      ApparentPower,
+      ComplexPower,
     ],
     override val listener: Iterable[ActorRef],
 ) extends ParticipantAgent[
-      ApparentPower,
+      ComplexPower,
       FixedRelevantData.type,
       ConstantState.type,
-      ParticipantStateData[ApparentPower],
+      ParticipantStateData[ComplexPower],
       FixedFeedInInput,
       FixedFeedInRuntimeConfig,
       FixedFeedInModel,

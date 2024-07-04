@@ -8,7 +8,9 @@ package edu.ie3.simona.model.participant.load
 
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.LoadInput
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPower => ComplexPower
+}
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
@@ -21,7 +23,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptio
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import squants.energy.Kilowatts
+import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants.{Energy, Power}
 
 import java.util.UUID
@@ -36,9 +38,9 @@ abstract class LoadModel[D <: LoadRelevantData](
     id: String,
     operationInterval: OperationInterval,
     qControl: QControl,
-    sRated: Power,
+    sRated: ApparentPower,
     cosPhiRated: Double,
-) extends SystemParticipant[D, ApparentPower, ConstantState.type](
+) extends SystemParticipant[D, ComplexPower, ConstantState.type](
       uuid,
       id,
       operationInterval,
@@ -89,14 +91,14 @@ object LoadModel extends LazyLogging {
       inputModel: LoadInput,
       activePower: Power,
       safetyFactor: Double = 1d,
-  ): Power = {
-    val sRated = Kilowatts(
+  ): ApparentPower = {
+    val sRated = Kilovoltamperes(
       inputModel.getsRated
-        .to(PowerSystemUnits.KILOWATT)
+        .to(PowerSystemUnits.KILOVOLTAMPERE)
         .getValue
         .doubleValue
     )
-    val pRated = sRated * inputModel.getCosPhiRated
+    val pRated = sRated.toPower * inputModel.getCosPhiRated
     val referenceScalingFactor = activePower / pRated
     sRated * referenceScalingFactor * safetyFactor
   }
@@ -129,10 +131,10 @@ object LoadModel extends LazyLogging {
   def scaleSRatedEnergy(
       inputModel: LoadInput,
       energyConsumption: Energy,
-      profileMaxPower: Power,
+      profileMaxPower: ApparentPower,
       profileEnergyScaling: Energy,
       safetyFactor: Double = 1d,
-  ): Power = {
+  ): ApparentPower = {
     (profileMaxPower / inputModel.getCosPhiRated) * (
       energyConsumption / profileEnergyScaling
     ) * safetyFactor

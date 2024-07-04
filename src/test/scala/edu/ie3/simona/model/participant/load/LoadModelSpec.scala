@@ -11,6 +11,7 @@ import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.LoadInputTestData
+import edu.ie3.util.scala.quantities.{ApparentPower, Voltamperes}
 import org.scalatest.PrivateMethodTester
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.energy.{KilowattHours, Power, Watts}
@@ -21,7 +22,7 @@ class LoadModelSpec
     with PrivateMethodTester
     with TableDrivenPropertyChecks {
 
-  private implicit val powerTolerance: Power = Watts(1e-3)
+  private implicit val powerTolerance: ApparentPower = Voltamperes(1e-3)
 
   "The load model object" should {
 
@@ -32,27 +33,31 @@ class LoadModelSpec
         (
           LoadReference.ActivePower(Watts(268.6)),
           1d,
-          Watts(282.7368),
+          Voltamperes(282.7368),
         ),
         (
           LoadReference.EnergyConsumption(KilowattHours(3000.0)),
           1d,
-          Watts(848.2105),
+          Voltamperes(848.2105),
         ),
         (
           LoadReference.ActivePower(Watts(268.6)),
           1.5d,
-          Watts(424.1053),
+          Voltamperes(424.1053),
         ),
         (
           LoadReference.EnergyConsumption(KilowattHours(3000.0)),
           1.5d,
-          Watts(1272.3158),
+          Voltamperes(1272.3158),
         ),
       )
 
       forAll(params) {
-        (reference: LoadReference, scaling: Double, expectedSRated: Power) =>
+        (
+            reference: LoadReference,
+            scaling: Double,
+            expectedSRated: ApparentPower,
+        ) =>
           {
             val actual = ProfileLoadModel(
               loadInput,
@@ -91,27 +96,31 @@ class LoadModelSpec
         (
           LoadReference.ActivePower(Watts(268.6)),
           1d,
-          Watts(311.0105),
+          Voltamperes(311.0105),
         ),
         (
           LoadReference.EnergyConsumption(KilowattHours(3000.0)),
           1d,
-          Watts(770.8076),
+          Voltamperes(770.8076),
         ),
         (
           LoadReference.ActivePower(Watts(268.6)),
           1.5d,
-          Watts(466.5158),
+          Voltamperes(466.5158),
         ),
         (
           LoadReference.EnergyConsumption(KilowattHours(3000.0)),
           1.5d,
-          Watts(1156.2114),
+          Voltamperes(1156.2114),
         ),
       )
 
       forAll(params) {
-        (reference: LoadReference, scaling: Double, expectedSRated: Power) =>
+        (
+            reference: LoadReference,
+            scaling: Double,
+            expectedSRated: ApparentPower,
+        ) =>
           {
             val actual = RandomLoadModel(
               loadInput,
