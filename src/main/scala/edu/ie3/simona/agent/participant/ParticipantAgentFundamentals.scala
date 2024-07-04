@@ -862,7 +862,7 @@ protected trait ParticipantAgentFundamentals[
     announceSimulationResult(
       baseStateData,
       currentTick,
-      AccompaniedSimulationResult(result.primaryData),
+      result,
     )(baseStateData.outputConfig)
 
     baseStateData.copy(
