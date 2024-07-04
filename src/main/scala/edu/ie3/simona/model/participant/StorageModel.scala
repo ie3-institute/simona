@@ -254,8 +254,8 @@ final case class StorageModel(
 
     // calculate the tick from time span
     val maybeNextTick = maybeTimeSpan.map { timeSpan =>
-      val ticksToEmpty = Math.round(timeSpan.toSeconds)
-      data.currentTick + ticksToEmpty
+      val timeSpanTicks = Math.round(timeSpan.toSeconds)
+      data.currentTick + timeSpanTicks
     }
 
     (currentState, FlexChangeIndicator(activateAtNextTick, maybeNextTick))
