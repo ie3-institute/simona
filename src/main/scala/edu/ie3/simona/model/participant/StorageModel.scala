@@ -62,7 +62,7 @@ final case class StorageModel(
   private implicit val powerTolerance: Power = eStorage / Seconds(1) / 3.6e12
 
   /** In order to avoid faulty behavior of storages, we want to avoid offering
-    * charging/discharging when storage is very close to full, empty or to a
+    * charging/discharging when storage is very close to full, to empty or to a
     * target.
     *
     * In particular, we want to avoid offering the option to (dis-)charge if
