@@ -6,9 +6,6 @@
 
 package edu.ie3.simona.model.participant
 
-import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static tech.units.indriya.unit.Units.PERCENT
-
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.system.type.BmTypeInput
@@ -16,6 +13,7 @@ import edu.ie3.simona.model.participant.ModelState.ConstantState$
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.EuroPerKilowatthour$
+import edu.ie3.util.scala.quantities.Kilovoltamperes$
 import edu.ie3.util.scala.quantities.Sq
 import scala.Some
 import spock.lang.Shared
@@ -27,6 +25,9 @@ import squants.thermal.Celsius$
 import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
+
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+import static tech.units.indriya.unit.Units.PERCENT
 
 /**
  * Test class that tries to cover all special cases of the current implementation of the {@link BMModel}
@@ -63,7 +64,7 @@ class BMModelTest extends Specification {
         "BM Model Test",
         OperationInterval.apply(0L, 86400L),
         QControl.apply(new CosPhiFixed("cosPhiFixed:{(0.0,1.0)}")),
-        Sq.create(190, Kilowatts$.MODULE$),
+        Sq.create(190, Kilovoltamperes$.MODULE$),
         bmType.getCosPhiRated(),
         "MockNode",
         true,
@@ -169,7 +170,7 @@ class BMModelTest extends Specification {
         "BM Model Test",
         OperationInterval.apply(0L, 86400L),
         QControl.apply(new CosPhiFixed("cosPhiFixed:{(0.0,1.0)}")),
-        Sq.create(190, Kilowatts$.MODULE$),
+        Sq.create(190, Kilovoltamperes$.MODULE$),
         bmType.getCosPhiRated(),
         "MockNode",
         true,
@@ -221,7 +222,7 @@ class BMModelTest extends Specification {
         "BM Model Test",
         OperationInterval.apply(0L, 86400L),
         QControl.apply(new CosPhiFixed("cosPhiFixed:{(0.0,1.0)}")),
-        Sq.create(190, Kilowatts$.MODULE$),
+        Sq.create(190, Kilovoltamperes$.MODULE$),
         bmType.getCosPhiRated(),
         "MockNode",
         costControlled,

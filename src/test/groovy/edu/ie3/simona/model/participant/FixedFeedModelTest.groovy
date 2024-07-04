@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.model.participant
 
-import static edu.ie3.util.quantities.PowerSystemUnits.*
-
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.OperatorInput
@@ -17,10 +15,13 @@ import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.TimeUtil
+import edu.ie3.util.scala.quantities.Kilovoltamperes$
 import edu.ie3.util.scala.quantities.Sq
 import spock.lang.Specification
-import squants.energy.*
+import squants.energy.Watts$
 import tech.units.indriya.quantity.Quantities
+
+import static edu.ie3.util.quantities.PowerSystemUnits.*
 
 class FixedFeedModelTest extends Specification {
 
@@ -54,7 +55,7 @@ class FixedFeedModelTest extends Specification {
   fixedFeedInput.operationTime
   )
 
-  def expectedPower = Sq.create(fixedFeedInput.sRated.value.doubleValue() * -1 * fixedFeedInput.cosPhiRated * 1.0, Kilowatts$.MODULE$)
+  def expectedPower = Sq.create(fixedFeedInput.sRated.value.doubleValue() * -1 * fixedFeedInput.cosPhiRated * 1000, Watts$.MODULE$)
 
   def "A fixed feed model should return approximately correct power calculations"() {
     when:
@@ -68,7 +69,7 @@ class FixedFeedModelTest extends Specification {
         .to(KILOWATT)
         .value.doubleValue()
         .doubleValue(),
-        Kilowatts$.MODULE$
+        Kilovoltamperes$.MODULE$
         ),
         fixedFeedInput.cosPhiRated
         )

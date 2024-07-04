@@ -6,11 +6,6 @@
 
 package edu.ie3.simona.model.participant.load
 
-import static edu.ie3.simona.model.participant.load.LoadReference.ActivePower
-import static edu.ie3.simona.model.participant.load.LoadReference.EnergyConsumption
-import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static org.apache.commons.math3.util.FastMath.abs
-
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.OperatorInput
@@ -22,15 +17,17 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.ModelState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.util.TimeUtil
-import spock.lang.Specification
+import edu.ie3.util.scala.quantities.Kilovoltamperes$
 import edu.ie3.util.scala.quantities.Sq
+import spock.lang.Specification
 import squants.energy.KilowattHours$
-import squants.energy.Kilowatts$
-
 import squants.energy.Watts$
 import tech.units.indriya.quantity.Quantities
 
-
+import static edu.ie3.simona.model.participant.load.LoadReference.ActivePower
+import static edu.ie3.simona.model.participant.load.LoadReference.EnergyConsumption
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+import static org.apache.commons.math3.util.FastMath.abs
 
 class FixedLoadModelTest extends Specification {
   def loadInput =
@@ -75,7 +72,7 @@ class FixedLoadModelTest extends Specification {
         loadInput.id,
         operationInterval,
         QControl.apply(loadInput.qCharacteristics),
-        Sq.create(loadInput.sRated.to(KILOWATT).value.doubleValue(), Kilowatts$.MODULE$),
+        Sq.create(loadInput.sRated.to(KILOWATT).value.doubleValue(), Kilovoltamperes$.MODULE$),
         loadInput.cosPhiRated,
         reference
         )
@@ -96,7 +93,7 @@ class FixedLoadModelTest extends Specification {
         loadInput.id,
         operationInterval,
         QControl.apply(loadInput.qCharacteristics),
-        Sq.create(loadInput.sRated.to(KILOWATT).value.doubleValue(), Kilowatts$.MODULE$),
+        Sq.create(loadInput.sRated.to(KILOWATT).value.doubleValue(), Kilovoltamperes$.MODULE$),
         loadInput.cosPhiRated,
         reference
         )

@@ -12,10 +12,13 @@ import edu.ie3.datamodel.models.input.system.characteristic.QV
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.test.common.model.MockParticipant
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.Kilovoltamperes$
 import edu.ie3.util.scala.quantities.Sq
 import spock.lang.Specification
-import squants.*
-import squants.energy.*
+import squants.Dimensionless
+import squants.Each$
+import squants.energy.Kilowatts$
+import squants.energy.Power
 
 class SystemParticipantTest extends Specification {
 
@@ -27,7 +30,7 @@ class SystemParticipantTest extends Specification {
         "System participant calculateQ Test",
         OperationInterval.apply(0L, 86400L),
         QControl.apply(new CosPhiFixed(varCharacteristicString)),
-        Sq.create(200, Kilowatts$.MODULE$),
+        Sq.create(200, Kilovoltamperes$.MODULE$),
         1d)
     Dimensionless adjustedVoltage = Sq.create(1, Each$.MODULE$) // needed for method call but not applicable for cosphi_p
 
@@ -58,7 +61,7 @@ class SystemParticipantTest extends Specification {
         "Load calculateQ Test",
         OperationInterval.apply(0L, 86400L),
         QControl.apply(new CosPhiP(varCharacteristicString)),
-        Sq.create(102, Kilowatts$.MODULE$),
+        Sq.create(102, Kilovoltamperes$.MODULE$),
         1d)
 
     Dimensionless adjustedVoltage = Sq.create(1, Each$.MODULE$) // needed for method call but not applicable for cosphi_p
@@ -87,7 +90,7 @@ class SystemParticipantTest extends Specification {
         "Generation calculateQ Test",
         OperationInterval.apply(0L, 86400L),
         QControl.apply(new CosPhiP(varCharacteristicString)),
-        Sq.create(101, Kilowatts$.MODULE$),
+        Sq.create(101, Kilovoltamperes$.MODULE$),
         1d)
 
     Dimensionless adjustedVoltage = Sq.create(1, Each$.MODULE$) // needed for method call but not applicable for cosphi_p
@@ -118,7 +121,7 @@ class SystemParticipantTest extends Specification {
         "System participant calculateQ Test",
         OperationInterval.apply(0L, 86400L),
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
-        Sq.create(200, Kilowatts$.MODULE$),
+        Sq.create(200, Kilovoltamperes$.MODULE$),
         0.98)
 
     when: "the reactive power is calculated"
@@ -151,7 +154,7 @@ class SystemParticipantTest extends Specification {
         "System participant calculateQ Test",
         OperationInterval.apply(0L, 86400L),
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
-        Sq.create(200, Kilowatts$.MODULE$),
+        Sq.create(200, Kilovoltamperes$.MODULE$),
         1d)
 
     when: "the reactive power is calculated"
@@ -184,7 +187,7 @@ class SystemParticipantTest extends Specification {
         "System participant calculateQ Test",
         OperationInterval.apply(0L, 86400L),
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
-        Sq.create(200, Kilowatts$.MODULE$),
+        Sq.create(200, Kilovoltamperes$.MODULE$),
         0.95)
 
     when: "the reactive power is calculated"
@@ -217,7 +220,7 @@ class SystemParticipantTest extends Specification {
         "System participant calculateQ Test",
         OperationInterval.apply(0L, 86400L),
         QControl.apply(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
-        Sq.create(200, Kilowatts$.MODULE$),
+        Sq.create(200, Kilovoltamperes$.MODULE$),
         0.95)
 
     when: "the reactive power is calculated"

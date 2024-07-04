@@ -6,6 +6,8 @@
 
 package edu.ie3.simona.model.participant
 
+import edu.ie3.util.scala.quantities.Kilovoltamperes$
+
 import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static tech.units.indriya.quantity.Quantities.getQuantity
 import static tech.units.indriya.unit.Units.PERCENT
@@ -91,7 +93,7 @@ class ChpModelTest extends Specification {
         "ChpModel",
         null,
         null,
-        Sq.create(100, Kilowatts$.MODULE$),
+        Sq.create(100, Kilovoltamperes$.MODULE$),
         0.95,
         Sq.create(50, Kilowatts$.MODULE$),
         thermalStorage)
