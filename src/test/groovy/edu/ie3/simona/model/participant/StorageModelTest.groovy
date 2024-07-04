@@ -46,8 +46,8 @@ class StorageModelTest extends Specification {
     def typeInput = new StorageTypeInput(
     UUID.fromString("fbee4995-24dd-45e4-9c85-7d986fe99ff3"),
     "Test_StorageTypeInput",
-    getQuantity(100d, EURO),
-    getQuantity(101d, EURO_PER_MEGAWATTHOUR),
+    getQuantity(10000d, EURO),
+    getQuantity(0.05d, EURO_PER_MEGAWATTHOUR),
     getQuantity(100d, KILOWATTHOUR),
     getQuantity(13d, KILOVOLTAMPERE),
     0.997,
