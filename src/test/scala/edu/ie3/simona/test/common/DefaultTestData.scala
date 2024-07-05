@@ -203,6 +203,21 @@ trait DefaultTestData {
          |  ]
          |}
          |
+         |simona.runtime.participant.storage = {
+         |  defaultConfig = {
+         |    calculateMissingReactivePowerWithModel = false
+         |    uuids = ["default"]
+         |    scaling = 1.0
+         |  }
+         |  individualConfigs = [
+         |    {
+         |      calculateMissingReactivePowerWithModel = false
+         |      uuids = ["9abe950d-362e-4ffe-b686-500f84d8f368"]
+         |      scaling = 1.0
+         |    }
+         |  ]
+         |}
+         |
          |simona.runtime.participant.em = {
          |  defaultConfig = {
          |    calculateMissingReactivePowerWithModel = false

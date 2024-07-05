@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Providing documentation for EmAgent protocols and algorithms [#774](https://github.com/ie3-institute/simona/issues/774)
 - Option to flush out `CylindricalStorageResults` [#826](https://github.com/ie3-institute/simona/issues/826)
 - Printing the directory of log to terminal upon simulation failure [#626](https://github.com/ie3-institute/simona/issues/626)
+- Implementation of StorageAgent [#309](https://github.com/ie3-institute/simona/issues/309)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
