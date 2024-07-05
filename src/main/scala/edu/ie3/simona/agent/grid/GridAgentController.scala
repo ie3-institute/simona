@@ -201,6 +201,18 @@ class GridAgentController(
       .map { participant =>
         val node = participant.getNode
 
+        val controllingEm =
+          participant.getControllingEm.toScala
+            .map(_.getUuid)
+            .map(uuid =>
+              allEms.getOrElse(
+                uuid,
+                throw new CriticalFailureException(
+                  s"EM actor with UUID $uuid not found."
+                ),
+              )
+            )
+
         val actorRef = buildParticipantActor(
           participantsConfig.requestVoltageDeviationThreshold,
           participantConfigUtil,
@@ -208,7 +220,7 @@ class GridAgentController(
           participant,
           thermalIslandGridsByBusId,
           environmentRefs,
-          allEms.get(participant.getUuid),
+          controllingEm,
         )
         introduceAgentToEnvironment(actorRef)
         // return uuid to actorRef
