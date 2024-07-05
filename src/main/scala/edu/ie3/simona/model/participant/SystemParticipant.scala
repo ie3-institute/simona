@@ -7,22 +7,17 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower => ComplexPower,
   PrimaryDataWithApparentPower,
+  ApparentPower => ComplexPower,
 }
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities._
-import edu.ie3.util.scala.quantities.{
-  ApparentPower,
-  DefaultQuantities,
-  Megavars,
-  ReactivePower,
-}
+import edu.ie3.util.scala.quantities._
 import squants.Dimensionless
-import squants.energy.{Kilowatts, Power}
+import squants.energy.Power
 
 import java.util.UUID
 
@@ -174,7 +169,7 @@ abstract class SystemParticipant[
       nodalVoltage: Dimensionless
   ): Power => ReactivePower =
     qControl.activeToReactivePowerFunc(
-      sRated.toPower,
+      sRated,
       cosPhiRated,
       nodalVoltage,
     )
@@ -213,7 +208,7 @@ abstract class SystemParticipant[
       reactivePower: ReactivePower,
   ): ReactivePower = {
     {
-      val apparentPower: Power = Kilowatts(
+      val apparentPower: ApparentPower = Kilovoltamperes(
         Math
           .sqrt(
             Math.pow(activePower.toKilowatts, 2) + Math
@@ -222,7 +217,7 @@ abstract class SystemParticipant[
       )
 
       // tolerance for double inaccuracies
-      val sMaxWithTolerance = sMax.toPower * 1.00001d
+      val sMaxWithTolerance = sMax * 1.00001d
 
       if (apparentPower > sMaxWithTolerance) {
         logger.debug(
@@ -233,8 +228,8 @@ abstract class SystemParticipant[
             s"in correspondence to the existing active power $activePower."
         )
 
-        val powerSquaredDifference = Math.pow(sMax.toPower.toMegawatts, 2) -
-          Math.pow(activePower.toMegawatts, 2)
+        val powerSquaredDifference = Math.pow(sMax.toMegavoltamperes, 2) - Math
+          .pow(activePower.toMegawatts, 2)
 
         if (powerSquaredDifference < 0) {
           logger.warn(

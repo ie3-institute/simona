@@ -32,7 +32,7 @@ final case class BMModel(
     operationInterval: OperationInterval,
     qControl: QControl,
     sRated: ApparentPower,
-    cosPhi: Double,
+    cosPhiRated: Double,
     private val node: String,
     private val isCostControlled: Boolean,
     private val opex: Money,
@@ -48,7 +48,7 @@ final case class BMModel(
       operationInterval,
       qControl,
       sRated,
-      cosPhi,
+      cosPhiRated,
     )
     with ApparentPowerParticipant[BMCalcRelevantData, ConstantState.type] {
 
@@ -197,10 +197,10 @@ final case class BMModel(
       isCostControlled && avgOpex.value.doubleValue() < feedInTariff.value
         .doubleValue()
     )
-      sRated * cosPhi * (-1)
+      sRated.toPower(cosPhiRated) * (-1)
     else
-      sRated * usage * eff * cosPhi * (-1)
-  }.toPower
+      sRated.toPower(cosPhiRated) * usage * eff * (-1)
+  }
 
   /** Applies the load gradient to the electrical output
     * @param pEl
@@ -214,7 +214,7 @@ final case class BMModel(
     _lastPower match {
       case None => pEl
       case Some(lastPowerVal) =>
-        val pElDeltaMaxAbs = sRated.toPower * cosPhi * loadGradient
+        val pElDeltaMaxAbs = sRated.toPower(cosPhiRated) * loadGradient
 
         pEl - lastPowerVal match {
           case pElDelta if pElDelta > pElDeltaMaxAbs =>

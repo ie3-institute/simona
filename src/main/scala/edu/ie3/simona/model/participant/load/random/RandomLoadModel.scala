@@ -19,7 +19,7 @@ import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.{ApparentPower, Voltamperes}
 import squants.Power
-import squants.energy.{KilowattHours, Kilowatts}
+import squants.energy.{KilowattHours, Kilowatts, Watts}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -102,7 +102,7 @@ final case class RandomLoadModel(
         case ActivePower(activePower) =>
           /* scale the reference active power based on the random profiles averagePower/maxPower ratio */
           val referenceScalingFactor =
-            profilePower / RandomLoadModel.randomMaxPower.toPower
+            profilePower / RandomLoadModel.randomMaxPower
           activePower * referenceScalingFactor
         case _: EnergyConsumption =>
           /* scale the profiles random power based on the energyConsumption/profileEnergyScaling(=1000kWh/year) ratio  */
@@ -171,7 +171,7 @@ object RandomLoadModel {
     * @return
     *   Reference power to use for later model calculations
     */
-  private val randomMaxPower: ApparentPower = Voltamperes(159d)
+  private val randomMaxPower: Power = Watts(159d)
 
   def apply(
       input: LoadInput,
@@ -191,7 +191,7 @@ object RandomLoadModel {
         LoadModel.scaleSRatedEnergy(
           scaledInput,
           energyConsumption,
-          randomMaxPower,
+          Voltamperes(randomMaxPower.toWatts),
           randomProfileEnergyScaling,
           1.1,
         )

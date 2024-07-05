@@ -503,12 +503,12 @@ final case class EvcsModel(
   ): Power = {
     val evPower = currentType match {
       case ElectricCurrentType.AC =>
-        ev.sRatedAc.toPower
+        ev.sRatedAc.toPower(1.0)
       case ElectricCurrentType.DC =>
         ev.sRatedDc
     }
     /* Limit the charging power to the minimum of ev's and evcs' permissible power */
-    evPower.min(sRated.toPower)
+    evPower.min(sRated.toPower(1.0))
   }
 
   override def calculatePower(

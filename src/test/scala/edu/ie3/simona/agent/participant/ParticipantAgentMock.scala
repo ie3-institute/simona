@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.agent.participant
 
-import org.apache.pekko.actor.{ActorRef, FSM, Props}
-import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.ValueStore
@@ -43,7 +41,14 @@ import edu.ie3.simona.model.participant.{
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.{Kilovars, Megavars, ReactivePower}
+import edu.ie3.util.scala.quantities.{
+  Kilovars,
+  Kilovoltamperes,
+  Megavars,
+  ReactivePower,
+}
+import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
+import org.apache.pekko.actor.{ActorRef, FSM, Props}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
 import org.mockito.Mockito.doReturn
@@ -200,7 +205,7 @@ class ParticipantAgentMock(
     SystemParticipant[FixedRelevantData.type, ApparentPower, ConstantState.type],
   ] = {
     val func = CosPhiFixed(0.95).activeToReactivePowerFunc(
-      Kilowatts(0.0),
+      Kilovoltamperes(0.0),
       0.95d,
       Each(1.0),
     )

@@ -85,7 +85,7 @@ class LoadProfileStore private (val reader: Reader) {
     * @param loadProfile
     *   the consumer type
     * @return
-    *   the maximum load in W
+    *   the maximum load in VA
     */
   def maxPower(
       loadProfile: StandardLoadProfile

@@ -98,7 +98,7 @@ final case class WecModel(
       wecData: WecRelevantData,
   ): Power = {
     val activePower = determinePower(wecData)
-    val pMax = sMax.toPower * cosPhiRated
+    val pMax = sMax.toPower(cosPhiRated)
 
     (if (activePower > pMax) {
        logger.warn(
@@ -278,7 +278,7 @@ object WecModel {
       operationInterval,
       QControl(scaledInput.getqCharacteristics),
       Kilovoltamperes(
-        scaledInput.getType.getsRated.to(KILOWATT).getValue.doubleValue
+        scaledInput.getType.getsRated.to(KILOVOLTAMPERE).getValue.doubleValue
       ),
       scaledInput.getType.getCosPhiRated,
       SquareMeters(

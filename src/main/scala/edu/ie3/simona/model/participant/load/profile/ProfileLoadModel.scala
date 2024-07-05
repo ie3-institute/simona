@@ -92,7 +92,10 @@ final case class ProfileLoadModel(
     reference match {
       case ActivePower(activePower) =>
         /* scale the reference active power based on the profiles averagePower/maxPower ratio */
-        val referenceScalingFactor = averagePower / profileMaxPower.toPower
+        val referenceScalingFactor =
+          averagePower / profileMaxPower.toPower(
+            1.0
+          ) // only active power => cosPhi = 1.0
         activePower * referenceScalingFactor
       case _: EnergyConsumption =>
         /* scale the profiles average power based on the energyConsumption/profileEnergyScaling(=1000kWh/year) ratio  */
