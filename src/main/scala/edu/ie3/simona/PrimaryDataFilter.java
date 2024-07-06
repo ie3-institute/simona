@@ -19,28 +19,31 @@ public class PrimaryDataFilter {
     Path base = Path.of(".", "input", "ma_thesis", "fullGrid");
 
     Path input = base.resolve("primary");
-    Path output = base.resolve( "primary-x1.5");
+    Path output = base.resolve("primary-x1.5");
     List<File> files = Arrays.stream(Objects.requireNonNull(input.toFile().listFiles())).toList();
 
-      AtomicInteger i = new AtomicInteger(0);
+    AtomicInteger i = new AtomicInteger(0);
 
-    files.forEach(file -> {
-        i.addAndGet(1);
-        System.out.println(i.get());
+    files.forEach(
+        file -> {
+          i.addAndGet(1);
+          System.out.println(i.get());
 
           try {
             BufferedReader reader = new BufferedReader(new FileReader(file));
             String headline = reader.readLine();
             List<String> lines = reader.lines().toList();
 
-
-            Stream<String> stream = lines.stream()
-                //.filter(line ->line.contains("2016-07-") || line.contains("2016-08-01"))
-                .map(line -> multiply(line, 1.5));
+            Stream<String> stream =
+                lines.stream()
+                    // .filter(line ->line.contains("2016-07-") || line.contains("2016-08-01"))
+                    .map(line -> multiply(line, 1.5));
 
             String txt = stream.reduce(headline, (a, b) -> a + "\n" + b);
 
-            Writer writer = new OutputStreamWriter(new FileOutputStream(output.resolve(file.getName()).toFile()));
+            Writer writer =
+                new OutputStreamWriter(
+                    new FileOutputStream(output.resolve(file.getName()).toFile()));
             writer.write(txt);
             writer.close();
           } catch (Exception e) {
@@ -50,19 +53,19 @@ public class PrimaryDataFilter {
   }
 
   public static String multiply(String str, double factor) {
-      String[] arr = str.split(",");
+    String[] arr = str.split(",");
 
-      if (arr.length == 2) {
-          double modified = Double.parseDouble(arr[0]) * factor;
+    if (arr.length == 2) {
+      double modified = Double.parseDouble(arr[0]) * factor;
 
-          return modified +","+arr[1];
-      } else if (arr.length == 3) {
-          double modified1 = Double.parseDouble(arr[0]) * factor;
-          double modified2 = Double.parseDouble(arr[1]) * factor;
+      return modified + "," + arr[1];
+    } else if (arr.length == 3) {
+      double modified1 = Double.parseDouble(arr[0]) * factor;
+      double modified2 = Double.parseDouble(arr[1]) * factor;
 
-          return modified1 +","+ modified2 +","+arr[2];
-      } else {
-          throw new RuntimeException("Size:"+arr.length);
-      }
+      return modified1 + "," + modified2 + "," + arr[2];
+    } else {
+      throw new RuntimeException("Size:" + arr.length);
+    }
   }
 }

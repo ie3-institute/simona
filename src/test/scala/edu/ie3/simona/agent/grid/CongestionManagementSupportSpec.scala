@@ -121,6 +121,16 @@ class CongestionManagementSupportSpec
           -6,
           0.09.asPu,
         ), // max tap decrease
+        (
+          VoltageRange(0.015.asPu, 0.03.asPu, 0.15.asPu),
+          -1,
+          0.015.asPu,
+        ),
+        (
+          VoltageRange((-0.04).asPu, (-0.03).asPu, (-0.03).asPu),
+          2,
+          (-0.03).asPu,
+        ),
       )
 
       forAll(cases) { (range, expectedTap, expectedDelta) =>
@@ -208,6 +218,18 @@ class CongestionManagementSupportSpec
           modelCase3,
           Map(transformer31 -> 4, transformer32 -> 5),
           (-0.06).asPu,
+        ),
+        (
+          VoltageRange(0.015.asPu, 0.05.asPu, 0.015.asPu),
+          modelCase1,
+          Map(transformer11 -> -1, transformer12 -> -1),
+          0.015.asPu,
+        ),
+        (
+          VoltageRange((-0.05).asPu, (-0.03).asPu, (-0.03).asPu),
+          modelCase1,
+          Map(transformer11 -> 2, transformer12 -> 2),
+          (-0.03).asPu,
         ),
       )
 
