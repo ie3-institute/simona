@@ -427,7 +427,7 @@ class CongestionManagementSupportSpec
         currentTapPos = 0,
         tapMax = 3,
         tapMin = -3,
-        deltaV = 0.01.asPu,
+        deltaV = 1.asPu,
       )
 
       val powerFlowResult = buildPowerFlowResultEvent(
@@ -584,7 +584,7 @@ class CongestionManagementSupportSpec
           currentTapPos = 0,
           tapMax = 10,
           tapMin = -10,
-          deltaV = 0.01.asPu,
+          deltaV = 1.asPu,
         )
 
       val cases = Table(
@@ -632,7 +632,7 @@ class CongestionManagementSupportSpec
         currentTapPos = 7,
         tapMax = 10,
         tapMin = -10,
-        deltaV = 0.01.asPu,
+        deltaV = 1.asPu,
       )
 
       val cases = Table(
@@ -650,12 +650,12 @@ class CongestionManagementSupportSpec
         (
           VoltageRange(0.asPu, (-0.01).asPu),
           VoltageRange(0.02.asPu, (-0.03).asPu),
-          VoltageRange(0.05.asPu, (-0.04).asPu),
+          VoltageRange(0.03.asPu, (-0.05).asPu),
         ),
         (
           VoltageRange(0.02.asPu, 0.01.asPu),
           VoltageRange(0.04.asPu, (-0.01).asPu),
-          VoltageRange(0.05.asPu, (-0.02).asPu),
+          VoltageRange(0.05.asPu, (-0.05).asPu),
         ),
       )
 

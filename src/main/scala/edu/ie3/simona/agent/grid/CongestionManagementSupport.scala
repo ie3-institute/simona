@@ -366,12 +366,12 @@ trait CongestionManagementSupport {
       val nodeRes = nodeResults(line.nodeAUuid).getValue.doubleValue()
       val current = resA.getValue.doubleValue()
       val deltaI = line.iNom.value - current
-      (nodeRes * deltaI) / (current + deltaI) * -1
+      (nodeRes * deltaI) / line.iNom.value * -1
     } else {
       val nodeRes = nodeResults(line.nodeBUuid).getValue.doubleValue()
       val current = resB.getValue.doubleValue()
       val deltaI = line.iNom.value - current
-      (nodeRes * deltaI) / (current + deltaI) * -1
+      (nodeRes * deltaI) / line.iNom.value * -1
     }
 
     // deltaV < 0 => tapping down possible
@@ -466,9 +466,9 @@ object CongestionManagementSupport {
           // TODO: Enhance tests, to tests these changes
           val tappingRanges = tappings.map { tapping =>
             val currentPos = tapping.currentTapPos
-            val deltaV = tapping.deltaV
-            val increase = deltaV.multiply(tapping.tapMax - currentPos)
-            val decrease = deltaV.multiply(tapping.tapMin - currentPos)
+            val deltaV = tapping.deltaV.divide(-100)
+            val increase = deltaV.multiply(tapping.tapMin - currentPos)
+            val decrease = deltaV.multiply(tapping.tapMax - currentPos)
 
             (increase, decrease)
           }.toSeq
@@ -483,14 +483,14 @@ object CongestionManagementSupport {
             )
           }
 
-          (
-            range.deltaPlus
-              .add(possibleMinus)
-              .isLessThanOrEqualTo(infRange.deltaPlus),
-            range.deltaMinus
-              .add(possiblePlus)
-              .isGreaterThanOrEqualTo(infRange.deltaMinus),
-          ) match {
+          val increase = range.deltaPlus
+            .add(possibleMinus)
+            .isLessThanOrEqualTo(infRange.deltaPlus)
+          val decrease = range.deltaMinus
+            .add(possiblePlus)
+            .isGreaterThanOrEqualTo(infRange.deltaMinus)
+
+          (increase, decrease) match {
             case (true, true) =>
               (range.deltaPlus, range.deltaMinus)
             case (true, false) =>

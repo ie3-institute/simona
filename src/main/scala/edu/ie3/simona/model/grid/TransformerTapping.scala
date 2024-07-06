@@ -129,27 +129,24 @@ trait TransformerTapping {
         range.map(_.multiply(-1)).sortBy(_.getValue.doubleValue())
       }
 
-      if (maxIncrease.isGreaterThan(maxDecrease)) {
+      if (maxIncrease.isLessThan(0.asPu)) {
+        values.filter(value =>
+          value.isLessThanOrEqualTo(0.asPu) && value.isGreaterThanOrEqualTo(
+            maxDecrease
+          )
+        )
+      } else if (maxDecrease.isGreaterThan(0.asPu)) {
+        values.filter(value =>
+          value.isLessThanOrEqualTo(maxIncrease) && value
+            .isGreaterThanOrEqualTo(0.asPu)
+        )
+      } else {
         values.filter(value =>
           value.isLessThanOrEqualTo(maxIncrease) && value
             .isGreaterThanOrEqualTo(
               maxDecrease
             )
         )
-      } else {
-
-        if (maxDecrease.isGreaterThan(0.asPu)) {
-          values.filter(value =>
-            value.isLessThanOrEqualTo(maxIncrease) && value
-              .isGreaterThanOrEqualTo(0.asPu)
-          )
-        } else if (maxIncrease.isLessThan(0.asPu)) {
-          values.filter(value =>
-            value.isLessThanOrEqualTo(0.asPu) && value.isGreaterThanOrEqualTo(
-              maxDecrease
-            )
-          )
-        } else List(0.asPu)
       }
     } else List(0.asPu)
   }
