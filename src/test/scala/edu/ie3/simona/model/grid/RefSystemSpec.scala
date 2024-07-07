@@ -17,17 +17,13 @@ class RefSystemSpec extends AnyFlatSpec with Matchers {
 
   "A RefSystem with nominal power and nominal voltage" should "provide corresponding nominal current and nominal impedance" in {
 
-    val nominalPower = 600000
-    val nominalVoltage = 10000
-
-    val nominalPowerAsSquant: Power = Sq.create(nominalPower, Watts)
-    val nominalVoltageAsSquant: ElectricPotential =
-      Sq.create(nominalVoltage, Volts)
+    val nominalPowerAsSquant: Power = Sq.create(600000, Watts)
+    val nominalVoltageAsSquant: ElectricPotential = Sq.create(10000, Volts)
 
     val refSystem = RefSystem(nominalPowerAsSquant, nominalVoltageAsSquant)
 
-    refSystem.nominalPower should be(Sq.create(600000d, Watts))
-    refSystem.nominalVoltage should be(Sq.create(10000d, Volts))
+    refSystem.nominalPower should be(nominalPowerAsSquant)
+    refSystem.nominalVoltage should be(nominalVoltageAsSquant)
     refSystem.nominalCurrent should be(
       Sq.create(34.64101615137754774109785366023500d, Amperes)
     )
