@@ -22,9 +22,9 @@ class SystemComponentSpec extends AnyFlatSpec with Matchers {
 
   "SystemComponent" should "determine the correct operation interval" in {
 
-    val simulationStart: ZonedDateTime =
+    val defaultSimulationStart: ZonedDateTime =
       TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")
-    val simulationEnd: ZonedDateTime =
+    val defaultSimulationEnd: ZonedDateTime =
       TimeUtil.withDefaults.toZonedDateTime("2019-01-02T00:00:00Z")
 
     val testCases = Seq(
@@ -65,8 +65,8 @@ class SystemComponentSpec extends AnyFlatSpec with Matchers {
 
       val interval: OperationInterval =
         SystemComponent.determineOperationInterval(
-          simulationStart,
-          simulationEnd,
+          defaultSimulationStart,
+          defaultSimulationEnd,
           operationTime,
         )
 
@@ -75,25 +75,21 @@ class SystemComponentSpec extends AnyFlatSpec with Matchers {
   }
 
   it should "reject an operation end that is before the operation start" in {
-    val simulationStart: ZonedDateTime =
+    val defaultSimulationStart: ZonedDateTime =
       TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")
-    val simulationEnd: ZonedDateTime =
+    val defaultSimulationEnd: ZonedDateTime =
       TimeUtil.withDefaults.toZonedDateTime("2019-01-02T00:00:00Z")
 
     val operationTimeBuilder = setup()
 
-    operationTimeBuilder.withStart(
-      TimeUtil.withDefaults.toZonedDateTime("2019-01-02T00:00:00Z")
-    )
-    operationTimeBuilder.withEnd(
-      TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")
-    )
+    operationTimeBuilder.withStart(defaultSimulationEnd)
+    operationTimeBuilder.withEnd(defaultSimulationStart)
     val operationTime: OperationTime = operationTimeBuilder.build()
 
     val exception = intercept[InvalidParameterException] {
       SystemComponent.determineOperationInterval(
-        simulationStart,
-        simulationEnd,
+        defaultSimulationStart,
+        defaultSimulationEnd,
         operationTime,
       )
     }
