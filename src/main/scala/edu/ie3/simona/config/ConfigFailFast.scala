@@ -148,6 +148,9 @@ case object ConfigFailFast extends LazyLogging {
 
     /* Check control scheme definitions */
     simonaConfig.simona.control.foreach(checkControlSchemes)
+
+    /* Check correct parameterization of storages */
+    checkStoragesConfig(simonaConfig.simona.runtime.participant.storage)
   }
 
   /** Checks for valid sink configuration
@@ -656,6 +659,43 @@ case object ConfigFailFast extends LazyLogging {
             s"A control group (${transformerControlGroup.toString}) which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
               s"by invalid parametrization of one control groups where vMax is higher than the upper boundary (1.2 of nominal Voltage)!"
           )
+    }
+  }
+
+  /** Check the suitability of storage config parameters.
+    *
+    * @param StorageRuntimeConfig
+    *   RuntimeConfig of Storages
+    */
+  private def checkStoragesConfig(
+      storageConfig: SimonaConfig.Simona.Runtime.Participant.Storage
+  ): Unit = {
+    if (
+      storageConfig.defaultConfig.initialSoc < 0.0 || storageConfig.defaultConfig.initialSoc > 1.0
+    )
+      throw new RuntimeException(
+        s"StorageRuntimeConfig: Default initial SOC needs to be between 0.0 and 1.0."
+      )
+
+    if (
+      storageConfig.defaultConfig.targetSoc.exists(
+        _ < 0.0
+      ) || storageConfig.defaultConfig.targetSoc.exists(_ > 1.0)
+    )
+      throw new RuntimeException(
+        s"StorageRuntimeConfig: Default target SOC needs to be between 0.0 and 1.0."
+      )
+
+    storageConfig.individualConfigs.foreach { config =>
+      if (config.initialSoc < 0.0 || config.initialSoc > 1.0)
+        throw new RuntimeException(
+          s"StorageRuntimeConfig: ${config.uuids} initial SOC needs to be between 0.0 and 1.0."
+        )
+
+      if (config.targetSoc.exists(_ < 0.0) || config.targetSoc.exists(_ > 1.0))
+        throw new RuntimeException(
+          s"StorageRuntimeConfig: ${config.uuids} target SOC needs to be between 0.0 and 1.0."
+        )
     }
   }
 
