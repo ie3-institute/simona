@@ -490,9 +490,13 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           // return to Idle
           idle(cleanedGridAgentBaseData)
 
-        case _ =>
-          // preventing "match may not be exhaustive"
-          Behaviors.unhandled
+        // handles power request that arrive to early
+        case (requestGridPower: RequestGridPower, _) =>
+          ctx.log.debug(
+            s"Received the message $requestGridPower too early. Stash away!"
+          )
+          buffer.stash(requestGridPower)
+          Behaviors.same
       }
   }
 
@@ -778,7 +782,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         // happens only when we received slack data and power values before we received a request to provide grid data
         // (only possible when first simulation triggered and this agent is faster in this state as the request
         // by a superior grid arrives)
-        case (powerResponse: PowerResponse, _: GridAgentBaseData) =>
+        case (powerResponse: PowerResponse, _) =>
           ctx.log.debug(
             "Received Request for Grid Power too early. Stashing away"
           )
@@ -786,20 +790,12 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           buffer.stash(powerResponse)
           Behaviors.same
 
-        // happens only when we received slack data and power values before we received a request to provide grid
-        // (only possible when first simulation triggered and this agent is faster
-        // with its power flow calculation in this state as the request by a superior grid arrives)
-        case (powerResponse: PowerResponse, _: PowerFlowDoneData) =>
+        case (requestGridPower: RequestGridPower, _) =>
           ctx.log.debug(
-            "Received Request for Grid Power too early. Stashing away"
+            s"Received the message $requestGridPower too early. Stashing away!"
           )
-
-          buffer.stash(powerResponse)
+          buffer.stash(requestGridPower)
           Behaviors.same
-
-        case _ =>
-          // preventing "match may not be exhaustive"
-          Behaviors.unhandled
       }
   }
 
