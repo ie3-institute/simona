@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Providing documentation for EmAgent protocols and algorithms [#774](https://github.com/ie3-institute/simona/issues/774)
 - Option to flush out `CylindricalStorageResults` [#826](https://github.com/ie3-institute/simona/issues/826)
 - Printing the directory of log to terminal upon simulation failure [#626](https://github.com/ie3-institute/simona/issues/626)
+- Implementation of StorageAgent [#309](https://github.com/ie3-institute/simona/issues/309)
 - Enhanced Newton-Raphson-PowerFlow failures with more information [#815](https://github.com/ie3-institute/simona/issues/815)
 
 ### Changed
@@ -70,6 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed grid within GridSpec test [#806](https://github.com/ie3-institute/simona/issues/806)
 - Fixed log entry after power flow calculation [#814](https://github.com/ie3-institute/simona/issues/814)
 - Delete "Indices and tables" on the index page [#375](https://github.com/ie3-institute/simona/issues/375)
+- Fixed provision of controllingEms within buildParticipantToActorRef [#841](https://github.com/ie3-institute/simona/issues/841)
 - Not stopping correctly on failed power flow if configured  to stop [#800](https://github.com/ie3-institute/simona/issues/800)
 
 ## [3.0.0] - 2023-08-07
