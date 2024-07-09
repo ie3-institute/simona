@@ -26,10 +26,10 @@ final class ApparentPower private (
   def toMegavoltamperes: Double = to(Megavoltamperes)
   def toGigavoltamperes: Double = to(Gigavoltamperes)
 
-  def toPower(cosPhi: Double): Power = Watts(toVoltamperes) * cosPhi
+  def toPower(cosPhi: Double): Power = Watts(toVoltamperes * cosPhi)
 
   def toReactivePower(cosPhi: Double): ReactivePower =
-    Vars(toVoltamperes) * sin(acos(cosPhi))
+    Vars(toVoltamperes * sin(acos(cosPhi)))
 }
 
 object ApparentPower extends Dimension[ApparentPower] {

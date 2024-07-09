@@ -173,11 +173,9 @@ object QControl {
         cosPhiRated: Double,
         nodalVoltage: Dimensionless,
     ): Power => ReactivePower = { activePower: Power =>
-      val pRated = sRated.toPower(1.0)
-
       val qMaxFromP = Megavars(
         sqrt(
-          pow(pRated.toMegawatts, 2) -
+          pow(sRated.toPower(1.0).toMegawatts, 2) -
             pow(activePower.toMegawatts, 2)
         )
       )
