@@ -18,7 +18,7 @@ import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.Kilovoltamperes$
 import edu.ie3.util.scala.quantities.Sq
 import spock.lang.Specification
-import squants.energy.Kilowatts$
+import squants.energy.Watts$
 import tech.units.indriya.quantity.Quantities
 
 import static edu.ie3.util.quantities.PowerSystemUnits.*
@@ -55,7 +55,7 @@ class FixedFeedModelTest extends Specification {
   fixedFeedInput.operationTime
   )
 
-  def expectedPower = Sq.create(fixedFeedInput.sRated.value.doubleValue() * -1 * fixedFeedInput.cosPhiRated * 1.0, Kilowatts$.MODULE$)
+  def expectedPower = Sq.create(fixedFeedInput.sRated.value.doubleValue() * -1 * fixedFeedInput.cosPhiRated * 1000, Watts$.MODULE$)
 
   def "A fixed feed model should return approximately correct power calculations"() {
     when:
