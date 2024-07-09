@@ -6,12 +6,11 @@
 
 package edu.ie3.simona.model.grid
 
-import edu.ie3.util.scala.quantities.Sq
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import squants.{Dimensionless, Each}
-import squants.electro.{Amperes, ElectricPotential, Kilovolts, Ohms, Volts}
-import squants.energy.{Megawatts, Power, Watts}
+import squants.electro.{Amperes, ElectricPotential, Kilovolts, Ohms}
+import squants.energy.{Megawatts, Power, Kilowatts}
 
 class RefSystemSpec extends AnyFlatSpec with Matchers {
 
@@ -25,18 +24,18 @@ class RefSystemSpec extends AnyFlatSpec with Matchers {
     refSystem.nominalPower should be(nominalPowerAsSquant)
     refSystem.nominalVoltage should be(nominalVoltageAsSquant)
     refSystem.nominalCurrent should be(
-      Sq.create(34.64101615137754774109785366023500d, Amperes)
+      Amperes(34.64101615137754774109785366023500d)
     )
     refSystem.nominalImpedance should be(
-      Sq.create(166.6666666666666666666666666666666d, Ohms)
+      Ohms(166.6666666666666666666666666666666d)
     )
   }
 
   "A dimensionless impedance" should "be transferred correctly between reference systems" in {
-    val from = RefSystem(Sq.create(60d, Megawatts), Sq.create(110d, Kilovolts))
-    val to = RefSystem(Sq.create(40d, Megawatts), Sq.create(110d, Kilovolts))
-    val impedance = Sq.create(0.1d, Each)
-    val expected = Sq.create(0.06666666666666667d, Each)
+    val from = RefSystem(Megawatts(60d), Kilovolts(110d))
+    val to = RefSystem(Megawatts(40d), Kilovolts(110d))
+    val impedance = Each(0.1d)
+    val expected = Each(0.06666666666666667d)
 
     val actual: Dimensionless = RefSystem.transferImpedance(impedance, from, to)
 
@@ -44,10 +43,10 @@ class RefSystemSpec extends AnyFlatSpec with Matchers {
   }
 
   "A dimensionless admittance" should "be transferred correctly between reference systems" in {
-    val from = RefSystem(Sq.create(60d, Megawatts), Sq.create(110d, Kilovolts))
-    val to = RefSystem(Sq.create(40d, Megawatts), Sq.create(110d, Kilovolts))
-    val admittance = Sq.create(0.1d, Each)
-    val expected = Sq.create(0.15000000000000002d, Each)
+    val from = RefSystem(Megawatts(60d), Kilovolts(110d))
+    val to = RefSystem(Megawatts(40d), Kilovolts(110d))
+    val admittance = Each(0.1d)
+    val expected = Each(0.15000000000000002d)
 
     val actual: Dimensionless =
       RefSystem.transferAdmittance(admittance, from, to)
