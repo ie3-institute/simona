@@ -6,15 +6,11 @@
 
 package edu.ie3.simona.model.participant.load
 
-import edu.ie3.datamodel.models.OperationTime
-import edu.ie3.datamodel.models.input.system.LoadInput
-import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
-import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
-import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
-import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.ModelState
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.test.common.input.LoadInputTestData
+import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.simona.model.participant.load.LoadReference.{
   ActivePower,
   EnergyConsumption,
@@ -25,40 +21,12 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.Power
 import squants.energy.{KilowattHours, Kilowatts, Watts}
-import tech.units.indriya.quantity.Quantities
 
-import java.util.UUID
-
-class FixedLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
+class FixedLoadModelSpec extends UnitSpec with LoadInputTestData with TableDrivenPropertyChecks {
 
   private implicit val tolerance: Power = Watts(1d)
 
   "A fixed load model" should {
-    val loadInput =
-      new LoadInput(
-        UUID.fromString("4eeaf76a-ec17-4fc3-872d-34b7d6004b03"),
-        "testLoad",
-        OperatorInput.NO_OPERATOR_ASSIGNED,
-        OperationTime.notLimited(),
-        new NodeInput(
-          UUID.fromString("e5c1cde5-c161-4a4f-997f-fcf31fecbf57"),
-          "TestNodeInputModel",
-          OperatorInput.NO_OPERATOR_ASSIGNED,
-          OperationTime.notLimited(),
-          Quantities.getQuantity(1d, PowerSystemUnits.PU),
-          false,
-          NodeInput.DEFAULT_GEO_POSITION,
-          GermanVoltageLevelUtils.LV,
-          -1,
-        ),
-        new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
-        null,
-        BdewStandardLoadProfile.H0,
-        false,
-        Quantities.getQuantity(3000d, PowerSystemUnits.KILOWATTHOUR),
-        Quantities.getQuantity(282.74d, PowerSystemUnits.VOLTAMPERE),
-        0.95,
-      )
 
     val simulationStartDate =
       TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")
