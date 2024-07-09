@@ -9,12 +9,14 @@ package edu.ie3.simona.model.grid
 import breeze.linalg.DenseMatrix
 import breeze.math.Complex
 import breeze.numerics.abs
-import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.MeasurementUnitInput
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.model.control.{GridControls, TransformerControlGroupModel}
-import edu.ie3.simona.model.grid.GridModel.GridComponents
+import edu.ie3.simona.model.grid.GridModel.{
+  GridComponents,
+  updateUuidToIndexMap,
+}
 import edu.ie3.simona.test.common.input.{GridInputTestData, LineInputTestData}
 import edu.ie3.simona.test.common.model.grid.{
   BasicGrid,
@@ -265,7 +267,7 @@ class GridSpec
 
     }
 
-    "throw an InvalidGridException if two switches are connected @ the same node" in new BasicGridWithSwitches {
+    "Correctly handle multiple closed switches at node" in new BasicGridWithSwitches {
       // enable nodes
       override val nodes: Seq[NodeModel] = super.nodes
       nodes.foreach(_.enable())
@@ -282,7 +284,7 @@ class GridSpec
       override val switches: Set[SwitchModel] = super.switches + secondSwitch
       switches.foreach(_.enable())
       // open the switches
-      switches.foreach(_.open())
+      switches.foreach(_.close())
 
       // get the grid from the raw data
       val gridModel = new GridModel(
@@ -298,18 +300,15 @@ class GridSpec
         GridControls.empty,
       )
 
-      // get the private method for validation
-      val validateConsistency: PrivateMethod[Unit] =
-        PrivateMethod[Unit](Symbol("validateConsistency"))
+      updateUuidToIndexMap(gridModel)
 
-      // call the validation method
-      val exception: InvalidGridException = intercept[InvalidGridException] {
-        GridModel invokePrivate validateConsistency(gridModel)
-      }
-
-      // expect an exception for node 13
-      exception.getMessage shouldBe s"The grid model for subnet 1 has nodes with multiple switches. This is not supported yet! Duplicates are located @ nodes: Vector(${node13.uuid})"
-
+      // nodes 1, 13 and 14 should map to the same node
+      gridModel.nodeUuidToIndexMap
+        .get(node1.uuid)
+        .value shouldBe gridModel.nodeUuidToIndexMap.get(node13.uuid).value
+      gridModel.nodeUuidToIndexMap
+        .get(node1.uuid)
+        .value shouldBe gridModel.nodeUuidToIndexMap.get(node14.uuid).value
     }
 
     "update the nodeUuidToIndexMap correctly, when the given grid" must {
