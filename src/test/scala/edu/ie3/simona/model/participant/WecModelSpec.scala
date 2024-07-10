@@ -6,25 +6,21 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.system.WecInput
 import edu.ie3.datamodel.models.input.system.`type`.WecTypeInput
-import edu.ie3.datamodel.models.input.system.characteristic.{
-  ReactivePowerCharacteristic,
-  WecCharacteristicInput,
-}
+import edu.ie3.datamodel.models.input.system.characteristic.{ReactivePowerCharacteristic, WecCharacteristicInput}
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
+import edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.scala.quantities.Sq
-import squants.{Each, Power}
+import edu.ie3.util.quantities.PowerSystemUnits
 import squants.energy.Watts
 import squants.mass.{Density, KilogramsPerCubicMeter}
 import squants.motion.{MetersPerSecond, Pascals}
 import squants.thermal.Celsius
+import squants.{Each, Power}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{METRE, PERCENT, SQUARE_METRE}
 
@@ -114,9 +110,9 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
         0.032198846, 0.000196644, 0.0)
       velocities.zip(expectedBetzResults).foreach {
         case (velocity, betzResult) =>
-          val windVel = Sq.create(velocity, MetersPerSecond)
+          val windVel = MetersPerSecond(velocity)
           val betzFactor = wecModel.determineBetzCoefficient(windVel)
-          val expected = Sq.create(betzResult, Each)
+          val expected = Each(betzResult)
           betzFactor shouldEqual expected
       }
     }
@@ -131,9 +127,9 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
 
       velocities.zip(expectedPowers).foreach { case (velocity, power) =>
         val wecData = new WecRelevantData(
-          Sq.create(velocity, MetersPerSecond),
-          Sq.create(20, Celsius),
-          Some(Sq.create(101325d, Pascals)),
+          MetersPerSecond(velocity),
+          Celsius(20),
+          Some(Pascals(101325d)),
         )
         val result =
           wecModel.calculateActivePower(ModelState.ConstantState, wecData)
@@ -161,9 +157,9 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
       )
 
       testCases.foreach { case (temperature, pressure, densityResult) =>
-        val temperatureV = Sq.create(temperature, Celsius)
+        val temperatureV = Celsius(temperature)
         val pressureV =
-          if (pressure > 0) Some(Sq.create(pressure, Pascals)) else Option.empty
+          if (pressure > 0) Some(Pascals(pressure)) else Option.empty
 
         val airDensity = wecModel
           .calculateAirDensity(temperatureV, pressureV)
@@ -181,9 +177,9 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
 
       temperatures.zip(expectedPowers).foreach { case (temperature, power) =>
         val wecData = new WecRelevantData(
-          Sq.create(3.0, MetersPerSecond),
-          Sq.create(temperature, Celsius),
-          Some(Sq.create(101325d, Pascals)),
+          MetersPerSecond(3.0),
+          Celsius(temperature),
+          Some(Pascals(101325d)),
         )
         val result =
           wecModel.calculateActivePower(ModelState.ConstantState, wecData)
