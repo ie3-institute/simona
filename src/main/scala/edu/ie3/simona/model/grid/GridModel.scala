@@ -640,11 +640,11 @@ object GridModel {
           acc
             .updated(
               switch.nodeAUuid,
-              acc.getOrElse(switch.nodeAUuid, Set()) + switch.nodeBUuid,
+              acc.getOrElse(switch.nodeAUuid, Set.empty) + switch.nodeBUuid,
             )
             .updated(
               switch.nodeBUuid,
-              acc.getOrElse(switch.nodeBUuid, Set()) + switch.nodeAUuid,
+              acc.getOrElse(switch.nodeBUuid, Set.empty) + switch.nodeAUuid,
             )
       }
     val switchConnectedNodes =
@@ -670,7 +670,7 @@ object GridModel {
       nodeConnections: Map[UUID, Set[UUID]]
   ): Seq[Seq[UUID]] = {
     val visited = scala.collection.mutable.Set[UUID]()
-    var components = Seq[Seq[UUID]]()
+    var components = Seq.empty[Seq[UUID]]
 
     def dfs(
         node: UUID,
@@ -678,7 +678,7 @@ object GridModel {
     ): Unit = {
       visited += node
       component += node
-      for (neighbor <- nodeConnections.getOrElse(node, Set())) {
+      for (neighbor <- nodeConnections.getOrElse(node, Set.empty)) {
         if (!visited.contains(neighbor)) {
           dfs(neighbor, component)
         }
@@ -689,7 +689,7 @@ object GridModel {
       if (!visited.contains(node)) {
         val component = scala.collection.mutable.ListBuffer[UUID]()
         dfs(node, component)
-        components = components :+ component.toList
+        components = components :+ component.toSeq
       }
     }
     components
