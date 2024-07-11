@@ -337,46 +337,37 @@ trait CongestionManagementSupport {
       lineResults: Iterable[LineResult],
       gridComponents: GridComponents,
   ): ComparableQuantity[Dimensionless] = {
-    val lineResMap = lineResults.map(res => res.getInputModel -> res).toMap
-
     val lineMap = gridComponents.lines.map(line => line.uuid -> line).toMap
 
-    // calculates the utilisation of each line
-    val lineUtilisation = lineResMap.map { case (uuid, res) =>
-      val iNom = lineMap(uuid).iNom
-      val diffA = Amperes(res.getiAMag().getValue.doubleValue()) / iNom
-      val diffB = Amperes(res.getiBMag().getValue.doubleValue()) / iNom
+    // calculate the voltage change that ensures there is no line congestion
+    val voltageChanges =
+      lineResults.map(res => res.getInputModel -> res).map { case (uuid, res) =>
+        val line = lineMap(uuid)
 
-      uuid -> Math.max(diffA, diffB)
-    }
+        val (voltage, deltaI) =
+          if (res.getiAMag().isGreaterThan(res.getiBMag())) {
+            (
+              nodeResults(line.nodeAUuid).getValue.doubleValue(),
+              line.iNom.value - res.getiAMag().getValue.doubleValue(),
+            )
+          } else {
+            (
+              nodeResults(line.nodeBUuid).getValue.doubleValue(),
+              line.iNom.value - res.getiBMag().getValue.doubleValue(),
+            )
+          }
 
-    // find the maximale utilisation
-    val maxUtilisation = lineUtilisation
-      .maxByOption(_._2)
-      .getOrElse(throw new ResultException(s"No line result found!"))
-      ._1
+        (voltage * deltaI) / line.iNom.value * -1
+      }
 
-    val line = lineMap(maxUtilisation)
-    val res = lineResMap(maxUtilisation)
-    val resA = res.getiAMag()
-    val resB = res.getiBMag()
+    // determine the actual possible voltage change
+    val change = voltageChanges.maxOption.getOrElse(
+      throw new ResultException(s"No line result found!")
+    )
 
-    // calculate the voltage change limits
-    val deltaV = if (resA.isGreaterThan(resB)) {
-      val nodeRes = nodeResults(line.nodeAUuid).getValue.doubleValue()
-      val current = resA.getValue.doubleValue()
-      val deltaI = line.iNom.value - current
-      (nodeRes * deltaI) / line.iNom.value * -1
-    } else {
-      val nodeRes = nodeResults(line.nodeBUuid).getValue.doubleValue()
-      val current = resB.getValue.doubleValue()
-      val deltaI = line.iNom.value - current
-      (nodeRes * deltaI) / line.iNom.value * -1
-    }
-
-    // deltaV < 0 => tapping down possible
-    // deltaV > 0 => tapping up is necessary
-    deltaV.asPu
+    // change < 0 => tapping down possible
+    // change > 0 => tapping up is necessary
+    change.asPu
   }
 
 }
