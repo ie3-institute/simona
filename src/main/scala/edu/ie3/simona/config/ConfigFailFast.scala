@@ -8,17 +8,26 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.{Config, ConfigException}
 import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
+  CouchbaseParams,
+  InfluxDb1xParams,
+  SampleParams,
+  SqlParams,
+}
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.InfluxDb1x
 import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
-import edu.ie3.simona.service.weather.WeatherSource
+import edu.ie3.simona.service.weather.WeatherSource.WeatherScheme
 import edu.ie3.simona.util.CollectionUtils
+import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.checkBaseCsvParams
 import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
+  checkCouchbaseParams,
   checkInfluxDb1xParams,
   checkKafkaParams,
+  checkSqlParams,
 }
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
 import edu.ie3.util.scala.ReflectionTools
@@ -148,6 +157,9 @@ case object ConfigFailFast extends LazyLogging {
 
     /* Check control scheme definitions */
     simonaConfig.simona.control.foreach(checkControlSchemes)
+
+    /* Check correct parameterization of storages */
+    checkStoragesConfig(simonaConfig.simona.runtime.participant.storage)
   }
 
   /** Checks for valid sink configuration
@@ -536,8 +548,120 @@ case object ConfigFailFast extends LazyLogging {
     PrimaryServiceProxy.checkConfig(primary)
 
   private def checkWeatherDataSource(
-      dataSourceConfig: SimonaConfig.Simona.Input.Weather.Datasource
-  ): Unit = WeatherSource.checkConfig(dataSourceConfig)
+      weatherDataSourceCfg: SimonaConfig.Simona.Input.Weather.Datasource
+  ): Unit = {
+    // check coordinate source
+    val definedCoordinateSource: String = checkCoordinateSource(
+      weatherDataSourceCfg.coordinateSource
+    )
+
+    /* Check, if the column scheme is supported */
+    if (!WeatherScheme.isEligibleInput(weatherDataSourceCfg.scheme))
+      throw new InvalidConfigParameterException(
+        s"The weather data scheme '${weatherDataSourceCfg.scheme}' is not supported. Supported schemes:\n\t${WeatherScheme.values
+            .mkString("\n\t")}"
+      )
+
+    // check weather source parameters
+    val supportedWeatherSources =
+      Set("influxdb1x", "csv", "sql", "couchbase", "sample")
+    val definedWeatherSources = Vector(
+      weatherDataSourceCfg.sampleParams,
+      weatherDataSourceCfg.csvParams,
+      weatherDataSourceCfg.influxDb1xParams,
+      weatherDataSourceCfg.couchbaseParams,
+      weatherDataSourceCfg.sqlParams,
+    ).filter(_.isDefined)
+
+    // check that only one source is defined
+    if (definedWeatherSources.size > 1)
+      throw new InvalidConfigParameterException(
+        s"Multiple weather sources defined: '${definedWeatherSources.map(_.getClass.getSimpleName).mkString("\n\t")}'." +
+          s"Please define only one source!\nAvailable sources:\n\t${supportedWeatherSources.mkString("\n\t")}"
+      )
+
+    definedWeatherSources.headOption.flatten match {
+      case Some(baseCsvParams: BaseCsvParams) =>
+        checkBaseCsvParams(baseCsvParams, "WeatherSource")
+      case Some(params: CouchbaseParams) =>
+        checkCouchbaseParams(params)
+      case Some(InfluxDb1xParams(database, _, url)) =>
+        checkInfluxDb1xParams("WeatherSource", url, database)
+      case Some(params: SqlParams) =>
+        checkSqlParams(params)
+      case Some(_: SampleParams) =>
+        // sample weather, no check required
+        // coordinate source must be sample coordinate source
+        if (weatherDataSourceCfg.coordinateSource.sampleParams.isEmpty) {
+          // cannot use sample weather source with other combination of weather source than sample weather source
+          throw new InvalidConfigParameterException(
+            s"Invalid coordinate source " +
+              s"'$definedCoordinateSource' defined for SampleWeatherSource. " +
+              "Please adapt the configuration to use sample coordinate source for weather data!"
+          )
+        }
+      case None | Some(_) =>
+        throw new InvalidConfigParameterException(
+          s"No weather source defined! This is currently not supported! Please provide the config parameters for one " +
+            s"of the following weather sources:\n\t${supportedWeatherSources.mkString("\n\t")}"
+        )
+    }
+  }
+
+  /** Check the provided coordinate id data source configuration to ensure its
+    * validity. For any invalid configuration parameters exceptions are thrown.
+    *
+    * @param coordinateSourceConfig
+    *   the config to be checked
+    * @return
+    *   the name of the defined
+    *   [[edu.ie3.datamodel.io.source.IdCoordinateSource]]
+    */
+  private def checkCoordinateSource(
+      coordinateSourceConfig: SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
+  ): String = {
+    val supportedCoordinateSources = Set("csv", "sql", "sample")
+    val definedCoordSources = Vector(
+      coordinateSourceConfig.sampleParams,
+      coordinateSourceConfig.csvParams,
+      coordinateSourceConfig.sqlParams,
+    ).filter(_.isDefined)
+
+    // check that only one source is defined
+    if (definedCoordSources.size > 1)
+      throw new InvalidConfigParameterException(
+        s"Multiple coordinate sources defined: '${definedCoordSources.map(_.getClass.getSimpleName).mkString("\n\t")}'." +
+          s"Please define only one source!\nAvailable sources:\n\t${supportedCoordinateSources.mkString("\n\t")}"
+      )
+
+    definedCoordSources.headOption.flatten match {
+      case Some(baseCsvParams: BaseCsvParams) =>
+        checkBaseCsvParams(baseCsvParams, "CoordinateSource")
+
+        // check the grid model configuration
+        val gridModel = coordinateSourceConfig.gridModel.toLowerCase
+        if (gridModel != "icon" && gridModel != "cosmo") {
+          throw new InvalidConfigParameterException(
+            s"Grid model '$gridModel' is not supported!"
+          )
+        }
+
+        "csv"
+      case Some(sqlParams: SqlParams) =>
+        checkSqlParams(sqlParams)
+        "sql"
+      case Some(
+            _: SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SampleParams
+          ) =>
+        "sample"
+      case None | Some(_) =>
+        throw new InvalidConfigParameterException(
+          s"No coordinate source defined! This is currently not supported! Please provide the config parameters for one " +
+            s"of the following coordinate sources:\n\t${supportedCoordinateSources.mkString("\n\t")}"
+        )
+    }
+
+  }
 
   /** Check the config sub tree for output parameterization
     *
@@ -656,6 +780,43 @@ case object ConfigFailFast extends LazyLogging {
             s"A control group (${transformerControlGroup.toString}) which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
               s"by invalid parametrization of one control groups where vMax is higher than the upper boundary (1.2 of nominal Voltage)!"
           )
+    }
+  }
+
+  /** Check the suitability of storage config parameters.
+    *
+    * @param StorageRuntimeConfig
+    *   RuntimeConfig of Storages
+    */
+  private def checkStoragesConfig(
+      storageConfig: SimonaConfig.Simona.Runtime.Participant.Storage
+  ): Unit = {
+    if (
+      storageConfig.defaultConfig.initialSoc < 0.0 || storageConfig.defaultConfig.initialSoc > 1.0
+    )
+      throw new RuntimeException(
+        s"StorageRuntimeConfig: Default initial SOC needs to be between 0.0 and 1.0."
+      )
+
+    if (
+      storageConfig.defaultConfig.targetSoc.exists(
+        _ < 0.0
+      ) || storageConfig.defaultConfig.targetSoc.exists(_ > 1.0)
+    )
+      throw new RuntimeException(
+        s"StorageRuntimeConfig: Default target SOC needs to be between 0.0 and 1.0."
+      )
+
+    storageConfig.individualConfigs.foreach { config =>
+      if (config.initialSoc < 0.0 || config.initialSoc > 1.0)
+        throw new RuntimeException(
+          s"StorageRuntimeConfig: ${config.uuids} initial SOC needs to be between 0.0 and 1.0."
+        )
+
+      if (config.targetSoc.exists(_ < 0.0) || config.targetSoc.exists(_ > 1.0))
+        throw new RuntimeException(
+          s"StorageRuntimeConfig: ${config.uuids} target SOC needs to be between 0.0 and 1.0."
+        )
     }
   }
 
