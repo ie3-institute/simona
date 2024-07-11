@@ -32,7 +32,6 @@ import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.quantities.PowerSystemUnits._
 import squants.energy.Kilowatts
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units._
 
 import java.util.UUID
 import scala.jdk.CollectionConverters.SeqHasAsJava
