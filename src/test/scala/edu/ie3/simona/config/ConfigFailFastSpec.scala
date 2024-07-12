@@ -7,7 +7,11 @@
 package edu.ie3.simona.config
 
 import com.typesafe.config.ConfigFactory
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
+  CoordinateSource,
+  SampleParams,
+}
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.{Csv, InfluxDb1x}
 import edu.ie3.simona.config.SimonaConfig.Simona.Powerflow.Newtonraphson
@@ -1012,39 +1016,81 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
       /* Checking of primary source configuration is delegated to the specific actor. Tests are placed there */
 
       "Checking weather data sources" should {
-
         val checkWeatherDataSource =
           PrivateMethod[Unit](Symbol("checkWeatherDataSource"))
 
+        val csv: BaseCsvParams =
+          BaseCsvParams(",", "input", isHierarchic = false)
+        val sample = new SampleParams(true)
+
+        val weatherDataSource = Datasource(
+          CoordinateSource(
+            None,
+            "icon",
+            Some(
+              SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
+                .SampleParams(true)
+            ),
+            None,
+          ),
+          None,
+          None,
+          None,
+          50000d,
+          Some(360L),
+          None,
+          "icon",
+          None,
+          Some("yyyy-MM-dd HH:mm"),
+        )
+
         "detects invalid weather data scheme" in {
-          val weatherDataSource =
-            new SimonaConfig.Simona.Input.Weather.Datasource(
-              CoordinateSource(
-                None,
-                "icon",
-                Some(
-                  SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
-                    .SampleParams(true)
-                ),
-                None,
-              ),
-              None,
-              None,
-              None,
-              50000d,
-              Some(360L),
-              Some(
-                SimonaConfig.Simona.Input.Weather.Datasource.SampleParams(true)
-              ),
-              "this won't work",
-              None,
-              Some("yyyy-MM-dd HH:mm"),
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkWeatherDataSource(
+              weatherDataSource.copy(scheme = "this won't work")
             )
+          }.getMessage shouldBe "The weather data scheme 'this won't work' is not supported. " +
+            "Supported schemes:\n\ticon\n\tcosmo"
+        }
+
+        "detect missing source" in {
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate checkWeatherDataSource(
               weatherDataSource
             )
-          }.getMessage shouldBe "The weather data scheme 'this won't work' is not supported. Supported schemes:\n\ticon\n\tcosmo"
+          }.getMessage should startWith(
+            "No weather source defined! This is currently not supported! Please provide the config parameters for " +
+              "one of the following weather sources:"
+          )
+        }
+
+        "detect too many sources" in {
+          val tooManySources = weatherDataSource.copy(
+            csvParams = Some(csv),
+            sampleParams = Some(sample),
+          )
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkWeatherDataSource(tooManySources)
+          }.getMessage should startWith("Multiple weather sources defined:")
+        }
+
+        "detects sample source mismatch" in {
+          val csvCoordinateSource = new CoordinateSource(
+            csvParams = Some(csv),
+            gridModel = "icon",
+            sampleParams = None,
+            sqlParams = None,
+          )
+
+          val sampleMismatch = weatherDataSource.copy(
+            coordinateSource = csvCoordinateSource,
+            sampleParams = Some(sample),
+          )
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkWeatherDataSource(sampleMismatch)
+          }.getMessage shouldBe "Invalid coordinate source 'csv' defined for SampleWeatherSource. Please adapt the configuration to use sample coordinate source for weather data!"
         }
       }
 
@@ -1119,6 +1165,178 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             "by invalid parametrization of one control groups where vMax is higher than the upper boundary (1.2 of nominal Voltage)!"
         }
       }
+    }
+
+    "checking the parameterization of storages" should {
+      val checkStorageConfigs =
+        PrivateMethod[Unit](Symbol("checkStoragesConfig"))
+
+      "throw exception if default initial SOC is negative" in {
+
+        val defaultConfig: SimonaConfig.StorageRuntimeConfig =
+          SimonaConfig.StorageRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            1.0,
+            List(java.util.UUID.randomUUID().toString),
+            -0.5,
+            Some(0.8),
+          )
+        val storageConfig = SimonaConfig.Simona.Runtime.Participant
+          .Storage(defaultConfig, List.empty)
+
+        intercept[RuntimeException] {
+          ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
+        }.getMessage shouldBe "StorageRuntimeConfig: Default initial SOC needs to be between 0.0 and 1.0."
+      }
+
+      "throw exception if default target SOC is negative" in {
+        val defaultConfig: SimonaConfig.StorageRuntimeConfig =
+          SimonaConfig.StorageRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            1.0,
+            List(java.util.UUID.randomUUID().toString),
+            0.5,
+            Some(-0.8),
+          )
+        val storageConfig = SimonaConfig.Simona.Runtime.Participant
+          .Storage(defaultConfig, List.empty)
+
+        intercept[RuntimeException] {
+          ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
+        }.getMessage shouldBe "StorageRuntimeConfig: Default target SOC needs to be between 0.0 and 1.0."
+      }
+
+      "throw exception if individual initial SOC is negative" in {
+        val uuid = java.util.UUID.randomUUID().toString
+        val defaultConfig: SimonaConfig.StorageRuntimeConfig =
+          SimonaConfig.StorageRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            1.0,
+            List(java.util.UUID.randomUUID().toString),
+            0.5,
+            Some(0.8),
+          )
+        val individualConfig: List[SimonaConfig.StorageRuntimeConfig] = List(
+          SimonaConfig.StorageRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            1.0,
+            List(uuid),
+            -0.5,
+            Some(0.8),
+          )
+        )
+        val storageConfig = SimonaConfig.Simona.Runtime.Participant
+          .Storage(defaultConfig, individualConfig)
+
+        intercept[RuntimeException] {
+          ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
+        }.getMessage shouldBe s"StorageRuntimeConfig: List($uuid) initial SOC needs to be between 0.0 and 1.0."
+      }
+
+      "throw exception if individual target SOC is negative" in {
+        val uuid = java.util.UUID.randomUUID().toString
+        val defaultConfig: SimonaConfig.StorageRuntimeConfig =
+          SimonaConfig.StorageRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            1.0,
+            List(java.util.UUID.randomUUID().toString),
+            0.5,
+            Some(0.8),
+          )
+        val individualConfig: List[SimonaConfig.StorageRuntimeConfig] = List(
+          SimonaConfig.StorageRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            1.0,
+            List(uuid),
+            0.5,
+            Some(-0.8),
+          )
+        )
+        val storageConfig = SimonaConfig.Simona.Runtime.Participant
+          .Storage(defaultConfig, individualConfig)
+
+        intercept[RuntimeException] {
+          ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
+        }.getMessage shouldBe s"StorageRuntimeConfig: List($uuid) target SOC needs to be between 0.0 and 1.0."
+      }
+
+      "not throw exception if all parameters are in parameter range" in {
+        val defaultConfig: SimonaConfig.StorageRuntimeConfig =
+          SimonaConfig.StorageRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            1.0,
+            List(java.util.UUID.randomUUID().toString),
+            0.5,
+            Some(0.8),
+          )
+        val individualConfig: List[SimonaConfig.StorageRuntimeConfig] = List(
+          SimonaConfig.StorageRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            1.0,
+            List(java.util.UUID.randomUUID().toString),
+            0.5,
+            Some(0.8),
+          )
+        )
+        val storageConfig = SimonaConfig.Simona.Runtime.Participant
+          .Storage(defaultConfig, individualConfig)
+
+        noException should be thrownBy {
+          ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
+        }
+      }
+    }
+
+    "Checking coordinate sources" should {
+      val checkCoordinateSource =
+        PrivateMethod[Unit](Symbol("checkCoordinateSource"))
+      val csvParams: BaseCsvParams = BaseCsvParams(
+        ",",
+        "input",
+        isHierarchic = false,
+      )
+      val sampleParams =
+        new SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SampleParams(
+          true
+        )
+
+      val coordinateSource = new CoordinateSource(
+        csvParams = None,
+        gridModel = "icon",
+        sampleParams = None,
+        sqlParams = None,
+      )
+
+      "detect missing source" in {
+        intercept[InvalidConfigParameterException] {
+          ConfigFailFast invokePrivate checkCoordinateSource(coordinateSource)
+        }.getMessage should startWith(
+          "No coordinate source defined! This is currently not supported! Please provide the config parameters for one of the following coordinate sources"
+        )
+      }
+
+      "detect too many sources" in {
+        val tooManySources = coordinateSource.copy(
+          csvParams = Some(csvParams),
+          sampleParams = Some(sampleParams),
+        )
+
+        intercept[InvalidConfigParameterException] {
+          ConfigFailFast invokePrivate checkCoordinateSource(tooManySources)
+        }.getMessage should startWith("Multiple coordinate sources defined:")
+      }
+
+      "detect invalid grid model" in {
+        val invalidGridModel = coordinateSource.copy(
+          csvParams = Some(csvParams),
+          gridModel = "invalid",
+        )
+
+        intercept[InvalidConfigParameterException] {
+          ConfigFailFast invokePrivate checkCoordinateSource(invalidGridModel)
+        }.getMessage should startWith("Grid model 'invalid' is not supported!")
+      }
+
     }
 
     "validating the typesafe config" when {
