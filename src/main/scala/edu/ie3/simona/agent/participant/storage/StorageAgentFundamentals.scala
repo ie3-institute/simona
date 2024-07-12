@@ -254,17 +254,21 @@ trait StorageAgentFundamentals
     * @return
     *   updated base state data
     */
-  protected def handleCalculatedResult(
+  override protected def handleCalculatedResult(
       baseStateData: ParticipantModelBaseStateData[
         ApparentPower,
         StorageRelevantData,
         StorageState,
         StorageModel,
       ],
-      result: ApparentPower,
+      result: AccompaniedSimulationResult[ApparentPower],
       currentTick: Long,
-  )(implicit startDateTime: ZonedDateTime): Seq[ResultEntity] = {
-
+  ): ParticipantModelBaseStateData[
+    ApparentPower,
+    StorageRelevantData,
+    StorageState,
+    StorageModel,
+  ] = {
     // announce last result to listeners
     if (baseStateData.outputConfig.simulationResultInfo) {
       val uuid = baseStateData.modelUuid
@@ -286,16 +290,21 @@ trait StorageAgentFundamentals
       val storageResult = new StorageResult(
         dateTime,
         uuid,
-        result.p.toMegawatts.asMegaWatt,
-        result.q.toMegavars.asMegaVar,
+        result.primaryData.p.toMegawatts.asMegaWatt,
+        result.primaryData.q.toMegavars.asMegaVar,
         soc,
       )
 
       notifyListener(ParticipantResultEvent(storageResult))
+    }
 
-      Seq(storageResult)
-    } else
-      Seq.empty[ResultEntity]
+    baseStateData.copy(
+      resultValueStore = ValueStore.updateValueStore(
+        baseStateData.resultValueStore,
+        currentTick,
+        result.primaryData,
+      )
+    )
   }
 
   /** Handle an active power change by flex control.
@@ -343,21 +352,11 @@ trait StorageAgentFundamentals
 
     val apparentPower = ApparentPower(updatedSetPower, reactivePower)
 
-    val accompanyingResults = handleCalculatedResult(
-      baseStateData,
-      apparentPower,
-      tick,
-    )(baseStateData.startDate)
+    val result: AccompaniedSimulationResult[ApparentPower] =
+      AccompaniedSimulationResult(apparentPower, Seq.empty[ResultEntity])
 
-    val result = AccompaniedSimulationResult(
-      apparentPower,
-      accompanyingResults,
-    )
-    (
-      updatedState,
-      result,
-      flexChangeIndicator,
-    )
+    (updatedState, result, flexChangeIndicator)
+
   }
 
   /** Update the last known model state with the given external, relevant data
