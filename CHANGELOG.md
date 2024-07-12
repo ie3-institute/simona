@@ -55,6 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rewrote PVModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Making configuration of `RefSystem` via config optional [#769](https://github.com/ie3-institute/simona/issues/769)
 - Updated PSDM to version 5.1.0 [#835](https://github.com/ie3-institute/simona/issues/835)
+- Refactor `WeatherSource` and `WeatherSourceWrapper` [#180](https://github.com/ie3-institute/simona/issues/180)
 
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
