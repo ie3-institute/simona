@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Consider scaling factor with flex options [#734](https://github.com/ie3-institute/simona/issues/734)
 - Implementation of Energy Management Agents [#204](https://github.com/ie3-institute/simona/issues/204)
 - Providing documentation for EmAgent protocols and algorithms [#774](https://github.com/ie3-institute/simona/issues/774)
+- Option to flush out `CylindricalStorageResults` [#826](https://github.com/ie3-institute/simona/issues/826)
+- Printing the directory of log to terminal upon simulation failure [#626](https://github.com/ie3-institute/simona/issues/626)
+- Implementation of StorageAgent [#309](https://github.com/ie3-institute/simona/issues/309)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -50,6 +53,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactoring of `GridAgent` messages [#736](https://github.com/ie3-institute/simona/issues/736)
 - Rewrote PVModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Making configuration of `RefSystem` via config optional [#769](https://github.com/ie3-institute/simona/issues/769)
+- Updated PSDM to version 5.1.0 [#835](https://github.com/ie3-institute/simona/issues/835)
+- Refactor `WeatherSource` and `WeatherSourceWrapper` [#180](https://github.com/ie3-institute/simona/issues/180)
 
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
@@ -65,6 +70,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Default RefSystem using the unit `Volt` for low voltage grids [#811](https://github.com/ie3-institute/simona/issues/811)
 - Fixed grid within GridSpec test [#806](https://github.com/ie3-institute/simona/issues/806)
 - Fixed log entry after power flow calculation [#814](https://github.com/ie3-institute/simona/issues/814)
+- Delete "Indices and tables" on the index page [#375](https://github.com/ie3-institute/simona/issues/375)
+- Fixed provision of controllingEms within buildParticipantToActorRef [#841](https://github.com/ie3-institute/simona/issues/841)
+- Simulation stopping at unhandled messages in `DBFSAlgorithm` [#821](https://github.com/ie3-institute/simona/issues/821)
 
 ## [3.0.0] - 2023-08-07
 
