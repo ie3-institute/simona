@@ -147,6 +147,33 @@ simona.output.participant.individualConfigs = [
 ]
 ```
 
+#### Output configuration of thermal elements
+
+To use the default configuration the default notifier has to be used. By setting "simulationResult" to true, the thermal elements is enabled to return its results.
+
+```
+simona.output.thermal.defaultConfig = {
+  notifier = "default",
+  simulationResult = true
+}
+```
+
+The default configuration applies to all models except the ones with individual configurations assigned.
+If individual configurations have to be performed for certain thermal elements, these must be listed with the corresponding notifier as in the following example.
+
+```
+simona.output.thermal.individualConfigs = [
+  {
+    notifier = "house",
+    simulationResult = true
+  },
+  {
+    notifier = "cylindricalstorage",
+    simulationResult = true
+  }
+]
+```
+
 Further model classes which can be used to load the outcome of a system simulation are described in [PSDM](https://powersystemdatamodel.readthedocs.io/en/latest/models/models.html#result).
 Data sources and data sinks are explained in the [I/O-capabilities](https://powersystemdatamodel.readthedocs.io/en/latest/io/basiciousage.html) section of the PSDM.
 
@@ -195,6 +222,16 @@ The load reference can scale the load model behaviour to reach the given annual 
 
 If an individual configuration is to be assigned, the default configuration parameters must be adjusted accordingly.
 Runtime configurations of other system participants are done similarly, except that model behavior and reference are not defined.
+
+### Storage runtime configuration
+
+The storage model takes parameters for the initial state of charge (SOC) and the target SOC for electrical energy storages, with 0.0 <= SOC <= 1.0.
+The initial SOC defaults to 0%, while the target SOC is optional. When no target SOC is set, the reference behavior (see flexibility messages) of storages is 0 kW. 
+
+    initialSoc = "0.0"
+    targetSoc = "1.0"
+
+Individual configuration can be assigned accordingly.
 
 ## Event configuration 
 
