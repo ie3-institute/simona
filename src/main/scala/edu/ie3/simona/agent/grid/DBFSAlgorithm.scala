@@ -415,7 +415,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               )
 
               sender ! FailedPowerFlow
-              simulateGrid(gridAgentBaseData, currentTick)
+              Behaviors.stopped
           }
 
         // called when a grid power values request from a superior grid is received
