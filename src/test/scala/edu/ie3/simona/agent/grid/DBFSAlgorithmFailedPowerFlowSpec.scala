@@ -285,6 +285,93 @@ class DBFSAlgorithmFailedPowerFlowSpec
       // PowerFlowFailed events are only sent by the slack subgrid
       runtimeEvents.expectNoMessage()
     }
+
+    "finish simulation as a slack GridAgent" in {
+      val hvGridAgent =
+        InferiorGA(TestProbe("HvGridAgent"), Seq(supNodeA.getUuid))
+
+      val slackGridAgent: ActorRef[GridAgent.Request] = testKit.spawn(
+        GridAgent(
+          environmentRefs,
+          simonaConfig, // stopOnFailure is enabled
+          listener = Iterable(resultListener.ref),
+        )
+      )
+
+      val sweepNo = 0
+
+      val subnetGatesToActorRef = ehvSubGridGates.map(gate => gate -> hvGridAgent.ref).toMap
+
+      val gridAgentInitData =
+        GridAgentInitData(
+          ehvGridContainer,
+          Seq.empty[ThermalGrid],
+          subnetGatesToActorRef,
+          RefSystem("5000 MVA", "380 kV"),
+        )
+
+      val key =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
+
+      slackGridAgent ! CreateGridAgent(gridAgentInitData, key)
+
+      val scheduleActivationMsg =
+        scheduler.expectMessageType[ScheduleActivation]
+      scheduleActivationMsg.tick shouldBe INIT_SIM_TICK
+      scheduleActivationMsg.unlockKey shouldBe Some(key)
+      val gridAgentActivation = scheduleActivationMsg.actor
+
+      slackGridAgent ! WrappedActivation(Activation(INIT_SIM_TICK))
+      scheduler.expectMessage(Completion(gridAgentActivation, Some(3600)))
+
+      // send init data to agent
+      slackGridAgent ! WrappedActivation(Activation(3600))
+
+      // we expect a completion message
+      scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
+
+      // send the start grid simulation trigger
+      slackGridAgent ! WrappedActivation(Activation(3600))
+
+      val powerRequestSender = hvGridAgent.expectGridPowerRequest()
+
+      // normally the inferior grid agents ask for the slack voltage as well to do their power flow calculation
+      // we simulate this behaviour now by doing the same for our inferior grid agent
+      hvGridAgent.requestSlackVoltage(slackGridAgent, sweepNo)
+
+      // as we are in the first sweep, provided slack voltage should be equal
+      // to 1 p.u. (in physical value, here: 380kV) from the superior grid agent perspective
+      // (here: slackGridAgent perspective)
+      hvGridAgent.expectSlackVoltageProvision(
+        sweepNo,
+        Seq(
+          ExchangeVoltage(
+            supNodeA.getUuid,
+            Kilovolts(380d),
+            Kilovolts(0d),
+          )
+        ),
+      )
+
+      // we have a failed power flow in the inferior grid
+      // and send this info to the center grid
+      powerRequestSender ! FailedPowerFlow
+
+      // runtime event is sent by slack agent
+      runtimeEvents.expectMessage(RuntimeEvent.PowerFlowFailed)
+
+      // slack agent should have died now
+      val deathWatch = createTestProbe("deathWatch")
+      deathWatch.expectTerminated(slackGridAgent.ref)
+
+      // superior GA has died immediately, sends no more messages
+      hvGridAgent.gaProbe.expectNoMessage()
+      scheduler.expectNoMessage()
+
+      resultListener.expectNoMessage()
+    }
   }
 
 }
