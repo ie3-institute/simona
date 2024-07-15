@@ -303,7 +303,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
       val sweepNo = 0
 
-      val subnetGatesToActorRef = ehvSubGridGates.map(gate => gate -> hvGridAgent.ref).toMap
+      val subnetGatesToActorRef =
+        ehvSubGridGates.map(_ -> hvGridAgent.ref).toMap
 
       val gridAgentInitData =
         GridAgentInitData(
