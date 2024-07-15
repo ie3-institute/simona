@@ -75,6 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed provision of controllingEms within buildParticipantToActorRef [#841](https://github.com/ie3-institute/simona/issues/841)
 - Simulation stopping at unhandled messages in `DBFSAlgorithm` [#821](https://github.com/ie3-institute/simona/issues/821)
 - Not stopping correctly on failed power flow if configured  to stop [#800](https://github.com/ie3-institute/simona/issues/800)
+- Finally fixing `RuntimeEventListenerSpec` [#849](https://github.com/ie3-institute/simona/issues/849)
 
 ## [3.0.0] - 2023-08-07
 
