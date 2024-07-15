@@ -285,8 +285,11 @@ class DBFSAlgorithmFailedPowerFlowSpec
       // PowerFlowFailed events are only sent by the slack subgrid
       runtimeEvents.expectNoMessage()
     }
+  }
 
-    "finish simulation as a slack GridAgent" in {
+  "A GridAgent actor in slack position with async test" should {
+
+    "stop simulation if some inferior power flow has failed" in {
       val hvGridAgent =
         InferiorGA(TestProbe("HvGridAgent"), Seq(supNodeA.getUuid))
 
