@@ -222,7 +222,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       // send the start grid simulation trigger
       centerGridAgent ! WrappedActivation(Activation(3600))
 
-      // we expect a request for grid power values here for sweepNo $sweepNo
+      // we expect a request for grid power values here for sweepNo 0
       val powerRequestSender = inferiorGridAgent.expectGridPowerRequest()
 
       // we expect a request for voltage values of slack node
@@ -262,9 +262,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
         ),
       )
 
-      // power flow calculation should run now. After it's done,
-      // our test agent should now be ready to provide the grid power values,
-      // hence we ask for them and expect a corresponding response
+      // power flow calculation is skipped now and power flow failure is forwarded
       superiorGridAgent.requestGridPower(centerGridAgent, sweepNo)
 
       // the center grid should forward the failed power flow message to the superior grid
