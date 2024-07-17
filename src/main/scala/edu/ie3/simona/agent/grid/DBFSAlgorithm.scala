@@ -16,18 +16,10 @@ import edu.ie3.powerflow.model.PowerFlowResult.FailedPowerFlowResult.FailedNewto
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.enums.NodeType
 import edu.ie3.simona.agent.grid.GridAgent.idle
-import edu.ie3.simona.agent.grid.GridAgentData.{
-  GridAgentBaseData,
-  GridAgentConstantData,
-  PowerFlowDoneData,
-}
+import edu.ie3.simona.agent.grid.GridAgentData.{GridAgentBaseData, GridAgentConstantData, PowerFlowDoneData}
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangeVoltage
 import edu.ie3.simona.agent.grid.GridAgentMessages._
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  FinishParticipantSimulation,
-  ParticipantMessage,
-  RequestAssetPowerMessage,
-}
+import edu.ie3.simona.agent.participant.ParticipantAgent.{FinishParticipantSimulation, ParticipantMessage, RequestAssetPowerMessage}
 import edu.ie3.simona.event.RuntimeEvent.PowerFlowFailed
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid.{NodeModel, RefSystem}
@@ -38,11 +30,7 @@ import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.SquantsUtils.RichElectricPotential
 import org.apache.pekko.actor.typed.scaladsl.AskPattern._
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
-import org.apache.pekko.actor.typed.scaladsl.{
-  ActorContext,
-  Behaviors,
-  StashBuffer,
-}
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior, Scheduler}
 import org.apache.pekko.pattern.ask
 import org.apache.pekko.util.{Timeout => PekkoTimeout}
@@ -61,6 +49,7 @@ import scala.util.{Failure, Success}
 trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
   /** Method that defines the [[Behavior]] for simulating the grid.
+    *
     * @param gridAgentData
     *   state data of the actor
     * @param currentTick
@@ -536,9 +525,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           "I got a grid power request from a subgrid I don't know. Can't answer it properly."
         )
 
-              sender ! FailedPowerFlow
-              Behaviors.stopped
-          }
+        sender ! FailedPowerFlow
+        Behaviors.stopped
+    }
+  }
 
   /** Helper method for [[simulateGrid()]] Ask its superior grids for updated
     * slack voltages and handles the necessary power flow calculations.
@@ -926,6 +916,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
   /** Method used for checking the power difference. <p> This method should only
     * be reached by the superior (dummy) grid agent.
+    *
     * @param gridAgentBaseData
     *   state data of the actor
     * @return
@@ -1211,6 +1202,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   }
 
   /** Method for handling failed power flows.
+    *
     * @param gridAgentBaseData
     *   state data of the actor
     * @param currentTick
