@@ -22,7 +22,7 @@ import scala.collection.SortedMap
   */
 final case class ValueStore[+D](
     maxTickSpan: Long,
-    private val store: SortedMap[Long, D] = SortedMap.empty[Long, D],
+    store: SortedMap[Long, D] = SortedMap.empty[Long, D],
 ) {
 
   /** Determine the lastly known data tick, if available. Includes the given
