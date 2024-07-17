@@ -34,7 +34,8 @@ class RuntimeEventListenerKafkaSpec
     with UnitSpec
     with KafkaSpecLike
     with GivenWhenThen
-    with TableDrivenPropertyChecks {
+    with TableDrivenPropertyChecks
+    with RuntimeTestData {
   private var testConsumer: KafkaConsumer[Bytes, SimonaEndMessage] = _
 
   private implicit lazy val resultFormat: RecordFormat[SimonaEndMessage] =
@@ -50,8 +51,6 @@ class RuntimeEventListenerKafkaSpec
     (0 until testTopic.partitions).map(
       new TopicPartition(testTopic.name, _)
     )
-
-  private val startDateTimeString = "2011-01-01T00:00:00Z"
 
   private val mockSchemaRegistryUrl = "mock://unused:8081"
 
@@ -104,15 +103,14 @@ class RuntimeEventListenerKafkaSpec
 
       When("receiving the SimonaEndMessages")
 
-      val errMsg = "Test error msg"
       val cases = Table(
         ("event", "expectedMsg"),
         (
-          Done(1800L, 3L, errorInSim = false),
+          Done(1800L, duration, errorInSim = false),
           SimonaEndMessage(runId, 1, error = false),
         ),
         (
-          Done(3600L, 3L, errorInSim = true),
+          Done(3600L, duration, errorInSim = true),
           SimonaEndMessage(runId, 1, error = true),
         ),
         (Error(errMsg), SimonaEndMessage(runId, -1, error = true)),
