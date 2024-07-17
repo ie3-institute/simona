@@ -536,10 +536,9 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           "I got a grid power request from a subgrid I don't know. Can't answer it properly."
         )
 
-        sender ! GridAgentMessages.FailedPowerFlow
-        simulateGrid(gridAgentBaseData, currentTick)
-    }
-  }
+              sender ! FailedPowerFlow
+              Behaviors.stopped
+          }
 
   /** Helper method for [[simulateGrid()]] Ask its superior grids for updated
     * slack voltages and handles the necessary power flow calculations.
@@ -663,7 +662,9 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                   failedNewtonRaphsonPFResult,
                 )
               ctx.log.warn(
-                "Power flow calculation before asking for updated powers did finally not converge!"
+                s"Subgrid {}: Power flow calculation before asking for updated powers did finally not converge! Cause: {}",
+                gridModel.subnetNo,
+                failedNewtonRaphsonPFResult.cause,
               )
               // we can answer the stashed grid power requests now and report a failed power flow back
               buffer.unstashAll(simulateGrid(powerFlowDoneData, currentTick))
@@ -690,17 +691,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               "Assets have changed their exchanged power with the grid. Update nodal powers and prepare new power flow."
             )
             val updatedGridAgentBaseData: GridAgentBaseData =
-              receivedPowerValues match {
-                case receivedPowers: ReceivedPowerValues =>
-                  gridAgentBaseData.updateWithReceivedPowerValues(
-                    receivedPowers,
-                    replace = true,
-                  )
-                case unknownValuesReceived =>
-                  throw new DBFSAlgorithmException(
-                    s"Received unsuitable values: $unknownValuesReceived"
-                  )
-              }
+              gridAgentBaseData.updateWithReceivedPowerValues(
+                receivedPowerValues,
+                replace = true,
+              )
 
             // check if we have enough data for a power flow calculation
             // if yes, go to the powerflow
@@ -1129,13 +1123,13 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           "Received Failed Power Flow Result. Escalate to my parent."
         )
 
-        // we want to answer the requests from our parent
         val powerFlowDoneData = PowerFlowDoneData(
           gridAgentBaseData,
           FailedNewtonRaphsonPFResult(-1, CalculationFailed),
         )
 
-        buffer.unstashAll(behavior(powerFlowDoneData, currentTick))
+        // we want to answer the requests from our parent
+        buffer.unstashAll(simulateGrid(powerFlowDoneData, currentTick))
       } else {
         ctx.self ! DoPowerFlowTrigger(
           currentTick,
@@ -1235,9 +1229,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     if (gridAgentBaseData.powerFlowParams.stopOnFailure) {
       ctx.log.error("Stopping because of failed power flow.")
       Behaviors.stopped
-    } else {
-      simulateGrid(gridAgentBaseData, currentTick)
-    }
+    } else simulateGrid(gridAgentBaseData, currentTick)
   }
 
   /** Normally only reached by the superior (dummy) agent!
