@@ -150,8 +150,7 @@ object ConfigUtil {
       if (defaultConfig.simulationResultInfo) {
         val notifiers =
           if (thermal) NotifierIdentifier.getThermalIdentifiers
-          else
-            NotifierIdentifier.values -- NotifierIdentifier.getThermalIdentifiers
+          else NotifierIdentifier.getParticipantIdentifiers
         /* Generally inform about all simulation results, but not on those, that are explicitly marked */
         notifiers -- configs.flatMap {
           case (
@@ -294,10 +293,16 @@ object ConfigUtil {
     val Wec: Value = Value("wec")
     val Hp: Value = Value("hp")
     val House: Value = Value("house")
+    val CylindricalStorage: Value = Value("cylindricalstorage")
+
+    /** All participant identifiers */
+    def getParticipantIdentifiers: Set[Value] =
+      (NotifierIdentifier.values -- getThermalIdentifiers).toSet
 
     /** All thermal identifiers */
     def getThermalIdentifiers: Set[Value] = Set(
-      NotifierIdentifier.House
+      NotifierIdentifier.House,
+      NotifierIdentifier.CylindricalStorage,
     )
   }
 

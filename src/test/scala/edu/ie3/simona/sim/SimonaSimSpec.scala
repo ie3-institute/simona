@@ -7,14 +7,14 @@
 package edu.ie3.simona.sim
 
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentMessage
+import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.api.ExtSimAdapter
-import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.event.listener.{
   DelayedStopHelper,
   ResultEventListener,
   RuntimeEventListener,
 }
+import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.main.RunSimona.SimonaEnded
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
@@ -398,6 +398,8 @@ object SimonaSimSpec {
 
     override val args: Array[String] = Array.empty[String]
 
+    override def logOutputDir: String = throw new NotImplementedError()
+
     override def runtimeEventListener(
         context: ActorContext[_]
     ): ActorRef[RuntimeEventListener.Request] = context.spawn(
@@ -447,7 +449,7 @@ object SimonaSimSpec {
         context: ActorContext[_],
         environmentRefs: EnvironmentRefs,
         resultEventListeners: Seq[ActorRef[ResultEvent]],
-    ): Iterable[ActorRef[GridAgentMessage]] = Iterable.empty
+    ): Iterable[ActorRef[GridAgent.Request]] = Iterable.empty
 
     override def extSimulations(
         context: ActorContext[_],

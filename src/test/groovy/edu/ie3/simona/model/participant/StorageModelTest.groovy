@@ -46,17 +46,14 @@ class StorageModelTest extends Specification {
     def typeInput = new StorageTypeInput(
     UUID.fromString("fbee4995-24dd-45e4-9c85-7d986fe99ff3"),
     "Test_StorageTypeInput",
-    getQuantity(100d, EURO),
-    getQuantity(101d, EURO_PER_MEGAWATTHOUR),
+    getQuantity(10000d, EURO),
+    getQuantity(0.05d, EURO_PER_MEGAWATTHOUR),
     getQuantity(100d, KILOWATTHOUR),
     getQuantity(13d, KILOVOLTAMPERE),
     0.997,
     getQuantity(10d, KILOWATT),
     getQuantity(0.03, PU_PER_HOUR),
     getQuantity(0.9, PU),
-    getQuantity(20d, PERCENT),
-    getQuantity(43800.0, HOUR),
-    100000
     )
 
     inputModel = new StorageInput(
@@ -103,10 +100,8 @@ class StorageModelTest extends Specification {
     // UNCHANGED STATE
     // completely empty
     0            | 0         | 1         || 0    | 0    | 10
-    // at lowest allowed charge
-    20           | 0         | 1         || 0    | 0    | 10
-    // at a tiny bit above lowest allowed charge
-    20.011d      | 0         | 1         || 0    | -10  | 10
+    // at a tiny bit above empty
+    0.011d       | 0         | 1         || 0    | -10  | 10
     // at mid-level charge
     60           | 0         | 1         || 0    | -10  | 10
     // almost fully charged
@@ -114,18 +109,18 @@ class StorageModelTest extends Specification {
     // fully charged
     100          | 0         | 1         || 0    | -10  | 0
     // CHANGED STATE
-    // discharged to lowest allowed charge
-    30           | -10       | 3600      || 0    | 0    | 10
+    // discharged to empty
+    10           | -9        | 3600      || 0    | 0    | 10
     // almost discharged to lowest allowed charge
-    30           | -10       | 3590      || 0    | -10  | 10
+    10           | -9        | 3590      || 0    | -10  | 10
     // charged to mid-level charge
-    50           | 10        | 3600      || 0    | -10  | 10
+    41           | 10        | 3600      || 0    | -10  | 10
     // discharged to mid-level charge
-    70           | -10       | 3600      || 0    | -10  | 10
+    60           | -9        | 3600      || 0    | -10  | 10
     // almost fully charged
-    95           | 4.98      | 3600      || 0    | -10  | 10
+    95.5         | 4.98      | 3600      || 0    | -10  | 10
     // fully charged
-    95           | 5         | 3600      || 0    | -10  | 0
+    95.5         | 5         | 3600      || 0    | -10  | 0
   }
 
   def "Calculate flex options with target SOC"() {
@@ -151,8 +146,6 @@ class StorageModelTest extends Specification {
     lastStored || pRef | pMin | pMax
     // completely empty
     0          || 10   | 0    | 10
-    // at lowest allowed charge
-    20         || 10   | 0    | 10
     // below margin of ref power target
     49.9974    || 10   | -10  | 10
     // within margin below ref power target
@@ -160,9 +153,9 @@ class StorageModelTest extends Specification {
     // exactly at ref power target
     50         || 0    | -10  | 10
     // within margin above ref power target
-    50.0024    || 0    | -10  | 10
+    50.0030    || 0    | -10  | 10
     // above margin of ref power target
-    50.0026    || -10  | -10  | 10
+    50.0031    || -10  | -10  | 10
     // at mid-level charge
     60         || -10  | -10  | 10
     // fully charged
@@ -203,19 +196,19 @@ class StorageModelTest extends Specification {
     50         | 0        || 0        | false         | false        | 0
     100        | 0        || 0        | false         | false        | 0
     // charging on empty
-    0          | 1        || 0.9      | true          | true         | 100 * 3600 / 0.9
-    0          | 2.5      || 2.25     | true          | true         | 40 * 3600 / 0.9
-    0          | 5        || 4.5      | true          | true         | 20 * 3600 / 0.9
-    0          | 10       || 9        | true          | true         | 10 * 3600 / 0.9
+    0          | 1        || 1        | true          | true         | 100 * 3600 / 0.9
+    0          | 2.5      || 2.5      | true          | true         | 40 * 3600 / 0.9
+    0          | 5        || 5        | true          | true         | 20 * 3600 / 0.9
+    0          | 10       || 10       | true          | true         | 10 * 3600 / 0.9
     // charging on half full
-    50         | 5        || 4.5      | false         | true         | 10 * 3600 / 0.9
-    50         | 10       || 9        | false         | true         | 5 * 3600 / 0.9
+    50         | 5        || 5        | false         | true         | 10 * 3600 / 0.9
+    50         | 10       || 10       | false         | true         | 5 * 3600 / 0.9
     // discharging on half full
-    50         | -5       || -4.5     | false         | true         | 6 * 3600 / 0.9
-    50         | -10      || -9       | false         | true         | 3 * 3600 / 0.9
+    50         | -4.5     || -4.5     | false         | true         | 10 * 3600
+    50         | -9       || -9       | false         | true         | 5 * 3600
     // discharging on full
-    100        | -5       || -4.5     | true          | true         | 16 * 3600 / 0.9
-    100        | -10      || -9       | true          | true         | 8 * 3600 / 0.9
+    100        | -4.5     || -4.5     | true          | true         | 20 * 3600
+    100        | -9       || -9       | true          | true         | 10 * 3600
   }
 
   def "Handle controlled power change with ref target SOC"() {
@@ -252,19 +245,19 @@ class StorageModelTest extends Specification {
     50         | 0        || 0        | false         | false        | 0
     100        | 0        || 0        | false         | false        | 0
     // charging on empty
-    0          | 1        || 0.9      | true          | true         | 50 * 3600 / 0.9
-    0          | 2.5      || 2.25     | true          | true         | 20 * 3600 / 0.9
-    0          | 5        || 4.5      | true          | true         | 10 * 3600 / 0.9
-    0          | 10       || 9        | true          | true         | 5 * 3600 / 0.9
+    0          | 1        || 1        | true          | true         | 50 * 3600 / 0.9
+    0          | 2.5      || 2.5      | true          | true         | 20 * 3600 / 0.9
+    0          | 5        || 5        | true          | true         | 10 * 3600 / 0.9
+    0          | 10       || 10       | true          | true         | 5 * 3600 / 0.9
     // charging on target ref
-    50         | 5        || 4.5      | true          | true         | 10 * 3600 / 0.9
-    50         | 10       || 9        | true          | true         | 5 * 3600 / 0.9
+    50         | 5        || 5        | true          | true         | 10 * 3600 / 0.9
+    50         | 10       || 10       | true          | true         | 5 * 3600 / 0.9
     // discharging on target ref
-    50         | -5       || -4.5     | true          | true         | 6 * 3600 / 0.9
-    50         | -10      || -9       | true          | true         | 3 * 3600 / 0.9
+    50         | -4.5     || -4.5     | true          | true         | 10 * 3600
+    50         | -9       || -9       | true          | true         | 5 * 3600
     // discharging on full
-    100        | -5       || -4.5     | true          | true         | 10 * 3600 / 0.9
-    100        | -10      || -9       | true          | true         | 5 * 3600 / 0.9
+    100        | -4.5     || -4.5     | true          | true         | 10 * 3600
+    100        | -9       || -9       | true          | true         | 5 * 3600
   }
 
   def "Handle the edge case of discharging in tolerance margins"() {
@@ -272,9 +265,9 @@ class StorageModelTest extends Specification {
     def storageModel = buildStorageModel()
     def startTick = 1800L
     def data = new StorageModel.StorageRelevantData(startTick + 1)
-    // margin is at ~ 20.0030864 kWh
+    // margin is at ~ 0.0030864 kWh
     def oldState = new StorageModel.StorageState(
-    Sq.create(20.002d, KilowattHours$.MODULE$),
+    Sq.create(0.002d, KilowattHours$.MODULE$),
     Sq.create(0d, Kilowatts$.MODULE$),
     startTick
     )
@@ -339,7 +332,7 @@ class StorageModelTest extends Specification {
     def result = storageModel.handleControlledPowerChange(
     data,
     oldState,
-    Sq.create(-10d, Kilowatts$.MODULE$)
+    Sq.create(-9d, Kilowatts$.MODULE$)
     )
 
     then:
@@ -347,7 +340,7 @@ class StorageModelTest extends Specification {
     result._1.tick() == startTick + 1
     Math.abs(result._1.storedEnergy().toKilowattHours() - oldState.storedEnergy().toKilowattHours()) < TOLERANCE
     def flexChangeIndication = result._2
-    flexChangeIndication.changesAtTick() == Option.apply(startTick + 1L + 4001L)
+    flexChangeIndication.changesAtTick() == Option.apply(startTick + 1L + 10801L)
     flexChangeIndication.changesAtNextActivation()
   }
 
@@ -371,7 +364,7 @@ class StorageModelTest extends Specification {
     )
 
     then:
-    Math.abs(result._1.chargingPower().toKilowatts() - (4.5d)) < TOLERANCE
+    Math.abs(result._1.chargingPower().toKilowatts() - (5d)) < TOLERANCE
     result._1.tick() == startTick + 1
     Math.abs(result._1.storedEnergy().toKilowattHours() - oldState.storedEnergy().toKilowattHours()) < TOLERANCE
     def flexChangeIndication = result._2

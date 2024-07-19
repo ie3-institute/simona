@@ -14,7 +14,6 @@ import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.util.quantities.PowerSystemUnits._
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units._
 
 import java.util.UUID
 
@@ -23,17 +22,14 @@ trait StorageInputTestData extends DefaultTestData with NodeInputTestData {
   protected val storageTypeInput = new StorageTypeInput(
     UUID.fromString("fbee4995-24dd-45e4-9c85-7d986fe99ff3"),
     "Dummy_StorageTypeInput",
-    Quantities.getQuantity(100d, EURO),
-    Quantities.getQuantity(101d, EURO_PER_MEGAWATTHOUR),
+    Quantities.getQuantity(15000d, EURO),
+    Quantities.getQuantity(0.05d, EURO_PER_MEGAWATTHOUR),
     Quantities.getQuantity(200d, KILOWATTHOUR),
     Quantities.getQuantity(13d, KILOVOLTAMPERE),
     0.997,
     Quantities.getQuantity(12.961, KILOWATT),
     Quantities.getQuantity(0.03, PU_PER_HOUR),
     Quantities.getQuantity(0.92, PU),
-    Quantities.getQuantity(20d, PERCENT),
-    Quantities.getQuantity(43800.0, HOUR),
-    100000,
   )
 
   protected val storageInput = new StorageInput(
