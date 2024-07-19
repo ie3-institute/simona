@@ -153,13 +153,13 @@ class HpModelSpec
               Some(hpData.ambientTemperature),
               Kilowatts(95d),
               Kilowatts(80d),
-              thermalState(Celsius(20)),
+              thermalState(Celsius(19.9)),
               None,
             ),
             true,
             95,
-            18.0,
-            Some(HouseTemperatureUpperBoundaryReached(27771L)),
+            17.92,
+            Some(HouseTemperatureUpperBoundaryReached(27946L)),
           ),
           (
             HpState(
