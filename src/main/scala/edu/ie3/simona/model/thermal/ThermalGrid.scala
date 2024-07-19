@@ -60,29 +60,37 @@ final case class ThermalGrid(
   ): ThermalEnergyDemand = {
     /* First get the energy demand of the houses but only if inner temperature is below target temperature */
 
-    val innerTemperatureBelowTarget: Boolean =
+    val houseDemand =
       house.zip(state.houseState).headOption match {
         case Some((thermalHouse, lastHouseState)) =>
-          lastHouseState.innerTemperature < thermalHouse.targetTemperature
+          val updatedState = thermalHouse.determineState(
+            tick,
+            lastHouseState,
+            ambientTemperature,
+            zeroKW,
+          )
+          if (
+            updatedState._1.innerTemperature < thermalHouse.targetTemperature
+          ) {
+            house
+              .zip(state.houseState)
+              .map { case (house, state) =>
+                house.energyDemand(
+                  tick,
+                  ambientTemperature,
+                  state,
+                )
+              }
+              .getOrElse(ThermalEnergyDemand.noDemand)
+          } else {
+            ThermalEnergyDemand.noDemand
+          }
+
         case None =>
           throw new RuntimeException(
             "Can't progress thermal house last state to determine energy demand."
           )
       }
-
-    val houseDemand =
-      if (innerTemperatureBelowTarget) {
-        house
-          .zip(state.houseState)
-          .map { case (house, state) =>
-            house.energyDemand(
-              tick,
-              ambientTemperature,
-              state,
-            )
-          }
-          .getOrElse(ThermalEnergyDemand.noDemand)
-      } else { ThermalEnergyDemand.noDemand }
 
     /* Then go over the storages, see what they can provide and what they might be able to charge */
     val (storedEnergy, remainingCapacity) = {
