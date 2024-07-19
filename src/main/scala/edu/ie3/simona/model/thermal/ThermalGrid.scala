@@ -66,7 +66,7 @@ final case class ThermalGrid(
           lastHouseState.innerTemperature < thermalHouse.targetTemperature
         case None =>
           throw new RuntimeException(
-            "Can't progress thermal house last state to determin energy demand."
+            "Can't progress thermal house last state to determine energy demand."
           )
       }
 
