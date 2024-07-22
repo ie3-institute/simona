@@ -24,7 +24,7 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.energy.Kilowatts
-import squants.{Energy, Power, Temperature}
+import squants.{Each, Energy, Power, Temperature}
 
 import java.time.ZonedDateTime
 import scala.jdk.CollectionConverters.SetHasAsScala
@@ -67,7 +67,7 @@ final case class ThermalGrid(
             tick,
             lastHouseState,
             ambientTemperature,
-            zeroKW,
+            lastHouseState.qDot,
           )
           if (
             updatedState._1.innerTemperature < thermalHouse.targetTemperature
@@ -95,7 +95,9 @@ final case class ThermalGrid(
       storage
         .zip(state.storageState)
         .map { case (storage, state) =>
-          val usableEnergy = state.storedEnergy
+          val updatedStorageState =
+            storage.updateState(tick, state.qDot, state)._1
+          val usableEnergy = updatedStorageState.storedEnergy
           val remaining = storage.getMaxEnergyThreshold - usableEnergy
           (
             usableEnergy,
