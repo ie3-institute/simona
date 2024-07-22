@@ -87,9 +87,7 @@ final case class ThermalGrid(
           }
 
         case None =>
-          throw new RuntimeException(
-            "Can't progress thermal house last state to determine energy demand."
-          )
+          ThermalEnergyDemand.noDemand
       }
 
     /* Then go over the storages, see what they can provide and what they might be able to charge */
