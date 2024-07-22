@@ -546,7 +546,7 @@ final case class ThermalGrid(
               ThermalHouseState(tick, innerTemperature, thermalInfeed),
             ) =>
           Seq.empty[ResultEntity] :+ new ThermalHouseResult(
-            tick.toDateTime,
+            actualResultTick.toDateTime,
             thermalHouse.uuid,
             thermalInfeed.toMegawatts.asMegaWatt,
             innerTemperature.toKelvinScale.asKelvin,
@@ -562,7 +562,7 @@ final case class ThermalGrid(
               ThermalStorageState(tick, storedEnergy, qDot),
             ) =>
           houseResults :+ new CylindricalStorageResult(
-            tick.toDateTime,
+            actualResultTick.toDateTime,
             storage.uuid,
             storedEnergy.toMegawattHours.asMegaWattHour,
             qDot.toMegawatts.asMegaWatt,
