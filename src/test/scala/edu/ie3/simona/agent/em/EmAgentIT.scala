@@ -63,8 +63,6 @@ class EmAgentIT
     with EmInputTestData
     with MockitoSugar {
 
-  // implicit val messageTimeout: Duration = Duration(50.0, SECONDS)
-
   // start a bit later so the sun is up
   protected implicit val simulationStartDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01T10:00:00Z")
@@ -684,8 +682,7 @@ class EmAgentIT
         /* TICK 21600
         LOAD: 0.000269 MW (unchanged)
         PV:  -0.000032 MW (unchanged)
-        Heat pump: Is  running and cannot be turned off
-        FIXME -> flex signal is 0 MW: Heat pump is turned off
+        Heat pump: Is running and cannot be turned off
          */
 
         emAgentActivation ! Activation(21600)
@@ -713,8 +710,8 @@ class EmAgentIT
         }
 
         scheduler.expectMessage(Completion(emAgentActivation, Some(28800)))
-
       }
     }
+
   }
 }
