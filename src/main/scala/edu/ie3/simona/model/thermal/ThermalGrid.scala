@@ -172,7 +172,24 @@ final case class ThermalGrid(
         case (None, None)                 => (zeroKW, zeroKW)
       }
 
-    if (qDotStorageLastState > zeroKW) {
+    val actualThermalStorageSoc =
+      if (storage.nonEmpty && state.storageState.nonEmpty) {
+        val (thermalStorage, lastStorageState) =
+          storage.zip(state.storageState).head
+        val (updatedStorageState, maybeStorageThreshold) =
+          thermalStorage.updateState(
+            tick,
+            qDot,
+            lastStorageState,
+          )
+        Each(
+          updatedStorageState.storedEnergy / thermalStorage.getMaxEnergyThreshold
+        )
+      } else {
+        Each(1.0)
+      }
+
+    if (qDotStorageLastState > zeroKW && actualThermalStorageSoc < Each(1.0)) {
       {
         storage.zip(state.storageState) match {
           case Some((thermalStorage, lastStorageState)) =>
