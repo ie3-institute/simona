@@ -7,7 +7,7 @@ import edu.ie3.simona.api.data.em.ontology.{EmDataMessageFromExt, ProvideEmData}
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{FlexRequest, IssuePowerControl, ProvideExtEmSetPoint}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{FlexRequest, IssuePowerControl, SetPointFlexRequest}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ExtEmDataServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{RegistrationSuccessfulMessage, WrappedRegistrationSuccessfulMessage}
 import edu.ie3.simona.ontology.messages.services.{DataMessage, ServiceMessage}
@@ -178,14 +178,15 @@ final case class ExtEmDataService(
             None
           }
     }
-    log.debug(s"Received ActorToEmData = $actorToEmData")
 
     if (actorToEmData.nonEmpty) {
       actorToEmData.foreach {
-        case (actor, setPoint) => actor ! ProvideExtEmSetPoint(
-          tick,
-          setPoint
-        )
+        case (actor, setPoint) =>
+          actor ! SetPointFlexRequest(
+            tick,
+            setPoint,
+            tick + 900L
+          )
       }
     }
     (serviceStateData.copy(extEmDataMessage = None), None)

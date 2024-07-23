@@ -75,4 +75,8 @@ object EmTools {
         s"The set power $setPower for ${flexOptions.modelUuid} must not be greater than the maximum power ${flexOptions.max}!"
       )
   }
+
+  def minOptionTicks(a: Option[Long], b: Option[Long]): Option[Long] = {
+    a.flatMap(x => b.map(y => Math.min(x, y))).orElse(a).orElse(b)
+  }
 }

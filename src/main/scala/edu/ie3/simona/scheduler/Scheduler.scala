@@ -116,14 +116,12 @@ object Scheduler {
       // since we're active and any scheduled activation can still influence our next activation,
       // we can directly unlock the lock with the key
       unlockKey.foreach {
-        //println(this + " now Unlock ScheduleActivation from " + actor + ", newTick = " + newTick + ", newCore: " + newCore)
         _.unlock()
       }
 
       toActivate.foreach {
         _ ! Activation(newCore.activeTick)
       }
-      //println(this + " ScheduleActivation from " + actor + ", newTick = " + newTick + ", newCore: " + newCore)
 
       active(data, newCore)
 
@@ -139,14 +137,12 @@ object Scheduler {
           toActivate.foreach {
             _ ! Activation(updatedCore.activeTick)
           }
-          //println(this + " Completion from " + actor + ", maybeNextTick = " + maybeNewTick + ", updatedCore: " + updatedCore)
           updatedCore
         }
         .map { newCore =>
           newCore
             .maybeComplete()
             .map { case (maybeScheduleTick, inactiveCore) =>
-              //println(this + " Send Completion from " +  data.activationAdapter + " to " + data.parent)
               data.parent ! Completion(
                 data.activationAdapter,
                 maybeScheduleTick,

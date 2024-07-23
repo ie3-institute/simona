@@ -1,6 +1,6 @@
 package edu.ie3.simona.service.results
 
-import edu.ie3.datamodel.models.result.ResultEntity
+import edu.ie3.datamodel.models.result.{ModelResultEntity, ResultEntity}
 import edu.ie3.datamodel.models.result.system.PvResult
 import edu.ie3.simona.api.data.results.ExtResultData
 import edu.ie3.simona.api.data.results.ontology.{ProvideResultEntities, RequestResultEntities, ResultDataMessageFromExt}
@@ -36,7 +36,7 @@ object ExtResultDataProvider {
 
   /** ResultEventListener -> ExtResultDataProvider */
   final case class ResultResponseMessage(
-                                          result: ResultEntity,
+                                          result: ModelResultEntity,
                                           tick: Long,
                                           nextTick: Option[Long]
                                         )
@@ -148,7 +148,7 @@ object ExtResultDataProvider {
               activation.tick,
               Set()
             ) ++ serviceStateData.extResultScheduler.getOrElse(-2L, Set())
-            val receiveDataMap = ReceiveDataMap[UUID, ResultEntity](expectedKeys)
+            val receiveDataMap = ReceiveDataMap[UUID, ModelResultEntity](expectedKeys)
             updatedSchedule = updatedSchedule.-(activation.tick)
 
             //ctx.log.info(s"[requestResults] tick ${msg.tick} -> updatedSchedule = $updatedSchedule")
@@ -287,12 +287,12 @@ object ExtResultDataProvider {
 
   // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
   final case class ExtResultStateData(
-                                        extResultData: ExtResultData,
-                                        currentTick: Long,
-                                        extResultsMessage: Option[ResultDataMessageFromExt] = None,
-                                        resultStorage: Map[UUID, ResultEntity] = Map.empty,
-                                        extResultScheduler: Map[Long, Set[UUID]] = Map.empty,
-                                        receiveDataMap: Option[ReceiveDataMap[UUID, ResultEntity]] = None,
+                                       extResultData: ExtResultData,
+                                       currentTick: Long,
+                                       extResultsMessage: Option[ResultDataMessageFromExt] = None,
+                                       resultStorage: Map[UUID, ModelResultEntity] = Map.empty,
+                                       extResultScheduler: Map[Long, Set[UUID]] = Map.empty,
+                                       receiveDataMap: Option[ReceiveDataMap[UUID, ModelResultEntity]] = None,
                                       )
   final case class InitExtResultData(
                                       extResultData: ExtResultData

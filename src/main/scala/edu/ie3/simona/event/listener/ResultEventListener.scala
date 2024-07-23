@@ -9,7 +9,7 @@ package edu.ie3.simona.event.listener
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop}
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
-import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
+import edu.ie3.datamodel.models.result.{ModelResultEntity, NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.event.ResultEvent.{FlexOptionsResultEvent, ParticipantResultEvent, PowerFlowResultEvent, ThermalResultEvent}
 import edu.ie3.simona.exceptions.{FileHierarchyException, ProcessResultEventException}
@@ -237,15 +237,20 @@ object ResultEventListener extends Transformer3wResultSupport {
     }
 
   private def handOverToExternalService(
-                                       tick: Long,
-                                        resultEntity: ResultEntity,
-                                        extResultDataService: Option[ActorRef[ExtResultDataProvider.Request]],
-                                        nextTick: Option[Long] = None
+                                         tick: Long,
+                                         resultEntity: ResultEntity,
+                                         extResultDataService: Option[ActorRef[ExtResultDataProvider.Request]],
+                                         nextTick: Option[Long] = None
   ): Unit = Try {
     val extResultDataServiceRef = extResultDataService.getOrElse(
       throw new Exception("No external data service registered!")
     )
-    extResultDataServiceRef ! ResultResponseMessage(resultEntity, tick, nextTick)
+    resultEntity match {
+      case modelResultEntity: ModelResultEntity =>
+        extResultDataServiceRef ! ResultResponseMessage(modelResultEntity, tick, nextTick)
+      case _ =>
+        throw new Exception("Wrong data type!")
+    }
   }
 
   def apply(

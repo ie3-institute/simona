@@ -76,6 +76,7 @@ abstract class SimonaExtSimSetup(
     val runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
     override val args: Array[String]
 ) extends SimonaSetup {
+  override def logOutputDir: String = resultFileHierarchy.logOutputDir
 
   override def gridAgents(
       context: ActorContext[_],
@@ -323,9 +324,9 @@ abstract class SimonaExtSimSetup(
                           simScheduler: ActorRef[SchedulerMessage],
                           extSim: ExtSimulation
                         ): ExtSimSetupData = {
-    // ExtSimAdapter
-    val extScheduler = scheduler(context, parent = rootScheduler)
+    val extScheduler = scheduler(context, rootScheduler)
 
+    // ExtSimAdapter
     val extSimAdapterPhase1 = context.toClassic.simonaActorOf(
       ExtSimAdapter.props(extScheduler.toClassic),
       s"1",
@@ -347,8 +348,6 @@ abstract class SimonaExtSimSetup(
     val extDataListenerMap: mutable.Map[Class[_], ActorRef[ExtResultDataProvider.Request]] = mutable.Map.empty
 
     val dataConnections = extSim.getDataConnections
-
-    println("dataConnections = " + dataConnections)
 
     dataConnections.asScala.foreach {
       case extPrimaryData: ExtPrimaryData =>
@@ -392,9 +391,6 @@ abstract class SimonaExtSimSetup(
       dataConnections
     )
     new Thread(extSim, s"External simulation").start()
-
-    println("DataSerivces = " + extDataServicesMap)
-    println("DataProvider = " + extDataListenerMap)
 
     ExtSimSetupData(
       Iterable(
@@ -441,6 +437,8 @@ abstract class SimonaExtSimSetup(
         INIT_SIM_TICK,
       ),
     )
+    println("... pause extPrimaryDataSimulationSetup ...")
+    Thread.sleep(3000)
     extPrimaryDataService
   }
 
@@ -478,6 +476,8 @@ abstract class SimonaExtSimSetup(
         INIT_SIM_TICK,
       ),
     )
+    println("... pause extEmDataSimulationSetup ...")
+    Thread.sleep(3000)
     extEmDataService
   }
 
@@ -531,6 +531,8 @@ abstract class SimonaExtSimSetup(
       2,
       ScheduleLock.singleKey(context, simScheduler, INIT_SIM_TICK),
     )
+    println("... pause extResultDataSimulationSetup ...")
+    Thread.sleep(3000)
     extResultDataProvider
   }
 
