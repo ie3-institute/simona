@@ -96,23 +96,23 @@ class ThermalGridWithHouseAndStorageSpec
       "deliver the house demand (no demand) with added flexibility by storage" in {
         val tick = 10800 // after three hours
 
-        val gridDemand = thermalGrid.energyDemand(
+        val (houseDemand, storageDemand) = thermalGrid.energyDemand(
           tick,
           testGridambientTemperature,
           ThermalGrid.startingState(thermalGrid),
         )
 
-        gridDemand.required should approximate(KilowattHours(0d + 345d))
-        gridDemand.possible should approximate(
-          KilowattHours(31.05009722 + 920d)
-        )
+        houseDemand.required should approximate(KilowattHours(0d))
+        houseDemand.possible should approximate(KilowattHours(31.05009722d))
+        storageDemand.required should approximate(KilowattHours(345d))
+        storageDemand.possible should approximate(KilowattHours(920d))
       }
 
       "deliver the correct house and storage demand" in {
         val tick = 10800 // after three hours
 
         val startingState = ThermalGrid.startingState(thermalGrid)
-        val gridDemand = thermalGrid.energyDemand(
+        val (houseDemand, storageDemand) = thermalGrid.energyDemand(
           tick,
           testGridambientTemperature,
           startingState.copy(houseState =
@@ -122,12 +122,10 @@ class ThermalGridWithHouseAndStorageSpec
           ),
         )
 
-        gridDemand.required should approximate(
-          KilowattHours(45.6000555 + 345.0)
-        )
-        gridDemand.possible should approximate(
-          KilowattHours(75.600055555 + 920.0)
-        )
+        houseDemand.required should approximate(KilowattHours(45.6000555))
+        houseDemand.possible should approximate(KilowattHours(75.600055555))
+        storageDemand.required should approximate(KilowattHours(345d))
+        storageDemand.possible should approximate(KilowattHours(920d))
       }
     }
 
@@ -476,6 +474,8 @@ class ThermalGridWithHouseAndStorageSpec
             testGridambientTemperature,
             initialGridState,
             externalQDot,
+            true,
+            false,
           )
 
         updatedGridState match {
@@ -521,6 +521,8 @@ class ThermalGridWithHouseAndStorageSpec
             testGridambientTemperature,
             gridState,
             externalQDot,
+            false,
+            true,
           )
 
         updatedGridState match {

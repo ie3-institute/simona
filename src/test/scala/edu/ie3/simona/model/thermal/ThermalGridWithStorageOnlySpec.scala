@@ -80,14 +80,16 @@ class ThermalGridWithStorageOnlySpec
       "deliver the capabilities of the storage" in {
         val tick = 10800 // after three hours
 
-        val gridDemand = thermalGrid.energyDemand(
+        val (houseDemand, storageDemand) = thermalGrid.energyDemand(
           tick,
           testGridambientTemperature,
           ThermalGrid.startingState(thermalGrid),
         )
 
-        gridDemand.required should approximate(KilowattHours(0d + 345d))
-        gridDemand.possible should approximate(KilowattHours(0d + 920d))
+        houseDemand.required should approximate(KilowattHours(0d))
+        houseDemand.possible should approximate(KilowattHours(0d))
+        storageDemand.required should approximate(KilowattHours(345d))
+        storageDemand.possible should approximate(KilowattHours(920d))
       }
     }
 
@@ -149,6 +151,8 @@ class ThermalGridWithStorageOnlySpec
             testGridambientTemperature,
             gridState,
             testGridQDotInfeed,
+            false,
+            true,
           )
 
         updatedGridState match {
@@ -172,6 +176,8 @@ class ThermalGridWithStorageOnlySpec
           ThermalGrid.startingState(thermalGrid),
           testGridambientTemperature,
           testGridQDotInfeed,
+          true,
+          false,
         )
 
         nextThreshold shouldBe Some(StorageFull(220800L))
@@ -204,6 +210,8 @@ class ThermalGridWithStorageOnlySpec
             ),
           testGridambientTemperature,
           testGridQDotConsumptionHigh,
+          true,
+          false,
         ) match {
           case (
                 ThermalGridState(
@@ -226,6 +234,8 @@ class ThermalGridWithStorageOnlySpec
           ThermalGrid.startingState(thermalGrid),
           testGridambientTemperature,
           Kilowatts(0d),
+          false,
+          false,
         )
         updatedState match {
           case (
