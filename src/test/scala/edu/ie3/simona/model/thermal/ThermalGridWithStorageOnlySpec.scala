@@ -86,8 +86,8 @@ class ThermalGridWithStorageOnlySpec
           ThermalGrid.startingState(thermalGrid),
         )
 
-        gridDemand.required should approximate(MegawattHours(0d))
-        gridDemand.possible should approximate(MegawattHours(0.92d))
+        gridDemand.required should approximate(KilowattHours(0d + 345d))
+        gridDemand.possible should approximate(KilowattHours(0d + 920d))
       }
     }
 

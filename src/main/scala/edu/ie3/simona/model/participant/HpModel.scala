@@ -153,7 +153,13 @@ final case class HpModel(
       relevantData.ambientTemperature,
       state.thermalGridState,
     )
-    demand.hasRequiredDemand || (state.isRunning && demand.hasAdditionalDemand)
+
+    val storedEnergy = state.thermalGridState.storageState
+      .map(storageState => storageState.storedEnergy)
+      .getOrElse(zeroKWH)
+
+    (demand.hasRequiredDemand && (demand.required > storedEnergy)) || (state.isRunning && demand.hasAdditionalDemand)
+
   }
 
   /** Calculate state depending on whether heat pump is needed or not. Also
