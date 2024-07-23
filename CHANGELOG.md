@@ -56,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Making configuration of `RefSystem` via config optional [#769](https://github.com/ie3-institute/simona/issues/769)
 - Updated PSDM to version 5.1.0 [#835](https://github.com/ie3-institute/simona/issues/835)
 - Refactor `WeatherSource` and `WeatherSourceWrapper` [#180](https://github.com/ie3-institute/simona/issues/180)
+- Remove unnecessary dependency `pekko-connectors-csv` [#857](https://github.com/ie3-institute/simona/issues/857)
 - External simulation should provide information about next tick of MobSim [#776](https://github.com/ie3-institute/simona/issues/776)
 
 ### Fixed
