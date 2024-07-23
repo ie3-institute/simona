@@ -189,7 +189,7 @@ final case class ThermalGrid(
       houseDemand: Boolean,
       storageDemand: Boolean,
   ): (ThermalGridState, Option[ThermalThreshold]) = {
-    if (storageDemand) {
+    if (storageDemand && !houseDemand) {
       {
         storage.zip(state.storageState) match {
           case Some((thermalStorage, lastStorageState)) =>
