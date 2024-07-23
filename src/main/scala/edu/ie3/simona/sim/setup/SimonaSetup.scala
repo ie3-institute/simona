@@ -38,6 +38,10 @@ trait SimonaSetup {
     */
   val args: Array[String]
 
+  /** Directory of the log output.
+    */
+  def logOutputDir: String
+
   /** Creates the runtime event listener
     *
     * @param context

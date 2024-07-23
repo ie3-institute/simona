@@ -68,6 +68,8 @@ class SimonaStandaloneSetup(
     override val args: Array[String],
 ) extends SimonaSetup {
 
+  override def logOutputDir: String = resultFileHierarchy.logOutputDir
+
   override def gridAgents(
       context: ActorContext[_],
       environmentRefs: EnvironmentRefs,
