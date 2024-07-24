@@ -21,28 +21,27 @@ class FixedFeedModelSpec
   implicit val tolerance: Power = Watts(1d)
   "Having a fixed feed model" when {
 
-    val expectedPower = Kilowatts(
-      fixedFeedInput
-        .getsRated()
-        .to(PowerSystemUnits.KILOWATT)
-        .getValue
-        .doubleValue() * -1 * fixedFeedInput.getCosPhiRated
-    )
-
     "The fixed feed model" should {
       "return approximately correct power calculations" in {
+        val expectedPower = Kilowatts(
+          fixedFeedInput
+            .getsRated()
+            .to(PowerSystemUnits.KILOWATT)
+            .getValue
+            .doubleValue() * -1 * fixedFeedInput.getCosPhiRated
+        )
+
         val actualModel = new FixedFeedInModel(
           fixedFeedInput.getUuid,
           fixedFeedInput.getId,
           defaultOperationInterval,
           QControl.apply(fixedFeedInput.getqCharacteristics()),
-          Sq.create(
+          Kilowatts(
             fixedFeedInput
               .getsRated()
               .to(PowerSystemUnits.KILOWATT)
               .getValue
-              .doubleValue(),
-            Kilowatts,
+              .doubleValue()
           ),
           fixedFeedInput.getCosPhiRated,
         )
