@@ -868,18 +868,36 @@ protected trait ParticipantAgentFundamentals[
       )(baseStateData.outputConfig)
     )
 
-    val updatedBaseStateData = result.foldLeft(baseStateData) {
-      (stateData, res) =>
-        stateData.copy(
-          resultValueStore = ValueStore.updateValueStore(
-            stateData.resultValueStore,
-            currentTick,
-            res,
-          )
-        )
-    }
+    createUpdatedBaseStateData(baseStateData, result, currentTick)
+  }
 
-    updatedBaseStateData
+  /** Updates the given `baseStateData` using a sequence of `result` values and
+    * the current tick.
+    *
+    * @param baseStateData
+    *   The initial ParticipantModelBaseStateData object to be updated.
+    * @param result
+    *   A list of result values used to update the resultValueStore.
+    * @param currentTick
+    *   The current tick
+    * @return
+    *   A new ParticipantModelBaseStateData object with the updated
+    *   resultValueStore.
+    */
+  protected def createUpdatedBaseStateData(
+      baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
+      result: List[PD],
+      currentTick: Long,
+  ): ParticipantModelBaseStateData[PD, CD, MS, M] = {
+    result.foldLeft(baseStateData) { (stateData, res) =>
+      stateData.copy(
+        resultValueStore = ValueStore.updateValueStore(
+          stateData.resultValueStore,
+          currentTick,
+          res,
+        )
+      )
+    }
   }
 
   /** Calculate the power output of the participant without needing any
