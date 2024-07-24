@@ -767,7 +767,7 @@ class EvcsAgentModelCalculationSpec
       evService.send(
         evcsAgent,
         ProvideEvDataMessage(
-          0L,
+          0,
           evService.ref,
           ArrivingEvs(Seq(EvModelWrapper(evA))),
           Some(900),
@@ -793,6 +793,75 @@ class EvcsAgentModelCalculationSpec
           1,
         )
       )
+
+      scheduler.expectNoMessage()
+    }
+
+    "handle empty arrivals" in {
+      val evcsAgent = TestFSMRef(
+        new EvcsAgent(
+          scheduler = scheduler.ref,
+          initStateData = initStateData,
+          listener = Iterable.empty,
+        )
+      )
+
+      scheduler.send(
+        evcsAgent,
+        Activation(INIT_SIM_TICK),
+      )
+
+      /* Refuse registration with primary service */
+      primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
+      primaryServiceProxy.send(
+        evcsAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref),
+      )
+
+      /* I'm not interested in the content of the RegistrationMessage */
+      evService.expectMsgType[RegisterForEvDataMessage]
+      evService.send(
+        evcsAgent,
+        RegistrationSuccessfulMessage(evService.ref, Some(0)),
+      )
+
+      /* I'm not interested in the content of the CompletionMessage */
+      scheduler.expectMsgType[Completion]
+      awaitAssert(evcsAgent.stateName shouldBe Idle)
+
+      /* Send ev for this tick */
+      evService.send(
+        evcsAgent,
+        ProvideEvDataMessage(
+          0,
+          evService.ref,
+          ArrivingEvs(Seq(EvModelWrapper(evA))),
+          Some(900),
+        ),
+      )
+
+      scheduler.send(
+        evcsAgent,
+        Activation(0),
+      )
+      scheduler.expectMsg(Completion(evcsAgent.toTyped, Some(900)))
+
+      /* Send empty EV list for this tick */
+      evService.send(
+        evcsAgent,
+        ProvideEvDataMessage(
+          900,
+          evService.ref,
+          ArrivingEvs(Seq.empty),
+          Some(1800),
+        ),
+      )
+
+      scheduler.send(
+        evcsAgent,
+        Activation(900),
+      )
+      scheduler.expectMsg(Completion(evcsAgent.toTyped, Some(1800)))
 
       scheduler.expectNoMessage()
     }

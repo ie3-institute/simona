@@ -485,7 +485,6 @@ protected trait EvcsAgentFundamentals
     val relevantData =
       createCalcRelevantData(modelBaseStateData, tick)
 
-    // TODO also adapt for em-controlled and test
     val updatedBaseStateData = {
       if (relevantData.arrivals.nonEmpty) {
         val lastState = getLastOrInitialStateData(modelBaseStateData, tick)
@@ -510,7 +509,7 @@ protected trait EvcsAgentFundamentals
           newState,
         )
 
-        /* Update the base state data with the updated result value store and relevant data store */
+        /* Update the base state data with the updated state data store */
         modelBaseStateData.copy(
           stateDataStore = updatedStateDataStore
         )
