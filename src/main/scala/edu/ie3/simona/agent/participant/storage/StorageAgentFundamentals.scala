@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.participant.storage
 
 import edu.ie3.datamodel.models.input.system.StorageInput
-import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.{
   StorageResult,
   SystemParticipantResult,
@@ -37,7 +36,6 @@ import edu.ie3.simona.exceptions.agent.{
   AgentInitializationException,
   InvalidRequestException,
 }
-import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.StorageModel.{
   StorageRelevantData,
   StorageState,
@@ -261,7 +259,7 @@ trait StorageAgentFundamentals
         StorageState,
         StorageModel,
       ],
-      result: AccompaniedSimulationResult[ApparentPower],
+      result: List[ApparentPower],
       currentTick: Long,
   ): ParticipantModelBaseStateData[
     ApparentPower,
@@ -287,24 +285,34 @@ trait StorageAgentFundamentals
         storedEnergy / baseStateData.model.eStorage
       ).toPercent.asPercent
 
-      val storageResult = new StorageResult(
-        dateTime,
-        uuid,
-        result.primaryData.p.toMegawatts.asMegaWatt,
-        result.primaryData.q.toMegavars.asMegaVar,
-        soc,
-      )
+      val storageResult =
+        result.map(res =>
+          new StorageResult(
+            dateTime,
+            uuid,
+            res.p.toMegawatts.asMegaWatt,
+            res.q.toMegavars.asMegaVar,
+            soc,
+          )
+        )
 
-      notifyListener(ParticipantResultEvent(storageResult))
+      storageResult.foreach(result =>
+        notifyListener(ParticipantResultEvent(result))
+      )
     }
 
-    baseStateData.copy(
-      resultValueStore = ValueStore.updateValueStore(
-        baseStateData.resultValueStore,
-        currentTick,
-        result.primaryData,
-      )
-    )
+    val updatedBaseStateData = result.foldLeft(baseStateData) {
+      (stateData, res) =>
+        stateData.copy(
+          resultValueStore = ValueStore.updateValueStore(
+            stateData.resultValueStore,
+            currentTick,
+            res,
+          )
+        )
+    }
+
+    updatedBaseStateData
   }
 
   /** Handle an active power change by flex control.
@@ -333,11 +341,7 @@ trait StorageAgentFundamentals
       data: StorageRelevantData,
       lastState: StorageState,
       setPower: Power,
-  ): (
-      StorageState,
-      AccompaniedSimulationResult[ApparentPower],
-      FlexChangeIndicator,
-  ) = {
+  ): (StorageState, List[ApparentPower], FlexChangeIndicator) = {
     val (updatedState, flexChangeIndicator) =
       baseStateData.model.handleControlledPowerChange(data, lastState, setPower)
     // In edge cases, the model does not accept the given set power
@@ -350,13 +354,11 @@ trait StorageAgentFundamentals
       voltage,
     )
 
-    val apparentPower = ApparentPower(updatedSetPower, reactivePower)
-
-    val result: AccompaniedSimulationResult[ApparentPower] =
-      AccompaniedSimulationResult(apparentPower, Seq.empty[ResultEntity])
-
-    (updatedState, result, flexChangeIndicator)
-
+    (
+      updatedState,
+      List(ApparentPower(updatedSetPower, reactivePower)),
+      flexChangeIndicator,
+    )
   }
 
   /** Update the last known model state with the given external, relevant data

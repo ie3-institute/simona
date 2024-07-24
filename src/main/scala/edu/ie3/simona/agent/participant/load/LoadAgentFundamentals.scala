@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.participant.load
 
 import edu.ie3.datamodel.models.input.system.LoadInput
-import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.{
   LoadResult,
   SystemParticipantResult,
@@ -32,7 +31,6 @@ import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
-import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
@@ -265,7 +263,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       setPower: squants.Power,
   ): (
       ConstantState.type,
-      AccompaniedSimulationResult[ApparentPower],
+      List[ApparentPower],
       FlexChangeIndicator,
   ) = {
     /* Calculate result */
@@ -275,10 +273,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       setPower,
       voltage,
     )
-    val result = AccompaniedSimulationResult(
-      ApparentPower(setPower, reactivePower),
-      Seq.empty[ResultEntity],
-    )
+    val result = List(ApparentPower(setPower, reactivePower))
 
     /* Handle the request within the model */
     val (updatedState, flexChangeIndicator) =

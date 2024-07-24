@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.participant.wec
 
 import edu.ie3.datamodel.models.input.system.WecInput
-import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.{
   SystemParticipantResult,
   WecResult,
@@ -249,7 +248,7 @@ protected trait WecAgentFundamentals
       setPower: squants.Power,
   ): (
       ConstantState.type,
-      AccompaniedSimulationResult[ApparentPower],
+      List[ApparentPower],
       FlexChangeIndicator,
   ) = {
     /* Calculate result */
@@ -259,10 +258,7 @@ protected trait WecAgentFundamentals
       setPower,
       voltage,
     )
-    val result = AccompaniedSimulationResult(
-      ApparentPower(setPower, reactivePower),
-      Seq.empty[ResultEntity],
-    )
+    val result = List(ApparentPower(setPower, reactivePower))
 
     /* Handle the request within the model */
     val (updatedState, flexChangeIndicator) =
