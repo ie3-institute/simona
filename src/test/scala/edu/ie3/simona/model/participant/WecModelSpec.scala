@@ -19,6 +19,8 @@ import edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import squants.energy.Watts
 import squants.mass.{Density, KilogramsPerCubicMeter}
 import squants.motion.{MetersPerSecond, Pascals}
@@ -137,9 +139,8 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
         val result =
           wecModel.calculateActivePower(ModelState.ConstantState, wecData)
         val expectedPower = Watts(power)
-        math.abs(
-          result.toWatts - expectedPower.toWatts
-        ) should be < powerTolerance.toWatts
+
+        (result - expectedPower) should be < powerTolerance
       }
     }
 
