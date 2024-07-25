@@ -68,7 +68,7 @@ final case class FixedFeedInModel(
     * @return
     *   Active power
     */
-  override protected def calculateActivePower(
+  override def calculateActivePower(
       modelState: ConstantState.type,
       data: FixedRelevantData.type = FixedRelevantData,
   ): Power =
