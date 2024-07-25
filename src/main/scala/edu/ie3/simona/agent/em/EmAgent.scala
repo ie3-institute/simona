@@ -245,7 +245,7 @@ object EmAgent {
                 toActivate.foreach {
                   _ ! RequestFlexOptions(msg.tick)
                 }
-                awaitingFlexOptions(emData, modelShell, flexOptionsCore)
+                awaitingFlexOptions(emData, modelShell, newCore)
             }
           } else { // We don't expect a new set point -> we can do our normal stuff, because we are activated because at least one connected agent should provide flex options
             val (toActivate, newCore) = flexOptionsCore.updateSetPoint().takeNewFlexRequests()
@@ -369,7 +369,7 @@ object EmAgent {
      */
     case (ctx, Flex(setPointMsg: SetPointFlexRequest)) =>
       // We got a set point after Activation -> Check, if setPower changed (yes) we have to calculate new set points for our connected agents (no) activate core and do the updates
-      ctx.log.debug(s"${flexOptionsCore.activeTick} ${ctx.self}.awaitingFlexOptions got external set point = $setPointMsg")
+      ctx.log.info(s"\u001b[0;36m${flexOptionsCore.activeTick} ${ctx.self}.awaitingFlexOptions got external set point = $setPointMsg\u001b[0;0m")
       val updatedCore = flexOptionsCore.handleSetPoint(setPointMsg)
       ctx.self ! Flex(IssuePowerControl(flexOptionsCore.activeTick, setPointMsg.setPower))
       awaitingFlexCtrl(emData, modelShell, updatedCore)
@@ -531,6 +531,11 @@ object EmAgent {
         )
       )
 
+    val nextActiveTick = EmTools.minOptionTicks(
+      inactiveCore.nextActiveTick,
+      nextSetPointTick
+    )
+
     emData.listener.foreach {
       _ ! ParticipantResultEvent(
         new EmResult(
@@ -541,14 +546,10 @@ object EmAgent {
           result.q.toMegavars.asMegaVar,
         ),
         tick = lastActiveTick,
-        nextTick = inactiveCore.nextActiveTick
+        nextTick = nextActiveTick
       )
     }
 
-    val nextActiveTick = EmTools.minOptionTicks(
-      inactiveCore.nextActiveTick,
-      nextSetPointTick
-    )
 
     emData.parentData.fold(
       schedulerData =>
