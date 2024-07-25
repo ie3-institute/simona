@@ -301,7 +301,18 @@ trait StorageAgentFundamentals
       )
     }
 
-    createUpdatedBaseStateData(baseStateData, result, currentTick)
+    val updatedBaseStateData = result.foldLeft(baseStateData) {
+      (stateData, res) =>
+        stateData.copy(
+          resultValueStore = ValueStore.updateValueStore(
+            stateData.resultValueStore,
+            currentTick,
+            res,
+          )
+        )
+    }
+
+    updatedBaseStateData
   }
 
   /** Handle an active power change by flex control.
