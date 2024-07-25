@@ -118,10 +118,8 @@ final case class ResultEntityCsvSink private (
           logger.debug(logPrefix(s"Compressed $outfileName."))
           FileIOUtils.deleteFileIfExists(outFileName).asScala
         case Failure(_) =>
-          Future.failed[IOResult](
-            new ProcessResultEventException(
-              s"Failed to zip file $outFileName!"
-            )
+          throw new ProcessResultEventException(
+            s"Failed to zip file $outFileName!"
           )
       }
   }
