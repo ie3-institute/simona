@@ -64,9 +64,7 @@ class FixedLoadModelSpec
           reference,
         )
 
-        math.abs(
-          actual.activePower.toWatts - expectedReferenceActivePower
-        ) should be < tolerance.toWatts
+          actual shouldBe expectedReferenceActivePower
       }
     }
 
