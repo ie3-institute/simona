@@ -6,13 +6,17 @@
 
 package edu.ie3.simona.model.grid
 
-import java.util.UUID
+import edu.ie3.datamodel.models.OperationTime
+import edu.ie3.simona.exceptions.InvalidParameterException
 
+import java.util.UUID
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.grid.SystemComponentSpec.SystemComponentMock
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.OperationInterval
 
+import java.time.ZonedDateTime
 import scala.util.Try
 
 /** Test for abstract class [[SystemComponent]]
@@ -62,6 +66,88 @@ class SystemComponentSpec extends UnitSpec {
 
     }
 
+    def setup(): OperationTime.OperationTimeBuilder = {
+      OperationTime.builder()
+    }
+
+    "determine the correct operation interval" in {
+
+      val defaultSimulationStart: ZonedDateTime =
+        TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")
+      val defaultSimulationEnd: ZonedDateTime =
+        TimeUtil.withDefaults.toZonedDateTime("2019-01-02T00:00:00Z")
+
+      val testCases = Seq(
+        (
+          Some(TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")),
+          Some(TimeUtil.withDefaults.toZonedDateTime("2019-01-02T00:00:00Z")),
+          OperationInterval(0L, 86400L),
+        ),
+        (
+          Some(TimeUtil.withDefaults.toZonedDateTime("2019-01-02T00:00:00Z")),
+          Some(TimeUtil.withDefaults.toZonedDateTime("2019-01-02T00:00:00Z")),
+          OperationInterval(86400L, 86400L),
+        ),
+        (
+          Some(TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")),
+          Some(TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")),
+          OperationInterval(0L, 0L),
+        ),
+        (
+          None,
+          Some(TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")),
+          OperationInterval(0L, 0L),
+        ),
+        (
+          Some(TimeUtil.withDefaults.toZonedDateTime("2019-01-02T00:00:00Z")),
+          None,
+          OperationInterval(86400L, 86400L),
+        ),
+      )
+
+      for ((operationStart, operationEnd, expected) <- testCases) {
+        val operationTimeBuilder = setup()
+
+        operationStart.foreach(operationTimeBuilder.withStart)
+        operationEnd.foreach(operationTimeBuilder.withEnd)
+
+        val operationTime: OperationTime = operationTimeBuilder.build()
+
+        val interval: OperationInterval =
+          SystemComponent.determineOperationInterval(
+            defaultSimulationStart,
+            defaultSimulationEnd,
+            operationTime,
+          )
+
+        interval should be(expected)
+      }
+    }
+
+    "reject an operation end that is before the operation start" in {
+      val defaultSimulationStart: ZonedDateTime =
+        TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")
+      val defaultSimulationEnd: ZonedDateTime =
+        TimeUtil.withDefaults.toZonedDateTime("2019-01-02T00:00:00Z")
+
+      val operationTimeBuilder = setup()
+
+      operationTimeBuilder.withStart(defaultSimulationEnd)
+      operationTimeBuilder.withEnd(defaultSimulationStart)
+      val operationTime: OperationTime = operationTimeBuilder.build()
+
+      val exception = intercept[InvalidParameterException] {
+        SystemComponent.determineOperationInterval(
+          defaultSimulationStart,
+          defaultSimulationEnd,
+          operationTime,
+        )
+      }
+
+      exception.getMessage should be(
+        "The defined operation end is before it's operation start."
+      )
+    }
   }
 
 }
