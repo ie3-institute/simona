@@ -39,7 +39,6 @@ import edu.ie3.simona.exceptions.agent.{
   InconsistentStateException,
   InvalidRequestException,
 }
-import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.FlexChangeIndicator
 import edu.ie3.simona.model.participant.evcs.EvcsModel
 import edu.ie3.simona.model.participant.evcs.EvcsModel.{
