@@ -115,7 +115,7 @@ class FixedLoadModelSpec
       forAll(testData) { (reference, expectedPower: Power) =>
         val relevantData = FixedLoadModel.FixedLoadRelevantData
 
-        var scale = 0.1
+        var scale = 0
         while (scale <= 2) {
           val scaledSRated = Kilowatts(
             loadInput.getsRated
