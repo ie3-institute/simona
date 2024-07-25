@@ -22,7 +22,10 @@ import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.Power
 import squants.energy.{KilowattHours, Kilowatts, Watts}
 
-class FixedLoadModelSpec extends UnitSpec with LoadInputTestData with TableDrivenPropertyChecks {
+class FixedLoadModelSpec
+    extends UnitSpec
+    with LoadInputTestData
+    with TableDrivenPropertyChecks {
 
   private implicit val tolerance: Power = Watts(1d)
 
@@ -115,29 +118,33 @@ class FixedLoadModelSpec extends UnitSpec with LoadInputTestData with TableDrive
       forAll(testData) { (reference, expectedPower: Power) =>
         val relevantData = FixedLoadModel.FixedLoadRelevantData
 
-        val scale = 1.0
-        val scaledSRated = Kilowatts(
-          loadInput.getsRated
-            .to(PowerSystemUnits.KILOWATT)
-            .getValue
-            .doubleValue() * scale
-        )
-        val dut = new FixedLoadModel(
-          loadInput.getUuid,
-          loadInput.getId,
-          foreSeenOperationInterval,
-          QControl.apply(loadInput.getqCharacteristics),
-          scaledSRated,
-          loadInput.getCosPhiRated,
-          reference,
-        )
+        var scale = 0.1
+        while (scale <= 2) {
+          val scaledSRated = Kilowatts(
+            loadInput.getsRated
+              .to(PowerSystemUnits.KILOWATT)
+              .getValue
+              .doubleValue() * scale
+          )
+          val dut = new FixedLoadModel(
+            loadInput.getUuid,
+            loadInput.getId,
+            foreSeenOperationInterval,
+            QControl.apply(loadInput.getqCharacteristics),
+            scaledSRated,
+            loadInput.getCosPhiRated,
+            reference,
+          )
 
-        val calculatedPower = dut
-          .calculateActivePower(ModelState.ConstantState, relevantData)
-          .toWatts
-        val expectedScaledPower = expectedPower.toWatts * scale
+          val calculatedPower = dut
+            .calculateActivePower(ModelState.ConstantState, relevantData)
+            .toWatts * scale
+          val expectedScaledPower = expectedPower.toWatts * scale
 
-        calculatedPower should be(expectedScaledPower +- tolerance.toWatts)
+          calculatedPower should be(expectedScaledPower +- tolerance.toWatts)
+
+          scale += 0.1
+        }
       }
     }
   }
