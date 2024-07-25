@@ -168,9 +168,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
         val airDensity = wecModel
           .calculateAirDensity(temperatureV, pressureV)
           .toKilogramsPerCubicMeter
-        math.abs(
-          airDensity - densityResult
-        ) should be < densityTolerance.toKilogramsPerCubicMeter
+          airDensity should be (densityResult)
       }
     }
 
