@@ -830,13 +830,11 @@ protected trait ParticipantAgentFundamentals[
       )
       .getOrElse((flexChangeIndicator.changesAtTick, stateDataWithResults))
 
-    result.foreach(res =>
-      flexStateData.emAgent ! FlexCtrlCompletion(
-        baseStateData.modelUuid,
-        res.toApparentPower,
-        flexChangeIndicator.changesAtNextActivation,
-        nextActivation,
-      )
+    flexStateData.emAgent ! FlexCtrlCompletion(
+      baseStateData.modelUuid,
+      result.primaryData.toApparentPower,
+      flexChangeIndicator.changesAtNextActivation,
+      nextActivation,
     )
 
     stay() using stateDataFinal
@@ -856,30 +854,24 @@ protected trait ParticipantAgentFundamentals[
     */
   protected def handleCalculatedResult(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      result: List[PD],
+      result: AccompaniedSimulationResult[PD],
       currentTick: Long,
   ): ParticipantModelBaseStateData[PD, CD, MS, M] = {
 
-    result.foreach(res =>
-      announceSimulationResult(
-        baseStateData,
+    // announce last result to listeners
+    announceSimulationResult(
+      baseStateData,
+      currentTick,
+      result,
+    )(baseStateData.outputConfig)
+
+    baseStateData.copy(
+      resultValueStore = ValueStore.updateValueStore(
+        baseStateData.resultValueStore,
         currentTick,
-        AccompaniedSimulationResult(res),
-      )(baseStateData.outputConfig)
+        result.primaryData,
+      )
     )
-
-    val updatedBaseStateData = result.foldLeft(baseStateData) {
-      (stateData, res) =>
-        stateData.copy(
-          resultValueStore = ValueStore.updateValueStore(
-            stateData.resultValueStore,
-            currentTick,
-            res,
-          )
-        )
-    }
-
-    updatedBaseStateData
   }
 
   /** Calculate the power output of the participant without needing any

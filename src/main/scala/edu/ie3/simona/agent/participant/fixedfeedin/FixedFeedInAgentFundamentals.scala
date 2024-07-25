@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent.participant.fixedfeedin
 
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
+import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.{
   FixedFeedInResult,
   SystemParticipantResult,
@@ -234,7 +235,7 @@ protected trait FixedFeedInAgentFundamentals
       setPower: squants.Power,
   ): (
       ConstantState.type,
-      List[ApparentPower],
+      AccompaniedSimulationResult[ApparentPower],
       FlexChangeIndicator,
   ) = {
     /* Calculate result */
@@ -244,7 +245,10 @@ protected trait FixedFeedInAgentFundamentals
       setPower,
       voltage,
     )
-    val result = List(ApparentPower(setPower, reactivePower))
+    val result = AccompaniedSimulationResult(
+      ApparentPower(setPower, reactivePower),
+      Seq.empty[ResultEntity],
+    )
 
     /* Handle the request within the model */
     val (updatedState, flexChangeIndicator) =

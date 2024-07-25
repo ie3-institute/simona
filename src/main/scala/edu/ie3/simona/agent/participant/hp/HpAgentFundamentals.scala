@@ -136,7 +136,6 @@ trait HpAgentFundamentals
     * @return
     *   Updated model state, a result model and a [[FlexChangeIndicator]]
     */
-
   def handleControlledPowerChange(
       tick: Long,
       baseStateData: ParticipantModelBaseStateData[
@@ -150,7 +149,7 @@ trait HpAgentFundamentals
       setPower: squants.Power,
   ): (
       HpState,
-      List[ApparentPowerAndHeat],
+      AccompaniedSimulationResult[ApparentPowerAndHeat],
       FlexChangeIndicator,
   ) = {
     /* Determine needed information */
@@ -188,7 +187,12 @@ trait HpAgentFundamentals
       relevantData,
     )
 
-    (updatedState, List(power), flexChangeIndicator)
+    val accompanyingResults = baseStateData.model.thermalGrid.results(
+      updatedState.thermalGridState
+    )(baseStateData.startDate)
+    val result = AccompaniedSimulationResult(power, accompanyingResults)
+
+    (updatedState, result, flexChangeIndicator)
   }
 
   /** Abstractly calculate the power output of the participant utilising

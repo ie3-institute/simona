@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent.participant.evcs
 
 import edu.ie3.datamodel.models.input.system.EvcsInput
+import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.{
   EvcsResult,
   SystemParticipantResult,
@@ -247,7 +248,7 @@ protected trait EvcsAgentFundamentals
       setPower: Power,
   ): (
       EvcsState,
-      List[ApparentPower],
+      AccompaniedSimulationResult[ApparentPower],
       FlexChangeIndicator,
   ) = {
     /* Calculate the power */
@@ -257,7 +258,10 @@ protected trait EvcsAgentFundamentals
       setPower,
       voltage,
     )
-    val result = List(ApparentPower(setPower, reactivePower))
+    val result = AccompaniedSimulationResult(
+      ApparentPower(setPower, reactivePower),
+      Seq.empty[ResultEntity],
+    )
 
     /* Handle the request within the model */
     val (updatedState, flexChangeIndicator) =
@@ -679,7 +683,7 @@ protected trait EvcsAgentFundamentals
         EvcsState,
         EvcsModel,
       ],
-      result: List[ApparentPower],
+      result: AccompaniedSimulationResult[ApparentPower],
       currentTick: Long,
   ): ParticipantModelBaseStateData[
     ApparentPower,
