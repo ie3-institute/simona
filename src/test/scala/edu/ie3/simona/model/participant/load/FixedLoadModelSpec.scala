@@ -10,7 +10,6 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.ModelState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.test.common.input.LoadInputTestData
-import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.simona.model.participant.load.LoadReference.{
   ActivePower,
   EnergyConsumption,
