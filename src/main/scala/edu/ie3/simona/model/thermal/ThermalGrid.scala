@@ -414,7 +414,7 @@ final case class ThermalGrid(
             storage.uuid,
             storedEnergy.toMegawattHours.asMegaWattHour,
             qDot.toMegawatts.asMegaWatt,
-            (storage.maxEnergyThreshold / storedEnergy).asPu,
+            (storedEnergy / storage.maxEnergyThreshold).asPu,
           )
         case _ =>
           throw new NotImplementedError(
