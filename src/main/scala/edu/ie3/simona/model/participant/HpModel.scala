@@ -11,7 +11,10 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHe
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
+import edu.ie3.simona.model.thermal.ThermalGrid.{
+  ThermalEnergyDemand,
+  ThermalGridState,
+}
 import edu.ie3.simona.model.thermal.{ThermalGrid, ThermalThreshold}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
@@ -149,7 +152,7 @@ final case class HpModel(
   private def operatesInNextState(
       state: HpState,
       relevantData: HpRelevantData,
-  ): (Boolean, Boolean, Boolean) = {
+  ): (Boolean, ThermalEnergyDemand, ThermalEnergyDemand) = {
     val (demandHouse, demandStorage) = thermalGrid.energyDemand(
       relevantData.currentTick,
       relevantData.ambientTemperature,
@@ -162,15 +165,11 @@ final case class HpModel(
 
     val turnHpOn =
       (demandHouse.hasRequiredDemand && demandHouse.required > storedEnergy) || demandStorage.hasRequiredDemand || (state.isRunning && demandHouse.hasAdditionalDemand) || (state.isRunning && demandStorage.hasAdditionalDemand)
-    val houseHasDemand =
-      demandHouse.hasRequiredDemand || demandHouse.hasAdditionalDemand
-    val storageHasDemand =
-      demandStorage.hasRequiredDemand || demandStorage.hasAdditionalDemand
 
     (
       turnHpOn,
-      houseHasDemand,
-      storageHasDemand,
+      demandHouse,
+      demandStorage,
     )
   }
 
@@ -195,8 +194,8 @@ final case class HpModel(
       state: HpState,
       relevantData: HpRelevantData,
       isRunning: Boolean,
-      houseDemand: Boolean,
-      storageDemand: Boolean,
+      houseDemand: ThermalEnergyDemand,
+      storageDemand: ThermalEnergyDemand,
   ): HpState = {
     val (newActivePower, newThermalPower) =
       if (isRunning)
@@ -289,19 +288,21 @@ final case class HpModel(
     /* If the setpoint value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
     val turnOn = setPower > (sRated * cosPhiRated * 0.5)
 
-    val (thermalEnergyDemandHouse, thermalEnergyDemandStorge) =
+    val (thermalEnergyDemandHouse, thermalEnergyDemandStorage) =
       thermalGrid.energyDemand(
         data.currentTick,
         data.ambientTemperature,
         lastState.thermalGridState,
       )
-    val houseHasDemand =
-      thermalEnergyDemandHouse.hasRequiredDemand || thermalEnergyDemandHouse.hasAdditionalDemand
-    val storageHasDemand =
-      thermalEnergyDemandStorge.hasRequiredDemand || thermalEnergyDemandStorge.hasAdditionalDemand
 
     val updatedState =
-      calcState(lastState, data, turnOn, houseHasDemand, storageHasDemand)
+      calcState(
+        lastState,
+        data,
+        turnOn,
+        thermalEnergyDemandHouse,
+        thermalEnergyDemandStorage,
+      )
 
     (
       updatedState,
