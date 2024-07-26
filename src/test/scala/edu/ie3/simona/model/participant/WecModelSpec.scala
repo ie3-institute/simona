@@ -23,6 +23,7 @@ import squants.energy.Watts
 import squants.motion.{MetersPerSecond, Pascals}
 import squants.thermal.Celsius
 import squants.Each
+import squants.mass.Mass
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{METRE, PERCENT, SQUARE_METRE}
 
@@ -121,8 +122,9 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
       val velocities =
         Seq(1.0, 2.0, 3.0, 7.0, 9.0, 13.0, 15.0, 19.0, 23.0, 27.0, 34.0, 40.0)
       val expectedPowers =
-        Seq(0, -2948.8095851378266, -24573.41320418286, -522922.2325710509, -1140000, -1140000,
-          -1140000, -1140000, -1140000, -1140000, -24573.39638823692, 0)
+        Seq(0, -2948.8095851378266, -24573.41320418286, -522922.2325710509,
+          -1140000, -1140000, -1140000, -1140000, -1140000, -1140000,
+          -24573.39638823692, 0)
 
       velocities.zip(expectedPowers).foreach { case (velocity, power) =>
         val wecData = new WecRelevantData(
@@ -134,7 +136,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
           wecModel.calculateActivePower(ModelState.ConstantState, wecData)
         val expectedPower = Watts(power)
 
-                result should be (expectedPower)
+        result should be(expectedPower)
       }
     }
 
@@ -162,14 +164,16 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
         val airDensity = wecModel
           .calculateAirDensity(temperatureV, pressureV)
           .toKilogramsPerCubicMeter
-          airDensity should be (densityResult)
+
+        airDensity should be(densityResult)
       }
     }
 
     "calculate active power output depending on temperature" in {
       val wecModel = buildWecModel()
       val temperatures = Seq(35.0, 20.0, -25.0)
-      val expectedPowers = Seq(-23377.23862017266 , -24573.41320, -29029.60338)
+      val expectedPowers =
+        Seq(-23377.23862017266, -24573.41320418286, -29029.60338829823)
 
       temperatures.zip(expectedPowers).foreach { case (temperature, power) =>
         val wecData = new WecRelevantData(
@@ -177,9 +181,11 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
           Celsius(temperature),
           Some(Pascals(101325d)),
         )
-        val result =
+        val result = {
           wecModel.calculateActivePower(ModelState.ConstantState, wecData)
-        result shouldBe power
+        }
+        val expectedPower = Watts(power)
+        result shouldBe expectedPower
       }
     }
   }
