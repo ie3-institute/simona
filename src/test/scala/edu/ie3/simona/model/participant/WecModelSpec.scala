@@ -19,22 +19,16 @@ import edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
 import squants.energy.Watts
-import squants.mass.{Density, KilogramsPerCubicMeter}
 import squants.motion.{MetersPerSecond, Pascals}
 import squants.thermal.Celsius
-import squants.{Each, Power}
+import squants.Each
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{METRE, PERCENT, SQUARE_METRE}
 
 import java.util.UUID
 
 class WecModelSpec extends UnitSpec with DefaultTestData {
-
-  private implicit val densityTolerance: Density = KilogramsPerCubicMeter(1e-5)
-  private implicit val powerTolerance: Power = Watts(1e-5)
 
   val nodeInput = new NodeInput(
     UUID.fromString("ad39d0b9-5ad6-4588-8d92-74c7d7de9ace"),
@@ -127,8 +121,8 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
       val velocities =
         Seq(1.0, 2.0, 3.0, 7.0, 9.0, 13.0, 15.0, 19.0, 23.0, 27.0, 34.0, 40.0)
       val expectedPowers =
-        Seq(0, -2948.80958, -24573.41320, -522922.23257, -1140000, -1140000,
-          -1140000, -1140000, -1140000, -1140000, -24573.39638, 0)
+        Seq(0, -2948.8095851378266, -24573.41320418286, -522922.2325710509, -1140000, -1140000,
+          -1140000, -1140000, -1140000, -1140000, -24573.39638823692, 0)
 
       velocities.zip(expectedPowers).foreach { case (velocity, power) =>
         val wecData = new WecRelevantData(
@@ -140,20 +134,20 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
           wecModel.calculateActivePower(ModelState.ConstantState, wecData)
         val expectedPower = Watts(power)
 
-                result should be(expectedPower)
+                result should be (expectedPower)
       }
     }
 
     "calculate air density correctly" in {
       val wecModel = buildWecModel()
       val testCases = Seq(
-        (-15.0, 100129.44, 1.35121),
-        (-5.0, 99535.96, 1.29311),
-        (0.0, 99535.96, 1.26944),
-        (5.0, 100129.44, 1.25405),
-        (20.0, 100129.44, 1.18988),
-        (25.0, 100427.25, 1.17341),
-        (37.0, 100427.25, 1.12801),
+        (-15.0, 100129.44, 1.3512151548083537),
+        (-5.0, 99535.96, 1.2931147269065832),
+        (0.0, 99535.96, 1.2694443127219486),
+        (5.0, 100129.44, 1.25405785444464),
+        (20.0, 100129.44, 1.1898897909390296),
+        (25.0, 100427.25, 1.1734149214121568),
+        (37.0, 100427.25, 1.1280143763309192),
         // test cases where no air pressure is given
         (0.0, -1.0, 1.2041),
         (5.0, -1.0, 1.2041),
@@ -175,7 +169,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
     "calculate active power output depending on temperature" in {
       val wecModel = buildWecModel()
       val temperatures = Seq(35.0, 20.0, -25.0)
-      val expectedPowers = Seq(-23377.23862, -24573.41320, -29029.60338)
+      val expectedPowers = Seq(-23377.23862017266 , -24573.41320, -29029.60338)
 
       temperatures.zip(expectedPowers).foreach { case (temperature, power) =>
         val wecData = new WecRelevantData(
