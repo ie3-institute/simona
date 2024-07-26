@@ -23,7 +23,6 @@ import squants.energy.Watts
 import squants.motion.{MetersPerSecond, Pascals}
 import squants.thermal.Celsius
 import squants.Each
-import squants.mass.Mass
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{METRE, PERCENT, SQUARE_METRE}
 
