@@ -10,7 +10,6 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.FixedFeedInputTestData
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.quantities.Sq
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.energy.{Kilowatts, Power, Watts}
 
@@ -49,7 +48,7 @@ class FixedFeedModelSpec
         actualModel.calculateActivePower(
           ModelState.ConstantState,
           CalcRelevantData.FixedRelevantData,
-        ) =~ expectedPower
+        ) shouldBe expectedPower
       }
     }
 
