@@ -12,7 +12,7 @@ import edu.ie3.simona.exceptions.InvalidParameterException
 import java.util.UUID
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.grid.SystemComponentSpec.SystemComponentMock
-import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.OperationInterval
 
@@ -21,7 +21,7 @@ import scala.util.Try
 
 /** Test for abstract class [[SystemComponent]]
   */
-class SystemComponentSpec extends UnitSpec {
+class SystemComponentSpec extends UnitSpec with DefaultTestData {
   sealed trait ValidSystemComponent {
     val systemComponent: SystemComponentMock = SystemComponentMock(
       operationInterval = OperationInterval(0L, 7200L)
@@ -72,9 +72,7 @@ class SystemComponentSpec extends UnitSpec {
 
     "determine the correct operation interval" in {
 
-      val defaultSimulationStart: ZonedDateTime =
-        TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")
-      val defaultSimulationEnd: ZonedDateTime =
+      val simulationEnd: ZonedDateTime =
         TimeUtil.withDefaults.toZonedDateTime("2019-01-02T00:00:00Z")
 
       val testCases = Seq(
@@ -116,7 +114,7 @@ class SystemComponentSpec extends UnitSpec {
         val interval: OperationInterval =
           SystemComponent.determineOperationInterval(
             defaultSimulationStart,
-            defaultSimulationEnd,
+            simulationEnd,
             operationTime,
           )
 
@@ -125,9 +123,8 @@ class SystemComponentSpec extends UnitSpec {
     }
 
     "reject an operation end that is before the operation start" in {
-      val defaultSimulationStart: ZonedDateTime =
-        TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")
-      val defaultSimulationEnd: ZonedDateTime =
+
+      val simulationEnd: ZonedDateTime =
         TimeUtil.withDefaults.toZonedDateTime("2019-01-02T00:00:00Z")
 
       val operationTimeBuilder = setup()
@@ -139,7 +136,7 @@ class SystemComponentSpec extends UnitSpec {
       val exception = intercept[InvalidParameterException] {
         SystemComponent.determineOperationInterval(
           defaultSimulationStart,
-          defaultSimulationEnd,
+          simulationEnd,
           operationTime,
         )
       }
