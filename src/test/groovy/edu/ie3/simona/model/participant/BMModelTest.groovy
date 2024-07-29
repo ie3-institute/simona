@@ -6,6 +6,9 @@
 
 package edu.ie3.simona.model.participant
 
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+import static tech.units.indriya.unit.Units.PERCENT
+
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.system.type.BmTypeInput
@@ -25,9 +28,6 @@ import squants.thermal.Celsius$
 import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
-
-import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static tech.units.indriya.unit.Units.PERCENT
 
 /**
  * Test class that tries to cover all special cases of the current implementation of the {@link BMModel}

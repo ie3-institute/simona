@@ -6,6 +6,11 @@
 
 package edu.ie3.simona.model.thermal
 
+import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR_PER_KELVIN
+import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATT_PER_KELVIN
+import static tech.units.indriya.quantity.Quantities.getQuantity
+import static tech.units.indriya.unit.Units.CELSIUS
+
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.ThermalHouseInput
 import edu.ie3.util.scala.quantities.Sq
@@ -16,11 +21,6 @@ import squants.thermal.Celsius$
 import squants.thermal.Kelvin$
 import squants.thermal.Temperature
 import squants.time.Seconds$
-
-import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR_PER_KELVIN
-import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATT_PER_KELVIN
-import static tech.units.indriya.quantity.Quantities.getQuantity
-import static tech.units.indriya.unit.Units.CELSIUS
 
 class ThermalHouseTest extends Specification {
 

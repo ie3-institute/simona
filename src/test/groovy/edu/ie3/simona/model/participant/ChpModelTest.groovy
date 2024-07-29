@@ -6,6 +6,10 @@
 
 package edu.ie3.simona.model.participant
 
+import static edu.ie3.util.quantities.PowerSystemUnits.*
+import static tech.units.indriya.quantity.Quantities.getQuantity
+import static tech.units.indriya.unit.Units.PERCENT
+
 import edu.ie3.util.scala.quantities.Kilovoltamperes$
 
 import edu.ie3.datamodel.models.OperationTime
@@ -30,10 +34,6 @@ import squants.energy.Kilowatts$
 import squants.space.CubicMeters$
 import squants.thermal.Celsius$
 import testutils.TestObjectFactory
-
-import static edu.ie3.util.quantities.PowerSystemUnits.*
-import static tech.units.indriya.quantity.Quantities.getQuantity
-import static tech.units.indriya.unit.Units.PERCENT
 
 class ChpModelTest extends Specification {
 
