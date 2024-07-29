@@ -53,7 +53,7 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
-import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
+import edu.ie3.util.scala.quantities.ReactivePower
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import org.apache.pekko.actor.{ActorRef, FSM}
@@ -149,7 +149,11 @@ trait HpAgentFundamentals
       data: HpRelevantData,
       lastState: HpState,
       setPower: squants.Power,
-  ): (HpState, ComplexPowerAndHeat, FlexChangeIndicator) = {
+  ): (
+      HpState,
+      AccompaniedSimulationResult[ComplexPowerAndHeat],
+      FlexChangeIndicator,
+  ) = {
     /* Determine needed information */
     val voltage =
       getAndCheckNodalVoltage(baseStateData, tick)
@@ -178,12 +182,17 @@ trait HpAgentFundamentals
       .handleControlledPowerChange(relevantData, modelState, setPower)
 
     /* Calculate power results */
-    val result = baseStateData.model.calculatePower(
+    val power = baseStateData.model.calculatePower(
       tick,
       voltage,
       updatedState,
       relevantData,
     )
+
+    val accompanyingResults = baseStateData.model.thermalGrid.results(
+      updatedState.thermalGridState
+    )(baseStateData.startDate)
+    val result = AccompaniedSimulationResult(power, accompanyingResults)
 
     (updatedState, result, flexChangeIndicator)
   }

@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Option to flush out `CylindricalStorageResults` [#826](https://github.com/ie3-institute/simona/issues/826)
 - Printing the directory of log to terminal upon simulation failure [#626](https://github.com/ie3-institute/simona/issues/626)
 - Implementation of StorageAgent [#309](https://github.com/ie3-institute/simona/issues/309)
+- Enhanced Newton-Raphson-PowerFlow failures with more information [#815](https://github.com/ie3-institute/simona/issues/815)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -55,6 +56,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Making configuration of `RefSystem` via config optional [#769](https://github.com/ie3-institute/simona/issues/769)
 - Updated PSDM to version 5.1.0 [#835](https://github.com/ie3-institute/simona/issues/835)
 - Refactor `WeatherSource` and `WeatherSourceWrapper` [#180](https://github.com/ie3-institute/simona/issues/180)
+- Remove unnecessary dependency `pekko-connectors-csv` [#857](https://github.com/ie3-institute/simona/issues/857)
+- Rewrote RefSystemTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Rewrote FixedFeedModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Rewrote WecModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
@@ -73,6 +78,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Delete "Indices and tables" on the index page [#375](https://github.com/ie3-institute/simona/issues/375)
 - Fixed provision of controllingEms within buildParticipantToActorRef [#841](https://github.com/ie3-institute/simona/issues/841)
 - Simulation stopping at unhandled messages in `DBFSAlgorithm` [#821](https://github.com/ie3-institute/simona/issues/821)
+- Not stopping correctly on failed power flow if configured  to stop [#800](https://github.com/ie3-institute/simona/issues/800)
+- Finally fixing `RuntimeEventListenerSpec` [#849](https://github.com/ie3-institute/simona/issues/849)
+- Fixed result output for thermal houses and cylindrical storages [#844](https://github.com/ie3-institute/simona/issues/844)
+- Fixed FixedFeedModelSpec [#861](https://github.com/ie3-institute/simona/issues/861)
 
 ## [3.0.0] - 2023-08-07
 
