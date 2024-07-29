@@ -91,6 +91,7 @@ trait HpModelTestData {
     ThermalGrid(
       Some(thermalHouse),
       thermalStorage,
+      None,
     )
 
   private val thermHouseUuid: UUID =
@@ -141,6 +142,7 @@ trait HpModelTestData {
         qDot,
       )
     ),
+    None,
     None,
   )
 

@@ -40,6 +40,7 @@ import scala.jdk.CollectionConverters.SetHasAsScala
 final case class ThermalGrid(
     house: Option[ThermalHouse],
     storage: Option[ThermalStorage],
+    domesticHotWaterStorage: Option[ThermalStorage],
 ) extends LazyLogging {
 
   /** Determine the energy demand of the total grid at the given instance in
@@ -76,7 +77,7 @@ final case class ThermalGrid(
             house
               .zip(state.houseState)
               .map { case (house, state) =>
-                house.energyDemand(
+                house.energyDemandHeating(
                   tick,
                   ambientTemperature,
                   state,
@@ -128,6 +129,54 @@ final case class ThermalGrid(
         storageDemand.required,
         storageDemand.possible,
       ),
+    )
+  }
+
+  /** Determines if the domestic hot water storage has energy demand or not.
+    *
+    * @param tick
+    *   Questionable tick
+    * @param state
+    *   most recent state, that is valid for this model
+    * @return
+    *   the needed energy for heating in the questioned tick
+    */
+
+  def energyDemandDomesticHotWaterStorage(
+      tick: Long,
+      state: ThermalGridState,
+  ): ThermalEnergyDemand = {
+
+    val domesticHotWaterStorageDemand = {
+      domesticHotWaterStorage
+        .zip(state.domesticHotWaterStorageState)
+        .map { case (hotWaterStorage, state) =>
+          val updatedhotWaterStorageState =
+            hotWaterStorage.updateState(tick, state.qDot, state)._1
+          val storedEnergy = updatedhotWaterStorageState.storedEnergy
+          val soc = storedEnergy / hotWaterStorage.getMaxEnergyThreshold
+          val hotWaterStorageRequired =
+            if (soc < 0.5) {
+              hotWaterStorage.getMaxEnergyThreshold * 0.5 - storedEnergy
+            } else {
+              zeroMWH
+            }
+
+          val hotWaterStoragePossible =
+            hotWaterStorage.getMaxEnergyThreshold - storedEnergy
+          ThermalEnergyDemand(
+            hotWaterStorageRequired,
+            hotWaterStoragePossible,
+          )
+        }
+        .getOrElse(
+          ThermalEnergyDemand(zeroMWH, zeroMWH)
+        )
+    }
+
+    ThermalEnergyDemand(
+      domesticHotWaterStorageDemand.required,
+      domesticHotWaterStorageDemand.possible,
     )
   }
 
@@ -196,12 +245,25 @@ final case class ThermalGrid(
     // TODO: We would need to issue a storage result model here...
 
     /* Consider the action in the last state */
-    val (qDotHouseLastState, qDotStorageLastState) = state match {
-      case ThermalGridState(Some(houseState), Some(storageState)) =>
-        (houseState.qDot, storageState.qDot)
-      case ThermalGridState(Some(houseState), None) => (houseState.qDot, zeroKW)
-      case ThermalGridState(None, Some(storageState)) =>
-        (zeroKW, storageState.qDot)
+    val (
+      qDotHouseLastState,
+      qDotStorageLastState,
+      qDotDomesticWaterStorageLastState,
+    ) = state match {
+      case ThermalGridState(
+            Some(houseState),
+            Some(storageState),
+            Some(domesticWaterState),
+          ) =>
+        (houseState.qDot, storageState.qDot, domesticWaterState.qDot)
+      case ThermalGridState(Some(houseState), Some(storageState), None) =>
+        (houseState.qDot, storageState.qDot, zeroKW)
+      case ThermalGridState(Some(houseState), None, Some(domesticWaterState)) =>
+        (houseState.qDot, zeroKW, domesticWaterState.qDot)
+      case ThermalGridState(Some(houseState), None, None) =>
+        (houseState.qDot, zeroKW, zeroKW)
+      case ThermalGridState(None, Some(storageState), None) =>
+        (zeroKW, storageState.qDot, zeroKW)
       case _ =>
         throw new InconsistentStateException(
           "There should be at least a house or a storage state."
@@ -608,9 +670,23 @@ object ThermalGrid {
         case _ => None
       }
       .toSet
+    val domesticHotWaterStorage: Set[ThermalStorage] = input
+      .storages()
+      .asScala
+      .flatMap {
+
+        // FIXME
+        //        case domesticHotWaterInput: DomesticHotWaterStorageInput =>
+        //        Some(DomesticHotWaterStorageInput(domesticHotWaterInput))
+        case cylindricalInput: CylindricalStorageInput =>
+          Some(CylindricalThermalStorage(cylindricalInput))
+        case _ => None
+      }
+      .toSet
     new ThermalGrid(
       houses.headOption,
       storages.headOption,
+      domesticHotWaterStorage.headOption,
     )
   }
 
@@ -623,12 +699,14 @@ object ThermalGrid {
   final case class ThermalGridState(
       houseState: Option[ThermalHouseState],
       storageState: Option[ThermalStorageState],
+      domesticHotWaterStorageState: Option[ThermalStorageState],
   )
 
   def startingState(thermalGrid: ThermalGrid): ThermalGridState =
     ThermalGridState(
       thermalGrid.house.map(house => ThermalHouse.startingState(house)),
       thermalGrid.storage.map(_.startingState),
+      thermalGrid.domesticHotWaterStorage.map(_.startingState),
     )
 
   /** Defines the thermal energy demand of a thermal grid. It comprises the

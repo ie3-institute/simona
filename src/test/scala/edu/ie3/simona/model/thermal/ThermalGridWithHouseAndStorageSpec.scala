@@ -48,6 +48,7 @@ class ThermalGridWithHouseAndStorageSpec
         case ThermalGrid(
               Some(thermalHouseGenerated),
               Some(thermalStorageGenerated),
+              None,
             ) =>
           thermalHouseGenerated shouldBe thermalHouse
           thermalStorageGenerated shouldBe thermalStorage
@@ -74,6 +75,7 @@ class ThermalGridWithHouseAndStorageSpec
                 Some(
                   ThermalStorageState(storageTick, storedEnergy, qDotStorage)
                 ),
+                None,
               ) =>
             houseTick shouldBe expectedHouseStartingState.tick
             storageTick shouldBe expectedHouseStartingState.tick
@@ -160,6 +162,7 @@ class ThermalGridWithHouseAndStorageSpec
                 Some(
                   ThermalStorageState(storageTick, storedEnergy, qDotStorage)
                 ),
+                None,
               ) =>
             storageTick shouldBe 0L
             storedEnergy should approximate(initialLoading)
@@ -196,6 +199,7 @@ class ThermalGridWithHouseAndStorageSpec
                 Some(
                   ThermalStorageState(storageTick, storedEnergy, qDotStorage)
                 ),
+                None,
               ) =>
             houseTick shouldBe 0L
             innerTemperature should approximate(Celsius(18.9999d))
@@ -484,6 +488,7 @@ class ThermalGridWithHouseAndStorageSpec
                 Some(
                   ThermalStorageState(storageTick, storedEnergy, qDotStorage)
                 ),
+                None,
               ) =>
             houseTick shouldBe 0L
             innerTemperature should approximate(Celsius(18.9999d))
@@ -531,6 +536,7 @@ class ThermalGridWithHouseAndStorageSpec
                 Some(
                   ThermalStorageState(storageTick, storedEnergy, qDotStorage)
                 ),
+                None,
               ) =>
             houseTick shouldBe 0L
             innerTemperature should approximate(Celsius(20.99999167d))

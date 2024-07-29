@@ -36,7 +36,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         )
 
       ThermalGrid(thermalGridInput) match {
-        case ThermalGrid(Some(thermalHouseGenerated), None) =>
+        case ThermalGrid(Some(thermalHouseGenerated), None, None) =>
           thermalHouseGenerated shouldBe thermalHouse
         case _ =>
           fail("Generation of thermal grid from thermal input grid failed.")
@@ -59,6 +59,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           case ThermalGridState(
                 Some(ThermalHouseState(tick, innerTemperature, thermalInfeed)),
                 None,
+                None,
               ) =>
             tick shouldBe expectedHouseStartingState.tick
             innerTemperature should approximate(
@@ -74,7 +75,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
     "determining the energy demand" should {
       "exactly be the demand of the house" in {
         val tick = 10800 // after three house
-        val expectedHouseDemand = thermalHouse.energyDemand(
+        val expectedHouseDemand = thermalHouse.energyDemandHeating(
           tick,
           testGridambientTemperature,
           expectedHouseStartingState,
@@ -116,6 +117,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           case ThermalGridState(
                 Some(ThermalHouseState(tick, innerTemperature, qDot)),
                 None,
+                None,
               ) =>
             tick shouldBe 0L
             innerTemperature should approximate(Celsius(18.9999d))
@@ -142,6 +144,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         updatedGridState match {
           case ThermalGridState(
                 Some(ThermalHouseState(tick, innerTemperature, qDot)),
+                None,
                 None,
               ) =>
             tick shouldBe 0L
@@ -179,6 +182,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           case ThermalGridState(
                 Some(ThermalHouseState(tick, innerTemperature, qDot)),
                 None,
+                None,
               ) =>
             tick shouldBe 0L
             innerTemperature should approximate(Celsius(18.9999d))
@@ -205,6 +209,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 ThermalGridState(
                   Some(ThermalHouseState(tick, innerTemperature, qDot)),
                   None,
+                  None,
                 ),
                 Some(HouseTemperatureUpperBoundaryReached(thresholdTick)),
               ) =>
@@ -229,6 +234,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
                 ThermalGridState(
                   Some(ThermalHouseState(tick, innerTemperature, qDot)),
                   None,
+                  None,
                 ),
                 Some(HouseTemperatureLowerBoundaryReached(thresholdTick)),
               ) =>
@@ -252,6 +258,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           case (
                 ThermalGridState(
                   Some(ThermalHouseState(tick, innerTemperature, qDot)),
+                  None,
                   None,
                 ),
                 Some(HouseTemperatureLowerBoundaryReached(thresholdTick)),

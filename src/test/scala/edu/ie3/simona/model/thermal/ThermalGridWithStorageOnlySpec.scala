@@ -41,7 +41,7 @@ class ThermalGridWithStorageOnlySpec
         )
 
       ThermalGrid(thermalGridInput) match {
-        case ThermalGrid(None, Some(thermalStorageGenerated)) =>
+        case ThermalGrid(None, Some(thermalStorageGenerated), None) =>
           thermalStorageGenerated shouldBe thermalStorage
         case _ =>
           fail("Generation of thermal grid from thermal input grid failed.")
@@ -64,6 +64,7 @@ class ThermalGridWithStorageOnlySpec
           case ThermalGridState(
                 None,
                 Some(ThermalStorageState(tick, storedEnergy, qDot)),
+                None,
               ) =>
             tick shouldBe expectedStorageStartingState.tick
             storedEnergy should approximate(
@@ -125,6 +126,7 @@ class ThermalGridWithStorageOnlySpec
           case ThermalGridState(
                 None,
                 Some(ThermalStorageState(tick, storedEnergy, qDot)),
+                None,
               ) =>
             tick shouldBe 0L
             storedEnergy should approximate(KilowattHours(430d))
@@ -159,6 +161,7 @@ class ThermalGridWithStorageOnlySpec
           case ThermalGridState(
                 None,
                 Some(ThermalStorageState(tick, storedEnergy, qDot)),
+                None,
               ) =>
             tick shouldBe 0L
             storedEnergy should approximate(KilowattHours(230d))
@@ -186,6 +189,7 @@ class ThermalGridWithStorageOnlySpec
           case ThermalGridState(
                 None,
                 Some(ThermalStorageState(tick, storedEnergy, qDot)),
+                None,
               ) =>
             tick shouldBe 0L
             storedEnergy should approximate(KilowattHours(230d))
@@ -217,6 +221,7 @@ class ThermalGridWithStorageOnlySpec
                 ThermalGridState(
                   None,
                   Some(ThermalStorageState(tick, storedEnergy, qDot)),
+                  None,
                 ),
                 Some(StorageEmpty(thresholdTick)),
               ) =>
@@ -242,6 +247,7 @@ class ThermalGridWithStorageOnlySpec
                 ThermalGridState(
                   None,
                   Some(ThermalStorageState(tick, storedEnergy, qDot)),
+                  None,
                 ),
                 None,
               ) =>

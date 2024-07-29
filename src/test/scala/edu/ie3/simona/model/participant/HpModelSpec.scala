@@ -213,7 +213,7 @@ class HpModelSpec
                     _,
                     activePower,
                     _,
-                    ThermalGridState(Some(thermalHouseState), _),
+                    ThermalGridState(Some(thermalHouseState), _, _),
                     maybeThreshold,
                   ) =>
                 isRunning shouldBe expectedRunningState
@@ -255,6 +255,7 @@ class HpModelSpec
                 Kilowatts(0),
               )
             ),
+            None,
           )
           val lastState = HpState(
             isRunning = true,
