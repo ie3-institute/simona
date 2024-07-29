@@ -6,9 +6,6 @@
 
 package edu.ie3.simona.model.thermal
 
-import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
-import static tech.units.indriya.quantity.Quantities.getQuantity
-
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
 import edu.ie3.util.scala.quantities.KilowattHoursPerKelvinCubicMeters$
@@ -19,6 +16,9 @@ import squants.energy.KilowattHours$
 import squants.energy.Kilowatts$
 import squants.space.CubicMeters$
 import squants.thermal.Celsius$
+
+import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
+import static tech.units.indriya.quantity.Quantities.getQuantity
 
 class CylindricalThermalStorageTest extends Specification {
 

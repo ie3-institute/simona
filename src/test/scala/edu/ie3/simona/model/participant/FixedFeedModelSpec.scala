@@ -10,6 +10,7 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.FixedFeedInputTestData
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.scala.quantities.Kilovoltamperes
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.energy.{Kilowatts, Power, Watts}
 
@@ -35,7 +36,7 @@ class FixedFeedModelSpec
           fixedFeedInput.getId,
           defaultOperationInterval,
           QControl.apply(fixedFeedInput.getqCharacteristics()),
-          Kilowatts(
+          Kilovoltamperes(
             fixedFeedInput
               .getsRated()
               .to(PowerSystemUnits.KILOWATT)
