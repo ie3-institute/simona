@@ -9,12 +9,12 @@ package edu.ie3.simona.model.participant.load
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.ModelState
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.test.common.input.LoadInputTestData
 import edu.ie3.simona.model.participant.load.LoadReference.{
   ActivePower,
   EnergyConsumption,
 }
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.test.common.input.LoadInputTestData
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import org.scalatest.prop.TableDrivenPropertyChecks
@@ -44,11 +44,11 @@ class FixedLoadModelSpec
     "be instantiated from valid input correctly" in {
       val testData = Table(
         ("reference", "expectedReferenceActivePower"),
-        (ActivePower(Watts(268.6)), 268.6),
-        (EnergyConsumption(KilowattHours(3000d)), 342.24),
+        (ActivePower(Watts(268.6)), Watts(268.6)),
+        (EnergyConsumption(KilowattHours(3000d)), Watts(342.24)),
       )
 
-      forAll(testData) { (reference, expectedReferenceActivePower: Double) =>
+      forAll(testData) { (reference, expectedReferenceActivePower: Power) =>
         val actual = new FixedLoadModel(
           loadInput.getUuid,
           loadInput.getId,
@@ -64,7 +64,13 @@ class FixedLoadModelSpec
           reference,
         )
 
-          actual shouldBe expectedReferenceActivePower
+        val calculatedPower = actual
+          .calculateActivePower(
+            ModelState.ConstantState,
+            FixedLoadModel.FixedLoadRelevantData,
+          )
+
+        calculatedPower should approximate(expectedReferenceActivePower)
       }
     }
 
@@ -93,14 +99,13 @@ class FixedLoadModelSpec
         )
 
         for (_ <- 0 until 10000) {
-          math.abs(
-            dut
-              .calculateActivePower(
-                ModelState.ConstantState,
-                FixedLoadModel.FixedLoadRelevantData,
-              )
-              .toWatts - expectedPower.toWatts
-          ) should be < tolerance.toWatts
+          val calculatedPower = dut
+            .calculateActivePower(
+              ModelState.ConstantState,
+              FixedLoadModel.FixedLoadRelevantData,
+            )
+
+          calculatedPower should approximate(expectedPower)
         }
       }
     }
@@ -115,7 +120,7 @@ class FixedLoadModelSpec
       forAll(testData) { (reference, expectedPower: Power) =>
         val relevantData = FixedLoadModel.FixedLoadRelevantData
 
-        var scale = 0
+        var scale = 0.0
         while (scale <= 2) {
           val scaledSRated = Kilowatts(
             loadInput.getsRated
@@ -134,11 +139,13 @@ class FixedLoadModelSpec
           )
 
           val calculatedPower = dut
-            .calculateActivePower(ModelState.ConstantState, relevantData)
-            .toWatts * scale
-          val expectedScaledPower = expectedPower.toWatts * scale
+            .calculateActivePower(
+              ModelState.ConstantState,
+              relevantData,
+            ) * scale
+          val expectedScaledPower = expectedPower * scale
 
-          calculatedPower should be(expectedScaledPower +- tolerance.toWatts)
+          calculatedPower should approximate(expectedScaledPower)
 
           scale += 0.1
         }
