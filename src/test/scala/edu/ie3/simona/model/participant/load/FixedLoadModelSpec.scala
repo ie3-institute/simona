@@ -13,9 +13,8 @@ import edu.ie3.simona.model.participant.load.LoadReference.{
   ActivePower,
   EnergyConsumption,
 }
-import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.LoadInputTestData
-import edu.ie3.util.TimeUtil
+import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.quantities.PowerSystemUnits
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.Power
@@ -24,20 +23,17 @@ import squants.energy.{KilowattHours, Kilowatts, Watts}
 class FixedLoadModelSpec
     extends UnitSpec
     with LoadInputTestData
+    with DefaultTestData
     with TableDrivenPropertyChecks {
 
   private implicit val tolerance: Power = Watts(1d)
 
   "A fixed load model" should {
 
-    val simulationStartDate =
-      TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")
-    val simulationEndDate =
-      TimeUtil.withDefaults.toZonedDateTime("2019-12-31T23:59:00Z")
-    val foreSeenOperationInterval =
+    val defaultOperationInterval =
       SystemComponent.determineOperationInterval(
-        simulationStartDate,
-        simulationEndDate,
+        defaultSimulationStart,
+        defaultSimulationEnd,
         loadInput.getOperationTime,
       )
 
@@ -52,7 +48,7 @@ class FixedLoadModelSpec
         val actual = new FixedLoadModel(
           loadInput.getUuid,
           loadInput.getId,
-          foreSeenOperationInterval,
+          defaultOperationInterval,
           QControl.apply(loadInput.getqCharacteristics),
           Kilowatts(
             loadInput.getsRated
@@ -86,7 +82,7 @@ class FixedLoadModelSpec
         val dut = new FixedLoadModel(
           loadInput.getUuid,
           loadInput.getId,
-          foreSeenOperationInterval,
+          defaultOperationInterval,
           QControl.apply(loadInput.getqCharacteristics),
           Kilowatts(
             loadInput.getsRated
@@ -131,7 +127,7 @@ class FixedLoadModelSpec
           val dut = new FixedLoadModel(
             loadInput.getUuid,
             loadInput.getId,
-            foreSeenOperationInterval,
+            defaultOperationInterval,
             QControl.apply(loadInput.getqCharacteristics),
             scaledSRated,
             loadInput.getCosPhiRated,
