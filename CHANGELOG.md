@@ -60,6 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rewrote RefSystemTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Rewrote FixedFeedModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Rewrote WecModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Rewrote FixedLoadModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Rewrote SystemComponentTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 
 ### Fixed
