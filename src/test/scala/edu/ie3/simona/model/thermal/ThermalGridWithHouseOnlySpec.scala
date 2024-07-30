@@ -73,7 +73,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
 
     "determining the energy demand" should {
       "exactly be the demand of the house" in {
-        val tick = 10800 // after three house
+        val tick = 10800 // after three hours
         val houseDemand = thermalHouse.energyDemand(
           tick,
           testGridambientTemperature,
@@ -126,7 +126,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       }
 
       "not withdraw energy from the house, if actual consumption is given" in {
-        val tick = 0L // after three house
+        val tick = 0L // after three hours
         val gridState = ThermalGrid.startingState(thermalGrid)
 
         val (updatedGridState, reachedThreshold) =
