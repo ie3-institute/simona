@@ -97,6 +97,27 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       }
     }
 
+    "determining the energy demand for domestic warm water supply" should {
+      "exactly be the thermal demand for domestic water supply of the house" in {
+        val tick = 86000 // heat demand for one day
+        val expectedEnergyDemandWater =
+          ThermalEnergyDemand(KilowattHours(3.7469589), KilowattHours(3.7469589))
+
+        val energyDemandWater = thermalHouse.energyDemandWater(
+          tick,
+          expectedHouseStartingState,
+          defaultSimulationStart,
+        )
+
+        energyDemandWater.required should approximate(
+          expectedEnergyDemandWater.required
+        )
+        energyDemandWater.possible should approximate(
+          expectedEnergyDemandWater.possible
+        )
+      }
+    }
+
     "handling thermal energy consumption from grid" should {
       val handleConsumption =
         PrivateMethod[(ThermalGridState, Option[ThermalThreshold])](

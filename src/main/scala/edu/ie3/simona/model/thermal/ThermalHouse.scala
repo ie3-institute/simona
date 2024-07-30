@@ -34,6 +34,7 @@ import tech.units.indriya.unit.Units
 import java.time.ZonedDateTime
 import java.util.UUID
 import java.time.Duration
+import java.time.temporal.ChronoUnit
 
 /** A thermal house model
   *
@@ -154,8 +155,8 @@ final case class ThermalHouse(
       simulationStart: ZonedDateTime,
   ): ThermalEnergyDemand = {
 
-    // Fixme:
-    val noPersonsInHoushold = 2
+    // Fixme: Get number of Persons in household from PSDM
+    val noPersonsInHousehold = 2
 
     val lastStateTime: ZonedDateTime = simulationStart.plusSeconds(state.tick)
     val actualStateTime: ZonedDateTime = simulationStart.plusSeconds(tick)
@@ -164,22 +165,39 @@ final case class ThermalHouse(
     // if we have been triggered this hour there the water Demand is already covered
     if (timeDiff.toSeconds > 3600) {
 
-      // FIXME
-      // the lastStates hour is already considered. Need to start lastState.getHour + 1 until tick.getHour
+      // the lastStates hour is already considered. Need to get energy for lastState.getHour + 1 until tick.getHour
+      val numberOfHourlySteps = (timeDiff.toSeconds / 3600).toInt + 1
 
-      ThermalEnergyDemand(zeroKWH, zeroKWH)
-    } else if (actualStateTime.getHour != lastStateTime.getHour) {
-      // determine demand for the actual hour
+      val energyDemandWater = (0 until numberOfHourlySteps).foldLeft(zeroKWH) {
+        (accumulatedEnergy, i) =>
+          val nextFullHour =
+            lastStateTime.plusHours(1 + i).truncatedTo(ChronoUnit.HOURS)
+          val nextFullHourTick =
+            Duration.between(simulationStart, nextFullHour).toSeconds
+          val waterDemand = waterDemandOfHour(
+            nextFullHourTick,
+            noPersonsInHousehold,
+            simulationStart,
+          )
+          val thermalDemandWater =
+            thermalEnergyDemandWater(waterDemand, Celsius(10d), Celsius(55d))
+
+          accumulatedEnergy + thermalDemandWater
+      }
+      ThermalEnergyDemand(energyDemandWater, energyDemandWater)
+    }
+
+    // determine demand for the actual hour
+    else if (actualStateTime.getHour != lastStateTime.getHour) {
 
       val waterDemand =
-        waterDemandOfHour(tick, noPersonsInHoushold, simulationStart)
+        waterDemandOfHour(tick, noPersonsInHousehold, simulationStart)
 
       val thermalDemandWater: Energy =
         thermalEnergyDemandWater(waterDemand, Celsius(10d), Celsius(55d))
       ThermalEnergyDemand(thermalDemandWater, thermalDemandWater)
 
     } else ThermalEnergyDemand(zeroKWH, zeroKWH)
-
   }
 
   /** Calculate the energy required to heat up a given volume of water from a
@@ -242,7 +260,7 @@ final case class ThermalHouse(
       20 -> 0.066,
       21 -> 0.058,
       22 -> 0.045,
-      23 -> 0.031,
+      23 -> 0.032,
     )
     val waterVolumeRelativeFlat: Map[Int, Double] = Map(
       0 -> 0.01,
