@@ -9,6 +9,7 @@ package edu.ie3.simona.model.thermal
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.ThermalHouseInput
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
+import edu.ie3.simona.test.common.DefaultTestData
 import squants.energy.Megawatts
 import squants.thermal.Celsius
 import tech.units.indriya.quantity.Quantities.getQuantity
@@ -16,7 +17,7 @@ import tech.units.indriya.unit.Units
 
 import java.util.UUID
 
-trait ThermalHouseTestData extends ThermalGridTestData {
+trait ThermalHouseTestData extends ThermalGridTestData with DefaultTestData {
   protected val thermalHouseInput: ThermalHouseInput = new ThermalHouseInput(
     UUID.randomUUID(),
     "Thermal House",

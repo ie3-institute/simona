@@ -7,7 +7,10 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
-import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
+import edu.ie3.simona.model.thermal.ThermalGrid.{
+  ThermalEnergyDemand,
+  ThermalGridState,
+}
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureLowerBoundaryReached,
@@ -72,9 +75,9 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       }
     }
 
-    "determining the energy demand" should {
-      "exactly be the demand of the house" in {
-        val tick = 10800 // after three house
+    "determining the energy demand for heating" should {
+      "exactly be the thermal demand for heating of the house" in {
+        val tick = 10800 // after three hours
         val expectedHouseDemand = thermalHouse.energyDemandHeating(
           tick,
           testGridambientTemperature,
@@ -130,7 +133,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       }
 
       "not withdraw energy from the house, if actual consumption is given" in {
-        val tick = 0L // after three house
+        val tick = 0L // after three hours
         val gridState = ThermalGrid.startingState(thermalGrid)
 
         val (updatedGridState, reachedThreshold) =
