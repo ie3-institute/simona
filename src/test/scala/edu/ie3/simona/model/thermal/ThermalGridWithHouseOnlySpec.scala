@@ -101,7 +101,10 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       "exactly be the thermal demand for domestic water supply of the house" in {
         val tick = 86000 // heat demand for one day
         val expectedEnergyDemandWater =
-          ThermalEnergyDemand(KilowattHours(3.7469589), KilowattHours(3.7469589))
+          ThermalEnergyDemand(
+            KilowattHours(3.7469589),
+            KilowattHours(3.7469589),
+          )
 
         val energyDemandWater = thermalHouse.energyDemandWater(
           tick,
