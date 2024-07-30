@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Printing the directory of log to terminal upon simulation failure [#626](https://github.com/ie3-institute/simona/issues/626)
 - Implementation of StorageAgent [#309](https://github.com/ie3-institute/simona/issues/309)
 - Enhanced Newton-Raphson-PowerFlow failures with more information [#815](https://github.com/ie3-institute/simona/issues/815)
+- Update RTD references and bibliography [#868](https://github.com/ie3-institute/simona/issues/868)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -61,6 +62,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rewrote FixedFeedModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Rewrote WecModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Rewrote FixedLoadModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Rewrote SystemComponentTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Converting remaining rst files to markdown [#838](https://github.com/ie3-institute/simona/issues/838)
 
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
