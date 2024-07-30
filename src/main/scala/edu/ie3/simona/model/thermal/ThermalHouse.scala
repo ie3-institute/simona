@@ -202,10 +202,10 @@ final case class ThermalHouse(
   ): Energy = {
     if (endTemperature < startTemperature)
       throw new RuntimeException(
-        s"End temperature of $endTemperature is lower than the start temperature $startTemperature for the water heating system"
+        s"End temperature of $endTemperature is lower than the start temperature $startTemperature for the water heating system."
       )
 
-    waterDemand.toLitres * KilowattHours(
+    waterDemand.toCubicMeters * KilowattHours(
       1.16
     ) * (endTemperature.toCelsiusDegrees - startTemperature.toCelsiusDegrees)
   }
