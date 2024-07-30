@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent.participant.evcs
 
 import edu.ie3.datamodel.models.input.system.EvcsInput
+import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.{
   EvcsResult,
   SystemParticipantResult,
@@ -39,6 +40,7 @@ import edu.ie3.simona.exceptions.agent.{
   InconsistentStateException,
   InvalidRequestException,
 }
+import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.FlexChangeIndicator
 import edu.ie3.simona.model.participant.evcs.{EvModelWrapper, EvcsModel}
 import edu.ie3.simona.model.participant.evcs.EvcsModel.{
@@ -60,7 +62,7 @@ import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import org.apache.pekko.actor.{ActorRef, FSM}
 import squants.energy.{Kilowatts, Megawatts}
-import squants.{Dimensionless, Each}
+import squants.{Dimensionless, Each, Power}
 import scala.collection.immutable.SortedSet
 
 import java.time.ZonedDateTime
@@ -244,8 +246,12 @@ protected trait EvcsAgentFundamentals
       ],
       data: EvcsRelevantData,
       lastState: EvcsState,
-      setPower: squants.Power,
-  ): (EvcsState, ApparentPower, FlexChangeIndicator) = {
+      setPower: Power,
+  ): (
+      EvcsState,
+      AccompaniedSimulationResult[ApparentPower],
+      FlexChangeIndicator,
+  ) = {
     /* Calculate the power */
     val voltage = getAndCheckNodalVoltage(baseStateData, tick)
 
@@ -253,7 +259,10 @@ protected trait EvcsAgentFundamentals
       setPower,
       voltage,
     )
-    val result = ApparentPower(setPower, reactivePower)
+    val result = AccompaniedSimulationResult(
+      ApparentPower(setPower, reactivePower),
+      Seq.empty[ResultEntity],
+    )
 
     /* Handle the request within the model */
     val (updatedState, flexChangeIndicator) =
@@ -727,7 +736,7 @@ protected trait EvcsAgentFundamentals
         EvcsState,
         EvcsModel,
       ],
-      result: ApparentPower,
+      result: AccompaniedSimulationResult[ApparentPower],
       currentTick: Long,
   ): ParticipantModelBaseStateData[
     ApparentPower,
