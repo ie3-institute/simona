@@ -16,9 +16,10 @@ import edu.ie3.simona.model.participant.load.LoadReference.{
 import edu.ie3.simona.test.common.input.LoadInputTestData
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.scala.quantities.Kilovoltamperes
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.Power
-import squants.energy.{KilowattHours, Kilowatts, Watts}
+import squants.energy.{KilowattHours, Watts}
 
 class FixedLoadModelSpec
     extends UnitSpec
@@ -50,7 +51,7 @@ class FixedLoadModelSpec
           loadInput.getId,
           defaultOperationInterval,
           QControl.apply(loadInput.getqCharacteristics),
-          Kilowatts(
+          Kilovoltamperes(
             loadInput.getsRated
               .to(PowerSystemUnits.KILOWATT)
               .getValue
@@ -84,7 +85,7 @@ class FixedLoadModelSpec
           loadInput.getId,
           defaultOperationInterval,
           QControl.apply(loadInput.getqCharacteristics),
-          Kilowatts(
+          Kilovoltamperes(
             loadInput.getsRated
               .to(PowerSystemUnits.KILOWATT)
               .getValue
@@ -118,7 +119,7 @@ class FixedLoadModelSpec
 
         var scale = 0.0
         while (scale <= 2) {
-          val scaledSRated = Kilowatts(
+          val scaledSRated = Kilovoltamperes(
             loadInput.getsRated
               .to(PowerSystemUnits.KILOWATT)
               .getValue
