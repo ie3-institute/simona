@@ -10,7 +10,6 @@ import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.datamodel.models.input.system.`type`.HpTypeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.thermal.{
-  ThermalBusInput,
   ThermalHouseInput,
   ThermalStorageInput,
 }
@@ -21,12 +20,7 @@ import edu.ie3.simona.model.participant.HpModel.HpRelevantData
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
-import edu.ie3.simona.model.thermal.{
-  CylindricalThermalStorage,
-  ThermalGrid,
-  ThermalHouse,
-  ThermalStorage,
-}
+import edu.ie3.simona.model.thermal._
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import squants.energy.{KilowattHours, Kilowatts}
@@ -38,11 +32,7 @@ import tech.units.indriya.unit.Units
 import java.util.UUID
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
-trait HpInputTestData extends NodeInputTestData {
-  protected val thermalBusInput = new ThermalBusInput(
-    UUID.fromString("48fa6e8d-c07f-45cd-9ad7-094a1f2a7489"),
-    "thermal bus",
-  )
+trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
 
   protected val hpTypeInput = new HpTypeInput(
     UUID.fromString("9802bf35-2a4e-4ff5-be9b-cd9e6a78dcd6"),
