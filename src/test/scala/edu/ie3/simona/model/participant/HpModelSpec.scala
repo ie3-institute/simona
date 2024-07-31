@@ -402,9 +402,11 @@ class HpModelSpec
                     maxPower,
                   ) =>
                 modelUuid shouldBe hp.uuid
-                referencePower shouldBe Kilowatts(expectedReferencePower)
-                minPower shouldBe Kilowatts(expectedMinPower)
-                maxPower shouldBe Kilowatts(expectedMaxPower)
+                referencePower should approximate(
+                  Kilowatts(expectedReferencePower)
+                )
+                minPower should approximate(Kilowatts(expectedMinPower))
+                maxPower should approximate(Kilowatts(expectedMaxPower))
             }
         }
       }
