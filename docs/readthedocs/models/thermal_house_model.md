@@ -1,4 +1,4 @@
-(cts_model)=
+(thermal_house_model)=
 # Thermal House Model
 This page documents the functionality of the thermal house available in SIMONA.
 
