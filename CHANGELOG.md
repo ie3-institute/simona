@@ -64,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rewrote FixedLoadModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Rewrote SystemComponentTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Converting remaining rst files to markdown [#838](https://github.com/ie3-institute/simona/issues/838)
+- Merged `HpModelTestData` with `HpTestData` to `HpInputTestData` [#872](https://github.com/ie3-institute/simona/issues/872)
 
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
