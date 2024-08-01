@@ -72,16 +72,12 @@ final case class ThermalGrid(
           if (
             updatedState._1.innerTemperature < thermalHouse.targetTemperature
           ) {
-            house
-              .zip(state.houseState)
-              .map { case (house, state) =>
-                house.energyDemand(
+            thermalHouse.energyDemand(
                   tick,
                   ambientTemperature,
-                  state,
+              updatedState._1,
                 )
-              }
-              .getOrElse(ThermalEnergyDemand.noDemand)
+
           } else {
             ThermalEnergyDemand.noDemand
           }
