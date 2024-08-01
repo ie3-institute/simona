@@ -73,10 +73,10 @@ final case class ThermalGrid(
             updatedState._1.innerTemperature < thermalHouse.targetTemperature
           ) {
             thermalHouse.energyDemand(
-                  tick,
-                  ambientTemperature,
+              tick,
+              ambientTemperature,
               updatedState._1,
-                )
+            )
 
           } else {
             ThermalEnergyDemand.noDemand
