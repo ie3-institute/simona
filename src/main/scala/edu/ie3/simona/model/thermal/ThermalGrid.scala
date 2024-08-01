@@ -63,19 +63,20 @@ final case class ThermalGrid(
     val houseDemand =
       house.zip(state.houseState).headOption match {
         case Some((thermalHouse, lastHouseState)) =>
-          val updatedState = thermalHouse.determineState(
-            tick,
-            lastHouseState,
-            ambientTemperature,
-            lastHouseState.qDot,
-          )
+          val (updatedHouseState, updatedStorageState) =
+            thermalHouse.determineState(
+              tick,
+              lastHouseState,
+              ambientTemperature,
+              lastHouseState.qDot,
+            )
           if (
-            updatedState._1.innerTemperature < thermalHouse.targetTemperature
+            updatedHouseState.innerTemperature < thermalHouse.targetTemperature
           ) {
             thermalHouse.energyDemand(
               tick,
               ambientTemperature,
-              updatedState._1,
+              updatedHouseState,
             )
 
           } else {
