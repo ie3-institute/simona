@@ -18,7 +18,7 @@ import tech.units.indriya.unit.Units.CELSIUS
 
 import java.util.UUID
 
-class ThermalHouseSpec extends UnitSpec {
+class ThermalHouseSpec extends UnitSpec with ThermalHouseTestData {
 
   implicit val tolerance: Temperature = Celsius(0.0001)
   implicit val energyTolerance: Energy = KilowattHours(0.0001)
