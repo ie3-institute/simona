@@ -78,7 +78,7 @@ class RuntimeEventListenerLoggingSpec
         (
           InitComplete(0L),
           Level.INFO,
-          s"Initialization complete. (duration: 0h : 0m : 0s )",
+          s"Initialization complete. (duration: 0h : 0m : 0s : 0ms )",
         ),
         (
           Ready(currentTick, 0L),
