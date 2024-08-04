@@ -6,13 +6,16 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.datamodel.models.result.system.EmResult
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
-import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
+import edu.ie3.simona.event.ResultEvent.{
+  ParticipantResultEvent,
+  ThermalHouseResultEvent,
+}
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.model.thermal.ThermalHouseTestData
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
@@ -73,6 +76,17 @@ class ThermalGridIT
   private implicit val classicSystem: ActorSystem = system.toClassic
   protected implicit val simulationStartDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
+  protected val simulationEndDate: ZonedDateTime =
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-02T02:00:00Z")
+
+  private val resolution =
+    simonaConfig.simona.powerflow.resolution.getSeconds
+
+  private val outputConfigOn = NotifierConfig(
+    simulationResultInfo = true,
+    powerRequestReply = false,
+    flexResult = false,
+  )
 
   val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
   val runtimeEvents: TestProbe[RuntimeEvent] =
@@ -107,11 +121,11 @@ class ThermalGridIT
             ),
             primaryServiceProxy.ref.toClassic,
             Iterable(ActorWeatherService(weatherService.ref.toClassic)),
-            defaultSimulationStart,
-            defaultSimulationEnd,
-            defaultResolution,
+            simulationStartDate,
+            simulationEndDate,
+            resolution,
             simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-            defaultOutputConfig,
+            outputConfigOn,
             None,
           ),
           listener = Iterable(resultListener.ref.toClassic),
@@ -144,28 +158,31 @@ class ThermalGridIT
         weatherService.ref.toClassic,
         Some(0L),
       )
-
-      scheduler.expectMessage(Completion(heatPumpAgent))
-
       val weatherDependentAgents = Seq(heatPumpAgent)
 
+      // scheduler.expectMessage(Completion(heatPumpAgent,Some(0L)))
+
+      // weatherService ! Activation(0L)
+
       /* TICK 0
-     LOAD: 0.000269 MW
-     PV:  -0.005685 MW
+     House demand heating :
+     House demand water   :
+     ThermalStorage       :
+     DomesticWaterStorage :
+
      Heat pump: off, can be turned on or stay off
      -> set point ~3.5 kW (bigger than 50 % rated apparent power): turned on
-     -> remaining -0.000566 MW
        */
-
-      heatPumpAgent ! Activation(0)
+      // scheduler ! ScheduleActivation(heatPumpAgent, 0L)
+      //  heatPumpAgent ! Activation(0L)
 
       weatherDependentAgents.foreach {
         _ ! ProvideWeatherMessage(
           0,
           weatherService.ref.toClassic,
           WeatherData(
-            WattsPerSquareMeter(400d),
-            WattsPerSquareMeter(200d),
+            WattsPerSquareMeter(0d),
+            WattsPerSquareMeter(0d),
             Celsius(0d),
             MetersPerSecond(0d),
           ),
@@ -173,137 +190,99 @@ class ThermalGridIT
         )
       }
 
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(0L)))
+
+      heatPumpAgent ! Activation(7200L)
+
       resultListener.expectMessageType[ParticipantResultEvent] match {
-        case ParticipantResultEvent(emResult: EmResult) =>
-          emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe 0.toDateTime
-          emResult.getP should equalWithTolerance(
-            (-0.000566087824).asMegaWatt
-          )
-          emResult.getQ should equalWithTolerance(0.001073120041.asMegaVar)
+        case ParticipantResultEvent(hpResult) =>
+          hpResult.getInputModel shouldBe hpInputModel.getUuid
+          hpResult.getTime shouldBe 7200.toDateTime
+          hpResult.getP should equalWithTolerance(0.asMegaWatt)
+          hpResult.getQ should equalWithTolerance(0.asMegaVar)
       }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(7200)))
-
-      /* TICK 7200
-     LOAD: 0.000269 MW (unchanged)
-     PV:  -0.003797 MW
-     Heat pump: running (turned on from last request), can also be turned off
-     -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
-     -> remaining 0 MW
-       */
-
-      heatPumpAgent ! Activation(7200)
+      resultListener.expectMessageType[ThermalHouseResultEvent] match {
+        case ThermalHouseResultEvent(thermalHouseResult) =>
+          thermalHouseResult.getInputModel shouldBe defaultThermalHouse.getUuid
+          thermalHouseResult.getTime shouldBe (-1).toDateTime
+          thermalHouseResult.getqDot() should equalWithTolerance(0.0.asMegaWatt)
+          thermalHouseResult.getIndoorTemperature should equalWithTolerance(
+            21.asDegreeCelsius
+          )
+      }
 
       weatherDependentAgents.foreach {
         _ ! ProvideWeatherMessage(
-          7200,
+          7200L,
           weatherService.ref.toClassic,
           WeatherData(
-            WattsPerSquareMeter(300d),
-            WattsPerSquareMeter(500d),
-            Celsius(0d),
-            MetersPerSecond(0d),
+            WattsPerSquareMeter(1d),
+            WattsPerSquareMeter(1d),
+            Celsius(1d),
+            MetersPerSecond(1d),
           ),
           Some(14400),
         )
       }
 
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(7200L)))
+
+      heatPumpAgent ! Activation(14400L)
+
       resultListener.expectMessageType[ParticipantResultEvent] match {
-        case ParticipantResultEvent(emResult: EmResult) =>
-          emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe 7200.toDateTime
-          emResult.getP should equalWithTolerance(0.00132184544484.asMegaWatt)
-          emResult.getQ should equalWithTolerance(0.001073120041.asMegaVar)
+        case ParticipantResultEvent(hpResult) =>
+          hpResult.getInputModel shouldBe hpInputModel.getUuid
+          hpResult.getTime shouldBe 14400.toDateTime
+          hpResult.getP should equalWithTolerance(0.asMegaWatt)
+          hpResult.getQ should equalWithTolerance(0.asMegaVar)
       }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(14400)))
+      resultListener.expectMessageType[ThermalHouseResultEvent] match {
+        case ThermalHouseResultEvent(thermalHouseResult) =>
+          thermalHouseResult.getInputModel shouldBe defaultThermalHouse.getUuid
+          thermalHouseResult.getTime shouldBe 7200.toDateTime
+          thermalHouseResult.getqDot() should equalWithTolerance(0.0.asMegaWatt)
+          thermalHouseResult.getIndoorTemperature should equalWithTolerance(
+            20.81797472222.asDegreeCelsius
+          )
+      }
 
-      /* TICK 14400
-     LOAD: 0.000269 MW (unchanged)
-     PV:  -0.000066 MW
-     Heat pump: Is still running, can still be turned off
-     -> flex signal is 0 MW: Heat pump is turned off
-       */
-
-      heatPumpAgent ! Activation(14400)
-
-      // it got cloudy now...
       weatherDependentAgents.foreach {
         _ ! ProvideWeatherMessage(
-          14400,
+          14400L,
           weatherService.ref.toClassic,
           WeatherData(
-            WattsPerSquareMeter(5d),
-            WattsPerSquareMeter(5d),
-            Celsius(0d),
-            MetersPerSecond(0d),
+            WattsPerSquareMeter(2d),
+            WattsPerSquareMeter(2d),
+            Celsius(2d),
+            MetersPerSecond(2d),
           ),
           Some(21600),
         )
       }
 
-      resultListener.expectMessageType[ParticipantResultEvent] match {
-        case ParticipantResultEvent(emResult: EmResult) =>
-          emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe 14400L.toDateTime
-          emResult.getP should equalWithTolerance(0.000202956264.asMegaWatt)
-          emResult.getQ should equalWithTolerance(0.000088285537.asMegaVar)
-      }
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(14400L)))
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(21600)))
-
-      /* TICK 21600
-     LOAD: 0.000269 MW (unchanged)
-     PV:  -0.000032 MW
-     Heat pump: Is not running, can run or stay off
-     -> flex signal is 0 MW: Heat pump is turned off
-       */
-
-      heatPumpAgent ! Activation(21600)
-
-      weatherDependentAgents.foreach {
-        _ ! ProvideWeatherMessage(
-          21600,
-          weatherService.ref.toClassic,
-          WeatherData(
-            WattsPerSquareMeter(5d),
-            WattsPerSquareMeter(5d),
-            Celsius(0d),
-            MetersPerSecond(0d),
-          ),
-          Some(28800),
-        )
-      }
+      heatPumpAgent ! Activation(21600L)
 
       resultListener.expectMessageType[ParticipantResultEvent] match {
-        case ParticipantResultEvent(emResult: EmResult) =>
-          emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe 21600.toDateTime
-          emResult.getP should equalWithTolerance(0.0002367679996.asMegaWatt)
-          emResult.getQ should equalWithTolerance(0.000088285537.asMegaVar)
+        case ParticipantResultEvent(hpResult) =>
+          hpResult.getInputModel shouldBe hpInputModel.getUuid
+          hpResult.getTime shouldBe 21600.toDateTime
+          hpResult.getP should equalWithTolerance(0.asMegaWatt)
+          hpResult.getQ should equalWithTolerance(0.asMegaVar)
       }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(28665)))
-
-      /* TICK 28666
-     LOAD: 0.000269 MW (unchanged)
-     PV:  -0.000032 MW (unchanged)
-     Heat pump: Is turned on again and cannot be turned off
-     -> flex signal is no control -> 0.00485 MW
-       */
-
-      heatPumpAgent ! Activation(28665)
-
-      resultListener.expectMessageType[ParticipantResultEvent] match {
-        case ParticipantResultEvent(emResult: EmResult) =>
-          emResult.getInputModel shouldBe emInput.getUuid
-          emResult.getTime shouldBe 28665.toDateTime
-          emResult.getP should equalWithTolerance(0.0050867679996.asMegaWatt)
-          emResult.getQ should equalWithTolerance(0.001073120040.asMegaVar)
+      resultListener.expectMessageType[ThermalHouseResultEvent] match {
+        case ThermalHouseResultEvent(thermalHouseResult) =>
+          thermalHouseResult.getInputModel shouldBe defaultThermalHouse.getUuid
+          thermalHouseResult.getTime shouldBe 14400.toDateTime
+          thermalHouseResult.getqDot() should equalWithTolerance(0.0.asMegaWatt)
+          thermalHouseResult.getIndoorTemperature should equalWithTolerance(
+            20.6375522746296.asDegreeCelsius
+          )
       }
-
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(28800)))
     }
   }
 }

@@ -13,7 +13,10 @@ import edu.ie3.datamodel.models.result.system.{
   FlexOptionsResult,
   SystemParticipantResult,
 }
-import edu.ie3.datamodel.models.result.thermal.ThermalUnitResult
+import edu.ie3.datamodel.models.result.thermal.{
+  ThermalHouseResult,
+  ThermalUnitResult,
+}
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerChangedMessage,
@@ -54,7 +57,6 @@ import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.{
   FlexOptionsResultEvent,
   ParticipantResultEvent,
-  ThermalResultEvent,
 }
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
@@ -1940,8 +1942,11 @@ protected trait ParticipantAgentFundamentals[
   def buildResultEvent[R <: ResultEntity](
       result: R
   ): Option[ResultEvent] = result match {
-    case thermalResult: ThermalUnitResult =>
-      Some(ThermalResultEvent(thermalResult))
+    case thermalHouseResult: ThermalHouseResult =>
+      Some(ResultEvent.ThermalHouseResultEvent(thermalHouseResult))
+    case thermalUnitResult: ThermalUnitResult =>
+      Some(ResultEvent.ThermalResultEvent(thermalUnitResult))
+
     case unsupported =>
       log.debug(
         s"Results of class '${unsupported.getClass.getSimpleName}' are currently not supported."
