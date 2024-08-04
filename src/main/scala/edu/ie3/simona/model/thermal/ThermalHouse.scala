@@ -160,10 +160,11 @@ final case class ThermalHouse(
     *   true, if inner temperature is too high
     */
   def isInnerTemperatureTooHigh(
-      innerTemperature: Temperature
+      innerTemperature: Temperature,
+      boundaryTemperature: Temperature = upperBoundaryTemperature,
   ): Boolean =
     innerTemperature > Kelvin(
-      upperBoundaryTemperature.toKelvinScale - temperatureTolerance.toKelvinScale
+      boundaryTemperature.toKelvinScale - temperatureTolerance.toKelvinScale
     )
 
   /** Check if inner temperature is lower than preferred minimum temperature
