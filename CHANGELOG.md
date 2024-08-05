@@ -88,6 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Finally fixing `RuntimeEventListenerSpec` [#849](https://github.com/ie3-institute/simona/issues/849)
 - Fixed result output for thermal houses and cylindrical storages [#844](https://github.com/ie3-institute/simona/issues/844)
 - Fixed FixedFeedModelSpec [#861](https://github.com/ie3-institute/simona/issues/861)
+- Fixing duration calculation in result events [#801](https://github.com/ie3-institute/simona/issues/801)
 
 ## [3.0.0] - 2023-08-07
 
