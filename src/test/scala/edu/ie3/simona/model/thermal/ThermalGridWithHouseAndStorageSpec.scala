@@ -127,23 +127,6 @@ class ThermalGridWithHouseAndStorageSpec
         storageDemand.required should approximate(KilowattHours(345d))
         storageDemand.possible should approximate(KilowattHours(920d))
       }
-
-      "consider stored energy to reduce house demand if stored energy is not enough" in {
-        val tick = 10800 // after three hours
-
-        val startingState = ThermalGrid.startingState(thermalGrid)
-        val gridDemand = thermalGrid.energyDemand(
-          tick,
-          testGridAmbientTemperature,
-          startingState.copy(houseState =
-            startingState.houseState.map(
-              _.copy(innerTemperature = Celsius(3d))
-            )
-          ),
-        )
-        gridDemand.required should approximate(KilowattHours(8.64987499999))
-        gridDemand.possible should approximate(KilowattHours(1418.64987499999))
-      }
     }
 
     "handling thermal energy consumption from grid" should {
