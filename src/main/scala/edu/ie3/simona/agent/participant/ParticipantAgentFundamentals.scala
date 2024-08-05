@@ -14,6 +14,7 @@ import edu.ie3.datamodel.models.result.system.{
   SystemParticipantResult,
 }
 import edu.ie3.datamodel.models.result.thermal.{
+  CylindricalStorageResult,
   ThermalHouseResult,
   ThermalUnitResult,
 }
@@ -1942,6 +1943,8 @@ protected trait ParticipantAgentFundamentals[
   def buildResultEvent[R <: ResultEntity](
       result: R
   ): Option[ResultEvent] = result match {
+    case thermalStorageResult: CylindricalStorageResult =>
+      Some(ResultEvent.CylindricalStorageResultEvent(thermalStorageResult))
     case thermalHouseResult: ThermalHouseResult =>
       Some(ResultEvent.ThermalHouseResultEvent(thermalHouseResult))
     case thermalUnitResult: ThermalUnitResult =>

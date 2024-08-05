@@ -18,6 +18,7 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.datamodel.models.result.thermal.{
   ThermalHouseResult,
+  ThermalStorageResult,
   ThermalUnitResult,
 }
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
@@ -49,6 +50,14 @@ object ResultEvent {
 
   final case class ThermalHouseResultEvent(
       thermalHouseResult: ThermalHouseResult
+  ) extends ResultEvent
+
+  final case class ThermalStorageResultEvent(
+      thermalStorageResult: ThermalStorageResult
+  ) extends ResultEvent
+
+  final case class CylindricalStorageResultEvent(
+      thermalStorageResult: ThermalStorageResult
   ) extends ResultEvent
 
   /** Event that holds all grid calculation results of a power flow calculation.

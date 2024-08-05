@@ -12,6 +12,7 @@ import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.{
+  CylindricalStorageResultEvent,
   ParticipantResultEvent,
   ThermalHouseResultEvent,
 }
@@ -112,8 +113,8 @@ class ThermalGridIT
         new HpAgent(
           scheduler = scheduler.ref.toClassic,
           initStateData = ParticipantInitializeStateData(
-            hpInputModel,
-            defaultThermalGrid,
+            typicalHpInputModel,
+            typicalThermalGrid,
             HpRuntimeConfig(
               calculateMissingReactivePowerWithModel = true,
               1.0,
@@ -141,7 +142,7 @@ class ThermalGridIT
       heatPumpAgent ! Activation(INIT_SIM_TICK)
 
       primaryServiceProxy.expectMessage(
-        PrimaryServiceRegistrationMessage(adaptedHpInputModel.getUuid)
+        PrimaryServiceRegistrationMessage(typicalHpInputModel.getUuid)
       )
       heatPumpAgent ! RegistrationFailedMessage(
         primaryServiceProxy.ref.toClassic
@@ -149,8 +150,8 @@ class ThermalGridIT
 
       weatherService.expectMessage(
         RegisterForWeatherMessage(
-          hpInputModel.getNode.getGeoPosition.getY,
-          hpInputModel.getNode.getGeoPosition.getX,
+          typicalHpInputModel.getNode.getGeoPosition.getY,
+          typicalHpInputModel.getNode.getGeoPosition.getX,
         )
       )
 
@@ -196,7 +197,7 @@ class ThermalGridIT
 
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
-          hpResult.getInputModel shouldBe hpInputModel.getUuid
+          hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 7200.toDateTime
           hpResult.getP should equalWithTolerance(0.asMegaWatt)
           hpResult.getQ should equalWithTolerance(0.asMegaVar)
@@ -204,7 +205,7 @@ class ThermalGridIT
 
       resultListener.expectMessageType[ThermalHouseResultEvent] match {
         case ThermalHouseResultEvent(thermalHouseResult) =>
-          thermalHouseResult.getInputModel shouldBe defaultThermalHouse.getUuid
+          thermalHouseResult.getInputModel shouldBe typicalThermalHouse.getUuid
           thermalHouseResult.getTime shouldBe (-1).toDateTime
           thermalHouseResult.getqDot() should equalWithTolerance(0.0.asMegaWatt)
           thermalHouseResult.getIndoorTemperature should equalWithTolerance(
@@ -240,7 +241,7 @@ class ThermalGridIT
 
       resultListener.expectMessageType[ThermalHouseResultEvent] match {
         case ThermalHouseResultEvent(thermalHouseResult) =>
-          thermalHouseResult.getInputModel shouldBe defaultThermalHouse.getUuid
+          thermalHouseResult.getInputModel shouldBe typicalThermalHouse.getUuid
           thermalHouseResult.getTime shouldBe 7200.toDateTime
           thermalHouseResult.getqDot() should equalWithTolerance(0.0.asMegaWatt)
           thermalHouseResult.getIndoorTemperature should equalWithTolerance(
