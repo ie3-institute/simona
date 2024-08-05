@@ -96,23 +96,23 @@ class ThermalGridWithHouseAndStorageSpec
       "deliver the house demand (no demand) with added flexibility by storage" in {
         val tick = 10800 // after three hours
 
-        val gridDemand = thermalGrid.energyDemand(
+        val (houseDemand, storageDemand) = thermalGrid.energyDemand(
           tick,
           testGridAmbientTemperature,
           ThermalGrid.startingState(thermalGrid),
         )
 
-        gridDemand.required should approximate(KilowattHours(0d))
-        gridDemand.possible should approximate(
-          KilowattHours(31.05009722 + 920)
-        )
+        houseDemand.required should approximate(KilowattHours(0d))
+        houseDemand.possible should approximate(KilowattHours(31.05009722d))
+        storageDemand.required should approximate(KilowattHours(345d))
+        storageDemand.possible should approximate(KilowattHours(920d))
       }
 
-      "consider stored energy to reduce house demand" in {
+      "deliver the correct house and storage demand" in {
         val tick = 10800 // after three hours
 
         val startingState = ThermalGrid.startingState(thermalGrid)
-        val gridDemand = thermalGrid.energyDemand(
+        val (houseDemand, storageDemand) = thermalGrid.energyDemand(
           tick,
           testGridAmbientTemperature,
           startingState.copy(houseState =
@@ -122,8 +122,10 @@ class ThermalGridWithHouseAndStorageSpec
           ),
         )
 
-        gridDemand.required should approximate(KilowattHours(0d))
-        gridDemand.possible should approximate(KilowattHours(1041.200111111))
+        houseDemand.required should approximate(KilowattHours(45.6000555))
+        houseDemand.possible should approximate(KilowattHours(75.600055555))
+        storageDemand.required should approximate(KilowattHours(345d))
+        storageDemand.possible should approximate(KilowattHours(920d))
       }
 
       "consider stored energy to reduce house demand if stored energy is not enough" in {
@@ -489,6 +491,8 @@ class ThermalGridWithHouseAndStorageSpec
             testGridAmbientTemperature,
             initialGridState,
             externalQDot,
+            thermalDemand,
+            noThermalDemand,
           )
 
         updatedGridState match {
@@ -502,7 +506,7 @@ class ThermalGridWithHouseAndStorageSpec
             innerTemperature should approximate(Celsius(18.9999d))
             qDotHouse should approximate(externalQDot)
 
-            storageTick shouldBe -1L
+            storageTick shouldBe 0L
             storedEnergy should approximate(
               initialGridState.storageState
                 .map(_.storedEnergy)
@@ -534,6 +538,8 @@ class ThermalGridWithHouseAndStorageSpec
             testGridAmbientTemperature,
             gridState,
             externalQDot,
+            noThermalDemand,
+            thermalDemand,
           )
 
         updatedGridState match {
