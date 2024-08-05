@@ -184,7 +184,7 @@ final case class HpModel(
       thermalGrid.updateState(
         relevantData.currentTick,
         state.thermalGridState,
-        state.ambientTemperature.getOrElse(relevantData.ambientTemperature),
+        relevantData.ambientTemperature,
         newThermalPower,
       )
 
