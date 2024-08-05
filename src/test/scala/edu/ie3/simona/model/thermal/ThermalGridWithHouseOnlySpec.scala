@@ -14,7 +14,7 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureUpperBoundaryReached,
 }
 import edu.ie3.simona.test.common.UnitSpec
-import squants.energy.{KilowattHours, Kilowatts, Megawatts, WattHours, Watts}
+import squants.energy._
 import squants.thermal.Celsius
 import squants.{Energy, Power, Temperature}
 
@@ -74,7 +74,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
     "determining the energy demand" should {
       "exactly be the demand of the house" in {
         val tick = 10800 // after three hours
-        val houseDemand = thermalHouse.energyDemand(
+        val expectedHouseDemand = thermalHouse.energyDemand(
           tick,
           testGridAmbientTemperature,
           expectedHouseStartingState,

@@ -13,11 +13,7 @@ import edu.ie3.datamodel.models.result.system.{
   FlexOptionsResult,
   SystemParticipantResult,
 }
-import edu.ie3.datamodel.models.result.thermal.{
-  CylindricalStorageResult,
-  ThermalHouseResult,
-  ThermalUnitResult,
-}
+import edu.ie3.datamodel.models.result.thermal.ThermalUnitResult
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerChangedMessage,
@@ -1943,10 +1939,6 @@ protected trait ParticipantAgentFundamentals[
   def buildResultEvent[R <: ResultEntity](
       result: R
   ): Option[ResultEvent] = result match {
-    case thermalStorageResult: CylindricalStorageResult =>
-      Some(ResultEvent.CylindricalStorageResultEvent(thermalStorageResult))
-    case thermalHouseResult: ThermalHouseResult =>
-      Some(ResultEvent.ThermalHouseResultEvent(thermalHouseResult))
     case thermalUnitResult: ThermalUnitResult =>
       Some(ResultEvent.ThermalResultEvent(thermalUnitResult))
 
