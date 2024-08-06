@@ -10,12 +10,17 @@ import edu.ie3.simona.config.{ArgsParser, ConfigFailFast, SimonaConfig}
 import edu.ie3.simona.main.RunSimona._
 import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
+import edu.ie3.util.io.FileIOUtils
 import org.apache.pekko.actor.typed.scaladsl.AskPattern._
 import org.apache.pekko.actor.typed.{ActorSystem, Scheduler}
 import org.apache.pekko.util.Timeout
 
+import java.nio.file.Path
 import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
+import scala.jdk.FutureConverters.CompletionStageOps
+import scala.util.{Failure, Success}
 
 /** Run a standalone simulation of simona
   *
@@ -56,9 +61,34 @@ object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
       case SimonaEnded(successful) =>
         simonaSim.terminate()
 
+        val config = SimonaConfig(simonaSetup.typeSafeConfig).simona.output
+
+        config.sink.csv.map(_.zipFiles).map { zipFiles =>
+          if (zipFiles) {
+            val rawOutputPath =
+              Path.of(simonaSetup.resultFileHierarchy.rawOutputDataDir)
+            val archiveName = "rawOutputData.tar.gz"
+            val archivePath = rawOutputPath.getParent.resolve(archiveName)
+
+            logger.info(s"Compressing raw output data to: `$archiveName`.")
+
+            val compressFuture =
+              FileIOUtils.compressDir(rawOutputPath, archivePath).asScala
+            compressFuture.onComplete {
+              case Success(_) =>
+                FileIOUtils.deleteRecursively(rawOutputPath)
+              case Failure(exception) =>
+                logger.error(
+                  s"Compression of output files to '$archivePath' has failed. Keep raw data.",
+                  exception,
+                )
+            }
+            Await.ready(compressFuture, 5.minutes)
+          }
+        }
+
         successful
     }
-
   }
 
 }

@@ -2054,6 +2054,7 @@ object SimonaConfig {
             filePrefix: java.lang.String,
             fileSuffix: java.lang.String,
             isHierarchic: scala.Boolean,
+            zipFiles: scala.Boolean,
         )
         object Csv {
           def apply(
@@ -2073,6 +2074,7 @@ object SimonaConfig {
                 else "",
               isHierarchic =
                 c.hasPathOrNull("isHierarchic") && c.getBoolean("isHierarchic"),
+              zipFiles = c.hasPathOrNull("zipFiles") && c.getBoolean("zipFiles"),
             )
           }
         }

@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implementation of StorageAgent [#309](https://github.com/ie3-institute/simona/issues/309)
 - Enhanced Newton-Raphson-PowerFlow failures with more information [#815](https://github.com/ie3-institute/simona/issues/815)
 - Update RTD references and bibliography [#868](https://github.com/ie3-institute/simona/issues/868)
+- Added option to directly zip the output files [#793](https://github.com/ie3-institute/simona/issues/793)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
