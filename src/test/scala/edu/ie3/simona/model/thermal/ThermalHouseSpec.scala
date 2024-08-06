@@ -7,44 +7,32 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.StandardUnits
-import edu.ie3.datamodel.models.input.thermal.ThermalHouseInput
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.test.common.input.HpInputTestData
+import org.scalatest.prop.TableFor3
 import squants.energy._
 import squants.thermal._
 import squants.time._
 import squants.{Energy, Temperature}
-import tech.units.indriya.quantity.Quantities.getQuantity
-import tech.units.indriya.unit.Units.CELSIUS
 
-import java.util.UUID
+class ThermalHouseSpec extends UnitSpec with HpInputTestData {
 
-class ThermalHouseSpec extends UnitSpec with ThermalHouseTestData {
-
-  implicit val tolerance: Temperature = Celsius(0.0001)
-  implicit val energyTolerance: Energy = KilowattHours(0.0001)
+  implicit val tolerance: Temperature = Celsius(1e-4)
+  implicit val energyTolerance: Energy = KilowattHours(1e-4)
 
   def buildThermalHouse(
       lowerBoundaryTemperature: Double,
       upperBoundaryTemperature: Double,
   ): ThermalHouse = {
-    val thermalHouseInput = new ThermalHouseInput(
-      UUID.randomUUID(),
-      "Thermal House",
-      null,
-      getQuantity(1.0, StandardUnits.THERMAL_TRANSMISSION),
-      getQuantity(10.0, StandardUnits.HEAT_CAPACITY),
-      getQuantity(0, CELSIUS), // stub
-      getQuantity(upperBoundaryTemperature, CELSIUS),
-      getQuantity(lowerBoundaryTemperature, CELSIUS),
-    )
-    ThermalHouse(thermalHouseInput)
+    thermalHouse(lowerBoundaryTemperature, upperBoundaryTemperature)
   }
 
   "ThermalHouse" should {
     "Functions testing inner temperature work as expected" in {
       val thermalHouse = buildThermalHouse(18, 22)
 
-      val testCases = Seq(
+      val testCases: TableFor3[Double, Boolean, Boolean] = Table(
+        ("Inner Temperature (°C)", "Is Too High", "Is Too Low"),
         (17d, false, true),
         (17.98d, false, true),
         (18d, false, true),
@@ -57,10 +45,7 @@ class ThermalHouseSpec extends UnitSpec with ThermalHouseTestData {
       testCases.foreach { case (innerTemperature, isTooHigh, isTooLow) =>
         val innerTemp = Temperature(innerTemperature, Celsius)
         val isHigher = thermalHouse.isInnerTemperatureTooHigh(innerTemp)
-        val isLower = thermalHouse.isInnerTemperatureTooLow(
-          innerTemp,
-          thermalHouse.lowerBoundaryTemperature,
-        )
+        val isLower = thermalHouse.isInnerTemperatureTooLow(innerTemp)
 
         isHigher shouldBe isTooHigh
         isLower shouldBe isTooLow
@@ -114,18 +99,9 @@ class ThermalHouseSpec extends UnitSpec with ThermalHouseTestData {
     }
 
     "Check build method" in {
-      val thermalHouseInput = new ThermalHouseInput(
-        UUID.randomUUID(),
-        "Thermal House",
-        null,
-        getQuantity(1.0, StandardUnits.THERMAL_TRANSMISSION),
-        getQuantity(2741.5, StandardUnits.HEAT_CAPACITY),
-        getQuantity(0, CELSIUS), // stub
-        getQuantity(18, CELSIUS),
-        getQuantity(22, CELSIUS),
-      )
 
       val thermalHouse = buildThermalHouse(18, 22)
+      val thermalHouseInput = defaultThermalHouse
 
       thermalHouse.id shouldBe thermalHouseInput.getId
       thermalHouse.operatorInput shouldBe thermalHouseInput.getOperator
