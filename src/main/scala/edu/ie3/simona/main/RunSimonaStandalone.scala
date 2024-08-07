@@ -63,27 +63,31 @@ object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
 
         val config = SimonaConfig(simonaSetup.typeSafeConfig).simona.output
 
-        config.sink.csv.map(_.zipFiles).map { zipFiles =>
+        config.sink.csv.map(_.zipFiles).foreach { zipFiles =>
           if (zipFiles) {
             val rawOutputPath =
               Path.of(simonaSetup.resultFileHierarchy.rawOutputDataDir)
-            val archiveName = "rawOutputData.tar.gz"
-            val archivePath = rawOutputPath.getParent.resolve(archiveName)
 
-            logger.info(s"Compressing raw output data to: `$archiveName`.")
+            rawOutputPath.toFile.listFiles().foreach { file =>
+              val fileName = file.getName
+              val archiveName = fileName.replace(".csv", "")
+              val filePath = rawOutputPath.resolve(fileName)
 
-            val compressFuture =
-              FileIOUtils.compressDir(rawOutputPath, archivePath).asScala
-            compressFuture.onComplete {
-              case Success(_) =>
-                FileIOUtils.deleteRecursively(rawOutputPath)
-              case Failure(exception) =>
-                logger.error(
-                  s"Compression of output files to '$archivePath' has failed. Keep raw data.",
-                  exception,
-                )
+              val compressFuture =
+                FileIOUtils
+                  .compressFile(filePath, rawOutputPath.resolve(archiveName))
+                  .asScala
+              compressFuture.onComplete {
+                case Success(_) =>
+                  FileIOUtils.deleteRecursively(filePath)
+                case Failure(exception) =>
+                  logger.error(
+                    s"Compression of output file to '$archiveName' has failed. Keep raw data.",
+                    exception,
+                  )
+              }
+              Await.ready(compressFuture, 5.minutes)
             }
-            Await.ready(compressFuture, 5.minutes)
           }
         }
 
