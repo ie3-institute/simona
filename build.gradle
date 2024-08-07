@@ -17,6 +17,7 @@ plugins {
   id "com.github.maiflai.scalatest" version "0.32" // run scalatest without specific spec task
   id 'org.hidetake.ssh' version '2.11.2'
   id 'net.thauvin.erik.gradle.semver' version '1.0.4' // semantic versioning
+  id "application"
 }
 
 ext {
@@ -161,6 +162,11 @@ dependencies {
 
 tasks.withType(JavaCompile) {
   options.encoding = 'UTF-8'
+}
+
+// Run with  ./gradlew run --args='--config /path/to/simona.conf'
+application {
+  mainClassName = 'edu.ie3.simona.main.RunSimonaStandalone'
 }
 
 jar {
