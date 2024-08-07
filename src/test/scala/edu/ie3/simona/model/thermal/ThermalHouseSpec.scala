@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.thermal
 
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.HpInputTestData
 import org.scalatest.prop.TableFor3
@@ -20,19 +19,13 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
   implicit val tolerance: Temperature = Celsius(1e-4)
   implicit val energyTolerance: Energy = KilowattHours(1e-4)
 
-  def buildThermalHouse(
-      lowerBoundaryTemperature: Double,
-      upperBoundaryTemperature: Double,
-  ): ThermalHouse = {
-    thermalHouse(lowerBoundaryTemperature, upperBoundaryTemperature)
-  }
-
   "ThermalHouse" should {
     "Functions testing inner temperature work as expected" in {
-      val thermalHouse = buildThermalHouse(18, 22)
+
+      val thermalHouseTest = thermalHouse(18, 22)
 
       val testCases: TableFor3[Double, Boolean, Boolean] = Table(
-        ("Inner Temperature (°C)", "Is Too High", "Is Too Low"),
+        ("Inner Temperature (C)", "Is Too High", "Is Too Low"),
         (17d, false, true),
         (17.98d, false, true),
         (18d, false, true),
@@ -44,8 +37,8 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
 
       testCases.foreach { case (innerTemperature, isTooHigh, isTooLow) =>
         val innerTemp = Temperature(innerTemperature, Celsius)
-        val isHigher = thermalHouse.isInnerTemperatureTooHigh(innerTemp)
-        val isLower = thermalHouse.isInnerTemperatureTooLow(innerTemp)
+        val isHigher = thermalHouseTest.isInnerTemperatureTooHigh(innerTemp)
+        val isLower = thermalHouseTest.isInnerTemperatureTooLow(innerTemp)
 
         isHigher shouldBe isTooHigh
         isLower shouldBe isTooLow
@@ -53,23 +46,23 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
     }
 
     "Calculation of thermal energy change and new inner temperature is performed correctly" in {
-      val thermalHouse = buildThermalHouse(18, 22)
+      val thermalHouseTest = thermalHouse(18, 22)
       val innerTemperature = Temperature(20, Celsius)
 
       val thermalEnergyGain =
-        thermalHouse.calcThermalEnergyGain(Kilowatts(100), Seconds(3600))
-      val thermalEnergyLoss = thermalHouse.calcThermalEnergyLoss(
+        thermalHouseTest.calcThermalEnergyGain(Kilowatts(100), Seconds(3600))
+      val thermalEnergyLoss = thermalHouseTest.calcThermalEnergyLoss(
         innerTemperature,
         Temperature(10, Celsius),
         Seconds(3600),
       )
-      val thermalEnergyChange = thermalHouse.calcThermalEnergyChange(
+      val thermalEnergyChange = thermalHouseTest.calcThermalEnergyChange(
         thermalEnergyGain,
         thermalEnergyLoss,
       )
       val innerTemperatureChange =
-        thermalHouse.calcInnerTemperatureChange(thermalEnergyChange)
-      val newInnerTemperature = thermalHouse.calcNewInnerTemperature(
+        thermalHouseTest.calcInnerTemperatureChange(thermalEnergyChange)
+      val newInnerTemperature = thermalHouseTest.calcNewInnerTemperature(
         innerTemperature,
         innerTemperatureChange,
       )
@@ -82,13 +75,13 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
     }
 
     "Comprising function to calculate new inner temperature works as expected" in {
-      val thermalHouse = buildThermalHouse(18, 22)
+      val thermalHouseTest = thermalHouse(18, 22)
       val thermalPower = Kilowatts(100)
       val duration = Seconds(3600)
       val currentInnerTemperature = Temperature(20, Celsius)
       val ambientTemperature = Temperature(10, Celsius)
 
-      val newInnerTemperature = thermalHouse.newInnerTemperature(
+      val newInnerTemperature = thermalHouseTest.newInnerTemperature(
         thermalPower,
         duration,
         currentInnerTemperature,
@@ -100,26 +93,26 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
 
     "Check build method" in {
 
-      val thermalHouse = buildThermalHouse(18, 22)
+      val thermalHouseTest = thermalHouse(18, 22)
       val thermalHouseInput = defaultThermalHouse
 
-      thermalHouse.id shouldBe thermalHouseInput.getId
-      thermalHouse.operatorInput shouldBe thermalHouseInput.getOperator
-      thermalHouse.operationTime shouldBe thermalHouseInput.getOperationTime
-      thermalHouse.bus shouldBe thermalHouseInput.getThermalBus
-      thermalHouse.ethLosses.toWattsPerKelvin shouldBe (thermalHouseInput.getEthLosses
-        .to(StandardUnits.THERMAL_TRANSMISSION)
-        .getValue
-        .doubleValue * 1000)
-      (thermalHouse.ethCapa * Temperature(
+      thermalHouseTest.id shouldBe thermalHouseInput.getId
+      thermalHouseTest.operatorInput shouldBe thermalHouseInput.getOperator
+      thermalHouseTest.operationTime shouldBe thermalHouseInput.getOperationTime
+      thermalHouseTest.bus shouldBe null
+      thermalHouseTest.ethLosses.toWattsPerKelvin shouldBe 1000.0
+      (thermalHouseTest.ethCapa * Temperature(
         1,
         Celsius,
-      )).toKilowattHours shouldBe thermalHouseInput.getEthCapa
-        .to(StandardUnits.HEAT_CAPACITY)
-        .getValue
-        .doubleValue
-      thermalHouse.lowerBoundaryTemperature shouldBe Temperature(18, Celsius)
-      thermalHouse.upperBoundaryTemperature shouldBe Temperature(22, Celsius)
+      )).toKilowattHours shouldBe 2741.5
+      thermalHouseTest.lowerBoundaryTemperature shouldBe Temperature(
+        18,
+        Celsius,
+      )
+      thermalHouseTest.upperBoundaryTemperature shouldBe Temperature(
+        22,
+        Celsius,
+      )
     }
   }
 }
