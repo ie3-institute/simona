@@ -80,16 +80,19 @@ class ThermalGridWithStorageOnlySpec
       "deliver the capabilities of the storage" in {
         val tick = 10800 // after three hours
 
-        val (houseDemand, storageDemand) = thermalGrid.energyDemand(
-          tick,
-          testGridAmbientTemperature,
-          ThermalGrid.startingState(thermalGrid),
-        )
+        val (houseDemand, storageDemand, updatedThermalGridState) =
+          thermalGrid.energyDemandAndUpdatedState(
+            tick,
+            testGridAmbientTemperature,
+            ThermalGrid.startingState(thermalGrid),
+          )
 
         houseDemand.required should approximate(KilowattHours(0d))
         houseDemand.possible should approximate(KilowattHours(0d))
         storageDemand.required should approximate(KilowattHours(345d))
         storageDemand.possible should approximate(KilowattHours(920d))
+        updatedThermalGridState.houseState shouldBe None
+        Some(ThermalStorageState(10800, KilowattHours(230d), Kilowatts(0d)))
       }
     }
 
