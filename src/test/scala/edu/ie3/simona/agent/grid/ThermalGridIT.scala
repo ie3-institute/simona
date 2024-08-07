@@ -547,74 +547,74 @@ class ThermalGridIT
                 0.01044.asMegaWattHour
               )
           }
-
-          scheduler.expectMessage(Completion(heatPumpAgent, Some(47225)))
-
-          heatPumpAgent ! Activation(50400L)
-
-          // it's getting warmer again
-          weatherDependentAgents.foreach {
-            _ ! ProvideWeatherMessage(
-              50400L,
-              weatherService.ref.toClassic,
-              WeatherData(
-                WattsPerSquareMeter(3d),
-                WattsPerSquareMeter(3d),
-                Celsius(5d),
-                MetersPerSecond(0d),
-              ),
-              Some(151200L),
-            )
-          }
-
-          resultListener.expectMessageType[ParticipantResultEvent] match {
-            case ParticipantResultEvent(hpResult) =>
-              hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
-              hpResult.getTime shouldBe 50400.toDateTime
-              hpResult.getP should equalWithTolerance(0.0.asMegaWatt)
-              hpResult.getQ should equalWithTolerance(0.0.asMegaVar)
-          }
-
-          // results of tick 47225 where house reached the upper boundary
-          // should be heated by using thermal energy from the storage FIXME
-
-          Range(0, 2)
-            .map { _ =>
-              resultListener.expectMessageType[ResultEvent]
-            }
-            .foreach { case ResultEvent.ThermalResultEvent(thermalUnitResult) =>
-              thermalUnitResult match {
-                case ThermalHouseResult(
-                      time,
-                      inputModel,
-                      qDot,
-                      indoorTemperature,
-                    ) =>
-                  inputModel shouldBe typicalThermalHouse.getUuid
-                  time shouldBe 47225.toDateTime
-                  qDot should equalWithTolerance(0.asMegaWatt)
-                  indoorTemperature should equalWithTolerance(
-                    21.99992035040234.asDegreeCelsius
-                  )
-
-                case CylindricalThermalStorageResult(
-                      time,
-                      inputModel,
-                      qDot,
-                      energy,
-                    ) =>
-                  inputModel shouldBe typicalThermalStorage.getUuid
-                  time shouldBe 47225.toDateTime
-                  qDot should equalWithTolerance(0.0.asMegaWatt)
-                  energy should equalWithTolerance(0.01044.asMegaWattHour)
-                case _ =>
-                  fail(
-                    "Expected a ThermalHouseResult and a ThermalStorageResult but got something else"
-                  )
-              }
-            }
-          scheduler.expectMessage(Completion(heatPumpAgent, Some(50400L)))
         }
+
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(47225)))
+
+      heatPumpAgent ! Activation(50400L)
+
+      // it's getting warmer again
+      weatherDependentAgents.foreach {
+        _ ! ProvideWeatherMessage(
+          50400L,
+          weatherService.ref.toClassic,
+          WeatherData(
+            WattsPerSquareMeter(3d),
+            WattsPerSquareMeter(3d),
+            Celsius(5d),
+            MetersPerSecond(0d),
+          ),
+          Some(151200L),
+        )
+      }
+
+      resultListener.expectMessageType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(hpResult) =>
+          hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
+          hpResult.getTime shouldBe 50400.toDateTime
+          hpResult.getP should equalWithTolerance(0.0.asMegaWatt)
+          hpResult.getQ should equalWithTolerance(0.0.asMegaVar)
+      }
+
+      // results of tick 47225 where house reached the upper boundary
+      // should be heated by using thermal energy from the storage FIXME
+
+      Range(0, 2)
+        .map { _ =>
+          resultListener.expectMessageType[ResultEvent]
+        }
+        .foreach { case ResultEvent.ThermalResultEvent(thermalUnitResult) =>
+          thermalUnitResult match {
+            case ThermalHouseResult(
+                  time,
+                  inputModel,
+                  qDot,
+                  indoorTemperature,
+                ) =>
+              inputModel shouldBe typicalThermalHouse.getUuid
+              time shouldBe 47225.toDateTime
+              qDot should equalWithTolerance(0.asMegaWatt)
+              indoorTemperature should equalWithTolerance(
+                21.99992035040234.asDegreeCelsius
+              )
+
+            case CylindricalThermalStorageResult(
+                  time,
+                  inputModel,
+                  qDot,
+                  energy,
+                ) =>
+              inputModel shouldBe typicalThermalStorage.getUuid
+              time shouldBe 47225.toDateTime
+              qDot should equalWithTolerance(0.0.asMegaWatt)
+              energy should equalWithTolerance(0.01044.asMegaWattHour)
+            case _ =>
+              fail(
+                "Expected a ThermalHouseResult and a ThermalStorageResult but got something else"
+              )
+          }
+        }
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(50400L)))
     }
   }
 }
