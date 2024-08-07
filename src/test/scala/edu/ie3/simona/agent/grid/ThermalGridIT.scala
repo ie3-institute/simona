@@ -436,7 +436,7 @@ class ThermalGridIT
             Celsius(-25d),
             MetersPerSecond(0d),
           ),
-          Some(50400L),
+          Some(34200L),
         )
       }
 
@@ -501,9 +501,9 @@ class ThermalGridIT
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 31106.toDateTime
-          hpResult.getP should equalWithTolerance(0.0038.asMegaWatt)
+          hpResult.getP should equalWithTolerance(0.0.asMegaWatt)
           hpResult.getQ should equalWithTolerance(
-            0.0012489995996796802.asMegaVar
+            0.0.asMegaVar
           )
       }
 
@@ -543,7 +543,141 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(31106)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(31106L)))
+
+      /* TICK 34200
+      Storage will be empty at tick 34706
+      Additional trigger caused by (unchanged) weather data should not change this
+      even when energy in storage is below 50% SoC FIXME: THIS IS NOT WORKING YET!
+      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 27.22 kWh  ???
+      House demand water   : tba
+      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh  ???
+      DomesticWaterStorage : tba
+      Heat pump: off
+       */
+
+      heatPumpAgent ! Activation(34200L)
+
+      weatherDependentAgents.foreach {
+        _ ! ProvideWeatherMessage(
+          34200,
+          weatherService.ref.toClassic,
+          WeatherData(
+            WattsPerSquareMeter(3d),
+            WattsPerSquareMeter(3d),
+            Celsius(-25d),
+            MetersPerSecond(0d),
+          ),
+          Some(50400L),
+        )
+      }
+
+      resultListener.expectMessageType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(hpResult) =>
+          hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
+          hpResult.getTime shouldBe 34200.toDateTime
+          hpResult.getP should equalWithTolerance(0.0.asMegaWatt)
+          hpResult.getQ should equalWithTolerance(0.0.asMegaVar)
+      }
+
+      // Results of 31106 for house and storage
+      Range(0, 2)
+        .map { _ =>
+          resultListener.expectMessageType[ResultEvent]
+        }
+        .foreach { case ResultEvent.ThermalResultEvent(thermalUnitResult) =>
+          thermalUnitResult match {
+            case ThermalHouseResult(
+                  time,
+                  inputModel,
+                  qDot,
+                  indoorTemperature,
+                ) =>
+              inputModel shouldBe typicalThermalHouse.getUuid
+              time shouldBe 31106.toDateTime
+              qDot should equalWithTolerance(0.01044.asMegaWatt)
+              indoorTemperature should equalWithTolerance(
+                18.00002164245703.asDegreeCelsius
+              )
+            case CylindricalThermalStorageResult(
+                  time,
+                  inputModel,
+                  qDot,
+                  energy,
+                ) =>
+              inputModel shouldBe typicalThermalStorage.getUuid
+              time shouldBe 31106.toDateTime
+              qDot should equalWithTolerance((-0.01044).asMegaWatt)
+              energy should equalWithTolerance(0.01044.asMegaWattHour)
+            case _ =>
+              fail(
+                "Expected a ThermalHouseResult and a ThermalStorageResult but got something else"
+              )
+          }
+        }
+
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(34200L)))
+
+      /* TICK 34706
+     Storage will be empty
+     House demand heating : requiredDemand = 15.0 kWh, additionalDemand = 30.00 kWh
+     House demand water   : tba
+     ThermalStorage       : requiredDemand = 5.22 kWh, additionalDemand = 10.44 kWh
+     DomesticWaterStorage : tba
+     Heat pump: off, demand should be covered by storage
+       */
+
+      heatPumpAgent ! Activation(34706L)
+
+      resultListener.expectMessageType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(hpResult) =>
+          hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
+          hpResult.getTime shouldBe 34706.toDateTime
+          hpResult.getP should equalWithTolerance(pRunningHp)
+          hpResult.getQ should equalWithTolerance(
+            qRunningHp
+          )
+      }
+
+      Range(0, 2)
+        .map { _ =>
+          resultListener.expectMessageType[ResultEvent]
+        }
+        .foreach { case ResultEvent.ThermalResultEvent(thermalUnitResult) =>
+          thermalUnitResult match {
+            case ThermalHouseResult(
+                  time,
+                  inputModel,
+                  qDot,
+                  indoorTemperature,
+                ) =>
+              inputModel shouldBe typicalThermalHouse.getUuid
+              time shouldBe 34200.toDateTime
+              qDot should equalWithTolerance(0.01044.asMegaWatt)
+              indoorTemperature should equalWithTolerance(
+                18.29428672391876.asDegreeCelsius
+              )
+
+            case CylindricalThermalStorageResult(
+                  time,
+                  inputModel,
+                  qDot,
+                  energy,
+                ) =>
+              inputModel shouldBe typicalThermalStorage.getUuid
+              time shouldBe 34200.toDateTime
+              qDot should equalWithTolerance((-0.01044).asMegaWatt)
+              energy should equalWithTolerance(
+                0.0066874000000000005.asMegaWattHour
+              )
+            case _ =>
+              fail(
+                "Expected a ThermalHouseResult and a ThermalStorageResult but got something else"
+              )
+          }
+        }
+
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(34706L)))
 
       /* TICK 47225
       ?
@@ -554,6 +688,7 @@ class ThermalGridIT
       Heat pump: on
        */
 
+      //FIXME
       heatPumpAgent ! Activation(47225L)
 
       resultListener.expectMessageType[ParticipantResultEvent] match {
@@ -577,7 +712,7 @@ class ThermalGridIT
                   indoorTemperature,
                 ) =>
               inputModel shouldBe typicalThermalHouse.getUuid
-              time shouldBe 31106.toDateTime
+              time shouldBe 34706L.toDateTime
               qDot should equalWithTolerance(0.011.asMegaWatt)
               indoorTemperature should equalWithTolerance(
                 18.00002164245703.asDegreeCelsius
@@ -590,7 +725,7 @@ class ThermalGridIT
                   energy,
                 ) =>
               inputModel shouldBe typicalThermalStorage.getUuid
-              time shouldBe 31106.toDateTime
+              time shouldBe 34706L.toDateTime
               qDot should equalWithTolerance(
                 0.0.asMegaWatt
               )
@@ -618,8 +753,8 @@ class ThermalGridIT
           50400L,
           weatherService.ref.toClassic,
           WeatherData(
-            WattsPerSquareMeter(3d),
-            WattsPerSquareMeter(3d),
+            WattsPerSquareMeter(4d),
+            WattsPerSquareMeter(4d),
             Celsius(5d),
             MetersPerSecond(0d),
           ),
