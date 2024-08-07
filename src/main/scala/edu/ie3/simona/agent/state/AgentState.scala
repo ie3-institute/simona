@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.state
 
-import akka.actor.{ActorRef, FSM}
+import org.apache.pekko.actor.{ActorRef, FSM}
 
 trait AgentState
 
@@ -19,7 +19,7 @@ object AgentState {
   final case class TerminatedPrematurelyEvent(
       actorRef: ActorRef,
       reason: FSM.Reason,
-      tick: Option[Int]
+      tick: Option[Int],
   )
 
   case object Uninitialized extends AgentState

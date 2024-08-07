@@ -12,16 +12,16 @@ import edu.ie3.datamodel.models.input.connector.{
   LineInput,
   SwitchInput,
   Transformer2WInput,
-  Transformer3WInput
+  Transformer3WInput,
 }
 import edu.ie3.datamodel.models.input.container.{
   JointGridContainer,
-  RawGridElements
+  RawGridElements,
 }
 import edu.ie3.datamodel.models.input.{
   MeasurementUnitInput,
   NodeInput,
-  OperatorInput
+  OperatorInput,
 }
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.grid.{RefSystem, Transformer3wModel}
@@ -30,6 +30,8 @@ import edu.ie3.simona.util.TestGridFactory
 import edu.ie3.util.quantities.PowerSystemUnits._
 import org.scalatest.prop.TableDrivenPropertyChecks._
 import org.scalatest.prop.{TableFor2, TableFor4}
+import squants.electro.Kilovolts
+import squants.energy.{Kilowatts, Megawatts}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{OHM, PERCENT}
 
@@ -39,20 +41,20 @@ import scala.jdk.CollectionConverters._
 /** Test data for a [[Transformer3WInput]] */
 trait Transformer3wTestData extends DefaultTestData {
   val mainRefSystemEhv: RefSystem = {
-    val nominalPower = Quantities.getQuantity(1000, MEGAVOLTAMPERE)
-    val nominalVoltage = Quantities.getQuantity(380, KILOVOLT)
+    val nominalPower = Megawatts(1000d)
+    val nominalVoltage = Kilovolts(380d)
     RefSystem(nominalPower, nominalVoltage)
   }
 
   val mainRefSystemHv: RefSystem = {
-    val nominalPower = Quantities.getQuantity(60, MEGAVOLTAMPERE)
-    val nominalVoltage = Quantities.getQuantity(110, KILOVOLT)
+    val nominalPower = Megawatts(60d)
+    val nominalVoltage = Kilovolts(110d)
     RefSystem(nominalPower, nominalVoltage)
   }
 
   val mainRefSystemLv: RefSystem = {
-    val nominalPower = Quantities.getQuantity(400, KILOVOLTAMPERE)
-    val nominalVoltage = Quantities.getQuantity(20, KILOVOLT)
+    val nominalPower = Kilowatts(400d)
+    val nominalVoltage = Kilovolts(20d)
     RefSystem(nominalPower, nominalVoltage)
   }
 
@@ -65,7 +67,7 @@ trait Transformer3wTestData extends DefaultTestData {
     true,
     NodeInput.DEFAULT_GEO_POSITION,
     GermanVoltageLevelUtils.EHV_380KV,
-    1
+    1,
   )
   private val nodeB = new NodeInput(
     UUID.fromString("dd037896-d2e0-4cdd-a4a1-c9e2b5e8366a"),
@@ -76,7 +78,7 @@ trait Transformer3wTestData extends DefaultTestData {
     false,
     NodeInput.DEFAULT_GEO_POSITION,
     GermanVoltageLevelUtils.HV,
-    2
+    2,
   )
   private val nodeC = new NodeInput(
     UUID.fromString("c838f8a5-03d4-40d3-94fa-815e1bcd0aa0"),
@@ -87,7 +89,7 @@ trait Transformer3wTestData extends DefaultTestData {
     false,
     NodeInput.DEFAULT_GEO_POSITION,
     GermanVoltageLevelUtils.MV_20KV,
-    3
+    3,
   )
 
   protected val transformer3wType = new Transformer3WTypeInput(
@@ -111,7 +113,7 @@ trait Transformer3wTestData extends DefaultTestData {
     Quantities.getQuantity(0d, DEGREE_GEOM),
     0,
     -10,
-    10
+    10,
   )
 
   protected val transformer3wInput: Transformer3WInput = new Transformer3WInput(
@@ -125,7 +127,7 @@ trait Transformer3wTestData extends DefaultTestData {
     1,
     transformer3wType,
     0,
-    false
+    false,
   )
 
   protected val transformer3wInputPostponed: Transformer3WInput =
@@ -140,7 +142,7 @@ trait Transformer3wTestData extends DefaultTestData {
       1,
       transformer3wType,
       0,
-      false
+      false,
     )
 
   protected val transformer3wInputTapped: Transformer3WInput =
@@ -155,7 +157,7 @@ trait Transformer3wTestData extends DefaultTestData {
       1,
       transformer3wType,
       10,
-      false
+      false,
     )
 
   protected def transformerModelEhv: Transformer3wModel =
@@ -164,7 +166,7 @@ trait Transformer3wTestData extends DefaultTestData {
       mainRefSystemEhv,
       1,
       defaultSimulationStart,
-      defaultSimulationEnd
+      defaultSimulationEnd,
     )
 
   protected def transformerModelHv: Transformer3wModel =
@@ -173,7 +175,7 @@ trait Transformer3wTestData extends DefaultTestData {
       mainRefSystemHv,
       2,
       defaultSimulationStart,
-      defaultSimulationEnd
+      defaultSimulationEnd,
     )
 
   protected def transformerModelLv: Transformer3wModel =
@@ -182,7 +184,7 @@ trait Transformer3wTestData extends DefaultTestData {
       mainRefSystemHv,
       3,
       defaultSimulationStart,
-      defaultSimulationEnd
+      defaultSimulationEnd,
     )
 
   protected val transformer3wTestGrid: JointGridContainer = {
@@ -192,11 +194,11 @@ trait Transformer3wTestData extends DefaultTestData {
       Set.empty[Transformer2WInput].asJava,
       Set(transformer3wInput).asJava,
       Set.empty[SwitchInput].asJava,
-      Set.empty[MeasurementUnitInput].asJava
+      Set.empty[MeasurementUnitInput].asJava,
     )
     TestGridFactory.createJointGrid(
       gridName = "transformer3WTestGrid",
-      rawGridElements = rawGridElements
+      rawGridElements = rawGridElements,
     )
   }
 
@@ -207,128 +209,128 @@ trait Transformer3wTestData extends DefaultTestData {
       -10,
       Complex(0.0441648321658824, -7.07226179085529),
       Complex.zero,
-      Complex(-0.00662285051288235, 1.06076425571629)
+      Complex(-0.00662285051288235, 1.06076425571629),
     ),
     (
       -9,
       Complex(0.0433989680242775, -6.94962141297919),
       Complex.zero,
-      Complex(-0.00585698637127746, 0.938123877840191)
+      Complex(-0.00585698637127746, 0.938123877840191),
     ),
     (
       -8,
       Complex(0.0426592128875, -6.83116195707614),
       Complex.zero,
-      Complex(-0.0051172312345, 0.819664421937137)
+      Complex(-0.0051172312345, 0.819664421937137),
     ),
     (
       -7,
       Complex(0.0419442540122905, -6.71667320919218),
       Complex.zero,
-      Complex(-0.0044022723592905, 0.705175674053178)
+      Complex(-0.0044022723592905, 0.705175674053178),
     ),
     (
       -6,
       Complex(0.0412528652098901, -6.60595881563407),
       Complex.zero,
-      Complex(-0.00371088355689011, 0.594461280495065)
+      Complex(-0.00371088355689011, 0.594461280495065),
     ),
     (
       -5,
       Complex(0.0405838998281081, -6.49883515916432),
       Complex.zero,
-      Complex(-0.0030419181751081, 0.487337624025323)
+      Complex(-0.0030419181751081, 0.487337624025323),
     ),
     (
       -4,
       Complex(0.0399362844053192, -6.39513034279468),
       Complex.zero,
-      Complex(-0.00239430275231915, 0.383632807655681)
+      Complex(-0.00239430275231915, 0.383632807655681),
     ),
     (
       -3,
       Complex(0.0393090129225131, -6.29468326934764),
       Complex.zero,
-      Complex(-0.00176703126951309, 0.283185734208644)
+      Complex(-0.00176703126951309, 0.283185734208644),
     ),
     (
       -2,
       Complex(0.0387011415886598, -6.19734280641959),
       Complex.zero,
-      Complex(-0.0011591599356598, 0.185845271280588)
+      Complex(-0.0011591599356598, 0.185845271280588),
     ),
     (
       -1,
       Complex(0.0381117841025381, -6.10296702764162),
       Complex.zero,
-      Complex(-0.000569802449538069, 0.091469492502624)
+      Complex(-0.000569802449538069, 0.091469492502624),
     ),
     (
       0,
       Complex(0.037540107341, -6.011422522227),
       Complex.zero,
-      Complex(0.000001874312, -0.000075012912)
+      Complex(0.000001874312, -0.000075012912),
     ),
     (
       1,
       Complex(0.0369853274295567, -5.92258376574089),
       Complex.zero,
-      Complex(0.000556654223443345, -0.0889137693981125)
+      Complex(0.000556654223443345, -0.0889137693981125),
     ),
     (
       2,
       Complex(0.0364467061563107, -5.83633254585146),
       Complex.zero,
-      Complex(0.00109527549668932, -0.175164989287544)
+      Complex(0.00109527549668932, -0.175164989287544),
     ),
     (
       3,
       Complex(0.0359235476947368, -5.7525574375378),
       Complex.zero,
-      Complex(0.00161843395826315, -0.2589400976012)
+      Complex(0.00161843395826315, -0.2589400976012),
     ),
     (
       4,
       Complex(0.035415195604717, -5.67115332285566),
       Complex.zero,
-      Complex(0.00212678604828302, -0.34034421228334)
+      Complex(0.00212678604828302, -0.34034421228334),
     ),
     (
       5,
       Complex(0.0349210300846512, -5.59202095090884),
       Complex.zero,
-      Complex(0.00262095156834884, -0.419476584230163)
+      Complex(0.00262095156834884, -0.419476584230163),
     ),
     (
       6,
       Complex(0.0344404654504587, -5.51506653415321),
       Complex.zero,
-      Complex(0.00310151620254129, -0.496431000985789)
+      Complex(0.00310151620254129, -0.496431000985789),
     ),
     (
       7,
       Complex(0.0339729478199095, -5.440201377581),
       Complex.zero,
-      Complex(0.0035690338330905, -0.571296157558004)
+      Complex(0.0035690338330905, -0.571296157558004),
     ),
     (
       8,
       Complex(0.0335179529830357, -5.36734153770268),
       Complex.zero,
-      Complex(0.00402402866996429, -0.644155997436322)
+      Complex(0.00402402866996429, -0.644155997436322),
     ),
     (
       9,
       Complex(0.0330749844414097, -5.29640750857004),
       Complex.zero,
-      Complex(0.00446699721159031, -0.715090026568956)
+      Complex(0.00446699721159031, -0.715090026568956),
     ),
     (
       10,
       Complex(0.0326435716008696, -5.22732393237131),
       Complex.zero,
-      Complex(0.00489841005213043, -0.784173602767695)
-    )
+      Complex(0.00489841005213043, -0.784173602767695),
+    ),
   )
 
   val tapDependentVoltRatioEhv: TableFor2[Int, String] = Table(
@@ -353,6 +355,6 @@ trait Transformer3wTestData extends DefaultTestData {
     (7, "1.105"),
     (8, "1.12"),
     (9, "1.135"),
-    (10, "1.15")
+    (10, "1.15"),
   )
 }

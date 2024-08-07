@@ -9,20 +9,17 @@ package edu.ie3.simona.test.common.model.grid
 import edu.ie3.simona.model.grid.{
   NodeModel,
   TransformerModel,
-  TransformerTappingModel
+  TransformerTappingModel,
 }
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.util.quantities.PowerSystemUnits._
+import squants.{Amperes, Each}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
 import java.util.UUID
-import javax.measure.quantity.{
-  Dimensionless,
-  ElectricCurrent,
-  ElectricPotential
-}
+import javax.measure.quantity.ElectricPotential
 
 /** Same as [[FiveLinesWithNodes]] but extended with an additional
   * [[TransformerModel]] and two corresponding additional nodes. For details on
@@ -70,7 +67,7 @@ trait BasicGrid extends FiveLinesWithNodes with DefaultTestData {
       "node0",
       "5f2b9b3e-faa6-493b-a6ee-22a4a516ad0e",
       false,
-      linesRatedVoltage
+      linesRatedVoltage,
     )
   // / create transformer HV node @ 110kV
   def node6: NodeModel =
@@ -78,7 +75,7 @@ trait BasicGrid extends FiveLinesWithNodes with DefaultTestData {
       "node6",
       "3d2d3626-5043-4ec7-892d-cead983c046e",
       true,
-      transformerHvVoltLvl
+      transformerHvVoltLvl,
     )
 
   override protected def nodes: Seq[NodeModel] =
@@ -98,24 +95,24 @@ trait BasicGrid extends FiveLinesWithNodes with DefaultTestData {
       13,
       -13,
       0,
-      autoTap = true
+      autoTap = true,
     )
 
   // / electric params in pu
-  protected val transformerRInPu: ComparableQuantity[Dimensionless] =
-    Quantities.getQuantity(0.001, PU)
-  protected val transformerXInPu: ComparableQuantity[Dimensionless] =
-    Quantities.getQuantity(0.00015, PU)
-  protected val transformerGInPu: ComparableQuantity[Dimensionless] =
-    Quantities.getQuantity(0, PU)
-  protected val transformerBInPu: ComparableQuantity[Dimensionless] =
-    Quantities.getQuantity(-0.000033275, PU)
+  protected val transformerRInPu: squants.Dimensionless =
+    Each(0.001d)
+  protected val transformerXInPu: squants.Dimensionless =
+    Each(0.00015d)
+  protected val transformerGInPu: squants.Dimensionless =
+    Each(0d)
+  protected val transformerBInPu: squants.Dimensionless =
+    Each(-0.000033275d)
 
   // / iNomHv, iNomLv
-  protected val iNomHv: ComparableQuantity[ElectricCurrent] =
-    Quantities.getQuantity(209.9455524325912, AMPERE)
-  protected val iNomLv: ComparableQuantity[ElectricCurrent] =
-    Quantities.getQuantity(2309.401076758503, AMPERE)
+  protected val iNomHv: squants.electro.ElectricCurrent =
+    Amperes(209.9455524325912d)
+  protected val iNomLv: squants.electro.ElectricCurrent =
+    Amperes(2309.401076758503d)
 
   // / transformer
   protected val transformer2wModel = new TransformerModel(
@@ -132,7 +129,7 @@ trait BasicGrid extends FiveLinesWithNodes with DefaultTestData {
     transformerRInPu,
     transformerXInPu,
     transformerGInPu,
-    transformerBInPu
+    transformerBInPu,
   )
 
   // init transformer tapping

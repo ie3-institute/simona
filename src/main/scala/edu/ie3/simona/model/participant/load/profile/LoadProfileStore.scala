@@ -6,28 +6,23 @@
 
 package edu.ie3.simona.model.participant.load.profile
 
-import java.io.{InputStreamReader, Reader}
-import java.time.{Duration, ZonedDateTime}
-import java.util
-
 import breeze.numerics.round
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.profile.{
   BdewStandardLoadProfile,
-  StandardLoadProfile
+  StandardLoadProfile,
 }
 import edu.ie3.simona.model.participant.load.profile.LoadProfileStore.{
   initializeMaxConsumptionPerProfile,
-  initializeTypeDayValues
+  initializeTypeDayValues,
 }
 import edu.ie3.simona.model.participant.load.{DayType, profile}
-import edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
-import javax.measure.quantity.{Energy, Power}
 import org.apache.commons.csv.CSVFormat
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.WATT
+import squants.energy.{KilowattHours, Watts}
 
+import java.io.{InputStreamReader, Reader}
+import java.time.{Duration, ZonedDateTime}
+import java.util
 import scala.jdk.CollectionConverters._
 import scala.math.pow
 
@@ -61,8 +56,8 @@ class LoadProfileStore private (val reader: Reader) {
     */
   def entry(
       time: ZonedDateTime,
-      loadProfile: StandardLoadProfile
-  ): ComparableQuantity[Power] = {
+      loadProfile: StandardLoadProfile,
+  ): squants.Power = {
     val key = LoadProfileKey(loadProfile, time)
     profileMap.get(key) match {
       case Some(typeDayValues) =>
@@ -74,7 +69,7 @@ class LoadProfileStore private (val reader: Reader) {
             LoadProfileStore.dynamization(quarterHourEnergy, t)
           case _ => quarterHourEnergy
         }
-        Quantities.getQuantity(load, WATT)
+        Watts(load)
       case None =>
         throw new RuntimeException(
           "Value for LoadProfileKey " + key.toString + " not found."
@@ -93,10 +88,10 @@ class LoadProfileStore private (val reader: Reader) {
     */
   def maxPower(
       loadProfile: StandardLoadProfile
-  ): ComparableQuantity[Power] = {
+  ): squants.Power = {
     maxParamMap.get(loadProfile) match {
       case Some(value) =>
-        Quantities.getQuantity(value, WATT)
+        Watts(value)
       case None =>
         throw new RuntimeException(
           "Max value for ConsumerType " + loadProfile.toString + " not found"
@@ -116,8 +111,7 @@ object LoadProfileStore extends LazyLogging {
 
   /** Default standard load profile energy scaling
     */
-  val defaultLoadProfileEnergyScaling: ComparableQuantity[Energy] =
-    Quantities.getQuantity(1000d, KILOWATTHOUR)
+  val defaultLoadProfileEnergyScaling: squants.Energy = KilowattHours(1000d)
 
   /** Default entry point to get the default implementation with the provided
     * default standard load profiles

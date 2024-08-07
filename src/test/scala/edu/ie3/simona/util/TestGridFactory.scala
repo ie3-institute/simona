@@ -11,18 +11,18 @@ import edu.ie3.datamodel.models.input.connector.{
   LineInput,
   SwitchInput,
   Transformer2WInput,
-  Transformer3WInput
+  Transformer3WInput,
 }
 import edu.ie3.datamodel.models.input.container.{
   GraphicElements,
   JointGridContainer,
   RawGridElements,
   SubGridContainer,
-  SystemParticipants
+  SystemParticipants,
 }
 import edu.ie3.datamodel.models.input.graphics.{
   LineGraphicInput,
-  NodeGraphicInput
+  NodeGraphicInput,
 }
 import edu.ie3.datamodel.models.input.system._
 
@@ -51,13 +51,13 @@ object TestGridFactory {
       gridName: String = "TestGrid",
       rawGridElements: RawGridElements = createEmptyRawGridElements(),
       systemParticipants: SystemParticipants = createEmptySystemParticipants(),
-      graphicElements: GraphicElements = createEmptyGraphicElements()
+      graphicElements: GraphicElements = createEmptyGraphicElements(),
   ): JointGridContainer =
     new JointGridContainer(
       gridName,
       rawGridElements,
       systemParticipants,
-      graphicElements
+      graphicElements,
     )
 
   /** Creates a sub grid container for testing purposes.
@@ -84,14 +84,14 @@ object TestGridFactory {
       subgrid: Int = 100,
       rawGridElements: RawGridElements = createEmptyRawGridElements(),
       systemParticipants: SystemParticipants = createEmptySystemParticipants(),
-      graphicElements: GraphicElements = createEmptyGraphicElements()
+      graphicElements: GraphicElements = createEmptyGraphicElements(),
   ): SubGridContainer =
     new SubGridContainer(
       gridName,
       subgrid,
       rawGridElements,
       systemParticipants,
-      graphicElements
+      graphicElements,
     )
 
   def createEmptyRawGridElements(): RawGridElements =
@@ -101,7 +101,7 @@ object TestGridFactory {
       Set.empty[Transformer2WInput].asJava,
       Set.empty[Transformer3WInput].asJava,
       Set.empty[SwitchInput].asJava,
-      Set.empty[MeasurementUnitInput].asJava
+      Set.empty[MeasurementUnitInput].asJava,
     )
 
   def createEmptySystemParticipants(): SystemParticipants =
@@ -116,12 +116,11 @@ object TestGridFactory {
       Set.empty[PvInput].asJava,
       Set.empty[StorageInput].asJava,
       Set.empty[WecInput].asJava,
-      Set.empty[EmInput].asJava
     )
 
   def createEmptyGraphicElements(): GraphicElements =
     new GraphicElements(
       Set.empty[NodeGraphicInput].asJava,
-      Set.empty[LineGraphicInput].asJava
+      Set.empty[LineGraphicInput].asJava,
     )
 }

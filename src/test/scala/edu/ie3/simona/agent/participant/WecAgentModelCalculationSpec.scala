@@ -6,14 +6,15 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.TestFSMRef
-import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.system.WecInput
 import edu.ie3.datamodel.models.input.system.characteristic.QV
 import edu.ie3.simona.agent.ValueStore
+import edu.ie3.simona.agent.grid.GridAgentMessages.{
+  AssetPowerChangedMessage,
+  AssetPowerUnchangedMessage,
+}
+import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
@@ -21,60 +22,54 @@ import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   CollectRegistrationConfirmMessages,
   ParticipantInitializeStateData,
-  ParticipantInitializingStateData,
-  ParticipantUninitializedStateData
+  ParticipantUninitializedStateData,
 }
 import edu.ie3.simona.agent.participant.wec.WecAgent
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.WecRuntimeConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.WecModel
 import edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage
-}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  IllegalTriggerMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
   RegistrationFailedMessage,
-  RegistrationSuccessfulMessage
+  RegistrationSuccessfulMessage,
 }
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
   ProvideWeatherMessage,
   RegisterForWeatherMessage,
-  WeatherData
-}
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeParticipantAgentTrigger
+  WeatherData,
 }
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.WecInputTestData
 import edu.ie3.simona.util.ConfigUtil
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits.{
-  KILOWATT,
-  MEGAVAR,
-  MEGAWATT,
-  PU
+import edu.ie3.util.scala.quantities.{
+  Megavars,
+  ReactivePower,
+  Vars,
+  WattsPerSquareMeter,
 }
-import edu.ie3.util.quantities.{EmptyQuantity, QuantityUtil}
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
+import org.apache.pekko.util.Timeout
 import org.scalatest.PrivateMethodTester
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.{CELSIUS, METRE_PER_SECOND, PASCAL}
+import squants.Each
+import squants.energy.{Kilowatts, Megawatts, Watts}
+import squants.motion.MetersPerSecond
+import squants.thermal.Celsius
 
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
+import scala.collection.SortedMap
 
 class WecAgentModelCalculationSpec
     extends ParticipantAgentSpec(
@@ -82,18 +77,18 @@ class WecAgentModelCalculationSpec
         "WecAgentSpec",
         ConfigFactory
           .parseString("""
-            |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-            |akka.loglevel="DEBUG"
-        """.stripMargin)
+            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+            |pekko.loglevel="DEBUG"
+        """.stripMargin),
       )
     )
     with PrivateMethodTester
     with WecInputTestData {
 
   protected implicit val simulationStartDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
   protected val simulationEndDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 01:00:00")
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T01:00:00Z")
   implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
 
@@ -103,15 +98,13 @@ class WecAgentModelCalculationSpec
     .qCharacteristics(new QV("qV:{(0.95,-0.625),(1.05,0.625)}"))
     .build()
 
-  private val testingTolerance = 1e-6 // Equality on the basis of 1 W
-
   /* Assign this test to receive the result events from agent */
-  override val systemListener: Iterable[ActorRef] = Vector(self)
+  override val systemListener: Iterable[ActorRef] = Iterable(self)
 
   private val simonaConfig: SimonaConfig =
     createSimonaConfig(
       LoadModelBehaviour.FIX,
-      LoadReference.ActivePower(Quantities.getQuantity(0d, KILOWATT))
+      LoadReference.ActivePower(Kilowatts(0d)),
     )
   private val configUtil = ConfigUtil.ParticipantConfigUtil(
     simonaConfig.simona.runtime.participant
@@ -121,18 +114,41 @@ class WecAgentModelCalculationSpec
       voltageSensitiveInput.getUuid
     )
 
-  private val withServices = Some(
-    Vector(ActorWeatherService(weatherService.ref))
-  )
+  private val withServices = Iterable(ActorWeatherService(weatherService.ref))
 
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
+  private implicit val powerTolerance: squants.Power = Watts(0.1)
+  private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
+
   "A wec agent with model calculation depending on no second data service" should {
+    val initStateData = ParticipantInitializeStateData[
+      WecInput,
+      WecRuntimeConfig,
+      ApparentPower,
+    ](
+      inputModel = voltageSensitiveInput,
+      simulationStartDate = simulationStartDate,
+      simulationEndDate = simulationEndDate,
+      resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
+      requestVoltageDeviationThreshold =
+        simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+      modelConfig = modelConfig,
+      primaryServiceProxy = primaryServiceProxy.ref,
+      secondaryDataServices = Iterable.empty,
+      outputConfig = NotifierConfig(
+        simulationResultInfo = false,
+        powerRequestReply = false,
+        flexResult = false,
+      ),
+    )
+
     "be instantiated correctly" in {
       val wecAgent = TestFSMRef(
         new WecAgent(
           scheduler = scheduler.ref,
-          listener = systemListener
+          initStateData = initStateData,
+          listener = systemListener,
         )
       )
 
@@ -147,80 +163,60 @@ class WecAgentModelCalculationSpec
       }
     }
 
-    "fail initialisation and stay in uninitialized state" in {
+    "fail initialisation and stop agent" in {
+      val deathProbe = TestProbe("deathProbe")
+
       val wecAgent = TestFSMRef(
         new WecAgent(
           scheduler = scheduler.ref,
-          listener = systemListener
+          initStateData = initStateData,
+          listener = systemListener,
         )
       )
 
-      val triggerId = 0
-      scheduler.send(
-        wecAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              WecInput,
-              WecRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = voltageSensitiveInput,
-              simulationStartDate = simulationStartDate,
-              simulationEndDate = simulationEndDate,
-              resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              modelConfig = modelConfig,
-              primaryServiceProxy = primaryServiceProxy.ref,
-              secondaryDataServices = None,
-              outputConfig = ParticipantNotifierConfig(
-                simulationResultInfo = false,
-                powerRequestReply = false
-              )
-            )
-          ),
-          triggerId,
-          wecAgent
-        )
-      )
+      scheduler.send(wecAgent, Activation(INIT_SIM_TICK))
+
+      deathProbe.watch(wecAgent.ref)
 
       /* Agent attempts to register with primary data service -- refuse this */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(wecAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        wecAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref),
+      )
 
-      /* Agent announces, that it has received an illegal trigger */
-      scheduler.receiveOne(receiveTimeOut.duration) match {
-        case IllegalTriggerMessage(_, _) => logger.debug("Got correct message")
-        case null => fail("Did not receive an IllegalTriggerMessage.")
-        case m =>
-          fail(
-            s"Did not fail initialization because of missing weather service. Received: '$m'"
-          )
-      }
-
-      /* agent should stay uninitialized */
-      wecAgent.stateName shouldBe Uninitialized
-      // ParticipantUninitializedStateData is an empty class (due to typing). If it contains content one day
-      inside(wecAgent.stateData) {
-        case _: ParticipantInitializingStateData[_, _, _] => succeed
-        case _ =>
-          fail(
-            s"Expected $ParticipantUninitializedStateData, but got ${wecAgent.stateData}."
-          )
-      }
+      deathProbe.expectTerminated(wecAgent.ref)
     }
   }
 
   "A wec agent with model calculation depending on one secondary data service" should {
+    val initStateData = ParticipantInitializeStateData[
+      WecInput,
+      WecRuntimeConfig,
+      ApparentPower,
+    ](
+      inputModel = voltageSensitiveInput,
+      modelConfig = modelConfig,
+      simulationStartDate = simulationStartDate,
+      simulationEndDate = simulationEndDate,
+      resolution = resolution,
+      requestVoltageDeviationThreshold =
+        simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+      primaryServiceProxy = primaryServiceProxy.ref,
+      secondaryDataServices = withServices,
+      outputConfig = NotifierConfig(
+        simulationResultInfo = false,
+        powerRequestReply = false,
+        flexResult = false,
+      ),
+    )
+
     "be instantiated correctly" in {
       val wecAgent = TestFSMRef(
         new WecAgent(
           scheduler = scheduler.ref,
-          listener = systemListener
+          initStateData = initStateData,
+          listener = systemListener,
         )
       )
 
@@ -239,46 +235,19 @@ class WecAgentModelCalculationSpec
       val wecAgent = TestFSMRef(
         new WecAgent(
           scheduler = scheduler.ref,
-          listener = systemListener
+          initStateData = initStateData,
+          listener = systemListener,
         )
       )
 
-      val triggerId = 0
-      scheduler.send(
-        wecAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              WecInput,
-              WecRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = voltageSensitiveInput,
-              modelConfig = modelConfig,
-              simulationStartDate = simulationStartDate,
-              simulationEndDate = simulationEndDate,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              primaryServiceProxy = primaryServiceProxy.ref,
-              secondaryDataServices = withServices,
-              outputConfig = ParticipantNotifierConfig(
-                simulationResultInfo = false,
-                powerRequestReply = false
-              )
-            )
-          ),
-          triggerId,
-          wecAgent
-        )
-      )
+      scheduler.send(wecAgent, Activation(INIT_SIM_TICK))
 
       /* Agent attempts to register with primary data service -- refuse this */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(wecAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        wecAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref),
+      )
 
       /* Expect a registration message */
       weatherService.expectMsg(RegisterForWeatherMessage(51.4843281, 7.4116482))
@@ -299,30 +268,33 @@ class WecAgentModelCalculationSpec
                 voltageValueStore,
                 resultValueStore,
                 requestValueStore,
-                _
+                _,
+                _,
+                _,
               ),
               awaitRegistrationResponsesFrom,
-              foreseenNextDataTicks
+              foreseenNextDataTicks,
             ) =>
           /* Base state data */
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
           services shouldBe withServices
-          outputConfig shouldBe ParticipantNotifierConfig(
+          outputConfig shouldBe NotifierConfig(
             simulationResultInfo = false,
-            powerRequestReply = false
+            powerRequestReply = false,
+            flexResult = false,
           )
           additionalActivationTicks shouldBe empty
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
-            resolution * 10,
-            Map(0L -> Quantities.getQuantity(1d, PU))
+            resolution,
+            SortedMap(0L -> Each(1.0)),
           )
-          resultValueStore shouldBe ValueStore.forResult(resolution, 10)
-          requestValueStore shouldBe ValueStore[ApparentPower](resolution * 10)
+          resultValueStore shouldBe ValueStore(resolution)
+          requestValueStore shouldBe ValueStore[ApparentPower](resolution)
 
           /* Additional information */
-          awaitRegistrationResponsesFrom shouldBe Vector(weatherService.ref)
+          awaitRegistrationResponsesFrom shouldBe Iterable(weatherService.ref)
           foreseenNextDataTicks shouldBe Map.empty
         case _ =>
           fail(
@@ -331,19 +303,13 @@ class WecAgentModelCalculationSpec
       }
 
       /* Reply, that registration was successful */
-      weatherService.send(wecAgent, RegistrationSuccessfulMessage(Some(4711L)))
+      weatherService.send(
+        wecAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(4711L)),
+      )
 
       /* Expect a completion message */
-      scheduler.expectMsg(
-        CompletionMessage(
-          triggerId,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(ActivityStartTrigger(4711), wecAgent)
-            )
-          )
-        )
-      )
+      scheduler.expectMsg(Completion(wecAgent.toTyped, Some(4711L)))
 
       /* ... as well as corresponding state and state data */
       wecAgent.stateName shouldBe Idle
@@ -351,7 +317,8 @@ class WecAgentModelCalculationSpec
         case baseStateData: ParticipantModelBaseStateData[
               ApparentPower,
               WecRelevantData,
-              WecModel
+              ConstantState.type,
+              WecModel,
             ] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
           baseStateData.foreseenDataTicks shouldBe Map(
@@ -368,66 +335,42 @@ class WecAgentModelCalculationSpec
       val wecAgent = TestFSMRef(
         new WecAgent(
           scheduler = scheduler.ref,
-          listener = systemListener
+          initStateData = initStateData,
+          listener = systemListener,
         )
       )
 
-      val triggerId = 0
-      scheduler.send(
-        wecAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              WecInput,
-              WecRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = voltageSensitiveInput,
-              modelConfig = modelConfig,
-              simulationStartDate = simulationStartDate,
-              simulationEndDate = simulationEndDate,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              primaryServiceProxy = primaryServiceProxy.ref,
-              secondaryDataServices = withServices,
-              outputConfig = ParticipantNotifierConfig(
-                simulationResultInfo = false,
-                powerRequestReply = false
-              )
-            )
-          ),
-          triggerId,
-          wecAgent
-        )
-      )
+      scheduler.send(wecAgent, Activation(INIT_SIM_TICK))
 
       /* Agent attempts to register with primary data service -- refuse this */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(wecAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        wecAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref),
+      )
 
       /* Expect a registration message */
       weatherService.expectMsg(RegisterForWeatherMessage(51.4843281, 7.4116482))
-      weatherService.send(wecAgent, RegistrationSuccessfulMessage(Some(900L)))
+      weatherService.send(
+        wecAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
-      scheduler.expectMsgType[CompletionMessage]
+      scheduler.expectMsgType[Completion]
 
       wecAgent.stateName shouldBe Idle
       /* State data has already been tested */
 
       wecAgent ! RequestAssetPowerMessage(
         0L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1.0),
+        Each(0.0),
       )
       expectMsg(
         AssetPowerChangedMessage(
-          Quantities.getQuantity(0d, MEGAWATT),
-          Quantities.getQuantity(0d, MEGAVAR)
+          Megawatts(0.0),
+          Megavars(0.0),
         )
       )
 
@@ -435,18 +378,19 @@ class WecAgentModelCalculationSpec
         case modelBaseStateData: ParticipantModelBaseStateData[
               ApparentPower,
               WecRelevantData,
-              WecModel
+              ConstantState.type,
+              WecModel,
             ] =>
           modelBaseStateData.requestValueStore shouldBe ValueStore[
             ApparentPower
           ](
-            resolution * 10,
-            Map(
+            resolution,
+            SortedMap(
               0L -> ApparentPower(
-                Quantities.getQuantity(0d, MEGAWATT),
-                Quantities.getQuantity(0d, MEGAVAR)
+                Megawatts(0d),
+                Megavars(0d),
               )
-            )
+            ),
           )
         case _ =>
           fail(
@@ -459,67 +403,48 @@ class WecAgentModelCalculationSpec
       val wecAgent = TestFSMRef(
         new WecAgent(
           scheduler = scheduler.ref,
-          listener = systemListener
+          initStateData = initStateData,
+          listener = systemListener,
         )
       )
 
-      val initialiseTriggerId = 0
-      scheduler.send(
-        wecAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              WecInput,
-              WecRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = voltageSensitiveInput,
-              modelConfig = modelConfig,
-              simulationStartDate = simulationStartDate,
-              simulationEndDate = simulationEndDate,
-              resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              primaryServiceProxy = primaryServiceProxy.ref,
-              secondaryDataServices = withServices,
-              outputConfig = ParticipantNotifierConfig(
-                simulationResultInfo = false,
-                powerRequestReply = false
-              )
-            )
-          ),
-          initialiseTriggerId,
-          wecAgent
-        )
-      )
+      scheduler.send(wecAgent, Activation(INIT_SIM_TICK))
 
       /* Agent attempts to register with primary data service -- refuse this */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(wecAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        wecAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref),
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(wecAgent, RegistrationSuccessfulMessage(Some(900L)))
+      weatherService.send(
+        wecAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
-      scheduler.expectMsgType[CompletionMessage]
+      scheduler.expectMsgType[Completion]
       awaitAssert(wecAgent.stateName shouldBe Idle)
       /* State data is tested in another test */
 
       /* Send out new data */
       val weatherData = WeatherData(
-        Quantities.getQuantity(50, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(100, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(0, CELSIUS),
-        Quantities.getQuantity(0, METRE_PER_SECOND)
+        WattsPerSquareMeter(50d),
+        WattsPerSquareMeter(100d),
+        Celsius(0d),
+        MetersPerSecond(0d),
       )
 
       weatherService.send(
         wecAgent,
-        ProvideWeatherMessage(900L, weatherData, Some(1800L))
+        ProvideWeatherMessage(
+          900L,
+          weatherService.ref,
+          weatherData,
+          Some(1800L),
+        ),
       )
 
       /* Find yourself in corresponding state and state data */
@@ -529,10 +454,11 @@ class WecAgentModelCalculationSpec
               baseStateData: ParticipantModelBaseStateData[
                 ApparentPower,
                 WecRelevantData,
-                WecModel
+                ConstantState.type,
+                WecModel,
               ],
               expectedSenders,
-              isYetTriggered
+              isYetTriggered,
             ) =>
           /* The next data tick is already registered */
           baseStateData.foreseenDataTicks shouldBe Map(
@@ -553,41 +479,25 @@ class WecAgentModelCalculationSpec
       }
 
       /* Trigger the agent */
-      scheduler.send(
-        wecAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
-        )
-      )
+      scheduler.send(wecAgent, Activation(900))
 
       /* The agent will notice, that all expected information are apparent, switch to Calculate and trigger itself
        * for starting the calculation */
-      scheduler.expectMsg(
-        CompletionMessage(
-          1L,
-          Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent))
-          )
-        )
-      )
+      scheduler.expectMsg(Completion(wecAgent.toTyped, Some(1800)))
+
       wecAgent.stateName shouldBe Idle
       wecAgent.stateData match {
         case baseStateData: ParticipantModelBaseStateData[
               ApparentPower,
               WecRelevantData,
-              WecModel
+              ConstantState.type,
+              WecModel,
             ] =>
           /* The store for calculation relevant data has been extended */
-          baseStateData.calcRelevantDateStore match {
+          baseStateData.receivedSecondaryDataStore match {
             case ValueStore(_, store) =>
               store shouldBe Map(
-                900L -> WecRelevantData(
-                  weatherData.windVel,
-                  weatherData.temp,
-                  EmptyQuantity.of(PASCAL)
-                )
+                900L -> Map(weatherService.ref -> weatherData)
               )
           }
 
@@ -597,19 +507,11 @@ class WecAgentModelCalculationSpec
               store.size shouldBe 1
               store.getOrElse(
                 900L,
-                fail("Expected a simulation result for tick 900.")
+                fail("Expected a simulation result for tick 900."),
               ) match {
                 case ApparentPower(p, q) =>
-                  QuantityUtil.isEquivalentAbs(
-                    p,
-                    Quantities.getQuantity(0, MEGAWATT),
-                    1e-16
-                  ) shouldBe true
-                  QuantityUtil.isEquivalentAbs(
-                    q,
-                    Quantities.getQuantity(0, MEGAVAR),
-                    1e-16
-                  ) shouldBe true
+                  p should approximate(Megawatts(0.0))
+                  q should approximate(Megavars(0.0))
               }
           }
         case _ =>
@@ -623,64 +525,33 @@ class WecAgentModelCalculationSpec
       val wecAgent = TestFSMRef(
         new WecAgent(
           scheduler = scheduler.ref,
-          listener = systemListener
+          initStateData = initStateData,
+          listener = systemListener,
         )
       )
 
-      val initialiseTriggerId = 0
-      scheduler.send(
-        wecAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              WecInput,
-              WecRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = voltageSensitiveInput,
-              modelConfig = modelConfig,
-              simulationStartDate = simulationStartDate,
-              simulationEndDate = simulationEndDate,
-              resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              primaryServiceProxy = primaryServiceProxy.ref,
-              secondaryDataServices = withServices,
-              outputConfig = ParticipantNotifierConfig(
-                simulationResultInfo = false,
-                powerRequestReply = false
-              )
-            )
-          ),
-          initialiseTriggerId,
-          wecAgent
-        )
-      )
+      scheduler.send(wecAgent, Activation(INIT_SIM_TICK))
 
       /* Agent attempts to register with primary data service -- refuse this */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(wecAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        wecAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref),
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(wecAgent, RegistrationSuccessfulMessage(Some(900L)))
+      weatherService.send(
+        wecAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
-      scheduler.expectMsgType[CompletionMessage]
+      scheduler.expectMsgType[Completion]
       awaitAssert(wecAgent.stateName shouldBe Idle)
 
-      /* Send out an activity start trigger */
-      scheduler.send(
-        wecAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
-        )
-      )
+      /* Send out an activation */
+      scheduler.send(wecAgent, Activation(900))
 
       /* Find yourself in appropriate state with state data */
       wecAgent.stateName shouldBe HandleInformation
@@ -689,10 +560,11 @@ class WecAgentModelCalculationSpec
               baseStateData: ParticipantModelBaseStateData[
                 ApparentPower,
                 WecRelevantData,
-                WecModel
+                ConstantState.type,
+                WecModel,
               ],
               expectedSenders,
-              isYetTriggered
+              isYetTriggered,
             ) =>
           /* The next data tick is already registered */
           baseStateData.foreseenDataTicks shouldBe Map(
@@ -712,26 +584,24 @@ class WecAgentModelCalculationSpec
 
       /* Providing the awaited data will lead to the foreseen transitions */
       val weatherData = WeatherData(
-        Quantities.getQuantity(50, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(100, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(0, CELSIUS),
-        Quantities.getQuantity(0, METRE_PER_SECOND)
+        WattsPerSquareMeter(50d),
+        WattsPerSquareMeter(100d),
+        Celsius(0d),
+        MetersPerSecond(0d),
       )
 
       weatherService.send(
         wecAgent,
-        ProvideWeatherMessage(900L, weatherData, Some(1800L))
+        ProvideWeatherMessage(
+          900L,
+          weatherService.ref,
+          weatherData,
+          Some(1800L),
+        ),
       )
 
       /* Expect confirmation */
-      scheduler.expectMsg(
-        CompletionMessage(
-          1L,
-          Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent))
-          )
-        )
-      )
+      scheduler.expectMsg(Completion(wecAgent.toTyped, Some(1800)))
 
       /* Expect the state change to idle with updated base state data */
       wecAgent.stateName shouldBe Idle
@@ -739,17 +609,14 @@ class WecAgentModelCalculationSpec
         case baseStateData: ParticipantModelBaseStateData[
               ApparentPower,
               WecRelevantData,
-              WecModel
+              ConstantState.type,
+              WecModel,
             ] =>
           /* The store for calculation relevant data has been extended */
-          baseStateData.calcRelevantDateStore match {
+          baseStateData.receivedSecondaryDataStore match {
             case ValueStore(_, store) =>
               store shouldBe Map(
-                900L -> WecRelevantData(
-                  weatherData.windVel,
-                  weatherData.temp,
-                  EmptyQuantity.of(PASCAL)
-                )
+                900L -> Map(weatherService.ref -> weatherData)
               )
           }
 
@@ -759,19 +626,11 @@ class WecAgentModelCalculationSpec
               store.size shouldBe 1
               store.getOrElse(
                 900L,
-                fail("Expected a simulation result for tick 900.")
+                fail("Expected a simulation result for tick 900."),
               ) match {
                 case ApparentPower(p, q) =>
-                  QuantityUtil.isEquivalentAbs(
-                    p,
-                    Quantities.getQuantity(0, MEGAWATT),
-                    1e-16
-                  ) shouldBe true
-                  QuantityUtil.isEquivalentAbs(
-                    q,
-                    Quantities.getQuantity(0, MEGAVAR),
-                    1e-16
-                  ) shouldBe true
+                  p should approximate(Megawatts(0.0))
+                  q should approximate(Megavars(0.0))
               }
           }
         case _ =>
@@ -785,162 +644,101 @@ class WecAgentModelCalculationSpec
       val wecAgent = TestFSMRef(
         new WecAgent(
           scheduler = scheduler.ref,
-          listener = systemListener
+          initStateData = initStateData,
+          listener = systemListener,
         )
       )
 
       /* Trigger the initialisation */
-      scheduler.send(
-        wecAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              WecInput,
-              WecRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = voltageSensitiveInput,
-              modelConfig = modelConfig,
-              simulationStartDate = simulationStartDate,
-              simulationEndDate = simulationEndDate,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              primaryServiceProxy = primaryServiceProxy.ref,
-              secondaryDataServices = withServices,
-              outputConfig = ParticipantNotifierConfig(
-                simulationResultInfo = false,
-                powerRequestReply = false
-              )
-            )
-          ),
-          0L,
-          wecAgent
-        )
-      )
+      scheduler.send(wecAgent, Activation(INIT_SIM_TICK))
 
       /* Agent attempts to register with primary data service -- refuse this */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(wecAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        wecAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref),
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(wecAgent, RegistrationSuccessfulMessage(Some(900L)))
+      weatherService.send(
+        wecAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
-      scheduler.expectMsgType[CompletionMessage]
+      scheduler.expectMsgType[Completion]
       awaitAssert(wecAgent.stateName shouldBe Idle)
 
       /* Ask the agent for average power in tick 1800 */
       wecAgent ! RequestAssetPowerMessage(
         1800L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1.0),
+        Each(0.0),
       )
       expectNoMessage(noReceiveTimeOut.duration)
       awaitAssert(wecAgent.stateName == Idle)
 
       /* Send out the expected data and wait for the reply */
       val weatherData = WeatherData(
-        Quantities.getQuantity(50, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(100, StandardUnits.SOLAR_IRRADIANCE),
-        Quantities.getQuantity(0, CELSIUS),
-        Quantities.getQuantity(0, METRE_PER_SECOND)
+        WattsPerSquareMeter(50d),
+        WattsPerSquareMeter(100d),
+        Celsius(0d),
+        MetersPerSecond(0d),
       )
       weatherService.send(
         wecAgent,
-        ProvideWeatherMessage(900L, weatherData, Some(1800L))
+        ProvideWeatherMessage(
+          900L,
+          weatherService.ref,
+          weatherData,
+          Some(1800L),
+        ),
       )
 
       /* Trigger the agent */
-      scheduler.send(
-        wecAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
-        )
-      )
+      scheduler.send(wecAgent, Activation(900))
 
       /* The agent will notice, that all expected information are apparent, switch to Calculate and trigger itself
        * for starting the calculation */
-      scheduler.expectMsg(
-        CompletionMessage(
-          1L,
-          Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent))
-          )
-        )
-      )
+      scheduler.expectMsg(Completion(wecAgent.toTyped, Some(1800)))
 
       /* Appreciate the answer to my previous request */
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          p should approximate(Megawatts(0.0))
+          q should approximate(Megavars(0.0))
       }
     }
 
     val wecAgent = TestFSMRef(
       new WecAgent(
         scheduler = scheduler.ref,
-        listener = systemListener
+        initStateData = initStateData,
+        listener = systemListener,
       )
     )
 
     "provide correct average power after three data ticks are available" in {
       /* Trigger the initialisation */
-      scheduler.send(
-        wecAgent,
-        TriggerWithIdMessage(
-          InitializeParticipantAgentTrigger[
-            ApparentPower,
-            ParticipantInitializeStateData[
-              WecInput,
-              WecRuntimeConfig,
-              ApparentPower
-            ]
-          ](
-            ParticipantInitializeStateData(
-              inputModel = voltageSensitiveInput,
-              modelConfig = modelConfig,
-              simulationStartDate = simulationStartDate,
-              simulationEndDate = simulationEndDate,
-              resolution = resolution,
-              requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-              primaryServiceProxy = primaryServiceProxy.ref,
-              secondaryDataServices = withServices,
-              outputConfig = ParticipantNotifierConfig(
-                simulationResultInfo = false,
-                powerRequestReply = false
-              )
-            )
-          ),
-          0L,
-          wecAgent
-        )
-      )
+      scheduler.send(wecAgent, Activation(INIT_SIM_TICK))
 
       /* Agent attempts to register with primary data service -- refuse this */
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
-      primaryServiceProxy.send(wecAgent, RegistrationFailedMessage)
+      primaryServiceProxy.send(
+        wecAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref),
+      )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
-      weatherService.send(wecAgent, RegistrationSuccessfulMessage(Some(900L)))
+      weatherService.send(
+        wecAgent,
+        RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
+      )
 
       /* I'm not interested in the content of the CompletionMessage */
-      scheduler.expectMsgType[CompletionMessage]
+      scheduler.expectMsgType[Completion]
       awaitAssert(wecAgent.stateName shouldBe Idle)
 
       /* Send out the three data points */
@@ -949,104 +747,66 @@ class WecAgentModelCalculationSpec
         wecAgent,
         ProvideWeatherMessage(
           900L,
+          weatherService.ref,
           WeatherData(
-            Quantities.getQuantity(50, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(100, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0, CELSIUS),
-            Quantities.getQuantity(0, METRE_PER_SECOND)
+            WattsPerSquareMeter(50d),
+            WattsPerSquareMeter(100d),
+            Celsius(0d),
+            MetersPerSecond(0d),
           ),
-          Some(1800L)
-        )
+          Some(1800L),
+        ),
       )
-      scheduler.send(
-        wecAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(900L),
-          1L,
-          scheduler.ref
-        )
-      )
-      scheduler.expectMsg(
-        CompletionMessage(
-          1L,
-          Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(1800L), wecAgent))
-          )
-        )
-      )
+      scheduler.send(wecAgent, Activation(900))
+      scheduler.expectMsg(Completion(wecAgent.toTyped, Some(1800)))
 
       /* ... for tick 1800 */
       weatherService.send(
         wecAgent,
         ProvideWeatherMessage(
           1800L,
+          weatherService.ref,
           WeatherData(
-            Quantities.getQuantity(50, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(100, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0, CELSIUS),
-            Quantities.getQuantity(0, METRE_PER_SECOND)
+            WattsPerSquareMeter(50d),
+            WattsPerSquareMeter(100d),
+            Celsius(0d),
+            MetersPerSecond(0d),
           ),
-          Some(2700L)
-        )
+          Some(2700L),
+        ),
       )
-      scheduler.send(
-        wecAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(1800L),
-          3L,
-          scheduler.ref
-        )
-      )
-      scheduler.expectMsg(
-        CompletionMessage(
-          3L,
-          Some(
-            Seq(ScheduleTriggerMessage(ActivityStartTrigger(2700L), wecAgent))
-          )
-        )
-      )
+      scheduler.send(wecAgent, Activation(1800))
+      scheduler.expectMsg(Completion(wecAgent.toTyped, Some(2700)))
 
       /* ... for tick 2700 */
       weatherService.send(
         wecAgent,
         ProvideWeatherMessage(
           2700L,
+          weatherService.ref,
           WeatherData(
-            Quantities.getQuantity(50, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(100, StandardUnits.SOLAR_IRRADIANCE),
-            Quantities.getQuantity(0, CELSIUS),
-            Quantities.getQuantity(0, METRE_PER_SECOND)
+            WattsPerSquareMeter(50d),
+            WattsPerSquareMeter(100d),
+            Celsius(0d),
+            MetersPerSecond(0d),
           ),
-          None
-        )
+          None,
+        ),
       )
-      scheduler.send(
-        wecAgent,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(2700L),
-          5L,
-          scheduler.ref
-        )
-      )
-      scheduler.expectMsg(CompletionMessage(5L))
+      scheduler.send(wecAgent, Activation(2700))
+      scheduler.expectMsg(Completion(wecAgent.toTyped))
 
       /* Ask the agent for average power in tick 3000 */
       wecAgent ! RequestAssetPowerMessage(
         3000L,
-        Quantities.getQuantity(1d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1.0),
+        Each(0.0),
       )
 
       expectMsgType[AssetPowerChangedMessage] match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          p should approximate(Megawatts(0.0))
+          q should approximate(Megavars(0.0))
         case answer => fail(s"Did not expect to get that answer: $answer")
       }
     }
@@ -1056,21 +816,15 @@ class WecAgentModelCalculationSpec
       /* Ask again with (nearly) unchanged information */
       wecAgent ! RequestAssetPowerMessage(
         3000L,
-        Quantities.getQuantity(1.000000000000001d, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(1.000000000000001d),
+        Each(0.0),
       )
 
       /* Expect, that nothing has changed */
       expectMsgType[AssetPowerUnchangedMessage] match {
         case AssetPowerUnchangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAVAR),
-            testingTolerance
-          )
+          p should approximate(Megawatts(0.0))
+          q should approximate(Megavars(0.0))
       }
     }
 
@@ -1078,21 +832,15 @@ class WecAgentModelCalculationSpec
       /* Ask again with changed information */
       wecAgent ! RequestAssetPowerMessage(
         3000L,
-        Quantities.getQuantity(0.98, PU),
-        Quantities.getQuantity(0d, PU)
+        Each(0.98d),
+        Each(0.0),
       )
 
       /* Expect, the correct values (this model has fixed power factor) */
       expectMsgClass(classOf[AssetPowerChangedMessage]) match {
         case AssetPowerChangedMessage(p, q) =>
-          p should equalWithTolerance(
-            Quantities.getQuantity(0d, MEGAWATT),
-            testingTolerance
-          )
-          q should equalWithTolerance(
-            Quantities.getQuantity(-156.1249e-3, MEGAVAR),
-            testingTolerance
-          )
+          p should approximate(Megawatts(0.0))
+          q should approximate(Megavars(-156.1249e-3))
       }
     }
   }

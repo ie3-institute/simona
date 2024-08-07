@@ -6,38 +6,15 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.datamodel.models.input.system.characteristic.CharacteristicPoint
-import edu.ie3.simona.model.system.Characteristic.XYPair
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.participant.CharacteristicTestData
-import edu.ie3.util.quantities.PowerSystemUnits.PU
-import tech.units.indriya.quantity.Quantities.getQuantity
-
-import javax.measure.quantity.Dimensionless
+import squants.Each
 
 class CharacteristicSpec extends UnitSpec with CharacteristicTestData {
 
-  final val defaultTolerance = 1e-12
+  private implicit val puTolerance: squants.Dimensionless = Each(1e-12)
 
   "The XYPair class" should {
-
-    "build a correct XYPair given a characteristic point" in {
-      val p1 = new CharacteristicPoint[Dimensionless, Dimensionless](
-        getQuantity(1, PU),
-        getQuantity(2, PU)
-      )
-      val p2 = new CharacteristicPoint[Dimensionless, Dimensionless](
-        getQuantity(2, PU),
-        getQuantity(4, PU)
-      )
-      val apply1 =
-        XYPair.xYPairFromCharacteristicPoint[Dimensionless, Dimensionless](p1)
-      val apply2 =
-        XYPair.xYPairFromCharacteristicPoint[Dimensionless, Dimensionless](p2)
-
-      xy1 shouldBe apply1
-      xy2 shouldBe apply2
-    }
 
     "compare two XYPairs correctly" in {
       val comparison1 = xy1.compare(xy2)
@@ -58,38 +35,38 @@ class CharacteristicSpec extends UnitSpec with CharacteristicTestData {
 
     "interpolate its xy-coordinates correctly, given a key" in {
       val testCharacteristic = TestCharacteristic
-      val interpolation1 = testCharacteristic.interpolateXy(getQuantity(1, PU))
-      val interpolation2 = testCharacteristic.interpolateXy(getQuantity(2, PU))
-      val interpolation3 = testCharacteristic.interpolateXy(getQuantity(3, PU))
+      val interpolation1 = testCharacteristic.interpolateXy(Each(1))
+      val interpolation2 = testCharacteristic.interpolateXy(Each(2))
+      val interpolation3 = testCharacteristic.interpolateXy(Each(3))
       val interpolation4 =
-        testCharacteristic.interpolateXy(getQuantity(1.5, PU))
+        testCharacteristic.interpolateXy(Each(1.5))
       val interpolation5 =
-        testCharacteristic.interpolateXy(getQuantity(2.5, PU))
+        testCharacteristic.interpolateXy(Each(2.5))
 
       interpolation1 match {
         case (x, y) =>
-          x should equalWithTolerance(getQuantity(1, PU), defaultTolerance)
-          y should equalWithTolerance(getQuantity(2, PU), defaultTolerance)
+          x should approximate(Each(1))
+          y should approximate(Each(2))
       }
       interpolation2 match {
         case (x, y) =>
-          x should equalWithTolerance(getQuantity(2, PU), defaultTolerance)
-          y should equalWithTolerance(getQuantity(4, PU), defaultTolerance)
+          x should approximate(Each(2))
+          y should approximate(Each(4))
       }
       interpolation3 match {
         case (x, y) =>
-          x should equalWithTolerance(getQuantity(3, PU), defaultTolerance)
-          y should equalWithTolerance(getQuantity(8, PU), defaultTolerance)
+          x should approximate(Each(3))
+          y should approximate(Each(8))
       }
       interpolation4 match {
         case (x, y) =>
-          x should equalWithTolerance(getQuantity(1.5, PU), defaultTolerance)
-          y should equalWithTolerance(getQuantity(3, PU), defaultTolerance)
+          x should approximate(Each(1.5))
+          y should approximate(Each(3))
       }
       interpolation5 match {
         case (x, y) =>
-          x should equalWithTolerance(getQuantity(2.5, PU), defaultTolerance)
-          y should equalWithTolerance(getQuantity(6, PU), defaultTolerance)
+          x should approximate(Each(2.5))
+          y should approximate(Each(6))
       }
     }
   }

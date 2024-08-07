@@ -7,19 +7,27 @@
 package edu.ie3.simona.config
 
 import com.typesafe.config.ConfigFactory
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
+  CoordinateSource,
+  SampleParams,
+}
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.{Csv, InfluxDb1x}
 import edu.ie3.simona.config.SimonaConfig.Simona.Powerflow.Newtonraphson
 import edu.ie3.simona.config.SimonaConfig.Simona.{Powerflow, Time}
-import edu.ie3.simona.config.SimonaConfig.{BaseCsvParams, ResultKafkaParams}
+import edu.ie3.simona.config.SimonaConfig.{
+  BaseCsvParams,
+  ResultKafkaParams,
+  TransformerControlGroup,
+}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
 import edu.ie3.util.TimeUtil
 
-import java.time.{Duration, ZonedDateTime}
 import java.time.temporal.ChronoUnit
+import java.time.{Duration, ZonedDateTime}
 
 class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
   "Validating the configs" when {
@@ -31,10 +39,9 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           noException shouldBe thrownBy {
             ConfigFailFast invokePrivate checkTimeConfig(
               new Time(
-                "2020-06-18 13:41:00",
+                "2020-06-18T13:41:00Z",
                 None,
-                "2020-05-18 13:41:00",
-                true
+                "2020-05-18T13:41:00Z",
               )
             )
           }
@@ -44,10 +51,9 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate checkTimeConfig(
               new Time(
-                "2020-06-18 13:41:00",
+                "2020-06-18T13:41:00Z",
                 None,
-                "2020-07-18 13:41:00",
-                true
+                "2020-07-18T13:41:00Z",
               )
             )
           }.getMessage shouldBe "Invalid time configuration." +
@@ -59,7 +65,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         val createDateTime =
           PrivateMethod[ZonedDateTime](Symbol("createDateTime"))
 
-        val dateTimeString: String = "2020-05-18 13:41:00"
+        val dateTimeString: String = "2020-05-18T13:41:00Z"
 
         "let valid input pass" in {
 
@@ -75,7 +81,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               "total non-sense"
             )
           }.getMessage shouldBe "Invalid dateTimeString: total non-sense." +
-            "Please ensure that your date/time parameter match the following pattern: 'yyyy-MM-dd HH:mm:ss'"
+            "Please ensure that your date/time parameter match the following pattern: 'yyyy-MM-dd'T'HH:mm:ss'Z''"
         }
       }
 
@@ -90,10 +96,11 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 10,
                 new Newtonraphson(
                   List(10, 30),
-                  100
+                  100,
                 ),
                 Duration.of(3600, ChronoUnit.SECONDS),
-                Duration.of(3600, ChronoUnit.SECONDS)
+                stopOnFailure = false,
+                Duration.of(3600, ChronoUnit.SECONDS),
               )
             )
           }
@@ -106,10 +113,11 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 10,
                 new Newtonraphson(
                   List(10, 30),
-                  100
+                  100,
                 ),
                 resolution = Duration.of(3600, ChronoUnit.NANOS),
-                sweepTimeout = Duration.of(3600, ChronoUnit.SECONDS)
+                stopOnFailure = false,
+                sweepTimeout = Duration.of(3600, ChronoUnit.SECONDS),
               )
             )
           }.getMessage shouldBe "Invalid time resolution. Please ensure, that the time resolution for power flow calculation is at least rounded to a full second!"
@@ -138,7 +146,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "throw an InvalidConfigParametersException when the gridId is malformed" in {
 
-          val malformedGridIds = List("10--100", "MS", "10..100")
+          val malformedGridIds = List("10--100", "MV", "10..100")
 
           malformedGridIds.foreach(malformedGridId => {
 
@@ -152,12 +160,14 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                    |]""".stripMargin)
             val faultyConfig =
               refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
-            val faultySimonaConfig = SimonaConfig(faultyConfig)
+            val faultySimonaConfig: List[SimonaConfig] =
+              List(SimonaConfig(faultyConfig))
 
             intercept[InvalidConfigParameterException] {
-              faultySimonaConfig.simona.gridConfig.refSystems.foreach(
-                refSystem =>
+              faultySimonaConfig.foreach(conf =>
+                conf.simona.gridConfig.refSystems.foreach(refSystem =>
                   ConfigFailFast invokePrivate checkRefSystem(refSystem)
+                )
               )
             }.getMessage shouldBe s"The provided gridId $malformedGridId is malformed!"
 
@@ -176,11 +186,14 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 |]""".stripMargin)
           val faultyConfig =
             refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
-          val faultySimonaConfig = SimonaConfig(faultyConfig)
+          val faultySimonaConfig: List[SimonaConfig] =
+            List(SimonaConfig(faultyConfig))
 
           intercept[InvalidConfigParameterException] {
-            faultySimonaConfig.simona.gridConfig.refSystems.foreach(refSystem =>
-              ConfigFailFast invokePrivate checkRefSystem(refSystem)
+            faultySimonaConfig.foreach(conf =>
+              conf.simona.gridConfig.refSystems.foreach(refSystem =>
+                ConfigFailFast invokePrivate checkRefSystem(refSystem)
+              )
             )
           }.getMessage shouldBe "The given nominal voltage 'foo' cannot be parsed to a quantity. Did you provide the volt level with it's unit (e.g. \"20 kV\")?"
 
@@ -193,19 +206,22 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 |  {
                 |   sNom="100",
                 |   vNom="0.4 kV",
-                |   voltLvls = [{id = "MS", vNom = "10 kV"},{id = "HS", vNom = "110 kV"}]
+                |   voltLvls = [{id = "MV", vNom = "10 kV"},{id = "HV", vNom = "110 kV"}]
                 |   }
                 |]""".stripMargin
             )
           val faultyConfig =
             refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
-          val faultySimonaConfig = SimonaConfig(faultyConfig)
+          val faultySimonaConfig: List[SimonaConfig] =
+            List(SimonaConfig(faultyConfig))
 
           intercept[InvalidConfigParameterException] {
-            faultySimonaConfig.simona.gridConfig.refSystems.foreach(refSystem =>
-              ConfigFailFast invokePrivate checkRefSystem(refSystem)
+            faultySimonaConfig.foreach(conf =>
+              conf.simona.gridConfig.refSystems.foreach(refSystem =>
+                ConfigFailFast invokePrivate checkRefSystem(refSystem)
+              )
             )
-          }.getMessage shouldBe "Invalid value for sNom from provided refSystem RefSystemConfig(None,100,0.4 kV,Some(List(VoltLvlConfig(MS,10 kV), VoltLvlConfig(HS,110 kV)))). Is a valid unit provided?"
+          }.getMessage shouldBe "Invalid value for sNom from provided refSystem RefSystemConfig(None,100,0.4 kV,Some(List(VoltLvlConfig(MV,10 kV), VoltLvlConfig(HV,110 kV)))). Is a valid unit provided?"
 
         }
 
@@ -217,19 +233,22 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 |  {
                 |   sNom="100 MVA",
                 |   vNom="0.4",
-                |   voltLvls = [{id = "MS", vNom = "10 kV"},{id = "HS", vNom = "110 kV"}]
+                |   voltLvls = [{id = "MV", vNom = "10 kV"},{id = "HV", vNom = "110 kV"}]
                 |   }
                 |]""".stripMargin
             )
           val faultyConfig =
             refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
-          val faultySimonaConfig = SimonaConfig(faultyConfig)
+          val faultySimonaConfig: List[SimonaConfig] =
+            List(SimonaConfig(faultyConfig))
 
           intercept[InvalidConfigParameterException] {
-            faultySimonaConfig.simona.gridConfig.refSystems.foreach(refSystem =>
-              ConfigFailFast invokePrivate checkRefSystem(refSystem)
+            faultySimonaConfig.foreach(conf =>
+              conf.simona.gridConfig.refSystems.foreach(refSystem =>
+                ConfigFailFast invokePrivate checkRefSystem(refSystem)
+              )
             )
-          }.getMessage shouldBe "Invalid value for vNom from provided refSystem RefSystemConfig(None,100 MVA,0.4,Some(List(VoltLvlConfig(MS,10 kV), VoltLvlConfig(HS,110 kV)))). Is a valid unit provided?"
+          }.getMessage shouldBe "Invalid value for vNom from provided refSystem RefSystemConfig(None,100 MVA,0.4,Some(List(VoltLvlConfig(MV,10 kV), VoltLvlConfig(HV,110 kV)))). Is a valid unit provided?"
 
         }
 
@@ -240,24 +259,26 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 |  {
                 |   sNom="100 MVA",
                 |   vNom="0.4 kV",
-                |   voltLvls = [{id = "MS", vNom = "10 kV"},{id = "HS", vNom = "110 kV"}]
+                |   voltLvls = [{id = "MV", vNom = "10 kV"},{id = "HV", vNom = "110 kV"}]
                 |   gridIds = ["1","1-10","10...100"]
                 |   },
                 |   {
                 |   sNom="1000 MVA",
                 |   vNom="10kV",
-                |   voltLvls = [{id = "HS", vNom = "110 kV"},{id = "HoeS", vNom = "380 kV"}]
+                |   voltLvls = [{id = "HV", vNom = "110 kV"},{id = "EHV", vNom = "380 kV"}]
                 |   gridIds = ["1-3","3...6","10...100"]
                 |   }
                 |]""".stripMargin
             )
           val config =
             refSystemConfigAllEmpty.withFallback(typesafeConfig).resolve()
-          val simonaConfig = SimonaConfig(config)
+          val simonaConfig = List(SimonaConfig(config))
 
-          simonaConfig.simona.gridConfig.refSystems.foreach(refSystem => {
-            ConfigFailFast invokePrivate checkRefSystem(refSystem)
-          })
+          simonaConfig.foreach(conf =>
+            conf.simona.gridConfig.refSystems.foreach(refSystem => {
+              ConfigFailFast invokePrivate checkRefSystem(refSystem)
+            })
+          )
 
         }
       }
@@ -450,7 +471,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
               simonaConfig.simona.runtime.participant.load.defaultConfig,
               simonaConfig.simona.runtime.participant.load.individualConfigs,
-              defaultString
+              defaultString,
             )
           }.getMessage shouldBe "There has to be at least one identifier for each participant."
         }
@@ -476,7 +497,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
               simonaConfig.simona.runtime.participant.load.defaultConfig,
               simonaConfig.simona.runtime.participant.load.individualConfigs,
-              defaultString
+              defaultString,
             )
           }.getMessage shouldBe "Found invalid UUID 'blabla' it was meant to be the string 'default' or a valid UUID."
         }
@@ -502,7 +523,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
               simonaConfig.simona.runtime.participant.load.defaultConfig,
               simonaConfig.simona.runtime.participant.load.individualConfigs,
-              defaultString
+              defaultString,
             )
           }.getMessage shouldBe s"Found invalid UUID 'blabla' it was meant to be the string 'default' or a valid UUID."
         }
@@ -528,7 +549,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
               simonaConfig.simona.runtime.participant.load.defaultConfig,
               simonaConfig.simona.runtime.participant.load.individualConfigs,
-              defaultString
+              defaultString,
             )
           }.getMessage shouldBe "The scaling factor for system participants with UUID '49f250fa-41ff-4434-a083-79c98d260a76' may not be negative."
         }
@@ -569,7 +590,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
               simonaConfig.simona.runtime.participant.load.defaultConfig,
               simonaConfig.simona.runtime.participant.load.individualConfigs,
-              defaultString
+              defaultString,
             )
           }.getMessage shouldBe "The basic model configurations contain ambiguous definitions."
         }
@@ -663,75 +684,161 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         "identify faulty notifier identifiers" in {
           intercept[InvalidConfigParameterException] {
-            ConfigFailFast invokePrivate checkNotifierIdentifier("whatever")
-          }.getMessage shouldBe s"The identifier 'whatever' you provided is not valid. Valid input: ${NotifierIdentifier.values.map(_.toString).mkString(",")}"
+            ConfigFailFast invokePrivate checkNotifierIdentifier(
+              "whatever",
+              NotifierIdentifier.getParticipantIdentifiers,
+            )
+          }.getMessage shouldBe s"The identifier 'whatever' you provided is not valid. Valid input: ${NotifierIdentifier.getParticipantIdentifiers.map(_.toString).mkString(",")}"
         }
 
         "let all valid notifier identifiers pass" in {
           noException shouldBe thrownBy {
-            NotifierIdentifier.values.map(id =>
+            NotifierIdentifier.getParticipantIdentifiers.map(id =>
               ConfigFailFast invokePrivate checkNotifierIdentifier(
-                id.toString
+                id.toString,
+                NotifierIdentifier.getParticipantIdentifiers,
               )
             )
           }
         }
 
-        val checkIndividualParticipantsOutputConfigs =
+        val checkIndividualOutputConfigs =
           PrivateMethod[Unit](
-            Symbol("checkIndividualParticipantsOutputConfigs")
+            Symbol("checkIndividualOutputConfigs")
           )
 
         "let distinct configs pass" in {
           val validInput = List(
-            SimonaConfig.BaseOutputConfig(
+            SimonaConfig.ParticipantBaseOutputConfig(
               notifier = "load",
               powerRequestReply = true,
-              simulationResult = false
+              simulationResult = false,
+              flexResult = false,
             ),
-            SimonaConfig.BaseOutputConfig(
+            SimonaConfig.ParticipantBaseOutputConfig(
               notifier = "pv",
               powerRequestReply = true,
-              simulationResult = false
+              simulationResult = false,
+              flexResult = false,
             ),
-            SimonaConfig.BaseOutputConfig(
+            SimonaConfig.ParticipantBaseOutputConfig(
               notifier = "chp",
               powerRequestReply = true,
-              simulationResult = false
-            )
+              simulationResult = false,
+              flexResult = false,
+            ),
           )
 
           noException shouldBe thrownBy {
-            ConfigFailFast invokePrivate checkIndividualParticipantsOutputConfigs(
-              validInput
+            ConfigFailFast invokePrivate checkIndividualOutputConfigs(
+              validInput,
+              "participant",
             )
           }
         }
 
         "throw an exception, when there is a duplicate entry for the same model type" in {
           val invalidInput = List(
-            SimonaConfig.BaseOutputConfig(
+            SimonaConfig.ParticipantBaseOutputConfig(
               notifier = "load",
               powerRequestReply = true,
-              simulationResult = false
+              simulationResult = false,
+              flexResult = false,
             ),
-            SimonaConfig.BaseOutputConfig(
+            SimonaConfig.ParticipantBaseOutputConfig(
               notifier = "pv",
               powerRequestReply = true,
-              simulationResult = false
+              simulationResult = false,
+              flexResult = false,
             ),
-            SimonaConfig.BaseOutputConfig(
+            SimonaConfig.ParticipantBaseOutputConfig(
               notifier = "load",
               powerRequestReply = false,
-              simulationResult = true
-            )
+              simulationResult = true,
+              flexResult = false,
+            ),
           )
 
           intercept[InvalidConfigParameterException](
-            ConfigFailFast invokePrivate checkIndividualParticipantsOutputConfigs(
-              invalidInput
+            ConfigFailFast invokePrivate checkIndividualOutputConfigs(
+              invalidInput,
+              "participant",
             )
           ).getMessage shouldBe "There are multiple output configurations for participant types 'load'."
+        }
+      }
+
+      "Checking thermal output configs" should {
+        val checkNotifierIdentifier =
+          PrivateMethod[Unit](Symbol("checkNotifierIdentifier"))
+
+        "identify faulty notifier identifiers" in {
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkNotifierIdentifier(
+              "whatever",
+              NotifierIdentifier.getThermalIdentifiers,
+            )
+          }.getMessage shouldBe s"The identifier 'whatever' you provided is not valid. Valid input: ${NotifierIdentifier.getThermalIdentifiers.map(_.toString).mkString(",")}"
+        }
+
+        "let all valid notifier identifiers pass" in {
+          noException shouldBe thrownBy {
+            Set("house", "cylindricalstorage").map(id =>
+              ConfigFailFast invokePrivate checkNotifierIdentifier(
+                id,
+                NotifierIdentifier.getThermalIdentifiers,
+              )
+            )
+          }
+        }
+
+        val checkIndividualOutputConfigs =
+          PrivateMethod[Unit](
+            Symbol("checkIndividualOutputConfigs")
+          )
+
+        "let distinct configs pass" in {
+          val validInput = List(
+            SimonaConfig.SimpleOutputConfig(
+              notifier = "house",
+              simulationResult = false,
+            ),
+            SimonaConfig.SimpleOutputConfig(
+              notifier = "cylindricalstorage",
+              simulationResult = false,
+            ),
+          )
+
+          noException shouldBe thrownBy {
+            ConfigFailFast invokePrivate checkIndividualOutputConfigs(
+              validInput,
+              "thermal",
+            )
+          }
+        }
+
+        "throw an exception, when there is a duplicate entry for the same model type" in {
+          val invalidInput = List(
+            SimonaConfig.SimpleOutputConfig(
+              notifier = "house",
+              simulationResult = false,
+            ),
+            SimonaConfig.SimpleOutputConfig(
+              notifier = "cylindricalstorage",
+              simulationResult = false,
+            ),
+            SimonaConfig.SimpleOutputConfig(
+              notifier = "house",
+              simulationResult = false,
+            ),
+          )
+
+          intercept[InvalidConfigParameterException](
+            ConfigFailFast invokePrivate checkIndividualOutputConfigs(
+              invalidInput,
+              "thermal",
+            )
+          ).getMessage shouldBe "There are multiple output configurations for thermal types 'house'."
         }
       }
 
@@ -751,7 +858,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               Sink(
                 Some(Csv("", "", "", isHierarchic = false)),
                 Some(InfluxDb1x("", 0, "")),
-                None
+                None,
               )
             )
           }.getLocalizedMessage shouldBe "Multiple sink configurations are not supported! Please ensure that only " +
@@ -779,9 +886,9 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                     0,
                     "00000000-0000-0000-0000-000000000000",
                     "https://reg:123",
-                    "topic"
+                    "topic",
                   )
-                )
+                ),
               )
             )
           }.getMessage shouldBe "Connection with kafka broker localhost:12345 failed."
@@ -796,7 +903,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           intercept[InvalidConfigParameterException] {
             CsvConfigUtil.checkBaseCsvParams(
               csvParams,
-              "CsvGridData"
+              "CsvGridData",
             )
           }.getMessage shouldBe "The csvSep parameter '\t' for 'CsvGridData' configuration is invalid! Please choose between ';' or ','!"
         }
@@ -806,7 +913,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           intercept[InvalidConfigParameterException] {
             CsvConfigUtil.checkBaseCsvParams(
               csvParams,
-              "CsvGridData"
+              "CsvGridData",
             )
           }.getMessage shouldBe "The provided directoryPath for .csv-files '' for 'CsvGridData' configuration is invalid! Please correct the path!"
         }
@@ -818,7 +925,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           intercept[InvalidConfigParameterException] {
             CsvConfigUtil.checkBaseCsvParams(
               csvParams,
-              "CsvGridData"
+              "CsvGridData",
             )
           }.getMessage shouldBe "The provided directoryPath for .csv-files 'somewhere/else' for 'CsvGridData' configuration is invalid! Please correct the path!"
         }
@@ -826,16 +933,16 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         "identify a path pointing to a file" in {
           val csvParams = BaseCsvParams(
             ",",
-            "inputData/common/akka.conf",
-            isHierarchic = false
+            "inputData/common/pekko.conf",
+            isHierarchic = false,
           )
 
           intercept[InvalidConfigParameterException] {
             CsvConfigUtil.checkBaseCsvParams(
               csvParams,
-              "CsvGridData"
+              "CsvGridData",
             )
-          }.getMessage shouldBe "The provided directoryPath for .csv-files 'inputData/common/akka.conf' for 'CsvGridData' configuration is invalid! Please correct the path!"
+          }.getMessage shouldBe "The provided directoryPath for .csv-files 'inputData/common/pekko.conf' for 'CsvGridData' configuration is invalid! Please correct the path!"
         }
 
         "let valid csv parameters pass" in {
@@ -844,7 +951,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           noException shouldBe thrownBy {
             CsvConfigUtil.checkBaseCsvParams(
               csvParams,
-              "CsvGridData"
+              "CsvGridData",
             )
           }
         }
@@ -857,7 +964,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             Some(
               BaseCsvParams(",", "inputData/vn_simona", isHierarchic = false)
             ),
-            id = ""
+            id = "",
           )
 
           intercept[InvalidConfigParameterException] {
@@ -868,7 +975,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         "identify unsupported id" in {
           val gridDataSource = SimonaConfig.Simona.Input.Grid.Datasource(
             None,
-            id = "someWhereUndefined"
+            id = "someWhereUndefined",
           )
 
           intercept[InvalidConfigParameterException] {
@@ -879,7 +986,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         "identify missing csv parameters" in {
           val gridDataSource = SimonaConfig.Simona.Input.Grid.Datasource(
             None,
-            id = "csv"
+            id = "csv",
           )
 
           intercept[InvalidConfigParameterException] {
@@ -894,10 +1001,10 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
               BaseCsvParams(
                 ",",
                 "input/samples/vn_simona",
-                isHierarchic = false
+                isHierarchic = false,
               )
             ),
-            id = "csv"
+            id = "csv",
           )
 
           noException shouldBe thrownBy {
@@ -909,51 +1016,338 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
       /* Checking of primary source configuration is delegated to the specific actor. Tests are placed there */
 
       "Checking weather data sources" should {
-
         val checkWeatherDataSource =
           PrivateMethod[Unit](Symbol("checkWeatherDataSource"))
 
+        val csv: BaseCsvParams =
+          BaseCsvParams(",", "input", isHierarchic = false)
+        val sample = new SampleParams(true)
+
+        val weatherDataSource = Datasource(
+          CoordinateSource(
+            None,
+            "icon",
+            Some(
+              SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
+                .SampleParams(true)
+            ),
+            None,
+          ),
+          None,
+          None,
+          None,
+          50000d,
+          Some(360L),
+          None,
+          "icon",
+          None,
+          Some("yyyy-MM-dd HH:mm"),
+        )
+
         "detects invalid weather data scheme" in {
-          val weatherDataSource =
-            new SimonaConfig.Simona.Input.Weather.Datasource(
-              CoordinateSource(
-                None,
-                "icon",
-                Some(
-                  SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
-                    .SampleParams(true)
-                )
-              ),
-              None,
-              None,
-              None,
-              Some(360L),
-              Some(
-                SimonaConfig.Simona.Input.Weather.Datasource.SampleParams(true)
-              ),
-              "this won't work",
-              None,
-              Some("yyyy-MM-dd HH:mm")
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkWeatherDataSource(
+              weatherDataSource.copy(scheme = "this won't work")
             )
+          }.getMessage shouldBe "The weather data scheme 'this won't work' is not supported. " +
+            "Supported schemes:\n\ticon\n\tcosmo"
+        }
+
+        "detect missing source" in {
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate checkWeatherDataSource(
               weatherDataSource
             )
-          }.getMessage shouldBe "The weather data scheme 'this won't work' is not supported. Supported schemes:\n\ticon\n\tcosmo"
+          }.getMessage should startWith(
+            "No weather source defined! This is currently not supported! Please provide the config parameters for " +
+              "one of the following weather sources:"
+          )
         }
 
+        "detect too many sources" in {
+          val tooManySources = weatherDataSource.copy(
+            csvParams = Some(csv),
+            sampleParams = Some(sample),
+          )
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkWeatherDataSource(tooManySources)
+          }.getMessage should startWith("Multiple weather sources defined:")
+        }
+
+        "detects sample source mismatch" in {
+          val csvCoordinateSource = new CoordinateSource(
+            csvParams = Some(csv),
+            gridModel = "icon",
+            sampleParams = None,
+            sqlParams = None,
+          )
+
+          val sampleMismatch = weatherDataSource.copy(
+            coordinateSource = csvCoordinateSource,
+            sampleParams = Some(sample),
+          )
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkWeatherDataSource(sampleMismatch)
+          }.getMessage shouldBe "Invalid coordinate source 'csv' defined for SampleWeatherSource. Please adapt the configuration to use sample coordinate source for weather data!"
+        }
+      }
+
+      "checking the transformer control groups" should {
+        val checkTransformerControl =
+          PrivateMethod[Unit](Symbol("checkTransformerControl"))
+
+        "throw an exception, if the measurements are empty" in {
+          val dut = TransformerControlGroup(
+            List.empty,
+            List("a16cf7ca-8bbf-46e1-a74e-ffa6513c89a8"),
+            1.02,
+            0.98,
+          )
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkTransformerControl(dut)
+          }.getMessage shouldBe s"A transformer control group (${dut.toString}) cannot have no measurements assigned."
+        }
+
+        "throw an exception, if the transformers are empty" in {
+          val dut = TransformerControlGroup(
+            List("6888c53a-7629-4563-ac8e-840f80b03106"),
+            List.empty,
+            1.02,
+            0.98,
+          )
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkTransformerControl(dut)
+          }.getMessage shouldBe s"A transformer control group (${dut.toString}) cannot have no transformers assigned."
+        }
+
+        "throw an exception, if vMax is smaller than vMin" in {
+          val dut = TransformerControlGroup(
+            List("6888c53a-7629-4563-ac8e-840f80b03106"),
+            List("a16cf7ca-8bbf-46e1-a74e-ffa6513c89a8"),
+            0.98,
+            1.02,
+          )
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkTransformerControl(dut)
+          }.getMessage shouldBe s"The minimum permissible voltage magnitude of a transformer control group (${dut.toString}) must be smaller than the maximum permissible voltage magnitude."
+        }
+
+        "throw Exception if vMin is lower than -20% of nominal Voltage" in {
+          val dut = TransformerControlGroup(
+            List("6888c53a-7629-4563-ac8e-840f80b03106"),
+            List("a16cf7ca-8bbf-46e1-a74e-ffa6513c89a8"),
+            1.02,
+            0.79,
+          )
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkTransformerControl(dut)
+          }.getMessage shouldBe s"A control group (${dut.toString}) which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
+            "by invalid parametrization of one control groups where vMin is lower than the lower boundary (0.8 of nominal Voltage)!"
+        }
+
+        "throw Exception if vMax is higher than +20% of nominal Voltage" in {
+          val dut = TransformerControlGroup(
+            List("6888c53a-7629-4563-ac8e-840f80b03106"),
+            List("a16cf7ca-8bbf-46e1-a74e-ffa6513c89a8"),
+            1.21,
+            0.98,
+          )
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkTransformerControl(dut)
+          }.getMessage shouldBe s"A control group (${dut.toString}) which control boundaries exceed the limit of +- 20% of nominal voltage! This may be caused " +
+            "by invalid parametrization of one control groups where vMax is higher than the upper boundary (1.2 of nominal Voltage)!"
+        }
       }
     }
 
+    "checking the parameterization of storages" should {
+      val checkStorageConfigs =
+        PrivateMethod[Unit](Symbol("checkStoragesConfig"))
+
+      "throw exception if default initial SOC is negative" in {
+
+        val defaultConfig: SimonaConfig.StorageRuntimeConfig =
+          SimonaConfig.StorageRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            1.0,
+            List(java.util.UUID.randomUUID().toString),
+            -0.5,
+            Some(0.8),
+          )
+        val storageConfig = SimonaConfig.Simona.Runtime.Participant
+          .Storage(defaultConfig, List.empty)
+
+        intercept[RuntimeException] {
+          ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
+        }.getMessage shouldBe "StorageRuntimeConfig: Default initial SOC needs to be between 0.0 and 1.0."
+      }
+
+      "throw exception if default target SOC is negative" in {
+        val defaultConfig: SimonaConfig.StorageRuntimeConfig =
+          SimonaConfig.StorageRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            1.0,
+            List(java.util.UUID.randomUUID().toString),
+            0.5,
+            Some(-0.8),
+          )
+        val storageConfig = SimonaConfig.Simona.Runtime.Participant
+          .Storage(defaultConfig, List.empty)
+
+        intercept[RuntimeException] {
+          ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
+        }.getMessage shouldBe "StorageRuntimeConfig: Default target SOC needs to be between 0.0 and 1.0."
+      }
+
+      "throw exception if individual initial SOC is negative" in {
+        val uuid = java.util.UUID.randomUUID().toString
+        val defaultConfig: SimonaConfig.StorageRuntimeConfig =
+          SimonaConfig.StorageRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            1.0,
+            List(java.util.UUID.randomUUID().toString),
+            0.5,
+            Some(0.8),
+          )
+        val individualConfig: List[SimonaConfig.StorageRuntimeConfig] = List(
+          SimonaConfig.StorageRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            1.0,
+            List(uuid),
+            -0.5,
+            Some(0.8),
+          )
+        )
+        val storageConfig = SimonaConfig.Simona.Runtime.Participant
+          .Storage(defaultConfig, individualConfig)
+
+        intercept[RuntimeException] {
+          ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
+        }.getMessage shouldBe s"StorageRuntimeConfig: List($uuid) initial SOC needs to be between 0.0 and 1.0."
+      }
+
+      "throw exception if individual target SOC is negative" in {
+        val uuid = java.util.UUID.randomUUID().toString
+        val defaultConfig: SimonaConfig.StorageRuntimeConfig =
+          SimonaConfig.StorageRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            1.0,
+            List(java.util.UUID.randomUUID().toString),
+            0.5,
+            Some(0.8),
+          )
+        val individualConfig: List[SimonaConfig.StorageRuntimeConfig] = List(
+          SimonaConfig.StorageRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            1.0,
+            List(uuid),
+            0.5,
+            Some(-0.8),
+          )
+        )
+        val storageConfig = SimonaConfig.Simona.Runtime.Participant
+          .Storage(defaultConfig, individualConfig)
+
+        intercept[RuntimeException] {
+          ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
+        }.getMessage shouldBe s"StorageRuntimeConfig: List($uuid) target SOC needs to be between 0.0 and 1.0."
+      }
+
+      "not throw exception if all parameters are in parameter range" in {
+        val defaultConfig: SimonaConfig.StorageRuntimeConfig =
+          SimonaConfig.StorageRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            1.0,
+            List(java.util.UUID.randomUUID().toString),
+            0.5,
+            Some(0.8),
+          )
+        val individualConfig: List[SimonaConfig.StorageRuntimeConfig] = List(
+          SimonaConfig.StorageRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            1.0,
+            List(java.util.UUID.randomUUID().toString),
+            0.5,
+            Some(0.8),
+          )
+        )
+        val storageConfig = SimonaConfig.Simona.Runtime.Participant
+          .Storage(defaultConfig, individualConfig)
+
+        noException should be thrownBy {
+          ConfigFailFast invokePrivate checkStorageConfigs(storageConfig)
+        }
+      }
+    }
+
+    "Checking coordinate sources" should {
+      val checkCoordinateSource =
+        PrivateMethod[Unit](Symbol("checkCoordinateSource"))
+      val csvParams: BaseCsvParams = BaseCsvParams(
+        ",",
+        "input",
+        isHierarchic = false,
+      )
+      val sampleParams =
+        new SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SampleParams(
+          true
+        )
+
+      val coordinateSource = new CoordinateSource(
+        csvParams = None,
+        gridModel = "icon",
+        sampleParams = None,
+        sqlParams = None,
+      )
+
+      "detect missing source" in {
+        intercept[InvalidConfigParameterException] {
+          ConfigFailFast invokePrivate checkCoordinateSource(coordinateSource)
+        }.getMessage should startWith(
+          "No coordinate source defined! This is currently not supported! Please provide the config parameters for one of the following coordinate sources"
+        )
+      }
+
+      "detect too many sources" in {
+        val tooManySources = coordinateSource.copy(
+          csvParams = Some(csvParams),
+          sampleParams = Some(sampleParams),
+        )
+
+        intercept[InvalidConfigParameterException] {
+          ConfigFailFast invokePrivate checkCoordinateSource(tooManySources)
+        }.getMessage should startWith("Multiple coordinate sources defined:")
+      }
+
+      "detect invalid grid model" in {
+        val invalidGridModel = coordinateSource.copy(
+          csvParams = Some(csvParams),
+          gridModel = "invalid",
+        )
+
+        intercept[InvalidConfigParameterException] {
+          ConfigFailFast invokePrivate checkCoordinateSource(invalidGridModel)
+        }.getMessage should startWith("Grid model 'invalid' is not supported!")
+      }
+
+    }
+
     "validating the typesafe config" when {
-      "checking the availability of akka logger parameterization" should {
-        val checkAkkaLoggers = PrivateMethod[Unit](Symbol("checkAkkaLoggers"))
+      "checking the availability of pekko logger parameterization" should {
+        val checkPekkoLoggers = PrivateMethod[Unit](Symbol("checkPekkoLoggers"))
 
         "log warning on malicious config" in {
           val maliciousConfig = ConfigFactory.parseString("")
 
           noException shouldBe thrownBy {
-            ConfigFailFast invokePrivate checkAkkaLoggers(maliciousConfig)
+            ConfigFailFast invokePrivate checkPekkoLoggers(maliciousConfig)
           }
           /* Testing the log message cannot be tested, as with LazyLogging, the logger of the class cannot be spied. */
         }
@@ -961,26 +1355,26 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         "pass on proper config" in {
           val properConfig = ConfigFactory.parseString(
             """
-              |akka {
-              |  loggers = ["akka.event.slf4j.Slf4jLogger"]
+              |pekko {
+              |  loggers = ["pekko.event.slf4j.Slf4jLogger"]
               |}""".stripMargin
           )
 
           noException shouldBe thrownBy {
-            ConfigFailFast invokePrivate checkAkkaLoggers(properConfig)
+            ConfigFailFast invokePrivate checkPekkoLoggers(properConfig)
           }
           /* Testing the log message cannot be tested, as with LazyLogging, the logger of the class cannot be spied. */
         }
       }
 
-      "checking the akka config" should {
-        val checkAkkaConfig = PrivateMethod[Unit](Symbol("checkAkkaConfig"))
+      "checking the pekko config" should {
+        val checkPekkoConfig = PrivateMethod[Unit](Symbol("checkPekkoConfig"))
 
         "log warning on missing entry" in {
           val maliciousConfig = ConfigFactory.parseString("")
 
           noException shouldBe thrownBy {
-            ConfigFailFast invokePrivate checkAkkaConfig(maliciousConfig)
+            ConfigFailFast invokePrivate checkPekkoConfig(maliciousConfig)
           }
           /* Testing the log message cannot be tested, as with LazyLogging, the logger of the class cannot be spied. */
         }
@@ -988,13 +1382,13 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         "pass on proper config" in {
           val properConfig = ConfigFactory.parseString(
             """
-              |akka {
-              |  loggers = ["akka.event.slf4j.Slf4jLogger"]
+              |pekko {
+              |  loggers = ["pekko.event.slf4j.Slf4jLogger"]
               |}""".stripMargin
           )
 
           noException shouldBe thrownBy {
-            ConfigFailFast invokePrivate checkAkkaConfig(properConfig)
+            ConfigFailFast invokePrivate checkPekkoConfig(properConfig)
           }
           /* Testing the log message cannot be tested, as with LazyLogging, the logger of the class cannot be spied. */
         }
@@ -1004,8 +1398,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         "pass on proper input" in {
           val properConfig = ConfigFactory.parseString(
             """
-              |akka {
-              |  loggers = ["akka.event.slf4j.Slf4jLogger"]
+              |pekko {
+              |  loggers = ["pekko.event.slf4j.Slf4jLogger"]
               |}""".stripMargin
           )
 
@@ -1021,7 +1415,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
       "having two proper inputs" should {
         "pass" in {
           val properTypesafeConfig = ConfigFactory.parseString(
-            "akka.loggers = [\"akka.event.slf4j.Slf4jLogger\"]"
+            "pekko.loggers = [\"pekko.event.slf4j.Slf4jLogger\"]"
           )
           val properSimonaConfig = simonaConfig
 

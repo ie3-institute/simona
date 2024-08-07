@@ -9,6 +9,7 @@ package edu.ie3.simona.test.common.input
 import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.naming.timeseries.ColumnScheme
 
+import java.nio.file.Paths
 import java.util.UUID
 
 trait TimeSeriesTestData {
@@ -23,18 +24,18 @@ trait TimeSeriesTestData {
     new CsvIndividualTimeSeriesMetaInformation(
       uuidP,
       ColumnScheme.ACTIVE_POWER,
-      s"its_p_$uuidP"
+      Paths.get("its_p_" + uuidP),
     )
   protected val metaPq: CsvIndividualTimeSeriesMetaInformation =
     new CsvIndividualTimeSeriesMetaInformation(
       uuidPq,
       ColumnScheme.APPARENT_POWER,
-      s"its_pq_$uuidPq"
+      Paths.get("its_pq_" + uuidPq),
     )
   protected val metaPqh: CsvIndividualTimeSeriesMetaInformation =
     new CsvIndividualTimeSeriesMetaInformation(
       uuidPqh,
       ColumnScheme.APPARENT_POWER_AND_HEAT_DEMAND,
-      s"its_pqh_$uuidPqh"
+      Paths.get("its_pqh_" + uuidPqh),
     )
 }

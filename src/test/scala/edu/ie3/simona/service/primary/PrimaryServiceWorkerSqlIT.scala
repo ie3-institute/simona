@@ -6,40 +6,43 @@
 
 package edu.ie3.simona.service.primary
 
-import akka.actor.ActorSystem
-import akka.testkit.{TestActorRef, TestProbe}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 import com.dimafeng.testcontainers.{ForAllTestContainer, PostgreSQLContainer}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.io.naming.DatabaseNamingStrategy
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.value.{HeatAndSValue, PValue}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ActivePower,
-  ApparentPowerAndHeat
+  ApparentPowerAndHeat,
 }
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
+  Completion,
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.WorkerRegistrationMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeServiceTrigger
-}
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
+import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   ProvidePrimaryDataMessage,
-  SqlInitPrimaryServiceStateData
+  SqlInitPrimaryServiceStateData,
 }
-import edu.ie3.simona.test.common.AgentSpec
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
+import edu.ie3.simona.test.common.{AgentSpec, TestSpawnerClassic}
 import edu.ie3.simona.test.helper.TestContainerHelper
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
+import edu.ie3.util.scala.quantities.Kilovars
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.prop.TableDrivenPropertyChecks
-import tech.units.indriya.quantity.Quantities
+import org.testcontainers.utility.DockerImageName
+import squants.energy.Kilowatts
+
+import java.util.UUID
 
 class PrimaryServiceWorkerSqlIT
     extends AgentSpec(
@@ -47,22 +50,23 @@ class PrimaryServiceWorkerSqlIT
         "PrimaryServiceWorkerSqlIT",
         ConfigFactory
           .parseString("""
-                     |akka.loglevel="OFF"
-          """.stripMargin)
+                     |pekko.loglevel="OFF"
+          """.stripMargin),
       )
     )
     with ForAllTestContainer
     with BeforeAndAfterAll
     with TableDrivenPropertyChecks
     with TimeSeriesTestData
-    with TestContainerHelper {
+    with TestContainerHelper
+    with TestSpawnerClassic {
 
   override val container: PostgreSQLContainer = PostgreSQLContainer(
-    "postgres:14.2"
+    DockerImageName.parse("postgres:14.2")
   )
 
   private val simulationStart =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
 
   private val schemaName = "public"
 
@@ -86,6 +90,7 @@ class PrimaryServiceWorkerSqlIT
   "A primary service actor with SQL source" should {
     "initialize and send out data when activated" in {
       val scheduler = TestProbe("Scheduler")
+      val lock = TestProbe("lock")
 
       val cases = Table(
         (
@@ -93,34 +98,34 @@ class PrimaryServiceWorkerSqlIT
           "uuid",
           "firstTick",
           "firstData",
-          "maybeNextTick"
+          "maybeNextTick",
         ),
         (
           PrimaryServiceWorker.props(
             scheduler.ref,
-            classOf[HeatAndSValue]
+            classOf[HeatAndSValue],
           ),
           uuidPqh,
           0L,
           ApparentPowerAndHeat(
-            Quantities.getQuantity(1000.0d, StandardUnits.ACTIVE_POWER_IN),
-            Quantities.getQuantity(329.0d, StandardUnits.REACTIVE_POWER_IN),
-            Quantities.getQuantity(8000.0, StandardUnits.HEAT_DEMAND_PROFILE)
+            Kilowatts(1000.0),
+            Kilovars(329.0),
+            Kilowatts(8000.0),
           ),
-          Some(900L)
+          Some(900L),
         ),
         (
           PrimaryServiceWorker.props(
             scheduler.ref,
-            classOf[PValue]
+            classOf[PValue],
           ),
           uuidP,
           0L,
           ActivePower(
-            Quantities.getQuantity(1000.0d, StandardUnits.ACTIVE_POWER_IN)
+            Kilowatts(1000.0)
           ),
-          Some(900L)
-        )
+          Some(900L),
+        ),
       )
 
       forAll(cases) {
@@ -129,7 +134,7 @@ class PrimaryServiceWorkerSqlIT
             uuid,
             firstTick,
             firstData,
-            maybeNextTick
+            maybeNextTick,
         ) =>
           val serviceRef = TestActorRef(service)
 
@@ -141,56 +146,35 @@ class PrimaryServiceWorkerSqlIT
               userName = container.username,
               password = container.password,
               schemaName = schemaName,
-              timePattern = "yyyy-MM-dd HH:mm:ss"
+              timePattern = "yyyy-MM-dd'T'HH:mm:ssX",
             ),
-            new DatabaseNamingStrategy()
+            new DatabaseNamingStrategy(),
           )
 
-          val triggerId1 = 1L
-
+          val key1 = ScheduleKey(lock.ref.toTyped, UUID.randomUUID())
           scheduler.send(
             serviceRef,
-            TriggerWithIdMessage(
-              InitializeServiceTrigger(initData),
-              triggerId1,
-              serviceRef
-            )
+            SimonaService.Create(initData, key1),
+          )
+          scheduler.expectMsg(
+            ScheduleActivation(serviceRef.toTyped, INIT_SIM_TICK, Some(key1))
           )
 
-          scheduler.expectMsg(
-            CompletionMessage(
-              triggerId1,
-              Some(
-                Seq(
-                  ScheduleTriggerMessage(
-                    ActivityStartTrigger(firstTick),
-                    serviceRef
-                  )
-                )
-              )
-            )
-          )
+          scheduler.send(serviceRef, Activation(INIT_SIM_TICK))
+          scheduler.expectMsg(Completion(serviceRef.toTyped, Some(firstTick)))
 
           val participant = TestProbe()
 
           participant.send(
             serviceRef,
-            WorkerRegistrationMessage(participant.ref)
+            WorkerRegistrationMessage(participant.ref),
           )
-          participant.expectMsg(RegistrationSuccessfulMessage(Some(firstTick)))
-
-          val triggerId2 = 2L
-
-          scheduler.send(
-            serviceRef,
-            TriggerWithIdMessage(
-              ActivityStartTrigger(firstTick),
-              triggerId2,
-              serviceRef
-            )
+          participant.expectMsg(
+            RegistrationSuccessfulMessage(serviceRef, Some(firstTick))
           )
 
-          scheduler.expectMsgType[CompletionMessage]
+          scheduler.send(serviceRef, Activation(firstTick))
+          scheduler.expectMsg(Completion(serviceRef.toTyped, maybeNextTick))
 
           val dataMsg = participant.expectMsgType[ProvidePrimaryDataMessage]
           dataMsg.tick shouldBe firstTick

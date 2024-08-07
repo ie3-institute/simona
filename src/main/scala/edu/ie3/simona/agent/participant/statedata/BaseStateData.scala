@@ -6,18 +6,27 @@
 
 package edu.ie3.simona.agent.participant.statedata
 
-import akka.actor.ActorRef
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
-import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
-import tech.units.indriya.ComparableQuantity
+import edu.ie3.simona.event.notifier.NotifierConfig
+import edu.ie3.simona.model.participant.{
+  CalcRelevantData,
+  ModelState,
+  SystemParticipant,
+}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
+  FlexRequest,
+  FlexResponse,
+  ProvideFlexOptions,
+}
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.{ActorRef => ClassicActorRef}
+import squants.Dimensionless
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import javax.measure.quantity.Dimensionless
 import scala.collection.SortedSet
 
 /** Trait to denote the common properties to all basic state data in participant
@@ -52,7 +61,7 @@ trait BaseStateData[+PD <: PrimaryDataWithApparentPower[PD]]
   /** A mapping from service reference to it's foreseen next availability of
     * data
     */
-  val foreseenDataTicks: Map[ActorRef, Option[Long]]
+  val foreseenDataTicks: Map[ClassicActorRef, Option[Long]]
 
   /** A store, holding a map from tick to active / reactive power
     */
@@ -68,11 +77,11 @@ trait BaseStateData[+PD <: PrimaryDataWithApparentPower[PD]]
     * set to 1.0 p.u. per default. If more information are available, the
     * attribute shall be overridden
     */
-  val voltageValueStore: ValueStore[ComparableQuantity[Dimensionless]]
+  val voltageValueStore: ValueStore[Dimensionless]
 
   /** Determines the output behaviour of this model
     */
-  val outputConfig: ParticipantNotifierConfig
+  val outputConfig: NotifierConfig
 }
 
 object BaseStateData {
@@ -90,7 +99,8 @@ object BaseStateData {
   trait ModelBaseStateData[
       +PD <: PrimaryDataWithApparentPower[PD],
       CD <: CalcRelevantData,
-      M <: SystemParticipant[_ <: CalcRelevantData]
+      MS <: ModelState,
+      +M <: SystemParticipant[_ <: CalcRelevantData, PD, MS],
   ] extends BaseStateData[PD] {
 
     /** The physical system model
@@ -99,11 +109,19 @@ object BaseStateData {
 
     /** The services, the physical model depends on
       */
-    val services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]]
+    val services: Iterable[SecondaryDataService[_ <: SecondaryData]]
 
     /** Stores all data that are relevant to model calculation
       */
-    val calcRelevantDateStore: ValueStore[CalcRelevantData]
+    val receivedSecondaryDataStore: ValueStore[
+      Map[ClassicActorRef, _ <: SecondaryData]
+    ]
+
+    val stateDataStore: ValueStore[MS]
+
+    val flexStateData: Option[FlexControlledData]
+
+    def isEmManaged: Boolean = flexStateData.nonEmpty
   }
 
   /** Basic state data, when the agent is supposed to only provide external data
@@ -134,21 +152,23 @@ object BaseStateData {
     *   Type of primary data, that the model produces
     */
   final case class FromOutsideBaseStateData[M <: SystemParticipant[
-    _ <: CalcRelevantData
+    _ <: CalcRelevantData,
+    P,
+    _,
   ], +P <: PrimaryDataWithApparentPower[P]](
       model: M,
       override val startDate: ZonedDateTime,
       override val endDate: ZonedDateTime,
-      override val outputConfig: ParticipantNotifierConfig,
+      override val outputConfig: NotifierConfig,
       override val additionalActivationTicks: SortedSet[Long],
-      override val foreseenDataTicks: Map[ActorRef, Option[Long]],
+      override val foreseenDataTicks: Map[ClassicActorRef, Option[Long]],
       fillUpReactivePowerWithModelFunc: Boolean = false,
       requestVoltageDeviationThreshold: Double,
       override val voltageValueStore: ValueStore[
-        ComparableQuantity[Dimensionless]
+        Dimensionless
       ],
       override val resultValueStore: ValueStore[P],
-      override val requestValueStore: ValueStore[P]
+      override val requestValueStore: ValueStore[P],
   ) extends BaseStateData[P] {
     override val modelUuid: UUID = model.getUuid
   }
@@ -188,30 +208,49 @@ object BaseStateData {
   final case class ParticipantModelBaseStateData[
       +PD <: PrimaryDataWithApparentPower[PD],
       CD <: CalcRelevantData,
-      M <: SystemParticipant[_ <: CalcRelevantData]
+      MS <: ModelState,
+      M <: SystemParticipant[_ <: CalcRelevantData, PD, MS],
   ](
       override val startDate: ZonedDateTime,
       override val endDate: ZonedDateTime,
       override val model: M,
-      override val services: Option[
-        Vector[SecondaryDataService[_ <: SecondaryData]]
-      ],
-      override val outputConfig: ParticipantNotifierConfig,
+      override val services: Iterable[SecondaryDataService[_ <: SecondaryData]],
+      override val outputConfig: NotifierConfig,
       override val additionalActivationTicks: SortedSet[Long],
-      override val foreseenDataTicks: Map[ActorRef, Option[Long]],
+      override val foreseenDataTicks: Map[ClassicActorRef, Option[Long]],
       requestVoltageDeviationThreshold: Double,
       override val voltageValueStore: ValueStore[
-        ComparableQuantity[Dimensionless]
+        Dimensionless
       ],
       override val resultValueStore: ValueStore[PD],
       override val requestValueStore: ValueStore[PD],
-      override val calcRelevantDateStore: ValueStore[CD]
-  ) extends ModelBaseStateData[PD, CD, M] {
+      override val receivedSecondaryDataStore: ValueStore[
+        Map[ClassicActorRef, _ <: SecondaryData]
+      ],
+      override val stateDataStore: ValueStore[MS],
+      override val flexStateData: Option[FlexControlledData],
+  ) extends ModelBaseStateData[PD, CD, MS, M] {
 
     /** Unique identifier of the simulation model
       */
     override val modelUuid: UUID = model.getUuid
   }
+
+  /** The existence of this data object indicates that the corresponding agent
+    * is EM-controlled (by [[emAgent]]).
+    *
+    * @param emAgent
+    *   The parent EmAgent that is controlling this agent.
+    * @param flexAdapter
+    *   The flex adapter handling [[FlexRequest]] messages
+    * @param lastFlexOptions
+    *   Last flex options that have been calculated for this agent.
+    */
+  final case class FlexControlledData(
+      emAgent: ActorRef[FlexResponse],
+      flexAdapter: ActorRef[FlexRequest],
+      lastFlexOptions: Option[ProvideFlexOptions] = None,
+  )
 
   /** Updates the base state data with the given value stores
     *
@@ -226,7 +265,7 @@ object BaseStateData {
     * @param updatedAdditionalActivationTicks
     *   Additional activation ticks
     * @param updatedForeseenTicks
-    *   Mapping from [[ActorRef]] to foreseen ticks
+    *   Mapping from [[ClassicActorRef]] to foreseen ticks
     * @tparam PD
     *   Type of primary data, that is result of model calculation
     * @return
@@ -236,26 +275,26 @@ object BaseStateData {
       baseStateData: BaseStateData[PD],
       updatedResultValueStore: ValueStore[PD],
       updatedRequestValueStore: ValueStore[PD],
-      updatedVoltageValueStore: ValueStore[ComparableQuantity[Dimensionless]],
+      updatedVoltageValueStore: ValueStore[Dimensionless],
       updatedAdditionalActivationTicks: SortedSet[Long],
-      updatedForeseenTicks: Map[ActorRef, Option[Long]]
+      updatedForeseenTicks: Map[ClassicActorRef, Option[Long]],
   ): BaseStateData[PD] = {
     baseStateData match {
-      case external: FromOutsideBaseStateData[_, _] =>
+      case external: FromOutsideBaseStateData[_, PD] =>
         external.copy(
           resultValueStore = updatedResultValueStore,
           requestValueStore = updatedRequestValueStore,
           voltageValueStore = updatedVoltageValueStore,
           additionalActivationTicks = updatedAdditionalActivationTicks,
-          foreseenDataTicks = updatedForeseenTicks
+          foreseenDataTicks = updatedForeseenTicks,
         )
-      case model: ParticipantModelBaseStateData[_, _, _] =>
+      case model: ParticipantModelBaseStateData[PD, _, _, _] =>
         model.copy(
           resultValueStore = updatedResultValueStore,
           requestValueStore = updatedRequestValueStore,
           voltageValueStore = updatedVoltageValueStore,
           additionalActivationTicks = updatedAdditionalActivationTicks,
-          foreseenDataTicks = updatedForeseenTicks
+          foreseenDataTicks = updatedForeseenTicks,
         )
     }
   }

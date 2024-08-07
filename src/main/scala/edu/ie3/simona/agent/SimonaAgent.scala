@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.agent
 
-import akka.actor.FSM.CurrentState
-import akka.actor.{LoggingFSM, PoisonPill, Stash, Status}
+import org.apache.pekko.actor.FSM.CurrentState
+import org.apache.pekko.actor.{LoggingFSM, PoisonPill, Stash, Status}
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.event.notifier.Notifier
 import edu.ie3.simona.logging.SimonaFSMActorLogging
@@ -26,7 +26,6 @@ trait SimonaAgent[D]
     with Stash
     with SimonaFSMActorLogging {
 
-  private var _currentTriggerId: Option[Long] = None
   private var _currentTick: Option[Long] = None
 
   onTransition { case oldState -> newState =>
@@ -38,7 +37,7 @@ trait SimonaAgent[D]
     case Event(Status.Failure(ex), _) =>
       log.error(
         ex,
-        "Received a failure status message with following exception."
+        "Received a failure status message with following exception.",
       )
       self ! PoisonPill
       stay()
@@ -51,27 +50,22 @@ trait SimonaAgent[D]
       stay()
   }
 
-  def holdTickAndTriggerId(tick: Long, triggerId: Long): Unit = {
-    if (_currentTriggerId.isDefined || _currentTick.isDefined)
+  def holdTick(tick: Long): Unit = {
+    if (_currentTick.isDefined)
       throw new IllegalStateException(
-        s"Expected both _currentTick and _currentTriggerId to be 'None' but found ${_currentTick} and ${_currentTriggerId} instead, respectively."
+        s"Expected both _currentTick to be 'None' but found ${_currentTick} instead, respectively."
       )
     _currentTick = Some(tick)
-    _currentTriggerId = Some(triggerId)
   }
 
-  def releaseTickAndTriggerId(): (Long, Long) = {
-    val currentTickAndTrigger = (_currentTick, _currentTriggerId) match {
-      case (Some(currenTick), Some(currentTriggerId)) =>
-        (currenTick, currentTriggerId)
-      case _ =>
-        throw new RuntimeException(
-          "Tried to access currentTick and currentTriggerId without having them set before!"
-        )
-    }
+  def releaseTick(): Long = {
+    val currentTick = _currentTick.getOrElse(
+      throw new RuntimeException(
+        "Tried to access currentTick and currentTriggerId without having them set before!"
+      )
+    )
     _currentTick = None
-    _currentTriggerId = None
-    currentTickAndTrigger
+    currentTick
   }
 
   def currentTick: Long = {
@@ -82,16 +76,6 @@ trait SimonaAgent[D]
     )
   }
 
-  def currentTriggerId: Long = {
-    _currentTriggerId.getOrElse(
-      throw new RuntimeException(
-        s"$actorName: CurrentTriggerId has been requested, but is not set!"
-      )
-    )
-  }
-
   def currentTickDefined: Boolean = _currentTick.isDefined
-
-  def currentTriggerIdDefined: Boolean = _currentTriggerId.isDefined
 
 }

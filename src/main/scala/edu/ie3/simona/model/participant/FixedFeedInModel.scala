@@ -6,19 +6,23 @@
 
 package edu.ie3.simona.model.participant
 
-import java.time.ZonedDateTime
-import java.util.UUID
-
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.util.quantities.PowerSystemUnits.MEGAWATT
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import javax.measure.quantity.Power
-import tech.units.indriya.ComparableQuantity
+import squants.Power
+import squants.energy.Kilowatts
+
+import java.time.ZonedDateTime
+import java.util.UUID
 
 /** Fixed feed generation model delivering constant power
   *
@@ -28,8 +32,6 @@ import tech.units.indriya.ComparableQuantity
   *   the element's human readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
-  * @param scalingFactor
-  *   Scaling the output of the system
   * @param qControl
   *   Type of reactive power control
   * @param sRated
@@ -41,19 +43,22 @@ final case class FixedFeedInModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    scalingFactor: Double,
     qControl: QControl,
-    sRated: ComparableQuantity[Power],
-    cosPhiRated: Double
-) extends SystemParticipant[FixedRelevantData.type](
+    sRated: Power,
+    cosPhiRated: Double,
+) extends SystemParticipant[
+      FixedRelevantData.type,
+      ApparentPower,
+      ConstantState.type,
+    ](
       uuid,
       id,
       operationInterval,
-      scalingFactor,
       qControl,
       sRated,
-      cosPhiRated
-    ) {
+      cosPhiRated,
+    )
+    with ApparentPowerParticipant[FixedRelevantData.type, ConstantState.type] {
 
   /** Calculate the active power behaviour of the model
     *
@@ -63,40 +68,60 @@ final case class FixedFeedInModel(
     * @return
     *   Active power
     */
-  override protected def calculateActivePower(
-      data: FixedRelevantData.type = FixedRelevantData
-  ): ComparableQuantity[Power] =
-    sRated
-      .multiply(-1)
-      .multiply(cosPhiRated)
-      .multiply(scalingFactor)
-      .to(MEGAWATT)
+  override def calculateActivePower(
+      modelState: ConstantState.type,
+      data: FixedRelevantData.type = FixedRelevantData,
+  ): Power =
+    sRated * (-1) * cosPhiRated
+
+  override def determineFlexOptions(
+      data: FixedRelevantData.type,
+      lastState: ConstantState.type,
+  ): ProvideFlexOptions =
+    ProvideMinMaxFlexOptions.noFlexOption(
+      uuid,
+      calculateActivePower(lastState, data),
+    )
+
+  override def handleControlledPowerChange(
+      data: FixedRelevantData.type,
+      lastState: ConstantState.type,
+      setPower: Power,
+  ): (ConstantState.type, FlexChangeIndicator) =
+    (lastState, FlexChangeIndicator())
 }
 
-case object FixedFeedInModel extends LazyLogging {
+object FixedFeedInModel extends LazyLogging {
   def apply(
       inputModel: FixedFeedInInput,
       modelConfiguration: SimonaConfig.FixedFeedInRuntimeConfig,
       simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime
+      simulationEndDate: ZonedDateTime,
   ): FixedFeedInModel = {
+    val scaledInput =
+      inputModel.copy().scale(modelConfiguration.scaling).build()
+
     /* Determine the operation interval */
     val operationInterval: OperationInterval =
       SystemComponent.determineOperationInterval(
         simulationStartDate,
         simulationEndDate,
-        inputModel.getOperationTime
+        scaledInput.getOperationTime,
       )
 
     // build the fixed feed in model
     val model = FixedFeedInModel(
-      inputModel.getUuid,
-      inputModel.getId,
+      scaledInput.getUuid,
+      scaledInput.getId,
       operationInterval,
-      modelConfiguration.scaling,
-      QControl.apply(inputModel.getqCharacteristics),
-      inputModel.getsRated,
-      inputModel.getCosPhiRated
+      QControl.apply(scaledInput.getqCharacteristics),
+      Kilowatts(
+        scaledInput.getsRated
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue
+      ),
+      scaledInput.getCosPhiRated,
     )
     model.enable()
     model

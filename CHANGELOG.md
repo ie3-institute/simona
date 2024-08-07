@@ -6,6 +6,89 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Add safety factor sRated calculation [#629](https://github.com/ie3-institute/simona/issues/629)
+- Re-implemented ResultEventListener in akka typed [#343](https://github.com/ie3-institute/simona/issues/343)
+- Add additional test cases from references for PvModelTest [#590](https://github.com/ie3-institute/simona/issues/590)
+- Instantiation of Heat Pump Agents [#253](https://github.com/ie3-institute/simona/issues/253)
+- Output of accompanying thermal result models
+- Added JDK installation, Scala Plugin + SDK in usersguide [#324](https://github.com/ie3-institute/simona/issues/324)
+- Squants scalatest matchers [#715](https://github.com/ie3-institute/simona/issues/715)
+- Energy Management capabilities:
+  - Added capability of SystemParticipants to handle flexibility [#308](https://github.com/ie3-institute/simona/issues/308)
+  - Added smart charging logic [#31](https://github.com/ie3-institute/simona/issues/31) and flex calculation in `EvcsAgent` [#332](https://github.com/ie3-institute/simona/issues/332)
+- Enhance output quotes of `RunSimona` [#743](https://github.com/ie3-institute/simona/issues/743)
+- Printing logs of failed tests [#747](https://github.com/ie3-institute/simona/issues/747)
+- Models for measurements within the grid structure [#89](https://github.com/ie3-institute/simona/issues/89)
+- Config possibility for transformer control groups [#90](https://github.com/ie3-institute/simona/issues/90)
+- Implemented scaling of all relevant input parameters [#764](https://github.com/ie3-institute/simona/issues/764)
+- Consider scaling factor with flex options [#734](https://github.com/ie3-institute/simona/issues/734)
+- Implementation of Energy Management Agents [#204](https://github.com/ie3-institute/simona/issues/204)
+- Providing documentation for EmAgent protocols and algorithms [#774](https://github.com/ie3-institute/simona/issues/774)
+- Option to flush out `CylindricalStorageResults` [#826](https://github.com/ie3-institute/simona/issues/826)
+- Printing the directory of log to terminal upon simulation failure [#626](https://github.com/ie3-institute/simona/issues/626)
+- Implementation of StorageAgent [#309](https://github.com/ie3-institute/simona/issues/309)
+- Enhanced Newton-Raphson-PowerFlow failures with more information [#815](https://github.com/ie3-institute/simona/issues/815)
+- Update RTD references and bibliography [#868](https://github.com/ie3-institute/simona/issues/868)
+
+### Changed
+- Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
+- Improved initialization of weather based agents [#145](https://github.com/ie3-institute/simona/issues/145)
+- Changed from ComparableQuantity to squants fast and typesafe calculations [#490](https://github.com/ie3-institute/simona/issues/490)
+- Changed from ComparableQuantity to squants in power flow [#554](https://github.com/ie3-institute/simona/issues/554)
+- Reduce log level on missing diffuse irradiance [#629](https://github.com/ie3-institute/simona/issues/629)
+- Updated to gradle 8.4 [#648](https://github.com/ie3-institute/simona/issues/648)
+- Introducing new scheduling infrastructure:
+  - Two-parted scheduler in akka typed [#378](https://github.com/ie3-institute/simona/issues/378)
+  - Adapting to simonaAPI 0.3.0 (adapted message protocol)
+  - Schedule lock [#651](https://github.com/ie3-institute/simona/issues/651)
+  - New scheduling protocol [#650](https://github.com/ie3-institute/simona/issues/650)
+  - Small improvements to the code [#696](https://github.com/ie3-institute/simona/issues/696)
+- Replaced akka with pekko [#641](https://github.com/ie3-institute/simona/issues/641)
+- Use `ThermalGrid` to calculate thermal environment of a heat pump [#315](https://github.com/ie3-institute/simona/issues/315)
+- Enable windows path as config parameters [#549](https://github.com/ie3-institute/simona/issues/549)
+- Unified consideration of scaling factor when simulating system participants [#81](https://github.com/ie3-institute/simona/issues/81)
+- Small improvements in `ResultEventListener` [#738](https://github.com/ie3-institute/simona/issues/738)
+- Converting `SimonaSim` to pekko typed/terminating SimonSim when initialization fails [#210](https://github.com/ie3-institute/simona/issues/210)
+- Converting the `GridAgent` and the `DBFSAlgorithm` to `pekko typed` [#666](https://github.com/ie3-institute/simona/issues/666)
+- Validation of grid will throw exception instead of just logging errors [#463](https://github.com/ie3-institute/simona/issues/463)
+- Refactoring of `GridAgent` messages [#736](https://github.com/ie3-institute/simona/issues/736)
+- Rewrote PVModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Making configuration of `RefSystem` via config optional [#769](https://github.com/ie3-institute/simona/issues/769)
+- Updated PSDM to version 5.1.0 [#835](https://github.com/ie3-institute/simona/issues/835)
+- Refactor `WeatherSource` and `WeatherSourceWrapper` [#180](https://github.com/ie3-institute/simona/issues/180)
+- Remove unnecessary dependency `pekko-connectors-csv` [#857](https://github.com/ie3-institute/simona/issues/857)
+- Rewrote RefSystemTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Rewrote FixedFeedModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Rewrote WecModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Rewrote FixedLoadModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Rewrote SystemComponentTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Converting remaining rst files to markdown [#838](https://github.com/ie3-institute/simona/issues/838)
+- Merging both `FixedFeedInModelSpec` tests [#870](https://github.com/ie3-institute/simona/issues/870)
+
+### Fixed
+- Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
+- Removed version number "2.0" from the logo printed to console [#642](https://github.com/ie3-institute/simona/issues/642)
+- Fixed PV Model documentation [#684](https://github.com/ie3-institute/simona/issues/684), [#686](https://github.com/ie3-institute/simona/issues/686)
+- Removed `CsvDataSourceAdapter` workaround [#702](https://github.com/ie3-institute/simona/issues/702)
+- Logging wrong duration in the first simulation hour [#705](https://github.com/ie3-institute/simona/issues/705)
+- Fixed some compiler warnings [#657](https://github.com/ie3-institute/simona/issues/657)
+- Fixing false negative in ref system voltage validation [#706](https://github.com/ie3-institute/simona/issues/706)
+- Fixing randomly failing test in `RuntimeEventListenerSpec` etc. [#709](https://github.com/ie3-institute/simona/issues/709)
+- Fixed config start and end datetime parsing hint [#767](https://github.com/ie3-institute/simona/issues/767)
+- ConfigFailFast after making configuration of `RefSystem` via config optional [#797](https://github.com/ie3-institute/simona/issues/797)
+- Default RefSystem using the unit `Volt` for low voltage grids [#811](https://github.com/ie3-institute/simona/issues/811)
+- Fixed grid within GridSpec test [#806](https://github.com/ie3-institute/simona/issues/806)
+- Fixed log entry after power flow calculation [#814](https://github.com/ie3-institute/simona/issues/814)
+- Delete "Indices and tables" on the index page [#375](https://github.com/ie3-institute/simona/issues/375)
+- Fixed provision of controllingEms within buildParticipantToActorRef [#841](https://github.com/ie3-institute/simona/issues/841)
+- Simulation stopping at unhandled messages in `DBFSAlgorithm` [#821](https://github.com/ie3-institute/simona/issues/821)
+- Not stopping correctly on failed power flow if configured  to stop [#800](https://github.com/ie3-institute/simona/issues/800)
+- Finally fixing `RuntimeEventListenerSpec` [#849](https://github.com/ie3-institute/simona/issues/849)
+- Fixed result output for thermal houses and cylindrical storages [#844](https://github.com/ie3-institute/simona/issues/844)
+- Fixed FixedFeedModelSpec [#861](https://github.com/ie3-institute/simona/issues/861)
+- Fixing duration calculation in result events [#801](https://github.com/ie3-institute/simona/issues/801)
+
 ## [3.0.0] - 2023-08-07
 
 ### Added
@@ -102,6 +185,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed broken layout in RTD documentation [#500](https://github.com/ie3-institute/simona/issues/500)
 - Corrected tests in RefSystemTest [#560](https://github.com/ie3-institute/simona/issues/560)
 - Take log file event filters from `logback.xml` when defining the run log appender [#108](https://github.com/ie3-institute/simona/issues/108)
+- Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
 
 ### Removed
 - Remove workaround for tscfg tmp directory [#178](https://github.com/ie3-institute/simona/issues/178)

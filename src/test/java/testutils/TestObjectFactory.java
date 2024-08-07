@@ -37,7 +37,7 @@ public class TestObjectFactory {
       boolean isSlack, CommonVoltageLevel voltageLvl, int subnet) {
     return new NodeInput(
         UUID.randomUUID(),
-        "TEST_NODE_" + TEST_OBJECT_COUNTER,
+        "TEST_NODE_" + TEST_OBJECT_COUNTER++,
         OperatorInput.NO_OPERATOR_ASSIGNED,
         OperationTime.notLimited(),
         Quantities.getQuantity(1d, PU),
@@ -103,7 +103,7 @@ public class TestObjectFactory {
   public static SwitchInput buildSwitchInput(NodeInput nodeA, NodeInput nodeB) {
     return new SwitchInput(
         UUID.randomUUID(),
-        "TEST_SWITCH" + TEST_OBJECT_COUNTER,
+        "TEST_SWITCH" + TEST_OBJECT_COUNTER++,
         OperatorInput.NO_OPERATOR_ASSIGNED,
         OperationTime.notLimited(),
         nodeA,

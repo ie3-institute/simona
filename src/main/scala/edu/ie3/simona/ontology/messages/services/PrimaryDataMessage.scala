@@ -8,10 +8,12 @@ package edu.ie3.simona.ontology.messages.services
 
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ProvisionMessage
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
+import org.apache.pekko.actor.ActorRef
 
 sealed trait PrimaryDataMessage
 
-case object PrimaryDataMessage {
+object PrimaryDataMessage {
 
   /** Provides primary data in the form of [[ApparentPower]]
     *
@@ -25,8 +27,10 @@ case object PrimaryDataMessage {
   @deprecated
   final case class ApparentPowerProvisionMessage(
       override val tick: Long,
+      override val serviceRef: ActorRef,
       override val data: ApparentPower,
-      override val nextDataTick: Option[Long]
+      override val nextDataTick: Option[Long],
+      override val unlockKey: Option[ScheduleKey] = None,
   ) extends ProvisionMessage[ApparentPower]
       with PrimaryDataMessage
 }

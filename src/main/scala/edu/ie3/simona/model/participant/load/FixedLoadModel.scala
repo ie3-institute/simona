@@ -8,20 +8,20 @@ package edu.ie3.simona.model.participant.load
 
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantData
 import edu.ie3.simona.model.participant.load.LoadReference.{
   ActivePower,
-  EnergyConsumption
+  EnergyConsumption,
 }
-import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVOLTAMPERE, MEGAWATT}
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.{HOUR, YEAR}
+import squants.Power
+import squants.energy.Kilowatts
+import squants.time.Days
 
 import java.util.UUID
-import javax.measure.quantity.Power
 
 /** Load model always consuming the same, constant power
   *
@@ -31,8 +31,6 @@ import javax.measure.quantity.Power
   *   human readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
-  * @param scalingFactor
-  *   Scaling the output of the system
   * @param qControl
   *   Type of reactive power control
   * @param sRated
@@ -46,25 +44,24 @@ final case class FixedLoadModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    scalingFactor: Double,
     qControl: QControl,
-    sRated: ComparableQuantity[Power],
+    sRated: Power,
     cosPhiRated: Double,
-    reference: LoadReference
+    reference: LoadReference,
 ) extends LoadModel[FixedLoadRelevantData.type](
       uuid,
       id,
       operationInterval,
-      scalingFactor,
       qControl,
-      sRated.to(MEGAVOLTAMPERE),
-      cosPhiRated
+      sRated,
+      cosPhiRated,
     ) {
-  private val activePower = reference match {
-    case ActivePower(power) => power.to(MEGAWATT)
+
+  val activePower: Power = reference match {
+    case ActivePower(power) => power
     case EnergyConsumption(energyConsumption) =>
-      val duration = Quantities.getQuantity(1d, YEAR).to(HOUR)
-      energyConsumption.divide(duration).asType(classOf[Power]).to(MEGAWATT)
+      val duration = Days(365d)
+      energyConsumption / duration
   }
 
   /** Calculate the active power behaviour of the model
@@ -75,28 +72,39 @@ final case class FixedLoadModel(
     * @return
     *   Active power
     */
-  override protected def calculateActivePower(
-      data: FixedLoadRelevantData.type = FixedLoadRelevantData
-  ): ComparableQuantity[Power] = activePower.multiply(scalingFactor)
-
+  override def calculateActivePower(
+      modelState: ConstantState.type,
+      data: FixedLoadRelevantData.type = FixedLoadRelevantData,
+  ): Power = activePower
 }
 
-case object FixedLoadModel {
-  object FixedLoadRelevantData extends LoadRelevantData
+object FixedLoadModel {
+  case object FixedLoadRelevantData extends LoadRelevantData
 
   def apply(
       input: LoadInput,
-      operationInterval: OperationInterval,
       scalingFactor: Double,
-      reference: LoadReference
-  ): FixedLoadModel = FixedLoadModel(
-    input.getUuid,
-    input.getId,
-    operationInterval,
-    scalingFactor,
-    QControl(input.getqCharacteristics()),
-    input.getsRated(),
-    input.getCosPhiRated,
-    reference
-  )
+      operationInterval: OperationInterval,
+      reference: LoadReference,
+  ): FixedLoadModel = {
+
+    val scaledInput = input.copy().scale(scalingFactor).build()
+
+    val model = FixedLoadModel(
+      scaledInput.getUuid,
+      scaledInput.getId,
+      operationInterval,
+      QControl(scaledInput.getqCharacteristics()),
+      Kilowatts(
+        scaledInput.getsRated
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue
+      ),
+      scaledInput.getCosPhiRated,
+      reference,
+    )
+    model.enable()
+    model
+  }
 }

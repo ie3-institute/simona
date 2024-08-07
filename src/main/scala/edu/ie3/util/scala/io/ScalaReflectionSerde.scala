@@ -9,7 +9,7 @@ package edu.ie3.util.scala.io
 import com.sksamuel.avro4s.RecordFormat
 import io.confluent.kafka.streams.serdes.avro.{
   GenericAvroDeserializer,
-  GenericAvroSerializer
+  GenericAvroSerializer,
 }
 import org.apache.kafka.common.serialization.{Deserializer, Serializer}
 
@@ -24,7 +24,7 @@ object ScalaReflectionSerde {
 
       override def configure(
           configs: java.util.Map[String, _],
-          isKey: Boolean
+          isKey: Boolean,
       ): Unit = inner.configure(configs, isKey)
 
       override def serialize(topic: String, maybeData: T): Array[Byte] =
@@ -43,7 +43,7 @@ object ScalaReflectionSerde {
 
       override def configure(
           configs: java.util.Map[String, _],
-          isKey: Boolean
+          isKey: Boolean,
       ): Unit = inner.configure(configs, isKey)
 
       override def deserialize(topic: String, maybeData: Array[Byte]): T =
