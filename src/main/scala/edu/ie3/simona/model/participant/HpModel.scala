@@ -159,12 +159,8 @@ final case class HpModel(
       state.thermalGridState,
     )
 
-    val storedEnergy = state.thermalGridState.storageState
-      .map(storageState => storageState.storedEnergy)
-      .getOrElse(zeroKWH)
-
     val turnHpOn =
-      (demandHouse.hasRequiredDemand && demandHouse.required > storedEnergy) || demandStorage.hasRequiredDemand || (state.isRunning && demandHouse.hasAdditionalDemand) || (state.isRunning && demandStorage.hasAdditionalDemand)
+      demandHouse.hasRequiredDemand || demandStorage.hasRequiredDemand || (state.isRunning && demandHouse.hasAdditionalDemand) || (state.isRunning && demandStorage.hasAdditionalDemand)
 
     (
       turnHpOn,
