@@ -198,8 +198,9 @@ class ExtEvDataService(override val scheduler: ActorRef)
       serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Long]) = {
     // currently not supported, return dummy
+    val dummyPrice = double2Double(0d)
     val prices = serviceStateData.uuidToActorRef.map { case (evcs, _) =>
-      evcs -> double2Double(0d)
+      evcs -> dummyPrice
     }
     serviceStateData.extEvData.queueExtResponseMsg(
       new ProvideCurrentPrices(prices.asJava)
