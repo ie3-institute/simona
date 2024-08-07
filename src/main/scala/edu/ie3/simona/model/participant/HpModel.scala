@@ -20,9 +20,8 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptio
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.DefaultQuantities
 import edu.ie3.util.scala.quantities.DefaultQuantities._
-import squants.energy.{KilowattHours, Kilowatts}
+import squants.energy.{Energy, KilowattHours, Kilowatts}
 import squants.{Power, Temperature}
 
 import java.time.ZonedDateTime
@@ -159,7 +158,7 @@ final case class HpModel(
         relevantData.ambientTemperature,
         state.thermalGridState,
       )
-    implicit val tolerance = KilowattHours(1e-3)
+    implicit val tolerance: Energy = KilowattHours(1e-3)
     val noStorageOrStorageIsEmpty: Boolean =
       updatedState.storageState.isEmpty || updatedState.storageState.exists(
         _.storedEnergy =~ zeroKWH
@@ -201,10 +200,16 @@ final case class HpModel(
       houseDemand: ThermalEnergyDemand,
       storageDemand: ThermalEnergyDemand,
   ): HpState = {
+    val lastStateStorageqDot = state.thermalGridState.storageState
+      .map(_.qDot)
+      .getOrElse(zeroKW)
+
     val (newActivePower, newThermalPower) =
       if (isRunning)
         (pRated, pThermal)
-      else (DefaultQuantities.zeroKW, DefaultQuantities.zeroKW)
+      else if (lastStateStorageqDot < zeroKW)
+        (zeroKW, lastStateStorageqDot * (-1))
+      else (zeroKW, zeroKW)
 
     /* Push thermal energy to the thermal grid and get its updated state in return */
     val (thermalGridState, maybeThreshold) =

@@ -100,7 +100,7 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
       UUID.fromString("4b8933dc-aeb6-4573-b8aa-59d577214150"),
       "thermal storage",
       thermalBusInput,
-      Quantities.getQuantity(1300.0, Units.LITRE),
+      Quantities.getQuantity(300.0, Units.LITRE),
       Quantities.getQuantity(0.0, Units.LITRE),
       Quantities.getQuantity(60.0, StandardUnits.TEMPERATURE),
       Quantities.getQuantity(30.0, StandardUnits.TEMPERATURE),

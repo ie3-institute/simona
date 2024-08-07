@@ -219,7 +219,9 @@ final case class ThermalGrid(
       val (updatedHouseState, thermalHouseThreshold, remainingQDotHouse) =
         handleInfeedHouse(tick, ambientTemperature, state, qDotHouseLastState)
       val (updatedStorageState, thermalStorageThreshold) =
-        if (remainingQDotHouse > qDotStorageLastState) {
+        if (
+          qDotStorageLastState >= zeroKW && remainingQDotHouse > qDotStorageLastState
+        ) {
           handleInfeedStorage(
             tick,
             ambientTemperature,
@@ -336,8 +338,9 @@ final case class ThermalGrid(
     }
   }
 
-  /** Handles the case, when the storage has heat demand and will be filled up
-    * here.
+  /** Handles the cases, when the storage has heat demand and will be filled up
+    * here (positive qDot) or will be return its stored energy into the thermal
+    * grid (negative qDot).
     * @param tick
     *   Current tick
     * @param ambientTemperature
