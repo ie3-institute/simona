@@ -118,6 +118,9 @@ class ThermalGridIT
         "HeatPumpAgent1",
       )
 
+      val pRunningHp = 0.0038.asMegaWatt
+      val qRunningHp = 0.0012489995996796802.asMegaVar
+
       scheduler.expectNoMessage()
 
       /* INIT */
@@ -146,16 +149,13 @@ class ThermalGridIT
       val weatherDependentAgents = Seq(heatPumpAgent)
 
       /* TICK 0
-
       Start of Simulation
-
-     House demand heating : requiredDemand = 0.0 kWh, additionalDemand ~ 15 kWh
-     House demand water   : tba
-     ThermalStorage       : requiredDemand = 5.22 kWh, additionalDemand = 10.44 kWh
-     DomesticWaterStorage : tba
-
-     Heat pump: on - to serve the storage demand, but will heat up the house first
-      */
+      House demand heating : requiredDemand = 0.0 kWh, additionalDemand ~ 15 kWh
+      House demand water   : tba
+      ThermalStorage       : requiredDemand = 5.22 kWh, additionalDemand = 10.44 kWh
+      DomesticWaterStorage : tba
+      Heat pump: on - to serve the storage demand, but will heat up the house first
+       */
 
       heatPumpAgent ! Activation(0L)
 
@@ -177,9 +177,9 @@ class ThermalGridIT
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 0.toDateTime
-          hpResult.getP should equalWithTolerance(0.0038.asMegaWatt)
+          hpResult.getP should equalWithTolerance(pRunningHp)
           hpResult.getQ should equalWithTolerance(
-            0.0012489995996796802.asMegaVar
+            qRunningHp
           )
       }
 
@@ -218,17 +218,14 @@ class ThermalGridIT
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(0L)))
 
-
       /* TICK 6353
       House is fully heated up
-
-       House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-     House demand water   : tba
-     ThermalStorage       : requiredDemand = 5.22 kWh, additionalDemand = 10.44 kWh
-     DomesticWaterStorage : tba
-
+      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      House demand water   : tba
+      ThermalStorage       : requiredDemand = 5.22 kWh, additionalDemand = 10.44 kWh
+      DomesticWaterStorage : tba
       Heat pump: on - to serve storage demand
-      */
+       */
 
       heatPumpAgent ! Activation(6353L)
 
@@ -237,9 +234,9 @@ class ThermalGridIT
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 6353.toDateTime
-          hpResult.getP should equalWithTolerance(0.0038.asMegaWatt)
+          hpResult.getP should equalWithTolerance(pRunningHp)
           hpResult.getQ should equalWithTolerance(
-            0.0012489995996796802.asMegaVar
+            qRunningHp
           )
       }
 
@@ -283,19 +280,15 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(heatPumpAgent, Some(6353L)))
 
       /* TICK 7200
-New weather data (unchanged) incoming
-
-     House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-     House demand water   : tba
-     ThermalStorage       : requiredDemand = 2.63 kWh, additionalDemand = 7.85 kWh
-     DomesticWaterStorage : tba
-
-Heat pump: on
-*/
-
+      New weather data (unchanged) incoming
+      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      House demand water   : tba
+      ThermalStorage       : requiredDemand = 2.63 kWh, additionalDemand = 7.85 kWh
+      DomesticWaterStorage : tba
+      Heat pump: on
+       */
 
       heatPumpAgent ! Activation(7200L)
-
 
       weatherDependentAgents.foreach {
         _ ! ProvideWeatherMessage(
@@ -316,9 +309,9 @@ Heat pump: on
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 7200.toDateTime
-          hpResult.getP should equalWithTolerance(0.0038.asMegaWatt)
+          hpResult.getP should equalWithTolerance(pRunningHp)
           hpResult.getQ should equalWithTolerance(
-            0.0012489995996796802.asMegaVar
+            qRunningHp
           )
       }
 
@@ -363,15 +356,13 @@ Heat pump: on
       scheduler.expectMessage(Completion(heatPumpAgent, Some(7200L)))
 
       /* TICK 7200
-Storage will be full
-
-     House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-     House demand water   : tba
-     ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-DomesticWaterStorage : tba
-
-Heat pump: off
-*/
+      Storage will be full
+      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      House demand water   : tba
+      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      DomesticWaterStorage : tba
+      Heat pump: off
+       */
 
       heatPumpAgent ! Activation(9770L)
 
@@ -423,19 +414,17 @@ Heat pump: off
       // FIXME? Why next tick 9770?
       scheduler.expectMessage(Completion(heatPumpAgent, Some(9770L)))
 
-      heatPumpAgent ! Activation(28800L)
-
       /* TICK 28800
       House would reach lowerTempBoundary at tick 47518
       but now it's getting colder which should decrease inner temp of house faster
+      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 27.22 kWh
+      House demand water   : tba
+      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      DomesticWaterStorage : tba
+      Heat pump: off
+       */
 
-     House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 27.22 kWh
-     House demand water   : tba
-     ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-DomesticWaterStorage : tba
-
-Heat pump: off
-*/
+      heatPumpAgent ! Activation(28800L)
 
       weatherDependentAgents.foreach {
         _ ! ProvideWeatherMessage(
@@ -450,7 +439,6 @@ Heat pump: off
           Some(50400L),
         )
       }
-
 
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
@@ -499,17 +487,13 @@ Heat pump: off
       scheduler.expectMessage(Completion(heatPumpAgent, Some(28800L)))
 
       /* TICK 31106
-
-?
-
-
-     House demand heating : requiredDemand = 15.0 kWh, additionalDemand = 30.00 kWh
-     House demand water   : tba
-     ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-DomesticWaterStorage : tba
-
-Heat pump: on
-*/
+      House reach lowerTemperatureBoundary
+      House demand heating : requiredDemand = 15.0 kWh, additionalDemand = 30.00 kWh
+      House demand water   : tba
+      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      DomesticWaterStorage : tba
+      Heat pump: off, demand should be covered by storage
+       */
 
       heatPumpAgent ! Activation(31106L)
 
@@ -562,16 +546,13 @@ Heat pump: on
       scheduler.expectMessage(Completion(heatPumpAgent, Some(31106)))
 
       /* TICK 47225
-
-?
-
-House demand heating :
-House demand water   : tba
-ThermalStorage       : empty
-DomesticWaterStorage : tba
-
-Heat pump: on
-*/
+      ?
+      House demand heating :
+      House demand water   : tba
+      ThermalStorage       : empty
+      DomesticWaterStorage : tba
+      Heat pump: on
+       */
 
       heatPumpAgent ! Activation(47225L)
 
@@ -579,10 +560,8 @@ Heat pump: on
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 47225.toDateTime
-          hpResult.getP should equalWithTolerance(0.asMegaWatt)
-          hpResult.getQ should equalWithTolerance(
-            0.asMegaVar
-          )
+          hpResult.getP should equalWithTolerance(pRunningHp)
+          hpResult.getQ should equalWithTolerance(qRunningHp)
       }
 
       Range(0, 2)
@@ -624,19 +603,15 @@ Heat pump: on
       scheduler.expectMessage(Completion(heatPumpAgent, Some(47225)))
 
       /* TICK 50400
-
-New weather data: it's getting warmer again
-
-House demand heating :
-House demand water   : tba
-ThermalStorage       : empty
-DomesticWaterStorage : tba
-
-Heat pump: on
-*/
+      New weather data: it's getting warmer again
+      House demand heating :
+      House demand water   : tba
+      ThermalStorage       : empty
+      DomesticWaterStorage : tba
+      Heat pump: on
+       */
 
       heatPumpAgent ! Activation(50400L)
-
 
       weatherDependentAgents.foreach {
         _ ! ProvideWeatherMessage(
@@ -662,7 +637,6 @@ Heat pump: on
 
       // results of tick 47225 where house reached the upper boundary
       // should be heated by using thermal energy from the storage FIXME
-
       Range(0, 2)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
