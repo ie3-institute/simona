@@ -102,12 +102,14 @@ final case class ThermalGrid(
             storage.updateState(tick, state.qDot, state)._1
           val storedEnergy = updatedStorageState.storedEnergy
           val soc = storedEnergy / storage.getMaxEnergyThreshold
-          val storageRequired =
-            if (soc < 0.5) {
-              storage.getMaxEnergyThreshold * 0.5 - storedEnergy
+          val storageRequired = {
+            if (soc == 0d) {
+              storage.getMaxEnergyThreshold - storedEnergy
+
             } else {
               zeroMWH
             }
+          }
 
           val storagePossible = storage.getMaxEnergyThreshold - storedEnergy
           (
@@ -215,7 +217,9 @@ final case class ThermalGrid(
         )
     }
 
-    if (qDotHouseLastState > zeroKW | qDotStorageLastState > zeroKW) {
+    if (
+      (qDotHouseLastState > zeroKW && qDotHouseLastState == qDot) | qDotStorageLastState > zeroKW
+    ) {
       val (updatedHouseState, thermalHouseThreshold, remainingQDotHouse) =
         handleInfeedHouse(tick, ambientTemperature, state, qDotHouseLastState)
       val (updatedStorageState, thermalStorageThreshold) =
