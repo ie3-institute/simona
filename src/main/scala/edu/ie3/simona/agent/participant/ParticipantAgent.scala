@@ -37,6 +37,7 @@ import edu.ie3.simona.agent.{SimonaAgent, ValueStore}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
+import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.{
   CalcRelevantData,
@@ -779,7 +780,7 @@ abstract class ParticipantAgent[
       data: CD,
       lastState: MS,
       setPower: squants.Power,
-  ): (MS, PD, FlexChangeIndicator)
+  ): (MS, AccompaniedSimulationResult[PD], FlexChangeIndicator)
 
   /** Determining the reply to an [[RequestAssetPowerMessage]], send this answer
     * and stay in the current state. If no reply can be determined (because an

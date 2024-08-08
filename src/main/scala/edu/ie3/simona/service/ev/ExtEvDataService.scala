@@ -186,6 +186,8 @@ class ExtEvDataService(override val scheduler: ActorRef)
         "ExtEvDataService was triggered without ExtEvMessage available"
       )
     ) match {
+      case _: RequestCurrentPrices =>
+        requestCurrentPrices()
       case _: RequestEvcsFreeLots =>
         requestFreeLots(tick)
       case departingEvsRequest: RequestDepartingEvs =>
@@ -199,6 +201,26 @@ class ExtEvDataService(override val scheduler: ActorRef)
           serviceStateData
         )
     }
+  }
+
+  private def requestCurrentPrices()(implicit
+      serviceStateData: ExtEvStateData
+  ): (ExtEvStateData, Option[Long]) = {
+    // currently not supported, return dummy
+    val dummyPrice = double2Double(0d)
+    val prices = serviceStateData.uuidToActorRef.map { case (evcs, _) =>
+      evcs -> dummyPrice
+    }
+    serviceStateData.extEvData.queueExtResponseMsg(
+      new ProvideCurrentPrices(prices.asJava)
+    )
+
+    (
+      serviceStateData.copy(
+        extEvMessage = None
+      ),
+      None,
+    )
   }
 
   private def requestFreeLots(tick: Long)(implicit
@@ -362,7 +384,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
               freeLotsCount > 0
             }
             .map { case (evcs, freeLotsCount) =>
-              evcs -> Integer.valueOf(freeLotsCount)
+              evcs -> int2Integer(freeLotsCount)
             }
 
           serviceStateData.extEvData.queueExtResponseMsg(

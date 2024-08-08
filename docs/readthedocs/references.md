@@ -1,10 +1,10 @@
-****************************
-Publications and References
-****************************
+# Publications and References
 
-Publications
-===============
+## Publications
 
+The following publications discuss SIMONA and implementation details as well as outcomes where SIMONA have been used:
+
+```{eval-rst}
 The following publications discuss SIMONA and implementation details as well as outcomes where SIMONA have been used:
 
 .. rubric:: SIMONA Publications
@@ -23,5 +23,4 @@ References of publications SIMONA referred on:
 .. bibliography:: _static/bibliography/bibtexAll.bib
    :style: custom
    :all:
-
-
+```

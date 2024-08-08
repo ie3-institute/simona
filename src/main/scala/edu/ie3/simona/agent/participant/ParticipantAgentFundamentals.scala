@@ -799,7 +799,7 @@ protected trait ParticipantAgentFundamentals[
 
     flexStateData.emAgent ! FlexCtrlCompletion(
       baseStateData.modelUuid,
-      result.toApparentPower,
+      result.primaryData.toApparentPower,
       flexChangeIndicator.changesAtNextActivation,
       nextActivation,
     )
@@ -821,7 +821,7 @@ protected trait ParticipantAgentFundamentals[
     */
   protected def handleCalculatedResult(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      result: PD,
+      result: AccompaniedSimulationResult[PD],
       currentTick: Long,
   ): ParticipantModelBaseStateData[PD, CD, MS, M] = {
 
@@ -829,14 +829,14 @@ protected trait ParticipantAgentFundamentals[
     announceSimulationResult(
       baseStateData,
       currentTick,
-      AccompaniedSimulationResult(result),
+      result,
     )(baseStateData.outputConfig)
 
     baseStateData.copy(
       resultValueStore = ValueStore.updateValueStore(
         baseStateData.resultValueStore,
         currentTick,
-        result,
+        result.primaryData,
       )
     )
   }
