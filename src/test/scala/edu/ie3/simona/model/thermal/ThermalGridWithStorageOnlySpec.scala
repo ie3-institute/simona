@@ -6,16 +6,10 @@
 
 package edu.ie3.simona.model.thermal
 
-import edu.ie3.datamodel.models.input.thermal.{
-  ThermalHouseInput,
-  ThermalStorageInput,
-}
+import edu.ie3.datamodel.models.input.thermal.{ThermalHouseInput, ThermalStorageInput}
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
-  StorageEmpty,
-  StorageFull,
-}
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{StorageEmpty, StorageFull}
 import edu.ie3.simona.test.common.UnitSpec
 import squants.energy._
 import squants.thermal.Celsius
@@ -80,16 +74,44 @@ class ThermalGridWithStorageOnlySpec
       "deliver the capabilities of the storage" in {
         val tick = 10800 // after three hours
 
-        val (houseDemand, storageDemand) = thermalGrid.energyDemand(
-          tick,
-          testGridambientTemperature,
-          ThermalGrid.startingState(thermalGrid),
-        )
+        val (houseDemand, storageDemand, updatedThermalGridState) =
+          thermalGrid.energyDemandAndUpdatedState(
+            tick,
+            testGridAmbientTemperature,
+            ThermalGrid.startingState(thermalGrid),
+          )
 
         houseDemand.required should approximate(KilowattHours(0d))
         houseDemand.possible should approximate(KilowattHours(0d))
-        storageDemand.required should approximate(KilowattHours(345d))
-        storageDemand.possible should approximate(KilowattHours(920d))
+        storageDemand.required should approximate(KilowattHours(1150d))
+        storageDemand.possible should approximate(KilowattHours(1150d))
+        updatedThermalGridState.houseState shouldBe None
+        updatedThermalGridState.storageState shouldBe Some(
+          ThermalStorageState(10800, KilowattHours(0d), Kilowatts(0d))
+        )
+      }
+
+      "deliver the capabilities of a half full storage" in {
+        val tick = 10800 // after three hours
+
+        val (houseDemand, storageDemand, updatedThermalGridState) =
+          thermalGrid.energyDemandAndUpdatedState(
+            tick,
+            testGridAmbientTemperature,
+            ThermalGridState(
+              None,
+              Some(ThermalStorageState(0L, KilowattHours(575d), Kilowatts(0d))),
+            ),
+          )
+
+        houseDemand.required should approximate(KilowattHours(0d))
+        houseDemand.possible should approximate(KilowattHours(0d))
+        storageDemand.required should approximate(KilowattHours(0d))
+        storageDemand.possible should approximate(KilowattHours(575d))
+        updatedThermalGridState.houseState shouldBe None
+        updatedThermalGridState.storageState shouldBe Some(
+          ThermalStorageState(10800L, KilowattHours(575d), Kilowatts(0d))
+        )
       }
     }
 
@@ -116,7 +138,7 @@ class ThermalGridWithStorageOnlySpec
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
             tick,
-            testGridambientTemperature,
+            testGridAmbientTemperature,
             gridState,
             testGridQDotConsumptionHigh,
           )
@@ -148,7 +170,7 @@ class ThermalGridWithStorageOnlySpec
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
             tick,
-            testGridambientTemperature,
+            testGridAmbientTemperature,
             gridState,
             testGridQDotInfeed,
             noThermalDemand,
@@ -174,7 +196,7 @@ class ThermalGridWithStorageOnlySpec
         val (updatedState, nextThreshold) = thermalGrid.updateState(
           0L,
           ThermalGrid.startingState(thermalGrid),
-          testGridambientTemperature,
+          testGridAmbientTemperature,
           testGridQDotInfeed,
           noThermalDemand,
           thermalDemand,
@@ -208,7 +230,7 @@ class ThermalGridWithStorageOnlySpec
                 )
               )
             ),
-          testGridambientTemperature,
+          testGridAmbientTemperature,
           testGridQDotConsumptionHigh,
           thermalDemand,
           noThermalDemand,
@@ -232,7 +254,7 @@ class ThermalGridWithStorageOnlySpec
         val updatedState = thermalGrid.updateState(
           0L,
           ThermalGrid.startingState(thermalGrid),
-          testGridambientTemperature,
+          testGridAmbientTemperature,
           Kilowatts(0d),
           noThermalDemand,
           noThermalDemand,

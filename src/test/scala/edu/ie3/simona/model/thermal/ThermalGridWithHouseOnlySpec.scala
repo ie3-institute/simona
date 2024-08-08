@@ -9,14 +9,11 @@ package edu.ie3.simona.model.thermal
 import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
-import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
-  HouseTemperatureLowerBoundaryReached,
-  HouseTemperatureUpperBoundaryReached,
-}
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{HouseTemperatureLowerBoundaryReached, HouseTemperatureUpperBoundaryReached}
 import edu.ie3.simona.test.common.UnitSpec
-import squants.energy.{KilowattHours, Kilowatts, Megawatts, WattHours, Watts}
+import squants.energy._
 import squants.thermal.Celsius
-import squants.{Energy, Power, Temperature}
+import squants.{Energy, Kelvin, Power, Temperature}
 
 import scala.jdk.CollectionConverters._
 
@@ -73,23 +70,28 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
 
     "determining the energy demand" should {
       "exactly be the demand of the house" in {
-        val tick = 10800 // after three house
+        val tick = 10800 // after three hours
         val expectedHouseDemand = thermalHouse.energyDemand(
           tick,
-          testGridambientTemperature,
+          testGridAmbientTemperature,
           expectedHouseStartingState,
         )
 
-        val (houseDemand, storageDemand) = thermalGrid.energyDemand(
-          tick,
-          testGridambientTemperature,
-          ThermalGrid.startingState(thermalGrid),
-        )
+        val (houseDemand, storageDemand, updatedThermalGridState) =
+          thermalGrid.energyDemandAndUpdatedState(
+            tick,
+            testGridAmbientTemperature,
+            ThermalGrid.startingState(thermalGrid),
+          )
 
         houseDemand.required should approximate(expectedHouseDemand.required)
         houseDemand.possible should approximate(expectedHouseDemand.possible)
         storageDemand.required should approximate(KilowattHours(0d))
         storageDemand.possible should approximate(KilowattHours(0d))
+        updatedThermalGridState.houseState shouldBe Some(
+          ThermalHouseState(10800, Kelvin(292.0799935185185), Kilowatts(0d))
+        )
+        updatedThermalGridState.storageState shouldBe None
       }
     }
 
@@ -107,7 +109,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
             tick,
-            testGridambientTemperature,
+            testGridAmbientTemperature,
             gridState,
             externalQDot,
           )
@@ -128,13 +130,13 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       }
 
       "not withdraw energy from the house, if actual consumption is given" in {
-        val tick = 0L // after three house
+        val tick = 0L // after three hours
         val gridState = ThermalGrid.startingState(thermalGrid)
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
             tick,
-            testGridambientTemperature,
+            testGridAmbientTemperature,
             gridState,
             testGridQDotConsumption,
           )
@@ -168,7 +170,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
             tick,
-            testGridambientTemperature,
+            testGridAmbientTemperature,
             gridState,
             testGridQDotInfeed,
             thermalDemand,
@@ -196,7 +198,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         thermalGrid.updateState(
           0L,
           ThermalGrid.startingState(thermalGrid),
-          testGridambientTemperature,
+          testGridAmbientTemperature,
           testGridQDotInfeed,
           thermalDemand,
           noThermalDemand,
@@ -220,7 +222,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         thermalGrid.updateState(
           0L,
           ThermalGrid.startingState(thermalGrid),
-          testGridambientTemperature,
+          testGridAmbientTemperature,
           testGridQDotConsumption,
           thermalDemand,
           noThermalDemand,
@@ -244,7 +246,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         thermalGrid.updateState(
           0L,
           ThermalGrid.startingState(thermalGrid),
-          testGridambientTemperature,
+          testGridAmbientTemperature,
           Megawatts(0d),
           thermalDemand,
           noThermalDemand,
