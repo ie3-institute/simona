@@ -301,9 +301,11 @@ class ExtEvDataServiceSpec
     }
 
     "handle price requests correctly by returning dummy values" in {
-      val evService = TestActorRef(new ExtEvDataService(scheduler.ref))
+      val scheduler = TestProbe("scheduler")
+      val extSimAdapter = TestProbe("extSimAdapter")
 
-      val extData = extEvData(evService)
+      val evService = TestActorRef(new ExtEvDataService(scheduler.ref))
+      val extEvData = new ExtEvData(evService, extSimAdapter.ref)
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
@@ -311,7 +313,7 @@ class ExtEvDataServiceSpec
 
       scheduler.send(
         evService,
-        SimonaService.Create(InitExtEvData(extData), key),
+        SimonaService.Create(InitExtEvData(extEvData), key),
       )
       scheduler.expectMsgType[ScheduleActivation]
 
@@ -322,12 +324,25 @@ class ExtEvDataServiceSpec
       val evcs2 = TestProbe("evcs2")
 
       evcs1.send(evService, RegisterForEvDataMessage(evcs1UUID))
-      evcs1.expectMsgType[RegistrationSuccessfulMessage]
+      evcs1.expectNoMessage()
 
       evcs2.send(evService, RegisterForEvDataMessage(evcs2UUID))
-      evcs2.expectMsgType[RegistrationSuccessfulMessage]
+      evcs2.expectNoMessage()
 
-      extData.sendExtMsg(new RequestCurrentPrices())
+      extEvData.sendExtMsg(
+        new ProvideArrivingEvs(
+          Map.empty[UUID, java.util.List[EvModel]].asJava,
+          Some(long2Long(0L)).toJava,
+        )
+      )
+      extSimAdapter.expectMsg(new ScheduleDataServiceMessage(evService))
+      scheduler.send(evService, Activation(INIT_SIM_TICK))
+      scheduler.expectMsg(Completion(evService.toTyped))
+
+      evcs1.expectMsg(RegistrationSuccessfulMessage(evService.ref, Some(0L)))
+      evcs2.expectMsg(RegistrationSuccessfulMessage(evService.ref, Some(0L)))
+
+      extEvData.sendExtMsg(new RequestCurrentPrices())
 
       // ev service should receive request at this moment
       // scheduler should receive schedule msg
@@ -344,13 +359,13 @@ class ExtEvDataServiceSpec
       // ev service should recognize that all evcs that are expected are returned,
       // thus should send ProvideEvcsFreeLots
       awaitCond(
-        !extData.receiveTriggerQueue.isEmpty,
+        !extEvData.receiveTriggerQueue.isEmpty,
         max = 3.seconds,
         message = "No message received",
       )
-      extData.receiveTriggerQueue.size() shouldBe 1
+      extEvData.receiveTriggerQueue.size() shouldBe 1
       // only evcs 1 should be included, the other one is full
-      extData.receiveTriggerQueue.take() shouldBe new ProvideCurrentPrices(
+      extEvData.receiveTriggerQueue.take() shouldBe new ProvideCurrentPrices(
         Map(
           evcs1UUID -> double2Double(0d),
           evcs2UUID -> double2Double(0d),
