@@ -20,7 +20,6 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptio
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.DefaultQuantities
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.energy.{Energy, KilowattHours, Kilowatts}
 import squants.{Power, Temperature}
@@ -217,7 +216,7 @@ final case class HpModel(
       thermalGrid.updateState(
         relevantData.currentTick,
         state.thermalGridState,
-        state.ambientTemperature.getOrElse(relevantData.ambientTemperature),
+        relevantData.ambientTemperature,
         newThermalPower,
         houseDemand,
         storageDemand,

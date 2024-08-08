@@ -54,7 +54,6 @@ import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.{
   FlexOptionsResultEvent,
   ParticipantResultEvent,
-  ThermalResultEvent,
 }
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
@@ -1940,8 +1939,9 @@ protected trait ParticipantAgentFundamentals[
   def buildResultEvent[R <: ResultEntity](
       result: R
   ): Option[ResultEvent] = result match {
-    case thermalResult: ThermalUnitResult =>
-      Some(ThermalResultEvent(thermalResult))
+    case thermalUnitResult: ThermalUnitResult =>
+      Some(ResultEvent.ThermalResultEvent(thermalUnitResult))
+
     case unsupported =>
       log.debug(
         s"Results of class '${unsupported.getClass.getSimpleName}' are currently not supported."
