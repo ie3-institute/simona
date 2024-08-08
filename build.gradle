@@ -159,10 +159,6 @@ tasks.withType(JavaCompile) {
   options.encoding = 'UTF-8'
 }
 
-// Run with  ./gradlew run --args='--config /path/to/simona.conf'
-application {
-  mainClassName = 'edu.ie3.simona.main.RunSimonaStandalone'
-}
 
 jar {
   manifest {
@@ -170,6 +166,11 @@ jar {
         'Main-Class': 'edu.ie3.simona.main.RunSimonaStandalone'
         )
   }
+}
+
+// Run with  ./gradlew run --args='--config /path/to/simona.conf'
+application {
+  mainClassName = jar.manifest.attributes.get('Main-Class')
 }
 
 //////////////////////////////////////////////////////////////////////
