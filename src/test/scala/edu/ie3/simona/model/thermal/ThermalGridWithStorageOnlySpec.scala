@@ -108,6 +108,7 @@ class ThermalGridWithStorageOnlySpec
             ThermalGridState(
               None,
               Some(ThermalStorageState(0L, KilowattHours(575d), Kilowatts(0d))),
+              None, //FIXME
             ),
           )
 

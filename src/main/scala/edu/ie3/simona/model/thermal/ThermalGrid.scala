@@ -128,6 +128,9 @@ final case class ThermalGrid(
         )
     }
 
+    //FIXME
+    val domesticHotWaterStorageState = ???
+
     (
       ThermalEnergyDemand(
         houseDemand.required,
@@ -137,7 +140,7 @@ final case class ThermalGrid(
         storageDemand.required,
         storageDemand.possible,
       ),
-      ThermalGridState(updatedHouseState, updatedStorageState),
+      ThermalGridState(updatedHouseState, updatedStorageState, domesticHotWaterStorageState),
     )
   }
 
