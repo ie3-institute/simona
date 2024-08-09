@@ -263,8 +263,68 @@ class ExtEvDataServiceSpec
       extData.receiveTriggerQueue.size() shouldBe 1
       // only evcs 1 should be included, the other one is full
       extData.receiveTriggerQueue.take() shouldBe new ProvideEvcsFreeLots(
-        Map(evcs1UUID -> Integer.valueOf(2)).asJava
+        Map(evcs1UUID -> int2Integer(2)).asJava
       )
+    }
+
+    "handle price requests correctly by returning dummy values" in {
+      val evService = TestActorRef(new ExtEvDataService(scheduler.ref))
+
+      val extData = extEvData(evService)
+
+      val key =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
+      scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
+
+      scheduler.send(
+        evService,
+        SimonaService.Create(InitExtEvData(extData), key),
+      )
+      scheduler.expectMsgType[ScheduleActivation]
+
+      scheduler.send(evService, Activation(INIT_SIM_TICK))
+      scheduler.expectMsg(Completion(evService.toTyped))
+
+      val evcs1 = TestProbe("evcs1")
+      val evcs2 = TestProbe("evcs2")
+
+      evcs1.send(evService, RegisterForEvDataMessage(evcs1UUID))
+      evcs1.expectMsgType[RegistrationSuccessfulMessage]
+
+      evcs2.send(evService, RegisterForEvDataMessage(evcs2UUID))
+      evcs2.expectMsgType[RegistrationSuccessfulMessage]
+
+      extData.sendExtMsg(new RequestCurrentPrices())
+
+      // ev service should receive request at this moment
+      // scheduler should receive schedule msg
+      extSimAdapter.expectMsg(new ScheduleDataServiceMessage(evService))
+
+      val tick = 0L
+
+      // we trigger ev service
+      scheduler.send(evService, Activation(tick))
+
+      evcs1.expectNoMessage()
+      evcs2.expectNoMessage()
+
+      // ev service should recognize that all evcs that are expected are returned,
+      // thus should send ProvideEvcsFreeLots
+      awaitCond(
+        !extData.receiveTriggerQueue.isEmpty,
+        max = 3.seconds,
+        message = "No message received",
+      )
+      extData.receiveTriggerQueue.size() shouldBe 1
+      // only evcs 1 should be included, the other one is full
+      extData.receiveTriggerQueue.take() shouldBe new ProvideCurrentPrices(
+        Map(
+          evcs1UUID -> double2Double(0d),
+          evcs2UUID -> double2Double(0d),
+        ).asJava
+      )
+
+      scheduler.expectMsg(Completion(evService.toTyped))
     }
 
     "return free lots requests right away if there are no evcs registered" in {
