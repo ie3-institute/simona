@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implementation of StorageAgent [#309](https://github.com/ie3-institute/simona/issues/309)
 - Enhanced Newton-Raphson-PowerFlow failures with more information [#815](https://github.com/ie3-institute/simona/issues/815)
 - Update RTD references and bibliography [#868](https://github.com/ie3-institute/simona/issues/868)
+- Add gradle application plugin for command line execution with gradle run [#890](https://github.com/ie3-institute/simona/issues/890)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -67,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Merging both `FixedFeedInModelSpec` tests [#870](https://github.com/ie3-institute/simona/issues/870)
 - Rewrote ThermalHouseTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Merged `HpModelTestData` with `HpTestData` to `HpInputTestData` [#872](https://github.com/ie3-institute/simona/issues/872)
+- Updated dependabot reviewers [#888](https://github.com/ie3-institute/simona/issues/888)
 
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
