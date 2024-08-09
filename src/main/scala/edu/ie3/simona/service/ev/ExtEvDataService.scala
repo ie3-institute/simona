@@ -146,6 +146,8 @@ class ExtEvDataService(override val scheduler: ActorRef)
     serviceStateData.uuidToActorRef.get(evcs) match {
       case None =>
         // Actor is not registered yet
+        // (not sending confirmation message yet, because we're waiting
+        // for MobSim to tell us what the first tick is going to be)
         serviceStateData.copy(
           uuidToActorRef =
             serviceStateData.uuidToActorRef + (evcs -> agentToBeRegistered)
