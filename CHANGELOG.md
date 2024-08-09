@@ -66,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rewrote SystemComponentTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Converting remaining rst files to markdown [#838](https://github.com/ie3-institute/simona/issues/838)
 - Merging both `FixedFeedInModelSpec` tests [#870](https://github.com/ie3-institute/simona/issues/870)
+- Updated dependabot reviewers [#888](https://github.com/ie3-institute/simona/issues/888)
 - External simulation should provide information about next tick of MobSim [#776](https://github.com/ie3-institute/simona/issues/776)
 
 ### Fixed
