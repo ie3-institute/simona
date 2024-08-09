@@ -8,6 +8,7 @@ package edu.ie3.simona.model.thermal
 
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.HpInputTestData
+import edu.ie3.util.scala.quantities.WattsPerKelvin
 import org.scalatest.prop.TableFor3
 import squants.energy._
 import squants.thermal._
@@ -93,25 +94,29 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
 
     "Check build method" in {
 
-      val thermalHouseTest = thermalHouse(18, 22)
+      val thermalTestHouse = thermalHouse(18, 22)
       val thermalHouseInput = defaultThermalHouse
 
-      thermalHouseTest.id shouldBe thermalHouseInput.getId
-      thermalHouseTest.operatorInput shouldBe thermalHouseInput.getOperator
-      thermalHouseTest.operationTime shouldBe thermalHouseInput.getOperationTime
-      thermalHouseTest.bus shouldBe null
-      thermalHouseTest.ethLosses.toWattsPerKelvin shouldBe 1000.0
-      (thermalHouseTest.ethCapa * Temperature(
+      thermalTestHouse.id shouldBe thermalHouseInput.getId
+      thermalTestHouse.operatorInput shouldBe thermalHouseInput.getOperator
+      thermalTestHouse.operationTime shouldBe thermalHouseInput.getOperationTime
+      thermalTestHouse.bus shouldBe null
+      thermalTestHouse.ethLosses shouldBe WattsPerKelvin(1000.0)
+      (thermalTestHouse.ethCapa * Temperature(
         1,
-        Celsius,
-      )).toKilowattHours shouldBe 2741.5
-      thermalHouseTest.lowerBoundaryTemperature shouldBe Temperature(
-        18,
-        Celsius,
+        Kelvin,
+      )) shouldBe KilowattHours(10.0)
+      thermalTestHouse.lowerBoundaryTemperature should approximate(
+        Temperature(
+          18,
+          Celsius,
+        )
       )
-      thermalHouseTest.upperBoundaryTemperature shouldBe Temperature(
-        22,
-        Celsius,
+      thermalTestHouse.upperBoundaryTemperature should approximate(
+        Temperature(
+          22,
+          Celsius,
+        )
       )
     }
   }
