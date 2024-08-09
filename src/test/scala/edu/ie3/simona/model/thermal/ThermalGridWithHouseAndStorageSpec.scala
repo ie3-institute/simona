@@ -42,6 +42,7 @@ class ThermalGridWithHouseAndStorageSpec
           thermalBusInput,
           Set(thermalHouseInput).asJava,
           Set[ThermalStorageInput](thermalStorageInput).asJava,
+          Set[ThermalStorageInput](domesticWaterStorage).asJava,
         )
 
       ThermalGrid(thermalGridInput) match {

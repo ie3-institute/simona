@@ -204,7 +204,7 @@ class HpModelSpec
           ) =>
             val data = hpData
             val house = thermalHouse(18, 22)
-            val grid = thermalGrid(house)
+            val grid = thermalGrid(house, None, None)
             val hp = hpModel(grid)
 
             hp.determineState(state, data) match {
@@ -237,7 +237,7 @@ class HpModelSpec
         "deliver positive flexibility" in {
           val house = thermalHouse(18, 22)
             .copy(ethLosses = WattsPerKelvin(200))
-          val grid = thermalGrid(house, Some(thermalStorage))
+          val grid = thermalGrid(house, Some(thermalStorage), None)
           val hp = hpModel(grid)
           // Tick, at which the house is heated up
           val relevantData = hpData.copy(currentTick = 2763L)

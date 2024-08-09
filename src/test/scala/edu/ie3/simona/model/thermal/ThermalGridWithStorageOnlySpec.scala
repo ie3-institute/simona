@@ -38,6 +38,7 @@ class ThermalGridWithStorageOnlySpec
           thermalBusInput,
           Set.empty[ThermalHouseInput].asJava,
           Set[ThermalStorageInput](thermalStorageInput).asJava,
+          Set.empty[ThermalStorageInput].asJava
         )
 
       ThermalGrid(thermalGridInput) match {

@@ -139,11 +139,12 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
   protected def thermalGrid(
       thermalHouse: ThermalHouse,
       thermalStorage: Option[ThermalStorage] = None,
+    domesticWaterStorage: Option[ThermalStorage] = None,
   ): ThermalGrid =
     ThermalGrid(
       Some(thermalHouse),
       thermalStorage,
-      None,
+      domesticWaterStorage,
     )
 
   protected def thermalHouse(
@@ -171,7 +172,7 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
     thermalBusInput,
-    KilowattHours(20d),
+    KilowattHours(0d),
     KilowattHours(500d),
     Kilowatts(10d),
     KilowattHours(0d),

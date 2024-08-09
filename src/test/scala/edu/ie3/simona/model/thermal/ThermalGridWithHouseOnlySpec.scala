@@ -36,6 +36,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           thermalBusInput,
           Set(thermalHouseInput).asJava,
           Set.empty[ThermalStorageInput].asJava,
+          Set[ThermalStorageInput](domesticWaterStorage).asJava
+
         )
 
       ThermalGrid(thermalGridInput) match {
