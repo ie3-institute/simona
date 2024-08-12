@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implementation of StorageAgent [#309](https://github.com/ie3-institute/simona/issues/309)
 - Enhanced Newton-Raphson-PowerFlow failures with more information [#815](https://github.com/ie3-institute/simona/issues/815)
 - Update RTD references and bibliography [#868](https://github.com/ie3-institute/simona/issues/868)
+- Add gradle application plugin for command line execution with gradle run [#890](https://github.com/ie3-institute/simona/issues/890)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -65,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rewrote SystemComponentTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Converting remaining rst files to markdown [#838](https://github.com/ie3-institute/simona/issues/838)
 - Merging both `FixedFeedInModelSpec` tests [#870](https://github.com/ie3-institute/simona/issues/870)
+- Updated dependabot reviewers [#888](https://github.com/ie3-institute/simona/issues/888)
 - Merged `HpModelTestData` with `HpTestData` to `HpInputTestData` [#872](https://github.com/ie3-institute/simona/issues/872)
 
 ### Fixed
@@ -89,6 +91,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed result output for thermal houses and cylindrical storages [#844](https://github.com/ie3-institute/simona/issues/844)
 - Fixed FixedFeedModelSpec [#861](https://github.com/ie3-institute/simona/issues/861)
 - Fixing duration calculation in result events [#801](https://github.com/ie3-institute/simona/issues/801)
+- Handle MobSim requests for current prices [#892](https://github.com/ie3-institute/simona/issues/892)
 
 ## [3.0.0] - 2023-08-07
 
