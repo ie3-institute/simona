@@ -145,10 +145,13 @@ trait EmInputTestData
     Quantities.getQuantity(20.3, StandardUnits.TEMPERATURE),
     Quantities.getQuantity(22.0, StandardUnits.TEMPERATURE),
     Quantities.getQuantity(20.0, StandardUnits.TEMPERATURE),
+    "house",
+    2.0,
   )
   val adaptedThermalGrid = new ThermalGrid(
     thermalBusInput,
     Seq(adaptedThermalHouse).asJava,
+    Seq.empty[ThermalStorageInput].asJava,
     Seq.empty[ThermalStorageInput].asJava,
   )
 }

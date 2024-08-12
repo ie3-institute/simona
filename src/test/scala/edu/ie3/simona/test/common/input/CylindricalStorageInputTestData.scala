@@ -7,12 +7,12 @@
 package edu.ie3.simona.test.common.input
 
 import java.util.UUID
-
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.{
   CylindricalStorageInput,
   ThermalBusInput,
 }
+import edu.ie3.util.quantities.PowerSystemUnits
 import tech.units.indriya.quantity.Quantities.getQuantity
 
 trait CylindricalStorageInputTestData {
@@ -22,9 +22,9 @@ trait CylindricalStorageInputTestData {
     "ThermalStorage",
     new ThermalBusInput(UUID.randomUUID(), "ThermalBus"),
     getQuantity(100, StandardUnits.VOLUME),
-    getQuantity(20, StandardUnits.VOLUME),
     getQuantity(30, StandardUnits.TEMPERATURE),
     getQuantity(40, StandardUnits.TEMPERATURE),
     getQuantity(1.15, StandardUnits.SPECIFIC_HEAT_CAPACITY),
+    getQuantity(11d, PowerSystemUnits.KILOWATT),
   )
 }

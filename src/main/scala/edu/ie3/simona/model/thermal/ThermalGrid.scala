@@ -7,7 +7,10 @@
 package edu.ie3.simona.model.thermal
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
+import edu.ie3.datamodel.models.input.thermal.{
+  CylindricalStorageInput,
+  DomesticHotWaterStorageInput,
+}
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.thermal.{
   CylindricalStorageResult,
@@ -60,7 +63,12 @@ final case class ThermalGrid(
       tick: Long,
       ambientTemperature: Temperature,
       state: ThermalGridState,
-  ): (ThermalEnergyDemand, ThermalEnergyDemand, ThermalGridState) = {
+  ): (
+      ThermalEnergyDemand,
+      ThermalEnergyDemand,
+      ThermalEnergyDemand,
+      ThermalGridState,
+  ) = {
     /* First get the energy demand of the houses but only if inner temperature is below target temperature */
 
     val (houseDemand, updatedHouseState) =
@@ -128,8 +136,39 @@ final case class ThermalGrid(
         )
     }
 
-    //FIXME
-    val domesticHotWaterStorageState = ???
+    val (domesticHotWaterStorageDemand, updatedDomesticHotWaterStorageState) = {
+      // FIXME Repetition
+      domesticHotWaterStorage
+        .zip(state.domesticHotWaterStorageState)
+        .map { case (storage, state) =>
+          val updatedStorageState =
+            storage.updateState(tick, state.qDot, state)._1
+          val storedEnergy = updatedStorageState.storedEnergy
+          val soc = storedEnergy / storage.getMaxEnergyThreshold
+          val storageRequired = {
+            if (soc == 0d) {
+              storage.getMaxEnergyThreshold - storedEnergy
+
+            } else {
+              zeroMWH
+            }
+          }
+
+          val storagePossible = storage.getMaxEnergyThreshold - storedEnergy
+          (
+            ThermalEnergyDemand(
+              storageRequired,
+              storagePossible,
+            ),
+            Some(updatedStorageState),
+          )
+
+        }
+        .getOrElse(
+          ThermalEnergyDemand(zeroMWH, zeroMWH),
+          None,
+        )
+    }
 
     (
       ThermalEnergyDemand(
@@ -140,7 +179,15 @@ final case class ThermalGrid(
         storageDemand.required,
         storageDemand.possible,
       ),
-      ThermalGridState(updatedHouseState, updatedStorageState, domesticHotWaterStorageState),
+      ThermalEnergyDemand(
+        domesticHotWaterStorageDemand.required,
+        domesticHotWaterStorageDemand.possible,
+      ),
+      ThermalGridState(
+        updatedHouseState,
+        updatedStorageState,
+        updatedDomesticHotWaterStorageState,
+      ),
     )
   }
 
@@ -678,8 +725,8 @@ object ThermalGrid {
       input: edu.ie3.datamodel.models.input.container.ThermalGrid
   ): ThermalGrid = {
     val houses = input.houses().asScala.map(ThermalHouse(_)).toSet
-    val storages: Set[ThermalStorage] = input
-      .storages()
+    val storages: Set[CylindricalThermalStorage] = input
+      .heatStorages()
       .asScala
       .flatMap {
         case cylindricalInput: CylindricalStorageInput =>
@@ -687,16 +734,13 @@ object ThermalGrid {
         case _ => None
       }
       .toSet
-    val domesticHotWaterStorage: Set[ThermalStorage] = input
-      .storages()
+    val domesticHotWaterStorage: Set[DomesticHotWaterStorage] = input
+      .domesticHotWaterStorages()
       .asScala
       .flatMap {
 
-        // FIXME
-        //        case domesticHotWaterInput: DomesticHotWaterStorageInput =>
-        //        Some(DomesticHotWaterStorageInput(domesticHotWaterInput))
-        case cylindricalInput: CylindricalStorageInput =>
-          Some(CylindricalThermalStorage(cylindricalInput))
+        case domesticHotWaterInput: DomesticHotWaterStorageInput =>
+          Some(DomesticHotWaterStorage(domesticHotWaterInput))
         case _ => None
       }
       .toSet

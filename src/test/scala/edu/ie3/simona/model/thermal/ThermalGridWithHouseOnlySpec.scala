@@ -7,15 +7,10 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
-import edu.ie3.simona.model.thermal.ThermalGrid.{
-  ThermalEnergyDemand,
-  ThermalGridState,
-}
+import edu.ie3.simona.model.thermal.ThermalGrid.{ThermalEnergyDemand, ThermalGridState}
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
-import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
-  HouseTemperatureLowerBoundaryReached,
-  HouseTemperatureUpperBoundaryReached,
-}
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{HouseTemperatureLowerBoundaryReached, HouseTemperatureUpperBoundaryReached}
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.test.common.UnitSpec
 import squants.energy._
 import squants.thermal.Celsius
@@ -36,13 +31,13 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           thermalBusInput,
           Set(thermalHouseInput).asJava,
           Set.empty[ThermalStorageInput].asJava,
-          Set[ThermalStorageInput](domesticWaterStorage).asJava
-
+          Set[ThermalStorageInput](domesticWaterStorageInput).asJava,
         )
 
       ThermalGrid(thermalGridInput) match {
-        case ThermalGrid(Some(thermalHouseGenerated), None, None) =>
+        case ThermalGrid(Some(thermalHouseGenerated), None, Some(domesticHotWaterStorageGenerated)) =>
           thermalHouseGenerated shouldBe thermalHouse
+          domesticHotWaterStorageGenerated shouldBe domesticWaterStorage
         case _ =>
           fail("Generation of thermal grid from thermal input grid failed.")
       }
@@ -55,6 +50,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         thermalBusInput,
         Set(thermalHouseInput).asJava,
         Set.empty[ThermalStorageInput].asJava,
+        Set[ThermalStorageInput](domesticWaterStorageInput).asJava,
       )
     )
 
@@ -62,16 +58,16 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       "deliver proper results" in {
         ThermalGrid.startingState(thermalGrid) match {
           case ThermalGridState(
-                Some(ThermalHouseState(tick, innerTemperature, thermalInfeed)),
+                Some(ThermalHouseState(houseTick, innerTemperature, thermalInfeedHouse)),
                 None,
-                None,
+                Some(ThermalStorageState(waterStorageTick, storedEnergyWaterStorage, thermalInfeedWaterStorage)),
               ) =>
-            tick shouldBe expectedHouseStartingState.tick
-            innerTemperature should approximate(
-              expectedHouseStartingState.innerTemperature
-            )
-            thermalInfeed should approximate(expectedHouseStartingState.qDot)
-
+            houseTick shouldBe expectedHouseStartingState.tick
+            waterStorageTick shouldBe expectedHouseStartingState.tick
+            innerTemperature should approximate(expectedHouseStartingState.innerTemperature)
+            storedEnergyWaterStorage should approximate(expectedDomesticHotWaterStorageStartingState.storedEnergy)
+            thermalInfeedHouse should approximate(expectedHouseStartingState.qDot)
+            thermalInfeedWaterStorage should approximate(expectedHouseStartingState.qDot)
           case _ => fail("Determination of starting state failed")
         }
       }
@@ -86,7 +82,12 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           expectedHouseStartingState,
         )
 
-        val (houseDemand, storageDemand, updatedThermalGridState) =
+        val (
+          houseDemand,
+          storageDemand,
+          waterStorageDemand,
+          updatedThermalGridState,
+        ) =
           thermalGrid.energyDemandAndUpdatedState(
             tick,
             testGridAmbientTemperature,
@@ -97,10 +98,15 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         houseDemand.possible should approximate(expectedHouseDemand.possible)
         storageDemand.required should approximate(KilowattHours(0d))
         storageDemand.possible should approximate(KilowattHours(0d))
+        waterStorageDemand.required should approximate(KilowattHours(0d))
+        waterStorageDemand.possible should approximate(KilowattHours(0d))
         updatedThermalGridState.houseState shouldBe Some(
           ThermalHouseState(10800, Kelvin(292.0799935185185), Kilowatts(0d))
         )
         updatedThermalGridState.storageState shouldBe None
+        updatedThermalGridState.domesticHotWaterStorageState shouldBe Some(
+          ThermalHouseState(10800, Kelvin(292.0799935185185), Kilowatts(0d))
+        )
       }
     }
 

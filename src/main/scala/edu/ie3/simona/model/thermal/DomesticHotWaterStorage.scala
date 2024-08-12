@@ -8,12 +8,25 @@ package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
-import edu.ie3.datamodel.models.input.thermal.{CylindricalStorageInput, ThermalBusInput}
+import edu.ie3.datamodel.models.input.thermal.{
+  DomesticHotWaterStorageInput,
+  ThermalBusInput,
+}
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
+  StorageEmpty,
+  StorageFull,
+}
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.quantities.{DefaultQuantities, KilowattHoursPerKelvinCubicMeters}
+import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities.{
+  DefaultQuantities,
+  KilowattHoursPerKelvinCubicMeters,
+}
+import squants.energy.Kilowatts
 import squants.space.CubicMeters
 import squants.thermal.Celsius
-import squants.time.Hours
+import squants.time.Seconds
 import squants.{Energy, Power}
 import tech.units.indriya.unit.Units
 
@@ -41,27 +54,122 @@ import java.util.UUID
   *   Thermal power, that can be charged / discharged
   */
 final case class DomesticHotWaterStorage(
-  uuid: UUID,
-  id: String,
-   operatorInput: OperatorInput,
-   operationTime: OperationTime,
-   bus: ThermalBusInput,
-   minEnergyThreshold: Energy,
-   maxEnergyThreshold: Energy,
-   chargingPower: Power,
-  override protected var _storedEnergy: Energy
+    uuid: UUID,
+    id: String,
+    operatorInput: OperatorInput,
+    operationTime: OperationTime,
+    bus: ThermalBusInput,
+    maxEnergyThreshold: Energy,
+    chargingPower: Power,
+    override protected var _storedEnergy: Energy,
 ) extends ThermalStorage(
-  uuid,
-  id,
-  operatorInput,
-  operationTime,
-  bus,
-  minEnergyThreshold,
-  maxEnergyThreshold,
-  chargingPower
-) with MutableStorage with ThermalStorageCalculations
+      uuid,
+      id,
+      operatorInput,
+      operationTime,
+      bus,
+      maxEnergyThreshold,
+      chargingPower,
+    )
+    with MutableStorage
+    with ThermalStorageCalculations {
 
-object DomesticHotWaterStorage {
+  /** Updates the given last state. Based on the then set thermal influx, the
+    * current state is calculated. Positive values of influx are consider to
+    * flow into the storage. Additionally, the tick, when the next threshold is
+    * reached, is calculated as well.
+    *
+    * @param tick
+    *   Tick, where this change happens
+    * @param qDot
+    *   Influx
+    * @param lastState
+    *   Last known state
+    * @return
+    *   The updated state as well as the tick, when a threshold is reached
+    */
+  override def updateState(
+      tick: Long,
+      qDot: Power,
+      lastState: ThermalStorageState,
+  ): (ThermalStorageState, Option[ThermalThreshold]) = {
+    /* Determine new state based on time difference and given state */
+    val energyBalance = lastState.qDot * Seconds(tick - lastState.tick)
+    val newEnergy = lastState.storedEnergy + energyBalance
+    val updatedEnergy =
+      if (isFull(newEnergy))
+        maxEnergyThreshold
+      else if (isEmpty(newEnergy))
+        zeroKWH
+      else
+        newEnergy
+
+    /* Determine, when a threshold is reached */
+    val nextThreshold =
+      if (qDot > zeroMW) {
+        val duration = (maxEnergyThreshold - updatedEnergy) / qDot
+        val durationInTicks = Math.round(duration.toSeconds)
+        if (durationInTicks <= 0L)
+          None
+        else
+          Some(StorageFull(tick + durationInTicks))
+      } else if (qDot < zeroMW) {
+        val duration = updatedEnergy / qDot * (-1)
+        val durationInTicks = Math.round(duration.toSeconds)
+        if (durationInTicks <= 0L)
+          None
+        else
+          Some(StorageEmpty(tick + durationInTicks))
+      } else {
+        return (ThermalStorageState(tick, updatedEnergy, qDot), None)
+      }
+
+    (ThermalStorageState(tick, updatedEnergy, qDot), nextThreshold)
+  }
+
+  override def startingState: ThermalStorageState = ThermalStorageState(
+    -1L,
+    zeroKWH,
+    zeroKW,
+  )
+
+  @deprecated("Use thermal storage state instead")
+  override def usableThermalEnergy: Energy =
+    _storedEnergy
+
+  @deprecated("Use thermal storage state instead")
+  override def tryToStoreAndReturnRemainder(
+      addedEnergy: Energy
+  ): Option[Energy] = {
+    if (addedEnergy > zeroKWH) {
+      _storedEnergy = _storedEnergy + addedEnergy
+      if (_storedEnergy > maxEnergyThreshold) {
+        val surplus = _storedEnergy - maxEnergyThreshold
+        _storedEnergy = maxEnergyThreshold
+        return Option(surplus)
+      }
+    }
+    Option.empty
+  }
+
+  @deprecated("Use thermal storage state instead")
+  override def tryToTakeAndReturnLack(
+      takenEnergy: Energy
+  ): Option[Energy] = {
+    if (takenEnergy > zeroKWH) {
+      _storedEnergy = _storedEnergy - takenEnergy
+      if (_storedEnergy < zeroKWH) {
+        val lack = zeroKWH - _storedEnergy
+        _storedEnergy = zeroKWH
+        return Some(lack)
+      }
+    }
+    None
+  }
+
+}
+
+object DomesticHotWaterStorage extends ThermalStorageCalculations {
 
   /** Function to construct a new [[CylindricalThermalStorage]] based on a
     * provided [[CylindricalStorageInput]]
@@ -74,29 +182,11 @@ object DomesticHotWaterStorage {
     *   parameters
     */
   def apply(
-      input: CylindricalStorageInput,
+      input: DomesticHotWaterStorageInput,
       initialStoredEnergy: Energy = DefaultQuantities.zeroKWH,
   ): DomesticHotWaterStorage = {
-    val minEnergyThreshold: Energy =
-      CylindricalThermalStorage.volumeToEnergy(
-        CubicMeters(
-          input.getStorageVolumeLvlMin
-            .to(Units.CUBIC_METRE)
-            .getValue
-            .doubleValue
-        ),
-        KilowattHoursPerKelvinCubicMeters(
-          input.getC
-            .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
-            .getValue
-            .doubleValue
-        ),
-        Celsius(input.getInletTemp.to(Units.CELSIUS).getValue.doubleValue()),
-        Celsius(input.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue()),
-      )
-
     val maxEnergyThreshold: Energy =
-      CylindricalThermalStorage.volumeToEnergy(
+      volumeToEnergy(
         CubicMeters(
           input.getStorageVolumeLvl.to(Units.CUBIC_METRE).getValue.doubleValue
         ),
@@ -110,9 +200,13 @@ object DomesticHotWaterStorage {
         Celsius(input.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue()),
       )
 
-    /* TODO: Currently, the input model does not define any maximum charge power. Assume, that the usable energy can
-     *   be charged / discharged within the interval of an hour */
-    val chargingPower = (maxEnergyThreshold - minEnergyThreshold) / Hours(1d)
+    val chargingPower = Kilowatts(
+      input
+        .getpThermalMax()
+        .to(PowerSystemUnits.KILOWATT)
+        .getValue
+        .doubleValue()
+    )
 
     new DomesticHotWaterStorage(
       input.getUuid,
@@ -120,7 +214,6 @@ object DomesticHotWaterStorage {
       input.getOperator,
       input.getOperationTime,
       input.getThermalBus,
-      minEnergyThreshold,
       maxEnergyThreshold,
       chargingPower,
       initialStoredEnergy,

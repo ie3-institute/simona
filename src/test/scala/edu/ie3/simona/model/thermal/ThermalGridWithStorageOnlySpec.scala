@@ -38,7 +38,7 @@ class ThermalGridWithStorageOnlySpec
           thermalBusInput,
           Set.empty[ThermalHouseInput].asJava,
           Set[ThermalStorageInput](thermalStorageInput).asJava,
-          Set.empty[ThermalStorageInput].asJava
+          Set.empty[ThermalStorageInput].asJava,
         )
 
       ThermalGrid(thermalGridInput) match {
@@ -56,6 +56,7 @@ class ThermalGridWithStorageOnlySpec
         thermalBusInput,
         Set.empty[ThermalHouseInput].asJava,
         Set[ThermalStorageInput](thermalStorageInput).asJava,
+        Set.empty[ThermalStorageInput].asJava,
       )
     )
 
@@ -82,7 +83,12 @@ class ThermalGridWithStorageOnlySpec
       "deliver the capabilities of the storage" in {
         val tick = 10800 // after three hours
 
-        val (houseDemand, storageDemand, updatedThermalGridState) =
+        val (
+          houseDemand,
+          storageDemand,
+          waterStorageDemand,
+          updatedThermalGridState,
+        ) =
           thermalGrid.energyDemandAndUpdatedState(
             tick,
             testGridAmbientTemperature,
@@ -93,23 +99,31 @@ class ThermalGridWithStorageOnlySpec
         houseDemand.possible should approximate(KilowattHours(0d))
         storageDemand.required should approximate(KilowattHours(1150d))
         storageDemand.possible should approximate(KilowattHours(1150d))
+        waterStorageDemand.required should approximate(KilowattHours(0d))
+        waterStorageDemand.possible should approximate(KilowattHours(0d))
         updatedThermalGridState.houseState shouldBe None
         updatedThermalGridState.storageState shouldBe Some(
           ThermalStorageState(10800, KilowattHours(0d), Kilowatts(0d))
         )
+        updatedThermalGridState.domesticHotWaterStorageState shouldBe None
       }
 
       "deliver the capabilities of a half full storage" in {
         val tick = 10800 // after three hours
 
-        val (houseDemand, storageDemand, updatedThermalGridState) =
+        val (
+          houseDemand,
+          storageDemand,
+          waterStorageDemand,
+          updatedThermalGridState,
+        ) =
           thermalGrid.energyDemandAndUpdatedState(
             tick,
             testGridAmbientTemperature,
             ThermalGridState(
               None,
               Some(ThermalStorageState(0L, KilowattHours(575d), Kilowatts(0d))),
-              None, //FIXME
+              None,
             ),
           )
 
@@ -117,10 +131,13 @@ class ThermalGridWithStorageOnlySpec
         houseDemand.possible should approximate(KilowattHours(0d))
         storageDemand.required should approximate(KilowattHours(0d))
         storageDemand.possible should approximate(KilowattHours(575d))
+        waterStorageDemand.required should approximate(KilowattHours(0d))
+        waterStorageDemand.possible should approximate(KilowattHours(0d))
         updatedThermalGridState.houseState shouldBe None
         updatedThermalGridState.storageState shouldBe Some(
           ThermalStorageState(10800L, KilowattHours(575d), Kilowatts(0d))
         )
+        updatedThermalGridState.domesticHotWaterStorageState shouldBe None
       }
     }
 
