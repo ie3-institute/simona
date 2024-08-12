@@ -190,13 +190,12 @@ group Provide arriving EVs
 
     EvcsAgent2 -> Scheduler: <font color=red>!</font> Completion(t2)
     deactivate EvcsAgent2
-
 end
 
 ExtSimulation -> ExtSimAdapter: <font color=red>!</font> CompletionMessage(t2)
 deactivate ExtSimulation
-
 activate ExtSimAdapter
+
 ExtSimAdapter -> Scheduler: <font color=red>!</font> <font color=green>Completion(t2)</font>
 deactivate ExtSimAdapter
 
