@@ -6,31 +6,29 @@
 
 package edu.ie3.simona.event.listener
 
+import edu.ie3.datamodel.io.csv.BufferedCsvWriter
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{Behavior, PostStop}
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
+import edu.ie3.simona.ExtendedCongestionResult
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
-import edu.ie3.simona.event.ResultEvent.{
-  FlexOptionsResultEvent,
-  ParticipantResultEvent,
-  PowerFlowResultEvent,
-  ThermalResultEvent,
-}
-import edu.ie3.simona.exceptions.{
-  FileHierarchyException,
-  ProcessResultEventException,
-}
+import edu.ie3.simona.event.ResultEvent.{FlexOptionsResultEvent, ParticipantResultEvent, PowerFlowResultEvent, ThermalResultEvent}
+import edu.ie3.simona.exceptions.{FileHierarchyException, ProcessResultEventException}
 import edu.ie3.simona.io.result._
 import edu.ie3.simona.util.ResultFileHierarchy
 import org.slf4j.Logger
 
+import java.io.BufferedWriter
+import java.nio.file.Path
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try}
 
 object ResultEventListener extends Transformer3wResultSupport {
+
+  private var subnetResultWriter: BufferedWriter = _
 
   trait Request
 
@@ -69,6 +67,15 @@ object ResultEventListener extends Transformer3wResultSupport {
   ): Iterable[Future[(Class[_], ResultEntitySink)]] = {
     resultFileHierarchy.resultSinkType match {
       case _: ResultSinkType.Csv =>
+        subnetResultWriter = new BufferedCsvWriter(
+          Path.of(resultFileHierarchy.rawOutputDataDir, "subnet.csv"),
+          Array("time", "subnet", "v_max", "v_min", "line_max"),
+          ",",
+          true
+        )
+        subnetResultWriter.write("time,subnet,v_max,v_min,line_max\n")
+
+
         resultFileHierarchy.resultEntitiesToConsider
           .map(resultClass => {
             resultFileHierarchy.rawOutputDataFilePaths
@@ -294,8 +301,16 @@ object ResultEventListener extends Transformer3wResultSupport {
               congestionResults,
             ),
           ) =>
+
+        val cRes = congestionResults.map {
+          case extended: ExtendedCongestionResult =>
+            subnetResultWriter.write(s"${extended.getTime},${extended.getSubgrid},${extended.getvMaxVal},${extended.getvMinVal},${extended.getLineMax}\n")
+            extended.to()
+          case c => c
+        }
+
         val updatedBaseData =
-          (nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ transformer3wResults ++ congestionResults)
+          (nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ transformer3wResults ++ cRes)
             .foldLeft(baseData) {
               case (currentBaseData, resultEntity: ResultEntity) =>
                 handleResult(resultEntity, currentBaseData, ctx.log)
@@ -330,6 +345,8 @@ object ResultEventListener extends Transformer3wResultSupport {
           }
           .mkString("\n\t\t"),
       )
+
+      subnetResultWriter.close()
 
       // close sinks concurrently to speed up closing (closing calls might be blocking)
       Await.ready(

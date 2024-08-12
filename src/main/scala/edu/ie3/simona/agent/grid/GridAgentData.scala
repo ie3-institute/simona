@@ -12,6 +12,7 @@ import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.result.CongestionResult
 import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
+import edu.ie3.simona.ExtendedCongestionResult
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.CongestionManagementSupport.Congestions
 import edu.ie3.simona.agent.grid.GridAgentMessages._
@@ -528,7 +529,10 @@ object GridAgentData {
     def getCongestionResult(startTime: ZonedDateTime): CongestionResult = {
       val gridModel = gridAgentBaseData.gridEnv.gridModel
 
-      new CongestionResult(
+      val node = powerFlowResults.nodeResults.map(n => n.getvMag().getValue.doubleValue())
+      val line = powerFlowResults.lineResults.map(l => Math.max(l.getiAMag().getValue.doubleValue(), l.getiBMag().getValue.doubleValue()))
+
+      new ExtendedCongestionResult(
         startTime.plusSeconds(currentTick),
         gridModel.subnetNo,
         gridModel.voltageLimits.vMin,
@@ -536,6 +540,9 @@ object GridAgentData {
         congestions.voltageCongestions,
         congestions.lineCongestions,
         congestions.transformerCongestions,
+        node.maxOption.getOrElse(0),
+        node.minOption.getOrElse(0),
+        line.maxOption.getOrElse(0)
       )
     }
 
