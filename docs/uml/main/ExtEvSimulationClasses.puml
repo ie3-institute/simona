@@ -27,7 +27,7 @@ package ev-simulation {
 package simona-api {
     ' MIDDLE PART
     class ExtEvData {
-        ~ LinkedBlockingQueue<ExtEvResponseMessage> receiveTriggerQueue
+        ~ LinkedBlockingQueue<EvDataResponseMessageToExt> receiveTriggerQueue
         - ActorRef dataService
         - ActorRef extSimAdapter
         + List<UUID> requestAvailablePublicEvCs()
@@ -119,33 +119,33 @@ package simona-api {
     EvModelImpl --|> EvModel
 
 
-    interface ExtEvMessage
+    interface EvDataMessageFromExt
     class EvMovementsMessage {
         - Map<UUID, List<EvMovement>> movements
     }
     class RequestEvcsFreeLots
-    RequestEvcsFreeLots --|> ExtEvMessage
-    EvMovementsMessage --|> ExtEvMessage
+    RequestEvcsFreeLots --|> EvDataMessageFromExt
+    EvMovementsMessage --|> EvDataMessageFromExt
     RequestEvcsFreeLots -[hidden]> EvMovementsMessage
 
-    interface ExtEvResponseMessage
+    interface EvDataResponseMessageToExt
     class AllDepartedEvsRepsonse {
         - Map<UUID, List<EvMovement>> movements
     }
     class ProvideEvcsFreeLots
-    ProvideEvcsFreeLots --|> ExtEvResponseMessage
-    AllDepartedEvsRepsonse --|> ExtEvResponseMessage
-    ExtEvData -> ExtEvMessage
-    ExtEvData -> ExtEvResponseMessage
+    ProvideEvcsFreeLots --|> EvDataResponseMessageToExt
+    AllDepartedEvsRepsonse --|> EvDataResponseMessageToExt
+    ExtEvData -> EvDataMessageFromExt
+    ExtEvData -> EvDataResponseMessageToExt
     EvMovement -[hidden]-> RequestEvcsFreeLots
-    ExtEvMessage -[hidden]> ExtEvResponseMessage
+    EvDataMessageFromExt -[hidden]> EvDataResponseMessageToExt
     EvMovementsMessage -[hidden]> ProvideEvcsFreeLots
     ProvideEvcsFreeLots -[hidden]> AllDepartedEvsRepsonse
 
     class ScheduleDataServiceMessage {
         - ExtEvDataService dataService
     }
-    ExtEvResponseMessage -[hidden]> ScheduleDataServiceMessage
+    EvDataResponseMessageToExt -[hidden]> ScheduleDataServiceMessage
     ExtEvData -> ScheduleDataServiceMessage
 
 
@@ -158,10 +158,10 @@ package simona-api {
     ExtLink --|> ExtLinkInterface
 
     interface ExtTrigger
-    class ActivityStartTrigger {
+    class ActivationMessage {
         - Long tick
     }
-    ActivityStartTrigger --|> ExtTrigger
+    ActivationMessage --|> ExtTrigger
 
     interface ExtTriggerResponse
     class CompletionMessage {
@@ -188,7 +188,7 @@ package simona {
 
     class SimonaSim
 
-    class SimScheduler
+    class Scheduler
 
     class SimonaStandaloneSetup
 
@@ -198,12 +198,12 @@ package simona {
 
     class ExtEvDataService
 
-    SimScheduler -- SimonaSim
+    Scheduler -- SimonaSim
     SimonaSim *- SimonaStandaloneSetup
     SimonaStandaloneSetup *- ExtSimLoader
 
-    ExtSimAdapter -- SimScheduler
-    ExtEvDataService -- SimScheduler
+    ExtSimAdapter -- Scheduler
+    ExtEvDataService -- Scheduler
 
     SecondaryData <|-- EvMovementData
 
