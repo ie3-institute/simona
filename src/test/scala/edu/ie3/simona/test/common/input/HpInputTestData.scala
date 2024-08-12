@@ -69,7 +69,7 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
   )
   protected val defaultThermalHouse = new ThermalHouseInput(
     UUID.fromString("91940626-bdd0-41cf-96dd-47c94c86b20e"),
-    "thermal house",
+    "Thermal house",
     thermalBusInput,
     Quantities.getQuantity(0.325, StandardUnits.THERMAL_TRANSMISSION),
     Quantities.getQuantity(75, StandardUnits.HEAT_CAPACITY),
