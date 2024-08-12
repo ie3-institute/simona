@@ -12,7 +12,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ZERO_POWER,
 }
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorEvMovementsService
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorExtEvDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.{
   BaseStateData,
@@ -59,7 +59,7 @@ object EvcsAgent {
     )
 
   val neededServices: Vector[Class[_ <: SecondaryDataService[_]]] = Vector(
-    classOf[ActorEvMovementsService]
+    classOf[ActorExtEvDataService]
   )
 }
 

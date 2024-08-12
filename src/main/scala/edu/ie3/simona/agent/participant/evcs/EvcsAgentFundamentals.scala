@@ -19,7 +19,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorEvMovementsService
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorExtEvDataService
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent.neededServices
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FlexControlledData,
@@ -359,7 +359,7 @@ protected trait EvcsAgentFundamentals
         EvcsModel,
       ],
   ): Unit = {
-    val evServiceRef = getService[ActorEvMovementsService](
+    val evServiceRef = getService[ActorExtEvDataService](
       modelBaseStateData.services
     )
 
@@ -398,7 +398,7 @@ protected trait EvcsAgentFundamentals
     EvcsState,
     EvcsModel,
   ] = {
-    val evServiceRef = getService[ActorEvMovementsService](
+    val evServiceRef = getService[ActorExtEvDataService](
       baseStateData.services
     )
 

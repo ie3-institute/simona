@@ -17,7 +17,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
 }
 import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorEvMovementsService
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorExtEvDataService
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
@@ -186,7 +186,7 @@ class EvcsAgentModelCalculationSpec
       inputModel = evcsInputModel,
       modelConfig = modelConfig,
       secondaryDataServices = Iterable(
-        ActorEvMovementsService(evService.ref)
+        ActorExtEvDataService(evService.ref)
       ),
       simulationStartDate = simulationStartDate,
       simulationEndDate = simulationEndDate,
@@ -248,7 +248,7 @@ class EvcsAgentModelCalculationSpec
           inputModel shouldBe SimpleInputContainer(evcsInputModel)
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe Iterable(
-            ActorEvMovementsService(evService.ref)
+            ActorExtEvDataService(evService.ref)
           )
           simulationStartDate shouldBe simulationStartDate
           simulationEndDate shouldBe simulationEndDate
@@ -296,7 +296,7 @@ class EvcsAgentModelCalculationSpec
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
           services shouldBe Iterable(
-            ActorEvMovementsService(evService.ref)
+            ActorExtEvDataService(evService.ref)
           )
           outputConfig shouldBe NotifierConfig(
             simulationResultInfo = false,
@@ -873,7 +873,7 @@ class EvcsAgentModelCalculationSpec
           inputModel = evcsInputModelQv,
           modelConfig = modelConfig,
           secondaryDataServices = Iterable(
-            ActorEvMovementsService(evService.ref)
+            ActorExtEvDataService(evService.ref)
           ),
           simulationStartDate = simulationStartDate,
           simulationEndDate = simulationEndDate,
@@ -1055,7 +1055,7 @@ class EvcsAgentModelCalculationSpec
             inputModel = evcsInputModelQv,
             modelConfig = modelConfig,
             secondaryDataServices = Iterable(
-              ActorEvMovementsService(evService.ref)
+              ActorExtEvDataService(evService.ref)
             ),
             simulationStartDate = simulationStartDate,
             simulationEndDate = simulationEndDate,
@@ -1092,7 +1092,7 @@ class EvcsAgentModelCalculationSpec
           inputModel shouldBe SimpleInputContainer(evcsInputModelQv)
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe Iterable(
-            ActorEvMovementsService(evService.ref)
+            ActorExtEvDataService(evService.ref)
           )
           simulationStartDate shouldBe simulationStartDate
           simulationEndDate shouldBe simulationEndDate
@@ -1155,7 +1155,7 @@ class EvcsAgentModelCalculationSpec
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
           services shouldBe Iterable(
-            ActorEvMovementsService(evService.ref)
+            ActorExtEvDataService(evService.ref)
           )
           outputConfig shouldBe defaultOutputConfig
           additionalActivationTicks shouldBe empty
@@ -1189,7 +1189,7 @@ class EvcsAgentModelCalculationSpec
             inputModel = SimpleInputContainer(evcsInputModelQv),
             modelConfig = modelConfig,
             secondaryDataServices = Iterable(
-              ActorEvMovementsService(evService.ref)
+              ActorExtEvDataService(evService.ref)
             ),
             simulationStartDate = simulationStartDate,
             simulationEndDate = simulationEndDate,
@@ -1230,7 +1230,7 @@ class EvcsAgentModelCalculationSpec
           inputModel shouldBe SimpleInputContainer(evcsInputModelQv)
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe Iterable(
-            ActorEvMovementsService(evService.ref)
+            ActorExtEvDataService(evService.ref)
           )
           simulationStartDate shouldBe simulationStartDate
           simulationEndDate shouldBe simulationEndDate

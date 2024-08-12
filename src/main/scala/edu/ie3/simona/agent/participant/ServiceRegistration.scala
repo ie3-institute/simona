@@ -12,7 +12,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApp
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
-  ActorEvMovementsService,
+  ActorExtEvDataService,
   ActorPriceService,
   ActorWeatherService,
 }
@@ -83,8 +83,8 @@ trait ServiceRegistration[
     case ActorWeatherService(serviceRef) =>
       registerForWeather(serviceRef, inputModel)
       Some(serviceRef)
-    case ActorEvMovementsService(serviceRef) =>
-      registerForEvMovements(serviceRef, inputModel)
+    case ActorExtEvDataService(serviceRef) =>
+      registerForEvData(serviceRef, inputModel)
       Some(serviceRef)
   }
 
@@ -124,7 +124,7 @@ trait ServiceRegistration[
     *   Input model of the simulation mode
     * @return
     */
-  private def registerForEvMovements(
+  private def registerForEvData(
       serviceRef: ActorRef,
       inputModel: I,
   ): Unit = {
