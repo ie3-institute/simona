@@ -29,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Printing the directory of log to terminal upon simulation failure [#626](https://github.com/ie3-institute/simona/issues/626)
 - Implementation of StorageAgent [#309](https://github.com/ie3-institute/simona/issues/309)
 - Enhanced Newton-Raphson-PowerFlow failures with more information [#815](https://github.com/ie3-institute/simona/issues/815)
+- Update RTD references and bibliography [#868](https://github.com/ie3-institute/simona/issues/868)
+- Add gradle application plugin for command line execution with gradle run [#890](https://github.com/ie3-institute/simona/issues/890)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -56,6 +58,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Making configuration of `RefSystem` via config optional [#769](https://github.com/ie3-institute/simona/issues/769)
 - Updated PSDM to version 5.1.0 [#835](https://github.com/ie3-institute/simona/issues/835)
 - Refactor `WeatherSource` and `WeatherSourceWrapper` [#180](https://github.com/ie3-institute/simona/issues/180)
+- Remove unnecessary dependency `pekko-connectors-csv` [#857](https://github.com/ie3-institute/simona/issues/857)
+- Rewrote RefSystemTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Rewrote FixedFeedModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Rewrote WecModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Rewrote FixedLoadModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Rewrote SystemComponentTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Converting remaining rst files to markdown [#838](https://github.com/ie3-institute/simona/issues/838)
+- Merging both `FixedFeedInModelSpec` tests [#870](https://github.com/ie3-institute/simona/issues/870)
+- Rewrote ThermalHouseTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Updated dependabot reviewers [#888](https://github.com/ie3-institute/simona/issues/888)
+- Merged `HpModelTestData` with `HpTestData` to `HpInputTestData` [#872](https://github.com/ie3-institute/simona/issues/872)
+- Harmonised both methods that check the inner temperature of thermal house against the boundaries [#880](https://github.com/ie3-institute/simona/issues/880)
 
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
@@ -76,6 +90,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Simulation stopping at unhandled messages in `DBFSAlgorithm` [#821](https://github.com/ie3-institute/simona/issues/821)
 - Not stopping correctly on failed power flow if configured  to stop [#800](https://github.com/ie3-institute/simona/issues/800)
 - Finally fixing `RuntimeEventListenerSpec` [#849](https://github.com/ie3-institute/simona/issues/849)
+- Fixed result output for thermal houses and cylindrical storages [#844](https://github.com/ie3-institute/simona/issues/844)
+- Fixed FixedFeedModelSpec [#861](https://github.com/ie3-institute/simona/issues/861)
+- Fixing duration calculation in result events [#801](https://github.com/ie3-institute/simona/issues/801)
+- Handle MobSim requests for current prices [#892](https://github.com/ie3-institute/simona/issues/892)
 
 ## [3.0.0] - 2023-08-07
 

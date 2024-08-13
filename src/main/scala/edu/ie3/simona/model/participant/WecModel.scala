@@ -90,7 +90,7 @@ final case class WecModel(
     * @return
     *   active power output
     */
-  override protected def calculateActivePower(
+  override def calculateActivePower(
       modelState: ConstantState.type,
       wecData: WecRelevantData,
   ): Power = {
@@ -154,7 +154,7 @@ final case class WecModel(
     * @return
     *   betz coefficient cₚ
     */
-  private def determineBetzCoefficient(
+  def determineBetzCoefficient(
       windVelocity: Velocity
   ): Dimensionless = {
     betzCurve.interpolateXy(windVelocity) match {
@@ -174,7 +174,7 @@ final case class WecModel(
     *   current air pressure
     * @return
     */
-  private def calculateAirDensity(
+  def calculateAirDensity(
       temperature: Temperature,
       airPressure: Option[Pressure],
   ): Density = {
@@ -214,7 +214,7 @@ object WecModel {
   /** This class is initialized with a [[WecCharacteristicInput]], which
     * contains the needed betz curve.
     */
-  final case class WecCharacteristic private (
+  final case class WecCharacteristic(
       override val xyCoordinates: SortedSet[
         XYPair[Velocity, Dimensionless]
       ]

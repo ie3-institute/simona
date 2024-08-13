@@ -27,7 +27,6 @@ import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
-import edu.ie3.simona.test.common.model.participant.HpTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.quantities.PowerSystemUnits._
 import squants.energy.Kilowatts
@@ -40,7 +39,7 @@ trait EmInputTestData
     extends NodeInputTestData
     with PvInputTestData
     with LoadInputTestData
-    with HpTestData {
+    with HpInputTestData {
 
   protected val emInput = new EmInput(
     UUID.randomUUID(),
@@ -129,7 +128,7 @@ trait EmInputTestData
     "test hp",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
-    nodeInput,
+    nodeInputNoSlackNs04KvA,
     thermalBusInput,
     ReactivePowerCharacteristic.parse("cosPhiFixed:{(0.00,0.98)}"),
     emInput,
