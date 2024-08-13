@@ -193,7 +193,7 @@ final case class ThermalHouse(
     * @return
     *   new inner temperature
     */
-  private def newInnerTemperature(
+  def newInnerTemperature(
       thermalPower: Power,
       duration: Time,
       currentInnerTemperature: Temperature,
@@ -222,7 +222,7 @@ final case class ThermalHouse(
     * @return
     *   new inner temperature
     */
-  private def calcNewInnerTemperature(
+  def calcNewInnerTemperature(
       oldInnerTemperature: Temperature,
       temperatureChange: Temperature,
   ): Temperature =
@@ -236,7 +236,7 @@ final case class ThermalHouse(
     * @return
     *   temperature change
     */
-  private def calcInnerTemperatureChange(
+  def calcInnerTemperatureChange(
       thermalEnergyChange: Energy
   ): Temperature = {
     thermalEnergyChange / ethCapa
@@ -251,7 +251,7 @@ final case class ThermalHouse(
     * @return
     *   thermal energy change
     */
-  private def calcThermalEnergyChange(
+  def calcThermalEnergyChange(
       thermalEnergyGain: Energy,
       thermalEnergyLoss: Energy,
   ): Energy =
@@ -266,7 +266,7 @@ final case class ThermalHouse(
     * @return
     *   resulting thermal energy gain
     */
-  private def calcThermalEnergyGain(
+  def calcThermalEnergyGain(
       pThermal: Power,
       time: Time,
   ): Energy = pThermal * time
@@ -283,7 +283,7 @@ final case class ThermalHouse(
     * @return
     *   resulting thermal energy loss
     */
-  private def calcThermalEnergyLoss(
+  def calcThermalEnergyLoss(
       innerTemperature: Temperature,
       ambientTemperature: Temperature,
       time: Time,
