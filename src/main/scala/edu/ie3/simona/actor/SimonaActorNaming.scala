@@ -30,8 +30,7 @@ object SimonaActorNaming {
     */
   private def simonaActorId(actorId: String): String = {
     val randomNumber = Random.nextInt(1000).toString
-    val finalId = s"$actorId-$randomNumber"
-    finalId
+    s"$actorId-$randomNumber"
   }
 
   /** Constructs an actor name based on the simona convention for actor names.
