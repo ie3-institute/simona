@@ -634,6 +634,8 @@ object GridModel {
     val switches = gridModel.gridComponents.switches
     val nodes = gridModel.gridComponents.nodes.distinct
 
+    // map for each node that is directly connected to a switch,
+    // to all nodes that are directly connected via switch
     val nodeConnections: Map[UUID, Set[UUID]] =
       switches.filter(_.isClosed).foldLeft(Map.empty[UUID, Set[UUID]]) {
         (acc, switch) =>
@@ -647,51 +649,65 @@ object GridModel {
               acc.getOrElse(switch.nodeBUuid, Set.empty) + switch.nodeAUuid,
             )
       }
+
+    // create sets of nodes to be fused together and assign common indices
     val switchConnectedNodes =
       findConnectedNodes(nodeConnections).zipWithIndex.flatMap {
-        case (nodes, int) => nodes.map(n => n -> int)
+        case (nodes, idx) => nodes.map(_ -> idx)
       }.toMap
-    var offset = switchConnectedNodes.values.maxOption.getOrElse(-1)
-    val updatedNodeToUuidMap = nodes
+
+    // also account for all missing nodes (not connected to a switch)
+    val offset = switchConnectedNodes.values.maxOption.map(_ + 1).getOrElse(0)
+    val (updatedNodeToUuidMap, _) = nodes
       .filter(_.isInOperation)
-      .foldLeft(Map.empty[UUID, Int]) { case (map, nodeModel) =>
-        switchConnectedNodes.get(nodeModel.uuid) match {
-          case Some(idx) => map + (nodeModel.uuid -> idx)
-          case None =>
-            offset += 1
-            map + (nodeModel.uuid -> offset)
-        }
+      .foldLeft(Map.empty[UUID, Int], offset) {
+        case ((map, nextIdx), nodeModel) =>
+          switchConnectedNodes.get(nodeModel.uuid) match {
+            case Some(idx) => (map + (nodeModel.uuid -> idx), nextIdx)
+            case None =>
+              (map + (nodeModel.uuid -> nextIdx), nextIdx + 1)
+          }
       }
 
     gridModel._nodeUuidToIndexMap = updatedNodeToUuidMap
   }
 
+  /** Build sets of connected nodes via depth-first search
+    *
+    * @param nodeConnections
+    *   The connected nodes for each node
+    * @return
+    *   The sets of nodes
+    */
   private def findConnectedNodes(
       nodeConnections: Map[UUID, Set[UUID]]
   ): Seq[Seq[UUID]] = {
-    val visited = scala.collection.mutable.Set[UUID]()
-    var components = Seq.empty[Seq[UUID]]
 
-    def dfs(
-        node: UUID,
-        component: scala.collection.mutable.ListBuffer[UUID],
-    ): Unit = {
-      visited += node
-      component += node
-      for (neighbor <- nodeConnections.getOrElse(node, Set.empty)) {
-        if (!visited.contains(neighbor)) {
-          dfs(neighbor, component)
+    def dfs(node: UUID, visited: Set[UUID] = Set.empty): Set[UUID] = {
+      nodeConnections
+        .getOrElse(node, Set.empty)
+        .foldLeft(visited + node) { case (accVisited, neighbor) =>
+          if (accVisited.contains(neighbor))
+            accVisited
+          else
+            dfs(neighbor, accVisited)
         }
-      }
     }
 
-    for (node <- nodeConnections.keys) {
-      if (!visited.contains(node)) {
-        val component = scala.collection.mutable.ListBuffer[UUID]()
-        dfs(node, component)
-        components = components :+ component.toSeq
+    val (_, components) =
+      nodeConnections.keys.foldLeft((Set.empty[UUID], Seq.empty[Seq[UUID]])) {
+        case ((visited, components), node) =>
+          if (visited.contains(node)) {
+            (visited, components)
+          } else {
+            val component = dfs(node)
+            val updatedVisited = visited ++ component
+            val updatedComponents = components :+ component.toSeq
+
+            (updatedVisited, updatedComponents)
+          }
       }
-    }
+
     components
   }
 }
