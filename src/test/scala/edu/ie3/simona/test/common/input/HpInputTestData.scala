@@ -22,6 +22,7 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal._
+import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import squants.energy.{KilowattHours, Kilowatts}
@@ -33,7 +34,10 @@ import tech.units.indriya.unit.Units
 import java.util.UUID
 import scala.jdk.CollectionConverters.{SeqHasAsJava, _}
 
-trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
+trait HpInputTestData
+    extends NodeInputTestData
+    with ThermalGridTestData
+    with DefaultTestData {
 
   protected val hpTypeInput = new HpTypeInput(
     UUID.fromString("9802bf35-2a4e-4ff5-be9b-cd9e6a78dcd6"),
@@ -200,6 +204,6 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
   )
 
   protected def hpData: HpRelevantData =
-    HpRelevantData(7200, Celsius(10d))
+    HpRelevantData(7200, Celsius(10d), defaultSimulationStart, houseInhabitants)
 
 }

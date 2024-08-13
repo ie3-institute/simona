@@ -75,9 +75,19 @@ class ThermalGridWithHouseAndStorageSpec
           case ThermalGridState(
                 Some(ThermalHouseState(houseTick, innerTemperature, qDotHouse)),
                 Some(
-                  ThermalStorageState(heatStorageTick, storedEnergyHeatStorage, qDotHeatStorage)
+                  ThermalStorageState(
+                    heatStorageTick,
+                    storedEnergyHeatStorage,
+                    qDotHeatStorage,
+                  )
                 ),
-                Some(ThermalStorageState(waterStorageTick, storedEnergyWaterStorage, qDotWaterStorage)),
+                Some(
+                  ThermalStorageState(
+                    waterStorageTick,
+                    storedEnergyWaterStorage,
+                    qDotWaterStorage,
+                  )
+                ),
               ) =>
             houseTick shouldBe expectedHouseStartingState.tick
             heatStorageTick shouldBe expectedHouseStartingState.tick
@@ -93,8 +103,12 @@ class ThermalGridWithHouseAndStorageSpec
               expectedStorageStartingState.storedEnergy
             )
             qDotHouse should approximate(expectedHouseStartingState.qDot)
-            qDotHeatStorage should approximate(expectedStorageStartingState.qDot)
-            qDotWaterStorage should approximate(expectedStorageStartingState.qDot)
+            qDotHeatStorage should approximate(
+              expectedStorageStartingState.qDot
+            )
+            qDotWaterStorage should approximate(
+              expectedStorageStartingState.qDot
+            )
 
           case _ => fail("Determination of starting state failed")
         }
@@ -115,6 +129,8 @@ class ThermalGridWithHouseAndStorageSpec
             tick,
             testGridAmbientTemperature,
             ThermalGrid.startingState(thermalGrid),
+            defaultSimulationStart,
+            houseInhabitants,
           )
         houseDemand.required should approximate(KilowattHours(0d))
         houseDemand.possible should approximate(KilowattHours(31.05009722d))
@@ -151,6 +167,8 @@ class ThermalGridWithHouseAndStorageSpec
                 _.copy(innerTemperature = Celsius(16d))
               )
             ),
+            defaultSimulationStart,
+            houseInhabitants,
           )
 
         houseDemand.required should approximate(KilowattHours(45.6000555))

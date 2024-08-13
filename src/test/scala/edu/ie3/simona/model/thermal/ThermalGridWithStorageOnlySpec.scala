@@ -16,7 +16,7 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageEmpty,
   StorageFull,
 }
-import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import squants.energy._
 import squants.thermal.Celsius
 import squants.{Energy, Power, Temperature}
@@ -25,7 +25,8 @@ import scala.jdk.CollectionConverters._
 
 class ThermalGridWithStorageOnlySpec
     extends UnitSpec
-    with ThermalStorageTestData {
+    with ThermalStorageTestData
+    with DefaultTestData {
 
   implicit val tempTolerance: Temperature = Celsius(1e-3)
   implicit val powerTolerance: Power = Watts(1e-3)
@@ -93,6 +94,8 @@ class ThermalGridWithStorageOnlySpec
             tick,
             testGridAmbientTemperature,
             ThermalGrid.startingState(thermalGrid),
+            defaultSimulationStart,
+            houseInhabitants,
           )
 
         houseDemand.required should approximate(KilowattHours(0d))
@@ -125,6 +128,8 @@ class ThermalGridWithStorageOnlySpec
               Some(ThermalStorageState(0L, KilowattHours(575d), Kilowatts(0d))),
               None,
             ),
+            defaultSimulationStart,
+            houseInhabitants,
           )
 
         houseDemand.required should approximate(KilowattHours(0d))
@@ -228,6 +233,9 @@ class ThermalGridWithStorageOnlySpec
           testGridQDotInfeed,
           noThermalDemand,
           thermalDemand,
+          noThermalDemand,
+          defaultSimulationStart,
+          houseInhabitants,
         )
 
         nextThreshold shouldBe Some(StorageFull(276000L))
@@ -263,6 +271,9 @@ class ThermalGridWithStorageOnlySpec
           testGridQDotConsumptionHigh,
           thermalDemand,
           noThermalDemand,
+          thermalDemand,
+          defaultSimulationStart,
+          houseInhabitants,
         ) match {
           case (
                 ThermalGridState(
@@ -288,6 +299,9 @@ class ThermalGridWithStorageOnlySpec
           Kilowatts(0d),
           noThermalDemand,
           noThermalDemand,
+          noThermalDemand,
+          defaultSimulationStart,
+          houseInhabitants,
         )
         updatedState match {
           case (

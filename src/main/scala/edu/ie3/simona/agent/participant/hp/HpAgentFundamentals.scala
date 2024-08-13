@@ -445,6 +445,12 @@ trait HpAgentFundamentals
     HpRelevantData(
       tick,
       weatherData.temp.inKelvin,
+      baseStateData.startDate,
+      baseStateData.model.thermalGrid.house.map(_.houseInhabitants).getOrElse {
+        throw new InconsistentStateException(
+          s"The model ${baseStateData.model.thermalGrid.house} was not provided with the needed number of inhabitants."
+        )
+      },
     )
   }
 
