@@ -370,6 +370,29 @@ class HpModelSpec
               ),
               (0.0, 0.0, 0.0),
             ),
+
+            // No capacity for flexibility at all when house has been (external) heated up above upperTemperatureBoundary
+            (
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(25), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))),
+              ),
+              HpState(
+                isRunning = false,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(95.0),
+                Kilowatts(80.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(25), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))
+                  ),
+                ),
+                None,
+              ),
+              (0.0, 0.0, 0.0),
+            ),
           )
 
         // Run the test cases
