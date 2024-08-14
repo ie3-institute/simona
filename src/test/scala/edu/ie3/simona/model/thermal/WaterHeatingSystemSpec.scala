@@ -98,7 +98,7 @@ class WaterHeatingSystemSpec extends UnitSpec with ThermalHouseTestData {
               tick,
               simulationStart,
               noPersons,
-              housingType
+              housingType,
             )
             val expected = Litres(expectedResult)
             demand should approximate(expected)
