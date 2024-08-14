@@ -160,7 +160,8 @@ class SimonaStandaloneSetup(
           simulationStart,
         ),
         simulationStart,
-      )
+      ),
+      "primaryServiceProxyAgent",
     )
 
     scheduler ! ScheduleActivation(primaryServiceProxy.toTyped, INIT_SIM_TICK)
@@ -178,7 +179,8 @@ class SimonaStandaloneSetup(
           .toZonedDateTime(simonaConfig.simona.time.startDateTime),
         TimeUtil.withDefaults
           .toZonedDateTime(simonaConfig.simona.time.endDateTime),
-      )
+      ),
+      "weatherAgent",
     )
     weatherService ! SimonaService.Create(
       InitWeatherServiceStateData(
