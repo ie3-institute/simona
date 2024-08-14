@@ -446,7 +446,7 @@ class GridSpec
         // add the second switch + enable switches
         override val switches: Set[SwitchModel] = super.switches + secondSwitch
         switches.foreach(_.enable())
-        // open the switches
+        // close the switches
         switches.foreach(_.close())
 
         // get the grid from the raw data
@@ -526,7 +526,7 @@ class GridSpec
           ),
         )
         switches.foreach(_.enable())
-        // open the switches
+        // close the switches
         switches.foreach(_.close())
 
         // get the grid from the raw data
