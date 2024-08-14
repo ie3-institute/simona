@@ -204,7 +204,7 @@ class HpModelSpec
           ) =>
             val data = hpData
             val house = thermalHouse(18, 22)
-            val grid = thermalGrid(house, None, None)
+            val grid = thermalGrid(house, None, Some(domesticHotWaterStorage))
             val hp = hpModel(grid)
 
             hp.determineState(state, data) match {
