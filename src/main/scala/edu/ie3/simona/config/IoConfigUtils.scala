@@ -34,6 +34,7 @@ object IoConfigUtils {
       database: String,
       port: Int,
       url: String,
+      // TODO: time pattern needed?
 //      timePattern: String = "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'"
   )
 

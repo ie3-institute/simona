@@ -14,27 +14,16 @@ import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
+import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage
-}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.PowerMessage.{AssetPowerChangedMessage, AssetPowerUnchangedMessage, RequestAssetPowerMessage}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, TriggerWithIdMessage}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  FinishGridSimulationTrigger,
-  InitializeParticipantAgentTrigger
-}
+import edu.ie3.simona.ontology.trigger.Trigger.{ActivityStartTrigger, FinishGridSimulationTrigger, InitializeParticipantAgentTrigger}
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVAR, MEGAWATT}
@@ -118,9 +107,9 @@ class ParticipantAgent2ListenerSpec
               secondaryDataServices = sources,
               simulationStartDate = defaultSimulationStart,
               simulationEndDate = defaultSimulationEnd,
-              resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
+              resolution = simonaConfig.powerflow.resolution.toSeconds,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )
@@ -202,9 +191,9 @@ class ParticipantAgent2ListenerSpec
               secondaryDataServices = sources,
               simulationStartDate = defaultSimulationStart,
               simulationEndDate = defaultSimulationEnd,
-              resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
+              resolution = simonaConfig.powerflow.resolution.toSeconds,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )
@@ -273,9 +262,9 @@ class ParticipantAgent2ListenerSpec
               secondaryDataServices = sources,
               simulationStartDate = defaultSimulationStart,
               simulationEndDate = defaultSimulationEnd,
-              resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
+              resolution = simonaConfig.powerflow.resolution.toSeconds,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )
@@ -365,9 +354,9 @@ class ParticipantAgent2ListenerSpec
               secondaryDataServices = sources,
               simulationStartDate = defaultSimulationStart,
               simulationEndDate = defaultSimulationEnd,
-              resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
+              resolution = simonaConfig.powerflow.resolution.toSeconds,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = outputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )

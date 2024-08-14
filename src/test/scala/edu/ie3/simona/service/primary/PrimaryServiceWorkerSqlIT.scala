@@ -12,26 +12,13 @@ import com.dimafeng.testcontainers.{ForAllTestContainer, PostgreSQLContainer}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.io.naming.DatabaseNamingStrategy
 import edu.ie3.datamodel.models.value.{HeatAndSValue, PValue}
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ActivePower,
-  ApparentPowerAndHeat
-}
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{ActivePower, ApparentPowerAndHeat}
+import edu.ie3.simona.config.IoConfigUtils.TimeStampedSqlParams
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.WorkerRegistrationMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeServiceTrigger
-}
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
-  ProvidePrimaryDataMessage,
-  SqlInitPrimaryServiceStateData
-}
+import edu.ie3.simona.ontology.trigger.Trigger.{ActivityStartTrigger, InitializeServiceTrigger}
+import edu.ie3.simona.service.primary.PrimaryServiceWorker.{ProvidePrimaryDataMessage, SqlInitPrimaryServiceStateData}
 import edu.ie3.simona.test.common.AgentSpec
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
 import edu.ie3.simona.test.helper.TestContainerHelper
@@ -136,12 +123,13 @@ class PrimaryServiceWorkerSqlIT
           val initData = SqlInitPrimaryServiceStateData(
             uuid,
             simulationStart,
-            SqlParams(
+            TimeStampedSqlParams(
               jdbcUrl = container.jdbcUrl,
               userName = container.username,
               password = container.password,
               schemaName = schemaName,
-              timePattern = "yyyy-MM-dd HH:mm:ss"
+              timePattern = "yyyy-MM-dd HH:mm:ss",
+              tableName = "is_ignored"
             ),
             new DatabaseNamingStrategy()
           )

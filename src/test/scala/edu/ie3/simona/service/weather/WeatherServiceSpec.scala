@@ -59,29 +59,25 @@ class WeatherServiceSpec
   private implicit val timeout: Timeout = Timeout(10, TimeUnit.SECONDS)
 
   // setup config for scheduler
-  private val config = ConfigFactory
-    .parseString(s"""
-            simona.time.startDateTime = "2011-01-01 00:00:00"
-            simona.time.endDateTime = "2011-01-01 01:00:00"
-            simona.time.schedulerReadyCheckWindow = 900
-            simona.input.grid.datasource.id = "csv"
-            simona.input.grid.datasource.csvParams.folderPath = "netdata"
-            simona.input.grid.datasource.csvParams.csvSep =","
-            simona.input.weather.datasource.scheme = "icon"
-            simona.input.weather.datasource.sampleParams.use = true
-            simona.input.weather.datasource.coordinateSource.sampleParams.use = true
-            simona.input.grid.datatarget.id = "csv"
-            simona.powerflow.maxSweepPowerDeviation = 1E-5 // the maximum allowed deviation in power between two sweeps, before overall convergence is assumed
-            simona.powerflow.skipOnFailure = true
-            simona.powerflow.newtonraphson.epsilon = [1E-12]
-            simona.powerflow.newtonraphson.iterations = 50
-            simona.powerflow.resolution = "3600s"
-            simona.simulationName = "ConfigTestDataSimulation"
-            simona.gridConfig.refSystems = []
-          """)
-    .resolve()
-    .withFallback(typesafeConfig)
-  override protected val simonaConfig: SimonaConfig = SimonaConfig(config)
+  override protected val simonaConfig: SimonaConfig = read_conf_with_fallback("""
+          simona.time.startDateTime = "2011-01-01 00:00:00"
+          simona.time.endDateTime = "2011-01-01 01:00:00"
+          simona.time.schedulerReadyCheckWindow = 900
+          simona.input.grid.datasource.id = "csv"
+          simona.input.grid.datasource.csvParams.folderPath = "netdata"
+          simona.input.grid.datasource.csvParams.csvSep =","
+          simona.input.weather.datasource.scheme = "icon"
+          simona.input.weather.datasource.sampleParams.use = true
+          simona.input.weather.datasource.coordinateSource.sampleParams.use = true
+          simona.input.grid.datatarget.id = "csv"
+          simona.powerflow.maxSweepPowerDeviation = 1E-5 // the maximum allowed deviation in power between two sweeps, before overall convergence is assumed
+          simona.powerflow.skipOnFailure = true
+          simona.powerflow.newtonraphson.epsilon = [1E-12]
+          simona.powerflow.newtonraphson.iterations = 50
+          simona.powerflow.resolution = "3600s"
+          simona.simulationName = "ConfigTestDataSimulation"
+          simona.gridConfig.refSystems = []
+        """)
 
   // setup values
   private val triggerId = 0
@@ -94,7 +90,7 @@ class WeatherServiceSpec
   // convert tick from long into JAVA ZonedDateTime
   private implicit val startDateTime: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime(
-      simonaConfig.simona.time.startDateTime
+      simonaConfig.time.startDateTime
     )
 
   // build the weather service
@@ -102,10 +98,10 @@ class WeatherServiceSpec
     new WeatherService(
       self,
       TimeUtil.withDefaults.toZonedDateTime(
-        simonaConfig.simona.time.startDateTime
+        simonaConfig.time.startDateTime
       ),
       TimeUtil.withDefaults.toZonedDateTime(
-        simonaConfig.simona.time.endDateTime
+        simonaConfig.time.endDateTime
       ),
       4
     )
@@ -116,7 +112,7 @@ class WeatherServiceSpec
       weatherActor ! TriggerWithIdMessage(
         InitializeServiceTrigger(
           InitWeatherServiceStateData(
-            simonaConfig.simona.input.weather.datasource
+            simonaConfig.input.weather.datasource
           )
         ),
         triggerId,

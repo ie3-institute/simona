@@ -20,12 +20,12 @@ class CollectionUtilsSpec extends UnitSpec {
   "The collection utils are capable" should {
     "of detecting duplicate entries in a list" in {
       val input = List("a", "b", "c", "d", "b")
-      isUniqueList(input) shouldBe false
+      isUniqueSeq(input) shouldBe false
     }
 
     "of detecting lists with unique entries" in {
       val input = List("a", "b", "c", "d", "e")
-      isUniqueList(input) shouldBe true
+      isUniqueSeq(input) shouldBe true
     }
 
     "of computing the closest key-value pairs, given a map and a key" in {

@@ -7,7 +7,6 @@
 package edu.ie3.simona.test.common
 
 import java.time.{ZoneId, ZonedDateTime}
-
 import com.typesafe.config.{Config, ConfigFactory}
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.simona.config.SimonaConfig
@@ -17,6 +16,7 @@ import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
+import pureconfig.ConfigSource
 import tech.units.indriya.quantity.Quantities
 
 /** Default values to be used in tests. Should be extended as needed.
@@ -77,7 +77,8 @@ trait DefaultTestData {
       modelBehaviour: LoadModelBehaviour.Value,
       reference: LoadReference
   ): SimonaConfig = {
-    val typesafeConfig: Config = ConfigFactory.parseString(
+    SimonaConfig(
+      ConfigSource.string(
       s"""
          |simona.simulationName = "ParticipantAgentTest"
          |
@@ -188,7 +189,6 @@ trait DefaultTestData {
          |
          |simona.gridConfig.refSystems = []
          |""".stripMargin
-    )
-    SimonaConfig(typesafeConfig)
+    ))
   }
 }

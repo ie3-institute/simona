@@ -12,6 +12,7 @@ import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.input.system.`type`.chargingpoint.ChargingPointTypeUtils
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
+import edu.ie3.simona.config.RuntimeConfig.SimpleRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
@@ -46,17 +47,17 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
     )
 
   private val configUtil = ConfigUtil.ParticipantConfigUtil(
-    simonaConfig.simona.runtime.participant
+    simonaConfig.runtime.participant
   )
 
   protected val defaultOutputConfig: ParticipantNotifierConfig =
     ParticipantNotifierConfig(
-      simonaConfig.simona.output.participant.defaultConfig.simulationResult,
-      simonaConfig.simona.output.participant.defaultConfig.powerRequestReply
+      simonaConfig.output.participant.defaultConfig.simulationResult,
+      simonaConfig.output.participant.defaultConfig.powerRequestReply
     )
 
-  protected val modelConfig: SimonaConfig.EvcsRuntimeConfig =
-    configUtil.getOrDefault[SimonaConfig.EvcsRuntimeConfig](
+  protected val modelConfig: SimpleRuntimeConfig =
+    configUtil.getOrDefault[SimpleRuntimeConfig](
       evcsInputModel.getUuid
     )
 

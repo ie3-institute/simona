@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.model.participant
 
+import edu.ie3.simona.config.RuntimeConfig.SimpleRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.FixedFeedInRuntimeConfig
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.test.common.input.FixedFeedInputTestData
@@ -39,9 +39,9 @@ class FixedFeedInModelSpec
         )
       val modelConfig = ConfigUtil
         .ParticipantConfigUtil(
-          simonaConfig.simona.runtime.participant
+          simonaConfig.runtime.participant
         )
-        .getOrDefault[FixedFeedInRuntimeConfig](fixedFeedInput.getUuid)
+        .getOrDefault[SimpleRuntimeConfig](fixedFeedInput.getUuid)
 
       val actualModel = FixedFeedInModel.apply(
         fixedFeedInput,

@@ -11,13 +11,9 @@ import akka.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
+import edu.ie3.simona.config.InputConfig.{CoordinateSourceConfig, PrimaryConfig, WeatherDataSourceConfig}
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  InitSimMessage,
-  ScheduleTriggerMessage,
-  SimulationFailureMessage
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{InitSimMessage, ScheduleTriggerMessage, SimulationFailureMessage}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.weather.WeatherService
@@ -143,7 +139,7 @@ object SimonaSimFailSpec {
       (
         primaryService,
         InitPrimaryServiceProxyStateData(
-          new Primary(None, None, None, None),
+          PrimaryConfig(None, None, None, None),
           ZonedDateTime.now()
         )
       )
@@ -165,22 +161,22 @@ object SimonaSimFailSpec {
       (
         weatherService,
         InitWeatherServiceStateData(
-          new SimonaConfig.Simona.Input.Weather.Datasource(
-            new SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource(
-              None,
-              "foo",
-              None,
-              None
-            ),
+          WeatherDataSourceConfig(
+            "bar",
             None,
             None,
             None,
             50000d,
             None,
             None,
-            "bar",
             None,
-            None
+            None,
+            CoordinateSourceConfig(
+              "foo",
+              None,
+              None,
+              None
+            ),
           )
         )
       )

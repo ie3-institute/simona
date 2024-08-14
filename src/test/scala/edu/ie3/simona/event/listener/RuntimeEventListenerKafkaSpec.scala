@@ -8,6 +8,8 @@ package edu.ie3.simona.event.listener
 
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import com.sksamuel.avro4s.RecordFormat
+import edu.ie3.simona.config.IoConfigUtils.RuntimeKafkaParams
+import edu.ie3.simona.config.RuntimeConfig.RuntimeListenerConfig
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent.{Done, Error}
 import edu.ie3.simona.io.runtime.RuntimeEventKafkaSink.SimonaEndMessage
@@ -85,10 +87,10 @@ class RuntimeEventListenerKafkaSpec
       // build the listener
       val listenerRef = spawn(
         RuntimeEventListener(
-          SimonaConfig.Simona.Runtime.Listener(
+          RuntimeListenerConfig(
             None,
             Some(
-              SimonaConfig.RuntimeKafkaParams(
+              RuntimeKafkaParams(
                 bootstrapServers = kafka.bootstrapServers,
                 linger = 0,
                 runId = runId.toString,

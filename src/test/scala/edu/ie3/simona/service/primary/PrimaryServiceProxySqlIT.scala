@@ -10,22 +10,13 @@ import akka.actor.ActorSystem
 import akka.testkit.{TestActorRef, TestProbe}
 import com.dimafeng.testcontainers.{ForAllTestContainer, PostgreSQLContainer}
 import com.typesafe.config.ConfigFactory
+import edu.ie3.simona.config.InputConfig.PrimaryConfig
+import edu.ie3.simona.config.IoConfigUtils.TimeStampedSqlParams
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage
-}
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeServiceTrigger
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{RegistrationFailedMessage, RegistrationSuccessfulMessage}
+import edu.ie3.simona.ontology.trigger.Trigger.{ActivityStartTrigger, InitializeServiceTrigger}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.SqlInitPrimaryServiceStateData
 import edu.ie3.simona.test.common.AgentSpec
@@ -79,12 +70,13 @@ class PrimaryServiceProxySqlIT
   }
 
   // function definition because postgres parameters are only available after initialization
-  private def sqlParams: SqlParams = SqlParams(
+  private def sqlParams: TimeStampedSqlParams = TimeStampedSqlParams(
     jdbcUrl = container.jdbcUrl,
     userName = container.username,
     password = container.password,
     schemaName = schemaName,
-    timePattern = "yyyy-MM-dd HH:mm:ss"
+    tableName = "is_ignored",
+    timePattern = "yyyy-MM-dd HH:mm:ss",
   )
 
   "A primary service proxy with SQL source" should {
@@ -99,11 +91,11 @@ class PrimaryServiceProxySqlIT
 
     "initialize when given proper SQL input configs" in {
       val initData = InitPrimaryServiceProxyStateData(
-        SimonaConfig.Simona.Input.Primary(
+        PrimaryConfig(
           None,
           None,
+          sqlParams = Some(sqlParams),
           None,
-          sqlParams = Some(sqlParams)
         ),
         simulationStart
       )

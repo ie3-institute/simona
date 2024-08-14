@@ -62,15 +62,16 @@ class GridAgentSetup3WSpec
             )
 
             SimonaStandaloneSetup(
-              typesafeConfig,
+              simonaConfig,
+              ConfigFactory.empty(),
               ResultFileHierarchy(
                 "test/tmp",
                 "GridAgentSetup3WSpec",
                 ResultEntityPathConfig(
                   Set.empty[Class[_ <: ResultEntity]],
                   ResultSinkType(
-                    simonaConfig.simona.output.sink,
-                    simonaConfig.simona.simulationName
+                    simonaConfig.output.sink,
+                    simonaConfig.simulationName
                   )
                 )
               )

@@ -10,35 +10,57 @@ import SimonaConfig._
 
 import scala.concurrent.duration.{Duration, DurationInt}
 import pureconfig._
+import pureconfig.error.{CannotParse, CannotRead, ConvertFailure, ThrowableFailure}
+import pureconfig.generic.ProductHint
 import pureconfig.generic.auto._
 
-import java.nio.file.Path
-import scala.util.{Failure, Success, Try}
+import java.nio.file.{Files, Path}
 
 case class SimonaConfig(
-    simulationName: String,
-    time: TimeConfig,
+    simulationName: String = "simona",
+    time: TimeConfig = TimeConfig(),
     input: InputConfig,
     output: OutputConfig,
     runtime: RuntimeConfig,
     powerflow: PowerFlowConfig,
     gridConfig: GridConfig,
-    event: EventConfig
+    event: EventConfig = EventConfig(None)
 )
 
-object SimonaConfig {
-  def apply(filePath: Path): SimonaConfig = {
-    Try(ConfigSource.file(filePath).loadOrThrow[SimonaConfig]) match {
-      case Success(config) => config
-      case Failure(exception) =>
-        println(Left(s"Error reading configuration: ${exception.getMessage}"));
-        throw exception
+  object SimonaConfig {
+    implicit def productHint[T]: ProductHint[T] = ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
+
+    def apply(filePath: Path): SimonaConfig = {
+      if (!Files.isReadable(filePath)) {
+        throw new IllegalArgumentException(s"Config file at $filePath is not readable.")
+      }
+      apply(ConfigSource.file(filePath))
     }
-  }
+
+    def apply(confSrc: ConfigObjectSource): SimonaConfig = {
+     confSrc.at("simona").load[SimonaConfig] match {
+        case Left(readerFailures) =>
+          val detailedErrors = readerFailures.toList.map {
+            case CannotParse(msg, origin) =>
+              f"CannotParse => $msg, Origin: $origin \n"
+            case _: CannotRead =>
+              f"CannotRead => Can not read config source} \n"
+            case ConvertFailure(reason, _, path) =>
+              f"Convertfailure => Path: $path, Description: ${reason.description} \n"
+            case ThrowableFailure(throwable, origin) =>
+              f"ThrowableFailure => ${throwable.getMessage}, Origin: $origin \n"
+            case failure =>
+              f"Unknown failure type => ${failure.toString} \n"
+          }.mkString("\n")
+          throw new RuntimeException(s"Unable to load config due to following failures:\n$detailedErrors")
+        case Right(conf) => conf
+      }
+    }
 
   case class TimeConfig(
-      startDateTime: String,
-      endDateTime: String,
+      // TODO: remove  date time defaults ?
+      startDateTime: String = "2011-05-01 00:00:00",
+      endDateTime: String = "2011-05-01 01:00:00",
       stopOnFailedPowerFlow: Boolean = false,
       schedulerReadyCheckWindow: Option[Int] = None
   )

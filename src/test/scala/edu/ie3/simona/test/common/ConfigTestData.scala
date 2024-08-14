@@ -7,16 +7,17 @@
 package edu.ie3.simona.test.common
 
 import akka.actor.ActorRef
-import com.typesafe.config.{Config, ConfigFactory}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.listener.SimonaListenerCompanion
+import pureconfig.{ConfigObjectSource, ConfigSource}
+import pureconfig.generic.auto._
 
 /** Simple (empty) configuration data. Furthermore, it would make sense to
   * implement another class which reads a config and provides config based
   * values in the future.
   */
 trait ConfigTestData {
-  protected val typesafeConfig: Config = ConfigFactory.parseString(
+  protected val confSrc: ConfigObjectSource = ConfigSource.string(
     """
       |simona.simulationName = "ConfigTestDataSimulation"
       |simona.input.grid.datasource.id = "csv"
@@ -113,9 +114,14 @@ trait ConfigTestData {
       |simona.gridConfig.refSystems = []
       |""".stripMargin
   )
-  protected val simonaConfig: SimonaConfig = SimonaConfig(typesafeConfig)
+  protected val simonaConfig: SimonaConfig = SimonaConfig(confSrc)
 
   protected val listener: Iterable[ActorRef] = Iterable.empty[ActorRef]
-  protected val listenerSingletonCompanions =
+  protected val listenerSingletonCompanions = {
     Map.empty[SimonaListenerCompanion, Option[List[String]]]
+  }
+
+  def read_conf_with_fallback(confStr: String): SimonaConfig = {
+    SimonaConfig(ConfigSource.string(confStr).withFallback(confSrc))
+  }
 }

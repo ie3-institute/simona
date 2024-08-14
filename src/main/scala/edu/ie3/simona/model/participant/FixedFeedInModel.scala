@@ -8,8 +8,7 @@ package edu.ie3.simona.model.participant
 
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
-import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.RuntimeConfig.SimpleRuntimeConfig
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.control.QControl
@@ -73,7 +72,7 @@ final case class FixedFeedInModel(
 case object FixedFeedInModel extends LazyLogging {
   def apply(
       inputModel: FixedFeedInInput,
-      modelConfiguration: LoadRuntimeConfig,
+      modelConfiguration: SimpleRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
   ): FixedFeedInModel = {

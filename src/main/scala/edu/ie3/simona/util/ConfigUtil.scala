@@ -245,17 +245,17 @@ object ConfigUtil {
         params: CsvParams,
         csvParamsName: String
     ): Unit = params match {
-      case BaseCsvParams(directoryPath, csvSep) =>
-        if (!(csvSep.equals(";") || csvSep.equals(",")))
+      case params: CsvParams =>
+        if (!(params.csvSep.equals(";") || params.csvSep.equals(",")))
           throw new InvalidConfigParameterException(
-            s"The csvSep parameter '$csvSep' for '$csvParamsName' configuration is invalid! Please choose between ';' or ','!"
+            s"The csvSep parameter '${params.csvSep}' for '$csvParamsName' configuration is invalid! Please choose between ';' or ','!"
           )
         if (
-          directoryPath.isEmpty || !new File(directoryPath)
-            .exists() || new File(directoryPath).isFile
+          params.directoryPath.isEmpty || !new File(params.directoryPath)
+            .exists() || new File(params.directoryPath).isFile
         )
           throw new InvalidConfigParameterException(
-            s"The provided directoryPath for .csv-files '$directoryPath' for '$csvParamsName' configuration is invalid! Please correct the path!"
+            s"The provided directoryPath for .csv-files '${params.directoryPath}' for '$csvParamsName' configuration is invalid! Please correct the path!"
           )
     }
 

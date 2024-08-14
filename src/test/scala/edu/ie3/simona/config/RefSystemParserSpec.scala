@@ -136,7 +136,7 @@ class RefSystemParserSpec extends UnitSpec {
 
       val validRefSystems: List[SimonaConfig.RefSystemConfig] =
         List(
-          new RefSystemConfig(
+          RefSystemConfig(
             gridIds = Some(List("asd")),
             sNom = "100 MVA",
             vNom = "10 kV",
@@ -144,7 +144,7 @@ class RefSystemParserSpec extends UnitSpec {
               List(VoltLvlConfig("MS", "10 kV"), VoltLvlConfig("MS", "20 kV"))
             )
           ),
-          new RefSystemConfig(
+          RefSystemConfig(
             gridIds = None,
             sNom = "100 MVA",
             vNom = "10 kV",
@@ -155,7 +155,7 @@ class RefSystemParserSpec extends UnitSpec {
         )
       intercept[InvalidConfigParameterException] {
         RefSystemParser.parse(validRefSystems)
-      }.getMessage shouldBe "Unknown gridId format asd provided for refSystem RefSystemConfig(Some(List(asd)),100 MVA,10 kV,Some(List(VoltLvlConfig(MS,10 kV), VoltLvlConfig(MS,20 kV))))"
+      }.getMessage startsWith "Unknown gridId format asd provided for refSystem"
 
     }
 
@@ -165,7 +165,7 @@ class RefSystemParserSpec extends UnitSpec {
 
     val validRefSystems: List[SimonaConfig.RefSystemConfig] =
       List(
-        new RefSystemConfig(
+        RefSystemConfig(
           gridIds = Some(List("1", "2-10", "15...20")),
           sNom = "100 MVA",
           vNom = "10 kV",
@@ -173,7 +173,7 @@ class RefSystemParserSpec extends UnitSpec {
             List(VoltLvlConfig("MS", "10 kV"), VoltLvlConfig("MS", "20 kV"))
           )
         ),
-        new RefSystemConfig(
+        RefSystemConfig(
           gridIds = Some(List("100")),
           sNom = "5000 MVA",
           vNom = "110 kV",

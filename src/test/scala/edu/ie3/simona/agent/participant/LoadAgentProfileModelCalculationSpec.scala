@@ -16,33 +16,18 @@ import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.load.LoadAgent.ProfileLoadAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
-  ParticipantInitializeStateData,
-  ParticipantInitializingStateData,
-  ParticipantUninitializedStateData
-}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{ParticipantInitializeStateData, ParticipantInitializingStateData, ParticipantUninitializedStateData}
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
+import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage
-}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.PowerMessage.{AssetPowerChangedMessage, AssetPowerUnchangedMessage, RequestAssetPowerMessage}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeParticipantAgentTrigger
-}
+import edu.ie3.simona.ontology.trigger.Trigger.{ActivityStartTrigger, InitializeParticipantAgentTrigger}
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.model.participant.LoadTestData
 import edu.ie3.simona.util.ConfigUtil
@@ -82,18 +67,18 @@ class LoadAgentProfileModelCalculationSpec
       LoadReference.ActivePower(Kilowatts(0d))
     )
   private val defaultOutputConfig = ParticipantNotifierConfig(
-    simonaConfig.simona.output.participant.defaultConfig.simulationResult,
-    simonaConfig.simona.output.participant.defaultConfig.powerRequestReply
+    simonaConfig.output.participant.defaultConfig.simulationResult,
+    simonaConfig.output.participant.defaultConfig.powerRequestReply
   )
   private val loadConfigUtil = ConfigUtil.ParticipantConfigUtil(
-    simonaConfig.simona.runtime.participant
+    simonaConfig.runtime.participant
   )
   private val modelConfig =
     loadConfigUtil.getOrDefault[LoadRuntimeConfig](
       voltageSensitiveInput.getUuid
     )
   private val services = None
-  private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
+  private val resolution = simonaConfig.powerflow.resolution.toSeconds
 
   private implicit val powerTolerance: squants.Power = Watts(0.1)
   private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
@@ -146,7 +131,7 @@ class LoadAgentProfileModelCalculationSpec
               simulationEndDate = simulationEndDate,
               resolution = resolution,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )
@@ -178,7 +163,7 @@ class LoadAgentProfileModelCalculationSpec
           simulationStartDate shouldBe this.simulationStartDate
           simulationEndDate shouldBe this.simulationEndDate
           resolution shouldBe this.resolution
-          requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
+          requestVoltageDeviationThreshold shouldBe simonaConfig.runtime.participant.requestVoltageDeviationThreshold
           outputConfig shouldBe defaultOutputConfig
         case unsuitableStateData =>
           fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
@@ -270,7 +255,7 @@ class LoadAgentProfileModelCalculationSpec
               simulationEndDate = simulationEndDate,
               resolution = resolution,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )
@@ -350,7 +335,7 @@ class LoadAgentProfileModelCalculationSpec
               simulationEndDate = simulationEndDate,
               resolution = resolution,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )
@@ -444,7 +429,7 @@ class LoadAgentProfileModelCalculationSpec
               simulationEndDate = simulationEndDate,
               resolution = resolution,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )

@@ -534,7 +534,7 @@ case object ConfigFailFast extends LazyLogging {
     val nanos = powerFlow.resolution.toNanos
     if (nanos % 1e9 != 0) {
       throw new InvalidConfigParameterException(
-        "Invalid time resolution. Please ensure that the time resolution " +
+        "Invalid time resolution. Please ensure, that the time resolution " +
             "for power flow calculation is at least rounded to a full second!"
       )
     }

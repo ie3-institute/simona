@@ -9,7 +9,7 @@ package edu.ie3.simona.agent.grid
 import akka.actor.{Actor, ActorIdentity, ActorRef, ActorSystem, Identify, Props}
 import akka.testkit.ImplicitSender
 import akka.util.Timeout
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.simona.agent.EnvironmentRefs
@@ -60,15 +60,16 @@ class GridAgentSetup2WSpec
             )
 
             SimonaStandaloneSetup(
-              typesafeConfig,
+              simonaConfig,
+              ConfigFactory.empty(),
               ResultFileHierarchy(
                 "test/tmp",
                 "GridAgentSetup2WSpec",
                 ResultEntityPathConfig(
                   Set.empty[Class[_ <: ResultEntity]],
                   ResultSinkType(
-                    simonaConfig.simona.output.sink,
-                    simonaConfig.simona.simulationName
+                    simonaConfig.output.sink,
+                    simonaConfig.simulationName
                   )
                 )
               )

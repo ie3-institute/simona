@@ -21,6 +21,7 @@ import edu.ie3.simona.test.common.{IOTestCommons, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.util.io.FileIOUtils
 import org.scalatest.BeforeAndAfterAll
+import pureconfig.{ConfigObjectSource, ConfigSource}
 
 import scala.io.{BufferedSource, Source}
 import scala.jdk.CollectionConverters._
@@ -39,44 +40,36 @@ class RunSimonaStandaloneIT
 
     "run und produce results based on a valid config correctly" in {
 
-      /* setup config */
-      val parsedConfig =
-        ConfigFactory
-          .empty()
-          .withValue(
-            "simona.output.base.dir",
-            ConfigValueFactory.fromAnyRef(testTmpDir)
-          )
-          .withValue(
-            "simona.time.startDateTime",
-            ConfigValueFactory.fromAnyRef("2011-01-01 00:00:00")
-          )
-          .withValue(
-            "simona.time.endDateTime",
-            ConfigValueFactory.fromAnyRef("2011-01-01 02:00:00")
-          )
-          .withFallback(
-            ConfigFactory
-              .parseString("""
-                           |akka.loggers =["akka.event.slf4j.Slf4jLogger"]
-                           |akka.loglevel="OFF"
-                           |""".stripMargin)
-          )
-          .withFallback(ConfigFactory.parseFile(new File(configFile)))
-          .withFallback(ConfigFactory.parseString(s"config=$configFile"))
-          .resolve()
+      val tscfgConf = ConfigFactory.parseString(
+       """
+         |akka.loggers = ["akka.event.slf4j.Slf4jLogger"]
+         |akka.loglevel = "OFF"
+         |""".stripMargin
+      )
+      val confSrc: ConfigObjectSource = ConfigSource.string(
+        s"""
+           |simona.output.base.dir = "$testTmpDir"
+           |simona.time.startDateTime = "2011-01-01 00:00:00"
+           |simona.time.endDateTime = "2011-01-01 02:00:00"
+           |akka.loggers = ["akka.event.slf4j.Slf4jLogger"]
+           |akka.loglevel = "OFF"
+           |""".stripMargin
+      ).withFallback(ConfigSource.file(new File(configFile)))
+      // TODO: Removed the following line because not sure why that is needed. Remove if indded not needed
+      // .withFallback(ConfigFactory.parseString(s"config=$configFile"))
 
       /* validate config */
-      val simonaConfig = SimonaConfig(parsedConfig)
+      val simonaConfig = SimonaConfig(confSrc)
       ConfigFailFast.check(simonaConfig)
 
       val resultFileHierarchy =
-        SimonaStandaloneSetup.buildResultFileHierarchy(parsedConfig)
+        SimonaStandaloneSetup.buildResultFileHierarchy(tscfgConf, simonaConfig)
 
       val runtimeEventQueue = new LinkedBlockingQueue[RuntimeEvent]()
 
       val simonaStandaloneSetup = SimonaStandaloneSetup(
-        parsedConfig,
+        simonaConfig,
+        tscfgConf,
         resultFileHierarchy,
         Some(runtimeEventQueue)
       )

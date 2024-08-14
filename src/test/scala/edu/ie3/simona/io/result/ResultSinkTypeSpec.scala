@@ -6,8 +6,9 @@
 
 package edu.ie3.simona.io.result
 
+import edu.ie3.simona.config.IoConfigUtils.{InfluxDb1xParams, ResultKafkaParams}
+import edu.ie3.simona.config.OutputConfig.{OutputCsvParams, OutputSinkConfig}
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.ResultKafkaParams
 import edu.ie3.simona.io.result.ResultSinkType.{Csv, InfluxDb1x, Kafka}
 import edu.ie3.simona.test.common.UnitSpec
 
@@ -16,14 +17,9 @@ import java.util.UUID
 class ResultSinkTypeSpec extends UnitSpec {
   "A ResultSinkType" should {
     "be instantiated correctly when supplying a csv sink" in {
-      val conf = SimonaConfig.Simona.Output.Sink(
+      val conf = OutputSinkConfig(
         csv = Some(
-          SimonaConfig.Simona.Output.Sink.Csv(
-            fileFormat = ".csv",
-            filePrefix = "",
-            fileSuffix = "",
-            isHierarchic = false
-          )
+          OutputCsvParams()
         ),
         influxDb1x = None,
         kafka = None
@@ -40,10 +36,10 @@ class ResultSinkTypeSpec extends UnitSpec {
     }
 
     "be instantiated correctly when supplying an influxDB sink" in {
-      val conf = SimonaConfig.Simona.Output.Sink(
+      val conf = OutputSinkConfig(
         csv = None,
         influxDb1x = Some(
-          SimonaConfig.Simona.Output.Sink.InfluxDb1x(
+          InfluxDb1xParams(
             database = "test",
             port = 1,
             url = "localhost/"
@@ -64,15 +60,15 @@ class ResultSinkTypeSpec extends UnitSpec {
     }
 
     "be instantiated correctly when supplying a kafka sink" in {
-      val conf = SimonaConfig.Simona.Output.Sink(
+      val conf = OutputSinkConfig(
         csv = None,
         influxDb1x = None,
         kafka = Some(
           ResultKafkaParams(
-            "localhost:9092",
-            12,
             "00000000-0000-0000-0000-000000000000",
+            "localhost:9092",
             "https://reg:123",
+            12,
             "topic"
           )
         )
@@ -98,17 +94,12 @@ class ResultSinkTypeSpec extends UnitSpec {
     }
 
     "fail when more than one sink is supplied" in {
-      val conf = SimonaConfig.Simona.Output.Sink(
+      val conf = OutputSinkConfig(
         csv = Some(
-          SimonaConfig.Simona.Output.Sink.Csv(
-            fileFormat = ".csv",
-            filePrefix = "",
-            fileSuffix = "",
-            isHierarchic = false
-          )
+          OutputCsvParams()
         ),
         influxDb1x = Some(
-          SimonaConfig.Simona.Output.Sink.InfluxDb1x(
+          InfluxDb1xParams(
             database = "test",
             port = 1,
             url = "localhost"
@@ -121,7 +112,7 @@ class ResultSinkTypeSpec extends UnitSpec {
     }
 
     "fail when no sink is supplied" in {
-      val conf = SimonaConfig.Simona.Output.Sink(
+      val conf = OutputSinkConfig(
         csv = None,
         influxDb1x = None,
         kafka = None

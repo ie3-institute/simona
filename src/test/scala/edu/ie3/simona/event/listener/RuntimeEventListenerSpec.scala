@@ -6,23 +6,12 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.testkit.typed.scaladsl.{
-  ActorTestKit,
-  LoggingTestKit,
-  ScalaTestWithActorTestKit
-}
+import akka.actor.testkit.typed.scaladsl.{ActorTestKit, LoggingTestKit, ScalaTestWithActorTestKit}
 import com.typesafe.config.ConfigValueFactory
+import edu.ie3.simona.config.RuntimeConfig.RuntimeListenerConfig
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.event.RuntimeEvent.{
-  CheckWindowPassed,
-  Done,
-  Error,
-  InitComplete,
-  Initializing,
-  Ready,
-  Simulating
-}
+import edu.ie3.simona.event.RuntimeEvent.{CheckWindowPassed, Done, Error, InitComplete, Initializing, Ready, Simulating}
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.TimeUtil
 import org.scalatest.PrivateMethodTester
@@ -59,7 +48,7 @@ class RuntimeEventListenerSpec
   // build the listener
   private val listenerRef = spawn(
     RuntimeEventListener(
-      SimonaConfig.Simona.Runtime.Listener(
+      RuntimeListenerConfig(
         None,
         None
       ),

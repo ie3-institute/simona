@@ -18,7 +18,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{ApparentPower, ZERO_POWER}
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
-import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.SimpleRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.{InconsistentStateException, InvalidRequestException}
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
@@ -41,7 +41,7 @@ protected trait FixedFeedInAgentFundamentals
       FixedRelevantData.type,
       ParticipantStateData[ApparentPower],
       FixedFeedInInput,
-      LoadRuntimeConfig,
+      SimpleRuntimeConfig,
       FixedFeedInModel
     ] {
   this: FixedFeedInAgent =>
@@ -75,7 +75,7 @@ protected trait FixedFeedInAgentFundamentals
     */
   override def determineModelBaseStateData(
       inputModel: FixedFeedInInput,
-      modelConfig: LoadRuntimeConfig,
+      modelConfig: SimpleRuntimeConfig,
       services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
@@ -140,7 +140,7 @@ protected trait FixedFeedInAgentFundamentals
 
   override def buildModel(
       inputModel: FixedFeedInInput,
-      modelConfig: LoadRuntimeConfig,
+      modelConfig: SimpleRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime
   ): FixedFeedInModel = FixedFeedInModel(

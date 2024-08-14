@@ -17,56 +17,27 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
-  CollectRegistrationConfirmMessages,
-  ParticipantInitializeStateData,
-  ParticipantInitializingStateData,
-  ParticipantUninitializedStateData
-}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{CollectRegistrationConfirmMessages, ParticipantInitializeStateData, ParticipantInitializingStateData, ParticipantUninitializedStateData}
 import edu.ie3.simona.agent.participant.wec.WecAgent
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
+import edu.ie3.simona.config.RuntimeConfig.SimpleRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.WecRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.WecModel
 import edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage
-}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  IllegalTriggerMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.PowerMessage.{AssetPowerChangedMessage, AssetPowerUnchangedMessage, RequestAssetPowerMessage}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, IllegalTriggerMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage
-}
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
-  ProvideWeatherMessage,
-  RegisterForWeatherMessage,
-  WeatherData
-}
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeParticipantAgentTrigger
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{RegistrationFailedMessage, RegistrationSuccessfulMessage}
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.{ProvideWeatherMessage, RegisterForWeatherMessage, WeatherData}
+import edu.ie3.simona.ontology.trigger.Trigger.{ActivityStartTrigger, InitializeParticipantAgentTrigger}
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.WecInputTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.scala.quantities.{
-  Megavars,
-  ReactivePower,
-  Vars,
-  WattsPerSquareMeter
-}
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars, WattsPerSquareMeter}
 import org.scalatest.PrivateMethodTester
 import squants.Each
 import squants.energy.{Kilowatts, Megawatts, Watts}
@@ -113,10 +84,10 @@ class WecAgentModelCalculationSpec
       LoadReference.ActivePower(Kilowatts(0d))
     )
   private val configUtil = ConfigUtil.ParticipantConfigUtil(
-    simonaConfig.simona.runtime.participant
+    simonaConfig.runtime.participant
   )
   private val modelConfig =
-    configUtil.getOrDefault[WecRuntimeConfig](
+    configUtil.getOrDefault[SimpleRuntimeConfig](
       voltageSensitiveInput.getUuid
     )
 
@@ -124,7 +95,7 @@ class WecAgentModelCalculationSpec
     Vector(ActorWeatherService(weatherService.ref))
   )
 
-  private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
+  private val resolution = simonaConfig.powerflow.resolution.toSeconds
 
   private implicit val powerTolerance: squants.Power = Watts(0.1)
   private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
@@ -165,7 +136,7 @@ class WecAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               WecInput,
-              WecRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -173,9 +144,9 @@ class WecAgentModelCalculationSpec
               inputModel = voltageSensitiveInput,
               simulationStartDate = simulationStartDate,
               simulationEndDate = simulationEndDate,
-              resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
+              resolution = simonaConfig.powerflow.resolution.toSeconds,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               modelConfig = modelConfig,
               primaryServiceProxy = primaryServiceProxy.ref,
               secondaryDataServices = None,
@@ -253,7 +224,7 @@ class WecAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               WecInput,
-              WecRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -264,7 +235,7 @@ class WecAgentModelCalculationSpec
               simulationEndDate = simulationEndDate,
               resolution = resolution,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               primaryServiceProxy = primaryServiceProxy.ref,
               secondaryDataServices = withServices,
               outputConfig = ParticipantNotifierConfig(
@@ -382,7 +353,7 @@ class WecAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               WecInput,
-              WecRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -393,7 +364,7 @@ class WecAgentModelCalculationSpec
               simulationEndDate = simulationEndDate,
               resolution = resolution,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               primaryServiceProxy = primaryServiceProxy.ref,
               secondaryDataServices = withServices,
               outputConfig = ParticipantNotifierConfig(
@@ -473,7 +444,7 @@ class WecAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               WecInput,
-              WecRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -482,9 +453,9 @@ class WecAgentModelCalculationSpec
               modelConfig = modelConfig,
               simulationStartDate = simulationStartDate,
               simulationEndDate = simulationEndDate,
-              resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
+              resolution = simonaConfig.powerflow.resolution.toSeconds,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               primaryServiceProxy = primaryServiceProxy.ref,
               secondaryDataServices = withServices,
               outputConfig = ParticipantNotifierConfig(
@@ -631,7 +602,7 @@ class WecAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               WecInput,
-              WecRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -640,9 +611,9 @@ class WecAgentModelCalculationSpec
               modelConfig = modelConfig,
               simulationStartDate = simulationStartDate,
               simulationEndDate = simulationEndDate,
-              resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
+              resolution = simonaConfig.powerflow.resolution.toSeconds,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               primaryServiceProxy = primaryServiceProxy.ref,
               secondaryDataServices = withServices,
               outputConfig = ParticipantNotifierConfig(
@@ -787,7 +758,7 @@ class WecAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               WecInput,
-              WecRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -798,7 +769,7 @@ class WecAgentModelCalculationSpec
               simulationEndDate = simulationEndDate,
               resolution = resolution,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               primaryServiceProxy = primaryServiceProxy.ref,
               secondaryDataServices = withServices,
               outputConfig = ParticipantNotifierConfig(
@@ -892,7 +863,7 @@ class WecAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               WecInput,
-              WecRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -903,7 +874,7 @@ class WecAgentModelCalculationSpec
               simulationEndDate = simulationEndDate,
               resolution = resolution,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               primaryServiceProxy = primaryServiceProxy.ref,
               secondaryDataServices = withServices,
               outputConfig = ParticipantNotifierConfig(

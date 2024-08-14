@@ -18,37 +18,18 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.Acto
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
-  CollectRegistrationConfirmMessages,
-  ParticipantInitializeStateData,
-  ParticipantInitializingStateData,
-  ParticipantUninitializedStateData
-}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{CollectRegistrationConfirmMessages, ParticipantInitializeStateData, ParticipantInitializingStateData, ParticipantUninitializedStateData}
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
-import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.SimpleRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.EvcsModel.EvcsRelevantData
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage
-}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  IllegalTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.PowerMessage.{AssetPowerChangedMessage, AssetPowerUnchangedMessage, RequestAssetPowerMessage}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, IllegalTriggerMessage, TriggerWithIdMessage}
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage
-}
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeParticipantAgentTrigger
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{RegistrationFailedMessage, RegistrationSuccessfulMessage}
+import edu.ie3.simona.ontology.trigger.Trigger.{ActivityStartTrigger, InitializeParticipantAgentTrigger}
 import edu.ie3.simona.service.ev.ExtEvDataService.FALLBACK_EV_MOVEMENTS_STEM_DISTANCE
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.EvTestData
@@ -96,7 +77,7 @@ class EvcsAgentModelCalculationSpec
     )
   )
 
-  private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
+  private val resolution = simonaConfig.powerflow.resolution.toSeconds
 
   "An evcs agent with model calculation depending on no secondary data service" should {
     "be instantiated correctly" in {
@@ -133,7 +114,7 @@ class EvcsAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               EvcsInput,
-              EvcsRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -145,7 +126,7 @@ class EvcsAgentModelCalculationSpec
               simulationEndDate = simulationEndDate,
               resolution = resolution,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )
@@ -212,7 +193,7 @@ class EvcsAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               EvcsInput,
-              EvcsRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -224,7 +205,7 @@ class EvcsAgentModelCalculationSpec
               simulationEndDate = simulationEndDate,
               resolution = resolution,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )
@@ -257,7 +238,7 @@ class EvcsAgentModelCalculationSpec
           simulationStartDate shouldBe this.simulationStartDate
           simulationEndDate shouldBe this.simulationEndDate
           timeBin shouldBe this.resolution
-          requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
+          requestVoltageDeviationThreshold shouldBe simonaConfig.runtime.participant.requestVoltageDeviationThreshold
           outputConfig shouldBe defaultOutputConfig
         case unsuitableStateData =>
           fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
@@ -359,7 +340,7 @@ class EvcsAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               EvcsInput,
-              EvcsRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -371,7 +352,7 @@ class EvcsAgentModelCalculationSpec
               simulationEndDate = simulationEndDate,
               resolution = resolution,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )
@@ -445,7 +426,7 @@ class EvcsAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               EvcsInput,
-              EvcsRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -455,9 +436,9 @@ class EvcsAgentModelCalculationSpec
               secondaryDataServices = withServices,
               simulationStartDate = simulationStartDate,
               simulationEndDate = simulationEndDate,
-              resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
+              resolution = simonaConfig.powerflow.resolution.toSeconds,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )
@@ -578,7 +559,7 @@ class EvcsAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               EvcsInput,
-              EvcsRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -588,9 +569,9 @@ class EvcsAgentModelCalculationSpec
               secondaryDataServices = withServices,
               simulationStartDate = simulationStartDate,
               simulationEndDate = simulationEndDate,
-              resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
+              resolution = simonaConfig.powerflow.resolution.toSeconds,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )
@@ -709,7 +690,7 @@ class EvcsAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               EvcsInput,
-              EvcsRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -719,9 +700,9 @@ class EvcsAgentModelCalculationSpec
               secondaryDataServices = withServices,
               simulationStartDate = simulationStartDate,
               simulationEndDate = simulationEndDate,
-              resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
+              resolution = simonaConfig.powerflow.resolution.toSeconds,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )
@@ -772,7 +753,7 @@ class EvcsAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               EvcsInput,
-              EvcsRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -782,9 +763,9 @@ class EvcsAgentModelCalculationSpec
               secondaryDataServices = withServices,
               simulationStartDate = simulationStartDate,
               simulationEndDate = simulationEndDate,
-              resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
+              resolution = simonaConfig.powerflow.resolution.toSeconds,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )
@@ -873,7 +854,7 @@ class EvcsAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               EvcsInput,
-              EvcsRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -883,9 +864,9 @@ class EvcsAgentModelCalculationSpec
               secondaryDataServices = withServices,
               simulationStartDate = simulationStartDate,
               simulationEndDate = simulationEndDate,
-              resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
+              resolution = simonaConfig.powerflow.resolution.toSeconds,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )

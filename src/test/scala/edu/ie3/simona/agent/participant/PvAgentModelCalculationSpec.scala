@@ -18,61 +18,30 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.Acto
 import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
-  CollectRegistrationConfirmMessages,
-  ParticipantInitializeStateData,
-  ParticipantInitializingStateData,
-  ParticipantUninitializedStateData
-}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{CollectRegistrationConfirmMessages, ParticipantInitializeStateData, ParticipantInitializingStateData, ParticipantUninitializedStateData}
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
+import edu.ie3.simona.config.RuntimeConfig.SimpleRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.PvRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.PvModel.PvRelevantData
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage
-}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  IllegalTriggerMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.PowerMessage.{AssetPowerChangedMessage, AssetPowerUnchangedMessage, RequestAssetPowerMessage}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, IllegalTriggerMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage
-}
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
-  ProvideWeatherMessage,
-  RegisterForWeatherMessage,
-  WeatherData
-}
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeParticipantAgentTrigger
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{RegistrationFailedMessage, RegistrationSuccessfulMessage}
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.{ProvideWeatherMessage, RegisterForWeatherMessage, WeatherData}
+import edu.ie3.simona.ontology.trigger.Trigger.{ActivityStartTrigger, InitializeParticipantAgentTrigger}
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.PvInputTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.scala.quantities.{
-  Megavars,
-  ReactivePower,
-  Vars,
-  WattsPerSquareMeter
-}
+import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars, WattsPerSquareMeter}
 import org.scalatest.PrivateMethodTester
 import squants.{Each, Power}
 import squants.energy.{Kilowatts, Megawatts, Watts}
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.{CELSIUS, METRE_PER_SECOND}
 
 import java.util.concurrent.TimeUnit
 
@@ -109,13 +78,13 @@ class PvAgentModelCalculationSpec
       LoadReference.ActivePower(Kilowatts(0d))
     )
   private val defaultOutputConfig = ParticipantNotifierConfig(
-    simonaConfig.simona.output.participant.defaultConfig.simulationResult,
-    simonaConfig.simona.output.participant.defaultConfig.powerRequestReply
+    simonaConfig.output.participant.defaultConfig.simulationResult,
+    simonaConfig.output.participant.defaultConfig.powerRequestReply
   )
   private val configUtil = ConfigUtil.ParticipantConfigUtil(
-    simonaConfig.simona.runtime.participant
+    simonaConfig.runtime.participant
   )
-  private val modelConfig = configUtil.getOrDefault[PvRuntimeConfig](
+  private val modelConfig = configUtil.getOrDefault[SimpleRuntimeConfig](
     voltageSensitiveInput.getUuid
   )
   private val noServices = None
@@ -124,7 +93,7 @@ class PvAgentModelCalculationSpec
       ActorWeatherService(weatherService.ref)
     )
   )
-  private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
+  private val resolution = simonaConfig.powerflow.resolution.toSeconds
 
   private implicit val powerTolerance: Power = Watts(0.1)
   private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
@@ -165,7 +134,7 @@ class PvAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               PvInput,
-              PvRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -177,7 +146,7 @@ class PvAgentModelCalculationSpec
               simulationEndDate = simulationEndDate,
               resolution = resolution,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )
@@ -244,7 +213,7 @@ class PvAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               PvInput,
-              PvRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -256,7 +225,7 @@ class PvAgentModelCalculationSpec
               simulationEndDate = simulationEndDate,
               resolution = resolution,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )
@@ -289,7 +258,7 @@ class PvAgentModelCalculationSpec
           simulationStartDate shouldBe this.simulationStartDate
           simulationEndDate shouldBe this.simulationEndDate
           resolution shouldBe this.resolution
-          requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
+          requestVoltageDeviationThreshold shouldBe simonaConfig.runtime.participant.requestVoltageDeviationThreshold
           outputConfig shouldBe defaultOutputConfig
         case unsuitableStateData =>
           fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
@@ -400,7 +369,7 @@ class PvAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               PvInput,
-              PvRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -412,7 +381,7 @@ class PvAgentModelCalculationSpec
               simulationEndDate = simulationEndDate,
               resolution = resolution,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )
@@ -486,7 +455,7 @@ class PvAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               PvInput,
-              PvRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -496,9 +465,9 @@ class PvAgentModelCalculationSpec
               secondaryDataServices = withServices,
               simulationStartDate = simulationStartDate,
               simulationEndDate = simulationEndDate,
-              resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
+              resolution = simonaConfig.powerflow.resolution.toSeconds,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )
@@ -634,7 +603,7 @@ class PvAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               PvInput,
-              PvRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -644,9 +613,9 @@ class PvAgentModelCalculationSpec
               secondaryDataServices = withServices,
               simulationStartDate = simulationStartDate,
               simulationEndDate = simulationEndDate,
-              resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
+              resolution = simonaConfig.powerflow.resolution.toSeconds,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )
@@ -780,7 +749,7 @@ class PvAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               PvInput,
-              PvRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -792,7 +761,7 @@ class PvAgentModelCalculationSpec
               simulationEndDate = simulationEndDate,
               resolution = resolution,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )
@@ -882,7 +851,7 @@ class PvAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               PvInput,
-              PvRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -894,7 +863,7 @@ class PvAgentModelCalculationSpec
               simulationEndDate = simulationEndDate,
               resolution = resolution,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )

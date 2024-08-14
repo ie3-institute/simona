@@ -13,9 +13,9 @@ import edu.ie3.simona.config.SimonaConfig._
 import scala.collection.immutable.Seq
 
 final case class RuntimeConfig(
-    selectedSubgrids: Seq[Int],
-    selectedVoltLvls: Seq[VoltLvlConfig],
-    listener: RuntimeListenerConfig,
+    selectedSubgrids: Option[Seq[Int]],
+    selectedVoltLvls: Option[Seq[VoltLvlConfig]],
+    listener: RuntimeListenerConfig = RuntimeListenerConfig(None, None),
     participant: RuntimeParticipantsConfig
 )
 

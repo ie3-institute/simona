@@ -381,7 +381,7 @@ case class PrimaryServiceProxy(
   ): Try[InitPrimaryServiceStateData] =
     primaryConfig match {
       case PrimaryConfig(
-            Some(TimeStampedDataCsvParams(csvSep, directoryPath, timePattern)),
+            Some(TimeStampedDataCsvParams(directoryPath, csvSep, timePattern)),
             None,
             None,
             None

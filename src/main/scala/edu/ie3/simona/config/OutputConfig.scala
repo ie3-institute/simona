@@ -11,7 +11,7 @@ import edu.ie3.simona.config.OutputConfig._
 
 final case class OutputConfig(
     base: OutputBaseConfig,
-    sink: OutputSinkConfig,
+    sink: OutputSinkConfig = OutputSinkConfig.csv,
     grid: GridOutputConfig,
     participant: ParticipantOutputConfig
 )
@@ -20,7 +20,7 @@ object OutputConfig {
 
   final case class OutputBaseConfig(
       dir: String,
-      addTimestampToOutputDir: Boolean
+      addTimestampToOutputDir: Boolean = true ,
   )
 
   final case class OutputSinkConfig(
@@ -29,12 +29,20 @@ object OutputConfig {
       kafka: Option[ResultKafkaParams]
   )
 
+  object OutputSinkConfig {
+    def csv: OutputSinkConfig = OutputSinkConfig(Some(OutputCsvParams.default), None, None)
+  }
+
   final case class OutputCsvParams(
       fileFormat: String = ".csv",
       isHierarchic: Boolean = false,
       filePrefix: String = "",
       fileSuffix: String = ""
   )
+
+  object OutputCsvParams {
+    def default: OutputCsvParams = OutputCsvParams()
+  }
 
   final case class GridOutputConfig(
       notifier: String,

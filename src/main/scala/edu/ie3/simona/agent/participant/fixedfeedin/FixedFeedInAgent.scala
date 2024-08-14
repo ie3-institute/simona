@@ -38,7 +38,7 @@ class FixedFeedInAgent(
       FixedRelevantData.type,
       ParticipantStateData[ApparentPower],
       FixedFeedInInput,
-      LoadRuntimeConfig,
+      SimpleRuntimeConfig,
       FixedFeedInModel
     ](scheduler)
     with FixedFeedInAgentFundamentals {

@@ -16,33 +16,18 @@ import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.fixedfeedin.FixedFeedInAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
-  ParticipantInitializeStateData,
-  ParticipantInitializingStateData,
-  ParticipantUninitializedStateData
-}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{ParticipantInitializeStateData, ParticipantInitializingStateData, ParticipantUninitializedStateData}
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
+import edu.ie3.simona.config.RuntimeConfig.SimpleRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.FixedFeedInRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage
-}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
-}
+import edu.ie3.simona.ontology.messages.PowerMessage.{AssetPowerChangedMessage, AssetPowerUnchangedMessage, RequestAssetPowerMessage}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeParticipantAgentTrigger
-}
+import edu.ie3.simona.ontology.trigger.Trigger.{ActivityStartTrigger, InitializeParticipantAgentTrigger}
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.FixedFeedInputTestData
 import edu.ie3.simona.util.ConfigUtil
@@ -89,19 +74,19 @@ class FixedFeedInAgentModelCalculationSpec
       LoadReference.ActivePower(Kilowatts(0d))
     )
   private val defaultOutputConfig = ParticipantNotifierConfig(
-    simonaConfig.simona.output.participant.defaultConfig.simulationResult,
-    simonaConfig.simona.output.participant.defaultConfig.powerRequestReply
+    simonaConfig.output.participant.defaultConfig.simulationResult,
+    simonaConfig.output.participant.defaultConfig.powerRequestReply
   )
 
   private val fixedFeedConfigUtil = ConfigUtil.ParticipantConfigUtil(
-    simonaConfig.simona.runtime.participant
+    simonaConfig.runtime.participant
   )
   private val modelConfig =
-    fixedFeedConfigUtil.getOrDefault[FixedFeedInRuntimeConfig](
+    fixedFeedConfigUtil.getOrDefault[SimpleRuntimeConfig](
       voltageSensitiveInput.getUuid
     )
   private val services = None
-  private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
+  private val resolution = simonaConfig.powerflow.resolution.toSeconds
 
   "A fixed feed in agent with model calculation " should {
     "be instantiated correctly" in {
@@ -139,7 +124,7 @@ class FixedFeedInAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               FixedFeedInInput,
-              FixedFeedInRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -151,7 +136,7 @@ class FixedFeedInAgentModelCalculationSpec
               simulationEndDate = simulationEndDate,
               resolution = resolution,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )
@@ -184,7 +169,7 @@ class FixedFeedInAgentModelCalculationSpec
           simulationStartDate shouldBe this.simulationStartDate
           simulationEndDate shouldBe this.simulationEndDate
           resolution shouldBe this.resolution
-          requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
+          requestVoltageDeviationThreshold shouldBe simonaConfig.runtime.participant.requestVoltageDeviationThreshold
           outputConfig shouldBe defaultOutputConfig
         case unsuitableStateData =>
           fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
@@ -263,7 +248,7 @@ class FixedFeedInAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               FixedFeedInInput,
-              FixedFeedInRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -275,7 +260,7 @@ class FixedFeedInAgentModelCalculationSpec
               simulationEndDate = simulationEndDate,
               resolution = resolution,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )
@@ -343,7 +328,7 @@ class FixedFeedInAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               FixedFeedInInput,
-              FixedFeedInRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -355,7 +340,7 @@ class FixedFeedInAgentModelCalculationSpec
               simulationEndDate = simulationEndDate,
               resolution = resolution,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )
@@ -430,7 +415,7 @@ class FixedFeedInAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               FixedFeedInInput,
-              FixedFeedInRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -442,7 +427,7 @@ class FixedFeedInAgentModelCalculationSpec
               simulationEndDate = simulationEndDate,
               resolution = resolution,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )
@@ -506,7 +491,7 @@ class FixedFeedInAgentModelCalculationSpec
             ApparentPower,
             ParticipantInitializeStateData[
               FixedFeedInInput,
-              FixedFeedInRuntimeConfig,
+              SimpleRuntimeConfig,
               ApparentPower
             ]
           ](
@@ -518,7 +503,7 @@ class FixedFeedInAgentModelCalculationSpec
               secondaryDataServices = services,
               resolution = resolution,
               requestVoltageDeviationThreshold =
-                simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+                simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfig = defaultOutputConfig,
               primaryServiceProxy = primaryServiceProxy.ref
             )

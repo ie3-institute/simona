@@ -11,8 +11,8 @@ import edu.ie3.simona.config.IoConfigUtils._
 
 case class InputConfig(
     grid: GridConfig,
-    primary: PrimaryConfig,
-    weather: WeatherConfig
+    primary: PrimaryConfig = PrimaryConfig.empty,
+    weather: WeatherConfig = WeatherConfig.sample
 )
 
 object InputConfig {
@@ -27,15 +27,25 @@ object InputConfig {
   )
 
   case class PrimaryConfig(
+      // TODO: csvParams probably need to be optionally hierarchic
       csvParams: Option[TimeStampedDataCsvParams] = None,
       influxDb1xParams: Option[InfluxDb1xParams] = None,
+      // TODO: primary service does not need table in params
       sqlParams: Option[TimeStampedSqlParams] = None,
       couchbaseParams: Option[CouchbaseParams] = None
   )
 
+  object PrimaryConfig {
+    def empty: PrimaryConfig = PrimaryConfig()
+  }
+
   case class WeatherConfig(
       datasource: WeatherDataSourceConfig
   )
+
+  object WeatherConfig {
+    def sample: WeatherConfig = WeatherConfig(WeatherDataSourceConfig.sample)
+  }
 
   case class WeatherDataSourceConfig(
       scheme: String,
@@ -50,6 +60,20 @@ object InputConfig {
       coordinateSource: CoordinateSourceConfig
   )
 
+  object WeatherDataSourceConfig {
+    def sample: WeatherDataSourceConfig = WeatherDataSourceConfig(
+      scheme = "",
+      sampleParams = Some(WeatherSampleParams(use = true)),
+      timeStampPattern = None,
+      resolution = None,
+      csvParams = None,
+      influxDb1xParams = None,
+      sqlParams = None,
+      couchbaseParams = None,
+      coordinateSource = CoordinateSourceConfig.sample
+    )
+  }
+
   final case class CoordinateSourceConfig(
       gridModel: String = "icon",
       csvParams: Option[BaseCsvParams],
@@ -57,8 +81,18 @@ object InputConfig {
       sqlParams: Option[BaseSqlParams]
   )
 
+  object CoordinateSourceConfig {
+    def sample: CoordinateSourceConfig = {
+      CoordinateSourceConfig(
+            csvParams = None,
+            sampleParams = Some(WeatherSampleParams(use = true)),
+            sqlParams = None
+          )
+        }
+  }
+
+  // TODO: this class is useless
   case class WeatherSampleParams(
       use: Boolean
   )
-
 }
