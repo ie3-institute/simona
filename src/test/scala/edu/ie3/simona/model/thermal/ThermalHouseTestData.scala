@@ -7,13 +7,9 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.StandardUnits
-import edu.ie3.datamodel.models.input.thermal.{
-  DomesticHotWaterStorageInput,
-  ThermalHouseInput,
-}
+import edu.ie3.datamodel.models.input.thermal.ThermalHouseInput
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.test.common.DefaultTestData
-import edu.ie3.util.quantities.PowerSystemUnits
 import squants.energy.Megawatts
 import squants.thermal.Celsius
 import tech.units.indriya.quantity.Quantities.getQuantity
@@ -36,22 +32,6 @@ trait ThermalHouseTestData extends ThermalGridTestData with DefaultTestData {
   )
 
   protected val thermalHouse: ThermalHouse = ThermalHouse(thermalHouseInput)
-
-  protected val domesticWaterStorageInput: DomesticHotWaterStorageInput =
-    new DomesticHotWaterStorageInput(
-      UUID.randomUUID(),
-      "Domestic Hot Water Storage",
-      thermalBusInput,
-      getQuantity(350, Units.LITRE),
-      getQuantity(30, StandardUnits.TEMPERATURE),
-      getQuantity(60, StandardUnits.TEMPERATURE),
-      getQuantity(1.16, StandardUnits.SPECIFIC_HEAT_CAPACITY),
-      getQuantity(11.0, PowerSystemUnits.KILOWATT),
-    )
-
-  protected val domesticWaterStorage: ThermalStorage = DomesticHotWaterStorage(
-    domesticWaterStorageInput
-  )
 
   protected val expectedHouseStartingState: ThermalHouseState =
     ThermalHouseState(

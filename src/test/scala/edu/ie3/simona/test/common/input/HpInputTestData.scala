@@ -188,6 +188,18 @@ trait HpInputTestData
     KilowattHours(0d),
   )
 
+  protected def domesticHotWaterStorage: ThermalStorage =
+    DomesticHotWaterStorage(
+      UUID.fromString("d57ddc54-48bd-4c59-babf-330c7ba71a74"),
+      "domestic hot water storage",
+      OperatorInput.NO_OPERATOR_ASSIGNED,
+      OperationTime.notLimited(),
+      thermalBusInput,
+      KilowattHours(250d),
+      Kilowatts(1e-3),
+      KilowattHours(250d),
+    )
+
   protected def thermalState(
       temperature: Temperature,
       qDot: Power = Kilowatts(0d),
