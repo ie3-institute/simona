@@ -53,7 +53,7 @@ $$
 
 **References:**
 
-* {cite:cts}`Maleki.2017` 
+* {cite:cts}`Maleki.2017`
 * {cite:cts}`Spencer.1971`
 
 
@@ -126,7 +126,7 @@ $$
 
 **References:**
 
-* {cite:cts}`Maleki.2017` 
+* {cite:cts}`Maleki.2017`
 * {cite:cts}`Itaca_Sun`
 
 
