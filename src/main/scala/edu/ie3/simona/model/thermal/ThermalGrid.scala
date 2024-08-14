@@ -561,7 +561,15 @@ final case class ThermalGrid(
       qDot: Power,
       storage: Option[ThermalStorage],
   ): (Option[ThermalStorageState], Option[ThermalThreshold]) = {
-    (storage, state.storageState) match {
+
+    val selectedState = storage match {
+      case Some(_: CylindricalThermalStorage) => state.storageState
+      case Some(_: DomesticHotWaterStorage) =>
+        state.domesticHotWaterStorageState
+      case _ => None
+    }
+
+    (storage, selectedState) match {
       case (Some(thermalStorage), Some(lastStorageState)) =>
         val (newState, threshold) = thermalStorage.updateState(
           tick,
