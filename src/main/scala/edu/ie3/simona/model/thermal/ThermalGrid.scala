@@ -27,7 +27,7 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.energy.Kilowatts
-import squants.{Energy, Power, Temperature}
+import squants.{Energy, Power, Seconds, Temperature}
 
 import java.time.ZonedDateTime
 import scala.jdk.CollectionConverters.SetHasAsScala
@@ -457,7 +457,7 @@ final case class ThermalGrid(
       qDotHeatStorage: Power,
       qDotDomesticHotWaterStorage: Power,
   ): (ThermalGridState, Option[ThermalThreshold]) = {
-    // FIXME: Is there any case where we get back some remainingQDotHous?
+    // FIXME: Is there any case where we get back some remainingQDotHouse?
     val (updatedHouseState, thermalHouseThreshold, remainingQDotHouse) =
       handleInfeedHouse(tick, ambientTemperature, state, qDotHouse)
 
@@ -661,11 +661,40 @@ final case class ThermalGrid(
       )
       .getOrElse(ThermalEnergyDemand(zeroKWH, zeroKWH))
 
-    val qDotDomesticHotWaterDemand =
-      if (domesticHotWaterDemand.required > zeroKWH)
-        domesticHotWaterStorage.map(_.getChargingPower).getOrElse(zeroKW)
-      else
-        zeroKW
+    val (
+      qDotDomesticHotWaterDemand,
+      tickWhenStorageDemandEnds,
+    ) =
+      if (domesticHotWaterDemand.required > zeroKWH) {
+        val chargingPower = domesticHotWaterStorage
+          .map(_.getChargingPower)
+          .getOrElse(
+            throw new RuntimeException(
+              s"Trying to get the chargingPower of domesticHotWaterStorage was not possible"
+            )
+          )
+
+        val durationAtFullPower =
+          domesticHotWaterDemand.required / chargingPower
+
+        if (durationAtFullPower > Seconds(1)) {
+          (
+            chargingPower * (-1),
+            Some(
+              SimpleThermalThreshold(
+                tick + Math.round(durationAtFullPower.toSeconds)
+              )
+            ),
+          )
+        } else {
+          (
+            (-1) * domesticHotWaterDemand.required / Seconds(1d),
+            Some(SimpleThermalThreshold(tick + 1)),
+          )
+        }
+      } else {
+        (zeroKW, None)
+      }
 
     val (
       updatedDomesticHotWaterStorageState,
@@ -677,17 +706,23 @@ final case class ThermalGrid(
       domesticHotWaterStorage,
     )
 
+    val nextThresholdHotWaterStorage = determineMostRecentThreshold(
+      tickWhenStorageDemandEnds,
+      domesticHotWaterStorageThreshold,
+      None,
+    )
+
     val nextThreshold = determineMostRecentThreshold(
       revisedHouseState.flatMap(_._2),
       revisedStorageState.flatMap(_._2),
-      domesticHotWaterStorageThreshold,
+      nextThresholdHotWaterStorage,
     )
 
     (
       state.copy(
         houseState = revisedHouseState.map(_._1),
         storageState = revisedStorageState.map(_._1),
-        domesticHotWaterStorageState = revisedStorageState.map(_._1),
+        domesticHotWaterStorageState = updatedDomesticHotWaterStorageState,
       ),
       nextThreshold,
     )
