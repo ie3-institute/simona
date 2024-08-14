@@ -39,9 +39,7 @@ $$
 $$
 
 Reference:
-```{eval-rst} 
-* :cite:ts:`Quaschning.2013`
-```
+* {cite:cts}`Quaschning.2013`
 
 That is the mathematical description of loading and unloading processes concerning the buffer storage. Whenever heat is stored within the storage or removed from the storage this equation is used. This includes the case that the whole heat demand is satisfied by the storage.
 

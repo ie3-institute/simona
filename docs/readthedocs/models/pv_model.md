@@ -52,11 +52,8 @@ $$
 $$
 
 **References:**
-
-```{eval-rst}
-* :cite:cts:`Maleki.2017` 
-* :cite:ts:`Spencer.1971`
-```
+* {cite:cts}`Maleki.2017` 
+* {cite:cts}`Spencer.1971`
 
 ### Hour Angle
 
@@ -103,12 +100,9 @@ $$
 **Note:** The used formulas are based on *\"DIN 5034-2: Tageslicht in Innenräumen, Grundlagen.\"* and therefore valid especially for Germany and Europe. For international calculations a more general formulation that can be found in [Maleki, S.A., Hizam, H., & Gomes, C. (2017). Estimation of Hourly, Daily and Monthly Global Solar Radiation on Inclined Surfaces: Models Re-Visited.](https://res.mdpi.com/d_attachment/energies/energies-10-00134/article_deploy/energies-10-00134-v2.pdf) might be used.
 
 **References:**
-
-```{eval-rst}
-* :cite:cts:`Watter.2013` 
-* :cite:ts:`Maleki.2017`
-* :cite:ts:`Wang.2019`
-```
+* {cite:cts}`Watter.2013`
+* {cite:cts}`Maleki.2017`
+* {cite:cts}`Wang.2019`
 
 ### Sunrise Angle
 
@@ -127,10 +121,8 @@ $$
 **$\phi$** = observer's latitude
 
 **References:**
-```{eval-rst}
-* :cite:cts:`Maleki.2017` 
-* :cite:ts:`Itaca_Sun`
-```
+* {cite:cts}`Maleki.2017` 
+* {cite:cts}`Itaca_Sun`
 
 ### Solar Altitude Angle
 
@@ -146,11 +138,8 @@ $$
 **$\omega$**= hour angle
 
 **References:**
-
-```{eval-rst} 
-* :cite:ts:`Maleki.2017` p. 5
-* :cite:ts:`Itaca_Sun`
-```
+* {cite:cts}`Maleki.2017` p. 5
+* {cite:cts}`Itaca_Sun`
 
 ### Zenith Angle
 
@@ -191,11 +180,8 @@ $$
 **$\omega$** = hour angle
 
 **References:**
-
-```{eval-rst} 
-* :cite:ts:`Quaschning.2013`
-* :cite:ts:`Maleki.2017` p. 18
-```
+* {cite:cts}`Quaschning.2013`
+* {cite:cts}`Maleki.2017` p. 18
 
 ### Air Mass
 
@@ -210,11 +196,8 @@ airmass = \sqrt{(707.8\overline{8} \cdot \cos({\theta_z}))^2 +2 \cdot 707.8\over
 $$
 
 **References:**
-
-```{eval-rst} 
-* :cite:ts:`Schoenberg.1929`
-* :cite:ts:`WikiAirMass`
-```
+* {cite:cts}`Schoenberg.1929`
+* {cite:cts}`WikiAirMass`
 
 ### Extraterrestrial Radiation
 
@@ -236,11 +219,8 @@ $$
 **J** = day angle
 
 **References:**
-
-```{eval-rst} 
-* :cite:ts:`Zheng.2017` p. 53, formula 2.3b
-* :cite:ts:`Iqbal.1983`
-```
+* {cite:cts}`Zheng.2017` p. 53, formula 2.3b
+* {cite:cts}`Iqbal.1983`
 
 ### Beam Radiation on Sloped Surface
 
@@ -295,10 +275,7 @@ $$
 **$E_{beam,H}$** = beam radiation (horizontal surface)
 
 **Reference:**
-
-```{eval-rst} 
-* :cite:ts:`Duffie.2013` p. 88
-```
+* {cite:cts}`Duffie.2013` p. 88
 
 ### Diffuse Radiation on Sloped Surface
 
@@ -407,12 +384,9 @@ $$
 **$E_{dif,H}$** = diffuse radiation (horizontal surface)
 
 **References:**
-
-```{eval-rst} 
-* :cite:ts:`Perez.1987`
-* :cite:ts:`Perez.1990`
-* :cite:ts:`Myers.2017` p. 96f
-```
+* {cite:cts}`Perez.1987`
+* {cite:cts}`Perez.1990`
+* {cite:cts}`Myers.2017` p. 96f
 
 ### Reflected Radiation on Sloped Surface
 
@@ -427,10 +401,7 @@ $$
 **$\rho$** = albedo
 
 **Reference:**
-```{eval-rst} 
-* :cite:ts:`Maleki.2017` p. 19
-```
-
+* {cite:cts}`Maleki.2017` p. 19
 
 ### Output
 
