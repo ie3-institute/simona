@@ -621,9 +621,7 @@ class ThermalGridWithHouseAndStorageSpec
 
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
-        reachedThreshold shouldBe Some(
-          HouseTemperatureUpperBoundaryReached(5846L)
-        )
+        reachedThreshold shouldBe Some(StorageFull(5846))
       }
 
       "load the storage, if the upper temperature in the house is reached" in {
