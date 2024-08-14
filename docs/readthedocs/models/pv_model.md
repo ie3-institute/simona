@@ -52,8 +52,10 @@ $$
 $$
 
 **References:**
+
 * {cite:cts}`Maleki.2017` 
 * {cite:cts}`Spencer.1971`
+
 
 ### Hour Angle
 
@@ -100,9 +102,11 @@ $$
 **Note:** The used formulas are based on *\"DIN 5034-2: Tageslicht in Innenräumen, Grundlagen.\"* and therefore valid especially for Germany and Europe. For international calculations a more general formulation that can be found in [Maleki, S.A., Hizam, H., & Gomes, C. (2017). Estimation of Hourly, Daily and Monthly Global Solar Radiation on Inclined Surfaces: Models Re-Visited.](https://res.mdpi.com/d_attachment/energies/energies-10-00134/article_deploy/energies-10-00134-v2.pdf) might be used.
 
 **References:**
+
 * {cite:cts}`Watter.2013`
 * {cite:cts}`Maleki.2017`
 * {cite:cts}`Wang.2019`
+
 
 ### Sunrise Angle
 
@@ -121,8 +125,10 @@ $$
 **$\phi$** = observer's latitude
 
 **References:**
+
 * {cite:cts}`Maleki.2017` 
 * {cite:cts}`Itaca_Sun`
+
 
 ### Solar Altitude Angle
 
@@ -138,8 +144,10 @@ $$
 **$\omega$**= hour angle
 
 **References:**
+
 * {cite:cts}`Maleki.2017` p. 5
 * {cite:cts}`Itaca_Sun`
+
 
 ### Zenith Angle
 
@@ -180,8 +188,10 @@ $$
 **$\omega$** = hour angle
 
 **References:**
+
 * {cite:cts}`Quaschning.2013`
 * {cite:cts}`Maleki.2017` p. 18
+
 
 ### Air Mass
 
@@ -196,8 +206,10 @@ airmass = \sqrt{(707.8\overline{8} \cdot \cos({\theta_z}))^2 +2 \cdot 707.8\over
 $$
 
 **References:**
+
 * {cite:cts}`Schoenberg.1929`
 * {cite:cts}`WikiAirMass`
+
 
 ### Extraterrestrial Radiation
 
@@ -219,8 +231,10 @@ $$
 **J** = day angle
 
 **References:**
+
 * {cite:cts}`Zheng.2017` p. 53, formula 2.3b
 * {cite:cts}`Iqbal.1983`
+
 
 ### Beam Radiation on Sloped Surface
 
@@ -275,7 +289,9 @@ $$
 **$E_{beam,H}$** = beam radiation (horizontal surface)
 
 **Reference:**
+
 * {cite:cts}`Duffie.2013` p. 88
+
 
 ### Diffuse Radiation on Sloped Surface
 
@@ -384,9 +400,11 @@ $$
 **$E_{dif,H}$** = diffuse radiation (horizontal surface)
 
 **References:**
+
 * {cite:cts}`Perez.1987`
 * {cite:cts}`Perez.1990`
 * {cite:cts}`Myers.2017` p. 96f
+
 
 ### Reflected Radiation on Sloped Surface
 
@@ -401,7 +419,9 @@ $$
 **$\rho$** = albedo
 
 **Reference:**
+
 * {cite:cts}`Maleki.2017` p. 19
+
 
 ### Output
 

@@ -40,4 +40,5 @@ More details on the physical model transformation can be found in the Ph.D. thes
 - The tap changer is always apparent in subgrid A. If subgrid B or C require an adaption, they send a tap request with provided power values, subgrid A takes a decision and re-evaluates the outcome
 
 **References:**
+
 * {cite:cts}`Kittl_2022`
