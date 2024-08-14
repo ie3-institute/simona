@@ -74,22 +74,31 @@ class WaterHeatingSystemSpec extends UnitSpec with ThermalHouseTestData {
         "calculate the water demand correctly for a given hour" in {
           val simulationStart = ZonedDateTime.parse("2024-01-01T00:00:00Z")
           val cases = Table(
-            ("tick", "noPersons", "expectedVolume"),
-            (0L, 1, 0.64602),
-            (0L, 0, 0d),
-            (1800L, 1, 0.64602),
-            (1800L, 2, 1.29205),
-            (3600L, 1, 0.358904),
-            (10800L, 4, 0.43068),
-            (28800L, 4, 9.76219),
-            (86400L, 2, 1.29204),
+            ("tick", "housingType", "noPersons", "expectedVolume"),
+            (0L, "house", 0d, 0d),
+            (0L, "house", 1d, 0.64602),
+            (1800L, "house", 1d, 0.64602),
+            (1800L, "house", 2d, 1.29205),
+            (3600L, "house", 1d, 0.358904),
+            (10800L, "house", 4d, 0.43068),
+            (28800L, "house", 4d, 9.76219),
+            (86400L, "house", 2d, 1.29204),
+            (0L, "flat", 0d, 0d),
+            (0L, "flat", 1d, 0.3589),
+            (1800L, "flat", 1d, 0.3589),
+            (1800L, "flat", 2d, 0.7178),
+            (3600L, "flat", 1d, 0.3589),
+            (10800L, "flat", 4d, 0d),
+            (28800L, "flat", 4d, 11.48493),
+            (86400L, "flat", 2d, 0.7178),
           )
 
-          forAll(cases) { (tick, noPersons, expectedResult) =>
+          forAll(cases) { (tick, housingType, noPersons, expectedResult) =>
             val demand = thermalHouse invokePrivate waterDemandOfHour(
               tick,
-              noPersons,
               simulationStart,
+              noPersons,
+              housingType
             )
             val expected = Litres(expectedResult)
             demand should approximate(expected)

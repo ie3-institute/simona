@@ -269,7 +269,7 @@ final case class ThermalHouse(
     *   the needed energy
     */
 
-  def waterDemandOfHour(
+  private def waterDemandOfHour(
       tick: Long,
       simulationStart: ZonedDateTime,
       noPersonsInHoushold: Double,
