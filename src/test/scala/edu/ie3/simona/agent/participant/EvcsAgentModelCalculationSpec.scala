@@ -65,6 +65,7 @@ import squants.energy._
 import squants.{Each, Energy, Power}
 
 import java.time.ZonedDateTime
+import java.util.UUID
 import scala.collection.immutable.{SortedMap, SortedSet}
 
 class EvcsAgentModelCalculationSpec
@@ -2037,7 +2038,7 @@ class EvcsAgentModelCalculationSpec
         evcsInputModel,
         modelConfig = modelConfig,
         secondaryDataServices = Iterable(
-          ActorEvMovementsService(evService.ref)
+          ActorExtEvDataService(evService.ref)
         ),
         simulationStartDate = simulationStartDate,
         simulationEndDate = simulationEndDate,
@@ -2081,7 +2082,7 @@ class EvcsAgentModelCalculationSpec
           inputModel shouldBe SimpleInputContainer(evcsInputModel)
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe Iterable(
-            ActorEvMovementsService(evService.ref)
+            ActorExtEvDataService(evService.ref)
           )
           simulationStartDate shouldBe simulationStartDate
           simulationEndDate shouldBe simulationEndDate
@@ -2106,10 +2107,10 @@ class EvcsAgentModelCalculationSpec
       evService.expectMsg(RegisterForEvDataMessage(evcsInputModel.getUuid))
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, None),
+        RegistrationSuccessfulMessage(evService.ref, Some(0)),
       )
 
-      scheduler.expectMsg(Completion(evcsAgent.toTyped))
+      scheduler.expectMsg(Completion(evcsAgent.toTyped, Some(0)))
 
       /* TICK 0 (expected activation)
          - currently no cars
@@ -2118,8 +2119,15 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        ProvideEvDataMessage(0, evService.ref, ArrivingEvsData(Seq.empty)),
+        ProvideEvDataMessage(
+          0,
+          evService.ref,
+          ArrivingEvs(Seq.empty),
+          Some(900),
+        ),
       )
+
+      scheduler.expectMsg(Completion(evcsAgent.toTyped, Some(900)))
 
       /* TICK 900
        * - ev900 arrives
@@ -2134,15 +2142,19 @@ class EvcsAgentModelCalculationSpec
         ProvideEvDataMessage(
           900,
           evService.ref,
-          ArrivingEvsData(Seq(ev900)),
+          ArrivingEvs(Seq(ev900)),
+          Some(1800),
         ),
       )
+
+      scheduler.expectMsg(Completion(evcsAgent.toTyped, Some(1800)))
 
       /* TICK 1800
        * - ev1800 arrives
        * - charging with 11 kW
        */
       scheduler.send(evcsAgent, Activation(1800))
+
       val ev1800 = EvModelWrapper(evB.copyWithDeparture(4500))
 
       evService.send(
@@ -2150,15 +2162,19 @@ class EvcsAgentModelCalculationSpec
         ProvideEvDataMessage(
           1800,
           evService.ref,
-          ArrivingEvsData(Seq(ev1800)),
+          ArrivingEvs(Seq(ev1800)),
+          Some(2700),
         ),
       )
+
+      scheduler.expectMsg(Completion(evcsAgent.toTyped, Some(2700)))
 
       /* TICK 2700
        * - ev2700 arrives
        * - charging with 22 kW
        */
       scheduler.send(evcsAgent, Activation(2700))
+
       val ev2700 = EvModelWrapper(evC.copyWithDeparture(5400))
 
       evService.send(
@@ -2166,9 +2182,12 @@ class EvcsAgentModelCalculationSpec
         ProvideEvDataMessage(
           2700,
           evService.ref,
-          ArrivingEvsData(Seq(ev2700)),
+          ArrivingEvs(Seq(ev2700)),
+          None,
         ),
       )
+
+      scheduler.expectMsg(Completion(evcsAgent.toTyped, None))
 
       // TICK 3600: ev900 leaves
       evService.send(

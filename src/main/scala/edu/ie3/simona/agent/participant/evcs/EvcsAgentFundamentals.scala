@@ -541,9 +541,10 @@ protected trait EvcsAgentFundamentals
     val relevantData =
       createCalcRelevantData(modelBaseStateData, tick)
 
+    val lastState = getLastOrInitialStateData(modelBaseStateData, tick)
+
     val updatedBaseStateData = {
       if (relevantData.arrivals.nonEmpty) {
-        val lastState = getLastOrInitialStateData(modelBaseStateData, tick)
 
         val currentEvs = modelBaseStateData.model.determineCurrentEvs(
           relevantData,
