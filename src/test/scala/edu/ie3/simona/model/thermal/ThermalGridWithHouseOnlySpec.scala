@@ -12,6 +12,7 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalGridState,
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.HouseTemperatureUpperBoundaryReached
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.StorageFull
 import edu.ie3.simona.test.common.UnitSpec
@@ -131,14 +132,18 @@ class ThermalGridWithHouseOnlySpec
         houseDemand.possible should approximate(expectedHouseDemand.possible)
         storageDemand.required should approximate(zeroKWH)
         storageDemand.possible should approximate(zeroKWH)
-        hotWaterDemand.required should approximate(KilowattHours(0.138637479))
-        hotWaterDemand.possible should approximate(KilowattHours(0.138637479))
+        hotWaterDemand.required should approximate(KilowattHours(0d))
+        hotWaterDemand.possible should approximate(KilowattHours(0d))
         updatedThermalGridState.houseState shouldBe Some(
           ThermalHouseState(10800, Kelvin(292.0799935185185), zeroKW)
         )
         updatedThermalGridState.storageState shouldBe None
         updatedThermalGridState.domesticHotWaterStorageState shouldBe Some(
-          ThermalStorageState(10800, zeroKWH, zeroKW)
+          ThermalStorageState(
+            10800,
+            expectedDomesticHotWaterStorageStartingState.storedEnergy,
+            zeroKW,
+          )
         )
       }
     }
@@ -357,15 +362,17 @@ class ThermalGridWithHouseOnlySpec
                     )
                   ),
                 ),
-                Some(StorageFull(thresholdTick)),
+                Some(HouseTemperatureUpperBoundaryReached(thresholdTick)),
               ) =>
             tickHouse shouldBe 0L
             tickWaterStorage shouldBe 0L
             innerTemperature should approximate(Celsius(18.9999d))
-            energyWaterStorage should approximate(zeroKWH)
-            qDotHouse should approximate(testGridQDotInfeed / 2)
-            qDotWaterStorage should approximate(testGridQDotInfeed / 2)
-            thresholdTick shouldBe 5846
+            energyWaterStorage should approximate(
+              expectedCylindricalStorageStartingState.storedEnergy
+            )
+            qDotHouse should approximate(testGridQDotInfeed)
+            qDotWaterStorage should approximate(zeroKW)
+            thresholdTick shouldBe 15105L
           case _ => fail("Thermal grid state updated failed")
         }
       }
@@ -401,7 +408,9 @@ class ThermalGridWithHouseOnlySpec
             tickHouse shouldBe 0L
             tickWaterStorage shouldBe 0L
             innerTemperature should approximate(Celsius(18.9999d))
-            energyWaterStorage should approximate(zeroKWH)
+            energyWaterStorage should approximate(
+              expectedDomesticHotWaterStorageStartingState.storedEnergy
+            )
             qDotHouse should approximate(Megawatts(0d))
             qDotWaterStorage should approximate(Kilowatts(-11d))
             thresholdTick shouldBe 22
@@ -440,7 +449,9 @@ class ThermalGridWithHouseOnlySpec
             tickHouse shouldBe 0L
             tickWaterStorage shouldBe 0L
             innerTemperature should approximate(Celsius(18.9999d))
-            energyWaterStorage should approximate(zeroKWH)
+            energyWaterStorage should approximate(
+              expectedDomesticHotWaterStorageStartingState.storedEnergy
+            )
             qDotHouse should approximate(zeroKW)
             qDotWaterStorage should approximate(Kilowatts(-11d))
             thresholdTick shouldBe 22

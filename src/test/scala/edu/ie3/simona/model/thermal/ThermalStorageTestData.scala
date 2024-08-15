@@ -37,7 +37,7 @@ trait ThermalStorageTestData extends ThermalGridTestData {
   protected val thermalStorage: CylindricalThermalStorage =
     CylindricalThermalStorage(thermalStorageInput)
 
-  protected val expectedStorageStartingState
+  protected val expectedCylindricalStorageStartingState
       : ThermalStorage.ThermalStorageState = thermalStorage.startingState
 
   protected val domesticHotWaterStorageInput: DomesticHotWaterStorageInput =

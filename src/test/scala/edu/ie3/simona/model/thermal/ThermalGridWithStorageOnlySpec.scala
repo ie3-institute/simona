@@ -70,11 +70,13 @@ class ThermalGridWithStorageOnlySpec
                 Some(ThermalStorageState(tick, storedEnergy, qDot)),
                 None,
               ) =>
-            tick shouldBe expectedStorageStartingState.tick
+            tick shouldBe expectedCylindricalStorageStartingState.tick
             storedEnergy should approximate(
-              expectedStorageStartingState.storedEnergy
+              expectedCylindricalStorageStartingState.storedEnergy
             )
-            qDot should approximate(expectedStorageStartingState.qDot)
+            qDot should approximate(
+              expectedCylindricalStorageStartingState.qDot
+            )
 
           case _ => fail("Determination of starting state failed")
         }
