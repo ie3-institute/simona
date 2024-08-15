@@ -368,10 +368,10 @@ class ThermalGridWithHouseOnlySpec
             tickWaterStorage shouldBe 0L
             innerTemperature should approximate(Celsius(18.9999d))
             energyWaterStorage should approximate(
-              expectedCylindricalStorageStartingState.storedEnergy
+              expectedDomesticHotWaterStorageStartingState.storedEnergy
             )
-            qDotHouse should approximate(testGridQDotInfeed)
-            qDotWaterStorage should approximate(zeroKW)
+            qDotHouse should approximate(testGridQDotInfeed/ 2)
+            qDotWaterStorage should approximate(testGridQDotInfeed/ 2)
             thresholdTick shouldBe 15105L
           case _ => fail("Thermal grid state updated failed")
         }
