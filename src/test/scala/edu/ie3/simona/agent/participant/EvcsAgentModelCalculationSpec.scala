@@ -21,7 +21,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
 }
 import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorEvMovementsService
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorExtEvDataService
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
@@ -40,10 +40,7 @@ import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   ScheduleEntry,
 }
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.EvMessage._
@@ -52,7 +49,6 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResp
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
 }
-import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.simona.test.common.{EvTestData, TestSpawnerClassic}
@@ -69,7 +65,6 @@ import squants.energy._
 import squants.{Each, Energy, Power}
 
 import java.time.ZonedDateTime
-import java.util.UUID
 import scala.collection.immutable.{SortedMap, SortedSet}
 
 class EvcsAgentModelCalculationSpec
@@ -195,7 +190,7 @@ class EvcsAgentModelCalculationSpec
       inputModel = evcsInputModel,
       modelConfig = modelConfig,
       secondaryDataServices = Iterable(
-        ActorEvMovementsService(evService.ref)
+        ActorExtEvDataService(evService.ref)
       ),
       simulationStartDate = simulationStartDate,
       simulationEndDate = simulationEndDate,
@@ -257,7 +252,7 @@ class EvcsAgentModelCalculationSpec
           inputModel shouldBe SimpleInputContainer(evcsInputModel)
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe Iterable(
-            ActorEvMovementsService(evService.ref)
+            ActorExtEvDataService(evService.ref)
           )
           simulationStartDate shouldBe simulationStartDate
           simulationEndDate shouldBe simulationEndDate
@@ -305,7 +300,7 @@ class EvcsAgentModelCalculationSpec
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
           services shouldBe Iterable(
-            ActorEvMovementsService(evService.ref)
+            ActorExtEvDataService(evService.ref)
           )
           outputConfig shouldBe NotifierConfig(
             simulationResultInfo = false,
@@ -416,8 +411,6 @@ class EvcsAgentModelCalculationSpec
     }
 
     "do correct transitions faced with new data in Idle" in {
-      val lock = TestProbe("lock")
-
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
           scheduler = scheduler.ref,
@@ -442,7 +435,7 @@ class EvcsAgentModelCalculationSpec
       evService.expectMsgType[RegisterForEvDataMessage]
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, None),
+        RegistrationSuccessfulMessage(evService.ref, Some(0)),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -452,19 +445,17 @@ class EvcsAgentModelCalculationSpec
 
       /* Send out new data */
       val arrivingEvsData =
-        ArrivingEvsData(Seq(EvModelWrapper(evA), EvModelWrapper(evB)))
+        ArrivingEvs(Seq(EvModelWrapper(evA), EvModelWrapper(evB)))
 
-      val key1 = Some(ScheduleKey(lock.ref.toTyped, UUID.randomUUID()))
       evService.send(
         evcsAgent,
         ProvideEvDataMessage(
           0L,
           evService.ref,
           arrivingEvsData,
-          unlockKey = key1,
+          Some(900),
         ),
       )
-      scheduler.expectMsg(ScheduleActivation(evcsAgent.toTyped, 0, key1))
 
       /* Find yourself in corresponding state and state data */
       evcsAgent.stateName shouldBe HandleInformation
@@ -475,7 +466,9 @@ class EvcsAgentModelCalculationSpec
               isYetTriggered,
             ) =>
           /* The next data tick is already registered */
-          baseStateData.foreseenDataTicks shouldBe Map(evService.ref -> None)
+          baseStateData.foreseenDataTicks shouldBe Map(
+            evService.ref -> Some(900)
+          )
 
           /* The yet sent data is also registered */
           expectedSenders shouldBe Map(
@@ -499,7 +492,7 @@ class EvcsAgentModelCalculationSpec
       /* The agent will notice, that all expected information are apparent, switch to Calculate and trigger itself
        * for starting the calculation */
       scheduler.expectMsg(
-        Completion(evcsAgent.toTyped, None)
+        Completion(evcsAgent.toTyped, Some(900))
       )
       evcsAgent.stateName shouldBe Idle
       evcsAgent.stateData match {
@@ -552,8 +545,6 @@ class EvcsAgentModelCalculationSpec
     }
 
     "do correct transitions triggered for activation in idle" in {
-      val lock = TestProbe("lock")
-
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
           scheduler = scheduler.ref,
@@ -578,7 +569,7 @@ class EvcsAgentModelCalculationSpec
       evService.expectMsgType[RegisterForEvDataMessage]
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, None),
+        RegistrationSuccessfulMessage(evService.ref, Some(0)),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -601,10 +592,10 @@ class EvcsAgentModelCalculationSpec
               isYetTriggered,
             ) =>
           /* The next data tick is already registered */
-          baseStateData.foreseenDataTicks shouldBe Map(evService.ref -> None)
+          baseStateData.foreseenDataTicks shouldBe Map(evService.ref -> Some(0))
 
           /* The yet sent data is also registered */
-          expectedSenders shouldBe Map.empty
+          expectedSenders shouldBe Map(evService.ref -> None)
 
           /* It is not yet triggered */
           isYetTriggered shouldBe true
@@ -616,24 +607,22 @@ class EvcsAgentModelCalculationSpec
 
       /* Send out new data */
       val arrivingEvsData =
-        ArrivingEvsData(Seq(EvModelWrapper(evA), EvModelWrapper(evB)))
+        ArrivingEvs(Seq(EvModelWrapper(evA), EvModelWrapper(evB)))
 
-      val key1 = Some(ScheduleKey(lock.ref.toTyped, UUID.randomUUID()))
       evService.send(
         evcsAgent,
         ProvideEvDataMessage(
           0L,
           evService.ref,
           arrivingEvsData,
-          unlockKey = key1,
+          Some(900),
         ),
       )
-      scheduler.expectMsg(ScheduleActivation(evcsAgent.toTyped, 0, key1))
 
       /* The agent will notice, that all expected information are apparent, switch to Calculate and trigger itself
        * for starting the calculation */
       scheduler.expectMsg(
-        Completion(evcsAgent.toTyped, None)
+        Completion(evcsAgent.toTyped, Some(900))
       )
       evcsAgent.stateName shouldBe Idle
       evcsAgent.stateData match {
@@ -711,7 +700,7 @@ class EvcsAgentModelCalculationSpec
       evService.expectMsgType[RegisterForEvDataMessage]
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, None),
+        RegistrationSuccessfulMessage(evService.ref, Some(10800)),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -719,7 +708,7 @@ class EvcsAgentModelCalculationSpec
       awaitAssert(evcsAgent.stateName shouldBe Idle)
 
       evcsAgent ! RequestAssetPowerMessage(
-        7200L,
+        7200,
         Each(1.0),
         Each(0.0),
       )
@@ -732,8 +721,6 @@ class EvcsAgentModelCalculationSpec
     }
 
     "provide number of free lots when asked to" in {
-      val lock = TestProbe("lock")
-
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
           scheduler = scheduler.ref,
@@ -758,7 +745,7 @@ class EvcsAgentModelCalculationSpec
       evService.expectMsgType[RegisterForEvDataMessage]
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, None),
+        RegistrationSuccessfulMessage(evService.ref, Some(0)),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -781,28 +768,26 @@ class EvcsAgentModelCalculationSpec
       scheduler.expectNoMessage()
 
       /* Send ev for this tick */
-      val key1 = Some(ScheduleKey(lock.ref.toTyped, UUID.randomUUID()))
       evService.send(
         evcsAgent,
         ProvideEvDataMessage(
-          0L,
+          0,
           evService.ref,
-          ArrivingEvsData(Seq(EvModelWrapper(evA))),
-          unlockKey = key1,
+          ArrivingEvs(Seq(EvModelWrapper(evA))),
+          Some(900),
         ),
       )
-      scheduler.expectMsg(ScheduleActivation(evcsAgent.toTyped, 0, key1))
 
       scheduler.send(
         evcsAgent,
         Activation(0),
       )
-      scheduler.expectMsg(Completion(evcsAgent.toTyped))
+      scheduler.expectMsg(Completion(evcsAgent.toTyped, Some(900)))
 
       /* Ask for public evcs lot count again with a later tick */
       evService.send(
         evcsAgent,
-        EvFreeLotsRequest(3600L),
+        EvFreeLotsRequest(3600),
       )
 
       // this time, only one is still free
@@ -816,6 +801,75 @@ class EvcsAgentModelCalculationSpec
       scheduler.expectNoMessage()
     }
 
+    "handle empty arrivals" in {
+      val evcsAgent = TestFSMRef(
+        new EvcsAgent(
+          scheduler = scheduler.ref,
+          initStateData = initStateData,
+          listener = Iterable.empty,
+        )
+      )
+
+      scheduler.send(
+        evcsAgent,
+        Activation(INIT_SIM_TICK),
+      )
+
+      /* Refuse registration with primary service */
+      primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
+      primaryServiceProxy.send(
+        evcsAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref),
+      )
+
+      /* I'm not interested in the content of the RegistrationMessage */
+      evService.expectMsgType[RegisterForEvDataMessage]
+      evService.send(
+        evcsAgent,
+        RegistrationSuccessfulMessage(evService.ref, Some(0)),
+      )
+
+      /* I'm not interested in the content of the CompletionMessage */
+      scheduler.expectMsgType[Completion]
+      awaitAssert(evcsAgent.stateName shouldBe Idle)
+
+      /* Send ev for this tick */
+      evService.send(
+        evcsAgent,
+        ProvideEvDataMessage(
+          0,
+          evService.ref,
+          ArrivingEvs(Seq(EvModelWrapper(evA))),
+          Some(900),
+        ),
+      )
+
+      scheduler.send(
+        evcsAgent,
+        Activation(0),
+      )
+      scheduler.expectMsg(Completion(evcsAgent.toTyped, Some(900)))
+
+      /* Send empty EV list for this tick */
+      evService.send(
+        evcsAgent,
+        ProvideEvDataMessage(
+          900,
+          evService.ref,
+          ArrivingEvs(Seq.empty),
+          Some(1800),
+        ),
+      )
+
+      scheduler.send(
+        evcsAgent,
+        Activation(900),
+      )
+      scheduler.expectMsg(Completion(evcsAgent.toTyped, Some(1800)))
+
+      scheduler.expectNoMessage()
+    }
+
     val evcsAgent = TestFSMRef(
       new EvcsAgent(
         scheduler = scheduler.ref,
@@ -823,7 +877,7 @@ class EvcsAgentModelCalculationSpec
           inputModel = evcsInputModelQv,
           modelConfig = modelConfig,
           secondaryDataServices = Iterable(
-            ActorEvMovementsService(evService.ref)
+            ActorExtEvDataService(evService.ref)
           ),
           simulationStartDate = simulationStartDate,
           simulationEndDate = simulationEndDate,
@@ -837,8 +891,6 @@ class EvcsAgentModelCalculationSpec
     )
 
     "provide correct average power after three data ticks are available" in {
-      val lock = TestProbe("lock")
-
       scheduler.send(evcsAgent, Activation(INIT_SIM_TICK))
 
       /* Refuse registration with primary service */
@@ -852,7 +904,7 @@ class EvcsAgentModelCalculationSpec
       evService.expectMsgType[RegisterForEvDataMessage]
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, None),
+        RegistrationSuccessfulMessage(evService.ref, Some(0)),
       )
 
       /* I'm not interested in the content of the CompletionMessage */
@@ -861,26 +913,26 @@ class EvcsAgentModelCalculationSpec
 
       /* Send out the three data points */
       /* ... for tick 0 */
-      val key1 = Some(ScheduleKey(lock.ref.toTyped, UUID.randomUUID()))
       evService.send(
         evcsAgent,
         ProvideEvDataMessage(
-          0L,
+          0,
           evService.ref,
-          ArrivingEvsData(Seq(EvModelWrapper(evA.copyWithDeparture(3600L)))),
-          unlockKey = key1,
+          ArrivingEvs(
+            Seq(EvModelWrapper(evA.copyWithDeparture(3600)))
+          ),
+          Some(3600),
         ),
       )
-      scheduler.expectMsg(ScheduleActivation(evcsAgent.toTyped, 0, key1))
       scheduler.send(evcsAgent, Activation(0))
-      scheduler.expectMsg(Completion(evcsAgent.toTyped))
+      scheduler.expectMsg(Completion(evcsAgent.toTyped, Some(3600)))
 
       /* ... for tick 3600 */
 
       // departures first
       evService.send(
         evcsAgent,
-        DepartingEvsRequest(3600L, Seq(evA.getUuid)),
+        DepartingEvsRequest(3600, Seq(evA.getUuid)),
       )
       evService.expectMsgType[DepartingEvsResponse] match {
         case DepartingEvsResponse(evcs, evModels) =>
@@ -895,27 +947,27 @@ class EvcsAgentModelCalculationSpec
       }
 
       // arrivals second
-      val key2 = Some(ScheduleKey(lock.ref.toTyped, UUID.randomUUID()))
       evService.send(
         evcsAgent,
         ProvideEvDataMessage(
-          3600L,
+          3600,
           evService.ref,
-          ArrivingEvsData(Seq(EvModelWrapper(evB.copyWithDeparture(7200L)))),
-          unlockKey = key2,
+          ArrivingEvs(
+            Seq(EvModelWrapper(evB.copyWithDeparture(7200)))
+          ),
+          Some(7200),
         ),
       )
-      scheduler.expectMsg(ScheduleActivation(evcsAgent.toTyped, 3600, key2))
 
       scheduler.send(evcsAgent, Activation(3600))
-      scheduler.expectMsg(Completion(evcsAgent.toTyped))
+      scheduler.expectMsg(Completion(evcsAgent.toTyped, Some(7200)))
 
       /* ... for tick 7200 */
 
       // departures first
       evService.send(
         evcsAgent,
-        DepartingEvsRequest(7200L, Seq(evB.getUuid)),
+        DepartingEvsRequest(7200, Seq(evB.getUuid)),
       )
       evService.expectMsgType[DepartingEvsResponse] match {
         case DepartingEvsResponse(evcs, evModels) =>
@@ -929,21 +981,21 @@ class EvcsAgentModelCalculationSpec
           }
       }
 
-      val key3 = Some(ScheduleKey(lock.ref.toTyped, UUID.randomUUID()))
       evService.send(
         evcsAgent,
         ProvideEvDataMessage(
-          7200L,
+          7200,
           evService.ref,
-          ArrivingEvsData(Seq(EvModelWrapper(evA.copyWithDeparture(10800L)))),
-          unlockKey = key3,
+          ArrivingEvs(
+            Seq(EvModelWrapper(evA.copyWithDeparture(10800)))
+          ),
+          None,
         ),
       )
-      scheduler.expectMsg(ScheduleActivation(evcsAgent.toTyped, 7200, key3))
 
       scheduler.send(evcsAgent, Activation(7200))
 
-      scheduler.expectMsg(Completion(evcsAgent.toTyped))
+      scheduler.expectMsg(Completion(evcsAgent.toTyped, None))
 
       /* Ask the agent for average power in tick 7500 */
       evcsAgent ! RequestAssetPowerMessage(
@@ -1007,7 +1059,7 @@ class EvcsAgentModelCalculationSpec
             inputModel = evcsInputModelQv,
             modelConfig = modelConfig,
             secondaryDataServices = Iterable(
-              ActorEvMovementsService(evService.ref)
+              ActorExtEvDataService(evService.ref)
             ),
             simulationStartDate = simulationStartDate,
             simulationEndDate = simulationEndDate,
@@ -1044,7 +1096,7 @@ class EvcsAgentModelCalculationSpec
           inputModel shouldBe SimpleInputContainer(evcsInputModelQv)
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe Iterable(
-            ActorEvMovementsService(evService.ref)
+            ActorExtEvDataService(evService.ref)
           )
           simulationStartDate shouldBe simulationStartDate
           simulationEndDate shouldBe simulationEndDate
@@ -1075,7 +1127,7 @@ class EvcsAgentModelCalculationSpec
       evService.expectMsg(RegisterForEvDataMessage(evcsInputModelQv.getUuid))
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, None),
+        RegistrationSuccessfulMessage(evService.ref, Some(0)),
       )
 
       emAgent.expectMsg(
@@ -1107,11 +1159,11 @@ class EvcsAgentModelCalculationSpec
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
           services shouldBe Iterable(
-            ActorEvMovementsService(evService.ref)
+            ActorExtEvDataService(evService.ref)
           )
           outputConfig shouldBe defaultOutputConfig
           additionalActivationTicks shouldBe empty
-          foreseenDataTicks shouldBe Map(evService.ref -> None)
+          foreseenDataTicks shouldBe Map(evService.ref -> Some(0))
           voltageValueStore shouldBe ValueStore(
             resolution,
             SortedMap(0L -> Each(1.0)),
@@ -1141,7 +1193,7 @@ class EvcsAgentModelCalculationSpec
             inputModel = SimpleInputContainer(evcsInputModelQv),
             modelConfig = modelConfig,
             secondaryDataServices = Iterable(
-              ActorEvMovementsService(evService.ref)
+              ActorExtEvDataService(evService.ref)
             ),
             simulationStartDate = simulationStartDate,
             simulationEndDate = simulationEndDate,
@@ -1182,7 +1234,7 @@ class EvcsAgentModelCalculationSpec
           inputModel shouldBe SimpleInputContainer(evcsInputModelQv)
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe Iterable(
-            ActorEvMovementsService(evService.ref)
+            ActorExtEvDataService(evService.ref)
           )
           simulationStartDate shouldBe simulationStartDate
           simulationEndDate shouldBe simulationEndDate
@@ -1216,11 +1268,11 @@ class EvcsAgentModelCalculationSpec
       evService.expectMsg(RegisterForEvDataMessage(evcsInputModelQv.getUuid))
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, None),
+        RegistrationSuccessfulMessage(evService.ref, Some(900)),
       )
 
       emAgent.expectMsg(
-        ScheduleFlexRequest(evcsInputModelQv.getUuid, 0)
+        ScheduleFlexRequest(evcsInputModelQv.getUuid, 900)
       )
 
       scheduler.expectMsg(Completion(evcsAgent.toTyped))
@@ -1271,7 +1323,7 @@ class EvcsAgentModelCalculationSpec
           result.p should approximate(Kilowatts(0))
           result.q should approximate(Megavars(0))
           requestAtNextActivation shouldBe false
-          requestAtTick shouldBe None
+          requestAtTick shouldBe Some(900)
       }
 
       // results arrive after next activation
@@ -1289,11 +1341,11 @@ class EvcsAgentModelCalculationSpec
         ProvideEvDataMessage(
           900,
           evService.ref,
-          ArrivingEvsData(Seq(ev900)),
+          ArrivingEvs(Seq(ev900)),
+          Some(4500),
         ),
       )
 
-      emAgent.expectMsg(ScheduleFlexRequest(evcsInputModelQv.getUuid, 900))
       emAgent.send(evcsAgent, RequestFlexOptions(900))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
@@ -1407,11 +1459,11 @@ class EvcsAgentModelCalculationSpec
         ProvideEvDataMessage(
           4500,
           evService.ref,
-          ArrivingEvsData(Seq(ev4500)),
+          ArrivingEvs(Seq(ev4500)),
+          Some(11700),
         ),
       )
 
-      emAgent.expectMsg(ScheduleFlexRequest(evcsInputModelQv.getUuid, 4500))
       emAgent.send(evcsAgent, RequestFlexOptions(4500))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
@@ -1505,7 +1557,7 @@ class EvcsAgentModelCalculationSpec
           result.q should approximate(Megavars(0))
           // since battery is still below lowest soc, it's still considered empty
           requestAtNextActivation shouldBe true
-          requestAtTick shouldBe Some(32776)
+          requestAtTick shouldBe Some(11700)
       }
 
       resultListener.expectMsgPF() {
@@ -1540,11 +1592,11 @@ class EvcsAgentModelCalculationSpec
         ProvideEvDataMessage(
           11700,
           evService.ref,
-          ArrivingEvsData(Seq(ev11700)),
+          ArrivingEvs(Seq(ev11700)),
+          None,
         ),
       )
 
-      emAgent.expectMsg(ScheduleFlexRequest(evcsInputModelQv.getUuid, 11700))
       emAgent.send(evcsAgent, RequestFlexOptions(11700))
 
       val combinedChargingPower =

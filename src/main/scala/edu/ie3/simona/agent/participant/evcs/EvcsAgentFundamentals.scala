@@ -19,7 +19,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorEvMovementsService
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorExtEvDataService
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent.neededServices
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FlexControlledData,
@@ -213,7 +213,7 @@ protected trait EvcsAgentFundamentals
       .getOrElse(tick, Map.empty)
       .collectFirst {
         // filter secondary data for arriving EVs data
-        case (_, arrivingEvsData: ArrivingEvsData) =>
+        case (_, arrivingEvsData: ArrivingEvs) =>
           arrivingEvsData.arrivals
       }
       .getOrElse(Seq.empty)
@@ -328,7 +328,7 @@ protected trait EvcsAgentFundamentals
       .values
       .collectFirst {
         // filter secondary data for arriving EVs data
-        case _: ArrivingEvsData =>
+        case _: ArrivingEvs =>
           handleArrivingEvsAndGoIdle(
             tick,
             scheduler,
@@ -360,7 +360,7 @@ protected trait EvcsAgentFundamentals
         EvcsModel,
       ],
   ): Unit = {
-    val evServiceRef = getService[ActorEvMovementsService](
+    val evServiceRef = getService[ActorExtEvDataService](
       modelBaseStateData.services
     )
 
@@ -399,7 +399,7 @@ protected trait EvcsAgentFundamentals
     EvcsState,
     EvcsModel,
   ] = {
-    val evServiceRef = getService[ActorEvMovementsService](
+    val evServiceRef = getService[ActorExtEvDataService](
       baseStateData.services
     )
 
@@ -541,32 +541,39 @@ protected trait EvcsAgentFundamentals
     val relevantData =
       createCalcRelevantData(modelBaseStateData, tick)
 
-    val lastState = getLastOrInitialStateData(modelBaseStateData, tick)
+    val updatedBaseStateData = {
+      if (relevantData.arrivals.nonEmpty) {
+        val lastState = getLastOrInitialStateData(modelBaseStateData, tick)
 
-    val currentEvs = modelBaseStateData.model.determineCurrentEvs(
-      relevantData,
-      lastState,
-    )
+        val currentEvs = modelBaseStateData.model.determineCurrentEvs(
+          relevantData,
+          lastState,
+        )
 
-    // if new EVs arrived, a new scheduling must be calculated.
-    val newSchedule = modelBaseStateData.model.calculateNewScheduling(
-      relevantData,
-      currentEvs,
-    )
+        // if new EVs arrived, a new scheduling must be calculated.
+        val newSchedule = modelBaseStateData.model.calculateNewScheduling(
+          relevantData,
+          currentEvs,
+        )
 
-    // create new current state
-    val newState = EvcsState(currentEvs, newSchedule, tick)
+        // create new current state
+        val newState = EvcsState(currentEvs, newSchedule, tick)
 
-    val updatedStateDataStore = ValueStore.updateValueStore(
-      modelBaseStateData.stateDataStore,
-      tick,
-      newState,
-    )
+        val updatedStateDataStore = ValueStore.updateValueStore(
+          modelBaseStateData.stateDataStore,
+          tick,
+          newState,
+        )
 
-    /* Update the base state data with the updated result value store and relevant data store */
-    val updatedBaseStateData = modelBaseStateData.copy(
-      stateDataStore = updatedStateDataStore
-    )
+        /* Update the base state data with the updated state data store */
+        modelBaseStateData.copy(
+          stateDataStore = updatedStateDataStore
+        )
+      } else
+        // Empty arrivals means that there is no data for this EVCS at the current tick,
+        // thus we just return and wait for the next activation
+        modelBaseStateData
+    }
 
     determineResultsAnnounceUpdateValueStore(
       lastState,
