@@ -60,7 +60,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
             ) {
               override def extSimulations(
                   context: ActorContext[_],
-                  rootScheduler: ActorRef[SchedulerMessage],
+                  scheduler: ActorRef[SchedulerMessage],
               ): ExtSimSetupData = {
                 // We cannot return a TestProbe ref here,
                 // needs to be a proper actor created by context
@@ -68,7 +68,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
                   forwardMessage(Some(extSimAdapter.ref)),
                   uniqueName("extSimAdapterForwarder"),
                 )
-                ExtSimSetupData(Iterable(extSim.toClassic), Map.empty, None)
+                ExtSimSetupData(Iterable(extSim.toClassic), Map.empty)
               }
             }
           ),
@@ -453,8 +453,8 @@ object SimonaSimSpec {
 
     override def extSimulations(
         context: ActorContext[_],
-        rootScheduler: ActorRef[SchedulerMessage],
+        scheduler: ActorRef[SchedulerMessage],
     ): ExtSimSetupData =
-      ExtSimSetupData(Iterable.empty, Map.empty, None)
+      ExtSimSetupData(Iterable.empty, Map.empty)
   }
 }

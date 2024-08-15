@@ -12,15 +12,20 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ZERO_POWER,
 }
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorEvMovementsService
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorExtEvDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
+import edu.ie3.simona.agent.participant.statedata.{
+  BaseStateData,
+  DataCollectionStateData,
+  ParticipantStateData,
+}
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant.{
   ParticipantAgent,
   ParticipantAgentFundamentals,
 }
 import edu.ie3.simona.agent.state.AgentState.Idle
+import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.participant.evcs.EvcsModel
 import edu.ie3.simona.model.participant.evcs.EvcsModel.{
@@ -54,7 +59,7 @@ object EvcsAgent {
     )
 
   val neededServices: Vector[Class[_ <: SecondaryDataService[_]]] = Vector(
-    classOf[ActorEvMovementsService]
+    classOf[ActorExtEvDataService]
   )
 }
 
@@ -103,6 +108,50 @@ class EvcsAgent(
       val updatedStateData =
         handleDepartingEvsRequest(tick, departingEvs, modelBaseStateData)
       stay() using updatedStateData
+  }
+
+  when(HandleInformation) {
+    // FreeLotsRequest and DepartingEvsRequest also need to be handled
+    // in case the activation has arrived first
+
+    case Event(
+          EvFreeLotsRequest(tick),
+          stateData: DataCollectionStateData[ApparentPower],
+        ) =>
+      stateData.baseStateData match {
+        case modelStateData: BaseStateData.ParticipantModelBaseStateData[
+              ApparentPower,
+              EvcsRelevantData,
+              EvcsState,
+              EvcsModel,
+            ] =>
+          handleFreeLotsRequest(tick, modelStateData)
+          stay()
+        case x =>
+          throw new IllegalStateException(
+            s"Unsupported base state data '$x' when receiving FreeLotsRequest"
+          )
+      }
+
+    case Event(
+          DepartingEvsRequest(tick, departingEvs),
+          stateData: DataCollectionStateData[ApparentPower],
+        ) =>
+      stateData.baseStateData match {
+        case modelStateData: BaseStateData.ParticipantModelBaseStateData[
+              ApparentPower,
+              EvcsRelevantData,
+              EvcsState,
+              EvcsModel,
+            ] =>
+          val updatedStateData =
+            handleDepartingEvsRequest(tick, departingEvs, modelStateData)
+          stay() using stateData.copy(baseStateData = updatedStateData)
+        case x =>
+          throw new IllegalStateException(
+            s"Unsupported base state data '$x' when receiving DepartingEvsRequest"
+          )
+      }
   }
 
   /** Determine the average result within the given tick window
