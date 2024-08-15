@@ -201,7 +201,13 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
-# End of https://www.gitignore.io/api/java,macos,windows,eclipse
+# Metals
+.metals/
+.bloop/
+project/**/metals.sbt
+
+
+# End of https://www.gitignore.io/api/java,macos,windows,eclipse, metals
 
 /target/
 
