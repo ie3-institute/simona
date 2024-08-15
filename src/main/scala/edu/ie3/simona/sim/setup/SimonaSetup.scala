@@ -99,14 +99,14 @@ trait SimonaSetup {
     *
     * @param context
     *   Actor context to use
-    * @param rootScheduler
-    *   Actor reference to it's according scheduler to use
+    * @param scheduler
+    *   Actor reference to the scheduler to use
     * @return
     *   External simulations and their init data
     */
   def extSimulations(
       context: ActorContext[_],
-      rootScheduler: ActorRef[SchedulerMessage],
+      scheduler: ActorRef[SchedulerMessage],
   ): ExtSimSetupData
 
   /** Creates the time advancer
