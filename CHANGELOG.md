@@ -70,6 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated dependabot reviewers [#888](https://github.com/ie3-institute/simona/issues/888)
 - Merged `HpModelTestData` with `HpTestData` to `HpInputTestData` [#872](https://github.com/ie3-institute/simona/issues/872)
 - Harmonised both methods that check the inner temperature of thermal house against the boundaries [#880](https://github.com/ie3-institute/simona/issues/880)
+- Convert all `eval-rst` instances in rtd to myst syntax [#901](https://github.com/ie3-institute/simona/issues/901)
 - External simulation should provide information about next tick of MobSim [#776](https://github.com/ie3-institute/simona/issues/776)
 
 ### Fixed
