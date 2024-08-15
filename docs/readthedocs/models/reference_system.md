@@ -6,44 +6,41 @@ The reference system is built up by specifying the included voltage levels. The 
 
 ## Default reference system
 
-```{eval-rst}
-.. list-table::
-    :widths: 33 33 33
-    :header-rows: 0
-    
-    
-    * - Voltage level (id)
-      - Nominal voltage (vNom)
-      - Apparent power (sNom)
-    
-    * - LV
-      - 0.4 kV
-      - 100 kVA
-    
-    * - MV
-      - 10 kV
-      - 40 MVA
-      
-    * - MV
-      - 20 kV
-      - 60 MVA
-      
-    * - MV
-      - 30 kV
-      - 150 MVA
-      
-    * - HV
-      - 110 kV
-      - 600 MVA
-      
-    * - EHV
-      - 220 kV
-      - 800 MVA
-      
-    * - EHV
-      - 380 kV
-      - 1000 MVA      
+```{list-table}
+:widths: auto
+:header-rows: 1
 
+* - Voltage level (id)
+  - Nominal voltage (vNom)
+  - Apparent power (sNom)
+
+* - LV
+  - 0.4 kV
+  - 100 kVA
+
+* - MV
+  - 10 kV
+  - 40 MVA
+  
+* - MV
+  - 20 kV
+  - 60 MVA
+  
+* - MV
+  - 30 kV
+  - 150 MVA
+  
+* - HV
+  - 110 kV
+  - 600 MVA
+  
+* - EHV
+  - 220 kV
+  - 800 MVA
+  
+* - EHV
+  - 380 kV
+  - 1000 MVA
 ```
 
 
