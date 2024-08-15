@@ -129,7 +129,7 @@ final case class DomesticHotWaterStorage(
 
   override def startingState: ThermalStorageState = ThermalStorageState(
     -1L,
-    zeroKWH,
+    maxEnergyThreshold,
     zeroKW,
   )
 
