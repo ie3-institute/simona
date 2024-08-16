@@ -87,7 +87,7 @@ class ThermalGridWithHouseAndStorageSpec
                   ThermalStorageState(
                     waterStorageTick,
                     storedEnergyWaterStorage,
-                    qDotWaterStorage,
+                    qDotDomesticHotWaterStorage,
                   )
                 ),
               ) =>
@@ -108,7 +108,7 @@ class ThermalGridWithHouseAndStorageSpec
             qDotHeatStorage should approximate(
               expectedCylindricalStorageStartingState.qDot
             )
-            qDotWaterStorage should approximate(
+            qDotDomesticHotWaterStorage should approximate(
               expectedDomesticHotWaterStorageStartingState.qDot
             )
 
@@ -258,14 +258,14 @@ class ThermalGridWithHouseAndStorageSpec
             storageState.copy(storedEnergy = initialLoadingHeatStorage)
           )
         )
-        val externalQDot = zeroKW
+
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
             tick,
             testGridAmbientTemperature,
             gridState,
-            externalQDot,
+            zeroKW,
             defaultSimulationStart,
             houseInhabitants,
           )
@@ -292,7 +292,7 @@ class ThermalGridWithHouseAndStorageSpec
             storedEnergyThermalStorage should approximate(
               initialLoadingHeatStorage
             )
-            qDotThermalStorage should approximate(externalQDot)
+            qDotThermalStorage should approximate(zeroKW)
 
             domesticHotWaterStorageTick shouldBe 0L
             storedEnergyDomesticHotWaterStorage should approximate(
