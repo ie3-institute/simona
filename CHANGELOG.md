@@ -73,6 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Convert all `eval-rst` instances in rtd to myst syntax [#901](https://github.com/ie3-institute/simona/issues/901)
 - External simulation should provide information about next tick of MobSim [#776](https://github.com/ie3-institute/simona/issues/776)
 - Updated AUTHORS.md [#904](https://github.com/ie3-institute/simona/issues/904)
+- Reverted temporary workaround in `spotless.gradle` [#681](https://github.com/ie3-institute/simona/issues/681)
 - Updated `Gradle` to version V8.10 [#829](https://github.com/ie3-institute/simona/issues/829)
 
 ### Fixed
