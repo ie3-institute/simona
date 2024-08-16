@@ -17,6 +17,7 @@ plugins {
   id "com.github.maiflai.scalatest" version "0.32" // run scalatest without specific spec task
   id 'org.hidetake.ssh' version '2.11.2'
   id 'net.thauvin.erik.gradle.semver' version '1.0.4' // semantic versioning
+  id "application"
 }
 
 ext {
@@ -29,7 +30,7 @@ ext {
   jtsVersion = '1.19.0'
   confluentKafkaVersion = '7.4.0'
   tscfgVersion = '1.0.0'
-  scapegoatVersion = '2.1.6'
+  scapegoatVersion = '3.0.0'
 
   testContainerVersion = '0.41.4'
 
@@ -88,7 +89,7 @@ dependencies {
     exclude group: 'edu.ie3'
   }
 
-  implementation('com.github.ie3-institute:simonaAPI:0.4.0') {
+  implementation('com.github.ie3-institute:simonaAPI:0.5.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -97,7 +98,7 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.5" // pekko scala logging
-  implementation "ch.qos.logback:logback-classic:1.5.6"
+  implementation "ch.qos.logback:logback-classic:1.5.7"
 
   /* testing */
   testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
@@ -164,6 +165,11 @@ jar {
         'Main-Class': 'edu.ie3.simona.main.RunSimonaStandalone'
         )
   }
+}
+
+// Run with  ./gradlew run --args='--config /path/to/simona.conf'
+application {
+  mainClassName = jar.manifest.attributes.get('Main-Class')
 }
 
 //////////////////////////////////////////////////////////////////////
