@@ -252,7 +252,7 @@ class HpModelSpec
             Some(
               ThermalStorageState(
                 0L,
-                KilowattHours(20),
+                KilowattHours(250),
                 Kilowatts(0),
               )
             ),
