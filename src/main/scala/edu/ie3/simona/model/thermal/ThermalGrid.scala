@@ -155,19 +155,23 @@ final case class ThermalGrid(
 
     // Domestic hot water storages
     val (domesticHotWaterStorageDemand, updatedDomesticHotWaterStorageState) = {
-      // FIXME Repetition
+      val domesticHotWaterDemand: ThermalEnergyDemand = house.map(_.energyDemandWater(tick,state.houseState, simulationStart,houseInhabitants)).getOrElse(ThermalEnergyDemand(zeroKWH,zeroKWH))
+      val applicableqDotDomesticStorage =
+      identifyApplicableQDot(tick, domesticHotWaterDemand)._1
+
+
       domesticHotWaterStorage
         .zip(state.domesticHotWaterStorageState)
         .map { case (storage, state) =>
           val updatedStorageState =
-            storage.updateState(tick, state.qDot, state)._1
+            storage.updateState(tick, state.qDot.plus(applicableqDotDomesticStorage), state)._1
           val storedEnergy = updatedStorageState.storedEnergy
 
-          val demand =
+          val demandOfStorage =
             if (storedEnergy < demandHotDomesticWater.required)
               demandHotDomesticWater.required.minus(storedEnergy)
             else zeroMWH
-          (ThermalEnergyDemand(demand, demand), Some(updatedStorageState))
+          (ThermalEnergyDemand(demandOfStorage, demandOfStorage), Some(updatedStorageState))
         }
         .getOrElse(
           ThermalEnergyDemand(zeroMWH, zeroMWH),
@@ -673,36 +677,8 @@ final case class ThermalGrid(
       qDotDomesticHotWaterDemand,
       tickWhenStorageDemandEnds,
     ) =
-      if (domesticHotWaterDemand.required > zeroKWH) {
-        val chargingPower = domesticHotWaterStorage
-          .map(_.getChargingPower)
-          .getOrElse(
-            throw new RuntimeException(
-              s"Trying to get the chargingPower of domesticHotWaterStorage was not possible"
-            )
-          )
 
-        val durationAtFullPower =
-          domesticHotWaterDemand.required / chargingPower
-
-        if (durationAtFullPower > Seconds(1)) {
-          (
-            chargingPower * (-1),
-            Some(
-              SimpleThermalThreshold(
-                tick + Math.round(durationAtFullPower.toSeconds)
-              )
-            ),
-          )
-        } else {
-          (
-            (-1) * domesticHotWaterDemand.required / Seconds(1d),
-            Some(SimpleThermalThreshold(tick + 1)),
-          )
-        }
-      } else {
-        (zeroKW, None)
-      }
+      identifyApplicableQDot(tick, domesticHotWaterDemand)
 
     val (
       updatedDomesticHotWaterStorageState,
@@ -734,6 +710,40 @@ final case class ThermalGrid(
       ),
       nextThreshold,
     )
+  }
+
+  private def identifyApplicableQDot(tick: Long, domesticHotWaterDemand: ThermalEnergyDemand):(Power,Option[SimpleThermalThreshold])={
+
+    if (domesticHotWaterDemand.required > zeroKWH) {
+      val chargingPower = domesticHotWaterStorage
+        .map(_.getChargingPower)
+        .getOrElse(
+          throw new RuntimeException(
+            s"Trying to get the chargingPower of domesticHotWaterStorage was not possible"
+          )
+        )
+
+      val durationAtFullPower =
+        domesticHotWaterDemand.required / chargingPower
+
+      if (durationAtFullPower > Seconds(1)) {
+        (
+          chargingPower * (-1),
+          Some(
+            SimpleThermalThreshold(
+              tick + Math.round(durationAtFullPower.toSeconds)
+            )
+          ),
+        )
+      } else {
+        (
+          (-1) * domesticHotWaterDemand.required / Seconds(1d),
+          Some(SimpleThermalThreshold(tick + 1)),
+        )
+      }
+    } else {
+      (zeroKW, None)
+    }
   }
 
   /** Check, if the storage can heat the house. This is only done, if <ul>
