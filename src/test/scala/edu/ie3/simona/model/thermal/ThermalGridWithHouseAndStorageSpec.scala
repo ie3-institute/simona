@@ -237,7 +237,7 @@ class ThermalGridWithHouseAndStorageSpec
             // for hot water would normally be taken from domestic
             // hot water storage, resulting in a lower storedEnergy here
             expectedDomesticHotWaterStorageStartingState.storedEnergy,
-            domesticHotWaterStorage.getChargingPower*(-1),,
+            domesticHotWaterStorage.getChargingPower*(-1),
           )
         )
       }
@@ -306,6 +306,7 @@ class ThermalGridWithHouseAndStorageSpec
         reachedThreshold shouldBe Some(
           SimpleThermalThreshold(22L)
         )
+        // Fixme: additional Test for houseThreshold?
       }
 
       "take energy from storage, if there is actual consumption" in {
@@ -351,6 +352,7 @@ class ThermalGridWithHouseAndStorageSpec
             innerTemperature should approximate(Celsius(18.9999d))
             qDotHouse should approximate(zeroKW)
 
+            // FIXME Who is taking this qDot? "some part in the grid which is not modelled?"
             thermalStorageTick shouldBe 0L
             storedEnergyThermalStorage should approximate(initialLoading)
             qDotThermalStorage should approximate(externalQDot)
@@ -608,6 +610,7 @@ class ThermalGridWithHouseAndStorageSpec
               thermalStorage.chargingPower * (-1)
             )
 
+            // TODO Check these ticks!
             houseColdTick shouldBe 13729L
             storageEmptyTick shouldBe 10145L
           case _ => fail("Revision of states failed")
