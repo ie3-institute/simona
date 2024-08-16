@@ -120,7 +120,7 @@ class BMModelSpec extends UnitSpec {
     val bmModel = buildBmModel()
 
     val testCases = Table(
-      ("Temperature", "K1", "K2", "PTh Solution"),
+      ("Temperature", "K1", "K2", "PTh Sol"),
       (19.28, 1d, 1d, 5.62d), // independent of temp
       (30d, 2d, 3d, 33.72d),
       (19.2799999d, 1d, 1d, 5.6147201076d), // dependent on temp
@@ -154,7 +154,7 @@ class BMModelSpec extends UnitSpec {
     val bmModel = buildBmModel()
 
     val testCases = Table(
-      ("Usage", "Efficiency Solution"),
+      ("Usage", "Efficiency Sol"),
       (1d, 1d),
       (0d, 0.724d),
       (0.75d, 0.98425d),
@@ -170,7 +170,7 @@ class BMModelSpec extends UnitSpec {
   "calculate electrical output correctly" in {
 
     val testCases = Table(
-      ("FeedInTariff", "Usage", "Efficiency", "PEl Solution"),
+      ("FeedInTariff", "Usage", "Efficiency", "PEl Sol"),
       (0.051d, 1d, 1d, -190d), // tariff greater than opex => full power
       (
         0.04d,
@@ -205,7 +205,7 @@ class BMModelSpec extends UnitSpec {
     val bmModel = buildBmModel()
 
     val testCases = Table(
-      ("Last Power", "PEl", "PEl Solution"),
+      ("Last Power", "PEl", "PEl Sol"),
       (
         Kilowatts(-100d), // Last Power
         Kilowatts(-120d), // PEl
