@@ -200,54 +200,6 @@ final case class ThermalGrid(
     )
   }
 
-  /** Determines if the domestic hot water storage has energy demand or not.
-    *
-    * @param tick
-    *   Questionable tick
-    * @param state
-    *   most recent state, that is valid for this model
-    * @return
-    *   the needed energy for heating in the questioned tick
-    */
-
-  def energyDemandDomesticHotWaterStorage(
-      tick: Long,
-      state: ThermalGridState,
-  ): ThermalEnergyDemand = {
-
-    val domesticHotWaterStorageDemand = {
-      domesticHotWaterStorage
-        .zip(state.domesticHotWaterStorageState)
-        .map { case (hotWaterStorage, state) =>
-          val updatedhotWaterStorageState =
-            hotWaterStorage.updateState(tick, state.qDot, state)._1
-          val storedEnergy = updatedhotWaterStorageState.storedEnergy
-          val soc = storedEnergy / hotWaterStorage.getMaxEnergyThreshold
-          val hotWaterStorageRequired =
-            if (soc < 0.5) {
-              hotWaterStorage.getMaxEnergyThreshold * 0.5 - storedEnergy
-            } else {
-              zeroMWH
-            }
-
-          val hotWaterStoragePossible =
-            hotWaterStorage.getMaxEnergyThreshold - storedEnergy
-          ThermalEnergyDemand(
-            hotWaterStorageRequired,
-            hotWaterStoragePossible,
-          )
-        }
-        .getOrElse(
-          ThermalEnergyDemand(zeroMWH, zeroMWH)
-        )
-    }
-
-    ThermalEnergyDemand(
-      domesticHotWaterStorageDemand.required,
-      domesticHotWaterStorageDemand.possible,
-    )
-  }
-
   /** Update the current state of the grid
     *
     * @param tick
