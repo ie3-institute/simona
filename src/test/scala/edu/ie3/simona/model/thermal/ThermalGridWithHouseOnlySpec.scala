@@ -141,8 +141,11 @@ class ThermalGridWithHouseOnlySpec
         updatedThermalGridState.domesticHotWaterStorageState shouldBe Some(
           ThermalStorageState(
             10800,
+            // when simulating from tick 0 - 10800 the hourly demand
+            // for hot water would normally be taken from domestic
+            // hot water storage, resulting in a lower storedEnergy here
             expectedDomesticHotWaterStorageStartingState.storedEnergy,
-            zeroKW,
+            domesticHotWaterStorage.getChargingPower*(-1),
           )
         )
       }
@@ -370,8 +373,8 @@ class ThermalGridWithHouseOnlySpec
             energyWaterStorage should approximate(
               expectedDomesticHotWaterStorageStartingState.storedEnergy
             )
-            qDotHouse should approximate(testGridQDotInfeed/ 2)
-            qDotWaterStorage should approximate(testGridQDotInfeed/ 2)
+            qDotHouse should approximate(testGridQDotInfeed / 2)
+            qDotWaterStorage should approximate(testGridQDotInfeed / 2)
             thresholdTick shouldBe 15105L
           case _ => fail("Thermal grid state updated failed")
         }
