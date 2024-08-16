@@ -73,7 +73,7 @@ final case class BMModel(
     * @return
     *   Active power
     */
-  override protected def calculateActivePower(
+  override def calculateActivePower(
       modelState: ConstantState.type,
       data: BMCalcRelevantData,
   ): Power = {
@@ -184,7 +184,7 @@ final case class BMModel(
     * @return
     *   electrical output as Power
     */
-  private def calculateElOutput(
+  def calculateElOutput(
       usage: Double,
       eff: Double,
   ): Power = {
