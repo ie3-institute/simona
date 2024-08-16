@@ -237,7 +237,7 @@ class ThermalGridWithHouseAndStorageSpec
             // for hot water would normally be taken from domestic
             // hot water storage, resulting in a lower storedEnergy here
             expectedDomesticHotWaterStorageStartingState.storedEnergy,
-            domesticHotWaterStorage.getChargingPower*(-1),,
+            domesticHotWaterStorage.getChargingPower*(-1),
           )
         )
       }
