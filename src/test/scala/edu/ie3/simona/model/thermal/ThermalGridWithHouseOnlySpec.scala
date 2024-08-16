@@ -80,14 +80,14 @@ class ThermalGridWithHouseOnlySpec
                 None,
                 Some(
                   ThermalStorageState(
-                    waterStorageTick,
-                    storedEnergyWaterStorage,
-                    thermalInfeedWaterStorage,
+                    waterDomesticHotStorageTick,
+                    storedEnergyDomesticHotWaterStorage,
+                    qDotDomesticHotWaterStorage,
                   )
                 ),
               ) =>
             houseTick shouldBe expectedHouseStartingState.tick
-            waterStorageTick shouldBe expectedHouseStartingState.tick
+            waterDomesticHotStorageTick shouldBe expectedDomesticHotWaterStorageStartingState.tick
             innerTemperature should approximate(
               expectedHouseStartingState.innerTemperature
             )
@@ -97,15 +97,15 @@ class ThermalGridWithHouseOnlySpec
             thermalInfeedHouse should approximate(
               expectedHouseStartingState.qDot
             )
-            thermalInfeedWaterStorage should approximate(
-              expectedHouseStartingState.qDot
+          qDotDomesticHotWaterStorage should approximate(
+              expectedDomesticHotWaterStorageStartingState.qDot
             )
           case _ => fail("Determination of starting state failed")
         }
       }
     }
 
-    "determining the energy demand for heating" should {
+    "determining the energy demand for heating and domestic hot water" should {
       "exactly be the thermal demand for heating of the house" in {
         val tick = 10800 // after three hours
         val expectedHouseDemand = thermalHouse.energyDemandHeating(
@@ -153,7 +153,7 @@ class ThermalGridWithHouseOnlySpec
 
     "determining the energy demand for domestic warm water supply" should {
       "exactly be the thermal demand for domestic water supply of the house" in {
-        val tick = 86000 // heat demand for one day
+        val tick = 86399 // heat demand for one day
         val expectedEnergyDemandWater =
           ThermalEnergyDemand(
             KilowattHours(3.7469589),
@@ -184,16 +184,7 @@ class ThermalGridWithHouseOnlySpec
 
       "deliver the house state by just letting it cool down, if just no infeed is given" in {
         val tick = 0L
-        val initialGridState = ThermalGrid.startingState(thermalGrid)
-        val initialLoadingDomesticHotWaterStorage = KilowattHours(5d)
-        val gridState = initialGridState.copy(domesticHotWaterStorageState =
-          initialGridState.domesticHotWaterStorageState.map(
-            domesticHotWaterStorage =>
-              domesticHotWaterStorage.copy(storedEnergy =
-                initialLoadingDomesticHotWaterStorage
-              )
-          )
-        )
+        val gridState = ThermalGrid.startingState(thermalGrid)
         val externalQDot = Megawatts(0d)
 
         val (updatedGridState, reachedThreshold) =
@@ -221,7 +212,7 @@ class ThermalGridWithHouseOnlySpec
             tickHouse shouldBe 0L
             tickWaterStorage shouldBe 0L
             innerTemperature should approximate(Celsius(18.9999d))
-            energyWaterStorage should approximate(KilowattHours(5d))
+            energyDomesticHotWaterStorage should approximate(domesticHotWaterStorage.maxEnergyThreshold)
             qDotHouse should approximate(externalQDot)
             qDotWaterStorage should approximate(
               (-1) * domesticHotWaterStorage.getChargingPower
@@ -235,16 +226,7 @@ class ThermalGridWithHouseOnlySpec
 
       "not withdraw energy from the house, if actual consumption is given" in {
         val tick = 0L
-        val initialGridState = ThermalGrid.startingState(thermalGrid)
-        val initialLoadingDomesticHotWaterStorage = KilowattHours(5d)
-        val gridState = initialGridState.copy(domesticHotWaterStorageState =
-          initialGridState.domesticHotWaterStorageState.map(
-            domesticHotWaterStorage =>
-              domesticHotWaterStorage.copy(storedEnergy =
-                initialLoadingDomesticHotWaterStorage
-              )
-          )
-        )
+        val gridState = ThermalGrid.startingState(thermalGrid)
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
@@ -271,9 +253,9 @@ class ThermalGridWithHouseOnlySpec
             tickHouse shouldBe 0L
             tickWaterStorage shouldBe 0L
             innerTemperature should approximate(Celsius(18.9999d))
-            energyWaterStorage should approximate(KilowattHours(5d))
+            energyDomesticHotWaterStorage should approximate(domesticHotWaterStorage.maxEnergyThreshold)
             qDotHouse should approximate(Megawatts(0d))
-            qDotWaterStorage should approximate(Kilowatts(-11d))
+            qDotDomesticHotWaterStorage should approximate(domesticHotWaterStorage.getChargingPower *(-1))
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
@@ -290,16 +272,7 @@ class ThermalGridWithHouseOnlySpec
 
       "solely heat up the house" in {
         val tick = 0L
-        val initialGridState = ThermalGrid.startingState(thermalGrid)
-        val initialLoadingDomesticHotWaterStorage = KilowattHours(5d)
-        val gridState = initialGridState.copy(domesticHotWaterStorageState =
-          initialGridState.domesticHotWaterStorageState.map(
-            domesticHotWaterStorage =>
-              domesticHotWaterStorage.copy(storedEnergy =
-                initialLoadingDomesticHotWaterStorage
-              )
-          )
-        )
+        val gridState = ThermalGrid.startingState(thermalGrid)
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
@@ -327,7 +300,7 @@ class ThermalGridWithHouseOnlySpec
             tickHouse shouldBe 0L
             tickWaterStorage shouldBe 0L
             innerTemperature should approximate(Celsius(18.9999d))
-            energyWaterStorage should approximate(KilowattHours(5d))
+            energyDomesticHotWaterStorage should approximate(domesticHotWaterStorage.maxEnergyThreshold)
             qDotHouse should approximate(testGridQDotInfeed / 2)
             qDotWaterStorage should approximate(testGridQDotInfeed / 2)
           case _ => fail("Thermal grid state has been calculated wrong.")
