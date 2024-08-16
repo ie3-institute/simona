@@ -62,5 +62,7 @@ Scala and uses pekko as its main library for concurrent calculation and to repre
 - Staudt, Marius
 - Roumeliotis, Lara
 - Bung, Vicky
+- Hütte, Simon
+- Schmelter, Philipp
 - Petersmeier, Pierre
 - Heintze, Marvin
