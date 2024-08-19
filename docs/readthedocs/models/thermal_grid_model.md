@@ -3,7 +3,7 @@
 
 The Thermal Grid Model introduces a coupling point to thermal system, equivalent to an electrical node. It can be used to interconnect thermal units to a thermal heat network.
 
-A Thermal Grid Model consists of a [thermal house](thermal_house_model) and / or a [cylindrical thermal storage](cts_model) which are supplied by a thermal source like a [heat pump](hp_model).
+A Thermal Grid Model consists of a {ref}`thermal_house_model` and / or a {ref}`cts_model` which are supplied by a thermal source like a [Heat pump].
 
 ## Attributes, Units and Remarks
 
