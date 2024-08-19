@@ -372,7 +372,7 @@ class HpModelSpec
               (0.0, 0.0, 0.0),
             ),
 
-            // No capacity for flexibility at all when house has been (external) heated up above upperTemperatureBoundary
+            // No capacity for flexibility at all when storage is full and house has been (externally) heated up above upperTemperatureBoundary
             (
               ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(25), Kilowatts(0))),
