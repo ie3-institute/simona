@@ -159,7 +159,7 @@ final case class ThermalHouse(
     *   the needed energy for heating in the questioned tick
     */
 
-  def energyDemandWater(
+  def energyDemandDomesticHotWater(
       tick: Long,
       state: Option[ThermalHouseState],
       simulationStart: ZonedDateTime,
@@ -167,8 +167,11 @@ final case class ThermalHouse(
   ): ThermalEnergyDemand = {
     state match {
       case Some(state) =>
-        val lastStateTime: ZonedDateTime =
-          simulationStart.plusSeconds(state.tick)
+        val lastStateTime: ZonedDateTime = {
+          if (state.tick >= 0)
+            simulationStart.plusSeconds(state.tick)
+          else simulationStart
+        }
         val actualStateTime: ZonedDateTime = simulationStart.plusSeconds(tick)
         val timeDiff: Duration =
           Duration.between(lastStateTime, actualStateTime)

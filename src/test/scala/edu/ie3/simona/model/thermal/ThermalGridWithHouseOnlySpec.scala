@@ -159,12 +159,13 @@ class ThermalGridWithHouseOnlySpec
             KilowattHours(3.7469589),
           )
 
-        val energyDemandDomesticHotWater = thermalHouse.energyDemandWater(
-          tick,
-          Some(expectedHouseStartingState),
-          defaultSimulationStart,
-          houseInhabitants,
-        )
+        val energyDemandDomesticHotWater =
+          thermalHouse.energyDemandDomesticHotWater(
+            tick,
+            Some(expectedHouseStartingState),
+            defaultSimulationStart,
+            houseInhabitants,
+          )
 
         energyDemandDomesticHotWater.required should approximate(
           expectedEnergyDemandWater.required

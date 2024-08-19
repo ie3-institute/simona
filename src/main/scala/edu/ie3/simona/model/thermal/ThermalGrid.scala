@@ -105,12 +105,13 @@ final case class ThermalGrid(
             (ThermalEnergyDemand.noDemand, Some(updatedHouseState))
           }
 
-          val energyDemandDomesticHotWater = thermalHouse.energyDemandWater(
-            tick,
-            Some(lastHouseState),
-            simulationStart,
-            houseInhabitants,
-          )
+          val energyDemandDomesticHotWater =
+            thermalHouse.energyDemandDomesticHotWater(
+              tick,
+              Some(lastHouseState),
+              simulationStart,
+              houseInhabitants,
+            )
           (heatDemand, newHouseState, energyDemandDomesticHotWater)
         }
         case None =>
@@ -157,7 +158,7 @@ final case class ThermalGrid(
     val (domesticHotWaterStorageDemand, updatedDomesticHotWaterStorageState) = {
       val domesticHotWaterDemand: ThermalEnergyDemand = house
         .map(
-          _.energyDemandWater(
+          _.energyDemandDomesticHotWater(
             tick,
             state.houseState,
             simulationStart,
@@ -633,7 +634,7 @@ final case class ThermalGrid(
 
     val domesticHotWaterDemand = house
       .map(
-        _.energyDemandWater(
+        _.energyDemandDomesticHotWater(
           tick,
           state.houseState,
           simulationStartTime,
