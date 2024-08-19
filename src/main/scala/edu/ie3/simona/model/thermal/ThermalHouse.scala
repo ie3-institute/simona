@@ -165,68 +165,46 @@ final case class ThermalHouse(
       simulationStart: ZonedDateTime,
       houseInhabitants: Double,
   ): ThermalEnergyDemand = {
-    state match {
-      case Some(state) =>
-        val lastStateTime: ZonedDateTime = {
-          if (state.tick >= 0)
-            simulationStart.plusSeconds(state.tick)
-          else simulationStart
-        }
-        val actualStateTime: ZonedDateTime = simulationStart.plusSeconds(tick)
-        val timeDiff: Duration =
-          Duration.between(lastStateTime, actualStateTime)
 
-        // if we have been triggered this hour there the water Demand is already covered
-        if (timeDiff.toSeconds > 3600) {
-
-          // the lastStates hour is already considered. Need to get energy for lastState.getHour + 1 until tick.getHour
-          val numberOfHourlySteps = (timeDiff.toSeconds / 3600).toInt + 1
-
-          val energyDemandWater =
-            (0 until numberOfHourlySteps).foldLeft(zeroKWH) {
-              (accumulatedEnergy, i) =>
-                val nextFullHour =
-                  lastStateTime.plusHours(1 + i).truncatedTo(ChronoUnit.HOURS)
-                val nextFullHourTick =
-                  Duration.between(simulationStart, nextFullHour).toSeconds
-                val waterDemand = waterDemandOfHour(
-                  nextFullHourTick,
-                  simulationStart,
-                  houseInhabitants,
-                  housingType,
-                )
-                val thermalDemandWater =
-                  thermalEnergyDemandWater(
-                    waterDemand,
-                    Celsius(10d),
-                    Celsius(55d),
-                  )
-
-                accumulatedEnergy + thermalDemandWater
-            }
-          ThermalEnergyDemand(energyDemandWater, energyDemandWater)
-        }
-
-        // determine demand for the actual hour
-        else if (actualStateTime.getHour != lastStateTime.getHour) {
-
-          val waterDemand =
-            waterDemandOfHour(
-              tick,
-              simulationStart,
-              houseInhabitants,
-              housingType,
-            )
-
-          val thermalDemandWater: Energy =
-            thermalEnergyDemandWater(waterDemand, Celsius(10d), Celsius(55d))
-          ThermalEnergyDemand(thermalDemandWater, thermalDemandWater)
-
-        } else ThermalEnergyDemand(zeroKWH, zeroKWH)
-
-      case None => ThermalEnergyDemand.noDemand
+    def calculateThermalEnergyOfWaterDemand(tick: Long): Energy = {
+      val waterDemand =
+        waterDemandOfHour(tick, simulationStart, houseInhabitants, housingType)
+      thermalEnergyDemandWater(waterDemand, Celsius(10d), Celsius(55d))
     }
 
+    if (tick == 0) {
+      val demand = calculateThermalEnergyOfWaterDemand(tick)
+      ThermalEnergyDemand(demand, demand)
+    } else {
+      state match {
+        case Some(state) =>
+          val lastStateTime =
+            simulationStart.plusSeconds(math.max(state.tick, 0))
+          val actualStateTime = simulationStart.plusSeconds(tick)
+          val timeDiffSeconds =
+            Duration.between(lastStateTime, actualStateTime).toSeconds
+
+          if (timeDiffSeconds > 3600) {
+            val hoursDiff = (timeDiffSeconds / 3600).toInt + 1
+            val energyDemandWater = (0 until hoursDiff).foldLeft(zeroKWH) {
+              (acc, i) =>
+                val nextFullHourTick = Duration
+                  .between(
+                    simulationStart,
+                    lastStateTime.plusHours(1 + i).truncatedTo(ChronoUnit.HOURS),
+                  )
+                  .toSeconds
+                acc + calculateThermalEnergyOfWaterDemand(nextFullHourTick)
+            }
+            ThermalEnergyDemand(energyDemandWater, energyDemandWater)
+          } else if (actualStateTime.getHour != lastStateTime.getHour) {
+            val demand = calculateThermalEnergyOfWaterDemand(tick)
+            ThermalEnergyDemand(demand, demand)
+          } else ThermalEnergyDemand(zeroKWH, zeroKWH)
+
+        case None => ThermalEnergyDemand.noDemand
+      }
+    }
   }
 
   /** Calculate the energy required to heat up a given volume of water from a
