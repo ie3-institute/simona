@@ -12,7 +12,10 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalGridState,
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
-import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.HouseTemperatureUpperBoundaryReached
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
+  HouseTemperatureLowerBoundaryReached,
+  HouseTemperatureUpperBoundaryReached,
+}
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWH}
@@ -224,6 +227,42 @@ class ThermalGridWithHouseOnlySpec
         reachedThreshold shouldBe Some(
           SimpleThermalThreshold(22L)
         )
+
+        val (nextUpdatedGridState, nextReachedThreshold) =
+          thermalGrid invokePrivate handleConsumption(
+            22L,
+            testGridAmbientTemperature,
+            updatedGridState,
+            externalQDot,
+            defaultSimulationStart,
+            houseInhabitants,
+          )
+
+        nextUpdatedGridState match {
+          case ThermalGridState(
+                Some(ThermalHouseState(tickHouse, innerTemperature, qDotHouse)),
+                None,
+                Some(
+                  ThermalStorageState(
+                    tickDomesticHotWaterStorage,
+                    energyDomesticHotWaterStorage,
+                    qDotDomesticHotWaterStorage,
+                  )
+                ),
+              ) =>
+            tickHouse shouldBe 22L
+            tickDomesticHotWaterStorage shouldBe 22L
+            innerTemperature should approximate(Celsius(18.9999d))
+            energyDomesticHotWaterStorage should approximate(
+              KilowattHours(12.112777)
+            )
+            qDotHouse should approximate(externalQDot)
+            qDotDomesticHotWaterStorage should approximate(zeroKW)
+          case _ => fail("Thermal grid state has been calculated wrong.")
+        }
+        nextReachedThreshold shouldBe Some(
+          HouseTemperatureLowerBoundaryReached(154288)
+        )
       }
 
       "not withdraw energy from the house, if actual consumption is given" in {
@@ -267,6 +306,42 @@ class ThermalGridWithHouseOnlySpec
         reachedThreshold shouldBe Some(
           SimpleThermalThreshold(22L)
         )
+
+        val (nextUpdatedGridState, nextReachedThreshold) =
+          thermalGrid invokePrivate handleConsumption(
+            22L,
+            testGridAmbientTemperature,
+            updatedGridState,
+            testGridQDotConsumption,
+            defaultSimulationStart,
+            houseInhabitants,
+          )
+
+        nextUpdatedGridState match {
+          case ThermalGridState(
+                Some(ThermalHouseState(tickHouse, innerTemperature, qDotHouse)),
+                None,
+                Some(
+                  ThermalStorageState(
+                    tickDomesticHotWaterStorage,
+                    energyDomesticHotWaterStorage,
+                    qDotDomesticHotWaterStorage,
+                  )
+                ),
+              ) =>
+            tickHouse shouldBe 22L
+            tickDomesticHotWaterStorage shouldBe 22L
+            innerTemperature should approximate(Celsius(18.9999d))
+            energyDomesticHotWaterStorage should approximate(
+              KilowattHours(12.112777)
+            )
+            qDotHouse should approximate(zeroKW)
+            qDotDomesticHotWaterStorage should approximate(zeroKW)
+          case _ => fail("Thermal grid state has been calculated wrong.")
+        }
+        nextReachedThreshold shouldBe Some(
+          HouseTemperatureLowerBoundaryReached(154288)
+        )
       }
     }
 
@@ -306,9 +381,13 @@ class ThermalGridWithHouseOnlySpec
             tickHouse shouldBe 0L
             tickDomesticHotWaterStorage shouldBe 0L
             innerTemperature should approximate(Celsius(18.9999d))
-            energyDomesticHotWaterStorage should approximate(domesticHotWaterStorage.maxEnergyThreshold)
+            energyDomesticHotWaterStorage should approximate(
+              domesticHotWaterStorage.maxEnergyThreshold
+            )
             qDotHouse should approximate(testGridQDotInfeed / 2)
-            qDotDomesticHotWaterStorage should approximate(testGridQDotInfeed / 2)
+            qDotDomesticHotWaterStorage should approximate(
+              testGridQDotInfeed / 2
+            )
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
@@ -362,7 +441,7 @@ class ThermalGridWithHouseOnlySpec
       }
 
       "deliver proper result, if energy is consumed from the grid" in {
-        thermalGrid.updateState(
+        val updatedState = thermalGrid.updateState(
           0L,
           ThermalGrid.startingState(thermalGrid),
           testGridAmbientTemperature,
@@ -372,7 +451,9 @@ class ThermalGridWithHouseOnlySpec
           thermalDemand,
           defaultSimulationStart,
           houseInhabitants,
-        ) match {
+        )
+
+        updatedState match {
           case (
                 ThermalGridState(
                   Some(
@@ -400,10 +481,52 @@ class ThermalGridWithHouseOnlySpec
             thresholdTick shouldBe 22
           case _ => fail("Thermal grid state updated failed")
         }
+
+        val nextUpdatedState = thermalGrid.updateState(
+          22L,
+          updatedState._1,
+          testGridAmbientTemperature,
+          testGridQDotConsumption,
+          thermalDemand,
+          noThermalDemand,
+          thermalDemand,
+          defaultSimulationStart,
+          houseInhabitants,
+        )
+
+        nextUpdatedState match {
+          case (
+                ThermalGridState(
+                  Some(
+                    ThermalHouseState(tickHouse, innerTemperature, qDotHouse)
+                  ),
+                  None,
+                  Some(
+                    ThermalStorageState(
+                      tickDomesticHotWaterStorage,
+                      energyDomesticHotWaterStorage,
+                      qDotDomesticHotWaterStorage,
+                    )
+                  ),
+                ),
+                Some(HouseTemperatureLowerBoundaryReached(thresholdTick)),
+              ) =>
+            tickHouse shouldBe 22L
+            tickDomesticHotWaterStorage shouldBe 22L
+            innerTemperature should approximate(Celsius(18.9999d))
+            energyDomesticHotWaterStorage should approximate(
+              KilowattHours(12.1127777)
+            )
+            qDotHouse should approximate(zeroKW)
+            qDotDomesticHotWaterStorage should approximate(zeroKW)
+            thresholdTick shouldBe 154288
+          case _ => fail("Thermal grid state updated failed")
+        }
+
       }
 
       "deliver proper result, if energy is neither consumed from nor fed into the grid" in {
-        thermalGrid.updateState(
+        val updatedState = thermalGrid.updateState(
           0L,
           ThermalGrid.startingState(thermalGrid),
           testGridAmbientTemperature,
@@ -413,7 +536,9 @@ class ThermalGridWithHouseOnlySpec
           thermalDemand,
           defaultSimulationStart,
           houseInhabitants,
-        ) match {
+        )
+
+        updatedState match {
           case (
                 ThermalGridState(
                   Some(
@@ -441,6 +566,47 @@ class ThermalGridWithHouseOnlySpec
               domesticHotWaterStorage.getChargingPower * (-1)
             )
             thresholdTick shouldBe 22
+          case _ => fail("Thermal grid state updated failed")
+        }
+
+        val nextUpdatedState = thermalGrid.updateState(
+          22L,
+          updatedState._1,
+          testGridAmbientTemperature,
+          zeroKW,
+          thermalDemand,
+          noThermalDemand,
+          thermalDemand,
+          defaultSimulationStart,
+          houseInhabitants,
+        )
+
+        nextUpdatedState match {
+          case (
+                ThermalGridState(
+                  Some(
+                    ThermalHouseState(tickHouse, innerTemperature, qDotHouse)
+                  ),
+                  None,
+                  Some(
+                    ThermalStorageState(
+                      tickDomesticHotWaterStorage,
+                      energyDomesticHotWaterStorage,
+                      qDotDomesticHotWaterStorage,
+                    )
+                  ),
+                ),
+                Some(HouseTemperatureLowerBoundaryReached(thresholdTick)),
+              ) =>
+            tickHouse shouldBe 22L
+            tickDomesticHotWaterStorage shouldBe 22L
+            innerTemperature should approximate(Celsius(18.9999d))
+            energyDomesticHotWaterStorage should approximate(
+              KilowattHours(12.1127777)
+            )
+            qDotHouse should approximate(zeroKW)
+            qDotDomesticHotWaterStorage should approximate(zeroKW)
+            thresholdTick shouldBe 154288
           case _ => fail("Thermal grid state updated failed")
         }
       }

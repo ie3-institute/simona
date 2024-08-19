@@ -305,6 +305,51 @@ class ThermalGridWithHouseAndStorageSpec
         reachedThreshold shouldBe Some(
           SimpleThermalThreshold(22L)
         )
+
+        val (nextUpdatedGridState, nextReachedThreshold) =
+          thermalGrid invokePrivate handleConsumption(
+            22L,
+            testGridAmbientTemperature,
+            updatedGridState,
+            zeroKW,
+            defaultSimulationStart,
+            houseInhabitants,
+          )
+
+        nextUpdatedGridState match {
+          case ThermalGridState(
+                _,
+                Some(
+                  ThermalStorageState(
+                    thermalStorageTick,
+                    storedEnergyThermalStorage,
+                    qDotThermalStorage,
+                  )
+                ),
+                Some(
+                  ThermalStorageState(
+                    domesticHotWaterStorageTick,
+                    storedEnergyDomesticHotWaterStorage,
+                    qDotStorageDomesticHotWaterStorage,
+                  )
+                ),
+              ) =>
+            thermalStorageTick shouldBe 22L
+            storedEnergyThermalStorage should approximate(
+              initialLoadingHeatStorage
+            )
+            qDotThermalStorage should approximate(zeroKW)
+
+            domesticHotWaterStorageTick shouldBe 22L
+            storedEnergyDomesticHotWaterStorage should approximate(
+              KilowattHours(12.112777)
+            )
+            qDotStorageDomesticHotWaterStorage should approximate(zeroKW)
+          case _ => fail("Thermal grid state has been calculated wrong.")
+        }
+        nextReachedThreshold shouldBe Some(
+          HouseTemperatureLowerBoundaryReached(154288L)
+        )
       }
 
       "take energy from storage, if there is actual consumption" in {
