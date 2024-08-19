@@ -119,7 +119,7 @@ class ThermalGridWithHouseAndStorageSpec
 
     "determining the energy demand" should {
       "deliver the heat demand of the house (no demand) with added flexibility by storage" in {
-        //hot water demand will be excluded here for test reasons
+        // hot water demand will be excluded here for test reasons
         val tick = 10800 // after three hours
 
         val (
@@ -154,7 +154,7 @@ class ThermalGridWithHouseAndStorageSpec
             // for hot water would normally be taken from domestic
             // hot water storage, resulting in a lower storedEnergy here
             expectedDomesticHotWaterStorageStartingState.storedEnergy,
-            domesticHotWaterStorage.getChargingPower*(-1),
+            domesticHotWaterStorage.getChargingPower * (-1),
           )
         )
       }
@@ -167,7 +167,7 @@ class ThermalGridWithHouseAndStorageSpec
           storageDemand,
           waterStorageDemand,
           updatedThermalGridState,
-          ) =
+        ) =
           thermalGrid.energyDemandAndUpdatedState(
             tick,
             testGridAmbientTemperature,
@@ -191,7 +191,7 @@ class ThermalGridWithHouseAndStorageSpec
           ThermalStorageState(
             0,
             expectedDomesticHotWaterStorageStartingState.storedEnergy,
-            domesticHotWaterStorage.getChargingPower*(-1),
+            domesticHotWaterStorage.getChargingPower * (-1),
           )
         )
       }
@@ -237,7 +237,7 @@ class ThermalGridWithHouseAndStorageSpec
             // for hot water would normally be taken from domestic
             // hot water storage, resulting in a lower storedEnergy here
             expectedDomesticHotWaterStorageStartingState.storedEnergy,
-            domesticHotWaterStorage.getChargingPower*(-1),
+            domesticHotWaterStorage.getChargingPower * (-1),
           )
         )
       }
@@ -258,7 +258,6 @@ class ThermalGridWithHouseAndStorageSpec
             storageState.copy(storedEnergy = initialLoadingHeatStorage)
           )
         )
-
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
@@ -707,22 +706,22 @@ class ThermalGridWithHouseAndStorageSpec
 
         updatedGridState match {
           case ThermalGridState(
-          Some(ThermalHouseState(houseTick, innerTemperature, qDotHouse)),
-          Some(
-          ThermalStorageState(
-          thermalStorageTick,
-          storedEnergyThermalStorage,
-          qDotThermalStorage,
-          )
-          ),
-          Some(
-          ThermalStorageState(
-          domesticHotWaterStorageTick,
-          storedEnergyDomesticHotWaterStorage,
-          qDotStorageDomesticHotWaterStorage,
-          )
-          ),
-          ) =>
+                Some(ThermalHouseState(houseTick, innerTemperature, qDotHouse)),
+                Some(
+                  ThermalStorageState(
+                    thermalStorageTick,
+                    storedEnergyThermalStorage,
+                    qDotThermalStorage,
+                  )
+                ),
+                Some(
+                  ThermalStorageState(
+                    domesticHotWaterStorageTick,
+                    storedEnergyDomesticHotWaterStorage,
+                    qDotStorageDomesticHotWaterStorage,
+                  )
+                ),
+              ) =>
             houseTick shouldBe 0L
             innerTemperature should approximate(Celsius(20.99999167d))
             qDotHouse should approximate(zeroKW)
@@ -752,15 +751,17 @@ class ThermalGridWithHouseAndStorageSpec
         )
       }
 
-
-
       "don't load the heat storage, if the upper temperature in the house is reached but there the domestic hot water storage is empty" in {
         val tick = 0L
         val initialGridState = ThermalGrid.startingState(thermalGrid)
-        val gridState = initialGridState.copy(houseState =
-          initialGridState.houseState.map(
+        val gridState = initialGridState.copy(
+          houseState = initialGridState.houseState.map(
             _.copy(innerTemperature = thermalHouse.upperBoundaryTemperature)
-          ), domesticHotWaterStorageState = initialGridState.domesticHotWaterStorageState.map(_.copy(storedEnergy = zeroKWH))
+          ),
+          domesticHotWaterStorageState =
+            initialGridState.domesticHotWaterStorageState.map(
+              _.copy(storedEnergy = zeroKWH)
+            ),
         )
         val externalQDot = testGridQDotInfeed
 

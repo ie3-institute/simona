@@ -155,23 +155,40 @@ final case class ThermalGrid(
 
     // Domestic hot water storages
     val (domesticHotWaterStorageDemand, updatedDomesticHotWaterStorageState) = {
-      val domesticHotWaterDemand: ThermalEnergyDemand = house.map(_.energyDemandWater(tick,state.houseState, simulationStart,houseInhabitants)).getOrElse(ThermalEnergyDemand(zeroKWH,zeroKWH))
+      val domesticHotWaterDemand: ThermalEnergyDemand = house
+        .map(
+          _.energyDemandWater(
+            tick,
+            state.houseState,
+            simulationStart,
+            houseInhabitants,
+          )
+        )
+        .getOrElse(ThermalEnergyDemand(zeroKWH, zeroKWH))
       val applicableqDotDomesticStorage =
-      identifyApplicableQDot(tick, domesticHotWaterDemand)._1
-
+        identifyApplicableQDot(tick, domesticHotWaterDemand)._1
 
       domesticHotWaterStorage
         .zip(state.domesticHotWaterStorageState)
         .map { case (storage, state) =>
           val updatedStorageState =
-            storage.updateState(tick, state.qDot.plus(applicableqDotDomesticStorage), state)._1
+            storage
+              .updateState(
+                tick,
+                state.qDot.plus(applicableqDotDomesticStorage),
+                state,
+              )
+              ._1
           val storedEnergy = updatedStorageState.storedEnergy
 
           val demandOfStorage =
             if (storedEnergy < demandHotDomesticWater.required)
               demandHotDomesticWater.required.minus(storedEnergy)
             else zeroMWH
-          (ThermalEnergyDemand(demandOfStorage, demandOfStorage), Some(updatedStorageState))
+          (
+            ThermalEnergyDemand(demandOfStorage, demandOfStorage),
+            Some(updatedStorageState),
+          )
         }
         .getOrElse(
           ThermalEnergyDemand(zeroMWH, zeroMWH),
@@ -629,7 +646,6 @@ final case class ThermalGrid(
       qDotDomesticHotWaterDemand,
       tickWhenStorageDemandEnds,
     ) =
-
       identifyApplicableQDot(tick, domesticHotWaterDemand)
 
     val (
@@ -664,7 +680,10 @@ final case class ThermalGrid(
     )
   }
 
-  private def identifyApplicableQDot(tick: Long, domesticHotWaterDemand: ThermalEnergyDemand):(Power,Option[SimpleThermalThreshold])={
+  private def identifyApplicableQDot(
+      tick: Long,
+      domesticHotWaterDemand: ThermalEnergyDemand,
+  ): (Power, Option[SimpleThermalThreshold]) = {
 
     if (domesticHotWaterDemand.required > zeroKWH) {
       val chargingPower = domesticHotWaterStorage
