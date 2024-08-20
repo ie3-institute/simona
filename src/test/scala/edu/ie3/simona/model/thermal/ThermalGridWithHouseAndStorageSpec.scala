@@ -100,6 +100,7 @@ class ThermalGridWithHouseAndStorageSpec
           thermalGrid.energyDemandAndUpdatedState(
             tick,
             testGridAmbientTemperature,
+            testGridAmbientTemperature,
             ThermalGrid.startingState(thermalGrid),
           )
         houseDemand.required should approximate(KilowattHours(0d))
@@ -121,6 +122,7 @@ class ThermalGridWithHouseAndStorageSpec
         val (houseDemand, storageDemand, updatedThermalGridState) =
           thermalGrid.energyDemandAndUpdatedState(
             tick,
+            testGridAmbientTemperature,
             testGridAmbientTemperature,
             startingState.copy(houseState =
               startingState.houseState.map(

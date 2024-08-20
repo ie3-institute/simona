@@ -57,6 +57,8 @@ final case class ThermalGrid(
     */
   def energyDemandAndUpdatedState(
       tick: Long,
+    //FIXME this is also in state
+    lastAmbientTemperature: Temperature,
       ambientTemperature: Temperature,
       state: ThermalGridState,
   ): (ThermalEnergyDemand, ThermalEnergyDemand, ThermalGridState) = {
@@ -69,7 +71,7 @@ final case class ThermalGrid(
             thermalHouse.determineState(
               tick,
               lastHouseState,
-              ambientTemperature,
+              lastAmbientTemperature,
               lastHouseState.qDot,
             )
           if (

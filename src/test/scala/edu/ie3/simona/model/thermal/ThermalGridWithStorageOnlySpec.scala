@@ -84,6 +84,7 @@ class ThermalGridWithStorageOnlySpec
           thermalGrid.energyDemandAndUpdatedState(
             tick,
             testGridAmbientTemperature,
+            testGridAmbientTemperature,
             ThermalGrid.startingState(thermalGrid),
           )
 
@@ -103,6 +104,7 @@ class ThermalGridWithStorageOnlySpec
         val (houseDemand, storageDemand, updatedThermalGridState) =
           thermalGrid.energyDemandAndUpdatedState(
             tick,
+            testGridAmbientTemperature,
             testGridAmbientTemperature,
             ThermalGridState(
               None,
