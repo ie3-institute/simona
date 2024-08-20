@@ -147,6 +147,7 @@ class ThermalGridWithStorageOnlySpec
           thermalGrid invokePrivate handleConsumption(
             tick,
             testGridAmbientTemperature,
+            testGridAmbientTemperature,
             gridState,
             testGridQDotConsumptionHigh,
           )
@@ -179,7 +180,9 @@ class ThermalGridWithStorageOnlySpec
           thermalGrid invokePrivate handleInfeed(
             tick,
             testGridAmbientTemperature,
+            testGridAmbientTemperature,
             gridState,
+            false,
             testGridQDotInfeed,
             noThermalDemand,
             thermalDemand,

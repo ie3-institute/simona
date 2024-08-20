@@ -41,6 +41,8 @@ final case class ThermalGrid(
     *
     * @param tick
     *   Questioned instance in time
+   *    @param lastAmbientTemperature
+   *       Ambient temperature until this tick
     * @param ambientTemperature
     *   Ambient temperature in the instance in question
     * @param state
@@ -143,8 +145,10 @@ final case class ThermalGrid(
     *   Instance in time
     * @param state
     *   Currently applicable state
-    * @param ambientTemperature
-    *   Ambient temperature
+   * @param lastAmbientTemperature
+   *   Ambient temperature until this tick
+   * @param ambientTemperature
+   *   actual ambient temperature
    * @param isRunning
    *   determines whether the heat pump is running or not
     * @param qDot
@@ -184,8 +188,10 @@ final case class ThermalGrid(
     *
     * @param tick
     *   Current tick
-    * @param ambientTemperature
-    *   Ambient temperature
+   * @param lastAmbientTemperature
+   *   Ambient temperature until this tick
+   * @param ambientTemperature
+   *   actual ambient temperature
     * @param state
     *   Current state of the houses
    * @param isRunning

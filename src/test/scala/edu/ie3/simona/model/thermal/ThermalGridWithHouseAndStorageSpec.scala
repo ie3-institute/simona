@@ -494,7 +494,9 @@ class ThermalGridWithHouseAndStorageSpec
           thermalGrid invokePrivate handleInfeed(
             tick,
             testGridAmbientTemperature,
+            testGridAmbientTemperature,
             initialGridState,
+            false,
             externalQDot,
             thermalDemand,
             noThermalDemand,
@@ -541,7 +543,9 @@ class ThermalGridWithHouseAndStorageSpec
           thermalGrid invokePrivate handleInfeed(
             tick,
             testGridAmbientTemperature,
+            testGridAmbientTemperature,
             gridState,
+            false,
             externalQDot,
             noThermalDemand,
             thermalDemand,
