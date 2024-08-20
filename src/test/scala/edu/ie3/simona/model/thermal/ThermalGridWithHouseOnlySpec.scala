@@ -125,6 +125,7 @@ class ThermalGridWithHouseOnlySpec
           thermalGrid.energyDemandAndUpdatedState(
             tick,
             testGridAmbientTemperature,
+            testGridAmbientTemperature,
             ThermalGrid.startingState(thermalGrid),
             defaultSimulationStart,
             houseInhabitants,
@@ -193,6 +194,7 @@ class ThermalGridWithHouseOnlySpec
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
             tick,
+            testGridAmbientTemperature,
             testGridAmbientTemperature,
             gridState,
             externalQDot,
@@ -272,6 +274,7 @@ class ThermalGridWithHouseOnlySpec
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
             tick,
+            testGridAmbientTemperature,
             testGridAmbientTemperature,
             gridState,
             testGridQDotConsumption,
@@ -359,7 +362,9 @@ class ThermalGridWithHouseOnlySpec
           thermalGrid invokePrivate handleInfeed(
             tick,
             testGridAmbientTemperature,
+            testGridAmbientTemperature,
             gridState,
+            false,
             testGridQDotInfeed,
             thermalDemand,
             noThermalDemand,
@@ -402,6 +407,8 @@ class ThermalGridWithHouseOnlySpec
           0L,
           ThermalGrid.startingState(thermalGrid),
           testGridAmbientTemperature,
+          testGridAmbientTemperature,
+          true,
           testGridQDotInfeed,
           thermalDemand,
           noThermalDemand,
@@ -445,6 +452,8 @@ class ThermalGridWithHouseOnlySpec
           0L,
           ThermalGrid.startingState(thermalGrid),
           testGridAmbientTemperature,
+          testGridAmbientTemperature,
+          false,
           testGridQDotConsumption,
           thermalDemand,
           noThermalDemand,
@@ -530,6 +539,8 @@ class ThermalGridWithHouseOnlySpec
           0L,
           ThermalGrid.startingState(thermalGrid),
           testGridAmbientTemperature,
+          testGridAmbientTemperature,
+          false,
           zeroKW,
           thermalDemand,
           noThermalDemand,

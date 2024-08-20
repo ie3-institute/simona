@@ -171,6 +171,7 @@ final case class HpModel(
     ) =
       thermalGrid.energyDemandAndUpdatedState(
         relevantData.currentTick,
+        state.ambientTemperature.getOrElse(relevantData.ambientTemperature),
         relevantData.ambientTemperature,
         state.thermalGridState,
         relevantData.simulationStart,
@@ -249,7 +250,9 @@ final case class HpModel(
       thermalGrid.updateState(
         relevantData.currentTick,
         state.thermalGridState,
+        state.ambientTemperature.getOrElse(relevantData.ambientTemperature),
         relevantData.ambientTemperature,
+        isRunning,
         newThermalPower,
         houseDemand,
         thermalStorageDemand,
@@ -286,6 +289,7 @@ final case class HpModel(
     ) =
       thermalGrid.energyDemandAndUpdatedState(
         data.currentTick,
+        lastState.ambientTemperature.getOrElse(data.ambientTemperature),
         data.ambientTemperature,
         lastState.thermalGridState,
         data.simulationStart,
@@ -349,6 +353,7 @@ final case class HpModel(
     ) =
       thermalGrid.energyDemandAndUpdatedState(
         data.currentTick,
+        lastState.ambientTemperature.getOrElse(data.ambientTemperature),
         data.ambientTemperature,
         lastState.thermalGridState,
         data.simulationStart,
@@ -369,6 +374,19 @@ final case class HpModel(
       (thermalEnergyDemandStorage.hasRequiredDemand) || (lastState.isRunning && thermalEnergyDemandStorage.hasAdditionalDemand)
     val domesticHotWaterStorageDemand =
       (thermalEnergyDemandDomesticHotWaterStorage.hasRequiredDemand) || (lastState.isRunning && thermalEnergyDemandDomesticHotWaterStorage.hasAdditionalDemand)
+
+    implicit val tolerance: Energy = KilowattHours(1e-3)
+    val noThermalStorageOrThermalStorageIsEmpty: Boolean =
+      updatedThermalGridState.storageState.isEmpty.||(
+        updatedThermalGridState.storageState.exists(
+          _.storedEnergy =~ zeroKWH
+        )
+      )
+
+    val houseDemand =
+      (thermalEnergyDemandHouse.hasRequiredDemand && noThermalStorageOrThermalStorageIsEmpty) || (lastState.isRunning && thermalEnergyDemandHouse.hasAdditionalDemand)
+    val heatStorageDemand =
+      (thermalEnergyDemandStorage.hasRequiredDemand) || (lastState.isRunning && thermalEnergyDemandStorage.hasAdditionalDemand)
 
     val updatedHpState: HpState =
       calcState(

@@ -96,6 +96,7 @@ class ThermalGridWithStorageOnlySpec
           thermalGrid.energyDemandAndUpdatedState(
             tick,
             testGridAmbientTemperature,
+            testGridAmbientTemperature,
             ThermalGrid.startingState(thermalGrid),
             defaultSimulationStart,
             houseInhabitants,
@@ -125,6 +126,7 @@ class ThermalGridWithStorageOnlySpec
         ) =
           thermalGrid.energyDemandAndUpdatedState(
             tick,
+            testGridAmbientTemperature,
             testGridAmbientTemperature,
             ThermalGridState(
               None,
@@ -173,6 +175,7 @@ class ThermalGridWithStorageOnlySpec
           thermalGrid invokePrivate handleConsumption(
             tick,
             testGridAmbientTemperature,
+            testGridAmbientTemperature,
             gridState,
             testGridQDotConsumptionHigh,
             defaultSimulationStart,
@@ -208,7 +211,9 @@ class ThermalGridWithStorageOnlySpec
           thermalGrid invokePrivate handleInfeed(
             tick,
             testGridAmbientTemperature,
+            testGridAmbientTemperature,
             gridState,
+            false,
             testGridQDotInfeed,
             noThermalDemand,
             thermalDemand,
@@ -236,6 +241,8 @@ class ThermalGridWithStorageOnlySpec
           0L,
           ThermalGrid.startingState(thermalGrid),
           testGridAmbientTemperature,
+          testGridAmbientTemperature,
+          true,
           testGridQDotInfeed,
           noThermalDemand,
           thermalDemand,
@@ -274,6 +281,8 @@ class ThermalGridWithStorageOnlySpec
               )
             ),
           testGridAmbientTemperature,
+          testGridAmbientTemperature,
+          true,
           testGridQDotConsumptionHigh,
           thermalDemand,
           noThermalDemand,
@@ -302,6 +311,8 @@ class ThermalGridWithStorageOnlySpec
           0L,
           ThermalGrid.startingState(thermalGrid),
           testGridAmbientTemperature,
+          testGridAmbientTemperature,
+          true,
           zeroKW,
           noThermalDemand,
           noThermalDemand,
