@@ -203,6 +203,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           0L,
           ThermalGrid.startingState(thermalGrid),
           testGridAmbientTemperature,
+          testGridAmbientTemperature,
           true,
           testGridQDotInfeed,
           thermalDemand,
@@ -228,6 +229,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           0L,
           ThermalGrid.startingState(thermalGrid),
           testGridAmbientTemperature,
+          testGridAmbientTemperature,
           false,
           testGridQDotConsumption,
           thermalDemand,
@@ -252,6 +254,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         thermalGrid.updateState(
           0L,
           ThermalGrid.startingState(thermalGrid),
+          testGridAmbientTemperature,
           testGridAmbientTemperature,
           false,
           Megawatts(0d),
