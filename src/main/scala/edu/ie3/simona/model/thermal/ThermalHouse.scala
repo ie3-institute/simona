@@ -160,10 +160,11 @@ final case class ThermalHouse(
     *   true, if inner temperature is too high
     */
   def isInnerTemperatureTooHigh(
-      innerTemperature: Temperature
+      innerTemperature: Temperature,
+      boundaryTemperature: Temperature = upperBoundaryTemperature,
   ): Boolean =
     innerTemperature > Kelvin(
-      upperBoundaryTemperature.toKelvinScale - temperatureTolerance.toKelvinScale
+      boundaryTemperature.toKelvinScale - temperatureTolerance.toKelvinScale
     )
 
   /** Check if inner temperature is lower than preferred minimum temperature
@@ -192,7 +193,7 @@ final case class ThermalHouse(
     * @return
     *   new inner temperature
     */
-  private def newInnerTemperature(
+  def newInnerTemperature(
       thermalPower: Power,
       duration: Time,
       currentInnerTemperature: Temperature,
@@ -221,7 +222,7 @@ final case class ThermalHouse(
     * @return
     *   new inner temperature
     */
-  private def calcNewInnerTemperature(
+  def calcNewInnerTemperature(
       oldInnerTemperature: Temperature,
       temperatureChange: Temperature,
   ): Temperature =
@@ -235,7 +236,7 @@ final case class ThermalHouse(
     * @return
     *   temperature change
     */
-  private def calcInnerTemperatureChange(
+  def calcInnerTemperatureChange(
       thermalEnergyChange: Energy
   ): Temperature = {
     thermalEnergyChange / ethCapa
@@ -250,7 +251,7 @@ final case class ThermalHouse(
     * @return
     *   thermal energy change
     */
-  private def calcThermalEnergyChange(
+  def calcThermalEnergyChange(
       thermalEnergyGain: Energy,
       thermalEnergyLoss: Energy,
   ): Energy =
@@ -265,7 +266,7 @@ final case class ThermalHouse(
     * @return
     *   resulting thermal energy gain
     */
-  private def calcThermalEnergyGain(
+  def calcThermalEnergyGain(
       pThermal: Power,
       time: Time,
   ): Energy = pThermal * time
@@ -282,7 +283,7 @@ final case class ThermalHouse(
     * @return
     *   resulting thermal energy loss
     */
-  private def calcThermalEnergyLoss(
+  def calcThermalEnergyLoss(
       innerTemperature: Temperature,
       ambientTemperature: Temperature,
       time: Time,
