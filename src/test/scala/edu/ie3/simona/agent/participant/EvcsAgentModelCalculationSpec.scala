@@ -368,7 +368,7 @@ class EvcsAgentModelCalculationSpec
         RegistrationSuccessfulMessage(evService.ref, Some(900L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
 
       evcsAgent.stateName shouldBe Idle
@@ -434,7 +434,7 @@ class EvcsAgentModelCalculationSpec
         RegistrationSuccessfulMessage(evService.ref, Some(0)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(evcsAgent.stateName shouldBe Idle)
       /* State data is tested in another test */
@@ -568,7 +568,7 @@ class EvcsAgentModelCalculationSpec
         RegistrationSuccessfulMessage(evService.ref, Some(0)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(evcsAgent.stateName shouldBe Idle)
       /* State data is tested in another test */
@@ -699,7 +699,7 @@ class EvcsAgentModelCalculationSpec
         RegistrationSuccessfulMessage(evService.ref, Some(10800)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(evcsAgent.stateName shouldBe Idle)
 
@@ -744,7 +744,7 @@ class EvcsAgentModelCalculationSpec
         RegistrationSuccessfulMessage(evService.ref, Some(0)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the CompletionM */
       scheduler.expectMsgType[Completion]
       awaitAssert(evcsAgent.stateName shouldBe Idle)
 
@@ -825,7 +825,7 @@ class EvcsAgentModelCalculationSpec
         RegistrationSuccessfulMessage(evService.ref, Some(0)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(evcsAgent.stateName shouldBe Idle)
 
@@ -903,7 +903,7 @@ class EvcsAgentModelCalculationSpec
         RegistrationSuccessfulMessage(evService.ref, Some(0)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(evcsAgent.stateName shouldBe Idle)
 
