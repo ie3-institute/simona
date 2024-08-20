@@ -46,8 +46,10 @@ final case class ThermalGrid(
     * time
     * @param tick
     *   Questioned instance in time
-    * @param ambientTemperature
-    *   Ambient temperature in the instance in question
+    * @param lastAmbientTemperature
+    *   Ambient temperature in the instance in question until actual tick
+    * @param actualAmbientTemperature
+    *   Ambient temperature in the instance in question at tick
     * @param state
     *   Currently applicable state of the thermal grid
     * @return
@@ -55,7 +57,9 @@ final case class ThermalGrid(
     */
   def energyDemand(
       tick: Long,
-      ambientTemperature: Temperature,
+      // FIXME this is also in state -> refactoring by HiWi
+      lastAmbientTemperature: Temperature,
+      actualAmbientTemperature: Temperature,
       state: ThermalGridState,
   ): ThermalEnergyDemand = {
     /* First get the energy demand of the houses but only if inner temperature is below target temperature */
@@ -67,7 +71,7 @@ final case class ThermalGrid(
             thermalHouse.determineState(
               tick,
               lastHouseState,
-              ambientTemperature,
+              lastAmbientTemperature,
               lastHouseState.qDot,
             )
           if (
@@ -75,7 +79,7 @@ final case class ThermalGrid(
           ) {
             thermalHouse.energyDemand(
               tick,
-              ambientTemperature,
+              actualAmbientTemperature,
               updatedHouseState,
             )
 

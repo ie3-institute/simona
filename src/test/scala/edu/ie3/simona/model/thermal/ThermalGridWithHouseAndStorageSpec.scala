@@ -99,6 +99,7 @@ class ThermalGridWithHouseAndStorageSpec
         val gridDemand = thermalGrid.energyDemand(
           tick,
           testGridAmbientTemperature,
+          testGridAmbientTemperature,
           ThermalGrid.startingState(thermalGrid),
         )
 
@@ -114,6 +115,7 @@ class ThermalGridWithHouseAndStorageSpec
         val startingState = ThermalGrid.startingState(thermalGrid)
         val gridDemand = thermalGrid.energyDemand(
           tick,
+          testGridAmbientTemperature,
           testGridAmbientTemperature,
           startingState.copy(houseState =
             startingState.houseState.map(
@@ -132,6 +134,7 @@ class ThermalGridWithHouseAndStorageSpec
         val startingState = ThermalGrid.startingState(thermalGrid)
         val gridDemand = thermalGrid.energyDemand(
           tick,
+          testGridAmbientTemperature,
           testGridAmbientTemperature,
           startingState.copy(houseState =
             startingState.houseState.map(
