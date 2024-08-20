@@ -9,15 +9,9 @@ package edu.ie3.simona.model.thermal
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
 import edu.ie3.datamodel.models.result.ResultEntity
-import edu.ie3.datamodel.models.result.thermal.{
-  CylindricalStorageResult,
-  ThermalHouseResult,
-}
+import edu.ie3.datamodel.models.result.thermal.{CylindricalStorageResult, ThermalHouseResult}
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
-import edu.ie3.simona.model.thermal.ThermalGrid.{
-  ThermalEnergyDemand,
-  ThermalGridState,
-}
+import edu.ie3.simona.model.thermal.ThermalGrid.{ThermalEnergyDemand, ThermalGridState}
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -75,7 +69,7 @@ final case class ThermalGrid(
               lastHouseState.qDot,
             )
           if (
-            updatedHouseState.innerTemperature < thermalHouse.targetTemperature
+            updatedHouseState.innerTemperature < thermalHouse.targetTemperature | (lastHouseState.qDot > zeroKW && updatedHouseState.innerTemperature < thermalHouse.upperBoundaryTemperature)
           ) {
             (
               thermalHouse.energyDemand(
@@ -227,7 +221,7 @@ final case class ThermalGrid(
     }
 
     if (
-      (qDotHouseLastState > zeroKW && qDotHouseLastState == qDot) | qDotStorageLastState > zeroKW
+      (qDotHouseLastState > zeroKW && !(qDotStorageLastState < zeroKW)) | (qDotStorageLastState > zeroKW & heatStorageDemand)
     ) {
       val (updatedHouseState, thermalHouseThreshold, remainingQDotHouse) =
         handleInfeedHouse(tick, ambientTemperature, state, qDotHouseLastState)
@@ -237,14 +231,12 @@ final case class ThermalGrid(
         ) {
           handleInfeedStorage(
             tick,
-            ambientTemperature,
             state,
             remainingQDotHouse,
           )
         } else {
           handleInfeedStorage(
             tick,
-            ambientTemperature,
             state,
             qDotStorageLastState,
           )
@@ -261,45 +253,84 @@ final case class ThermalGrid(
         ),
         nextThreshold,
       )
-    } else {
-      if (houseDemand.hasAdditionalDemand) {
-        val (updatedHouseState, thermalHouseThreshold, remainingQDotHouse) =
-          handleInfeedHouse(tick, ambientTemperature, state, qDot)
-        val (updatedStorageState, thermalStorageThreshold) =
-          handleInfeedStorage(tick, ambientTemperature, state, zeroKW)
-        val nextThreshold = determineMostRecentThreshold(
-          thermalHouseThreshold,
-          thermalStorageThreshold,
-        )
-        (
-          state.copy(
-            houseState = updatedHouseState,
-            storageState = updatedStorageState,
-          ),
-          nextThreshold,
-        )
-      } else if (storageDemand.hasAdditionalDemand) {
-        val (updatedHouseState, thermalHouseThreshold, remainingQDotHouse) =
-          handleInfeedHouse(tick, ambientTemperature, state, zeroKW)
-        val (updatedStorageState, thermalStorageThreshold) =
-          handleInfeedStorage(tick, ambientTemperature, state, qDot)
-        val nextThreshold = determineMostRecentThreshold(
-          thermalHouseThreshold,
-          thermalStorageThreshold,
-        )
-        (
-          state.copy(
-            houseState = updatedHouseState,
-            storageState = updatedStorageState,
-          ),
-          nextThreshold,
-        )
-      } else {
-        throw new RuntimeException(
-          "Heat pump is running but neither house nor storage has additional demand. This should not happen."
-        )
+    }
+      // Handle edge case where house get heated from storage and HP will be activated in between
+    else if(
+      (qDotHouseLastState > zeroKW && qDotStorageLastState < zeroKW)
+    ){
+      if (isRunning){
+        handleCases(
+          tick,
+          ambientTemperature,
+          state,
+          qDot,
+          zeroKW,
+        )}
+        else{
+
+      handleCases(
+        tick,
+        ambientTemperature,
+        state,
+        qDotHouseLastState,
+        qDotStorageLastState,
+      )
+        }}
+
+
+    else {
+
+      (houseDemand, heatStorageDemand) match {
+
+        case (true, _) =>
+          // house first then heatStorage after heating House
+          handleCases(
+            tick,
+            ambientTemperature,
+            state,
+            qDot,
+            zeroKW,
+          )
+
+        case (false, true) =>
+          handleCases(tick, ambientTemperature, state, zeroKW, qDot)
+
+        case (false, false) =>
+          handleCases(tick, ambientTemperature, state, zeroKW, zeroKW)
+        case _ =>
+          throw new InconsistentStateException(
+            "There should be at least a house or a storage state."
+          )
       }
     }
+  }
+
+  private def handleCases(
+      tick: Long,
+      ambientTemperature: Temperature,
+      state: ThermalGridState,
+      qDotHouse: Power,
+      qDotHeatStorage: Power,
+  ): (ThermalGridState, Option[ThermalThreshold]) = {
+    // FIXME: Is there any case where we get back some remainingQDotHouse?
+    val (updatedHouseState, thermalHouseThreshold, remainingQDotHouse) =
+      handleInfeedHouse(tick, ambientTemperature, state, qDotHouse)
+
+    val (updatedStorageState, thermalStorageThreshold) =
+      handleInfeedStorage(tick, state, qDotHeatStorage)
+
+    val nextThreshold = determineMostRecentThreshold(
+      thermalHouseThreshold,
+      thermalStorageThreshold,
+    )
+
+    (
+      state.copy(
+        houseState = updatedHouseState,
+        storageState = updatedStorageState,
+      ),
+      nextThreshold,
+    )
   }
 
   /** Handles the case, when the house has heat demand and will be heated up
@@ -367,7 +398,6 @@ final case class ThermalGrid(
     */
   private def handleInfeedStorage(
       tick: Long,
-      ambientTemperature: Temperature,
       state: ThermalGridState,
       qDot: Power,
   ): (Option[ThermalStorageState], Option[ThermalThreshold]) = {
