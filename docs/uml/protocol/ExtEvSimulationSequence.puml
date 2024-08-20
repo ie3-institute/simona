@@ -43,7 +43,7 @@ Scheduler -> ExtEvDataService: <font color=red>!</font> Activation(t1)
 deactivate Scheduler
 activate ExtEvDataService
 
-ExtSimulation -> ExtSimAdapter: <font color=red>!</font> CompletionMessage(newTriggers)
+ExtSimulation -> ExtSimAdapter: <font color=red>!</font> Completion(newTriggers)
 deactivate ExtSimulation
 activate ExtSimAdapter
 
@@ -192,7 +192,7 @@ group Provide arriving EVs
     deactivate EvcsAgent2
 end
 
-ExtSimulation -> ExtSimAdapter: <font color=red>!</font> CompletionMessage(t2)
+ExtSimulation -> ExtSimAdapter: <font color=red>!</font> Completion(t2)
 deactivate ExtSimulation
 activate ExtSimAdapter
 

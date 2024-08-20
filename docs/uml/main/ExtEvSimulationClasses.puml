@@ -164,10 +164,10 @@ package simona-api {
     ActivationMessage --|> ExtTrigger
 
     interface ExtTriggerResponse
-    class CompletionMessage {
+    class Completion {
         - List<Long> newTriggers
     }
-    CompletionMessage --|> ExtTriggerResponse
+    Completion --|> ExtTriggerResponse
 
     ExtTrigger -[hidden]> ExtTriggerResponse
     ExtTrigger <- ExtSimAdapterData
