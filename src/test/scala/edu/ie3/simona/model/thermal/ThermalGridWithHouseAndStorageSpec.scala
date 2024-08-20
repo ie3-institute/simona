@@ -172,6 +172,7 @@ class ThermalGridWithHouseAndStorageSpec
           thermalGrid.energyDemandAndUpdatedState(
             tick,
             testGridAmbientTemperature,
+            testGridAmbientTemperature,
             ThermalGrid.startingState(thermalGrid),
             defaultSimulationStart,
             houseInhabitants,
@@ -312,6 +313,7 @@ class ThermalGridWithHouseAndStorageSpec
         val (nextUpdatedGridState, nextReachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
             22L,
+            testGridAmbientTemperature,
             testGridAmbientTemperature,
             updatedGridState,
             zeroKW,
@@ -827,7 +829,9 @@ class ThermalGridWithHouseAndStorageSpec
           thermalGrid invokePrivate handleInfeed(
             tick,
             testGridAmbientTemperature,
+            testGridAmbientTemperature,
             gridState,
+            false,
             externalQDot,
             noThermalDemand,
             thermalDemand,

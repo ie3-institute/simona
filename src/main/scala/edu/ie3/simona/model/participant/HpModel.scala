@@ -375,19 +375,6 @@ final case class HpModel(
     val domesticHotWaterStorageDemand =
       (thermalEnergyDemandDomesticHotWaterStorage.hasRequiredDemand) || (lastState.isRunning && thermalEnergyDemandDomesticHotWaterStorage.hasAdditionalDemand)
 
-    implicit val tolerance: Energy = KilowattHours(1e-3)
-    val noThermalStorageOrThermalStorageIsEmpty: Boolean =
-      updatedThermalGridState.storageState.isEmpty.||(
-        updatedThermalGridState.storageState.exists(
-          _.storedEnergy =~ zeroKWH
-        )
-      )
-
-    val houseDemand =
-      (thermalEnergyDemandHouse.hasRequiredDemand && noThermalStorageOrThermalStorageIsEmpty) || (lastState.isRunning && thermalEnergyDemandHouse.hasAdditionalDemand)
-    val heatStorageDemand =
-      (thermalEnergyDemandStorage.hasRequiredDemand) || (lastState.isRunning && thermalEnergyDemandStorage.hasAdditionalDemand)
-
     val updatedHpState: HpState =
       calcState(
         lastState,

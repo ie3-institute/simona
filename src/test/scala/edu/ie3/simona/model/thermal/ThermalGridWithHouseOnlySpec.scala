@@ -234,6 +234,7 @@ class ThermalGridWithHouseOnlySpec
           thermalGrid invokePrivate handleConsumption(
             22L,
             testGridAmbientTemperature,
+            testGridAmbientTemperature,
             updatedGridState,
             externalQDot,
             defaultSimulationStart,
@@ -313,6 +314,7 @@ class ThermalGridWithHouseOnlySpec
         val (nextUpdatedGridState, nextReachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
             22L,
+            testGridAmbientTemperature,
             testGridAmbientTemperature,
             updatedGridState,
             testGridQDotConsumption,
@@ -495,6 +497,8 @@ class ThermalGridWithHouseOnlySpec
           22L,
           updatedState._1,
           testGridAmbientTemperature,
+          testGridAmbientTemperature,
+          false,
           testGridQDotConsumption,
           thermalDemand,
           noThermalDemand,
@@ -584,6 +588,8 @@ class ThermalGridWithHouseOnlySpec
           22L,
           updatedState._1,
           testGridAmbientTemperature,
+          testGridAmbientTemperature,
+          false,
           zeroKW,
           thermalDemand,
           noThermalDemand,
