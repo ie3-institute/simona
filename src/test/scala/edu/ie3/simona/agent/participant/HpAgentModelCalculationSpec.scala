@@ -9,10 +9,7 @@ package edu.ie3.simona.agent.participant
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.agent.ValueStore
-import edu.ie3.simona.agent.grid.GridAgentMessages.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-}
+import edu.ie3.simona.agent.grid.GridAgentMessages.{AssetPowerChangedMessage, AssetPowerUnchangedMessage}
 import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
@@ -31,26 +28,14 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-}
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
-  ProvideWeatherMessage,
-  RegisterForWeatherMessage,
-  WeatherData,
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{RegistrationFailedMessage, RegistrationSuccessfulMessage}
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.{ProvideWeatherMessage, RegisterForWeatherMessage, WeatherData}
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.simona.test.common.input.HpInputTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import edu.ie3.util.scala.quantities.{
-  Megavars,
-  ReactivePower,
-  Vars,
-  WattsPerSquareMeter,
-}
+import edu.ie3.util.scala.quantities._
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
@@ -495,7 +480,7 @@ class HpAgentModelCalculationSpec
 
       /* The agent will notice, that all expected information are apparent, switch to Calculate and trigger itself
        * for starting the calculation */
-      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(3600)))
+      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(22)))
 
       hpAgent.stateName shouldBe Idle
       hpAgent.stateData match {
@@ -622,7 +607,7 @@ class HpAgentModelCalculationSpec
       )
 
       /* Expect confirmation */
-      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(3600)))
+      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(22)))
 
       /* Expect the state change to idle with updated base state data */
       hpAgent.stateName shouldBe Idle
@@ -741,7 +726,7 @@ class HpAgentModelCalculationSpec
 
       /* The agent will notice, that all expected information are apparent, switch to Calculate and trigger itself
        * for starting the calculation */
-      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(7200)))
+      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(3612)))
 
       /* Appreciate the answer to my previous request */
       expectMsgType[AssetPowerChangedMessage] match {
@@ -798,6 +783,9 @@ class HpAgentModelCalculationSpec
         ),
       )
       scheduler.send(hpAgent, Activation(0))
+      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(22)))
+
+      scheduler.send(hpAgent, Activation(22))
       scheduler.expectMsg(Completion(hpAgent.toTyped, Some(3600)))
 
       /* ... for tick 3600 */
@@ -816,6 +804,9 @@ class HpAgentModelCalculationSpec
         ),
       )
       scheduler.send(hpAgent, Activation(3600))
+      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(3612)))
+
+      scheduler.send(hpAgent, Activation(3612))
       scheduler.expectMsg(Completion(hpAgent.toTyped, Some(7200)))
 
       /* ... for tick 7200 */
