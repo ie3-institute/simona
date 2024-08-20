@@ -205,6 +205,7 @@ class ThermalGridWithStorageOnlySpec
           0L,
           ThermalGrid.startingState(thermalGrid),
           testGridAmbientTemperature,
+          true,
           testGridQDotInfeed,
           noThermalDemand,
           thermalDemand,
@@ -239,6 +240,7 @@ class ThermalGridWithStorageOnlySpec
               )
             ),
           testGridAmbientTemperature,
+          true,
           testGridQDotConsumptionHigh,
           thermalDemand,
           noThermalDemand,
@@ -263,6 +265,7 @@ class ThermalGridWithStorageOnlySpec
           0L,
           ThermalGrid.startingState(thermalGrid),
           testGridAmbientTemperature,
+          true,
           Kilowatts(0d),
           noThermalDemand,
           noThermalDemand,

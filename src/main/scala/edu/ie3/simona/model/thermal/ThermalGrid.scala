@@ -150,6 +150,8 @@ final case class ThermalGrid(
     *   Currently applicable state
     * @param ambientTemperature
     *   Ambient temperature
+   * @param isRunning
+   *   determines whether the heat pump is running or not
     * @param qDot
     *   Thermal energy balance
     * @param houseDemand
@@ -163,14 +165,16 @@ final case class ThermalGrid(
       tick: Long,
       state: ThermalGridState,
       ambientTemperature: Temperature,
+    isRunning: Boolean,
       qDot: Power,
-      houseDemand: ThermalEnergyDemand,
-      storageDemand: ThermalEnergyDemand,
+      houseDemand: Boolean,
+      storageDemand: Boolean,
   ): (ThermalGridState, Option[ThermalThreshold]) = if (qDot > zeroKW)
     handleInfeed(
       tick,
       ambientTemperature,
       state,
+      isRunning,
       qDot,
       houseDemand,
       storageDemand,
@@ -187,6 +191,8 @@ final case class ThermalGrid(
     *   Ambient temperature
     * @param state
     *   Current state of the houses
+   * @param isRunning
+   *   determines whether the heat pump is running or not
     * @param qDot
     *   Infeed to the grid
     * @param houseDemand
@@ -200,9 +206,10 @@ final case class ThermalGrid(
       tick: Long,
       ambientTemperature: Temperature,
       state: ThermalGridState,
-      qDot: Power,
-      houseDemand: ThermalEnergyDemand,
-      storageDemand: ThermalEnergyDemand,
+    isRunning: Boolean,
+    qDot: Power,
+      houseDemand: Boolean,
+      heatStorageDemand: Boolean,
   ): (ThermalGridState, Option[ThermalThreshold]) = {
     // TODO: We would need to issue a storage result model here...
 
