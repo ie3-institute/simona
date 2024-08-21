@@ -99,8 +99,8 @@ final case class ThermalGrid(
       storage
         .zip(state.storageState)
         .map { case (storage, state) =>
-          val updatedStorageState =
-            storage.updateState(tick, state.qDot, state)._1
+          val (updatedStorageState, _) =
+            storage.updateState(tick, state.qDot, state)
           val storedEnergy = updatedStorageState.storedEnergy
           val soc = storedEnergy / storage.getMaxEnergyThreshold
           val storageRequired = {
@@ -254,43 +254,51 @@ final case class ThermalGrid(
         nextThreshold,
       )
     } else {
-      if (houseDemand.hasAdditionalDemand) {
-        val (updatedHouseState, thermalHouseThreshold, remainingQDotHouse) =
-          handleInfeedHouse(tick, ambientTemperature, state, qDot)
-        val (updatedStorageState, thermalStorageThreshold) =
-          handleInfeedStorage(tick, ambientTemperature, state, zeroKW)
-        val nextThreshold = determineMostRecentThreshold(
-          thermalHouseThreshold,
-          thermalStorageThreshold,
-        )
-        (
-          state.copy(
-            houseState = updatedHouseState,
-            storageState = updatedStorageState,
-          ),
-          nextThreshold,
-        )
-      } else if (storageDemand.hasAdditionalDemand) {
-        val (updatedHouseState, thermalHouseThreshold, remainingQDotHouse) =
-          handleInfeedHouse(tick, ambientTemperature, state, zeroKW)
-        val (updatedStorageState, thermalStorageThreshold) =
-          handleInfeedStorage(tick, ambientTemperature, state, qDot)
-        val nextThreshold = determineMostRecentThreshold(
-          thermalHouseThreshold,
-          thermalStorageThreshold,
-        )
-        (
-          state.copy(
-            houseState = updatedHouseState,
-            storageState = updatedStorageState,
-          ),
-          nextThreshold,
-        )
-      } else {
-        throw new RuntimeException(
-          "Heat pump is running but neither house nor storage has additional demand. This should not happen."
-        )
+      (
+        state,
+        houseDemand.hasAdditionalDemand,
+        storageDemand.hasAdditionalDemand,
+      ) match {
+        case (_, true, _) =>
+          val (updatedHouseState, thermalHouseThreshold, remainingQDotHouse) =
+            handleInfeedHouse(tick, ambientTemperature, state, qDot)
+          val (updatedStorageState, thermalStorageThreshold) =
+            handleInfeedStorage(tick, ambientTemperature, state, zeroKW)
+          val nextThreshold = determineMostRecentThreshold(
+            thermalHouseThreshold,
+            thermalStorageThreshold,
+          )
+          (
+            state.copy(
+              houseState = updatedHouseState,
+              storageState = updatedStorageState,
+            ),
+            nextThreshold,
+          )
+
+        case (_, _, true) =>
+          val (updatedHouseState, thermalHouseThreshold, remainingQDotHouse) =
+            handleInfeedHouse(tick, ambientTemperature, state, zeroKW)
+          val (updatedStorageState, thermalStorageThreshold) =
+            handleInfeedStorage(tick, ambientTemperature, state, qDot)
+          val nextThreshold = determineMostRecentThreshold(
+            thermalHouseThreshold,
+            thermalStorageThreshold,
+          )
+          (
+            state.copy(
+              houseState = updatedHouseState,
+              storageState = updatedStorageState,
+            ),
+            nextThreshold,
+          )
+
+        case _ =>
+          throw new RuntimeException(
+            "Heat pump is running but neither house nor storage has additional demand. This should not happen."
+          )
       }
+
     }
   }
 
