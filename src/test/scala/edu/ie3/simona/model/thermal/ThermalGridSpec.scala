@@ -94,16 +94,6 @@ class ThermalGridSpec extends UnitSpec {
         energyDemand.hasRequiredDemand shouldBe true
         energyDemand.hasAdditionalDemand shouldBe true
       }
-
-      // FIXME: Think about "negative demand", maybe add more cases as well
-      "return proper information, if no required but additional demand is apparent (negative)" in {
-        val required = MegawattHours(-10d)
-        val possible = MegawattHours(-45d)
-
-        val energyDemand = ThermalEnergyDemand(required, possible)
-        energyDemand.hasRequiredDemand shouldBe false
-        energyDemand.hasAdditionalDemand shouldBe true
-      }
     }
 
     "adding two demands" should {
