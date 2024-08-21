@@ -53,6 +53,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.mockito.MockitoSugar
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
+import scala.concurrent.duration._
 
 import java.time.ZonedDateTime
 
@@ -62,6 +63,8 @@ class EmAgentIT
     with should.Matchers
     with EmInputTestData
     with MockitoSugar {
+
+  val timeoutVal = 45.seconds
 
   // start a bit later so the sun is up
   protected implicit val simulationStartDate: ZonedDateTime =
@@ -561,7 +564,7 @@ class EmAgentIT
          LOAD: 0.000269 MW
          PV:  -0.005685 MW
          Heat pump: off, can be turned on or stay off
-         -> set point ~3.5 kW (bigger than 50 % rated apparent power): turned on
+         -> set point ~3.5 kW (bigger than 50 % rated thermal power): turned on
          -> remaining -0.000566 MW
          */
 
@@ -597,7 +600,7 @@ class EmAgentIT
          LOAD: 0.000269 MW (unchanged)
          PV:  -0.003797 MW
          Heat pump: running (turned on from last request), can also be turned off
-         -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+         -> set point ~3.5 kW (bigger than 50 % rated thermal power): stays turned on with unchanged state
          -> remaining 0 MW
          */
 
@@ -630,8 +633,8 @@ class EmAgentIT
         /* TICK 14400
          LOAD: 0.000269 MW (unchanged)
          PV:  -0.000066 MW
-         Heat pump: Is not running, can be turned on
-         -> flex signal is 0 MW: Heat pump stays off
+         Heat pump: Is still running, can still be turned off
+         -> flex signal is 0 MW: Heat pump is turned off
          */
 
         emAgentActivation ! Activation(14400)
@@ -659,31 +662,13 @@ class EmAgentIT
             emResult.getQ should equalWithTolerance(0.000088285537.asMegaVar)
         }
 
-        scheduler.expectMessage(Completion(emAgentActivation, Some(20498)))
-
-        /* TICK 20498
-         LOAD: 0.000269 MW (unchanged)
-         PV:  -0.000032 MW (unchanged)
-         Heat pump: Is not running, since lower temp boundary is reached: Hp is turned on
-         -> flex signal is no control -> 0.00485 MW
-         */
-
-        emAgentActivation ! Activation(20498)
-
-        resultListener.expectMessageType[ParticipantResultEvent] match {
-          case ParticipantResultEvent(emResult: EmResult) =>
-            emResult.getInputModel shouldBe emInput.getUuid
-            emResult.getTime shouldBe 20498.toDateTime
-            emResult.getP should equalWithTolerance(0.005052956264.asMegaWatt)
-            emResult.getQ should equalWithTolerance(0.001073120041.asMegaVar)
-        }
-
         scheduler.expectMessage(Completion(emAgentActivation, Some(21600)))
 
         /* TICK 21600
-        LOAD: 0.000269 MW (unchanged)
-        PV:  -0.000032 MW (unchanged)
-        Heat pump: Is running and cannot be turned off
+         LOAD: 0.000269 MW (unchanged)
+         PV:  -0.000032 MW
+         Heat pump: Is not running, can run or stay off
+         -> flex signal is 0 MW: Heat pump is turned off
          */
 
         emAgentActivation ! Activation(21600)
@@ -698,7 +683,7 @@ class EmAgentIT
               Celsius(0d),
               MetersPerSecond(0d),
             ),
-            Some(28800),
+            Some(56000),
           )
         }
 
@@ -706,11 +691,30 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 21600.toDateTime
-            emResult.getP should equalWithTolerance(0.005086767999.asMegaWatt)
-            emResult.getQ should equalWithTolerance(0.001073120041.asMegaVar)
+            emResult.getP should equalWithTolerance(0.0002367679996.asMegaWatt)
+            emResult.getQ should equalWithTolerance(0.000088285537.asMegaVar)
         }
 
-        scheduler.expectMessage(Completion(emAgentActivation, Some(28800)))
+        scheduler.expectMessage(Completion(emAgentActivation, Some(44398)))
+
+        /* TICK 44398
+         LOAD: 0.000269 MW (unchanged)
+         PV:  -0.000032 MW (unchanged)
+         Heat pump: Is turned on again and cannot be turned off
+         -> flex signal is no control -> 0.00485 MW
+         */
+
+        emAgentActivation ! Activation(44398)
+
+        resultListener.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(emResult: EmResult) =>
+            emResult.getInputModel shouldBe emInput.getUuid
+            emResult.getTime shouldBe 44398.toDateTime
+            emResult.getP should equalWithTolerance(0.005086768.asMegaWatt)
+            emResult.getQ should equalWithTolerance(0.00107312004.asMegaVar)
+        }
+
+        scheduler.expectMessage(Completion(emAgentActivation, Some(56000)))
       }
     }
 
