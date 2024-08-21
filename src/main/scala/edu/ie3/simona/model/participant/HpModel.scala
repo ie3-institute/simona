@@ -175,7 +175,7 @@ final case class HpModel(
       demandHouse.hasRequiredDemand || demandHouse.hasAdditionalDemand ||
         demandStorage.hasRequiredDemand || demandStorage.hasAdditionalDemand
     val canBeOutOfOperation =
-      !(demandHouse.hasRequiredDemand && noStorageOrStorageIsEmpty) && !demandStorage.hasRequiredDemand
+      !(demandHouse.hasRequiredDemand && noStorageOrStorageIsEmpty)
 
     (
       turnHpOn,

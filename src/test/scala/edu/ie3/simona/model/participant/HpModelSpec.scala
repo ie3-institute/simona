@@ -246,7 +246,6 @@ class HpModelSpec
             // House is below lower temperature boundary
             // Heat storage is empty
             // hp must be turned on
-
             (
               ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(15), Kilowatts(0))),
@@ -314,9 +313,8 @@ class HpModelSpec
               ),
               (95.0, 95.0, 95.0),
             ),
-            // FIXME? Realistic case?
             // 4. Same as before but heat storage is NOT empty
-            // Hp should not run but can be turned on
+            // Hp should not run because of storage but can be turned on
             (
               ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(15), Kilowatts(0))),
@@ -437,8 +435,7 @@ class HpModelSpec
             // 9. Hp actually running
             // House is between target temperature and upper temperature boundary
             // Heat storage is empty
-            /// FIXME: In theory we could stop charging the storage and offer flex here!
-            // Hp must run because of storage
+            // Hp will run because of storage but can be turned off
             (
               ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
@@ -456,7 +453,7 @@ class HpModelSpec
                 ),
                 Some(HouseTemperatureUpperBoundaryReached(0L)),
               ),
-              (95.0, 95.0, 95.0),
+              (95.0, 0.0, 95.0),
             ),
             // 10. Same as before but storage is NOT empty
             // Hp should run but can be turned off
@@ -482,7 +479,7 @@ class HpModelSpec
             // 11. Hp actually not running
             // House is between target temperature and upper temperature boundary
             // Heat storage is empty
-            // Hp must run because of storage
+            // Hp should run because of storage but can be turned off
             (
               ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
@@ -500,7 +497,7 @@ class HpModelSpec
                 ),
                 Some(HouseTemperatureUpperBoundaryReached(0L)),
               ),
-              (95.0, 95.0, 95.0),
+              (95.0, 0.0, 95.0),
             ),
             // 12. Same as before but storage is NOT empty
             // Hp should not run but can be turned on for storage or house
@@ -523,10 +520,11 @@ class HpModelSpec
               ),
               (0.0, 0.0, 95.0),
             ),
+
             // 13. Hp actually running
             // House is at upper temperature boundary
             // Heat storage is empty
-            // Hp must run because of storage
+            // Hp should run because of storage but can be turned off
             (
               ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(22), Kilowatts(0))),
@@ -544,10 +542,9 @@ class HpModelSpec
                 ),
                 Some(HouseTemperatureUpperBoundaryReached(0L)),
               ),
-              (95.0, 95.0, 95.0),
+              (95.0, 0.0, 95.0),
             ),
             // 14. Same as before but storage is NOT empty
-            // FIXME: In theory we could stop charging the storage and offer flex here!
             // Hp should run but can be turned off
             (
               ThermalGridState(
@@ -571,8 +568,7 @@ class HpModelSpec
             // 15. Hp actually not running
             // House is at upper temperature boundary
             // Heat storage is empty
-            // FIXME: In theory we could stop charging the storage and offer flex here!
-            // Hp must run because of storage
+            // Hp should run because of storage but can be turned off
             (
               ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(22), Kilowatts(0))),
@@ -590,7 +586,7 @@ class HpModelSpec
                 ),
                 Some(HouseTemperatureUpperBoundaryReached(0L)),
               ),
-              (95.0, 95.0, 95.0),
+              (95.0, 0.0, 95.0),
             ),
 
             // 16. Same as before but storage is NOT empty
@@ -615,7 +611,6 @@ class HpModelSpec
               (0.0, 0.0, 95.0),
             ),
 
-            // FIXME
             // Storage is full, House has capacity till upper boundary
             (
               ThermalGridState(
