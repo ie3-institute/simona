@@ -53,7 +53,6 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.mockito.MockitoSugar
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
-import scala.concurrent.duration._
 
 import java.time.ZonedDateTime
 
@@ -63,8 +62,6 @@ class EmAgentIT
     with should.Matchers
     with EmInputTestData
     with MockitoSugar {
-
-  val timeoutVal = 45.seconds
 
   // start a bit later so the sun is up
   protected implicit val simulationStartDate: ZonedDateTime =
