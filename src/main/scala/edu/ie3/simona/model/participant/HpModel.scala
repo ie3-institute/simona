@@ -20,7 +20,6 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptio
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.DefaultQuantities
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.energy.{Energy, KilowattHours, Kilowatts}
 import squants.{Power, Temperature}
@@ -119,20 +118,23 @@ final case class HpModel(
     * function calculates the heat pump's next state to get the actual active
     * power of this state use [[calculateActivePower]] with the generated state
     *
-    * @param state
-    *   Current state of the heat pump
+    * @param lastState
+    *   Last state of the heat pump
     * @param relevantData
     *   data of heat pump including
     * @return
-    *   next [[HpState]]
+    *   Booleans if Hp can operate and can be out of operation plus next
+    *   [[HpState]]
     */
   def determineState(
-      state: HpState,
+      lastState: HpState,
       relevantData: HpRelevantData,
-  ): HpState = {
-    val (turnOn, houseDemand, storageDemand) =
-      operatesInNextState(state, relevantData)
-    calcState(state, relevantData, turnOn, houseDemand, storageDemand)
+  ): (Boolean, Boolean, HpState) = {
+    val (turnOn, canOperate, canBeOutOfOperation, houseDemand, storageDemand) =
+      operatesInNextState(lastState, relevantData)
+    val updatedState =
+      calcState(lastState, relevantData, turnOn, houseDemand, storageDemand)
+    (canOperate, canBeOutOfOperation, updatedState)
   }
 
   /** Depending on the input, this function decides whether the heat pump will
@@ -146,13 +148,13 @@ final case class HpModel(
     * @param relevantData
     *   Relevant (external) data
     * @return
-    *   boolean defining if heat pump runs in next time step and if house and
-    *   storage have some demand
+    *   boolean defining if heat pump runs in next time step, if it can be in
+    *   operation and out of operation plus the demand of house and storage
     */
   private def operatesInNextState(
       state: HpState,
       relevantData: HpRelevantData,
-  ): (Boolean, ThermalEnergyDemand, ThermalEnergyDemand) = {
+  ): (Boolean, Boolean, Boolean, ThermalEnergyDemand, ThermalEnergyDemand) = {
     val (demandHouse, demandStorage, updatedState) =
       thermalGrid.energyDemandAndUpdatedState(
         relevantData.currentTick,
@@ -167,11 +169,18 @@ final case class HpModel(
 
     val turnHpOn: Boolean = {
       (demandHouse.hasRequiredDemand && noStorageOrStorageIsEmpty) || demandStorage.hasRequiredDemand || (state.isRunning && demandHouse.hasAdditionalDemand) || (state.isRunning && demandStorage.hasAdditionalDemand)
-
     }
+
+    val canOperate =
+      demandHouse.hasRequiredDemand || demandHouse.hasAdditionalDemand ||
+        demandStorage.hasRequiredDemand || demandStorage.hasAdditionalDemand
+    val canBeOutOfOperation =
+      !(demandHouse.hasRequiredDemand && noStorageOrStorageIsEmpty) && !demandStorage.hasRequiredDemand
 
     (
       turnHpOn,
+      canOperate,
+      canBeOutOfOperation,
       demandHouse,
       demandStorage,
     )
@@ -239,24 +248,8 @@ final case class HpModel(
       lastState: HpState,
   ): ProvideFlexOptions = {
     /* Determine the operating state in the given tick */
-    val updatedHpState: HpState = determineState(lastState, data)
-
-    /* Determine the options we have */
-    val (
-      thermalEnergyDemandHouse,
-      thermalEnergyDemandStorage,
-      updatedThermalGridState,
-    ) =
-      thermalGrid.energyDemandAndUpdatedState(
-        data.currentTick,
-        data.ambientTemperature,
-        lastState.thermalGridState,
-      )
-    val canOperate =
-      thermalEnergyDemandHouse.hasRequiredDemand || thermalEnergyDemandHouse.hasAdditionalDemand ||
-        thermalEnergyDemandStorage.hasRequiredDemand || thermalEnergyDemandStorage.hasAdditionalDemand
-    val canBeOutOfOperation =
-      !thermalEnergyDemandHouse.hasRequiredDemand && !thermalEnergyDemandStorage.hasRequiredDemand
+    val (canOperate, canBeOutOfOperation, updatedHpState)
+        : (Boolean, Boolean, HpState) = determineState(lastState, data)
 
     val lowerBoundary =
       if (canBeOutOfOperation)
