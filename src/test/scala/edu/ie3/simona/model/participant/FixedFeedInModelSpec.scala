@@ -13,6 +13,7 @@ import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.test.common.input.FixedFeedInputTestData
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits.MEGAVOLTAMPERE
 import edu.ie3.util.scala.quantities.{
   ApparentPower,
@@ -73,6 +74,36 @@ class FixedFeedInModelSpec
           )
           cosPhiRated shouldBe fixedFeedInput.getCosPhiRated
       }
+    }
+
+    "return approximately correct power calculations" in {
+      val expectedPower = Kilowatts(
+        fixedFeedInput
+          .getsRated()
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue() * -1 * fixedFeedInput.getCosPhiRated
+      )
+
+      val actualModel = new FixedFeedInModel(
+        fixedFeedInput.getUuid,
+        fixedFeedInput.getId,
+        defaultOperationInterval,
+        QControl.apply(fixedFeedInput.getqCharacteristics()),
+        Kilowatts(
+          fixedFeedInput
+            .getsRated()
+            .to(PowerSystemUnits.KILOWATT)
+            .getValue
+            .doubleValue()
+        ),
+        fixedFeedInput.getCosPhiRated,
+      )
+
+      actualModel.calculateActivePower(
+        ModelState.ConstantState,
+        CalcRelevantData.FixedRelevantData,
+      ) shouldBe expectedPower
     }
   }
 }

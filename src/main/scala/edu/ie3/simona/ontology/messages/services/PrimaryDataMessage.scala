@@ -10,7 +10,6 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ApparentPower => ComplexPower
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ProvisionMessage
-import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import org.apache.pekko.actor.ActorRef
 
 sealed trait PrimaryDataMessage
