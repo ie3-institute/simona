@@ -282,9 +282,8 @@ final case class HpModel(
     /* Determine the options we have */
     val (
       thermalEnergyDemandHouse,
-      thermalEnergyDemandStorage,
-      // FIXME
-      thermalEnergyDemandWaterStorage,
+      thermalEnergyDemandHeatStorage,
+      thermalEnergyDemandDomesticHotWaterStorage,
       updatedThermalGridState,
     ) =
       thermalGrid.energyDemandAndUpdatedState(
@@ -295,11 +294,16 @@ final case class HpModel(
         data.simulationStart,
         data.houseInhabitants,
       )
+
     val canOperate =
       thermalEnergyDemandHouse.hasRequiredDemand || thermalEnergyDemandHouse.hasAdditionalDemand ||
-        thermalEnergyDemandStorage.hasRequiredDemand || thermalEnergyDemandStorage.hasAdditionalDemand
+        thermalEnergyDemandHeatStorage.hasRequiredDemand || thermalEnergyDemandHeatStorage.hasAdditionalDemand ||
+        thermalEnergyDemandDomesticHotWaterStorage.hasRequiredDemand || thermalEnergyDemandDomesticHotWaterStorage.hasAdditionalDemand
+
     val canBeOutOfOperation =
-      !thermalEnergyDemandHouse.hasRequiredDemand && !thermalEnergyDemandStorage.hasRequiredDemand
+      !thermalEnergyDemandHouse.hasRequiredDemand &&
+        !thermalEnergyDemandHeatStorage.hasRequiredDemand &&
+        !thermalEnergyDemandDomesticHotWaterStorage.hasRequiredDemand
 
     val lowerBoundary =
       if (canBeOutOfOperation)
