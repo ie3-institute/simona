@@ -349,7 +349,8 @@ class HpModelSpec
               (0.0, 0.0, 95.0),
             ),
 
-            // No capacity for flexibility at all
+            // No capacity for flexibility at all because house is
+            // at upperTempBoundary and storage is at max capacity
             (
               ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(22), Kilowatts(80))),
@@ -372,7 +373,7 @@ class HpModelSpec
               (0.0, 0.0, 0.0),
             ),
 
-            // No capacity for flexibility at all when house has been (external) heated up above upperTemperatureBoundary
+            // No capacity for flexibility at all when storage is full and house has been (externally) heated up above upperTemperatureBoundary
             (
               ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(25), Kilowatts(0))),
@@ -413,6 +414,10 @@ class HpModelSpec
             val hp = hpModel(grid)
 
             // Create relevant data for the current test
+            // As we are only testing flexOptions here, we can use tick 0
+            // which is also the tick of the lastState.
+            // This should not happen in the simulation!
+            // This can be simplified once the transitoryData is introduced
             val relevantData = hpData.copy(currentTick =
               thermalState.houseState.map(_.tick).getOrElse(0L)
             )
