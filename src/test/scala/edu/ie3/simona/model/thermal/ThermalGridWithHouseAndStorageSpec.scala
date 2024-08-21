@@ -445,7 +445,7 @@ class ThermalGridWithHouseAndStorageSpec
                 Some(
                   (
                     ThermalHouseState(houseTick, _, revisedQDotHouse),
-                    Some(HouseTemperatureUpperBoundaryReached(houseColdTick)),
+                    Some(HouseTemperatureUpperBoundaryReached(houseWarmTick)),
                   )
                 ),
                 Some(
