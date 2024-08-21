@@ -18,7 +18,7 @@ import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMin
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.HpInputTestData
 import edu.ie3.util.scala.quantities.WattsPerKelvin
-import org.scalatest.prop.TableDrivenPropertyChecks
+import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor3}
 import squants.energy.{KilowattHours, Kilowatts, Watts}
 import squants.thermal.Celsius
 import squants.{Kelvin, Power, Temperature}
@@ -232,56 +232,214 @@ class HpModelSpec
       }
     }
 
-    "determining the flexibility options" when {
-      "the house is heated up and storage has space" should {
-        "deliver positive flexibility" in {
-          val house = thermalHouse(18, 22)
-            .copy(ethLosses = WattsPerKelvin(200))
-          val grid = thermalGrid(house, Some(thermalStorage), None)
-          val hp = hpModel(grid)
-          // Tick, at which the house is heated up
-          val relevantData = hpData.copy(currentTick = 2763L)
-          val thermalState = ThermalGridState(
-            Some(
-              ThermalHouseState(
-                0L,
-                Celsius(21),
-                Kilowatts(80),
-              )
+    "determining the flexibility options for different states" should {
+      "deliver correct flexibility options" in {
+        val testCases
+            : TableFor3[ThermalGridState, HpState, (Double, Double, Double)] =
+          Table(
+            ("thermalState", "lastState", "expectedValues"),
+            // House is below lower temperature boundary
+            (
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(15), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+              ),
+              HpState(
+                isRunning = false,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(0.0),
+                Kilowatts(0.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(15), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
+                  ),
+                ),
+                None,
+              ),
+              (95.0, 95.0, 95.0),
             ),
-            Some(
-              ThermalStorageState(
-                0L,
-                KilowattHours(250),
-                Kilowatts(0),
-              )
+            // House is between target temperature and lower temperature boundary, Hp actually running
+            (
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+              ),
+              HpState(
+                isRunning = true,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(95.0),
+                Kilowatts(80.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(19), Kilowatts(80))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
+                  ),
+                ),
+                None,
+              ),
+              (95.0, 0.0, 95.0),
             ),
-            None,
-          )
-          val lastState = HpState(
-            isRunning = true,
-            0,
-            Some(hpData.ambientTemperature),
-            Kilowatts(95.0),
-            Kilowatts(80.0),
-            thermalState,
-            Some(HouseTemperatureUpperBoundaryReached(7995L)),
+
+            // House is between target temperature and lower temperature boundary, Hp actually not running
+            (
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+              ),
+              HpState(
+                isRunning = false,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(0.0),
+                Kilowatts(0.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
+                  ),
+                ),
+                None,
+              ),
+              (0.0, 0.0, 95.0),
+            ),
+            // Storage and house have remaining capacity
+            (
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(21), Kilowatts(80))),
+                Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+              ),
+              HpState(
+                isRunning = true,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(95.0),
+                Kilowatts(80.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(21), Kilowatts(80))),
+                  Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+                ),
+                Some(HouseTemperatureUpperBoundaryReached(0L)),
+              ),
+              (95.0, 0.0, 95.0),
+            ),
+
+            // Storage is full, House has capacity till upper boundary
+            (
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(21), Kilowatts(80))),
+                Some(ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))),
+              ),
+              HpState(
+                isRunning = false,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(0.0),
+                Kilowatts(0.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(21), Kilowatts(80))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))
+                  ),
+                ),
+                Some(HouseTemperatureUpperBoundaryReached(0L)),
+              ),
+              (0.0, 0.0, 95.0),
+            ),
+
+            // No capacity for flexibility at all because house is
+            // at upperTempBoundary and storage is at max capacity
+            (
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(22), Kilowatts(80))),
+                Some(ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))),
+              ),
+              HpState(
+                isRunning = true,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(95.0),
+                Kilowatts(80.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(22), Kilowatts(80))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))
+                  ),
+                ),
+                Some(HouseTemperatureUpperBoundaryReached(0L)),
+              ),
+              (0.0, 0.0, 0.0),
+            ),
+
+            // No capacity for flexibility at all when storage is full and house has been (externally) heated up above upperTemperatureBoundary
+            (
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(25), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))),
+              ),
+              HpState(
+                isRunning = false,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(95.0),
+                Kilowatts(80.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(25), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))
+                  ),
+                ),
+                None,
+              ),
+              (0.0, 0.0, 0.0),
+            ),
           )
 
-          hp.determineFlexOptions(relevantData, lastState) match {
-            case ProvideMinMaxFlexOptions(
-                  modelUuid,
-                  referencePower,
-                  minPower,
-                  maxPower,
-                ) =>
-              modelUuid shouldBe hp.uuid
-              referencePower should approximate(Kilowatts(95.0))
-              minPower should approximate(Kilowatts(0.0))
-              maxPower should approximate(Kilowatts(95.0))
-          }
+        // Run the test cases
+        forAll(testCases) {
+          (
+              thermalState: ThermalGridState,
+              lastState: HpState,
+              expectedValues: (Double, Double, Double),
+          ) =>
+            val (expectedReferencePower, expectedMinPower, expectedMaxPower) =
+              expectedValues
+
+            // Initialize the house and grid models
+            val house =
+              thermalHouse(18, 22).copy(ethLosses = WattsPerKelvin(200))
+            val grid = thermalGrid(house, Some(thermalStorage))
+            val hp = hpModel(grid)
+
+            // Create relevant data for the current test
+            // As we are only testing flexOptions here, we can use tick 0
+            // which is also the tick of the lastState.
+            // This should not happen in the simulation!
+            // This can be simplified once the transitoryData is introduced
+            val relevantData = hpData.copy(currentTick =
+              thermalState.houseState.map(_.tick).getOrElse(0L)
+            )
+
+            // Invoke determineFlexOptions and match the results
+            hp.determineFlexOptions(relevantData, lastState) match {
+              case ProvideMinMaxFlexOptions(
+                    modelUuid,
+                    referencePower,
+                    minPower,
+                    maxPower,
+                  ) =>
+                modelUuid shouldBe hp.uuid
+                referencePower should approximate(
+                  Kilowatts(expectedReferencePower)
+                )
+                minPower should approximate(Kilowatts(expectedMinPower))
+                maxPower should approximate(Kilowatts(expectedMaxPower))
+            }
         }
       }
     }
+
   }
 }
