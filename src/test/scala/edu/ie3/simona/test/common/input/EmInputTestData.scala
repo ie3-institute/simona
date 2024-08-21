@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.test.common.input
 
-import edu.ie3.datamodel.models.input.{EmInput, OperatorInput}
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.datamodel.models.input.system.`type`.chargingpoint.ChargingPointTypeUtils
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
@@ -20,17 +19,21 @@ import edu.ie3.datamodel.models.input.system.characteristic.{
 }
 import edu.ie3.datamodel.models.input.system.{EvcsInput, HpInput, StorageInput}
 import edu.ie3.datamodel.models.input.thermal.{
+  DomesticHotWaterStorageInput,
   ThermalHouseInput,
   ThermalStorageInput,
 }
+import edu.ie3.datamodel.models.input.{EmInput, OperatorInput}
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.util.ConfigUtil
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits._
 import squants.energy.Kilowatts
 import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units
 
 import java.util.UUID
 import scala.jdk.CollectionConverters.SeqHasAsJava
@@ -140,7 +143,7 @@ trait EmInputTestData
     UUID.fromString("91940626-bdd0-41cf-96dd-47c94c86b20e"),
     "thermal house",
     thermalBusInput,
-    Quantities.getQuantity(0.325, StandardUnits.THERMAL_TRANSMISSION),
+    Quantities.getQuantity(0.15, StandardUnits.THERMAL_TRANSMISSION),
     Quantities.getQuantity(75, StandardUnits.HEAT_CAPACITY),
     Quantities.getQuantity(20.3, StandardUnits.TEMPERATURE),
     Quantities.getQuantity(22.0, StandardUnits.TEMPERATURE),
@@ -148,10 +151,23 @@ trait EmInputTestData
     "house",
     2.0,
   )
+
+  protected val typicalDomesteticHotWaterStorage: DomesticHotWaterStorageInput =
+    new DomesticHotWaterStorageInput(
+      UUID.fromString("77579045-6695-4cd3-be52-ffe81502182d"),
+      "domestic hot water storage",
+      thermalBusInput,
+      Quantities.getQuantity(300.0, Units.LITRE),
+      Quantities.getQuantity(60.0, StandardUnits.TEMPERATURE),
+      Quantities.getQuantity(30.0, StandardUnits.TEMPERATURE),
+      Quantities.getQuantity(1.16, StandardUnits.SPECIFIC_HEAT_CAPACITY),
+      Quantities.getQuantity(11.0, PowerSystemUnits.KILOWATT),
+    )
+
   val adaptedThermalGrid = new ThermalGrid(
     thermalBusInput,
     Seq(adaptedThermalHouse).asJava,
     Seq.empty[ThermalStorageInput].asJava,
-    Seq.empty[ThermalStorageInput].asJava,
+    Seq[ThermalStorageInput](typicalDomesteticHotWaterStorage).asJava,
   )
 }
