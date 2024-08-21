@@ -304,7 +304,7 @@ class HpModelSpec
                 Kilowatts(0.0),
                 Kilowatts(0.0),
                 ThermalGridState(
-                  Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
+                  Some(ThermalHouseState(0L, Celsius(15), Kilowatts(0))),
                   Some(
                     ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))
                   ),
@@ -327,7 +327,7 @@ class HpModelSpec
                 Kilowatts(0.0),
                 Kilowatts(0.0),
                 ThermalGridState(
-                  Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
+                  Some(ThermalHouseState(0L, Celsius(15), Kilowatts(0))),
                   Some(
                     ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
                   ),
@@ -339,7 +339,7 @@ class HpModelSpec
             // 5. Hp actually running
             // House is between target temperature and lower temperature boundary
             // Heat storage is empty
-            // Hp has to run
+            // Hp runs but can be turned off
             (
               ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
@@ -359,7 +359,7 @@ class HpModelSpec
                 ),
                 None,
               ),
-              (95.0, 95.0, 95.0),
+              (95.0, 0.0, 95.0),
             ),
             // 6. Same as before but heat storage is NOT empty
             // should be possible to keep hp off
@@ -387,7 +387,7 @@ class HpModelSpec
             // 7. Hp actually NOT running
             // House is between target temperature and lower temperature boundary
             // Heat storage is empty
-            // Hp must run because of storage
+            // Hp should run because of storage but can be turned off
             (
               ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
@@ -407,7 +407,7 @@ class HpModelSpec
                 ),
                 None,
               ),
-              (95.0, 95.0, 95.0),
+              (95.0, 0.0, 95.0),
             ),
             // 8. Same as before but heat storage is NOT empty
             // Hp should be off but able to turn on
