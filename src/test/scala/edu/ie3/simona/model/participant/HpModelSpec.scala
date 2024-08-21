@@ -238,11 +238,16 @@ class HpModelSpec
             : TableFor3[ThermalGridState, HpState, (Double, Double, Double)] =
           Table(
             ("thermalState", "lastState", "expectedValues"),
+            // Hp actually not running
             // House is below lower temperature boundary
+            // Heat storage is empty
+            // Domestic hot water storage is full
+            // should not be possible to turn hp off
             (
               ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(15), Kilowatts(0))),
-                Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
               ),
               HpState(
                 isRunning = false,
@@ -255,16 +260,24 @@ class HpModelSpec
                   Some(
                     ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
                   ),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))
+                  ),
                 ),
                 None,
               ),
               (95.0, 95.0, 95.0),
             ),
-            // House is between target temperature and lower temperature boundary, Hp actually running
+            // Hp actually running
+            // House is between target temperature and lower temperature boundary
+            // Heat storage has capacity
+            // Domestic hot water storage is full
+            // Should be possible to turn off, since storage can be used to cover heat demand of house
             (
               ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
                 Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
               ),
               HpState(
                 isRunning = true,
@@ -277,6 +290,9 @@ class HpModelSpec
                   Some(
                     ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
                   ),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))
+                  ),
                 ),
                 None,
               ),
@@ -288,6 +304,7 @@ class HpModelSpec
               ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
                 Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
               ),
               HpState(
                 isRunning = false,
@@ -300,6 +317,9 @@ class HpModelSpec
                   Some(
                     ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
                   ),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))
+                  ),
                 ),
                 None,
               ),
@@ -310,6 +330,7 @@ class HpModelSpec
               ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(21), Kilowatts(80))),
                 Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
               ),
               HpState(
                 isRunning = true,
@@ -319,7 +340,12 @@ class HpModelSpec
                 Kilowatts(80.0),
                 ThermalGridState(
                   Some(ThermalHouseState(0L, Celsius(21), Kilowatts(80))),
-                  Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
+                  ),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))
+                  ),
                 ),
                 Some(HouseTemperatureUpperBoundaryReached(0L)),
               ),
@@ -331,6 +357,7 @@ class HpModelSpec
               ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(21), Kilowatts(80))),
                 Some(ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
               ),
               HpState(
                 isRunning = false,
@@ -342,6 +369,9 @@ class HpModelSpec
                   Some(ThermalHouseState(0L, Celsius(21), Kilowatts(80))),
                   Some(
                     ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))
+                  ),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))
                   ),
                 ),
                 Some(HouseTemperatureUpperBoundaryReached(0L)),
@@ -355,6 +385,7 @@ class HpModelSpec
               ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(22), Kilowatts(80))),
                 Some(ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
               ),
               HpState(
                 isRunning = true,
@@ -367,6 +398,9 @@ class HpModelSpec
                   Some(
                     ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))
                   ),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))
+                  ),
                 ),
                 Some(HouseTemperatureUpperBoundaryReached(0L)),
               ),
@@ -378,6 +412,7 @@ class HpModelSpec
               ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(25), Kilowatts(0))),
                 Some(ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
               ),
               HpState(
                 isRunning = false,
@@ -389,6 +424,9 @@ class HpModelSpec
                   Some(ThermalHouseState(0L, Celsius(25), Kilowatts(0))),
                   Some(
                     ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))
+                  ),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))
                   ),
                 ),
                 None,
@@ -410,7 +448,11 @@ class HpModelSpec
             // Initialize the house and grid models
             val house =
               thermalHouse(18, 22).copy(ethLosses = WattsPerKelvin(200))
-            val grid = thermalGrid(house, Some(thermalStorage))
+            val grid = thermalGrid(
+              house,
+              Some(thermalStorage),
+              Some(domesticHotWaterStorage),
+            )
             val hp = hpModel(grid)
 
             // Create relevant data for the current test
