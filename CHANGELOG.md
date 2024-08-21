@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced Newton-Raphson-PowerFlow failures with more information [#815](https://github.com/ie3-institute/simona/issues/815)
 - Update RTD references and bibliography [#868](https://github.com/ie3-institute/simona/issues/868)
 - Add gradle application plugin for command line execution with gradle run [#890](https://github.com/ie3-institute/simona/issues/890)
+- Additional tests to check flexibility options of thermal house and storage [#729](https://github.com/ie3-institute/simona/issues/729)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -76,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated AUTHORS.md [#904](https://github.com/ie3-institute/simona/issues/904)
 - Updated `Gradle` to version V8.10 [#829](https://github.com/ie3-institute/simona/issues/829)
 - Updated AUTHORS.md [#905](https://github.com/ie3-institute/simona/issues/905)
+- Prepare ThermalStorageTestData for Storage without storageVolumeLvlMin [#894](https://github.com/ie3-institute/simona/issues/894)
 
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
@@ -100,6 +102,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed FixedFeedModelSpec [#861](https://github.com/ie3-institute/simona/issues/861)
 - Fixing duration calculation in result events [#801](https://github.com/ie3-institute/simona/issues/801)
 - Handle MobSim requests for current prices [#892](https://github.com/ie3-institute/simona/issues/892)
+- Fixed Hp results leading to overheating house and other effects [#827](https://github.com/ie3-institute/simona/issues/827)
+- Fixed thermal storage getting recharged when empty [#827](https://github.com/ie3-institute/simona/issues/827)
 
 ## [3.0.0] - 2023-08-07
 
