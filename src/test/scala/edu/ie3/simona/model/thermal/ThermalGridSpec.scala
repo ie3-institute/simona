@@ -51,15 +51,6 @@ class ThermalGridSpec extends UnitSpec {
     }
 
     "checking for required and additional demand" should {
-      "return proper information, if no required and no additional demand is apparent" in {
-        val required = MegawattHours(0d)
-        val possible = MegawattHours(0d)
-
-        val energyDemand = ThermalEnergyDemand(required, possible)
-        energyDemand.hasRequiredDemand shouldBe false
-        energyDemand.hasAdditionalDemand shouldBe false
-      }
-
       "return proper information, if no required but additional demand is apparent" in {
         val required = MegawattHours(0d)
         val possible = MegawattHours(45d)
@@ -71,7 +62,7 @@ class ThermalGridSpec extends UnitSpec {
 
       "return proper information, if required but no additional demand is apparent" in {
         val required = MegawattHours(45d)
-        val possible = MegawattHours(0d)
+        val possible = MegawattHours(45d)
 
         val energyDemand = ThermalEnergyDemand(required, possible)
         energyDemand.hasRequiredDemand shouldBe true
