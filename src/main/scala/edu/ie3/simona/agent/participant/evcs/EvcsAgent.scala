@@ -116,11 +116,11 @@ class EvcsAgent(
 
     case Event(
           EvFreeLotsRequest(tick),
-          stateData: DataCollectionStateData[ApparentPower],
+          stateData: DataCollectionStateData[ComplexPower],
         ) =>
       stateData.baseStateData match {
         case modelStateData: BaseStateData.ParticipantModelBaseStateData[
-              ApparentPower,
+              ComplexPower,
               EvcsRelevantData,
               EvcsState,
               EvcsModel,
@@ -135,11 +135,11 @@ class EvcsAgent(
 
     case Event(
           DepartingEvsRequest(tick, departingEvs),
-          stateData: DataCollectionStateData[ApparentPower],
+          stateData: DataCollectionStateData[ComplexPower],
         ) =>
       stateData.baseStateData match {
         case modelStateData: BaseStateData.ParticipantModelBaseStateData[
-              ApparentPower,
+              ComplexPower,
               EvcsRelevantData,
               EvcsState,
               EvcsModel,

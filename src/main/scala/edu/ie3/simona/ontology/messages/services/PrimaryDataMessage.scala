@@ -31,7 +31,6 @@ object PrimaryDataMessage {
       override val serviceRef: ActorRef,
       override val data: ComplexPower,
       override val nextDataTick: Option[Long],
-      override val unlockKey: Option[ScheduleKey] = None,
   ) extends ProvisionMessage[ComplexPower]
       with PrimaryDataMessage
 }

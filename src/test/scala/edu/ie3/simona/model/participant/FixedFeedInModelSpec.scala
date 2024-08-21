@@ -17,6 +17,7 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits.MEGAVOLTAMPERE
 import edu.ie3.util.scala.quantities.{
   ApparentPower,
+  Kilovoltamperes,
   Megavoltamperes,
   Voltamperes,
 }
@@ -90,7 +91,7 @@ class FixedFeedInModelSpec
         fixedFeedInput.getId,
         defaultOperationInterval,
         QControl.apply(fixedFeedInput.getqCharacteristics()),
-        Kilowatts(
+        Kilovoltamperes(
           fixedFeedInput
             .getsRated()
             .to(PowerSystemUnits.KILOWATT)
