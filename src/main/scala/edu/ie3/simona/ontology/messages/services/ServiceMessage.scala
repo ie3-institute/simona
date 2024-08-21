@@ -17,7 +17,7 @@ import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
   */
 sealed trait ServiceMessage
 
-case object ServiceMessage {
+object ServiceMessage {
 
   /** Message used to register for a service
     */
@@ -75,7 +75,10 @@ case object ServiceMessage {
     val tick: Long
     val serviceRef: ActorRef
     val data: D
+
+    /** Next tick at which data could arrive. If None, no data is expected for
+      * the rest of the simulation
+      */
     val nextDataTick: Option[Long]
-    val unlockKey: Option[ScheduleKey]
   }
 }
