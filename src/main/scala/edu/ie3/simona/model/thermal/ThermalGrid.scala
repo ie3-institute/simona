@@ -9,10 +9,16 @@ package edu.ie3.simona.model.thermal
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
 import edu.ie3.datamodel.models.result.ResultEntity
-import edu.ie3.datamodel.models.result.thermal.{CylindricalStorageResult, ThermalHouseResult}
+import edu.ie3.datamodel.models.result.thermal.{
+  CylindricalStorageResult,
+  ThermalHouseResult,
+}
 import edu.ie3.simona.exceptions.InvalidParameterException
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
-import edu.ie3.simona.model.thermal.ThermalGrid.{ThermalEnergyDemand, ThermalGridState}
+import edu.ie3.simona.model.thermal.ThermalGrid.{
+  ThermalEnergyDemand,
+  ThermalGridState,
+}
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -495,8 +501,12 @@ object ThermalGrid {
         required: Energy,
         possible: Energy,
     ): ThermalEnergyDemand = {
-      if (math.abs(possible.toKilowattHours) < math.abs(required.toKilowattHours))
-        throw new InvalidParameterException(s"The possible amount of energy {$possible} is smaller than the required amount of energy {$required}. This is not supported.")
+      if (
+        math.abs(possible.toKilowattHours) < math.abs(required.toKilowattHours)
+      )
+        throw new InvalidParameterException(
+          s"The possible amount of energy {$possible} is smaller than the required amount of energy {$required}. This is not supported."
+        )
       else
         new ThermalEnergyDemand(required, possible)
     }

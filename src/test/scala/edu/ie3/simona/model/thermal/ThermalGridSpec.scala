@@ -25,7 +25,8 @@ class ThermalGridSpec extends UnitSpec {
         val possible = MegawattHours(40d)
         val required = MegawattHours(42d)
 
-        intercept[InvalidParameterException] {ThermalEnergyDemand(required, possible)
+        intercept[InvalidParameterException] {
+          ThermalEnergyDemand(required, possible)
         }.getMessage shouldBe s"The possible amount of energy {$possible} is smaller than the required amount of energy {$required}. This is not supported."
       }
 
@@ -33,10 +34,10 @@ class ThermalGridSpec extends UnitSpec {
         val possible = MegawattHours(-40d)
         val required = MegawattHours(-42d)
 
-        intercept[InvalidParameterException] {ThermalEnergyDemand(required, possible)
+        intercept[InvalidParameterException] {
+          ThermalEnergyDemand(required, possible)
         }.getMessage shouldBe s"The possible amount of energy {$possible} is smaller than the required amount of energy {$required}. This is not supported."
       }
-
 
       "set the correct values, if they are sensible" in {
         val possible = MegawattHours(45d)
@@ -80,7 +81,8 @@ class ThermalGridSpec extends UnitSpec {
       "throw exception, if required demand is higher than possible demand" in {
         val required = MegawattHours(1d)
         val possible = MegawattHours(0d)
-        intercept[InvalidParameterException] {ThermalEnergyDemand(required, possible)
+        intercept[InvalidParameterException] {
+          ThermalEnergyDemand(required, possible)
         }.getMessage shouldBe s"The possible amount of energy {$possible} is smaller than the required amount of energy {$required}. This is not supported."
       }
 
@@ -93,7 +95,7 @@ class ThermalGridSpec extends UnitSpec {
         energyDemand.hasAdditionalDemand shouldBe true
       }
 
-      //FIXME: Think about "negative demand", maybe add more cases as well
+      // FIXME: Think about "negative demand", maybe add more cases as well
       "return proper information, if no required but additional demand is apparent (negative)" in {
         val required = MegawattHours(-10d)
         val possible = MegawattHours(-45d)
