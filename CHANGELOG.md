@@ -71,6 +71,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated dependabot reviewers [#888](https://github.com/ie3-institute/simona/issues/888)
 - Merged `HpModelTestData` with `HpTestData` to `HpInputTestData` [#872](https://github.com/ie3-institute/simona/issues/872)
 - Harmonised both methods that check the inner temperature of thermal house against the boundaries [#880](https://github.com/ie3-institute/simona/issues/880)
+- Convert all `eval-rst` instances in rtd to myst syntax [#901](https://github.com/ie3-institute/simona/issues/901)
+- External simulation should provide information about next tick of MobSim [#776](https://github.com/ie3-institute/simona/issues/776)
+- Reverted temporary workaround in `spotless.gradle` [#681](https://github.com/ie3-institute/simona/issues/681)
+- Updated AUTHORS.md [#904](https://github.com/ie3-institute/simona/issues/904)
+- Updated AUTHORS.md [#905](https://github.com/ie3-institute/simona/issues/905)
 
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
@@ -157,6 +162,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed format of example grid `vn_simona` [#216](https://github.com/ie3-institute/simona/issues/216)
 - Renamed ChpData to ChpRelevantData [#494](https://github.com/ie3-institute/simona/issues/494)
 - Updated gradle to 8.2.1, cleaned up `build.gradle` and `Jenkinsfile` [#572](https://github.com/ie3-institute/simona/issues/572)
+- Changed implementation of actor naming for unique name generation [#103](https://github.com/ie3-institute/simona/issues/103)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)
