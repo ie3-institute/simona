@@ -596,8 +596,9 @@ class EmAgentIT
         /* TICK 7200
          LOAD: 0.000269 MW (unchanged)
          PV:  -0.003797 MW
-         Heat pump: running (turned on from last request), must be turned off
-         -> remaining -0.003528 MW
+         Heat pump: running (turned on from last request), can also be turned off
+         -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+         -> remaining 0 MW
          */
 
         emAgentActivation ! Activation(7200)
@@ -620,10 +621,8 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 7200.toDateTime
-            emResult.getP should equalWithTolerance(
-              (-0.003528154555).asMegaWatt
-            )
-            emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
+            emResult.getP should equalWithTolerance(0.00132184544484.asMegaWatt)
+            emResult.getQ should equalWithTolerance(0.001073120041.asMegaVar)
         }
 
         scheduler.expectMessage(Completion(emAgentActivation, Some(14400)))
