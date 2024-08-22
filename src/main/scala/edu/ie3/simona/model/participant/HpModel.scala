@@ -233,13 +233,9 @@ final case class HpModel(
           _.storedEnergy =~ zeroKWH
         )
 
-    val houseDemand =
-      (demandHouse.hasRequiredDemand && noThermalStorageOrThermalStorageIsEmpty) || (hpState.isRunning && demandHouse.hasAdditionalDemand)
-    val heatStorageDemand = {
-      (demandThermalStorage.hasRequiredDemand) || (hpState.isRunning && demandThermalStorage.hasAdditionalDemand)
-    }
-    val domesticHotWaterStorageDemand =
-      (demandDomesticHotWaterStorage.hasRequiredDemand) || (hpState.isRunning && demandDomesticHotWaterStorage.hasAdditionalDemand)
+    val houseDemand = (demandHouse.hasRequiredDemand && noThermalStorageOrThermalStorageIsEmpty) || (hpState.isRunning && demandHouse.hasAdditionalDemand)
+    val heatStorageDemand = demandThermalStorage.hasRequiredDemand || (hpState.isRunning && demandThermalStorage.hasAdditionalDemand)
+    val domesticHotWaterStorageDemand = demandDomesticHotWaterStorage.hasRequiredDemand || (hpState.isRunning && demandDomesticHotWaterStorage.hasAdditionalDemand)
 
     (
       houseDemand,
@@ -265,7 +261,7 @@ final case class HpModel(
     *   determines if the thermal storage has heat demand
     * @param domesticHotWaterStorageDemand
     *   determines if the domestic hot water storage has heat demand
-    * @param simulationStart
+    * @param simulationStartTime
     *   simulationStartDate as ZonedDateTime
     * @param houseInhabitants
     *   number of people living in the building
