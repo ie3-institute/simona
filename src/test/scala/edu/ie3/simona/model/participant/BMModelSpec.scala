@@ -313,7 +313,7 @@ class BMModelSpec extends UnitSpec {
           powerSol: Power,
       ) =>
         val dateTime = ZonedDateTime.parse(time)
-        val relevantData = new BMModel.BMCalcRelevantData(dateTime, temp)
+        val relevantData = BMCalcRelevantData(dateTime, temp)
 
         val bmModel = new BMModel(
           UUID.fromString("08a8134d-04b7-45de-a937-9a55fab4e1af"),
