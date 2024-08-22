@@ -206,9 +206,8 @@ final case class HpModel(
       demandHouse.hasRequiredDemand || demandHouse.hasAdditionalDemand ||
         demandThermalStorage.hasRequiredDemand || demandThermalStorage.hasAdditionalDemand
     demandDomesticHotWaterStorage.hasRequiredDemand || demandDomesticHotWaterStorage.hasAdditionalDemand
-    // FIXME: does demandDomesticHotWaterStorage need to be considered here?
     val canBeOutOfOperation =
-      !(demandHouse.hasRequiredDemand && noThermalStorageOrThermalStorageIsEmpty)
+      !(demandHouse.hasRequiredDemand && noThermalStorageOrThermalStorageIsEmpty) && !demandDomesticHotWaterStorage.hasRequiredDemand
 
     (
       turnHpOn,
