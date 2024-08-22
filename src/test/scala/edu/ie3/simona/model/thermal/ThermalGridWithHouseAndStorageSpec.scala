@@ -454,7 +454,7 @@ class ThermalGridWithHouseAndStorageSpec
                 Some(
                   (
                     ThermalHouseState(houseTick, _, revisedQDotHouse),
-                    Some(HouseTemperatureUpperBoundaryReached(houseColdTick)),
+                    Some(HouseTemperatureUpperBoundaryReached(houseWarmTick)),
                   )
                 ),
                 Some(
@@ -472,7 +472,7 @@ class ThermalGridWithHouseAndStorageSpec
               thermalStorage.chargingPower * (-1)
             )
 
-            houseColdTick shouldBe 3695L
+            houseWarmTick shouldBe 3695L
             storageEmptyTick shouldBe 3663L
           case _ => fail("Revision of states failed")
         }
