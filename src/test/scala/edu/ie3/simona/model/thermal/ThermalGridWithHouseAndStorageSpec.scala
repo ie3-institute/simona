@@ -373,6 +373,7 @@ class ThermalGridWithHouseAndStorageSpec
             tick,
             testGridAmbientTemperature,
             testGridAmbientTemperature,
+            testGridAmbientTemperature,
             gridState,
             externalQDot,
             defaultSimulationStart,
@@ -446,6 +447,7 @@ class ThermalGridWithHouseAndStorageSpec
           maybeStorageState,
           maybeHouseState.map(_._1),
           None,
+          testGridAmbientTemperature,
           testGridAmbientTemperature,
           testGridAmbientTemperature,
           testGridQDotConsumption,
@@ -639,6 +641,7 @@ class ThermalGridWithHouseAndStorageSpec
           formerStorageState,
           ambientTemperature,
           ambientTemperature,
+          ambientTemperature,
           zeroInflux,
         ) match {
           case (
@@ -828,6 +831,7 @@ class ThermalGridWithHouseAndStorageSpec
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
             tick,
+            testGridAmbientTemperature,
             testGridAmbientTemperature,
             testGridAmbientTemperature,
             gridState,

@@ -277,6 +277,7 @@ class ThermalGridWithHouseOnlySpec
             tick,
             testGridAmbientTemperature,
             testGridAmbientTemperature,
+            testGridAmbientTemperature,
             gridState,
             testGridQDotConsumption,
             defaultSimulationStart,
