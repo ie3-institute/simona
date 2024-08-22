@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.datamodel.models.input.system.`type`.BmTypeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
@@ -17,7 +16,6 @@ import squants.energy.{Kilowatts, Megawatts}
 import squants.market.EUR
 import squants.thermal.Celsius
 import squants.{Power, Temperature}
-import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -32,28 +30,7 @@ import java.util.UUID
 class BMModelSpec extends UnitSpec {
 
   implicit val powerTolerance: Power = Megawatts(1e-4)
-  implicit val power2Tolerance: Power = Kilowatts(1e-4)
   implicit val usageTolerance: Double = 1e-12
-
-  val bmType: BmTypeInput = new BmTypeInput(
-    UUID.fromString("bc06e089-03cd-481e-9e28-228266a148a4"),
-    "BM Model Test Type 1",
-    Quantities.getQuantity(0, edu.ie3.util.quantities.PowerSystemUnits.EURO),
-    Quantities.getQuantity(
-      0.05d,
-      edu.ie3.util.quantities.PowerSystemUnits.EURO_PER_KILOWATTHOUR,
-    ),
-    Quantities.getQuantity(
-      5,
-      edu.ie3.util.quantities.PowerSystemUnits.PERCENT_PER_HOUR,
-    ),
-    Quantities.getQuantity(
-      190,
-      edu.ie3.util.quantities.PowerSystemUnits.KILOVOLTAMPERE,
-    ),
-    1d,
-    Quantities.getQuantity(100d, tech.units.indriya.unit.Units.PERCENT),
-  )
 
   def buildBmModel(): BMModel = {
     new BMModel(
@@ -62,10 +39,10 @@ class BMModelSpec extends UnitSpec {
       OperationInterval(0L, 86400L),
       QControl(new CosPhiFixed("cosPhiFixed:{(0.0,1.0)}")),
       Kilowatts(190),
-      bmType.getCosPhiRated,
+      1d,
       "MockNode",
       isCostControlled = true,
-      EUR(bmType.getOpex.getValue.doubleValue()),
+      EUR(0.05),
       EuroPerKilowatthour(0.51d),
       0.05,
     )
@@ -129,7 +106,7 @@ class BMModelSpec extends UnitSpec {
 
     testCases.foreach { case (temp, k1, k2, pThSol) =>
       val pThCalc = bmModel.calculatePTh(Celsius(temp), k1, k2)
-      pThCalc should approximate(Megawatts(pThSol))(powerTolerance)
+      pThCalc should approximate(Megawatts(pThSol))
     }
   }
 
@@ -176,7 +153,7 @@ class BMModelSpec extends UnitSpec {
         0.04d,
         0.75d,
         0.98425d,
-        -140.255625d,
+        -140.25562499999998d,
       ), // tariff too little, only serve heat demand
       (0.04d, 1d, 1d, -190d), // tariff too little, but max heat demand
     )
@@ -188,10 +165,10 @@ class BMModelSpec extends UnitSpec {
         OperationInterval(0L, 86400L),
         QControl(new CosPhiFixed("cosPhiFixed:{(0.0,1.0)}")),
         Kilowatts(190),
-        bmType.getCosPhiRated,
+        1d,
         "MockNode",
         isCostControlled = true,
-        EUR(bmType.getOpex.getValue.doubleValue()),
+        EUR(0.05),
         EuroPerKilowatthour(feedInTariff),
         0.05,
       )
@@ -207,31 +184,31 @@ class BMModelSpec extends UnitSpec {
     val testCases = Table(
       ("Last Power", "PEl", "PEl Sol"),
       (
-        Kilowatts(-100d), // Last Power
-        Kilowatts(-120d), // PEl
-        Kilowatts(-109.5d), // PEl Solution
+        Kilowatts(-100d),
+        Kilowatts(-120d),
+        Kilowatts(-109.5d),
       ), // increase of power, more than load gradient allows
       (
-        Kilowatts(-50d), // Last Power
-        Kilowatts(-55d), // PEl
-        Kilowatts(-55d), // PEl Solution
+        Kilowatts(-50d),
+        Kilowatts(-55d),
+        Kilowatts(-55d),
       ), // increase, within load gradient
       (
-        Kilowatts(-50d), // Last Power
-        Kilowatts(-41d), // PEl
-        Kilowatts(-41d), // PEl Solution
+        Kilowatts(-50d),
+        Kilowatts(-41d),
+        Kilowatts(-41d),
       ), // decrease, within load gradient
       (
-        Kilowatts(-30d), // Last Power
-        Kilowatts(-15d), // PEl
-        Kilowatts(-20.5d), // PEl Solution
+        Kilowatts(-30d),
+        Kilowatts(-15d),
+        Kilowatts(-20.5d),
       ), // decrease, more than load gradient
     )
 
     testCases.foreach { case (lastPower, pEl, pElSol) =>
       bmModel._lastPower = Some(lastPower)
       val pElCalc = bmModel.applyLoadGradient(pEl)
-      pElCalc should approximate(pElSol)(power2Tolerance)
+      pElCalc should approximate(pElSol)
     }
   }
 
@@ -313,7 +290,7 @@ class BMModelSpec extends UnitSpec {
           powerSol: Power,
       ) =>
         val dateTime = ZonedDateTime.parse(time)
-        val relevantData = BMCalcRelevantData(dateTime, temp)
+        val relevantData = BMModel.BMCalcRelevantData(dateTime, Celsius(temp))
 
         val bmModel = new BMModel(
           UUID.fromString("08a8134d-04b7-45de-a937-9a55fab4e1af"),
@@ -321,10 +298,10 @@ class BMModelSpec extends UnitSpec {
           OperationInterval(0L, 86400L),
           QControl(new CosPhiFixed("cosPhiFixed:{(0.0,1.0)}")),
           Kilowatts(190),
-          bmType.getCosPhiRated(),
+          1d,
           "MockNode",
           costControlled,
-          EUR(bmType.getOpex.getValue.doubleValue()),
+          EUR(0.05),
           EuroPerKilowatthour(0.51d),
           0.05,
         )
@@ -332,7 +309,7 @@ class BMModelSpec extends UnitSpec {
         bmModel._lastPower = Some(lastPower)
         val powerCalc =
           bmModel.calculateActivePower(ConstantState, relevantData)
-        powerCalc should be(powerSol)
+        powerCalc.value should be(powerSol.value)
     }
   }
 }
