@@ -261,8 +261,11 @@ class HpModelSpec
                 ThermalGridState(
                   Some(ThermalHouseState(0L, Celsius(15), Kilowatts(0))),
                   Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))
+                  ),
                 ),
-                Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
+                None,
               ),
               (95.0, 95.0, 95.0),
             ),
@@ -285,8 +288,11 @@ class HpModelSpec
                   Some(
                     ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
                   ),
-                  Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))
+                  ),
                 ),
+                None,
               ),
               (0.0, 0.0, 95.0),
             ),
@@ -311,7 +317,9 @@ class HpModelSpec
                   Some(
                     ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))
                   ),
-                  Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))
+                  ),
                 ),
                 None,
               ),
@@ -336,7 +344,9 @@ class HpModelSpec
                   Some(
                     ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
                   ),
-                  Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))
+                  ),
                 ),
                 None,
               ),
@@ -363,6 +373,9 @@ class HpModelSpec
                   Some(
                     ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))
                   ),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))
+                  ),
                 ),
                 None,
               ),
@@ -387,7 +400,9 @@ class HpModelSpec
                   Some(
                     ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
                   ),
-                  Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))
+                  ),
                 ),
                 None,
               ),
@@ -414,7 +429,9 @@ class HpModelSpec
                   Some(
                     ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))
                   ),
-                  Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))
+                  ),
                 ),
                 None,
               ),
@@ -439,7 +456,9 @@ class HpModelSpec
                   Some(
                     ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
                   ),
-                  Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))
+                  ),
                 ),
                 None,
               ),
@@ -464,7 +483,9 @@ class HpModelSpec
                 ThermalGridState(
                   Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
                   Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
-                  Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))
+                  ),
                 ),
                 Some(HouseTemperatureUpperBoundaryReached(0L)),
               ),
@@ -486,8 +507,12 @@ class HpModelSpec
                 Kilowatts(80.0),
                 ThermalGridState(
                   Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
-                  Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
-                  Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
+                  ),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))
+                  ),
                 ),
                 Some(HouseTemperatureUpperBoundaryReached(0L)),
               ),
@@ -512,7 +537,9 @@ class HpModelSpec
                 ThermalGridState(
                   Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
                   Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
-                  Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))
+                  ),
                 ),
                 Some(HouseTemperatureUpperBoundaryReached(0L)),
               ),
@@ -534,8 +561,12 @@ class HpModelSpec
                 Kilowatts(80.0),
                 ThermalGridState(
                   Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
-                  Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
-                  Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
+                  ),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))
+                  ),
                 ),
                 Some(HouseTemperatureUpperBoundaryReached(0L)),
               ),
@@ -561,7 +592,9 @@ class HpModelSpec
                 ThermalGridState(
                   Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
                   Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
-                  Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))
+                  ),
                 ),
                 Some(HouseTemperatureUpperBoundaryReached(0L)),
               ),
@@ -583,8 +616,12 @@ class HpModelSpec
                 Kilowatts(80.0),
                 ThermalGridState(
                   Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
-                  Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
-                  Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
+                  ),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))
+                  ),
                 ),
                 Some(HouseTemperatureUpperBoundaryReached(0L)),
               ),
@@ -609,7 +646,9 @@ class HpModelSpec
                 ThermalGridState(
                   Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
                   Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
-                  Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))
+                  ),
                 ),
                 Some(HouseTemperatureUpperBoundaryReached(0L)),
               ),
@@ -622,7 +661,7 @@ class HpModelSpec
               ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(22), Kilowatts(0))),
                 Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
-                  Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
               ),
               HpState(
                 isRunning = false,
@@ -632,8 +671,12 @@ class HpModelSpec
                 Kilowatts(80.0),
                 ThermalGridState(
                   Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
-                  Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
-                  Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
+                  ),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))
+                  ),
                 ),
                 Some(HouseTemperatureUpperBoundaryReached(0L)),
               ),
@@ -658,7 +701,9 @@ class HpModelSpec
                   Some(
                     ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))
                   ),
-                  Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))
+                  ),
                 ),
                 Some(HouseTemperatureUpperBoundaryReached(0L)),
               ),
@@ -683,7 +728,9 @@ class HpModelSpec
                   Some(
                     ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))
                   ),
-                  Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))
+                  ),
                 ),
                 Some(HouseTemperatureUpperBoundaryReached(0L)),
               ),
@@ -708,14 +755,15 @@ class HpModelSpec
                   Some(
                     ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))
                   ),
-                  Some(ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(250), Kilowatts(0))
+                  ),
                 ),
                 None,
               ),
               (0.0, 0.0, 0.0),
             ),
           )
-
 
         // Run the test cases
         forAll(testCases) {
