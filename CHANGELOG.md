@@ -74,6 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - External simulation should provide information about next tick of MobSim [#776](https://github.com/ie3-institute/simona/issues/776)
 - Reverted temporary workaround in `spotless.gradle` [#681](https://github.com/ie3-institute/simona/issues/681)
 - Updated AUTHORS.md [#904](https://github.com/ie3-institute/simona/issues/904)
+- Updated `Gradle` to version V8.10 [#829](https://github.com/ie3-institute/simona/issues/829)
 - Updated AUTHORS.md [#905](https://github.com/ie3-institute/simona/issues/905)
 - Prepare ThermalStorageTestData for Storage without storageVolumeLvlMin [#894](https://github.com/ie3-institute/simona/issues/894)
 
