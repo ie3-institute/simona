@@ -133,11 +133,23 @@ trait HpInputTestData
       Quantities.getQuantity(11.0, PowerSystemUnits.KILOWATT),
     )
 
+  protected val domesticHotWaterStorageInput: DomesticHotWaterStorageInput =
+    new DomesticHotWaterStorageInput(
+      UUID.fromString("77579045-6695-4cd3-be52-ffe81502182d"),
+      "domestic hot water storage",
+      thermalBusInput,
+      Quantities.getQuantity(300.0, Units.LITRE),
+      Quantities.getQuantity(60.0, StandardUnits.TEMPERATURE),
+      Quantities.getQuantity(30.0, StandardUnits.TEMPERATURE),
+      Quantities.getQuantity(1.16, StandardUnits.SPECIFIC_HEAT_CAPACITY),
+      Quantities.getQuantity(11.0, PowerSystemUnits.KILOWATT),
+    )
+
   protected val typicalThermalGrid = new container.ThermalGrid(
     thermalBusInput,
     Seq(typicalThermalHouse).asJava,
     Set[ThermalStorageInput](typicalThermalStorage).asJava,
-    Set.empty[ThermalStorageInput].asJava,
+    Seq[ThermalStorageInput](domesticHotWaterStorageInput).asJava,
   )
 
   protected val typicalHpTypeInput = new HpTypeInput(
