@@ -1,6 +1,6 @@
 @startuml
-SimScheduler -> ParticipantAgents: <font color=red>!</font> TriggerWithIdMessage(\n\tIInitializeSystemComponentsTrigger(_),\n\ttriggerId,\n\t_)
-ParticipantAgents --> SimScheduler: <font color=red>!</font> Completion(triggerId, ScheduleActivation[...])
-SimScheduler -> ParticipantAgents: <font color=red>!</font> TriggerWithIdMessage(\n\tActivation(tick),\n\t_,\n\t_)
-ParticipantAgents --> SimScheduler: <font color=red>!</font> Completion(triggerId, None)
+Scheduler -> ParticipantAgents: <font color=red>!</font> TriggerWithIdMessage(\n\tIInitializeSystemComponentsTrigger(_),\n\ttriggerId,\n\t_)
+ParticipantAgents --> Scheduler: <font color=red>!</font> Completion(triggerId, ScheduleActivation[...])
+Scheduler -> ParticipantAgents: <font color=red>!</font> TriggerWithIdMessage(\n\tActivation(tick),\n\t_,\n\t_)
+ParticipantAgents --> Scheduler: <font color=red>!</font> Completion(triggerId, None)
 @enduml
