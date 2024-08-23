@@ -404,7 +404,7 @@ final case class ThermalGrid(
       )
     }
     // Handle edge case where house get heated from storage and HP will be activated in between
-    else if ((qDotHouseLastState > zeroKW && qDotStorageLastState < zeroKW)) {
+    else if (qDotHouseLastState > zeroKW && qDotStorageLastState < zeroKW) {
       if (isRunning) {
         handleCases(
           tick,

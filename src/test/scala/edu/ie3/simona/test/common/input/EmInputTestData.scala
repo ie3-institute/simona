@@ -152,7 +152,8 @@ trait EmInputTestData
     2.0,
   )
 
-  protected val typicalDomesteticHotWaterStorage: DomesticHotWaterStorageInput =
+  protected val typicalDomesticHotWaterStorageInput
+      : DomesticHotWaterStorageInput =
     new DomesticHotWaterStorageInput(
       UUID.fromString("77579045-6695-4cd3-be52-ffe81502182d"),
       "domestic hot water storage",
@@ -168,6 +169,6 @@ trait EmInputTestData
     thermalBusInput,
     Seq(adaptedThermalHouse).asJava,
     Seq.empty[ThermalStorageInput].asJava,
-    Seq[ThermalStorageInput](typicalDomesteticHotWaterStorage).asJava,
+    Seq[ThermalStorageInput](typicalDomesticHotWaterStorageInput).asJava,
   )
 }

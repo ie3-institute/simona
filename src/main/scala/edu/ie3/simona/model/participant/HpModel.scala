@@ -233,9 +233,12 @@ final case class HpModel(
           _.storedEnergy =~ zeroKWH
         )
 
-    val houseDemand = (demandHouse.hasRequiredDemand && noThermalStorageOrThermalStorageIsEmpty) || (hpState.isRunning && demandHouse.hasAdditionalDemand)
-    val heatStorageDemand = demandThermalStorage.hasRequiredDemand || (hpState.isRunning && demandThermalStorage.hasAdditionalDemand)
-    val domesticHotWaterStorageDemand = demandDomesticHotWaterStorage.hasRequiredDemand || (hpState.isRunning && demandDomesticHotWaterStorage.hasAdditionalDemand)
+    val houseDemand =
+      (demandHouse.hasRequiredDemand && noThermalStorageOrThermalStorageIsEmpty) || (hpState.isRunning && demandHouse.hasAdditionalDemand)
+    val heatStorageDemand =
+      demandThermalStorage.hasRequiredDemand || (hpState.isRunning && demandThermalStorage.hasAdditionalDemand)
+    val domesticHotWaterStorageDemand =
+      demandDomesticHotWaterStorage.hasRequiredDemand || (hpState.isRunning && demandDomesticHotWaterStorage.hasAdditionalDemand)
 
     (
       houseDemand,

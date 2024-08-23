@@ -871,7 +871,11 @@ class HpModelSpec
             // Initialize the house and grid models
             val house =
               thermalHouse(18, 22).copy(ethLosses = WattsPerKelvin(200))
-            val grid = thermalGrid(house, Some(thermalStorage), Some(domesticHotWaterStorage))
+            val grid = thermalGrid(
+              house,
+              Some(thermalStorage),
+              Some(domesticHotWaterStorage),
+            )
             val hp = hpModel(grid)
 
             // Create relevant data for the current test
