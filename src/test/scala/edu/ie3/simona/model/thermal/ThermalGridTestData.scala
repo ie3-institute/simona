@@ -27,4 +27,6 @@ trait ThermalGridTestData {
   protected val testGridQDotConsumptionHigh: Power = Kilowatts(-200d)
   protected val noThermalDemand: Boolean = false
   protected val thermalDemand: Boolean = true
+  protected val isRunning: Boolean = true
+  protected val isNotRunning: Boolean = false
 }

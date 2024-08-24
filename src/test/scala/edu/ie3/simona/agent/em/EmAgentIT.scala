@@ -561,7 +561,7 @@ class EmAgentIT
          LOAD: 0.000269 MW
          PV:  -0.005685 MW
          Heat pump: off, can be turned on or stay off
-         -> set point ~3.5 kW (bigger than 50 % rated thermal power): turned on
+         -> set point ~3.5 kW (bigger than 50 % rated apparent power): turned on
          -> remaining -0.000566 MW
          */
 
@@ -597,7 +597,7 @@ class EmAgentIT
          LOAD: 0.000269 MW (unchanged)
          PV:  -0.003797 MW
          Heat pump: running (turned on from last request), can also be turned off
-         -> set point ~3.5 kW (bigger than 50 % rated thermal power): stays turned on with unchanged state
+         -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
          -> remaining 0 MW
          */
 

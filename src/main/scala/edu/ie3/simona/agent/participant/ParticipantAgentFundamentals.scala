@@ -54,6 +54,7 @@ import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.{
   FlexOptionsResultEvent,
   ParticipantResultEvent,
+  ThermalResultEvent,
 }
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
@@ -1907,7 +1908,7 @@ protected trait ParticipantAgentFundamentals[
       result: R
   ): Option[ResultEvent] = result match {
     case thermalUnitResult: ThermalUnitResult =>
-      Some(ResultEvent.ThermalResultEvent(thermalUnitResult))
+      Some(ThermalResultEvent(thermalUnitResult))
 
     case unsupported =>
       log.debug(
