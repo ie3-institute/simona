@@ -386,6 +386,44 @@ final case class ThermalGrid(
   def results(
       state: ThermalGridState
   )(implicit startDateTime: ZonedDateTime): Seq[ResultEntity] = {
+    /* FIXME: We only want to write results when there is a change within the participant.
+     * At the moment we write an storage result when the house result gets updated and vice versa.
+     * */
+
+    val houseResultTick: Option[Long] = house
+      .zip(state.houseState)
+      .headOption
+      .flatMap {
+        case (
+              thermalHouse,
+              ThermalHouseState(tick, _, _),
+            ) =>
+          Some(tick)
+        case _ => None
+      }
+
+    val storageResultTick: Option[Long] = storage
+      .zip(state.storageState)
+      .headOption
+      .flatMap {
+        case (
+              thermalStorage,
+              ThermalStorageState(tick, _, _),
+            ) =>
+          Some(tick)
+        case _ => None
+      }
+
+    val actualResultTick: Long = (houseResultTick, storageResultTick) match {
+      case (Some(hTick), Some(sTick)) => math.max(hTick, sTick)
+      case (Some(hTick), None)        => hTick
+      case (None, Some(sTick))        => sTick
+      case (None, None) =>
+        throw new RuntimeException(
+          "ThermalGrid result should be carried out but it was not possible to get the tick for the result"
+        )
+    }
+
     val houseResults = house
       .zip(state.houseState)
       .map {
@@ -394,7 +432,7 @@ final case class ThermalGrid(
               ThermalHouseState(tick, innerTemperature, thermalInfeed),
             ) =>
           Seq.empty[ResultEntity] :+ new ThermalHouseResult(
-            tick.toDateTime,
+            actualResultTick.toDateTime,
             thermalHouse.uuid,
             thermalInfeed.toMegawatts.asMegaWatt,
             innerTemperature.toKelvinScale.asKelvin,
@@ -410,7 +448,7 @@ final case class ThermalGrid(
               ThermalStorageState(tick, storedEnergy, qDot),
             ) =>
           houseResults :+ new CylindricalStorageResult(
-            tick.toDateTime,
+            actualResultTick.toDateTime,
             storage.uuid,
             storedEnergy.toMegawattHours.asMegaWattHour,
             qDot.toMegawatts.asMegaWatt,
