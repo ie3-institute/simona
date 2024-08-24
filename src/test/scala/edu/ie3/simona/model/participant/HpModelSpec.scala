@@ -18,7 +18,7 @@ import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMin
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.HpInputTestData
 import edu.ie3.util.scala.quantities.WattsPerKelvin
-import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor3}
+import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.energy.{KilowattHours, Kilowatts, Watts}
 import squants.thermal.Celsius
 import squants.{Kelvin, Power, Temperature}
@@ -238,8 +238,7 @@ class HpModelSpec
 
     "determining the flexibility options for different states" should {
       "deliver correct flexibility options" in {
-        val testCases
-            : TableFor3[ThermalGridState, HpState, (Double, Double, Double)] =
+        val testCases =
           Table(
             ("thermalState", "lastState", "expectedValues"),
             // 1. Hp actually not running
