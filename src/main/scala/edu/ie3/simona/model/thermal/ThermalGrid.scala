@@ -13,7 +13,6 @@ import edu.ie3.datamodel.models.result.thermal.{
   CylindricalStorageResult,
   ThermalHouseResult,
 }
-import edu.ie3.simona.exceptions.InvalidParameterException
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalEnergyDemand,
@@ -155,7 +154,7 @@ final case class ThermalGrid(
     * @param lastAmbientTemperature
     *   Ambient temperature until this tick
     * @param ambientTemperature
-    *   actual ambient temperature
+    *   Actual ambient temperature
     * @param isRunning
     *   determines whether the heat pump is running or not
     * @param qDot
@@ -204,7 +203,7 @@ final case class ThermalGrid(
     * @param lastAmbientTemperature
     *   Ambient temperature until this tick
     * @param ambientTemperature
-    *   actual ambient temperature
+    *   Actual ambient temperature
     * @param state
     *   Current state of the houses
     * @param isRunning
@@ -507,7 +506,7 @@ final case class ThermalGrid(
     * @param lastAmbientTemperature
     *   Ambient temperature until this tick
     * @param ambientTemperature
-    *   actual ambient temperature
+    *   Actual ambient temperature
     * @param state
     *   Current state of the houses
     * @param qDot
@@ -583,7 +582,7 @@ final case class ThermalGrid(
     * @param lastAmbientTemperature
     *   Ambient temperature until this tick
     * @param ambientTemperature
-    *   actual ambient temperature
+    *   Actual ambient temperature
     * @param qDot
     *   Thermal influx
     * @return

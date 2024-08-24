@@ -21,8 +21,8 @@ import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMin
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities._
-import squants.energy.{Energy, KilowattHours, Kilowatts}
-import squants.{Power, Temperature}
+import squants.energy.{KilowattHours, Kilowatts}
+import squants.{Energy, Power, Temperature}
 
 import java.time.ZonedDateTime
 import java.util.UUID
