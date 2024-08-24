@@ -217,6 +217,10 @@ final case class HpModel(
     *   data of heat pump including state of the heat pump
     * @param isRunning
     *   determines whether the heat pump is running or not
+    * @param houseDemand
+    *   determines if the thermal house has heat demand
+    * @param storageDemand
+    *   determines if the thermal storage has heat demand
     * @return
     *   next [[HpState]]
     */
@@ -245,7 +249,10 @@ final case class HpModel(
         state.thermalGridState,
         state.ambientTemperature.getOrElse(relevantData.ambientTemperature),
         relevantData.ambientTemperature,
+        isRunning,
         newThermalPower,
+        houseDemand,
+        storageDemand,
       )
 
     HpState(

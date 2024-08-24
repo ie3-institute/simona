@@ -496,7 +496,10 @@ class ThermalGridWithHouseAndStorageSpec
             testGridAmbientTemperature,
             testGridAmbientTemperature,
             initialGridState,
+            isNotRunning,
             externalQDot,
+            thermalDemand,
+            noThermalDemand,
           )
 
         updatedGridState match {
@@ -510,7 +513,7 @@ class ThermalGridWithHouseAndStorageSpec
             innerTemperature should approximate(Celsius(18.9999d))
             qDotHouse should approximate(externalQDot)
 
-            storageTick shouldBe -1L
+            storageTick shouldBe 0L
             storedEnergy should approximate(
               initialGridState.storageState
                 .map(_.storedEnergy)
@@ -542,7 +545,10 @@ class ThermalGridWithHouseAndStorageSpec
             testGridAmbientTemperature,
             testGridAmbientTemperature,
             gridState,
+            isNotRunning,
             externalQDot,
+            noThermalDemand,
+            thermalDemand,
           )
 
         updatedGridState match {

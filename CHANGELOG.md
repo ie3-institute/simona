@@ -106,6 +106,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix activation of Hp when not under control of an EM [#922](https://github.com/ie3-institute/simona/issues/922)
 - Fixed ThermalStorageResults having multiple entries [#924](https://github.com/ie3-institute/simona/issues/924)
 - Fix determineState of ThermalHouse [#926](https://github.com/ie3-institute/simona/issues/926)
+- Refactoring of `ThermalGrid.handleInfeed` to fix thermal storage recharge correctly when empty [#930](https://github.com/ie3-institute/simona/issues/930)
 
 ## [3.0.0] - 2023-08-07
 
