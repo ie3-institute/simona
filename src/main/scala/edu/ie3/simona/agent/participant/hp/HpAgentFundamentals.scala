@@ -385,25 +385,44 @@ trait HpAgentFundamentals
       tick: Long,
   ): HpRelevantData = {
     /* extract weather data from secondary data, which should have been requested and received before */
-    val weatherData =
-      baseStateData.receivedSecondaryDataStore
+    val weatherData = {
+      val currentWeatherData = baseStateData.receivedSecondaryDataStore
         .last(tick)
         .flatMap { case (receivedTick, receivedValues) =>
-          if (receivedTick != tick)
-            log.debug(
-              s"The model ${baseStateData.model.getUuid} needs to do calculations with values received " +
-                s"in tick $receivedTick, as no weather data has been received in tick $tick."
-            )
-          receivedValues.collectFirst {
-            // filter secondary data for weather data
-            case (_, data: WeatherData) => data
+          if (receivedTick == tick) {
+            receivedValues.collectFirst { case (_, data: WeatherData) =>
+              data
+            }
+          } else None
+        }
+
+      // If current weather data is not found, fallback to the latest entry where the map is not empty
+      currentWeatherData
+        .orElse {
+          val latestEntry =
+            baseStateData.receivedSecondaryDataStore.store.toSeq.findLast {
+              case (_, receivedValues) => receivedValues.nonEmpty
+            }
+
+          latestEntry.flatMap { case (receivedTick, receivedValues) =>
+            if (tick - receivedTick > 3600) {
+              log.warning(
+                s"The model ${baseStateData.model.getUuid} is using weather data from tick $receivedTick, " +
+                  s"but there is a discrepancy of ${tick - receivedTick} seconds compared to the current tick $tick."
+              )
+            }
+
+            receivedValues.collectFirst { case (_, data: WeatherData) =>
+              data
+            }
           }
         }
-        .getOrElse(
+        .getOrElse {
           throw new InconsistentStateException(
             s"The model ${baseStateData.model} was not provided with needed weather data."
           )
-        )
+        }
+    }
 
     HpRelevantData(
       tick,

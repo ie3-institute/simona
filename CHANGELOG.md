@@ -77,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated AUTHORS.md [#904](https://github.com/ie3-institute/simona/issues/904)
 - Updated `Gradle` to version V8.10 [#829](https://github.com/ie3-institute/simona/issues/829)
 - Updated AUTHORS.md [#905](https://github.com/ie3-institute/simona/issues/905)
+- Refactoring of Hps createCalcRelevantData to fallback on latest weatherData if weatherData of currentTick is not available [#932](https://github.com/ie3-institute/simona/issues/932)
 
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
