@@ -29,7 +29,7 @@ import java.util.UUID
 
 class BMModelSpec extends UnitSpec {
 
-  implicit val powerTolerance: Power = Megawatts(1e-4)
+  implicit val powerTolerance: Power = Kilowatts(1e-4)
   implicit val usageTolerance: Double = 1e-12
 
   def buildBmModel(): BMModel = {
@@ -216,68 +216,77 @@ class BMModelSpec extends UnitSpec {
 
     val testCases = Table(
       ("time", "temp", "costControlled", "lastPower", "powerSol"),
+      // weekend day in heating season, power increase capped by load gradient
       (
         "2019-01-05T05:15:00+01:00[Europe/Berlin]",
-        Celsius(10),
+        Celsius(10.0),
         true,
         Kilowatts(-40.0),
         Kilowatts(-49.5),
       ),
+      // working day in heating season, power decrease capped by load gradient
       (
         "2019-01-04T05:15:00+01:00[Europe/Berlin]",
-        Celsius(10),
+        Celsius(10.0),
         true,
         Kilowatts(-80.0),
-        Kilowatts(-89.5),
+        Kilowatts(-70.5),
       ),
+      // peak load boiler activated, max output because cost < revenues
       (
         "2019-01-04T05:15:00+01:00[Europe/Berlin]",
-        Celsius(-20),
+        Celsius(-20.0),
         true,
         Kilowatts(-182.0),
-        Kilowatts(-190),
+        Kilowatts(-190.0),
       ),
+      // close to peak load, max output because cost < revenues
       (
         "2019-01-04T05:15:00+01:00[Europe/Berlin]",
-        Celsius(-7),
+        Celsius(-7.0),
         true,
         Kilowatts(-182.0),
-        Kilowatts(-190),
+        Kilowatts(-190.0),
       ),
+      // close to peak load, not cost controlled but just serving heat demand
       (
         "2019-01-04T05:15:00+01:00[Europe/Berlin]",
-        Celsius(-7),
+        Celsius(-7.0),
         false,
         Kilowatts(-150.0),
         Kilowatts(-152.16900643778735),
       ),
+      // weekend day outside heating season, increase not capped
       (
         "2019-07-07T10:15:00+02:00[Europe/Berlin]",
-        Celsius(19),
+        Celsius(19.0),
         true,
         Kilowatts(-10.0),
-        Kilowatts(-19.5),
+        Kilowatts(-12.099949463243976),
       ),
+      // working day outside heating season, decrease not capped
       (
         "2019-07-05T05:15:00+02:00[Europe/Berlin]",
-        Celsius(20),
+        Celsius(20.0),
         true,
         Kilowatts(-20.0),
-        Kilowatts(-29.5),
+        Kilowatts(-11.70638561892377),
       ),
+      // weekend day outside heating season, increase capped
       (
         "2019-07-06T10:15:00+02:00[Europe/Berlin]",
-        Celsius(20),
+        Celsius(20.0),
         true,
         Kilowatts(0.0),
         Kilowatts(-9.5),
       ),
+      // working day outside heating season, decrease capped
       (
         "2019-07-05T05:15:00+02:00[Europe/Berlin]",
-        Celsius(22),
+        Celsius(22.0),
         true,
         Kilowatts(-22.0),
-        Kilowatts(-31.5),
+        Kilowatts(-12.5),
       ),
     )
 
@@ -302,14 +311,16 @@ class BMModelSpec extends UnitSpec {
           "MockNode",
           costControlled,
           EUR(0.05),
-          EuroPerKilowatthour(0.51d),
+          EuroPerKilowatthour(0.051d),
           0.05,
         )
 
         bmModel._lastPower = Some(lastPower)
+
         val powerCalc =
           bmModel.calculateActivePower(ConstantState, relevantData)
-        powerCalc.value should be(powerSol.value)
+
+        powerCalc should approximate(powerSol)
     }
   }
 }
