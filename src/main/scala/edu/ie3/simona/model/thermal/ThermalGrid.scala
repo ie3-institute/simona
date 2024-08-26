@@ -808,9 +808,11 @@ final case class ThermalGrid(
     )
 
     val nextThreshold = determineMostRecentThreshold(
-      thermalHouseThreshold,
-      thermalStorageThreshold,
-      domesticHotWaterStorageThreshold,
+      Seq(
+        thermalHouseThreshold,
+        thermalStorageThreshold,
+        domesticHotWaterStorageThreshold,
+      )
     )
 
     (
@@ -925,24 +927,36 @@ final case class ThermalGrid(
     }
   }
 
-  private def determineMostRecentThreshold(
-      maybeHouseThreshold: Option[ThermalThreshold],
-      maybeStorageThreshold: Option[ThermalThreshold],
-      maybeDomesticHotWaterStorageThreshold: Option[ThermalThreshold],
-  ): Option[ThermalThreshold] = {
-    val thresholds = List(
-      maybeHouseThreshold,
-      maybeStorageThreshold,
-      maybeDomesticHotWaterStorageThreshold,
-    ).flatten
+  /** Returns the very next threshold or None if there isn't any.
+    *
+    * @param thresholds
+    *   A sequence of thresholds
+    * @return
+    *   The next [[ThermalThreshold]] or [[None]].
+    */
 
-    thresholds.foldLeft(Option.empty[ThermalThreshold]) { (noTick, threshold) =>
-      noTick match {
-        case None => Some(threshold)
-        case Some(minThreshold) =>
-          if (threshold.tick < minThreshold.tick) Some(threshold) else noTick
+  private def determineMostRecentThreshold(
+      thresholds: Seq[Option[ThermalThreshold]]
+  ): Option[ThermalThreshold] = {
+
+    @annotation.tailrec
+    def findMostRecent(
+        remaining: Seq[ThermalThreshold],
+        currentMin: Option[ThermalThreshold],
+    ): Option[ThermalThreshold] = {
+      remaining match {
+        case Nil => currentMin
+        case head :: tail =>
+          val newMin = currentMin match {
+            case None => Some(head)
+            case Some(minThreshold) =>
+              if (head.tick < minThreshold.tick) Some(head) else currentMin
+          }
+          findMostRecent(tail, newMin)
       }
     }
+
+    findMostRecent(thresholds.flatten, None)
   }
 
   /** Handle consumption (or no infeed) from thermal grid
@@ -1037,15 +1051,15 @@ final case class ThermalGrid(
     )
 
     val nextThresholdHotWaterStorage = determineMostRecentThreshold(
-      tickWhenStorageDemandEnds,
-      domesticHotWaterStorageThreshold,
-      None,
+      Seq(tickWhenStorageDemandEnds, domesticHotWaterStorageThreshold)
     )
 
     val nextThreshold = determineMostRecentThreshold(
-      revisedHouseState.flatMap(_._2),
-      revisedStorageState.flatMap(_._2),
-      nextThresholdHotWaterStorage,
+      Seq(
+        revisedHouseState.flatMap(_._2),
+        revisedStorageState.flatMap(_._2),
+        nextThresholdHotWaterStorage,
+      )
     )
 
     (
