@@ -323,181 +323,313 @@ final case class ThermalGrid(
   ): (ThermalGridState, Option[ThermalThreshold]) = {
     // TODO: We would need to issue a storage result model here...
 
-    /* Consider the action in the last state */
-    val (
-      qDotHouseLastState,
-      qDotStorageLastState,
-      qDotDomesticWaterStorageLastState,
-    ) = state match {
-      case ThermalGridState(
-            Some(houseState),
-            Some(storageState),
-            Some(domesticWaterState),
-          ) =>
-        (houseState.qDot, storageState.qDot, domesticWaterState.qDot)
-      case ThermalGridState(Some(houseState), Some(storageState), None) =>
-        (houseState.qDot, storageState.qDot, zeroKW)
-      case ThermalGridState(Some(houseState), None, Some(domesticWaterState)) =>
-        (houseState.qDot, zeroKW, domesticWaterState.qDot)
-      case ThermalGridState(Some(houseState), None, None) =>
-        (houseState.qDot, zeroKW, zeroKW)
-      case ThermalGridState(None, Some(storageState), None) =>
-        (zeroKW, storageState.qDot, zeroKW)
-      case _ =>
-        throw new InconsistentStateException(
-          "There should be at least a house or a storage state."
-        )
-    }
-
-    if (
-      (qDotHouseLastState > zeroKW && !(qDotStorageLastState < zeroKW)) | (qDotStorageLastState > zeroKW & heatStorageDemand | qDotDomesticWaterStorageLastState > zeroKW)
-    ) {
-      val (updatedHouseState, thermalHouseThreshold, remainingQDotHouse) =
-        handleInfeedHouse(
-          tick,
-          lastAmbientTemperature,
-          ambientTemperature,
-          state,
-          qDotHouseLastState,
-        )
-      val (updatedStorageState, thermalStorageThreshold) =
-        if (
-          qDotStorageLastState >= zeroKW && remainingQDotHouse > qDotStorageLastState
-        ) {
-          handleInfeedStorage(
-            tick,
-            state,
-            remainingQDotHouse,
-            heatStorage,
-          )
-        } else {
-          handleInfeedStorage(
-            tick,
-            state,
-            qDotStorageLastState,
-            heatStorage,
-          )
-        }
-
-      val (
-        updatedDomesticHotWaterStorageState,
-        domesticHotWaterStorageThreshold,
-      ) = handleInfeedStorage(
+    /* Consider the action in the last state and if it's possible to continue*/
+    val (_, qDotHouseLastState, houseStatusChanged) =
+      updateStateGetLastThermalActionAndCheckIfCanContinueThermalHouse(
         tick,
         state,
-        qDotDomesticWaterStorageLastState,
-        domesticHotWaterStorage,
+        lastAmbientTemperature,
+        ambientTemperature,
+      )
+    val (
+      updatedHeatStorageState,
+      qDotStorageLastState,
+      thermalStorageStatusChanged,
+    ) =
+      updateStateGetLastThermalActionAndCheckIfCanContinueThermalStorage(
+        tick,
+        state,
+      )
+    val (
+      _,
+      qDotDomesticWaterStorageLastState,
+      domesticHotWaterStorageStatusChanged,
+    ) =
+      updateStateGetLastThermalActionAndCheckIfCanContinueDomesticHotWaterStorage(
+        tick,
+        state,
       )
 
-      val nextThreshold = determineMostRecentThreshold(
-        thermalHouseThreshold,
-        thermalStorageThreshold,
-        domesticHotWaterStorageThreshold,
+    if (
+      !houseStatusChanged && !thermalStorageStatusChanged && !domesticHotWaterStorageStatusChanged
+    ) {
+      handleCases(
+        tick,
+        lastAmbientTemperature,
+        ambientTemperature,
+        state,
+        qDotHouseLastState.getOrElse(zeroKW),
+        qDotStorageLastState.getOrElse(zeroKW),
+        qDotDomesticWaterStorageLastState.getOrElse(zeroKW),
       )
-      (
-        state.copy(
-          houseState = updatedHouseState,
-          storageState = updatedStorageState,
-          domesticHotWaterStorageState = updatedDomesticHotWaterStorageState,
-        ),
-        nextThreshold,
-      )
-    }
-    // Handle edge case where house get heated from storage and HP will be activated in between
-    else if (qDotHouseLastState > zeroKW && qDotStorageLastState < zeroKW) {
-      if (isRunning) {
-        handleCases(
-          tick,
-          lastAmbientTemperature,
-          ambientTemperature,
-          state,
-          qDot,
-          zeroKW,
-          zeroKW,
-        )
-      } else {
-
-        handleCases(
-          tick,
-          lastAmbientTemperature,
-          ambientTemperature,
-          state,
-          qDotHouseLastState,
-          qDotStorageLastState,
-          zeroKW,
-        )
-      }
     } else {
 
       (houseDemand, heatStorageDemand, domesticHotWaterStorageDemand) match {
 
         case (true, _, true) =>
-          // hot water and house first then heatStorage after heating House
-          // Split qDot but max. ChargingPower of Storage
-          val qDotDomesticHotWaterStorage: Power =
-            if (
-              (qDot / 2) > domesticHotWaterStorage
-                .map(_.getChargingPower)
-                .getOrElse(Kilowatts(0d))
-            ) {
-              domesticHotWaterStorage
-                .map(_.getChargingPower)
-                .getOrElse(Kilowatts(0d))
-            } else {
-              qDot / 2
-            }
-          handleCases(
-            tick,
-            lastAmbientTemperature,
-            ambientTemperature,
-            state,
-            qDot - qDotDomesticHotWaterStorage,
-            zeroKW,
-            qDotDomesticHotWaterStorage,
-          )
+          (updatedHeatStorageState) match {
+            // if heatStorage is not empty, house and hot water storage can handleDemand
+            // take qDot to recharge domesticHotWaterStorage and
+            // cover thermal demand of house by heatStorage
+            case Some(storageState) if storageState.storedEnergy > zeroKWH =>
+              handleCases(
+                tick,
+                lastAmbientTemperature,
+                ambientTemperature,
+                state,
+                heatStorage.map(_.getChargingPower).getOrElse(zeroKW),
+                heatStorage.map(_.getChargingPower).getOrElse(zeroKW) * (-1),
+                qDot,
+              )
+            case _ =>
+              splitThermalHeatAndPushIntoHouseAndDomesticStorage(
+                tick,
+                lastAmbientTemperature,
+                ambientTemperature,
+                state,
+                qDotHouseLastState,
+                qDotDomesticWaterStorageLastState,
+                qDot,
+              )
+          }
 
-        // Same if there is Some(heatStorageDemand) or not
+        // Same cases if there is Some(heatStorageDemand) or not
         case (true, _, false) =>
-          handleCases(
+          pushThermalHeatIntoHouseOnly(
             tick,
             lastAmbientTemperature,
             ambientTemperature,
             state,
+            qDotHouseLastState,
             qDot,
-            zeroKW,
-            zeroKW,
           )
 
-        // Same if there is Some(heatStorageDemand) or not
+        // Prioritize domestic hot water storage
+        // Same case if there is Some(heatStorageDemand) or not
         case (false, _, true) =>
-          handleCases(
+          pushThermalHeatIntoDomesticHotWaterStorageHouseOnly(
             tick,
             lastAmbientTemperature,
             ambientTemperature,
             state,
-            zeroKW,
-            zeroKW,
+            qDotDomesticWaterStorageLastState,
             qDot,
           )
 
         case (false, true, false) =>
-          handleCases(
+          pushThermalHeatIntoThermalStorageHouseOnly(
             tick,
             lastAmbientTemperature,
             ambientTemperature,
             state,
-            zeroKW,
+            qDotHouseLastState,
             qDot,
-            zeroKW,
           )
+
         case _ =>
           throw new InconsistentStateException(
-            "There should be at least a house or a storage state."
+            "There should be at least a house or a storage demand."
           )
       }
-
     }
+  }
 
+  /** @param tick
+    * @param state
+    * @param lastAmbientTemperature
+    * @param ambientTemperature
+    * @return
+    */
+
+  private def updateStateGetLastThermalActionAndCheckIfCanContinueThermalHouse(
+      tick: Long,
+      state: ThermalGridState,
+      lastAmbientTemperature: Temperature,
+      ambientTemperature: Temperature,
+  ): (Option[ThermalHouseState], Option[Power], Boolean) = {
+    state match {
+      case ThermalGridState(
+            Some(lastHouseState),
+            _,
+            _,
+          ) =>
+        (house, state.houseState) match {
+          case (Some(thermalHouse), Some(lastHouseState)) =>
+            val (newState, _) = thermalHouse.determineState(
+              tick,
+              lastHouseState,
+              lastAmbientTemperature,
+              ambientTemperature,
+              lastHouseState.qDot,
+            )
+            // Set to true if status of house changed this tick
+            val houseStatusChanged = thermalHouse.isInnerTemperatureTooHigh(
+              newState.innerTemperature
+            ) || thermalHouse.isInnerTemperatureTooLow(
+              newState.innerTemperature
+            )
+            (Some(newState), Some(lastHouseState.qDot), houseStatusChanged)
+        }
+      case ThermalGridState(
+            None,
+            _,
+            _,
+          ) =>
+        (None, None, false)
+    }
+  }
+
+  /** @param tick
+    * @param state
+    * @return
+    */
+
+  private def updateStateGetLastThermalActionAndCheckIfCanContinueThermalStorage(
+      tick: Long,
+      state: ThermalGridState,
+  ): (Option[ThermalStorageState], Option[Power], Boolean) = {
+    getLastThermalActionAndCheckIfCanContinueStorage(
+      tick,
+      state,
+      heatStorage,
+      state.storageState,
+    )
+  }
+
+  /** @param tick
+    * @param state
+    * @return
+    */
+
+  private def updateStateGetLastThermalActionAndCheckIfCanContinueDomesticHotWaterStorage(
+      tick: Long,
+      state: ThermalGridState,
+  ): (Option[ThermalStorageState], Option[Power], Boolean) = {
+    getLastThermalActionAndCheckIfCanContinueStorage(
+      tick,
+      state,
+      domesticHotWaterStorage,
+      state.domesticHotWaterStorageState,
+    )
+  }
+
+  /** @param tick
+    * @param state
+    * @param storage
+    * @param lastStorageState
+    * @return
+    */
+
+  private def getLastThermalActionAndCheckIfCanContinueStorage(
+      tick: Long,
+      state: ThermalGridState,
+      storage: Option[ThermalStorage],
+      lastStorageState: Option[ThermalStorageState],
+  ): (Option[ThermalStorageState], Option[Power], Boolean) = {
+    (storage, lastStorageState) match {
+      case (Some(storage), Some(lastStorageState)) =>
+        val (newState, _) = storage.updateState(
+          tick,
+          lastStorageState.qDot,
+          lastStorageState,
+        )
+        // Set to true if status of storage changed this tick
+        val storageStatusChanged =
+          (storage.getMaxEnergyThreshold > newState.storedEnergy) | (newState.storedEnergy == zeroKWH)
+        (Some(newState), Some(lastStorageState.qDot), storageStatusChanged)
+      case _ =>
+        (None, None, false)
+    }
+  }
+
+  private def pushThermalHeatIntoHouseOnly(
+      tick: Long,
+      lastAmbientTemperature: Temperature,
+      ambientTemperature: Temperature,
+      state: ThermalGridState,
+      qDotHouseLastState: Option[Power],
+      qDot: Power,
+  ) = {
+    handleCases(
+      tick,
+      lastAmbientTemperature,
+      ambientTemperature,
+      state,
+      qDot,
+      zeroKW,
+      zeroKW,
+    )
+  }
+
+  private def pushThermalHeatIntoThermalStorageHouseOnly(
+      tick: Long,
+      lastAmbientTemperature: Temperature,
+      ambientTemperature: Temperature,
+      state: ThermalGridState,
+      qDotHeatStorageLastState: Option[Power],
+      qDot: Power,
+  ) = {
+    handleCases(
+      tick,
+      lastAmbientTemperature,
+      ambientTemperature,
+      state,
+      zeroKW,
+      qDot,
+      zeroKW,
+    )
+  }
+
+  private def pushThermalHeatIntoDomesticHotWaterStorageHouseOnly(
+      tick: Long,
+      lastAmbientTemperature: Temperature,
+      ambientTemperature: Temperature,
+      state: ThermalGridState,
+      qDotDomesticHotWaterStorageLastState: Option[Power],
+      qDot: Power,
+  ) = {
+    handleCases(
+      tick,
+      lastAmbientTemperature,
+      ambientTemperature,
+      state,
+      zeroKW,
+      zeroKW,
+      qDot,
+    )
+  }
+
+  private def splitThermalHeatAndPushIntoHouseAndDomesticStorage(
+      tick: Long,
+      lastAmbientTemperature: Temperature,
+      ambientTemperature: Temperature,
+      state: ThermalGridState,
+      qDotHouseLastState: Option[Power],
+      qDotDomesticHotWaterStorageLastState: Option[Power],
+      qDot: Power,
+  ) = {
+    val qDotDomesticHotWaterStorage: Power =
+      if (
+        (qDot / 2) > domesticHotWaterStorage
+          .map(_.getChargingPower)
+          .getOrElse(Kilowatts(0d))
+      ) {
+        domesticHotWaterStorage
+          .map(_.getChargingPower)
+          .getOrElse(Kilowatts(0d))
+      } else {
+        qDot / 2
+      }
+
+    handleCases(
+      tick,
+      lastAmbientTemperature,
+      ambientTemperature,
+      state,
+      qDot - qDotDomesticHotWaterStorage,
+      zeroKW,
+      qDotDomesticHotWaterStorage,
+    )
   }
 
   /** Handles the different cases, of thermal flows from and into the thermal
