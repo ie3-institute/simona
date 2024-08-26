@@ -164,18 +164,18 @@ class HpModelSpec
           ),
           (
             HpState(
-              isRunning = true,
+              isRunning = false,
               0,
               Some(hpData.ambientTemperature),
-              Kilowatts(95d),
-              Kilowatts(80d),
+              Kilowatts(0),
+              Kilowatts(0),
               thermalState(Celsius(22)),
               None,
             ),
-            true,
-            95,
+            false,
+            0,
             19.6,
-            Some(HouseTemperatureUpperBoundaryReached(23200L)),
+            Some(HouseTemperatureLowerBoundaryReached(13200L)),
           ),
           (
             HpState(
