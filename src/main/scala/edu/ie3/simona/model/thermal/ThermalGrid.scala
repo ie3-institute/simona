@@ -1291,7 +1291,6 @@ final case class ThermalGrid(
 
     val storageResultTick: Option[Long] = heatStorage
       .zip(state.storageState)
-      .headOption
       .flatMap {
         case (
               thermalStorage,
