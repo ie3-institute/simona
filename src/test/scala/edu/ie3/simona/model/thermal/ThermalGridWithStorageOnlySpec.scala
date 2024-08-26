@@ -218,6 +218,8 @@ class ThermalGridWithStorageOnlySpec
             noThermalDemand,
             thermalDemand,
             noThermalDemand,
+            defaultSimulationStart,
+            houseInhabitants,
           )
 
         updatedGridState match {

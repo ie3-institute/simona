@@ -60,7 +60,7 @@ final case class ThermalGrid(
     *   Ambient temperature in the instance in question
     * @param state
     *   Currently applicable state of the thermal grid
-    * @param simulationStart
+    * @param simulationStartTime
     *   simulationStartDate as ZonedDateTime
     * @param houseInhabitants
     *   number of people living in the building
@@ -74,7 +74,7 @@ final case class ThermalGrid(
       lastAmbientTemperature: Temperature,
       ambientTemperature: Temperature,
       state: ThermalGridState,
-      simulationStart: ZonedDateTime,
+      simulationStartTime: ZonedDateTime,
       houseInhabitants: Double,
   ): (
       ThermalEnergyDemand,
@@ -115,7 +115,7 @@ final case class ThermalGrid(
             thermalHouse.energyDemandDomesticHotWater(
               tick,
               Some(lastHouseState),
-              simulationStart,
+              simulationStartTime,
               houseInhabitants,
             )
           (heatDemand, newHouseState, energyDemandDomesticHotWater)
@@ -167,7 +167,7 @@ final case class ThermalGrid(
           _.energyDemandDomesticHotWater(
             tick,
             state.houseState,
-            simulationStart,
+            simulationStartTime,
             houseInhabitants,
           )
         )
@@ -244,7 +244,7 @@ final case class ThermalGrid(
     *   determines if the thermal storage has heat demand
     * @param domesticHotWaterStorageDemand
     *   determines if the domestic hot water storage has heat demand
-    * @param simulationStart
+    * @param simulationStartTime
     *   simulationStartDate as ZonedDateTime
     * @param houseInhabitants
     *   number of people living in the building
@@ -274,6 +274,8 @@ final case class ThermalGrid(
       houseDemand,
       storageDemand,
       domesticHotWaterStorageDemand,
+      simulationStartTime,
+      houseInhabitants,
     )
   else
     handleConsumption(
@@ -307,6 +309,10 @@ final case class ThermalGrid(
     *   determines if the thermal storage has heat demand
     * @param domesticHotWaterStorageDemand
     *   determines if the domestic hot water storage has heat demand
+   * @param simulationStartTime
+   *   simulationStartDate as ZonedDateTime
+   * @param houseInhabitants
+   *   number of people living in the building
     * @return
     *   Updated thermal grid state
     */
@@ -320,6 +326,8 @@ final case class ThermalGrid(
       houseDemand: Boolean,
       heatStorageDemand: Boolean,
       domesticHotWaterStorageDemand: Boolean,
+      simulationStartTime: ZonedDateTime,
+      houseInhabitants: Double,
   ): (ThermalGridState, Option[ThermalThreshold]) = {
     // TODO: We would need to issue a storage result model here...
 
@@ -361,6 +369,8 @@ final case class ThermalGrid(
         qDotHouseLastState.getOrElse(zeroKW),
         qDotStorageLastState.getOrElse(zeroKW),
         qDotDomesticWaterStorageLastState.getOrElse(zeroKW),
+        simulationStartTime,
+        houseInhabitants,
       )
     } else {
 
@@ -380,6 +390,8 @@ final case class ThermalGrid(
                 heatStorage.map(_.getChargingPower).getOrElse(zeroKW),
                 heatStorage.map(_.getChargingPower).getOrElse(zeroKW) * (-1),
                 qDot,
+                simulationStartTime,
+                houseInhabitants,
               )
             case _ =>
               splitThermalHeatAndPushIntoHouseAndDomesticStorage(
@@ -390,6 +402,8 @@ final case class ThermalGrid(
                 qDotHouseLastState,
                 qDotDomesticWaterStorageLastState,
                 qDot,
+                simulationStartTime,
+                houseInhabitants,
               )
           }
 
@@ -400,30 +414,33 @@ final case class ThermalGrid(
             lastAmbientTemperature,
             ambientTemperature,
             state,
-            qDotHouseLastState,
             qDot,
+            simulationStartTime,
+            houseInhabitants,
           )
 
         // Prioritize domestic hot water storage
         // Same case if there is Some(heatStorageDemand) or not
         case (false, _, true) =>
-          pushThermalHeatIntoDomesticHotWaterStorageHouseOnly(
+          pushThermalHeatIntoDomesticHotWaterStorageOnly(
             tick,
             lastAmbientTemperature,
             ambientTemperature,
             state,
-            qDotDomesticWaterStorageLastState,
             qDot,
+            simulationStartTime,
+            houseInhabitants,
           )
 
         case (false, true, false) =>
-          pushThermalHeatIntoThermalStorageHouseOnly(
+          pushThermalHeatIntoThermalStorageOnly(
             tick,
             lastAmbientTemperature,
             ambientTemperature,
             state,
-            qDotHouseLastState,
             qDot,
+            simulationStartTime,
+            houseInhabitants,
           )
 
         case _ =>
@@ -542,13 +559,33 @@ final case class ThermalGrid(
     }
   }
 
+  /** Helper method to push energy directly into the thermal house
+   *
+   * @param tick
+   *   Current tick
+   * @param lastAmbientTemperature
+   *   Ambient temperature until this tick
+   * @param ambientTemperature
+   *   actual ambient temperature
+   * @param state
+   *   Current state of the houses
+   * @param qDot
+   *   Infeed to the grid
+   * @param simulationStartTime
+   *   simulationStartDate as ZonedDateTime
+   * @param houseInhabitants
+   *   number of people living in the building
+   * @return
+   */
+
   private def pushThermalHeatIntoHouseOnly(
       tick: Long,
       lastAmbientTemperature: Temperature,
       ambientTemperature: Temperature,
       state: ThermalGridState,
-      qDotHouseLastState: Option[Power],
       qDot: Power,
+      simulationStartTime: ZonedDateTime,
+      houseInhabitants: Double,
   ) = {
     handleCases(
       tick,
@@ -558,16 +595,38 @@ final case class ThermalGrid(
       qDot,
       zeroKW,
       zeroKW,
+      simulationStartTime,
+      houseInhabitants,
     )
   }
 
-  private def pushThermalHeatIntoThermalStorageHouseOnly(
+  /** Helper method to push energy directly into the thermal heat storage
+   *
+   * @param tick
+   *   Current tick
+   * @param lastAmbientTemperature
+   *   Ambient temperature until this tick
+   * @param ambientTemperature
+   *   actual ambient temperature
+   * @param state
+   *   Current state of the houses
+   * @param qDot
+   *   Infeed to the grid
+   * @param simulationStartTime
+   *   simulationStartDate as ZonedDateTime
+   * @param houseInhabitants
+   *   number of people living in the building
+   * @return
+   */
+
+  private def pushThermalHeatIntoThermalStorageOnly(
       tick: Long,
       lastAmbientTemperature: Temperature,
       ambientTemperature: Temperature,
       state: ThermalGridState,
-      qDotHeatStorageLastState: Option[Power],
       qDot: Power,
+      simulationStartTime: ZonedDateTime,
+      houseInhabitants: Double,
   ) = {
     handleCases(
       tick,
@@ -577,16 +636,38 @@ final case class ThermalGrid(
       zeroKW,
       qDot,
       zeroKW,
+      simulationStartTime,
+      houseInhabitants,
     )
   }
 
-  private def pushThermalHeatIntoDomesticHotWaterStorageHouseOnly(
+  /** Helper method to push energy directly into the domestic hot water storage
+   *
+   * @param tick
+   *   Current tick
+   * @param lastAmbientTemperature
+   *   Ambient temperature until this tick
+   * @param ambientTemperature
+   *   actual ambient temperature
+   * @param state
+   *   Current state of the houses
+   * @param qDot
+   *   Infeed to the grid
+   * @param simulationStartTime
+   *   simulationStartDate as ZonedDateTime
+   * @param houseInhabitants
+   *   number of people living in the building
+   * @return
+   */
+
+  private def pushThermalHeatIntoDomesticHotWaterStorageOnly(
       tick: Long,
       lastAmbientTemperature: Temperature,
       ambientTemperature: Temperature,
       state: ThermalGridState,
-      qDotDomesticHotWaterStorageLastState: Option[Power],
       qDot: Power,
+      simulationStartTime: ZonedDateTime,
+      houseInhabitants: Double,
   ) = {
     handleCases(
       tick,
@@ -596,8 +677,33 @@ final case class ThermalGrid(
       zeroKW,
       zeroKW,
       qDot,
+      simulationStartTime,
+      houseInhabitants,
     )
   }
+
+  /** Helper method to split qDot of the heat pump and push energy directly into house and the domestic hot water storage
+   *
+   * @param tick
+   *   Current tick
+   * @param lastAmbientTemperature
+   *   Ambient temperature until this tick
+   * @param ambientTemperature
+   *   actual ambient temperature
+   * @param state
+   *   Current state of the houses
+   * @param qDotHouseLastState
+   * The infeed into the thermal house in the last state
+   * @param qDotDomesticHotWaterStorageLastState
+   *  The infeed into the domestic hot water storage in the last state
+   * @param qDot
+   *   Infeed to the grid
+   * @param simulationStartTime
+   *   simulationStartDate as ZonedDateTime
+   * @param houseInhabitants
+   *   number of people living in the building
+   * @return
+   */
 
   private def splitThermalHeatAndPushIntoHouseAndDomesticStorage(
       tick: Long,
@@ -607,6 +713,8 @@ final case class ThermalGrid(
       qDotHouseLastState: Option[Power],
       qDotDomesticHotWaterStorageLastState: Option[Power],
       qDot: Power,
+      simulationStartTime: ZonedDateTime,
+      houseInhabitants: Double,
   ) = {
     val qDotDomesticHotWaterStorage: Power =
       if (
@@ -629,6 +737,8 @@ final case class ThermalGrid(
       qDot - qDotDomesticHotWaterStorage,
       zeroKW,
       qDotDomesticHotWaterStorage,
+      simulationStartTime,
+      houseInhabitants,
     )
   }
 
@@ -647,6 +757,10 @@ final case class ThermalGrid(
     *   Infeed to the house
     * @param qDotStorage
     *   Infeed to the heat storage
+   * @param simulationStartTime
+   *   simulationStartDate as ZonedDateTime
+   * @param houseInhabitants
+   *   number of people living in the building
     * @return
     *   Updated thermal grid state and the next threshold if there is one
     */
@@ -658,6 +772,8 @@ final case class ThermalGrid(
       qDotHouse: Power,
       qDotHeatStorage: Power,
       qDotDomesticHotWaterStorage: Power,
+      simulationStartTime: ZonedDateTime,
+      houseInhabitants: Double,
   ): (ThermalGridState, Option[ThermalThreshold]) = {
     // FIXME: Is there any case where we get back some remainingQDotHouse?
     val (updatedHouseState, thermalHouseThreshold, remainingQDotHouse) =
@@ -670,7 +786,14 @@ final case class ThermalGrid(
       )
 
     val (updatedStorageState, thermalStorageThreshold) =
-      handleInfeedStorage(tick, state, qDotHeatStorage, heatStorage)
+      handleInfeedStorage(
+        tick,
+        state,
+        qDotHeatStorage,
+        heatStorage,
+        simulationStartTime,
+        houseInhabitants,
+      )
 
     val (
       updatedDomesticHotWaterStorageState,
@@ -680,6 +803,8 @@ final case class ThermalGrid(
       state,
       qDotDomesticHotWaterStorage,
       domesticHotWaterStorage,
+      simulationStartTime,
+      houseInhabitants,
     )
 
     val nextThreshold = determineMostRecentThreshold(
@@ -765,6 +890,10 @@ final case class ThermalGrid(
     *   Infeed to the grid
     * @param storage
     *   the storage that should be handled
+   * @param simulationStartTime
+   *   simulationStartDate as ZonedDateTime
+   * @param houseInhabitants
+   *   number of people living in the building
     * @return
     *   Updated thermal grid state
     */
@@ -773,6 +902,8 @@ final case class ThermalGrid(
       state: ThermalGridState,
       qDot: Power,
       storage: Option[ThermalStorage],
+      simulationStartTime: ZonedDateTime,
+      houseInhabitants: Double,
   ): (Option[ThermalStorageState], Option[ThermalThreshold]) = {
 
     val selectedState = storage match {
@@ -901,6 +1032,8 @@ final case class ThermalGrid(
       state,
       qDotDomesticHotWaterDemand,
       domesticHotWaterStorage,
+      simulationStartTime,
+      houseInhabitants,
     )
 
     val nextThresholdHotWaterStorage = determineMostRecentThreshold(
