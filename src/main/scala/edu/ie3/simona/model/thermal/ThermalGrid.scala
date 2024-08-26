@@ -14,6 +14,7 @@ import edu.ie3.datamodel.models.input.thermal.{
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.thermal.{
   CylindricalStorageResult,
+  DomesticHotWaterStorageResult,
   ThermalHouseResult,
 }
 import edu.ie3.simona.exceptions.InvalidParameterException
@@ -908,7 +909,7 @@ final case class ThermalGrid(
       simulationStartTime: ZonedDateTime,
       houseInhabitants: Double,
   ): (Option[ThermalStorageState], Option[ThermalThreshold]) = {
-
+    // FIXME: We should somewhere check that pThermalMax of Storage is always capable for qDot pThermalMax >= pThermal of Hp
     val selectedState = storage match {
       case Some(_: CylindricalThermalStorage) => state.storageState
       case Some(_: DomesticHotWaterStorage) =>
@@ -1279,10 +1280,9 @@ final case class ThermalGrid(
 
     val houseResultTick: Option[Long] = house
       .zip(state.houseState)
-      .headOption
       .flatMap {
         case (
-              thermalHouse,
+              _,
               ThermalHouseState(tick, _, _),
             ) =>
           Some(tick)
@@ -1293,45 +1293,60 @@ final case class ThermalGrid(
       .zip(state.storageState)
       .flatMap {
         case (
-              thermalStorage,
+              _,
               ThermalStorageState(tick, _, _),
             ) =>
           Some(tick)
         case _ => None
       }
 
-    val actualResultTick: Long = (houseResultTick, storageResultTick) match {
-      case (Some(hTick), Some(sTick)) => math.max(hTick, sTick)
-      case (Some(hTick), None)        => hTick
-      case (None, Some(sTick))        => sTick
-      case (None, None) =>
-        throw new RuntimeException(
-          "ThermalGrid result should be carried out but it was not possible to get the tick for the result"
-        )
-    }
+    val domesticHotWaterStorageResultTick: Option[Long] =
+      domesticHotWaterStorage
+        .zip(state.domesticHotWaterStorageState)
+        .flatMap {
+          case (
+                _,
+                ThermalStorageState(tick, _, _),
+              ) =>
+            Some(tick)
+          case _ => None
+        }
+
+    val actualResultTick = Seq(
+      houseResultTick,
+      storageResultTick,
+      domesticHotWaterStorageResultTick,
+    ).flatten.maxOption.getOrElse(
+      throw new InconsistentStateException(
+        s"Was not able to get tick for thermal result. Result tick of thermal house: ${houseResultTick}," +
+          s" Result tick of thermal heat storage: ${storageResultTick}, Result tick of domestic hot water storage: ${domesticHotWaterStorageResultTick}."
+      )
+    )
 
     val houseResults = house
       .zip(state.houseState)
       .map {
         case (
               thermalHouse,
-              ThermalHouseState(tick, innerTemperature, thermalInfeed),
+              ThermalHouseState(_, innerTemperature, thermalInfeed),
             ) =>
-          Seq.empty[ResultEntity] :+ new ThermalHouseResult(
-            actualResultTick.toDateTime,
-            thermalHouse.uuid,
-            thermalInfeed.toMegawatts.asMegaWatt,
-            innerTemperature.toKelvinScale.asKelvin,
+          Seq(
+            new ThermalHouseResult(
+              actualResultTick.toDateTime,
+              thermalHouse.uuid,
+              thermalInfeed.toMegawatts.asMegaWatt,
+              innerTemperature.toKelvinScale.asKelvin,
+            )
           )
       }
       .getOrElse(Seq.empty[ResultEntity])
 
-    heatStorage
+    val storageResults = heatStorage
       .zip(state.storageState)
       .map {
         case (
               storage: CylindricalThermalStorage,
-              ThermalStorageState(tick, storedEnergy, qDot),
+              ThermalStorageState(_, storedEnergy, qDot),
             ) =>
           houseResults :+ new CylindricalStorageResult(
             actualResultTick.toDateTime,
@@ -1346,6 +1361,29 @@ final case class ThermalGrid(
           )
       }
       .getOrElse(houseResults)
+
+    val finalResults = domesticHotWaterStorage
+      .zip(state.domesticHotWaterStorageState)
+      .map {
+        case (
+              storage: DomesticHotWaterStorage,
+              ThermalStorageState(_, storedEnergy, qDot),
+            ) =>
+          storageResults :+ new DomesticHotWaterStorageResult(
+            actualResultTick.toDateTime,
+            storage.uuid,
+            storedEnergy.toMegawattHours.asMegaWattHour,
+            qDot.toMegawatts.asMegaWatt,
+            (storedEnergy / storage.maxEnergyThreshold).asPu,
+          )
+        case _ =>
+          throw new NotImplementedError(
+            s"Result handling for storage type '${heatStorage.getClass.getSimpleName}' not supported."
+          )
+      }
+      .getOrElse(storageResults)
+
+    finalResults
   }
 }
 
