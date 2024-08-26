@@ -41,7 +41,7 @@ trait HpInputTestData
     with DefaultTestData {
 
   protected val hpTypeInput = new HpTypeInput(
-    UUID.fromString("9802bf35-2a4e-4ff5-be9b-cd9e6a78dcd6"),
+    UUID.fromString("6371381e-9cfd-4aeb-a3d9-d9725eda58c9"),
     "HpTypeInput",
     Quantities.getQuantity(10000d, PowerSystemUnits.EURO),
     Quantities.getQuantity(200d, PowerSystemUnits.EURO_PER_MEGAWATTHOUR),
@@ -133,23 +133,11 @@ trait HpInputTestData
       Quantities.getQuantity(11.0, PowerSystemUnits.KILOWATT),
     )
 
-  protected val domesticHotWaterStorageInput: DomesticHotWaterStorageInput =
-    new DomesticHotWaterStorageInput(
-      UUID.fromString("77579045-6695-4cd3-be52-ffe81502182d"),
-      "domestic hot water storage",
-      thermalBusInput,
-      Quantities.getQuantity(300.0, Units.LITRE),
-      Quantities.getQuantity(60.0, StandardUnits.TEMPERATURE),
-      Quantities.getQuantity(30.0, StandardUnits.TEMPERATURE),
-      Quantities.getQuantity(1.16, StandardUnits.SPECIFIC_HEAT_CAPACITY),
-      Quantities.getQuantity(11.0, PowerSystemUnits.KILOWATT),
-    )
-
   protected val typicalThermalGrid = new container.ThermalGrid(
     thermalBusInput,
     Seq(typicalThermalHouse).asJava,
     Set[ThermalStorageInput](typicalThermalStorage).asJava,
-    Seq[ThermalStorageInput](domesticHotWaterStorageInput).asJava,
+    Seq[ThermalStorageInput](defaultDomesticHotWaterStorageInput).asJava,
   )
 
   protected val typicalHpTypeInput = new HpTypeInput(
@@ -207,7 +195,7 @@ trait HpInputTestData
   )
 
   protected def thermalStorage: ThermalStorage = CylindricalThermalStorage(
-    UUID.fromString("d57ddc54-48bd-4c59-babf-330c7ba71a74"),
+    UUID.fromString("12341234-48bd-4c59-babf-330c7ba71a74"),
     "thermal storage",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
@@ -219,7 +207,7 @@ trait HpInputTestData
 
   protected def domesticHotWaterStorage: ThermalStorage =
     DomesticHotWaterStorage(
-      UUID.fromString("d57ddc54-48bd-4c59-babf-330c7ba71a74"),
+      UUID.fromString("56785678-48bd-4c59-babf-330c7ba71a74"),
       "domestic hot water storage",
       OperatorInput.NO_OPERATOR_ASSIGNED,
       OperationTime.notLimited(),
