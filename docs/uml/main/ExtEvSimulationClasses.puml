@@ -165,7 +165,8 @@ package simona-api {
 
     interface ExtTriggerResponse
     class Completion {
-        - List<Long> newTriggers
+        - ActorRef Activation
+        - Option Long
     }
     Completion --|> ExtTriggerResponse
 
