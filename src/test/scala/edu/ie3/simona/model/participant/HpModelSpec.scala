@@ -237,8 +237,7 @@ class HpModelSpec
     }
     "determining the flexibility options for different states" should {
       "deliver correct flexibility options" in {
-        val testCases
-            : TableFor3[ThermalGridState, HpState, (Double, Double, Double)] =
+        val testCases =
           Table(
             ("thermalState", "lastState", "expectedValues"),
             // 1. Hp actually not running
