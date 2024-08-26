@@ -9,7 +9,10 @@ package edu.ie3.simona.test.common.input
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.datamodel.models.input.system.`type`.HpTypeInput
 import edu.ie3.datamodel.models.input.system.characteristic.ReactivePowerCharacteristic
-import edu.ie3.datamodel.models.input.thermal.{ThermalHouseInput, ThermalStorageInput}
+import edu.ie3.datamodel.models.input.thermal.{
+  ThermalHouseInput,
+  ThermalStorageInput,
+}
 import edu.ie3.datamodel.models.input.{EmInput, OperatorInput, container}
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.simona.config.SimonaConfig
@@ -98,8 +101,7 @@ trait ThermalGridITInputTestData
     2.0,
   )
 
-
-protected val thermalGridForThermalGridIT = new container.ThermalGrid(
+  protected val thermalGridForThermalGridIT = new container.ThermalGrid(
     thermalBusInput,
     Seq(typicalThermalHouse).asJava,
     Seq[ThermalStorageInput](typicalThermalStorage).asJava,
