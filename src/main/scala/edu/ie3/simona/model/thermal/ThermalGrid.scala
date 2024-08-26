@@ -916,13 +916,91 @@ final case class ThermalGrid(
     }
 
     (storage, selectedState) match {
-      case (Some(thermalStorage), Some(lastStorageState)) =>
+      case (
+            Some(thermalStorage: CylindricalThermalStorage),
+            Some(lastStorageState),
+          ) =>
         val (newState, threshold) = thermalStorage.updateState(
           tick,
           qDot,
           lastStorageState,
         )
         (Some(newState), threshold)
+
+      case (
+            Some(domesticHotWaterStorage: DomesticHotWaterStorage),
+            Some(lastDomesticHotWaterStorageState),
+          ) =>
+        val storedEnergy = domesticHotWaterStorage
+          .updateState(
+            tick,
+            lastDomesticHotWaterStorageState.qDot,
+            lastDomesticHotWaterStorageState,
+          )
+          ._1
+          .storedEnergy
+
+        val domesticHotWaterDemand = house
+          .map(
+            _.energyDemandDomesticHotWater(
+              tick,
+              state.houseState,
+              simulationStartTime,
+              houseInhabitants,
+            )
+          )
+          .getOrElse(ThermalEnergyDemand(zeroKWH, zeroKWH))
+
+        val (applicableQDotDomesticStorage, thresholdToCoverDemand) =
+          domesticHotWaterDemand match {
+            case demand
+                if (demand.required > zeroKWH && storedEnergy == zeroKWH) =>
+              // Use qDot from Hp directly to cover hot water demand
+              val threshold = Some(
+                SimpleThermalThreshold(
+                  (domesticHotWaterDemand.required / qDot).toSeconds.toLong
+                )
+              )
+              (zeroKW, threshold)
+            case demand
+                if (demand.required > zeroKWH && storedEnergy > zeroKWH) =>
+              // Use storage to cover hot water demand
+              identifyApplicableQDot(tick, demand)
+
+            case demand
+                if (demand.required == zeroKWH && lastDomesticHotWaterStorageState.qDot > zeroKW && storedEnergy != domesticHotWaterStorage.maxEnergyThreshold) =>
+              // Storage got recharged in the last state
+              // Threshold will be calculated later
+              (lastDomesticHotWaterStorageState.qDot, None)
+            case demand if (demand.required == zeroKWH & qDot == zeroKW) =>
+              // Don't do anything with domestic hot water storage
+              (zeroKW, None)
+            case demand if (demand.required == zeroKWH & qDot > zeroKW) =>
+              // Use qDot from Hp to recharge domestic hot water storage
+              // Threshold will be calculated later
+              (qDot, None)
+
+            case _ =>
+              throw new RuntimeException(
+                s"Unexpected case occur when try to handle infeed into domestic hot water storage ${domesticHotWaterStorage.uuid}."
+              )
+          }
+
+        val (updatedStorageState, updatedThreshold) =
+          domesticHotWaterStorage
+            .updateState(
+              tick,
+              applicableQDotDomesticStorage,
+              lastDomesticHotWaterStorageState,
+            )
+
+        val nextThreshold = determineMostRecentThreshold(
+          Seq(updatedThreshold, thresholdToCoverDemand)
+        )
+        (
+          Some(updatedStorageState),
+          nextThreshold,
+        )
       case _ => (None, None)
     }
   }
