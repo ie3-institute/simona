@@ -309,10 +309,10 @@ final case class ThermalGrid(
     *   determines if the thermal storage has heat demand
     * @param domesticHotWaterStorageDemand
     *   determines if the domestic hot water storage has heat demand
-   * @param simulationStartTime
-   *   simulationStartDate as ZonedDateTime
-   * @param houseInhabitants
-   *   number of people living in the building
+    * @param simulationStartTime
+    *   simulationStartDate as ZonedDateTime
+    * @param houseInhabitants
+    *   number of people living in the building
     * @return
     *   Updated thermal grid state
     */
@@ -560,23 +560,23 @@ final case class ThermalGrid(
   }
 
   /** Helper method to push energy directly into the thermal house
-   *
-   * @param tick
-   *   Current tick
-   * @param lastAmbientTemperature
-   *   Ambient temperature until this tick
-   * @param ambientTemperature
-   *   actual ambient temperature
-   * @param state
-   *   Current state of the houses
-   * @param qDot
-   *   Infeed to the grid
-   * @param simulationStartTime
-   *   simulationStartDate as ZonedDateTime
-   * @param houseInhabitants
-   *   number of people living in the building
-   * @return
-   */
+    *
+    * @param tick
+    *   Current tick
+    * @param lastAmbientTemperature
+    *   Ambient temperature until this tick
+    * @param ambientTemperature
+    *   actual ambient temperature
+    * @param state
+    *   Current state of the houses
+    * @param qDot
+    *   Infeed to the grid
+    * @param simulationStartTime
+    *   simulationStartDate as ZonedDateTime
+    * @param houseInhabitants
+    *   number of people living in the building
+    * @return
+    */
 
   private def pushThermalHeatIntoHouseOnly(
       tick: Long,
@@ -601,23 +601,23 @@ final case class ThermalGrid(
   }
 
   /** Helper method to push energy directly into the thermal heat storage
-   *
-   * @param tick
-   *   Current tick
-   * @param lastAmbientTemperature
-   *   Ambient temperature until this tick
-   * @param ambientTemperature
-   *   actual ambient temperature
-   * @param state
-   *   Current state of the houses
-   * @param qDot
-   *   Infeed to the grid
-   * @param simulationStartTime
-   *   simulationStartDate as ZonedDateTime
-   * @param houseInhabitants
-   *   number of people living in the building
-   * @return
-   */
+    *
+    * @param tick
+    *   Current tick
+    * @param lastAmbientTemperature
+    *   Ambient temperature until this tick
+    * @param ambientTemperature
+    *   actual ambient temperature
+    * @param state
+    *   Current state of the houses
+    * @param qDot
+    *   Infeed to the grid
+    * @param simulationStartTime
+    *   simulationStartDate as ZonedDateTime
+    * @param houseInhabitants
+    *   number of people living in the building
+    * @return
+    */
 
   private def pushThermalHeatIntoThermalStorageOnly(
       tick: Long,
@@ -642,23 +642,23 @@ final case class ThermalGrid(
   }
 
   /** Helper method to push energy directly into the domestic hot water storage
-   *
-   * @param tick
-   *   Current tick
-   * @param lastAmbientTemperature
-   *   Ambient temperature until this tick
-   * @param ambientTemperature
-   *   actual ambient temperature
-   * @param state
-   *   Current state of the houses
-   * @param qDot
-   *   Infeed to the grid
-   * @param simulationStartTime
-   *   simulationStartDate as ZonedDateTime
-   * @param houseInhabitants
-   *   number of people living in the building
-   * @return
-   */
+    *
+    * @param tick
+    *   Current tick
+    * @param lastAmbientTemperature
+    *   Ambient temperature until this tick
+    * @param ambientTemperature
+    *   actual ambient temperature
+    * @param state
+    *   Current state of the houses
+    * @param qDot
+    *   Infeed to the grid
+    * @param simulationStartTime
+    *   simulationStartDate as ZonedDateTime
+    * @param houseInhabitants
+    *   number of people living in the building
+    * @return
+    */
 
   private def pushThermalHeatIntoDomesticHotWaterStorageOnly(
       tick: Long,
@@ -682,28 +682,29 @@ final case class ThermalGrid(
     )
   }
 
-  /** Helper method to split qDot of the heat pump and push energy directly into house and the domestic hot water storage
-   *
-   * @param tick
-   *   Current tick
-   * @param lastAmbientTemperature
-   *   Ambient temperature until this tick
-   * @param ambientTemperature
-   *   actual ambient temperature
-   * @param state
-   *   Current state of the houses
-   * @param qDotHouseLastState
-   * The infeed into the thermal house in the last state
-   * @param qDotDomesticHotWaterStorageLastState
-   *  The infeed into the domestic hot water storage in the last state
-   * @param qDot
-   *   Infeed to the grid
-   * @param simulationStartTime
-   *   simulationStartDate as ZonedDateTime
-   * @param houseInhabitants
-   *   number of people living in the building
-   * @return
-   */
+  /** Helper method to split qDot of the heat pump and push energy directly into
+    * house and the domestic hot water storage
+    *
+    * @param tick
+    *   Current tick
+    * @param lastAmbientTemperature
+    *   Ambient temperature until this tick
+    * @param ambientTemperature
+    *   actual ambient temperature
+    * @param state
+    *   Current state of the houses
+    * @param qDotHouseLastState
+    *   The infeed into the thermal house in the last state
+    * @param qDotDomesticHotWaterStorageLastState
+    *   The infeed into the domestic hot water storage in the last state
+    * @param qDot
+    *   Infeed to the grid
+    * @param simulationStartTime
+    *   simulationStartDate as ZonedDateTime
+    * @param houseInhabitants
+    *   number of people living in the building
+    * @return
+    */
 
   private def splitThermalHeatAndPushIntoHouseAndDomesticStorage(
       tick: Long,
@@ -757,10 +758,10 @@ final case class ThermalGrid(
     *   Infeed to the house
     * @param qDotStorage
     *   Infeed to the heat storage
-   * @param simulationStartTime
-   *   simulationStartDate as ZonedDateTime
-   * @param houseInhabitants
-   *   number of people living in the building
+    * @param simulationStartTime
+    *   simulationStartDate as ZonedDateTime
+    * @param houseInhabitants
+    *   number of people living in the building
     * @return
     *   Updated thermal grid state and the next threshold if there is one
     */
@@ -892,10 +893,10 @@ final case class ThermalGrid(
     *   Infeed to the grid
     * @param storage
     *   the storage that should be handled
-   * @param simulationStartTime
-   *   simulationStartDate as ZonedDateTime
-   * @param houseInhabitants
-   *   number of people living in the building
+    * @param simulationStartTime
+    *   simulationStartDate as ZonedDateTime
+    * @param houseInhabitants
+    *   number of people living in the building
     * @return
     *   Updated thermal grid state
     */
