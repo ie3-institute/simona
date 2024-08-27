@@ -259,9 +259,9 @@ final case class ThermalGrid(
       ambientTemperature: Temperature,
       isRunning: Boolean,
       qDot: Power,
-      houseDemand: Boolean,
-      storageDemand: Boolean,
-      domesticHotWaterStorageDemand: Boolean,
+      houseDemand: ThermalEnergyDemand,
+      storageDemand: ThermalEnergyDemand,
+      domesticHotWaterStorageDemand: ThermalEnergyDemand,
       simulationStartTime: ZonedDateTime,
       houseInhabitants: Double,
   ): (ThermalGridState, Option[ThermalThreshold]) = if (qDot > zeroKW)
@@ -324,16 +324,16 @@ final case class ThermalGrid(
       state: ThermalGridState,
       isRunning: Boolean,
       qDot: Power,
-      houseDemand: Boolean,
-      heatStorageDemand: Boolean,
-      domesticHotWaterStorageDemand: Boolean,
+      houseDemand: ThermalEnergyDemand,
+      heatStorageDemand: ThermalEnergyDemand,
+      domesticHotWaterStorageDemand: ThermalEnergyDemand,
       simulationStartTime: ZonedDateTime,
       houseInhabitants: Double,
   ): (ThermalGridState, Option[ThermalThreshold]) = {
     // TODO: We would need to issue a storage result model here...
 
     /* Consider the action in the last state and if it's possible to continue*/
-    val (_, qDotHouseLastState, houseStatusChanged) =
+    val (_, qDotHouseLastState, houseReachedBoundary, houseLeftBoundary) =
       updateStateGetLastThermalActionAndCheckIfCanContinueThermalHouse(
         tick,
         state,
@@ -343,7 +343,8 @@ final case class ThermalGrid(
     val (
       updatedHeatStorageState,
       qDotStorageLastState,
-      thermalStorageStatusChanged,
+      thermalStorageReachedBoundary,
+      thermalStorageLeftBoundary,
     ) =
       updateStateGetLastThermalActionAndCheckIfCanContinueThermalStorage(
         tick,
@@ -352,7 +353,8 @@ final case class ThermalGrid(
     val (
       _,
       qDotDomesticWaterStorageLastState,
-      domesticHotWaterStorageStatusChanged,
+      domesticHotWaterStorageReachedBoundary,
+      domesticHotWaterStorageLeftBoundary,
     ) =
       updateStateGetLastThermalActionAndCheckIfCanContinueDomesticHotWaterStorage(
         tick,
@@ -360,7 +362,9 @@ final case class ThermalGrid(
       )
 
     if (
-      !houseStatusChanged && !thermalStorageStatusChanged && !domesticHotWaterStorageStatusChanged
+      !houseReachedBoundary && !houseLeftBoundary &&
+      !thermalStorageReachedBoundary && !thermalStorageLeftBoundary &&
+      !domesticHotWaterStorageReachedBoundary && !domesticHotWaterStorageLeftBoundary
     ) {
       handleCases(
         tick,
@@ -375,10 +379,16 @@ final case class ThermalGrid(
       )
     } else {
 
-      (houseDemand, heatStorageDemand, domesticHotWaterStorageDemand) match {
-
-        case (true, _, true) =>
-          (updatedHeatStorageState) match {
+      (
+        houseDemand.hasRequiredDemand,
+        houseDemand.hasAdditionalDemand,
+        heatStorageDemand.hasRequiredDemand,
+        heatStorageDemand.hasAdditionalDemand,
+        domesticHotWaterStorageDemand.hasRequiredDemand,
+        domesticHotWaterStorageDemand.hasAdditionalDemand,
+      ) match {
+        case (true, _, _, _, true, _) =>
+          updatedHeatStorageState match {
             // if heatStorage is not empty, house and hot water storage can handleDemand
             // take qDot to recharge domesticHotWaterStorage and
             // cover thermal demand of house by heatStorage
@@ -409,7 +419,7 @@ final case class ThermalGrid(
           }
 
         // Same cases if there is Some(heatStorageDemand) or not
-        case (true, _, false) =>
+        case (true, _, _, _, false, _) =>
           pushThermalHeatIntoHouseOnly(
             tick,
             lastAmbientTemperature,
@@ -422,7 +432,7 @@ final case class ThermalGrid(
 
         // Prioritize domestic hot water storage
         // Same case if there is Some(heatStorageDemand) or not
-        case (false, _, true) =>
+        case (false, _, _, _, true, _) =>
           pushThermalHeatIntoDomesticHotWaterStorageOnly(
             tick,
             lastAmbientTemperature,
@@ -433,7 +443,7 @@ final case class ThermalGrid(
             houseInhabitants,
           )
 
-        case (false, true, false) =>
+        case (false, _, true, _, false, _) =>
           pushThermalHeatIntoThermalStorageOnly(
             tick,
             lastAmbientTemperature,
@@ -443,20 +453,70 @@ final case class ThermalGrid(
             simulationStartTime,
             houseInhabitants,
           )
-
+        //  all cases for required demands are now handled
+        // now take last action into account
         case _ =>
-          throw new InconsistentStateException(
-            "There should be at least a house or a storage demand."
-          )
+          // House and domestic hot water storage can only have additional demand now
+          domesticHotWaterStorageLeftBoundary match {
+            case (true) =>
+              handleCases(
+                tick,
+                lastAmbientTemperature,
+                ambientTemperature,
+                state,
+                qDotHouseLastState.getOrElse(zeroKW),
+                qDotStorageLastState.getOrElse(zeroKW),
+                zeroKW,
+                simulationStartTime,
+                houseInhabitants,
+              )
+            // if storage has additional demand charge it before heating the house
+            case (_) =>
+              if (heatStorageDemand.hasAdditionalDemand)
+                handleCases(
+                  tick,
+                  lastAmbientTemperature,
+                  ambientTemperature,
+                  state,
+                  zeroKW,
+                  qDot,
+                  zeroKW,
+                  simulationStartTime,
+                  houseInhabitants,
+                )
+              else {
+                handleCases(
+                  tick,
+                  lastAmbientTemperature,
+                  ambientTemperature,
+                  state,
+                  qDot,
+                  zeroKW,
+                  zeroKW,
+                  simulationStartTime,
+                  houseInhabitants,
+                )
+              }
+          }
+
       }
     }
   }
 
-  /** @param tick
+  /** Method that updates the state of [[Thermal House]], get its last thermal
+    * action (qDot) and if it reached or left any boundaries this tick.
+    *
+    * @param tick
+    *   Current tick
     * @param state
+    *   Current state of the houses
     * @param lastAmbientTemperature
+    *   Ambient temperature until this tick
     * @param ambientTemperature
+    *   actual ambient temperature
     * @return
+    *   Option of the updated house state, option of the last qDot and Booleans
+    *   if some boundaries are reached or left.
     */
 
   private def updateStateGetLastThermalActionAndCheckIfCanContinueThermalHouse(
@@ -464,7 +524,7 @@ final case class ThermalGrid(
       state: ThermalGridState,
       lastAmbientTemperature: Temperature,
       ambientTemperature: Temperature,
-  ): (Option[ThermalHouseState], Option[Power], Boolean) = {
+  ): (Option[ThermalHouseState], Option[Power], Boolean, Boolean) = {
     state match {
       case ThermalGridState(
             Some(lastHouseState),
@@ -480,32 +540,52 @@ final case class ThermalGrid(
               ambientTemperature,
               lastHouseState.qDot,
             )
-            // Set to true if status of house changed this tick
-            val houseStatusChanged = thermalHouse.isInnerTemperatureTooHigh(
+            val houseReachedBoundary = thermalHouse.isInnerTemperatureTooHigh(
               newState.innerTemperature
             ) || thermalHouse.isInnerTemperatureTooLow(
               newState.innerTemperature
             )
-            (Some(newState), Some(lastHouseState.qDot), houseStatusChanged)
+            val houseLeftBoundary = (thermalHouse.isInnerTemperatureTooHigh(
+              lastHouseState.innerTemperature
+            ) && !thermalHouse.isInnerTemperatureTooHigh(
+              newState.innerTemperature
+            )) || (thermalHouse.isInnerTemperatureTooLow(
+              newState.innerTemperature
+            ) && !thermalHouse.isInnerTemperatureTooLow(
+              newState.innerTemperature
+            ))
+            (
+              Some(newState),
+              Some(lastHouseState.qDot),
+              houseReachedBoundary,
+              houseLeftBoundary,
+            )
         }
       case ThermalGridState(
             None,
             _,
             _,
           ) =>
-        (None, None, false)
+        (None, None, false, false)
     }
   }
 
-  /** @param tick
+  /** Method that updates the state of [[Thermal Storage]], get its last thermal
+    * action (qDot) and if it reached or left any boundaries this tick.
+    *
+    * @param tick
+    *   Current tick
     * @param state
+    *   Current state of the houses
     * @return
+    *   Option of the updated storage state, option of the last qDot and
+    *   Booleans if some boundaries are reached or left.
     */
 
   private def updateStateGetLastThermalActionAndCheckIfCanContinueThermalStorage(
       tick: Long,
       state: ThermalGridState,
-  ): (Option[ThermalStorageState], Option[Power], Boolean) = {
+  ): (Option[ThermalStorageState], Option[Power], Boolean, Boolean) = {
     getLastThermalActionAndCheckIfCanContinueStorage(
       tick,
       state,
@@ -514,15 +594,23 @@ final case class ThermalGrid(
     )
   }
 
-  /** @param tick
+  /** Method that updates the state of [[Domestic Hot Water Storage]], get its
+    * last thermal action (qDot) and if it reached or left any boundaries this
+    * tick.
+    *
+    * @param tick
+    *   Current tick
     * @param state
+    *   Current state of the houses
     * @return
+    *   Option of the updated storage state, option of the last qDot and
+    *   Booleans if some boundaries are reached or left.
     */
 
   private def updateStateGetLastThermalActionAndCheckIfCanContinueDomesticHotWaterStorage(
       tick: Long,
       state: ThermalGridState,
-  ): (Option[ThermalStorageState], Option[Power], Boolean) = {
+  ): (Option[ThermalStorageState], Option[Power], Boolean, Boolean) = {
     getLastThermalActionAndCheckIfCanContinueStorage(
       tick,
       state,
@@ -531,11 +619,20 @@ final case class ThermalGrid(
     )
   }
 
-  /** @param tick
+  /** Abstract method that updates the state of [[Thermal Storage]], get its
+    * last thermal action (qDot) and if it reached or left any boundaries this
+    * tick.
+    * @param tick
+    *   Current tick
     * @param state
-    * @param storage
-    * @param lastStorageState
+    *   Current state of the houses
+    * @param lastAmbientTemperature
+    *   Ambient temperature until this tick
+    * @param ambientTemperature
+    *   actual ambient temperature
     * @return
+    *   Option of the updated storage state, option of the last qDot and
+    *   Booleans if some boundaries are reached or left.
     */
 
   private def getLastThermalActionAndCheckIfCanContinueStorage(
@@ -543,7 +640,7 @@ final case class ThermalGrid(
       state: ThermalGridState,
       storage: Option[ThermalStorage],
       lastStorageState: Option[ThermalStorageState],
-  ): (Option[ThermalStorageState], Option[Power], Boolean) = {
+  ): (Option[ThermalStorageState], Option[Power], Boolean, Boolean) = {
     (storage, lastStorageState) match {
       case (Some(storage), Some(lastStorageState)) =>
         val (newState, _) = storage.updateState(
@@ -551,12 +648,22 @@ final case class ThermalGrid(
           lastStorageState.qDot,
           lastStorageState,
         )
-        // Set to true if status of storage changed this tick
-        val storageStatusChanged =
-          (storage.getMaxEnergyThreshold > newState.storedEnergy) | (newState.storedEnergy == zeroKWH)
-        (Some(newState), Some(lastStorageState.qDot), storageStatusChanged)
+
+        val storageReachedBorder =
+          (newState.storedEnergy == storage.getMaxEnergyThreshold) ||
+            (newState.storedEnergy == zeroKWH)
+
+        val storageLeftBorder =
+          (lastStorageState.storedEnergy == storage.getMaxEnergyThreshold && newState.storedEnergy != zeroKWH) ||
+            (lastStorageState.storedEnergy == zeroKWH && newState.storedEnergy != zeroKWH)
+        (
+          Some(newState),
+          Some(lastStorageState.qDot),
+          storageReachedBorder,
+          storageLeftBorder,
+        )
       case _ =>
-        (None, None, false)
+        (None, None, false, false)
     }
   }
 

@@ -164,13 +164,20 @@ final case class HpModel(
     *   Relevant (external) data
     * @return
     *   boolean defining if heat pump runs in next time step, if it can be in
-    *   operation and out of operation plus the booleans indicating demand of
+    *   operation and out of operation plus the [[ThermalEnergyDemand]] of
     *   house, heat storage, domestic hot water storage
     */
   private def operatesInNextState(
       state: HpState,
       relevantData: HpRelevantData,
-  ): (Boolean, Boolean, Boolean, Boolean, Boolean, Boolean) = {
+  ): (
+      Boolean,
+      Boolean,
+      Boolean,
+      ThermalEnergyDemand,
+      ThermalEnergyDemand,
+      ThermalEnergyDemand,
+  ) = {
     val (
       demandHouse,
       demandThermalStorage,
@@ -187,20 +194,15 @@ final case class HpModel(
       )
 
     val (
-      houseDemand,
-      heatStorageDemand,
-      domesticHotWaterStorageDemand,
+      turnHpOn,
       noThermalStorageOrThermalStorageIsEmpty,
-    ) = determineDemandBooleans(
+    ) = determineHpAndThermalStorageStatus(
       state,
       updatedState,
       demandHouse,
       demandThermalStorage,
       demandDomesticHotWaterStorage,
     )
-
-    val turnHpOn: Boolean =
-      houseDemand || heatStorageDemand || domesticHotWaterStorageDemand
 
     val canOperate =
       demandHouse.hasRequiredDemand || demandHouse.hasAdditionalDemand ||
@@ -213,19 +215,37 @@ final case class HpModel(
       turnHpOn,
       canOperate,
       canBeOutOfOperation,
-      houseDemand,
-      heatStorageDemand,
-      domesticHotWaterStorageDemand,
+      demandHouse,
+      demandThermalStorage,
+      demandDomesticHotWaterStorage,
     )
   }
 
-  def determineDemandBooleans(
+  /** Determines the actual status of heat pump and the status of the heat
+    * storage if there is one
+    *
+    * @param hpState
+    *   Current state of the heat pump
+    * @param updatedGridState
+    *   The updated state of the [[ThermalGrid]]
+    * @param demandHouse
+    *   Determines if the thermal house has heat demand
+    * @param demandThermalStorage
+    *   Determines if the thermal storage has heat demand
+    * @param demandDomesticHotWaterStorage
+    *   Determines if the domestic hot water storage has heat demand
+    * @return
+    *   Boolean if the hp will be turned on (true) in the next state or not,
+    *   Boolean if there is no heat storage (true) or it is empty
+    */
+
+  def determineHpAndThermalStorageStatus(
       hpState: HpState,
       updatedGridState: ThermalGridState,
       demandHouse: ThermalEnergyDemand,
       demandThermalStorage: ThermalEnergyDemand,
       demandDomesticHotWaterStorage: ThermalEnergyDemand,
-  ): (Boolean, Boolean, Boolean, Boolean) = {
+  ): (Boolean, Boolean) = {
     implicit val tolerance: Energy = KilowattHours(1e-3)
     val noThermalStorageOrThermalStorageIsEmpty: Boolean =
       updatedGridState.storageState.isEmpty || updatedGridState.storageState
@@ -240,12 +260,9 @@ final case class HpModel(
     val domesticHotWaterStorageDemand =
       demandDomesticHotWaterStorage.hasRequiredDemand || (hpState.isRunning && demandDomesticHotWaterStorage.hasAdditionalDemand)
 
-    (
-      houseDemand,
-      heatStorageDemand,
-      domesticHotWaterStorageDemand,
-      noThermalStorageOrThermalStorageIsEmpty,
-    )
+    val turnHpOn =
+      houseDemand || heatStorageDemand || domesticHotWaterStorageDemand
+    (turnHpOn, noThermalStorageOrThermalStorageIsEmpty)
   }
 
   /** Calculate state depending on whether heat pump is needed or not. Also
@@ -275,9 +292,9 @@ final case class HpModel(
       state: HpState,
       relevantData: HpRelevantData,
       isRunning: Boolean,
-      houseDemand: Boolean,
-      thermalStorageDemand: Boolean,
-      domesticHotWaterStorageDemand: Boolean,
+      houseDemand: ThermalEnergyDemand,
+      thermalStorageDemand: ThermalEnergyDemand,
+      domesticHotWaterStorageDemand: ThermalEnergyDemand,
       simulationStartTime: ZonedDateTime,
       houseInhabitants: Double,
   ): HpState = {
@@ -386,27 +403,14 @@ final case class HpModel(
         data.houseInhabitants,
       )
 
-    val (
-      houseDemand,
-      heatStorageDemand,
-      domesticHotWaterStorageDemand,
-      _,
-    ) = determineDemandBooleans(
-      lastState,
-      updatedThermalGridState,
-      thermalEnergyDemandHouse,
-      thermalEnergyDemandStorage,
-      thermalEnergyDemandDomesticHotWaterStorage,
-    )
-
     val updatedHpState: HpState =
       calcState(
         lastState,
         data,
         turnOn,
-        houseDemand,
-        heatStorageDemand,
-        domesticHotWaterStorageDemand,
+        thermalEnergyDemandHouse,
+        thermalEnergyDemandStorage,
+        thermalEnergyDemandDomesticHotWaterStorage,
         data.simulationStart,
         data.houseInhabitants,
       )
