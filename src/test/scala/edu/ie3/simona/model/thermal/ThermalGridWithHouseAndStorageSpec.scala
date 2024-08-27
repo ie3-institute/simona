@@ -7,7 +7,10 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
-import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
+import edu.ie3.simona.model.thermal.ThermalGrid.{
+  ThermalEnergyDemand,
+  ThermalGridState,
+}
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureLowerBoundaryReached,
@@ -20,7 +23,7 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
 }
 import edu.ie3.simona.test.common.UnitSpec
 import squants.energy._
-import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKWH, zeroKW}
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWH}
 import squants.thermal.Celsius
 import squants.{Energy, Kelvin, Power, Temperature}
 import tech.units.indriya.unit.Units
@@ -689,9 +692,9 @@ class ThermalGridWithHouseAndStorageSpec
             initialGridState,
             isRunning,
             externalQDot,
-            thermalDemand,
-            noThermalDemand,
-            noThermalDemand,
+            ThermalEnergyDemand(KilowattHours(10), KilowattHours(15)),
+            ThermalEnergyDemand(zeroKWH, zeroKWH),
+            ThermalEnergyDemand(zeroKWH, zeroKWH),
             defaultSimulationStart,
             houseInhabitants,
           )
@@ -748,9 +751,9 @@ class ThermalGridWithHouseAndStorageSpec
             updatedGridState,
             isRunning,
             externalQDot,
-            thermalDemand,
-            noThermalDemand,
-            noThermalDemand,
+            ThermalEnergyDemand(KilowattHours(9.9), KilowattHours(14.9)),
+            ThermalEnergyDemand(zeroKWH, zeroKWH),
+            ThermalEnergyDemand(zeroKWH, zeroKWH),
             defaultSimulationStart,
             houseInhabitants,
           )
@@ -800,7 +803,7 @@ class ThermalGridWithHouseAndStorageSpec
         )
       }
 
-      "heat the house and recharge the domestic hot water storage, if the upper temperature in the house is not reached and domestic hot water storage is empty" in {
+      "heat the house and recharge the domestic hot water storage, if the house has required heat demand and domestic hot water storage is empty" in {
         val tick = 0L
         val initialGridState = ThermalGrid.startingState(thermalGrid)
 
@@ -819,9 +822,9 @@ class ThermalGridWithHouseAndStorageSpec
             gridState,
             isRunning,
             externalQDot,
-            thermalDemand,
-            noThermalDemand,
-            thermalDemand,
+            ThermalEnergyDemand(KilowattHours(5), KilowattHours(15)),
+            ThermalEnergyDemand(zeroKWH, zeroKWH),
+            ThermalEnergyDemand(KilowattHours(12.18), KilowattHours(12.18)),
             defaultSimulationStart,
             houseInhabitants,
           )
@@ -878,9 +881,9 @@ class ThermalGridWithHouseAndStorageSpec
             updatedGridState,
             isRunning,
             externalQDot,
-            thermalDemand,
-            noThermalDemand,
-            thermalDemand,
+            ThermalEnergyDemand(KilowattHours(4.8), KilowattHours(15)),
+            ThermalEnergyDemand(zeroKWH, zeroKWH),
+            ThermalEnergyDemand(KilowattHours(12.18), KilowattHours(12.18)),
             defaultSimulationStart,
             houseInhabitants,
           )
@@ -948,9 +951,9 @@ class ThermalGridWithHouseAndStorageSpec
             gridState,
             false,
             externalQDot,
-            noThermalDemand,
-            thermalDemand,
-            noThermalDemand,
+            ThermalEnergyDemand(zeroKWH, zeroKWH),
+            ThermalEnergyDemand(KilowattHours(1150), KilowattHours(1150)),
+            ThermalEnergyDemand(zeroKWH, zeroKWH),
             defaultSimulationStart,
             houseInhabitants,
           )
@@ -1006,9 +1009,12 @@ class ThermalGridWithHouseAndStorageSpec
             firstUpdatedGridState,
             false,
             externalQDot,
-            noThermalDemand,
-            thermalDemand,
-            noThermalDemand,
+            ThermalEnergyDemand(zeroKWH, zeroKWH),
+            ThermalEnergyDemand(
+              KilowattHours(1149.9083),
+              KilowattHours(1149.9083),
+            ),
+            ThermalEnergyDemand(zeroKWH, zeroKWH),
             defaultSimulationStart,
             houseInhabitants,
           )
@@ -1076,9 +1082,9 @@ class ThermalGridWithHouseAndStorageSpec
             gridState,
             isNotRunning,
             externalQDot,
-            noThermalDemand,
-            thermalDemand,
-            thermalDemand,
+            ThermalEnergyDemand(zeroKWH, zeroKWH),
+            ThermalEnergyDemand(KilowattHours(1150), KilowattHours(1150)),
+            ThermalEnergyDemand(KilowattHours(12.18), KilowattHours(12.18)),
             defaultSimulationStart,
             houseInhabitants,
           )
@@ -1132,9 +1138,9 @@ class ThermalGridWithHouseAndStorageSpec
             firstUpdatedGridState,
             isNotRunning,
             externalQDot,
-            noThermalDemand,
-            thermalDemand,
-            thermalDemand,
+            ThermalEnergyDemand(zeroKWH, zeroKWH),
+            ThermalEnergyDemand(KilowattHours(1150), KilowattHours(1150)),
+            ThermalEnergyDemand(KilowattHours(12.18), KilowattHours(12.18)),
             defaultSimulationStart,
             houseInhabitants,
           )

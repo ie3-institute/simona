@@ -377,9 +377,9 @@ class ThermalGridWithHouseOnlySpec
             gridState,
             isNotRunning,
             testGridQDotInfeed,
-            thermalDemand,
-            noThermalDemand,
-            noThermalDemand,
+            ThermalEnergyDemand(KilowattHours(10), KilowattHours(15)),
+            ThermalEnergyDemand(zeroKWH, zeroKWH),
+            ThermalEnergyDemand(zeroKWH, zeroKWH),
             defaultSimulationStart,
             houseInhabitants,
           )
@@ -421,9 +421,9 @@ class ThermalGridWithHouseOnlySpec
             updatedGridState,
             isRunning,
             testGridQDotInfeed,
-            thermalDemand,
-            noThermalDemand,
-            thermalDemand,
+            ThermalEnergyDemand(KilowattHours(9.9), KilowattHours(15)),
+            ThermalEnergyDemand(zeroKWH, zeroKWH),
+            ThermalEnergyDemand(KilowattHours(12.18), KilowattHours(12.18)),
             defaultSimulationStart,
             houseInhabitants,
           )
@@ -462,10 +462,13 @@ class ThermalGridWithHouseOnlySpec
       "deliver proper result, if energy is fed into the grid, house and domestic hot water storage have demand at the same time" in {
         val initialGridState = ThermalGrid.startingState(thermalGrid)
         // Domestic Hot Water Storage has energy for the heat demand of hot water of the first hour
-        val gridState = initialGridState.copy(domesticHotWaterStorageState =
-          initialGridState.domesticHotWaterStorageState.map(
-            _.copy(storedEnergy = KilowattHours(0.06744526))
-          )
+        val gridState = initialGridState.copy(
+          houseState =
+            initialGridState.houseState.map(_.copy(qDot = testGridQDotInfeed)),
+          domesticHotWaterStorageState =
+            initialGridState.domesticHotWaterStorageState.map(
+              _.copy(storedEnergy = KilowattHours(0.06744526))
+            ),
         )
 
         val (firstState, firstReachedThreshold) = thermalGrid.updateState(
@@ -475,9 +478,9 @@ class ThermalGridWithHouseOnlySpec
           testGridAmbientTemperature,
           isRunning,
           testGridQDotInfeed,
-          thermalDemand,
-          noThermalDemand,
-          noThermalDemand,
+          ThermalEnergyDemand(KilowattHours(10), KilowattHours(15)),
+          ThermalEnergyDemand(zeroKWH, zeroKWH),
+          ThermalEnergyDemand(zeroKWH, zeroKWH),
           defaultSimulationStart,
           houseInhabitants,
         )
@@ -519,9 +522,9 @@ class ThermalGridWithHouseOnlySpec
             testGridAmbientTemperature,
             isRunning,
             testGridQDotInfeed,
-            thermalDemand,
-            noThermalDemand,
-            thermalDemand,
+            ThermalEnergyDemand(KilowattHours(9.9), KilowattHours(14.9)),
+            ThermalEnergyDemand(zeroKWH, zeroKWH),
+            ThermalEnergyDemand(KilowattHours(12.18), KilowattHours(12.18)),
             defaultSimulationStart,
             houseInhabitants,
           )
@@ -564,9 +567,9 @@ class ThermalGridWithHouseOnlySpec
           testGridAmbientTemperature,
           isNotRunning,
           testGridQDotConsumption,
-          thermalDemand,
-          noThermalDemand,
-          thermalDemand,
+          ThermalEnergyDemand(KilowattHours(0), KilowattHours(1)),
+          ThermalEnergyDemand(zeroKWH, zeroKWH),
+          ThermalEnergyDemand(zeroKWH, zeroKWH),
           defaultSimulationStart,
           houseInhabitants,
         )
@@ -607,9 +610,9 @@ class ThermalGridWithHouseOnlySpec
           testGridAmbientTemperature,
           isNotRunning,
           testGridQDotConsumption,
-          thermalDemand,
-          noThermalDemand,
-          thermalDemand,
+          ThermalEnergyDemand(KilowattHours(0), KilowattHours(1)),
+          ThermalEnergyDemand(zeroKWH, zeroKWH),
+          ThermalEnergyDemand(zeroKWH, zeroKWH),
           defaultSimulationStart,
           houseInhabitants,
         )
@@ -653,9 +656,9 @@ class ThermalGridWithHouseOnlySpec
           testGridAmbientTemperature,
           isNotRunning,
           zeroKW,
-          thermalDemand,
-          noThermalDemand,
-          thermalDemand,
+          ThermalEnergyDemand(zeroKWH, zeroKWH),
+          ThermalEnergyDemand(zeroKWH, zeroKWH),
+          ThermalEnergyDemand(zeroKWH, zeroKWH),
           defaultSimulationStart,
           houseInhabitants,
         )
@@ -698,9 +701,9 @@ class ThermalGridWithHouseOnlySpec
           testGridAmbientTemperature,
           isNotRunning,
           zeroKW,
-          thermalDemand,
-          noThermalDemand,
-          thermalDemand,
+          ThermalEnergyDemand(zeroKWH, zeroKWH),
+          ThermalEnergyDemand(zeroKWH, zeroKWH),
+          ThermalEnergyDemand(zeroKWH, zeroKWH),
           defaultSimulationStart,
           houseInhabitants,
         )

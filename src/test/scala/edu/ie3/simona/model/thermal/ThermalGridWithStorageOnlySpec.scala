@@ -10,14 +10,17 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalHouseInput,
   ThermalStorageInput,
 }
-import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
+import edu.ie3.simona.model.thermal.ThermalGrid.{
+  ThermalEnergyDemand,
+  ThermalGridState,
+}
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageEmpty,
   StorageFull,
 }
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
-import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKWH, zeroKW}
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWH}
 import squants.energy._
 import squants.thermal.Celsius
 import squants.{Energy, Power, Temperature}
@@ -215,9 +218,9 @@ class ThermalGridWithStorageOnlySpec
             gridState,
             false,
             testGridQDotInfeed,
-            noThermalDemand,
-            thermalDemand,
-            noThermalDemand,
+            ThermalEnergyDemand(zeroKWH, zeroKWH),
+            ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
+            ThermalEnergyDemand(zeroKWH, zeroKWH),
             defaultSimulationStart,
             houseInhabitants,
           )
@@ -246,9 +249,9 @@ class ThermalGridWithStorageOnlySpec
           testGridAmbientTemperature,
           true,
           testGridQDotInfeed,
-          noThermalDemand,
-          thermalDemand,
-          noThermalDemand,
+          ThermalEnergyDemand(zeroKWH, zeroKWH),
+          ThermalEnergyDemand(KilowattHours(1150), KilowattHours(1150)),
+          ThermalEnergyDemand(zeroKWH, zeroKWH),
           defaultSimulationStart,
           houseInhabitants,
         )
@@ -286,9 +289,9 @@ class ThermalGridWithStorageOnlySpec
           testGridAmbientTemperature,
           true,
           testGridQDotConsumptionHigh,
-          thermalDemand,
-          noThermalDemand,
-          thermalDemand,
+          ThermalEnergyDemand(zeroKWH, zeroKWH),
+          ThermalEnergyDemand(zeroKWH, zeroKWH),
+          ThermalEnergyDemand(zeroKWH, zeroKWH),
           defaultSimulationStart,
           houseInhabitants,
         ) match {
@@ -316,9 +319,9 @@ class ThermalGridWithStorageOnlySpec
           testGridAmbientTemperature,
           true,
           zeroKW,
-          noThermalDemand,
-          noThermalDemand,
-          noThermalDemand,
+          ThermalEnergyDemand(zeroKWH, zeroKWH),
+          ThermalEnergyDemand(zeroKWH, zeroKWH),
+          ThermalEnergyDemand(zeroKWH, zeroKWH),
           defaultSimulationStart,
           houseInhabitants,
         )
