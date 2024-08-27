@@ -12,6 +12,7 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.Participa
 import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.{
   CylindricalThermalStorageResult,
+  DomesticHotWaterStorageResult,
   ParticipantResultEvent,
   ThermalHouseResult,
 }
@@ -32,7 +33,7 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.test.common.DefaultTestData
-import edu.ie3.simona.test.common.input.EmInputTestData
+import edu.ie3.simona.test.common.input.ThermalGridITInputTestData
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
@@ -44,7 +45,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.scaladsl.adapter.{TypedActorRefOps, _}
+import org.apache.pekko.actor.typed.scaladsl.adapter._
 import org.apache.pekko.testkit.TestActorRef
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -63,7 +64,7 @@ class ThermalGridIT
     with ThermalHouseTestData
     with AnyWordSpecLike
     with should.Matchers
-    with EmInputTestData
+    with ThermalGridITInputTestData
     with MockitoSugar
     with DefaultTestData {
   private implicit val classicSystem: ActorSystem = system.toClassic
@@ -98,7 +99,7 @@ class ThermalGridIT
           scheduler = scheduler.ref.toClassic,
           initStateData = ParticipantInitializeStateData(
             typicalHpInputModel,
-            typicalThermalGrid,
+            thermalGridForThermalGridIT,
             HpRuntimeConfig(
               calculateMissingReactivePowerWithModel = true,
               1.0,
@@ -183,7 +184,7 @@ class ThermalGridIT
           )
       }
 
-      Range(0, 2)
+      Range(0, 3)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
@@ -209,6 +210,16 @@ class ThermalGridIT
               time shouldBe (-1).toDateTime
               qDot should equalWithTolerance(0.asMegaWatt)
               energy should equalWithTolerance(0.asMegaWattHour)
+            case DomesticHotWaterStorageResult(
+                  time,
+                  inputModel,
+                  qDot,
+                  energy,
+                ) =>
+              inputModel shouldBe defaultDomesticHotWaterStorageInput.getUuid
+              time shouldBe (-1).toDateTime
+              qDot should equalWithTolerance(0.asMegaWatt)
+              energy should equalWithTolerance(0.0174.asMegaWattHour)
             case _ =>
               fail(
                 "Expected a ThermalHouseResult and a ThermalStorageResult but got something else"
@@ -218,8 +229,8 @@ class ThermalGridIT
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(0L)))
 
-      /* TICK 3417
-      Storage is fully heated up
+      /* TICK 22
+      Domestic hot water storage stops uncharging
       House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 17.37 kWh
       House demand water   : tba
       ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
@@ -227,13 +238,13 @@ class ThermalGridIT
       Heat pump: stays on since it was on and the house as additional demand
        */
 
-      heatPumpAgent ! Activation(3417)
+      heatPumpAgent ! Activation(22)
 
-      // Results of tick 3417 for hp
+      // Results of tick 22 for hp
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
-          hpResult.getTime shouldBe 3417.toDateTime
+          hpResult.getTime shouldBe 22.toDateTime
           hpResult.getP should equalWithTolerance(pRunningHp)
           hpResult.getQ should equalWithTolerance(
             qRunningHp
@@ -241,7 +252,7 @@ class ThermalGridIT
       }
 
       // Results of 0 for house and storage
-      Range(0, 2)
+      Range(0, 3)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
@@ -269,6 +280,87 @@ class ThermalGridIT
               time shouldBe 0.toDateTime
               qDot should equalWithTolerance(0.011.asMegaWatt)
               energy should equalWithTolerance(0.asMegaWattHour)
+            case DomesticHotWaterStorageResult(
+                  time,
+                  inputModel,
+                  qDot,
+                  energy,
+                ) =>
+              inputModel shouldBe defaultDomesticHotWaterStorageInput.getUuid
+              time shouldBe 0.toDateTime
+              qDot should equalWithTolerance((-0.011).asMegaWatt)
+              energy should equalWithTolerance(0.0174.asMegaWattHour)
+            case _ =>
+              fail(
+                "Expected a ThermalHouseResult and a ThermalStorageResult but got something else"
+              )
+          }
+        }
+
+      // FIXME? Why next tick 22?
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(22)))
+
+      /* TICK 3417
+      ThermalStorage is fully heated up
+      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 17.37 kWh
+      House demand water   : tba
+      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      DomesticWaterStorage : tba
+      Heat pump: stays on since it was on and the house as additional demand
+       */
+
+      heatPumpAgent ! Activation(3417)
+
+      // Results of tick 3417 for hp
+      resultListener.expectMessageType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(hpResult) =>
+          hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
+          hpResult.getTime shouldBe 3417.toDateTime
+          hpResult.getP should equalWithTolerance(pRunningHp)
+          hpResult.getQ should equalWithTolerance(
+            qRunningHp
+          )
+      }
+
+      // Results of 0 for house and storage
+      Range(0, 3)
+        .map { _ =>
+          resultListener.expectMessageType[ResultEvent]
+        }
+        .foreach { case ResultEvent.ThermalResultEvent(thermalUnitResult) =>
+          thermalUnitResult match {
+            case ThermalHouseResult(
+                  time,
+                  inputModel,
+                  qDot,
+                  indoorTemperature,
+                ) =>
+              inputModel shouldBe typicalThermalHouse.getUuid
+              time shouldBe 22.toDateTime
+              qDot should equalWithTolerance(0.asMegaWatt)
+              indoorTemperature should equalWithTolerance(
+                19.99787037791496.asDegreeCelsius
+              )
+            case CylindricalThermalStorageResult(
+                  time,
+                  inputModel,
+                  qDot,
+                  energy,
+                ) =>
+              inputModel shouldBe typicalThermalStorage.getUuid
+              time shouldBe 22.toDateTime
+              qDot should equalWithTolerance(0.011.asMegaWatt)
+              energy should equalWithTolerance(0.00006722222.asMegaWattHour)
+            case DomesticHotWaterStorageResult(
+                  time,
+                  inputModel,
+                  qDot,
+                  energy,
+                ) =>
+              inputModel shouldBe defaultDomesticHotWaterStorageInput.getUuid
+              time shouldBe 22.toDateTime
+              qDot should equalWithTolerance(0.asMegaWatt)
+              energy should equalWithTolerance(0.0173327777.asMegaWattHour)
             case _ =>
               fail(
                 "Expected a ThermalHouseResult and a ThermalStorageResult but got something else"
@@ -316,7 +408,7 @@ class ThermalGridIT
       }
 
       // Results of 3417 for house and storage
-      Range(0, 2)
+      Range(0, 3)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
@@ -332,7 +424,7 @@ class ThermalGridIT
               time shouldBe 3417.toDateTime
               qDot should equalWithTolerance(0.011.asMegaWatt)
               indoorTemperature should equalWithTolerance(
-                19.6835196903292.asDegreeCelsius
+                19.68354530408894.asDegreeCelsius
               )
 
             case CylindricalThermalStorageResult(
@@ -345,6 +437,16 @@ class ThermalGridIT
               time shouldBe 3417.toDateTime
               qDot should equalWithTolerance(0.asMegaWatt)
               energy should equalWithTolerance(0.01044.asMegaWattHour)
+            case DomesticHotWaterStorageResult(
+                  time,
+                  inputModel,
+                  qDot,
+                  energy,
+                ) =>
+              inputModel shouldBe defaultDomesticHotWaterStorageInput.getUuid
+              time shouldBe 3417.toDateTime
+              qDot should equalWithTolerance(0.asMegaWatt)
+              energy should equalWithTolerance(0.01733277777.asMegaWattHour)
             case _ =>
               fail(
                 "Expected a ThermalHouseResult and a ThermalStorageResult but got something else"
@@ -376,7 +478,7 @@ class ThermalGridIT
       }
 
       // Results of 7200 for house and storage
-      Range(0, 2)
+      Range(0, 3)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
@@ -392,7 +494,7 @@ class ThermalGridIT
               time shouldBe 7200.toDateTime
               qDot should equalWithTolerance(0.011.asMegaWatt)
               indoorTemperature should equalWithTolerance(
-                20.8788983755569.asDegreeCelsius
+                20.8789236304394.asDegreeCelsius
               )
             case CylindricalThermalStorageResult(
                   time,
@@ -404,6 +506,16 @@ class ThermalGridIT
               time shouldBe 7200.toDateTime
               qDot should equalWithTolerance(0.asMegaWatt)
               energy should equalWithTolerance(0.01044.asMegaWattHour)
+            case DomesticHotWaterStorageResult(
+                  time,
+                  inputModel,
+                  qDot,
+                  energy,
+                ) =>
+              inputModel shouldBe defaultDomesticHotWaterStorageInput.getUuid
+              time shouldBe 7200.toDateTime
+              qDot should equalWithTolerance((-0.011).asMegaWatt)
+              energy should equalWithTolerance(0.017332777777.asMegaWattHour)
             case _ =>
               fail(
                 "Expected a ThermalHouseResult and a ThermalStorageResult but got something else"
@@ -449,7 +561,7 @@ class ThermalGridIT
       }
 
       // Results of 10798 for house and storage
-      Range(0, 2)
+      Range(0, 3)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
@@ -477,6 +589,16 @@ class ThermalGridIT
               time shouldBe 10798.toDateTime
               qDot should equalWithTolerance(0.asMegaWatt)
               energy should equalWithTolerance(0.01044.asMegaWattHour)
+            case DomesticHotWaterStorageResult(
+                  time,
+                  inputModel,
+                  qDot,
+                  energy,
+                ) =>
+              inputModel shouldBe defaultDomesticHotWaterStorageInput.getUuid
+              time shouldBe 0.toDateTime
+              qDot should equalWithTolerance(0.011.asMegaWatt)
+              energy should equalWithTolerance(0.asMegaWattHour)
             case _ =>
               fail(
                 "Expected a ThermalHouseResult and a ThermalStorageResult but got something else"
@@ -507,7 +629,7 @@ class ThermalGridIT
           )
       }
 
-      Range(0, 2)
+      Range(0, 3)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
@@ -536,6 +658,16 @@ class ThermalGridIT
               time shouldBe 28800.toDateTime
               qDot should equalWithTolerance(0.0.asMegaWatt)
               energy should equalWithTolerance(0.01044.asMegaWattHour)
+            case DomesticHotWaterStorageResult(
+                  time,
+                  inputModel,
+                  qDot,
+                  energy,
+                ) =>
+              inputModel shouldBe defaultDomesticHotWaterStorageInput.getUuid
+              time shouldBe 0.toDateTime
+              qDot should equalWithTolerance(0.011.asMegaWatt)
+              energy should equalWithTolerance(0.asMegaWattHour)
             case _ =>
               fail(
                 "Expected a ThermalHouseResult and a ThermalStorageResult but got something else"
@@ -580,7 +712,7 @@ class ThermalGridIT
       }
 
       // Results of 34132 for house and storage
-      Range(0, 2)
+      Range(0, 3)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
@@ -608,6 +740,16 @@ class ThermalGridIT
               time shouldBe 41940.toDateTime
               qDot should equalWithTolerance((-0.01044).asMegaWatt)
               energy should equalWithTolerance(0.01044.asMegaWattHour)
+            case DomesticHotWaterStorageResult(
+                  time,
+                  inputModel,
+                  qDot,
+                  energy,
+                ) =>
+              inputModel shouldBe defaultDomesticHotWaterStorageInput.getUuid
+              time shouldBe 0.toDateTime
+              qDot should equalWithTolerance(0.011.asMegaWatt)
+              energy should equalWithTolerance(0.asMegaWattHour)
             case _ =>
               fail(
                 "Expected a ThermalHouseResult and a ThermalStorageResult but got something else"
@@ -639,7 +781,7 @@ class ThermalGridIT
       }
 
       // Results of 45000 for house and storage
-      Range(0, 2)
+      Range(0, 3)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
@@ -657,7 +799,6 @@ class ThermalGridIT
               indoorTemperature should equalWithTolerance(
                 18.69584558965105.asDegreeCelsius
               )
-
             case CylindricalThermalStorageResult(
                   time,
                   inputModel,
@@ -670,6 +811,16 @@ class ThermalGridIT
               energy should equalWithTolerance(
                 0.00156599999999999.asMegaWattHour
               )
+            case DomesticHotWaterStorageResult(
+                  time,
+                  inputModel,
+                  qDot,
+                  energy,
+                ) =>
+              inputModel shouldBe defaultDomesticHotWaterStorageInput.getUuid
+              time shouldBe 0.toDateTime
+              qDot should equalWithTolerance(0.011.asMegaWatt)
+              energy should equalWithTolerance(0.asMegaWattHour)
             case _ =>
               fail(
                 "Expected a ThermalHouseResult and a ThermalStorageResult but got something else"
@@ -713,7 +864,7 @@ Heat pump: stays on
       }
 
       // Results of 45540 for house and storage
-      Range(0, 2)
+      Range(0, 3)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
@@ -741,6 +892,16 @@ Heat pump: stays on
               inputModel shouldBe typicalThermalStorage.getUuid
               time shouldBe 45540.toDateTime
               qDot should equalWithTolerance(0.asMegaWatt)
+              energy should equalWithTolerance(0.asMegaWattHour)
+            case DomesticHotWaterStorageResult(
+                  time,
+                  inputModel,
+                  qDot,
+                  energy,
+                ) =>
+              inputModel shouldBe defaultDomesticHotWaterStorageInput.getUuid
+              time shouldBe 0.toDateTime
+              qDot should equalWithTolerance(0.011.asMegaWatt)
               energy should equalWithTolerance(0.asMegaWattHour)
             case _ =>
               fail(
@@ -770,7 +931,7 @@ Heat pump: stays on
       }
 
       // Results of 57600 for house and storage
-      Range(0, 2)
+      Range(0, 3)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
@@ -788,7 +949,6 @@ Heat pump: stays on
               indoorTemperature should equalWithTolerance(
                 21.77341655767336.asDegreeCelsius
               )
-
             case CylindricalThermalStorageResult(
                   time,
                   inputModel,
@@ -801,6 +961,16 @@ Heat pump: stays on
               energy should equalWithTolerance(
                 0.asMegaWattHour
               )
+            case CylindricalThermalStorageResult(
+                  time,
+                  inputModel,
+                  qDot,
+                  energy,
+                ) =>
+              inputModel shouldBe typicalThermalStorage.getUuid
+              time shouldBe 0.toDateTime
+              qDot should equalWithTolerance(0.011.asMegaWatt)
+              energy should equalWithTolerance(0.asMegaWattHour)
           }
         }
 
@@ -826,7 +996,7 @@ Heat pump: stays on
       }
 
       // Results of 58256 for house and storage
-      Range(0, 2)
+      Range(0, 3)
         .map { _ =>
           resultListener.expectMessageType[ResultEvent]
         }
@@ -857,6 +1027,16 @@ Heat pump: stays on
               energy should equalWithTolerance(
                 0.asMegaWattHour
               )
+            case CylindricalThermalStorageResult(
+                  time,
+                  inputModel,
+                  qDot,
+                  energy,
+                ) =>
+              inputModel shouldBe typicalThermalStorage.getUuid
+              time shouldBe 0.toDateTime
+              qDot should equalWithTolerance(0.011.asMegaWatt)
+              energy should equalWithTolerance(0.asMegaWattHour)
           }
         }
 
