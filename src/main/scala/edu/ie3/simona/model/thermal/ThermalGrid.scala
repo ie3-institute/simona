@@ -86,7 +86,7 @@ final case class ThermalGrid(
     /* First get the energy demand of the houses but only if inner temperature is below target temperature */
 
     val (houseDemand, updatedHouseState, demandHotDomesticWater) =
-      house.zip(state.houseState).headOption match {
+      house.zip(state.houseState) match {
         case Some((thermalHouse, lastHouseState)) => {
           val (updatedHouseState, updatedStorageState) =
             thermalHouse.determineState(
@@ -458,7 +458,7 @@ final case class ThermalGrid(
         case _ =>
           // House and domestic hot water storage can only have additional demand now
           domesticHotWaterStorageLeftBoundary match {
-            case (true) =>
+            case true =>
               handleCases(
                 tick,
                 lastAmbientTemperature,
@@ -471,7 +471,7 @@ final case class ThermalGrid(
                 houseInhabitants,
               )
             // if storage has additional demand charge it before heating the house
-            case (_) =>
+            case _ =>
               if (heatStorageDemand.hasAdditionalDemand)
                 handleCases(
                   tick,
@@ -503,7 +503,7 @@ final case class ThermalGrid(
     }
   }
 
-  /** Method that updates the state of [[Thermal House]], get its last thermal
+  /** Method that updates the state of thermal house, get its last thermal
     * action (qDot) and if it reached or left any boundaries this tick.
     *
     * @param tick
@@ -570,7 +570,7 @@ final case class ThermalGrid(
     }
   }
 
-  /** Method that updates the state of [[Thermal Storage]], get its last thermal
+  /** Method that updates the state of thermal storage, get its last thermal
     * action (qDot) and if it reached or left any boundaries this tick.
     *
     * @param tick
@@ -594,9 +594,8 @@ final case class ThermalGrid(
     )
   }
 
-  /** Method that updates the state of [[Domestic Hot Water Storage]], get its
-    * last thermal action (qDot) and if it reached or left any boundaries this
-    * tick.
+  /** Method that updates the state of domestic hot water storage, get its last
+    * thermal action (qDot) and if it reached or left any boundaries this tick.
     *
     * @param tick
     *   Current tick
@@ -619,17 +618,16 @@ final case class ThermalGrid(
     )
   }
 
-  /** Abstract method that updates the state of [[Thermal Storage]], get its
-    * last thermal action (qDot) and if it reached or left any boundaries this
-    * tick.
+  /** Abstract method that updates the state of thermal storage, get its last
+    * thermal action (qDot) and if it reached or left any boundaries this tick.
     * @param tick
     *   Current tick
     * @param state
     *   Current state of the houses
-    * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
-    * @param ambientTemperature
-    *   actual ambient temperature
+    * @param storage
+    *   The storage handled here
+    * @param lastStorageState
+    *   Last state of the storage
     * @return
     *   Option of the updated storage state, option of the last qDot and
     *   Booleans if some boundaries are reached or left.
@@ -864,8 +862,10 @@ final case class ThermalGrid(
     *   Current state of the thermal grid
     * @param qDotHouse
     *   Infeed to the house
-    * @param qDotStorage
+    * @param qDotHeatStorage
     *   Infeed to the heat storage
+    * @param qDotDomesticHotWaterStorage
+    *   Infeed to the domestic hot water storage
     * @param simulationStartTime
     *   simulationStartDate as ZonedDateTime
     * @param houseInhabitants
@@ -1063,7 +1063,7 @@ final case class ThermalGrid(
         val (applicableQDotDomesticStorage, thresholdToCoverDemand) =
           domesticHotWaterDemand match {
             case demand
-                if (demand.required > zeroKWH && storedEnergy == zeroKWH) =>
+                if demand.required > zeroKWH && storedEnergy == zeroKWH =>
               // Use qDot from Hp directly to cover hot water demand
               val threshold = Some(
                 SimpleThermalThreshold(
@@ -1072,19 +1072,19 @@ final case class ThermalGrid(
               )
               (zeroKW, threshold)
             case demand
-                if (demand.required > zeroKWH && storedEnergy > zeroKWH) =>
+                if demand.required > zeroKWH && storedEnergy > zeroKWH =>
               // Use storage to cover hot water demand
               identifyApplicableQDot(tick, demand)
 
             case demand
-                if (demand.required == zeroKWH && lastDomesticHotWaterStorageState.qDot > zeroKW && storedEnergy != domesticHotWaterStorage.maxEnergyThreshold) =>
+                if demand.required == zeroKWH && lastDomesticHotWaterStorageState.qDot > zeroKW && storedEnergy != domesticHotWaterStorage.maxEnergyThreshold =>
               // Storage got recharged in the last state
               // Threshold will be calculated later
               (lastDomesticHotWaterStorageState.qDot, None)
-            case demand if (demand.required == zeroKWH & qDot == zeroKW) =>
+            case demand if demand.required == zeroKWH & qDot == zeroKW =>
               // Don't do anything with domestic hot water storage
               (zeroKW, None)
-            case demand if (demand.required == zeroKWH & qDot > zeroKW) =>
+            case demand if demand.required == zeroKWH & qDot > zeroKW =>
               // Use qDot from Hp to recharge domestic hot water storage
               // Threshold will be calculated later
               (qDot, None)
@@ -1158,7 +1158,7 @@ final case class ThermalGrid(
     *   Current state of the houses
     * @param qDot
     *   Infeed to the grid
-    * @param simulationStart
+    * @param simulationStartTime
     *   simulationStartDate as ZonedDateTime
     * @param houseInhabitants
     *   number of people living in the building
@@ -1425,8 +1425,8 @@ final case class ThermalGrid(
       domesticHotWaterStorageResultTick,
     ).flatten.maxOption.getOrElse(
       throw new InconsistentStateException(
-        s"Was not able to get tick for thermal result. Result tick of thermal house: ${houseResultTick}," +
-          s" Result tick of thermal heat storage: ${storageResultTick}, Result tick of domestic hot water storage: ${domesticHotWaterStorageResultTick}."
+        s"Was not able to get tick for thermal result. Result tick of thermal house: $houseResultTick," +
+          s" Result tick of thermal heat storage: $storageResultTick, Result tick of domestic hot water storage: $domesticHotWaterStorageResultTick."
       )
     )
 
