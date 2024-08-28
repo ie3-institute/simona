@@ -113,11 +113,10 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
       )
 
       thermalHouseState match {
-        case ThermalHouseState(tick, temperature, qDot) => {
+        case ThermalHouseState(tick, temperature, qDot) =>
           tick shouldBe 3600L
           temperature should approximate(Kelvin(292.64986111))
           qDot shouldBe zeroKW
-        }
         case unexpected =>
           fail(s"Expected a thermalHouseState but got none $unexpected.")
       }
