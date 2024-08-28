@@ -106,7 +106,7 @@ final case class ThermalGrid(
     * @param state
     *   Currently applicable state
     * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
     *   Actual ambient temperature
     * @param qDot
