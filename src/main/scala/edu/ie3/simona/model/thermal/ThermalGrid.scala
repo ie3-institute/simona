@@ -1273,18 +1273,19 @@ final case class ThermalGrid(
           )
         )
 
-      val durationAtFullPower =
+      val approxDurationAtFullPower =
         domesticHotWaterDemand.required / chargingPower
 
-      if (durationAtFullPower > Seconds(1)) {
-        (
-          chargingPower * (-1),
+      if (approxDurationAtFullPower > Seconds(1)) {
+        val preciseChargingPower = -1 *  domesticHotWaterDemand.required / (Seconds(approxDurationAtFullPower.toSeconds.toLong + 1))
+        val threshold = -1 * domesticHotWaterDemand.required / preciseChargingPower
+
+        (preciseChargingPower,
           Some(
             SimpleThermalThreshold(
-              tick + Math.round(durationAtFullPower.toSeconds)
+              tick + threshold.toSeconds.toLong)
             )
-          ),
-        )
+          )
       } else {
         (
           (-1) * domesticHotWaterDemand.required / Seconds(1d),
