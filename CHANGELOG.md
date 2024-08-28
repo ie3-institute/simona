@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced Newton-Raphson-PowerFlow failures with more information [#815](https://github.com/ie3-institute/simona/issues/815)
 - Update RTD references and bibliography [#868](https://github.com/ie3-institute/simona/issues/868)
 - Add gradle application plugin for command line execution with gradle run [#890](https://github.com/ie3-institute/simona/issues/890)
+- Additional tests to check flexibility options of thermal house and storage [#729](https://github.com/ie3-institute/simona/issues/729)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -72,6 +73,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Harmonised both methods that check the inner temperature of thermal house against the boundaries [#880](https://github.com/ie3-institute/simona/issues/880)
 - Convert all `eval-rst` instances in rtd to myst syntax [#901](https://github.com/ie3-institute/simona/issues/901)
 - External simulation should provide information about next tick of MobSim [#776](https://github.com/ie3-institute/simona/issues/776)
+- Reverted temporary workaround in `spotless.gradle` [#681](https://github.com/ie3-institute/simona/issues/681)
+- Updated AUTHORS.md [#904](https://github.com/ie3-institute/simona/issues/904)
+- Updated `Gradle` to version V8.10 [#829](https://github.com/ie3-institute/simona/issues/829)
+- Updated AUTHORS.md [#905](https://github.com/ie3-institute/simona/issues/905)
+- Rewrote BMModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
