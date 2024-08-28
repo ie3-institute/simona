@@ -302,7 +302,7 @@ final case class ThermalHouse(
     * @param state
     *   Currently applicable state
     * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
     *   Current ambient temperature
     * @param qDot
