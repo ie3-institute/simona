@@ -304,7 +304,7 @@ final case class ThermalHouse(
     * @param lastAmbientTemperature
     *   Ambient temperature until this tick
     * @param ambientTemperature
-    *   Actual ambient temperature
+    *   Current ambient temperature
     * @param qDot
     *   New thermal influx
     * @return
