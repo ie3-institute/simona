@@ -339,7 +339,7 @@ final case class ThermalGrid(
     * @param formerStorageState
     *   Previous thermal storage state before a first update was performed
     * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
     *   Actual ambient temperature
     * @param qDot
