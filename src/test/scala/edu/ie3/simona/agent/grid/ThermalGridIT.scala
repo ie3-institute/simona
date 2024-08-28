@@ -149,9 +149,8 @@ class ThermalGridIT
       )
       val weatherDependentAgents = Seq(heatPumpAgent)
 
-      //TODOs
+      // TODOs
       // - check storedEnergy of domestic hot water storage for all steps
-
 
       /* TICK 0
       Start of Simulation
@@ -593,7 +592,7 @@ Heat pump: stays on
               inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
               time shouldBe 7220.toDateTime
               qDot should equalWithTolerance(0.asMegaWatt)
-   //           energy should equalWithTolerance(0.0013698066.asMegaWattHour)
+            //           energy should equalWithTolerance(0.0013698066.asMegaWattHour)
             case _ =>
               fail(
                 "Expected a ThermalHouseResult and a ThermalStorageResult but got something else"
@@ -676,7 +675,7 @@ Heat pump: stays on
               inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
               time shouldBe 10799.toDateTime
               qDot should equalWithTolerance(0.asMegaWatt)
-     //         energy should equalWithTolerance(0.001369806666.asMegaWattHour)
+            //         energy should equalWithTolerance(0.001369806666.asMegaWattHour)
             case _ =>
               fail(
                 "Expected a ThermalHouseResult and a ThermalStorageResult but got something else"
@@ -693,7 +692,7 @@ Heat pump: stays on
    ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
    DomesticWaterStorage : tba
    Heat pump: stays off, demand should be covered by storage
-    */
+       */
 
       heatPumpAgent ! Activation(28986)
 
@@ -714,11 +713,11 @@ Heat pump: stays on
         .foreach { case ResultEvent.ThermalResultEvent(thermalUnitResult) =>
           thermalUnitResult match {
             case ThermalHouseResult(
-            time,
-            inputModel,
-            qDot,
-            indoorTemperature,
-            ) =>
+                  time,
+                  inputModel,
+                  qDot,
+                  indoorTemperature,
+                ) =>
               inputModel shouldBe typicalThermalHouse.getUuid
               time shouldBe 28800.toDateTime
               qDot should equalWithTolerance(0.0.asMegaWatt)
@@ -727,25 +726,27 @@ Heat pump: stays on
               )
 
             case CylindricalThermalStorageResult(
-            time,
-            inputModel,
-            qDot,
-            energy,
-            ) =>
+                  time,
+                  inputModel,
+                  qDot,
+                  energy,
+                ) =>
               inputModel shouldBe typicalThermalStorage.getUuid
               time shouldBe 28800.toDateTime
               qDot should equalWithTolerance(0.0.asMegaWatt)
               energy should equalWithTolerance(0.01044.asMegaWattHour)
             case DomesticHotWaterStorageResult(
-            time,
-            inputModel,
-            qDot,
-            energy,
-            ) =>
+                  time,
+                  inputModel,
+                  qDot,
+                  energy,
+                ) =>
               inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
               time shouldBe 28800.toDateTime
               qDot should equalWithTolerance((-0.011).asMegaWatt)
-              energy should equalWithTolerance(0.0013698066666666664.asMegaWattHour)
+              energy should equalWithTolerance(
+                0.0013698066666666664.asMegaWattHour
+              )
             case _ =>
               fail(
                 "Expected a ThermalHouseResult and a ThermalStorageResult but got something else"
