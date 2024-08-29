@@ -105,8 +105,10 @@ final case class ThermalGrid(
     *   Instance in time
     * @param state
     *   Currently applicable state
+    * @param lastAmbientTemperature
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   Ambient temperature
+    *   Current ambient temperature
     * @param qDot
     *   Thermal energy balance
     * @return
@@ -115,19 +117,28 @@ final case class ThermalGrid(
   def updateState(
       tick: Long,
       state: ThermalGridState,
+      lastAmbientTemperature: Temperature,
       ambientTemperature: Temperature,
       qDot: Power,
   ): (ThermalGridState, Option[ThermalThreshold]) = if (qDot > zeroKW)
-    handleInfeed(tick, ambientTemperature, state, qDot)
+    handleInfeed(tick, lastAmbientTemperature, ambientTemperature, state, qDot)
   else
-    handleConsumption(tick, ambientTemperature, state, qDot)
+    handleConsumption(
+      tick,
+      lastAmbientTemperature,
+      ambientTemperature,
+      state,
+      qDot,
+    )
 
   /** Handles the case, when a grid has infeed. First, heat up all the houses to
     * their maximum temperature, then fill up the storages
     * @param tick
     *   Current tick
+    * @param lastAmbientTemperature
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   Ambient temperature
+    *   Current ambient temperature
     * @param state
     *   Current state of the houses
     * @param qDot
@@ -137,6 +148,7 @@ final case class ThermalGrid(
     */
   private def handleInfeed(
       tick: Long,
+      lastAmbientTemperature: Temperature,
       ambientTemperature: Temperature,
       state: ThermalGridState,
       qDot: Power,
@@ -163,6 +175,7 @@ final case class ThermalGrid(
           thermalHouse.determineState(
             tick,
             lastHouseState,
+            lastAmbientTemperature,
             ambientTemperature,
             qDot,
           )
@@ -177,6 +190,7 @@ final case class ThermalGrid(
             thermalHouse.determineState(
               tick,
               lastHouseState,
+              lastAmbientTemperature,
               ambientTemperature,
               zeroKW,
             )
@@ -248,8 +262,10 @@ final case class ThermalGrid(
     *
     * @param tick
     *   Current tick
+    * @param lastAmbientTemperature
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   Ambient temperature
+    *   Current ambient temperature
     * @param state
     *   Current state of the houses
     * @param qDot
@@ -259,6 +275,7 @@ final case class ThermalGrid(
     */
   private def handleConsumption(
       tick: Long,
+      lastAmbientTemperature: Temperature,
       ambientTemperature: Temperature,
       state: ThermalGridState,
       qDot: Power,
@@ -269,6 +286,7 @@ final case class ThermalGrid(
         house.determineState(
           tick,
           houseState,
+          lastAmbientTemperature,
           ambientTemperature,
           zeroMW,
         )
@@ -287,6 +305,7 @@ final case class ThermalGrid(
         maybeUpdatedStorageState,
         state.houseState,
         state.storageState,
+        lastAmbientTemperature,
         ambientTemperature,
         qDot,
       )
@@ -319,8 +338,10 @@ final case class ThermalGrid(
     *   Previous thermal house state before a first update was performed
     * @param formerStorageState
     *   Previous thermal storage state before a first update was performed
+    * @param lastAmbientTemperature
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   Ambient temperature
+    *   Current ambient temperature
     * @param qDot
     *   Thermal influx
     * @return
@@ -334,6 +355,7 @@ final case class ThermalGrid(
       ],
       formerHouseState: Option[ThermalHouseState],
       formerStorageState: Option[ThermalStorageState],
+      lastAmbientTemperature: Temperature,
       ambientTemperature: Temperature,
       qDot: Power,
   ): (
@@ -367,6 +389,7 @@ final case class ThermalGrid(
             "Impossible to find no house state"
           )
         ),
+        lastAmbientTemperature,
         ambientTemperature,
         thermalStorage.getChargingPower,
       )
