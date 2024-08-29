@@ -298,19 +298,22 @@ final case class ThermalHouse(
   /** Update the current state of the house
     *
     * @param tick
-    *   current instance in time
+    *   Current instance in time
     * @param state
-    *   currently applicable state
+    *   Currently applicable state
+    * @param lastAmbientTemperature
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   Ambient temperature
+    *   Current ambient temperature
     * @param qDot
-    *   new thermal influx
+    *   New thermal influx
     * @return
     *   Updated state and the tick in which the next threshold is reached
     */
   def determineState(
       tick: Long,
       state: ThermalHouseState,
+      lastAmbientTemperature: Temperature,
       ambientTemperature: Temperature,
       qDot: Power,
   ): (ThermalHouseState, Option[ThermalThreshold]) = {
@@ -319,7 +322,7 @@ final case class ThermalHouse(
       state.qDot,
       duration,
       state.innerTemperature,
-      ambientTemperature,
+      lastAmbientTemperature,
     )
 
     /* Calculate the next given threshold */

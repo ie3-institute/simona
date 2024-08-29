@@ -77,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated AUTHORS.md [#904](https://github.com/ie3-institute/simona/issues/904)
 - Updated `Gradle` to version V8.10 [#829](https://github.com/ie3-institute/simona/issues/829)
 - Updated AUTHORS.md [#905](https://github.com/ie3-institute/simona/issues/905)
+- Rewrote BMModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Refactoring of Hps createCalcRelevantData to fallback on latest weatherData if weatherData of currentTick is not available [#932](https://github.com/ie3-institute/simona/issues/932)
 
 ### Fixed
@@ -102,6 +103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed FixedFeedModelSpec [#861](https://github.com/ie3-institute/simona/issues/861)
 - Fixing duration calculation in result events [#801](https://github.com/ie3-institute/simona/issues/801)
 - Handle MobSim requests for current prices [#892](https://github.com/ie3-institute/simona/issues/892)
+- Fix determineState of ThermalHouse [#926](https://github.com/ie3-institute/simona/issues/926)
 
 ## [3.0.0] - 2023-08-07
 
