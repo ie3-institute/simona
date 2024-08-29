@@ -15,6 +15,7 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.SystemComponent
+import edu.ie3.simona.model.control.{GridControls, TransformerControlGroupModel}
 import edu.ie3.simona.model.grid.GridModel.GridComponents
 import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseA,
@@ -39,6 +40,7 @@ final case class GridModel(
     mainRefSystem: RefSystem,
     gridComponents: GridComponents,
     voltageLimits: VoltageLimits,
+    gridControls: GridControls,
 ) {
 
   // init nodeUuidToIndexMap
@@ -451,7 +453,6 @@ object GridModel {
     * @param maybeControlConfig
     *   Config of ControlGroup
     */
-  @deprecated
   private def validateControlGroups(
       subGridContainer: SubGridContainer,
       maybeControlConfig: Option[SimonaConfig.Simona.Control],
@@ -589,11 +590,22 @@ object GridModel {
         switches,
       )
 
+    /* Build transformer control groups */
+    val transformerControlGroups = simonaConfig.simona.control
+      .map { controlConfig =>
+        TransformerControlGroupModel.buildControlGroups(
+          subGridContainer.getRawGrid.getMeasurementUnits.asScala.toSet,
+          controlConfig.transformer,
+        )
+      }
+      .getOrElse(Set.empty)
+
     val gridModel = GridModel(
       subGridContainer.getSubnet,
       refSystem,
       gridComponents,
       voltageLimits,
+      GridControls(transformerControlGroups),
     )
 
     /** Check and validates the grid. Especially the consistency of the grid
@@ -605,6 +617,10 @@ object GridModel {
     // validate
     validateConsistency(gridModel)
     validateConnectivity(gridModel)
+    validateControlGroups(
+      subGridContainer,
+      simonaConfig.simona.control,
+    )
 
     // return
     gridModel

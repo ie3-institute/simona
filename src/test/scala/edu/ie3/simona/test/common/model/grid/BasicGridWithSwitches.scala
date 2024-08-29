@@ -232,6 +232,7 @@ trait BasicGridWithSwitches extends BasicGrid {
         gridSwitches,
       ),
       defaultVoltageLimits,
+      GridControls.empty,
     )
   }
 

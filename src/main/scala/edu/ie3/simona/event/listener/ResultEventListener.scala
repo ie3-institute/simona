@@ -13,8 +13,16 @@ import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.ExtendedCongestionResult
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
-import edu.ie3.simona.event.ResultEvent.{FlexOptionsResultEvent, ParticipantResultEvent, PowerFlowResultEvent, ThermalResultEvent}
-import edu.ie3.simona.exceptions.{FileHierarchyException, ProcessResultEventException}
+import edu.ie3.simona.event.ResultEvent.{
+  FlexOptionsResultEvent,
+  ParticipantResultEvent,
+  PowerFlowResultEvent,
+  ThermalResultEvent,
+}
+import edu.ie3.simona.exceptions.{
+  FileHierarchyException,
+  ProcessResultEventException,
+}
 import edu.ie3.simona.io.result._
 import edu.ie3.simona.util.ResultFileHierarchy
 import org.slf4j.Logger
@@ -71,10 +79,9 @@ object ResultEventListener extends Transformer3wResultSupport {
           Path.of(resultFileHierarchy.rawOutputDataDir, "subnet.csv"),
           Array("time", "subnet", "v_max", "v_min", "line_max"),
           ",",
-          true
+          true,
         )
         subnetResultWriter.write("time,subnet,v_max,v_min,line_max\n")
-
 
         resultFileHierarchy.resultEntitiesToConsider
           .map(resultClass => {
@@ -301,10 +308,11 @@ object ResultEventListener extends Transformer3wResultSupport {
               congestionResults,
             ),
           ) =>
-
         val cRes = congestionResults.map {
           case extended: ExtendedCongestionResult =>
-            subnetResultWriter.write(s"${extended.getTime},${extended.getSubgrid},${extended.getvMaxVal},${extended.getvMinVal},${extended.getLineMax}\n")
+            subnetResultWriter.write(
+              s"${extended.getTime},${extended.getSubgrid},${extended.getvMaxVal},${extended.getvMinVal},${extended.getLineMax}\n"
+            )
             extended.to()
           case c => c
         }

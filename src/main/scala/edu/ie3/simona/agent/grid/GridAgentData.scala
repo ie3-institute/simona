@@ -529,8 +529,15 @@ object GridAgentData {
     def getCongestionResult(startTime: ZonedDateTime): CongestionResult = {
       val gridModel = gridAgentBaseData.gridEnv.gridModel
 
-      val node = powerFlowResults.nodeResults.map(n => n.getvMag().getValue.doubleValue())
-      val line = powerFlowResults.lineResults.map(l => Math.max(l.getiAMag().getValue.doubleValue(), l.getiBMag().getValue.doubleValue()))
+      val node = powerFlowResults.nodeResults.map(n =>
+        n.getvMag().getValue.doubleValue()
+      )
+      val line = powerFlowResults.lineResults.map(l =>
+        Math.max(
+          l.getiAMag().getValue.doubleValue(),
+          l.getiBMag().getValue.doubleValue(),
+        )
+      )
 
       new ExtendedCongestionResult(
         startTime.plusSeconds(currentTick),
@@ -542,7 +549,7 @@ object GridAgentData {
         congestions.transformerCongestions,
         node.maxOption.getOrElse(0),
         node.minOption.getOrElse(0),
-        line.maxOption.getOrElse(0)
+        line.maxOption.getOrElse(0),
       )
     }
 

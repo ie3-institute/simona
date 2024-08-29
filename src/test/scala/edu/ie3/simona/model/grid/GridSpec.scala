@@ -232,7 +232,7 @@ class GridSpec
       nodes.foreach(_.enable())
 
       // remove a line from the grid
-      val adaptedLines = lines - line3To4
+      val adaptedLines: Set[LineModel] = lines - line3To4
       adaptedLines.foreach(_.enable())
 
       // enable transformer
@@ -464,13 +464,14 @@ class GridSpec
             Set.empty[Transformer3wModel],
             switches,
           ),
+          defaultVoltageLimits,
           GridControls.empty,
         )
 
         updateUuidToIndexMap(gridModel)
 
         // nodes 1, 13 and 14 should map to the same node
-        val node1Index = gridModel.nodeUuidToIndexMap
+        val node1Index: Int = gridModel.nodeUuidToIndexMap
           .get(node1.uuid)
           .value
         gridModel.nodeUuidToIndexMap.get(node13.uuid).value shouldBe node1Index

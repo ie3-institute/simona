@@ -313,6 +313,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
           Seq.empty[ThermalGrid],
           subnetGatesToActorRef,
           RefSystem("5000 MVA", "380 kV"),
+          VoltageLimits(0.9, 1.1),
         )
 
       val key =
