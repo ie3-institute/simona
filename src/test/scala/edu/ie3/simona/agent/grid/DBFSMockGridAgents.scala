@@ -35,7 +35,6 @@ import scala.language.postfixOps
   * consists of a TestProbe and a sequence of grid nodes.
   */
 trait DBFSMockGridAgents extends UnitSpec {
-  private val floatPrecision: Double = 0.00000000001
   private implicit val powerTolerance: Power = Megawatts(1e-10)
   private implicit val reactivePowerTolerance: ReactivePower = Megavars(1e-10)
   private implicit val electricPotentialTolerance
@@ -53,19 +52,23 @@ trait DBFSMockGridAgents extends UnitSpec {
       override val nodeUuids: Seq[UUID],
   ) extends GAActorAndModel {
 
-    def expectGridPowerRequest(): ActorRef[GridAgent.Request] = {
+    def expectGridPowerRequest(): ActorRef[GridAgent.Request] =
       gaProbe.expectMessageType[GridAgent.Request] match {
         case requestGridPowerMessage: RequestGridPower =>
           requestGridPowerMessage.nodeUuids should contain allElementsOf nodeUuids
 
           requestGridPowerMessage.sender
+
+        case unknown =>
+          fail(
+            s"Invalid message $unknown received when expecting a request for grid power values!"
+          )
       }
-    }
 
     def expectSlackVoltageProvision(
         expectedSweepNo: Int,
         expectedExchangedVoltages: Seq[ExchangeVoltage],
-    ): Unit = {
+    ): Unit =
       gaProbe.expectMessageType[GridAgent.Request] match {
         case msg: SlackVoltageResponse =>
           msg.currentSweepNo shouldBe expectedSweepNo
@@ -85,8 +88,12 @@ trait DBFSMockGridAgents extends UnitSpec {
                 )
             }
           }
+
+        case unknown =>
+          fail(
+            s"Invalid message $unknown received when expecting a provision of slack voltage values!"
+          )
       }
-    }
 
     def requestSlackVoltage(
         receiver: ActorRef[GridAgent.Request],
@@ -112,7 +119,7 @@ trait DBFSMockGridAgents extends UnitSpec {
 
     def expectSlackVoltageRequest(
         expectedSweepNo: Int
-    ): ActorRef[GridAgent.Request] = {
+    ): ActorRef[GridAgent.Request] =
       gaProbe.expectMessageType[GridAgent.Request] match {
         case requestSlackVoltageMessage: SlackVoltageRequest =>
           requestSlackVoltageMessage.currentSweepNo shouldBe expectedSweepNo
@@ -120,13 +127,17 @@ trait DBFSMockGridAgents extends UnitSpec {
           requestSlackVoltageMessage.nodeUuids should contain allElementsOf nodeUuids
 
           requestSlackVoltageMessage.sender
+
+        case unknown =>
+          fail(
+            s"Invalid message $unknown received when expecting a request for slack voltage values!"
+          )
       }
-    }
 
     def expectGridPowerProvision(
         expectedExchangedPowers: Seq[ExchangePower],
         maxDuration: FiniteDuration = 30 seconds,
-    ): Unit = {
+    ): Unit =
       gaProbe.expectMessageType[GridAgent.Request](maxDuration) match {
         case msg: GridPowerResponse =>
           msg.nodalResidualPower should have size expectedExchangedPowers.size
@@ -145,8 +156,11 @@ trait DBFSMockGridAgents extends UnitSpec {
                 )
             }
           }
+        case unknown =>
+          fail(
+            s"Invalid message $unknown received when expecting a provision of grid power values!"
+          )
       }
-    }
 
     def requestGridPower(
         receiver: ActorRef[GridAgent.Request],

@@ -121,6 +121,15 @@ trait ConfigTestData {
       |  individualConfigs = []
       |}
       |
+      |simona.runtime.participant.storage = {
+      |  defaultConfig = {
+      |       calculateMissingReactivePowerWithModel = false
+      |       uuids = ["default"]
+      |       scaling = 1.0
+      |  }
+      |  individualConfigs = []
+      |}
+      |
       |simona.runtime.participant.em = {
       |  defaultConfig = {
       |       calculateMissingReactivePowerWithModel = false
@@ -131,7 +140,7 @@ trait ConfigTestData {
       |}
       |
       |simona.powerflow.maxSweepPowerDeviation = 1E-5 // the maximum allowed deviation in power between two sweeps, before overall convergence is assumed
-      |simona.powerflow.skipOnFailure = true
+      |simona.powerflow.stopOnFailure = true
       |simona.powerflow.newtonraphson.epsilon = [1E-12]
       |simona.powerflow.newtonraphson.iterations = 50
       |

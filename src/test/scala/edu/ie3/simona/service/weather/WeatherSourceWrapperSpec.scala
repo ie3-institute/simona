@@ -320,7 +320,7 @@ object WeatherSourceWrapperSpec {
 
     override def getSourceFields: Optional[util.Set[String]] =
       // only required for validation
-      Optional.empty
+      Optional.empty()
 
     override def getWeather(
         timeInterval: ClosedInterval[ZonedDateTime]

@@ -28,7 +28,6 @@ import org.jgrapht.graph.{DefaultEdge, SimpleGraph}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.collection.immutable.ListSet
 import scala.jdk.CollectionConverters._
 
 /** Representation of one physical electrical grid. It holds the references to
@@ -441,19 +440,6 @@ object GridModel {
       throw new InvalidGridException(
         s"The grid model for subnet ${gridModel.subnetNo} has multiple nodes with the same name!"
       )
-
-    // multiple switches @ one node -> not supported yet!
-    val switchVector = gridModel.gridComponents.switches.foldLeft(
-      Vector.empty[UUID]
-    )((vector, switch) => (vector :+ switch.nodeAUuid) :+ switch.nodeBUuid)
-    val uniqueSwitchNodeIds = switchVector.toSet.toList
-    if (switchVector.diff(uniqueSwitchNodeIds).nonEmpty) {
-      throw new InvalidGridException(
-        s"The grid model for subnet ${gridModel.subnetNo} has nodes with multiple switches. This is not supported yet! Duplicates are located @ nodes: ${switchVector
-            .diff(uniqueSwitchNodeIds)}"
-      )
-    }
-
   }
 
   /** Checks all ControlGroups if a) Transformer of ControlGroup and Measurement
@@ -635,40 +621,82 @@ object GridModel {
   def updateUuidToIndexMap(gridModel: GridModel): Unit = {
 
     val switches = gridModel.gridComponents.switches
-    val nodes = gridModel.gridComponents.nodes
+    val nodes = gridModel.gridComponents.nodes.distinct
 
-    val nodesAndSwitches: ListSet[SystemComponent] = ListSet
-      .empty[SystemComponent] ++ switches ++ nodes
-
-    val updatedNodeToUuidMap = nodesAndSwitches
-      .filter(_.isInOperation)
-      .filter {
-        case switch: SwitchModel => switch.isClosed
-        case _: NodeModel        => true
+    // map for each node that is directly connected to a switch,
+    // to all nodes that are directly connected via switch
+    val nodeConnections: Map[UUID, Set[UUID]] =
+      switches.filter(_.isClosed).foldLeft(Map.empty[UUID, Set[UUID]]) {
+        (acc, switch) =>
+          acc
+            .updated(
+              switch.nodeAUuid,
+              acc.getOrElse(switch.nodeAUuid, Set.empty) + switch.nodeBUuid,
+            )
+            .updated(
+              switch.nodeBUuid,
+              acc.getOrElse(switch.nodeBUuid, Set.empty) + switch.nodeAUuid,
+            )
       }
-      .zipWithIndex
-      .foldLeft(Map.empty[UUID, Int]) {
-        case (map, (gridComponent, componentId)) =>
-          gridComponent match {
-            case switchModel: SwitchModel =>
-              map ++ Map(
-                switchModel.nodeAUuid -> componentId,
-                switchModel.nodeBUuid -> componentId,
-              )
 
-            case nodeModel: NodeModel =>
-              if (!map.contains(nodeModel.uuid)) {
-                val idx = map.values.toList.sorted.lastOption
-                  .getOrElse(
-                    -1
-                  ) + 1 // if we didn't found anything in the list, we don't have switches and want to start @ 0
-                map + (nodeModel.uuid -> idx)
-              } else {
-                map
-              }
+    // create sets of nodes to be fused together and assign common indices
+    val switchConnectedNodes =
+      findConnectedNodes(nodeConnections).zipWithIndex.flatMap {
+        case (nodes, idx) => nodes.map(_ -> idx)
+      }.toMap
+
+    // also account for all missing nodes (not connected to a switch)
+    val offset = switchConnectedNodes.values.maxOption.map(_ + 1).getOrElse(0)
+    val (updatedNodeToUuidMap, _) = nodes
+      .filter(_.isInOperation)
+      .foldLeft(Map.empty[UUID, Int], offset) {
+        case ((map, nextIdx), nodeModel) =>
+          switchConnectedNodes.get(nodeModel.uuid) match {
+            case Some(idx) => (map + (nodeModel.uuid -> idx), nextIdx)
+            case None =>
+              (map + (nodeModel.uuid -> nextIdx), nextIdx + 1)
           }
       }
 
     gridModel._nodeUuidToIndexMap = updatedNodeToUuidMap
+  }
+
+  /** Build sets of connected nodes via depth-first search
+    *
+    * @param nodeConnections
+    *   The connected nodes for each node
+    * @return
+    *   The sets of nodes
+    */
+  private def findConnectedNodes(
+      nodeConnections: Map[UUID, Set[UUID]]
+  ): Seq[Seq[UUID]] = {
+
+    def dfs(node: UUID, visited: Set[UUID] = Set.empty): Set[UUID] = {
+      nodeConnections
+        .getOrElse(node, Set.empty)
+        .foldLeft(visited + node) { case (accVisited, neighbor) =>
+          if (accVisited.contains(neighbor))
+            accVisited
+          else
+            dfs(neighbor, accVisited)
+        }
+    }
+
+    val (_, components) =
+      nodeConnections.keys.foldLeft((Set.empty[UUID], Seq.empty[Seq[UUID]])) {
+        case ((visited, components), node) =>
+          if (visited.contains(node)) {
+            (visited, components)
+          } else {
+            val component = dfs(node)
+            val updatedVisited = visited ++ component
+            val updatedComponents = components :+ component.toSeq
+
+            (updatedVisited, updatedComponents)
+          }
+      }
+
+    components
   }
 }
