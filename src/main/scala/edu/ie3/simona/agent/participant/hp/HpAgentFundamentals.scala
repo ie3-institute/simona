@@ -272,7 +272,7 @@ trait HpAgentFundamentals
           baseStateData.copy(
             stateDataStore = updatedStateDataStore,
             additionalActivationTicks =
-              baseStateData.additionalActivationTicks + nextThreshold.tick,
+              baseStateData.additionalActivationTicks ++ Set(nextThreshold.tick),
           )
         case _ =>
           baseStateData.copy(
