@@ -13,6 +13,7 @@ import edu.ie3.datamodel.models.result.thermal.{
   CylindricalStorageResult,
   ThermalHouseResult,
 }
+import edu.ie3.simona.exceptions.InvalidParameterException
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalEnergyDemand,
@@ -48,9 +49,9 @@ final case class ThermalGrid(
     * @param tick
     *   Questioned instance in time
     * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   Ambient temperature in the instance in question
+    *   Current ambient temperature in the instance in question
     * @param state
     *   Currently applicable state of the thermal grid
     * @return
@@ -152,17 +153,17 @@ final case class ThermalGrid(
     * @param state
     *   Currently applicable state
     * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   Actual ambient temperature
+    *   Current ambient temperature
     * @param isRunning
-    *   determines whether the heat pump is running or not
+    *   Determines whether the heat pump is running or not
     * @param qDot
     *   Thermal energy balance
     * @param houseDemand
-    *   determines if the thermal house has heat demand
+    *   Determines if the thermal house has heat demand
     * @param storageDemand
-    *   determines if the thermal storage has heat demand
+    *   Determines if the thermal storage has heat demand
     * @return
     *   The updated state of the grid
     */
@@ -201,19 +202,19 @@ final case class ThermalGrid(
     * @param tick
     *   Current tick
     * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   Actual ambient temperature
+    *   Current ambient temperature
     * @param state
     *   Current state of the houses
     * @param isRunning
-    *   determines whether the heat pump is running or not
+    *   Determines whether the heat pump is running or not
     * @param qDot
     *   Infeed to the grid
     * @param houseDemand
-    *   determines if the thermal house has heat demand
+    *   Determines if the thermal house has heat demand
     * @param storageDemand
-    *   determines if the thermal storage has heat demand
+    *   Determines if the thermal storage has heat demand
     * @return
     *   Updated thermal grid state
     */
@@ -352,9 +353,9 @@ final case class ThermalGrid(
     * @param tick
     *   Current tick
     * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   actual ambient temperature
+    *   Current ambient temperature
     * @param state
     *   Current state of the thermal grid
     * @param qDotHouse
@@ -405,9 +406,9 @@ final case class ThermalGrid(
     * @param tick
     *   Current tick
     * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   actual ambient temperature
+    *   Current ambient temperature
     * @param state
     *   Current state of the houses
     * @param qDot
@@ -504,9 +505,9 @@ final case class ThermalGrid(
     * @param tick
     *   Current tick
     * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   Actual ambient temperature
+    *   Current ambient temperature
     * @param state
     *   Current state of the houses
     * @param qDot
@@ -580,9 +581,9 @@ final case class ThermalGrid(
     * @param formerStorageState
     *   Previous thermal storage state before a first update was performed
     * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   Actual ambient temperature
+    *   Current ambient temperature
     * @param qDot
     *   Thermal influx
     * @return

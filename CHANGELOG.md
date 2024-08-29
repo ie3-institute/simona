@@ -104,9 +104,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed FixedFeedModelSpec [#861](https://github.com/ie3-institute/simona/issues/861)
 - Fixing duration calculation in result events [#801](https://github.com/ie3-institute/simona/issues/801)
 - Handle MobSim requests for current prices [#892](https://github.com/ie3-institute/simona/issues/892)
+- Fix determineState of ThermalHouse [#926](https://github.com/ie3-institute/simona/issues/926)
 - Fixed Hp results leading to overheating house and other effects [#827](https://github.com/ie3-institute/simona/issues/827)
 - Fixed thermal storage getting recharged when empty [#827](https://github.com/ie3-institute/simona/issues/827)
-- Provide actual ambient temperature of tick to HpModel when calculate state [#882](https://github.com/ie3-institute/simona/issues/882)
 
 ## [3.0.0] - 2023-08-07
 
