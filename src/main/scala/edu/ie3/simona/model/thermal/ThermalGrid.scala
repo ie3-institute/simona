@@ -152,12 +152,12 @@ final case class ThermalGrid(
     * @param state
     *   Currently applicable state
     * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   Actual ambient temperature
-    * @param isRunning
-    *   determines whether the heat pump is running or not
-    * @param qDot
+    *   Current ambient temperature
+   * @param isRunning
+   *   determines whether the heat pump is running or not
+   * @param qDot
     *   Thermal energy balance
     * @param houseDemand
     *   determines if the thermal house has heat demand
@@ -201,9 +201,9 @@ final case class ThermalGrid(
     * @param tick
     *   Current tick
     * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   Actual ambient temperature
+    *   Current ambient temperature
     * @param state
     *   Current state of the houses
     * @param isRunning
@@ -504,9 +504,9 @@ final case class ThermalGrid(
     * @param tick
     *   Current tick
     * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   Actual ambient temperature
+    *   Current ambient temperature
     * @param state
     *   Current state of the houses
     * @param qDot
@@ -580,9 +580,9 @@ final case class ThermalGrid(
     * @param formerStorageState
     *   Previous thermal storage state before a first update was performed
     * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   Actual ambient temperature
+    *   Current ambient temperature
     * @param qDot
     *   Thermal influx
     * @return

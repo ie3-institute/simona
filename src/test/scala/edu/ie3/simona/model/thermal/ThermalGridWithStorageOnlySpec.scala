@@ -245,6 +245,7 @@ class ThermalGridWithStorageOnlySpec
             ),
           testGridAmbientTemperature,
           testGridAmbientTemperature,
+          testGridAmbientTemperature,
           isRunning,
           testGridQDotConsumptionHigh,
           thermalDemand,
@@ -269,6 +270,7 @@ class ThermalGridWithStorageOnlySpec
         val updatedState = thermalGrid.updateState(
           0L,
           ThermalGrid.startingState(thermalGrid),
+          testGridAmbientTemperature,
           testGridAmbientTemperature,
           testGridAmbientTemperature,
           isRunning,
