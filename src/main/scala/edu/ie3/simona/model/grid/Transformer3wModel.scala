@@ -67,9 +67,6 @@ import scala.math.BigDecimal.RoundingMode
   *   number of parallel transformers
   * @param powerFlowCase
   *   the [[Transformer3wPowerFlowCase]]
-  * @param iNom
-  *   the nominal current at the port that is defined by the
-  *   [[Transformer3wPowerFlowCase]]
   * @param sRated
   *   the rated power at the port that is defined by the
   *   [[Transformer3wPowerFlowCase]]
@@ -98,7 +95,6 @@ final case class Transformer3wModel(
     override protected val transformerTappingModel: TransformerTappingModel,
     amount: Int,
     powerFlowCase: Transformer3wPowerFlowCase,
-    iNom: squants.electro.ElectricCurrent,
     sRated: Power,
     protected val r: squants.Dimensionless,
     protected val x: squants.Dimensionless,
@@ -267,37 +263,19 @@ case object Transformer3wModel extends LazyLogging {
           .setScale(5, RoundingMode.HALF_UP)
     }
 
-    val (iNom, sRated) = powerFlowCase match {
+    val sRated = powerFlowCase match {
       case PowerFlowCaseA =>
-        val power = Watts(
+        Watts(
           trafo3wType.getsRatedA().to(VOLTAMPERE).getValue.doubleValue()
         )
-
-        val current = power / Math.sqrt(3) / Kilovolts(
-          trafo3wType.getvRatedA().to(KILOVOLT).getValue.doubleValue()
-        )
-
-        (current, power)
       case PowerFlowCaseB =>
-        val power = Watts(
+        Watts(
           trafo3wType.getsRatedB().to(VOLTAMPERE).getValue.doubleValue()
         )
-
-        val current = power / Math.sqrt(3) / Kilovolts(
-          trafo3wType.getvRatedB().to(KILOVOLT).getValue.doubleValue()
-        )
-
-        (current, power)
       case PowerFlowCaseC =>
-        val power = Watts(
+        Watts(
           trafo3wType.getsRatedC().to(VOLTAMPERE).getValue.doubleValue()
         )
-
-        val current = power / Math.sqrt(3) / Kilovolts(
-          trafo3wType.getvRatedC().to(KILOVOLT).getValue.doubleValue()
-        )
-
-        (current, power)
     }
 
     val operationInterval =
@@ -319,7 +297,6 @@ case object Transformer3wModel extends LazyLogging {
       transformerTappingModel,
       transformer3wInput.getParallelDevices,
       powerFlowCase,
-      iNom,
       sRated,
       r,
       x,

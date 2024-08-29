@@ -444,7 +444,6 @@ class GridResultsSupportSpec
         ),
         1,
         PowerFlowCaseA,
-        Amperes(100),
         Watts(10),
         Each(0.1d),
         Each(0.2d),

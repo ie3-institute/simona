@@ -104,7 +104,6 @@ trait GridComponentsMokka extends MockitoSugar {
       tappingModel,
       amount = 1,
       powerFlowCase = PowerFlowCaseA,
-      iNom = Amperes(1),
       sRated = Watts(1),
       r = Each(1),
       x = Each(1),
