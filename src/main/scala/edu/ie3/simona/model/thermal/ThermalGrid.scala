@@ -56,9 +56,9 @@ final case class ThermalGrid(
     * @param tick
     *   Questioned instance in time
     * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   Ambient temperature in the instance in question
+    *   Current ambient temperature
     * @param state
     *   Currently applicable state of the thermal grid
     * @param simulationStartTime
@@ -511,9 +511,9 @@ final case class ThermalGrid(
     * @param state
     *   Current state of the houses
     * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   actual ambient temperature
+    *   Current ambient temperature
     * @return
     *   Option of the updated house state, option of the last qDot and Booleans
     *   if some boundaries are reached or left.
@@ -670,9 +670,9 @@ final case class ThermalGrid(
     * @param tick
     *   Current tick
     * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   actual ambient temperature
+    *   Current ambient temperature
     * @param state
     *   Current state of the houses
     * @param qDot
@@ -711,9 +711,9 @@ final case class ThermalGrid(
     * @param tick
     *   Current tick
     * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   actual ambient temperature
+    *   Current ambient temperature
     * @param state
     *   Current state of the houses
     * @param qDot
@@ -752,9 +752,9 @@ final case class ThermalGrid(
     * @param tick
     *   Current tick
     * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   actual ambient temperature
+    *   Current ambient temperature
     * @param state
     *   Current state of the houses
     * @param qDot
@@ -794,9 +794,9 @@ final case class ThermalGrid(
     * @param tick
     *   Current tick
     * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   actual ambient temperature
+    *   Current ambient temperature
     * @param state
     *   Current state of the houses
     * @param qDotHouseLastState
@@ -855,9 +855,9 @@ final case class ThermalGrid(
     * @param tick
     *   Current tick
     * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   actual ambient temperature
+    *   Current ambient temperature
     * @param state
     *   Current state of the thermal grid
     * @param qDotHouse
@@ -940,10 +940,9 @@ final case class ThermalGrid(
     * @param tick
     *   Current tick
     * @param lastAmbientTemperature
-   * FIXME
-    *   Ambient temperature until this tick
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   actual ambient temperature
+    *   Current ambient temperature
     * @param state
     *   Current state of the houses
     * @param qDot
