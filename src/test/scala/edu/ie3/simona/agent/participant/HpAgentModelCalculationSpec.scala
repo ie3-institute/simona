@@ -490,7 +490,7 @@ class HpAgentModelCalculationSpec
 
       /* The agent will notice, that all expected information are apparent, switch to Calculate and trigger itself
        * for starting the calculation */
-      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(22)))
+      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(23)))
 
       hpAgent.stateName shouldBe Idle
       hpAgent.stateData match {
@@ -617,7 +617,7 @@ class HpAgentModelCalculationSpec
       )
 
       /* Expect confirmation */
-      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(22)))
+      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(23)))
 
       /* Expect the state change to idle with updated base state data */
       hpAgent.stateName shouldBe Idle
@@ -793,9 +793,9 @@ class HpAgentModelCalculationSpec
         ),
       )
       scheduler.send(hpAgent, Activation(0))
-      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(22)))
+      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(23)))
 
-      scheduler.send(hpAgent, Activation(22))
+      scheduler.send(hpAgent, Activation(23))
       scheduler.expectMsg(Completion(hpAgent.toTyped, Some(3600)))
 
       /* ... for tick 3600 */
