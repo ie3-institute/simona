@@ -197,6 +197,7 @@ class ThermalGridWithHouseOnlySpec
             tick,
             testGridAmbientTemperature,
             testGridAmbientTemperature,
+            testGridAmbientTemperature,
             gridState,
             externalQDot,
             defaultSimulationStart,
@@ -276,6 +277,7 @@ class ThermalGridWithHouseOnlySpec
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
             tick,
+            testGridAmbientTemperature,
             testGridAmbientTemperature,
             testGridAmbientTemperature,
             gridState,
@@ -372,6 +374,7 @@ class ThermalGridWithHouseOnlySpec
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
             tick,
+            testGridAmbientTemperature,
             testGridAmbientTemperature,
             testGridAmbientTemperature,
             gridState,
@@ -565,6 +568,7 @@ class ThermalGridWithHouseOnlySpec
           ThermalGrid.startingState(thermalGrid),
           testGridAmbientTemperature,
           testGridAmbientTemperature,
+          testGridAmbientTemperature,
           isNotRunning,
           testGridQDotConsumption,
           ThermalEnergyDemand(KilowattHours(0), KilowattHours(1)),
@@ -652,6 +656,7 @@ class ThermalGridWithHouseOnlySpec
         val updatedState = thermalGrid.updateState(
           0L,
           ThermalGrid.startingState(thermalGrid),
+          testGridAmbientTemperature,
           testGridAmbientTemperature,
           testGridAmbientTemperature,
           isNotRunning,

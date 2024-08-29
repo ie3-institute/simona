@@ -502,15 +502,15 @@ final case class ThermalHouse(
   /** Update the current state of the house
     *
     * @param tick
-    *   current instance in time
+    *   Current instance in time
     * @param state
-    *   currently applicable state
+    *   Currently applicable state
     * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   actual ambient temperature
+    *   Current ambient temperature
     * @param qDot
-    *   new thermal influx
+    *   New thermal influx
     * @return
     *   Updated state and the tick in which the next threshold is reached
     */
