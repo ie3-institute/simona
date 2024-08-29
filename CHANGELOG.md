@@ -77,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated AUTHORS.md [#904](https://github.com/ie3-institute/simona/issues/904)
 - Updated `Gradle` to version V8.10 [#829](https://github.com/ie3-institute/simona/issues/829)
 - Updated AUTHORS.md [#905](https://github.com/ie3-institute/simona/issues/905)
+- Rewrote BMModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Prepare ThermalStorageTestData for Storage without storageVolumeLvlMin [#894](https://github.com/ie3-institute/simona/issues/894)
 
 ### Fixed
@@ -102,6 +103,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed FixedFeedModelSpec [#861](https://github.com/ie3-institute/simona/issues/861)
 - Fixing duration calculation in result events [#801](https://github.com/ie3-institute/simona/issues/801)
 - Handle MobSim requests for current prices [#892](https://github.com/ie3-institute/simona/issues/892)
+- Fix determineState of ThermalHouse [#926](https://github.com/ie3-institute/simona/issues/926)
+- Fix activation of Hp when not under control of an EM [#922](https://github.com/ie3-institute/simona/issues/922)
 
 ## [3.0.0] - 2023-08-07
 

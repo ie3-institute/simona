@@ -132,6 +132,7 @@ class ThermalGridWithStorageOnlySpec
           thermalGrid invokePrivate handleConsumption(
             tick,
             testGridAmbientTemperature,
+            testGridAmbientTemperature,
             gridState,
             testGridQDotConsumptionHigh,
           )
@@ -164,6 +165,7 @@ class ThermalGridWithStorageOnlySpec
           thermalGrid invokePrivate handleInfeed(
             tick,
             testGridAmbientTemperature,
+            testGridAmbientTemperature,
             gridState,
             testGridQDotInfeed,
           )
@@ -187,6 +189,7 @@ class ThermalGridWithStorageOnlySpec
         val (updatedState, nextThreshold) = thermalGrid.updateState(
           0L,
           ThermalGrid.startingState(thermalGrid),
+          testGridAmbientTemperature,
           testGridAmbientTemperature,
           testGridQDotInfeed,
         )
@@ -220,6 +223,7 @@ class ThermalGridWithStorageOnlySpec
               )
             ),
           testGridAmbientTemperature,
+          testGridAmbientTemperature,
           testGridQDotConsumptionHigh,
         ) match {
           case (
@@ -241,6 +245,7 @@ class ThermalGridWithStorageOnlySpec
         val updatedState = thermalGrid.updateState(
           0L,
           ThermalGrid.startingState(thermalGrid),
+          testGridAmbientTemperature,
           testGridAmbientTemperature,
           Kilowatts(0d),
         )
