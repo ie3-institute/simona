@@ -1287,7 +1287,7 @@ final case class ThermalGrid(
         (
           preciseChargingPower,
           Some(
-            SimpleThermalThreshold(tick + threshold.toSeconds.toLong)
+            SimpleThermalThreshold(tick + math.round(threshold.toSeconds))
           ),
         )
       } else {
