@@ -312,7 +312,7 @@ trait HpAgentFundamentals
       nodalVoltage: squants.Dimensionless,
       model: HpModel,
   ): HpState = {
-    val (canOperate, canBeOutOfOperation, state) =
+    val (_, _, state) =
       model.determineState(modelState, calcRelevantData)
     state
   }
