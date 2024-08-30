@@ -154,7 +154,8 @@ class SimonaStandaloneSetup(
           extSimSetupData.extPrimaryData
         ),
         simulationStart,
-      )
+      ),
+      "primaryServiceProxyAgent",
     )
 
     scheduler ! ScheduleActivation(primaryServiceProxy.toTyped, INIT_SIM_TICK)
@@ -172,7 +173,8 @@ class SimonaStandaloneSetup(
           .toZonedDateTime(simonaConfig.simona.time.startDateTime),
         TimeUtil.withDefaults
           .toZonedDateTime(simonaConfig.simona.time.endDateTime),
-      )
+      ),
+      "weatherAgent",
     )
     weatherService ! SimonaService.Create(
       InitWeatherServiceStateData(
@@ -187,20 +189,19 @@ class SimonaStandaloneSetup(
 
   override def extSimulations(
       context: ActorContext[_],
-      rootScheduler: ActorRef[SchedulerMessage],
+      scheduler: ActorRef[SchedulerMessage],
   ): ExtSimSetupData = {
     val jars = ExtSimLoader.scanInputFolder()
 
     val extLinks = jars.flatMap(ExtSimLoader.loadExtLink).toSeq
 
     if (extLinks.nonEmpty) {
-      val extScheduler = scheduler(context, parent = rootScheduler)
 
       val (extSimAdapters, extDatasAndServices) =
         extLinks.zipWithIndex.map { case (extLink, index) =>
           // external simulation always needs at least an ExtSimAdapter
           val extSimAdapter = context.toClassic.simonaActorOf(
-            ExtSimAdapter.props(extScheduler.toClassic),
+            ExtSimAdapter.props(scheduler.toClassic),
             s"$index",
           )
           val extSimAdapterData = new ExtSimAdapterData(extSimAdapter, args)
@@ -208,7 +209,7 @@ class SimonaStandaloneSetup(
           // send init data right away, init activation is scheduled
           extSimAdapter ! ExtSimAdapter.Create(
             extSimAdapterData,
-            ScheduleLock.singleKey(context, extScheduler, INIT_SIM_TICK),
+            ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
           )
 
           // setup data services that belong to this external simulation
@@ -219,7 +220,7 @@ class SimonaStandaloneSetup(
             extLink.getExtDataSimulations.asScala.zipWithIndex.map {
               case (_: ExtEvSimulation, dIndex) =>
                 val extEvDataService = context.toClassic.simonaActorOf(
-                  ExtEvDataService.props(extScheduler.toClassic),
+                  ExtEvDataService.props(scheduler.toClassic),
                   s"$index-$dIndex",
                 )
                 val extEvData = new ExtEvData(extEvDataService, extSimAdapter)
@@ -228,7 +229,7 @@ class SimonaStandaloneSetup(
                   InitExtEvData(extEvData),
                   ScheduleLock.singleKey(
                     context,
-                    extScheduler,
+                    scheduler,
                     INIT_SIM_TICK,
                   ),
                 )

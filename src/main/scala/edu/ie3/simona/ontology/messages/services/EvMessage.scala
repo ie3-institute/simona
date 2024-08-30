@@ -12,7 +12,6 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ProvisionMessage,
   ServiceRegistrationMessage,
 }
-import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import org.apache.pekko.actor.ActorRef
 
 import java.util.UUID
@@ -48,8 +47,7 @@ object EvMessage {
       override val tick: Long,
       override val serviceRef: ActorRef,
       override val data: EvData,
-      override val nextDataTick: Option[Long] = None,
-      override val unlockKey: Option[ScheduleKey] = None,
+      override val nextDataTick: Option[Long],
   ) extends EvMessage
       with ProvisionMessage[EvData]
 
@@ -74,7 +72,7 @@ object EvMessage {
     * @param arrivals
     *   EVs arriving at the charging station
     */
-  final case class ArrivingEvsData(
+  final case class ArrivingEvs(
       arrivals: Seq[EvModelWrapper]
   ) extends EvData {}
 

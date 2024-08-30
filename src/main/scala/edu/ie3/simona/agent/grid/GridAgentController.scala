@@ -14,7 +14,7 @@ import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
-  ActorEvMovementsService,
+  ActorExtEvDataService,
   ActorWeatherService,
 }
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
@@ -690,7 +690,7 @@ class GridAgentController(
             modelConfiguration,
             primaryServiceProxy,
             Iterable(
-              ActorEvMovementsService(
+              ActorExtEvDataService(
                 evMovementsService
               )
             ),
@@ -702,7 +702,8 @@ class GridAgentController(
             maybeControllingEm,
           ),
           listener.map(_.toClassic),
-        )
+        ),
+        evcsInput.getId,
       )
       .toTyped
 

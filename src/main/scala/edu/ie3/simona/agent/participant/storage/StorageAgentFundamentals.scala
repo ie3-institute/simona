@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent.participant.storage
 
 import edu.ie3.datamodel.models.input.system.StorageInput
+import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.{
   StorageResult,
   SystemParticipantResult,
@@ -36,6 +37,7 @@ import edu.ie3.simona.exceptions.agent.{
   AgentInitializationException,
   InvalidRequestException,
 }
+import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.StorageModel.{
   StorageRelevantData,
   StorageState,
@@ -259,7 +261,7 @@ trait StorageAgentFundamentals
         StorageState,
         StorageModel,
       ],
-      result: ApparentPower,
+      result: AccompaniedSimulationResult[ApparentPower],
       currentTick: Long,
   ): ParticipantModelBaseStateData[
     ApparentPower,
@@ -267,7 +269,6 @@ trait StorageAgentFundamentals
     StorageState,
     StorageModel,
   ] = {
-
     // announce last result to listeners
     if (baseStateData.outputConfig.simulationResultInfo) {
       val uuid = baseStateData.modelUuid
@@ -289,8 +290,8 @@ trait StorageAgentFundamentals
       val storageResult = new StorageResult(
         dateTime,
         uuid,
-        result.p.toMegawatts.asMegaWatt,
-        result.q.toMegavars.asMegaVar,
+        result.primaryData.p.toMegawatts.asMegaWatt,
+        result.primaryData.q.toMegavars.asMegaVar,
         soc,
       )
 
@@ -301,7 +302,7 @@ trait StorageAgentFundamentals
       resultValueStore = ValueStore.updateValueStore(
         baseStateData.resultValueStore,
         currentTick,
-        result,
+        result.primaryData,
       )
     )
   }
@@ -332,7 +333,11 @@ trait StorageAgentFundamentals
       data: StorageRelevantData,
       lastState: StorageState,
       setPower: Power,
-  ): (StorageState, ApparentPower, FlexChangeIndicator) = {
+  ): (
+      StorageState,
+      AccompaniedSimulationResult[ApparentPower],
+      FlexChangeIndicator,
+  ) = {
     val (updatedState, flexChangeIndicator) =
       baseStateData.model.handleControlledPowerChange(data, lastState, setPower)
     // In edge cases, the model does not accept the given set power
@@ -345,11 +350,13 @@ trait StorageAgentFundamentals
       voltage,
     )
 
-    (
-      updatedState,
-      ApparentPower(updatedSetPower, reactivePower),
-      flexChangeIndicator,
-    )
+    val apparentPower = ApparentPower(updatedSetPower, reactivePower)
+
+    val result: AccompaniedSimulationResult[ApparentPower] =
+      AccompaniedSimulationResult(apparentPower, Seq.empty[ResultEntity])
+
+    (updatedState, result, flexChangeIndicator)
+
   }
 
   /** Update the last known model state with the given external, relevant data

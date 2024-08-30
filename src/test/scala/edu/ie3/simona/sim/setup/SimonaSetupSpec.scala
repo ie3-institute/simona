@@ -60,7 +60,7 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
 
   override def extSimulations(
       context: ActorContext[_],
-      rootScheduler: ActorRef[SchedulerMessage],
+      scheduler: ActorRef[SchedulerMessage],
   ): ExtSimSetupData = throw new NotImplementedException(
     "This is a dummy setup"
   )

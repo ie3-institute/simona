@@ -6,19 +6,20 @@
 
 package edu.ie3.simona.service.ev
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 import edu.ie3.simona.api.data.ev.ExtEvData
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology._
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
-import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
+import edu.ie3.simona.exceptions.{
+  CriticalFailureException,
+  InitializationException,
+  ServiceException,
+}
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
-import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
@@ -30,9 +31,12 @@ import edu.ie3.simona.service.ev.ExtEvDataService.{
 import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
 import edu.ie3.simona.ontology.messages.services.DataMessage
 import edu.ie3.simona.util.ReceiveDataMap
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 
 import java.util.UUID
 import scala.jdk.CollectionConverters._
+import scala.jdk.OptionConverters._
 import scala.util.{Failure, Success, Try}
 
 object ExtEvDataService {
@@ -143,8 +147,8 @@ class ExtEvDataService(override val scheduler: ActorRef)
     serviceStateData.uuidToActorRef.get(evcs) match {
       case None =>
         // Actor is not registered yet
-        agentToBeRegistered ! RegistrationSuccessfulMessage(self, None)
-
+        // (not sending confirmation message yet, because we're waiting
+        // for MobSim to tell us what the first tick is going to be)
         serviceStateData.copy(
           uuidToActorRef =
             serviceStateData.uuidToActorRef + (evcs -> agentToBeRegistered)
@@ -176,21 +180,50 @@ class ExtEvDataService(override val scheduler: ActorRef)
       ExtEvStateData,
       Option[Long],
   ) = {
+    def asScala[E]
+        : java.util.Map[UUID, java.util.List[E]] => Map[UUID, Seq[E]] = map =>
+      map.asScala.view.mapValues(_.asScala.toSeq).toMap
+
     serviceStateData.extEvMessage.getOrElse(
       throw ServiceException(
         "ExtEvDataService was triggered without ExtEvMessage available"
       )
     ) match {
+      case _: RequestCurrentPrices =>
+        requestCurrentPrices()
       case _: RequestEvcsFreeLots =>
         requestFreeLots(tick)
       case departingEvsRequest: RequestDepartingEvs =>
-        requestDepartingEvs(tick, departingEvsRequest.departures)
+        requestDepartingEvs(tick, asScala(departingEvsRequest.departures))
       case arrivingEvsProvision: ProvideArrivingEvs =>
-        handleArrivingEvs(tick, null)(
-          serviceStateData,
-          ctx,
+        handleArrivingEvs(
+          tick,
+          asScala(arrivingEvsProvision.arrivals),
+          arrivingEvsProvision.maybeNextTick.toScala.map(Long2long),
+        )(
+          serviceStateData
         )
     }
+  }
+
+  private def requestCurrentPrices()(implicit
+      serviceStateData: ExtEvStateData
+  ): (ExtEvStateData, Option[Long]) = {
+    // currently not supported, return dummy
+    val dummyPrice = double2Double(0d)
+    val prices = serviceStateData.uuidToActorRef.map { case (evcs, _) =>
+      evcs -> dummyPrice
+    }
+    serviceStateData.extEvData.queueExtResponseMsg(
+      new ProvideCurrentPrices(prices.asJava)
+    )
+
+    (
+      serviceStateData.copy(
+        extEvMessage = None
+      ),
+      None,
+    )
   }
 
   private def requestFreeLots(tick: Long)(implicit
@@ -220,16 +253,16 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
   private def requestDepartingEvs(
       tick: Long,
-      requestedDepartingEvs: java.util.Map[UUID, java.util.List[UUID]],
+      requestedDepartingEvs: Map[UUID, Seq[UUID]],
   )(implicit
       serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Long]) = {
 
     val departingEvResponses =
-      requestedDepartingEvs.asScala.flatMap { case (evcs, departingEvs) =>
+      requestedDepartingEvs.flatMap { case (evcs, departingEvs) =>
         serviceStateData.uuidToActorRef.get(evcs) match {
           case Some(evcsActor) =>
-            evcsActor ! DepartingEvsRequest(tick, departingEvs.asScala.toSeq)
+            evcsActor ! DepartingEvsRequest(tick, departingEvs)
 
             Some(evcs)
 
@@ -259,44 +292,46 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
   private def handleArrivingEvs(
       tick: Long,
-      allArrivingEvs: java.util.Map[UUID, java.util.List[EvModel]],
+      allArrivingEvs: Map[UUID, Seq[EvModel]],
+      maybeNextTick: Option[Long],
   )(implicit
-      serviceStateData: ExtEvStateData,
-      ctx: ActorContext,
+      serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Long]) = {
-    val actorToEvs = allArrivingEvs.asScala.flatMap {
-      case (evcs, arrivingEvs) =>
-        serviceStateData.uuidToActorRef
-          .get(evcs)
-          .map((_, arrivingEvs.asScala.map(EvModelWrapper.apply).toSeq))
-          .orElse {
-            log.warning(
-              "A corresponding actor ref for UUID {} could not be found",
-              evcs,
-            )
-            None
-          }
-    }
 
-    if (actorToEvs.nonEmpty) {
-      val keys =
-        ScheduleLock.multiKey(ctx, scheduler.toTyped, tick, actorToEvs.size)
+    if (tick == INIT_SIM_TICK) {
 
-      actorToEvs.zip(keys).foreach { case ((actor, arrivingEvs), key) =>
-        actor ! ProvideEvDataMessage(
-          tick,
+      maybeNextTick.getOrElse(
+        throw new CriticalFailureException(
+          s"After initialization, a first simulation tick needs to be provided by the external mobility simulation."
+        )
+      )
+
+      serviceStateData.uuidToActorRef.foreach { case (_, actor) =>
+        actor ! RegistrationSuccessfulMessage(
           self,
-          ArrivingEvsData(arrivingEvs),
-          unlockKey = Some(key),
+          maybeNextTick,
         )
       }
 
+    } else {
+      serviceStateData.uuidToActorRef.foreach { case (evcs, actor) =>
+        val evs =
+          allArrivingEvs.getOrElse(evcs, Seq.empty)
+
+        actor ! ProvideEvDataMessage(
+          tick,
+          self,
+          ArrivingEvs(evs.map(EvModelWrapper.apply)),
+          maybeNextTick,
+        )
+      }
     }
 
     (
       serviceStateData.copy(
         extEvMessage = None
       ),
+      // We still don't return the next tick because departures might come earlier
       None,
     )
   }
@@ -352,7 +387,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
               freeLotsCount > 0
             }
             .map { case (evcs, freeLotsCount) =>
-              evcs -> Integer.valueOf(freeLotsCount)
+              evcs -> int2Integer(freeLotsCount)
             }
 
           serviceStateData.extEvData.queueExtResponseMsg(

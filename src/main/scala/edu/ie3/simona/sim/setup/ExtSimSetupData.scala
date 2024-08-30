@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.sim.setup
 
-import edu.ie3.simona.ontology.messages.SchedulerMessage
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import edu.ie3.simona.api.data.ExtData
 import edu.ie3.simona.api.data.ev.ExtEvData
@@ -21,6 +20,8 @@ import edu.ie3.simona.service.results.ExtResultDataProvider
 import edu.ie3.simona.service.results.ExtResultDataProvider.Request
 
 final case class ExtSimSetupData(
+    extSimAdapters: Iterable[ClassicRef],
+    extDataServices: Map[Class[_], ClassicRef],
                                   extSimAdapters: Iterable[ClassicRef],
                                   extDataServices: Map[Class[_], ClassicRef],
                                   extDataListener: Map[Class[_], ActorRef[ExtResultDataProvider.Request]],
