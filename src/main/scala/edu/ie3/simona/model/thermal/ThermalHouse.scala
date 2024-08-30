@@ -185,9 +185,9 @@ final case class ThermalHouse(
             Duration.between(lastStateTime, actualStateTime).toSeconds
 
           if (timeDiffSeconds > 3600) {
-            val hoursDiff = (timeDiffSeconds / 3600).toInt + 1
-            val energyDemandWater = (0 until hoursDiff).foldLeft(zeroKWH) {
-              (acc, i) =>
+            val hoursDiff = (timeDiffSeconds / 3600).toInt
+            val energyDemandWaterPastHours =
+              (0 until hoursDiff).foldLeft(zeroKWH) { (acc, i) =>
                 val nextFullHourTick = Duration
                   .between(
                     simulationStart,
@@ -195,7 +195,13 @@ final case class ThermalHouse(
                   )
                   .toSeconds
                 acc + calculateThermalEnergyOfWaterDemand(nextFullHourTick)
-            }
+              }
+            // also get the demand of the actual hour if tick exactly hits the full hour
+            val energyDemandWater = if (tick % 3600 == 0)
+              energyDemandWaterPastHours + calculateThermalEnergyOfWaterDemand(
+                tick
+              )
+            else energyDemandWaterPastHours
             ThermalEnergyDemand(energyDemandWater, energyDemandWater)
           } else if (actualStateTime.getHour != lastStateTime.getHour) {
             val demand = calculateThermalEnergyOfWaterDemand(tick)
