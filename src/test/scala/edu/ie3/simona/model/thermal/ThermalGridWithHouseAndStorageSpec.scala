@@ -158,7 +158,7 @@ class ThermalGridWithHouseAndStorageSpec
             // for hot water would normally be taken from domestic
             // hot water storage, resulting in a lower storedEnergy here
             expectedDomesticHotWaterStorageStartingState.storedEnergy,
-            Kilowatts(-10.698213698630138)
+            Kilowatts(-10.698213698630138),
           )
         )
       }
@@ -196,7 +196,7 @@ class ThermalGridWithHouseAndStorageSpec
           ThermalStorageState(
             0,
             expectedDomesticHotWaterStorageStartingState.storedEnergy,
-            Kilowatts(-10.556649434187017)
+            Kilowatts(-10.556649434187017),
           )
         )
       }
@@ -243,7 +243,7 @@ class ThermalGridWithHouseAndStorageSpec
             // for hot water would normally be taken from domestic
             // hot water storage, resulting in a lower storedEnergy here
             expectedDomesticHotWaterStorageStartingState.storedEnergy,
-            Kilowatts(-10.698213698630138)
+            Kilowatts(-10.698213698630138),
           )
         )
       }
@@ -735,7 +735,9 @@ class ThermalGridWithHouseAndStorageSpec
                 .map(_.storedEnergy)
                 .getOrElse(fail("No initial storage state found"))
             )
-            qDotStorageDomesticHotWaterStorage should approximate(Kilowatts(-10.5566494341))
+            qDotStorageDomesticHotWaterStorage should approximate(
+              Kilowatts(-10.5566494341)
+            )
 
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
@@ -992,7 +994,9 @@ class ThermalGridWithHouseAndStorageSpec
                 .map(_.storedEnergy)
                 .getOrElse(fail("No initial storage state found"))
             )
-            qDotStorageDomesticHotWaterStorage should approximate(Kilowatts(-10.5566494341)            )
+            qDotStorageDomesticHotWaterStorage should approximate(
+              Kilowatts(-10.5566494341)
+            )
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         firstReachedThreshold shouldBe Some(SimpleThermalThreshold(23))

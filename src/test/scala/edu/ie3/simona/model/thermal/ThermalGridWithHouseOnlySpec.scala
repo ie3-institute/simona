@@ -222,7 +222,9 @@ class ThermalGridWithHouseOnlySpec
               domesticHotWaterStorage.maxEnergyThreshold
             )
             qDotHouse should approximate(externalQDot)
-            qDotDomesticHotWaterStorage should approximate(Kilowatts(-10.556649434187017))
+            qDotDomesticHotWaterStorage should approximate(
+              Kilowatts(-10.556649434187017)
+            )
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
@@ -301,7 +303,9 @@ class ThermalGridWithHouseOnlySpec
               domesticHotWaterStorage.maxEnergyThreshold
             )
             qDotHouse should approximate(Megawatts(0d))
-            qDotDomesticHotWaterStorage should approximate(          Kilowatts(-10.5566494)            )
+            qDotDomesticHotWaterStorage should approximate(
+              Kilowatts(-10.5566494)
+            )
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
@@ -594,7 +598,9 @@ class ThermalGridWithHouseOnlySpec
               expectedDomesticHotWaterStorageStartingState.storedEnergy
             )
             qDotHouse should approximate(Megawatts(0d))
-            qDotDomesticHotWaterStorage should approximate(Kilowatts(-10.5566494))
+            qDotDomesticHotWaterStorage should approximate(
+              Kilowatts(-10.5566494)
+            )
             thresholdTick shouldBe 23
           case _ => fail("Thermal grid state updated failed")
         }
