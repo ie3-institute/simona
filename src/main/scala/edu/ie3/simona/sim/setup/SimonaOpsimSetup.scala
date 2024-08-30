@@ -43,8 +43,7 @@ class SimonaOpsimSetup(
 
     override def extSimulations(
                                  context: ActorContext[_],
-                                 rootScheduler: ActorRef[SchedulerMessage],
-                                 simScheduler: ActorRef[SchedulerMessage],
+                                 scheduler: ActorRef[SchedulerMessage],
                                ): ExtSimSetupData = {
       // OpSim Simulation
       val opsimAddress = opsimIP.getOrElse(throw new RuntimeException("Cannot connect to Opsim, because there is no address!"))
@@ -54,8 +53,7 @@ class SimonaOpsimSetup(
 
       extSimulationSetup(
         context,
-        rootScheduler,
-        simScheduler,
+        scheduler,
         opsimSim
       )
     }

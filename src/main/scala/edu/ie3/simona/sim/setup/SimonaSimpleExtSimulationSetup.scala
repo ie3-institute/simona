@@ -68,15 +68,13 @@ class SimonaSimpleExtSimulationSetup(
 
   override def extSimulations(
                                context: ActorContext[_],
-                               rootScheduler: ActorRef[SchedulerMessage],
-                               simScheduler: ActorRef[SchedulerMessage],
+                               scheduler: ActorRef[SchedulerMessage],
                              ): ExtSimSetupData = {
     val simpleExtSim = new SimpleExtSimulationWithEm()
 
     extSimulationSetup(
       context,
-      rootScheduler,
-      simScheduler,
+      scheduler,
       simpleExtSim
     )
   }

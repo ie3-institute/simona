@@ -171,7 +171,8 @@ abstract class SimonaExtSimSetup(
           extSimSetupData.extPrimaryData
         ),
         simulationStart,
-      )
+      ),
+      "primaryServiceProxyAgent",
     )
 
     scheduler ! ScheduleActivation(primaryServiceProxy.toTyped, INIT_SIM_TICK)
@@ -189,7 +190,8 @@ abstract class SimonaExtSimSetup(
           .toZonedDateTime(simonaConfig.simona.time.startDateTime),
         TimeUtil.withDefaults
           .toZonedDateTime(simonaConfig.simona.time.endDateTime),
-      )
+      ),
+      "weatherAgent",
     )
     weatherService ! SimonaService.Create(
       InitWeatherServiceStateData(
@@ -320,20 +322,17 @@ abstract class SimonaExtSimSetup(
 
   def extSimulationSetup(
                           context: ActorContext[_],
-                          rootScheduler: ActorRef[SchedulerMessage],
-                          simScheduler: ActorRef[SchedulerMessage],
+                          scheduler: ActorRef[SchedulerMessage],
                           extSim: ExtSimulation
                         ): ExtSimSetupData = {
-    val extScheduler = scheduler(context, rootScheduler)
-
     // ExtSimAdapter
     val extSimAdapterPhase1 = context.toClassic.simonaActorOf(
-      ExtSimAdapter.props(extScheduler.toClassic),
+      ExtSimAdapter.props(scheduler.toClassic),
       s"1",
     )
 
     val extSimAdapterPhase2 = context.toClassic.simonaActorOf(
-      ExtSimAdapter.props(simScheduler.toClassic),
+      ExtSimAdapter.props(scheduler.toClassic),
       s"2",
     )
 
@@ -353,7 +352,7 @@ abstract class SimonaExtSimSetup(
       case extPrimaryData: ExtPrimaryData =>
         val extPrimaryDataService = extPrimaryDataSimulationSetup(
           context,
-          extScheduler,
+          scheduler,
           extSimAdapterData,
           extPrimaryData
         )
@@ -363,7 +362,7 @@ abstract class SimonaExtSimSetup(
       case extResultData: ExtResultData =>
         val extResultDataProvider = extResultDataSimulationSetup(
           context,
-          simScheduler,
+          scheduler,
           extSimAdapterData,
           extResultData,
           TimeUtil.withDefaults.toZonedDateTime(
@@ -379,7 +378,7 @@ abstract class SimonaExtSimSetup(
       case extEmData: ExtEmData =>
         val extEmDataService = extEmDataSimulationSetup(
           context,
-          extScheduler,
+          scheduler,
           extSimAdapterData,
           extEmData
         )
@@ -399,14 +398,13 @@ abstract class SimonaExtSimSetup(
       ),
       extDataServicesMap.toMap,
       extDataListenerMap.toMap,
-      dataConnections.asScala.toSet,
-      Some(extScheduler)
+      dataConnections.asScala.toSet
     )
   }
 
   private def extPrimaryDataSimulationSetup(
                                      context: ActorContext[_],
-                                     extScheduler: ActorRef[SchedulerMessage],
+                                     scheduler: ActorRef[SchedulerMessage],
                                      extSimAdapterData: ExtSimAdapterData,
                                      extPrimaryData: ExtPrimaryData
                                    ): ClassicRef = {
@@ -416,11 +414,11 @@ abstract class SimonaExtSimSetup(
     extSimAdapterPhase1 ! ExtSimAdapter.Create(
       extSimAdapterData,
       1,
-      ScheduleLock.singleKey(context, extScheduler, INIT_SIM_TICK),
+      ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
     )
 
     val extPrimaryDataService = context.toClassic.simonaActorOf(
-      ExtPrimaryDataService.props(extScheduler.toClassic),
+      ExtPrimaryDataService.props(scheduler.toClassic),
       s"0-0",
     )
 
@@ -433,7 +431,7 @@ abstract class SimonaExtSimSetup(
       InitExtPrimaryData(extPrimaryData),
       ScheduleLock.singleKey(
         context,
-        extScheduler,
+        scheduler,
         INIT_SIM_TICK,
       ),
     )
@@ -445,7 +443,7 @@ abstract class SimonaExtSimSetup(
 
   private def extEmDataSimulationSetup(
                                 context: ActorContext[_],
-                                extScheduler: ActorRef[SchedulerMessage],
+                                scheduler: ActorRef[SchedulerMessage],
                                 extSimAdapterData: ExtSimAdapterData,
                                 extEmData: ExtEmData
                               ): ClassicRef = {
@@ -455,11 +453,11 @@ abstract class SimonaExtSimSetup(
     extSimAdapterPhase1 ! ExtSimAdapter.Create(
       extSimAdapterData,
       1,
-      ScheduleLock.singleKey(context, extScheduler, INIT_SIM_TICK),
+      ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
     )
 
     val extEmDataService = context.toClassic.simonaActorOf(
-      ExtEmDataService.props(extScheduler.toClassic),
+      ExtEmDataService.props(scheduler.toClassic),
       s"0-0",
     )
 
@@ -472,7 +470,7 @@ abstract class SimonaExtSimSetup(
       InitExtEmData(extEmData),
       ScheduleLock.singleKey(
         context,
-        extScheduler,
+        scheduler,
         INIT_SIM_TICK,
       ),
     )
@@ -484,7 +482,7 @@ abstract class SimonaExtSimSetup(
 
   private def extResultDataSimulationSetup(
                                     context: ActorContext[_],
-                                    simScheduler: ActorRef[SchedulerMessage],
+                                    scheduler: ActorRef[SchedulerMessage],
                                     extSimAdapterData: ExtSimAdapterData,
                                     extResultData: ExtResultData,
                                     simulationStart: ZonedDateTime,
@@ -492,7 +490,7 @@ abstract class SimonaExtSimSetup(
                                   ): ActorRef[ExtResultDataProvider.Request] = {
     val extResultDataProvider = {
       context.spawn(
-        ExtResultDataProvider(simScheduler),
+        ExtResultDataProvider(scheduler),
         s"ExtResultDataProvider",
       )
     }
@@ -522,14 +520,14 @@ abstract class SimonaExtSimSetup(
       InitExtResultData(extResultData),
       ScheduleLock.singleKey(
         context,
-        simScheduler,
+        scheduler,
         INIT_SIM_TICK,
       ),
     )
     extSimAdapterPhase2 ! ExtSimAdapter.Create(
       extSimAdapterData,
       2,
-      ScheduleLock.singleKey(context, simScheduler, INIT_SIM_TICK),
+      ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
     )
     println("... pause extResultDataSimulationSetup ...")
     Thread.sleep(3000)

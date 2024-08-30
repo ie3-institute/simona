@@ -7,7 +7,6 @@
 package edu.ie3.simona.service
 
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
-import edu.ie3.simona.api.data.results.ontology.ResultDataMessageFromExt
 import edu.ie3.simona.ontology.messages.services.DataMessage
 import edu.ie3.simona.ontology.messages.services.EvMessage.EvResponseMessage
 import edu.ie3.simona.service.ServiceStateData.ServiceBaseStateData

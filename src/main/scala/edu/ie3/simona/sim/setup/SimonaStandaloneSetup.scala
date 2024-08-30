@@ -334,8 +334,7 @@ class SimonaStandaloneSetup(
 
   override def extSimulations(
                                context: ActorContext[_],
-                               rootScheduler: ActorRef[SchedulerMessage],
-                               simScheduler: ActorRef[SchedulerMessage],
+                               scheduler: ActorRef[SchedulerMessage],
                              ): ExtSimSetupData = {
     ???
   }

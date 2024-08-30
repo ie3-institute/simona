@@ -42,8 +42,7 @@ class SimonaMosaikSetup(
 ) {
   override def extSimulations(
                                context: ActorContext[_],
-                               rootScheduler: ActorRef[SchedulerMessage],
-                               simScheduler: ActorRef[SchedulerMessage]
+                               scheduler: ActorRef[SchedulerMessage]
                              ): ExtSimSetupData = {
     val mosaikAddress = mosaikIP.getOrElse("127.0.0.1:5678")
     val mosaikMapping = mosaikMappingPath.getOrElse(throw new RuntimeException("Cannot connect to Mosaik, because there is no mapping!"))
@@ -51,8 +50,7 @@ class SimonaMosaikSetup(
 
     extSimulationSetup(
       context,
-      rootScheduler,
-      simScheduler,
+      scheduler,
       mosaikExtSim
     )
   }
