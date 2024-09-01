@@ -56,8 +56,8 @@ class CongestionManagementSupportSpec
       val transformer3 = mockTransformerModel()
 
       val ref4 = TestProbe[GridAgent.Request]("ref4").ref
-      val transformer4_1 = mockTransformerModel()
-      val transformer4_2 = mockTransformerModel()
+      val transformer4a = mockTransformerModel()
+      val transformer4b = mockTransformerModel()
 
       // grid 1 is connected via a transformer2w and one port of a transformer3w
       // grid 2 is connected via one port of a transformer3w
@@ -72,8 +72,8 @@ class CongestionManagementSupportSpec
         ref2 -> Set(transformer3wC), // connected with a transformer3w
         ref3 -> Set(transformer3), // connected with just one transformer model
         ref4 -> Set(
-          transformer4_1,
-          transformer4_2,
+          transformer4a,
+          transformer4b,
         ), // connected with two transformer2w
       )
 
@@ -93,7 +93,7 @@ class CongestionManagementSupportSpec
       groups shouldBe Set(
         TappingGroup(Set(ref1, ref2), Set(transformer1, transformer3wA)),
         TappingGroup(Set(ref3), Set(transformer3)),
-        TappingGroup(Set(ref4), Set(transformer4_1, transformer4_2)),
+        TappingGroup(Set(ref4), Set(transformer4a, transformer4b)),
       )
     }
 

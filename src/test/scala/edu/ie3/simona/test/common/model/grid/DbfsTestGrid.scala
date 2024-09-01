@@ -127,7 +127,7 @@ trait DbfsTestGrid extends SubGridGateMokka with GridComponentsMokka {
    * MS1_01 @ 11 -> 1676e48c-5353-4f06-b671-c579cf6a7072 @ 11
    * MS3_01 @ 13 -> 9237e237-01e9-446f-899f-c3b5cf69d288 @ 13
    */
-  protected val node13_1: NodeInput = mockNode(
+  protected val node13a: NodeInput = mockNode(
     UUID.fromString("1129b00d-3d89-4a4a-8ae1-2a56041b95aa"),
     13,
     GermanVoltageLevelUtils.MV_10KV,
@@ -142,7 +142,7 @@ trait DbfsTestGrid extends SubGridGateMokka with GridComponentsMokka {
     11,
     GermanVoltageLevelUtils.MV_10KV,
   )
-  protected val node13_2: NodeInput = mockNode(
+  protected val node13b: NodeInput = mockNode(
     UUID.fromString("9237e237-01e9-446f-899f-c3b5cf69d288"),
     13,
     GermanVoltageLevelUtils.MV_10KV,
@@ -151,7 +151,7 @@ trait DbfsTestGrid extends SubGridGateMokka with GridComponentsMokka {
   // 5 lines between the nodes
   protected val lineType1 = new LineTypeInput(
     UUID.randomUUID(),
-    "Freileitung_110kV_1 ",
+    "Freileitung_110kV_1",
     Quantities.getQuantity(0.0, SIEMENS_PER_KILOMETRE),
     Quantities.getQuantity(0.0, SIEMENS_PER_KILOMETRE),
     Quantities.getQuantity(0.1094, OHM_PER_KILOMETRE),
@@ -347,25 +347,25 @@ trait DbfsTestGrid extends SubGridGateMokka with GridComponentsMokka {
     0,
     false,
   )
-  protected val transformer13_1 = new Transformer2WInput(
+  protected val transformer13a = new Transformer2WInput(
     UUID.randomUUID(),
     "HV-MV-Trafo_13_1",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
     node4,
-    node13_1,
+    node13a,
     1,
     trafoType10kV,
     0,
     false,
   )
-  protected val transformer13_2 = new Transformer2WInput(
+  protected val transformer13b = new Transformer2WInput(
     UUID.randomUUID(),
     "HV-MV-Trafo_13_2",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
     node4,
-    node13_2,
+    node13b,
     1,
     trafoType10kV,
     0,
@@ -378,8 +378,8 @@ trait DbfsTestGrid extends SubGridGateMokka with GridComponentsMokka {
   protected val mvTransformers: Map[UUID, TransformerModel] = Seq(
     transformer11,
     transformer12,
-    transformer13_1,
-    transformer13_2,
+    transformer13a,
+    transformer13b,
   ).map { model =>
     model.getUuid -> TransformerModel(
       model,
@@ -415,10 +415,10 @@ trait DbfsTestGrid extends SubGridGateMokka with GridComponentsMokka {
           SubGridGate.fromTransformer3W(transformer, ConnectorPort.C),
         )
       ) ++ Seq(
-        new SubGridGate(transformer13_1, node4, node13_1),
+        new SubGridGate(transformer13a, node4, node13a),
         new SubGridGate(transformer12, node2, node12),
         new SubGridGate(transformer11, node1, node11),
-        new SubGridGate(transformer13_2, node3, node13_2),
+        new SubGridGate(transformer13b, node3, node13b),
       )
 
     (

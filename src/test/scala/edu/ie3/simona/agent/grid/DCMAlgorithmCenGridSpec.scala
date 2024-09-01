@@ -241,8 +241,8 @@ class DCMAlgorithmCenGridSpec
         (
           VoltageRange(0.06.asPu, 0.asPu),
           Set(
-            mvTransformers(transformer13_1.getUuid),
-            mvTransformers(transformer13_2.getUuid),
+            mvTransformers(transformer13a.getUuid),
+            mvTransformers(transformer13b.getUuid),
           ),
         ),
       )
@@ -276,8 +276,8 @@ class DCMAlgorithmCenGridSpec
 
       // these transformers can't be tapped and should keep their default tap pos
       mvTransformers(transformer12.getUuid).currentTapPos shouldBe 0
-      mvTransformers(transformer13_1.getUuid).currentTapPos shouldBe 0
-      mvTransformers(transformer13_1.getUuid).currentTapPos shouldBe 0
+      mvTransformers(transformer13a.getUuid).currentTapPos shouldBe 0
+      mvTransformers(transformer13a.getUuid).currentTapPos shouldBe 0
 
       // skipping this simulation step
       skipSimulation(centerGridAgent)
