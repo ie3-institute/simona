@@ -362,19 +362,18 @@ class StorageAgentModelCalculationSpec
       // next potential activation at fully charged battery:
       // net power = 12.961kW * 0.92 = 11.92412kW
       // time to charge fully ~= 16.7727262054h = 60382 ticks (rounded)
-      emAgent.expectMsgPF() {
-        case FlexCtrlCompletion(
-              modelUuid,
-              result,
-              requestAtNextActivation,
-              requestAtTick,
-            ) =>
-          modelUuid shouldBe storageInputQv.getUuid
-          result.p should approximate(pMax)
-          result.q should approximate(Megavars(0))
-          requestAtNextActivation shouldBe true
-          requestAtTick shouldBe Some(60382)
+      emAgent.expectMsgPF() { case FlexResult(modelUuid, result) =>
+        modelUuid shouldBe storageInputQv.getUuid
+        result.p should approximate(pMax)
+        result.q should approximate(Megavars(0))
       }
+      emAgent.expectMsg(
+        FlexCtrlCompletion(
+          modelUuid = storageInputQv.getUuid,
+          requestAtNextActivation = true,
+          requestAtTick = Some(60382),
+        )
+      )
 
       resultListener.expectMsgPF() {
         case ParticipantResultEvent(result: StorageResult) =>
@@ -422,19 +421,17 @@ class StorageAgentModelCalculationSpec
       // net power = 9kW * 0.92 = 8.28kW
       // time to charge fully ~= 12.6337004831h = 45481 ticks (rounded) from now
       // current tick is 28800, thus: 28800 + 45481 = 74281
-      emAgent.expectMsgPF() {
-        case FlexCtrlCompletion(
-              modelUuid,
-              result,
-              requestAtNextActivation,
-              requestAtTick,
-            ) =>
-          modelUuid shouldBe storageInputQv.getUuid
-          result.p should approximate(Kilowatts(9))
-          result.q should approximate(Megavars(0))
-          requestAtNextActivation shouldBe false
-          requestAtTick shouldBe Some(74281)
+      emAgent.expectMsgPF() { case FlexResult(modelUuid, result) =>
+        modelUuid shouldBe storageInputQv.getUuid
+        result.p should approximate(Kilowatts(9))
+        result.q should approximate(Megavars(0))
       }
+      emAgent.expectMsg(
+        FlexCtrlCompletion(
+          modelUuid = storageInputQv.getUuid,
+          requestAtTick = Some(74281),
+        )
+      )
 
       resultListener.expectMsgPF() {
         case ParticipantResultEvent(result: StorageResult) =>
@@ -464,19 +461,17 @@ class StorageAgentModelCalculationSpec
       // net power = -12.961kW / 0.92 = -14.08804348kW
       // time to discharge until lowest energy (0 kWh) ~= 7.946664856h = 28608 ticks (rounded) from now
       // current tick is 36000, thus: 36000 + 28608 = 64608
-      emAgent.expectMsgPF() {
-        case FlexCtrlCompletion(
-              modelUuid,
-              result,
-              requestAtNextActivation,
-              requestAtTick,
-            ) =>
-          modelUuid shouldBe storageInputQv.getUuid
-          result.p should approximate(pMax * -1)
-          result.q should approximate(Megavars(0))
-          requestAtNextActivation shouldBe false
-          requestAtTick shouldBe Some(64608)
+      emAgent.expectMsgPF() { case FlexResult(modelUuid, result) =>
+        modelUuid shouldBe storageInputQv.getUuid
+        result.p should approximate(pMax * -1)
+        result.q should approximate(Megavars(0))
       }
+      emAgent.expectMsg(
+        FlexCtrlCompletion(
+          modelUuid = storageInputQv.getUuid,
+          requestAtTick = Some(64608),
+        )
+      )
 
       resultListener.expectMsgPF() {
         case ParticipantResultEvent(result: StorageResult) =>
@@ -500,19 +495,17 @@ class StorageAgentModelCalculationSpec
       // net power = 12 * 0.92 = 11.04 kW
       // time to charge until full ~= 10.52745715h = 37899 ticks (rounded) from now
       // current tick is 43200, thus: 43200 + 37899 = 81099
-      emAgent.expectMsgPF() {
-        case FlexCtrlCompletion(
-              modelUuid,
-              result,
-              requestAtNextActivation,
-              requestAtTick,
-            ) =>
-          modelUuid shouldBe storageInputQv.getUuid
-          result.p should approximate(Kilowatts(12))
-          result.q should approximate(Megavars(0))
-          requestAtNextActivation shouldBe false
-          requestAtTick shouldBe Some(81099)
+      emAgent.expectMsgPF() { case FlexResult(modelUuid, result) =>
+        modelUuid shouldBe storageInputQv.getUuid
+        result.p should approximate(Kilowatts(12))
+        result.q should approximate(Megavars(0))
       }
+      emAgent.expectMsg(
+        FlexCtrlCompletion(
+          modelUuid = storageInputQv.getUuid,
+          requestAtTick = Some(81099),
+        )
+      )
 
       resultListener.expectMsgPF() {
         case ParticipantResultEvent(result: StorageResult) =>
@@ -560,19 +553,18 @@ class StorageAgentModelCalculationSpec
       // net power = -12 / 0.92 = -13.04347826 kW
       // time to discharge until empty ~= 15.33333333h = 55200 ticks from now
       // current tick is 79688, thus: 81099 + 55200 = 136299
-      emAgent.expectMsgPF() {
-        case FlexCtrlCompletion(
-              modelUuid,
-              result,
-              requestAtNextActivation,
-              requestAtTick,
-            ) =>
-          modelUuid shouldBe storageInputQv.getUuid
-          result.p should approximate(Kilowatts(-12))
-          result.q should approximate(Megavars(0))
-          requestAtNextActivation shouldBe true
-          requestAtTick shouldBe Some(136299)
+      emAgent.expectMsgPF() { case FlexResult(modelUuid, result) =>
+        modelUuid shouldBe storageInputQv.getUuid
+        result.p should approximate(Kilowatts(-12))
+        result.q should approximate(Megavars(0))
       }
+      emAgent.expectMsg(
+        FlexCtrlCompletion(
+          modelUuid = storageInputQv.getUuid,
+          requestAtNextActivation = true,
+          requestAtTick = Some(136299),
+        )
+      )
 
       resultListener.expectMsgPF() {
         case ParticipantResultEvent(result: StorageResult) =>
@@ -615,19 +607,16 @@ class StorageAgentModelCalculationSpec
       emAgent.send(storageAgent, IssuePowerControl(136299, Kilowatts(0d)))
 
       // we're not charging or discharging, no new expected tick
-      emAgent.expectMsgPF() {
-        case FlexCtrlCompletion(
-              modelUuid,
-              result,
-              requestAtNextActivation,
-              requestAtTick,
-            ) =>
-          modelUuid shouldBe storageInputQv.getUuid
-          result.p should approximate(Kilowatts(0))
-          result.q should approximate(Megavars(0))
-          requestAtNextActivation shouldBe false
-          requestAtTick shouldBe None
+      emAgent.expectMsgPF() { case FlexResult(modelUuid, result) =>
+        modelUuid shouldBe storageInputQv.getUuid
+        result.p should approximate(Kilowatts(0))
+        result.q should approximate(Megavars(0))
       }
+      emAgent.expectMsg(
+        FlexCtrlCompletion(
+          modelUuid = storageInputQv.getUuid
+        )
+      )
 
       resultListener.expectMsgPF() {
         case ParticipantResultEvent(result: StorageResult) =>
