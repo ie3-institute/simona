@@ -19,7 +19,12 @@ import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.data.ExtData
 import edu.ie3.simona.api.data.ev.{ExtEvData, ExtEvSimulation}
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
-import edu.ie3.simona.config.{ArgsParser, RefSystemParser, SimonaConfig}
+import edu.ie3.simona.config.{
+  ArgsParser,
+  RefSystemParser,
+  SimonaConfig,
+  VoltageLimitsParser,
+}
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
@@ -91,6 +96,9 @@ class SimonaStandaloneSetup(
     val configRefSystems =
       RefSystemParser.parse(simonaConfig.simona.gridConfig.refSystems)
 
+    val configVoltageLimits =
+      VoltageLimitsParser.parse(simonaConfig.simona.gridConfig.voltageLimits)
+
     /* Create all agents and map the sub grid id to their actor references */
     val subGridToActorRefMap = buildSubGridToActorRefMap(
       subGridTopologyGraph,
@@ -136,6 +144,7 @@ class SimonaStandaloneSetup(
           subGridToActorRefMap,
           subGridGates,
           configRefSystems,
+          configVoltageLimits,
           thermalGrids,
         )
 

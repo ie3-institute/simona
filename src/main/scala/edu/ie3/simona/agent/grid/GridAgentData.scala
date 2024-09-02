@@ -8,15 +8,18 @@ package edu.ie3.simona.agent.grid
 
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
+import edu.ie3.datamodel.models.result.CongestionResult
 import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.agent.grid.CongestionManagementSupport.Congestions
 import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.agent.grid.ReceivedValuesStore.NodeToReceivedPower
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.model.grid.{GridModel, RefSystem}
+import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
+import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.Activation
 import org.apache.pekko.actor.typed.ActorRef
 
@@ -56,6 +59,68 @@ object GridAgentData {
     }
   }
 
+  /** Case class that holds all received data.
+    * @param inferiorGridMap
+    *   map: inferior grid to received data
+    * @tparam T
+    *   type of data
+    */
+  final case class AwaitingData[T] private (
+      inferiorGridMap: Map[ActorRef[GridAgent.Request], Option[T]]
+  ) {
+
+    /** Returns true if congestion data from inferior grids is expected and no
+      * data was received yet.
+      */
+    def notDone: Boolean =
+      inferiorGridMap.values.exists(_.isEmpty)
+
+    /** Returns the received values
+      */
+    def values: Iterable[T] = inferiorGridMap.values.flatten.toSeq
+
+    /** Return the mapping of all received values. This should only be called if
+      * [[notDone]] == false
+      */
+    def mappedValues: Map[ActorRef[GridAgent.Request], T] =
+      inferiorGridMap.flatMap { case (ref, option) =>
+        option.map(value => ref -> value)
+      }
+
+    /** Method for updating the data with received data.
+      * @param sender
+      *   actor ref of the sender
+      * @param data
+      *   send data
+      * @return
+      *   an updated object
+      */
+    def update(sender: ActorRef[GridAgent.Request], data: T): AwaitingData[T] =
+      handleReceivingData(Vector((sender, data)))
+
+    /** Method for updating the data with the received data.
+      *
+      * @param receivedData
+      *   data that was received
+      * @return
+      *   a updated copy of this data
+      */
+    def handleReceivingData(
+        receivedData: Vector[(ActorRef[GridAgent.Request], T)]
+    ): AwaitingData[T] = {
+      val mappedData = receivedData.map(res => res._1 -> Some(res._2)).toMap
+      copy(inferiorGridMap = inferiorGridMap ++ mappedData)
+    }
+  }
+
+  object AwaitingData {
+    def apply[T](
+        inferiorGridRefs: Set[ActorRef[GridAgent.Request]]
+    ): AwaitingData[T] = {
+      AwaitingData(inferiorGridRefs.map(ref => ref -> None).toMap)
+    }
+  }
+
   /** Data that is send to the [[GridAgent]] directly after startup. It contains
     * the main information for initialization. This data should include all
     * [[GridAgent]] individual data, for data that is the same for all
@@ -69,12 +134,17 @@ object GridAgentData {
     * @param subGridGateToActorRef
     *   information on inferior and superior grid connections [[SubGridGate]] s
     *   and [[ActorRef]] s of the corresponding [[GridAgent]]s
+    * @param refSystem
+    *   of the grid
+    * @param voltageLimits
+    *   of the grid
     */
   final case class GridAgentInitData(
       subGridContainer: SubGridContainer,
       thermalIslandGrids: Seq[ThermalGrid],
       subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
       refSystem: RefSystem,
+      voltageLimits: VoltageLimits,
   ) extends GridAgentData
       with GridAgentDataHelper {
     override protected val subgridGates: Vector[SubGridGate] =
@@ -125,8 +195,11 @@ object GridAgentData {
         superiorGridNodeUuids: Vector[UUID],
         inferiorGridGates: Vector[SubGridGate],
         powerFlowParams: PowerFlowParams,
+        congestionManagementParams: CongestionManagementParams,
         actorName: String,
     ): GridAgentBaseData = {
+      val gridEnv =
+        GridEnvironment(gridModel, subgridGateToActorRef, nodeToAssetAgents)
 
       val currentSweepNo = 0 // initialization is assumed to be always @ sweep 0
       val sweepValueStores: Map[Int, SweepValueStore] = Map
@@ -137,9 +210,30 @@ object GridAgentData {
       val inferiorGridGateToActorRef = subgridGateToActorRef.filter {
         case (gate, _) => inferiorGridGates.contains(gate)
       }
+
+      // extracting one inferior ref for all inferior grids
+      val inferiorGridRefs = inferiorGridGates
+        .map { inferiorGridGate =>
+          gridEnv.subgridGateToActorRef(
+            inferiorGridGate
+          ) -> inferiorGridGate.superiorNode.getUuid
+        }
+        .groupMap {
+          // Group the gates by target actor, so that only one request is sent per grid agent
+          case (inferiorGridAgentRef, _) =>
+            inferiorGridAgentRef
+        } { case (_, inferiorGridGates) =>
+          inferiorGridGates
+        }
+        .map { case (inferiorGridAgentRef, _) =>
+          inferiorGridAgentRef
+        }
+        .toSet
+
       GridAgentBaseData(
-        GridEnvironment(gridModel, subgridGateToActorRef, nodeToAssetAgents),
+        gridEnv,
         powerFlowParams,
+        congestionManagementParams,
         currentSweepNo,
         ReceivedValuesStore.empty(
           nodeToAssetAgents,
@@ -147,6 +241,7 @@ object GridAgentData {
           superiorGridNodeUuids,
         ),
         sweepValueStores,
+        inferiorGridRefs,
         actorName,
       )
     }
@@ -182,10 +277,10 @@ object GridAgentData {
         ),
         currentSweepNo = 0,
         sweepValueStores = Map.empty[Int, SweepValueStore],
+        congestionManagementParams =
+          gridAgentBaseData.congestionManagementParams.clean,
       )
-
     }
-
   }
 
   /** The base aka default data of a [[GridAgent]]. Contains information on the
@@ -204,13 +299,17 @@ object GridAgentData {
     *   a value store for received values
     * @param sweepValueStores
     *   a value store for sweep results
+    * @param inferiorGridRefs
+    *   a set of actor refs to all inferior grids
     */
   final case class GridAgentBaseData private (
       gridEnv: GridEnvironment,
       powerFlowParams: PowerFlowParams,
+      congestionManagementParams: CongestionManagementParams,
       currentSweepNo: Int,
       receivedValueStore: ReceivedValuesStore,
       sweepValueStores: Map[Int, SweepValueStore],
+      inferiorGridRefs: Set[ActorRef[GridAgent.Request]],
       actorName: String,
   ) extends GridAgentData
       with GridAgentDataHelper {
@@ -464,4 +563,140 @@ object GridAgentData {
     }
   }
 
+  /** State data of a grid agent during the congestion management.
+    * @param gridAgentBaseData
+    *   agent base data
+    * @param currentTick
+    *   current tick used for additional power flow calculations
+    * @param powerFlowResults
+    *   result of the previous power flow calculation
+    * @param congestions
+    *   the found congestions
+    */
+  final case class CongestionManagementData private (
+      gridAgentBaseData: GridAgentBaseData,
+      currentTick: Long,
+      powerFlowResults: PowerFlowResultEvent,
+      congestions: Congestions,
+  ) extends GridAgentData {
+
+    /** Builds a [[CongestionResult]] from the power flow results.
+      * @param startTime
+      *   of the simulation
+      * @return
+      *   a new [[CongestionResult]]
+      */
+    def getCongestionResult(startTime: ZonedDateTime): CongestionResult = {
+      val gridModel = gridAgentBaseData.gridEnv.gridModel
+
+      val node = powerFlowResults.nodeResults.map(n =>
+        n.getvMag().getValue.doubleValue()
+      )
+      val line = powerFlowResults.lineResults.map(l =>
+        Math.max(
+          l.getiAMag().getValue.doubleValue(),
+          l.getiBMag().getValue.doubleValue(),
+        )
+      )
+
+      new CongestionResult(
+        startTime.plusSeconds(currentTick),
+        gridModel.subnetNo,
+        gridModel.voltageLimits.vMin,
+        gridModel.voltageLimits.vMax,
+        congestions.voltageCongestions,
+        congestions.lineCongestions,
+        congestions.transformerCongestions,
+      )
+    }
+
+    /** Returns the [[ActorRef]]s to all inferior grids
+      */
+    def inferiorGridRefs: Set[ActorRef[GridAgent.Request]] =
+      gridAgentBaseData.inferiorGridRefs
+
+    /** Returns cleaned [[GridAgentBaseData]] with updated
+      * [[CongestionManagementParams]].
+      */
+    def cleanAfterTransformerTapping: GridAgentBaseData = {
+      val params = gridAgentBaseData.congestionManagementParams
+      val updatedParams = params.copy(hasRunTransformerTapping = true)
+
+      gridAgentBaseData.copy(congestionManagementParams = updatedParams)
+    }
+
+    /** Returns cleaned [[GridAgentBaseData]] with updated
+      * [[CongestionManagementParams]].
+      */
+    def cleanAfterTopologyChange: GridAgentBaseData = {
+      val params = gridAgentBaseData.congestionManagementParams
+
+      // updating the params to the next iteration
+      val updatedParams = params.copy(
+        hasRunTransformerTapping = false,
+        iteration = params.iteration + 1,
+      )
+
+      gridAgentBaseData.copy(congestionManagementParams = updatedParams)
+    }
+
+    /** Returns cleaned [[GridAgentBaseData]] with updated
+      * [[CongestionManagementParams]].
+      */
+    def cleanAfterFlexOptions: GridAgentBaseData = {
+      val params = gridAgentBaseData.congestionManagementParams
+      val updatedData = params.copy(
+        hasUsedFlexOptions = true
+      )
+
+      gridAgentBaseData.copy(congestionManagementParams = updatedData)
+    }
+  }
+
+  object CongestionManagementData {
+    def apply(
+        gridAgentBaseData: GridAgentBaseData,
+        currentTick: Long,
+        powerFlowResults: PowerFlowResultEvent,
+    ): CongestionManagementData = {
+      val gridModel = gridAgentBaseData.gridEnv.gridModel
+
+      CongestionManagementData(
+        gridAgentBaseData,
+        currentTick,
+        powerFlowResults,
+        Congestions(
+          powerFlowResults,
+          gridModel.gridComponents,
+          gridModel.voltageLimits,
+          gridModel.mainRefSystem.nominalVoltage,
+          gridModel.subnetNo,
+        ),
+      )
+    }
+
+    /** Creates [[CongestionManagementData]] without power flow results. With
+      * this data the congestion management is skipped.
+      * @param gridAgentBaseData
+      *   agent base data
+      * @param currentTick
+      *   of the simulation
+      * @return
+      *   a new [[CongestionManagementData]]
+      */
+    def empty(
+        gridAgentBaseData: GridAgentBaseData,
+        currentTick: Long,
+    ): CongestionManagementData = apply(
+      gridAgentBaseData,
+      currentTick,
+      PowerFlowResultEvent(
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+      ),
+    )
+  }
 }

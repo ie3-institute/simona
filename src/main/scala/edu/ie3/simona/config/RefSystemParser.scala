@@ -14,7 +14,7 @@ import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.util.CollectionUtils
 import edu.ie3.util.quantities.PowerSystemUnits
-import squants.electro.{Kilovolts, Volts}
+import squants.electro.Kilovolts
 import squants.energy.{Kilowatts, Megawatts}
 
 /** Parser to parse [[RefSystem]] provided via [[SimonaConfig]]

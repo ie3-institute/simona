@@ -6,11 +6,16 @@
 
 package edu.ie3.simona.agent.grid
 
+import edu.ie3.simona.agent.grid.CongestionManagementSupport.{
+  Congestions,
+  VoltageRange,
+}
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
 import edu.ie3.simona.agent.grid.GridAgentMessages._
+import edu.ie3.simona.model.grid.TransformerTapping
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
 import org.apache.pekko.actor.testkit.typed.scaladsl.TestProbe
@@ -18,8 +23,10 @@ import org.apache.pekko.actor.typed.ActorRef
 import squants.Power
 import squants.electro.Volts
 import squants.energy.Megawatts
+import tech.units.indriya.ComparableQuantity
 
 import java.util.UUID
+import javax.measure.quantity.Dimensionless
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.language.postfixOps
 
@@ -93,6 +100,16 @@ trait DBFSMockGridAgents extends UnitSpec {
         sweepNo: Int,
     ): Unit =
       receiver ! SlackVoltageRequest(sweepNo, nodeUuids, gaProbe.ref)
+
+    def expectCongestionCheckRequest(
+        maxDuration: FiniteDuration = 30 seconds
+    ): ActorRef[GridAgent.Request] = {
+      gaProbe.expectMessageType[CongestionCheckRequest](maxDuration).sender
+    }
+
+    def expectVoltageRangeRequest(): ActorRef[GridAgent.Request] = {
+      gaProbe.expectMessageType[RequestVoltageOptions].sender
+    }
   }
 
   final case class SuperiorGA(
@@ -150,6 +167,34 @@ trait DBFSMockGridAgents extends UnitSpec {
         sweepNo: Int,
     ): Unit = {
       receiver ! RequestGridPower(sweepNo, nodeUuids, gaProbe.ref)
+    }
+
+    def expectCongestionResponse(
+        congestions: Congestions,
+        maxDuration: FiniteDuration = 30 seconds,
+    ): ActorRef[GridAgent.Request] = {
+      gaProbe.expectMessageType[CongestionResponse](maxDuration) match {
+        case CongestionResponse(sender, value) =>
+          value.voltageCongestions shouldBe congestions.voltageCongestions
+          value.lineCongestions shouldBe congestions.lineCongestions
+          value.transformerCongestions shouldBe congestions.transformerCongestions
+
+          sender
+      }
+    }
+
+    def expectVoltageRangeResponse(
+        voltageRange: VoltageRange,
+        maxDuration: FiniteDuration = 30 seconds,
+    ): (ActorRef[GridAgent.Request], Set[TransformerTapping]) = {
+      gaProbe.expectMessageType[VoltageRangeResponse](maxDuration) match {
+        case VoltageRangeResponse(sender, (range, tappings)) =>
+          range.deltaPlus shouldBe voltageRange.deltaPlus
+          range.deltaMinus shouldBe voltageRange.deltaMinus
+          range.suggestion should equalWithTolerance(voltageRange.suggestion)
+
+          (sender, tappings)
+      }
     }
   }
 }

@@ -15,7 +15,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
 }
 import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
-import edu.ie3.simona.model.grid.RefSystem
+import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -100,6 +100,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
           Seq.empty[ThermalGrid],
           subGridGateToActorRef,
           RefSystem("2000 MVA", "110 kV"),
+          VoltageLimits(0.9, 1.1),
         )
 
       val key =
@@ -312,6 +313,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
           Seq.empty[ThermalGrid],
           subnetGatesToActorRef,
           RefSystem("5000 MVA", "380 kV"),
+          VoltageLimits(0.9, 1.1),
         )
 
       val key =

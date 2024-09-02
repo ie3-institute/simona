@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.event
 
-import edu.ie3.datamodel.models.result.NodeResult
+import edu.ie3.datamodel.models.result.{CongestionResult, NodeResult}
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
   SwitchResult,
@@ -59,6 +59,8 @@ object ResultEvent {
     *   the power flow results for two winding transformers
     * @param transformer3wResults
     *   the <b>partial</b> power flow results for three winding transformers
+    * @param congestionResults
+    *   the congestion found by the congestion managements (default: empty)
     */
   final case class PowerFlowResultEvent(
       nodeResults: Iterable[NodeResult],
@@ -66,6 +68,7 @@ object ResultEvent {
       lineResults: Iterable[LineResult],
       transformer2wResults: Iterable[Transformer2WResult],
       transformer3wResults: Iterable[PartialTransformer3wResult],
+      congestionResults: Iterable[CongestionResult] = Iterable.empty,
   ) extends ResultEvent
 
   /** Event that holds the flexibility options result of a

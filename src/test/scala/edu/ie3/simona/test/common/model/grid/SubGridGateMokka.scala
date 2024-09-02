@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.test.common.model.grid
 
-import java.util.UUID
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.connector.{
@@ -14,8 +13,11 @@ import edu.ie3.datamodel.models.input.connector.{
   Transformer2WInput,
   Transformer3WInput,
 }
+import edu.ie3.datamodel.models.voltagelevels.VoltageLevel
 import org.mockito.Mockito._
 import org.scalatestplus.mockito.MockitoSugar
+
+import java.util.UUID
 
 /** Hold my cup of coffee and let me mock you some models.
   */
@@ -37,6 +39,29 @@ trait SubGridGateMokka extends MockitoSugar {
     node
   }
 
+  /** Mocks a node with it's basic needed information
+    *
+    * @param uuid
+    *   Unique identifier of the node
+    * @param subnet
+    *   Sub net number
+    * @param voltLvl
+    *   [[VoltageLevel]] of the node
+    * @return
+    *   [[NodeInput]] with these information
+    */
+  protected def mockNode(
+      uuid: UUID,
+      subnet: Int,
+      voltLvl: VoltageLevel,
+  ): NodeInput = {
+    val node = mock[NodeInput]
+    when(node.getUuid).thenReturn(uuid)
+    when(node.getSubnet).thenReturn(subnet)
+    when(node.getVoltLvl).thenReturn(voltLvl)
+    node
+  }
+
   /** Mocks a transformer, that only holds information on what nodes are
     * connected
     *
@@ -54,6 +79,18 @@ trait SubGridGateMokka extends MockitoSugar {
     val transformer = mock[Transformer2WInput]
     when(transformer.getNodeA).thenReturn(nodeA)
     when(transformer.getNodeB).thenReturn(nodeB)
+    transformer
+  }
+
+  protected def mockTransformer2w(
+      uuid: UUID,
+      nodeA: NodeInput,
+      nodeB: NodeInput,
+  ): Transformer2WInput = {
+    val transformer = mock[Transformer2WInput]
+    when(transformer.getNodeA).thenReturn(nodeA)
+    when(transformer.getNodeB).thenReturn(nodeB)
+    when(transformer.getUuid).thenReturn(uuid)
     transformer
   }
 
@@ -86,6 +123,26 @@ trait SubGridGateMokka extends MockitoSugar {
     when(transformer.getNodeB).thenReturn(nodeB)
     when(transformer.getNodeC).thenReturn(nodeC)
     when(transformer.getNodeInternal).thenReturn(internalNode)
+    transformer
+  }
+
+  protected def mockTransformer3w(
+      uuid: UUID,
+      nodeA: NodeInput,
+      nodeASubnet: Int,
+      nodeB: NodeInput,
+      nodeC: NodeInput,
+  ): Transformer3WInput = {
+    val internalNode = mock[NodeInput]
+    when(internalNode.getUuid).thenReturn(UUID.randomUUID())
+    when(internalNode.getSubnet).thenReturn(nodeASubnet)
+
+    val transformer = mock[Transformer3WInput]
+    when(transformer.getNodeA).thenReturn(nodeA)
+    when(transformer.getNodeB).thenReturn(nodeB)
+    when(transformer.getNodeC).thenReturn(nodeC)
+    when(transformer.getNodeInternal).thenReturn(internalNode)
+    when(transformer.getUuid).thenReturn(uuid)
     transformer
   }
 

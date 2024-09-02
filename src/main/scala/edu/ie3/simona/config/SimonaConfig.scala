@@ -278,6 +278,7 @@ object SimonaConfig {
   }
 
   final case class GridOutputConfig(
+      congestions: scala.Boolean,
       lines: scala.Boolean,
       nodes: scala.Boolean,
       notifier: java.lang.String,
@@ -292,6 +293,8 @@ object SimonaConfig {
         $tsCfgValidator: $TsCfgValidator,
     ): SimonaConfig.GridOutputConfig = {
       SimonaConfig.GridOutputConfig(
+        congestions =
+          c.hasPathOrNull("congestions") && c.getBoolean("congestions"),
         lines = c.hasPathOrNull("lines") && c.getBoolean("lines"),
         nodes = c.hasPathOrNull("nodes") && c.getBoolean("nodes"),
         notifier = $_reqStr(parentPath, c, "notifier", $tsCfgValidator),
@@ -1010,6 +1013,73 @@ object SimonaConfig {
 
   }
 
+  final case class VoltageLimitsConfig(
+      gridIds: scala.Option[scala.List[java.lang.String]],
+      vMax: scala.Double,
+      vMin: scala.Double,
+      voltLvls: scala.Option[scala.List[SimonaConfig.VoltLvlConfig]],
+  )
+  object VoltageLimitsConfig {
+    def apply(
+        c: com.typesafe.config.Config,
+        parentPath: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator,
+    ): SimonaConfig.VoltageLimitsConfig = {
+      SimonaConfig.VoltageLimitsConfig(
+        gridIds =
+          if (c.hasPathOrNull("gridIds"))
+            scala.Some(
+              $_L$_str(c.getList("gridIds"), parentPath, $tsCfgValidator)
+            )
+          else None,
+        vMax = $_reqDbl(parentPath, c, "vMax", $tsCfgValidator),
+        vMin = $_reqDbl(parentPath, c, "vMin", $tsCfgValidator),
+        voltLvls =
+          if (c.hasPathOrNull("voltLvls"))
+            scala.Some(
+              $_LSimonaConfig_VoltLvlConfig(
+                c.getList("voltLvls"),
+                parentPath,
+                $tsCfgValidator,
+              )
+            )
+          else None,
+      )
+    }
+    private def $_LSimonaConfig_VoltLvlConfig(
+        cl: com.typesafe.config.ConfigList,
+        parentPath: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator,
+    ): scala.List[SimonaConfig.VoltLvlConfig] = {
+      import scala.jdk.CollectionConverters._
+      cl.asScala
+        .map(cv =>
+          SimonaConfig.VoltLvlConfig(
+            cv.asInstanceOf[com.typesafe.config.ConfigObject].toConfig,
+            parentPath,
+            $tsCfgValidator,
+          )
+        )
+        .toList
+    }
+    private def $_reqDbl(
+        parentPath: java.lang.String,
+        c: com.typesafe.config.Config,
+        path: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator,
+    ): scala.Double = {
+      if (c == null) 0
+      else
+        try c.getDouble(path)
+        catch {
+          case e: com.typesafe.config.ConfigException =>
+            $tsCfgValidator.addBadPath(parentPath + path, e)
+            0
+        }
+    }
+
+  }
+
   final case class WecRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: scala.Boolean,
       override val scaling: scala.Double,
@@ -1071,6 +1141,7 @@ object SimonaConfig {
   }
 
   final case class Simona(
+      congestionManagement: SimonaConfig.Simona.CongestionManagement,
       control: scala.Option[SimonaConfig.Simona.Control],
       event: SimonaConfig.Simona.Event,
       gridConfig: SimonaConfig.Simona.GridConfig,
@@ -1082,6 +1153,43 @@ object SimonaConfig {
       time: SimonaConfig.Simona.Time,
   )
   object Simona {
+    final case class CongestionManagement(
+        enable: scala.Boolean,
+        enableTopologyChanges: scala.Boolean,
+        enableTransformerTapping: scala.Boolean,
+        enableUsingFlexOptions: scala.Boolean,
+        maxOptimizationIterations: scala.Int,
+        timeout: java.time.Duration,
+    )
+    object CongestionManagement {
+      def apply(
+          c: com.typesafe.config.Config,
+          parentPath: java.lang.String,
+          $tsCfgValidator: $TsCfgValidator,
+      ): SimonaConfig.Simona.CongestionManagement = {
+        SimonaConfig.Simona.CongestionManagement(
+          enable = c.hasPathOrNull("enable") && c.getBoolean("enable"),
+          enableTopologyChanges =
+            c.hasPathOrNull("enableTopologyChanges") && c.getBoolean(
+              "enableTopologyChanges"
+            ),
+          enableTransformerTapping = c.hasPathOrNull(
+            "enableTransformerTapping"
+          ) && c.getBoolean("enableTransformerTapping"),
+          enableUsingFlexOptions = c.hasPathOrNull(
+            "enableUsingFlexOptions"
+          ) && c.getBoolean("enableUsingFlexOptions"),
+          maxOptimizationIterations =
+            if (c.hasPathOrNull("maxOptimizationIterations"))
+              c.getInt("maxOptimizationIterations")
+            else 1,
+          timeout =
+            if (c.hasPathOrNull("timeout")) c.getDuration("timeout")
+            else java.time.Duration.parse("PT30S"),
+        )
+      }
+    }
+
     final case class Control(
         transformer: scala.List[SimonaConfig.TransformerControlGroup]
     )
@@ -1203,7 +1311,10 @@ object SimonaConfig {
     }
 
     final case class GridConfig(
-        refSystems: scala.Option[scala.List[SimonaConfig.RefSystemConfig]]
+        refSystems: scala.Option[scala.List[SimonaConfig.RefSystemConfig]],
+        voltageLimits: scala.Option[
+          scala.List[SimonaConfig.VoltageLimitsConfig]
+        ],
     )
     object GridConfig {
       def apply(
@@ -1221,7 +1332,17 @@ object SimonaConfig {
                   $tsCfgValidator,
                 )
               )
-            else None
+            else None,
+          voltageLimits =
+            if (c.hasPathOrNull("voltageLimits"))
+              scala.Some(
+                $_LSimonaConfig_VoltageLimitsConfig(
+                  c.getList("voltageLimits"),
+                  parentPath,
+                  $tsCfgValidator,
+                )
+              )
+            else None,
         )
       }
       private def $_LSimonaConfig_RefSystemConfig(
@@ -1233,6 +1354,22 @@ object SimonaConfig {
         cl.asScala
           .map(cv =>
             SimonaConfig.RefSystemConfig(
+              cv.asInstanceOf[com.typesafe.config.ConfigObject].toConfig,
+              parentPath,
+              $tsCfgValidator,
+            )
+          )
+          .toList
+      }
+      private def $_LSimonaConfig_VoltageLimitsConfig(
+          cl: com.typesafe.config.ConfigList,
+          parentPath: java.lang.String,
+          $tsCfgValidator: $TsCfgValidator,
+      ): scala.List[SimonaConfig.VoltageLimitsConfig] = {
+        import scala.jdk.CollectionConverters._
+        cl.asScala
+          .map(cv =>
+            SimonaConfig.VoltageLimitsConfig(
               cv.asInstanceOf[com.typesafe.config.ConfigObject].toConfig,
               parentPath,
               $tsCfgValidator,
@@ -2905,6 +3042,15 @@ object SimonaConfig {
         $tsCfgValidator: $TsCfgValidator,
     ): SimonaConfig.Simona = {
       SimonaConfig.Simona(
+        congestionManagement = SimonaConfig.Simona.CongestionManagement(
+          if (c.hasPathOrNull("congestionManagement"))
+            c.getConfig("congestionManagement")
+          else
+            com.typesafe.config.ConfigFactory
+              .parseString("congestionManagement{}"),
+          parentPath + "congestionManagement.",
+          $tsCfgValidator,
+        ),
         control =
           if (c.hasPathOrNull("control"))
             scala.Some(

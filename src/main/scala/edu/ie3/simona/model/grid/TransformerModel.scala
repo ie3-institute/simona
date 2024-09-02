@@ -17,9 +17,9 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
-import squants.Each
+import squants.{Each, Power}
 import squants.electro.{Kilovolts, Ohms, Siemens}
-import squants.energy.Watts
+import squants.energy.{Kilowatts, Watts}
 import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
@@ -50,6 +50,8 @@ import scala.math.BigDecimal.RoundingMode
   *   nominal current on the high voltage side of the transformer
   * @param iNomLv
   *   nominal current on the low voltage side of the transformer
+  * @param sRated
+  *   the rated power of the transformer
   * @param r
   *   resistance r, real part of the transformer impedance z (referenced to the
   *   nominal impedance of the grid) in p.u.
@@ -74,6 +76,7 @@ final case class TransformerModel(
     voltRatioNominal: BigDecimal,
     iNomHv: squants.electro.ElectricCurrent,
     iNomLv: squants.electro.ElectricCurrent,
+    sRated: Power,
     protected val r: squants.Dimensionless,
     protected val x: squants.Dimensionless,
     protected val g: squants.Dimensionless,
@@ -237,6 +240,9 @@ case object TransformerModel {
       voltRatioNominal,
       iNomHv,
       iNomLv,
+      Kilowatts(
+        trafoType.getsRated().to(KILOVOLTAMPERE).getValue.doubleValue()
+      ),
       r,
       x,
       g,

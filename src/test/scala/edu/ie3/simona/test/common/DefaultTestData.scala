@@ -10,7 +10,7 @@ import com.typesafe.config.{Config, ConfigFactory}
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.grid.RefSystem
+import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.util.scala.OperationInterval
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
@@ -62,6 +62,8 @@ trait DefaultTestData {
     Kilowatts(400d),
     Kilovolts(10d),
   )
+
+  protected val defaultVoltageLimits: VoltageLimits = VoltageLimits(0.9, 1.1)
 
   /** Creates a [[SimonaConfig]], that provides the desired participant model
     * configurations
@@ -234,6 +236,11 @@ trait DefaultTestData {
          |simona.powerflow.resolution = "3600s"
          |
          |simona.gridConfig.refSystems = []
+         |simona.gridConfig.voltageLimits = []
+         |
+         |simona.congestionManagement.enableTransformerTapping = false
+         |simona.congestionManagement.enableTopologyChanges = false
+         |simona.congestionManagement.useFlexOptions = false
          |""".stripMargin
     )
     SimonaConfig(typesafeConfig)
