@@ -70,8 +70,9 @@ object FlexibilityMessage {
       scheduleKey: Option[ScheduleKey] = None,
   ) extends FlexResponse
 
-  /** Message that requests flex options from a flex options provider for given
-    * tick
+  /** Message that activates a connected agent, usually in order to requests
+    * flex options for given tick. During initialization, no flex option
+    * provision is expected.
     *
     * @param tick
     *   The tick to request flex options for
