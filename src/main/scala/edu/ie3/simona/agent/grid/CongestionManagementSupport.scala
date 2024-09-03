@@ -9,6 +9,7 @@ package edu.ie3.simona.agent.grid
 import breeze.numerics.sqrt
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.datamodel.models.result.connector.LineResult
+import edu.ie3.simona.agent.grid.CongestionManagementSupport.VoltageRange.getTappingOptions
 import edu.ie3.simona.agent.grid.CongestionManagementSupport.{
   TappingGroup,
   VoltageRange,
@@ -416,6 +417,7 @@ object CongestionManagementSupport {
   ) {
 
     /** Method to update this voltage range with line voltage delta.
+      *
       * @param deltaV
       *   to consider
       * @return
@@ -442,6 +444,7 @@ object CongestionManagementSupport {
     }
 
     /** Method to update this voltage range with inferior voltage ranges
+      *
       * @param inferiorData
       *   map: inferior grid to [[VoltageRange]] and [[TransformerTappingModel]]
       * @return
@@ -453,64 +456,32 @@ object CongestionManagementSupport {
         ], (VoltageRange, Set[TransformerTapping])]
     ): VoltageRange = {
       inferiorData.foldLeft(this) { case (range, (_, (infRange, tappings))) =>
-        // allow tapping only if all transformers support tapping
-        val (plus, minus) = if (tappings.forall(_.hasAutoTap)) {
+        // get tapping options
+        val (possiblePlus, possibleMinus) = getTappingOptions(tappings)
 
-          val tappingRanges = tappings.map { tapping =>
-            val currentPos = tapping.currentTapPos
-            val deltaV = tapping.deltaV.divide(-100)
-            val increase = deltaV.multiply(tapping.tapMin - currentPos)
-            val decrease = deltaV.multiply(tapping.tapMax - currentPos)
+        val increase = range.deltaPlus
+          .add(possibleMinus)
+          .isLessThanOrEqualTo(infRange.deltaPlus)
+        val decrease = range.deltaMinus
+          .add(possiblePlus)
+          .isGreaterThanOrEqualTo(infRange.deltaMinus)
 
-            (increase, decrease)
-          }.toSeq
-
-          val (possiblePlus, possibleMinus) = if (tappings.size == 1) {
-            tappingRanges(0)
-          } else {
-            // check for possible increase and decrease that can be applied to all transformers
-            (
-              tappingRanges.map(_._1).minOption.getOrElse(0.asPu),
-              tappingRanges.map(_._2).maxOption.getOrElse(0.asPu),
+        (increase, decrease) match {
+          case (true, true) =>
+            VoltageRange(range.deltaPlus, range.deltaMinus)
+          case (true, false) =>
+            VoltageRange(
+              range.deltaPlus,
+              infRange.deltaMinus.subtract(possiblePlus),
             )
-          }
-
-          val increase = range.deltaPlus
-            .add(possibleMinus)
-            .isLessThanOrEqualTo(infRange.deltaPlus)
-          val decrease = range.deltaMinus
-            .add(possiblePlus)
-            .isGreaterThanOrEqualTo(infRange.deltaMinus)
-
-          (increase, decrease) match {
-            case (true, true) =>
-              (range.deltaPlus, range.deltaMinus)
-            case (true, false) =>
-              (range.deltaPlus, infRange.deltaMinus.subtract(possiblePlus))
-            case (false, true) =>
-              (infRange.deltaPlus.subtract(possibleMinus), range.deltaMinus)
-            case (false, false) =>
-              (infRange.deltaPlus, infRange.deltaMinus)
-          }
-        } else {
-          // no tapping possible, just update the range
-
-          (
-            range.deltaPlus.isGreaterThanOrEqualTo(infRange.deltaPlus),
-            range.deltaMinus.isLessThanOrEqualTo(infRange.deltaMinus),
-          ) match {
-            case (true, true) =>
-              (infRange.deltaPlus, infRange.deltaMinus)
-            case (true, false) =>
-              (infRange.deltaPlus, range.deltaMinus)
-            case (false, true) =>
-              (range.deltaPlus, infRange.deltaMinus)
-            case (false, false) =>
-              (range.deltaPlus, range.deltaMinus)
-          }
+          case (false, true) =>
+            VoltageRange(
+              infRange.deltaPlus.subtract(possibleMinus),
+              range.deltaMinus,
+            )
+          case (false, false) =>
+            VoltageRange(infRange.deltaPlus, infRange.deltaMinus)
         }
-
-        VoltageRange(plus, minus)
       }
     }
   }
@@ -565,6 +536,44 @@ object CongestionManagementSupport {
           deltaMinus,
           0.asPu,
         )
+      }
+    }
+
+    /** Method to get the tapping options.
+      *
+      * @param tappings
+      *   all [[TransformerTapping]] models
+      * @return
+      *   the possible voltage increase and decrease
+      */
+    def getTappingOptions(tappings: Set[TransformerTapping]): (
+        ComparableQuantity[Dimensionless],
+        ComparableQuantity[Dimensionless],
+    ) = {
+      // allow tapping only if all transformers support tapping
+      if (tappings.forall(_.hasAutoTap)) {
+
+        val tappingRanges = tappings.map { tapping =>
+          val currentPos = tapping.currentTapPos
+          val deltaV = tapping.deltaV.divide(-100)
+          val increase = deltaV.multiply(tapping.tapMin - currentPos)
+          val decrease = deltaV.multiply(tapping.tapMax - currentPos)
+
+          (increase, decrease)
+        }.toSeq
+
+        if (tappings.size == 1) {
+          tappingRanges(0)
+        } else {
+          // check for possible increase and decrease that can be applied to all transformers
+          (
+            tappingRanges.map(_._1).minOption.getOrElse(0.asPu),
+            tappingRanges.map(_._2).maxOption.getOrElse(0.asPu),
+          )
+        }
+      } else {
+        // no tapping possible
+        (0.asPu, 0.asPu)
       }
     }
 

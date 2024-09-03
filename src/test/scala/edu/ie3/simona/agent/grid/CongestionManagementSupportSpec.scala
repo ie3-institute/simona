@@ -41,9 +41,11 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 import org.apache.pekko.actor.typed.ActorRef
 import squants.electro.Kilovolts
 import squants.energy.Kilowatts
+import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
+import javax.measure.quantity.Dimensionless
 
 class CongestionManagementSupportSpec
     extends ScalaTestWithActorTestKit
@@ -688,6 +690,38 @@ class CongestionManagementSupportSpec
 
         updatedRange.deltaPlus should equalWithTolerance(expected.deltaPlus)
         updatedRange.deltaMinus should equalWithTolerance(expected.deltaMinus)
+      }
+    }
+
+    "get tapping options correctly" in {
+      val tappingModel1: TransformerTapping = mockTransformerTappingModel(
+        autoTap = true,
+        currentTapPos = 3,
+        tapMax = 4,
+        tapMin = -5,
+        deltaV = 1.asPu,
+      )
+
+      val tappingModel2: TransformerTapping = mockTransformerTappingModel(
+        autoTap = true,
+        currentTapPos = 1,
+        tapMax = 3,
+        tapMin = -2,
+        deltaV = 1.asPu,
+      )
+
+      val cases = Table(
+        ("tappings", "expectedPlus", "expectedMinus"),
+        (Set(tappingModel1), 0.08.asPu, (-0.01).asPu),
+        (Set(tappingModel2), 0.03.asPu, (-0.02).asPu),
+        (Set(tappingModel1, tappingModel2), 0.03.asPu, (-0.01).asPu),
+      )
+
+      forAll(cases) { (tappings, expectedPlus, expectedMinus) =>
+        val (actualPlus, actualMinus) = VoltageRange.getTappingOptions(tappings)
+
+        actualPlus shouldBe expectedPlus
+        actualMinus shouldBe expectedMinus
       }
     }
   }
