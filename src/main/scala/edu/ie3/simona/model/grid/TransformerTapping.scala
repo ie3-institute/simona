@@ -51,10 +51,6 @@ trait TransformerTapping {
     */
   def currentTapPos: Int = transformerTappingModel.currentTapPos
 
-  /** Returns the side of the tap. (See [[ConnectorPort]])
-    */
-  def getTapSide: ConnectorPort = transformerTappingModel.tapSide
-
   /** Initialize the tapping model. Should be called after creating the
     * implementing model
     */
@@ -108,7 +104,7 @@ trait TransformerTapping {
       tapSide: ConnectorPort = ConnectorPort.A,
       deadBand: Quantity[Dimensionless] = Quantities.getQuantity(0.75, PU),
   ): Int = {
-    if (tapSide == transformerTappingModel.tapSide) {
+    if (isSameSide(tapSide)) {
       transformerTappingModel.computeDeltaTap(vChangeRequest, deadBand)
     } else {
       transformerTappingModel.computeDeltaTap(
@@ -141,7 +137,7 @@ trait TransformerTapping {
     val range =
       Range.inclusive(minus, plus).map(deltaV.multiply(_).divide(100)).toList
 
-    val values = if (tapSide == transformerTappingModel.tapSide) {
+    val values = if (isSameSide(tapSide)) {
       range
     } else {
       range.map(_.multiply(-1)).sortBy(_.getValue.doubleValue())
@@ -196,11 +192,27 @@ trait TransformerTapping {
     val deltaV =
       transformerTappingModel.deltaV.to(PU).getValue.doubleValue() * taps
 
-    if (tapSide == transformerTappingModel.tapSide) {
+    if (isSameSide(tapSide)) {
       (taps, deltaV.asPu)
     } else {
       (taps, deltaV.asPu.multiply(-1))
     }
   }
 
+  /** Method to check if a given port matches the port of this model.
+    * @param tapSide
+    *   to check.
+    * @return
+    *   true if both ports are either on the higher or lower side
+    */
+  private def isSameSide(tapSide: ConnectorPort): Boolean =
+    (transformerTappingModel.tapSide, tapSide) match {
+      case (ConnectorPort.A, ConnectorPort.A) => true // both on higher side
+      case (ConnectorPort.A, _) => false // both on different sides
+      case (ConnectorPort.B, ConnectorPort.A) |
+          (ConnectorPort.C, ConnectorPort.A) =>
+        false // both on different sides
+      case (ConnectorPort.B, _) | (ConnectorPort.C, _) =>
+        true // both on lower side
+    }
 }
