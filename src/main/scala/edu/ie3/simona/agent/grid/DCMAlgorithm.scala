@@ -352,11 +352,14 @@ trait DCMAlgorithm extends CongestionManagementSupport {
 
             // change the tap pos of all transformers
             tapChange.foreach { case (tapping, tapChange) =>
-              if (tapChange > 0) {
-                tapping.incrTapPos(tapChange)
-              } else if (tapChange < 0) {
-                tapping.decrTapPos(tapChange)
-              } else {
+              tapChange compare 0 match {
+                case 1 =>
+                  // change > 0 -> increase
+                  tapping.incrTapPos(tapChange)
+                case -1 =>
+                  // change < 0 -> decrease
+                  tapping.decrTapPos(Math.abs(tapChange))
+                case 0 =>
                 // no change, do nothing
               }
             }

@@ -1,0 +1,54 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+label main [{{
+start
+
+if (enable) then (true)
+repeat
+    (A)
+    detach
+    (B)
+
+    if (Congestion detected?) then (true)
+    else (false)
+        stop
+    endif
+
+repeat while (iteration < maxIteration)
+
+if (enableUsingFlexOptions) then (true)
+    :Using Flexibilities;
+    :Run Simulation;
+else (false)
+endif
+
+else (false)
+endif
+
+stop
+}}]
+
+label optimization [{{
+(A)
+if (enableTransformerTapping) then (true)
+    if (Voltage and/or line congestion detected?) then (true)
+        :Use transformer tapping;
+        :Run Simulation;
+    else (false)
+    endif
+else (false)
+endif
+
+if (enableTopologyChanges) then (true)
+        if (Line congestion detected?) then (true)
+        :Use topology changes;
+        :Run Simulation;
+    else (false)
+    endif
+else (false)
+endif
+(B)
+}}]
+
+@enduml

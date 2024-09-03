@@ -20,7 +20,7 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.PowerFlowCaseA
 import edu.ie3.simona.model.grid._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.apache.pekko.actor.typed.ActorRef
-import squants.electro.{Amperes, ElectricPotential}
+import squants.electro.ElectricPotential
 import tech.units.indriya.ComparableQuantity
 
 import java.util.UUID
@@ -140,27 +140,20 @@ trait CongestionManagementSupport {
     if (tappings.forall(_.hasAutoTap)) {
 
       // get all possible deltas
-      val possibleDeltas = tappings.map(
-        _.getPossibleVoltageChanges(
-          range.deltaPlus,
-          range.deltaMinus,
-          ConnectorPort.B,
+      val possibleDeltas = tappings
+        .map(
+          _.getPossibleVoltageChanges(
+            range.deltaPlus,
+            range.deltaMinus,
+            ConnectorPort.B,
+          )
         )
-      )
+        .toSet
 
       // calculates a voltage change option
       val deltaOption = if (possibleDeltas.exists(_.isEmpty)) {
         // there is a transformer that cannot be tapped
         None
-      } else if (possibleDeltas.exists(_.size == 1)) {
-        // there is a transformer that can only be tapped by one delta
-        val delta = possibleDeltas.flatten.toSet
-
-        if (delta.size == 1) {
-          // all transformer have the same delta
-          Some(delta.toSeq(0))
-        } else None
-
       } else {
         // the actual delta that can be used for all transformers
         Some(findCommonDelta(suggestion, possibleDeltas))
@@ -175,7 +168,8 @@ trait CongestionManagementSupport {
 
           // mapping the data
           val taps = deltas.map { case (tapping, (tap, _)) => tapping -> tap }
-          val actualDelta = deltas.map(_._2._2).toSeq(0)
+          val actualDelta =
+            deltas.map { case (_, (_, delta)) => delta }.toSeq(0)
 
           (taps, actualDelta)
         case None =>
@@ -197,10 +191,10 @@ trait CongestionManagementSupport {
     */
   def findCommonDelta(
       suggestion: ComparableQuantity[Dimensionless],
-      possibleDeltas: Seq[List[ComparableQuantity[Dimensionless]]],
+      possibleDeltas: Set[List[ComparableQuantity[Dimensionless]]],
   ): ComparableQuantity[Dimensionless] = {
     // reduce all possible deltas
-    val reducedOptions = possibleDeltas.map { deltas =>
+    val reducedOptions = possibleDeltas.toSeq.flatMap { deltas =>
       if (deltas.exists(_.isEquivalentTo(suggestion))) {
         List(suggestion)
       } else {
@@ -220,10 +214,13 @@ trait CongestionManagementSupport {
 
     // filter the possible options
     val filteredOptions: Set[ComparableQuantity[Dimensionless]] =
-      reducedOptions.flatten
-        .groupBy(identity)
-        .filter(_._2.size == reducedOptions.size)
-        .keySet
+      reducedOptions.toSet.flatMap { value: ComparableQuantity[Dimensionless] =>
+        if (
+          reducedOptions.count(_.isEquivalentTo(value)) == possibleDeltas.size
+        ) {
+          Some(value)
+        } else None
+      }
 
     // find the best suitable delta
     filteredOptions.size match {
@@ -530,15 +527,21 @@ object CongestionManagementSupport {
       val value = if (plus > minus) {
         // we could have a voltage violation of one limit
         (plus + minus) / 2
-      } else if (plus > 0 && minus > 0) {
-        // we have a voltage violation of the lower limit
-        // since the upper limit is fine, we can increase the voltage a bit
-        plus
-      } else if (plus < 0 && minus < 0) {
-        // we have a voltage violation of the upper limit
-        // since the lower limit is fine, we can decrease the voltage a bit
-        minus
-      } else 0 // we have a voltage violation of both limits, we can't fix this
+      } else {
+        (plus > 0, minus < 0) match {
+          case (true, false) =>
+            // we have a voltage violation of the lower limit
+            // since the upper limit is fine, we can increase the voltage a bit
+            plus
+          case (false, true) =>
+            // we have a voltage violation of the upper limit
+            // since the lower limit is fine, we can decrease the voltage a bit
+            minus
+          case _ =>
+            // we have a voltage violation of both limits, we can't fix this
+            0
+        }
+      }
 
       val factor = 1e3
 

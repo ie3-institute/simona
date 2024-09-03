@@ -108,7 +108,9 @@ object GridAgentData {
     def handleReceivingData(
         receivedData: Vector[(ActorRef[GridAgent.Request], T)]
     ): AwaitingData[T] = {
-      val mappedData = receivedData.map(res => res._1 -> Some(res._2)).toMap
+      val mappedData = receivedData.map { case (ref, value) =>
+        ref -> Some(value)
+      }.toMap
       copy(inferiorGridMap = inferiorGridMap ++ mappedData)
     }
   }

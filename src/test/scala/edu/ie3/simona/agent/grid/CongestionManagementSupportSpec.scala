@@ -17,7 +17,6 @@ import edu.ie3.simona.agent.grid.CongestionManagementSupport.{
   TappingGroup,
   VoltageRange,
 }
-import edu.ie3.simona.agent.grid.GridAgentData.CongestionManagementData
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.model.grid.GridModel.GridComponents
 import edu.ie3.simona.model.grid.{
@@ -266,16 +265,16 @@ class CongestionManagementSupportSpec
 
       val cases = Table(
         ("suggestion", "possibleDeltas", "expected"),
-        (0.015.asPu, Seq(List(0.03.asPu, 0.015.asPu, 0.asPu)), 0.015.asPu),
+        (0.015.asPu, Set(List(0.03.asPu, 0.015.asPu, 0.asPu)), 0.015.asPu),
         (
           0.012.asPu,
-          Seq(List(0.03.asPu, 0.02.asPu, 0.01.asPu, 0.asPu)),
+          Set(List(0.03.asPu, 0.02.asPu, 0.01.asPu, 0.asPu)),
           0.01.asPu,
         ),
-        (0.006.asPu, Seq(List(0.03.asPu, 0.015.asPu, 0.asPu)), 0.asPu),
+        (0.006.asPu, Set(List(0.03.asPu, 0.015.asPu, 0.asPu)), 0.asPu),
         (
           0.03.asPu,
-          Seq(
+          Set(
             List(0.06.asPu, 0.03.asPu, 0.asPu),
             List(0.045.asPu, 0.03.asPu, 0.015.asPu, 0.asPu),
           ),
@@ -283,12 +282,12 @@ class CongestionManagementSupportSpec
         ),
         (
           0.03.asPu,
-          Seq(List(0.06.asPu, 0.03.asPu), List(0.03.asPu, 0.015.asPu)),
+          Set(List(0.06.asPu, 0.03.asPu), List(0.03.asPu, 0.015.asPu)),
           0.03.asPu,
         ),
         (
           0.035.asPu,
-          Seq(
+          Set(
             List(0.06.asPu, 0.03.asPu, 0.asPu),
             List(0.045.asPu, 0.03.asPu, 0.015.asPu, 0.asPu),
           ),
@@ -296,17 +295,17 @@ class CongestionManagementSupportSpec
         ),
         (
           0.02.asPu,
-          Seq(List(0.06.asPu, 0.03.asPu), List(0.03.asPu, 0.015.asPu)),
+          Set(List(0.06.asPu, 0.03.asPu), List(0.03.asPu, 0.015.asPu)),
           0.03.asPu,
         ),
         (
           0.06.asPu,
-          Seq(List(0.06.asPu, 0.03.asPu), List(0.03.asPu, 0.015.asPu)),
+          Set(List(0.06.asPu, 0.03.asPu), List(0.03.asPu, 0.015.asPu)),
           0.asPu,
         ),
         (
           (-0.02).asPu,
-          Seq(List(0.06.asPu, 0.03.asPu), List(0.03.asPu, 0.015.asPu)),
+          Set(List(0.06.asPu, 0.03.asPu), List(0.03.asPu, 0.015.asPu)),
           0.asPu,
         ),
       )

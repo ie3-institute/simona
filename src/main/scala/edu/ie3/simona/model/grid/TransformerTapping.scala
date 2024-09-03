@@ -147,24 +147,24 @@ trait TransformerTapping {
       range.map(_.multiply(-1)).sortBy(_.getValue.doubleValue())
     }
 
-    if (maxIncrease.isLessThan(0.asPu)) {
-      values.filter(value =>
-        value.isLessThanOrEqualTo(0.asPu) && value.isGreaterThanOrEqualTo(
-          maxDecrease
+    (
+      maxIncrease.isLessThan(maxDecrease),
+      maxIncrease.isLessThan(0.asPu),
+    ) match {
+      case (true, true) =>
+        // maximal increase is less then maximal allowed decrease -> only max decrease as possible change
+        values.filter(_.isEquivalentTo(maxDecrease))
+      case (true, _) =>
+        // maximal decrease is greater then maximal allowed increase -> only max increase as possible change
+        values.filter(_.isEquivalentTo(maxIncrease))
+      case _ =>
+        // find all values between the maximal allowed increase and decrease
+        values.filter(value =>
+          value.isLessThanOrEqualTo(maxIncrease) && value
+            .isGreaterThanOrEqualTo(
+              maxDecrease
+            )
         )
-      )
-    } else if (maxDecrease.isGreaterThan(0.asPu)) {
-      values.filter(value =>
-        value.isLessThanOrEqualTo(maxIncrease) && value
-          .isGreaterThanOrEqualTo(0.asPu)
-      )
-    } else {
-      values.filter(value =>
-        value.isLessThanOrEqualTo(maxIncrease) && value
-          .isGreaterThanOrEqualTo(
-            maxDecrease
-          )
-      )
     }
   }
 
