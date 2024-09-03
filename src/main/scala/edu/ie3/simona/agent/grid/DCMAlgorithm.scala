@@ -108,7 +108,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
 
         // checking for any congestion in the complete grid
         if (!congestions.any) {
-          ctx.log.warn(
+          ctx.log.info(
             s"No congestions found. Finishing the congestion management."
           )
 
@@ -279,7 +279,7 @@ trait DCMAlgorithm extends CongestionManagementSupport {
           gridModel.subnetNo,
         )
 
-        ctx.log.warn(
+        ctx.log.debug(
           s"For Grid ${stateData.gridAgentBaseData.gridEnv.gridModel.subnetNo}, voltage range: $range"
         )
 
