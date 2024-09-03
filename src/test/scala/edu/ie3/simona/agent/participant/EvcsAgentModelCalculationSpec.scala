@@ -1277,7 +1277,7 @@ class EvcsAgentModelCalculationSpec
          - currently no cars
        */
 
-      emAgent.send(evcsAgent, RequestFlexOptions(0))
+      emAgent.send(evcsAgent, FlexActivation(0))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -1314,7 +1314,7 @@ class EvcsAgentModelCalculationSpec
         result.q should approximate(Megavars(0))
       }
       emAgent.expectMsg(
-        FlexCtrlCompletion(
+        FlexCompletion(
           modelUuid = evcsInputModelQv.getUuid,
           requestAtTick = Some(900),
         )
@@ -1340,7 +1340,7 @@ class EvcsAgentModelCalculationSpec
         ),
       )
 
-      emAgent.send(evcsAgent, RequestFlexOptions(900))
+      emAgent.send(evcsAgent, FlexActivation(900))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -1381,7 +1381,7 @@ class EvcsAgentModelCalculationSpec
         result.q should approximate(Megavars(0))
       }
       emAgent.expectMsg(
-        FlexCtrlCompletion(
+        FlexCompletion(
           modelUuid = evcsInputModelQv.getUuid,
           requestAtNextActivation = true,
           requestAtTick = Some(4500),
@@ -1457,7 +1457,7 @@ class EvcsAgentModelCalculationSpec
         ),
       )
 
-      emAgent.send(evcsAgent, RequestFlexOptions(4500))
+      emAgent.send(evcsAgent, FlexActivation(4500))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -1491,7 +1491,7 @@ class EvcsAgentModelCalculationSpec
         result.q should approximate(Megavars(0))
       }
       emAgent.expectMsg(
-        FlexCtrlCompletion(
+        FlexCompletion(
           modelUuid = evcsInputModelQv.getUuid,
           requestAtNextActivation = true,
           requestAtTick = Some(9736),
@@ -1507,7 +1507,7 @@ class EvcsAgentModelCalculationSpec
        */
 
       // sending flex request at very next activated tick
-      emAgent.send(evcsAgent, RequestFlexOptions(9736))
+      emAgent.send(evcsAgent, FlexActivation(9736))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -1543,7 +1543,7 @@ class EvcsAgentModelCalculationSpec
         result.q should approximate(Megavars(0))
       }
       emAgent.expectMsg(
-        FlexCtrlCompletion(
+        FlexCompletion(
           modelUuid = evcsInputModelQv.getUuid,
           requestAtNextActivation = true,
           requestAtTick = Some(11700),
@@ -1587,7 +1587,7 @@ class EvcsAgentModelCalculationSpec
         ),
       )
 
-      emAgent.send(evcsAgent, RequestFlexOptions(11700))
+      emAgent.send(evcsAgent, FlexActivation(11700))
 
       val combinedChargingPower =
         ev11700.unwrap().getSRatedAC.add(ev4500.unwrap().getSRatedAC)
@@ -1633,7 +1633,7 @@ class EvcsAgentModelCalculationSpec
         result.q should approximate(Megavars(0))
       }
       emAgent.expectMsg(
-        FlexCtrlCompletion(
+        FlexCompletion(
           modelUuid = evcsInputModelQv.getUuid,
           requestAtNextActivation = true,
           requestAtTick = Some(32580),
@@ -1663,7 +1663,7 @@ class EvcsAgentModelCalculationSpec
        */
 
       // sending flex request at very next activated tick
-      emAgent.send(evcsAgent, RequestFlexOptions(18000))
+      emAgent.send(evcsAgent, FlexActivation(18000))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -1705,7 +1705,7 @@ class EvcsAgentModelCalculationSpec
         result.q should approximate(Megavars(0))
       }
       emAgent.expectMsg(
-        FlexCtrlCompletion(
+        FlexCompletion(
           modelUuid = evcsInputModelQv.getUuid,
           requestAtTick = Some(23040),
         )
@@ -1743,7 +1743,7 @@ class EvcsAgentModelCalculationSpec
          - discharging with 10 kW
        */
 
-      emAgent.send(evcsAgent, RequestFlexOptions(23040))
+      emAgent.send(evcsAgent, FlexActivation(23040))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -1787,7 +1787,7 @@ class EvcsAgentModelCalculationSpec
         result.q should approximate(Megavars(0))
       }
       emAgent.expectMsg(
-        FlexCtrlCompletion(
+        FlexCompletion(
           modelUuid = evcsInputModelQv.getUuid,
           requestAtTick = Some(25004),
         )
@@ -1825,7 +1825,7 @@ class EvcsAgentModelCalculationSpec
          - no power
        */
 
-      emAgent.send(evcsAgent, RequestFlexOptions(25004))
+      emAgent.send(evcsAgent, FlexActivation(25004))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -1860,7 +1860,7 @@ class EvcsAgentModelCalculationSpec
         result.q should approximate(Megavars(0))
       }
       emAgent.expectMsg(
-        FlexCtrlCompletion(
+        FlexCompletion(
           modelUuid = evcsInputModelQv.getUuid
         )
       )
@@ -1940,7 +1940,7 @@ class EvcsAgentModelCalculationSpec
       }
 
       // sending flex request at very next activated tick
-      emAgent.send(evcsAgent, RequestFlexOptions(36000))
+      emAgent.send(evcsAgent, FlexActivation(36000))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -1975,7 +1975,7 @@ class EvcsAgentModelCalculationSpec
         result.q should approximate(Megavars(0))
       }
       emAgent.expectMsg(
-        FlexCtrlCompletion(
+        FlexCompletion(
           modelUuid = evcsInputModelQv.getUuid,
           requestAtNextActivation = true,
           requestAtTick = Some(72000),

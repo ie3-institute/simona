@@ -77,12 +77,11 @@ object FlexibilityMessage {
     * @param tick
     *   The tick to request flex options for
     */
-  final case class RequestFlexOptions(override val tick: Long)
-      extends FlexRequest
+  final case class FlexActivation(override val tick: Long) extends FlexRequest
 
   /** Message that provides flex options to an
     * [[edu.ie3.simona.agent.em.EmAgent]] after they have been requested via
-    * [[RequestFlexOptions]]
+    * [[FlexActivation]]
     */
   trait ProvideFlexOptions extends FlexResponse
 
@@ -117,8 +116,8 @@ object FlexibilityMessage {
       extends IssueFlexControl
 
   /** Message sent by flex options providers that transports the result after
-    * flex control has been handled. Has to be sent before
-    * [[FlexCtrlCompletion]], but is not required during initialization.
+    * flex control has been handled. Has to be sent before [[FlexCompletion]],
+    * but is not required during initialization.
     *
     * @param modelUuid
     *   The UUID of the flex options provider asset model
@@ -147,7 +146,7 @@ object FlexibilityMessage {
     * i.e. the tick at which the flex options provider would like to be
     * activated at the latest.
     */
-  final case class FlexCtrlCompletion(
+  final case class FlexCompletion(
       override val modelUuid: UUID,
       requestAtNextActivation: Boolean = false,
       requestAtTick: Option[Long] = None,

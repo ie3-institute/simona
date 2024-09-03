@@ -107,18 +107,18 @@ class EmAgentSpec
       emAgentActivation ! Activation(INIT_SIM_TICK)
 
       // expect flex requests
-      pvAgent.expectMessage(RequestFlexOptions(INIT_SIM_TICK))
-      evcsAgent.expectMessage(RequestFlexOptions(INIT_SIM_TICK))
+      pvAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
+      evcsAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
 
       // receive flex completions
-      emAgent ! FlexCtrlCompletion(
+      emAgent ! FlexCompletion(
         modelUuid = pvInput.getUuid,
         requestAtTick = Some(0),
       )
 
       scheduler.expectNoMessage()
 
-      emAgent ! FlexCtrlCompletion(
+      emAgent ! FlexCompletion(
         modelUuid = evcsInput.getUuid,
         requestAtTick = Some(0),
       )
@@ -134,8 +134,8 @@ class EmAgentSpec
       emAgentActivation ! Activation(0)
 
       // expect flex requests
-      pvAgent.expectMessage(RequestFlexOptions(0))
-      evcsAgent.expectMessage(RequestFlexOptions(0))
+      pvAgent.expectMessage(FlexActivation(0))
+      evcsAgent.expectMessage(FlexActivation(0))
 
       // send flex options
       emAgent ! ProvideMinMaxFlexOptions(
@@ -161,7 +161,7 @@ class EmAgentSpec
         modelUuid = pvInput.getUuid,
         result = ApparentPower(Kilowatts(-5d), Kilovars(-0.5d)),
       )
-      emAgent ! FlexCtrlCompletion(
+      emAgent ! FlexCompletion(
         modelUuid = pvInput.getUuid,
         requestAtTick = Some(600),
       )
@@ -176,7 +176,7 @@ class EmAgentSpec
         modelUuid = evcsInput.getUuid,
         result = ApparentPower(Kilowatts(5d), Kilovars(0.1d)),
       )
-      emAgent ! FlexCtrlCompletion(
+      emAgent ! FlexCompletion(
         modelUuid = evcsInput.getUuid,
         requestAtTick = Some(300),
       )
@@ -203,7 +203,7 @@ class EmAgentSpec
       // thus 1 does not get activated
       pvAgent.expectNoMessage()
 
-      evcsAgent.expectMessage(RequestFlexOptions(300))
+      evcsAgent.expectMessage(FlexActivation(300))
 
       // send flex options again, ev is fully charged
       emAgent ! ProvideMinMaxFlexOptions(
@@ -222,7 +222,7 @@ class EmAgentSpec
         modelUuid = evcsInput.getUuid,
         result = ApparentPower(Kilowatts(0d), Kilovars(0d)),
       )
-      emAgent ! FlexCtrlCompletion(modelUuid = evcsInput.getUuid)
+      emAgent ! FlexCompletion(modelUuid = evcsInput.getUuid)
 
       // expect correct results
       resultListener.expectMessageType[ParticipantResultEvent] match {
@@ -276,8 +276,8 @@ class EmAgentSpec
       emAgentActivation ! Activation(0)
 
       // expect flex requests
-      pvAgent.expectMessage(RequestFlexOptions(0))
-      evcsAgent.expectMessage(RequestFlexOptions(0))
+      pvAgent.expectMessage(FlexActivation(0))
+      evcsAgent.expectMessage(FlexActivation(0))
 
       // send flex options
       emAgent ! ProvideMinMaxFlexOptions(
@@ -309,7 +309,7 @@ class EmAgentSpec
         modelUuid = pvInput.getUuid,
         result = ApparentPower(Kilowatts(-5d), Kilovars(-0.5d)),
       )
-      emAgent ! FlexCtrlCompletion(
+      emAgent ! FlexCompletion(
         modelUuid = pvInput.getUuid,
         requestAtTick = Some(300),
       )
@@ -321,7 +321,7 @@ class EmAgentSpec
 
       scheduler.expectNoMessage()
 
-      emAgent ! FlexCtrlCompletion(
+      emAgent ! FlexCompletion(
         modelUuid = evcsInput.getUuid,
         requestAtTick = Some(600),
       )
@@ -346,7 +346,7 @@ class EmAgentSpec
       // thus evcs does not get activated
       evcsAgent.expectNoMessage()
 
-      pvAgent.expectMessage(RequestFlexOptions(300))
+      pvAgent.expectMessage(FlexActivation(300))
 
       // send flex options again, now there's a cloud and thus less feed-in
       emAgent ! ProvideMinMaxFlexOptions(
@@ -364,7 +364,7 @@ class EmAgentSpec
         result = ApparentPower(Kilowatts(-3d), Kilovars(-0.06d)),
       )
 
-      emAgent ! FlexCtrlCompletion(
+      emAgent ! FlexCompletion(
         modelUuid = pvInput.getUuid
       )
 
@@ -380,7 +380,7 @@ class EmAgentSpec
         modelUuid = evcsInput.getUuid,
         result = ApparentPower(Kilowatts(3d), Kilovars(0.06d)),
       )
-      emAgent ! FlexCtrlCompletion(
+      emAgent ! FlexCompletion(
         modelUuid = evcsInput.getUuid,
         requestAtTick = Some(800), // should overwrite tick 600
       )
@@ -438,8 +438,8 @@ class EmAgentSpec
       emAgentActivation ! Activation(0)
 
       // expect flex requests
-      pvAgent.expectMessage(RequestFlexOptions(0))
-      evcsAgent.expectMessage(RequestFlexOptions(0))
+      pvAgent.expectMessage(FlexActivation(0))
+      evcsAgent.expectMessage(FlexActivation(0))
 
       // send flex options
       emAgent ! ProvideMinMaxFlexOptions(
@@ -472,7 +472,7 @@ class EmAgentSpec
         modelUuid = pvInput.getUuid,
         result = ApparentPower(Kilowatts(-5d), Kilovars(-0.5d)),
       )
-      emAgent ! FlexCtrlCompletion(
+      emAgent ! FlexCompletion(
         modelUuid = pvInput.getUuid,
         requestAtTick = Some(300),
       )
@@ -484,7 +484,7 @@ class EmAgentSpec
 
       scheduler.expectNoMessage()
 
-      emAgent ! FlexCtrlCompletion(
+      emAgent ! FlexCompletion(
         modelUuid = evcsInput.getUuid,
         requestAtNextActivation = true, // sending ChangingFlexOptions indicator
         requestAtTick = Some(600),
@@ -509,7 +509,7 @@ class EmAgentSpec
       // expect activations and flex requests.
       // pv is scheduled regularly and evcs at any next tick
       // thus, we expect activations for both
-      pvAgent.expectMessage(RequestFlexOptions(300))
+      pvAgent.expectMessage(FlexActivation(300))
 
       // send flex options again, now there's a cloud and thus less feed-in
       emAgent ! ProvideMinMaxFlexOptions(
@@ -520,7 +520,7 @@ class EmAgentSpec
       )
 
       // expecting flex options request, since we asked for it last time
-      evcsAgent.expectMessage(RequestFlexOptions(300))
+      evcsAgent.expectMessage(FlexActivation(300))
 
       emAgent ! ProvideMinMaxFlexOptions(
         evcsInput.getUuid,
@@ -536,7 +536,7 @@ class EmAgentSpec
         modelUuid = pvInput.getUuid,
         result = ApparentPower(Kilowatts(-3d), Kilovars(-0.06d)),
       )
-      emAgent ! FlexCtrlCompletion(
+      emAgent ! FlexCompletion(
         modelUuid = pvInput.getUuid
       )
 
@@ -551,7 +551,7 @@ class EmAgentSpec
         modelUuid = evcsInput.getUuid,
         result = ApparentPower(Kilowatts(3d), Kilovars(0.06d)),
       )
-      emAgent ! FlexCtrlCompletion(
+      emAgent ! FlexCompletion(
         modelUuid = evcsInput.getUuid // revoking tick 600
       )
 
@@ -611,21 +611,21 @@ class EmAgentSpec
       parentEmAgent.expectNoMessage()
 
       /* TICK -1 */
-      emAgentFlex ! RequestFlexOptions(INIT_SIM_TICK)
+      emAgentFlex ! FlexActivation(INIT_SIM_TICK)
 
       // expect flex requests
-      pvAgent.expectMessage(RequestFlexOptions(INIT_SIM_TICK))
-      evcsAgent.expectMessage(RequestFlexOptions(INIT_SIM_TICK))
+      pvAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
+      evcsAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
 
       // receive flex completions
-      emAgent ! FlexCtrlCompletion(
+      emAgent ! FlexCompletion(
         modelUuid = pvInput.getUuid,
         requestAtTick = Some(0),
       )
 
       parentEmAgent.expectNoMessage()
 
-      emAgent ! FlexCtrlCompletion(
+      emAgent ! FlexCompletion(
         modelUuid = evcsInput.getUuid,
         requestAtTick = Some(0),
       )
@@ -634,18 +634,18 @@ class EmAgentSpec
       resultListener.expectNoMessage()
       // expect completion from EmAgent
       parentEmAgent.expectMessage(
-        FlexCtrlCompletion(
+        FlexCompletion(
           modelUuid = emInput.getUuid,
           requestAtTick = Some(0),
         )
       )
 
       /* TICK 0 */
-      emAgentFlex ! RequestFlexOptions(0)
+      emAgentFlex ! FlexActivation(0)
 
       // expect activations and flex requests
-      pvAgent.expectMessage(RequestFlexOptions(0))
-      evcsAgent.expectMessage(RequestFlexOptions(0))
+      pvAgent.expectMessage(FlexActivation(0))
+      evcsAgent.expectMessage(FlexActivation(0))
 
       // send flex options
       emAgent ! ProvideMinMaxFlexOptions(
@@ -698,7 +698,7 @@ class EmAgentSpec
         modelUuid = pvInput.getUuid,
         result = ApparentPower(Kilowatts(-5), Kilovars(-0.5)),
       )
-      emAgent ! FlexCtrlCompletion(
+      emAgent ! FlexCompletion(
         modelUuid = pvInput.getUuid,
         requestAtTick = Some(600),
       )
@@ -714,7 +714,7 @@ class EmAgentSpec
         modelUuid = evcsInput.getUuid,
         result = ApparentPower(Kilowatts(11), Kilovars(1.1)),
       )
-      emAgent ! FlexCtrlCompletion(
+      emAgent ! FlexCompletion(
         modelUuid = evcsInput.getUuid,
         requestAtTick = Some(300),
       )
@@ -736,7 +736,7 @@ class EmAgentSpec
       }
 
       parentEmAgent.expectMessage(
-        FlexCtrlCompletion(
+        FlexCompletion(
           modelUuid = emInput.getUuid,
           requestAtTick = Some(300),
         )
@@ -764,7 +764,7 @@ class EmAgentSpec
         modelUuid = evcsInput.getUuid,
         result = ApparentPower(Kilowatts(5.0), Kilovars(0.5)),
       )
-      emAgent ! FlexCtrlCompletion(
+      emAgent ! FlexCompletion(
         modelUuid = evcsInput.getUuid,
         requestAtTick = Some(700),
       )
@@ -785,7 +785,7 @@ class EmAgentSpec
           result.q should approximate(Kilovars(0))
       }
       parentEmAgent.expectMessage(
-        FlexCtrlCompletion(
+        FlexCompletion(
           modelUuid = emInput.getUuid,
           requestAtTick = Some(600),
         )

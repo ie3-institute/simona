@@ -802,7 +802,7 @@ protected trait ParticipantAgentFundamentals[
       result.primaryData.toApparentPower,
     )
 
-    flexStateData.emAgent ! FlexCtrlCompletion(
+    flexStateData.emAgent ! FlexCompletion(
       baseStateData.modelUuid,
       flexChangeIndicator.changesAtNextActivation,
       nextActivation,

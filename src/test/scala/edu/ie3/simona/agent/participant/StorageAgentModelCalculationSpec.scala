@@ -328,7 +328,7 @@ class StorageAgentModelCalculationSpec
          - expecting changing flex options indicator (charging from empty)
        */
 
-      emAgent.send(storageAgent, RequestFlexOptions(0))
+      emAgent.send(storageAgent, FlexActivation(0))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -368,7 +368,7 @@ class StorageAgentModelCalculationSpec
         result.q should approximate(Megavars(0))
       }
       emAgent.expectMsg(
-        FlexCtrlCompletion(
+        FlexCompletion(
           modelUuid = storageInputQv.getUuid,
           requestAtNextActivation = true,
           requestAtTick = Some(60382),
@@ -390,7 +390,7 @@ class StorageAgentModelCalculationSpec
        */
 
       // Re-request flex options, since we've been asked to
-      emAgent.send(storageAgent, RequestFlexOptions(28800))
+      emAgent.send(storageAgent, FlexActivation(28800))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -427,7 +427,7 @@ class StorageAgentModelCalculationSpec
         result.q should approximate(Megavars(0))
       }
       emAgent.expectMsg(
-        FlexCtrlCompletion(
+        FlexCompletion(
           modelUuid = storageInputQv.getUuid,
           requestAtTick = Some(74281),
         )
@@ -467,7 +467,7 @@ class StorageAgentModelCalculationSpec
         result.q should approximate(Megavars(0))
       }
       emAgent.expectMsg(
-        FlexCtrlCompletion(
+        FlexCompletion(
           modelUuid = storageInputQv.getUuid,
           requestAtTick = Some(64608),
         )
@@ -501,7 +501,7 @@ class StorageAgentModelCalculationSpec
         result.q should approximate(Megavars(0))
       }
       emAgent.expectMsg(
-        FlexCtrlCompletion(
+        FlexCompletion(
           modelUuid = storageInputQv.getUuid,
           requestAtTick = Some(81099),
         )
@@ -522,7 +522,7 @@ class StorageAgentModelCalculationSpec
        */
 
       // Request flex options
-      emAgent.send(storageAgent, RequestFlexOptions(81099))
+      emAgent.send(storageAgent, FlexActivation(81099))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -559,7 +559,7 @@ class StorageAgentModelCalculationSpec
         result.q should approximate(Megavars(0))
       }
       emAgent.expectMsg(
-        FlexCtrlCompletion(
+        FlexCompletion(
           modelUuid = storageInputQv.getUuid,
           requestAtNextActivation = true,
           requestAtTick = Some(136299),
@@ -581,7 +581,7 @@ class StorageAgentModelCalculationSpec
        */
 
       // Request flex options
-      emAgent.send(storageAgent, RequestFlexOptions(136299))
+      emAgent.send(storageAgent, FlexActivation(136299))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -613,7 +613,7 @@ class StorageAgentModelCalculationSpec
         result.q should approximate(Megavars(0))
       }
       emAgent.expectMsg(
-        FlexCtrlCompletion(
+        FlexCompletion(
           modelUuid = storageInputQv.getUuid
         )
       )

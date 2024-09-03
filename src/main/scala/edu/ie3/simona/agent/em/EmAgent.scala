@@ -191,10 +191,10 @@ object EmAgent {
       val flexOptionsCore = core.activate(msg.tick)
 
       msg match {
-        case Flex(_: RequestFlexOptions) | EmActivation(_) =>
+        case Flex(_: FlexActivation) | EmActivation(_) =>
           val (toActivate, newCore) = flexOptionsCore.takeNewFlexRequests()
           toActivate.foreach {
-            _ ! RequestFlexOptions(msg.tick)
+            _ ! FlexActivation(msg.tick)
           }
 
           newCore.fold(
@@ -371,7 +371,7 @@ object EmAgent {
         updatedCore,
       )
 
-    case completion: FlexCtrlCompletion =>
+    case completion: FlexCompletion =>
       val updatedCore = core.handleCompletion(completion)
 
       updatedCore
@@ -436,7 +436,7 @@ object EmAgent {
           schedulerData.activationAdapter,
           inactiveCore.nextActiveTick,
         ),
-      _.emAgent ! FlexCtrlCompletion(
+      _.emAgent ! FlexCompletion(
         modelShell.uuid,
         inactiveCore.hasFlexWithNext,
         inactiveCore.nextActiveTick,

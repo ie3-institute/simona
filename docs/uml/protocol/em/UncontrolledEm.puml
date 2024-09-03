@@ -50,10 +50,10 @@ deactivate WeatherService
 Scheduler -> EmAgent: Activation(tick=0)
 activate EmAgent
 
-EmAgent -> StorageAgent: RequestFlexOptions(tick=0)
+EmAgent -> StorageAgent: FlexActivation(tick=0)
 activate StorageAgent
 
-EmAgent -> PvAgent: RequestFlexOptions(tick=0)
+EmAgent -> PvAgent: FlexActivation(tick=0)
 activate PvAgent
 
 PvAgent -> EmAgent: ProvideFlexOptions
