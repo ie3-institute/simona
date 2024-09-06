@@ -6,9 +6,7 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower => ComplexPower
-}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.model.participant.BMModel.BMCalcRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl

@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.participant.evcs
 
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower => ComplexPower,
+  ComplexPower,
   ZERO_POWER,
 }
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService

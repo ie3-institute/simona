@@ -8,9 +8,7 @@ package edu.ie3.simona.agent.participant.fixedfeedin
 
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower => ComplexPower
-}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.SimonaConfig.FixedFeedInRuntimeConfig

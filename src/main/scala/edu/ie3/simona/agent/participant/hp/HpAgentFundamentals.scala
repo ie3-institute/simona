@@ -15,9 +15,7 @@ import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPowerAndHeat => ComplexPowerAndHeat
-}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPowerAndHeat
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.hp.HpAgent.neededServices
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{

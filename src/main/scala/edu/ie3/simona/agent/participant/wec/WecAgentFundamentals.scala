@@ -16,7 +16,7 @@ import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent._
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower => ComplexPower,
+  ComplexPower,
   ZERO_POWER,
 }
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData

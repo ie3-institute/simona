@@ -8,9 +8,7 @@ package edu.ie3.simona.agent.em
 
 import edu.ie3.datamodel.models.input.EmInput
 import edu.ie3.datamodel.models.result.system.{EmResult, FlexOptionsResult}
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower => ComplexPower
-}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.FlexControlledData
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent

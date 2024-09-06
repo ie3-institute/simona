@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPowerAndHeat
 import edu.ie3.simona.model.participant.ApparentPowerAndHeatSpec.ApparentPowerAndHeatMock
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
@@ -38,7 +38,7 @@ class ApparentPowerAndHeatSpec extends UnitSpec {
           ConstantState,
           FixedRelevantData,
         ) match {
-          case ApparentPowerAndHeat(p, q, qDot) =>
+          case ComplexPowerAndHeat(p, q, qDot) =>
             p should approximate(Megawatts(0d))
             q should approximate(Megavars(0d))
             qDot should approximate(Megawatts(0d))
@@ -53,7 +53,7 @@ class ApparentPowerAndHeatSpec extends UnitSpec {
           ConstantState,
           FixedRelevantData,
         ) match {
-          case ApparentPowerAndHeat(p, q, qDot) =>
+          case ComplexPowerAndHeat(p, q, qDot) =>
             p should approximate(Megawatts(43d))
             q should approximate(Megavars(0d))
             qDot should approximate(Megawatts(42d))
@@ -67,7 +67,7 @@ object ApparentPowerAndHeatSpec {
   object ApparentPowerAndHeatMock
       extends SystemParticipant[
         FixedRelevantData.type,
-        ApparentPowerAndHeat,
+        ComplexPowerAndHeat,
         ConstantState.type,
       ](
         UUID.randomUUID(),

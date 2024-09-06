@@ -13,7 +13,7 @@ import edu.ie3.datamodel.models.result.system.StorageResult
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.grid.GridAgentMessages.AssetPowerChangedMessage
 import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
   ParticipantInitializeStateData,
@@ -110,7 +110,7 @@ class StorageAgentModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       StorageInput,
       StorageRuntimeConfig,
-      ApparentPower,
+      ComplexPower,
     ](
       inputModel = storageInputQv,
       modelConfig = modelConfig,
@@ -219,7 +219,7 @@ class StorageAgentModelCalculationSpec
           resultValueStore shouldBe ValueStore(
             resolution
           )
-          requestValueStore shouldBe ValueStore[ApparentPower](
+          requestValueStore shouldBe ValueStore[ComplexPower](
             resolution
           )
         case unrecognized =>
@@ -271,11 +271,11 @@ class StorageAgentModelCalculationSpec
       inside(storageAgent.stateData) {
         case modelBaseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           modelBaseStateData.requestValueStore shouldBe ValueStore[
-            ApparentPower
+            ComplexPower
           ](
             resolution,
             SortedMap(
-              0L -> ApparentPower(
+              0L -> ComplexPower(
                 Megawatts(0d),
                 Megavars(0d),
               )

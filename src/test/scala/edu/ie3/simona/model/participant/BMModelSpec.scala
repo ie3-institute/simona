@@ -11,7 +11,7 @@ import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.EuroPerKilowatthour
+import edu.ie3.util.scala.quantities.{EuroPerKilowatthour, Kilovoltamperes}
 import squants.energy.{Kilowatts, Megawatts}
 import squants.market.EUR
 import squants.thermal.Celsius
@@ -21,7 +21,7 @@ import java.time.ZonedDateTime
 import java.util.UUID
 
 /** Test class that tries to cover all special cases of the current
-  * implementation of the {@link BMModel}
+  * implementation of the [[BMModel]]
   *
   * Test results have been calculated on paper using equations from wiki:
   * https://wiki.ie3.e-technik.tu-dortmund.de/!simona/model:bm_model
@@ -38,7 +38,7 @@ class BMModelSpec extends UnitSpec {
       "BM Model Test",
       OperationInterval(0L, 86400L),
       QControl(new CosPhiFixed("cosPhiFixed:{(0.0,1.0)}")),
-      Kilowatts(190),
+      Kilovoltamperes(190),
       1d,
       "MockNode",
       isCostControlled = true,
@@ -164,7 +164,7 @@ class BMModelSpec extends UnitSpec {
         "BM Model Test",
         OperationInterval(0L, 86400L),
         QControl(new CosPhiFixed("cosPhiFixed:{(0.0,1.0)}")),
-        Kilowatts(190),
+        Kilovoltamperes(190),
         1d,
         "MockNode",
         isCostControlled = true,
@@ -174,7 +174,7 @@ class BMModelSpec extends UnitSpec {
       )
 
       val pElCalc = bmModel.calculateElOutput(usage, eff)
-      pElCalc.value should be(Kilowatts(pElSol).value +- 1e-4)
+      pElCalc.value should be(Kilovoltamperes(pElSol).toVoltamperes +- 1e-4)
     }
   }
 
@@ -306,7 +306,7 @@ class BMModelSpec extends UnitSpec {
           "BM Model Test",
           OperationInterval(0L, 86400L),
           QControl(new CosPhiFixed("cosPhiFixed:{(0.0,1.0)}")),
-          Kilowatts(190),
+          Kilovoltamperes(190),
           1d,
           "MockNode",
           costControlled,

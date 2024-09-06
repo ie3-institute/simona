@@ -7,8 +7,8 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ComplexPower,
   PrimaryDataWithApparentPower,
-  ApparentPower => ComplexPower,
 }
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl

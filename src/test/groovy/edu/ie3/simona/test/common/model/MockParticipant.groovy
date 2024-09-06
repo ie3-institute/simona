@@ -19,7 +19,7 @@ import scala.Tuple2
 import squants.Dimensionless
 import squants.energy.*
 
-class MockParticipant extends SystemParticipant<CalcRelevantData, Data.PrimaryData.ApparentPower, ModelState> {
+class MockParticipant extends SystemParticipant<CalcRelevantData, Data.PrimaryData.ComplexPower, ModelState> {
 
   MockParticipant(
   UUID uuid,
@@ -40,7 +40,7 @@ class MockParticipant extends SystemParticipant<CalcRelevantData, Data.PrimaryDa
   }
 
   @Override
-  Data.PrimaryData.ApparentPower calculatePower(long tick, Dimensionless voltage, ModelState state, CalcRelevantData data) {
+  Data.PrimaryData.ComplexPower calculatePower(long tick, Dimensionless voltage, ModelState state, CalcRelevantData data) {
     return super.calculateApparentPower(tick, voltage, state, data)
   }
 

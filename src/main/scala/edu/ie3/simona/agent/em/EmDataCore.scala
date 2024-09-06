@@ -6,12 +6,10 @@
 
 package edu.ie3.simona.agent.em
 
+import edu.ie3.simona.agent.em.EmAgent.Actor
+import edu.ie3.simona.agent.em.FlexCorrespondenceStore.WithTime
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower => ComplexPower
-}
-import EmAgent.Actor
-import FlexCorrespondenceStore.WithTime
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.util.scala.collection.mutable.PriorityMultiBiSet
 import squants.Power

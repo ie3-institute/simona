@@ -8,9 +8,7 @@ package edu.ie3.simona.agent.participant.load
 
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower => ComplexPower
-}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.load.LoadAgentFundamentals.{
   FixedLoadAgentFundamentals,
   ProfileLoadAgentFundamentals,

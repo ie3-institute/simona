@@ -16,7 +16,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerUnchangedMessage,
 }
 import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorExtEvDataService
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
@@ -117,7 +117,7 @@ class EvcsAgentModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       EvcsInput,
       EvcsRuntimeConfig,
-      ApparentPower,
+      ComplexPower,
     ](
       inputModel = evcsInputModel,
       modelConfig = modelConfig,
@@ -181,7 +181,7 @@ class EvcsAgentModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       EvcsInput,
       EvcsRuntimeConfig,
-      ApparentPower,
+      ComplexPower,
     ](
       inputModel = evcsInputModel,
       modelConfig = modelConfig,
@@ -310,7 +310,7 @@ class EvcsAgentModelCalculationSpec
             SortedMap(0L -> Each(1.0)),
           )
           resultValueStore shouldBe ValueStore(resolution)
-          requestValueStore shouldBe ValueStore[ApparentPower](resolution)
+          requestValueStore shouldBe ValueStore[ComplexPower](resolution)
 
           /* Additional information */
           awaitRegistrationResponsesFrom shouldBe Iterable(evService.ref)
@@ -389,11 +389,11 @@ class EvcsAgentModelCalculationSpec
       inside(evcsAgent.stateData) {
         case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           baseStateData.requestValueStore shouldBe ValueStore[
-            ApparentPower
+            ComplexPower
           ](
             resolution,
             SortedMap(
-              0L -> ApparentPower(
+              0L -> ComplexPower(
                 Megawatts(0.0),
                 Megavars(0.0),
               )
@@ -1167,7 +1167,7 @@ class EvcsAgentModelCalculationSpec
           resultValueStore shouldBe ValueStore(
             resolution
           )
-          requestValueStore shouldBe ValueStore[ApparentPower](
+          requestValueStore shouldBe ValueStore[ComplexPower](
             resolution
           )
         case unrecognized =>

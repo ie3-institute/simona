@@ -7,9 +7,7 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.input.system.HpInput
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPowerAndHeat => ComplexPowerAndHeat
-}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPowerAndHeat
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.participant.control.QControl

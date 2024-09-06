@@ -23,8 +23,8 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.StartCalculationTrigger
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals.RelevantResultValues
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower => ComplexPower,
-  ApparentPowerAndHeat => ComplexPowerAndHeat,
+  ComplexPower,
+  ComplexPowerAndHeat,
   EnrichableData,
   PrimaryDataWithApparentPower,
 }
@@ -799,7 +799,7 @@ protected trait ParticipantAgentFundamentals[
 
     flexStateData.emAgent ! FlexCtrlCompletion(
       baseStateData.modelUuid,
-      result.primaryData.toApparentPower,
+      result.primaryData.toComplexPower,
       flexChangeIndicator.changesAtNextActivation,
       nextActivation,
     )
@@ -1734,7 +1734,7 @@ protected trait ParticipantAgentFundamentals[
       baseStateData.foreseenDataTicks,
     )
 
-    averageResult.toApparentPower match {
+    averageResult.toComplexPower match {
       case ComplexPower(p, q) =>
         stay() using nextStateData replying AssetPowerChangedMessage(p, q)
     }
@@ -2028,8 +2028,8 @@ object ParticipantAgentFundamentals {
           case Some(qFunc) =>
             // NOTE: The type conversion to Megawatts is done to satisfy the methods type constraints
             // and is undone after unpacking the results
-            tick -> Megawatts(qFunc(pd.toApparentPower.p).toMegavars)
-          case None => tick -> Megawatts(pd.toApparentPower.q.toMegavars)
+            tick -> Megawatts(qFunc(pd.toComplexPower.p).toMegavars)
+          case None => tick -> Megawatts(pd.toComplexPower.q.toMegavars)
         }
       },
       windowStart,

@@ -7,9 +7,7 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.input.system.PvInput
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower => ComplexPower
-}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.PvModel.PvRelevantData
