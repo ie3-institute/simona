@@ -263,8 +263,26 @@ trait HpAgentFundamentals
       currentTick,
       updatedState,
     )
-    val updatedBaseStateData =
-      baseStateData.copy(stateDataStore = updatedStateDataStore)
+
+    val updatedBaseStateData = {
+      updatedState.maybeThermalThreshold match {
+        case Some(nextThreshold)
+            if baseStateData.foreseenDataTicks.headOption.exists {
+              case (_, Some(tick)) => nextThreshold.tick < tick
+              case _               => false
+            } =>
+          baseStateData.copy(
+            stateDataStore = updatedStateDataStore,
+            additionalActivationTicks =
+              baseStateData.additionalActivationTicks ++ Set(nextThreshold.tick),
+          )
+        case _ =>
+          baseStateData.copy(
+            stateDataStore = updatedStateDataStore
+          )
+      }
+    }
+
     updateValueStoresInformListenersAndGoToIdleWithUpdatedBaseStateData(
       scheduler,
       updatedBaseStateData,

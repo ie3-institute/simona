@@ -190,6 +190,7 @@ final case class HpModel(
         relevantData.currentTick,
         state.thermalGridState,
         state.ambientTemperature.getOrElse(relevantData.ambientTemperature),
+        relevantData.ambientTemperature,
         newThermalPower,
       )
 
