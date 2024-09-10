@@ -18,7 +18,11 @@ import edu.ie3.datamodel.models.result.connector.{
   Transformer2WResult,
   Transformer3WResult,
 }
-import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
+import edu.ie3.datamodel.models.result.{
+  CongestionResult,
+  NodeResult,
+  ResultEntity,
+}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.event.notifier.{Notifier, NotifierConfig}
@@ -272,6 +276,8 @@ object ConfigUtil {
         entities += classOf[Transformer2WResult]
       if (subConfig.transformers3w)
         entities += classOf[Transformer3WResult]
+      if (subConfig.congestions)
+        entities += classOf[CongestionResult]
 
       entities.toSet
     }

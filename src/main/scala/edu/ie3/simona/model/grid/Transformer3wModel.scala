@@ -27,8 +27,9 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
+import squants.Power
 import squants.electro.{Kilovolts, Ohms, Siemens}
-import squants.energy.Megawatts
+import squants.energy.{Kilowatts, Megawatts, Watts}
 import tech.units.indriya.AbstractUnit
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{OHM, SIEMENS}
@@ -66,6 +67,9 @@ import scala.math.BigDecimal.RoundingMode
   *   number of parallel transformers
   * @param powerFlowCase
   *   the [[Transformer3wPowerFlowCase]]
+  * @param sRated
+  *   the rated power at the port that is defined by the
+  *   [[Transformer3wPowerFlowCase]]
   * @param r
   *   resistance r, real part of the transformer impedance z (referenced to the
   *   nominal impedance of the grid) in p.u.
@@ -91,6 +95,7 @@ final case class Transformer3wModel(
     override protected val transformerTappingModel: TransformerTappingModel,
     amount: Int,
     powerFlowCase: Transformer3wPowerFlowCase,
+    sRated: Power,
     protected val r: squants.Dimensionless,
     protected val x: squants.Dimensionless,
     protected val g: squants.Dimensionless,
@@ -258,6 +263,21 @@ case object Transformer3wModel extends LazyLogging {
           .setScale(5, RoundingMode.HALF_UP)
     }
 
+    val sRated = powerFlowCase match {
+      case PowerFlowCaseA =>
+        Watts(
+          trafo3wType.getsRatedA().to(VOLTAMPERE).getValue.doubleValue()
+        )
+      case PowerFlowCaseB =>
+        Watts(
+          trafo3wType.getsRatedB().to(VOLTAMPERE).getValue.doubleValue()
+        )
+      case PowerFlowCaseC =>
+        Watts(
+          trafo3wType.getsRatedC().to(VOLTAMPERE).getValue.doubleValue()
+        )
+    }
+
     val operationInterval =
       SystemComponent.determineOperationInterval(
         startDate,
@@ -277,6 +297,7 @@ case object Transformer3wModel extends LazyLogging {
       transformerTappingModel,
       transformer3wInput.getParallelDevices,
       powerFlowCase,
+      sRated,
       r,
       x,
       g,

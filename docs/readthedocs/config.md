@@ -241,6 +241,7 @@ Tba:
 
 ## Grid configuration 
 
+### Reference System
 The reference system contains a list of voltage levels. Each element includes the nominal apparent power, the nominal 
 voltage and the separate configuration of each voltage level. The voltage level configuration is composed of the identifier 
 and the nominal voltage.
@@ -264,6 +265,32 @@ simona.gridConfig.refSystems = [
 Further typical voltage levels which can be used in the simulation and the configuration of individual reference systems
 are described in the documentation of [reference system](models/reference_system).
 
+### Voltage limits
+
+The voltage limits contains a list of voltage levels. Each element includes the minimal and maximal allowed voltage and
+the separate configuration of each voltage level. The voltage level configuration is composed of the identifier and the
+nominal voltage. 
+
+The configuration of a voltage limits is optional. If no configuration is provided by the user, the default
+[voltage limits](models/voltage_limits) that includes all common german voltage levels is used. For those users
+who need other voltage levels than the common german voltage levels or different voltage limits, they can configure
+their limits as shown below.
+
+The voltage limits can be configured as follows:
+
+```
+simona.gridConfig.voltageLimits = [
+  {vMin = 0.9, vMax = 1.1, voltLvls = [{id = "Lv", vNom = "0.4 kV"}]},
+  {vMin = 0.9, vMax = 1.1, voltLvls = [{id = "Mv", vNom = "20 kV"}]},
+  {vMin = 0.9, vMax = 1.1, voltLvls = [{id = "Hv", vNom = "110 kV"}]},
+  {vMin = 0.9, vMax = 1.05, voltLvls = [{id = "EHV", vNom = "380 kV"}]},
+]
+```
+
+Further typical voltage levels which can be used in the simulation and the configuration of individual voltage limits
+are described in the documentation of [voltage limits](models/voltage_limits).
+
+
 ## Power flow configuration 
 
 Maximum allowed deviation in power between two sweeps, before overall convergence is assumed:
@@ -281,6 +308,23 @@ Secondary convergence criterion for the power flow calculation is the number of 
 Resolution of the power flow calculation: 
 
   `simona.powerflow.resolution = "3600s"`
+
+## Congestion Management configuration
+
+By default the congestion management is disabled. The congestion management can be enabled with:
+
+`simona.congestionManagement.enable = true`
+
+Also all steps are disabled by default. To use one or more of the steps, they have to be enabled:
+
+`simona.congestionManagement.enableTransformerTapping = true`
+`simona.congestionManagement.enableTopologyChanges = true`
+`simona.congestionManagement.enableUsingFlexOptions = true`
+
+Maximum number of optimization iterations:
+
+`simona.congestionManagement.maxOptimizationIterations = 2`
+
 
 ## Transformer Control Group configuration
 

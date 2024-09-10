@@ -6,19 +6,27 @@
 
 package edu.ie3.simona.agent.grid
 
+import edu.ie3.simona.agent.grid.CongestionManagementSupport.{
+  CongestionManagementSteps,
+  Congestions,
+  VoltageRange,
+}
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
+import edu.ie3.simona.model.grid.TransformerTapping
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.util.scala.quantities.ReactivePower
 import org.apache.pekko.actor.typed.ActorRef
 import squants.Power
 import squants.electro.ElectricPotential
+import tech.units.indriya.ComparableQuantity
 
 import java.util.UUID
+import javax.measure.quantity.Dimensionless
 
 /** Defines all messages that can be received by a [[GridAgent]] without the
   * need for an adapter.
@@ -256,4 +264,123 @@ object GridAgentMessages {
         f: ElectricPotential,
     )
   }
+
+  // DCM messages
+
+  /** Trait for a request during the congestion management.
+    */
+  sealed trait CMRequest extends GridAgent.InternalRequest {
+    def sender: ActorRef[GridAgent.Request]
+  }
+
+  /** Trait for a response from one ref to a received [[CMRequest]].
+    * @tparam T
+    *   type of value
+    */
+  sealed trait CMReceiveResponse[T] extends GridAgent.InternalReply {
+    def sender: ActorRef[GridAgent.Request]
+    def value: T
+  }
+
+  /** Trait for all responses to a received [[CMRequest]].
+    * @tparam T
+    *   type of value
+    */
+  sealed trait CMResponse[T] extends GridAgent.InternalReply {
+    def values: Vector[(ActorRef[GridAgent.Request], T)]
+  }
+
+  // general congestion messages
+  /** Request for congestion the inferior grid.
+    * @param sender
+    *   that is asking
+    */
+  final case class CongestionCheckRequest(
+      override val sender: ActorRef[GridAgent.Request]
+  ) extends CMRequest
+
+  /** Response with congestions from an inferior grid.
+    * @param sender
+    *   inferior grid ref
+    * @param value
+    *   congestions in the inferior grid
+    */
+  final case class CongestionResponse(
+      override val sender: ActorRef[GridAgent.Request],
+      override val value: Congestions,
+  ) extends CMReceiveResponse[Congestions]
+
+  /** Answer with all congestion in all inferior grids.
+    * @param values
+    *   vector of congestion in inferior grids
+    */
+  final case class ReceivedCongestions(
+      override val values: Vector[(ActorRef[GridAgent.Request], Congestions)]
+  ) extends CMResponse[Congestions]
+
+  // transformer tapping messages
+
+  /** Request for voltage options in the inferior grid.
+    * @param sender
+    *   that is asking
+    * @param subnet
+    *   subnet of the sender
+    */
+  final case class RequestVoltageOptions(
+      override val sender: ActorRef[GridAgent.Request],
+      subnet: Int,
+  ) extends CMRequest
+
+  /** Response with voltage options of the inferior grid.
+    * @param sender
+    *   inferior grid ref
+    * @param value
+    *   consisting of the voltage range and a set of all transformers to the
+    *   superior grid
+    */
+  final case class VoltageRangeResponse(
+      override val sender: ActorRef[GridAgent.Request],
+      override val value: (VoltageRange, Set[TransformerTapping]),
+  ) extends CMReceiveResponse[(VoltageRange, Set[TransformerTapping])]
+
+  /** Answer with all voltage options and corresponding transformers to the
+    * inferior grids.
+    * @param values
+    *   vector of data
+    */
+  final case class ReceivedVoltageRange(
+      override val values: Vector[
+        (ActorRef[GridAgent.Request], (VoltageRange, Set[TransformerTapping]))
+      ]
+  ) extends CMResponse[(VoltageRange, Set[TransformerTapping])]
+
+  /** Message to an inferior grid with the voltage change after the transformers
+    * are tapped.
+    * @param delta
+    *   voltage change
+    */
+  final case class VoltageDeltaResponse(
+      delta: ComparableQuantity[Dimensionless]
+  ) extends GridAgent.InternalReply
+
+  /** Message to inform an inferior grid about the next step.
+    * @param nextStep
+    *   to use
+    */
+  final case class NextStepRequest(
+      nextStep: CongestionManagementSteps.Value
+  ) extends GridAgent.InternalRequest
+
+  /** Message that indicates all actors that the current step is started.
+    */
+  final case object StartStep extends GridAgent.InternalRequest
+
+  /** Message that indicates all actors that the current step is finished.
+    */
+  final case object FinishStep extends GridAgent.InternalRequest
+
+  /** Message that indicates all actors that the next state is the idle state.
+    */
+  final case object GotoIdle extends GridAgent.InternalRequest
+
 }

@@ -40,6 +40,7 @@ final case class NodeModel(
     isSlack: Boolean,
     vTarget: squants.Dimensionless,
     voltLvl: VoltageLevel,
+    subnet: Int,
 ) extends SystemComponent(
       uuid,
       id,
@@ -70,6 +71,7 @@ case object NodeModel {
       nodeInput.isSlack,
       Each(nodeInput.getvTarget.to(PowerSystemUnits.PU).getValue.doubleValue()),
       nodeInput.getVoltLvl,
+      nodeInput.getSubnet,
     )
 
     /* Checks, if the participant is in operation right from the start */

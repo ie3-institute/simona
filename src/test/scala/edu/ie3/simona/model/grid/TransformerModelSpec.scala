@@ -18,19 +18,18 @@ import edu.ie3.powerflow.model.NodeData.{PresetData, StateData}
 import edu.ie3.powerflow.model.StartData.WithForcedStartVoltages
 import edu.ie3.powerflow.model.enums.NodeType
 import edu.ie3.powerflow.model.{NodeData, PowerFlowResult}
-import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.test.common.model.grid.{
   TapTestData,
   TransformerTestData,
   TransformerTestGrid,
 }
+import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.util.quantities.PowerSystemUnits._
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor4}
 import squants.Each
-import squants.electro.{Amperes, Kilovolts}
+import squants.electro.Amperes
 import squants.energy.Kilowatts
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
@@ -96,6 +95,7 @@ class TransformerModelSpec
               voltRatioNominal,
               iNomHv,
               iNomLv,
+              sRated,
               r,
               x,
               g,
@@ -127,6 +127,7 @@ class TransformerModelSpec
           voltRatioNominal shouldBe BigDecimal("25")
           iNomHv should approximate(Amperes(36.373066958946424d))
           iNomLv should approximate(Amperes(909.3266739736606d))
+          sRated shouldBe Kilowatts(630)
           r should approximate(Each(7.357e-3))
           x should approximate(Each(24.30792e-3))
           g should approximate(Each(0.0))
@@ -281,7 +282,7 @@ class TransformerModelSpec
             transformerModelTapHv.updateTapPos(currentTapPos)
             transformerModelTapHv.computeDeltaTap(
               vChange,
-              deadBand,
+              deadBand = deadBand,
             ) shouldBe expected
           }
       }
@@ -379,6 +380,7 @@ class TransformerModelSpec
             val gridModel = GridModel(
               grid,
               refSystem,
+              voltageLimits,
               defaultSimulationStart,
               defaultSimulationEnd,
               simonaConfig,
