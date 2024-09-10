@@ -23,8 +23,8 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.StartCalculationTrigger
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals.RelevantResultValues
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
-  ApparentPowerAndHeat,
+  ComplexPower,
+  ComplexPowerAndHeat,
   EnrichableData,
   PrimaryDataWithApparentPower,
 }
@@ -799,7 +799,7 @@ protected trait ParticipantAgentFundamentals[
 
     flexStateData.emAgent ! FlexCtrlCompletion(
       baseStateData.modelUuid,
-      result.primaryData.toApparentPower,
+      result.primaryData.toComplexPower,
       flexChangeIndicator.changesAtNextActivation,
       nextActivation,
     )
@@ -1734,8 +1734,8 @@ protected trait ParticipantAgentFundamentals[
       baseStateData.foreseenDataTicks,
     )
 
-    averageResult.toApparentPower match {
-      case ApparentPower(p, q) =>
+    averageResult.toComplexPower match {
+      case ComplexPower(p, q) =>
         stay() using nextStateData replying AssetPowerChangedMessage(p, q)
     }
   }
@@ -1997,14 +1997,14 @@ object ParticipantAgentFundamentals {
     *   The averaged apparent power
     */
   def averageApparentPower(
-      tickToResults: Map[Long, ApparentPower],
+      tickToResults: Map[Long, ComplexPower],
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         Power => ReactivePower
       ] = None,
       log: LoggingAdapter,
-  ): ApparentPower = {
+  ): ComplexPower = {
     val p = QuantityUtil.average[Power, Energy](
       tickToResults.map { case (tick, pd) =>
         tick -> pd.p
@@ -2028,8 +2028,8 @@ object ParticipantAgentFundamentals {
           case Some(qFunc) =>
             // NOTE: The type conversion to Megawatts is done to satisfy the methods type constraints
             // and is undone after unpacking the results
-            tick -> Megawatts(qFunc(pd.toApparentPower.p).toMegavars)
-          case None => tick -> Megawatts(pd.toApparentPower.q.toMegavars)
+            tick -> Megawatts(qFunc(pd.toComplexPower.p).toMegavars)
+          case None => tick -> Megawatts(pd.toComplexPower.q.toMegavars)
         }
       },
       windowStart,
@@ -2045,7 +2045,7 @@ object ParticipantAgentFundamentals {
         zeroMVAr
     }
 
-    ApparentPower(p, q)
+    ComplexPower(p, q)
   }
 
   /** Determine the average apparent power within the given tick window
@@ -2062,20 +2062,20 @@ object ParticipantAgentFundamentals {
     *   The averaged apparent power
     */
   def averageApparentPowerAndHeat(
-      tickToResults: Map[Long, ApparentPowerAndHeat],
+      tickToResults: Map[Long, ComplexPowerAndHeat],
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         Power => ReactivePower
       ] = None,
       log: LoggingAdapter,
-  ): ApparentPowerAndHeat = {
+  ): ComplexPowerAndHeat = {
 
-    val tickToResultsApparentPower: Map[Long, ApparentPower] =
+    val tickToResultsApparentPower: Map[Long, ComplexPower] =
       tickToResults.map { case (tick, pd) =>
         (
           tick,
-          ApparentPower(Megawatts(pd.p.toMegawatts), Megavars(pd.q.toMegavars)),
+          ComplexPower(Megawatts(pd.p.toMegawatts), Megavars(pd.q.toMegavars)),
         )
       }
 
@@ -2103,7 +2103,7 @@ object ParticipantAgentFundamentals {
         zeroMW
     }
 
-    ApparentPowerAndHeat(apparentPower.p, apparentPower.q, qDot)
+    ComplexPowerAndHeat(apparentPower.p, apparentPower.q, qDot)
   }
 
 }

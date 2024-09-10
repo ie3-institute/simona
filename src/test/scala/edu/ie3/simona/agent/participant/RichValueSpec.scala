@@ -18,8 +18,8 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ActivePower,
   ActivePowerAndHeat,
-  ApparentPower,
-  ApparentPowerAndHeat,
+  ComplexPower,
+  ComplexPowerAndHeat,
   RichValue,
 }
 import edu.ie3.simona.test.common.UnitSpec
@@ -116,7 +116,7 @@ class RichValueSpec extends UnitSpec with TableDrivenPropertyChecks {
             Quantities.getQuantity(50d, PowerSystemUnits.KILOWATT),
             Quantities.getQuantity(25d, PowerSystemUnits.KILOVAR),
           ),
-          ApparentPower(
+          ComplexPower(
             Kilowatts(50d),
             Kilovars(25d),
           ),
@@ -127,7 +127,7 @@ class RichValueSpec extends UnitSpec with TableDrivenPropertyChecks {
             Quantities.getQuantity(25d, PowerSystemUnits.KILOVAR),
             Quantities.getQuantity(12.5, PowerSystemUnits.KILOWATT),
           ),
-          ApparentPowerAndHeat(
+          ComplexPowerAndHeat(
             Kilowatts(50d),
             Kilovars(25d),
             Kilowatts(12.5),

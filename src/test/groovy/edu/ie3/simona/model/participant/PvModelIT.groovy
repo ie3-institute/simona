@@ -6,6 +6,9 @@
 
 package edu.ie3.simona.model.participant
 
+import static java.util.Locale.US
+import static java.util.Locale.setDefault
+
 import edu.ie3.datamodel.io.source.csv.CsvJointGridContainerSource
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
@@ -26,9 +29,6 @@ import squants.thermal.Kelvin$
 import java.nio.file.Path
 import java.time.ZonedDateTime
 import java.util.zip.GZIPInputStream
-
-import static java.util.Locale.US
-import static java.util.Locale.setDefault
 
 /**
  * A simple integration test that uses pre-calculated data to check if the pv model works as expected.

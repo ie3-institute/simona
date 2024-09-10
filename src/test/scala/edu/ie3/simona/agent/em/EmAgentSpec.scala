@@ -7,7 +7,7 @@
 package edu.ie3.simona.agent.em
 
 import edu.ie3.datamodel.models.result.system.EmResult
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.{
@@ -131,7 +131,7 @@ class EmAgentSpec
       pvAgent.expectMessage(IssueNoControl(0))
       emAgent ! FlexCtrlCompletion(
         modelUuid = pvInput.getUuid,
-        result = ApparentPower(Kilowatts(-5d), Kilovars(-0.5d)),
+        result = ComplexPower(Kilowatts(-5d), Kilovars(-0.5d)),
         requestAtTick = Some(600),
       )
 
@@ -143,7 +143,7 @@ class EmAgentSpec
       }
       emAgent ! FlexCtrlCompletion(
         modelUuid = evcsInput.getUuid,
-        result = ApparentPower(Kilowatts(5d), Kilovars(0.1d)),
+        result = ComplexPower(Kilowatts(5d), Kilovars(0.1d)),
         requestAtTick = Some(300),
       )
 
@@ -187,7 +187,7 @@ class EmAgentSpec
       emAgent !
         FlexCtrlCompletion(
           evcsInput.getUuid,
-          ApparentPower(Kilowatts(0d), Kilovars(0d)),
+          ComplexPower(Kilowatts(0d), Kilovars(0d)),
         )
 
       // expect correct results
@@ -271,7 +271,7 @@ class EmAgentSpec
       // send completions
       emAgent ! FlexCtrlCompletion(
         modelUuid = pvInput.getUuid,
-        result = ApparentPower(Kilowatts(-5d), Kilovars(-0.5d)),
+        result = ComplexPower(Kilowatts(-5d), Kilovars(-0.5d)),
         requestAtTick = Some(300),
       )
 
@@ -279,7 +279,7 @@ class EmAgentSpec
 
       emAgent ! FlexCtrlCompletion(
         modelUuid = evcsInput.getUuid,
-        result = ApparentPower(Kilowatts(5d), Kilovars(0.1d)),
+        result = ComplexPower(Kilowatts(5d), Kilovars(0.1d)),
         requestAtTick = Some(600),
       )
 
@@ -318,7 +318,7 @@ class EmAgentSpec
 
       emAgent ! FlexCtrlCompletion(
         pvInput.getUuid,
-        ApparentPower(Kilowatts(-3d), Kilovars(-0.06d)),
+        ComplexPower(Kilowatts(-3d), Kilovars(-0.06d)),
       )
 
       // evcs is now sent control too
@@ -331,7 +331,7 @@ class EmAgentSpec
 
       emAgent ! FlexCtrlCompletion(
         evcsInput.getUuid,
-        ApparentPower(Kilowatts(3d), Kilovars(0.06d)),
+        ComplexPower(Kilowatts(3d), Kilovars(0.06d)),
         requestAtTick = Some(800), // should overwrite tick 600
       )
 
@@ -418,7 +418,7 @@ class EmAgentSpec
       // send completions
       emAgent ! FlexCtrlCompletion(
         pvInput.getUuid,
-        ApparentPower(Kilowatts(-5d), Kilovars(-0.5d)),
+        ComplexPower(Kilowatts(-5d), Kilovars(-0.5d)),
         requestAtTick = Some(300),
       )
 
@@ -426,7 +426,7 @@ class EmAgentSpec
 
       emAgent ! FlexCtrlCompletion(
         evcsInput.getUuid,
-        ApparentPower(Kilowatts(5d), Kilovars(0.1d)),
+        ComplexPower(Kilowatts(5d), Kilovars(0.1d)),
         requestAtNextActivation = true, // sending ChangingFlexOptions indicator
         requestAtTick = Some(600),
       )
@@ -475,7 +475,7 @@ class EmAgentSpec
 
       emAgent ! FlexCtrlCompletion(
         pvInput.getUuid,
-        ApparentPower(Kilowatts(-3d), Kilovars(-0.06d)),
+        ComplexPower(Kilowatts(-3d), Kilovars(-0.06d)),
       )
 
       evcsAgent.expectMessageType[IssuePowerControl] match {
@@ -487,7 +487,7 @@ class EmAgentSpec
 
       emAgent ! FlexCtrlCompletion(
         evcsInput.getUuid, // revoking tick 600
-        ApparentPower(Kilowatts(3d), Kilovars(0.06d)),
+        ComplexPower(Kilowatts(3d), Kilovars(0.06d)),
       )
 
       // expect correct results
@@ -599,7 +599,7 @@ class EmAgentSpec
 
       emAgent ! FlexCtrlCompletion(
         pvInput.getUuid,
-        ApparentPower(Kilowatts(-5), Kilovars(-0.5)),
+        ComplexPower(Kilowatts(-5), Kilovars(-0.5)),
         requestAtTick = Some(600),
       )
 
@@ -612,7 +612,7 @@ class EmAgentSpec
 
       emAgent ! FlexCtrlCompletion(
         evcsInput.getUuid,
-        ApparentPower(Kilowatts(11), Kilovars(1.1)),
+        ComplexPower(Kilowatts(11), Kilovars(1.1)),
         requestAtTick = Some(300),
       )
 
@@ -659,7 +659,7 @@ class EmAgentSpec
 
       emAgent ! FlexCtrlCompletion(
         evcsInput.getUuid,
-        ApparentPower(Kilowatts(5.0), Kilovars(0.5)),
+        ComplexPower(Kilowatts(5.0), Kilovars(0.5)),
         requestAtTick = Some(700),
       )
 

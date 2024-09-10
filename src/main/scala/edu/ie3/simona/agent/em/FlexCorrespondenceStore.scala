@@ -10,7 +10,7 @@ import edu.ie3.simona.agent.em.FlexCorrespondenceStore.{
   FlexCorrespondence,
   WithTime,
 }
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssueFlexControl,
   ProvideFlexOptions,
@@ -88,7 +88,7 @@ final case class FlexCorrespondenceStore(
     */
   def updateResult(
       modelUuid: UUID,
-      result: ApparentPower,
+      result: ComplexPower,
       tick: Long,
   ): FlexCorrespondenceStore =
     updateCorrespondence(
@@ -124,7 +124,7 @@ object FlexCorrespondenceStore {
   final case class FlexCorrespondence(
       receivedFlexOptions: Option[WithTime[ProvideFlexOptions]] = None,
       issuedCtrlMsg: Option[WithTime[IssueFlexControl]] = None,
-      receivedResult: Option[WithTime[ApparentPower]] = None,
+      receivedResult: Option[WithTime[ComplexPower]] = None,
   )
 
   /** Wrapper that allows storing a tick with an object

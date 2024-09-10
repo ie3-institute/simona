@@ -14,7 +14,9 @@ import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.quantities.{
+  ApparentPower,
   Irradiation,
+  Kilovoltamperes,
   Megavars,
   ReactivePower,
   WattHoursPerSquareMeter,
@@ -92,6 +94,9 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
   private implicit val angleTolerance: Angle = Radians(1e-10)
   private implicit val irradiationTolerance: Irradiation =
     WattHoursPerSquareMeter(1e-10)
+  private implicit val apparentPowerTolerance: ApparentPower = Kilovoltamperes(
+    1e-10
+  )
   private implicit val powerTolerance: Power = Kilowatts(1e-10)
   private implicit val reactivePowerTolerance: ReactivePower = Megavars(1e-10)
 

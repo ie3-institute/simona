@@ -10,6 +10,8 @@ import static edu.ie3.util.quantities.PowerSystemUnits.*
 import static tech.units.indriya.quantity.Quantities.getQuantity
 import static tech.units.indriya.unit.Units.PERCENT
 
+import edu.ie3.util.scala.quantities.Kilovoltamperes$
+
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.OperatorInput
@@ -91,7 +93,7 @@ class ChpModelTest extends Specification {
         "ChpModel",
         null,
         null,
-        Sq.create(100, Kilowatts$.MODULE$),
+        Sq.create(100, Kilovoltamperes$.MODULE$),
         0.95,
         Sq.create(50, Kilowatts$.MODULE$),
         thermalStorage)

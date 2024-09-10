@@ -17,7 +17,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.{
   FinishParticipantSimulation,
   RequestAssetPowerMessage,
 }
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
@@ -87,12 +87,12 @@ class ParticipantAgent2ListenerSpec
     val initStateData: NotifierConfig => ParticipantInitializeStateData[
       SystemParticipantInput,
       BaseRuntimeConfig,
-      ApparentPower,
+      ComplexPower,
     ] = outputConfig =>
       ParticipantInitializeStateData[
         SystemParticipantInput,
         BaseRuntimeConfig,
-        ApparentPower,
+        ComplexPower,
       ](
         inputModel = mockInputModel,
         modelConfig = mock[BaseRuntimeConfig],

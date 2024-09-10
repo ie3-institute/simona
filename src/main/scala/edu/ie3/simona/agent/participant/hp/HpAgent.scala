@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.participant.hp
 
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPowerAndHeat
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
@@ -24,7 +24,7 @@ object HpAgent {
       initStateData: ParticipantInitializeStateData[
         HpInput,
         HpRuntimeConfig,
-        ApparentPowerAndHeat,
+        ComplexPowerAndHeat,
       ],
       listener: Iterable[ActorRef],
   ): Props =
@@ -46,15 +46,15 @@ class HpAgent(
     initStateData: ParticipantInitializeStateData[
       HpInput,
       HpRuntimeConfig,
-      ApparentPowerAndHeat,
+      ComplexPowerAndHeat,
     ],
     override val listener: Iterable[ActorRef],
 ) extends ParticipantAgent[
-      ApparentPowerAndHeat,
+      ComplexPowerAndHeat,
       HpRelevantData,
       HpState,
       ParticipantStateData[
-        ApparentPowerAndHeat
+        ComplexPowerAndHeat
       ],
       HpInput,
       HpRuntimeConfig,
