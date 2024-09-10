@@ -1,4 +1,4 @@
-Sphinx==7.3.7
+Sphinx==7.4.7
 sphinx-rtd-theme==2.0.0
 sphinxcontrib-plantuml==0.30
 myst-parser==4.0.0
