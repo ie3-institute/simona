@@ -35,13 +35,12 @@ object ExtSimAdapter {
     * @param extSimData
     *   The [[ExtSimAdapterData]] of the corresponding external simulation
     */
-  final case class Create(extSimData: ExtSimAdapterData, phase: Int, unlockKey: ScheduleKey)
+  final case class Create(extSimData: ExtSimAdapterData, unlockKey: ScheduleKey)
 
   final case class Stop(simulationSuccessful: Boolean)
 
   final case class ExtSimAdapterStateData(
       extSimData: ExtSimAdapterData,
-      phase: Int,
       currentTick: Option[Long] = None,
   )
 }
@@ -49,7 +48,7 @@ object ExtSimAdapter {
 final case class ExtSimAdapter(scheduler: ActorRef)
     extends Actor
     with SimonaActorLogging {
-  override def receive: Receive = { case Create(extSimAdapterData, phase, unlockKey) =>
+  override def receive: Receive = { case Create(extSimAdapterData, unlockKey) =>
     // triggering first time at init tick
     scheduler ! ScheduleActivation(
       self.toTyped,
@@ -57,7 +56,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
       Some(unlockKey),
     )
     context become receiveIdle(
-      ExtSimAdapterStateData(extSimAdapterData, phase)
+      ExtSimAdapterStateData(extSimAdapterData)
     )
   }
 
@@ -66,7 +65,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
   ): Receive = {
     case Activation(tick) =>
       stateData.extSimData.queueExtMsg(
-        new ActivationMessage(tick, stateData.phase)
+        new ActivationMessage(tick)
       )
       log.debug(
         "Tick {} has been activated in external simulation",
@@ -105,7 +104,7 @@ final case class ExtSimAdapter(scheduler: ActorRef)
     case Stop(simulationSuccessful) =>
       // let external sim know that we have terminated
       stateData.extSimData.queueExtMsg(
-        new TerminationMessage(simulationSuccessful, stateData.phase)
+        new TerminationMessage(simulationSuccessful)
       )
 
     case _: TerminationCompleted =>

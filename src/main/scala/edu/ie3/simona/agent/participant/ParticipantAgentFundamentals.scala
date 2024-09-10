@@ -97,11 +97,16 @@ protected trait ParticipantAgentFundamentals[
       senderToMaybeTick,
     )
 
+    log.info(s"initializeParticipantForPrimaryDataReplay")
     /* Confirm final initialization */
     releaseTick()
-    senderToMaybeTick._2.foreach { tick =>
-      scheduler ! Completion(self.toTyped, Some(tick))
+    log.info(s"initializeParticipantForPrimaryDataReplay -> released tick")
+    val msge = senderToMaybeTick._2.map { tick =>
+      val msg = Completion(self.toTyped, Some(tick))
+      scheduler ! msg
+      msg
     }
+    log.info(s"initializeParticipantForPrimaryDataReplay -> sent completion $msge to $scheduler")
     goto(Idle) using stateData
   }
 
@@ -281,6 +286,8 @@ protected trait ParticipantAgentFundamentals[
           self.toTyped,
           newTick.filterNot(_ => baseStateData.isEmManaged),
         )
+
+        log.info(s"initializeParticipantForModelCalculation -> sent completion to $scheduler")
 
         log.debug(s"Going to {}, using {}", Idle, nextBaseStateData)
         goto(Idle) using nextBaseStateData

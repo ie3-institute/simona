@@ -19,7 +19,7 @@ import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 final case class ExtSimSetupData(
-    extSimAdapters: Iterable[ClassicRef],
+    extSimAdapter: ClassicRef,
     extDataServices: Map[Class[_], ClassicRef],
     extDataListener: Map[Class[_], ActorRef[ExtResultDataProvider.Request]],
     extDatas: Set[ExtData],
@@ -51,4 +51,5 @@ final case class ExtSimSetupData(
   def extResultData: Option[ExtResultData] = {
     extDatas.collectFirst { case extData: ExtResultData => extData }
   }
+
 }

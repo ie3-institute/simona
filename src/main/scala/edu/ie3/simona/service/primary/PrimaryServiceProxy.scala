@@ -337,6 +337,7 @@ case class PrimaryServiceProxy(
   ): Unit = {
     stateData.extPrimaryDataService match {
       case Some(primaryDataService) =>
+        log.info(s"Send a ExtPrimaryDataServiceRegistrationMessage for $modelUuid")
         primaryDataService ! ExtPrimaryDataServiceRegistrationMessage(
           modelUuid,
           requestingActor,

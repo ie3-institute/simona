@@ -326,22 +326,18 @@ abstract class SimonaExtSimSetup(
                           extSim: ExtSimulation
                         ): ExtSimSetupData = {
     // ExtSimAdapter
-    val extSimAdapterPhase1 = context.toClassic.simonaActorOf(
+    val extSimAdapter = context.toClassic.simonaActorOf(
       ExtSimAdapter.props(scheduler.toClassic),
-      s"1",
+      s"ExtSimAdapter",
     )
 
-    val extSimAdapterPhase2 = context.toClassic.simonaActorOf(
-      ExtSimAdapter.props(scheduler.toClassic),
-      s"2",
-    )
+    val extSimAdapterData = new ExtSimAdapterData(extSimAdapter, args)
 
-    val extSimAdapters: Map[java.lang.Integer, ClassicRef] = Map(
-      1.asInstanceOf[java.lang.Integer] -> extSimAdapterPhase1,
-      2.asInstanceOf[java.lang.Integer] -> extSimAdapterPhase2
+    // send init data right away, init activation is scheduled
+    extSimAdapter ! ExtSimAdapter.Create(
+      extSimAdapterData,
+      ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
     )
-
-    val extSimAdapterData = new ExtSimAdapterData(extSimAdapters.asJava, args)
 
     val extDataServicesMap: mutable.Map[Class[_], ClassicRef] = mutable.Map.empty
     val extDataListenerMap: mutable.Map[Class[_], ActorRef[ExtResultDataProvider.Request]] = mutable.Map.empty
@@ -385,6 +381,7 @@ abstract class SimonaExtSimSetup(
         extDataServicesMap += (classOf[ExtEmDataService] -> extEmDataService)
 
     }
+    context.log.info("Set up all data connections!")
     extSim.setup(
       extSimAdapterData,
       dataConnections
@@ -392,10 +389,7 @@ abstract class SimonaExtSimSetup(
     new Thread(extSim, s"External simulation").start()
 
     ExtSimSetupData(
-      Iterable(
-        extSimAdapterData.getPhase1Adapter,
-        extSimAdapterData.getPhase2Adapter
-      ),
+      extSimAdapter,
       extDataServicesMap.toMap,
       extDataListenerMap.toMap,
       dataConnections.asScala.toSet
@@ -408,14 +402,7 @@ abstract class SimonaExtSimSetup(
                                      extSimAdapterData: ExtSimAdapterData,
                                      extPrimaryData: ExtPrimaryData
                                    ): ClassicRef = {
-    val extSimAdapterPhase1 = extSimAdapterData.getPhase1Adapter
-
-    // send init data right away, init activation is scheduled
-    extSimAdapterPhase1 ! ExtSimAdapter.Create(
-      extSimAdapterData,
-      1,
-      ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
-    )
+    val extSimAdapter = extSimAdapterData.getAdapter
 
     val extPrimaryDataService = context.toClassic.simonaActorOf(
       ExtPrimaryDataService.props(scheduler.toClassic),
@@ -424,7 +411,7 @@ abstract class SimonaExtSimSetup(
 
     extPrimaryData.setActorRefs(
       extPrimaryDataService,
-      extSimAdapterPhase1
+      extSimAdapter
     )
 
     extPrimaryDataService ! SimonaService.Create(
@@ -436,7 +423,7 @@ abstract class SimonaExtSimSetup(
       ),
     )
     println("... pause extPrimaryDataSimulationSetup ...")
-    Thread.sleep(3000)
+    Thread.sleep(1000)
     extPrimaryDataService
   }
 
@@ -447,14 +434,7 @@ abstract class SimonaExtSimSetup(
                                 extSimAdapterData: ExtSimAdapterData,
                                 extEmData: ExtEmData
                               ): ClassicRef = {
-    val extSimAdapterPhase1 = extSimAdapterData.getPhase1Adapter
-
-    // send init data right away, init activation is scheduled
-    extSimAdapterPhase1 ! ExtSimAdapter.Create(
-      extSimAdapterData,
-      1,
-      ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
-    )
+    val extSimAdapter = extSimAdapterData.getAdapter
 
     val extEmDataService = context.toClassic.simonaActorOf(
       ExtEmDataService.props(scheduler.toClassic),
@@ -463,7 +443,7 @@ abstract class SimonaExtSimSetup(
 
     extEmData.setActorRefs(
       extEmDataService,
-      extSimAdapterPhase1
+      extSimAdapter
     )
 
     extEmDataService ! SimonaService.Create(
@@ -475,7 +455,7 @@ abstract class SimonaExtSimSetup(
       ),
     )
     println("... pause extEmDataSimulationSetup ...")
-    Thread.sleep(3000)
+    Thread.sleep(1000)
     extEmDataService
   }
 
@@ -503,12 +483,12 @@ abstract class SimonaExtSimSetup(
     val adapterScheduleRef = Await.result(
       extResultDataProvider.ask[ActorRef[ScheduleServiceActivation]](ref => RequestScheduleActivationAdapter(ref))(timeout, scheduler2), timeout.duration)
 
-    val extSimAdapterPhase2 = extSimAdapterData.getPhase2Adapter
+    val extSimAdapter = extSimAdapterData.getAdapter
 
     extResultData.setActorRefs(
       adapterRef.toClassic,
       adapterScheduleRef.toClassic,
-      extSimAdapterPhase2
+      extSimAdapter
     )
 
     extResultData.setSimulationData(
@@ -524,13 +504,9 @@ abstract class SimonaExtSimSetup(
         INIT_SIM_TICK,
       ),
     )
-    extSimAdapterPhase2 ! ExtSimAdapter.Create(
-      extSimAdapterData,
-      2,
-      ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
-    )
+
     println("... pause extResultDataSimulationSetup ...")
-    Thread.sleep(3000)
+    Thread.sleep(1000)
     extResultDataProvider
   }
 

@@ -93,6 +93,7 @@ object Scheduler {
         inactive(data, newCore)
 
       case (ctx, unexpected) =>
+        ctx.log.info(s"Got $unexpected but I can't handle it!")
         stopOnError(
           ctx,
           s"Received unexpected message $unexpected when inactive",
@@ -105,7 +106,7 @@ object Scheduler {
   ): Behavior[Request] = Behaviors.receive {
 
     case (
-          _,
+          ctx,
           ScheduleActivation(actor, newTick, unlockKey),
         ) =>
       val (toActivate, newCore) = core
@@ -122,10 +123,12 @@ object Scheduler {
       toActivate.foreach {
         _ ! Activation(newCore.activeTick)
       }
+      //ctx.log.info(s"Got ScheduleActivation from $actor ->newCore = $newCore")
 
       active(data, newCore)
 
-    case (_, Completion(actor, maybeNewTick)) =>
+    case (ctx, Completion(actor, maybeNewTick)) =>
+      //ctx.log.info(s"[1] Got Completion from $actor")
       Scope(core.handleCompletion(actor))
         .map { newCore =>
           maybeNewTick
@@ -137,6 +140,7 @@ object Scheduler {
           toActivate.foreach {
             _ ! Activation(updatedCore.activeTick)
           }
+          ////ctx.log.info(s"[2] Got Completion from $actor -> updatedCore = $updatedCore")
           updatedCore
         }
         .map { newCore =>
@@ -147,9 +151,11 @@ object Scheduler {
                 data.activationAdapter,
                 maybeScheduleTick,
               )
+              //ctx.log.info(s"[3] Got Completion from $actor -> inactiveCore = $inactiveCore -> inactive")
               inactive(data, inactiveCore)
             }
             .getOrElse {
+              //ctx.log.info(s"[4] Got Completion from $actor -> newCore = $newCore -> active")
               active(data, newCore)
             }
         }

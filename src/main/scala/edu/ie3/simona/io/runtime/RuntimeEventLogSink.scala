@@ -45,7 +45,7 @@ final case class RuntimeEventLogSink(
 
       case CheckWindowPassed(tick, duration) =>
         log.info(
-          s"\u001b[0;32m******* Simulation until ${calcTime(tick)} completed. ${durationAndMemoryString(duration)} ******\u001b[0;0m"
+          s"\u001b[0;32m******* Simulation until ${calcTime(tick)} completed. ${durationAndMemoryString(duration)} ******\u001b[0;0m\n"
         )
         last = duration
 
