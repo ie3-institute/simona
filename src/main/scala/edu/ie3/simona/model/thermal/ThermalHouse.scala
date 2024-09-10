@@ -212,7 +212,6 @@ final case class ThermalHouse(
     currentInnerTemperature + temperatureChange
   }
 
-
   /** Update the current state of the house
     *
     * @param tick
@@ -280,7 +279,7 @@ final case class ThermalHouse(
       innerTemperature,
       ambientTemperature,
       artificialDuration,
-    )  / artificialDuration
+    ) / artificialDuration
     val resultingQDot = qDotExternal - loss
     if (
       resultingQDot < zeroMW && !isInnerTemperatureTooLow(

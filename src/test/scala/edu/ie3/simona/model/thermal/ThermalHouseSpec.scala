@@ -57,17 +57,18 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
       val innerTemperature = Temperature(20, Celsius)
 
       val thermalEnergyGain = KilowattHours(100)
-      val thermalEnergyLoss = thermalHouseTest.ethLosses.calcThermalEnergyChange(
-        innerTemperature,
-        Temperature(10, Celsius),
-        Seconds(3600),
-      )
+      val thermalEnergyLoss =
+        thermalHouseTest.ethLosses.calcThermalEnergyChange(
+          innerTemperature,
+          Temperature(10, Celsius),
+          Seconds(3600),
+        )
       val thermalEnergyChange = thermalEnergyGain - thermalEnergyLoss
 
-      val innerTemperatureChange = thermalEnergyChange/thermalHouseTest.ethCapa
+      val innerTemperatureChange =
+        thermalEnergyChange / thermalHouseTest.ethCapa
 
       val newInnerTemperature = innerTemperature + innerTemperatureChange
-
 
       thermalEnergyGain should approximate(KilowattHours(100))
       thermalEnergyLoss should approximate(KilowattHours(10))
