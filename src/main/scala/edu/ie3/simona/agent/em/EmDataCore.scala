@@ -389,7 +389,7 @@ object EmDataCore {
                         setPointFlexRequest: SetPointFlexRequest
                       ): AwaitingFlexOptions = {
       copy(
-        nextSetPointTick = Some(setPointFlexRequest.nextSetPointTick),
+        nextSetPointTick = setPointFlexRequest.nextSetPointTick,
         currentSetPower = Some(setPointFlexRequest.setPower)
       )
     }

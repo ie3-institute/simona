@@ -1,4 +1,0 @@
-uuid;cos_phi_rated;dsm;e_cons_annual;id;load_profile;node;operates_from;operates_until;operator;q_characteristics;s_rated;em
-c3434742-e4f0-49e5-baa7-c1e3045c732c;0.93;false;0.0;LV5.201 Load 64;h0;dc54bd8a-b7d8-4e99-adb0-d6ee5084241c;;;;"cosPhiFixed:{(0.0,0.93)}";3.2;f9dc7ce6-658c-4101-a12f-d58bb889286b
-fd2e19b6-d5e3-4776-9456-8787a2160d9d;0.93;false;0.0;LV5.201 Load 74;h0;43040a39-8b6c-401f-9dfd-82b42aa6dec6;;;;"cosPhiFixed:{(0.0,0.93)}";1.1;c3a7e9f5-b492-4c85-af2d-1e93f6a25443
-98c1a2ab-bd09-4c77-a389-d088aed894b1;0.93;false;0.0;LV5.201 Load 102;h0;3e6be3ac-2b51-4080-b815-391313612fc7;;;;"cosPhiFixed:{(0.0,0.93)}";5.3;957938b7-0476-4fab-a1b3-6ce8615857b3

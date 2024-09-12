@@ -41,7 +41,7 @@ object FlexibilityMessage {
   final case class SetPointFlexRequest(
                                         tick: Long,
                                         setPower: Power,
-                                        nextSetPointTick: Long
+                                        nextSetPointTick: Option[Long]
                                       ) extends FlexRequest
 
   /** Message that registers a flex options provider with an

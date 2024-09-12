@@ -3,7 +3,7 @@ package edu.ie3.simona.service.em
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.em.ExtEmData
-import edu.ie3.simona.api.data.em.ontology.{EmDataMessageFromExt, ProvideEmData}
+import edu.ie3.simona.api.data.em.ontology.{EmDataMessageFromExt, ProvideEmSetPointData}
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
@@ -21,6 +21,7 @@ import squants.energy.Kilowatts
 
 import java.util.UUID
 import scala.jdk.CollectionConverters.{CollectionHasAsScala, MapHasAsScala}
+import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
 object ExtEmDataService {
@@ -150,8 +151,8 @@ final case class ExtEmDataService(
         "ExtPrimaryDataService was triggered without ExtPrimaryDataMessage available"
       )
     ) match {
-      case providedEmData: ProvideEmData =>
-        announceEmData(tick, providedEmData.emData)(
+      case providedEmData: ProvideEmSetPointData =>
+        announceEmData(tick, providedEmData)(
           serviceStateData,
           ctx,
         )
@@ -160,12 +161,14 @@ final case class ExtEmDataService(
 
   private def announceEmData(
                             tick: Long,
-                            emData: java.util.Map[UUID, PValue],
-                            )(implicit serviceStateData: ExtEmDataStateData, ctx: ActorContext): (
+                            emDataMessage: ProvideEmSetPointData
+                            )(
+    implicit serviceStateData: ExtEmDataStateData,
+    ctx: ActorContext): (
       ExtEmDataStateData,
       Option[Long]
     ) = {
-    val actorToEmData = emData.asScala.flatMap {
+    val actorToEmData = emDataMessage.emData.asScala.flatMap {
       case (agent, emDataPerAgent) =>
         serviceStateData.uuidToAdapterRef
           .get(agent)
@@ -179,17 +182,22 @@ final case class ExtEmDataService(
           }
     }
 
+    val maybeNextTick = emDataMessage.maybeNextTick.toScala.map(Long2long)
+
     if (actorToEmData.nonEmpty) {
       actorToEmData.foreach {
         case (actor, setPoint) =>
           actor ! SetPointFlexRequest(
             tick,
             setPoint,
-            tick + 900L
+            maybeNextTick
           )
       }
     }
-    (serviceStateData.copy(extEmDataMessage = None), None)
+    (
+      serviceStateData.copy(extEmDataMessage = None),
+      None,
+    )
   }
 
   private def convertToSetPoint(
