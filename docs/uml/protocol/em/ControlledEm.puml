@@ -81,12 +81,15 @@ activate PvAgent
 EmAgent2 -> StorageAgent: IssuePowerControl(tick=0)
 activate StorageAgent
 
+PvAgent -> EmAgent2: FlexResult
 PvAgent -> EmAgent2: FlexCompletion(nextTick=3600)
 deactivate PvAgent
 
+StorageAgent -> EmAgent2: FlexResult
 StorageAgent -> EmAgent2: FlexCompletion(nextTick=1805)
 deactivate StorageAgent
 
+EmAgent2 -> EmAgent1: FlexResult
 EmAgent2 -> EmAgent1: FlexCompletion(nextTick=1805)
 deactivate EmAgent2
 
@@ -116,9 +119,11 @@ activate EmAgent2
 EmAgent2 -> StorageAgent: IssuePowerControl(tick=1805)
 activate StorageAgent
 
+StorageAgent -> EmAgent2: FlexResult
 StorageAgent -> EmAgent2: FlexCompletion(nextTick=10800)
 deactivate StorageAgent
 
+EmAgent2 -> EmAgent1: FlexResult
 EmAgent2 -> EmAgent1: FlexCompletion(nextTick=3600)
 deactivate EmAgent2
 
