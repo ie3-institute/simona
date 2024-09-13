@@ -436,13 +436,17 @@ abstract class ParticipantAgent[
             _,
           ),
         ) =>
-      val updatedReceivedSecondaryData = ValueStore.updateValueStore(
-        participantStateData.receivedSecondaryDataStore,
-        currentTick,
-        data.map { case (actorRef, Some(data: SecondaryData)) =>
-          actorRef -> data
-        },
-      )
+      val updatedReceivedSecondaryData = data match {
+        case nonEmptyData if nonEmptyData.nonEmpty =>
+          ValueStore.updateValueStore(
+            participantStateData.receivedSecondaryDataStore,
+            currentTick,
+            nonEmptyData.collect { case (actorRef, Some(data: SecondaryData)) =>
+              actorRef -> data
+            },
+          )
+        case _ => participantStateData.receivedSecondaryDataStore
+      }
 
       /* At least parts of the needed data has been received or it is an additional activation, that has been triggered.
        * Anyways, the calculation routine has also to take care of filling up missing data. */
