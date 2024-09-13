@@ -49,7 +49,7 @@ import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexResponse,
   IssueFlexControl,
-  RequestFlexOptions,
+  FlexActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
@@ -221,7 +221,7 @@ abstract class ParticipantAgent[
       finalizeTickAfterPF(baseStateData, tick)
 
     case Event(
-          RequestFlexOptions(tick),
+          FlexActivation(tick),
           baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
         ) =>
       val expectedSenders = baseStateData.foreseenDataTicks
@@ -336,7 +336,7 @@ abstract class ParticipantAgent[
       )(stateData.baseStateData.outputConfig)
 
     case Event(
-          RequestFlexOptions(tick),
+          FlexActivation(tick),
           stateData: DataCollectionStateData[PD],
         ) =>
       checkForExpectedDataAndChangeState(

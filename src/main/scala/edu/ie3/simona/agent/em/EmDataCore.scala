@@ -446,7 +446,7 @@ object EmDataCore {
       *   on critical error
       */
     def handleCompletion(
-        completion: FlexCtrlCompletion
+        completion: FlexCompletion
     ): AwaitingCompletions = {
       if (!awaitedCompletions.contains(completion.modelUuid))
         throw new CriticalFailureException(
