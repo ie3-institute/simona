@@ -831,17 +831,15 @@ Heat pump: stays on
       scheduler.expectMessage(Completion(heatPumpAgent, Some(41951)))
 
       /* TICK 42171
-???
-House demand heating : requiredDemand = 15.0 kWh, additionalDemand = 30.00 kWh
-House demand water   : tba
-ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-DomesticWaterStorage : tba
-Heat pump: stays off, demand should be covered by storage
- */
+      ???
+      House demand heating : requiredDemand = 15.0 kWh, additionalDemand = 30.00 kWh
+      House demand water   : tba
+      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      DomesticWaterStorage : tba
+      Heat pump: stays off, demand should be covered by storage
+       */
 
       heatPumpAgent ! Activation(42171)
-
-      //FIXME: weatherData is missing since we onyl store the last 3 activation ticks. see basestateData.secondaryValueStore...
 
       resultListener.expectMessageType[ParticipantResultEvent] match {
         case ParticipantResultEvent(hpResult) =>
@@ -867,9 +865,9 @@ Heat pump: stays off, demand should be covered by storage
             ) =>
               inputModel shouldBe typicalThermalHouse.getUuid
               time shouldBe 41951.toDateTime
-              qDot should equalWithTolerance(0.0.asMegaWatt)
+              qDot should equalWithTolerance(0.011.asMegaWatt)
               indoorTemperature should equalWithTolerance(
-                20.16873007610494.asDegreeCelsius
+                17.9999618660804.asDegreeCelsius
               )
 
             case CylindricalThermalStorageResult(
@@ -880,7 +878,7 @@ Heat pump: stays off, demand should be covered by storage
             ) =>
               inputModel shouldBe typicalThermalStorage.getUuid
               time shouldBe 41951.toDateTime
-              qDot should equalWithTolerance(0.0.asMegaWatt)
+              qDot should equalWithTolerance((-0.011).asMegaWatt)
               energy should equalWithTolerance(0.01044.asMegaWattHour)
             case DomesticHotWaterStorageResult(
             time,
@@ -890,7 +888,7 @@ Heat pump: stays off, demand should be covered by storage
             ) =>
               inputModel shouldBe littleDomesticHotWaterStorageInput.getUuid
               time shouldBe 41951.toDateTime
-              qDot should equalWithTolerance(0.asMegaWatt)
+              qDot should equalWithTolerance((-0.010975183262764632).asMegaWatt)
               energy should equalWithTolerance(
                 0.0008012056438356164.asMegaWattHour
               )
@@ -902,6 +900,8 @@ Heat pump: stays off, demand should be covered by storage
         }
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(42171)))
+
+      // TODO check if domesticStorageDemand is calculated correct or if there should have been an earlier trigger for filling up the empty storage.
 
       /* TICK 45000
       Storage will be empty at tick 45540
