@@ -106,6 +106,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Handle MobSim requests for current prices [#892](https://github.com/ie3-institute/simona/issues/892)
 - Fix determineState of ThermalHouse [#926](https://github.com/ie3-institute/simona/issues/926)
 - Fix activation of Hp when not under control of an EM [#922](https://github.com/ie3-institute/simona/issues/922)
+- Fix expected secondaryData in baseStateData [#955](https://github.com/ie3-institute/simona/issues/955)
 
 ## [3.0.0] - 2023-08-07
 
