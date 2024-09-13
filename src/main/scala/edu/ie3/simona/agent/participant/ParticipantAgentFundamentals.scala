@@ -797,9 +797,13 @@ protected trait ParticipantAgentFundamentals[
       )
       .getOrElse((flexChangeIndicator.changesAtTick, stateDataWithResults))
 
-    flexStateData.emAgent ! FlexCtrlCompletion(
+    flexStateData.emAgent ! FlexResult(
       baseStateData.modelUuid,
       result.primaryData.toApparentPower,
+    )
+
+    flexStateData.emAgent ! FlexCtrlCompletion(
+      baseStateData.modelUuid,
       flexChangeIndicator.changesAtNextActivation,
       nextActivation,
     )

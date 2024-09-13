@@ -70,8 +70,9 @@ object FlexibilityMessage {
       scheduleKey: Option[ScheduleKey] = None,
   ) extends FlexResponse
 
-  /** Message that requests flex options from a flex options provider for given
-    * tick
+  /** Message that activates a connected agent, usually in order to requests
+    * flex options for given tick. During initialization, no flex option
+    * provision is expected.
     *
     * @param tick
     *   The tick to request flex options for
@@ -115,9 +116,9 @@ object FlexibilityMessage {
   final case class IssueNoControl(override val tick: Long)
       extends IssueFlexControl
 
-  /** Message sent by flex options providers indicating that the
-    * [[IssueFlexControl]] message has been handled and the flex communication
-    * for the current tick is completed.
+  /** Message sent by flex options providers that transports the result after
+    * flex control has been handled. Has to be sent before
+    * [[FlexCtrlCompletion]], but is not required during initialization.
     *
     * @param modelUuid
     *   The UUID of the flex options provider asset model
@@ -125,9 +126,21 @@ object FlexibilityMessage {
     *   The apparent power that is produced/consumed by the flex options
     *   provider, which can deviate from the set point communicated by a
     *   [[IssueFlexControl]] message if it is not feasible.
+    */
+  final case class FlexResult(
+      override val modelUuid: UUID,
+      result: ApparentPower,
+  ) extends FlexResponse
+
+  /** Message sent by flex options providers indicating that the
+    * [[IssueFlexControl]] message has been handled and the flex communication
+    * for the current tick is completed.
+    *
+    * @param modelUuid
+    *   The UUID of the flex options provider asset model
     * @param requestAtNextActivation
-    *   Whether or not to request flex options at the very next activation of
-    *   the receiving EM agent. This is the case if flex options change the very
+    *   Whether to request flex options at the very next activation of the
+    *   receiving EM agent. This is the case if flex options change the very
     *   next second after the current tick.
     * @param requestAtTick
     *   Optionally the tick at which flex options are foreseen to have changed,
@@ -136,7 +149,6 @@ object FlexibilityMessage {
     */
   final case class FlexCtrlCompletion(
       override val modelUuid: UUID,
-      result: ApparentPower,
       requestAtNextActivation: Boolean = false,
       requestAtTick: Option[Long] = None,
   ) extends FlexResponse

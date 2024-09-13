@@ -197,7 +197,10 @@ object EmAgent {
             _ ! RequestFlexOptions(msg.tick)
           }
 
-          awaitingFlexOptions(emData, modelShell, newCore)
+          newCore.fold(
+            awaitingFlexOptions(emData, modelShell, _),
+            awaitingCompletions(emData, modelShell, _),
+          )
 
         case Flex(_: IssueFlexControl) =>
           // We got sent a flex control message instead of a flex request,
@@ -359,7 +362,15 @@ object EmAgent {
       modelShell: EmModelShell,
       core: EmDataCore.AwaitingCompletions,
   ): Behavior[Request] = Behaviors.receiveMessagePartial {
-    // Completions and results
+    case result: FlexResult =>
+      val updatedCore = core.handleResult(result)
+
+      awaitingCompletions(
+        emData,
+        modelShell,
+        updatedCore,
+      )
+
     case completion: FlexCtrlCompletion =>
       val updatedCore = core.handleCompletion(completion)
 
@@ -385,34 +396,38 @@ object EmAgent {
 
   }
 
+  /** Completions have all been received, possibly send results and report to
+    * parent
+    */
   private def sendCompletionCommunication(
       emData: EmData,
       modelShell: EmModelShell,
       inactiveCore: EmDataCore.Inactive,
       lastActiveTick: Long,
   ): Unit = {
-    // calc result
-    val result = inactiveCore.getResults
+    // Sum up resulting power, if applicable.
+    // After initialization, there are no results yet.
+    val maybeResult = inactiveCore.getResults
       .reduceOption { (power1, power2) =>
         ApparentPower(power1.p + power2.p, power1.q + power2.q)
       }
-      .getOrElse(
-        ApparentPower(
-          zeroMW,
-          zeroMVAr,
-        )
-      )
 
-    emData.listener.foreach {
-      _ ! ParticipantResultEvent(
-        new EmResult(
-          lastActiveTick
-            .toDateTime(emData.simulationStartDate),
-          modelShell.uuid,
-          result.p.toMegawatts.asMegaWatt,
-          result.q.toMegavars.asMegaVar,
+    maybeResult.foreach { result =>
+      emData.listener.foreach {
+        _ ! ParticipantResultEvent(
+          new EmResult(
+            lastActiveTick
+              .toDateTime(emData.simulationStartDate),
+            modelShell.uuid,
+            result.p.toMegawatts.asMegaWatt,
+            result.q.toMegavars.asMegaVar,
+          )
         )
-      )
+      }
+
+      emData.parentData.foreach {
+        _.emAgent ! FlexResult(modelShell.uuid, result)
+      }
     }
 
     emData.parentData.fold(
@@ -423,7 +438,6 @@ object EmAgent {
         ),
       _.emAgent ! FlexCtrlCompletion(
         modelShell.uuid,
-        result,
         inactiveCore.hasFlexWithNext,
         inactiveCore.nextActiveTick,
       ),
