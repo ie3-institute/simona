@@ -106,7 +106,7 @@ class EmAgentSpec
       /* TICK -1 */
       emAgentActivation ! Activation(INIT_SIM_TICK)
 
-      // expect flex requests
+      // expect flex activations
       pvAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
       evcsAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
 
@@ -133,7 +133,7 @@ class EmAgentSpec
       /* TICK 0 */
       emAgentActivation ! Activation(0)
 
-      // expect flex requests
+      // expect flex activations
       pvAgent.expectMessage(FlexActivation(0))
       evcsAgent.expectMessage(FlexActivation(0))
 
@@ -275,7 +275,7 @@ class EmAgentSpec
       /* TICK 0 */
       emAgentActivation ! Activation(0)
 
-      // expect flex requests
+      // expect flex activations
       pvAgent.expectMessage(FlexActivation(0))
       evcsAgent.expectMessage(FlexActivation(0))
 
@@ -341,7 +341,7 @@ class EmAgentSpec
       /* TICK 300 */
       emAgentActivation ! Activation(300)
 
-      // expect activations and flex requests.
+      // expect activations and flex activations.
       // only pv agent has been scheduled for this tick,
       // thus evcs does not get activated
       evcsAgent.expectNoMessage()
@@ -437,7 +437,7 @@ class EmAgentSpec
       /* TICK 0 */
       emAgentActivation ! Activation(0)
 
-      // expect flex requests
+      // expect flex activations
       pvAgent.expectMessage(FlexActivation(0))
       evcsAgent.expectMessage(FlexActivation(0))
 
@@ -506,7 +506,7 @@ class EmAgentSpec
 
       // FLEX OPTIONS
 
-      // expect activations and flex requests.
+      // expect activations and flex activations.
       // pv is scheduled regularly and evcs at any next tick
       // thus, we expect activations for both
       pvAgent.expectMessage(FlexActivation(300))
@@ -613,7 +613,7 @@ class EmAgentSpec
       /* TICK -1 */
       emAgentFlex ! FlexActivation(INIT_SIM_TICK)
 
-      // expect flex requests
+      // expect flex activations
       pvAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
       evcsAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
 
