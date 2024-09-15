@@ -3,7 +3,7 @@
 This page documents the functionality of the domestic hot water storage available in SIMONA.
 
 ## Behaviour
-This storage model operates on volumes, although the functions it provides for other models all operate with energy. Internally the storage model converts energy to volume and vice versa with formulas specified below. Furthermore it is assumed that the storage medium is water. Also the model holds a variable for the current storage level. At initialisation the storage will be full.
+This storage model operates on volumes, although the functions it provides for other models all operate with energy. Internally the storage model converts energy to volume and vice versa with formulas specified below. Furthermore it is assumed that the storage medium is water. Also the model holds a variable for the current storage level. At initialisation the storage will be full. Domestic hot water storage will be refilled when the state of charge will be below 20 % or when the required water demand can not be covered by the stored energy in the storage itself.
 
 ## Attributes, Units and Remarks
 
