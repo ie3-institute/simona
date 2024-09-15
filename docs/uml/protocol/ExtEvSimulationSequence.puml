@@ -43,11 +43,11 @@ Scheduler -> ExtEvDataService: <font color=red>!</font> Activation(t1)
 deactivate Scheduler
 activate ExtEvDataService
 
-ExtSimulation -> ExtSimAdapter: <font color=red>!</font> Completion(newTriggers)
+ExtSimulation -> ExtSimAdapter: <font color=red>!</font> Completion(newTick)
 deactivate ExtSimulation
 activate ExtSimAdapter
 
-ExtSimAdapter -> Scheduler: <font color=red>!</font> <font color=green>Completion(newTriggers)</font>
+ExtSimAdapter -> Scheduler: <font color=red>!</font> <font color=green>Completion(newTick)</font>
 deactivate ExtSimAdapter
 
 ExtEvDataService -> EvcsAgent1: <font color=red>!</font> RegistrationSuccessfulMessage(t1)
