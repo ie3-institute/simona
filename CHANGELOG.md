@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update RTD references and bibliography [#868](https://github.com/ie3-institute/simona/issues/868)
 - Add gradle application plugin for command line execution with gradle run [#890](https://github.com/ie3-institute/simona/issues/890)
 - Additional tests to check flexibility options of thermal house and storage [#729](https://github.com/ie3-institute/simona/issues/729)
+- EmAgents should be able to handle initialization [#945](https://github.com/ie3-institute/simona/issues/945)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -78,6 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `Gradle` to version V8.10 [#829](https://github.com/ie3-institute/simona/issues/829)
 - Updated AUTHORS.md [#905](https://github.com/ie3-institute/simona/issues/905)
 - Rewrote BMModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Refactoring EM messages [#947](https://github.com/ie3-institute/simona/issues/947)
 
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
@@ -104,6 +106,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Handle MobSim requests for current prices [#892](https://github.com/ie3-institute/simona/issues/892)
 - Fix determineState of ThermalHouse [#926](https://github.com/ie3-institute/simona/issues/926)
 - Fix activation of Hp when not under control of an EM [#922](https://github.com/ie3-institute/simona/issues/922)
+- Fix expected secondaryData in baseStateData [#955](https://github.com/ie3-institute/simona/issues/955)
 
 ## [3.0.0] - 2023-08-07
 
