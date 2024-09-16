@@ -115,7 +115,6 @@ final case class PvModel private (
       lat,
       gammaE,
       alphaE,
-      duration,
     )
 
     // === Diffuse Radiation Parameters ===//
@@ -410,27 +409,32 @@ final case class PvModel private (
       omegaSS: Angle,
       omegaSR: Angle,
   ): Option[(Angle, Angle)] = {
+    val thetaGInRad = thetaG.toRadians
     val omegaSSInRad = omegaSS.toRadians
     val omegaSRInRad = omegaSR.toRadians
 
     val omegaOneHour = toRadians(15d)
+    val omegaHalfHour = omegaOneHour / 2d
 
     val omega1InRad = omega.toRadians // requested hour
     val omega2InRad = omega1InRad + omegaOneHour // requested hour plus 1 hour
 
+    // (thetaG < 90°): sun is visible
+    // (thetaG > 90°), otherwise: sun is behind the surface  -> no direct radiation
     if (
-      // requested time is between sunrise and sunset (+/- one hour)
-      omega1InRad > omegaSRInRad - omegaOneHour
-      && omega1InRad < omegaSSInRad
+      thetaGInRad < toRadians(90)
+      // omega1 and omega2: sun has risen and has not set yet
+      && omega2InRad > omegaSRInRad + omegaHalfHour
+      && omega1InRad < omegaSSInRad - omegaHalfHour
     ) {
 
       val (finalOmega1, finalOmega2) =
         if (omega1InRad < omegaSRInRad) {
           // requested time earlier than sunrise
-          (omegaSRInRad, omega2InRad)
-        } else if (omega1InRad > omegaSSInRad - omegaOneHour) {
-          // requested time is less than one hour before sunset
-          (omega1InRad, omegaSSInRad)
+          (omegaSRInRad, omegaSRInRad + omegaOneHour)
+        } else if (omega2InRad > omegaSSInRad) {
+          // sunset earlier than requested time
+          (omegaSSInRad - omegaOneHour, omegaSSInRad)
         } else {
           (omega1InRad, omega2InRad)
         }
@@ -467,7 +471,6 @@ final case class PvModel private (
       latitude: Angle,
       gammaE: Angle,
       alphaE: Angle,
-      duration: Time,
   ): Irradiation = {
 
     omegas match {
@@ -479,9 +482,6 @@ final case class PvModel private (
 
         val omega1InRad = omega1.toRadians
         val omega2InRad = omega2.toRadians
-        // variable that accounts for cases when the integration interval is shorter than 15° (1 hour equivalent), when the time is close to sunrise or sunset
-        val timeFrame =
-          (omega2 - omega1).toDegrees / 15d / duration.toHours // original term: (omega2 - omega1).toRadians * 180 / Math.PI / 15, since a one hour difference equals 15°
 
         val a = ((sin(deltaInRad) * sin(latInRad) * cos(gammaEInRad)
           - sin(deltaInRad) * cos(latInRad) * sin(gammaEInRad) * cos(
@@ -503,17 +503,8 @@ final case class PvModel private (
 
         // in rare cases (close to sunrise) r can become negative (although very small)
         val r = max(a / b, 0d)
-        eBeamH * r * timeFrame
+        eBeamH * r
       case None => WattHoursPerSquareMeter(0d)
-    }
-  }
-
-  def calculateTimeFrame(omegas: Option[(Angle, Angle)]): Double = {
-    omegas match {
-      case Some((omega1, omega2)) =>
-        (omega2 - omega1).toDegrees / 15
-
-      case None => 0d
     }
   }
 
