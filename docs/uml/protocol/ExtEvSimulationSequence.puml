@@ -43,26 +43,26 @@ Scheduler -> ExtEvDataService: <font color=red>!</font> Activation(t1)
 deactivate Scheduler
 activate ExtEvDataService
 
-ExtSimulation -> ExtSimAdapter: <font color=red>!</font> Completion(newTick)
+ExtSimulation -> ExtSimAdapter: <font color=red>!</font> CompletionMessage(newTick)
 deactivate ExtSimulation
 activate ExtSimAdapter
 
-ExtSimAdapter -> Scheduler: <font color=red>!</font> <font color=green>Completion(newTick)</font>
+ExtSimAdapter -> Scheduler: <font color=red>!</font> <font color=green>CompletionMessage(newTick)</font>
 deactivate ExtSimAdapter
 
 ExtEvDataService -> EvcsAgent1: <font color=red>!</font> RegistrationSuccessfulMessage(t1)
 activate EvcsAgent1
 
-EvcsAgent1 -> Scheduler: <font color=red>!</font> Completion(t1)
+EvcsAgent1 -> Scheduler: <font color=red>!</font> CompletionMessage(t1)
 deactivate EvcsAgent1
 
 ExtEvDataService -> EvcsAgent2: <font color=red>!</font> RegistrationSuccessfulMessage(t1)
 activate EvcsAgent2
 
-EvcsAgent2 -> Scheduler: <font color=red>!</font> Completion(t1)
+EvcsAgent2 -> Scheduler: <font color=red>!</font> CompletionMessage(t1)
 deactivate EvcsAgent2
 
-ExtEvDataService -> Scheduler: <font color=red>!</font> Completion(None)
+ExtEvDataService -> Scheduler: <font color=red>!</font> CompletionMessage(None)
 deactivate ExtEvDataService
 
 ==Simulation==
@@ -96,7 +96,7 @@ group Request free lots
     ExtEvDataService -> EvcsAgent2: <font color=red>!</font> EvFreeLotsRequest(t1)
     activate EvcsAgent2
 
-    ExtEvDataService -> Scheduler: <font color=red>!</font> Completion(None)
+    ExtEvDataService -> Scheduler: <font color=red>!</font> CompletionMessage(None)
 
     EvcsAgent2 -> ExtEvDataService: <font color=red>!</font> FreeLotsResponse(_, _)
     deactivate EvcsAgent2
@@ -124,7 +124,7 @@ group Request current prices (dummy implementation)
 
     ExtEvDataService -> ExtSimulation: queue(ProvideCurrentPrices(_))
 
-    ExtEvDataService -> Scheduler: <font color=red>!</font> Completion(None)
+    ExtEvDataService -> Scheduler: <font color=red>!</font> CompletionMessage(None)
 
     deactivate ExtEvDataService
 end
@@ -149,7 +149,7 @@ group Request departing EVs
     ExtEvDataService -> EvcsAgent2: <font color=red>!</font> DepartingEvsRequest(t1)
     activate EvcsAgent2
 
-    ExtEvDataService -> Scheduler: <font color=red>!</font> Completion(None)
+    ExtEvDataService -> Scheduler: <font color=red>!</font> CompletionMessage(None)
 
     EvcsAgent2 -> ExtEvDataService: <font color=red>!</font> DepartingEvsResponse(_, _)
     deactivate EvcsAgent2
@@ -182,21 +182,21 @@ group Provide arriving EVs
     ExtEvDataService -> EvcsAgent2: <font color=red>!</font> ProvideEvDataMessage(evs, t2)
     activate EvcsAgent2
 
-    ExtEvDataService -> Scheduler: <font color=red>!</font> Completion(None)
+    ExtEvDataService -> Scheduler: <font color=red>!</font> CompletionMessage(None)
     deactivate ExtEvDataService
 
-    EvcsAgent1 -> Scheduler: <font color=red>!</font> Completion(t2)
+    EvcsAgent1 -> Scheduler: <font color=red>!</font> CompletionMessage(t2)
     deactivate EvcsAgent1
 
-    EvcsAgent2 -> Scheduler: <font color=red>!</font> Completion(t2)
+    EvcsAgent2 -> Scheduler: <font color=red>!</font> CompletionMessage(t2)
     deactivate EvcsAgent2
 end
 
-ExtSimulation -> ExtSimAdapter: <font color=red>!</font> Completion(t2)
+ExtSimulation -> ExtSimAdapter: <font color=red>!</font> CompletionMessage(t2)
 deactivate ExtSimulation
 activate ExtSimAdapter
 
-ExtSimAdapter -> Scheduler: <font color=red>!</font> <font color=green>Completion(t2)</font>
+ExtSimAdapter -> Scheduler: <font color=red>!</font> <font color=green>CompletionMessage(t2)</font>
 deactivate ExtSimAdapter
 
 @enduml
