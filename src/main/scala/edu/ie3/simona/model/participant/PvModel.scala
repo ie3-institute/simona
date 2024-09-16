@@ -337,7 +337,7 @@ final case class PvModel private (
     val e0 = 1.000110 +
       0.034221 * cos(jInRad) +
       0.001280 * sin(jInRad) +
-      0.00719 * cos(2d * jInRad) +
+      0.000719 * cos(2d * jInRad) +
       0.000077 * sin(2d * jInRad)
 
     // solar constant in W/m2
