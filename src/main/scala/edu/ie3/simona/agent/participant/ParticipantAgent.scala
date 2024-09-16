@@ -49,7 +49,7 @@ import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexResponse,
   IssueFlexControl,
-  RequestFlexOptions,
+  FlexActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
@@ -221,7 +221,7 @@ abstract class ParticipantAgent[
       finalizeTickAfterPF(baseStateData, tick)
 
     case Event(
-          RequestFlexOptions(tick),
+          FlexActivation(tick),
           baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
         ) =>
       val expectedSenders = baseStateData.foreseenDataTicks
@@ -336,7 +336,7 @@ abstract class ParticipantAgent[
       )(stateData.baseStateData.outputConfig)
 
     case Event(
-          RequestFlexOptions(tick),
+          FlexActivation(tick),
           stateData: DataCollectionStateData[PD],
         ) =>
       checkForExpectedDataAndChangeState(
@@ -436,13 +436,17 @@ abstract class ParticipantAgent[
             _,
           ),
         ) =>
-      val updatedReceivedSecondaryData = ValueStore.updateValueStore(
-        participantStateData.receivedSecondaryDataStore,
-        currentTick,
-        data.map { case (actorRef, Some(data: SecondaryData)) =>
-          actorRef -> data
-        },
-      )
+      val updatedReceivedSecondaryData = data match {
+        case nonEmptyData if nonEmptyData.nonEmpty =>
+          ValueStore.updateValueStore(
+            participantStateData.receivedSecondaryDataStore,
+            currentTick,
+            nonEmptyData.collect { case (actorRef, Some(data: SecondaryData)) =>
+              actorRef -> data
+            },
+          )
+        case _ => participantStateData.receivedSecondaryDataStore
+      }
 
       /* At least parts of the needed data has been received or it is an additional activation, that has been triggered.
        * Anyways, the calculation routine has also to take care of filling up missing data. */
