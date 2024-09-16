@@ -1277,7 +1277,7 @@ class EvcsAgentModelCalculationSpec
          - currently no cars
        */
 
-      emAgent.send(evcsAgent, RequestFlexOptions(0))
+      emAgent.send(evcsAgent, FlexActivation(0))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -1308,19 +1308,17 @@ class EvcsAgentModelCalculationSpec
       // next potential activation at fully charged battery:
       // net power = 12.961kW * 0.92 = 11.92412kW
       // time to charge fully ~= 16.7727262054h = 60382 ticks (rounded)
-      emAgent.expectMsgPF() {
-        case FlexCtrlCompletion(
-              modelUuid,
-              result,
-              requestAtNextActivation,
-              requestAtTick,
-            ) =>
-          modelUuid shouldBe evcsInputModelQv.getUuid
-          result.p should approximate(Kilowatts(0))
-          result.q should approximate(Megavars(0))
-          requestAtNextActivation shouldBe false
-          requestAtTick shouldBe Some(900)
+      emAgent.expectMsgPF() { case FlexResult(modelUuid, result) =>
+        modelUuid shouldBe evcsInputModelQv.getUuid
+        result.p should approximate(Kilowatts(0))
+        result.q should approximate(Megavars(0))
       }
+      emAgent.expectMsg(
+        FlexCompletion(
+          modelUuid = evcsInputModelQv.getUuid,
+          requestAtTick = Some(900),
+        )
+      )
 
       // results arrive after next activation
       resultListener.expectNoMessage()
@@ -1342,7 +1340,7 @@ class EvcsAgentModelCalculationSpec
         ),
       )
 
-      emAgent.send(evcsAgent, RequestFlexOptions(900))
+      emAgent.send(evcsAgent, FlexActivation(900))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -1368,28 +1366,27 @@ class EvcsAgentModelCalculationSpec
       emAgent.send(evcsAgent, IssueNoControl(900))
 
       // at 4500 ev is departing
-      emAgent.expectMsgPF() {
-        case FlexCtrlCompletion(
-              modelUuid,
-              result,
-              requestAtNextActivation,
-              requestAtTick,
-            ) =>
-          modelUuid shouldBe evcsInputModelQv.getUuid
-          result.p should approximate(
-            Kilowatts(
-              ev900
-                .unwrap()
-                .getSRatedAC
-                .to(PowerSystemUnits.KILOWATT)
-                .getValue
-                .doubleValue
-            )
+      emAgent.expectMsgPF() { case FlexResult(modelUuid, result) =>
+        modelUuid shouldBe evcsInputModelQv.getUuid
+        result.p should approximate(
+          Kilowatts(
+            ev900
+              .unwrap()
+              .getSRatedAC
+              .to(PowerSystemUnits.KILOWATT)
+              .getValue
+              .doubleValue
           )
-          result.q should approximate(Megavars(0))
-          requestAtNextActivation shouldBe true
-          requestAtTick shouldBe Some(4500)
+        )
+        result.q should approximate(Megavars(0))
       }
+      emAgent.expectMsg(
+        FlexCompletion(
+          modelUuid = evcsInputModelQv.getUuid,
+          requestAtNextActivation = true,
+          requestAtTick = Some(4500),
+        )
+      )
 
       // result of tick 0
       resultListener.expectMsgPF() {
@@ -1460,7 +1457,7 @@ class EvcsAgentModelCalculationSpec
         ),
       )
 
-      emAgent.send(evcsAgent, RequestFlexOptions(4500))
+      emAgent.send(evcsAgent, FlexActivation(4500))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -1488,19 +1485,18 @@ class EvcsAgentModelCalculationSpec
       // we currently have an empty battery in ev4500
       // time to charge to minimal soc ~= 1.45454545455h = 5236 ticks (rounded) from now
       // current tick is 4500, thus: 4500 + 5236 = 9736
-      emAgent.expectMsgPF() {
-        case FlexCtrlCompletion(
-              modelUuid,
-              result,
-              requestAtNextActivation,
-              requestAtTick,
-            ) =>
-          modelUuid shouldBe evcsInputModelQv.getUuid
-          result.p should approximate(Kilowatts(11))
-          result.q should approximate(Megavars(0))
-          requestAtNextActivation shouldBe true
-          requestAtTick shouldBe Some(9736)
+      emAgent.expectMsgPF() { case FlexResult(modelUuid, result) =>
+        modelUuid shouldBe evcsInputModelQv.getUuid
+        result.p should approximate(Kilowatts(11))
+        result.q should approximate(Megavars(0))
       }
+      emAgent.expectMsg(
+        FlexCompletion(
+          modelUuid = evcsInputModelQv.getUuid,
+          requestAtNextActivation = true,
+          requestAtTick = Some(9736),
+        )
+      )
 
       // already sent out after EV departed
       resultListener.expectNoMessage()
@@ -1511,7 +1507,7 @@ class EvcsAgentModelCalculationSpec
        */
 
       // sending flex request at very next activated tick
-      emAgent.send(evcsAgent, RequestFlexOptions(9736))
+      emAgent.send(evcsAgent, FlexActivation(9736))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -1541,20 +1537,18 @@ class EvcsAgentModelCalculationSpec
       // ev4500 is now at 16 kWh
       // time to charge fully = 6.4 h = 23040 ticks from now
       // current tick is 9736, thus: 9736 + 23040 = 32776
-      emAgent.expectMsgPF() {
-        case FlexCtrlCompletion(
-              modelUuid,
-              result,
-              requestAtNextActivation,
-              requestAtTick,
-            ) =>
-          modelUuid shouldBe evcsInputModelQv.getUuid
-          result.p should approximate(Kilowatts(10))
-          result.q should approximate(Megavars(0))
-          // since battery is still below lowest soc, it's still considered empty
-          requestAtNextActivation shouldBe true
-          requestAtTick shouldBe Some(11700)
+      emAgent.expectMsgPF() { case FlexResult(modelUuid, result) =>
+        modelUuid shouldBe evcsInputModelQv.getUuid
+        result.p should approximate(Kilowatts(10))
+        result.q should approximate(Megavars(0))
       }
+      emAgent.expectMsg(
+        FlexCompletion(
+          modelUuid = evcsInputModelQv.getUuid,
+          requestAtNextActivation = true,
+          requestAtTick = Some(11700),
+        )
+      )
 
       resultListener.expectMsgPF() {
         case ParticipantResultEvent(result: EvResult) =>
@@ -1593,7 +1587,7 @@ class EvcsAgentModelCalculationSpec
         ),
       )
 
-      emAgent.send(evcsAgent, RequestFlexOptions(11700))
+      emAgent.send(evcsAgent, FlexActivation(11700))
 
       val combinedChargingPower =
         ev11700.unwrap().getSRatedAC.add(ev4500.unwrap().getSRatedAC)
@@ -1633,20 +1627,18 @@ class EvcsAgentModelCalculationSpec
       // ev4500: time to charge fully ~= 7.3180556 h = 26345 ticks from now
       // ev11700: time to charge fully = 5.8 h = 20880 ticks from now
       // current tick is 11700, thus: 11700 + 20880 = 32580
-      emAgent.expectMsgPF() {
-        case FlexCtrlCompletion(
-              modelUuid,
-              result,
-              requestAtNextActivation,
-              requestAtTick,
-            ) =>
-          modelUuid shouldBe evcsInputModelQv.getUuid
-          result.p should approximate(Kilowatts(16))
-          result.q should approximate(Megavars(0))
-          // since battery is still below lowest soc, it's still considered empty
-          requestAtNextActivation shouldBe true
-          requestAtTick shouldBe Some(32580)
+      emAgent.expectMsgPF() { case FlexResult(modelUuid, result) =>
+        modelUuid shouldBe evcsInputModelQv.getUuid
+        result.p should approximate(Kilowatts(16))
+        result.q should approximate(Megavars(0))
       }
+      emAgent.expectMsg(
+        FlexCompletion(
+          modelUuid = evcsInputModelQv.getUuid,
+          requestAtNextActivation = true,
+          requestAtTick = Some(32580),
+        )
+      )
 
       resultListener.expectMsgPF() {
         case ParticipantResultEvent(result: EvResult) =>
@@ -1671,7 +1663,7 @@ class EvcsAgentModelCalculationSpec
        */
 
       // sending flex request at very next activated tick
-      emAgent.send(evcsAgent, RequestFlexOptions(18000))
+      emAgent.send(evcsAgent, FlexActivation(18000))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -1707,19 +1699,17 @@ class EvcsAgentModelCalculationSpec
       // ev4500: time to discharge to lowest soc ~= 1.9455556 h = 7004 ticks from now
       // ev11700: time to discharge to lowest soc ~= 1.4 h = 5040 ticks from now
       // current tick is 18000, thus: 18000 + 5040 = 23040
-      emAgent.expectMsgPF() {
-        case FlexCtrlCompletion(
-              modelUuid,
-              result,
-              requestAtNextActivation,
-              requestAtTick,
-            ) =>
-          modelUuid shouldBe evcsInputModelQv.getUuid
-          result.p should approximate(Kilowatts(-20))
-          result.q should approximate(Megavars(0))
-          requestAtNextActivation shouldBe false
-          requestAtTick shouldBe Some(23040)
+      emAgent.expectMsgPF() { case FlexResult(modelUuid, result) =>
+        modelUuid shouldBe evcsInputModelQv.getUuid
+        result.p should approximate(Kilowatts(-20))
+        result.q should approximate(Megavars(0))
       }
+      emAgent.expectMsg(
+        FlexCompletion(
+          modelUuid = evcsInputModelQv.getUuid,
+          requestAtTick = Some(23040),
+        )
+      )
 
       Range(0, 2)
         .map { _ =>
@@ -1753,7 +1743,7 @@ class EvcsAgentModelCalculationSpec
          - discharging with 10 kW
        */
 
-      emAgent.send(evcsAgent, RequestFlexOptions(23040))
+      emAgent.send(evcsAgent, FlexActivation(23040))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -1791,19 +1781,17 @@ class EvcsAgentModelCalculationSpec
       // ev4500 is now at 21.455556 kWh, ev11700 at 11.6 kWh (lowest soc)
       // ev4500: time to discharge to lowest soc =  0.5455556 h = 1964 ticks from now
       // current tick is 18864, thus: 23040 + 1964 = 25004
-      emAgent.expectMsgPF() {
-        case FlexCtrlCompletion(
-              modelUuid,
-              result,
-              requestAtNextActivation,
-              requestAtTick,
-            ) =>
-          modelUuid shouldBe evcsInputModelQv.getUuid
-          result.p should approximate(Kilowatts(-10))
-          result.q should approximate(Megavars(0))
-          requestAtNextActivation shouldBe false
-          requestAtTick shouldBe Some(25004)
+      emAgent.expectMsgPF() { case FlexResult(modelUuid, result) =>
+        modelUuid shouldBe evcsInputModelQv.getUuid
+        result.p should approximate(Kilowatts(-10))
+        result.q should approximate(Megavars(0))
       }
+      emAgent.expectMsg(
+        FlexCompletion(
+          modelUuid = evcsInputModelQv.getUuid,
+          requestAtTick = Some(25004),
+        )
+      )
 
       Range(0, 2)
         .map { _ =>
@@ -1837,7 +1825,7 @@ class EvcsAgentModelCalculationSpec
          - no power
        */
 
-      emAgent.send(evcsAgent, RequestFlexOptions(25004))
+      emAgent.send(evcsAgent, FlexActivation(25004))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -1866,19 +1854,16 @@ class EvcsAgentModelCalculationSpec
       evService.expectNoMessage()
 
       // no new activation
-      emAgent.expectMsgPF() {
-        case FlexCtrlCompletion(
-              modelUuid,
-              result,
-              requestAtNextActivation,
-              requestAtTick,
-            ) =>
-          modelUuid shouldBe evcsInputModelQv.getUuid
-          result.p should approximate(Kilowatts(0))
-          result.q should approximate(Megavars(0))
-          requestAtNextActivation shouldBe false
-          requestAtTick shouldBe None
+      emAgent.expectMsgPF() { case FlexResult(modelUuid, result) =>
+        modelUuid shouldBe evcsInputModelQv.getUuid
+        result.p should approximate(Kilowatts(0))
+        result.q should approximate(Megavars(0))
       }
+      emAgent.expectMsg(
+        FlexCompletion(
+          modelUuid = evcsInputModelQv.getUuid
+        )
+      )
 
       Range(0, 2)
         .map { _ =>
@@ -1955,7 +1940,7 @@ class EvcsAgentModelCalculationSpec
       }
 
       // sending flex request at very next activated tick
-      emAgent.send(evcsAgent, RequestFlexOptions(36000))
+      emAgent.send(evcsAgent, FlexActivation(36000))
 
       emAgent.expectMsgType[ProvideFlexOptions] match {
         case ProvideMinMaxFlexOptions(
@@ -1984,20 +1969,18 @@ class EvcsAgentModelCalculationSpec
       // ev11700: time to charge fully = 16 h = 57600 ticks from now
       // current tick is 36000, thus: 36000 + 57600 = 93600
       // BUT: departing tick 72000 is earlier
-      emAgent.expectMsgPF() {
-        case FlexCtrlCompletion(
-              modelUuid,
-              result,
-              requestAtNextActivation,
-              requestAtTick,
-            ) =>
-          modelUuid shouldBe evcsInputModelQv.getUuid
-          result.p should approximate(Kilowatts(4))
-          result.q should approximate(Megavars(0))
-          // since we're starting from lowest again
-          requestAtNextActivation shouldBe true
-          requestAtTick shouldBe Some(72000)
+      emAgent.expectMsgPF() { case FlexResult(modelUuid, result) =>
+        modelUuid shouldBe evcsInputModelQv.getUuid
+        result.p should approximate(Kilowatts(4))
+        result.q should approximate(Megavars(0))
       }
+      emAgent.expectMsg(
+        FlexCompletion(
+          modelUuid = evcsInputModelQv.getUuid,
+          requestAtNextActivation = true,
+          requestAtTick = Some(72000),
+        )
+      )
 
       // expect no more messages after completion of initialization
       scheduler.expectNoMessage()
