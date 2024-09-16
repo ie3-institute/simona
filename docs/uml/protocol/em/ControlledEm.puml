@@ -54,13 +54,13 @@ deactivate WeatherService
 Scheduler -> EmAgent1: Activation(tick=0)
 activate EmAgent1
 
-EmAgent1 -> EmAgent2: RequestFlexOptions(tick=0)
+EmAgent1 -> EmAgent2: FlexActivation(tick=0)
 activate EmAgent2
 
-EmAgent2 -> StorageAgent: RequestFlexOptions(tick=0)
+EmAgent2 -> StorageAgent: FlexActivation(tick=0)
 activate StorageAgent
 
-EmAgent2 -> PvAgent: RequestFlexOptions(tick=0)
+EmAgent2 -> PvAgent: FlexActivation(tick=0)
 activate PvAgent
 
 PvAgent -> EmAgent2: ProvideFlexOptions
@@ -81,12 +81,15 @@ activate PvAgent
 EmAgent2 -> StorageAgent: IssuePowerControl(tick=0)
 activate StorageAgent
 
+PvAgent -> EmAgent2: FlexResult
 PvAgent -> EmAgent2: FlexCompletion(nextTick=3600)
 deactivate PvAgent
 
+StorageAgent -> EmAgent2: FlexResult
 StorageAgent -> EmAgent2: FlexCompletion(nextTick=1805)
 deactivate StorageAgent
 
+EmAgent2 -> EmAgent1: FlexResult
 EmAgent2 -> EmAgent1: FlexCompletion(nextTick=1805)
 deactivate EmAgent2
 
@@ -98,10 +101,10 @@ deactivate EmAgent1
 Scheduler -> EmAgent1: Activation(tick=1805)
 activate EmAgent1
 
-EmAgent1 -> EmAgent2: RequestFlexOptions(tick=1805)
+EmAgent1 -> EmAgent2: FlexActivation(tick=1805)
 activate EmAgent2
 
-EmAgent2 -> StorageAgent: RequestFlexOptions(tick=1805)
+EmAgent2 -> StorageAgent: FlexActivation(tick=1805)
 activate StorageAgent
 
 StorageAgent -> EmAgent2: ProvideFlexOptions
@@ -116,9 +119,11 @@ activate EmAgent2
 EmAgent2 -> StorageAgent: IssuePowerControl(tick=1805)
 activate StorageAgent
 
+StorageAgent -> EmAgent2: FlexResult
 StorageAgent -> EmAgent2: FlexCompletion(nextTick=10800)
 deactivate StorageAgent
 
+EmAgent2 -> EmAgent1: FlexResult
 EmAgent2 -> EmAgent1: FlexCompletion(nextTick=3600)
 deactivate EmAgent2
 
