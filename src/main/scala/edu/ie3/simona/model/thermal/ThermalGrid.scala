@@ -378,7 +378,9 @@ final case class ThermalGrid(
         state,
         qDotHouseLastState.getOrElse(zeroKW),
         qDotStorageLastState.getOrElse(zeroKW),
-        qDotDomesticWaterStorageLastState.getOrElse(zeroKW),
+        if (domesticHotWaterStorageDemand.hasRequiredDemand)
+          qDotDomesticWaterStorageLastState.getOrElse(zeroKW)
+        else zeroKW,
         simulationStartTime,
         houseInhabitants,
       )
