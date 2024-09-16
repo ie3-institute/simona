@@ -6,8 +6,14 @@
 
 package edu.ie3.simona.model.thermal
 
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.HouseTemperatureLowerBoundaryReached
+import edu.ie3.simona.model.thermal.ThermalHouse.{
+  ThermalHouseState,
+  startingState,
+}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.HpInputTestData
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import edu.ie3.util.scala.quantities.WattsPerKelvin
 import org.scalatest.prop.TableFor3
 import squants.energy._
@@ -91,6 +97,31 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
       )
 
       newInnerTemperature should approximate(Temperature(29, Celsius))
+    }
+
+    "Check for the correct state of house when ambient temperature changes" in {
+      val house = thermalHouse(18, 22)
+      val initialHousestate = startingState(house)
+      val lastAmbientTemperature = Temperature(15, Celsius)
+      val ambientTemperature = Temperature(-20, Celsius)
+
+      val (thermalHouseState, threshold) = house.determineState(
+        3600L,
+        initialHousestate,
+        lastAmbientTemperature,
+        ambientTemperature,
+        zeroKW,
+      )
+
+      thermalHouseState match {
+        case ThermalHouseState(tick, temperature, qDot) =>
+          tick shouldBe 3600L
+          temperature should approximate(Kelvin(292.64986111))
+          qDot shouldBe zeroKW
+        case unexpected =>
+          fail(s"Expected a thermalHouseState but got none $unexpected.")
+      }
+      threshold shouldBe Some(HouseTemperatureLowerBoundaryReached(4967))
     }
 
     "Check build method" in {
