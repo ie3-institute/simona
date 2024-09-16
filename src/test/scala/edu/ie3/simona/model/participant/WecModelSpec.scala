@@ -126,7 +126,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
           -24573.39638823692, 0)
 
       velocities.zip(expectedPowers).foreach { case (velocity, power) =>
-        val wecData = new WecRelevantData(
+        val wecData = WecRelevantData(
           MetersPerSecond(velocity),
           Celsius(20),
           Some(Pascals(101325d)),
@@ -174,17 +174,18 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
       val expectedPowers =
         Seq(-23377.23862017266, -24573.41320418286, -29029.60338829823)
 
-      temperatures.zip(expectedPowers).foreach { case (temperature, power) =>
-        val wecData = new WecRelevantData(
+      for (i <- temperatures.indices) {
+        val temperature = temperatures(i)
+        val expectedPower = expectedPowers(i)
+        val wecData = WecRelevantData(
           MetersPerSecond(3.0),
           Celsius(temperature),
           Some(Pascals(101325d)),
         )
-        val result = {
+        val result =
           wecModel.calculateActivePower(ModelState.ConstantState, wecData)
-        }
-        val expectedPower = Watts(power)
-        result shouldBe expectedPower
+        val expectedPowerInWatts = Watts(expectedPower)
+        result shouldBe expectedPowerInWatts
       }
     }
   }

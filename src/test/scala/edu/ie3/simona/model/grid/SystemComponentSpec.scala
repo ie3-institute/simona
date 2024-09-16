@@ -103,12 +103,10 @@ class SystemComponentSpec extends UnitSpec with DefaultTestData {
         ),
       )
 
-      for ((operationStart, operationEnd, expected) <- testCases) {
+      testCases.foreach { case (operationStart, operationEnd, expected) =>
         val operationTimeBuilder = setup()
-
         operationStart.foreach(operationTimeBuilder.withStart)
         operationEnd.foreach(operationTimeBuilder.withEnd)
-
         val operationTime: OperationTime = operationTimeBuilder.build()
 
         val interval: OperationInterval =
@@ -117,7 +115,6 @@ class SystemComponentSpec extends UnitSpec with DefaultTestData {
             simulationEnd,
             operationTime,
           )
-
         interval should be(expected)
       }
     }
