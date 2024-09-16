@@ -189,10 +189,15 @@ final case class ThermalGrid(
               ._1
           val storedEnergy = updatedStorageState.storedEnergy
 
+          // Declare demand of domestic hot water storage if demand is higher than stored energy or stored energy is less than 20% of capacity
           val demandOfStorage =
-            if (storedEnergy < demandHotDomesticWater.required)
-              demandHotDomesticWater.required.minus(storedEnergy)
-            else zeroMWH
+            if (
+              storedEnergy < demandHotDomesticWater.required || storedEnergy < storage.getMaxEnergyThreshold * 0.2
+            ) {
+
+              storage.getMaxEnergyThreshold + demandHotDomesticWater.required - storedEnergy
+
+            } else zeroMWH
           (
             ThermalEnergyDemand(demandOfStorage, demandOfStorage),
             Some(updatedStorageState),
