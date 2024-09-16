@@ -201,14 +201,19 @@ final case class ThermalHouse(
   ): Temperature = {
     val thermalEnergyGain = thermalPower * duration
 
+    // thermal energy loss due to the deviation between outside and inside temperature
     val thermalEnergyLoss = ethLosses.calcThermalEnergyChange(
       currentInnerTemperature,
       ambientTemperature,
       duration,
     )
 
-    val temperatureChange = (thermalEnergyGain - thermalEnergyLoss) / ethCapa
+    val energyChange = thermalEnergyGain - thermalEnergyLoss
 
+    // temperature change calculated from energy change(WattHours) and thermal capacity(Joules per Kelvin)
+    val temperatureChange = energyChange / ethCapa
+
+    // return value new inner temperature
     currentInnerTemperature + temperatureChange
   }
 
