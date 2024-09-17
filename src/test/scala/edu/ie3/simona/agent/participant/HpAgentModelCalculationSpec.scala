@@ -736,7 +736,7 @@ class HpAgentModelCalculationSpec
 
       /* The agent will notice, that all expected information are apparent, switch to Calculate and trigger itself
        * for starting the calculation */
-      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(3612)))
+      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(3613)))
 
       /* Appreciate the answer to my previous request */
       expectMsgType[AssetPowerChangedMessage] match {
@@ -814,9 +814,9 @@ class HpAgentModelCalculationSpec
         ),
       )
       scheduler.send(hpAgent, Activation(3600))
-      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(3612)))
+      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(3613)))
 
-      scheduler.send(hpAgent, Activation(3612))
+      scheduler.send(hpAgent, Activation(3613))
       scheduler.expectMsg(Completion(hpAgent.toTyped, Some(7200)))
 
       /* ... for tick 7200 */

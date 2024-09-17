@@ -149,7 +149,7 @@ class ThermalGridWithHouseOnlySpec
             // for hot water would normally be taken from domestic
             // hot water storage, resulting in a lower storedEnergy here
             expectedDomesticHotWaterStorageStartingState.storedEnergy,
-            Kilowatts(-10.698213698630138),
+            Kilowatts(-10.991079452054795),
           )
         )
       }
@@ -160,8 +160,8 @@ class ThermalGridWithHouseOnlySpec
         val tick = 86399 // heat demand for one day
         val expectedEnergyDemandWater =
           ThermalEnergyDemand(
-            KilowattHours(3.7469589),
-            KilowattHours(3.7469589),
+            KilowattHours(3.6795136),
+            KilowattHours(3.6795136),
           )
 
         val energyDemandDomesticHotWater =

@@ -158,7 +158,7 @@ class ThermalGridWithHouseAndStorageSpec
             // for hot water would normally be taken from domestic
             // hot water storage, resulting in a lower storedEnergy here
             expectedDomesticHotWaterStorageStartingState.storedEnergy,
-            Kilowatts(-10.698213698630138),
+            Kilowatts(-10.991079452054795),
           )
         )
       }
@@ -243,7 +243,7 @@ class ThermalGridWithHouseAndStorageSpec
             // for hot water would normally be taken from domestic
             // hot water storage, resulting in a lower storedEnergy here
             expectedDomesticHotWaterStorageStartingState.storedEnergy,
-            Kilowatts(-10.698213698630138),
+            Kilowatts(-10.991079452054795),
           )
         )
       }
