@@ -377,7 +377,7 @@ class HpAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
 
       hpAgent.stateName shouldBe Idle
@@ -441,7 +441,7 @@ class HpAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(hpAgent.stateName shouldBe Idle)
       /* State data is tested in another test */
@@ -572,7 +572,7 @@ class HpAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(hpAgent.stateName shouldBe Idle)
 
@@ -701,7 +701,7 @@ class HpAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(3600L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(hpAgent.stateName shouldBe Idle)
 
@@ -772,7 +772,7 @@ class HpAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(hpAgent.stateName shouldBe Idle)
 
