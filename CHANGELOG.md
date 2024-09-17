@@ -80,6 +80,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated AUTHORS.md [#905](https://github.com/ie3-institute/simona/issues/905)
 - Rewrote BMModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Refactoring EM messages [#947](https://github.com/ie3-institute/simona/issues/947)
+- Simplifying ThermalHouse [#940](https://github.com/ie3-institute/simona/issues/940)
+- Prepare ThermalStorageTestData for Storage without storageVolumeLvlMin [#894](https://github.com/ie3-institute/simona/issues/894)
+- Renamed `ActivityStartTrigger`, `ScheduleTriggerMessage`, `CompletionMessage` in UML Diagrams[#675](https://github.com/ie3-institute/simona/issues/675)
 - Refactoring of Hps createCalcRelevantData to fallback on latest weatherData if weatherData of currentTick is not available [#932](https://github.com/ie3-institute/simona/issues/932)
 
 ### Fixed
