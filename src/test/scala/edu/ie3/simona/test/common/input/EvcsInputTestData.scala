@@ -6,17 +6,14 @@
 
 package edu.ie3.simona.test.common.input
 
-import edu.ie3.datamodel.models.{ElectricCurrentType, OperationTime}
+import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.input.system.`type`.chargingpoint.ChargingPointTypeUtils
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
-import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.evcs.{ChargingStrategy, EvcsModel}
+import edu.ie3.simona.model.participant.evcs.EvcsModel
 import edu.ie3.simona.test.common.DefaultTestData
-import edu.ie3.util.scala.OperationInterval
-import squants.energy.Kilowatts
 
 import java.util.UUID
 
@@ -43,22 +40,6 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
     defaultSimulationStart,
     defaultSimulationEnd,
     "maxPower",
-    lowestEvSoc = 0.2,
-  )
-
-  protected val evcsStandardModelWithFixedUUID: EvcsModel = EvcsModel(
-    UUID.fromString("ce386961-a4db-4429-939d-e92c1edef873"),
-    "Evcs Model Test",
-    OperationInterval(0L, 31536000L),
-    defaultSimulationStart,
-    QControl.apply(new CosPhiFixed("cosPhiFixed:{(0.0,1.0)}")),
-    Kilowatts(100),
-    ElectricCurrentType.AC,
-    1.0d,
-    4,
-    EvcsLocationType.HOME,
-    vehicle2grid = false,
-    ChargingStrategy.MAX_POWER,
     lowestEvSoc = 0.2,
   )
 }
