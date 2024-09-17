@@ -381,7 +381,7 @@ class ThermalGridIT
       /* TICK 7200
       New weather data (unchanged) incoming + Domestic hot water storage will cover hot water demand
       House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 8.41 kWh
-      House demand water   : requiredDemand = ? kWh, additionalDemand = ? kWh
+      House demand water   : requiredDemand = 0.06 kWh, additionalDemand = 0.06 kWh
       ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
       DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
       Heat pump: stays on
@@ -833,12 +833,13 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(heatPumpAgent, Some(41951)))
 
       /* TICK 42171
-      Domestic hot water storage will stop discharging, and its SOC will be less than 20%, thus it need to be recharged
-      House demand heating : requiredDemand = 15.0 kWh, additionalDemand = 30.00 kWh
-      House demand water   : tba
-      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      DomesticWaterStorage : requiredDemand = ? kWh, additionalDemand = ? kWh
-      Heat pump: stays off, demand should be covered by storage
+      Domestic hot water storage will stop discharging, and its SOC will be less than 20%, thus it need to be recharged,
+      heat demand of house will still be covered from thermal storage
+      House demand heating : requiredDemand = 14.59 kWh, additionalDemand = 29.59 kWh
+      House demand water   : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.67 kWh
+      DomesticWaterStorage : requiredDemand = 1.37 kWh, additionalDemand = 1.37 kWh
+      Heat pump: turns on to cover demand of domestic hot water storage
       */
 
       heatPumpAgent ! Activation(42171)
@@ -905,10 +906,9 @@ class ThermalGridIT
 
       /* TICK 42619
       Domestic hot water storage will be full
-      Additional trigger caused by (unchanged) weather data should not change this
-      House demand heating : requiredDemand = 9.78 kWh, additionalDemand = 24.78 kWh
-      House demand water   : tba
-      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 8.87 kWh
+      House demand heating : requiredDemand = 13.76 kWh, additionalDemand = 28.76 kWh
+      House demand water   : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 2.04 kWh
       DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
       Heat pump: Since Hp is running, it will kept running to heat house and recharge thermal storage
        */
@@ -974,12 +974,13 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(heatPumpAgent, Some(42619)))
 
       /* TICK 45000
-      Additional trigger caused by (unchanged) weather data should not change this
-      House demand heating : requiredDemand = 9.78 kWh, additionalDemand = 24.78 kWh
-      House demand water   : tba
-      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 8.87 kWh
-      DomesticWaterStorage : tba
-      Heat pump: stays off
+      Additional trigger caused by (unchanged) weather data should any behaviour,
+      since tick is at full hour, heat demand for water will be covered from storage
+      House demand heating : requiredDemand = 9.34 kWh, additionalDemand = 24.34 kWh
+      House demand water   : requiredDemand = 0.24 kWh, additionalDemand = 0.24 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 2.04 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      Heat pump: stays on to cover heat demand of house and recharge thermal storage
        */
 
       heatPumpAgent ! Activation(45000)
@@ -1057,12 +1058,12 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(heatPumpAgent, Some(45000)))
 
       /* TICK 45078
-     Storage will be empty
-     House demand heating : requiredDemand = 8.87kWh, additionalDemand = 23.87 kWh
-     House demand water   : tba
-     ThermalStorage       : requiredDemand = 10.44 kWh, additionalDemand = 10.44 kWh
-     DomesticWaterStorage : tba
-     Heat pump: will be turned on - to serve the remaining heat demand of house (and refill storage later)
+     DomesticWaterStorage will stop discharging to cover water demand
+     House demand heating : requiredDemand = 9.19kWh, additionalDemand = 24.19 kWh
+     House demand water   : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+     ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 2.04 kWh
+     DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+     Heat pump: kept running - to serve the remaining heat demand of house (and refill storage later)
        */
 
       heatPumpAgent ! Activation(45078)
@@ -1131,12 +1132,13 @@ class ThermalGridIT
 
       /* TICK 57600
       New weather data: it's getting warmer again
-      House demand heating : requiredDemand = 0.00 kWh, additionalDemand = 1.70 kWh
-      House demand water   : tba
-      ThermalStorage       : requiredDemand = 10.44 kWh, additionalDemand = 10.44 kWh
-      DomesticWaterStorage : tba
-      Heat pump: stays on
-       */
+      since tick is at full hour, heat demand for water will be covered from storage
+      House demand heating : requiredDemand = 0.00 kWh, additionalDemand = 1.15 kWh
+      House demand water   : requiredDemand = 0.76 kWh, additionalDemand = 0.76 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 2.04 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      Heat pump: kept running - to serve the remaining heat demand of house (and refill storage later)
+      */
 
       heatPumpAgent ! Activation(57600)
 
@@ -1211,11 +1213,11 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(heatPumpAgent, Some(57600)))
 
       /* TICK 57848
-      ?
-      House demand heating : requiredDemand = 0.00 kWh, additionalDemand = 0.00 kWh
-      House demand water   : tba
-      ThermalStorage       : requiredDemand = 10.44 kWh, additionalDemand = 10.44 kWh
-      DomesticWaterStorage : tba
+      DomesticWaterStorage will stop discharging to cover water demand
+      House demand heating : requiredDemand = 0.00 kWh, additionalDemand = 0.52 kWh
+      House demand water   : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 2.04 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
       Heat pump: ?
        */
 
@@ -1277,10 +1279,10 @@ class ThermalGridIT
 
       /* TICK 58048
       House will reach the upperTemperatureBoundary
-      House demand heating : requiredDemand = 0.00 kWh, additionalDemand = 0.00 kWh
-      House demand water   : tba
-      ThermalStorage       : requiredDemand = 10.44 kWh, additionalDemand = 10.44 kWh
-      DomesticWaterStorage : tba
+      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      House demand water   : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 2.04 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
       Heat pump: stays on to refill the storage now
        */
 
@@ -1342,11 +1344,11 @@ class ThermalGridIT
 
       /* TICK 58716
      Storage will be fully charged
-     House demand heating : requiredDemand = ?0.00 kWh, additionalDemand = 0.00 kWh
-     House demand water   : tba
+     House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+     House demand water   : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-     DomesticWaterStorage : tba
-     Heat pump: stays on to refill the storage now
+     DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+     Heat pump: turns off, all demands are covered
        */
 
       heatPumpAgent ! Activation(58716)
