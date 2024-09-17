@@ -1,10 +1,10 @@
 @startuml
-SimScheduler -> Services: <font color=red>!</font> TriggerWithIdMessage(\n\tActivityStartTrigger(tick),\n\t_,\n\t_)
+Scheduler -> Services: <font color=red>!</font> Activation(\n\tINIT_SIM_TICK)
 Services -> ParticipantAgents: <font color=red>!</font> ProvideWeatherMessage(\n\ttick,\n\tweatherData,\n\tnextDataTick)
-SimScheduler -> ParticipantAgents: <font color=red>!</font> TriggerWithIdMessage(\n\tActivityStartTrigger(tick),\n\t_,\n\t_)
+Scheduler -> ParticipantAgents: <font color=red>!</font> Activation(\n\ttick)
 Services -> ParticipantAgents: <font color=red>!</font> <i>ProvisionMessage</i>
 Services -> ParticipantAgents: <font color=red>!</font> <i>ProvisionMessage</i>
-Services --> SimScheduler: <font color=red>!</font> CompletionMessage(triggerId, None)
+Services --> Scheduler: <font color=red>!</font> Completion(\n\tactor, None)
 ParticipantAgents -> ParticipantAgents: <font color=red>!</font> StartCalculationTrigger(tick)
-ParticipantAgents --> SimScheduler: <font color=red>!</font> CompletionMessage(triggerId, None)
+ParticipantAgents --> Scheduler: <font color=red>!</font> Completion(\n\tactor, newTick)
 @enduml
