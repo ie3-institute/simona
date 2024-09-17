@@ -149,10 +149,6 @@ class ThermalGridIT
       )
       val weatherDependentAgents = Seq(heatPumpAgent)
 
-      // TODOs
-      // - check storedEnergy of domestic hot water storage for all steps
-      // - hourly results for covering the hot water storage demand from heat storage
-
       /* TICK 0
       Start of Simulation
       House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 15.02 kWh
@@ -471,7 +467,7 @@ class ThermalGridIT
       ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
       DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
       Heat pump: stays on
-      */
+       */
 
       heatPumpAgent ! Activation(7220L)
 
@@ -697,7 +693,7 @@ class ThermalGridIT
       ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
       DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
       Heat pump: stays off
-      */
+       */
 
       heatPumpAgent ! Activation(28987)
 
@@ -768,7 +764,7 @@ class ThermalGridIT
       ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
       DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
       Heat pump: stays off, demand should be covered by storage
-      */
+       */
 
       heatPumpAgent ! Activation(41951)
 
@@ -840,7 +836,7 @@ class ThermalGridIT
       ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.67 kWh
       DomesticWaterStorage : requiredDemand = 1.37 kWh, additionalDemand = 1.37 kWh
       Heat pump: turns on to cover demand of domestic hot water storage
-      */
+       */
 
       heatPumpAgent ! Activation(42171)
 
@@ -1138,7 +1134,7 @@ class ThermalGridIT
       ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 2.04 kWh
       DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
       Heat pump: kept running - to serve the remaining heat demand of house (and refill storage later)
-      */
+       */
 
       heatPumpAgent ! Activation(57600)
 
