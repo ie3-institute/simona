@@ -118,14 +118,23 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
 
     "calculate active power output depending on velocity" in {
       val wecModel = buildWecModel()
-      val velocities =
-        Seq(1.0, 2.0, 3.0, 7.0, 9.0, 13.0, 15.0, 19.0, 23.0, 27.0, 34.0, 40.0)
-      val expectedPowers =
-        Seq(0, -2948.8095851378266, -24573.41320418286, -522922.2325710509,
-          -1140000, -1140000, -1140000, -1140000, -1140000, -1140000,
-          -24573.39638823692, 0)
+      val testCases = Table(
+        ("velocity", "expectedPower"),
+        (1.0, 0.0),
+        (2.0, -2948.8095851378266),
+        (3.0, -24573.41320418286),
+        (7.0, -522922.2325710509),
+        (9.0, -1140000.0),
+        (13.0, -1140000.0),
+        (15.0, -1140000.0),
+        (19.0, -1140000.0),
+        (23.0, -1140000.0),
+        (27.0, -1140000.0),
+        (34.0, -24573.39638823692),
+        (40.0, 0.0),
+      )
 
-      velocities.zip(expectedPowers).foreach { case (velocity, power) =>
+      forAll(testCases) { (velocity: Double, expectedPower: Double) =>
         val wecData = WecRelevantData(
           MetersPerSecond(velocity),
           Celsius(20),
@@ -133,9 +142,9 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
         )
         val result =
           wecModel.calculateActivePower(ModelState.ConstantState, wecData)
-        val expectedPower = Watts(power)
+        val expectedPowerInWatts = Watts(expectedPower)
 
-        result should be(expectedPower)
+        result should be(expectedPowerInWatts)
       }
     }
 
@@ -170,13 +179,14 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
 
     "calculate active power output depending on temperature" in {
       val wecModel = buildWecModel()
-      val temperatures = Seq(35.0, 20.0, -25.0)
-      val expectedPowers =
-        Seq(-23377.23862017266, -24573.41320418286, -29029.60338829823)
+      val testCases = Table(
+        ("temperature", "expectedPower"),
+        (35.0, -23377.23862017266),
+        (20.0, -24573.41320418286),
+        (-25.0, -29029.60338829823),
+      )
 
-      for (i <- temperatures.indices) {
-        val temperature = temperatures(i)
-        val expectedPower = expectedPowers(i)
+      forAll(testCases) { (temperature: Double, expectedPower: Double) =>
         val wecData = WecRelevantData(
           MetersPerSecond(3.0),
           Celsius(temperature),

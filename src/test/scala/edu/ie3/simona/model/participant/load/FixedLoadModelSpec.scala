@@ -115,7 +115,8 @@ class FixedLoadModelSpec
       forAll(testData) { (reference, expectedPower: Power) =>
         val relevantData = FixedLoadModel.FixedLoadRelevantData
 
-        val scales = (0 to 20).map(_ * 0.1)
+        val scales: LazyList[Double] =
+          LazyList.iterate(0.0)(_ + 0.1).takeWhile(_ <= 2.0)
 
         scales.foreach { scale =>
           val scaledSRated = Kilowatts(

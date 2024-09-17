@@ -103,7 +103,7 @@ class SystemComponentSpec extends UnitSpec with DefaultTestData {
         ),
       )
 
-      testCases.foreach { case (operationStart, operationEnd, expected) =>
+      testCases.forall { case (operationStart, operationEnd, expected) =>
         val operationTimeBuilder = setup()
         operationStart.foreach(operationTimeBuilder.withStart)
         operationEnd.foreach(operationTimeBuilder.withEnd)
@@ -115,8 +115,8 @@ class SystemComponentSpec extends UnitSpec with DefaultTestData {
             simulationEnd,
             operationTime,
           )
-        interval should be(expected)
-      }
+        interval == expected
+      } shouldBe true
     }
 
     "reject an operation end that is before the operation start" in {
