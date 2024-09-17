@@ -844,10 +844,8 @@ class ThermalGridIT
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 42171.toDateTime
-          hpResult.getP should equalWithTolerance(0.0038.asMegaWatt)
-          hpResult.getQ should equalWithTolerance(
-            0.0012489995996796802.asMegaVar
-          )
+          hpResult.getP should equalWithTolerance(pRunningHp)
+          hpResult.getQ should equalWithTolerance(qRunningHp)
       }
 
       Range(0, 3)
@@ -915,7 +913,7 @@ class ThermalGridIT
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 42619.toDateTime
-          hpResult.getP should equalWithTolerance(0.0038.asMegaWatt)
+          hpResult.getP should equalWithTolerance(pRunningHp)
           hpResult.getQ should equalWithTolerance(0.00124899959968.asMegaVar)
       }
 
@@ -999,10 +997,8 @@ class ThermalGridIT
         case ParticipantResultEvent(hpResult) =>
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 45000.toDateTime
-          hpResult.getP should equalWithTolerance(0.0038.asMegaWatt)
-          hpResult.getQ should equalWithTolerance(
-            0.0012489995996796802.asMegaVar
-          )
+          hpResult.getP should equalWithTolerance(pRunningHp)
+          hpResult.getQ should equalWithTolerance(qRunningHp)
       }
 
       // Results of 34132 for house and storage
