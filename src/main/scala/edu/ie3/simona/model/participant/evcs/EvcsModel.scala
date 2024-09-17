@@ -15,8 +15,16 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.evcs.EvcsModel._
-import edu.ie3.simona.model.participant.evcs.uncontrolled.{ConstantPowerCharging, MaximumPowerCharging}
-import edu.ie3.simona.model.participant.{CalcRelevantData, FlexChangeIndicator, ModelState, SystemParticipant}
+import edu.ie3.simona.model.participant.evcs.uncontrolled.{
+  ConstantPowerCharging,
+  MaximumPowerCharging,
+}
+import edu.ie3.simona.model.participant.{
+  CalcRelevantData,
+  FlexChangeIndicator,
+  ModelState,
+  SystemParticipant,
+}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.util.TickUtil.TickLong
