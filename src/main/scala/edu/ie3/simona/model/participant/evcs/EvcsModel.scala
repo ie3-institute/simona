@@ -278,23 +278,22 @@ final case class EvcsModel(
       }
     }
 
-    val entriesByStartTick =
-      prefilteredSchedules.toSeq
-        .flatMap { case (evUuid, entries) =>
-          // unsorted for speedier execution
-          entries.unsorted.map { entry =>
-            // trim down entries to the currently
-            // considered window of the charging schedule
-            evUuid -> trimScheduleEntry(
-              entry,
-              lastTick,
-              currentTick,
-            )
-          }
+    val entriesByStartTick = prefilteredSchedules.toSeq
+      .flatMap { case (evUuid, entries) =>
+        // unsorted for speedier execution
+        entries.unsorted.map { entry =>
+          // trim down entries to the currently
+          // considered window of the charging schedule
+          evUuid -> trimScheduleEntry(
+            entry,
+            lastTick,
+            currentTick,
+          )
         }
-        .groupBy { case (_, entry) =>
-          entry.tickStart
-        }
+      }
+      .groupBy { case (_, entry) =>
+        entry.tickStart
+      }
 
     val startAndStopTicks = prefilteredSchedules.values
       .flatMap {
