@@ -42,11 +42,10 @@ import edu.ie3.simona.exceptions.agent.{
 }
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.FlexChangeIndicator
-import edu.ie3.simona.model.participant.evcs.{EvModelWrapper, EvcsModel}
+import edu.ie3.simona.model.participant.evcs.EvcsModel
 import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsRelevantData,
   EvcsState,
-  ScheduleEntry,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexRequest,
@@ -61,12 +60,12 @@ import edu.ie3.util.scala.quantities.Megavars
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import org.apache.pekko.actor.{ActorRef, FSM}
-import squants.energy.{Kilowatts, Megawatts}
+import squants.energy.Megawatts
 import squants.{Dimensionless, Each, Power}
-import scala.collection.immutable.SortedSet
 
 import java.time.ZonedDateTime
 import java.util.UUID
+import scala.collection.immutable.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
 protected trait EvcsAgentFundamentals
