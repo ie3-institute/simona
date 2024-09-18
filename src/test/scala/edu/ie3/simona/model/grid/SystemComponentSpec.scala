@@ -75,7 +75,8 @@ class SystemComponentSpec extends UnitSpec with DefaultTestData {
       val simulationEnd: ZonedDateTime =
         TimeUtil.withDefaults.toZonedDateTime("2019-01-02T00:00:00Z")
 
-      val testCases = Seq(
+      val testCases = Table(
+        ("operationStart", "operationEnd", "expectedInterval"),
         (
           Some(TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")),
           Some(TimeUtil.withDefaults.toZonedDateTime("2019-01-02T00:00:00Z")),
@@ -103,20 +104,24 @@ class SystemComponentSpec extends UnitSpec with DefaultTestData {
         ),
       )
 
-      testCases.forall { case (operationStart, operationEnd, expected) =>
-        val operationTimeBuilder = setup()
-        operationStart.foreach(operationTimeBuilder.withStart)
-        operationEnd.foreach(operationTimeBuilder.withEnd)
-        val operationTime: OperationTime = operationTimeBuilder.build()
-
-        val interval: OperationInterval =
-          SystemComponent.determineOperationInterval(
-            defaultSimulationStart,
-            simulationEnd,
-            operationTime,
-          )
-        interval == expected
-      } shouldBe true
+      forAll(testCases) {
+        (
+            operationStart: Option[ZonedDateTime],
+            operationEnd: Option[ZonedDateTime],
+            expected: OperationInterval,
+        ) =>
+          val operationTimeBuilder = setup()
+          operationStart.foreach(operationTimeBuilder.withStart)
+          operationEnd.foreach(operationTimeBuilder.withEnd)
+          val operationTime: OperationTime = operationTimeBuilder.build()
+          val interval: OperationInterval =
+            SystemComponent.determineOperationInterval(
+              defaultSimulationStart,
+              simulationEnd,
+              operationTime,
+            )
+          interval should be(expected)
+      }
     }
 
     "reject an operation end that is before the operation start" in {
