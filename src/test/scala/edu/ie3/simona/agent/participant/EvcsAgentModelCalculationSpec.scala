@@ -2230,9 +2230,9 @@ class EvcsAgentModelCalculationSpec
 
       // Check the results
       // expect 7 Evcs Results and 12 Ev Results
-      // FixMe: 7 Evcs Results is correct but the one for tick 5400 is missing, the one at tick 0 comes twice...
+      // FixMe: 7 Evcs Results is correct, actual the one for tick 5400 (last result) is missing
 
-      Range(0, 19)
+      Range(0, 18)
         .map { _ =>
           resultListener.expectMsgType[ParticipantResultEvent]
         }

@@ -529,11 +529,14 @@ protected trait EvcsAgentFundamentals
         modelBaseStateData
     }
 
-    determineResultsAnnounceUpdateValueStore(
-      lastState,
-      currentTick,
-      modelBaseStateData,
-    )
+    // if the lastState's tick is the same as the actual tick the results have already been determined and announced when we handled the departedEvs
+    if (lastState.tick != tick) {
+      determineResultsAnnounceUpdateValueStore(
+        lastState,
+        currentTick,
+        modelBaseStateData,
+      )
+    }
 
     // We're only here if we're not flex-controlled, thus sending a Completion is always right
     goToIdleReplyCompletionAndScheduleTriggerForNextAction(
