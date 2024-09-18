@@ -423,6 +423,12 @@ object EmDataCore {
         currentSetPower = Some(lastSetPower)
       )
     }
+
+    def handleNoSetPointExpected(): AwaitingFlexOptions = {
+      copy(
+        currentSetPower = Some(lastSetPower)
+      )
+    }
   }
 
   /** Data structure holding relevant data and providing methods that handle
@@ -452,8 +458,8 @@ object EmDataCore {
       private val correspondences: FlexCorrespondenceStore,
       private val awaitedCompletions: Set[UUID],
       activeTick: Long,
-      nextSetPointTick: Option[Long],
-      currentSetPower: Power
+      nextSetPointTick: Option[Long] = Option.empty,
+      currentSetPower: Power = zeroKW
   ) {
 
     /** Handles a result by some connected agent for the currently active tick.
