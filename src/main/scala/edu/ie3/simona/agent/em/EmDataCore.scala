@@ -6,11 +6,12 @@
 
 package edu.ie3.simona.agent.em
 
-import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.agent.em.EmAgent.Actor
+import edu.ie3.simona.agent.em.FlexCorrespondenceStore.WithTime
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import EmAgent.Actor
-import FlexCorrespondenceStore.WithTime
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.collection.mutable.PriorityMultiBiSet
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import squants.Power
@@ -195,8 +196,9 @@ object EmDataCore {
     * @param correspondences
     *   The data structure storing received and sent flex messages with the
     *   corresponding tick
-    * @param awaitedFlexOptions
-    *   The set of model uuids, from which flex options are still expected
+    * @param awaitedConnectedAgents
+    *   The set of model uuids, from which flex options or completions are still
+    *   expected
     * @param activeTick
     *   The currently active tick
     */
@@ -204,7 +206,7 @@ object EmDataCore {
       private val modelToActor: Map[UUID, Actor],
       private val activationQueue: PriorityMultiBiSet[Long, UUID],
       private val correspondences: FlexCorrespondenceStore,
-      private val awaitedFlexOptions: Set[UUID] = Set.empty,
+      private val awaitedConnectedAgents: Set[UUID] = Set.empty,
       activeTick: Long,
       nextSetPointTick: Option[Long],
       lastSetPower: Power,
@@ -214,19 +216,23 @@ object EmDataCore {
     def getCorrespondences: FlexCorrespondenceStore = correspondences
 
     /** Removes and returns flex requests scheduled for the current tick, which
-     * can be sent out at the current moment.
-     *
-     * @return
-     * A tuple of a collection of agents scheduled for the current tick, and
-     * the updated [[AwaitingFlexOptions]] core
-     * @throws CriticalFailureException
-     * on critical error
-     */
-    def takeNewFlexRequests(): (Iterable[Actor], AwaitingFlexOptions) = {
+      * can be sent out at the current moment. Depending on the current tick,
+      * the next state of the [[EmAgent]] is chosen. During initialization, flex
+      * request, flex control and results are not expected, thus we change to
+      * [[AwaitingCompletions]] right away.
+      *
+      * @return
+      *   A tuple of a collection of agents scheduled for the current tick, and
+      *   either an updated [[AwaitingFlexOptions]] core or an
+      *   [[AwaitingCompletions]] core if we're in initialization
+      * @throws CriticalFailureException
+      *   on critical error
+      */
+    def takeNewFlexRequests(): (
+        Iterable[Actor],
+        Either[AwaitingFlexOptions, AwaitingCompletions],
+    ) = {
       val toActivate = activationQueue.getAndRemoveSet(activeTick)
-      val newFlexOptionsCore =
-        copy(awaitedFlexOptions = awaitedFlexOptions.concat(toActivate))
-
       val actors = toActivate.map { modelUuid =>
         modelToActor
           .getOrElse(
@@ -237,7 +243,25 @@ object EmDataCore {
           )
       }
 
-      (actors, newFlexOptionsCore)
+      val newCore = if (activeTick == INIT_SIM_TICK) {
+        Right(
+          AwaitingCompletions(
+            modelToActor,
+            activationQueue = activationQueue,
+            correspondences = correspondences,
+            awaitedCompletions = awaitedConnectedAgents.concat(toActivate),
+            activeTick = activeTick,
+          )
+        )
+      } else {
+        Left(
+          copy(awaitedConnectedAgents =
+            awaitedConnectedAgents.concat(toActivate)
+          )
+        )
+      }
+
+      (actors, newCore)
     }
 
     /** Handles the retrieval of flex options sent by some connected agent for
@@ -254,17 +278,17 @@ object EmDataCore {
       copy(
         correspondences =
           correspondences.updateFlexOptions(flexOptions, activeTick),
-        awaitedFlexOptions = awaitedFlexOptions.excl(flexOptions.modelUuid),
+        awaitedConnectedAgents =
+          awaitedConnectedAgents.excl(flexOptions.modelUuid),
       )
 
     /** Checks whether all awaited flex options have been received and we can
-     * continue by calculating flex control. This method does not change the
-     * state of the [[AwaitingFlexOptions]] data core.
-     *
-     * @return
-     * true if all awaited flex options have been received
-     */
-    def isComplete: Boolean = awaitedFlexOptions.isEmpty & currentSetPower.isDefined
+      * continue by calculating flex control. This method does not change the
+      * state of the [[AwaitingFlexOptions]] data core.
+      * @return
+      *   true if all awaited flex options have been received
+      */
+    def isComplete: Boolean = awaitedConnectedAgents.isEmpty & currentSetPower.isDefined
 
     /** Returns all flex options that are currently relevant, which can include
      * flex options received at an earlier tick
@@ -432,6 +456,26 @@ object EmDataCore {
       currentSetPower: Power
   ) {
 
+    /** Handles a result by some connected agent for the currently active tick.
+      *
+      * @param flexResult
+      *   The received result
+      * @return
+      *   The updated [[AwaitingCompletions]] core
+      */
+    def handleResult(flexResult: FlexResult): AwaitingCompletions = {
+      val updatedCorrespondence =
+        correspondences.updateResult(
+          flexResult.modelUuid,
+          flexResult.result,
+          activeTick,
+        )
+
+      copy(
+        correspondences = updatedCorrespondence
+      )
+    }
+
     /** Tries to handle the completion of some connected agent for the currently
       * active tick. If completion is not valid, a [[CriticalFailureException]]
       * is thrown.
@@ -444,7 +488,7 @@ object EmDataCore {
       *   on critical error
       */
     def handleCompletion(
-        completion: FlexCtrlCompletion
+        completion: FlexCompletion
     ): AwaitingCompletions = {
       if (!awaitedCompletions.contains(completion.modelUuid))
         throw new CriticalFailureException(
@@ -455,20 +499,12 @@ object EmDataCore {
       completion.requestAtTick
         .foreach { activationQueue.set(_, completion.modelUuid) }
 
-      val updatedCorrespondence =
-        correspondences.updateResult(
-          completion.modelUuid,
-          completion.result,
-          activeTick,
-        )
-
       val updatedFlexWithNext =
         if (completion.requestAtNextActivation)
           flexWithNext.incl(completion.modelUuid)
         else flexWithNext
 
       copy(
-        correspondences = updatedCorrespondence,
         flexWithNext = updatedFlexWithNext,
         awaitedCompletions = awaitedCompletions.excl(completion.modelUuid),
       )

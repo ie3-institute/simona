@@ -219,10 +219,10 @@ object EmAgent {
     case (ctx, msg: ActivationRequest) =>
       //ctx.log.info(s"\u001b[0;34m[${msg.tick}] ${ctx.self}.inactive got ActivationRequest = $msg, dataProvisionMessage = ${core.nextSetPointMessage}, nextSetPointTick = ${core.nextSetPointTick}\u001b[0;0m")
 
-      msg match {
-        case Flex(_: RequestFlexOptions) | EmActivation(_) =>           // Activation by another EMAgent or by the scheduler
-          val flexOptionsCore = core.activate(msg.tick)
+      val flexOptionsCore = core.activate(msg.tick)
 
+      msg match {
+        case Flex(_: FlexActivation) | EmActivation(_) =>
           // Check if there will be a new set point for this tick -> We can't start processing flex options before we know what's the set point for this tick
           if (core.nextSetPointTick.contains(msg.tick)) {
             // We expect a new set point for this tick
@@ -248,12 +248,16 @@ object EmAgent {
                 awaitingFlexOptions(emData, modelShell, newCore)
             }
           } else { // We don't expect a new set point -> we can do our normal stuff, because we are activated because at least one connected agent should provide flex options
-            val (toActivate, newCore) = flexOptionsCore.updateSetPoint().takeNewFlexRequests()
-            //ctx.log.info(s"\u001b[0;34m[${flexOptionsCore.activeTick}] EM Agent ${ctx.self} doesn't expect set point for this tick, toActivate = $toActivate\u001b[0;0m")
+
+            val (toActivate, newCore) = flexOptionsCore.takeNewFlexRequests()
             toActivate.foreach {
-              _ ! RequestFlexOptions(msg.tick)
+              _ ! FlexActivation(msg.tick)
             }
-            awaitingFlexOptions(emData, modelShell, newCore)
+
+            newCore.fold(
+              awaitingFlexOptions(emData, modelShell, _),
+              awaitingCompletions(emData, modelShell, _),
+            )
           }
 
         case Flex(_: IssueFlexControl) =>
@@ -489,8 +493,16 @@ object EmAgent {
       modelShell: EmModelShell,
       core: EmDataCore.AwaitingCompletions,
   ): Behavior[Request] = Behaviors.receiveMessagePartial {
-    // Completions and results
-    case completion: FlexCtrlCompletion =>
+    case result: FlexResult =>
+      val updatedCore = core.handleResult(result)
+
+      awaitingCompletions(
+        emData,
+        modelShell,
+        updatedCore,
+      )
+
+    case completion: FlexCompletion =>
       val updatedCore = core.handleCompletion(completion)
 
       updatedCore
@@ -516,6 +528,9 @@ object EmAgent {
 
   }
 
+  /** Completions have all been received, possibly send results and report to
+    * parent
+    */
   private def sendCompletionCommunication(
       emData: EmData,
       modelShell: EmModelShell,
@@ -523,23 +538,19 @@ object EmAgent {
       lastActiveTick: Long,
       nextSetPointTick: Option[Long],
   ): Unit = {
-    // calc result
-    val result = inactiveCore.getResults
+    // Sum up resulting power, if applicable.
+    // After initialization, there are no results yet.
+    val maybeResult = inactiveCore.getResults
       .reduceOption { (power1, power2) =>
         ApparentPower(power1.p + power2.p, power1.q + power2.q)
       }
-      .getOrElse(
-        ApparentPower(
-          zeroMW,
-          zeroMVAr,
-        )
-      )
 
     val nextActiveTick = EmTools.minOptionTicks(
       inactiveCore.nextActiveTick,
       nextSetPointTick
     )
 
+    maybeResult.foreach { result =>
     emData.listener.foreach {
       _ ! ParticipantResultEvent(
         new EmResult(
@@ -554,6 +565,23 @@ object EmAgent {
       )
     }
 
+    maybeResult.foreach { result =>
+      emData.listener.foreach {
+        _ ! ParticipantResultEvent(
+          new EmResult(
+            lastActiveTick
+              .toDateTime(emData.simulationStartDate),
+            modelShell.uuid,
+            result.p.toMegawatts.asMegaWatt,
+            result.q.toMegavars.asMegaVar,
+          )
+        )
+      }
+
+      emData.parentData.foreach {
+        _.emAgent ! FlexResult(modelShell.uuid, result)
+      }
+    }
 
     emData.parentData.fold(
       schedulerData =>
@@ -561,9 +589,8 @@ object EmAgent {
           schedulerData.activationAdapter,
           nextActiveTick,
         ),
-      _.emAgent ! FlexCtrlCompletion(
+      _.emAgent ! FlexCompletion(
         modelShell.uuid,
-        result,
         inactiveCore.hasFlexWithNext,
         inactiveCore.nextActiveTick,
       ),
