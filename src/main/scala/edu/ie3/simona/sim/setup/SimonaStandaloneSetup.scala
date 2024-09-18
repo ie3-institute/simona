@@ -32,6 +32,8 @@ import edu.ie3.simona.scheduler.{ScheduleLock, Scheduler, TimeAdvancer}
 import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
+import edu.ie3.simona.service.load.LoadProfileService
+import edu.ie3.simona.service.load.LoadProfileService.InitLoadProfileServiceStateData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.weather.WeatherService
@@ -190,6 +192,32 @@ class SimonaStandaloneSetup(
     )
 
     weatherService
+  }
+
+  override def loadProfileService(
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
+  ): ClassicRef = {
+    val loadProfileService = context.toClassic.simonaActorOf(
+      LoadProfileService.props(
+        scheduler.toClassic,
+        TimeUtil.withDefaults.toZonedDateTime(
+          simonaConfig.simona.time.startDateTime
+        ),
+        TimeUtil.withDefaults
+          .toZonedDateTime(simonaConfig.simona.time.endDateTime),
+      ),
+      "loadProfileAgent",
+    )
+
+    loadProfileService ! SimonaService.Create(
+      InitLoadProfileServiceStateData(
+        simonaConfig.simona.input.loadprofile.datasource
+      ),
+      ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
+    )
+
+    loadProfileService
   }
 
   override def extSimulations(

@@ -31,22 +31,19 @@ import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.exceptions.agent.InconsistentStateException
+import edu.ie3.simona.exceptions.agent.{
+  AgentInitializationException,
+  InconsistentStateException,
+}
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantData
+import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
-import edu.ie3.simona.model.participant.load.profile.{
-  LoadProfileStore,
-  ProfileLoadModel,
-}
+import edu.ie3.simona.model.participant.load.random.RandomLoadModel
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomRelevantData
-import edu.ie3.simona.model.participant.load.random.{
-  RandomLoadModel,
-  RandomLoadParamStore,
-}
 import edu.ie3.simona.model.participant.load.{
   FixedLoadModel,
   LoadModel,
@@ -129,6 +126,12 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
     ConstantState.type,
     LM,
   ] = {
+    /* Check for needed services */
+    if (!services.toSeq.map(_.getClass).containsSlice(neededServices))
+      throw new AgentInitializationException(
+        s"LoadAgent cannot be initialized without a weather service!"
+      )
+
     /* Build the calculation model */
     val model =
       buildModel(
@@ -156,20 +159,6 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
           fixedLoadModel.operationInterval.start,
           fixedLoadModel.operationInterval.end,
         ).filterNot(_ == lastTickInSimulation)
-      case profileLoadModel: ProfileLoadModel =>
-        activationTicksInOperationTime(
-          simulationStartDate,
-          LoadProfileStore.resolution.getSeconds,
-          profileLoadModel.operationInterval.start,
-          profileLoadModel.operationInterval.end,
-        )
-      case randomLoadModel: RandomLoadModel =>
-        activationTicksInOperationTime(
-          simulationStartDate,
-          RandomLoadParamStore.resolution.getSeconds,
-          randomLoadModel.operationInterval.start,
-          randomLoadModel.operationInterval.end,
-        )
       case _ =>
         SortedSet.empty[Long]
     }

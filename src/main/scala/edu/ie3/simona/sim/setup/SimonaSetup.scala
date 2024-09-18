@@ -95,6 +95,20 @@ trait SimonaSetup {
       scheduler: ActorRef[SchedulerMessage],
   ): ClassicRef
 
+  /** Creates a load profile service
+    * @param context
+    *   actor context
+    * @param scheduler
+    *   Actor reference to it's according scheduler to use
+    * @return
+    *   An actor reference to the service as well as matching data to initialize
+    *   the service
+    */
+  def loadProfileService(
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
+  ): ClassicRef
+
   /** Loads external simulations and provides corresponding actors and init data
     *
     * @param context

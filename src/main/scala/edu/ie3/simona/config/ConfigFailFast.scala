@@ -137,6 +137,7 @@ case object ConfigFailFast extends LazyLogging {
     checkPrimaryDataSource(simonaConfig.simona.input.primary)
 
     /* Check if the provided combination of data source and parameters are valid */
+    checkLoadProfileDataSource(simonaConfig.simona.input.loadprofile.datasource)
     checkWeatherDataSource(simonaConfig.simona.input.weather.datasource)
 
     /* check if at least one data sink is defined */
@@ -546,6 +547,38 @@ case object ConfigFailFast extends LazyLogging {
       primary: SimonaConfig.Simona.Input.Primary
   ): Unit =
     PrimaryServiceProxy.checkConfig(primary)
+
+  private def checkLoadProfileDataSource(
+      loadProfileDataSourceCfg: SimonaConfig.Simona.Input.Loadprofile.Datasource
+  ): Unit = {
+    // check weather source parameters
+    val supportedLoadProfileSources = Set("csv", "sql")
+    val definedWeatherSources = Vector(
+      loadProfileDataSourceCfg.csvParams,
+      loadProfileDataSourceCfg.sqlParams,
+    ).filter(_.isDefined)
+
+    // check that only one source is defined
+    if (definedWeatherSources.size > 1)
+      throw new InvalidConfigParameterException(
+        s"Multiple load profile sources defined: '${definedWeatherSources.map(_.getClass.getSimpleName).mkString("\n\t")}'." +
+          s"Please define only one source!\nAvailable sources:\n\t${supportedLoadProfileSources.mkString("\n\t")}"
+      )
+
+    definedWeatherSources.headOption.flatten match {
+      case Some(baseCsvParams: BaseCsvParams) =>
+        checkBaseCsvParams(baseCsvParams, "LoadProfileSource")
+      case Some(params: SqlParams) =>
+        checkSqlParams(params)
+      case None if loadProfileDataSourceCfg.loadBuildIns =>
+        logger.info("Using only the build in load profiles!")
+      case None | Some(_) =>
+        throw new InvalidConfigParameterException(
+          s"No load profile source defined! This is currently not supported! Please provide the config parameters for one " +
+            s"of the following load profile sources:\n\t${supportedLoadProfileSources.mkString("\n\t")}"
+        )
+    }
+  }
 
   private def checkWeatherDataSource(
       weatherDataSourceCfg: SimonaConfig.Simona.Input.Weather.Datasource

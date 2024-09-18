@@ -15,6 +15,7 @@ import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
   ActorExtEvDataService,
+  ActorLoadProfileService,
   ActorWeatherService,
 }
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
@@ -345,6 +346,7 @@ class GridAgentController(
           input.getUuid
         ),
         environmentRefs.primaryServiceProxy,
+        environmentRefs.loadProfiles,
         simulationStartDate,
         simulationEndDate,
         resolution,
@@ -530,6 +532,7 @@ class GridAgentController(
       loadInput: LoadInput,
       modelConfiguration: LoadRuntimeConfig,
       primaryServiceProxy: ClassicRef,
+      loadProfileService: ClassicRef,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -545,7 +548,7 @@ class GridAgentController(
             loadInput,
             modelConfiguration,
             primaryServiceProxy,
-            Iterable.empty,
+            Iterable(ActorLoadProfileService(loadProfileService)),
             simulationStartDate,
             simulationEndDate,
             resolution,

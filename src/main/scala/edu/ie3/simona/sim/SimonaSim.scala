@@ -91,11 +91,16 @@ object SimonaSim {
         val weatherService =
           simonaSetup.weatherService(ctx, scheduler)
 
+        // load profile service
+        val loadProfileService =
+          simonaSetup.loadProfileService(ctx, scheduler)
+
         val environmentRefs = EnvironmentRefs(
           scheduler,
           runtimeEventListener.toClassic,
           primaryServiceProxy,
           weatherService,
+          loadProfileService,
           extSimulationData.evDataService,
         )
 
@@ -111,6 +116,7 @@ object SimonaSim {
           scheduler,
           primaryServiceProxy.toTyped,
           weatherService.toTyped,
+          loadProfileService.toTyped,
         ) ++
           gridAgents ++
           extSimulationData.extDataServices.values.map(_.toTyped)

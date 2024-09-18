@@ -11,6 +11,7 @@ import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData.WholesalePrice
 import edu.ie3.simona.agent.participant.data.DataService
 import edu.ie3.simona.ontology.messages.services.EvMessage.EvData
+import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.LoadProfileData
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 
 /** Common properties to all secondary data services
@@ -23,6 +24,9 @@ object SecondaryDataService {
 
   final case class ActorWeatherService(override val actorRef: ActorRef)
       extends SecondaryDataService[WeatherData]
+
+  final case class ActorLoadProfileService(override val actorRef: ActorRef)
+      extends SecondaryDataService[LoadProfileData]
 
   final case class ActorExtEvDataService(override val actorRef: ActorRef)
       extends SecondaryDataService[EvData]

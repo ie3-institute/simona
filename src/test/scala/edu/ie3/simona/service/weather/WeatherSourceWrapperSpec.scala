@@ -371,6 +371,10 @@ object WeatherSourceWrapperSpec {
         case None        => Optional.empty()
       }
     }
+
+    override def getTimeKeysAfter(
+        zonedDateTime: ZonedDateTime
+    ): util.Map[Point, util.List[ZonedDateTime]] = ???
   }
 
   /** Prepare test data for WeightSum-related tests

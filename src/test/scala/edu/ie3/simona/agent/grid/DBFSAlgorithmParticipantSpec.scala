@@ -52,12 +52,14 @@ class DBFSAlgorithmParticipantSpec
     TestProbe("runtimeEvents")
   private val primaryService: TestProbe[ServiceMessage] =
     TestProbe("primaryService")
+  private val loadProfileService = TestProbe("loadProfileService")
   private val weatherService = TestProbe("weatherService")
 
   private val environmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,
     runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref.toClassic,
+    loadProfiles = loadProfileService.ref.toClassic,
     weather = weatherService.ref.toClassic,
     evDataService = None,
   )
