@@ -39,6 +39,7 @@ import tech.units.indriya.unit.Units.PERCENT
 
 import java.time.ZonedDateTime
 import java.util.UUID
+import scala.collection.SortedMap
 import scala.collection.immutable.SortedSet
 
 /** EV charging station model
@@ -294,6 +295,7 @@ final case class EvcsModel(
       .groupBy { case (_, entry) =>
         entry.tickStart
       }
+      .to(SortedMap)
 
     val startAndStopTicks = prefilteredSchedules.values
       .flatMap {
