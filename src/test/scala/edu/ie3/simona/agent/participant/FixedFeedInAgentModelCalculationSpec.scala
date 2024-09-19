@@ -249,7 +249,7 @@ class FixedFeedInAgentModelCalculationSpec
         RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
 
       fixedFeedAgent.stateName shouldBe Idle
@@ -305,7 +305,7 @@ class FixedFeedInAgentModelCalculationSpec
         RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
-      /* I am not interested in the CompletionMessage */
+      /* I am not interested in the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(fixedFeedAgent.stateName shouldBe Idle)
       /* State data is tested in another test */
