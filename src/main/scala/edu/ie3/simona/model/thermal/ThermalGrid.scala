@@ -72,6 +72,7 @@ final case class ThermalGrid(
               tick,
               lastHouseState,
               lastAmbientTemperature,
+              actualAmbientTemperature,
               lastHouseState.qDot,
             )
           if (
@@ -185,11 +186,23 @@ final case class ThermalGrid(
 
     // Storage was charged in the lastState and is not full
     if (qDotStorageLastState > zeroKW && actualThermalStorageSoc < Each(1.0)) {
-      continuePushingInfeedIntoStorage(tick, state, ambientTemperature, qDot)
+      continuePushingInfeedIntoStorage(
+        tick,
+        state,
+        lastAmbientTemperature,
+        ambientTemperature,
+        qDot,
+      )
     }
     // Storage was not charged in the last state or is full
     else {
-      pushInfeedIntoHouseFirst(tick, state, ambientTemperature, qDot)
+      pushInfeedIntoHouseFirst(
+        tick,
+        state,
+        lastAmbientTemperature,
+        ambientTemperature,
+        qDot,
+      )
     }
   }
 
@@ -268,6 +281,7 @@ final case class ThermalGrid(
   private def continuePushingInfeedIntoStorage(
       tick: Long,
       lastState: ThermalGridState,
+      lastAmbientTemperature: Temperature,
       ambientTemperature: Temperature,
       qDot: Power,
   ): (ThermalGridState, Option[ThermalThreshold]) = {
@@ -284,6 +298,7 @@ final case class ThermalGrid(
                 thermalHouse.determineState(
                   tick,
                   houseState,
+                  lastAmbientTemperature,
                   ambientTemperature,
                   zeroKW,
                 )
@@ -348,6 +363,7 @@ final case class ThermalGrid(
   private def pushInfeedIntoHouseFirst(
       tick: Long,
       lastState: ThermalGridState,
+      lastAmbientTemperature: Temperature,
       ambientTemperature: Temperature,
       qDot: Power,
   ): (ThermalGridState, Option[ThermalThreshold]) = {
