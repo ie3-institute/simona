@@ -18,7 +18,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.service.ServiceType
-import org.apache.pekko.actor.typed.javadsl.ActorContext
+import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import squants.energy.Power
 
 import java.time.ZonedDateTime
@@ -90,6 +90,16 @@ object ParticipantModel {
   case object ConstantState extends ModelState {
     override val tick = -1 // is there a better way?
   }
+
+  /** Indicates when either flex options change (when em-controlled) or the
+    * operating point must change (when not em-controlled).
+    * @param changesAtNextActivation
+    * @param changesAtTick
+    */
+  final case class ModelChangeIndicator(
+      changesAtNextActivation: Boolean = false,
+      changesAtTick: Option[Long] = None,
+  )
 
   final case class ResultsContainer(
       power: Power,

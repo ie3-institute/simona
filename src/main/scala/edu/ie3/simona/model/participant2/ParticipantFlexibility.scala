@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.model.participant2
 
-import edu.ie3.simona.model.participant2.ParticipantFlexibility.FlexChangeIndicator
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
+  ModelChangeIndicator,
   ModelState,
   OperatingPoint,
   OperationRelevantData,
@@ -31,16 +31,11 @@ trait ParticipantFlexibility[
   def handlePowerControl(
       flexOptions: ProvideFlexOptions,
       setPower: Power,
-  ): (OP, FlexChangeIndicator)
+  ): (OP, ModelChangeIndicator)
 
 }
 
 object ParticipantFlexibility {
-
-  final case class FlexChangeIndicator(
-      changesAtNextActivation: Boolean = false,
-      changesAtTick: Option[Long] = None,
-  )
 
   trait ParticipantSimpleFlexibility[
       S <: ModelState,
@@ -58,8 +53,8 @@ object ParticipantFlexibility {
     def handlePowerControl(
         flexOptions: ProvideFlexOptions,
         setPower: Power,
-    ): (ActivePowerOperatingPoint, FlexChangeIndicator) = {
-      (ActivePowerOperatingPoint(setPower), FlexChangeIndicator())
+    ): (ActivePowerOperatingPoint, ModelChangeIndicator) = {
+      (ActivePowerOperatingPoint(setPower), ModelChangeIndicator())
     }
   }
 

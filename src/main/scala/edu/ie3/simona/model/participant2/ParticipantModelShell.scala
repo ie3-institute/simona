@@ -5,28 +5,32 @@
  */
 
 package edu.ie3.simona.model.participant2
-import edu.ie3.simona.agent.em.FlexCorrespondenceStore.WithTime
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
+import edu.ie3.simona.model.em.EmTools
 import edu.ie3.simona.model.participant2.ParticipantModel.{
+  ModelChangeIndicator,
   ModelState,
   OperatingPoint,
   OperationRelevantData,
 }
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
-import org.apache.pekko.actor.typed.javadsl.ActorContext
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
+  IssueFlexControl,
+  ProvideFlexOptions,
+}
+import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
 /** Takes care of:
   *   - activating/deactivating model
   *   - holding id information
-  *     - storing:
-  *       - states (only current needed)
-  *         - operating points (only current needed)
-  *         - operation relevant data (only current needed)
-  *         - flex options? (only current needed)
-  *         - results? also needs to handle power request from grid
+  *   - storing:
+  *     - states (only current needed)
+  *       - operating points (only current needed)
+  *       - operation relevant data (only current needed)
+  *       - flex options? (only current needed)
+  *       - results? also needs to handle power request from grid
   */
 final case class ParticipantModelShell[
     OP <: OperatingPoint,
@@ -38,20 +42,19 @@ final case class ParticipantModelShell[
     relevantData: OR,
     operatingPoint: OP,
     flexOptions: ProvideFlexOptions,
+    modelChange: ModelChangeIndicator,
 ) {
 
-  def determineRelevantData(receivedData: Seq[SecondaryData], tick: Long) = {
-    model.createRelevantData(receivedData, tick)
+  def updateRelevantData(
+      receivedData: Seq[SecondaryData],
+      tick: Long,
+  ): ParticipantModelShell[OP, S, OR] = {
+    val updatedRelevantData = model.createRelevantData(receivedData, tick)
+
+    copy(relevantData = updatedRelevantData)
   }
 
-  private def determineCurrentState(currentTick: Long): S = {
-    if (state.tick < currentTick)
-      model.determineState(state, operatingPoint, currentTick)
-    else
-      state
-  }
-
-  def determineOperatingPoint(
+  def updateOperatingPoint(
       currentTick: Long
   ): ParticipantModelShell[OP, S, OR] = {
     val currentState = determineCurrentState(currentTick)
@@ -72,29 +75,55 @@ final case class ParticipantModelShell[
       ???,
     )
 
-    copy(state = currentState, operatingPoint = newOperatingPoint)
+    copy(
+      state = currentState,
+      operatingPoint = newOperatingPoint,
+      modelChange = ModelChangeIndicator(changesAtTick = maybeNextTick),
+    )
   }
 
-  def calcFlexOptions(): ParticipantModelShell[OP, S, OR] = {
-    val flexOptions = model.calcFlexOptions(state, relevantData)
+  def updateFlexOptions(currentTick: Long): ParticipantModelShell[OP, S, OR] = {
+    val currentState = determineCurrentState(currentTick)
+    val flexOptions = model.calcFlexOptions(currentState, relevantData)
 
-    copy(flexOptions = flexOptions)
+    copy(state = currentState, flexOptions = flexOptions)
   }
 
-  def handleFlexControl(): ParticipantModelShell[OP, S, OR] = {
-    // todo pretty similar to determineOperatingPoint
+  def updateOperatingPoint(
+      flexControl: IssueFlexControl
+  ): ParticipantModelShell[OP, S, OR] = {
+    val currentState = determineCurrentState(flexControl.tick)
 
-    this
+    val setPointActivePower = EmTools.determineFlexPower(
+      flexOptions,
+      flexControl,
+    )
+
+    val (newOperatingPoint, modelChange) =
+      model.handlePowerControl(flexOptions, setPointActivePower)
+
+    copy(
+      state = currentState,
+      operatingPoint = newOperatingPoint,
+      modelChange = modelChange,
+    )
   }
 
   def handleRequest(
       ctx: ActorContext[ParticipantAgent.Request],
-      msg: ParticipantRequest,
+      request: ParticipantRequest,
   ): ParticipantModelShell[OP, S, OR] = {
-    val currentState = determineCurrentState(msg.tick)
-    val updatedState = model.handleRequest(currentState, ctx, msg)
+    val currentState = determineCurrentState(request.tick)
+    val updatedState = model.handleRequest(currentState, ctx, request)
 
     copy(state = updatedState)
+  }
+
+  private def determineCurrentState(currentTick: Long): S = {
+    if (state.tick < currentTick)
+      model.determineState(state, operatingPoint, currentTick)
+    else
+      state
   }
 
 }

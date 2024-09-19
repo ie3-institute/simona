@@ -9,12 +9,17 @@ package edu.ie3.simona.agent.participant2
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant2.ParticipantModelShell
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
+  FlexActivation,
+  FlexCompletion,
   FlexRequest,
   FlexResponse,
+  IssueFlexControl,
   ProvideFlexOptions,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.util.scala.Scope
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
@@ -110,33 +115,86 @@ object ParticipantAgent {
       dataCore: ParticipantDataCore,
       parentData: Either[SchedulerData, FlexControlledData],
   ): Behavior[Request] =
-    Behaviors.receivePartial { case (ctx, activation: ActivationRequest) =>
-      // handle issueControl differently?
-      val updatedCore = dataCore.handleActivation(activation.tick)
+    Behaviors.receivePartial {
+      case (ctx, request: ParticipantRequest) =>
+        val updatedShell = modelShell.handleRequest(ctx, request)
 
-      if (dataCore.isComplete) {
+        ParticipantAgent(updatedShell, dataCore, parentData)
 
-        val receivedData = dataCore.getData.map {
-          case data: SecondaryData => data
-          case other =>
-            throw new CriticalFailureException(
-              s"Received unexpected data $other, should be secondary data"
-            )
-        }
+      case (ctx, activation: ActivationRequest) =>
+        // handle issueControl differently?
+        val updatedCore = dataCore.handleActivation(activation.tick)
 
-        modelShell.determineRelevantData(receivedData, activation.tick)
+        val updatedShell = if (dataCore.isComplete) {
 
-        parentData match {
-          case Left(schedulerData) =>
-            val updatedModel =
-              modelShell.determineOperatingPoint(activation.tick)
+          val receivedData = dataCore.getData.map {
+            case data: SecondaryData => data
+            case other =>
+              throw new CriticalFailureException(
+                s"Received unexpected data $other, should be secondary data"
+              )
+          }
 
-          case Right(flexData) =>
-        }
+          Scope(modelShell)
+            .map(_.updateRelevantData(receivedData, activation.tick))
+            .map { shell =>
+              activation match {
+                case ParticipantActivation(tick) =>
+                  val modelWithOP = shell.updateOperatingPoint(tick)
 
-      }
+                  // todo results
 
-      ParticipantAgent(modelShell, updatedCore, parentData)
+                  parentData.fold(
+                    schedulerData =>
+                      schedulerData.scheduler ! Completion(
+                        schedulerData.activationAdapter,
+                        modelWithOP.modelChange.changesAtTick,
+                      ),
+                    _ =>
+                      throw new CriticalFailureException(
+                        "Received activation while controlled by EM"
+                      ),
+                  )
+                  modelWithOP
+
+                case Flex(FlexActivation(tick)) =>
+                  val modelWithFlex = shell.updateFlexOptions(tick)
+
+                  parentData.fold(
+                    _ =>
+                      throw new CriticalFailureException(
+                        "Received flex activation while not controlled by EM"
+                      ),
+                    _.emAgent ! modelWithFlex.flexOptions,
+                  )
+
+                  modelWithFlex
+
+                case Flex(flexControl: IssueFlexControl) =>
+                  val modelWithOP = shell.updateOperatingPoint(flexControl)
+
+                  // todo results
+
+                  parentData.fold(
+                    _ =>
+                      throw new CriticalFailureException(
+                        "Received issue flex control while not controlled by EM"
+                      ),
+                    _.emAgent ! FlexCompletion(
+                      shell.model.uuid,
+                      shell.modelChange.changesAtNextActivation,
+                      shell.modelChange.changesAtTick,
+                    ),
+                  )
+
+                  modelWithOP
+              }
+            }
+            .get
+        } else
+          modelShell
+
+        ParticipantAgent(updatedShell, updatedCore, parentData)
     }
 
   private def primaryData(): Behavior[Request] = Behaviors.receivePartial {
