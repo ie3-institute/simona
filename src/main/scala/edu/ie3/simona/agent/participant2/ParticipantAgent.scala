@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.participant2
 
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.participant2.ParticipantModel
+import edu.ie3.simona.model.participant2.ParticipantModelShell
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexRequest,
   FlexResponse,
@@ -21,7 +21,7 @@ import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 object ParticipantAgent {
 
-  trait Request
+  sealed trait Request
 
   /** Extended by all requests that activate an [[ParticipantAgent]], i.e.
     * activations, flex requests and control messages
@@ -98,8 +98,15 @@ object ParticipantAgent {
       lastFlexOptions: Option[ProvideFlexOptions] = None,
   )
 
+  /** A request to the participant agent that is not covered by the standard
+    * ways of interacting with the agent
+    */
+  trait ParticipantRequest extends Request {
+    val tick: Long
+  }
+
   def apply(
-      model: ParticipantModel[_, _, _],
+      modelShell: ParticipantModelShell[_, _, _],
       dataCore: ParticipantDataCore,
       parentData: Either[SchedulerData, FlexControlledData],
   ): Behavior[Request] =
@@ -113,15 +120,23 @@ object ParticipantAgent {
           case data: SecondaryData => data
           case other =>
             throw new CriticalFailureException(
-              s"Received unexpected data $other"
+              s"Received unexpected data $other, should be secondary data"
             )
         }
-        val relevantData =
-          model.createRelevantData(receivedData, activation.tick)
-        model.calcState()
+
+        modelShell.determineRelevantData(receivedData, activation.tick)
+
+        parentData match {
+          case Left(schedulerData) =>
+            val updatedModel =
+              modelShell.determineOperatingPoint(activation.tick)
+
+          case Right(flexData) =>
+        }
+
       }
 
-      ParticipantAgent(model, updatedCore, parentData)
+      ParticipantAgent(modelShell, updatedCore, parentData)
     }
 
   private def primaryData(): Behavior[Request] = Behaviors.receivePartial {

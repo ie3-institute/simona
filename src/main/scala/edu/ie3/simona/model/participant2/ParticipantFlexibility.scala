@@ -49,7 +49,7 @@ object ParticipantFlexibility {
     this: ParticipantModel[ActivePowerOperatingPoint, S, OR] =>
 
     def calcFlexOptions(state: S, relevantData: OR): ProvideFlexOptions = {
-      val (operatingPoint, _) = calcOperatingPoint(state, relevantData)
+      val (operatingPoint, _) = determineOperatingPoint(state, relevantData)
       val power = operatingPoint.activePower
 
       ProvideMinMaxFlexOptions(uuid, power, power, DefaultQuantities.zeroKW)

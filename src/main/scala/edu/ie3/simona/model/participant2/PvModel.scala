@@ -78,7 +78,7 @@ final class PvModel private (
     * @return
     *   Active power
     */
-  override def calcOperatingPoint(
+  override def determineOperatingPoint(
       modelState: ConstantState.type,
       data: PvRelevantData,
   ): (ActivePowerOperatingPoint, Option[Long]) = {
@@ -718,14 +718,14 @@ final class PvModel private (
     else proposal
   }
 
-  override def calcState(
+  override def determineState(
       lastState: ParticipantModel.ConstantState.type,
       operatingPoint: ActivePowerOperatingPoint,
       currentTick: Long,
   ): ParticipantModel.ConstantState.type = ConstantState
 
-  override def calcResults(
-      state: ParticipantModel.ConstantState.type,
+  override def createResults(
+      lastState: ParticipantModel.ConstantState.type,
       operatingPoint: ActivePowerOperatingPoint,
       complexPower: ApparentPower,
       dateTime: ZonedDateTime,

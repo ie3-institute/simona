@@ -16,6 +16,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ResultsContainer,
 }
 import edu.ie3.simona.agent.participant2.ParticipantAgent
+import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.service.ServiceType
 import org.apache.pekko.actor.typed.javadsl.ActorContext
 import squants.energy.Power
@@ -27,14 +28,15 @@ abstract class ParticipantModel[
     OP <: OperatingPoint,
     S <: ModelState,
     OR <: OperationRelevantData,
-](val uuid: UUID) {
+](val uuid: UUID)
+    extends ParticipantFlexibility[OP, S, OR] {
 
-  def calcOperatingPoint(state: S, relevantData: OR): (OP, Option[Long])
+  def determineOperatingPoint(state: S, relevantData: OR): (OP, Option[Long])
 
-  def calcState(lastState: S, operatingPoint: OP, currentTick: Long): S
+  def determineState(lastState: S, operatingPoint: OP, currentTick: Long): S
 
-  def calcResults(
-      state: S,
+  def createResults(
+      lastState: S,
       operatingPoint: OP,
       complexPower: ApparentPower,
       dateTime: ZonedDateTime,
@@ -52,14 +54,20 @@ abstract class ParticipantModel[
 
   /** Handling requests that are not part of the standard participant protocol
     *
+    * @param state
+    *   The current state
     * @param ctx
     *   The actor context that can be used to send replies
     * @param msg
-    *   The received request TODO create interface
+    *   The received request
     * @return
-    *   An updated state
+    *   An updated state, or the same state provided as parameter
     */
-  def handleRequest(ctx: ActorContext[ParticipantAgent.Request], msg: Any): S =
+  def handleRequest(
+      state: S,
+      ctx: ActorContext[ParticipantAgent.Request],
+      msg: ParticipantRequest,
+  ): S =
     throw new NotImplementedError(s"Method not implemented by $getClass")
 
 }
@@ -68,14 +76,20 @@ object ParticipantModel {
 
   trait OperationRelevantData
 
-  trait OperatingPoint
+  trait OperatingPoint {
+    val activePower: Power
+  }
 
-  case class ActivePowerOperatingPoint(activePower: Power)
+  case class ActivePowerOperatingPoint(override val activePower: Power)
       extends OperatingPoint
 
-  trait ModelState
+  trait ModelState {
+    val tick: Long
+  }
 
-  case object ConstantState extends ModelState
+  case object ConstantState extends ModelState {
+    override val tick = -1 // is there a better way?
+  }
 
   final case class ResultsContainer(
       power: Power,

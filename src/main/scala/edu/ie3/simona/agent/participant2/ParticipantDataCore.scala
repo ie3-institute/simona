@@ -10,6 +10,7 @@ import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ProvisionMessage
 
+/** todo rather call ParticipantInputHandler? */
 case class ParticipantDataCore(
     expectedData: Map[ClassicRef, Long],
     receivedData: Map[ClassicRef, Option[_ <: Data]],
