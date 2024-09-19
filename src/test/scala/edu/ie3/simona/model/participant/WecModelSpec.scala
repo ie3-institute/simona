@@ -104,15 +104,22 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
 
     "determine Betz coefficient correctly" in {
       val wecModel = buildWecModel()
-      val velocities = Seq(2.0, 2.5, 18.0, 27.0, 34.0, 40.0)
-      val expectedBetzResults = Seq(0.115933516, 0.2010945555, 0.108671106,
-        0.032198846, 0.000196644, 0.0)
-      velocities.zip(expectedBetzResults).foreach {
-        case (velocity, betzResult) =>
-          val windVel = MetersPerSecond(velocity)
-          val betzFactor = wecModel.determineBetzCoefficient(windVel)
-          val expected = Each(betzResult)
-          betzFactor shouldEqual expected
+
+      val testCases = Table(
+        ("velocity", "expectedBetzResult"),
+        (2.0, 0.115933516),
+        (2.5, 0.2010945555),
+        (18.0, 0.108671106),
+        (27.0, 0.032198846),
+        (34.0, 0.000196644),
+        (40.0, 0.0),
+      )
+
+      forAll(testCases) { case (velocity: Double, expectedBetzResult: Double) =>
+        val windVel = MetersPerSecond(velocity)
+        val betzFactor = wecModel.determineBetzCoefficient(windVel)
+
+        betzFactor shouldEqual Each(expectedBetzResult)
       }
     }
 
