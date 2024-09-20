@@ -19,6 +19,10 @@ sealed trait ServiceMessage
 
 object ServiceMessage {
 
+  trait RequestServiceInformationMessage extends ServiceMessage {
+    val ref: ActorRef
+  }
+
   /** Message used to register for a service
     */
   trait ServiceRegistrationMessage extends ServiceMessage

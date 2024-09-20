@@ -14,15 +14,18 @@ import edu.ie3.datamodel.models.timeseries.repetitive.{
   BdewLoadProfileTimeSeries,
   RandomLoadProfileTimeSeries,
 }
-import edu.ie3.datamodel.models.value.PValue
+import edu.ie3.simona.service.load.LoadProfileStore.{AveragePower, MaxPower}
 import edu.ie3.util.quantities.PowerSystemUnits
-import squants.Power
-import squants.energy.Kilowatts
+import squants.Energy
+import squants.energy.{KilowattHours, Kilowatts, WattHours}
+import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
 import java.util.Optional
+import javax.measure.quantity.Power
 import scala.collection.mutable
 import scala.jdk.OptionConverters.RichOptional
+import scala.util.Try
 
 /** Container class that stores all loaded load profiles.
   * @param bdewLoadProfiles
@@ -31,6 +34,8 @@ import scala.jdk.OptionConverters.RichOptional
   *   an option for a [[RandomLoadProfile]]
   * @param loadProfileSources
   *   all other sources
+  * @param maxValueMap
+  *   map: load profile to maximal power value
   * @param valueProvider
   *   map: [[LoadProfile]] to provider function
   */
@@ -40,26 +45,74 @@ final case class LoadProfileStore(
     ],
     random: Option[RandomLoadProfileTimeSeries],
     loadProfileSources: Map[LoadProfile, LoadProfileSource[_, _]],
-    private val valueProvider: Map[LoadProfile, ZonedDateTime => Option[Power]],
+    maxValueMap: Map[LoadProfile, Option[MaxPower]],
+    private[load] val valueProvider: Map[LoadProfile, ZonedDateTime => Option[
+      AveragePower
+    ]],
 ) {
 
-  /** Method to get the provider function for a given load profile
-    * @param profile
-    *   given load profile
+  /** Returns the average and the max power options.
+    * @param time
+    *   the requested time
+    * @param loadProfile
+    *   the requested load profile
     * @return
-    *   the function
     */
-  def getValueProvider(profile: LoadProfile): ZonedDateTime => Option[Power] =
-    valueProvider
-      .getOrElse(
-        profile,
-        throw new SourceException(
-          s"Could not find the given load profile: $profile!"
-        ),
-      )
+  def valueOptions(
+      time: ZonedDateTime,
+      loadProfile: LoadProfile,
+  ): Option[(AveragePower, MaxPower)] =
+    entry(time, loadProfile).zip(maxPower(loadProfile))
+
+  /** Returns the load profiles entry (average power consumption for the
+    * following quarter hour) for given time and load profile.
+    *
+    * @param time
+    *   the requested time
+    * @param loadProfile
+    *   the requested load profile
+    * @return
+    *   a load in kW
+    */
+  def entry(
+      time: ZonedDateTime,
+      loadProfile: LoadProfile,
+  ): Option[AveragePower] =
+    valueProvider.get(loadProfile).map(_.apply(time)) match {
+      case Some(value) => value
+      case None =>
+        throw new RuntimeException(
+          s"Value for LoadProfile ${loadProfile.toString} and time $time not found."
+        )
+    }
+
+  /** Returns the maximum average power consumption per quarter hour for a given
+    * load profile, calculated over all seasons and weekday types of given load
+    * profile
+    *
+    * @param loadProfile
+    *   the consumer type
+    * @return
+    *   the maximum load in kW
+    */
+  def maxPower(loadProfile: LoadProfile): Option[MaxPower] =
+    maxValueMap.get(loadProfile).flatten
 }
 
 object LoadProfileStore {
+
+  type AveragePower = squants.Power
+  type MaxPower = squants.Power
+
+  /** Default standard load profile energy scaling
+    */
+  val defaultLoadProfileEnergyScaling: squants.Energy = KilowattHours(1000d)
+
+  private val profileScalingMap: mutable.Map[LoadProfile, squants.Energy] =
+    mutable.Map()
+  private val maxValueMap: mutable.Map[LoadProfile, Option[MaxPower]] =
+    mutable.Map()
+
   def apply(
       bdewLoadProfiles: Option[
         Map[BdewStandardLoadProfile, BdewLoadProfileTimeSeries]
@@ -68,48 +121,105 @@ object LoadProfileStore {
       loadProfileSources: Map[LoadProfile, LoadProfileSource[_, _]],
   ): LoadProfileStore = {
 
-    val profileToFunctionMap
-        : mutable.Map[LoadProfile, ZonedDateTime => Optional[PValue]] =
+    val valueProvider
+        : mutable.Map[LoadProfile, ZonedDateTime => Option[AveragePower]] =
       mutable.Map()
 
     // adds all bdew standard load profiles to the map
     bdewLoadProfiles.foreach { bdewProfiles =>
       bdewProfiles.foreach { case (profile, lpts) =>
-        profileToFunctionMap.put(profile, time => lpts.getValue(time))
+        valueProvider.put(
+          profile,
+          time => convert(lpts.getValue(time).flatMap(_.getP)),
+        )
+        maxValueMap.put(profile, convert(lpts.maxPower))
       }
     }
 
     // adds the random load profile to the map
     random.foreach { lpts =>
-      profileToFunctionMap.put(
+      valueProvider.put(
         RandomLoadProfile.RANDOM_LOAD_PROFILE,
-        time => lpts.getValue(time),
+        time => convert(lpts.getValue(time).flatMap(_.getP)),
+      )
+      maxValueMap.put(
+        RandomLoadProfile.RANDOM_LOAD_PROFILE,
+        convert(lpts.maxPower),
       )
     }
 
     // adds all other load profiles to the map
     loadProfileSources.foreach { case (profile, lpts) =>
-      profileToFunctionMap.put(profile, time => lpts.getValue(time))
-    }
-
-    // converts the pvalue to squants.Power
-    val allFunctions = profileToFunctionMap.map { case (profile, function) =>
-      profile -> function.andThen(
-        _.toScala.flatMap(
-          _.getP
-            .map(p =>
-              Kilowatts(p.to(PowerSystemUnits.KILOWATT).getValue.doubleValue())
-            )
-            .toScala
-        )
+      valueProvider.put(
+        profile,
+        time => convert(lpts.getValue(time).flatMap(_.getP)),
       )
-    }.toMap
+      maxValueMap.put(profile, convert(lpts.getTimeSeries.maxPower))
+    }
 
     LoadProfileStore(
       bdewLoadProfiles,
       random,
       loadProfileSources,
-      allFunctions,
+      maxValueMap.toMap,
+      valueProvider.toMap,
     )
   }
+
+  /** Returns the profile energy scaling for the given load profile.
+    *
+    * @param loadProfile
+    *   the given profile
+    * @return
+    *   the scaling
+    */
+  def profileScaling(loadProfile: LoadProfile): squants.Energy =
+    profileScalingMap.getOrElse(loadProfile, defaultLoadProfileEnergyScaling)
+
+  /** Returns the maximum average power consumption per quarter hour for a given
+    * load profile, calculated over all seasons and weekday types of given load
+    * profile
+    *
+    * @param loadProfile
+    *   the consumer type
+    * @return
+    *   the maximum load in kW
+    */
+  def maxPower(loadProfile: LoadProfile): Option[MaxPower] =
+    maxValueMap.get(loadProfile).flatten
+
+  /** Method for scaling the provided power value.
+    * @param power
+    *   given power
+    * @param loadProfileEnergyScaling
+    *   scaling factor used by the source
+    * @return
+    *   the scaled power value
+    */
+  def scala(
+      power: squants.Power,
+      loadProfileEnergyScaling: Energy,
+  )(implicit tolerance: Energy = WattHours(1e-3)): squants.Power = if (
+    defaultLoadProfileEnergyScaling ~= loadProfileEnergyScaling
+  ) {
+    power
+  } else {
+    power / loadProfileEnergyScaling * defaultLoadProfileEnergyScaling
+  }
+
+  /** Converts an optional [[ComparableQuantity]] power to an option for
+    * [[squants.Power]].
+    * @param power
+    *   that should be converted
+    * @return
+    *   an option for [[squants.Power]]
+    */
+  private def convert(
+      power: Optional[ComparableQuantity[Power]]
+  ): Option[squants.Power] =
+    power
+      .map(p =>
+        Kilowatts(p.to(PowerSystemUnits.KILOWATT).getValue.doubleValue())
+      )
+      .toScala
 }

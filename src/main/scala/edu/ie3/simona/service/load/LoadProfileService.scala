@@ -56,7 +56,6 @@ import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.simona.util.{SimonaConstants, TickUtil}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
 import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
-import squants.Power
 
 import java.nio.file.Path
 import java.time.{Duration, ZonedDateTime}
@@ -171,11 +170,11 @@ final case class LoadProfileService(
       serviceStateData: LoadProfileInitializedStateData
   ): LoadProfileInitializedStateData = {
 
-    Try(serviceStateData.loadProfileStore.getValueProvider(loadProfile)) match {
-      case Success(valueProvider) =>
+    Try(serviceStateData.loadProfileStore.maxValueMap(loadProfile)) match {
+      case Success(_) =>
         // a function was found, updating state data
-        serviceStateData.copy(refToProvider =
-          serviceStateData.refToProvider + (agentToBeRegistered -> valueProvider)
+        serviceStateData.copy(refToProfile =
+          serviceStateData.refToProfile + (agentToBeRegistered -> loadProfile)
         )
       case Failure(exception) =>
         log.error(
@@ -214,15 +213,16 @@ final case class LoadProfileService(
     }
 
     val time = tick.toDateTime(simulationStartTime)
+    val loadProfileStore = serviceStateData.loadProfileStore
 
-    serviceStateData.refToProvider.foreach { case (actorRef, valueProvider) =>
-      valueProvider(time) match {
-        case Some(pValue) =>
+    serviceStateData.refToProfile.foreach { case (actorRef, loadProfile) =>
+      loadProfileStore.valueOptions(time, loadProfile) match {
+        case Some((averagePower, maxPower)) =>
           /* Sending the found value to the requester */
           actorRef ! ProvideLoadProfileValue(
             tick,
             self,
-            LoadProfileData(pValue),
+            LoadProfileData(averagePower, maxPower),
             maybeNextTick,
           )
         case None =>
@@ -255,8 +255,8 @@ object LoadProfileService {
 
   /** @param loadProfileStore
     *   that stores that contains all load profiles
-    * @param refToProvider
-    *   map: actor ref to value provider function
+    * @param refToProfile
+    *   map: actor ref to [[LoadProfile]]
     * @param maybeNextActivationTick
     *   the next tick, when this actor is triggered by scheduler
     * @param activationTicks
@@ -265,7 +265,7 @@ object LoadProfileService {
     */
   final case class LoadProfileInitializedStateData(
       loadProfileStore: LoadProfileStore,
-      refToProvider: Map[ActorRef, ZonedDateTime => Option[Power]],
+      refToProfile: Map[ActorRef, LoadProfile],
       override val maybeNextActivationTick: Option[Long],
       override val activationTicks: SortedDistinctSeq[Long],
   ) extends ServiceActivationBaseStateData

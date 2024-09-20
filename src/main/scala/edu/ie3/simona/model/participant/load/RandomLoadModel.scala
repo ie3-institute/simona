@@ -4,27 +4,20 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant.load.random
+package edu.ie3.simona.model.participant.load
 
-import de.lmu.ifi.dbs.elki.math.statistics.distribution.GeneralizedExtremeValueDistribution
-import de.lmu.ifi.dbs.elki.utilities.random.RandomFactory
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.LoadReference._
-import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomRelevantData
-import edu.ie3.simona.model.participant.load.{DayType, LoadModel, LoadReference}
-import edu.ie3.util.TimeUtil
+import edu.ie3.simona.model.participant.load.RandomLoadModel.RandomRelevantData
 import edu.ie3.util.scala.OperationInterval
 import squants.Power
 import squants.energy.{KilowattHours, Kilowatts, Watts}
 
-import java.time.ZonedDateTime
 import java.util.UUID
 import scala.annotation.tailrec
-import scala.collection.mutable
-import scala.util.Random
 
 /** A load model consuming energy followed by time resolved probability. The
   * referencing to rated active power maps the output's 95 % quantile to this
@@ -71,12 +64,6 @@ final case class RandomLoadModel(
       )
   }
 
-  private val randomLoadParamStore = RandomLoadParamStore()
-
-  private type GevKey = (DayType.Value, Int)
-  private val gevStorage =
-    mutable.Map.empty[GevKey, GeneralizedExtremeValueDistribution]
-
   /** Calculate the active power behaviour of the model
     *
     * @param data
@@ -84,72 +71,28 @@ final case class RandomLoadModel(
     * @return
     *   Active power
     */
-  @tailrec
   override protected def calculateActivePower(
       modelState: ConstantState.type,
       data: RandomRelevantData,
   ): Power = {
-    val gev = getGevDistribution(data.date)
-
-    /* Get a next random power (in kW) */
-    val randomPower = gev.nextRandom()
-    if (randomPower < 0)
-      calculateActivePower(modelState, data)
-    else {
-      val profilePower = Kilowatts(randomPower)
-      val activePower = reference match {
-        case ActivePower(activePower) =>
-          /* scale the reference active power based on the random profiles averagePower/maxPower ratio */
-          val referenceScalingFactor =
-            profilePower / RandomLoadModel.randomMaxPower
-          activePower * referenceScalingFactor
-        case _: EnergyConsumption =>
-          /* scale the profiles random power based on the energyConsumption/profileEnergyScaling(=1000kWh/year) ratio  */
-          profilePower * energyReferenceScalingFactor
-      }
-      activePower
+    val profilePower = data.power
+    val activePower = reference match {
+      case ActivePower(activePower) =>
+        /* scale the reference active power based on the random profiles averagePower/maxPower ratio */
+        val referenceScalingFactor =
+          profilePower / RandomLoadModel.randomMaxPower
+        activePower * referenceScalingFactor
+      case _: EnergyConsumption =>
+        /* scale the profiles random power based on the energyConsumption/profileEnergyScaling(=1000kWh/year) ratio  */
+        profilePower * energyReferenceScalingFactor
     }
-  }
-
-  /** Get the needed generalized extreme value distribution from the store or
-    * instantiate a new one and put it to the store.
-    *
-    * @param dateTime
-    *   Questioned date time
-    * @return
-    *   The needed generalized extreme value distribution
-    */
-  private def getGevDistribution(
-      dateTime: ZonedDateTime
-  ): GeneralizedExtremeValueDistribution = {
-    /* Determine identifying key for a distinct generalized extreme value distribution and look it up. If it is not
-     * available, yet, instantiate one. */
-    val key: GevKey = (
-      DayType(dateTime.getDayOfWeek),
-      TimeUtil.withDefaults.getQuarterHourOfDay(dateTime),
-    )
-    gevStorage.get(key) match {
-      case Some(foundIt) => foundIt
-      case None          =>
-        /* Instantiate new gev distribution, put it to storage and return it */
-        val randomFactory = RandomFactory.get(Random.nextLong())
-        val gevParameters = randomLoadParamStore.parameters(dateTime)
-        val newGev = new GeneralizedExtremeValueDistribution(
-          gevParameters.my,
-          gevParameters.sigma,
-          gevParameters.k,
-          randomFactory,
-        )
-        gevStorage += (key -> newGev)
-        newGev
-    }
+    activePower
   }
 }
 
 object RandomLoadModel {
 
-  final case class RandomRelevantData(date: ZonedDateTime)
-      extends LoadRelevantData
+  final case class RandomRelevantData(power: Power) extends LoadRelevantData
 
   /** The profile energy scaling factor, the random profile is scaled to.
     *

@@ -7,8 +7,6 @@
 package edu.ie3.simona.model.participant.load
 
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
-import edu.ie3.simona.model.participant.load.random.RandomLoadModel
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.LoadInputTestData
 import org.scalatest.PrivateMethodTester

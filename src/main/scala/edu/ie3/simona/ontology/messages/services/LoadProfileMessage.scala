@@ -10,6 +10,7 @@ import edu.ie3.datamodel.models.profile.LoadProfile
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ProvisionMessage,
+  RequestServiceInformationMessage,
   ServiceRegistrationMessage,
 }
 import org.apache.pekko.actor.ActorRef
@@ -53,11 +54,12 @@ object LoadProfileMessage {
   /** Container class for the load profile information at a certain point in
     * time
     *
-    * @param power
-    *   value
+    * @param averagePower
+    *   the average power for the current 15 minutes intervall
     */
   final case class LoadProfileData(
-      power: Power
+      averagePower: Power,
+      maxPower: Power,
   ) extends SecondaryData
 
 }

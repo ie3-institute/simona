@@ -30,15 +30,15 @@ class LoadProfileStoreSpec extends UnitSpec {
       BdewStandardLoadProfile
         .values()
         .foreach(profile =>
-          Try(buildInsStore.getValueProvider(profile)).isSuccess shouldBe true
+          Try(buildInsStore.valueProvider(profile)).isSuccess shouldBe true
         )
 
       Try(
-        buildInsStore.getValueProvider(RandomLoadProfile.RANDOM_LOAD_PROFILE)
+        buildInsStore.valueProvider(RandomLoadProfile.RANDOM_LOAD_PROFILE)
       ).isSuccess shouldBe true
 
       Try(
-        buildInsStore.getValueProvider(DefaultLoadProfiles.NO_LOAD_PROFILE)
+        buildInsStore.valueProvider(DefaultLoadProfiles.NO_LOAD_PROFILE)
       ).isFailure shouldBe true
 
     }

@@ -4,20 +4,20 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.participant.load.profile
+package edu.ie3.simona.model.participant.load
 
+import edu.ie3.datamodel.exceptions.SourceException
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.profile.StandardLoadProfile
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.LoadReference._
-import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
-import edu.ie3.simona.model.participant.load.{LoadModel, LoadReference}
+import edu.ie3.simona.model.participant.load.ProfileLoadModel.ProfileRelevantData
+import edu.ie3.simona.service.load.LoadProfileStore
 import edu.ie3.util.scala.OperationInterval
 import squants.Power
 
-import java.time.ZonedDateTime
 import java.util.UUID
 
 /** Power model consuming power according to standard load profiles
@@ -57,11 +57,6 @@ final case class ProfileLoadModel(
       cosPhiRated,
     ) {
 
-  private val loadProfileStore: LoadProfileStore = LoadProfileStore()
-
-  /* maximum energy throughout the year of the selected load profile*/
-  private val profileMaxPower = loadProfileStore.maxPower(loadProfile)
-
   /* energy reference is always models yearly energy consumption divided by the energy the profile is scaled to */
   private lazy val energyReferenceScalingFactor =
     reference match {
@@ -84,26 +79,25 @@ final case class ProfileLoadModel(
       modelState: ConstantState.type,
       data: ProfileRelevantData,
   ): Power = {
-    /* The power comes in W and is delivered all 15 minutes */
-    val averagePower: Power = loadProfileStore
-      .entry(data.date, loadProfile)
-
+    /* The power comes in kW and is delivered all 15 minutes */
     reference match {
       case ActivePower(activePower) =>
         /* scale the reference active power based on the profiles averagePower/maxPower ratio */
-        val referenceScalingFactor = averagePower / profileMaxPower
+        val referenceScalingFactor = data.averagePower / data.maxPower
         activePower * referenceScalingFactor
       case _: EnergyConsumption =>
         /* scale the profiles average power based on the energyConsumption/profileEnergyScaling(=1000kWh/year) ratio  */
-        averagePower * energyReferenceScalingFactor
+        data.averagePower * energyReferenceScalingFactor
     }
   }
 }
 
 object ProfileLoadModel {
 
-  final case class ProfileRelevantData(date: ZonedDateTime)
-      extends LoadRelevantData
+  final case class ProfileRelevantData(
+      averagePower: Power,
+      maxPower: Power,
+  ) extends LoadRelevantData
 
   def apply(
       input: LoadInput,
@@ -120,15 +114,23 @@ object ProfileLoadModel {
         LoadModel.scaleSRatedActivePower(scaledInput, power)
 
       case LoadReference.EnergyConsumption(energyConsumption) =>
-        val loadProfileMax =
-          LoadProfileStore().maxPower(
+        val loadProfileMax = LoadProfileStore
+          .maxPower(
             scaledInput.getLoadProfile.asInstanceOf[StandardLoadProfile]
           )
+          .getOrElse(
+            throw new SourceException(
+              s"Expected a maximal power value for this load profile: ${input.getLoadProfile}!"
+            )
+          )
+
         LoadModel.scaleSRatedEnergy(
           scaledInput,
           energyConsumption,
           loadProfileMax,
-          LoadProfileStore.defaultLoadProfileEnergyScaling,
+          LoadProfileStore.profileScaling(
+            scaledInput.getLoadProfile.asInstanceOf[StandardLoadProfile]
+          ),
         )
     }
 
