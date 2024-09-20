@@ -18,7 +18,7 @@ import org.apache.pekko.util.Timeout
 import java.nio.file.Path
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{Duration, DurationInt}
 import scala.jdk.FutureConverters.CompletionStageOps
 import scala.util.{Failure, Success}
 
@@ -29,6 +29,7 @@ import scala.util.{Failure, Success}
 object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
 
   override implicit val timeout: Timeout = Timeout(12.hours)
+  implicit val compressTimeoutDuration: Duration = 15.minutes
 
   override def setup(args: Array[String]): SimonaStandaloneSetup = {
     // get the config and prepare it with the provided args
@@ -86,7 +87,7 @@ object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
                     exception,
                   )
               }
-              Await.ready(compressFuture, 5.minutes)
+              Await.ready(compressFuture, compressTimeoutDuration)
             }
           }
         }
