@@ -808,6 +808,7 @@ protected trait ParticipantAgentFundamentals[
       nextActivation,
     )
 
+    unstashAll()
     stay() using stateDataFinal
   }
 
