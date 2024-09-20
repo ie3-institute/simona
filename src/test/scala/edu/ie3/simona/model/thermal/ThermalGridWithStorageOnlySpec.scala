@@ -86,8 +86,25 @@ class ThermalGridWithStorageOnlySpec
           ThermalGrid.startingState(thermalGrid),
         )
 
-        gridDemand.required should approximate(MegawattHours(0d))
-        gridDemand.possible should approximate(MegawattHours(0.92d))
+        gridDemand.required should approximate(KilowattHours(0d))
+        gridDemand.possible should approximate(KilowattHours(1150d))
+
+      }
+
+      "deliver the capabilities of a half full storage" in {
+        val tick = 10800 // after three hours
+
+        val gridDemand = thermalGrid.energyDemand(
+          tick,
+          testGridAmbientTemperature,
+          ThermalGridState(
+            None,
+            Some(ThermalStorageState(0L, KilowattHours(575d), Kilowatts(0d))),
+          ),
+        )
+
+        gridDemand.required should approximate(KilowattHours(0d))
+        gridDemand.possible should approximate(KilowattHours(575d))
       }
     }
 
@@ -105,7 +122,7 @@ class ThermalGridWithStorageOnlySpec
             Some(
               ThermalStorageState(
                 0L,
-                KilowattHours(430d),
+                KilowattHours(200d),
                 Kilowatts(0d),
               )
             )
@@ -114,6 +131,7 @@ class ThermalGridWithStorageOnlySpec
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
             tick,
+            testGridAmbientTemperature,
             testGridAmbientTemperature,
             gridState,
             testGridQDotConsumptionHigh,
@@ -125,7 +143,7 @@ class ThermalGridWithStorageOnlySpec
                 Some(ThermalStorageState(tick, storedEnergy, qDot)),
               ) =>
             tick shouldBe 0L
-            storedEnergy should approximate(KilowattHours(430d))
+            storedEnergy should approximate(KilowattHours(200d))
             qDot should approximate(testGridQDotConsumptionHigh)
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
@@ -147,6 +165,7 @@ class ThermalGridWithStorageOnlySpec
           thermalGrid invokePrivate handleInfeed(
             tick,
             testGridAmbientTemperature,
+            testGridAmbientTemperature,
             gridState,
             testGridQDotInfeed,
           )
@@ -157,11 +176,11 @@ class ThermalGridWithStorageOnlySpec
                 Some(ThermalStorageState(tick, storedEnergy, qDot)),
               ) =>
             tick shouldBe 0L
-            storedEnergy should approximate(KilowattHours(230d))
+            storedEnergy should approximate(KilowattHours(0d))
             qDot should approximate(testGridQDotInfeed)
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
-        reachedThreshold shouldBe Some(StorageFull(220800L))
+        reachedThreshold shouldBe Some(StorageFull(276000L))
       }
     }
 
@@ -171,10 +190,11 @@ class ThermalGridWithStorageOnlySpec
           0L,
           ThermalGrid.startingState(thermalGrid),
           testGridAmbientTemperature,
+          testGridAmbientTemperature,
           testGridQDotInfeed,
         )
 
-        nextThreshold shouldBe Some(StorageFull(220800L))
+        nextThreshold shouldBe Some(StorageFull(276000L))
 
         updatedState match {
           case ThermalGridState(
@@ -182,7 +202,7 @@ class ThermalGridWithStorageOnlySpec
                 Some(ThermalStorageState(tick, storedEnergy, qDot)),
               ) =>
             tick shouldBe 0L
-            storedEnergy should approximate(KilowattHours(230d))
+            storedEnergy should approximate(KilowattHours(0d))
             qDot should approximate(testGridQDotInfeed)
           case _ => fail("Thermal grid state updated failed")
         }
@@ -197,11 +217,12 @@ class ThermalGridWithStorageOnlySpec
               Some(
                 ThermalStorageState(
                   0L,
-                  KilowattHours(430d),
+                  KilowattHours(200d),
                   Kilowatts(0d),
                 )
               )
             ),
+          testGridAmbientTemperature,
           testGridAmbientTemperature,
           testGridQDotConsumptionHigh,
         ) match {
@@ -213,7 +234,7 @@ class ThermalGridWithStorageOnlySpec
                 Some(StorageEmpty(thresholdTick)),
               ) =>
             tick shouldBe 0L
-            storedEnergy should approximate(KilowattHours(430d))
+            storedEnergy should approximate(KilowattHours(200d))
             qDot should approximate(testGridQDotConsumptionHigh)
             thresholdTick shouldBe 3600L
           case _ => fail("Thermal grid state updated failed")
@@ -224,6 +245,7 @@ class ThermalGridWithStorageOnlySpec
         val updatedState = thermalGrid.updateState(
           0L,
           ThermalGrid.startingState(thermalGrid),
+          testGridAmbientTemperature,
           testGridAmbientTemperature,
           Kilowatts(0d),
         )
@@ -236,7 +258,7 @@ class ThermalGridWithStorageOnlySpec
                 None,
               ) =>
             tick shouldBe 0L
-            storedEnergy should approximate(KilowattHours(230d))
+            storedEnergy should approximate(KilowattHours(0d))
             qDot should approximate(Megawatts(0d))
 
           case _ => fail("Thermal grid state updated failed")
