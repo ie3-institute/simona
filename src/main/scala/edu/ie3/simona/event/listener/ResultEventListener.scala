@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.event.listener
 
-import org.apache.pekko.actor.typed.scaladsl.Behaviors
-import org.apache.pekko.actor.typed.{Behavior, PostStop}
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
@@ -23,6 +21,8 @@ import edu.ie3.simona.exceptions.{
 }
 import edu.ie3.simona.io.result._
 import edu.ie3.simona.util.ResultFileHierarchy
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.{Behavior, PostStop}
 import org.slf4j.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -67,42 +67,47 @@ object ResultEventListener extends Transformer3wResultSupport {
   private def initializeSinks(
       resultFileHierarchy: ResultFileHierarchy
   ): Iterable[Future[(Class[_], ResultEntitySink)]] = {
+
     resultFileHierarchy.resultSinkType match {
-      case _: ResultSinkType.Csv =>
-        resultFileHierarchy.resultEntitiesToConsider
-          .map(resultClass => {
-            resultFileHierarchy.rawOutputDataFilePaths
-              .get(resultClass)
-              .map(Future.successful)
-              .getOrElse(
-                Future.failed(
-                  new FileHierarchyException(
-                    s"Unable to get file path for result class '${resultClass.getSimpleName}' from output file hierarchy! " +
-                      s"Available file result file paths: ${resultFileHierarchy.rawOutputDataFilePaths}"
-                  )
-                )
-              )
-              .flatMap { fileName =>
-                if (fileName.endsWith(".csv") || fileName.endsWith(".csv.gz")) {
-                  Future {
-                    (
-                      resultClass,
-                      ResultEntityCsvSink(
-                        fileName.replace(".gz", ""),
-                        new ResultEntityProcessor(resultClass),
-                        fileName.endsWith(".gz"),
-                      ),
-                    )
-                  }
-                } else {
-                  Future.failed(
-                    new ProcessResultEventException(
-                      s"Invalid output file format for file $fileName provided. Currently only '.csv' or '.csv.gz' is supported!"
-                    )
+      case csv: ResultSinkType.Csv =>
+        val zipFiles = csv.zipFiles
+
+        resultFileHierarchy.resultEntitiesToConsider.map { resultClass =>
+          resultFileHierarchy.rawOutputDataFilePaths.get(resultClass) match {
+            case Some(fileName) =>
+              val finalFileName =
+                if (zipFiles) fileName.replace(".csv", ".csv.gz") else fileName
+
+              if (
+                finalFileName
+                  .endsWith(".csv") || finalFileName.endsWith(".csv.gz")
+              ) {
+                Future {
+                  (
+                    resultClass,
+                    ResultEntityCsvSink(
+                      finalFileName.replace(".gz", ""),
+                      new ResultEntityProcessor(resultClass),
+                      zipFiles,
+                    ),
                   )
                 }
+              } else {
+                Future.failed(
+                  new ProcessResultEventException(
+                    s"Invalid output file format for file $finalFileName. Currently, only '.csv' or '.csv.gz' is supported!"
+                  )
+                )
               }
-          })
+            case None =>
+              Future.failed(
+                new FileHierarchyException(
+                  s"Unable to get file path for result class '${resultClass.getSimpleName}' from output file hierarchy!"
+                )
+              )
+          }
+        }
+
       case ResultSinkType.InfluxDb1x(url, database, scenario) =>
         // creates one connection per result entity that should be processed
         resultFileHierarchy.resultEntitiesToConsider
