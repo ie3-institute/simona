@@ -2132,26 +2132,13 @@ class EvcsAgentModelCalculationSpec
 
       scheduler.expectMsg(Completion(evcsAgent.toTyped, Some(1800)))
 
-      Range(0, 1)
-        .map { _ =>
-          resultListener.expectMsgType[ParticipantResultEvent]
-        }
-        .foreach {
-          case ParticipantResultEvent(result: EvcsResult) =>
-            result.getInputModel shouldBe evcsInputModel.getUuid
-            result.getTime shouldBe 0.toDateTime
-            result.getP should beEquivalentTo(0d.asKiloWatt)
-            result.getQ should beEquivalentTo(0d.asMegaVar)
-          case _ =>
-            throw new RuntimeException(
-              s"Unexpected case at EvcsAgentModelCalculationSpec occurred."
-            )
-
-          case _ =>
-            throw new RuntimeException(
-              s"Unexpected case at EvcsAgentModelCalculationSpec occurred."
-            )
-        }
+      resultListener.expectMsgType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(result: EvcsResult) =>
+          result.getInputModel shouldBe evcsInputModel.getUuid
+          result.getTime shouldBe 0.toDateTime
+          result.getP should beEquivalentTo(0d.asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+      }
 
       /* TICK 1800
        * - ev1800 arrives
@@ -2173,39 +2160,24 @@ class EvcsAgentModelCalculationSpec
 
       scheduler.expectMsg(Completion(evcsAgent.toTyped, Some(2700)))
 
-      Range(0, 2)
-        .map { _ =>
-          resultListener.expectMsgType[ParticipantResultEvent]
-        }
-        .foreach {
-          case ParticipantResultEvent(result: EvResult) =>
-            result.getInputModel match {
-              case model if model == ev900.uuid =>
-                result.getTime shouldBe 900.toDateTime
-                result.getP should beEquivalentTo(11d.asKiloWatt)
-                result.getQ should beEquivalentTo(0d.asMegaVar)
-                result.getSoc should beEquivalentTo(0.asPercent, 1e-2)
-              case model if model == ev1800.uuid =>
-                throw new RuntimeException(
-                  s"Ev $model should arrive later at Evcs but it's already there."
-                )
-              case _ =>
-                throw new RuntimeException(
-                  s"Unexpected case at EvcsAgentModelCalculationSpec occurred."
-                )
-            }
+      resultListener.expectMsgType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(result: EvResult) =>
+          result.getInputModel match {
+            case model if model == ev900.uuid =>
+              result.getTime shouldBe 900.toDateTime
+              result.getP should beEquivalentTo(11d.asKiloWatt)
+              result.getQ should beEquivalentTo(0d.asMegaVar)
+              result.getSoc should beEquivalentTo(0.asPercent, 1e-2)
+          }
+      }
 
-          case ParticipantResultEvent(result: EvcsResult) =>
-            result.getInputModel shouldBe evcsInputModel.getUuid
-            result.getTime shouldBe 900.toDateTime
-            result.getP should beEquivalentTo(11d.asKiloWatt)
-            result.getQ should beEquivalentTo(0d.asMegaVar)
-          case _ =>
-            throw new RuntimeException(
-              s"Unexpected case at EvcsAgentModelCalculationSpec occurred."
-            )
-
-        }
+      resultListener.expectMsgType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(result: EvcsResult) =>
+          result.getInputModel shouldBe evcsInputModel.getUuid
+          result.getTime shouldBe 900.toDateTime
+          result.getP should beEquivalentTo(11d.asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+      }
 
       /* TICK 2700
        * - ev2700 arrives
