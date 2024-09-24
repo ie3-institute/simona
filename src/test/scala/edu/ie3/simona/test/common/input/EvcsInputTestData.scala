@@ -42,4 +42,5 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
     "maxPower",
     lowestEvSoc = 0.2,
   )
+
 }
