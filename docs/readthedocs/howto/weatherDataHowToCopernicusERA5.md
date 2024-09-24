@@ -15,7 +15,7 @@ The following data parameter should be used
 - Temperature
   - 2m temperature
 
-Since SIMONAs {doc}`models/pv_model` requires direct and diffuse solar radiation, the diffuse solar radiation need to be determined from the ERA5 data.
+Since SIMONAs [PV Model](pv_model) requires direct and diffuse solar radiation, the diffuse solar radiation need to be determined from the ERA5 data.
 
 ## Pre-Processing solar radiation weather data
 
@@ -26,9 +26,9 @@ $$
 $$
 
 *with*\
-**SSRD** = Surface solar radiation downwards
+**SSRD** = Surface solar radiation downwards\
 **FDIR** = Total sky direct solar radiation at surface
 
 
 **References:**
-* {cite:cts}`Radiation_ECMWF_model_2015`
+* {cite:cts}`Radiation_ECMWF`
