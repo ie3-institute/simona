@@ -325,10 +325,10 @@ final case class EvcsModel(
         val time = tick.toDateTime(simulationStartDate)
 
         // separate into those entries that are still active
-        // and those that have started before tick and will end after tick
+        // and those that have ended before or at tick
         val (stillActive, endedEntries) = lastActiveEntries.partition {
           case (_, entry) =>
-            (entry.tickStart < tick && entry.tickStop > tick)
+            entry.tickStop > tick
         }
         // entries that become active with tick
         val newActiveEntries =
