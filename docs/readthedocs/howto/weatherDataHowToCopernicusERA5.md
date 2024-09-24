@@ -31,4 +31,4 @@ $$
 
 
 **References:**
-* {cite:cts}`Radiation_ECMWF_model_2015.2017`
+* {cite:cts}`Radiation_ECMWF_model_2015`
