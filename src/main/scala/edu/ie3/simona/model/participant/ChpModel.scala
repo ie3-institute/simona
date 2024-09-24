@@ -29,7 +29,6 @@ import java.util.UUID
   * medium and its current [[ChpState]].
   *
   * @param uuid
-  *   the element's uuid
   * @param id
   *   the element's human readable id
   * @param operationInterval
