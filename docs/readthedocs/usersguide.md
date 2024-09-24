@@ -119,7 +119,7 @@ Besides a configuration and the actual grid and grid participants, SIMONA also e
 There is an option to use sample weather data, but if you want sensible results, definitely consider supplying suitable data.
 Information on the expected data format and different supported sources are given in the input parameters section of the {doc}`config` file.
 
-One can follow the {doc}`weatherDataHowToCopernicusERA5` to use is with SIMONA. 
+One can follow the {doc}`howto/weatherDataHowToCopernicusERA5` to use is with SIMONA. 
 
 
 ## Simulation Outputs

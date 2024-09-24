@@ -15,7 +15,7 @@ The following data parameter should be used
 - Temperature
   - 2m temperature
 
-Since SIMONAs {doc}`pv_model` requires direct and diffuse solar radiation, the diffuse solar radiation need to be determined from the ERA5 data.
+Since SIMONAs {doc}`models/pv_model` requires direct and diffuse solar radiation, the diffuse solar radiation need to be determined from the ERA5 data.
 
 ## Pre-Processing solar radiation weather data
 
