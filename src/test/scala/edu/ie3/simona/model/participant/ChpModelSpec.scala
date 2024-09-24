@@ -17,6 +17,7 @@ import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.simona.model.participant.ChpModel.{ChpRelevantData, ChpState}
 import edu.ie3.simona.model.thermal.CylindricalThermalStorage
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits.{
   EURO,
   EURO_PER_MEGAWATTHOUR,
@@ -25,16 +26,19 @@ import edu.ie3.util.quantities.PowerSystemUnits.{
 }
 import edu.ie3.util.scala.quantities._
 import org.scalatest.BeforeAndAfterAll
+import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.space.CubicMeters
 import squants.thermal.Celsius
-import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.quantity.Quantities.getQuantity
 import tech.units.indriya.unit.Units.PERCENT
 
 import java.util.UUID
 
-class ChpModelSpec extends UnitSpec with BeforeAndAfterAll {
+class ChpModelSpec
+    extends UnitSpec
+    with BeforeAndAfterAll
+    with TableDrivenPropertyChecks {
 
   implicit val Tolerance: Double = 1e-12
   val chpStateNotRunning: ChpState =
@@ -65,14 +69,14 @@ class ChpModelSpec extends UnitSpec with BeforeAndAfterAll {
     val chpTypeInput = new ChpTypeInput(
       UUID.randomUUID(),
       "ChpTypeInput",
-      Quantities.getQuantity(10000d, EURO),
-      Quantities.getQuantity(200, EURO_PER_MEGAWATTHOUR),
-      Quantities.getQuantity(19, PERCENT),
-      Quantities.getQuantity(76, PERCENT),
-      Quantities.getQuantity(100, KILOVOLTAMPERE),
+      getQuantity(10000d, EURO),
+      getQuantity(200, EURO_PER_MEGAWATTHOUR),
+      getQuantity(19, PERCENT),
+      getQuantity(76, PERCENT),
+      getQuantity(100, KILOVOLTAMPERE),
       0.95,
-      Quantities.getQuantity(50d, KILOWATT),
-      Quantities.getQuantity(0, KILOWATT),
+      getQuantity(50d, KILOWATT),
+      getQuantity(0, KILOWATT),
     )
 
     chpInput = new ChpInput(
@@ -124,32 +128,239 @@ class ChpModelSpec extends UnitSpec with BeforeAndAfterAll {
   }
 
   "A ChpModel" should {
-    "calculate active power correctly" in {
-      val chpData = buildChpRelevantData(chpStateNotRunning, 0)
-      val thermalStorage = buildThermalStorage(storageInput, 90)
-      val chpModel = buildChpModel(thermalStorage)
+    "Check active power after calculating next state with #chpState and heat demand #heatDemand kWh:" in {
+      val testCases = Table(
+        ("chpState", "storageLvl", "heatDemand", "expectedActivePower"),
+        (chpStateNotRunning, 90, 0, 0), // tests case (false, false, true)
+        (
+          chpStateNotRunning,
+          90,
+          8 * 115,
+          95,
+        ), // tests case (false, true, false)
+        (chpStateNotRunning, 90, 10, 0), // tests case (false, true, true)
+        (chpStateRunning, 90, 0, 95), // tests case (true, false, true)
+        (chpStateRunning, 90, 8 * 115, 95), // tests case (true, true, false)
+        (chpStateRunning, 90, 10, 95), // tests case (true, true, true)
+        (
+          chpStateRunning,
+          90,
+          7 * 115 + 1,
+          95,
+        ), // test case (_, true, false) and demand covered together with chp
+        (
+          chpStateRunning,
+          90,
+          9 * 115,
+          95,
+        ), // test case (_, true, false) and demand not covered together with chp
+        (
+          chpStateRunning,
+          92,
+          1,
+          95,
+        ), // test case (true, true, true) and storage volume exceeds maximum
+      )
 
-      val activePower = chpModel.calculateNextState(chpData).activePower
-      activePower.toKilowatts should be(0)
+      forAll(testCases) {
+        (chpState, storageLvl, heatDemand, expectedActivePower) =>
+          val chpData = buildChpRelevantData(chpState, heatDemand)
+          val thermalStorage = buildThermalStorage(storageInput, storageLvl)
+          val chpModel = buildChpModel(thermalStorage)
+
+          val activePower = chpModel.calculateNextState(chpData).activePower
+          activePower.toKilowatts shouldEqual expectedActivePower
+      }
     }
 
-    "calculate thermal energy correctly" in {
-      val chpData = buildChpRelevantData(chpStateRunning, 10)
-      val thermalStorage = buildThermalStorage(storageInput, 90)
-      val chpModel = buildChpModel(thermalStorage)
+    "Check total energy after calculating next state with #chpState and heat demand #heatDemand kWh:" in {
+      val testCases = Table(
+        ("chpState", "storageLvl", "heatDemand", "expectedTotalEnergy"),
+        (chpStateNotRunning, 90, 0, 0), // tests case (false, false, true)
+        (
+          chpStateNotRunning,
+          90,
+          8 * 115,
+          100,
+        ), // tests case (false, true, false)
+        (chpStateNotRunning, 90, 10, 0), // tests case (false, true, true)
+        (chpStateRunning, 90, 0, 100), // tests case (true, false, true)
+        (chpStateRunning, 90, 8 * 115, 100), // tests case (true, true, false)
+        (chpStateRunning, 90, 10, 100), // tests case (true, true, true)
+        (
+          chpStateRunning,
+          90,
+          7 * 115 + 1,
+          93,
+        ), // test case (_, true, false) and demand covered together with chp
+        (
+          chpStateRunning,
+          90,
+          9 * 115,
+          100,
+        ), // test case (_, true, false) and demand not covered together with chp
+        (
+          chpStateRunning,
+          92,
+          1,
+          100,
+        ), // test case (true, true, true) and storage volume exceeds maximum
+      )
 
-      val nextState = chpModel.calculateNextState(chpData)
-      val thermalEnergy = nextState.thermalEnergy
-      thermalEnergy.toKilowattHours should be(-640)
+      forAll(testCases) {
+        (chpState, storageLvl, heatDemand, expectedTotalEnergy) =>
+          val chpData = buildChpRelevantData(chpState, heatDemand)
+          val thermalStorage = buildThermalStorage(storageInput, storageLvl)
+          val chpModel = buildChpModel(thermalStorage)
+
+          val nextState = chpModel.calculateNextState(chpData)
+          val thermalEnergy = nextState.thermalEnergy
+          thermalEnergy.toKilowattHours shouldEqual expectedTotalEnergy
+      }
     }
 
-    "store energy correctly" in {
-      val chpData = buildChpRelevantData(chpStateRunning, 1)
-      val thermalStorage = buildThermalStorage(storageInput, 92)
-      val chpModel = buildChpModel(thermalStorage)
+    "Check storage level after calculating next state with #chpState and heat demand #heatDemand kWh:" in {
+      val testCases = Table(
+        ("chpState", "storageLvl", "heatDemand", "expectedStoredEnergy"),
+        (chpStateNotRunning, 90, 0, 1135), // tests case (false, false, true)
+        (
+          chpStateNotRunning,
+          90,
+          8 * 115,
+          230,
+        ), // tests case (false, true, false)
+        (chpStateNotRunning, 90, 10, 1025), // tests case (false, true, true)
+        (chpStateRunning, 90, 0, 1135), // tests case (true, false, true)
+        (chpStateRunning, 90, 8 * 115, 230), // tests case (true, true, false)
+        (chpStateRunning, 90, 10, 1135), // tests case (true, true, true)
+        (
+          chpStateRunning,
+          90,
+          7 * 115 + 1,
+          1135,
+        ), // test case (_, true, false) and demand covered together with chp
+        (
+          chpStateRunning,
+          90,
+          9 * 115,
+          1135,
+        ), // test case (_, true, false) and demand not covered together with chp
+        (
+          chpStateRunning,
+          92,
+          1,
+          1036,
+        ), // test case (true, true, true) and storage volume exceeds maximum
+      )
 
-      chpModel.calculateNextState(chpData)
-      thermalStorage._storedEnergy.toKilowattHours should be(1150)
+      forAll(testCases) {
+        (chpState, storageLvl, heatDemand, expectedStoredEnergy) =>
+          val chpData = buildChpRelevantData(chpState, heatDemand)
+          val thermalStorage = buildThermalStorage(storageInput, storageLvl)
+          val chpModel = buildChpModel(thermalStorage)
+
+          chpModel.calculateNextState(chpData)
+          thermalStorage._storedEnergy.toKilowattHours should be(
+            expectedStoredEnergy
+          )
+      }
+    }
+
+    "Check time tick and running status after calculating next state with #chpState and heat demand #heatDemand kWh:" in {
+      val testCases = Seq(
+        // (ChpState, Storage Level, Heat Demand, Expected Time Tick, Expected Running Status)
+        (
+          chpStateNotRunning,
+          90,
+          0,
+          7200,
+          false,
+        ), // Test case (false, false, true)
+        (
+          chpStateNotRunning,
+          90,
+          8 * 115,
+          7200,
+          true,
+        ), // Test case (false, true, false)
+        (
+          chpStateNotRunning,
+          90,
+          10,
+          7200,
+          false,
+        ), // Test case (false, true, true)
+        (chpStateRunning, 90, 0, 7200, true), // Test case (true, false, true)
+        (
+          chpStateRunning,
+          90,
+          8 * 115,
+          7200,
+          true,
+        ), // Test case (true, true, false)
+        (chpStateRunning, 90, 10, 7200, true), // Test case (true, true, true)
+        (
+          chpStateRunning,
+          90,
+          806,
+          7200,
+          true,
+        ), // Test case (_, true, false) and demand covered together with chp
+        (
+          chpStateRunning,
+          90,
+          9 * 115,
+          7200,
+          true,
+        ), // Test case (_, true, false) and demand not covered together with chp
+        (
+          chpStateRunning,
+          92,
+          1,
+          7200,
+          false,
+        ), // Test case (true, true, true) and storage volume exceeds maximum
+      )
+
+      for (
+        (
+          chpState,
+          storageLvl,
+          heatDemand,
+          expectedTimeTick,
+          expectedRunningStatus,
+        ) <- testCases
+      ) {
+        val chpData = buildChpRelevantData(chpState, heatDemand)
+        val thermalStorage = buildThermalStorage(storageInput, storageLvl)
+        val chpModel = buildChpModel(thermalStorage)
+
+        val nextState = chpModel.calculateNextState(chpData)
+
+        nextState.lastTimeTick shouldEqual expectedTimeTick
+        nextState.isRunning shouldEqual expectedRunningStatus
+      }
+    }
+
+    "apply, validate, and build correctly" in {
+      val thermalStorage = buildThermalStorage(storageInput, 90)
+      val chpModelCaseClass = buildChpModel(thermalStorage)
+      val startDate =
+        TimeUtil.withDefaults.toZonedDateTime("2021-01-01T00:00:00Z")
+      val endDate = startDate.plusSeconds(86400L)
+      val chpModelCaseObject = ChpModel(
+        chpInput,
+        startDate,
+        endDate,
+        null,
+        1.0,
+        thermalStorage,
+      )
+
+      chpModelCaseClass.sRated shouldEqual chpModelCaseObject.sRated
+      chpModelCaseClass.cosPhiRated shouldEqual chpModelCaseObject.cosPhiRated
+      chpModelCaseClass.pThermal shouldEqual chpModelCaseObject.pThermal
+      chpModelCaseClass.storage shouldEqual chpModelCaseObject.storage
     }
   }
 }
