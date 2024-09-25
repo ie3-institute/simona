@@ -514,13 +514,17 @@ final case class EvcsModel(
       modelState: EvcsState,
       data: EvcsRelevantData,
   ): ApparentPower =
-    throw new NotImplementedError("Use calculateNewScheduling() or chargeEv() instead.")
+    throw new NotImplementedError(
+      "Use calculateNewScheduling() or chargeEv() instead."
+    )
 
   override protected def calculateActivePower(
       modelState: EvcsState,
       data: EvcsRelevantData,
   ): Power =
-    throw new NotImplementedError("Use calculateNewScheduling() or chargeEv() instead.")
+    throw new NotImplementedError(
+      "Use calculateNewScheduling() or chargeEv() instead."
+    )
 
   override def determineFlexOptions(
       data: EvcsRelevantData,
