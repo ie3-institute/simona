@@ -6,13 +6,12 @@
 
 package edu.ie3.simona.model.participant
 
-import breeze.numerics.constants.e
 import edu.ie3.datamodel.models.input.system.characteristic.{CosPhiFixed, CosPhiP, QV}
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.MockParticipant
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.{Kilovars, Megavars, ReactivePower}
+import edu.ie3.util.scala.quantities.{ Megavars, ReactivePower}
 import org.scalatest.matchers.should.Matchers
 import squants._
 import squants.energy._
