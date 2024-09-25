@@ -2212,14 +2212,6 @@ class EvcsAgentModelCalculationSpec
               result.getP should beEquivalentTo(11d.asKiloWatt)
               result.getQ should beEquivalentTo(0d.asMegaVar)
               result.getSoc should beEquivalentTo(0.asPercent, 1e-2)
-            case model if model == ev2700.uuid =>
-              throw new RuntimeException(
-                s"Ev $model should arrive later at Evcs but it's already there."
-              )
-            case _ =>
-              throw new RuntimeException(
-                s"Unexpected case at EvcsAgentModelCalculationSpec occurred."
-              )
           }
       }
 
@@ -2262,12 +2254,7 @@ class EvcsAgentModelCalculationSpec
                   result.getP should beEquivalentTo(0d.asKiloWatt)
                   result.getQ should beEquivalentTo(0d.asMegaVar)
                   result.getSoc should beEquivalentTo(14.22d.asPercent, 1e-2)
-                case _ =>
-                  throw new RuntimeException(
-                    s"Unexpected case at EvcsAgentModelCalculationSpec occurred."
-                  )
               }
-
             case model if model == ev1800.uuid =>
               result.getTime shouldBe 2700.toDateTime
               result.getP should beEquivalentTo(11d.asKiloWatt)
@@ -2278,10 +2265,6 @@ class EvcsAgentModelCalculationSpec
               result.getP should beEquivalentTo(22d.asKiloWatt)
               result.getQ should beEquivalentTo(0d.asMegaVar)
               result.getSoc should beEquivalentTo(0.asPercent, 1e-2)
-            case _ =>
-              throw new RuntimeException(
-                "Unexpected case at EvcsAgentModelCalculationSpec occurred."
-              )
           }
       }
 
@@ -2315,10 +2298,6 @@ class EvcsAgentModelCalculationSpec
       resultListener.receiveN(3).foreach {
         case ParticipantResultEvent(result: EvResult) =>
           result.getInputModel match {
-            case model if model == ev900.uuid =>
-              throw new RuntimeException(
-                s"Ev $model already left but there are still results."
-              )
             case model if model == ev1800.uuid =>
               result.getTime match {
                 case time if time == 3600.toDateTime =>
@@ -2335,10 +2314,6 @@ class EvcsAgentModelCalculationSpec
               result.getP should beEquivalentTo(22d.asKiloWatt)
               result.getQ should beEquivalentTo(0d.asMegaVar)
               result.getSoc should beEquivalentTo(4.58d.asPercent, 1e-2)
-            case _ =>
-              throw new RuntimeException(
-                s"Unexpected case at EvcsAgentModelCalculationSpec occurred."
-              )
           }
       }
 
@@ -2372,11 +2347,6 @@ class EvcsAgentModelCalculationSpec
       resultListener.receiveN(2).foreach {
         case ParticipantResultEvent(result: EvResult) =>
           result.getInputModel match {
-            case model if model == ev900.uuid || model == ev1800.uuid =>
-              throw new RuntimeException(
-                s"Ev $model already left but there are still results."
-              )
-
             case model if model == ev2700.uuid =>
               result.getTime match {
                 case time if time == 4500.toDateTime =>
@@ -2387,16 +2357,7 @@ class EvcsAgentModelCalculationSpec
                   result.getP should beEquivalentTo(0d.asKiloWatt)
                   result.getQ should beEquivalentTo(0d.asMegaVar)
                   result.getSoc should beEquivalentTo(13.75.asPercent, 1e-2)
-                case _ =>
-                  throw new RuntimeException(
-                    s"Unexpected case at EvcsAgentModelCalculationSpec occurred."
-                  )
               }
-
-            case _ =>
-              throw new RuntimeException(
-                s"Unexpected case at EvcsAgentModelCalculationSpec occurred."
-              )
           }
       }
 
