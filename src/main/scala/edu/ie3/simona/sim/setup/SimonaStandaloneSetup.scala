@@ -63,7 +63,7 @@ import scala.jdk.CollectionConverters._
 class SimonaStandaloneSetup(
     val typeSafeConfig: Config,
     simonaConfig: SimonaConfig,
-    resultFileHierarchy: ResultFileHierarchy,
+    val resultFileHierarchy: ResultFileHierarchy,
     runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
     override val args: Array[String],
 ) extends SimonaSetup {
