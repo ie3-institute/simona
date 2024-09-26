@@ -33,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add gradle application plugin for command line execution with gradle run [#890](https://github.com/ie3-institute/simona/issues/890)
 - Additional tests to check flexibility options of thermal house and storage [#729](https://github.com/ie3-institute/simona/issues/729)
 - EmAgents should be able to handle initialization [#945](https://github.com/ie3-institute/simona/issues/945)
+- Added option to directly zip the output files [#793](https://github.com/ie3-institute/simona/issues/793)
+- Added weatherData HowTo for Copernicus ERA5 data [#967](https://github.com/ie3-institute/simona/issues/967)
 - Integration test for thermal grids [#878](https://github.com/ie3-institute/simona/issues/878)
 
 ### Changed
@@ -113,6 +115,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix expected secondaryData in baseStateData [#955](https://github.com/ie3-institute/simona/issues/955)
 - Improve code quality in fixedloadmodelspec and other tests [#919](https://github.com/ie3-institute/simona/issues/919)
 - Fix power flow calculation with em agents [#962](https://github.com/ie3-institute/simona/issues/962)
+- Fix scheduling at Evcs with more than one Ev at a time without Em [#787](https://github.com/ie3-institute/simona/issues/787)
 - Fixed Hp results leading to overheating house and other effects [#827](https://github.com/ie3-institute/simona/issues/827)
 - Fixed thermal storage getting recharged when empty [#827](https://github.com/ie3-institute/simona/issues/827)
 
