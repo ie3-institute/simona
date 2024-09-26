@@ -37,6 +37,10 @@ import java.time.ZonedDateTime
 
 object ParticipantAgentInit {
 
+  // todo also register with GridAgent,
+  // wait for reply and then create
+  // GridAdapter
+
   def apply(
       participantInput: SystemParticipantInput,
       config: BaseRuntimeConfig,

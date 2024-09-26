@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent.participant2
 
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
+import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant2.ParticipantModelShell
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
@@ -18,11 +19,13 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssueFlexControl,
   ProvideFlexOptions,
 }
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.ProvisionMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.util.scala.Scope
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
+import squants.Dimensionless
 
 object ParticipantAgent {
 
@@ -73,6 +76,22 @@ object ParticipantAgent {
       override val serviceRef: ClassicRef
   ) extends RegistrationResponseMessage
 
+  /** Request the power values for the requested tick from an AssetAgent and
+    * provide the latest nodal voltage
+    *
+    * @param currentTick
+    *   The tick that power values are requested for
+    * @param eInPu
+    *   Real part of the complex, dimensionless nodal voltage
+    * @param fInPu
+    *   Imaginary part of the complex, dimensionless nodal voltage
+    */
+  final case class RequestAssetPowerMessage(
+      currentTick: Long,
+      eInPu: Dimensionless,
+      fInPu: Dimensionless,
+  ) extends Request
+
   /** The existence of this data object indicates that the corresponding agent
     * is not EM-controlled, but activated by a
     * [[edu.ie3.simona.scheduler.Scheduler]]
@@ -113,89 +132,146 @@ object ParticipantAgent {
   def apply(
       modelShell: ParticipantModelShell[_, _, _],
       dataCore: ParticipantDataCore,
+      gridAdapter: ParticipantGridAdapter,
       parentData: Either[SchedulerData, FlexControlledData],
   ): Behavior[Request] =
     Behaviors.receivePartial {
       case (ctx, request: ParticipantRequest) =>
         val updatedShell = modelShell.handleRequest(ctx, request)
 
-        ParticipantAgent(updatedShell, dataCore, parentData)
+        ParticipantAgent(updatedShell, dataCore, gridAdapter, parentData)
 
       case (ctx, activation: ActivationRequest) =>
-        // handle issueControl differently?
-        val updatedCore = dataCore.handleActivation(activation.tick)
+        val coreWithActivation = dataCore.handleActivation(activation)
 
-        val updatedShell = if (dataCore.isComplete) {
+        val (updatedShell, updatedCore, updatedGridAdapter) =
+          maybeCalculate(
+            modelShell,
+            coreWithActivation,
+            gridAdapter,
+            parentData,
+          )
 
-          val receivedData = dataCore.getData.map {
-            case data: SecondaryData => data
-            case other =>
-              throw new CriticalFailureException(
-                s"Received unexpected data $other, should be secondary data"
-              )
-          }
+        ParticipantAgent(
+          updatedShell,
+          updatedCore,
+          updatedGridAdapter,
+          parentData,
+        )
 
-          Scope(modelShell)
-            .map(_.updateRelevantData(receivedData, activation.tick))
-            .map { shell =>
-              activation match {
-                case ParticipantActivation(tick) =>
-                  val modelWithOP = shell.updateOperatingPoint(tick)
+      case (ctx, msg: ProvisionMessage[Data]) =>
+        val coreWithData = dataCore.handleDataProvision(msg)
 
-                  // todo results
+        val (updatedShell, updatedCore, updatedGridAdapter) =
+          maybeCalculate(modelShell, coreWithData, gridAdapter, parentData)
 
-                  parentData.fold(
-                    schedulerData =>
-                      schedulerData.scheduler ! Completion(
-                        schedulerData.activationAdapter,
-                        modelWithOP.modelChange.changesAtTick,
-                      ),
-                    _ =>
-                      throw new CriticalFailureException(
-                        "Received activation while controlled by EM"
-                      ),
-                  )
-                  modelWithOP
+        ParticipantAgent(
+          updatedShell,
+          updatedCore,
+          updatedGridAdapter,
+          parentData,
+        )
 
-                case Flex(FlexActivation(tick)) =>
-                  val modelWithFlex = shell.updateFlexOptions(tick)
+      case (ctx, msg: RequestAssetPowerMessage) =>
+        // activeToReactivePowerFunc
 
-                  parentData.fold(
-                    _ =>
-                      throw new CriticalFailureException(
-                        "Received flex activation while not controlled by EM"
-                      ),
-                    _.emAgent ! modelWithFlex.flexOptions,
-                  )
+        gridAdapter.updateAveragePower(msg.currentTick, ctx.log)
 
-                  modelWithFlex
-
-                case Flex(flexControl: IssueFlexControl) =>
-                  val modelWithOP = shell.updateOperatingPoint(flexControl)
-
-                  // todo results
-
-                  parentData.fold(
-                    _ =>
-                      throw new CriticalFailureException(
-                        "Received issue flex control while not controlled by EM"
-                      ),
-                    _.emAgent ! FlexCompletion(
-                      shell.model.uuid,
-                      shell.modelChange.changesAtNextActivation,
-                      shell.modelChange.changesAtTick,
-                    ),
-                  )
-
-                  modelWithOP
-              }
-            }
-            .get
-        } else
-          modelShell
-
-        ParticipantAgent(updatedShell, updatedCore, parentData)
+        Behaviors.same
     }
+
+  private def maybeCalculate(
+      modelShell: ParticipantModelShell[_, _, _],
+      dataCore: ParticipantDataCore,
+      gridAdapter: ParticipantGridAdapter,
+      parentData: Either[SchedulerData, FlexControlledData],
+  ): (
+      ParticipantModelShell[_, _, _],
+      ParticipantDataCore,
+      ParticipantGridAdapter,
+  ) = {
+    if (dataCore.isComplete) {
+
+      val activation = dataCore.activation.getOrElse(
+        throw new CriticalFailureException(
+          "Activation should be present when data collection is complete"
+        )
+      )
+
+      val receivedData = dataCore.getData.map {
+        case data: SecondaryData => data
+        case other =>
+          throw new CriticalFailureException(
+            s"Received unexpected data $other, should be secondary data"
+          )
+      }
+
+      val updatedShell = Scope(modelShell)
+        .map(_.updateRelevantData(receivedData, activation.tick))
+        .map { shell =>
+          activation match {
+            case ParticipantActivation(tick) =>
+              val modelWithOP = shell.updateOperatingPoint(tick)
+
+              if (!gridAdapter.isPowerRequestExpected(tick)) {
+                // we don't expect a power request that could change voltage,
+                // so we can go ahead and calculate results
+                val results = shell.determineResults(tick, ???)
+
+              }
+
+              parentData.fold(
+                schedulerData =>
+                  schedulerData.scheduler ! Completion(
+                    schedulerData.activationAdapter,
+                    modelWithOP.modelChange.changesAtTick,
+                  ),
+                _ =>
+                  throw new CriticalFailureException(
+                    "Received activation while controlled by EM"
+                  ),
+              )
+              modelWithOP
+
+            case Flex(FlexActivation(tick)) =>
+              val modelWithFlex = shell.updateFlexOptions(tick)
+
+              parentData.fold(
+                _ =>
+                  throw new CriticalFailureException(
+                    "Received flex activation while not controlled by EM"
+                  ),
+                _.emAgent ! modelWithFlex.flexOptions,
+              )
+
+              modelWithFlex
+
+            case Flex(flexControl: IssueFlexControl) =>
+              val modelWithOP = shell.updateOperatingPoint(flexControl)
+
+              // todo results
+
+              parentData.fold(
+                _ =>
+                  throw new CriticalFailureException(
+                    "Received issue flex control while not controlled by EM"
+                  ),
+                _.emAgent ! FlexCompletion(
+                  shell.model.uuid,
+                  shell.modelChange.changesAtNextActivation,
+                  shell.modelChange.changesAtTick,
+                ),
+              )
+
+              modelWithOP
+          }
+        }
+        .get
+
+      (updatedShell, dataCore.completeActivity(), ???)
+    } else
+      (modelShell, dataCore, gridAdapter)
+  }
 
   private def primaryData(): Behavior[Request] = Behaviors.receivePartial {
     case _ => Behaviors.same

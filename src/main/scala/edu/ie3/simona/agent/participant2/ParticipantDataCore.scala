@@ -8,13 +8,14 @@ package edu.ie3.simona.agent.participant2
 
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import edu.ie3.simona.agent.participant.data.Data
+import edu.ie3.simona.agent.participant2.ParticipantAgent.ActivationRequest
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ProvisionMessage
 
 /** todo rather call ParticipantInputHandler? */
 case class ParticipantDataCore(
     expectedData: Map[ClassicRef, Long],
     receivedData: Map[ClassicRef, Option[_ <: Data]],
-    activeTick: Option[Long],
+    activation: Option[ActivationRequest],
 ) {
 
   // holds active tick and received data,
@@ -22,9 +23,12 @@ case class ParticipantDataCore(
 
   // holds results as well? or no?
 
-  def handleActivation(tick: Long): ParticipantDataCore = {
-    // TODO
-    this
+  def handleActivation(activation: ActivationRequest): ParticipantDataCore = {
+    copy(activation = Some(activation))
+  }
+
+  def completeActivity(): ParticipantDataCore = {
+    copy(activation = None)
   }
 
   def handleDataProvision(
@@ -42,7 +46,7 @@ case class ParticipantDataCore(
     copy(expectedData = updatedExpectedData, receivedData = updatedReceivedData)
   }
 
-  def isComplete: Boolean = activeTick.nonEmpty && receivedData.forall {
+  def isComplete: Boolean = activation.nonEmpty && receivedData.forall {
     case (_, data) => data.nonEmpty
   }
 

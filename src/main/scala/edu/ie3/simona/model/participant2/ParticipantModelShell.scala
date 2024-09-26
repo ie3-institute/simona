@@ -9,18 +9,21 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.EmTools
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelChangeIndicator,
   ModelState,
   OperatingPoint,
   OperationRelevantData,
+  ResultsContainer,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssueFlexControl,
   ProvideFlexOptions,
 }
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
+import squants.Dimensionless
 
 /** Takes care of:
   *   - activating/deactivating model
@@ -59,26 +62,35 @@ final case class ParticipantModelShell[
   ): ParticipantModelShell[OP, S, OR] = {
     val currentState = determineCurrentState(currentTick)
 
+    if (currentState.tick != currentTick)
+      throw new CriticalFailureException(
+        s"New state $currentState is not set to current tick $currentTick"
+      )
+
     val (newOperatingPoint, maybeNextTick) =
       model.determineOperatingPoint(state, relevantData)
-
-    val activePower = newOperatingPoint.activePower
-
-    // todo where store the reactive power?
-    val reactivePower = ???
-
-    // todo store results here as well? Or separate module for avg power calculation?
-    val results = model.createResults(
-      state,
-      newOperatingPoint,
-      ApparentPower(activePower, reactivePower),
-      ???,
-    )
 
     copy(
       state = currentState,
       operatingPoint = newOperatingPoint,
       modelChange = ModelChangeIndicator(changesAtTick = maybeNextTick),
+    )
+  }
+
+  def determineResults(
+      currentTick: Long,
+      nodalVoltage: Dimensionless,
+  ): ResultsContainer = {
+    val activePower = operatingPoint.activePower
+
+    // todo where store the reactive power? where voltage?
+    val reactivePower = ???
+
+    model.createResults(
+      state,
+      operatingPoint,
+      ApparentPower(activePower, reactivePower),
+      ???,
     )
   }
 
@@ -102,10 +114,25 @@ final case class ParticipantModelShell[
     val (newOperatingPoint, modelChange) =
       model.handlePowerControl(flexOptions, setPointActivePower)
 
-    copy(
-      state = currentState,
-      operatingPoint = newOperatingPoint,
-      modelChange = modelChange,
+    val activePower = newOperatingPoint.activePower
+
+    // todo where store the reactive power?
+    val reactivePower = ???
+
+    val results = model.createResults(
+      state,
+      newOperatingPoint,
+      ApparentPower(activePower, reactivePower),
+      ???,
+    )
+
+    (
+      copy(
+        state = currentState,
+        operatingPoint = newOperatingPoint,
+        modelChange = modelChange,
+      ),
+      results,
     )
   }
 

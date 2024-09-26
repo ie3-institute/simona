@@ -17,8 +17,11 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
 }
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
+import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.service.ServiceType
+import edu.ie3.util.scala.quantities.ReactivePower
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
+import squants.Dimensionless
 import squants.energy.Power
 
 import java.time.ZonedDateTime
@@ -28,8 +31,29 @@ abstract class ParticipantModel[
     OP <: OperatingPoint,
     S <: ModelState,
     OR <: OperationRelevantData,
-](val uuid: UUID)
-    extends ParticipantFlexibility[OP, S, OR] {
+] extends ParticipantFlexibility[OP, S, OR] {
+
+  val uuid: UUID
+  val sRated: Power
+  val cosPhiRated: Double
+  val qControl: QControl
+
+  /** Get a partial function, that transfers the current active into reactive
+    * power based on the participants properties and the given nodal voltage
+    *
+    * @param nodalVoltage
+    *   The currently given nodal voltage
+    * @return
+    *   A [[PartialFunction]] from [[Power]] to [[ReactivePower]]
+    */
+  def activeToReactivePowerFunc(
+      nodalVoltage: Dimensionless
+  ): Power => ReactivePower =
+    qControl.activeToReactivePowerFunc(
+      sRated,
+      cosPhiRated,
+      nodalVoltage,
+    )
 
   def determineOperatingPoint(state: S, relevantData: OR): (OP, Option[Long])
 
@@ -102,7 +126,7 @@ object ParticipantModel {
   )
 
   final case class ResultsContainer(
-      power: Power,
+      totalPower: ApparentPower,
       modelResults: Seq[SystemParticipantResult],
   )
 

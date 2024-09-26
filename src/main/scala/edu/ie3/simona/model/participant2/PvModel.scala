@@ -40,9 +40,10 @@ import java.util.stream.IntStream
 import scala.math._
 
 final class PvModel private (
-    uuid: UUID,
-    sRated: Power,
-    cosPhiRated: Double,
+    override val uuid: UUID,
+    override val sRated: Power,
+    override val cosPhiRated: Double,
+    override val qControl: QControl,
     private val lat: Angle,
     private val lon: Angle,
     private val albedo: Double,
@@ -54,7 +55,7 @@ final class PvModel private (
       ActivePowerOperatingPoint,
       ConstantState.type,
       PvRelevantData,
-    ](uuid)
+    ]
     with ParticipantSimpleFlexibility[ConstantState.type, PvRelevantData]
     with LazyLogging {
 
@@ -731,7 +732,7 @@ final class PvModel private (
       dateTime: ZonedDateTime,
   ): ResultsContainer = {
     ResultsContainer(
-      operatingPoint.activePower,
+      complexPower,
       Seq(
         new PvResult(
           dateTime,
@@ -802,7 +803,7 @@ object PvModel {
       )
 
     // moduleSurface and yieldSTC are left out for now
-    val model = apply(
+    new PvModel(
       scaledInput.getUuid,
       scaledInput.getId,
       operationInterval,
@@ -836,10 +837,6 @@ object PvModel {
           .doubleValue
       ),
     )
-
-    model.enable()
-
-    model
   }
 
 }
