@@ -7,8 +7,12 @@
 package edu.ie3.simona.agent.participant
 
 import com.typesafe.config.ConfigFactory
+import edu.ie3.datamodel.models.OperationTime
+import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.system.EvcsInput
-import edu.ie3.datamodel.models.input.system.characteristic.QV
+import edu.ie3.datamodel.models.input.system.`type`.chargingpoint.ChargingPointTypeUtils
+import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
+import edu.ie3.datamodel.models.input.system.characteristic.{CosPhiFixed, QV}
 import edu.ie3.datamodel.models.result.system.{EvResult, EvcsResult}
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.grid.GridAgentMessages.{
@@ -61,6 +65,7 @@ import squants.energy._
 import squants.{Each, Energy, Power}
 
 import java.time.ZonedDateTime
+import java.util.UUID
 import scala.collection.immutable.{SortedMap, SortedSet}
 
 class EvcsAgentModelCalculationSpec
@@ -368,7 +373,7 @@ class EvcsAgentModelCalculationSpec
         RegistrationSuccessfulMessage(evService.ref, Some(900L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
 
       evcsAgent.stateName shouldBe Idle
@@ -434,7 +439,7 @@ class EvcsAgentModelCalculationSpec
         RegistrationSuccessfulMessage(evService.ref, Some(0)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(evcsAgent.stateName shouldBe Idle)
       /* State data is tested in another test */
@@ -568,7 +573,7 @@ class EvcsAgentModelCalculationSpec
         RegistrationSuccessfulMessage(evService.ref, Some(0)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(evcsAgent.stateName shouldBe Idle)
       /* State data is tested in another test */
@@ -699,7 +704,7 @@ class EvcsAgentModelCalculationSpec
         RegistrationSuccessfulMessage(evService.ref, Some(10800)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(evcsAgent.stateName shouldBe Idle)
 
@@ -744,7 +749,7 @@ class EvcsAgentModelCalculationSpec
         RegistrationSuccessfulMessage(evService.ref, Some(0)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the CompletionM */
       scheduler.expectMsgType[Completion]
       awaitAssert(evcsAgent.stateName shouldBe Idle)
 
@@ -825,7 +830,7 @@ class EvcsAgentModelCalculationSpec
         RegistrationSuccessfulMessage(evService.ref, Some(0)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(evcsAgent.stateName shouldBe Idle)
 
@@ -903,7 +908,7 @@ class EvcsAgentModelCalculationSpec
         RegistrationSuccessfulMessage(evService.ref, Some(0)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(evcsAgent.stateName shouldBe Idle)
 
@@ -1987,6 +1992,386 @@ class EvcsAgentModelCalculationSpec
 
     }
 
-  }
+    "provide correct results for three evs charging at same time without Em" in {
+      val evService = TestProbe("evService")
+      val resultListener = TestProbe("ResultListener")
 
+      val inputModelUuid =
+        UUID.fromString("3278d111-b6ce-438c-8b1a-d060be93e520")
+      val evcsInputModel = new EvcsInput(
+        inputModelUuid,
+        "Dummy_EvcsModel",
+        OperatorInput.NO_OPERATOR_ASSIGNED,
+        OperationTime.notLimited(),
+        nodeInputNoSlackNs04KvA,
+        CosPhiFixed.CONSTANT_CHARACTERISTIC,
+        null,
+        ChargingPointTypeUtils.ChargingStationType2,
+        4,
+        0.95,
+        EvcsLocationType.HOME,
+        true,
+      )
+
+      val initStateData = ParticipantInitializeStateData[
+        EvcsInput,
+        EvcsRuntimeConfig,
+        ApparentPower,
+      ](
+        evcsInputModel,
+        modelConfig = modelConfig,
+        secondaryDataServices = Iterable(
+          ActorExtEvDataService(evService.ref)
+        ),
+        simulationStartDate = simulationStartDate,
+        simulationEndDate = simulationEndDate,
+        resolution = 900L,
+        requestVoltageDeviationThreshold = requestVoltageDeviationThreshold,
+        outputConfig = NotifierConfig(
+          simulationResultInfo = true,
+          powerRequestReply = false,
+          flexResult = true,
+        ),
+        primaryServiceProxy = primaryServiceProxy.ref,
+      )
+      val evcsAgent = TestFSMRef(
+        new EvcsAgent(
+          scheduler = scheduler.ref,
+          initStateData = initStateData,
+          listener = Iterable(resultListener.ref),
+        )
+      )
+
+      scheduler.send(evcsAgent, Activation(INIT_SIM_TICK))
+
+      /* Actor should ask for registration with primary service */
+      primaryServiceProxy.expectMsg(
+        PrimaryServiceRegistrationMessage(inputModelUuid)
+      )
+      /* State should be information handling and having correct state data */
+      evcsAgent.stateName shouldBe HandleInformation
+      evcsAgent.stateData match {
+        case ParticipantInitializingStateData(
+              inputModel,
+              modelConfig,
+              secondaryDataServices,
+              simulationStartDate,
+              simulationEndDate,
+              resolution,
+              requestVoltageDeviationThreshold,
+              outputConfig,
+              maybeEmAgent,
+            ) =>
+          inputModel shouldBe SimpleInputContainer(evcsInputModel)
+          modelConfig shouldBe modelConfig
+          secondaryDataServices shouldBe Iterable(
+            ActorExtEvDataService(evService.ref)
+          )
+          simulationStartDate shouldBe simulationStartDate
+          simulationEndDate shouldBe simulationEndDate
+          resolution shouldBe resolution
+          requestVoltageDeviationThreshold shouldBe requestVoltageDeviationThreshold
+          outputConfig shouldBe NotifierConfig(
+            simulationResultInfo = true,
+            powerRequestReply = false,
+            flexResult = true,
+          )
+          maybeEmAgent shouldBe None
+        case unsuitableStateData =>
+          fail(s"Agent has unsuitable state data '$unsuitableStateData'.")
+      }
+
+      /* Refuse registration */
+      primaryServiceProxy.send(
+        evcsAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref),
+      )
+
+      evService.expectMsg(RegisterForEvDataMessage(evcsInputModel.getUuid))
+      evService.send(
+        evcsAgent,
+        RegistrationSuccessfulMessage(evService.ref, Some(0)),
+      )
+
+      scheduler.expectMsg(Completion(evcsAgent.toTyped, Some(0)))
+
+      /* TICK 0 (expected activation)
+         - currently no cars
+       */
+      scheduler.send(evcsAgent, Activation(0))
+
+      evService.send(
+        evcsAgent,
+        ProvideEvDataMessage(
+          0,
+          evService.ref,
+          ArrivingEvs(Seq.empty),
+          Some(900),
+        ),
+      )
+
+      scheduler.expectMsg(Completion(evcsAgent.toTyped, Some(900)))
+
+      /* TICK 900
+       * - ev900 arrives
+       * - charging with 11 kW
+       */
+      scheduler.send(evcsAgent, Activation(900))
+
+      val ev900 = EvModelWrapper(evA.copyWithDeparture(3600))
+
+      evService.send(
+        evcsAgent,
+        ProvideEvDataMessage(
+          900,
+          evService.ref,
+          ArrivingEvs(Seq(ev900)),
+          Some(1800),
+        ),
+      )
+
+      scheduler.expectMsg(Completion(evcsAgent.toTyped, Some(1800)))
+
+      resultListener.expectMsgType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(result: EvcsResult) =>
+          result.getInputModel shouldBe evcsInputModel.getUuid
+          result.getTime shouldBe 0.toDateTime
+          result.getP should beEquivalentTo(0d.asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+      }
+
+      /* TICK 1800
+       * - ev1800 arrives
+       * - charging with 11 kW
+       */
+      scheduler.send(evcsAgent, Activation(1800))
+
+      val ev1800 = EvModelWrapper(evB.copyWithDeparture(4500))
+
+      evService.send(
+        evcsAgent,
+        ProvideEvDataMessage(
+          1800,
+          evService.ref,
+          ArrivingEvs(Seq(ev1800)),
+          Some(2700),
+        ),
+      )
+
+      scheduler.expectMsg(Completion(evcsAgent.toTyped, Some(2700)))
+
+      resultListener.expectMsgType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(result: EvResult) =>
+          result.getInputModel match {
+            case model if model == ev900.uuid =>
+              result.getTime shouldBe 900.toDateTime
+              result.getP should beEquivalentTo(11d.asKiloWatt)
+              result.getQ should beEquivalentTo(0d.asMegaVar)
+              result.getSoc should beEquivalentTo(0.asPercent, 1e-2)
+          }
+      }
+
+      resultListener.expectMsgType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(result: EvcsResult) =>
+          result.getInputModel shouldBe evcsInputModel.getUuid
+          result.getTime shouldBe 900.toDateTime
+          result.getP should beEquivalentTo(11d.asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+      }
+
+      /* TICK 2700
+       * - ev2700 arrives
+       * - charging with 22 kW
+       */
+      scheduler.send(evcsAgent, Activation(2700))
+
+      val ev2700 = EvModelWrapper(evC.copyWithDeparture(5400))
+
+      evService.send(
+        evcsAgent,
+        ProvideEvDataMessage(
+          2700,
+          evService.ref,
+          ArrivingEvs(Seq(ev2700)),
+          None,
+        ),
+      )
+
+      scheduler.expectMsg(Completion(evcsAgent.toTyped, None))
+
+      resultListener.receiveN(2).foreach {
+        case ParticipantResultEvent(result: EvResult) =>
+          result.getInputModel match {
+            case model if model == ev900.uuid =>
+              result.getTime shouldBe 1800.toDateTime
+              result.getP should beEquivalentTo(11d.asKiloWatt)
+              result.getQ should beEquivalentTo(0d.asMegaVar)
+              result.getSoc should beEquivalentTo(4.74d.asPercent, 1e-2)
+            case model if model == ev1800.uuid =>
+              result.getTime shouldBe 1800.toDateTime
+              result.getP should beEquivalentTo(11d.asKiloWatt)
+              result.getQ should beEquivalentTo(0d.asMegaVar)
+              result.getSoc should beEquivalentTo(0.asPercent, 1e-2)
+          }
+      }
+
+      resultListener.expectMsgType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(result: EvcsResult) =>
+          result.getInputModel shouldBe evcsInputModel.getUuid
+          result.getTime shouldBe 1800.toDateTime
+          result.getP should beEquivalentTo(22d.asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+      }
+
+      // TICK 3600: ev900 leaves
+      evService.send(
+        evcsAgent,
+        DepartingEvsRequest(3600, Seq(ev900.uuid)),
+      )
+
+      evService.expectMsgType[DepartingEvsResponse] match {
+        case DepartingEvsResponse(evcs, evModels) =>
+          evcs shouldBe evcsInputModel.getUuid
+          evModels should have size 1
+          evModels.headOption match {
+            case Some(evModel) =>
+              evModel.uuid shouldBe ev900.uuid
+              evModel.storedEnergy should approximate(KilowattHours(8.25))
+            case None => fail("Expected to get at least one ev.")
+          }
+      }
+
+      resultListener.receiveN(4).foreach {
+        case ParticipantResultEvent(result: EvResult) =>
+          result.getInputModel match {
+            case model if model == ev900.uuid =>
+              result.getTime match {
+                case time if time == 2700.toDateTime =>
+                  result.getP should beEquivalentTo(11d.asKiloWatt)
+                  result.getQ should beEquivalentTo(0d.asMegaVar)
+                  result.getSoc should beEquivalentTo(9.48d.asPercent, 1e-2)
+                case time if time == 3600.toDateTime =>
+                  result.getP should beEquivalentTo(0d.asKiloWatt)
+                  result.getQ should beEquivalentTo(0d.asMegaVar)
+                  result.getSoc should beEquivalentTo(14.22d.asPercent, 1e-2)
+              }
+            case model if model == ev1800.uuid =>
+              result.getTime shouldBe 2700.toDateTime
+              result.getP should beEquivalentTo(11d.asKiloWatt)
+              result.getQ should beEquivalentTo(0d.asMegaVar)
+              result.getSoc should beEquivalentTo(3.44d.asPercent, 1e-2)
+            case model if model == ev2700.uuid =>
+              result.getTime shouldBe 2700.toDateTime
+              result.getP should beEquivalentTo(22d.asKiloWatt)
+              result.getQ should beEquivalentTo(0d.asMegaVar)
+              result.getSoc should beEquivalentTo(0.asPercent, 1e-2)
+          }
+      }
+
+      resultListener.expectMsgType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(result: EvcsResult) =>
+          result.getInputModel shouldBe evcsInputModel.getUuid
+          result.getTime shouldBe 2700.toDateTime
+          result.getP should beEquivalentTo(44d.asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+      }
+
+      // TICK 4500: ev1800 leaves
+
+      evService.send(
+        evcsAgent,
+        DepartingEvsRequest(4500, Seq(ev1800.uuid)),
+      )
+
+      evService.expectMsgType[DepartingEvsResponse] match {
+        case DepartingEvsResponse(evcs, evModels) =>
+          evcs shouldBe evcsInputModel.getUuid
+          evModels should have size 1
+          evModels.headOption match {
+            case Some(evModel) =>
+              evModel.uuid shouldBe ev1800.uuid
+              evModel.storedEnergy should approximate(KilowattHours(8.25))
+            case None => fail("Expected to get at least one ev.")
+          }
+      }
+
+      resultListener.receiveN(3).foreach {
+        case ParticipantResultEvent(result: EvResult) =>
+          result.getInputModel match {
+            case model if model == ev1800.uuid =>
+              result.getTime match {
+                case time if time == 3600.toDateTime =>
+                  result.getP should beEquivalentTo(11d.asKiloWatt)
+                  result.getQ should beEquivalentTo(0d.asMegaVar)
+                  result.getSoc should beEquivalentTo(6.88.asPercent, 1e-2)
+                case time if time == 4500.toDateTime =>
+                  result.getP should beEquivalentTo(0d.asKiloWatt)
+                  result.getQ should beEquivalentTo(0d.asMegaVar)
+                  result.getSoc should beEquivalentTo(10.31.asPercent, 1e-2)
+              }
+            case model if model == ev2700.uuid =>
+              result.getTime shouldBe 3600.toDateTime
+              result.getP should beEquivalentTo(22d.asKiloWatt)
+              result.getQ should beEquivalentTo(0d.asMegaVar)
+              result.getSoc should beEquivalentTo(4.58d.asPercent, 1e-2)
+          }
+      }
+
+      resultListener.expectMsgType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(result: EvcsResult) =>
+          result.getInputModel shouldBe evcsInputModel.getUuid
+          result.getTime shouldBe 3600.toDateTime
+          result.getP should beEquivalentTo(33d.asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+      }
+
+      // TICK 5400: ev2700 leaves
+
+      evService.send(
+        evcsAgent,
+        DepartingEvsRequest(5400, Seq(ev2700.uuid)),
+      )
+
+      evService.expectMsgType[DepartingEvsResponse] match {
+        case DepartingEvsResponse(evcs, evModels) =>
+          evcs shouldBe evcsInputModel.getUuid
+          evModels should have size 1
+          evModels.headOption match {
+            case Some(evModel) =>
+              evModel.uuid shouldBe ev2700.uuid
+              evModel.storedEnergy should approximate(KilowattHours(16.5))
+            case None => fail("Expected to get at least one ev.")
+          }
+      }
+
+      resultListener.receiveN(2).foreach {
+        case ParticipantResultEvent(result: EvResult) =>
+          result.getInputModel match {
+            case model if model == ev2700.uuid =>
+              result.getTime match {
+                case time if time == 4500.toDateTime =>
+                  result.getP should beEquivalentTo(22d.asKiloWatt)
+                  result.getQ should beEquivalentTo(0d.asMegaVar)
+                  result.getSoc should beEquivalentTo(9.17.asPercent, 1e-2)
+                case time if time == 5400.toDateTime =>
+                  result.getP should beEquivalentTo(0d.asKiloWatt)
+                  result.getQ should beEquivalentTo(0d.asMegaVar)
+                  result.getSoc should beEquivalentTo(13.75.asPercent, 1e-2)
+              }
+          }
+      }
+
+      resultListener.expectMsgType[ParticipantResultEvent] match {
+        case ParticipantResultEvent(result: EvcsResult) =>
+          result.getInputModel shouldBe evcsInputModel.getUuid
+          result.getTime shouldBe 4500.toDateTime
+          result.getP should beEquivalentTo(22d.asKiloWatt)
+          result.getQ should beEquivalentTo(0d.asMegaVar)
+      }
+      /* FixMe: We would expect another Evcs Result for the lastTick of 5400 here.
+         But this can't be calculated since there is no nextTick.
+         For simulation it is as well necessary to fix this e.g. by writing the lastResults when finishing simulation.
+       */
+    }
+  }
 }

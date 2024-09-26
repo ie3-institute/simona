@@ -33,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add gradle application plugin for command line execution with gradle run [#890](https://github.com/ie3-institute/simona/issues/890)
 - Additional tests to check flexibility options of thermal house and storage [#729](https://github.com/ie3-institute/simona/issues/729)
 - EmAgents should be able to handle initialization [#945](https://github.com/ie3-institute/simona/issues/945)
+- Added option to directly zip the output files [#793](https://github.com/ie3-institute/simona/issues/793)
+- Added weatherData HowTo for Copernicus ERA5 data [#967](https://github.com/ie3-institute/simona/issues/967)
 - Add unapply method for ThermalHouseResults [#934](https://github.com/ie3-institute/simona/issues/934)
 
 ### Changed
@@ -81,6 +83,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated AUTHORS.md [#905](https://github.com/ie3-institute/simona/issues/905)
 - Rewrote BMModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Refactoring EM messages [#947](https://github.com/ie3-institute/simona/issues/947)
+- Simplifying ThermalHouse [#940](https://github.com/ie3-institute/simona/issues/940)
+- Prepare ThermalStorageTestData for Storage without storageVolumeLvlMin [#894](https://github.com/ie3-institute/simona/issues/894)
+- Renamed `ActivityStartTrigger`, `ScheduleTriggerMessage`, `CompletionMessage` in UML Diagrams[#675](https://github.com/ie3-institute/simona/issues/675)
 
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
@@ -108,6 +113,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix determineState of ThermalHouse [#926](https://github.com/ie3-institute/simona/issues/926)
 - Fix activation of Hp when not under control of an EM [#922](https://github.com/ie3-institute/simona/issues/922)
 - Fix expected secondaryData in baseStateData [#955](https://github.com/ie3-institute/simona/issues/955)
+- Improve code quality in fixedloadmodelspec and other tests [#919](https://github.com/ie3-institute/simona/issues/919)
+- Fix power flow calculation with em agents [#962](https://github.com/ie3-institute/simona/issues/962)
+- Fix scheduling at Evcs with more than one Ev at a time without Em [#787](https://github.com/ie3-institute/simona/issues/787)
 
 ## [3.0.0] - 2023-08-07
 
