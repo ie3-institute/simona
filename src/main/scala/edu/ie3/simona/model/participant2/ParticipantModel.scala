@@ -41,19 +41,17 @@ abstract class ParticipantModel[
   /** Get a partial function, that transfers the current active into reactive
     * power based on the participants properties and the given nodal voltage
     *
-    * @param nodalVoltage
-    *   The currently given nodal voltage
     * @return
-    *   A [[PartialFunction]] from [[Power]] to [[ReactivePower]]
+    *   A [[PartialFunction]] from [[Power]] and voltage ([[Dimensionless]]) to
+    *   [[ReactivePower]]
     */
-  def activeToReactivePowerFunc(
-      nodalVoltage: Dimensionless
-  ): Power => ReactivePower =
-    qControl.activeToReactivePowerFunc(
-      sRated,
-      cosPhiRated,
-      nodalVoltage,
-    )
+  def activeToReactivePowerFunc: Dimensionless => Power => ReactivePower =
+    nodalVoltage =>
+      qControl.activeToReactivePowerFunc(
+        sRated,
+        cosPhiRated,
+        nodalVoltage,
+      )
 
   def determineOperatingPoint(state: S, relevantData: OR): (OP, Option[Long])
 

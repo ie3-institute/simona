@@ -6,6 +6,8 @@
 
 package edu.ie3.simona.agent.participant2
 
+import breeze.numerics.{pow, sqrt}
+import edu.ie3.simona.agent.grid.GridAgentMessages.AssetPowerChangedMessage
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.exceptions.CriticalFailureException
@@ -25,7 +27,7 @@ import edu.ie3.util.scala.Scope
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
-import squants.Dimensionless
+import squants.{Dimensionless, Each}
 
 object ParticipantAgent {
 
@@ -172,12 +174,33 @@ object ParticipantAgent {
           parentData,
         )
 
-      case (ctx, msg: RequestAssetPowerMessage) =>
-        // activeToReactivePowerFunc
+      case (ctx, RequestAssetPowerMessage(currentTick, eInPu, fInPu)) =>
+        val activeToReactivePowerFunc = modelShell.activeToReactivePowerFunc
 
-        gridAdapter.updateAveragePower(msg.currentTick, ctx.log)
+        val nodalVoltage = Each(
+          sqrt(
+            pow(eInPu.toEach, 2) +
+              pow(fInPu.toEach, 2)
+          )
+        )
 
-        Behaviors.same
+        val updatedGridAdapter = gridAdapter
+          .updateNodalVoltage(nodalVoltage)
+          .updateAveragePower(
+            currentTick,
+            Some(activeToReactivePowerFunc),
+            ctx.log,
+          )
+
+        val avgPower = updatedGridAdapter.avgPowerCache.get
+        gridAdapter.gridAgent ! AssetPowerChangedMessage(avgPower.p, avgPower.q)
+
+        ParticipantAgent(
+          modelShell,
+          dataCore,
+          updatedGridAdapter,
+          parentData,
+        )
     }
 
   private def maybeCalculate(

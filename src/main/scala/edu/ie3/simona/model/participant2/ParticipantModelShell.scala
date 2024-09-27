@@ -22,8 +22,10 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssueFlexControl,
   ProvideFlexOptions,
 }
+import edu.ie3.util.scala.quantities.ReactivePower
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import squants.Dimensionless
+import squants.energy.Power
 
 /** Takes care of:
   *   - activating/deactivating model
@@ -76,6 +78,9 @@ final case class ParticipantModelShell[
       modelChange = ModelChangeIndicator(changesAtTick = maybeNextTick),
     )
   }
+
+  def activeToReactivePowerFunc: Dimensionless => Power => ReactivePower =
+    model.activeToReactivePowerFunc
 
   def determineResults(
       currentTick: Long,

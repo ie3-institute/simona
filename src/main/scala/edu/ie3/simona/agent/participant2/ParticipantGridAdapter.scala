@@ -6,17 +6,15 @@
 
 package edu.ie3.simona.agent.participant2
 
-import edu.ie3.simona.agent.em.FlexCorrespondenceStore.WithTime
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import edu.ie3.simona.agent.participant2.ParticipantGridAdapter.averageApparentPower
+import edu.ie3.simona.agent.participant2.ParticipantGridAdapter._
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroMVAr, zeroMW}
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.event.LoggingAdapter
 import org.slf4j.Logger
 import squants.energy.Megawatts
-import squants.{Dimensionless, Energy, Power}
+import squants.{Dimensionless, Each, Energy, Power}
 
 import scala.collection.immutable.SortedMap
 import scala.util.{Failure, Success}
@@ -26,20 +24,17 @@ import scala.util.{Failure, Success}
   * @param gridAgent
   * @param expectedRequestTick
   *   Tick at which next power request is expected
-  * @param voltage
-  * @param lastRequestTick
-  *   Tick of the last request
+  * @param nodalVoltage
   * @param tickToPower
   *   power values
-  * @param currentAvgPower
+  * @param avgPowerCache
   */
 final case class ParticipantGridAdapter(
     gridAgent: ActorRef[GridAgent.Request],
+    nodalVoltage: Dimensionless,
     expectedRequestTick: Long,
-    voltage: Dimensionless,
-    lastRequestTick: Long = 0,
     tickToPower: SortedMap[Long, ApparentPower],
-    currentAvgPower: WithTime[ApparentPower],
+    avgPowerCache: Option[AvgPowerResult],
 ) {
 
   def isPowerRequestExpected(currentTick: Long): Boolean = {
@@ -51,32 +46,87 @@ final case class ParticipantGridAdapter(
       tick: Long,
   ): ParticipantGridAdapter =
     copy(tickToPower = tickToPower + (tick, power))
+
   // power of the current tick is irrelevant
+
+  def updateNodalVoltage(voltage: Dimensionless): ParticipantGridAdapter =
+    copy(nodalVoltage = voltage)
 
   def updateAveragePower(
       currentTick: Long,
+      activeToReactivePowerFuncOpt: Option[
+        Dimensionless => Power => ReactivePower
+      ],
       log: Logger,
   ): ParticipantGridAdapter = {
-    val averagePower =
-      averageApparentPower(tickToPower, lastRequestTick, currentTick, ???, log)
+    implicit val voltageTolerance: Dimensionless = Each(
+      1e-3
+    ) // todo requestVoltageDeviationThreshold
 
-    // keep the last entry because we do not know
-    // if the next entry will necessarily be at the
-    // current tick
-    val lastTickAndPower = tickToPower.maxByOption { case (tick, _) =>
-      tick
-    }
+    val result = (avgPowerCache match {
+      case Some(cache @ AvgPowerResult(windowStart, windowEnd, voltage, _))
+          if windowEnd == currentTick =>
+        // Results have been calculated for the same tick...
+        if (voltage =~ nodalVoltage) {
+          // ... and same voltage, return cached result
+          Left(cache)
+        } else {
+          // ... and different voltage, results have to be re-calculated with same params
+          Right(windowStart, windowEnd)
+        }
+      case Some(AvgPowerResult(_, windowEnd, _, _)) =>
+        // Results have been calculated for a former tick, take former windowEnd as the new windowStart
+        Right(windowEnd, currentTick)
+      case None =>
+        // No results have been calculated whatsoever, calculate from simulation start (0)
+        Right(0, currentTick)
+    }).fold(
+      cachedResult => cachedResult,
+      { case (windowStart, windowEnd) =>
+        val avgPower = averageApparentPower(
+          tickToPower,
+          windowStart,
+          windowEnd,
+          activeToReactivePowerFuncOpt.map(_.apply(nodalVoltage)),
+          log,
+        )
+        AvgPowerResult(windowStart, windowEnd, nodalVoltage, avgPower)
+      },
+    )
+
+    val reducedMap = reduceTickToPowerMap(tickToPower, result.windowStart)
 
     copy(
-      currentAvgPower = WithTime(averagePower, currentTick),
-      tickToPower = SortedMap.from(lastTickAndPower),
-      lastRequestTick = currentTick,
+      avgPowerCache = Some(result),
+      tickToPower = reducedMap,
     )
   }
 
 }
 
 object ParticipantGridAdapter {
+
+  final case class AvgPowerResult(
+      windowStart: Long,
+      windowEnd: Long,
+      voltage: Dimensionless,
+      avgPower: ApparentPower,
+  )
+
+  private def reduceTickToPowerMap(
+      tickToPower: SortedMap[Long, ApparentPower],
+      windowStart: Long,
+  ): SortedMap[Long, ApparentPower] = {
+    // keep the last entry at or before windowStart
+    val lastTickBeforeWindowStart =
+      tickToPower.rangeUntil(windowStart + 1).lastOption
+
+    // throw out all entries before or at windowStart
+    val reducedMap = tickToPower.rangeFrom(windowStart + 1)
+
+    // combine both
+    lastTickBeforeWindowStart.map(reducedMap + _).getOrElse(reducedMap)
+  }
 
   /** Determine the average apparent power within the given tick window
     *
@@ -91,7 +141,7 @@ object ParticipantGridAdapter {
     * @return
     *   The averaged apparent power
     */
-  def averageApparentPower(
+  private def averageApparentPower(
       tickToPower: Map[Long, ApparentPower],
       windowStart: Long,
       windowEnd: Long,
