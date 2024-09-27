@@ -21,7 +21,7 @@ object ResultSinkType {
       fileFormat: String = ".csv",
       filePrefix: String = "",
       fileSuffix: String = "",
-      zipFiles: Boolean = false,
+      compressOutputs: Boolean = false,
   ) extends ResultSinkType
 
   final case class InfluxDb1x(url: String, database: String, scenario: String)

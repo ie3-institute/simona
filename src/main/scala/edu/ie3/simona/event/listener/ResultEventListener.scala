@@ -69,7 +69,7 @@ object ResultEventListener extends Transformer3wResultSupport {
   ): Iterable[Future[(Class[_], ResultEntitySink)]] = {
     resultFileHierarchy.resultSinkType match {
       case csv: ResultSinkType.Csv =>
-        val enableCompression = csv.zipFiles
+        val enableCompression = csv.compressOutputs
 
         resultFileHierarchy.resultEntitiesToConsider.map { resultClass =>
           val filePathOpt =
@@ -107,7 +107,7 @@ object ResultEventListener extends Transformer3wResultSupport {
                 ResultEntityCsvSink(
                   finalFileName,
                   new ResultEntityProcessor(resultClass),
-                  fileName.endsWith(".gz"),
+                  finalFileName.endsWith(".gz"),
                 ),
               )
             }
