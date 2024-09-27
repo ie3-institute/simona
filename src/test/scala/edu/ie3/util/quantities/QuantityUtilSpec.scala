@@ -6,7 +6,6 @@
 
 package edu.ie3.util.quantities
 
-import edu.ie3.simona.exceptions.QuantityException
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.QuantityUtil
 import org.scalatest.prop.TableDrivenPropertyChecks
@@ -28,57 +27,6 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
   )
 
   "Integrating over quantities" when {
-    "determining the start value" should {
-      val startingValue =
-        PrivateMethod[Power](Symbol("startingValue"))
-
-      "throw an exception, if values are empty and unit of \"empty\" quantity cannot be determined" in {
-        intercept[QuantityException] {
-          QuantityUtil invokePrivate startingValue(
-            Map.empty[Long, Power],
-            1L,
-          )
-        }.getMessage shouldBe "Unable to determine unit for dummy starting value."
-      }
-
-      "bring default value, if there is nothing before window starts" in {
-        QuantityUtil invokePrivate startingValue(
-          values,
-          1L,
-        ) should be
-        unit(0d)
-
-      }
-
-      "bring correct value, if there is something before window starts" in {
-        QuantityUtil invokePrivate startingValue(
-          values,
-          2L,
-        ) should be
-        unit(5d)
-
-      }
-    }
-
-    "determining the end value" should {
-      val endingValue =
-        PrivateMethod[(Long, Power)](Symbol("endingValue"))
-
-      "throw and exception, if there is no value before the window ends" in {
-        intercept[QuantityException] {
-          QuantityUtil invokePrivate endingValue(values, 1L)
-        }.getMessage shouldBe "Cannot integrate over an empty set of values."
-      }
-
-      "bring correct value, if there is something before window ends" in {
-        QuantityUtil invokePrivate endingValue(values, 2L) match {
-          case (tick, value) =>
-            tick shouldBe 2L
-            value should approximate(unit(5d))
-        }
-      }
-    }
-
     "actually integrating" should {
       "lead to correct values" in {
         val cases = Table(
@@ -94,7 +42,7 @@ class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
             values,
             windowStart,
             windowEnd,
-          ) =~ expectedResult
+          ) should approximate(expectedResult)
         }
       }
     }
