@@ -428,6 +428,12 @@ object SimonaSimSpec {
     ): ClassicRef =
       context.spawn(empty, uniqueName("weatherService")).toClassic
 
+    override def loadProfileService(
+        context: ActorContext[_],
+        scheduler: ActorRef[SchedulerMessage],
+    ): ClassicRef =
+      context.spawn(empty, uniqueName("loadProfileService")).toClassic
+
     override def timeAdvancer(
         context: ActorContext[_],
         simulation: ActorRef[SimonaSim.SimulationEnded.type],

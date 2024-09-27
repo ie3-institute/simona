@@ -55,6 +55,7 @@ class DBFSAlgorithmSupGridSpec
     TestProbe("runtimeEvents")
   private val primaryService: TestProbe[ServiceMessage] =
     TestProbe("primaryService")
+  private val loadProfileService = TestProbe("loadProfileService")
   private val weatherService = TestProbe("weatherService")
   private val hvGrid: TestProbe[GridAgent.Request] = TestProbe("hvGrid")
 
@@ -62,6 +63,7 @@ class DBFSAlgorithmSupGridSpec
     scheduler = scheduler.ref,
     runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref.toClassic,
+    loadProfiles = loadProfileService.ref.toClassic,
     weather = weatherService.ref.toClassic,
     evDataService = None,
   )

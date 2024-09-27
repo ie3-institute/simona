@@ -9,6 +9,8 @@ package edu.ie3.simona.agent.participant.load
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorLoadProfileService
 import edu.ie3.simona.agent.participant.load.LoadAgentFundamentals.{
   FixedLoadAgentFundamentals,
   ProfileLoadAgentFundamentals,
@@ -19,15 +21,9 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.Participa
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
-import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
-import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
-import edu.ie3.simona.model.participant.load.random.RandomLoadModel
-import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomRelevantData
-import edu.ie3.simona.model.participant.load.{
-  FixedLoadModel,
-  LoadModel,
-  LoadModelBehaviour,
-}
+import edu.ie3.simona.model.participant.load.ProfileLoadModel.ProfileRelevantData
+import edu.ie3.simona.model.participant.load.RandomLoadModel.RandomRelevantData
+import edu.ie3.simona.model.participant.load._
 import org.apache.pekko.actor.{ActorRef, Props}
 
 object LoadAgent {
@@ -65,7 +61,7 @@ object LoadAgent {
         FixedLoadModel.FixedLoadRelevantData.type,
         FixedLoadModel,
       ](scheduler, initStateData, listener)
-      with FixedLoadAgentFundamentals
+      with FixedLoadAgentFundamentals {}
 
   final class ProfileLoadAgent(
       scheduler: ActorRef,
@@ -79,7 +75,14 @@ object LoadAgent {
         ProfileRelevantData,
         ProfileLoadModel,
       ](scheduler, initStateData, listener)
-      with ProfileLoadAgentFundamentals
+      with ProfileLoadAgentFundamentals {
+
+    override val neededServices: Vector[Class[_ <: SecondaryDataService[_]]] =
+      Vector(
+        classOf[ActorLoadProfileService]
+      )
+
+  }
 
   final class RandomLoadAgent(
       scheduler: ActorRef,
@@ -93,7 +96,12 @@ object LoadAgent {
         RandomRelevantData,
         RandomLoadModel,
       ](scheduler, initStateData, listener)
-      with RandomLoadAgentFundamentals
+      with RandomLoadAgentFundamentals {
+    override val neededServices: Vector[Class[_ <: SecondaryDataService[_]]] =
+      Vector(
+        classOf[ActorLoadProfileService]
+      )
+  }
 }
 
 /** Creating a load agent
@@ -121,6 +129,8 @@ abstract class LoadAgent[LD <: LoadRelevantData, LM <: LoadModel[LD]](
       LM,
     ](scheduler, initStateData)
     with LoadAgentFundamentals[LD, LM] {
+
+  val neededServices: Vector[Class[_ <: SecondaryDataService[_]]] = Vector.empty
   /*
    * "Hey, SIMONA! What is handled in ParticipantAgent?"
    * "Hey, dude! The following things are handled in ParticipantAgent:

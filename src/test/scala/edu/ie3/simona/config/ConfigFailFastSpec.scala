@@ -7,7 +7,7 @@
 package edu.ie3.simona.config
 
 import com.typesafe.config.ConfigFactory
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.{Loadprofile, Weather}
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
   CoordinateSource,
   SampleParams,
@@ -1015,6 +1015,47 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
       /* Checking of primary source configuration is delegated to the specific actor. Tests are placed there */
 
+      "Checking load profile data sources" should {
+        val checkLoadProfileDataSource =
+          PrivateMethod[Unit](Symbol("checkLoadProfileDataSource"))
+
+        val csv: BaseCsvParams =
+          BaseCsvParams(",", "input", isHierarchic = false)
+
+        val loadProfileDataSource = Loadprofile.Datasource(
+          None,
+          loadBuildIns = true,
+          None,
+        )
+
+        "detect missing source" in {
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkLoadProfileDataSource(
+              loadProfileDataSource.copy(loadBuildIns = false)
+            )
+          }.getMessage should startWith(
+            "No load profile source defined! This is currently not supported! Please provide the config parameters for " +
+              "one of the following load profile sources:"
+          )
+        }
+
+        "detect too many sources" in {
+          val tooManySources = loadProfileDataSource.copy(
+            csvParams = Some(csv),
+            sqlParams =
+              Some(Loadprofile.Datasource.SqlParams("", "", "", "", "")),
+          )
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkLoadProfileDataSource(
+              tooManySources
+            )
+          }.getMessage should startWith(
+            "Multiple load profile sources defined:"
+          )
+        }
+      }
+
       "Checking weather data sources" should {
         val checkWeatherDataSource =
           PrivateMethod[Unit](Symbol("checkWeatherDataSource"))
@@ -1023,13 +1064,12 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           BaseCsvParams(",", "input", isHierarchic = false)
         val sample = new SampleParams(true)
 
-        val weatherDataSource = Datasource(
+        val weatherDataSource = Weather.Datasource(
           CoordinateSource(
             None,
             "icon",
             Some(
-              SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
-                .SampleParams(true)
+              Weather.Datasource.CoordinateSource.SampleParams(true)
             ),
             None,
           ),

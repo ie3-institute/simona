@@ -31,32 +31,24 @@ import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.exceptions.agent.InconsistentStateException
+import edu.ie3.simona.exceptions.agent.{
+  AgentInitializationException,
+  InconsistentStateException,
+}
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantData
-import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
-import edu.ie3.simona.model.participant.load.profile.{
-  LoadProfileStore,
-  ProfileLoadModel,
-}
-import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomRelevantData
-import edu.ie3.simona.model.participant.load.random.{
-  RandomLoadModel,
-  RandomLoadParamStore,
-}
-import edu.ie3.simona.model.participant.load.{
-  FixedLoadModel,
-  LoadModel,
-  LoadReference,
-}
+import edu.ie3.simona.model.participant.load.ProfileLoadModel.ProfileRelevantData
+import edu.ie3.simona.model.participant.load.RandomLoadModel.RandomRelevantData
+import edu.ie3.simona.model.participant.load._
 import edu.ie3.simona.model.participant.{FlexChangeIndicator, ModelState}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexRequest,
   FlexResponse,
 }
+import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.LoadProfileData
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits.PU
@@ -129,6 +121,12 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
     ConstantState.type,
     LM,
   ] = {
+    /* Check for needed services */
+    if (!services.toSeq.map(_.getClass).containsSlice(neededServices))
+      throw new AgentInitializationException(
+        s"LoadAgent cannot be initialized without a weather service!"
+      )
+
     /* Build the calculation model */
     val model =
       buildModel(
@@ -156,20 +154,6 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
           fixedLoadModel.operationInterval.start,
           fixedLoadModel.operationInterval.end,
         ).filterNot(_ == lastTickInSimulation)
-      case profileLoadModel: ProfileLoadModel =>
-        activationTicksInOperationTime(
-          simulationStartDate,
-          LoadProfileStore.resolution.getSeconds,
-          profileLoadModel.operationInterval.start,
-          profileLoadModel.operationInterval.end,
-        )
-      case randomLoadModel: RandomLoadModel =>
-        activationTicksInOperationTime(
-          simulationStartDate,
-          RandomLoadParamStore.resolution.getSeconds,
-          randomLoadModel.operationInterval.start,
-          randomLoadModel.operationInterval.end,
-        )
       case _ =>
         SortedSet.empty[Long]
     }
@@ -199,6 +183,46 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       ValueStore(resolution),
       maybeEmAgent.map(FlexControlledData(_, self.toTyped[FlexRequest])),
     )
+  }
+
+  /** @param baseStateData
+    *   base state data
+    * @param currentTick
+    *   current tick
+    * @return
+    *   the [[LoadProfileData]]
+    */
+  protected def retrieveLoadProfileData(
+      baseStateData: ParticipantModelBaseStateData[
+        ApparentPower,
+        _ <: LoadRelevantData,
+        ConstantState.type,
+        LM,
+      ],
+      currentTick: Long,
+  ): LoadProfileData = {
+    // take the last load profile data, not necessarily the one for the current tick:
+    // we might receive flex control messages for irregular ticks
+    val (_, secondaryData) = baseStateData.receivedSecondaryDataStore
+      .last(currentTick)
+      .getOrElse(
+        throw new InconsistentStateException(
+          s"The model ${baseStateData.model} was not provided with any secondary data so far."
+        )
+      )
+
+    /* extract load profile data from secondary data, which should have been requested and received before */
+    secondaryData
+      .collectFirst {
+        // filter secondary data for weather data
+        case (_, data: LoadProfileData) =>
+          data
+      }
+      .getOrElse(
+        throw new InconsistentStateException(
+          s"The model ${baseStateData.model} was not provided with needed weather data."
+        )
+      )
   }
 
   override def buildModel(
@@ -298,7 +322,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
     *
     * @param baseStateData
     *   The base state data with collected secondary data
-    * @param maybeLastModelState
+    * @param lastModelState
     *   Optional last model state
     * @param currentTick
     *   Tick, the trigger belongs to
@@ -317,10 +341,30 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       lastModelState: ConstantState.type,
       currentTick: Long,
       scheduler: ActorRef,
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] =
-    throw new InconsistentStateException(
-      s"Load model is not able to calculate power with secondary data."
+  ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
+    val voltage =
+      getAndCheckNodalVoltage(baseStateData, currentTick)
+
+    val relevantData =
+      createCalcRelevantData(
+        baseStateData,
+        currentTick,
+      )
+
+    val result = baseStateData.model.calculatePower(
+      currentTick,
+      voltage,
+      ConstantState,
+      relevantData,
     )
+
+    updateValueStoresInformListenersAndGoToIdleWithUpdatedBaseStateData(
+      scheduler,
+      baseStateData,
+      AccompaniedSimulationResult(result),
+      relevantData,
+    )
+  }
 
   /** Determine the average result within the given tick window
     *
@@ -476,10 +520,14 @@ object LoadAgentFundamentals {
           ProfileLoadModel,
         ],
         currentTick: Long,
-    ): ProfileRelevantData =
+    ): ProfileRelevantData = {
+      val data = retrieveLoadProfileData(baseStateData, currentTick)
+
       ProfileRelevantData(
-        currentTick.toDateTime(baseStateData.startDate)
+        data.averagePower,
+        data.maxPower,
       )
+    }
 
     /** Partial function, that is able to transfer
       * [[ParticipantModelBaseStateData]] (holding the actual calculation model)
@@ -536,10 +584,9 @@ object LoadAgentFundamentals {
           RandomLoadModel,
         ],
         tick: Long,
-    ): RandomRelevantData =
-      RandomRelevantData(
-        tick.toDateTime(baseStateData.startDate)
-      )
+    ): RandomRelevantData = RandomRelevantData(
+      retrieveLoadProfileData(baseStateData, currentTick).averagePower
+    )
 
     /** Partial function, that is able to transfer
       * [[ParticipantModelBaseStateData]] (holding the actual calculation model)

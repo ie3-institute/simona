@@ -56,6 +56,11 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
       scheduler: ActorRef[SchedulerMessage],
   ): ClassicRef = throw new NotImplementedException("This is a dummy setup")
 
+  override def loadProfileService(
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
+  ): ClassicRef = throw new NotImplementedException("This is a dummy setup")
+
   override def extSimulations(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],

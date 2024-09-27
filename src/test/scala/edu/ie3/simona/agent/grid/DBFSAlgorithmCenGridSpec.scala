@@ -56,6 +56,7 @@ class DBFSAlgorithmCenGridSpec
   private val runtimeEvents: TestProbe[RuntimeEvent] =
     TestProbe("runtimeEvents")
   private val primaryService = TestProbe("primaryService")
+  private val loadProfileService = TestProbe("loadProfileService")
   private val weatherService = TestProbe("weatherService")
 
   private val superiorGridAgent = SuperiorGA(
@@ -78,6 +79,7 @@ class DBFSAlgorithmCenGridSpec
     scheduler = scheduler.ref,
     runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref.toClassic,
+    loadProfiles = loadProfileService.ref.toClassic,
     weather = weatherService.ref.toClassic,
     evDataService = None,
   )

@@ -1244,6 +1244,7 @@ object SimonaConfig {
 
     final case class Input(
         grid: SimonaConfig.Simona.Input.Grid,
+        loadprofile: SimonaConfig.Simona.Input.Loadprofile,
         primary: SimonaConfig.Simona.Input.Primary,
         weather: SimonaConfig.Simona.Input.Weather,
     )
@@ -1301,6 +1302,110 @@ object SimonaConfig {
         ): SimonaConfig.Simona.Input.Grid = {
           SimonaConfig.Simona.Input.Grid(
             datasource = SimonaConfig.Simona.Input.Grid.Datasource(
+              if (c.hasPathOrNull("datasource")) c.getConfig("datasource")
+              else
+                com.typesafe.config.ConfigFactory.parseString("datasource{}"),
+              parentPath + "datasource.",
+              $tsCfgValidator,
+            )
+          )
+        }
+      }
+
+      final case class Loadprofile(
+          datasource: SimonaConfig.Simona.Input.Loadprofile.Datasource
+      )
+      object Loadprofile {
+        final case class Datasource(
+            csvParams: scala.Option[SimonaConfig.BaseCsvParams],
+            loadBuildIns: scala.Boolean,
+            sqlParams: scala.Option[
+              SimonaConfig.Simona.Input.Loadprofile.Datasource.SqlParams
+            ],
+        )
+        object Datasource {
+          final case class SqlParams(
+              jdbcUrl: java.lang.String,
+              password: java.lang.String,
+              schemaName: java.lang.String,
+              tableName: java.lang.String,
+              userName: java.lang.String,
+          )
+          object SqlParams {
+            def apply(
+                c: com.typesafe.config.Config,
+                parentPath: java.lang.String,
+                $tsCfgValidator: $TsCfgValidator,
+            ): SimonaConfig.Simona.Input.Loadprofile.Datasource.SqlParams = {
+              SimonaConfig.Simona.Input.Loadprofile.Datasource.SqlParams(
+                jdbcUrl = $_reqStr(parentPath, c, "jdbcUrl", $tsCfgValidator),
+                password = $_reqStr(parentPath, c, "password", $tsCfgValidator),
+                schemaName =
+                  if (c.hasPathOrNull("schemaName")) c.getString("schemaName")
+                  else "public",
+                tableName =
+                  $_reqStr(parentPath, c, "tableName", $tsCfgValidator),
+                userName = $_reqStr(parentPath, c, "userName", $tsCfgValidator),
+              )
+            }
+            private def $_reqStr(
+                parentPath: java.lang.String,
+                c: com.typesafe.config.Config,
+                path: java.lang.String,
+                $tsCfgValidator: $TsCfgValidator,
+            ): java.lang.String = {
+              if (c == null) null
+              else
+                try c.getString(path)
+                catch {
+                  case e: com.typesafe.config.ConfigException =>
+                    $tsCfgValidator.addBadPath(parentPath + path, e)
+                    null
+                }
+            }
+
+          }
+
+          def apply(
+              c: com.typesafe.config.Config,
+              parentPath: java.lang.String,
+              $tsCfgValidator: $TsCfgValidator,
+          ): SimonaConfig.Simona.Input.Loadprofile.Datasource = {
+            SimonaConfig.Simona.Input.Loadprofile.Datasource(
+              csvParams =
+                if (c.hasPathOrNull("csvParams"))
+                  scala.Some(
+                    SimonaConfig.BaseCsvParams(
+                      c.getConfig("csvParams"),
+                      parentPath + "csvParams.",
+                      $tsCfgValidator,
+                    )
+                  )
+                else None,
+              loadBuildIns = !c.hasPathOrNull("loadBuildIns") || c.getBoolean(
+                "loadBuildIns"
+              ),
+              sqlParams =
+                if (c.hasPathOrNull("sqlParams"))
+                  scala.Some(
+                    SimonaConfig.Simona.Input.Loadprofile.Datasource.SqlParams(
+                      c.getConfig("sqlParams"),
+                      parentPath + "sqlParams.",
+                      $tsCfgValidator,
+                    )
+                  )
+                else None,
+            )
+          }
+        }
+
+        def apply(
+            c: com.typesafe.config.Config,
+            parentPath: java.lang.String,
+            $tsCfgValidator: $TsCfgValidator,
+        ): SimonaConfig.Simona.Input.Loadprofile = {
+          SimonaConfig.Simona.Input.Loadprofile(
+            datasource = SimonaConfig.Simona.Input.Loadprofile.Datasource(
               if (c.hasPathOrNull("datasource")) c.getConfig("datasource")
               else
                 com.typesafe.config.ConfigFactory.parseString("datasource{}"),
@@ -1935,6 +2040,12 @@ object SimonaConfig {
             if (c.hasPathOrNull("grid")) c.getConfig("grid")
             else com.typesafe.config.ConfigFactory.parseString("grid{}"),
             parentPath + "grid.",
+            $tsCfgValidator,
+          ),
+          loadprofile = SimonaConfig.Simona.Input.Loadprofile(
+            if (c.hasPathOrNull("loadprofile")) c.getConfig("loadprofile")
+            else com.typesafe.config.ConfigFactory.parseString("loadprofile{}"),
+            parentPath + "loadprofile.",
             $tsCfgValidator,
           ),
           primary = SimonaConfig.Simona.Input.Primary(
