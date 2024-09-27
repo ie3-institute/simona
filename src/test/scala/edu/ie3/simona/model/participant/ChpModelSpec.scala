@@ -118,12 +118,7 @@ class ChpModelSpec
       storageInput: CylindricalStorageInput,
       storageLvl: Double,
   ): CylindricalThermalStorage = {
-    val storedEnergy = CylindricalThermalStorage.volumeToEnergy(
-      CubicMeters(storageLvl),
-      KilowattHoursPerKelvinCubicMeters(1),
-      Celsius(110.0),
-      Celsius(90.0),
-    )
+    val storedEnergy = KilowattHours(storageLvl*20.0*1.0)
     CylindricalThermalStorage(storageInput, storedEnergy)
   }
 
