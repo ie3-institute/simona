@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional tests to check flexibility options of thermal house and storage [#729](https://github.com/ie3-institute/simona/issues/729)
 - EmAgents should be able to handle initialization [#945](https://github.com/ie3-institute/simona/issues/945)
 - Added option to directly zip the output files [#793](https://github.com/ie3-institute/simona/issues/793)
+- Added weatherData HowTo for Copernicus ERA5 data [#967](https://github.com/ie3-institute/simona/issues/967)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -113,6 +114,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix expected secondaryData in baseStateData [#955](https://github.com/ie3-institute/simona/issues/955)
 - Improve code quality in fixedloadmodelspec and other tests [#919](https://github.com/ie3-institute/simona/issues/919)
 - Fix power flow calculation with em agents [#962](https://github.com/ie3-institute/simona/issues/962)
+- Fix scheduling at Evcs with more than one Ev at a time without Em [#787](https://github.com/ie3-institute/simona/issues/787)
 
 ## [3.0.0] - 2023-08-07
 
