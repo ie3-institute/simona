@@ -8,7 +8,12 @@ package edu.ie3.simona.test.common.model
 
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.{CalcRelevantData, FlexChangeIndicator, ModelState, SystemParticipant}
+import edu.ie3.simona.model.participant.{
+  CalcRelevantData,
+  FlexChangeIndicator,
+  ModelState,
+  SystemParticipant,
+}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
 import edu.ie3.util.scala.OperationInterval
 import squants.Dimensionless
