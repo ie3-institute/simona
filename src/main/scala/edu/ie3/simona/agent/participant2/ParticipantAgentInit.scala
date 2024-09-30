@@ -147,7 +147,7 @@ object ParticipantAgentInit {
       )
       val requiredServices = model.getRequiredServices.toSeq
       if (requiredServices.isEmpty) {
-        ParticipantAgent(model)
+        ParticipantAgent(model, Map.empty, ???, ???, parentData)
       } else {
         waitingForServices(model)
       }
@@ -168,7 +168,7 @@ object ParticipantAgentInit {
 
         val newExpectedRegistrations = expectedRegistrations.excl(serviceRef)
         val newExpectedFirstData =
-          expectedFirstData + (serviceRef, nextDataTick)
+          expectedFirstData.updated(serviceRef, nextDataTick)
 
         if (newExpectedRegistrations.isEmpty) {
           val earliestNextTick = expectedFirstData.map { case (_, nextTick) =>
@@ -188,7 +188,7 @@ object ParticipantAgentInit {
             ),
           )
 
-          ParticipantAgent(model, newExpectedFirstData, parentData)
+          ParticipantAgent(model, newExpectedFirstData, ???, ???, parentData)
         } else
           waitingForServices(
             model,

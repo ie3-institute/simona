@@ -9,6 +9,7 @@ package edu.ie3.simona.agent.participant2
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant2.ParticipantGridAdapter._
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroMVAr, zeroMW}
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
 import org.apache.pekko.actor.typed.ActorRef
@@ -27,14 +28,14 @@ import scala.util.{Failure, Success}
   * @param nodalVoltage
   * @param tickToPower
   *   power values
-  * @param avgPowerCache
+  * @param avgPowerResult
   */
 final case class ParticipantGridAdapter(
     gridAgent: ActorRef[GridAgent.Request],
     nodalVoltage: Dimensionless,
     expectedRequestTick: Long,
     tickToPower: SortedMap[Long, ApparentPower],
-    avgPowerCache: Option[AvgPowerResult],
+    avgPowerResult: Option[AvgPowerResult],
 ) {
 
   def isPowerRequestExpected(currentTick: Long): Boolean = {
@@ -47,60 +48,71 @@ final case class ParticipantGridAdapter(
   ): ParticipantGridAdapter =
     copy(tickToPower = tickToPower + (tick, power))
 
-  // power of the current tick is irrelevant
-
-  def updateNodalVoltage(voltage: Dimensionless): ParticipantGridAdapter =
-    copy(nodalVoltage = voltage)
-
-  def updateAveragePower(
+  def handlePowerRequest(
+      newVoltage: Dimensionless,
       currentTick: Long,
       activeToReactivePowerFuncOpt: Option[
         Dimensionless => Power => ReactivePower
       ],
       log: Logger,
   ): ParticipantGridAdapter = {
+    if (currentTick != expectedRequestTick)
+      throw new CriticalFailureException(
+        s"Power request expected for $expectedRequestTick, but not for current tick $currentTick"
+      )
+
     implicit val voltageTolerance: Dimensionless = Each(
       1e-3
     ) // todo requestVoltageDeviationThreshold
 
-    val result = (avgPowerCache match {
-      case Some(cache @ AvgPowerResult(windowStart, windowEnd, voltage, _))
+    val result = (avgPowerResult match {
+      case Some(cache @ AvgPowerResult(windowStart, windowEnd, voltage, _, _))
           if windowEnd == currentTick =>
         // Results have been calculated for the same tick...
-        if (voltage =~ nodalVoltage) {
+        if (voltage =~ newVoltage) {
           // ... and same voltage, return cached result
           Left(cache)
         } else {
           // ... and different voltage, results have to be re-calculated with same params
           Right(windowStart, windowEnd)
         }
-      case Some(AvgPowerResult(_, windowEnd, _, _)) =>
+      case Some(AvgPowerResult(_, windowEnd, _, _, _)) =>
         // Results have been calculated for a former tick, take former windowEnd as the new windowStart
         Right(windowEnd, currentTick)
       case None =>
         // No results have been calculated whatsoever, calculate from simulation start (0)
         Right(0, currentTick)
     }).fold(
-      cachedResult => cachedResult,
+      cachedResult => cachedResult.copy(newResult = false),
       { case (windowStart, windowEnd) =>
         val avgPower = averageApparentPower(
           tickToPower,
           windowStart,
           windowEnd,
-          activeToReactivePowerFuncOpt.map(_.apply(nodalVoltage)),
+          activeToReactivePowerFuncOpt.map(_.apply(newVoltage)),
           log,
         )
-        AvgPowerResult(windowStart, windowEnd, nodalVoltage, avgPower)
+        AvgPowerResult(
+          windowStart,
+          windowEnd,
+          newVoltage,
+          avgPower,
+          newResult = true,
+        )
       },
     )
 
     val reducedMap = reduceTickToPowerMap(tickToPower, result.windowStart)
 
     copy(
-      avgPowerCache = Some(result),
+      nodalVoltage = newVoltage,
       tickToPower = reducedMap,
+      avgPowerResult = Some(result),
     )
   }
+
+  def updateNextRequestTick(nextRequestTick: Long): ParticipantGridAdapter =
+    copy(expectedRequestTick = nextRequestTick)
 
 }
 
@@ -111,7 +123,20 @@ object ParticipantGridAdapter {
       windowEnd: Long,
       voltage: Dimensionless,
       avgPower: ApparentPower,
+      newResult: Boolean,
   )
+
+  def apply(
+      gridAgentRef: ActorRef[GridAgent.Request],
+      expectedRequestTick: Long,
+  ): ParticipantGridAdapter =
+    new ParticipantGridAdapter(
+      gridAgent = gridAgentRef,
+      nodalVoltage = Each(1d),
+      expectedRequestTick = expectedRequestTick,
+      tickToPower = SortedMap.empty,
+      avgPowerResult = None,
+    )
 
   private def reduceTickToPowerMap(
       tickToPower: SortedMap[Long, ApparentPower],

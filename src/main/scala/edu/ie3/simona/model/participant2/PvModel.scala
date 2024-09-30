@@ -19,6 +19,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   ConstantState,
   OperationRelevantData,
+  ParticipantConstantModel,
   ResultsContainer,
 }
 import edu.ie3.simona.model.participant2.PvModel.PvRelevantData
@@ -57,6 +58,7 @@ final class PvModel private (
       PvRelevantData,
     ]
     with ParticipantSimpleFlexibility[ConstantState.type, PvRelevantData]
+    with ParticipantConstantModel[ActivePowerOperatingPoint, PvRelevantData]
     with LazyLogging {
 
   /** Override sMax as the power output of a pv unit could become easily up to
@@ -719,12 +721,6 @@ final class PvModel private (
     else proposal
   }
 
-  override def determineState(
-      lastState: ParticipantModel.ConstantState.type,
-      operatingPoint: ActivePowerOperatingPoint,
-      currentTick: Long,
-  ): ParticipantModel.ConstantState.type = ConstantState
-
   override def createResults(
       lastState: ParticipantModel.ConstantState.type,
       operatingPoint: ActivePowerOperatingPoint,
@@ -749,6 +745,7 @@ final class PvModel private (
 
   def createRelevantData(
       receivedData: Seq[SecondaryData],
+      nodalVoltage: Dimensionless,
       tick: Long,
   ): PvRelevantData = {
     receivedData

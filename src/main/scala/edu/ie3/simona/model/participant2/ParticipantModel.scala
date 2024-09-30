@@ -64,16 +64,6 @@ abstract class ParticipantModel[
       dateTime: ZonedDateTime,
   ): ResultsContainer
 
-  // todo split off the following to ParticipantModelMeta?
-  def getRequiredServices: Iterable[ServiceType]
-
-  /** @param receivedData
-    * @throws CriticalFailureException
-    *   if unexpected type of data was provided
-    * @return
-    */
-  def createRelevantData(receivedData: Seq[SecondaryData], tick: Long): OR
-
   /** Handling requests that are not part of the standard participant protocol
     *
     * @param state
@@ -91,6 +81,22 @@ abstract class ParticipantModel[
       msg: ParticipantRequest,
   ): S =
     throw new NotImplementedError(s"Method not implemented by $getClass")
+
+  // todo split off the following to ParticipantModelMeta?
+  def getRequiredServices: Iterable[ServiceType]
+
+  def getInitialState(): S
+
+  /** @param receivedData
+    * @throws CriticalFailureException
+    *   if unexpected type of data was provided
+    * @return
+    */
+  def createRelevantData(
+      receivedData: Seq[SecondaryData],
+      nodalVoltage: Dimensionless,
+      tick: Long,
+  ): OR
 
 }
 
@@ -110,7 +116,23 @@ object ParticipantModel {
   }
 
   case object ConstantState extends ModelState {
-    override val tick = -1 // is there a better way?
+    override val tick: Long = -1 // is there a better way?
+  }
+
+  trait ParticipantConstantModel[
+      OP <: OperatingPoint,
+      OR <: OperationRelevantData,
+  ] {
+    this: ParticipantModel[OP, ConstantState.type, OR] =>
+
+    override def getInitialState(): ConstantState.type = ConstantState
+
+    override def determineState(
+        lastState: ConstantState.type,
+        operatingPoint: OP,
+        currentTick: Long,
+    ): ConstantState.type = ConstantState
+
   }
 
   /** Indicates when either flex options change (when em-controlled) or the

@@ -11,8 +11,7 @@ import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ActivationRequest
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ProvisionMessage
 
-/** todo rather call ParticipantInputHandler? */
-case class ParticipantDataCore(
+final case class ParticipantInputHandler(
     expectedData: Map[ClassicRef, Long],
     receivedData: Map[ClassicRef, Option[_ <: Data]],
     activation: Option[ActivationRequest],
@@ -23,17 +22,19 @@ case class ParticipantDataCore(
 
   // holds results as well? or no?
 
-  def handleActivation(activation: ActivationRequest): ParticipantDataCore = {
+  def handleActivation(
+      activation: ActivationRequest
+  ): ParticipantInputHandler = {
     copy(activation = Some(activation))
   }
 
-  def completeActivity(): ParticipantDataCore = {
+  def completeActivity(): ParticipantInputHandler = {
     copy(activation = None)
   }
 
   def handleDataProvision(
       msg: ProvisionMessage[_ <: Data]
-  ): ParticipantDataCore = {
+  ): ParticipantInputHandler = {
     val updatedReceivedData = receivedData + (msg.serviceRef -> Some(msg.data))
     val updatedExpectedData = msg.nextDataTick
       .map { nextTick =>
@@ -46,11 +47,23 @@ case class ParticipantDataCore(
     copy(expectedData = updatedExpectedData, receivedData = updatedReceivedData)
   }
 
-  def isComplete: Boolean = activation.nonEmpty && receivedData.forall {
-    case (_, data) => data.nonEmpty
+  def isComplete: Boolean = activation.exists { activationMsg =>
+    expectedData.forall { case (_, nextTick) =>
+      nextTick > activationMsg.tick
+    }
   }
 
   def getData: Seq[Data] =
     receivedData.values.flatten.toSeq
 
+}
+
+object ParticipantInputHandler {
+
+  def apply(expectedData: Map[ClassicRef, Long]): ParticipantInputHandler =
+    new ParticipantInputHandler(
+      expectedData = expectedData,
+      receivedData = Map.empty,
+      activation = None,
+    )
 }

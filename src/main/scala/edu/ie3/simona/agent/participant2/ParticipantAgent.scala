@@ -7,20 +7,20 @@
 package edu.ie3.simona.agent.participant2
 
 import breeze.numerics.{pow, sqrt}
-import edu.ie3.simona.agent.grid.GridAgentMessages.AssetPowerChangedMessage
-import edu.ie3.simona.agent.participant.data.Data.SecondaryData
-import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.participant2.ParticipantModelShell
-import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
-  FlexActivation,
-  FlexCompletion,
-  FlexRequest,
-  FlexResponse,
-  IssueFlexControl,
-  ProvideFlexOptions,
+import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.agent.grid.GridAgentMessages.{
+  AssetPowerChangedMessage,
+  AssetPowerUnchangedMessage,
 }
+import edu.ie3.simona.agent.participant.data.Data
+import edu.ie3.simona.agent.participant.data.Data.SecondaryData
+import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.model.participant2.{
+  ParticipantModel,
+  ParticipantModelShell,
+}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ProvisionMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.util.scala.Scope
@@ -94,6 +94,14 @@ object ParticipantAgent {
       fInPu: Dimensionless,
   ) extends Request
 
+  /** @param currentTick
+    * @param nextRequestTick
+    */
+  final case class FinishParticipantSimulation(
+      currentTick: Long,
+      nextRequestTick: Long,
+  ) extends Request
+
   /** The existence of this data object indicates that the corresponding agent
     * is not EM-controlled, but activated by a
     * [[edu.ie3.simona.scheduler.Scheduler]]
@@ -132,8 +140,23 @@ object ParticipantAgent {
   }
 
   def apply(
+      model: ParticipantModel[_, _, _],
+      expectedData: Map[ClassicRef, Long],
+      gridAgentRef: ActorRef[GridAgent.Request],
+      expectedPowerRequestTick: Long,
+      parentData: Either[SchedulerData, FlexControlledData],
+  ): Behavior[Request] = {
+    ParticipantAgent(
+      ParticipantModelShell(model),
+      ParticipantInputHandler(expectedData),
+      ParticipantGridAdapter(gridAgentRef, expectedPowerRequestTick),
+      parentData,
+    )
+  }
+
+  def apply(
       modelShell: ParticipantModelShell[_, _, _],
-      dataCore: ParticipantDataCore,
+      inputHandler: ParticipantInputHandler,
       gridAdapter: ParticipantGridAdapter,
       parentData: Either[SchedulerData, FlexControlledData],
   ): Behavior[Request] =
@@ -141,10 +164,10 @@ object ParticipantAgent {
       case (ctx, request: ParticipantRequest) =>
         val updatedShell = modelShell.handleRequest(ctx, request)
 
-        ParticipantAgent(updatedShell, dataCore, gridAdapter, parentData)
+        ParticipantAgent(updatedShell, inputHandler, gridAdapter, parentData)
 
       case (ctx, activation: ActivationRequest) =>
-        val coreWithActivation = dataCore.handleActivation(activation)
+        val coreWithActivation = inputHandler.handleActivation(activation)
 
         val (updatedShell, updatedCore, updatedGridAdapter) =
           maybeCalculate(
@@ -162,7 +185,7 @@ object ParticipantAgent {
         )
 
       case (ctx, msg: ProvisionMessage[Data]) =>
-        val coreWithData = dataCore.handleDataProvision(msg)
+        val coreWithData = inputHandler.handleDataProvision(msg)
 
         val (updatedShell, updatedCore, updatedGridAdapter) =
           maybeCalculate(modelShell, coreWithData, gridAdapter, parentData)
@@ -175,6 +198,9 @@ object ParticipantAgent {
         )
 
       case (ctx, RequestAssetPowerMessage(currentTick, eInPu, fInPu)) =>
+        // we do not have to wait for the resulting power of the current tick,
+        // since the current power is irrelevant for the average power up until now
+
         val activeToReactivePowerFunc = modelShell.activeToReactivePowerFunc
 
         val nodalVoltage = Each(
@@ -185,19 +211,41 @@ object ParticipantAgent {
         )
 
         val updatedGridAdapter = gridAdapter
-          .updateNodalVoltage(nodalVoltage)
-          .updateAveragePower(
+          .handlePowerRequest(
+            nodalVoltage,
             currentTick,
             Some(activeToReactivePowerFunc),
             ctx.log,
           )
 
-        val avgPower = updatedGridAdapter.avgPowerCache.get
-        gridAdapter.gridAgent ! AssetPowerChangedMessage(avgPower.p, avgPower.q)
+        val result = updatedGridAdapter.avgPowerResult.get
+        gridAdapter.gridAgent !
+          (if (result.newResult) {
+             AssetPowerChangedMessage(
+               result.avgPower.p,
+               result.avgPower.q,
+             )
+           } else {
+             AssetPowerUnchangedMessage(
+               result.avgPower.p,
+               result.avgPower.q,
+             )
+           })
 
         ParticipantAgent(
           modelShell,
-          dataCore,
+          inputHandler,
+          updatedGridAdapter,
+          parentData,
+        )
+
+      case (ctx, FinishParticipantSimulation(_, nextRequestTick)) =>
+        val updatedGridAdapter =
+          gridAdapter.updateNextRequestTick(nextRequestTick)
+
+        ParticipantAgent(
+          modelShell,
+          inputHandler,
           updatedGridAdapter,
           parentData,
         )
@@ -205,23 +253,23 @@ object ParticipantAgent {
 
   private def maybeCalculate(
       modelShell: ParticipantModelShell[_, _, _],
-      dataCore: ParticipantDataCore,
+      inputHandler: ParticipantInputHandler,
       gridAdapter: ParticipantGridAdapter,
       parentData: Either[SchedulerData, FlexControlledData],
   ): (
       ParticipantModelShell[_, _, _],
-      ParticipantDataCore,
+      ParticipantInputHandler,
       ParticipantGridAdapter,
   ) = {
-    if (dataCore.isComplete) {
+    if (isDataComplete(inputHandler, gridAdapter)) {
 
-      val activation = dataCore.activation.getOrElse(
+      val activation = inputHandler.activation.getOrElse(
         throw new CriticalFailureException(
           "Activation should be present when data collection is complete"
         )
       )
 
-      val receivedData = dataCore.getData.map {
+      val receivedData = inputHandler.getData.map {
         case data: SecondaryData => data
         case other =>
           throw new CriticalFailureException(
@@ -229,19 +277,27 @@ object ParticipantAgent {
           )
       }
 
-      val updatedShell = Scope(modelShell)
-        .map(_.updateRelevantData(receivedData, activation.tick))
+      val (updatedShell, updatedGridAdapter) = Scope(modelShell)
+        .map(
+          _.updateRelevantData(
+            receivedData,
+            gridAdapter.nodalVoltage,
+            activation.tick,
+          )
+        )
         .map { shell =>
           activation match {
             case ParticipantActivation(tick) =>
               val modelWithOP = shell.updateOperatingPoint(tick)
 
-              if (!gridAdapter.isPowerRequestExpected(tick)) {
-                // we don't expect a power request that could change voltage,
-                // so we can go ahead and calculate results
-                val results = shell.determineResults(tick, ???)
+              val results =
+                modelWithOP.determineResults(tick, gridAdapter.nodalVoltage)
 
+              results.modelResults.foreach { res => // todo send out results
               }
+
+              val gridAdapterWithResult =
+                gridAdapter.storePowerValue(results.totalPower, tick)
 
               parentData.fold(
                 schedulerData =>
@@ -254,7 +310,7 @@ object ParticipantAgent {
                     "Received activation while controlled by EM"
                   ),
               )
-              modelWithOP
+              (modelWithOP, gridAdapterWithResult)
 
             case Flex(FlexActivation(tick)) =>
               val modelWithFlex = shell.updateFlexOptions(tick)
@@ -264,10 +320,14 @@ object ParticipantAgent {
                   throw new CriticalFailureException(
                     "Received flex activation while not controlled by EM"
                   ),
-                _.emAgent ! modelWithFlex.flexOptions,
+                _.emAgent ! modelWithFlex.flexOptions.getOrElse(
+                  throw new CriticalFailureException(
+                    "Flex options have not been calculated!"
+                  )
+                ),
               )
 
-              modelWithFlex
+              (modelWithFlex, gridAdapter)
 
             case Flex(flexControl: IssueFlexControl) =>
               val modelWithOP = shell.updateOperatingPoint(flexControl)
@@ -291,10 +351,25 @@ object ParticipantAgent {
         }
         .get
 
-      (updatedShell, dataCore.completeActivity(), ???)
+      (updatedShell, inputHandler.completeActivity(), updatedGridAdapter)
     } else
-      (modelShell, dataCore, gridAdapter)
+      (modelShell, inputHandler, gridAdapter)
   }
+
+  def isDataComplete(
+      inputHandler: ParticipantInputHandler,
+      gridAdapter: ParticipantGridAdapter,
+  ): Boolean =
+    if (inputHandler.isComplete) {
+      val activation = inputHandler.activation.getOrElse(
+        throw new CriticalFailureException(
+          "Activation should be present when data collection is complete"
+        )
+      )
+
+      !gridAdapter.isPowerRequestExpected(activation.tick)
+    } else
+      false
 
   private def primaryData(): Behavior[Request] = Behaviors.receivePartial {
     case _ => Behaviors.same
