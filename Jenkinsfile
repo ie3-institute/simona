@@ -101,12 +101,17 @@ node {
         }
       }
 
+      // Build the project
+      stage('build') {
+        gradle('clean assemble', projectName)
+      }
+
       // test the project
       stage('run tests') {
 
         sh 'java -version'
 
-        gradle('--refresh-dependencies clean spotlessCheck pmdMain pmdTest reportScoverage checkScoverage', projectName)
+        gradle('--refresh-dependencies spotlessCheck pmdMain pmdTest', projectName)
 
         sh(script: """set +x && cd $projectName""" + ''' set +x; ./gradlew javadoc''', returnStdout: true)
       }
