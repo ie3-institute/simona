@@ -33,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add gradle application plugin for command line execution with gradle run [#890](https://github.com/ie3-institute/simona/issues/890)
 - Additional tests to check flexibility options of thermal house and storage [#729](https://github.com/ie3-institute/simona/issues/729)
 - EmAgents should be able to handle initialization [#945](https://github.com/ie3-institute/simona/issues/945)
+- Added option to directly zip the output files [#793](https://github.com/ie3-institute/simona/issues/793)
+- Added weatherData HowTo for Copernicus ERA5 data [#967](https://github.com/ie3-institute/simona/issues/967)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -83,6 +85,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Simplifying ThermalHouse [#940](https://github.com/ie3-institute/simona/issues/940)
 - Prepare ThermalStorageTestData for Storage without storageVolumeLvlMin [#894](https://github.com/ie3-institute/simona/issues/894)
 - Renamed `ActivityStartTrigger`, `ScheduleTriggerMessage`, `CompletionMessage` in UML Diagrams[#675](https://github.com/ie3-institute/simona/issues/675)
+- Simplifying quantity integration in QuantityUtil [#973](https://github.com/ie3-institute/simona/issues/973)
 
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
@@ -112,6 +115,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix expected secondaryData in baseStateData [#955](https://github.com/ie3-institute/simona/issues/955)
 - Improve code quality in fixedloadmodelspec and other tests [#919](https://github.com/ie3-institute/simona/issues/919)
 - Fix power flow calculation with em agents [#962](https://github.com/ie3-institute/simona/issues/962)
+- Fix scheduling at Evcs with more than one Ev at a time without Em [#787](https://github.com/ie3-institute/simona/issues/787)
 - Fixed ThermalStorageResults having multiple entries [#924](https://github.com/ie3-institute/simona/issues/924)
 
 ## [3.0.0] - 2023-08-07
