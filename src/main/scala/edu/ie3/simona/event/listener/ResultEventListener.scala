@@ -89,7 +89,7 @@ object ResultEventListener extends Transformer3wResultSupport {
           filePathFuture.flatMap { fileName =>
             val (finalFileName, _) =
               (enableCompression, fileName.endsWith(".gz")) match {
-                case (true, true) => (fileName.replace(".gz",""), true)
+                case (true, true) => (fileName.replace(".gz", ""), true)
                 case (true, false) =>
                   (fileName, true)
                 case (false, true) => (fileName.replace(".gz", ""), false)
