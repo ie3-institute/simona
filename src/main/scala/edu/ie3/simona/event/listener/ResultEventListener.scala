@@ -89,9 +89,9 @@ object ResultEventListener extends Transformer3wResultSupport {
           filePathFuture.flatMap { fileName =>
             val (finalFileName, _) =
               (enableCompression, fileName.endsWith(".gz")) match {
-                case (true, true) => (fileName, true)
+                case (true, true) => (fileName.replace(".gz",""), true)
                 case (true, false) =>
-                  (fileName.replace(".csv", ".csv.gz"), true)
+                  (fileName, true)
                 case (false, true) => (fileName.replace(".gz", ""), false)
                 case (false, false) if fileName.endsWith(".csv") =>
                   (fileName, false)
@@ -107,7 +107,7 @@ object ResultEventListener extends Transformer3wResultSupport {
                 ResultEntityCsvSink(
                   finalFileName,
                   new ResultEntityProcessor(resultClass),
-                  finalFileName.endsWith(".gz"),
+                  enableCompression,
                 ),
               )
             }
