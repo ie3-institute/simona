@@ -31,15 +31,6 @@ class SystemParticipantSpec extends UnitSpec with Matchers {
 
   "SystemParticipant" should {
     "calculate reactive power correctly for fixed cos phi" in {
-      val loadMock = new MockParticipant(
-        UUID.fromString("b69f6675-5284-4e28-add5-b76952ec1ec2"),
-        "System participant calculateQ Test",
-        OperationInterval(0L, 86400L),
-        QControl(new CosPhiFixed("cosPhiFixed:{(0.0,0.9)}")),
-        Kilowatts(200),
-        1d,
-      )
-
       val adjustedVoltage =
         Each(1) // not applicable for cos phi_fixed but required
 
@@ -56,7 +47,15 @@ class SystemParticipantSpec extends UnitSpec with Matchers {
       )
 
 
-      forAll(testCases) { (_, pVal, expectedQ) =>
+      forAll(testCases) { (varCharacteristicString, pVal, expectedQ) =>
+        val loadMock = new MockParticipant(
+          UUID.fromString("b69f6675-5284-4e28-add5-b76952ec1ec2"),
+          "System participant calculateQ Test",
+          OperationInterval(0L, 86400L),
+          QControl(new CosPhiFixed(varCharacteristicString)),
+          Kilowatts(200),
+          1d,
+        )
         val power = Kilowatts(pVal)
         val qCalc = loadMock.calculateReactivePower(power, adjustedVoltage)
         qCalc should approximate(expectedQ)
@@ -65,16 +64,6 @@ class SystemParticipantSpec extends UnitSpec with Matchers {
   }
 
   "calculate reactive power correctly for cosphi_p" in {
-    val loadMock = new MockParticipant(
-      UUID.fromString("3d28b9f7-929a-48e3-8696-ad2330a04225"),
-      "Load calculateQ Test",
-      OperationInterval(0L, 86400L),
-      QControl(
-        new CosPhiP("cosPhiP:{(0,1),(0.05,1),(0.1,1),(0.95,0.91),(1,0.9)}")
-      ),
-      Kilowatts(102),
-      1d,
-    )
 
     val adjustedVoltage =
       Each(1) // needed for method call but not applicable for cos phi_p
@@ -96,7 +85,17 @@ class SystemParticipantSpec extends UnitSpec with Matchers {
     // first line is "with P" -> negative Q (influence on voltage level: increase) is expected
     // second line is "against P" -> positive Q (influence on voltage level: decrease) is expected
 
-    forAll(testCases) { (_, pVal, expectedQ) =>
+    forAll(testCases) { (varCharacteristicString, pVal, expectedQ) =>
+      val loadMock = new MockParticipant(
+        UUID.fromString("30f84d97-83b4-4b71-9c2d-dbc7ebb1127c"),
+        "Generation calculateQ Test",
+        OperationInterval(0L, 86400L),
+        QControl(
+          new CosPhiP(varCharacteristicString)
+        ),
+        Kilowatts(102),
+        1d,
+      )
       val power = Kilowatts(pVal)
       val qCalc = loadMock.calculateReactivePower(power, adjustedVoltage)
       (qCalc - expectedQ).abs should be <= Megavars(1e-6)
@@ -104,17 +103,6 @@ class SystemParticipantSpec extends UnitSpec with Matchers {
   }
 
   "calculate reactive power correctly for generation unit with cosphi_p" in {
-    val loadMock = new MockParticipant(
-      UUID.fromString("30f84d97-83b4-4b71-9c2d-dbc7ebb1127c"),
-      "Generation calculateQ Test",
-      OperationInterval(0L, 86400L),
-      QControl(
-        new CosPhiP("cosPhiP:{(-1,0.9),(-0.95,0.91),(-0.9,0.92),(0,1)}")
-      ),
-      Kilowatts(101),
-      1d,
-    )
-
     val adjustedVoltage =
       Each(1) // needed for method call but not applicable for cos phi_p
 
@@ -135,7 +123,17 @@ class SystemParticipantSpec extends UnitSpec with Matchers {
     // first line is "with P" -> negative Q (influence on voltage level: increase) is expected
     // second line is "against P" -> positive Q (influence on voltage level: decrease) is expected
 
-    forAll(testCases) { (_, pVal, expectedQ) =>
+    forAll(testCases) { (varCharacteristicString, pVal, expectedQ) =>
+      val loadMock = new MockParticipant(
+        UUID.fromString("30f84d97-83b4-4b71-9c2d-dbc7ebb1127c"),
+        "Generation calculateQ Test",
+        OperationInterval(0L, 86400L),
+        QControl(
+          new CosPhiP(varCharacteristicString)
+        ),
+        Kilowatts(101),
+        1d,
+      )
       val power = Kilowatts(pVal)
       val qCalc = loadMock.calculateReactivePower(power, adjustedVoltage)
       //(qCalc - expectedQ).abs should be < 0.001
