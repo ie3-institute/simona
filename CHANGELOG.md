@@ -85,6 +85,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Simplifying ThermalHouse [#940](https://github.com/ie3-institute/simona/issues/940)
 - Prepare ThermalStorageTestData for Storage without storageVolumeLvlMin [#894](https://github.com/ie3-institute/simona/issues/894)
 - Renamed `ActivityStartTrigger`, `ScheduleTriggerMessage`, `CompletionMessage` in UML Diagrams[#675](https://github.com/ie3-institute/simona/issues/675)
+- Simplifying quantity integration in QuantityUtil [#973](https://github.com/ie3-institute/simona/issues/973)
 - Prepare ThermalStorageTestData for Storage without storageVolumeLvlMin [#894](https://github.com/ie3-institute/simona/issues/894)
 - Refactoring of `ThermalGrid.energyGrid` to distinguish between demand of house and storage [#928](https://github.com/ie3-institute/simona/issues/928)
 
