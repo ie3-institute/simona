@@ -86,6 +86,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Prepare ThermalStorageTestData for Storage without storageVolumeLvlMin [#894](https://github.com/ie3-institute/simona/issues/894)
 - Renamed `ActivityStartTrigger`, `ScheduleTriggerMessage`, `CompletionMessage` in UML Diagrams[#675](https://github.com/ie3-institute/simona/issues/675)
 - Simplifying quantity integration in QuantityUtil [#973](https://github.com/ie3-institute/simona/issues/973)
+- Prepare ThermalStorageTestData for Storage without storageVolumeLvlMin [#894](https://github.com/ie3-institute/simona/issues/894)
+- Refactoring of `ThermalGrid.energyGrid` to distinguish between demand of house and storage [#928](https://github.com/ie3-institute/simona/issues/928)
 
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
@@ -110,12 +112,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed FixedFeedModelSpec [#861](https://github.com/ie3-institute/simona/issues/861)
 - Fixing duration calculation in result events [#801](https://github.com/ie3-institute/simona/issues/801)
 - Handle MobSim requests for current prices [#892](https://github.com/ie3-institute/simona/issues/892)
+- Fixed ThermalStorageResults having multiple entries [#924](https://github.com/ie3-institute/simona/issues/924)
 - Fix determineState of ThermalHouse [#926](https://github.com/ie3-institute/simona/issues/926)
 - Fix activation of Hp when not under control of an EM [#922](https://github.com/ie3-institute/simona/issues/922)
 - Fix expected secondaryData in baseStateData [#955](https://github.com/ie3-institute/simona/issues/955)
 - Improve code quality in fixedloadmodelspec and other tests [#919](https://github.com/ie3-institute/simona/issues/919)
 - Fix power flow calculation with em agents [#962](https://github.com/ie3-institute/simona/issues/962)
 - Fix scheduling at Evcs with more than one Ev at a time without Em [#787](https://github.com/ie3-institute/simona/issues/787)
+- Refactoring of `ThermalGrid.handleInfeed` to fix thermal storage recharge correctly when empty [#930](https://github.com/ie3-institute/simona/issues/930)
 
 ## [3.0.0] - 2023-08-07
 
