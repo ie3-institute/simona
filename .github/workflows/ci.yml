@@ -19,8 +19,14 @@ on:
       - dev
 
 jobs:
-  checkout:
+
+  build:
     runs-on: ubuntu-latest
+    container:
+      image: gradle:8.10-jdk17
+      volumes:
+        - ${{ github.workspace }}:/simona:rw
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -29,24 +35,15 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref || github.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
 
+      - name: Checking Gradle & Java
+        run:
+          java -version && gradle --version
+
       - name: Show current branch
         run: |
           git rev-parse --abbrev-ref HEAD
           pwd
           ls -la ${{ github.workspace }}
-
-  build:
-    needs: checkout
-    runs-on: ubuntu-latest
-    container:
-      image: gradle:8.10-jdk17
-      volumes:
-        - ${{ github.workspace }}:/simona:rw
-
-    steps:
-      - name: Checking Gradle & Java
-        run:
-          java -version && gradle --version
 
       - name: Building Project
         working-directory: /simona
