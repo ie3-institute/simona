@@ -42,9 +42,7 @@ jobs:
       image: morpheus99/corretto-gradle
       options: --user root
       volumes:
-        - type: bind
-          source: ${{ github.workspace }}
-          target: /simona
+        - ${{ github.workspace }}:/simona
 
     steps:
       - name: Checking Gradle & Java
@@ -69,6 +67,8 @@ jobs:
     container:
       image: morpheus99/corretto-gradle
       options: --user root
+      volumes:
+        - ${{ github.workspace }}:/simona
 
     steps:
       - name: Checking Gradle & Java
