@@ -40,9 +40,8 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: gradle:8.10-jdk17
-      options: --user root
       volumes:
-        - ${{ github.workspace }}:/__w/simona/simona:rw
+        - ${{ github.workspace }}:/simona:rw
 
     steps:
       - name: Checking Gradle & Java
@@ -50,6 +49,7 @@ jobs:
           java -version && gradle --version
 
       - name: Building Project
+        working-directory: /simona
         run: |
           pwd
           ls -la
