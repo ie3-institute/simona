@@ -22,19 +22,19 @@ jobs:
   checkout:
     runs-on: ubuntu-latest
 
-  steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
-      with:
-        # Check if it's a pull request
-        ref: ${{ github.event.pull_request.head.ref || github.ref }}
-        repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          # Check if it's a pull request
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
 
-    - name: Show current branch
-      run: |
-        git rev-parse --abbrev-ref HEAD
-        pwd
-        ls -la
+      - name: Show current branch
+        run: |
+          git rev-parse --abbrev-ref HEAD
+          pwd
+          ls -la
 
   build:
     runs-on: ubuntu-latest
@@ -52,7 +52,7 @@ jobs:
           ls -la /__w
 
       - name: Checking Gradle & Java
-        run:
+        run: |
           java -version && gradle --version
 
       - name: Building Project
@@ -60,12 +60,6 @@ jobs:
           pwd
           ls -la
           gradle clean assemble
-
-      - name: Upload Build Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: simona-3.1.0-all.jar
-          path: ./build/libs
 
   test:
     needs: build
@@ -78,7 +72,7 @@ jobs:
 
     steps:
       - name: Checking Gradle & Java
-        run:
+        run: |
           java -version && gradle --version
 
       - name: Download Build Artifact
@@ -87,7 +81,7 @@ jobs:
           name: simona-3.1.0-all.jar
 
       - name: Running tests
-        run:
+        run: |
           gradle --refresh-dependencies spotlessCheck pmdMain pmdTest
 
       - name: Generate JavaDoc
