@@ -33,7 +33,7 @@ jobs:
         run: |
           git rev-parse --abbrev-ref HEAD
           pwd
-          ls -la
+          ls -la /home/runner/work/simona/simona
 
   build:
     needs: checkout
@@ -42,7 +42,7 @@ jobs:
       image: morpheus99/corretto-gradle
       options: --user root
       volumes:
-        - /home/runner/work/simona/simona:/simona
+        - ${{ github.workspace }}:/simona
 
     steps:
       - name: Checking Gradle & Java
