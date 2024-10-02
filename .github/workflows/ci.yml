@@ -43,6 +43,7 @@ jobs:
     steps:
       # Install Gradle 8.10
       - name: Install Gradle 8.10
+        shell: bash
         run: |
           yum update -y
           yum install -y wget unzip
@@ -55,5 +56,6 @@ jobs:
 
       # Verify Gradle and Java installation
       - name: Verify Gradle & Java version
+        shell: bash
         run:
           gradle -v && java -v
