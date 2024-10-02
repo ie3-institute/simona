@@ -49,13 +49,8 @@ jobs:
         run:
           java -version && gradle --version
 
-      - name: Verify Files in Container
-        run: |
-          pwd
-          ls -la /simona
-
       - name: Building Project
-        working-directory: /simona
+        working-directory: /app
         run: |
           pwd
           ls -la
