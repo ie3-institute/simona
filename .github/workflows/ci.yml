@@ -53,6 +53,7 @@ jobs:
         run: |
           pwd
           cd /simona
+          pwd
           ls -la
           gradle clean assemble
 
