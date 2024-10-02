@@ -29,6 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Printing the directory of log to terminal upon simulation failure [#626](https://github.com/ie3-institute/simona/issues/626)
 - Implementation of StorageAgent [#309](https://github.com/ie3-institute/simona/issues/309)
 - Enhanced Newton-Raphson-PowerFlow failures with more information [#815](https://github.com/ie3-institute/simona/issues/815)
+- Update RTD references and bibliography [#868](https://github.com/ie3-institute/simona/issues/868)
+- Add gradle application plugin for command line execution with gradle run [#890](https://github.com/ie3-institute/simona/issues/890)
+- Additional tests to check flexibility options of thermal house and storage [#729](https://github.com/ie3-institute/simona/issues/729)
+- EmAgents should be able to handle initialization [#945](https://github.com/ie3-institute/simona/issues/945)
+- Added option to directly zip the output files [#793](https://github.com/ie3-institute/simona/issues/793)
+- Added weatherData HowTo for Copernicus ERA5 data [#967](https://github.com/ie3-institute/simona/issues/967)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -60,6 +66,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rewrote RefSystemTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Rewrote FixedFeedModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Rewrote WecModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Rewrote FixedLoadModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Rewrote SystemComponentTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Converting remaining rst files to markdown [#838](https://github.com/ie3-institute/simona/issues/838)
+- Merging both `FixedFeedInModelSpec` tests [#870](https://github.com/ie3-institute/simona/issues/870)
+- Rewrote ThermalHouseTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Updated dependabot reviewers [#888](https://github.com/ie3-institute/simona/issues/888)
+- Merged `HpModelTestData` with `HpTestData` to `HpInputTestData` [#872](https://github.com/ie3-institute/simona/issues/872)
+- Harmonised both methods that check the inner temperature of thermal house against the boundaries [#880](https://github.com/ie3-institute/simona/issues/880)
+- Convert all `eval-rst` instances in rtd to myst syntax [#901](https://github.com/ie3-institute/simona/issues/901)
+- External simulation should provide information about next tick of MobSim [#776](https://github.com/ie3-institute/simona/issues/776)
+- Reverted temporary workaround in `spotless.gradle` [#681](https://github.com/ie3-institute/simona/issues/681)
+- Updated AUTHORS.md [#904](https://github.com/ie3-institute/simona/issues/904)
+- Updated `Gradle` to version V8.10 [#829](https://github.com/ie3-institute/simona/issues/829)
+- Updated AUTHORS.md [#905](https://github.com/ie3-institute/simona/issues/905)
+- Rewrote BMModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Refactoring EM messages [#947](https://github.com/ie3-institute/simona/issues/947)
+- Simplifying ThermalHouse [#940](https://github.com/ie3-institute/simona/issues/940)
+- Prepare ThermalStorageTestData for Storage without storageVolumeLvlMin [#894](https://github.com/ie3-institute/simona/issues/894)
+- Renamed `ActivityStartTrigger`, `ScheduleTriggerMessage`, `CompletionMessage` in UML Diagrams[#675](https://github.com/ie3-institute/simona/issues/675)
+- Simplifying quantity integration in QuantityUtil [#973](https://github.com/ie3-institute/simona/issues/973)
 
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
@@ -82,6 +108,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Finally fixing `RuntimeEventListenerSpec` [#849](https://github.com/ie3-institute/simona/issues/849)
 - Fixed result output for thermal houses and cylindrical storages [#844](https://github.com/ie3-institute/simona/issues/844)
 - Fixed FixedFeedModelSpec [#861](https://github.com/ie3-institute/simona/issues/861)
+- Fixing duration calculation in result events [#801](https://github.com/ie3-institute/simona/issues/801)
+- Handle MobSim requests for current prices [#892](https://github.com/ie3-institute/simona/issues/892)
+- Fix determineState of ThermalHouse [#926](https://github.com/ie3-institute/simona/issues/926)
+- Fix activation of Hp when not under control of an EM [#922](https://github.com/ie3-institute/simona/issues/922)
+- Fix expected secondaryData in baseStateData [#955](https://github.com/ie3-institute/simona/issues/955)
+- Improve code quality in fixedloadmodelspec and other tests [#919](https://github.com/ie3-institute/simona/issues/919)
+- Fix power flow calculation with em agents [#962](https://github.com/ie3-institute/simona/issues/962)
+- Fix scheduling at Evcs with more than one Ev at a time without Em [#787](https://github.com/ie3-institute/simona/issues/787)
 
 ## [3.0.0] - 2023-08-07
 
@@ -144,6 +178,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed format of example grid `vn_simona` [#216](https://github.com/ie3-institute/simona/issues/216)
 - Renamed ChpData to ChpRelevantData [#494](https://github.com/ie3-institute/simona/issues/494)
 - Updated gradle to 8.2.1, cleaned up `build.gradle` and `Jenkinsfile` [#572](https://github.com/ie3-institute/simona/issues/572)
+- Changed implementation of actor naming for unique name generation [#103](https://github.com/ie3-institute/simona/issues/103)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)

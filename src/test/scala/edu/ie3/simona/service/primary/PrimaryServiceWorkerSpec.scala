@@ -251,13 +251,11 @@ class PrimaryServiceWorkerSpec
               actualServiceRef,
               actualData,
               actualNextDataTick,
-              unlockKey,
             ) =>
           actualTick shouldBe 0L
           actualServiceRef shouldBe serviceRef
           actualData shouldBe primaryData
           actualNextDataTick shouldBe Some(900L)
-          unlockKey shouldBe None
       }
     }
 
@@ -356,7 +354,6 @@ class PrimaryServiceWorkerSpec
               actualServiceRef,
               data,
               nextDataTick,
-              unlockKey,
             ) =>
           tick shouldBe 900L
           actualServiceRef shouldBe serviceRef
@@ -366,7 +363,6 @@ class PrimaryServiceWorkerSpec
             case _ => fail("Expected to get active power only.")
           }
           nextDataTick shouldBe None
-          unlockKey shouldBe None
       }
     }
   }
