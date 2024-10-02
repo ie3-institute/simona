@@ -49,7 +49,7 @@ jobs:
 
       - name: Building Project
         working-directory: /__w/simona
-        run:
+        run: |
           pwd
           ls
           sudo gradle clean assemble
