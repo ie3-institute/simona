@@ -48,11 +48,11 @@ jobs:
           java -version && gradle --version
 
       - name: Building Project
-        working-directory: /__w/simona
+        working-directory: /__w/simona/simona
         run: |
           pwd
           ls
-          sudo gradle clean assemble
+          gradle clean assemble
 
   test:
     needs: build
