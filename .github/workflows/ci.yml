@@ -47,7 +47,7 @@ jobs:
 
       - name: Building Project
         run:
-          gradle clean assemble -p simona
+          gradle clean assemble
 
   test:
     runs-on: ubuntu-latest
@@ -62,7 +62,7 @@ jobs:
 
       - name: Running tests
         run:
-          gradle --refresh-dependencies spotlessCheck pmdMain pmdTest -p simona
+          gradle --refresh-dependencies spotlessCheck pmdMain pmdTest
 
       - name: Generate JavaDoc
         run: |
