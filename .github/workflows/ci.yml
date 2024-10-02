@@ -33,7 +33,7 @@ jobs:
         run: |
           git rev-parse --abbrev-ref HEAD
           pwd
-          ls -la /home/runner/work/simona/simona
+          ls -la ${{ github.workspace }}
 
   build:
     needs: checkout
