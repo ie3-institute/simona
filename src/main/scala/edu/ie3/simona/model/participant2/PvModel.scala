@@ -10,7 +10,7 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.datamodel.models.result.system.PvResult
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import edu.ie3.simona.agent.participant.data.Data.SecondaryData
+import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
@@ -57,8 +57,8 @@ final class PvModel private (
       ConstantState.type,
       PvRelevantData,
     ]
-    with ParticipantSimpleFlexibility[ConstantState.type, PvRelevantData]
     with ParticipantConstantModel[ActivePowerOperatingPoint, PvRelevantData]
+    with ParticipantSimpleFlexibility[ConstantState.type, PvRelevantData]
     with LazyLogging {
 
   /** Override sMax as the power output of a pv unit could become easily up to
@@ -740,11 +740,11 @@ final class PvModel private (
     )
   }
 
-  def getRequiredServices: Iterable[ServiceType] =
+  override def getRequiredServices: Iterable[ServiceType] =
     Iterable(ServiceType.WeatherService)
 
-  def createRelevantData(
-      receivedData: Seq[SecondaryData],
+  override def createRelevantData(
+      receivedData: Seq[Data],
       nodalVoltage: Dimensionless,
       tick: Long,
   ): PvRelevantData = {

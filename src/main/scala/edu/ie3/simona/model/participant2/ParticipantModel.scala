@@ -8,7 +8,7 @@ package edu.ie3.simona.model.participant2
 
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
-import edu.ie3.simona.agent.participant.data.Data.SecondaryData
+import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
   OperatingPoint,
@@ -93,7 +93,7 @@ abstract class ParticipantModel[
     * @return
     */
   def createRelevantData(
-      receivedData: Seq[SecondaryData],
+      receivedData: Seq[Data],
       nodalVoltage: Dimensionless,
       tick: Long,
   ): OR
@@ -106,10 +106,17 @@ object ParticipantModel {
 
   trait OperatingPoint {
     val activePower: Power
+
+    /** Reactive power can be overridden by the model itself. If this is None,
+      * the active-to-reactive-power function is used.
+      */
+    val reactivePower: Option[ReactivePower]
   }
 
-  case class ActivePowerOperatingPoint(override val activePower: Power)
-      extends OperatingPoint
+  final case class ActivePowerOperatingPoint(override val activePower: Power)
+      extends OperatingPoint {
+    override val reactivePower: Option[ReactivePower] = None
+  }
 
   trait ModelState {
     val tick: Long
