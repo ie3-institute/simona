@@ -37,6 +37,7 @@ jobs:
           ls -la
 
   build:
+    needs: checkout
     runs-on: ubuntu-latest
     container:
       image: gradle:8.10-jdk17
@@ -50,6 +51,8 @@ jobs:
           ls -la /__w/simona/simona
           echo "__w"
           ls -la /__w
+          echo "__w/_temp"
+          ls -la /__w/_temp
 
       - name: Checking Gradle & Java
         run: |
