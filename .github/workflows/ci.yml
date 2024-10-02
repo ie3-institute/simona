@@ -45,6 +45,8 @@ jobs:
           git rev-parse --abbrev-ref HEAD
           pwd
           ls -la /__w/simona/simona
+          echo "__w"
+          ls -la /__w
 
       - name: Building Project
         run: |
