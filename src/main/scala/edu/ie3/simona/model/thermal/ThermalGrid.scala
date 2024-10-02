@@ -417,10 +417,9 @@ final case class ThermalGrid(
       startDateTime: ZonedDateTime
   ): Seq[ResultEntity] = {
 
-    val houseResultTick: Option[Long] = state.houseState.map(_.tick)
     val maybeHouseResult = house
       .zip(state.houseState)
-      .filter(_ => houseResultTick.contains(currentTick))
+      .filter { case (_, state) => state.tick == currentTick }
       .map {
         case (
               thermalHouse,
@@ -434,10 +433,9 @@ final case class ThermalGrid(
           )
       }
 
-    val storageResultTick: Option[Long] = state.storageState.map(_.tick)
     val maybeStorageResult = storage
       .zip(state.storageState)
-      .filter(_ => storageResultTick.contains(currentTick))
+      .filter { case (_, state) => state.tick == currentTick }
       .map {
         case (
               storage: CylindricalThermalStorage,
