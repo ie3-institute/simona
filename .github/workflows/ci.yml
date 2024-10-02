@@ -33,8 +33,6 @@ jobs:
       - name: Show current branch
         run: |
           git rev-parse --abbrev-ref HEAD
-          pwd
-          ls -la
 
   build:
     needs: checkout
@@ -42,6 +40,8 @@ jobs:
     container:
       image: morpheus99/corretto-gradle
       options: --user root
+      volumes:
+        - /home/runner/work/${{ github.repository }}:/simona
 
     steps:
       - name: Checking Gradle & Java
@@ -49,10 +49,10 @@ jobs:
           java -version && gradle --version
 
       - name: Building Project
-        working-directory: /__w/simona/simona
+        working-directory: /simona
         run: |
           pwd
-          ls
+          ls -la
           gradle clean assemble
 
   test:
