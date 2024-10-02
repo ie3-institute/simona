@@ -29,13 +29,3 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref || github.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-      - name: Get Commit Hash
-        id: get_commit
-        run: |
-          COMMIT_HASH=$(git rev-parse HEAD)
-          echo "::set-output name=hash::$COMMIT_HASH"
-
-      - name: Display Commit Hash
-        run:
-          echo "Checked out commit hash: ${{ steps.get_commit.outputs.hash }}"
