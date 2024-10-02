@@ -29,3 +29,5 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref || github.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        run:
+          echo "Current branch: ${{ github.event.pull_request.head.ref || github.ref }}"
