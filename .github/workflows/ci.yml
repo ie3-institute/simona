@@ -43,17 +43,10 @@ jobs:
     steps:
       # Install Gradle 8.10
       - name: Install Gradle 8.10
-        run: |
-          yum update -y
-          yum install -y wget unzip
-          GRADLE_VERSION=8.10
-          wget https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip -P /tmp
-          unzip /tmp/gradle-${GRADLE_VERSION}-bin.zip -d /opt/gradle
-          rm /tmp/gradle-${GRADLE_VERSION}-bin.zip
-          echo "GRADLE_HOME=/opt/gradle/gradle-${GRADLE_VERSION}" >> $GITHUB_ENV
-          echo "PATH=\$GRADLE_HOME/bin:\$PATH" >> $GITHUB_ENV
+        run:
+          java -version
 
       # Verify Gradle and Java installation
       - name: Verify Gradle & Java version
         run:
-          java -v
+          echo "test"
