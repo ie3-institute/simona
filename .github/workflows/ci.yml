@@ -19,6 +19,22 @@ on:
       - dev
 
 jobs:
+  checkout:
+    runs-on: ubuntu-latest
+
+  steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      with:
+        # Check if it's a pull request
+        ref: ${{ github.event.pull_request.head.ref || github.ref }}
+        repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+
+    - name: Show current branch
+      run: |
+        git rev-parse --abbrev-ref HEAD
+        pwd
+        ls -la
 
   build:
     runs-on: ubuntu-latest
@@ -28,25 +44,16 @@ jobs:
         - ${{ github.workspace }}:/simona:rw
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          # Check if it's a pull request
-          ref: ${{ github.event.pull_request.head.ref || github.ref }}
-          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
-
-      - name: Checking Gradle & Java
-        run:
-          java -version && gradle --version
-
-      - name: Show current branch
+      - name: Dir Check
         run: |
-          git config --global --add safe.directory /__w/simona/simona
-          git rev-parse --abbrev-ref HEAD
           pwd
           ls -la /__w/simona/simona
           echo "__w"
           ls -la /__w
+
+      - name: Checking Gradle & Java
+        run:
+          java -version && gradle --version
 
       - name: Building Project
         run: |
