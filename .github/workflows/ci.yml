@@ -19,12 +19,9 @@ on:
       - dev
 
 jobs:
-  checkout_code:
+  checkout:
     runs-on: ubuntu-latest
     steps:
-      - name: Test SSH Key Authorization
-        if: secrets.SSH_PRIVATE_KEY
-        run: ssh -T git@github.com || echo "SSH key not authorized"
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
@@ -36,3 +33,25 @@ jobs:
       - name: Show current branch
         run: |
           git rev-parse --abbrev-ref HEAD
+
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: amazoncorretto:17
+      options: --user root
+
+    steps:
+      # Install Gradle 8.10
+      - name: Install Gradle 8.10
+        run: |
+          GRADLE_VERSION=8.10
+          wget https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip -P /tmp
+          unzip /tmp/gradle-${GRADLE_VERSION}-bin.zip -d /opt/gradle
+          rm /tmp/gradle-${GRADLE_VERSION}-bin.zip
+          echo "export GRADLE_HOME=/opt/gradle/gradle-${GRADLE_VERSION}" >> $GITHUB_ENV
+          echo "export PATH=\$GRADLE_HOME/bin:\$PATH" >> $GITHUB_ENV
+
+      # Verify Gradle and Java installation
+      - name: Verify Gradle & Java version
+        run:
+          gradle -v && java -v
