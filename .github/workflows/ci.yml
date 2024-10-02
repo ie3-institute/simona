@@ -42,16 +42,12 @@ jobs:
       image: morpheus99/corretto-gradle
       options: --user root
       volumes:
-        - ${{ github.workspace }}:/simona:rw
+        - ${{ github.workspace }}:/app:rw
 
     steps:
       - name: Checking Gradle & Java
         run:
           java -version && gradle --version
-
-      - name: Inspect Docker Mounts
-        run:
-          docker inspect $(docker ps -q) --format='{{json .Mounts}}'
 
       - name: Verify Files in Container
         run: |
@@ -72,7 +68,7 @@ jobs:
       image: morpheus99/corretto-gradle
       options: --user root
       volumes:
-        - ${{ github.workspace }}:/simona:rw
+        - ${{ github.workspace }}:/app:rw
 
     steps:
       - name: Checking Gradle & Java
