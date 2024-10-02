@@ -18,22 +18,22 @@ on:
       - main
       - dev
 
-  jobs:
-    checkout_code:
-      runs-on: ubuntu-latest
-      steps:
-        - name: Checkout Code
-          uses: actions/checkout@v4
-          with:
-            # Check if it's a pull request
-            ref: ${{ github.event.pull_request.head.ref || github.ref }}
-            repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
-            ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
+jobs:
+  checkout_code:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          # Check if it's a pull request
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-        - name: Get Commit Hash
-          id: get_commit
-          run: echo "::set-output name=hash::$(git rev-parse HEAD)"
+      - name: Get Commit Hash
+        id: get_commit
+        run: echo "::set-output name=hash::$(git rev-parse HEAD)"
 
-        - name: Display Commit Hash
-          run:
-            echo "Checked out commit hash: ${{ steps.get_commit.outputs.hash }}"
+      - name: Display Commit Hash
+        run:
+          echo "Checked out commit hash: ${{ steps.get_commit.outputs.hash }}"
