@@ -42,13 +42,11 @@ jobs:
     container:
       image: gradle:8.10-jdk17
       volumes:
-        - ${{ github.workspace }}:/simona:rw
+        - /home/runner/work/simona/simona:/simona:rw
 
     steps:
       - name: Dir Check
         run: |
-          echo "${{ github.workspace }}"
-          echo "$GITHUB_WORKSPACE"
           pwd
           ls -la /__w/simona/simona
           echo "__w"
@@ -61,6 +59,7 @@ jobs:
           java -version && gradle --version
 
       - name: Building Project
+        working-directory: /simona
         run: |
           pwd
           ls -la
