@@ -47,6 +47,7 @@ jobs:
           java -version && gradle --version
 
       - name: Building Project
+        working-directory: simona
         run:
           gradle clean assemble
 
