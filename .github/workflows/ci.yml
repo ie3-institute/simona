@@ -30,5 +30,5 @@ jobs:
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
       - name: Show current Branch
-        run:
-          echo "Current branch: ${{ github.event.pull_request.head.ref || github.ref }}"
+        run: |
+          git rev-parse --abbrev-ref HEAD
