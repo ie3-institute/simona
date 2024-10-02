@@ -44,7 +44,7 @@ jobs:
           git config --global --add safe.directory /__w/simona/simona
           git rev-parse --abbrev-ref HEAD
           pwd
-          ls -la ${{ github.workspace }}
+          ls -la /__w/simona/simona
 
       - name: Building Project
         working-directory: /simona
