@@ -42,7 +42,7 @@ jobs:
       image: gradle:8.10-jdk17
       options: --user root
       volumes:
-        - ${{ github.workspace }}:/simona:rw
+        - ${{ github.workspace }}:/__w/simona/simona:rw
 
     steps:
       - name: Checking Gradle & Java
@@ -51,9 +51,6 @@ jobs:
 
       - name: Building Project
         run: |
-          pwd
-          ls -la
-          cd ..
           pwd
           ls -la
           gradle clean assemble
