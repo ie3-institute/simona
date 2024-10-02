@@ -50,8 +50,8 @@ jobs:
           wget https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip -P /tmp
           unzip /tmp/gradle-${GRADLE_VERSION}-bin.zip -d /opt/gradle
           rm /tmp/gradle-${GRADLE_VERSION}-bin.zip
-          echo "export GRADLE_HOME=/opt/gradle/gradle-${GRADLE_VERSION}" >> $GITHUB_ENV
-          echo "export PATH=\$GRADLE_HOME/bin:\$PATH" >> $GITHUB_ENV
+          echo "GRADLE_HOME=/opt/gradle/gradle-${GRADLE_VERSION}" >> $GITHUB_ENV
+          echo "PATH=\$GRADLE_HOME/bin:\$PATH" >> $GITHUB_ENV
 
       # Verify Gradle and Java installation
       - name: Verify Gradle & Java version
