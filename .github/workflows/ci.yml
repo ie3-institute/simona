@@ -37,7 +37,7 @@ jobs:
           ls -la
 
   build:
-    needs: test-mount
+    needs: checkout
     runs-on: ubuntu-latest
     container:
       image: gradle:8.10-jdk17
@@ -47,6 +47,8 @@ jobs:
     steps:
       - name: Dir Check
         run: |
+          echo "${{ github.workspace }}"
+          echo "$GITHUB_WORKSPACE"
           pwd
           ls -la /__w/simona/simona
           echo "__w"
@@ -71,7 +73,7 @@ jobs:
       image: gradle:8.10-jdk17
       options: --user root
       volumes:
-        - ${{ github.workspace }}:/__w/simona/simona:rw
+        - ${{ github.workspace }}:/simona:rw
 
     steps:
       - name: Checking Gradle & Java
