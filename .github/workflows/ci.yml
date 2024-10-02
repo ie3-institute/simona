@@ -52,7 +52,7 @@ jobs:
       - name: Building Project
         run: |
           pwd
-          cd /simona
+          cd ..
           pwd
           ls -la
           gradle clean assemble
