@@ -26,6 +26,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           # Check if it's a pull request
+          clean: false
           ref: ${{ github.event.pull_request.head.ref || github.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
