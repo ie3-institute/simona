@@ -52,6 +52,12 @@ jobs:
           ls -la
           gradle clean assemble
 
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: simona-3.1.0-all.jar
+          path: ./build/libs
+
   test:
     needs: build
     runs-on: ubuntu-latest
@@ -65,6 +71,11 @@ jobs:
       - name: Checking Gradle & Java
         run:
           java -version && gradle --version
+
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: simona-3.1.0-all.jar
 
       - name: Running tests
         run:
