@@ -44,6 +44,8 @@ jobs:
       # Install Gradle 8.10
       - name: Install Gradle 8.10
         run: |
+          yum update -y
+          yum install -y wget unzip
           GRADLE_VERSION=8.10
           wget https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip -P /tmp
           unzip /tmp/gradle-${GRADLE_VERSION}-bin.zip -d /opt/gradle
