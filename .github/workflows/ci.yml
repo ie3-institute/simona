@@ -33,6 +33,7 @@ jobs:
       - name: Show current branch
         run: |
           git rev-parse --abbrev-ref HEAD
+          pwd
 
   build:
     needs: checkout
