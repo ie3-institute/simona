@@ -36,6 +36,30 @@ jobs:
           pwd
           ls -la
 
+  test-mount:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Code Checkout auf dem Host (ohne Container)
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 2. Überprüfung des Verzeichnisses auf dem Host nach dem Checkout
+      - name: Verify Files on Host after Checkout
+        run: |
+          echo "Verzeichnis auf dem Host:"
+          ls -la ${{ github.workspace }}
+
+      # 3. Container-Schritt zum Testen des Mounts
+      - name: Verify Mount in Container
+        container:
+          image: ubuntu:latest  # Verwende ein einfaches Image zum Testen
+          volumes:
+            - ${{ github.workspace }}:/simona:rw
+        run: |
+          echo "Verzeichnis im Container:"
+          ls -la /simona
+
   build:
     needs: checkout
     runs-on: ubuntu-latest
