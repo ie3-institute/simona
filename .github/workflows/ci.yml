@@ -37,6 +37,7 @@ jobs:
           ls -la
 
   test-mount:
+    needs: checkout
     runs-on: ubuntu-latest
 
     steps:
@@ -61,7 +62,7 @@ jobs:
           ls -la /simona
 
   build:
-    needs: checkout
+    needs: test-mount
     runs-on: ubuntu-latest
     container:
       image: gradle:8.10-jdk17
