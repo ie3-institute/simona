@@ -117,7 +117,7 @@ node {
       }
 
       // sonarqube analysis & quality gate
-      stage('sonarqube & quality gate') {
+      stage('sonarqube') {
         String sonarqubeCurrentBranchName = prFromFork() ? prJsonObj.head.repo.full_name : currentBranchName // forks needs to be handled differently
         String sonarqubeCmd = determineSonarqubeGradleCmd(sonarqubeProjectKey, sonarqubeCurrentBranchName, targetBranchName, orgName, projectName, projectName)
         withSonarQubeEnv() {
