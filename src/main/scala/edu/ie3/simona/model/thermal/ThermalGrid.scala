@@ -417,65 +417,46 @@ final case class ThermalGrid(
       startDateTime: ZonedDateTime
   ): Seq[ResultEntity] = {
 
-    val houseResultTick: Option[Long] = house
+    val houseResultTick: Option[Long] = state.houseState.map(_.tick)
+    val maybeHouseResult = house
       .zip(state.houseState)
-      .flatMap {
-        case (_, ThermalHouseState(tick, _, _)) => Some(tick)
-        case _                                  => None
+      .filter(_ => houseResultTick.contains(currentTick))
+      .map {
+        case (
+              thermalHouse,
+              ThermalHouseState(tick, innerTemperature, thermalInfeed),
+            ) =>
+          new ThermalHouseResult(
+            tick.toDateTime,
+            thermalHouse.uuid,
+            thermalInfeed.toMegawatts.asMegaWatt,
+            innerTemperature.toKelvinScale.asKelvin,
+          )
       }
 
-    val storageResultTick: Option[Long] = storage
+    val storageResultTick: Option[Long] = state.storageState.map(_.tick)
+    val maybeStorageResult = storage
       .zip(state.storageState)
-      .flatMap {
-        case (_, ThermalStorageState(tick, _, _)) => Some(tick)
-        case _                                    => None
+      .filter(_ => storageResultTick.contains(currentTick))
+      .map {
+        case (
+              storage: CylindricalThermalStorage,
+              ThermalStorageState(tick, storedEnergy, qDot),
+            ) =>
+          new CylindricalStorageResult(
+            tick.toDateTime,
+            storage.uuid,
+            storedEnergy.toMegawattHours.asMegaWattHour,
+            qDot.toMegawatts.asMegaWatt,
+            (storedEnergy / storage.maxEnergyThreshold).asPu,
+          )
+        case _ =>
+          throw new NotImplementedError(
+            s"Result handling for storage type '${storage.getClass.getSimpleName}' not supported."
+          )
       }
 
-    val houseResults =
-      if (houseResultTick.contains(currentTick)) {
-        house
-          .zip(state.houseState)
-          .map {
-            case (
-                  thermalHouse,
-                  ThermalHouseState(tick, innerTemperature, thermalInfeed),
-                ) =>
-              Seq.empty[ResultEntity] :+ new ThermalHouseResult(
-                tick.toDateTime,
-                thermalHouse.uuid,
-                thermalInfeed.toMegawatts.asMegaWatt,
-                innerTemperature.toKelvinScale.asKelvin,
-              )
-          }
-          .getOrElse(Seq.empty[ResultEntity])
-      } else {
-        Seq.empty[ResultEntity]
-      }
-
-    if (storageResultTick.contains(currentTick)) {
-      storage
-        .zip(state.storageState)
-        .map {
-          case (
-                storage: CylindricalThermalStorage,
-                ThermalStorageState(tick, storedEnergy, qDot),
-              ) =>
-            houseResults :+ new CylindricalStorageResult(
-              tick.toDateTime,
-              storage.uuid,
-              storedEnergy.toMegawattHours.asMegaWattHour,
-              qDot.toMegawatts.asMegaWatt,
-              (storedEnergy / storage.maxEnergyThreshold).asPu,
-            )
-          case _ =>
-            throw new NotImplementedError(
-              s"Result handling for storage type '${storage.getClass.getSimpleName}' not supported."
-            )
-        }
-        .getOrElse(houseResults)
-    } else {
-      houseResults
-    }
+    Seq(maybeHouseResult, maybeStorageResult).flatten
   }
 }
 
