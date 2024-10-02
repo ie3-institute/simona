@@ -39,7 +39,7 @@ jobs:
     needs: checkout
     runs-on: ubuntu-latest
     container:
-      image: morpheus99/corretto-gradle
+      image: gradle:8.10-jdk17
       options: --user root
       volumes:
         - ${{ github.workspace }}:/simona:rw
@@ -60,7 +60,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     container:
-      image: morpheus99/corretto-gradle
+      image: gradle:8.10-jdk17
       options: --user root
       volumes:
         - ${{ github.workspace }}:/simona:rw
