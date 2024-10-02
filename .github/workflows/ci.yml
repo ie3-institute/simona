@@ -37,16 +37,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: amazoncorretto:17
+      image: morpheus99/corretto-gradle
       options: --user root
 
     steps:
       # Install Gradle 8.10
-      - name: Install Gradle 8.10
+      - name: Checking Gradle & Java
         run:
-          java -version
-
-      # Verify Gradle and Java installation
-      - name: Verify Gradle & Java version
-        run:
-          echo "test"
+          java -version && gradle --version
