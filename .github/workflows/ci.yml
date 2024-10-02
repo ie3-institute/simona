@@ -32,7 +32,9 @@ jobs:
 
       - name: Get Commit Hash
         id: get_commit
-        run: echo "::set-output name=hash::$(git rev-parse HEAD)"
+        run: |
+          COMMIT_HASH=$(git rev-parse HEAD)
+          echo "::set-output name=hash::$COMMIT_HASH"
 
       - name: Display Commit Hash
         run:
