@@ -41,7 +41,31 @@ jobs:
       options: --user root
 
     steps:
-      # Install Gradle 8.10
       - name: Checking Gradle & Java
         run:
           java -version && gradle --version
+
+      - name: Building Project
+        run:
+          gradle clean assemble -p simona
+
+  test:
+    runs-on: ubuntu-latest
+    container:
+      image: morpheus99/corretto-gradle
+      options: --user root
+
+    steps:
+      - name: Checking Gradle & Java
+        run:
+          java -version && gradle --version
+
+      - name: Running tests
+        run:
+          gradle --refresh-dependencies spotlessCheck pmdMain pmdTest -p simona
+
+      - name: Generate JavaDoc
+        run: |
+          set +x
+          cd simona
+          ./gradlew javadoc
