@@ -47,7 +47,6 @@ jobs:
           ls -la /__w/simona/simona
 
       - name: Building Project
-        working-directory: /simona
         run: |
           pwd
           ls -la
