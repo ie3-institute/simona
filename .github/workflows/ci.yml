@@ -42,7 +42,7 @@ jobs:
       image: morpheus99/corretto-gradle
       options: --user root
       volumes:
-        - /home/runner/work/${{ github.repository }}:/simona
+        - /home/runner/work/${{ github.repository }}/${{ github.repository }}:/simona
 
     steps:
       - name: Checking Gradle & Java
