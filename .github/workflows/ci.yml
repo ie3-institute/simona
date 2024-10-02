@@ -42,7 +42,7 @@ jobs:
       image: morpheus99/corretto-gradle
       options: --user root
       volumes:
-        - ${{ github.workspace }}:/app:rw
+        - ${{ github.workspace }}:/simona:rw
 
     steps:
       - name: Checking Gradle & Java
@@ -50,9 +50,9 @@ jobs:
           java -version && gradle --version
 
       - name: Building Project
-        working-directory: /app
         run: |
           pwd
+          cd /simona
           ls -la
           gradle clean assemble
 
@@ -63,7 +63,7 @@ jobs:
       image: morpheus99/corretto-gradle
       options: --user root
       volumes:
-        - ${{ github.workspace }}:/app:rw
+        - ${{ github.workspace }}:/simona:rw
 
     steps:
       - name: Checking Gradle & Java
