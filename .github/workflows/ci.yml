@@ -30,36 +30,38 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref || github.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
 
-      - name: Show current branch
+      - name: Check Branch & Files
         run: |
           git rev-parse --abbrev-ref HEAD
           pwd
           ls -la
+
+      - name: Cache project files
+        uses: actions/cache@v3
+        with:
+          path: |
+            .
+          key: ${{ runner.os }}-project-${{ github.sha }}
 
   build:
     needs: checkout
     runs-on: ubuntu-latest
     container:
       image: gradle:8.10-jdk17
-      volumes:
-        - /home/runner/work/simona/simona:/simona:rw
 
     steps:
-      - name: Dir Check
-        run: |
-          pwd
-          ls -la /__w/simona/simona
-          echo "__w"
-          ls -la /__w
-          echo "__w/_temp"
-          ls -la /__w/_temp
+      - name: Restore project files
+        uses: actions/cache@v3
+        with:
+          path: |
+            .
+            key: ${{ runner.os }}-project-${{ github.sha }}
 
       - name: Checking Gradle & Java
         run: |
           java -version && gradle --version
 
       - name: Building Project
-        working-directory: /simona
         run: |
           pwd
           ls -la
