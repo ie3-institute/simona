@@ -40,7 +40,7 @@ jobs:
         uses: actions/cache/save@v4
         id: cache
         with:
-          path: .
+          path: ./
           key: ${{ runner.os }}-project-${{ github.sha }}
 
   build:
@@ -54,6 +54,7 @@ jobs:
         uses: actions/cache/restore@v4
         id: restore-cache
         with:
+          path: ./
           key: ${{ runner.os }}-project-${{ github.sha }}
 
       - name: Checking Gradle & Java
