@@ -37,10 +37,10 @@ jobs:
           ls -la
 
       - name: Cache project files
-        uses: actions/cache@v3
+        uses: actions/cache/save@v4
+        id: cache
         with:
-          path: |
-            .
+          path: .
           key: ${{ runner.os }}-project-${{ github.sha }}
 
   build:
@@ -51,11 +51,10 @@ jobs:
 
     steps:
       - name: Restore project files
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v4
+        id: restore-cache
         with:
-          path: |
-            .
-            key: ${{ runner.os }}-project-${{ github.sha }}
+          key: ${{ runner.os }}-project-${{ github.sha }}
 
       - name: Checking Gradle & Java
         run: |
