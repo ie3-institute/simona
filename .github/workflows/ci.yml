@@ -46,6 +46,7 @@ jobs:
           path: ./
           key: simona
 
+      #
       - name: Save Commit SHA
         run: |
           echo "COMMIT_SHA=${GITHUB_SHA}" >> $GITHUB_ENV 
