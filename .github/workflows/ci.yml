@@ -47,7 +47,7 @@ jobs:
           path: ./
           key: simona-${{ github.sha }}
 
-      - name: Print
+      - name: Save Commit SHA
         run: |
           echo "COMMIT_SHA=${GITHUB_SHA}" >> $GITHUB_ENV 
           echo "${{ github.sha }}"
@@ -59,12 +59,15 @@ jobs:
       image: gradle:8.10-jdk17
 
     steps:
+      - name: Print SHA
+        run: echo "${{ github.sha }}"
+
       - name: Restore project files
         uses: actions/cache/restore@v4
         id: restore-cache
         with:
           path: ./
-          key: ${{ runner.os }}-project-${{ github.sha }}
+          key: simona-${{ github.sha }}
 
       - name: Checking Gradle & Java
         run: |
