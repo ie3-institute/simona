@@ -44,7 +44,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ./
-          key: simona-${{ github.sha }}
+          key: simona
 
       - name: Save Commit SHA
         run: |
@@ -65,7 +65,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ./
-          key: simona-${{ github.sha }}
+          key: simona
 
       - name: Checking Gradle & Java
         run: |
