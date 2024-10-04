@@ -51,6 +51,7 @@ jobs:
       - name: Building Project
         run: |
           gradle clean assemble
+          ls -la
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
