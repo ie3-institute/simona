@@ -41,11 +41,11 @@ jobs:
           ls -la
 
       - name: Cache project files
-        uses: actions/cache@v3
+        uses: actions/cache/save@v4
         id: cache
         with:
           path: |
-            . #Cache all files
+            .
           key: simona-${{ github.sha }}
 
       - name: Save Commit SHA
