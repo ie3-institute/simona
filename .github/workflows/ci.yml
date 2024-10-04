@@ -5,6 +5,10 @@
 
 name: CI
 
+#Variables
+env:
+  CHECKOUT_SHA: ""
+
 on:
   push:
     branches:
@@ -41,7 +45,10 @@ jobs:
         id: cache
         with:
           path: ./
-          key: ${{ runner.os }}-project-${{ github.sha }}
+          key: simona-${{ github.sha }}
+        run: |
+          echo "COMMIT_SHA=${GITHUB_SHA}" >> $GITHUB_ENV 
+          echo "${{ github.sha }}"
 
   build:
     needs: checkout
