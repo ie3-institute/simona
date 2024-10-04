@@ -40,17 +40,11 @@ jobs:
           pwd
           ls -la
 
-      - name: Cache project files
-        uses: actions/cache@v3
+      - name: Upload build directory as artifact
+        uses: actions/upload-artifact@v3
         with:
+          name: project-files
           path: ./
-          key: simona
-
-      #
-      - name: Save Commit SHA
-        run: |
-          echo "COMMIT_SHA=${GITHUB_SHA}" >> $GITHUB_ENV 
-          echo "${{ github.sha }}"
 
   build:
     needs: checkout
@@ -59,14 +53,11 @@ jobs:
       image: gradle:8.10-jdk17
 
     steps:
-      - name: Print SHA
-        run: echo "${{ github.sha }}"
-
-      - name: Restore project files
-        uses: actions/cache@v3
+      - name: Download project-files
+        uses: actions/download-artifact@v3
         with:
+          name: project-files
           path: ./
-          key: simona
 
       - name: Checking Gradle & Java
         run: |
