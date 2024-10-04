@@ -23,8 +23,11 @@ on:
       - dev
 
 jobs:
-  checkout:
+
+  build:
     runs-on: ubuntu-latest
+    container:
+      image: gradle:8.10-jdk17
 
     steps:
       - name: Checkout Code
@@ -40,43 +43,30 @@ jobs:
           pwd
           ls -la
 
-      - name: Upload build directory as artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: project-files
-          path: ./
-
-  build:
-    needs: checkout
-    runs-on: ubuntu-latest
-    container:
-      image: gradle:8.10-jdk17
-
-    steps:
-      - name: Download project-files
-        uses: actions/download-artifact@v3
-        with:
-          name: project-files
-          path: ./
-
       - name: Checking Gradle & Java
         run: |
           java -version && gradle --version
 
       - name: Building Project
         run: |
-          pwd
-          ls -la
           gradle clean assemble
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: simona-build
+          path: |
+            build/                  # Der gesamte 'build'-Ordner
+            build.gradle            # Haupt-Gradle-Datei
+            settings.gradle         # Projekt- und Modulkonfiguration
+            gradle/wrapper/         # Gradle-Wrapper-Dateien
+            .gradle/                # Cache-Dateien von Gradle (optional)
 
   test:
     needs: build
     runs-on: ubuntu-latest
     container:
       image: gradle:8.10-jdk17
-      options: --user root
-      volumes:
-        - ${{ github.workspace }}:/simona:rw
 
     steps:
       - name: Checking Gradle & Java
@@ -86,7 +76,7 @@ jobs:
       - name: Download Build Artifact
         uses: actions/download-artifact@v3
         with:
-          name: simona-3.1.0-all.jar
+          name: simona-build
 
       - name: Running tests
         run: |
