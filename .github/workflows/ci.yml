@@ -54,11 +54,13 @@ jobs:
         with:
           name: simona-build
           path: |
-            ./build/**
+            ./build/classes/**
+            ./build/resources/**
+            ./build/libs/**
+            gradle/wrapper/**
+            gradlew
             build.gradle
             settings.gradle
-            gradle/wrapper/
-            .gradle/
 
   test:
     needs: build
