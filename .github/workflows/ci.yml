@@ -58,6 +58,7 @@ jobs:
             ./build/resources/**
             ./build/libs/**
             gradle/wrapper/**
+            gradle/scripts/**
             gradlew
             build.gradle
             settings.gradle
