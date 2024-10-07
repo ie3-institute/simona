@@ -15,7 +15,7 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.MockParticipant
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
+import edu.ie3.util.scala.quantities.{Kilovars, Megavars, ReactivePower}
 import org.scalatest.matchers.should.Matchers
 import squants._
 import squants.energy._
@@ -36,18 +36,17 @@ class SystemParticipantSpec extends UnitSpec with Matchers {
 
       val testCases = Table(
         ("varCharacteristicString", "pVal", "qSol"),
-        ("cosPhiFixed:{(0.0,0.9)}", 0, Megavars(0)),
-        ("cosPhiFixed:{(0.0,0.9)}", 50, Megavars(0.024216)),
-        ("cosPhiFixed:{(0.0,0.9)}", 100, Megavars(0.048432)),
-        ("cosPhiFixed:{(0.0,0.9)}", 200, Megavars(0)),
-        ("cosPhiFixed:{(0.0,0.9)}", -50, Megavars(-0.024216)),
-        ("cosPhiFixed:{(0.0,0.9)}", -100, Megavars(-0.048432)),
-        ("cosPhiFixed:{(0.0,0.9)}", -200, Megavars(0)),
-        ("cosPhiFixed:{(0.0,1.0)}", 100, Megavars(0))
+        ("cosPhiFixed:{(0.0,0.9)}", 0, Kilovars(0)),
+        ("cosPhiFixed:{(0.0,0.9)}", 50, Kilovars(24.216)),
+        ("cosPhiFixed:{(0.0,0.9)}", 100, Kilovars(48.432)),
+        ("cosPhiFixed:{(0.0,0.9)}", 200, Kilovars(0)),
+        ("cosPhiFixed:{(0.0,0.9)}", -50, Kilovars(-24.216)),
+        ("cosPhiFixed:{(0.0,0.9)}", -100, Kilovars(-48.432)),
+        ("cosPhiFixed:{(0.0,0.9)}", -200, Kilovars(0)),
+        ("cosPhiFixed:{(0.0,1.0)}", 100, Kilovars(0)),
       )
 
-
-      forAll(testCases) { (varCharacteristicString, pVal, expectedQ) =>
+      forAll(testCases) { (varCharacteristicString, pVal, qSol) =>
         val loadMock = new MockParticipant(
           UUID.fromString("b69f6675-5284-4e28-add5-b76952ec1ec2"),
           "System participant calculateQ Test",
@@ -58,7 +57,7 @@ class SystemParticipantSpec extends UnitSpec with Matchers {
         )
         val power = Kilowatts(pVal)
         val qCalc = loadMock.calculateReactivePower(power, adjustedVoltage)
-        qCalc should approximate(expectedQ)
+        qCalc should approximate(qSol)
       }
     }
   }
@@ -69,23 +68,23 @@ class SystemParticipantSpec extends UnitSpec with Matchers {
       Each(1) // needed for method call but not applicable for cos phi_p
 
     val testCases = Table(
-      ("varCharacteristicString", "pVal", "expectedQ"),
+      ("varCharacteristicString", "pVal", "qSol"),
       (
         "cosPhiP:{(0,1),(0.05,1),(0.1,1),(0.15,1),(0.2,1),(0.25,1),(0.3,1),(0.35,1),(0.4,1),(0.45,1),(0.5,1),(0.55,0.99),(0.6,0.98),(0.65,0.97),(0.7,0.96),(0.75,0.95),(0.8,0.94),(0.85,0.93),(0.9,0.92),(0.95,0.91),(1,0.9)}",
         100,
-        Megavars(0.020099),
+        Kilovars(20.099),
       ),
       (
         "cosPhiP:{(0,-1),(0.05,-1),(0.1,-1),(0.15,-1),(0.2,-1),(0.25,-1),(0.3,-1),(0.35,-1),(0.4,-1),(0.45,-1),(0.5,-1),(0.55,-0.99),(0.6,-0.98),(0.65,-0.97),(0.7,-0.96),(0.75,-0.95),(0.8,-0.94),(0.85,-0.93),(0.9,-0.92),(0.95,-0.91),(1,-0.9)}",
         100,
-        Megavars(-0.020099),
+        Kilovars(-20.099),
       ),
     )
 
     // first line is "with P" -> negative Q (influence on voltage level: increase) is expected
     // second line is "against P" -> positive Q (influence on voltage level: decrease) is expected
 
-    forAll(testCases) { (varCharacteristicString, pVal, expectedQ) =>
+    forAll(testCases) { (varCharacteristicString, pVal, qSol) =>
       val loadMock = new MockParticipant(
         UUID.fromString("30f84d97-83b4-4b71-9c2d-dbc7ebb1127c"),
         "Generation calculateQ Test",
@@ -98,7 +97,7 @@ class SystemParticipantSpec extends UnitSpec with Matchers {
       )
       val power = Kilowatts(pVal)
       val qCalc = loadMock.calculateReactivePower(power, adjustedVoltage)
-      (qCalc - expectedQ).abs should be <= Megavars(1e-6)
+      qCalc should approximate(qSol)
     }
   }
 
@@ -107,23 +106,23 @@ class SystemParticipantSpec extends UnitSpec with Matchers {
       Each(1) // needed for method call but not applicable for cos phi_p
 
     val testCases = Table(
-      ("varCharacteristicString", "pVal", "expectedQ"),
+      ("varCharacteristicString", "pVal", "qSol"),
       (
         "cosPhiP:{(-1,0.9),(-0.95,0.91),(-0.9,0.92),(-0.85,0.93),(-0.8,0.94),(-0.75,0.95),(-0.7,0.96),(-0.65,0.97),(-0.6,0.98),(-0.55,0.99),(-0.5,1),(-0.45,1),(-0.4,1),(-0.35,1),(-0.3,1),(-0.25,1),(-0.2,1),(-0.15,1),(-0.1,1),(-0.05,1),(0,1)}",
         -100,
-        Megavars(-0.014177),
+        Kilovars(-14.177),
       ),
       (
         "cosPhiP:{(-1,-0.9),(-0.95,-0.91),(-0.9,-0.92),(-0.85,-0.93),(-0.8,-0.94),(-0.75,-0.95),(-0.7,-0.96),(-0.65,-0.97),(-0.6,-0.98),(-0.55,-0.99),(-0.5,-1),(-0.45,-1),(-0.4,-1),(-0.35,-1),(-0.3,-1),(-0.25,-1),(-0.2,-1),(-0.15,-1),(-0.1,-1),(-0.05,-1),(0,-1)}",
         -100,
-        Megavars(0.014177),
+        Kilovars(14.177),
       ),
     )
 
     // first line is "with P" -> negative Q (influence on voltage level: increase) is expected
     // second line is "against P" -> positive Q (influence on voltage level: decrease) is expected
 
-    forAll(testCases) { (varCharacteristicString, pVal, expectedQ) =>
+    forAll(testCases) { (varCharacteristicString, pVal, qSol) =>
       val loadMock = new MockParticipant(
         UUID.fromString("30f84d97-83b4-4b71-9c2d-dbc7ebb1127c"),
         "Generation calculateQ Test",
@@ -136,8 +135,8 @@ class SystemParticipantSpec extends UnitSpec with Matchers {
       )
       val power = Kilowatts(pVal)
       val qCalc = loadMock.calculateReactivePower(power, adjustedVoltage)
-      //(qCalc - expectedQ).abs should be < 0.001
-      (qCalc - expectedQ).abs should be <= Megavars(1e-6)
+      qCalc should approximate(qSol)
+
     }
   }
 
@@ -152,23 +151,23 @@ class SystemParticipantSpec extends UnitSpec with Matchers {
     )
 
     val testCases = Table(
-      ("adjustedVoltageVal", "expectedQ"),
-      (0.9, Megavars(-0.039799)),
-      (0.93, Megavars(-0.039799)),
-      (0.95, Megavars(-0.019899)),
-      (0.97, Megavars(0)),
-      (1.00, Megavars(0)),
-      (1.03, Megavars(0)),
-      (1.05, Megavars(0.019899)),
-      (1.07, Megavars(0.039799)),
-      (1.1, Megavars(0.039799)),
+      ("adjustedVoltageVal", "qSol"),
+      (0.9, Kilovars(-39.799)),
+      (0.93, Kilovars(-39.799)),
+      (0.95, Kilovars(-19.899)),
+      (0.97, Kilovars(0)),
+      (1.00, Kilovars(0)),
+      (1.03, Kilovars(0)),
+      (1.05, Kilovars(19.899)),
+      (1.07, Kilovars(39.799)),
+      (1.1, Kilovars(39.799)),
     )
 
-    forAll(testCases) { (adjustedVoltageVal, expectedQ) =>
+    forAll(testCases) { (adjustedVoltageVal, qSol) =>
       val adjustedVoltage = Each(adjustedVoltageVal)
       val p = Kilowatts(42)
       val qCalc = loadMock.calculateReactivePower(p, adjustedVoltage)
-      qCalc should approximate(expectedQ)
+      qCalc should approximate(qSol)
     }
   }
 
@@ -183,23 +182,23 @@ class SystemParticipantSpec extends UnitSpec with Matchers {
     )
 
     val testCases = Table(
-      ("adjustedVoltageVal", "expectedQ"),
-      (0.9, Megavars(0)),
-      (0.93, Megavars(0)),
-      (0.95, Megavars(0)),
-      (0.97, Megavars(0)),
-      (1.00, Megavars(0)),
-      (1.03, Megavars(0)),
-      (1.05, Megavars(0)),
-      (1.07, Megavars(0)),
-      (1.1, Megavars(0)),
+      ("adjustedVoltageVal", "qSol"),
+      (0.9, Kilovars(0)),
+      (0.93, Kilovars(0)),
+      (0.95, Kilovars(0)),
+      (0.97, Kilovars(0)),
+      (1.00, Kilovars(0)),
+      (1.03, Kilovars(0)),
+      (1.05, Kilovars(0)),
+      (1.07, Kilovars(0)),
+      (1.1, Kilovars(0)),
     )
 
-    forAll(testCases) { (adjustedVoltageVal, expectedQ) =>
+    forAll(testCases) { (adjustedVoltageVal, qSol) =>
       val adjustedVoltage = Each(adjustedVoltageVal)
       val p = Kilowatts(0)
       val qCalc = loadMock.calculateReactivePower(p, adjustedVoltage)
-      qCalc should approximate(expectedQ)
+      qCalc should approximate(qSol)
     }
   }
 
@@ -214,16 +213,16 @@ class SystemParticipantSpec extends UnitSpec with Matchers {
     )
 
     val testCases = Table(
-      ("adjustedVoltageVal", "expectedQ"),
-      (0.9, Megavars(-0.06244)),
-      (0.93, Megavars(-0.06244)),
-      (0.95, Megavars(-0.03122)),
-      (0.97, Megavars(0)),
-      (1.00, Megavars(0)),
-      (1.03, Megavars(0)),
-      (1.05, Megavars(0.03122)),
-      (1.07, Megavars(0.06244)),
-      (1.1, Megavars(0.06244)),
+      ("adjustedVoltageVal", "qSol"),
+      (0.9, Kilovars(-62.44)),
+      (0.93, Kilovars(-62.44)),
+      (0.95, Kilovars(-31.22)),
+      (0.97, Kilovars(0)),
+      (1.00, Kilovars(0)),
+      (1.03, Kilovars(0)),
+      (1.05, Kilovars(31.22)),
+      (1.07, Kilovars(62.44)),
+      (1.1, Kilovars(62.44)),
     )
 
     forAll(testCases) { (adjustedVoltageVal, expectedQ) =>
@@ -242,28 +241,26 @@ class SystemParticipantSpec extends UnitSpec with Matchers {
       OperationInterval(0L, 86400L),
       QControl(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
       Kilowatts(200),
-      0.95
+      0.95,
     )
 
     val testCases = Table(
-      ("adjustedVoltageVal", "expectedQ"),
-      (0.9, Megavars(-0.04444)),
-      (0.93, Megavars(-0.04444)),
-      (0.95, Megavars(-0.03122)),
-      (0.97, Megavars(0)),
-      (1.00, Megavars(0)),
-      (1.03, Megavars(0)),
-      (1.05, Megavars(0.03122)),
-      (1.07, Megavars(0.04444)),
-      (1.1, Megavars(0.04444))
+      ("adjustedVoltageVal", "qSol"),
+      (0.9, Kilovars(-44.44)),
+      (0.93, Kilovars(-44.44)),
+      (0.95, Kilovars(-31.22)),
+      (0.97, Kilovars(0)),
+      (1.00, Kilovars(0)),
+      (1.03, Kilovars(0)),
+      (1.05, Kilovars(31.22)),
+      (1.07, Kilovars(44.44)),
+      (1.1, Kilovars(44.44)),
     )
 
-    forAll(testCases) { (adjustedVoltageVal, expectedQ) =>
+    forAll(testCases) { (adjustedVoltageVal, qSol) =>
       val adjustedVoltage: Dimensionless = Each(adjustedVoltageVal)
       val qCalc = loadMock.calculateReactivePower(activePower, adjustedVoltage)
-      qCalc should approximate(expectedQ)
+      qCalc should approximate(qSol)
     }
   }
-
-
 }
