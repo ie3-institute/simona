@@ -54,11 +54,11 @@ jobs:
         with:
           name: simona-build
           path: |
-            ./build/**              # Der gesamte 'build'-Ordner
-            build.gradle            # Haupt-Gradle-Datei
-            settings.gradle         # Projekt- und Modulkonfiguration
-            gradle/wrapper/         # Gradle-Wrapper-Dateien
-            .gradle/                # Cache-Dateien von Gradle (optional)
+            ./build/**
+            build.gradle
+            settings.gradle
+            gradle/wrapper/
+            .gradle/
 
   test:
     needs: build
