@@ -16,7 +16,6 @@ package MobilitySimulator {
     }
 
 package simona-api {
-'top to bottom direction
 
     abstract class ExtSimulation {
         - ExtSimAdapterData data
@@ -34,7 +33,6 @@ package simona-api {
     }
 
     ExtLink --|> ExtLinkInterface
-    'ExtLinkInterface --d> ExtSimulation
 
     interface ExtEvSimulation {
        + void setExtEvData(ExtEvData evData)
@@ -45,9 +43,6 @@ package simona-api {
     interface ExtDataSimulation
 
     ExtEvSimulation --|> ExtDataSimulation
-
-    'ExtLinkInterface -[norank]> ExtDataSimulation
-
 
     interface EvModel {
             + UUID getUuid()
@@ -100,9 +95,6 @@ package simona-api {
     ExtEvData --r[norank]> EvDataMessageFromExt
     ExtEvData --u|> ExtData
     ExtEvSimulation -u> ExtEvData
-
-
-
 
 node sub1{
     interface DataResponseMessageToExt
