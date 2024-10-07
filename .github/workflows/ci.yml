@@ -5,10 +5,6 @@
 
 name: CI
 
-#Variables
-env:
-  CHECKOUT_SHA: ""
-
 on:
   push:
     branches:
@@ -58,7 +54,7 @@ jobs:
         with:
           name: simona-build
           path: |
-            build/                  # Der gesamte 'build'-Ordner
+            ./build/**              # Der gesamte 'build'-Ordner
             build.gradle            # Haupt-Gradle-Datei
             settings.gradle         # Projekt- und Modulkonfiguration
             gradle/wrapper/         # Gradle-Wrapper-Dateien
