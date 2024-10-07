@@ -54,9 +54,7 @@ jobs:
         with:
           name: simona-build
           path: |
-            ./build/classes/**
-            ./build/resources/**
-            ./build/libs/**
+            ./build/**
             gradle/wrapper/**
             gradle/scripts/**
             gradlew
