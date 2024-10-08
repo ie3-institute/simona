@@ -58,3 +58,8 @@ jobs:
       - name: Build Java-Docs
         run: |
           ./gradlew javadoc
+
+      - name: Run SonarQube with Gradle
+        run: ./gradlew sonarqube -Dsonar.projectKey=edu.ie3:simona \
+          -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
+          -Dsonar.login=${{ secrets.SONAR_TOKEN }}
