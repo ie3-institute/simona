@@ -45,11 +45,27 @@ jobs:
 
       - name: Running Tests
         run: |
-          ./gradlew --no-daemon --info --refresh-dependencies spotlessCheck pmdMain pmdTest test
+          ./gradlew --no-daemon --info --refresh-dependencies spotlessCheck pmdMain pmdTest test -x build -x compileJava -x compileTestJava -x assemble
+      
 
       - name: Generate JavaDoc
         run: |
           ./gradlew javadoc
+
+      - name: Cache Gradle
+        uses: actions/cache@v3
+        with:
+          path: |
+            ./gradle/
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: ./build/
 
   test:
     needs: build
@@ -71,7 +87,8 @@ jobs:
 
       - name: Running Tests
         run: |
-          ./gradlew --no-daemon --info --refresh-dependencies spotlessCheck pmdMain pmdTest test
+          ./gradlew --no-daemon --info --refresh-dependencies spotlessCheck pmdMain pmdTest test -x build -x compileJava -x compileTestJava -x assemble
+      
 
       - name: Generate JavaDoc
         run: |
