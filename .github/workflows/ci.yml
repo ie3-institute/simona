@@ -43,12 +43,6 @@ jobs:
         run: |
           java -version && gradle --version
 
-      - name: Building Project
-        run: |
-          chmod +x ./gradlew
-          ./gradlew clean assemble
-          ls -la
-
       - name: Running Tests
         run: |
           ./gradlew --no-daemon --info --refresh-dependencies spotlessCheck pmdMain pmdTest test
