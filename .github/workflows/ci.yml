@@ -48,15 +48,20 @@ jobs:
           ./gradlew clean assemble
           ls -la
 
-      - name: Cache Gradle Wrapper and Build Files
+      - name: Cache Gradle
         uses: actions/cache@v3
         with:
           path: |
-            ./build/
             ./gradle/
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: ./build/
 
   test:
     needs: build
@@ -75,12 +80,11 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref || github.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
 
-      - name: Cache Gradle Wrapper and Build Files
+      - name: Download Gradle Cache
         uses: actions/cache@v3
         with:
           path: |
-            ./build/
-            ./gradle/wrapper/
+            ./gradle/
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
