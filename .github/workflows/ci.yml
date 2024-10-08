@@ -100,7 +100,6 @@ jobs:
           name: simona-build
 
       - name: Running tests
-        working-directory: ./simona
         run: |
           gradle --no-daemon --info --refresh-dependencies spotlessCheck pmdMain pmdTest
 
