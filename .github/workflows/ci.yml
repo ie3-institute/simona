@@ -33,6 +33,16 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref || github.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
 
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle
+
       - name: Check Branch & Files
         run: |
           git config --global --add safe.directory /__w/simona/simona
@@ -54,7 +64,9 @@ jobs:
         with:
           name: simona-build
           path: |
-            ./build/**
+            ./build/classes/**
+            ./build/resources/test/**
+            ./build/libs/**
             gradle/wrapper/**
             gradle/scripts/**
             gradlew
@@ -68,6 +80,16 @@ jobs:
       image: gradle:8.10-jdk17
 
     steps:
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle
+
       - name: Checking Gradle & Java
         run: |
           java -version && gradle --version
@@ -78,8 +100,9 @@ jobs:
           name: simona-build
 
       - name: Running tests
+        working-directory: ./simona
         run: |
-          gradle --refresh-dependencies spotlessCheck pmdMain pmdTest
+          gradle --no-daemon --info --refresh-dependencies spotlessCheck pmdMain pmdTest
 
       - name: Generate JavaDoc
         run: |
