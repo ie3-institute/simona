@@ -45,12 +45,13 @@ jobs:
 
       - name: Building Project
         run: |
-          ./gradle clean assemble
+          chmod +x ./gradlew
+          ./gradlew clean assemble
           ls -la
 
       - name: Running Tests
         run: |
-          ./gradle --no-daemon --info --refresh-dependencies spotlessCheck pmdMain pmdTest test
+          ./gradlew --no-daemon --info --refresh-dependencies spotlessCheck pmdMain pmdTest test
 
       - name: Generate JavaDoc
         run: |
