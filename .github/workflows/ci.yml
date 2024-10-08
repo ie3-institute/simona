@@ -33,16 +33,6 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref || github.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
 
-      - name: Cache Gradle packages
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
       - name: Check Branch & Files
         run: |
           git config --global --add safe.directory /__w/simona/simona
@@ -58,6 +48,16 @@ jobs:
         run: |
           ./gradlew clean assemble
           ls -la
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
@@ -80,7 +80,7 @@ jobs:
       image: gradle:8.10-jdk17
 
     steps:
-      - name: Cache Gradle dependencies
+      - name: Cache Gradle packages
         uses: actions/cache@v3
         with:
           path: |
@@ -88,7 +88,7 @@ jobs:
             ~/.gradle/wrapper
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
-            ${{ runner.os }}-gradle
+            ${{ runner.os }}-gradle-
 
       - name: Checking Gradle & Java
         run: |
