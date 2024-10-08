@@ -29,7 +29,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          # Check if it's a pull request
           ref: ${{ github.event.pull_request.head.ref || github.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
 
@@ -49,62 +48,47 @@ jobs:
           ./gradlew clean assemble
           ls -la
 
-      - name: Cache Gradle packages
+      - name: Cache Gradle Wrapper and Build Files
         uses: actions/cache@v3
         with:
           path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
+            ./build/
+            ./gradle/
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: simona-build
-          path: |
-            ./build/classes/**
-            ./build/resources/test/**
-            ./build/libs/**
-            gradle/wrapper/**
-            gradle/scripts/**
-            gradlew
-            build.gradle
-            settings.gradle
 
   test:
     needs: build
     runs-on: ubuntu-latest
     container:
       image: gradle:8.10-jdk17
+    services:
+      docker:
+        image: docker:19.03.12
+        options: --privileged
 
     steps:
-      - name: Cache Gradle packages
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+
+      - name: Cache Gradle Wrapper and Build Files
         uses: actions/cache@v3
         with:
           path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
+            ./build/
+            ./gradle/wrapper/
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Checking Gradle & Java
+      - name: Running Tests
         run: |
-          java -version && gradle --version
-
-      - name: Download Build Artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: simona-build
-
-      - name: Running tests
-        run: |
-          gradle --no-daemon --info --refresh-dependencies spotlessCheck pmdMain pmdTest
+          ./gradlew --no-daemon --info --refresh-dependencies spotlessCheck pmdMain pmdTest test
 
       - name: Generate JavaDoc
         run: |
-          set +x
-          cd simona
           ./gradlew javadoc
