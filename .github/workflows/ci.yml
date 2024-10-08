@@ -22,11 +22,9 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    container:
-      image: gradle:8.10-jdk17
 
     steps:
-      - name: Checkout Code
+      - name: Checkout Source
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.ref || github.ref }}
@@ -34,62 +32,29 @@ jobs:
 
       - name: Check Branch & Files
         run: |
-          git config --global --add safe.directory /__w/simona/simona
           git rev-parse --abbrev-ref HEAD
           pwd
           ls -la
 
-      - name: Checking Gradle & Java
-        run: |
-          java -version && gradle --version
-
-      - name: Running Tests
-        run: |
-          ./gradlew --no-daemon --info --refresh-dependencies spotlessCheck pmdMain pmdTest test -x build -x compileJava -x compileTestJava -x assemble
-      
-
-      - name: Generate JavaDoc
-        run: |
-          ./gradlew javadoc
-
-      - name: Cache Gradle
-        uses: actions/cache@v3
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
-          path: |
-            ./gradle/
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
+          distribution: 'temurin'
+          java-version: 17
 
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v3
+      - name: Setup Gradle 8.10
+        uses: gradle/actions/setup-gradle@v4
         with:
-          name: build-artifacts
-          path: ./build/
+          gradle-version: "8.10"
 
-  test:
-    needs: build
-    runs-on: ubuntu-latest
-    container:
-      image: gradle:8.10-jdk17
-    services:
-      docker:
-        image: docker:19.03.12
-        options: --privileged
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref || github.ref }}
-          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
-
-
-      - name: Running Tests
+      - name: Build Project
         run: |
-          ./gradlew --no-daemon --info --refresh-dependencies spotlessCheck pmdMain pmdTest test -x build -x compileJava -x compileTestJava -x assemble
-      
+          ./gradlew clean assemble
 
-      - name: Generate JavaDoc
+      - name: Run Tests
+        run: |
+          ./gradlew --refresh-dependencies spotlessCheck pmdMain pmdTest
+
+      - name: Build Java-Docs
         run: |
           ./gradlew javadoc
