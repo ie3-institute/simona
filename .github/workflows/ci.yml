@@ -59,9 +59,7 @@ jobs:
         run: |
           ./gradlew javadoc
 
-
-      #ADD  reportScoverageTask
       - name: Run SonarQube with Gradle
-        run: ./gradlew reportScoverage sonarqube -Dsonar.projectKey=edu.ie3:simona \
-          -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
+        run: ./gradlew reportScoverage sonarqube -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
+          -Dsonar.host.url=${{ vars.SONAR_HOST_URL }} \
           -Dsonar.login=${{ secrets.SONAR_TOKEN }}
