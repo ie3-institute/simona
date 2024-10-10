@@ -35,7 +35,7 @@ import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
-import edu.ie3.simpleextsim.{SimpleExtSimulationWithEm, SimpleExtSimulationWithPrimaryData}
+import edu.ie3.simpleextsim.SimpleExtSimulationWithEm
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
