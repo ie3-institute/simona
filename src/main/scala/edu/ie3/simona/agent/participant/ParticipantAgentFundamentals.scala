@@ -287,8 +287,6 @@ protected trait ParticipantAgentFundamentals[
           newTick.filterNot(_ => baseStateData.isEmManaged),
         )
 
-        log.info(s"initializeParticipantForModelCalculation -> sent completion to $scheduler")
-
         log.debug(s"Going to {}, using {}", Idle, nextBaseStateData)
         goto(Idle) using nextBaseStateData
       }
@@ -679,7 +677,7 @@ protected trait ParticipantAgentFundamentals[
           )
       }
 
-      notifyListener(FlexOptionsResultEvent(flexResult))
+      notifyListener(FlexOptionsResultEvent(flexResult, tick))
     }
 
     baseStateData.copy(

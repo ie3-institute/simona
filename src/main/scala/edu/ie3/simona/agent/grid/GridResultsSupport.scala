@@ -89,6 +89,7 @@ private[grid] trait GridResultsSupport {
       buildLineResults(grid.gridComponents.lines),
       buildTransformer2wResults(grid.gridComponents.transformers),
       buildTransformer3wResults(grid.gridComponents.transformers3w),
+      -1L
     )
   }
 

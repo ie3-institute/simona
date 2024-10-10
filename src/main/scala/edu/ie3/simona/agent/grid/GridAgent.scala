@@ -211,7 +211,6 @@ object GridAgent extends DBFSAlgorithm {
       buffer: StashBuffer[Request],
   ): Behavior[Request] = Behaviors.receivePartial {
     case (ctx, WrappedActivation(activation: Activation)) =>
-      ctx.log.info(s"Activation in tick ${activation.tick}")
       constantData.environmentRefs.scheduler ! Completion(
         constantData.activationAdapter,
         Some(activation.tick),

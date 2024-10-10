@@ -388,8 +388,10 @@ abstract class SimonaExtSimSetup(
     )
     new Thread(extSim, s"External simulation").start()
 
+    val extSimAdapters = Iterable(extSimAdapter)
+
     ExtSimSetupData(
-      extSimAdapter,
+      extSimAdapters,
       extDataServicesMap.toMap,
       extDataListenerMap.toMap,
       dataConnections.asScala.toSet
@@ -422,8 +424,6 @@ abstract class SimonaExtSimSetup(
         INIT_SIM_TICK,
       ),
     )
-    println("... pause extPrimaryDataSimulationSetup ...")
-    Thread.sleep(1000)
     extPrimaryDataService
   }
 
@@ -454,8 +454,6 @@ abstract class SimonaExtSimSetup(
         INIT_SIM_TICK,
       ),
     )
-    println("... pause extEmDataSimulationSetup ...")
-    Thread.sleep(1000)
     extEmDataService
   }
 
@@ -491,22 +489,14 @@ abstract class SimonaExtSimSetup(
       extSimAdapter
     )
 
-    extResultData.setSimulationData(
-      simulationStart,
-      powerFlowResolution
-    )
-
     extResultDataProvider ! ExtResultDataProvider.Create(
-      InitExtResultData(extResultData),
+      InitExtResultData(extResultData, powerFlowResolution),
       ScheduleLock.singleKey(
         context,
         scheduler,
         INIT_SIM_TICK,
       ),
     )
-
-    println("... pause extResultDataSimulationSetup ...")
-    Thread.sleep(1000)
     extResultDataProvider
   }
 

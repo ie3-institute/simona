@@ -272,7 +272,7 @@ abstract class ParticipantAgent[
             _,
           ),
         ) =>
-      log.info("Will replay primary data")
+      log.debug("Will replay primary data")
       initializeParticipantForPrimaryDataReplay(
         inputModel,
         modelConfig,

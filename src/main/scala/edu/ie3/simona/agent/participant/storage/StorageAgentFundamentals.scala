@@ -295,7 +295,7 @@ trait StorageAgentFundamentals
         soc,
       )
 
-      notifyListener(ParticipantResultEvent(storageResult))
+      notifyListener(ParticipantResultEvent(storageResult, currentTick))
     }
 
     baseStateData.copy(

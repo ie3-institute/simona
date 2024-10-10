@@ -34,7 +34,7 @@ object ResultEvent {
     */
   final case class ParticipantResultEvent(
       systemParticipantResult: SystemParticipantResult,
-      tick: Long = -2L,
+      tick: Long,
       nextTick: Option[Long] = None
   ) extends ResultEvent
 
@@ -68,7 +68,7 @@ object ResultEvent {
       lineResults: Iterable[LineResult],
       transformer2wResults: Iterable[Transformer2WResult],
       transformer3wResults: Iterable[PartialTransformer3wResult],
-      tick: Long = -4L
+      tick: Long
   ) extends ResultEvent
 
   /** Event that holds the flexibility options result of a
@@ -78,7 +78,8 @@ object ResultEvent {
     *   the flex options result
     */
   final case class FlexOptionsResultEvent(
-      flexOptionsResult: FlexOptionsResult
+      flexOptionsResult: FlexOptionsResult,
+      tick: Long
   ) extends ResultEvent
 
 }

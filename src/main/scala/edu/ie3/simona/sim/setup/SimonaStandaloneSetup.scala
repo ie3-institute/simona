@@ -15,6 +15,10 @@ import edu.ie3.simona.actor.SimonaActorNaming.RichActorRefFactory
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentMessages.CreateGridAgent
+import edu.ie3.simona.api.ExtSimAdapter
+import edu.ie3.simona.api.data.ExtData
+import edu.ie3.simona.api.data.ev.{ExtEvData, ExtEvSimulation}
+import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.config.{ArgsParser, RefSystemParser, SimonaConfig}
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
@@ -26,6 +30,8 @@ import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.scheduler.{ScheduleLock, Scheduler, TimeAdvancer}
 import edu.ie3.simona.service.SimonaService
+import edu.ie3.simona.service.ev.ExtEvDataService
+import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.results.ExtResultDataProvider
@@ -185,7 +191,6 @@ class SimonaStandaloneSetup(
 
     weatherService
   }
-  /*
 
   override def extSimulations(
       context: ActorContext[_],
@@ -196,7 +201,6 @@ class SimonaStandaloneSetup(
     val extLinks = jars.flatMap(ExtSimLoader.loadExtLink).toSeq
 
     if (extLinks.nonEmpty) {
-
       val (extSimAdapters, extDatasAndServices) =
         extLinks.zipWithIndex.map { case (extLink, index) =>
           // external simulation always needs at least an ExtSimAdapter
@@ -235,73 +239,6 @@ class SimonaStandaloneSetup(
                 )
 
                 (extEvData, (classOf[ExtEvDataService], extEvDataService))
-
-              case (extPrimaryDataSimulation: ExtPrimaryDataSimulation, dIndex) =>
-                val extPrimaryDataService = context.toClassic.simonaActorOf(
-                  ExtPrimaryDataService.props(extScheduler.toClassic),
-                  s"$index-$dIndex",
-                )
-                val extPrimaryData = new ExtPrimaryData(
-                  extPrimaryDataService,
-                  extSimAdapter,
-                  extPrimaryDataSimulation.getPrimaryDataFactory,
-                  extPrimaryDataSimulation.getPrimaryDataAssets
-                )
-
-                extPrimaryDataSimulation.setExtPrimaryData(extPrimaryData)
-
-                extPrimaryDataService ! SimonaService.Create(
-                  InitExtPrimaryData(extPrimaryData),
-                  ScheduleLock.singleKey(
-                    context,
-                    extScheduler,
-                    INIT_SIM_TICK,
-                  ),
-                )
-
-                (extPrimaryData, (classOf[ExtPrimaryDataService], extPrimaryDataService))
-
-              case (extResultDataSimulation: ExtResultDataSimulation, dIndex) =>
-
-                val extResultDataProvider = {
-                  context.spawn(
-                    ExtResultDataProvider(extScheduler),
-                    s"$index-$dIndex",
-                  )
-                }
-
-                implicit val timeout: PekkoTimeout = PekkoTimeout.create(5.seconds.toJava)
-                implicit val scheduler: Scheduler = context.system.scheduler
-
-                val adapterRef = Await.result(
-                  extResultDataProvider.ask[ActorRef[ResultDataMessageFromExt]] (ref => RequestDataMessageAdapter(ref)), timeout.duration)
-                val adapterScheduleRef = Await.result(
-                  extResultDataProvider.ask[ActorRef[ScheduleServiceActivation]] (ref => RequestScheduleActivationAdapter(ref)), timeout.duration)
-
-                val extResultData =
-                  new ExtResultData(
-                    adapterRef.toClassic,
-                    adapterScheduleRef.toClassic,
-                    extSimAdapter,
-                    extResultDataSimulation.getResultDataFactory,
-                    extResultDataSimulation.getResultDataAssets
-                  )
-
-                extResultDataSimulation.setExtResultData(extResultData)
-
-                extResultDataProvider ! ExtResultDataProvider.Create(
-                  InitExtResultData(extResultData),
-                  ScheduleLock.singleKey(
-                    context,
-                    extScheduler,
-                    INIT_SIM_TICK,
-                  ),
-                )
-
-                (
-                  extResultData,
-                  (ExtResultDataProvider.getClass, extResultDataProvider.toClassic),
-                )
             }.unzip
 
             extLink.getExtSimulation.setup(
@@ -322,21 +259,12 @@ class SimonaStandaloneSetup(
       ExtSimSetupData(
         extSimAdapters,
         extDataServices.flatten.toMap,
-        extDatas,
-        Some(extScheduler))
+        Map.empty,
+        extDatas
+      )
   } else {
-      ExtSimSetupData(Iterable.empty, Map.empty, Set.empty, None)
+      ExtSimSetupData(Iterable.empty, Map.empty, Map.empty, Set.empty)
     }
-  }
-
-   */
-
-
-  override def extSimulations(
-                               context: ActorContext[_],
-                               scheduler: ActorRef[SchedulerMessage],
-                             ): ExtSimSetupData = {
-    ???
   }
 
   override def timeAdvancer(

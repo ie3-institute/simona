@@ -148,10 +148,20 @@ object ResultEventListener extends Transformer3wResultSupport {
   private def handleResult(
       resultEntity: ResultEntity,
       baseData: BaseData,
-      log: Logger,
-      tick: Long = -2L,
-      nextTick: Option[Long] = None
+      log: Logger
   ): BaseData = {
+    //log.info("Got Result " + resultEntity)
+    handOverToSink(resultEntity, baseData.classToSink, log)
+    baseData
+  }
+
+  private def handleResultWithTick(
+                                    resultEntity: ResultEntity,
+                                    baseData: BaseData,
+                                    log: Logger,
+                                    tick: Long,
+                                    nextTick: Option[Long] = None
+                                  ): BaseData = {
     //log.info("Got Result " + resultEntity)
     handOverToSink(resultEntity, baseData.classToSink, log)
     if (baseData.extResultDataService.isDefined) {
@@ -304,7 +314,7 @@ object ResultEventListener extends Transformer3wResultSupport {
   private def idle(baseData: BaseData): Behavior[Request] = Behaviors
     .receivePartial[Request] {
       case (ctx, ParticipantResultEvent(participantResult, tick, nextTick)) =>
-        val updatedBaseData = handleResult(participantResult, baseData, ctx.log, tick, nextTick)
+        val updatedBaseData = handleResultWithTick(participantResult, baseData, ctx.log, tick, nextTick)
         idle(updatedBaseData)
 
       case (ctx, ThermalResultEvent(thermalResult)) =>
@@ -326,7 +336,7 @@ object ResultEventListener extends Transformer3wResultSupport {
           (nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ transformer3wResults)
             .foldLeft(baseData) {
               case (currentBaseData, resultEntity: ResultEntity) =>
-                handleResult(resultEntity, currentBaseData, ctx.log, tick)
+                handleResultWithTick(resultEntity, currentBaseData, ctx.log, tick)
               case (
                     currentBaseData,
                     partialTransformerResult: PartialTransformer3wResult,
@@ -339,8 +349,8 @@ object ResultEventListener extends Transformer3wResultSupport {
             }
         idle(updatedBaseData)
 
-      case (ctx, FlexOptionsResultEvent(flexOptionsResult)) =>
-        val updatedBaseData = handleResult(flexOptionsResult, baseData, ctx.log, -3L)
+      case (ctx, FlexOptionsResultEvent(flexOptionsResult, tick)) =>
+        val updatedBaseData = handleResultWithTick(flexOptionsResult, baseData, ctx.log, tick)
         idle(updatedBaseData)
 
       case (ctx, msg: DelayedStopHelper.StoppingMsg) =>

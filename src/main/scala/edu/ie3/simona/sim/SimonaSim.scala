@@ -120,24 +120,27 @@ object SimonaSim {
         /* watch all actors */
         resultEventListeners.foreach(ctx.watch)
         ctx.watch(runtimeEventListener)
-        ctx.watch(extSimulationData.extResultDataService.getOrElse(throw new Exception("")))
-        ctx.watch(extSimulationData.extSimAdapter.toTyped)
+        extSimulationData.extResultDataService.foreach(
+          ref => ctx.watch(ref)
+        )
+        extSimulationData.extSimAdapters.foreach(
+          extSimAdapter => ctx.watch(extSimAdapter.toTyped)
+        )
         otherActors.foreach(ctx.watch)
 
         // Start simulation
         timeAdvancer ! TimeAdvancer.Start()
 
         val delayedActors = resultEventListeners.appended(runtimeEventListener)
-          .appended(
-            extSimulationData.extResultDataService.getOrElse(
-            throw new Exception("Problem!")
-            )
-          )
+
+        extSimulationData.extResultDataService.foreach(
+          ref => delayedActors.appended(ref)
+        )
 
         idle(
           ActorData(
             starter,
-            extSimulationData.extSimAdapter,
+            extSimulationData.extSimAdapters,
             runtimeEventListener,
             delayedActors,
             otherActors,
@@ -202,8 +205,12 @@ object SimonaSim {
       ctx.stop(ref)
     }
 
-    ctx.unwatch(actorData.extSimAdapter)
-    actorData.extSimAdapter ! ExtSimAdapter.Stop(simulationSuccessful)
+    actorData.extSimAdapters.foreach(
+      extSimAdapter => {
+        ctx.unwatch(extSimAdapter)
+        extSimAdapter ! ExtSimAdapter.Stop(simulationSuccessful)
+      }
+    )
 
     // if the simulation is successful, we're waiting for the delayed
     // stopping listeners to terminate and thus do not unwatch them here
@@ -263,7 +270,7 @@ object SimonaSim {
     * @param starter
     *   The ActorRef that started the simulation and should be notified about
     *   its end
-    * @param extSimAdapter
+    * @param extSimAdapters
     *   [[ExtSimAdapter]]s need to receive a [[ExtSimAdapter.Stop]] message
     * @param runtimeEventListener
     *   The [[RuntimeEventListener]] that possibly receives an error event
@@ -275,7 +282,7 @@ object SimonaSim {
     */
   private final case class ActorData(
       starter: ActorRef[SimonaEnded],
-      extSimAdapter: ClassicRef,
+      extSimAdapters: Iterable[ClassicRef],
       runtimeEventListener: ActorRef[RuntimeEventListener.Request],
       delayedStoppingActors: Seq[ActorRef[DelayedStopHelper.StoppingMsg]],
       otherActors: Iterable[ActorRef[_]],
