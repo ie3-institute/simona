@@ -41,7 +41,8 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
   WeatherData,
 }
 import edu.ie3.simona.test.ParticipantAgentSpec
-import edu.ie3.simona.test.common.model.participant.HpTestData
+import edu.ie3.simona.test.common.DefaultTestData
+import edu.ie3.simona.test.common.input.HpInputTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.{
@@ -61,7 +62,6 @@ import squants.thermal.Celsius
 import squants.{Dimensionless, Each}
 
 import java.io.File
-import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
 import scala.collection.SortedMap
 
@@ -76,10 +76,11 @@ class HpAgentModelCalculationSpec
         """.stripMargin),
       )
     )
-    with HpTestData
+    with HpInputTestData
     with IntegrationSpecCommon
-    with PrivateMethodTester {
-  implicit val simulationStart: ZonedDateTime = defaultSimulationStart
+    with PrivateMethodTester
+    with DefaultTestData {
+
   implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
 
@@ -188,7 +189,7 @@ class HpAgentModelCalculationSpec
       ApparentPowerAndHeat,
     ](
       inputModel = hpInput,
-      thermalGrid = thermalGrid,
+      thermalGrid = defaultThermalGrid,
       modelConfig = modelConfig,
       secondaryDataServices = services,
       simulationStartDate = defaultSimulationStart,
@@ -250,7 +251,10 @@ class HpAgentModelCalculationSpec
               outputConfig,
               _,
             ) =>
-          inputModel shouldBe WithHeatInputContainer(hpInput, thermalGrid)
+          inputModel shouldBe WithHeatInputContainer(
+            hpInput,
+            defaultThermalGrid,
+          )
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe services
           defaultSimulationStart shouldBe this.defaultSimulationStart
@@ -270,7 +274,7 @@ class HpAgentModelCalculationSpec
 
       /* Expect a registration message */
       weatherService.expectMsg(
-        RegisterForWeatherMessage(51.4843281, 7.4116482)
+        RegisterForWeatherMessage(52.02083574, 7.40110716)
       )
 
       /* ... as well as corresponding state and state data */
@@ -371,14 +375,14 @@ class HpAgentModelCalculationSpec
 
       /* Expect a registration message */
       weatherService.expectMsg(
-        RegisterForWeatherMessage(51.4843281, 7.4116482)
+        RegisterForWeatherMessage(52.02083574, 7.40110716)
       )
       weatherService.send(
         hpAgent,
         RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
 
       hpAgent.stateName shouldBe Idle
@@ -442,7 +446,7 @@ class HpAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(hpAgent.stateName shouldBe Idle)
       /* State data is tested in another test */
@@ -573,7 +577,7 @@ class HpAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(hpAgent.stateName shouldBe Idle)
 
@@ -702,7 +706,7 @@ class HpAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(3600L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(hpAgent.stateName shouldBe Idle)
 
@@ -773,7 +777,7 @@ class HpAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(hpAgent.stateName shouldBe Idle)
 

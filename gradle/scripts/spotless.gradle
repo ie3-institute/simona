@@ -19,16 +19,14 @@ spotless {
     licenseHeader ie3LicHead
     // the Groovy Eclipse formatter extends the Java Eclipse formatter,
     // so it formats Java files by default (unless `excludeJava` is used).
-    // FIXME rolled back greclipse version https://github.com/diffplug/spotless/issues/1860
-    greclipse('4.27').configFile('greclipse.properties')
+    greclipse().configFile('greclipse.properties')
     indentWithSpaces 2
   }
 
   groovyGradle {
     // same as groovy, but for .gradle (defaults to '*.gradle')
     target '*.gradle', 'gradle/scripts/*.gradle'
-    // FIXME rolled back greclipse version https://github.com/diffplug/spotless/issues/1860
-    greclipse('4.27')
+    greclipse()
     indentWithSpaces 2
   }
 

@@ -46,11 +46,10 @@ import edu.ie3.simona.model.participant.{
   SystemParticipant,
 }
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexResponse,
   IssueFlexControl,
-  RequestFlexOptions,
+  FlexActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
@@ -60,7 +59,6 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.ReactivePower
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import org.apache.pekko.actor.{ActorRef, FSM}
 import squants.{Dimensionless, Power}
@@ -223,7 +221,7 @@ abstract class ParticipantAgent[
       finalizeTickAfterPF(baseStateData, tick)
 
     case Event(
-          RequestFlexOptions(tick),
+          FlexActivation(tick),
           baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
         ) =>
       val expectedSenders = baseStateData.foreseenDataTicks
@@ -338,7 +336,7 @@ abstract class ParticipantAgent[
       )(stateData.baseStateData.outputConfig)
 
     case Event(
-          RequestFlexOptions(tick),
+          FlexActivation(tick),
           stateData: DataCollectionStateData[PD],
         ) =>
       checkForExpectedDataAndChangeState(
@@ -356,28 +354,13 @@ abstract class ParticipantAgent[
             isYetTriggered,
           ),
         ) =>
-      /* We yet have received at least one data provision message. Handle all messages, that follow up for this tick, by
-       * adding the received data to the collection state data and checking, if everything is at its place */
-      val unexpectedSender = baseStateData.foreseenDataTicks.exists {
-        case (ref, None) => msg.serviceRef == ref
-        case _           => false
-      }
-
-      if (data.contains(msg.serviceRef) || unexpectedSender) {
+      if (data.contains(msg.serviceRef)) {
         /* Update the yet received information */
         val updatedData = data + (msg.serviceRef -> Some(msg.data))
 
-        /* If we have received unexpected data, we also have not been scheduled before */
-        if (unexpectedSender)
-          scheduler ! ScheduleActivation(
-            self.toTyped,
-            msg.tick,
-            msg.unlockKey,
-          )
-
         /* Depending on if a next data tick can be foreseen, either update the entry in the base state data or remove
          * it */
-        val foreSeenDataTicks =
+        val foreseenDataTicks =
           baseStateData.foreseenDataTicks + (msg.serviceRef -> msg.nextDataTick)
         val updatedBaseStateData = BaseStateData.updateBaseStateData(
           baseStateData,
@@ -385,7 +368,7 @@ abstract class ParticipantAgent[
           baseStateData.requestValueStore,
           baseStateData.voltageValueStore,
           baseStateData.additionalActivationTicks,
-          foreSeenDataTicks,
+          foreseenDataTicks,
         )
         val updatedStateData: DataCollectionStateData[PD] = stateData
           .copy(
@@ -453,13 +436,17 @@ abstract class ParticipantAgent[
             _,
           ),
         ) =>
-      val updatedReceivedSecondaryData = ValueStore.updateValueStore(
-        participantStateData.receivedSecondaryDataStore,
-        currentTick,
-        data.map { case (actorRef, Some(data: SecondaryData)) =>
-          actorRef -> data
-        },
-      )
+      val updatedReceivedSecondaryData = data match {
+        case nonEmptyData if nonEmptyData.nonEmpty =>
+          ValueStore.updateValueStore(
+            participantStateData.receivedSecondaryDataStore,
+            currentTick,
+            nonEmptyData.collect { case (actorRef, Some(data: SecondaryData)) =>
+              actorRef -> data
+            },
+          )
+        case _ => participantStateData.receivedSecondaryDataStore
+      }
 
       /* At least parts of the needed data has been received or it is an additional activation, that has been triggered.
        * Anyways, the calculation routine has also to take care of filling up missing data. */
@@ -612,16 +599,13 @@ abstract class ParticipantAgent[
           actorRef -> None
       }
 
-    val unforeseenPossible =
-      baseStateData.foreseenDataTicks.exists(_._2.isEmpty)
-
     val nextStateData = DataCollectionStateData(
       baseStateData,
       expectedSenders,
       yetTriggered = true,
     )
 
-    if (expectedSenders.nonEmpty || unforeseenPossible) {
+    if (expectedSenders.nonEmpty) {
       /* Do await provision messages in HandleInformation */
       goto(HandleInformation) using nextStateData
     } else {
