@@ -41,20 +41,22 @@ class RunSimonaStandaloneIT
     "run und produce results based on a valid config correctly" in {
 
       val tscfgConf = ConfigFactory.parseString(
-       """
+        """
          |akka.loggers = ["akka.event.slf4j.Slf4jLogger"]
          |akka.loglevel = "OFF"
          |""".stripMargin
       )
-      val confSrc: ConfigObjectSource = ConfigSource.string(
-        s"""
+      val confSrc: ConfigObjectSource = ConfigSource
+        .string(
+          s"""
            |simona.output.base.dir = "$testTmpDir"
            |simona.time.startDateTime = "2011-01-01 00:00:00"
            |simona.time.endDateTime = "2011-01-01 02:00:00"
            |akka.loggers = ["akka.event.slf4j.Slf4jLogger"]
            |akka.loglevel = "OFF"
            |""".stripMargin
-      ).withFallback(ConfigSource.file(new File(configFile)))
+        )
+        .withFallback(ConfigSource.file(new File(configFile)))
       // TODO: Removed the following line because not sure why that is needed. Remove if indded not needed
       // .withFallback(ConfigFactory.parseString(s"config=$configFile"))
 

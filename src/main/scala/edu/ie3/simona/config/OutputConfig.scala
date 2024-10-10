@@ -20,7 +20,7 @@ object OutputConfig {
 
   final case class OutputBaseConfig(
       dir: String,
-      addTimestampToOutputDir: Boolean = true ,
+      addTimestampToOutputDir: Boolean = true
   )
 
   final case class OutputSinkConfig(
@@ -30,7 +30,8 @@ object OutputConfig {
   )
 
   object OutputSinkConfig {
-    def csv: OutputSinkConfig = OutputSinkConfig(Some(OutputCsvParams.default), None, None)
+    def csv: OutputSinkConfig =
+      OutputSinkConfig(Some(OutputCsvParams.default), None, None)
   }
 
   final case class OutputCsvParams(

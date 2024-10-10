@@ -12,7 +12,11 @@ import java.util.concurrent.TimeUnit
 import akka.pattern.ask
 import akka.util.Timeout
 import edu.ie3.simona.config.{ArgsParser, ConfigFailFast, SimonaConfig}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{InitSimMessage, SimulationFailureMessage, SimulationSuccessfulMessage}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  InitSimMessage,
+  SimulationFailureMessage,
+  SimulationSuccessfulMessage
+}
 import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
 
@@ -20,10 +24,10 @@ import java.nio.file.{Paths}
 import scala.concurrent.Await
 
 /** Run a standalone simulation of simona
- *
- * @version 0.1
- * @since 01.07.20
- */
+  *
+  * @version 0.1
+  * @since 01.07.20
+  */
 object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
 
   override implicit val timeout: Timeout = Timeout(50000, TimeUnit.SECONDS)
@@ -35,11 +39,13 @@ object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
     // Note: We parse the config as tscfg separately, as it includes the akka configuration,
     // which is passed to the actor system
     val (arguments, tscfg) = ArgsParser.prepareConfig(args)
-    val cfgPath = Paths.get(arguments.configLocation.getOrElse(
-      throw new RuntimeException(
-        "Please provide a valid config file via --config <path-to-config-file>."
+    val cfgPath = Paths.get(
+      arguments.configLocation.getOrElse(
+        throw new RuntimeException(
+          "Please provide a valid config file via --config <path-to-config-file>."
+        )
       )
-    ))
+    )
     val simonaConfig = SimonaConfig(cfgPath)
     ConfigFailFast.check(tscfg, simonaConfig)
 

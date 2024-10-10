@@ -8,21 +8,34 @@ package edu.ie3.simona.agent.participant.wec
 
 import akka.actor.{ActorRef, FSM}
 import edu.ie3.datamodel.models.input.system.WecInput
-import edu.ie3.datamodel.models.result.system.{SystemParticipantResult, WecResult}
+import edu.ie3.datamodel.models.result.system.{
+  SystemParticipantResult,
+  WecResult
+}
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent._
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{ApparentPower, ZERO_POWER}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPower,
+  ZERO_POWER
+}
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData._
-import edu.ie3.simona.agent.participant.statedata.{DataCollectionStateData, ParticipantStateData}
+import edu.ie3.simona.agent.participant.statedata.{
+  DataCollectionStateData,
+  ParticipantStateData
+}
 import edu.ie3.simona.agent.participant.wec.WecAgent.neededServices
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.RuntimeConfig.SimpleRuntimeConfig
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
-import edu.ie3.simona.exceptions.agent.{AgentInitializationException, InconsistentStateException, InvalidRequestException}
+import edu.ie3.simona.exceptions.agent.{
+  AgentInitializationException,
+  InconsistentStateException,
+  InvalidRequestException
+}
 import edu.ie3.simona.model.participant.WecModel
 import edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData

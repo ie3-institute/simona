@@ -14,8 +14,14 @@ import edu.ie3.simona.config.SimonaConfig.TimeConfig
 import edu.ie3.simona.event.RuntimeEvent._
 import edu.ie3.simona.ontology.messages.SchedulerMessage._
 import edu.ie3.simona.ontology.trigger.Trigger
-import edu.ie3.simona.ontology.trigger.Trigger.{ActivityStartTrigger, InitializeTrigger}
-import edu.ie3.simona.scheduler.SimSchedulerSpec.{DummySupervisor, RichTriggeredAgent}
+import edu.ie3.simona.ontology.trigger.Trigger.{
+  ActivityStartTrigger,
+  InitializeTrigger
+}
+import edu.ie3.simona.scheduler.SimSchedulerSpec.{
+  DummySupervisor,
+  RichTriggeredAgent
+}
 import edu.ie3.simona.test.common.{TestKitWithShutdown, UnitSpec}
 import edu.ie3.simona.util.SimonaConstants
 import org.mockito.Mockito.doReturn
@@ -41,7 +47,7 @@ class SimSchedulerSpec
   private val defaultTimeConfig = TimeConfig(
     startDateTime = "2011-01-01 00:00:00",
     endDateTime = "2011-01-01 01:00:00",
-    schedulerReadyCheckWindow = Some(900),
+    schedulerReadyCheckWindow = Some(900)
   )
 
   def setupScheduler(

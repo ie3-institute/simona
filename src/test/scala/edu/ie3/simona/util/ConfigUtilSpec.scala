@@ -6,26 +6,43 @@
 
 package edu.ie3.simona.util
 
-import edu.ie3.datamodel.models.result.connector.{LineResult, SwitchResult, Transformer2WResult, Transformer3WResult}
+import edu.ie3.datamodel.models.result.connector.{
+  LineResult,
+  SwitchResult,
+  Transformer2WResult,
+  Transformer3WResult
+}
 import edu.ie3.datamodel.models.result.system.{ChpResult, LoadResult}
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.config.IoConfigUtils.ResultKafkaParams
-import edu.ie3.simona.config.OutputConfig.{BaseOutputConfig, GridOutputConfig, ParticipantOutputConfig}
-import edu.ie3.simona.config.RuntimeConfig.{LoadRuntimeConfig, SimpleRuntimeConfig}
+import edu.ie3.simona.config.OutputConfig.{
+  BaseOutputConfig,
+  GridOutputConfig,
+  ParticipantOutputConfig
+}
+import edu.ie3.simona.config.RuntimeConfig.{
+  LoadRuntimeConfig,
+  SimpleRuntimeConfig
+}
 import edu.ie3.simona.config.SimonaConfig.{apply => _, _}
 import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier._
-import edu.ie3.simona.util.ConfigUtil.{BaseOutputConfigUtil, GridOutputConfigUtil, NotifierIdentifier, ParticipantConfigUtil}
+import edu.ie3.simona.util.ConfigUtil.{
+  BaseOutputConfigUtil,
+  GridOutputConfigUtil,
+  NotifierIdentifier,
+  ParticipantConfigUtil
+}
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor2}
 
 import java.util.UUID
 
 class ConfigUtilSpec
     extends UnitSpec
-        with TableDrivenPropertyChecks
-        with ConfigTestData {
+    with TableDrivenPropertyChecks
+    with ConfigTestData {
   "The participant config util" should {
     "setup correctly with valid load data" in {
       val loadRuntimeConfig =
@@ -50,14 +67,14 @@ class ConfigUtilSpec
 
         inside(defaultConfigs.get(classOf[LoadRuntimeConfig])) {
           case Some(
-          LoadRuntimeConfig(
-          calculateMissingReactivePowerWithModel,
-          scaling,
-          uuids,
-          modelBehaviour,
-          reference
-          )
-          ) =>
+                LoadRuntimeConfig(
+                  calculateMissingReactivePowerWithModel,
+                  scaling,
+                  uuids,
+                  modelBehaviour,
+                  reference
+                )
+              ) =>
             calculateMissingReactivePowerWithModel shouldBe false
             modelBehaviour shouldBe "fix"
             reference shouldBe "power"
@@ -106,14 +123,14 @@ class ConfigUtilSpec
         defaultConfigs.size shouldBe 5
         inside(defaultConfigs.get(classOf[LoadRuntimeConfig])) {
           case Some(
-          LoadRuntimeConfig(
-          calculateMissingReactivePowerWithModel,
-          scaling,
-          uuids,
-          modelBehaviour,
-          reference
-          )
-          ) =>
+                LoadRuntimeConfig(
+                  calculateMissingReactivePowerWithModel,
+                  scaling,
+                  uuids,
+                  modelBehaviour,
+                  reference
+                )
+              ) =>
             calculateMissingReactivePowerWithModel shouldBe false
             modelBehaviour shouldBe "profile"
             reference shouldBe "power"
@@ -216,23 +233,23 @@ class ConfigUtilSpec
       actual.getOrDefault[LoadRuntimeConfig](
         UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
       ) shouldBe
-          LoadRuntimeConfig(
-            calculateMissingReactivePowerWithModel = false,
-            uuids = Seq("49f250fa-41ff-4434-a083-79c98d260a76"),
-            scaling = 1.3,
-            modelBehaviour = "profile",
-            reference = "power"
-          )
+        LoadRuntimeConfig(
+          calculateMissingReactivePowerWithModel = false,
+          uuids = Seq("49f250fa-41ff-4434-a083-79c98d260a76"),
+          scaling = 1.3,
+          modelBehaviour = "profile",
+          reference = "power"
+        )
       actual.getOrDefault[LoadRuntimeConfig](
         UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
       ) shouldBe
-          LoadRuntimeConfig(
-            calculateMissingReactivePowerWithModel = false,
-            scaling = 1.5,
-            uuids = Seq("fb8f1443-1843-4ecd-a94a-59be8148397f"),
-            modelBehaviour = "random",
-            reference = "energy"
-          )
+        LoadRuntimeConfig(
+          calculateMissingReactivePowerWithModel = false,
+          scaling = 1.5,
+          uuids = Seq("fb8f1443-1843-4ecd-a94a-59be8148397f"),
+          modelBehaviour = "random",
+          reference = "energy"
+        )
     }
   }
 
@@ -255,16 +272,16 @@ class ConfigUtilSpec
 
       inside(actual) { case ParticipantConfigUtil(configs, defaultConfigs) =>
         configs shouldBe Map
-            .empty[UUID, LoadRuntimeConfig]
+          .empty[UUID, LoadRuntimeConfig]
 
         inside(defaultConfigs.get(classOf[SimpleRuntimeConfig])) {
           case Some(
-          SimpleRuntimeConfig(
-          calculateMissingReactivePowerWithModel,
-          scaling,
-          uuids
-          )
-          ) =>
+                SimpleRuntimeConfig(
+                  calculateMissingReactivePowerWithModel,
+                  scaling,
+                  uuids
+                )
+              ) =>
             calculateMissingReactivePowerWithModel shouldBe false
             scaling shouldBe 1.0
             uuids shouldBe List("default")
@@ -306,12 +323,12 @@ class ConfigUtilSpec
         defaultConfigs.size shouldBe 5
         inside(defaultConfigs.get(classOf[SimpleRuntimeConfig])) {
           case Some(
-          SimpleRuntimeConfig(
-          calculateMissingReactivePowerWithModel,
-          scaling,
-          uuids
-          )
-          ) =>
+                SimpleRuntimeConfig(
+                  calculateMissingReactivePowerWithModel,
+                  scaling,
+                  uuids
+                )
+              ) =>
             calculateMissingReactivePowerWithModel shouldBe false
             scaling shouldBe 1.3
             uuids shouldBe List("default")
@@ -402,19 +419,19 @@ class ConfigUtilSpec
       actual.getOrDefault[SimpleRuntimeConfig](
         UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
       ) shouldBe
-          SimpleRuntimeConfig(
-            Seq("49f250fa-41ff-4434-a083-79c98d260a76"),
-            1.3,
-            calculateMissingReactivePowerWithModel = false,
-          )
+        SimpleRuntimeConfig(
+          Seq("49f250fa-41ff-4434-a083-79c98d260a76"),
+          1.3,
+          calculateMissingReactivePowerWithModel = false
+        )
       actual.getOrDefault[SimpleRuntimeConfig](
         UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
       ) shouldBe
-          SimpleRuntimeConfig(
-            Seq("fb8f1443-1843-4ecd-a94a-59be8148397f"),
-            1.5,
-            calculateMissingReactivePowerWithModel = false,
-          )
+        SimpleRuntimeConfig(
+          Seq("fb8f1443-1843-4ecd-a94a-59be8148397f"),
+          1.5,
+          calculateMissingReactivePowerWithModel = false
+        )
     }
   }
 
@@ -498,33 +515,33 @@ class ConfigUtilSpec
       actual.getOrDefault[SimpleRuntimeConfig](
         UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
       ) shouldBe
-          SimpleRuntimeConfig(
-            Seq("default"),
-            1.0,
-            calculateMissingReactivePowerWithModel = false,
-          )
+        SimpleRuntimeConfig(
+          Seq("default"),
+          1.0,
+          calculateMissingReactivePowerWithModel = false
+        )
 
       // return default if a request for load is done, but fixed feed is found
       actual.getOrDefault[LoadRuntimeConfig](
         UUID.fromString("50f250fa-41ff-4434-a083-79c98d260a76")
       ) shouldBe
-          LoadRuntimeConfig(
-            List("default"),
-            1.0,
-            calculateMissingReactivePowerWithModel = false,
-            "profile",
-            "power"
-          )
+        LoadRuntimeConfig(
+          List("default"),
+          1.0,
+          calculateMissingReactivePowerWithModel = false,
+          "profile",
+          "power"
+        )
 
       // return default if a request for pv is done, but fixed feed is found
       actual.getOrDefault[SimpleRuntimeConfig](
         UUID.fromString("50f250fa-41ff-4434-a083-79c98d260a76")
       ) shouldBe
-          SimpleRuntimeConfig(
-            List("default"),
-            1.0,
-            calculateMissingReactivePowerWithModel = false,
-          )
+        SimpleRuntimeConfig(
+          List("default"),
+          1.0,
+          calculateMissingReactivePowerWithModel = false
+        )
     }
   }
 
@@ -534,77 +551,77 @@ class ConfigUtilSpec
         Table(
           ("config", "expected"),
           (
-              GridOutputConfig(
-                "grid",
-                nodes = false,
-                lines = false,
-                switches = false,
-                transformers2w = false,
-                transformers3w = false,
-              ),
-              Set.empty[Class[_ <: ResultEntity]]
+            GridOutputConfig(
+              "grid",
+              nodes = false,
+              lines = false,
+              switches = false,
+              transformers2w = false,
+              transformers3w = false
+            ),
+            Set.empty[Class[_ <: ResultEntity]]
           ),
           (
-              GridOutputConfig(
-                "grid",
-                nodes = false,
-                switches = false,
-                transformers2w = false,
-                transformers3w = false,
-              ),
-              Set(classOf[LineResult])
+            GridOutputConfig(
+              "grid",
+              nodes = false,
+              switches = false,
+              transformers2w = false,
+              transformers3w = false
+            ),
+            Set(classOf[LineResult])
           ),
           (
-              GridOutputConfig(
-                "grid",
-                lines = false,
-                switches = false,
-                transformers2w = false,
-                transformers3w = false,
-              ),
-              Set(classOf[NodeResult])
+            GridOutputConfig(
+              "grid",
+              lines = false,
+              switches = false,
+              transformers2w = false,
+              transformers3w = false
+            ),
+            Set(classOf[NodeResult])
           ),
           (
-              GridOutputConfig(
-                "grid",
-                nodes = false,
-                lines = false,
-                transformers2w = false,
-                transformers3w = false,
-              ),
-              Set(classOf[SwitchResult])
+            GridOutputConfig(
+              "grid",
+              nodes = false,
+              lines = false,
+              transformers2w = false,
+              transformers3w = false
+            ),
+            Set(classOf[SwitchResult])
           ),
           (
-              GridOutputConfig(
-                "grid",
-                nodes = false,
-                lines = false,
-                switches = false,
-                transformers3w = false,
-              ),
-              Set(classOf[Transformer2WResult])
+            GridOutputConfig(
+              "grid",
+              nodes = false,
+              lines = false,
+              switches = false,
+              transformers3w = false
+            ),
+            Set(classOf[Transformer2WResult])
           ),
           (
-              GridOutputConfig(
-                "grid",
-                nodes = false,
-                lines = false,
-                switches = false,
-                transformers2w = false,
-              ),
-              Set(classOf[Transformer3WResult])
+            GridOutputConfig(
+              "grid",
+              nodes = false,
+              lines = false,
+              switches = false,
+              transformers2w = false
+            ),
+            Set(classOf[Transformer3WResult])
           ),
           (
-              GridOutputConfig(
-                "grid",
-              ),
-              Set(
-                classOf[LineResult],
-                classOf[NodeResult],
-                classOf[SwitchResult],
-                classOf[Transformer2WResult],
-                classOf[Transformer3WResult]
-              )
+            GridOutputConfig(
+              "grid"
+            ),
+            Set(
+              classOf[LineResult],
+              classOf[NodeResult],
+              classOf[SwitchResult],
+              classOf[Transformer2WResult],
+              classOf[Transformer3WResult]
+            )
           )
         )
 

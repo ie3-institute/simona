@@ -13,10 +13,20 @@ import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.config.InputConfig.PrimaryConfig
 import edu.ie3.simona.config.IoConfigUtils.TimeStampedSqlParams
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  CompletionMessage,
+  ScheduleTriggerMessage,
+  TriggerWithIdMessage
+}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{RegistrationFailedMessage, RegistrationSuccessfulMessage}
-import edu.ie3.simona.ontology.trigger.Trigger.{ActivityStartTrigger, InitializeServiceTrigger}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
+  RegistrationFailedMessage,
+  RegistrationSuccessfulMessage
+}
+import edu.ie3.simona.ontology.trigger.Trigger.{
+  ActivityStartTrigger,
+  InitializeServiceTrigger
+}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.SqlInitPrimaryServiceStateData
 import edu.ie3.simona.test.common.AgentSpec
@@ -76,7 +86,7 @@ class PrimaryServiceProxySqlIT
     password = container.password,
     schemaName = schemaName,
     tableName = "is_ignored",
-    timePattern = "yyyy-MM-dd HH:mm:ss",
+    timePattern = "yyyy-MM-dd HH:mm:ss"
   )
 
   "A primary service proxy with SQL source" should {
@@ -95,7 +105,7 @@ class PrimaryServiceProxySqlIT
           None,
           None,
           sqlParams = Some(sqlParams),
-          None,
+          None
         ),
         simulationStart
       )

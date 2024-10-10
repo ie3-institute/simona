@@ -33,7 +33,7 @@ object IoConfigUtils {
   case class InfluxDb1xParams(
       database: String,
       port: Int,
-      url: String,
+      url: String
       // TODO: time pattern needed?
 //      timePattern: String = "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'"
   )

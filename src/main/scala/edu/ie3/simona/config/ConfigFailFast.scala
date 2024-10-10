@@ -10,7 +10,10 @@ import com.typesafe.config.{Config, ConfigException}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.config.IoConfigUtils.{InfluxDb1xParams, ResultKafkaParams}
 import edu.ie3.simona.config.OutputConfig.BaseOutputConfig
-import edu.ie3.simona.config.RuntimeConfig.{BaseRuntimeConfig, RuntimeParticipantConfig}
+import edu.ie3.simona.config.RuntimeConfig.{
+  BaseRuntimeConfig,
+  RuntimeParticipantConfig
+}
 import edu.ie3.simona.config.SimonaConfig.RefSystemConfig
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.io.result.ResultSinkType
@@ -18,7 +21,10 @@ import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.weather.WeatherSource
 import edu.ie3.simona.util.CollectionUtils
-import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{checkInfluxDb1xParams, checkKafkaParams}
+import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
+  checkInfluxDb1xParams,
+  checkKafkaParams
+}
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
 import edu.ie3.util.scala.ReflectionTools
 import edu.ie3.util.{StringUtils, TimeUtil}
@@ -535,7 +541,7 @@ case object ConfigFailFast extends LazyLogging {
     if (nanos % 1e9 != 0) {
       throw new InvalidConfigParameterException(
         "Invalid time resolution. Please ensure, that the time resolution " +
-            "for power flow calculation is at least rounded to a full second!"
+          "for power flow calculation is at least rounded to a full second!"
       )
     }
   }

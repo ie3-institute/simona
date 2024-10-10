@@ -17,14 +17,35 @@ import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
 import edu.ie3.datamodel.models.value.{SValue, Value}
 import edu.ie3.simona.config.InputConfig.PrimaryConfig
-import edu.ie3.simona.config.IoConfigUtils.{CouchbaseParams, InfluxDb1xParams, TimeStampedDataCsvParams}
-import edu.ie3.simona.exceptions.{InitializationException, InvalidConfigParameterException}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{CompletionMessage, ScheduleTriggerMessage, TriggerWithIdMessage}
+import edu.ie3.simona.config.IoConfigUtils.{
+  CouchbaseParams,
+  InfluxDb1xParams,
+  TimeStampedDataCsvParams
+}
+import edu.ie3.simona.exceptions.{
+  InitializationException,
+  InvalidConfigParameterException
+}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  CompletionMessage,
+  ScheduleTriggerMessage,
+  TriggerWithIdMessage
+}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{PrimaryServiceRegistrationMessage, WorkerRegistrationMessage}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  PrimaryServiceRegistrationMessage,
+  WorkerRegistrationMessage
+}
 import edu.ie3.simona.ontology.trigger.Trigger.InitializeServiceTrigger
-import edu.ie3.simona.service.primary.PrimaryServiceProxy.{InitPrimaryServiceProxyStateData, PrimaryServiceStateData, SourceRef}
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.{CsvInitPrimaryServiceStateData, InitPrimaryServiceStateData}
+import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
+  InitPrimaryServiceProxyStateData,
+  PrimaryServiceStateData,
+  SourceRef
+}
+import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
+  CsvInitPrimaryServiceStateData,
+  InitPrimaryServiceStateData
+}
 import edu.ie3.simona.test.common.AgentSpec
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
 import edu.ie3.util.TimeUtil
@@ -69,7 +90,7 @@ class PrimaryServiceProxySpec
         TimeStampedDataCsvParams(
           baseDirectoryPath.toString,
           csvSep,
-          TimeUtil.withDefaults.getDtfPattern,
+          TimeUtil.withDefaults.getDtfPattern
         )
       ),
       None,
@@ -108,7 +129,7 @@ class PrimaryServiceProxySpec
         Some(TimeStampedDataCsvParams("", "", "")),
         None,
         None,
-        Some(CouchbaseParams("", "", "", "", "", "")),
+        Some(CouchbaseParams("", "", "", "", "", ""))
       )
 
       val exception = intercept[InvalidConfigParameterException](
@@ -136,7 +157,7 @@ class PrimaryServiceProxySpec
         None,
         None,
         None,
-        Some(CouchbaseParams("", "", "", "", "", "")),
+        Some(CouchbaseParams("", "", "", "", "", ""))
       )
 
       val exception = intercept[InvalidConfigParameterException](
@@ -380,7 +401,7 @@ class PrimaryServiceProxySpec
         None,
         None,
         None,
-        Some(CouchbaseParams("", "", "", "", "", "")),
+        Some(CouchbaseParams("", "", "", "", "", ""))
       )
       proxy invokePrivate initializeWorker(
         metaPq,
@@ -563,7 +584,7 @@ class PrimaryServiceProxySpec
           None,
           None,
           None,
-          Some(CouchbaseParams("", "", "", "", "", "")),
+          Some(CouchbaseParams("", "", "", "", "", ""))
         )
       )
 

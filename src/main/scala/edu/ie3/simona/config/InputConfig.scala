@@ -84,11 +84,11 @@ object InputConfig {
   object CoordinateSourceConfig {
     def sample: CoordinateSourceConfig = {
       CoordinateSourceConfig(
-            csvParams = None,
-            sampleParams = Some(WeatherSampleParams(use = true)),
-            sqlParams = None
-          )
-        }
+        csvParams = None,
+        sampleParams = Some(WeatherSampleParams(use = true)),
+        sqlParams = None
+      )
+    }
   }
 
   // TODO: this class is useless

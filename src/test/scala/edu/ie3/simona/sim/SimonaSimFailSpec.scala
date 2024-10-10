@@ -11,9 +11,17 @@ import akka.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.config.InputConfig.{CoordinateSourceConfig, PrimaryConfig, WeatherDataSourceConfig}
+import edu.ie3.simona.config.InputConfig.{
+  CoordinateSourceConfig,
+  PrimaryConfig,
+  WeatherDataSourceConfig
+}
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{InitSimMessage, ScheduleTriggerMessage, SimulationFailureMessage}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  InitSimMessage,
+  ScheduleTriggerMessage,
+  SimulationFailureMessage
+}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.weather.WeatherService
@@ -176,7 +184,7 @@ object SimonaSimFailSpec {
               None,
               None,
               None
-            ),
+            )
           )
         )
       )

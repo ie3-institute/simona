@@ -23,8 +23,14 @@ import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequ
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
-import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceActivationBaseStateData}
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.{PrimaryServiceInitializedStateData, ProvidePrimaryDataMessage}
+import edu.ie3.simona.service.ServiceStateData.{
+  InitializeServiceStateData,
+  ServiceActivationBaseStateData
+}
+import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
+  PrimaryServiceInitializedStateData,
+  ProvidePrimaryDataMessage
+}
 import edu.ie3.simona.service.{ServiceStateData, SimonaService}
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq

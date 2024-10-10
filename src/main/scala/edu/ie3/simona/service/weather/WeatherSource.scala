@@ -362,7 +362,7 @@ object WeatherSource {
               Some(
                 baseCsvParams @ IoConfigUtils.BaseCsvParams(
                   directoryPath,
-                  csvSep,
+                  csvSep
                 )
               )
             ) =>
