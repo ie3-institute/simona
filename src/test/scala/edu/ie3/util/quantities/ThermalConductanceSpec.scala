@@ -33,7 +33,7 @@ class ThermalConductanceSpec extends AnyFlatSpec with Matchers {
   }
 
   it should "return Energy when multiplied by Temperature in Kelvin and Time" in {
-    WattsPerKelvin(1000).thermalConductanceToEnergy(
+    WattsPerKelvin(1000).calcThermalEnergyChange(
       Kelvin(10),
       Kelvin(0),
       Hours(5),
@@ -41,7 +41,7 @@ class ThermalConductanceSpec extends AnyFlatSpec with Matchers {
   }
 
   it should "return Energy when multiplied by Temperature in Celsius and Time" in {
-    WattsPerKelvin(1000).thermalConductanceToEnergy(
+    WattsPerKelvin(1000).calcThermalEnergyChange(
       Celsius(10),
       Celsius(0),
       Hours(5),
