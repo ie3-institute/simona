@@ -1,5 +1,5 @@
 Sphinx==8.0.2
-sphinx-rtd-theme==3.0.0
+sphinx-rtd-theme==3.0.1
 sphinxcontrib-plantuml==0.30
 myst-parser==4.0.0
 markdown-it-py==3.0.0
