@@ -18,6 +18,7 @@ import edu.ie3.simona.model.participant.ChpModel.{ChpRelevantData, ChpState}
 import edu.ie3.simona.model.thermal.CylindricalThermalStorage
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits.{
   EURO,
   EURO_PER_MEGAWATTHOUR,
@@ -31,6 +32,7 @@ import squants.energy.{KilowattHours, Kilowatts}
 import squants.space.CubicMeters
 import squants.thermal.Celsius
 import tech.units.indriya.quantity.Quantities.getQuantity
+import tech.units.indriya.unit.Units
 import tech.units.indriya.unit.Units.PERCENT
 
 import java.util.UUID
@@ -116,11 +118,33 @@ class ChpModelSpec
 
   def buildThermalStorage(
       storageInput: CylindricalStorageInput,
+      volume: Double,
+  ): CylindricalThermalStorage = {
+    val storedEnergy = CylindricalThermalStorage.volumeToEnergy(
+      CubicMeters(volume),
+      KilowattHoursPerKelvinCubicMeters(
+        storageInput.getC
+          .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
+          .getValue
+          .doubleValue
+      ),
+      Celsius(
+        storageInput.getInletTemp.to(Units.CELSIUS).getValue.doubleValue()
+      ),
+      Celsius(
+        storageInput.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue()
+      ),
+    )
+    CylindricalThermalStorage(storageInput, storedEnergy)
+  }
+  /*
+  def buildThermalStorage(
+      storageInput: CylindricalStorageInput,
       storageLvl: Double,
   ): CylindricalThermalStorage = {
     val storedEnergy = KilowattHours(storageLvl*20.0*1.0)
     CylindricalThermalStorage(storageInput, storedEnergy)
-  }
+  }*/
 
   "A ChpModel" should {
     "Check active power after calculating next state with #chpState and heat demand #heatDemand kWh:" in {
