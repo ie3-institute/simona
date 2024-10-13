@@ -112,7 +112,9 @@ final case class RuntimeNotifier(
           (adjustedLastCheck + checkWindow) to completedTick by checkWindow
 
         completedWindows.foreach { tick =>
-          notify(CheckWindowPassed(tick, duration(lastCheckWindowTime, nowTime)))
+          notify(
+            CheckWindowPassed(tick, duration(lastCheckWindowTime, nowTime))
+          )
         }
 
         completedWindows.lastOption
