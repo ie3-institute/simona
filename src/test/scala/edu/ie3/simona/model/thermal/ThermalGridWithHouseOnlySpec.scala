@@ -83,6 +83,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         val gridDemand = thermalGrid.energyDemand(
           tick,
           testGridAmbientTemperature,
+          testGridAmbientTemperature,
           ThermalGrid.startingState(thermalGrid),
         )
 

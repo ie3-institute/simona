@@ -150,6 +150,7 @@ final case class HpModel(
   ): Boolean = {
     val demand = thermalGrid.energyDemand(
       relevantData.currentTick,
+      state.ambientTemperature.getOrElse(relevantData.ambientTemperature),
       relevantData.ambientTemperature,
       state.thermalGridState,
     )
@@ -210,6 +211,7 @@ final case class HpModel(
     /* Determine the options we have */
     val thermalEnergyDemand = thermalGrid.energyDemand(
       data.currentTick,
+      lastState.ambientTemperature.getOrElse(data.ambientTemperature),
       data.ambientTemperature,
       lastState.thermalGridState,
     )

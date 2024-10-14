@@ -83,6 +83,7 @@ class ThermalGridWithStorageOnlySpec
         val gridDemand = thermalGrid.energyDemand(
           tick,
           testGridAmbientTemperature,
+          testGridAmbientTemperature,
           ThermalGrid.startingState(thermalGrid),
         )
 
@@ -96,6 +97,7 @@ class ThermalGridWithStorageOnlySpec
 
         val gridDemand = thermalGrid.energyDemand(
           tick,
+          testGridAmbientTemperature,
           testGridAmbientTemperature,
           ThermalGridState(
             None,
