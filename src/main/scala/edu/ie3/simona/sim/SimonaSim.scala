@@ -12,7 +12,7 @@ import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{DelayedStopHelper, RuntimeEventListener}
 import edu.ie3.simona.main.RunSimona.SimonaEnded
 import edu.ie3.simona.scheduler.TimeAdvancer
-import edu.ie3.simona.sim.setup.SimonaSetup
+import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
 import edu.ie3.util.scala.Scope
 import org.apache.pekko.actor.typed.scaladsl.adapter._
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
@@ -69,9 +69,6 @@ object SimonaSim {
   ): Behavior[Request] =
     Behaviors
       .receivePartial[Request] { case (ctx, Start(_)) =>
-        val resultEventListeners =
-          simonaSetup.resultEventListener(ctx)
-
         val runtimeEventListener = simonaSetup.runtimeEventListener(ctx)
 
         val timeAdvancer =
@@ -80,12 +77,13 @@ object SimonaSim {
 
         // External simulations have to be scheduled for initialization first,
         // so that the phase switch permanently activates them first
-        val extSimulationData = simonaSetup.extSimulations(ctx, scheduler)
+        val extSimulationData: ExtSimSetupData =
+          simonaSetup.extSimulations(ctx, scheduler)
 
         /* start services */
         // primary service proxy
         val primaryServiceProxy =
-          simonaSetup.primaryServiceProxy(ctx, scheduler)
+          simonaSetup.primaryServiceProxy(ctx, scheduler, extSimulationData)
 
         // weather service
         val weatherService =
@@ -97,7 +95,11 @@ object SimonaSim {
           primaryServiceProxy,
           weatherService,
           extSimulationData.evDataService,
+          extSimulationData.extEmDataService
         )
+
+        val resultEventListeners =
+          simonaSetup.resultEventListener(ctx, extSimulationData)
 
         /* start grid agents  */
         val gridAgents = simonaSetup.gridAgents(
@@ -118,18 +120,29 @@ object SimonaSim {
         /* watch all actors */
         resultEventListeners.foreach(ctx.watch)
         ctx.watch(runtimeEventListener)
-        extSimulationData.extSimAdapters.map(_.toTyped).foreach(ctx.watch)
+        extSimulationData.extResultDataService.foreach(
+          ref => ctx.watch(ref)
+        )
+        extSimulationData.extSimAdapters.foreach(
+          extSimAdapter => ctx.watch(extSimAdapter.toTyped)
+        )
         otherActors.foreach(ctx.watch)
 
         // Start simulation
         timeAdvancer ! TimeAdvancer.Start()
+
+        val delayedActors = resultEventListeners.appended(runtimeEventListener)
+
+        extSimulationData.extResultDataService.foreach(
+          ref => delayedActors.appended(ref)
+        )
 
         idle(
           ActorData(
             starter,
             extSimulationData.extSimAdapters,
             runtimeEventListener,
-            resultEventListeners.appended(runtimeEventListener),
+            delayedActors,
             otherActors,
           )
         )
@@ -192,10 +205,12 @@ object SimonaSim {
       ctx.stop(ref)
     }
 
-    actorData.extSimAdapters.foreach { ref =>
-      ctx.unwatch(ref)
-      ref ! ExtSimAdapter.Stop(simulationSuccessful)
-    }
+    actorData.extSimAdapters.foreach(
+      extSimAdapter => {
+        ctx.unwatch(extSimAdapter)
+        extSimAdapter ! ExtSimAdapter.Stop(simulationSuccessful)
+      }
+    )
 
     // if the simulation is successful, we're waiting for the delayed
     // stopping listeners to terminate and thus do not unwatch them here

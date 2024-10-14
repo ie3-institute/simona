@@ -13,6 +13,7 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.collection.mutable.PriorityMultiBiSet
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import squants.Power
 
 import java.time.ZonedDateTime
@@ -28,13 +29,16 @@ object EmDataCore {
     * @param startDate
     *   The start date of the simulation
     */
-  def create(implicit startDate: ZonedDateTime): Inactive =
+  def create(implicit startDate: ZonedDateTime, extInitTick: Option[Long]): Inactive =
     Inactive(
       Map.empty,
       PriorityMultiBiSet.empty,
       Set.empty,
       FlexCorrespondenceStore(),
       None,
+      extInitTick,
+      zeroKW,
+      None
     )
 
   /** Data structure holding relevant data and providing methods that handle
@@ -60,6 +64,9 @@ object EmDataCore {
       private val flexWithNext: Set[UUID],
       private val correspondences: FlexCorrespondenceStore,
       private val lastActiveTick: Option[Long],
+      nextSetPointTick: Option[Long],
+      lastSetPower: Power,
+      nextSetPointMessage: Option[SetPointFlexRequest]
   ) {
 
     /** Adds a connected agent, given its model UUID and actor reference
@@ -110,6 +117,9 @@ object EmDataCore {
         updatedQueue,
         correspondences,
         activeTick = newTick,
+        nextSetPointTick = nextSetPointTick,
+        lastSetPower = lastSetPower,
+        currentSetPower = None,
       )
     }
 
@@ -166,6 +176,13 @@ object EmDataCore {
     def getResults: Iterable[ApparentPower] =
       correspondences.store.values.flatMap(_.receivedResult.map(_.get))
 
+    def handleSetPointMessage(
+                               setPointMsg: SetPointFlexRequest
+                             ): Inactive = copy(
+      nextSetPointMessage = Some(setPointMsg)
+    )
+
+    def getLastActiveTick: Option[Long] = lastActiveTick
   }
 
   /** Data structure holding relevant data and providing methods that handle
@@ -191,7 +208,12 @@ object EmDataCore {
       private val correspondences: FlexCorrespondenceStore,
       private val awaitedConnectedAgents: Set[UUID] = Set.empty,
       activeTick: Long,
+      nextSetPointTick: Option[Long],
+      lastSetPower: Power,
+      currentSetPower: Option[Power]
   ) {
+
+    def getCorrespondences: FlexCorrespondenceStore = correspondences
 
     /** Removes and returns flex requests scheduled for the current tick, which
       * can be sent out at the current moment. Depending on the current tick,
@@ -243,16 +265,16 @@ object EmDataCore {
     }
 
     /** Handles the retrieval of flex options sent by some connected agent for
-      * the currently active tick.
-      *
-      * @param flexOptions
-      *   The received flex options
-      * @return
-      *   The updated [[AwaitingFlexOptions]] core
-      */
+     * the currently active tick.
+     *
+     * @param flexOptions
+     * The received flex options
+     * @return
+     * The updated [[AwaitingFlexOptions]] core
+     */
     def handleFlexOptions(
-        flexOptions: ProvideFlexOptions
-    ): AwaitingFlexOptions =
+                           flexOptions: ProvideFlexOptions
+                         ): AwaitingFlexOptions =
       copy(
         correspondences =
           correspondences.updateFlexOptions(flexOptions, activeTick),
@@ -266,28 +288,29 @@ object EmDataCore {
       * @return
       *   true if all awaited flex options have been received
       */
-    def isComplete: Boolean = awaitedConnectedAgents.isEmpty
+    def isComplete: Boolean = awaitedConnectedAgents.isEmpty & currentSetPower.isDefined
 
     /** Returns all flex options that are currently relevant, which can include
-      * flex options received at an earlier tick
-      * @return
-      *   all relevant flex options
-      */
+     * flex options received at an earlier tick
+     *
+     * @return
+     * all relevant flex options
+     */
     def getFlexOptions: Iterable[(UUID, ProvideFlexOptions)] =
       correspondences.store.flatMap { case (model, correspondence) =>
         correspondence.receivedFlexOptions.map(model -> _.get)
       }
 
     /** Handles and stores the control messages created by this [[EmAgent]]
-      *
-      * @param ctrlMsgs
-      *   The control messages created by this EM agent
-      * @return
-      *   The updated [[AwaitingFlexOptions]] core
-      */
+     *
+     * @param ctrlMsgs
+     * The control messages created by this EM agent
+     * @return
+     * The updated [[AwaitingFlexOptions]] core
+     */
     def handleFlexCtrl(
-        ctrlMsgs: Iterable[(UUID, Power)]
-    ): AwaitingFlexOptions = {
+                        ctrlMsgs: Iterable[(UUID, Power)]
+                      ): AwaitingFlexOptions = {
       val updatedStore = ctrlMsgs.foldLeft(correspondences) {
         case (store, (model, power)) =>
           val ctrlMsg = IssuePowerControl(activeTick, power)
@@ -297,12 +320,13 @@ object EmDataCore {
     }
 
     /** The model strategy might miss control messages when creating them in
-      * bulk. This method creates the missing messages, in particular for those
-      * agents that have been issued a flex request for the current tick and
-      * those that have received a control messages at an earlier tick.
-      * @return
-      *   The updated [[AwaitingFlexOptions]] core
-      */
+     * bulk. This method creates the missing messages, in particular for those
+     * agents that have been issued a flex request for the current tick and
+     * those that have received a control messages at an earlier tick.
+     *
+     * @return
+     * The updated [[AwaitingFlexOptions]] core
+     */
     def fillInMissingIssueCtrl(): AwaitingFlexOptions = {
       val updatedStore = correspondences.store
         .filter { case (_, correspondence) =>
@@ -321,7 +345,7 @@ object EmDataCore {
           // at an earlier tick
           val flexControlCancelled = correspondence.issuedCtrlMsg match {
             case Some(WithTime(_: IssuePowerControl, tick))
-                if tick < activeTick =>
+              if tick < activeTick =>
               true
             case _ => false
           }
@@ -338,17 +362,17 @@ object EmDataCore {
     }
 
     /** Completes the current state by collecting and returning the control
-      * messages for the current tick if possible, and otherwise a
-      * [[CriticalFailureException]] is thrown
-      *
-      * @return
-      *   A collection of agent-and-message pairs and an updated
-      *   [[AwaitingCompletions]] core
-      * @throws CriticalFailureException
-      *   on critical error
-      */
+     * messages for the current tick if possible, and otherwise a
+     * [[CriticalFailureException]] is thrown
+     *
+     * @return
+     * A collection of agent-and-message pairs and an updated
+     * [[AwaitingCompletions]] core
+     * @throws CriticalFailureException
+     * on critical error
+     */
     def complete()
-        : (Iterable[(Actor, IssueFlexControl)], AwaitingCompletions) = {
+    : (Iterable[(Actor, IssueFlexControl)], AwaitingCompletions) = {
 
       val modelUuidToMsg = correspondences.store.flatMap {
         case (modelUuid, correspondence) =>
@@ -379,10 +403,32 @@ object EmDataCore {
             participant
           }.toSet,
           activeTick = activeTick,
+          nextSetPointTick = nextSetPointTick,
+          currentSetPower = currentSetPower.getOrElse(throw new RuntimeException(""))
         ),
       )
     }
 
+    def handleSetPoint(
+                        setPointFlexRequest: SetPointFlexRequest
+                      ): AwaitingFlexOptions = {
+      copy(
+        nextSetPointTick = setPointFlexRequest.nextSetPointTick,
+        currentSetPower = Some(setPointFlexRequest.setPower)
+      )
+    }
+
+    def updateSetPoint(): AwaitingFlexOptions = {
+      copy(
+        currentSetPower = Some(lastSetPower)
+      )
+    }
+
+    def handleNoSetPointExpected(): AwaitingFlexOptions = {
+      copy(
+        currentSetPower = Some(lastSetPower)
+      )
+    }
   }
 
   /** Data structure holding relevant data and providing methods that handle
@@ -412,6 +458,8 @@ object EmDataCore {
       private val correspondences: FlexCorrespondenceStore,
       private val awaitedCompletions: Set[UUID],
       activeTick: Long,
+      nextSetPointTick: Option[Long] = Option.empty,
+      currentSetPower: Power = zeroKW
   ) {
 
     /** Handles a result by some connected agent for the currently active tick.
@@ -489,9 +537,10 @@ object EmDataCore {
           flexWithNext,
           correspondences,
           Some(activeTick),
+          nextSetPointTick,
+          currentSetPower,
+          None
         )
       }
-
   }
-
 }

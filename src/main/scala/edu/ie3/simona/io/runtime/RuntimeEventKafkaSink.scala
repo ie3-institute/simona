@@ -14,11 +14,7 @@ import edu.ie3.simona.io.runtime.RuntimeEventKafkaSink.SimonaEndMessage
 import edu.ie3.simona.io.runtime.RuntimeEventSink.RuntimeStats
 import edu.ie3.util.scala.io.ScalaReflectionSerde.reflectionSerializer4S
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG
-import org.apache.kafka.clients.producer.{
-  KafkaProducer,
-  ProducerConfig,
-  ProducerRecord,
-}
+import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, ProducerRecord}
 import org.apache.kafka.common.serialization.{Serdes, Serializer}
 import org.slf4j.Logger
 

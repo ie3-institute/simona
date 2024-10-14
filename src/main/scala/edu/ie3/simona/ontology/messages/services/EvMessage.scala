@@ -16,7 +16,7 @@ import org.apache.pekko.actor.ActorRef
 
 import java.util.UUID
 
-sealed trait EvMessage
+sealed trait EvMessage extends DataMessage
 
 object EvMessage {
 

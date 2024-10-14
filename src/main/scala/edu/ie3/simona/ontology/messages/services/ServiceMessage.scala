@@ -6,10 +6,14 @@
 
 package edu.ie3.simona.ontology.messages.services
 
-import org.apache.pekko.actor.ActorRef
+import edu.ie3.simona.agent.em.EmAgent
+
+import org.apache.pekko.actor.{ActorRef => ClassicRef}
+import org.apache.pekko.actor.typed.ActorRef
 
 import java.util.UUID
 import edu.ie3.simona.agent.participant.data.Data
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexRequest
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 
 /** Collections of all messages, that are send to and from the different
@@ -18,6 +22,8 @@ import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 sealed trait ServiceMessage
 
 object ServiceMessage {
+
+  final case class RequestExtPrimaryDataAssets() extends ServiceMessage {}
 
   /** Message used to register for a service
     */
@@ -38,11 +44,22 @@ object ServiceMessage {
     * @param requestingActor
     *   Reference to the requesting actor
     */
-  final case class WorkerRegistrationMessage(requestingActor: ActorRef)
+  final case class WorkerRegistrationMessage(requestingActor: ClassicRef)
       extends ServiceRegistrationMessage
 
+  final case class ExtPrimaryDataServiceRegistrationMessage(
+      modelUuid: UUID,
+      requestingActor: ClassicRef,
+  ) extends ServiceRegistrationMessage
+
+  final case class ExtEmDataServiceRegistrationMessage(
+                                                        modelUuid: UUID,
+                                                        requestingActor: ActorRef[EmAgent.Request],
+                                                        flexAdapter: ActorRef[FlexRequest]
+                                                      ) extends ServiceRegistrationMessage
+
   sealed trait RegistrationResponseMessage extends ServiceMessage {
-    val serviceRef: ActorRef
+    val serviceRef: ClassicRef
   }
 
   object RegistrationResponseMessage {
@@ -50,14 +67,18 @@ object ServiceMessage {
     /** Message, that is used to confirm a successful registration
       */
     final case class RegistrationSuccessfulMessage(
-        override val serviceRef: ActorRef,
+        override val serviceRef: ClassicRef,
         nextDataTick: Option[Long],
     ) extends RegistrationResponseMessage
+
+    final case class WrappedRegistrationSuccessfulMessage(
+                                                   registrationSuccessfulMessage: RegistrationSuccessfulMessage
+                                                  ) extends EmAgent.Request
 
     /** Message, that is used to announce a failed registration
       */
     final case class RegistrationFailedMessage(
-        override val serviceRef: ActorRef
+        override val serviceRef: ClassicRef
     ) extends RegistrationResponseMessage
 
     final case class ScheduleServiceActivation(
@@ -73,7 +94,7 @@ object ServiceMessage {
     */
   trait ProvisionMessage[D <: Data] extends ServiceMessage {
     val tick: Long
-    val serviceRef: ActorRef
+    val serviceRef: ClassicRef
     val data: D
 
     /** Next tick at which data could arrive. If None, no data is expected for

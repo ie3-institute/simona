@@ -9,76 +9,36 @@ package edu.ie3.simona.agent.participant
 import breeze.numerics.{ceil, floor, pow, sqrt}
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.ResultEntity
-import edu.ie3.datamodel.models.result.system.{
-  FlexOptionsResult,
-  SystemParticipantResult,
-}
+import edu.ie3.datamodel.models.result.system.{FlexOptionsResult, SystemParticipantResult}
 import edu.ie3.datamodel.models.result.thermal.ThermalUnitResult
 import edu.ie3.simona.agent.ValueStore
-import edu.ie3.simona.agent.grid.GridAgentMessages.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-}
+import edu.ie3.simona.agent.grid.GridAgentMessages.{AssetPowerChangedMessage, AssetPowerUnchangedMessage}
 import edu.ie3.simona.agent.participant.ParticipantAgent.StartCalculationTrigger
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals.RelevantResultValues
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
-  ApparentPowerAndHeat,
-  EnrichableData,
-  PrimaryDataWithApparentPower,
-}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{ApparentPower, ApparentPowerAndHeat, EnrichableData, PrimaryDataWithApparentPower}
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
-import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
-  FromOutsideBaseStateData,
-  ParticipantModelBaseStateData,
-}
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
-  CollectRegistrationConfirmMessages,
-  InputModelContainer,
-}
-import edu.ie3.simona.agent.participant.statedata.{
-  BaseStateData,
-  DataCollectionStateData,
-  ParticipantStateData,
-}
+import edu.ie3.simona.agent.participant.statedata.BaseStateData.{FromOutsideBaseStateData, ParticipantModelBaseStateData}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{CollectRegistrationConfirmMessages, InputModelContainer}
+import edu.ie3.simona.agent.participant.statedata.{BaseStateData, DataCollectionStateData, ParticipantStateData}
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
-import edu.ie3.simona.agent.state.ParticipantAgentState.{
-  Calculate,
-  HandleInformation,
-}
+import edu.ie3.simona.agent.state.ParticipantAgentState.{Calculate, HandleInformation}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.event.ResultEvent.{
-  FlexOptionsResultEvent,
-  ParticipantResultEvent,
-  ThermalResultEvent,
-}
+import edu.ie3.simona.event.ResultEvent.{FlexOptionsResultEvent, ParticipantResultEvent, ThermalResultEvent}
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.exceptions.agent.{
-  ActorNotRegisteredException,
-  AgentInitializationException,
-  InconsistentStateException,
-  InvalidRequestException,
-}
+import edu.ie3.simona.exceptions.agent.{ActorNotRegisteredException, AgentInitializationException, InconsistentStateException, InvalidRequestException}
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.em.EmTools
-import edu.ie3.simona.model.participant.{
-  CalcRelevantData,
-  ModelState,
-  SystemParticipant,
-}
+import edu.ie3.simona.model.participant.{CalcRelevantData, ModelState, SystemParticipant}
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  ProvisionMessage,
-  RegistrationResponseMessage,
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{ProvisionMessage, RegistrationResponseMessage}
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
@@ -137,11 +97,16 @@ protected trait ParticipantAgentFundamentals[
       senderToMaybeTick,
     )
 
+    log.info(s"initializeParticipantForPrimaryDataReplay")
     /* Confirm final initialization */
     releaseTick()
-    senderToMaybeTick._2.foreach { tick =>
-      scheduler ! Completion(self.toTyped, Some(tick))
+    log.info(s"initializeParticipantForPrimaryDataReplay -> released tick")
+    val msge = senderToMaybeTick._2.map { tick =>
+      val msg = Completion(self.toTyped, Some(tick))
+      scheduler ! msg
+      msg
     }
+    log.info(s"initializeParticipantForPrimaryDataReplay -> sent completion $msge to $scheduler")
     goto(Idle) using stateData
   }
 
@@ -712,7 +677,7 @@ protected trait ParticipantAgentFundamentals[
           )
       }
 
-      notifyListener(FlexOptionsResultEvent(flexResult))
+      notifyListener(FlexOptionsResultEvent(flexResult, tick))
     }
 
     baseStateData.copy(
@@ -1761,15 +1726,17 @@ protected trait ParticipantAgentFundamentals[
       baseStateData: BaseStateData[PD],
       tick: Long,
       result: AccompaniedSimulationResult[PD],
-  )(implicit outputConfig: NotifierConfig): Unit =
+  )(implicit outputConfig: NotifierConfig): Unit = {
     if (outputConfig.simulationResultInfo) {
+      val (nextTick, _) = popNextActivationTrigger(baseStateData)
       notifyListener(
-        buildResultEvent(baseStateData, tick, result.primaryData)
+        buildResultEvent(baseStateData, tick, result.primaryData, nextTick)
       )
       result.accompanyingResults
         .flatMap(result => buildResultEvent(result))
         .foreach(notifyListener(_))
     }
+  }
 
   /** Update the result value store, inform all registered listeners and go to
     * Idle using the updated base state data
@@ -1892,11 +1859,14 @@ protected trait ParticipantAgentFundamentals[
       baseStateData: BaseStateData[PD],
       tick: Long,
       result: PD,
+      nextTick: Option[Long] = None
   ): ParticipantResultEvent = {
     val uuid = baseStateData.modelUuid
     val dateTime = tick.toDateTime(baseStateData.startDate)
     ParticipantResultEvent(
-      buildResult(uuid, dateTime, result)
+      buildResult(uuid, dateTime, result),
+      tick,
+      nextTick
     )
   }
 

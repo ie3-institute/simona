@@ -106,7 +106,6 @@ final case class EmModelShell(
       model -> power
     }
   }
-
 }
 
 object EmModelShell {
@@ -121,6 +120,8 @@ object EmModelShell {
       case "PROPORTIONAL" => ProportionalFlexStrat
       case "PRIORITIZED" =>
         PrioritizedFlexStrat(modelConfig.curtailRegenerative)
+      case "self_optimization" => ProportionalFlexStrat
+      case "uncontrolled" => UncontrolledStrat(modelConfig.curtailRegenerative)
       case unknown =>
         throw new CriticalFailureException(s"Unknown model strategy $unknown")
     }

@@ -8,8 +8,8 @@ package edu.ie3.util.scala.io
 
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.sink.CsvFileSink
-import edu.ie3.datamodel.io.source.{GraphicSource, RawGridSource, TypeSource}
 import edu.ie3.datamodel.io.source.csv.CsvDataSource
+import edu.ie3.datamodel.io.source.{GraphicSource, RawGridSource, TypeSource}
 
 import java.nio.file.Paths
 

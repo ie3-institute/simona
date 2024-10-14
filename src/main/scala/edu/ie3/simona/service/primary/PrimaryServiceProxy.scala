@@ -6,60 +6,32 @@
 
 package edu.ie3.simona.service.primary
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
 import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformation
-import edu.ie3.datamodel.io.naming.{
-  DatabaseNamingStrategy,
-  EntityPersistenceNamingStrategy,
-  FileNamingStrategy,
-}
-import edu.ie3.datamodel.io.source.csv.{
-  CsvTimeSeriesMappingSource,
-  CsvTimeSeriesMetaInformationSource,
-}
-import edu.ie3.datamodel.io.source.sql.{
-  SqlTimeSeriesMappingSource,
-  SqlTimeSeriesMetaInformationSource,
-}
-import edu.ie3.datamodel.io.source.{
-  TimeSeriesMappingSource,
-  TimeSeriesMetaInformationSource,
-}
+import edu.ie3.datamodel.io.naming.{DatabaseNamingStrategy, EntityPersistenceNamingStrategy, FileNamingStrategy}
+import edu.ie3.datamodel.io.source.csv.{CsvTimeSeriesMappingSource, CsvTimeSeriesMetaInformationSource}
+import edu.ie3.datamodel.io.source.sql.{SqlTimeSeriesMappingSource, SqlTimeSeriesMetaInformationSource}
+import edu.ie3.datamodel.io.source.{TimeSeriesMappingSource, TimeSeriesMetaInformationSource}
 import edu.ie3.datamodel.models.value.Value
+import edu.ie3.simona.api.data.primarydata.ExtPrimaryData
 import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
-  Primary => PrimaryConfig
-}
-import edu.ie3.simona.exceptions.{
-  InitializationException,
-  InvalidConfigParameterException,
-}
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.{Primary => PrimaryConfig}
+import edu.ie3.simona.exceptions.{InitializationException, InvalidConfigParameterException}
 import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  PrimaryServiceRegistrationMessage,
-  WorkerRegistrationMessage,
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{ExtPrimaryDataServiceRegistrationMessage, PrimaryServiceRegistrationMessage, WorkerRegistrationMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.service.{ServiceStateData, SimonaService}
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
-import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
-  InitPrimaryServiceProxyStateData,
-  PrimaryServiceStateData,
-  SourceRef,
-}
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
-  CsvInitPrimaryServiceStateData,
-  InitPrimaryServiceStateData,
-  SqlInitPrimaryServiceStateData,
-}
+import edu.ie3.simona.service.primary.PrimaryServiceProxy.{InitPrimaryServiceProxyStateData, PrimaryServiceStateData, SourceRef}
+import edu.ie3.simona.service.primary.PrimaryServiceWorker.{CsvInitPrimaryServiceStateData, InitPrimaryServiceStateData, SqlInitPrimaryServiceStateData}
+import edu.ie3.simona.service.{ServiceStateData, SimonaService}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
 
 import java.nio.file.Paths
 import java.text.SimpleDateFormat
@@ -107,6 +79,8 @@ case class PrimaryServiceProxy(
       prepareStateData(
         initStateData.primaryConfig,
         initStateData.simulationStart,
+        initStateData.extSimulation,
+        initStateData.extPrimaryData
       ) match {
         case Success(stateData) =>
           scheduler ! Completion(self.toTyped)
@@ -139,6 +113,8 @@ case class PrimaryServiceProxy(
   private def prepareStateData(
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime,
+      extSimulation: Option[ActorRef],
+      extPrimaryData: Option[ExtPrimaryData]
   ): Try[PrimaryServiceStateData] = {
     createSources(primaryConfig).map {
       case (mappingSource, metaInformationSource) =>
@@ -167,13 +143,26 @@ case class PrimaryServiceProxy(
             }
           }
           .toMap
-        PrimaryServiceStateData(
-          modelToTimeSeries,
-          timeSeriesToSourceRef,
-          simulationStart,
-          primaryConfig,
-          mappingSource,
-        )
+        if (extSimulation.isDefined) {
+          // Ask ExtPrimaryDataService which UUIDs should be substituted
+          PrimaryServiceStateData(
+            modelToTimeSeries,
+            timeSeriesToSourceRef,
+            simulationStart,
+            primaryConfig,
+            mappingSource,
+            extPrimaryData.getOrElse(throw new Exception("External Primary Data Simulation is requested without ExtPrimaryData")).getPrimaryDataAssets.asScala,
+            extSimulation,
+          )
+        } else {
+          PrimaryServiceStateData(
+            modelToTimeSeries,
+            timeSeriesToSourceRef,
+            simulationStart,
+            primaryConfig,
+            mappingSource,
+          )
+        }
     }
   }
 
@@ -256,11 +245,27 @@ case class PrimaryServiceProxy(
             sender(),
           )
         case None =>
-          log.debug(
-            s"There is no time series apparent for the model with uuid '{}'.",
-            modelUuid,
-          )
-          sender() ! RegistrationFailedMessage(self)
+          if (stateData.extSubscribers.nonEmpty) {
+            log.debug(
+              s"Try to find external primary data for the model with uuid '{}'.",
+              modelUuid,
+            )
+            if (stateData.extSubscribers.exists(_ == modelUuid)) {
+              handleExternalModel(modelUuid, stateData, sender())
+            } else {
+              log.debug(
+                s"There is no external data apparent for the model with uuid '{}'.",
+                modelUuid,
+              )
+              sender() ! RegistrationFailedMessage(self)
+            }
+          } else {
+            log.debug(
+              s"There is no time series apparent for the model with uuid '{}'.",
+              modelUuid,
+            )
+            sender() ! RegistrationFailedMessage(self)
+          }
       }
     case x =>
       log.error(
@@ -322,6 +327,21 @@ case class PrimaryServiceProxy(
             s"'$modelUuid'), although the mapping contains information about it."
         )
         requestingActor ! RegistrationFailedMessage(self)
+    }
+  }
+
+  protected def handleExternalModel(
+      modelUuid: UUID,
+      stateData: PrimaryServiceStateData,
+      requestingActor: ActorRef,
+  ): Unit = {
+    stateData.extPrimaryDataService match {
+      case Some(primaryDataService) =>
+        log.info(s"Send a ExtPrimaryDataServiceRegistrationMessage for $modelUuid")
+        primaryDataService ! ExtPrimaryDataServiceRegistrationMessage(
+          modelUuid,
+          requestingActor,
+        )
     }
   }
 
@@ -510,6 +530,8 @@ object PrimaryServiceProxy {
   final case class InitPrimaryServiceProxyStateData(
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime,
+      extSimulation: Option[ActorRef],
+      extPrimaryData: Option[ExtPrimaryData]
   ) extends InitializeServiceStateData
 
   /** Holding the state of an initialized proxy.
@@ -531,6 +553,8 @@ object PrimaryServiceProxy {
       simulationStart: ZonedDateTime,
       primaryConfig: PrimaryConfig,
       mappingSource: TimeSeriesMappingSource,
+      extSubscribers: Iterable[UUID] = Iterable.empty[UUID],
+      extPrimaryDataService: Option[ActorRef] = None,
   ) extends ServiceStateData
 
   /** Giving reference to the target time series and source worker.

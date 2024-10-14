@@ -779,7 +779,7 @@ protected trait EvcsAgentFundamentals
 
     // send out EV results
     evResults.foreach { result =>
-      listener.foreach(_ ! ParticipantResultEvent(result))
+      listener.foreach(_ ! ParticipantResultEvent(result, currentTick))
     }
 
     evcsResults.foldLeft(modelBaseStateData.resultValueStore) {
@@ -787,7 +787,7 @@ protected trait EvcsAgentFundamentals
         /* Inform the listeners about new result */
         if (modelBaseStateData.outputConfig.simulationResultInfo)
           notifyListener(
-            ParticipantResultEvent(result)
+            ParticipantResultEvent(result, currentTick)
           )
 
         /* Update resultValueStore with result */

@@ -34,6 +34,7 @@ import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
+import edu.ie3.simona.service.results.ExtResultDataProvider
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.sim.SimonaSim
@@ -43,11 +44,7 @@ import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.typed.scaladsl.adapter.{
-  ClassicActorRefOps,
-  TypedActorContextOps,
-  TypedActorRefOps,
-}
+import org.apache.pekko.actor.typed.scaladsl.adapter.{ClassicActorRefOps, TypedActorContextOps, TypedActorRefOps}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 import java.util.UUID
@@ -148,6 +145,7 @@ class SimonaStandaloneSetup(
   override def primaryServiceProxy(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
+      extSimSetupData: ExtSimSetupData,
   ): ClassicRef = {
     val simulationStart = TimeUtil.withDefaults.toZonedDateTime(
       simonaConfig.simona.time.startDateTime
@@ -158,6 +156,8 @@ class SimonaStandaloneSetup(
         InitPrimaryServiceProxyStateData(
           simonaConfig.simona.input.primary,
           simulationStart,
+          extSimSetupData.extPrimaryDataService,
+          extSimSetupData.extPrimaryData
         ),
         simulationStart,
       ),
@@ -201,8 +201,7 @@ class SimonaStandaloneSetup(
     val extLinks = jars.flatMap(ExtSimLoader.loadExtLink).toSeq
 
     if (extLinks.nonEmpty) {
-
-      val (extSimAdapters, extDataServices) =
+      val (extSimAdapters, extDatasAndServices) =
         extLinks.zipWithIndex.map { case (extLink, index) =>
           // external simulation always needs at least an ExtSimAdapter
           val extSimAdapter = context.toClassic.simonaActorOf(
@@ -218,9 +217,9 @@ class SimonaStandaloneSetup(
           )
 
           // setup data services that belong to this external simulation
-          val (extData, extDataInit): (
+          val (extData, extDataServiceToRef): (
               Iterable[ExtData],
-              Iterable[(Class[_ <: SimonaService[_]], ClassicRef)],
+              Iterable[(Class[_], ClassicRef)],
           ) =
             extLink.getExtDataSimulations.asScala.zipWithIndex.map {
               case (_: ExtEvSimulation, dIndex) =>
@@ -242,24 +241,29 @@ class SimonaStandaloneSetup(
                 (extEvData, (classOf[ExtEvDataService], extEvDataService))
             }.unzip
 
-          extLink.getExtSimulation.setup(
-            extSimAdapterData,
-            extData.toList.asJava,
-          )
+            extLink.getExtSimulation.setup(
+              extSimAdapterData,
+              extData.toList.asJava,
+            )
 
-          // starting external simulation
-          new Thread(extLink.getExtSimulation, s"External simulation $index")
-            .start()
+            // starting external simulation
+            new Thread(extLink.getExtSimulation, s"External simulation $index")
+              .start()
 
-          (extSimAdapter, extDataInit)
+          (extSimAdapter, (extDataServiceToRef, extData))
         }.unzip
+
+      val extDataServices = extDatasAndServices.map(_._1)
+      val extDatas = extDatasAndServices.flatMap(_._2).toSet
 
       ExtSimSetupData(
         extSimAdapters,
         extDataServices.flatten.toMap,
+        Map.empty,
+        extDatas
       )
-    } else {
-      ExtSimSetupData(Iterable.empty, Map.empty)
+  } else {
+      ExtSimSetupData(Iterable.empty, Map.empty, Map.empty, Set.empty)
     }
   }
 
@@ -311,8 +315,11 @@ class SimonaStandaloneSetup(
       )
 
   override def resultEventListener(
-      context: ActorContext[_]
+      context: ActorContext[_],
+      extSimulationData: ExtSimSetupData,
   ): Seq[ActorRef[ResultEventListener.Request]] = {
+    val extResultDataService: Option[ActorRef[ExtResultDataProvider.Request]] =
+      extSimulationData.extResultDataService
     // append ResultEventListener as well to write raw output files
     ArgsParser
       .parseListenerConfigOption(simonaConfig.simona.event.listener)
@@ -328,7 +335,8 @@ class SimonaStandaloneSetup(
       .toSeq :+ context
       .spawn(
         ResultEventListener(
-          resultFileHierarchy
+          resultFileHierarchy,
+          extResultDataService,
         ),
         ResultEventListener.getClass.getSimpleName,
       )

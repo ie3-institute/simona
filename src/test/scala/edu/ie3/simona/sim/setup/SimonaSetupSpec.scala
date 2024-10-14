@@ -42,13 +42,15 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
     )
 
   override def resultEventListener(
-      context: ActorContext[_]
+      context: ActorContext[_],
+      extSimulationData: ExtSimSetupData,
   ): Seq[ActorRef[ResultEventListener.Request]] =
     throw new NotImplementedException("This is a dummy setup")
 
   override def primaryServiceProxy(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
+      extSimSetupData: ExtSimSetupData,
   ): ClassicRef = throw new NotImplementedException("This is a dummy setup")
 
   override def weatherService(

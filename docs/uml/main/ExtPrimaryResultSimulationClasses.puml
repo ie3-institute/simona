@@ -1,0 +1,166 @@
+@startuml
+'https://plantuml.com/class-diagram
+skinparam linetype ortho
+
+package simple-ext-simulation {
+    class ExtLink
+    class SimpleExtSimulation {
+        - ExtPrimaryDataSimulation extPrimaryDataSimulation
+        - ExtResultDataSimulation extResultDataSimulation
+    }
+    class SimplePrimaryDataFactory
+
+    class SimpleResultDataFactory
+
+    SimplePrimaryDataFactory --> SimpleExtSimulation
+    SimpleResultDataFactory --> SimpleExtSimulation
+}
+
+package simona-api {
+
+    interface ExtData
+
+    class ExtPrimaryData {
+        - ActorRef dataService
+        - ActorRef extSimAdapter
+        - PrimaryDataFactory factory
+        - List<UUID> primaryDataAssets
+        ---
+        + void providePrimaryData(Long tick, Map<String, Object> primaryData)
+        + void sendExtMsg(PrimaryDataMessageFromExt msg)
+    }
+    ExtPrimaryData --|> ExtData
+
+    class ExtResultData {
+        - ActorRef dataService
+        - ActorRef dataServiceActivation
+        - ActorRef extSimAdapter
+        - ResultDataFactory factory
+        - List<UUID> resultDataAssets
+        ---
+        + List<ResultEntity> requestResults(long tick)
+        + Map<String, Object> requestResultObjects(long tick)
+        ~ Map<String, Object> convertResultsList(List<ResultEntity> results)
+    }
+    ExtResultData --|> ExtData
+
+    ' MIDDLE PART
+    class ExtEvData
+    ExtEvData --|> ExtData
+
+    interface ExtDataSimulation
+
+    class ExtPrimaryDataSimulation {
+        - List<UUID> primaryDataAssets
+        - PrimaryDataFactory primaryDataFactory
+        - ExtPrimaryData extPrimaryData
+        ---
+        + void setExtPrimaryData(ExtPrimaryData extPrimaryData)
+    }
+    ExtPrimaryDataSimulation --|> ExtDataSimulation
+
+    class ExtResultDataSimulation {
+        - List<UUID> resultDataAssets
+        - ResultDataFactory resultDataFactory
+        - ExtResultData extResultData
+        ---
+        + void setExtResultData(ExtResultData extResultData)
+    }
+    ExtResultDataSimulation --|> ExtDataSimulation
+
+    interface PrimaryDataFactory {
+        Value convert(Object entity)
+    }
+    PrimaryDataFactory --> ExtPrimaryDataSimulation
+
+    interface ResultDataFactory {
+        Object convert(ResultEntity entity)
+    }
+    ResultDataFactory --> ExtResultDataSimulation
+
+    SimplePrimaryDataFactory --|> PrimaryDataFactory
+    SimpleResultDataFactory --|> ResultDataFactory
+
+    class ExtSimAdapterData {
+        ~ LinkedBlockingQueue<ExtTrigger> receiveTriggerQueue
+        - Map<Integer, ActorRef> extSimAdapters
+        + void queueExtMsg(ExtTrigger trigger)
+        + void send(ExtTriggerResponse msg)
+    }
+
+
+    abstract class ExtSimulation {
+        - ExtSimAdapterData data
+        + void setup(ExtSimAdapterData data, List<ExtData> adapters)
+        + void run()
+        # Optional<Long> doActivity(long tick, int phase)
+        # {abstract} Optional<Long> initialize()
+        # {abstract} Optional<Long> doPreActivity(long tick)
+        # {abstract} Optional<Long> doPostActivity(long tick)
+    }
+
+    SimpleExtSimulation --|> ExtSimulation
+
+    interface ExtEvSimulation {
+        + void setExtEvData(ExtEvData evData)
+    }
+
+    ExtEvSimulation --|> ExtDataSimulation
+
+    interface DataMessageFromExt
+    interface PrimaryDataMessageFromExt
+    interface ResultDataMessageFromExt
+    interface EvDataMessageFromExt
+    PrimaryDataMessageFromExt --|> DataMessageFromExt
+    ResultDataMessageFromExt --|> DataMessageFromExt
+    EvDataMessageFromExt --|> DataMessageFromExt
+
+    class ProvidePrimaryData {
+        - long tick
+        - Map<UUID, Value> primaryData
+    }
+    ProvidePrimaryData --|> PrimaryDataMessageFromExt
+
+    class RequestResultEntities {
+        - long tick
+    }
+    RequestResultEntities --|> ResultDataMessageFromExt
+
+
+    interface DataResponseMessageToExt
+    interface ResultDataResponseMessageToExt
+    interface EvDataResponseMessageToExt
+
+    ResultDataResponseMessageToExt --|> DataResponseMessageToExt
+    EvDataResponseMessageToExt --|> DataResponseMessageToExt
+    class ProvideResultEntities {
+        + List<ResultEntity> results
+    }
+    ProvideResultEntities --|> ResultDataResponseMessageToExt
+
+    ExtSimAdapterData --> ExtSimulation
+
+    interface ExtLinkInterface {
+        ExtSimulation getExtSimulation()
+        List<ExtDataSimulation> getExtDataSimulation()
+    }
+    ExtLink --|> ExtLinkInterface
+
+    class ScheduleDataServiceMessage
+}
+
+package simona {
+    class ExtPrimaryDataService
+
+    ExtPrimaryData --> ExtPrimaryDataService
+
+    class ExtResultDataProvider
+
+    ExtResultData --> ExtResultDataProvider
+
+    class ExtSimAdapter
+
+    ExtSimAdapterData --> ExtSimAdapter
+}
+
+@enduml

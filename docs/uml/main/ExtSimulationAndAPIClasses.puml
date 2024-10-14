@@ -1,0 +1,133 @@
+@startuml
+'https://plantuml.com/class-diagram
+skinparam linetype ortho
+
+package simona-api {
+
+    interface DataMessageFromExt
+    interface PrimaryDataMessageFromExt
+    interface EvDataMessageFromExt
+
+    PrimaryDataMessageFromExt --> DataMessageFromExt
+    EvDataMessageFromExt --> DataMessageFromExt
+    ResultDataMessageFromExt --> DataMessageFromExt
+
+    class ProvidePrimaryData {
+        + long tick
+        + Map<UUID, Value> primaryData
+    }
+
+    ProvidePrimaryData --> PrimaryDataMessageFromExt
+
+    class ProvideArrivingEvs {
+        + Map<UUID, List<EvModel>> arrivals)
+    }
+
+    class RequestCurrentPrices
+    class RequestDepartingEvs
+    class RequestEvcsFreeLots
+
+    ProvideArrivingEvs --> EvDataMessageFromExt
+    RequestCurrentPrices --> EvDataMessageFromExt
+    RequestDepartingEvs --> EvDataMessageFromExt
+    RequestEvcsFreeLots --> EvDataMessageFromExt
+
+    class RequestResultEntities {
+        + Long tick
+    }
+
+    RequestResultEntities --> ResultDataMessageFromExt
+
+    interface DataResponseMessageToExt
+    interface ResultDataResponseMessageToExt
+    interface EvDataResponseMessageToExt
+
+    ResultDataResponseMessageToExt --> DataResponseMessageToExt
+    EvDataResponseMessageToExt --> DataResponseMessageToExt
+
+    class ProvideResultEntities {
+        + List<ResultEntity> results
+    }
+
+    ProvideResultEntities --> ResultDataResponseMessageToExt
+
+    class ProvideCurrentPrices
+
+    class ProvideDepartingEvs
+
+    class ProvideEvcsFreeLots
+    ProvideCurrentPrices --> EvDataResponseMessageToExt
+    ProvideDepartingEvs --> EvDataResponseMessageToExt
+    ProvideEvcsFreeLots --> EvDataResponseMessageToExt
+
+    interface ExtData
+
+    class ExtEvData
+    class ExtPrimaryData {
+        PrimaryDataFactory primaryDataFactory
+    }
+    class ExtResultData
+
+    ExtEvData --> ExtData
+    ExtPrimaryData --> ExtData
+    ExtResultData --> ExtData
+
+
+
+    interface PrimaryDataFactory {
+        + Value convert(Object entity)
+    }
+    PrimaryDataFactory -- ExtPrimaryData
+
+    interface ResultDataFactory {
+        + Object convert(ResultEntity entity)
+    }
+    ResultDataFactory -- ExtResultData
+
+    interface ExtDataSimulation
+    interface ExtResultDataSimulation
+    interface ExtPrimaryDataSimulation
+    interface ExtEvDataSimulation
+
+    ExtPrimaryDataSimulation --> ExtDataSimulation
+    ExtResultDataSimulation --> ExtDataSimulation
+    ExtEvDataSimulation --> ExtDataSimulation
+
+    abstract class ExtSimulation {
+        - ExtSimAdapterData data
+
+        # Optional<Long> initialize()
+        # Optional<Long> doActivity(long tick)
+    }
+}
+
+package simona {
+    class SimonaSim
+
+    class SimScheduler
+
+    class SimonaStandaloneSetup
+
+    class ExtSimLoader
+
+    class ExtSimAdapter
+
+    class ExtResultDataProvider
+    ExtResultDataProvider -- ExtResultData
+
+    class ExtPrimaryDataService
+    ExtPrimaryDataService -- ExtPrimaryData
+
+    SimScheduler -- SimonaSim
+    SimonaSim *- SimonaStandaloneSetup
+    SimonaStandaloneSetup *- ExtSimLoader
+
+    ExtSimAdapter -- SimScheduler
+    ExtPrimaryDataService -- SimScheduler
+
+    SimonaService <|- ExtPrimaryDataService
+
+    ExtSimAdapterData <--- ExtSimAdapter
+}
+
+@enduml

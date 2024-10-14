@@ -68,6 +68,11 @@ repositories {
 }
 
 dependencies {
+  constraints {
+    implementation( 'com.fasterxml.jackson.core:jackson-databind:2.16.0+' ){
+      because "[CVE-2020-25649] CWE-611: Improper Restriction of XML External Entity Reference ('XXE')"
+    }
+  }
 
   // ie³ internal repository
   implementation('com.github.ie3-institute:PowerSystemUtils:2.2.1') {
@@ -93,6 +98,12 @@ dependencies {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
+    exclude group: 'edu.ie3'
+  }
+
+  implementation('com.github.ie3-institute:simosaik') {
+    exclude group: 'org.apache.logging.log4j'
+    exclude group: 'org.slf4j'
     exclude group: 'edu.ie3'
   }
 

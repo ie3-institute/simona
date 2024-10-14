@@ -40,12 +40,12 @@ final case class RuntimeEventLogSink(
 
       case InitComplete(duration) =>
         log.info(
-          s"Initialization complete. (duration: ${convertDuration(duration)} )"
+          s"\u001b[0;32mInitialization complete. (duration: ${convertDuration(duration)})\u001b[0;0m"
         )
 
       case CheckWindowPassed(tick, duration) =>
         log.info(
-          s"******* Simulation until ${calcTime(tick)} completed. ${durationAndMemoryString(duration - last)} ******"
+          s"\u001b[0;32m******* Simulation until ${calcTime(tick)} completed. ${durationAndMemoryString(duration)} ******\u001b[0;0m\n"
         )
         last = duration
 

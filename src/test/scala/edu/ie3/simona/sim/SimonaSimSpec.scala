@@ -302,7 +302,8 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
             new MockSetup() {
 
               override def resultEventListener(
-                  context: ActorContext[_]
+                  context: ActorContext[_],
+                  extSimSetupData: ExtSimSetupData,
               ): Seq[ActorRef[ResultEventListener.Request]] =
                 throwTestException()
             }
@@ -408,7 +409,8 @@ object SimonaSimSpec {
     )
 
     override def resultEventListener(
-        context: ActorContext[_]
+        context: ActorContext[_],
+        extSimSetupData: ExtSimSetupData,
     ): Seq[ActorRef[ResultEventListener.Request]] = Seq(
       context.spawn(
         stoppableForwardMessage(resultEventProbe),
@@ -419,6 +421,7 @@ object SimonaSimSpec {
     override def primaryServiceProxy(
         context: ActorContext[_],
         scheduler: ActorRef[SchedulerMessage],
+        extSimSetupData: ExtSimSetupData,
     ): ClassicRef =
       context.spawn(empty, uniqueName("primaryService")).toClassic
 

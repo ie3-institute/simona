@@ -31,6 +31,8 @@ object ArgsParser extends LazyLogging {
       seedAddress: Option[String] = None,
       useLocalWorker: Option[Boolean] = None,
       tArgs: Map[String, String] = Map.empty,
+      extAddress: Option[String] = None,
+      mappingPath: Option[String] = None
   ) {
     val useCluster: Boolean = clusterType.isDefined
   }
@@ -101,6 +103,24 @@ object ArgsParser extends LazyLogging {
             "If cluster is NOT enabled this defaults to true and cannot be false. " +
             "If cluster is specified then this defaults to false and must be explicitly set to true. " +
             "NOTE: For cluster, this will ONLY be checked if cluster-type=master"
+        )
+      opt[String]("ext-address")
+        .action((value, args) => args.copy(extAddress = Option(value)))
+        .validate(value =>
+          if (value.trim.isEmpty) failure("ext-address cannot be empty")
+          else success
+        )
+        .text(
+          "Comma separated list (no whitespaces!) of initial addresses used for the rest of the cluster to bootstrap"
+        )
+      opt[String]("mapping-path")
+        .action((value, args) => args.copy(mappingPath = Option(value)))
+        .validate(value =>
+          if (value.trim.isEmpty) failure("ext-address cannot be empty")
+          else success
+        )
+        .text(
+          "Comma separated list (no whitespaces!) of initial addresses used for the rest of the cluster to bootstrap"
         )
 
       checkConfig(args =>
