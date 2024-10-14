@@ -87,6 +87,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Prepare ThermalStorageTestData for Storage without storageVolumeLvlMin [#894](https://github.com/ie3-institute/simona/issues/894)
 - Renamed `ActivityStartTrigger`, `ScheduleTriggerMessage`, `CompletionMessage` in UML Diagrams[#675](https://github.com/ie3-institute/simona/issues/675)
 - Simplifying quantity integration in QuantityUtil [#973](https://github.com/ie3-institute/simona/issues/973)
+- Reorganized Jenkins pipeline to separate build and test stages for better efficiency [#938](https://github.com/ie3-institute/simona/issues/938)
+- Rewrote SystemParticipantTest and MockParticipant from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
@@ -117,6 +119,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improve code quality in fixedloadmodelspec and other tests [#919](https://github.com/ie3-institute/simona/issues/919)
 - Fix power flow calculation with em agents [#962](https://github.com/ie3-institute/simona/issues/962)
 - Fix scheduling at Evcs with more than one Ev at a time without Em [#787](https://github.com/ie3-institute/simona/issues/787)
+- Fix CheckWindow duration [#921](https://github.com/ie3-institute/simona/issues/921)
 
 ## [3.0.0] - 2023-08-07
 
