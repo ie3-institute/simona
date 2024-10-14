@@ -311,7 +311,11 @@ trait HpAgentFundamentals
       calcRelevantData: HpRelevantData,
       nodalVoltage: squants.Dimensionless,
       model: HpModel,
-  ): HpState = model.determineState(modelState, calcRelevantData)
+  ): HpState = {
+    val (_, _, state) =
+      model.determineState(modelState, calcRelevantData)
+    state
+  }
 
   /** Abstract definition, individual implementations found in individual agent
     * fundamental classes

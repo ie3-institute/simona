@@ -140,7 +140,7 @@ trait EmInputTestData
     UUID.fromString("91940626-bdd0-41cf-96dd-47c94c86b20e"),
     "thermal house",
     thermalBusInput,
-    Quantities.getQuantity(0.325, StandardUnits.THERMAL_TRANSMISSION),
+    Quantities.getQuantity(0.15, StandardUnits.THERMAL_TRANSMISSION),
     Quantities.getQuantity(75, StandardUnits.HEAT_CAPACITY),
     Quantities.getQuantity(20.3, StandardUnits.TEMPERATURE),
     Quantities.getQuantity(22.0, StandardUnits.TEMPERATURE),
