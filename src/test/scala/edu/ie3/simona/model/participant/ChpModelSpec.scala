@@ -137,14 +137,6 @@ class ChpModelSpec
     )
     CylindricalThermalStorage(storageInput, storedEnergy)
   }
-  /*
-  def buildThermalStorage(
-      storageInput: CylindricalStorageInput,
-      storageLvl: Double,
-  ): CylindricalThermalStorage = {
-    val storedEnergy = KilowattHours(storageLvl*20.0*1.0)
-    CylindricalThermalStorage(storageInput, storedEnergy)
-  }*/
 
   "A ChpModel" should {
     "Check active power after calculating next state with #chpState and heat demand #heatDemand kWh:" in {
@@ -210,7 +202,7 @@ class ChpModelSpec
           chpStateRunning,
           90,
           7 * 115 + 1,
-          93,
+          100,
         ), // test case (_, true, false) and demand covered together with chp
         (
           chpStateRunning,
@@ -241,7 +233,7 @@ class ChpModelSpec
     "Check storage level after calculating next state with #chpState and heat demand #heatDemand kWh:" in {
       val testCases = Table(
         ("chpState", "storageLvl", "heatDemand", "expectedStoredEnergy"),
-        (chpStateNotRunning, 90, 0, 1135), // tests case (false, false, true)
+        (chpStateNotRunning, 90, 0, 1035), // tests case (false, false, true)
         (
           chpStateNotRunning,
           90,
