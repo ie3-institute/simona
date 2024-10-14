@@ -9,3 +9,4 @@ package edu.ie3.simona.model.thermal
 trait ThermalThreshold {
   val tick: Long
 }
+case class SimpleThermalThreshold(tick: Long) extends ThermalThreshold

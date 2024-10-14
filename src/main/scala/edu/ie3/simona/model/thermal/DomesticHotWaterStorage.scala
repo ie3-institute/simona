@@ -1,5 +1,5 @@
 /*
- * © 2020. TU Dortmund University,
+ * © 2024. TU Dortmund University,
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
@@ -9,7 +9,7 @@ package edu.ie3.simona.model.thermal
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.{
-  CylindricalStorageInput,
+  DomesticHotWaterStorageInput,
   ThermalBusInput,
 }
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
@@ -19,7 +19,10 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
 }
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities._
-import edu.ie3.util.scala.quantities.KilowattHoursPerKelvinCubicMeters
+import edu.ie3.util.scala.quantities.{
+  DefaultQuantities,
+  KilowattHoursPerKelvinCubicMeters,
+}
 import squants.energy.Kilowatts
 import squants.space.CubicMeters
 import squants.thermal.Celsius
@@ -29,7 +32,7 @@ import tech.units.indriya.unit.Units
 
 import java.util.UUID
 
-/** A cylindrical thermal storage used for implementations, which require a
+/** A domestic hot water storage used for implementations, which require a
   * mutable storage. <p> <strong>Important:</strong> The field storageLvl is a
   * variable.
   *
@@ -50,7 +53,7 @@ import java.util.UUID
   * @param chargingPower
   *   Thermal power, that can be charged / discharged
   */
-final case class CylindricalThermalStorage(
+final case class DomesticHotWaterStorage(
     uuid: UUID,
     id: String,
     operatorInput: OperatorInput,
@@ -126,7 +129,7 @@ final case class CylindricalThermalStorage(
 
   override def startingState: ThermalStorageState = ThermalStorageState(
     -1L,
-    zeroKWH,
+    maxEnergyThreshold,
     zeroKW,
   )
 
@@ -166,38 +169,36 @@ final case class CylindricalThermalStorage(
 
 }
 
-object CylindricalThermalStorage extends ThermalStorageCalculations {
+object DomesticHotWaterStorage extends ThermalStorageCalculations {
 
   /** Function to construct a new [[CylindricalThermalStorage]] based on a
     * provided [[CylindricalStorageInput]]
     *
     * @param input
     *   instance of [[CylindricalStorageInput]] this storage should be built
-    * @param initialStoredEnergy
-    *   initial stored energy
+    *   from
     * @return
     *   a ready-to-use [[CylindricalThermalStorage]] with referenced electric
     *   parameters
     */
-
   def apply(
-      input: CylindricalStorageInput,
-      initialStoredEnergy: Energy = zeroKWH,
-  ): CylindricalThermalStorage = {
-
-    val maxEnergyThreshold = volumeToEnergy(
-      CubicMeters(
-        input.getStorageVolumeLvl.to(Units.CUBIC_METRE).getValue.doubleValue
-      ),
-      KilowattHoursPerKelvinCubicMeters(
-        input.getC
-          .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
-          .getValue
-          .doubleValue
-      ),
-      Celsius(input.getInletTemp.to(Units.CELSIUS).getValue.doubleValue),
-      Celsius(input.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue),
-    )
+      input: DomesticHotWaterStorageInput,
+      initialStoredEnergy: Energy = DefaultQuantities.zeroKWH,
+  ): DomesticHotWaterStorage = {
+    val maxEnergyThreshold: Energy =
+      volumeToEnergy(
+        CubicMeters(
+          input.getStorageVolumeLvl.to(Units.CUBIC_METRE).getValue.doubleValue
+        ),
+        KilowattHoursPerKelvinCubicMeters(
+          input.getC
+            .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
+            .getValue
+            .doubleValue
+        ),
+        Celsius(input.getInletTemp.to(Units.CELSIUS).getValue.doubleValue()),
+        Celsius(input.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue()),
+      )
 
     val chargingPower = Kilowatts(
       input
@@ -207,7 +208,7 @@ object CylindricalThermalStorage extends ThermalStorageCalculations {
         .doubleValue()
     )
 
-    new CylindricalThermalStorage(
+    new DomesticHotWaterStorage(
       input.getUuid,
       input.getId,
       input.getOperator,
@@ -218,5 +219,4 @@ object CylindricalThermalStorage extends ThermalStorageCalculations {
       initialStoredEnergy,
     )
   }
-
 }

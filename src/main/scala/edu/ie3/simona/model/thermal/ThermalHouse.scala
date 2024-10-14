@@ -25,12 +25,16 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{ThermalConductance, WattsPerKelvin}
 import squants.energy.KilowattHours
-import squants.thermal.{Kelvin, ThermalCapacity}
+import squants.space.Litres
+import squants.thermal.{Celsius, Kelvin, ThermalCapacity}
 import squants.time.{Hours, Seconds}
-import squants.{Energy, Power, Temperature, Time}
+import squants.{Energy, Power, Temperature, Time, Volume}
 import tech.units.indriya.unit.Units
 
+import java.time.ZonedDateTime
 import java.util.UUID
+import java.time.Duration
+import java.time.temporal.ChronoUnit
 
 /** A thermal house model
   *
@@ -54,6 +58,10 @@ import java.util.UUID
   *   Lower temperature boundary [K]
   * @param upperBoundaryTemperature
   *   Upper boundary temperature [K]
+  * @param housingType
+  *   type of house, either `house` or `flat`
+  * @param houseInhabitants
+  *   number of people living in the building
   */
 final case class ThermalHouse(
     uuid: UUID,
@@ -66,6 +74,8 @@ final case class ThermalHouse(
     targetTemperature: Temperature,
     lowerBoundaryTemperature: Temperature,
     upperBoundaryTemperature: Temperature,
+    housingType: String,
+    houseInhabitants: Double,
 ) extends ThermalSink(
       uuid,
       id,
@@ -74,10 +84,10 @@ final case class ThermalHouse(
       bus,
     ) {
 
-  /** Calculate the energy demand at the instance in question. If the inner
-    * temperature is at or above the lower boundary temperature, there is no
-    * demand. If it is below the target temperature, the demand is the energy
-    * needed to heat up the house to the maximum temperature. The current
+  /** Calculate the energy demand for heating at the instance in question. If
+    * the inner temperature is at or above the lower boundary temperature, there
+    * is no demand. If it is below the target temperature, the demand is the
+    * energy needed to heat up the house to the maximum temperature. The current
     * (external) thermal infeed is not accounted for, as we assume, that after
     * determining the thermal demand, a change in external infeed will take
     * place.
@@ -89,9 +99,9 @@ final case class ThermalHouse(
     * @param state
     *   most recent state, that is valid for this model
     * @return
-    *   the needed energy in the questioned tick
+    *   the needed energy for heating in the questioned tick
     */
-  def energyDemand(
+  def energyDemandHeating(
       tick: Long,
       ambientTemperature: Temperature,
       state: ThermalHouseState,
@@ -133,6 +143,206 @@ final case class ThermalHouse(
       } else
         zeroMWH
     ThermalEnergyDemand(requiredEnergy, possibleEnergy)
+  }
+
+  /** Calculate the energy demand for warm water at the instance in question.
+    *
+    * @param tick
+    *   Questionable tick
+    * @param state
+    *   most recent state, that is valid for this model
+    * @param simulationStart
+    *   simulationStartDate as ZonedDateTime
+    * @param houseInhabitants
+    *   number of people living in the building
+    * @return
+    *   the needed energy for heating in the questioned tick
+    */
+
+  def energyDemandDomesticHotWater(
+      tick: Long,
+      state: Option[ThermalHouseState],
+      simulationStart: ZonedDateTime,
+      houseInhabitants: Double,
+  ): ThermalEnergyDemand = {
+
+    def calculateThermalEnergyOfWaterDemand(tick: Long): Energy = {
+      val waterDemand =
+        waterDemandOfHour(tick, simulationStart, houseInhabitants, housingType)
+      thermalEnergyDemandWater(waterDemand, Celsius(10d), Celsius(55d))
+    }
+
+    if (tick == 0) {
+      val demand = calculateThermalEnergyOfWaterDemand(tick)
+      ThermalEnergyDemand(demand, demand)
+    } else {
+      state match {
+        case Some(state) =>
+          val lastStateTime =
+            simulationStart.plusSeconds(math.max(state.tick, 0))
+          val actualStateTime = simulationStart.plusSeconds(tick)
+          val timeDiffSeconds =
+            Duration.between(lastStateTime, actualStateTime).toSeconds
+
+          if (timeDiffSeconds > 3600) {
+            val hoursDiff = (timeDiffSeconds / 3600).toInt
+            val energyDemandWaterPastHours =
+              (0 until hoursDiff).foldLeft(zeroKWH) { (acc, i) =>
+                val nextFullHourTick = Duration
+                  .between(
+                    simulationStart,
+                    lastStateTime.plusHours(1 + i).truncatedTo(ChronoUnit.HOURS),
+                  )
+                  .toSeconds
+                acc + calculateThermalEnergyOfWaterDemand(nextFullHourTick)
+              }
+            // also get the demand of the actual hour if tick exactly hits the full hour
+            val energyDemandWater = if (tick % 3600 == 0)
+              energyDemandWaterPastHours + calculateThermalEnergyOfWaterDemand(
+                tick
+              )
+            else energyDemandWaterPastHours
+            ThermalEnergyDemand(energyDemandWater, energyDemandWater)
+          } else if (actualStateTime.getHour != lastStateTime.getHour) {
+            val demand = calculateThermalEnergyOfWaterDemand(tick)
+            ThermalEnergyDemand(demand, demand)
+          } else ThermalEnergyDemand(zeroKWH, zeroKWH)
+
+        case None => ThermalEnergyDemand.noDemand
+      }
+    }
+  }
+
+  /** Calculate the energy required to heat up a given volume of water from a
+    * start to an end temperature
+    *
+    * @param waterDemand
+    *   water volume to get heated up
+    * @param startTemperature
+    *   starting Temperature
+    * @param endTemperature
+    *   end Temperature
+    * @return
+    *   the needed energy
+    */
+
+  private def thermalEnergyDemandWater(
+      waterDemand: Volume,
+      startTemperature: Temperature,
+      endTemperature: Temperature,
+  ): Energy = {
+    if (endTemperature < startTemperature)
+      throw new RuntimeException(
+        s"End temperature of $endTemperature is lower than the start temperature $startTemperature for the water heating system."
+      )
+
+    waterDemand.toCubicMeters * KilowattHours(
+      1.16
+    ) * (endTemperature.toCelsiusDegrees - startTemperature.toCelsiusDegrees)
+  }
+
+  /** Provides water demand of an building (house or flat) for a given hour of
+    * the day based on the housingType and the number of inhabitants
+    *
+    * @param tick
+    *   actual simulation tick
+    * @param simulationStart
+    *   simulations start time as ZonedDateTime
+    * @param noPersonsInHoushold
+    *   number of persons living in the building
+    * @param housingType
+    *   type of the building, either `house` or `flat`
+    * @return
+    *   the needed energy
+    */
+
+  private def waterDemandOfHour(
+      tick: Long,
+      simulationStart: ZonedDateTime,
+      noPersonsInHoushold: Double,
+      housingType: String,
+  ): Volume = {
+
+    // Volume => VDI 2067 Blatt 12
+    // Time series relative => DIN EN 12831-3 Table B.2 for single family houses and for flats
+    val waterVolumeRelativeHouse: Map[Int, Double] = Map(
+      0 -> 0.018,
+      1 -> 0.01,
+      2 -> 0.006,
+      3 -> 0.003,
+      4 -> 0.004,
+      5 -> 0.006,
+      6 -> 0.024,
+      7 -> 0.047,
+      8 -> 0.068,
+      9 -> 0.057,
+      10 -> 0.061,
+      11 -> 0.061,
+      12 -> 0.063,
+      13 -> 0.064,
+      14 -> 0.051,
+      15 -> 0.044,
+      16 -> 0.043,
+      17 -> 0.047,
+      18 -> 0.057,
+      19 -> 0.065,
+      20 -> 0.066,
+      21 -> 0.058,
+      22 -> 0.045,
+      23 -> 0.032,
+    )
+    val waterVolumeRelativeFlat: Map[Int, Double] = Map(
+      0 -> 0.01,
+      1 -> 0.01,
+      2 -> 0.01,
+      3 -> 0.0,
+      4 -> 0.0,
+      5 -> 0.1,
+      6 -> 0.03,
+      7 -> 0.06,
+      8 -> 0.08,
+      9 -> 0.06,
+      10 -> 0.05,
+      11 -> 0.05,
+      12 -> 0.06,
+      13 -> 0.06,
+      14 -> 0.05,
+      15 -> 0.04,
+      16 -> 0.04,
+      17 -> 0.05,
+      18 -> 0.06,
+      19 -> 0.07,
+      20 -> 0.07,
+      21 -> 0.06,
+      22 -> 0.05,
+      23 -> 0.02,
+    )
+
+    val waterDemandVolumePerPersonYear =
+      // Shower and Bath + washbasin + dish washing per hand (also dish washer in the building)
+      Litres(8600 + 4200 + 300)
+
+    val isHouse: Boolean =
+      housingType.toLowerCase match {
+        case "house" => true
+        case "flat"  => false
+        case _ =>
+          throw new IllegalArgumentException(
+            s"Invalid housing type: $housingType. Expected 'house' or 'flat'."
+          )
+      }
+
+    val currentHour: Int = simulationStart.plusSeconds(tick).getHour
+
+    val waterVolumeRelative: Map[Int, Double] =
+      if (isHouse) waterVolumeRelativeHouse else waterVolumeRelativeFlat
+
+    waterVolumeRelative.getOrElse(
+      currentHour,
+      throw new RuntimeException(
+        "Couldn't get the actual hour to determine water demand"
+      ),
+    ) * noPersonsInHoushold * waterDemandVolumePerPersonYear / 365
   }
 
   /** Calculate the needed energy to change from start temperature to target
@@ -365,6 +575,8 @@ object ThermalHouse {
     Kelvin(
       input.getUpperTemperatureLimit.to(Units.KELVIN).getValue.doubleValue
     ),
+    input.getHousingType,
+    input.getNumberOfInhabitants,
   )
 
   /** State of a thermal house

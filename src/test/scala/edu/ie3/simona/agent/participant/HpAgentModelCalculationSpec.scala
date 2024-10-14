@@ -45,12 +45,7 @@ import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.simona.test.common.input.HpInputTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import edu.ie3.util.scala.quantities.{
-  Megavars,
-  ReactivePower,
-  Vars,
-  WattsPerSquareMeter,
-}
+import edu.ie3.util.scala.quantities._
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
@@ -495,7 +490,7 @@ class HpAgentModelCalculationSpec
 
       /* The agent will notice, that all expected information are apparent, switch to Calculate and trigger itself
        * for starting the calculation */
-      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(3600)))
+      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(23)))
 
       hpAgent.stateName shouldBe Idle
       hpAgent.stateData match {
@@ -622,7 +617,7 @@ class HpAgentModelCalculationSpec
       )
 
       /* Expect confirmation */
-      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(3600)))
+      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(23)))
 
       /* Expect the state change to idle with updated base state data */
       hpAgent.stateName shouldBe Idle
@@ -741,7 +736,7 @@ class HpAgentModelCalculationSpec
 
       /* The agent will notice, that all expected information are apparent, switch to Calculate and trigger itself
        * for starting the calculation */
-      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(7200)))
+      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(3613)))
 
       /* Appreciate the answer to my previous request */
       expectMsgType[AssetPowerChangedMessage] match {
@@ -798,6 +793,9 @@ class HpAgentModelCalculationSpec
         ),
       )
       scheduler.send(hpAgent, Activation(0))
+      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(23)))
+
+      scheduler.send(hpAgent, Activation(23))
       scheduler.expectMsg(Completion(hpAgent.toTyped, Some(3600)))
 
       /* ... for tick 3600 */
@@ -816,6 +814,9 @@ class HpAgentModelCalculationSpec
         ),
       )
       scheduler.send(hpAgent, Activation(3600))
+      scheduler.expectMsg(Completion(hpAgent.toTyped, Some(3613)))
+
+      scheduler.send(hpAgent, Activation(3613))
       scheduler.expectMsg(Completion(hpAgent.toTyped, Some(7200)))
 
       /* ... for tick 7200 */
