@@ -16,9 +16,18 @@ import edu.ie3.datamodel.models.result.system.{
   FlexOptionsResult,
   SystemParticipantResult,
 }
-import edu.ie3.datamodel.models.result.thermal.ThermalUnitResult
+import edu.ie3.datamodel.models.result.thermal.{
+  CylindricalStorageResult,
+  ThermalHouseResult,
+  ThermalUnitResult,
+}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.event.listener.ResultEventListener
+import tech.units.indriya.ComparableQuantity
+
+import java.time.ZonedDateTime
+import java.util.UUID
+import javax.measure.quantity.{Energy, Power, Temperature}
 
 sealed trait ResultEvent extends Event with ResultEventListener.Request
 
@@ -43,6 +52,54 @@ object ResultEvent {
   final case class ThermalResultEvent(
       thermalResult: ThermalUnitResult
   ) extends ResultEvent
+
+  object ThermalHouseResult {
+    def unapply(result: ThermalHouseResult): Option[
+      (
+          ZonedDateTime,
+          UUID,
+          ComparableQuantity[Power],
+          ComparableQuantity[Temperature],
+      )
+    ] = {
+      if (result != null) {
+        Some(
+          (
+            result.getTime,
+            result.getInputModel,
+            result.getqDot,
+            result.getIndoorTemperature,
+          )
+        )
+      } else {
+        None
+      }
+    }
+  }
+
+  object CylindricalThermalStorageResult {
+    def unapply(result: CylindricalStorageResult): Option[
+      (
+          ZonedDateTime,
+          UUID,
+          ComparableQuantity[Power],
+          ComparableQuantity[Energy],
+      )
+    ] = {
+      if (result != null) {
+        Some(
+          (
+            result.getTime,
+            result.getInputModel,
+            result.getqDot,
+            result.getEnergy,
+          )
+        )
+      } else {
+        None
+      }
+    }
+  }
 
   /** Event that holds all grid calculation results of a power flow calculation.
     * The usage of a type is necessary here, to avoid passing in other instances
