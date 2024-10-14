@@ -118,6 +118,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improve code quality in fixedloadmodelspec and other tests [#919](https://github.com/ie3-institute/simona/issues/919)
 - Fix power flow calculation with em agents [#962](https://github.com/ie3-institute/simona/issues/962)
 - Fix scheduling at Evcs with more than one Ev at a time without Em [#787](https://github.com/ie3-institute/simona/issues/787)
+- Fix CheckWindow duration [#921](https://github.com/ie3-institute/simona/issues/921)
 
 ## [3.0.0] - 2023-08-07
 
