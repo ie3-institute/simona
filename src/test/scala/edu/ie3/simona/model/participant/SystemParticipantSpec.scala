@@ -227,7 +227,7 @@ class SystemParticipantSpec extends UnitSpec with Matchers {
 
     forAll(testCases) { (adjustedVoltageVal, expectedQ) =>
       val adjustedVoltage = Each(adjustedVoltageVal)
-      val p = Kilowatts(42)
+      val p = Kilowatts(100)
       val qCalc = loadMock.calculateReactivePower(p, adjustedVoltage)
       qCalc should approximate(expectedQ)
     }
