@@ -214,7 +214,7 @@ class ChpModelSpec
           chpStateRunning,
           92,
           1,
-          100,
+          93,
         ), // test case (true, true, true) and storage volume exceeds maximum
       )
 
@@ -243,24 +243,24 @@ class ChpModelSpec
         (chpStateNotRunning, 90, 10, 1025), // tests case (false, true, true)
         (chpStateRunning, 90, 0, 1135), // tests case (true, false, true)
         (chpStateRunning, 90, 8 * 115, 230), // tests case (true, true, false)
-        (chpStateRunning, 90, 10, 1135), // tests case (true, true, true)
+        (chpStateRunning, 90, 10, 1125), // tests case (true, true, true)
         (
           chpStateRunning,
           90,
-          7 * 115 + 1,
-          1135,
+          806,
+          329,
         ), // test case (_, true, false) and demand covered together with chp
         (
           chpStateRunning,
           90,
           9 * 115,
-          1135,
+          230,
         ), // test case (_, true, false) and demand not covered together with chp
         (
           chpStateRunning,
           92,
           1,
-          1036,
+          1150,
         ), // test case (true, true, true) and storage volume exceeds maximum
       )
 
