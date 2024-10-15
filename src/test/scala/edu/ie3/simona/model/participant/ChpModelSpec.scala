@@ -13,7 +13,6 @@ import edu.ie3.datamodel.models.input.thermal.{
   CylindricalStorageInput,
   ThermalBusInput,
 }
-import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.simona.model.participant.ChpModel.{ChpRelevantData, ChpState}
@@ -33,10 +32,10 @@ import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.space.CubicMeters
 import squants.thermal.Celsius
-import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.quantity.Quantities.getQuantity
 import tech.units.indriya.unit.Units
 import tech.units.indriya.unit.Units.PERCENT
+import testutils.TestObjectFactory
 
 import java.util.UUID
 
@@ -60,18 +59,6 @@ class ChpModelSpec
 
   def setupSpec(): Unit = {
     val thermalBus = new ThermalBusInput(UUID.randomUUID(), "thermal bus")
-
-    val nodeInput = new NodeInput(
-      UUID.fromString("ad39d0b9-5ad6-4588-8d92-74c7d7de9ace"),
-      "NodeInput",
-      OperatorInput.NO_OPERATOR_ASSIGNED,
-      OperationTime.notLimited(),
-      Quantities.getQuantity(1, PowerSystemUnits.PU),
-      false,
-      NodeInput.DEFAULT_GEO_POSITION,
-      GermanVoltageLevelUtils.LV,
-      -1,
-    )
 
     storageInput = new CylindricalStorageInput(
       UUID.randomUUID(),
@@ -102,7 +89,8 @@ class ChpModelSpec
       "ChpInput",
       null,
       OperationTime.notLimited(),
-      nodeInput,
+      TestObjectFactory
+        .buildNodeInput(false, GermanVoltageLevelUtils.MV_10KV, 0),
       thermalBus,
       new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
       null,
