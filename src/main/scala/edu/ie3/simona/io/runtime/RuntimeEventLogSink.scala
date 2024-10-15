@@ -27,7 +27,6 @@ import scala.concurrent.duration.DurationLong
 final case class RuntimeEventLogSink(
     simulationStartDate: ZonedDateTime,
     log: Logger,
-    private var last: Long = 0L,
 ) extends RuntimeEventSink {
 
   override def handleRuntimeEvent(
@@ -45,15 +44,13 @@ final case class RuntimeEventLogSink(
 
       case CheckWindowPassed(tick, duration) =>
         log.info(
-          s"******* Simulation until ${calcTime(tick)} completed. ${durationAndMemoryString(duration - last)} ******"
+          s"******* Simulation until ${calcTime(tick)} completed. ${durationAndMemoryString(duration)} ******"
         )
-        last = duration
 
       case Ready(tick, duration) =>
         log.info(
-          s"******* Switched from 'Simulating' to 'Ready'. Last simulated time: ${calcTime(tick)}. ${durationAndMemoryString(duration - last)}  ******"
+          s"******* Switched from 'Simulating' to 'Ready'. Last simulated time: ${calcTime(tick)}. ${durationAndMemoryString(duration)}  ******"
         )
-        last = duration
 
       case Simulating(startTick, endTick) =>
         log.info(
