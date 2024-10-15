@@ -203,8 +203,7 @@ object ExtResultDataProvider {
           dataMap => if (dataMap.getExpectedKeys.contains(extResultResponseMsg.result.getInputModel)) { // Received a result for external entity
             //ctx.log.info(s"[${serviceStateData.currentTick}] Process ResultsResponseMsg = ${extResultResponseMsg.result.getInputModel}\n receiveDataMap ${serviceStateData.receiveDataMap}\n MsgTick=${extResultResponseMsg.tick}, ServiceStateDataTick=${serviceStateData.currentTick}, nextTick = ${extResultResponseMsg.nextTick}")
 
-            // --- Add received results to receiveDataMap
-            if (extResultResponseMsg.tick == serviceStateData.currentTick) { // Received a result for the current tick -> process it
+            if (extResultResponseMsg.tick == serviceStateData.currentTick | extResultResponseMsg.tick == -1L) { // Received a result for the current tick -> process it
               // FIXME Not expected results are unconsidered
               val updatedReceiveDataMap = dataMap.addData(
                   extResultResponseMsg.result.getInputModel,

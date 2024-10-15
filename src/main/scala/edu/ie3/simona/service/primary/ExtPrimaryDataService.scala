@@ -83,7 +83,6 @@ final case class ExtPrimaryDataService(
             modelUuid,
             requestingActor,
           ) =>
-        log.info(s"Got a ExtPrimaryDataServiceRegistrationMessage for $modelUuid")
         Success(handleRegistrationRequest(requestingActor, modelUuid))
       case invalidMessage =>
         Failure(

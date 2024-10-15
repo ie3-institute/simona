@@ -97,16 +97,13 @@ protected trait ParticipantAgentFundamentals[
       senderToMaybeTick,
     )
 
-    log.info(s"initializeParticipantForPrimaryDataReplay")
     /* Confirm final initialization */
     releaseTick()
-    log.info(s"initializeParticipantForPrimaryDataReplay -> released tick")
     val msge = senderToMaybeTick._2.map { tick =>
       val msg = Completion(self.toTyped, Some(tick))
       scheduler ! msg
       msg
     }
-    log.info(s"initializeParticipantForPrimaryDataReplay -> sent completion $msge to $scheduler")
     goto(Idle) using stateData
   }
 

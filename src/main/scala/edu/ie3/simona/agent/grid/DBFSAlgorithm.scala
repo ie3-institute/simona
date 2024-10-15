@@ -469,6 +469,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           createAndSendPowerFlowResults(
             gridAgentBaseData,
             currentTick.toDateTime(constantData.simStartTime),
+            currentTick,
+            currentTick + constantData.resolution
           )(ctx.log, constantData)
 
           // do my cleanup stuff
@@ -1364,6 +1366,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   private def createAndSendPowerFlowResults(
       gridAgentBaseData: GridAgentBaseData,
       currentTimestamp: ZonedDateTime,
+      currentTick: Long,
+      nextTick: Long
   )(implicit
       log: Logger,
       constantData: GridAgentConstantData,
@@ -1376,6 +1380,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             valueStore,
           )(
             currentTimestamp,
+            currentTick,
+            nextTick,
             log,
           )
         )

@@ -329,14 +329,16 @@ object ResultEventListener extends Transformer3wResultSupport {
               lineResults,
               transformer2wResults,
               transformer3wResults,
-              tick
+              tick,
+              nextTick
             ),
           ) =>
         val updatedBaseData =
           (nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ transformer3wResults)
             .foldLeft(baseData) {
               case (currentBaseData, resultEntity: ResultEntity) =>
-                handleResultWithTick(resultEntity, currentBaseData, ctx.log, tick)
+                //ctx.log.info(s"resultEntity = $resultEntity, tick = $tick")
+                handleResultWithTick(resultEntity, currentBaseData, ctx.log, tick, Some(nextTick))
               case (
                     currentBaseData,
                     partialTransformerResult: PartialTransformer3wResult,

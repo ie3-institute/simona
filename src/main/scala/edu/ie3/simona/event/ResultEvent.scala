@@ -68,7 +68,8 @@ object ResultEvent {
       lineResults: Iterable[LineResult],
       transformer2wResults: Iterable[Transformer2WResult],
       transformer3wResults: Iterable[PartialTransformer3wResult],
-      tick: Long
+      tick: Long,
+      nextTick: Long
   ) extends ResultEvent
 
   /** Event that holds the flexibility options result of a

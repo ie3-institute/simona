@@ -35,7 +35,7 @@ import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
-import edu.ie3.simpleextsim.SimpleExtSimulationWithEm
+import edu.ie3.simpleextsim.{SimpleExtSimulationWithEm, SimpleExtSimulationWithPowerFlow}
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
@@ -70,7 +70,8 @@ class SimonaSimpleExtSimulationSetup(
                                context: ActorContext[_],
                                scheduler: ActorRef[SchedulerMessage],
                              ): ExtSimSetupData = {
-    val simpleExtSim = new SimpleExtSimulationWithEm()
+    val simpleExtSim = new SimpleExtSimulationWithPowerFlow()
+    //val simpleExtSim = new SimpleExtSimulationWithEm()
     //val simpleExtSim = new SimpleExtSimulationWithPrimaryData()
 
     extSimulationSetup(

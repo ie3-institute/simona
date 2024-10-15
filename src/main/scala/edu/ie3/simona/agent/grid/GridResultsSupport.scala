@@ -59,7 +59,7 @@ private[grid] trait GridResultsSupport {
   def createResultModels(
       grid: GridModel,
       sweepValueStore: SweepValueStore,
-  )(implicit timestamp: ZonedDateTime, log: Logger): PowerFlowResultEvent = {
+  )(implicit timestamp: ZonedDateTime, tick: Long, nextTick: Long, log: Logger): PowerFlowResultEvent = {
     // no sanity check for duplicated uuid result data as we expect valid data at this point
     implicit val sweepValueStoreData: Map[UUID, SweepValueStoreData] =
       sweepValueStore.sweepData
@@ -89,7 +89,8 @@ private[grid] trait GridResultsSupport {
       buildLineResults(grid.gridComponents.lines),
       buildTransformer2wResults(grid.gridComponents.transformers),
       buildTransformer3wResults(grid.gridComponents.transformers3w),
-      -1L
+      tick,
+      nextTick
     )
   }
 
