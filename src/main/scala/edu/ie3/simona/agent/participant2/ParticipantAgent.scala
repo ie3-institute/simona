@@ -154,7 +154,7 @@ object ParticipantAgent {
     )
   }
 
-  def apply(
+  private def apply(
       modelShell: ParticipantModelShell[_, _, _],
       inputHandler: ParticipantInputHandler,
       gridAdapter: ParticipantGridAdapter,
@@ -370,9 +370,5 @@ object ParticipantAgent {
       !gridAdapter.isPowerRequestExpected(activation.tick)
     } else
       false
-
-  private def primaryData(): Behavior[Request] = Behaviors.receivePartial {
-    case _ => Behaviors.same
-  }
 
 }

@@ -8,10 +8,7 @@ package edu.ie3.simona.model.participant2
 
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ActivePower,
-  PrimaryDataWithApparentPower,
-}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantModel.{
@@ -20,7 +17,10 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   OperationRelevantData,
   ParticipantConstantModel,
 }
-import edu.ie3.simona.model.participant2.PrimaryDataModel.PrimaryOperationRelevantData
+import edu.ie3.simona.model.participant2.PrimaryDataParticipantModel.{
+  PrimaryOperatingPoint,
+  PrimaryOperationRelevantData,
+}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.scala.quantities.ReactivePower
@@ -32,28 +32,31 @@ import scala.reflect.ClassTag
 
 /** Just "replaying" primary data
   */
-final case class PrimaryDataModel[T <: PrimaryData: ClassTag](
+final case class PrimaryDataParticipantModel[T <: PrimaryData: ClassTag](
     override val uuid: UUID,
     override val sRated: Power,
     override val cosPhiRated: Double,
     override val qControl: QControl,
 ) extends ParticipantModel[
-      OperatingPoint,
+      PrimaryOperatingPoint[T],
       ConstantState.type,
       PrimaryOperationRelevantData[T],
     ]
-    with ParticipantConstantModel[OperatingPoint, PrimaryOperationRelevantData[
+    with ParticipantConstantModel[PrimaryOperatingPoint[
+      T
+    ], PrimaryOperationRelevantData[
       T
     ]] {
 
   override def determineOperatingPoint(
       state: ParticipantModel.ConstantState.type,
       relevantData: PrimaryOperationRelevantData[T],
-  ): (OperatingPoint, Option[Long]) = ???
+  ): (PrimaryOperatingPoint[T], Option[Long]) =
+    (PrimaryOperatingPoint(relevantData.data), None)
 
   override def createResults(
       lastState: ParticipantModel.ConstantState.type,
-      operatingPoint: OperatingPoint,
+      operatingPoint: PrimaryOperatingPoint[T],
       complexPower: PrimaryData.ApparentPower,
       dateTime: ZonedDateTime,
   ): ParticipantModel.ResultsContainer = ???
@@ -88,10 +91,10 @@ final case class PrimaryDataModel[T <: PrimaryData: ClassTag](
   override def handlePowerControl(
       flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,
-  ): (OperatingPoint, ParticipantModel.ModelChangeIndicator) = ???
+  ): (PrimaryOperatingPoint[T], ParticipantModel.ModelChangeIndicator) = ???
 }
 
-object PrimaryDataModel {
+object PrimaryDataParticipantModel {
 
   final case class PrimaryOperationRelevantData[+T <: PrimaryData](data: T)
       extends OperationRelevantData

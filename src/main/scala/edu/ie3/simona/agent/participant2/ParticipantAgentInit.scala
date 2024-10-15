@@ -23,7 +23,6 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexCompletion,
   FlexRequest,
   FlexResponse,
-  ProvideFlexOptions,
   RegisterParticipant,
   ScheduleFlexRequest,
 }
@@ -105,7 +104,7 @@ object ParticipantAgentInit {
       primaryServiceProxy ! PrimaryServiceRegistrationMessage(
         participantInput.getUuid
       )
-      waitingForProxy(
+      waitingForPrimaryProxy(
         participantInput,
         config,
         simulationStartDate,
@@ -114,7 +113,7 @@ object ParticipantAgentInit {
       )
   }
 
-  private def waitingForProxy(
+  private def waitingForPrimaryProxy(
       participantInput: SystemParticipantInput,
       config: BaseRuntimeConfig,
       simulationStartDate: ZonedDateTime,
@@ -136,7 +135,23 @@ object ParticipantAgentInit {
         ),
       )
 
-      primaryData()
+      // todo T parameter, receive from primary proxy
+      val model = ParticipantModelInit.createPrimaryModel(
+        participantInput,
+        config.scaling,
+        simulationStartDate,
+        simulationEndDate,
+      )
+
+      val expectedFirstData = Map(serviceRef -> nextDataTick)
+
+      ParticipantAgent(
+        model,
+        expectedFirstData,
+        ???,
+        ???,
+        parentData,
+      )
 
     case (_, RegistrationFailedMessage(serviceRef)) =>
       val model = ParticipantModelInit.createModel(
@@ -149,14 +164,14 @@ object ParticipantAgentInit {
       if (requiredServices.isEmpty) {
         ParticipantAgent(model, Map.empty, ???, ???, parentData)
       } else {
-        waitingForServices(model)
+        waitingForServices(model, requiredServices, parentData = parentData)
       }
   }
 
   private def waitingForServices(
       model: ParticipantModel[_, _, _],
       expectedRegistrations: Set[ClassicRef],
-      expectedFirstData: Map[ClassicRef, Long],
+      expectedFirstData: Map[ClassicRef, Long] = Map.empty,
       parentData: Either[SchedulerData, FlexControlledData],
   ): Behavior[Request] =
     Behaviors.receivePartial {
