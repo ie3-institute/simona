@@ -53,13 +53,13 @@ jobs:
 
       - name: Run Tests
         run: |
-          ./gradlew --refresh-dependencies spotlessCheck pmdMain pmdTest test
+          ./gradlew --refresh-dependencies spotlessCheck pmdMain pmdTest test reportScoverage
 
       - name: Build Java-Docs
         run: |
           ./gradlew javadoc
 
       - name: Run SonarQube with Gradle
-        run: ./gradlew reportScoverage sonarqube -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
+        run: ./gradlew sonarqube -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
           -Dsonar.host.url=${{ vars.SONAR_HOST_URL }} \
           -Dsonar.login=${{ secrets.SONAR_TOKEN }}
