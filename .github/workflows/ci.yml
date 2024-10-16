@@ -59,8 +59,5 @@ jobs:
         run: |
           ./gradlew javadoc
 
-      - name: SonarQube Scan
-        uses: sonarsource/sonarqube-scan-action@v3
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+      - name: Run SonarQube with Gradle
+        run: ./gradlew reportScoverage sonarqube -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} -Dsonar.host.url=${{ vars.SONAR_HOST_URL }} -Dsonar.login=${{ secrets.SONAR_TOKEN }} -Dsonar.branch.name=${{ github.head_ref || github.ref_name }}
