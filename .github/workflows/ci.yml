@@ -60,7 +60,8 @@ jobs:
           ./gradlew javadoc
 
       - name: Run SonarQube with Gradle
-        run: ./gradlew sonarqube -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
+        run: ./gradlew sonarqube \
+          -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
           -Dsonar.host.url=${{ vars.SONAR_HOST_URL }} \
           -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
-          reportScoverage sonarqube
+          -Dsonar.branch.name=${{ github.head_ref || github.ref_name }}
