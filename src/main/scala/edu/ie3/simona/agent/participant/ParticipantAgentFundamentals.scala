@@ -72,10 +72,7 @@ import edu.ie3.simona.model.participant.{
   SystemParticipant,
 }
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
@@ -304,7 +301,7 @@ protected trait ParticipantAgentFundamentals[
           awaitRegistrationResponsesFrom,
         )
       } else {
-        /* Determine the next activation tick, create a ScheduleTriggerMessage and remove the recently triggered tick */
+        /* Determine the next activation tick, create a ScheduleActivation and remove the recently triggered tick */
         val (newTick, nextBaseStateData) = popNextActivationTrigger(
           baseStateData
         )
@@ -513,36 +510,6 @@ protected trait ParticipantAgentFundamentals[
             None
         }
       }
-
-    val unexpectedSender = baseStateData.foreseenDataTicks.exists {
-      case (ref, None) => msg.serviceRef == ref
-      case _           => false
-    }
-
-    /* If we have received unexpected data, we also have not been scheduled before */
-    if (unexpectedSender) {
-      baseStateData match {
-        case modelStateData: ParticipantModelBaseStateData[_, _, _, _] =>
-          val maybeEmAgent = modelStateData.flexStateData.map(_.emAgent)
-
-          maybeEmAgent match {
-            case Some(emAgent) =>
-              emAgent ! ScheduleFlexRequest(
-                modelStateData.model.getUuid,
-                msg.tick,
-                msg.unlockKey,
-              )
-            case None =>
-              scheduler ! ScheduleActivation(
-                self.toTyped,
-                msg.tick,
-                msg.unlockKey,
-              )
-          }
-        case _ =>
-          false
-      }
-    }
 
     /* If the sender announces a new next tick, add it to the list of expected ticks, else remove the current entry */
     val foreseenDataTicks =
@@ -830,13 +797,18 @@ protected trait ParticipantAgentFundamentals[
       )
       .getOrElse((flexChangeIndicator.changesAtTick, stateDataWithResults))
 
-    flexStateData.emAgent ! FlexCtrlCompletion(
+    flexStateData.emAgent ! FlexResult(
       baseStateData.modelUuid,
-      result.toApparentPower,
+      result.primaryData.toApparentPower,
+    )
+
+    flexStateData.emAgent ! FlexCompletion(
+      baseStateData.modelUuid,
       flexChangeIndicator.changesAtNextActivation,
       nextActivation,
     )
 
+    unstashAll()
     stay() using stateDataFinal
   }
 
@@ -854,7 +826,7 @@ protected trait ParticipantAgentFundamentals[
     */
   protected def handleCalculatedResult(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      result: PD,
+      result: AccompaniedSimulationResult[PD],
       currentTick: Long,
   ): ParticipantModelBaseStateData[PD, CD, MS, M] = {
 
@@ -862,14 +834,14 @@ protected trait ParticipantAgentFundamentals[
     announceSimulationResult(
       baseStateData,
       currentTick,
-      AccompaniedSimulationResult(result),
+      result,
     )(baseStateData.outputConfig)
 
     baseStateData.copy(
       resultValueStore = ValueStore.updateValueStore(
         baseStateData.resultValueStore,
         currentTick,
-        result,
+        result.primaryData,
       )
     )
   }
@@ -935,7 +907,7 @@ protected trait ParticipantAgentFundamentals[
       updatedState,
     )
 
-    /* In this case, without secondary data, the agent has been triggered by an ActivityStartTrigger by itself,
+    /* In this case, without secondary data, the agent has been triggered by an Activation(tick) by itself,
      * therefore pop the next one */
     val baseStateDataWithUpdatedResultStore =
       baseStateData.copy(
@@ -1098,9 +1070,9 @@ protected trait ParticipantAgentFundamentals[
         false
     }
 
-    // Only for completing initialization:
-    // if we are EM-managed, there is no new tick for the
-    // scheduler, since we are activated by the EmAgent from now on
+    // If we're completing initialization and we're EM-managed:
+    // There is no new tick for the scheduler,
+    // since we are activated by the EmAgent from now on
     scheduler ! Completion(
       self.toTyped,
       maybeNextTick.filterNot(_ => emManaged),

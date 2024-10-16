@@ -88,6 +88,7 @@ object ConfigUtil {
             subConfig.pv.individualConfigs,
             subConfig.evcs.individualConfigs,
             subConfig.wec.individualConfigs,
+            subConfig.storage.individualConfigs,
             subConfig.em.individualConfigs,
           ).flatten
         ),
@@ -98,6 +99,7 @@ object ConfigUtil {
           subConfig.evcs.defaultConfig,
           subConfig.wec.defaultConfig,
           subConfig.hp.defaultConfig,
+          subConfig.storage.defaultConfig,
           subConfig.em.defaultConfig,
         ).map { conf => conf.getClass -> conf }.toMap,
       )

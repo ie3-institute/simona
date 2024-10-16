@@ -6,9 +6,6 @@
 
 package edu.ie3.simona.io.result
 
-import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.stream.scaladsl.FileIO
-import org.apache.pekko.util.ByteString
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.exceptions.EntityProcessorException
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
@@ -18,14 +15,14 @@ import edu.ie3.simona.exceptions.ProcessResultEventException
 import edu.ie3.simona.test.common.{IOTestCommons, TestKitWithShutdown, UnitSpec}
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.io.FileIOUtils
+import org.apache.pekko.actor.ActorSystem
 import tech.units.indriya.quantity.Quantities
 
 import java.io.File
-import java.nio.file.Paths
+import java.nio.charset.StandardCharsets
 import java.nio.file.StandardOpenOption.{CREATE, TRUNCATE_EXISTING, WRITE}
+import java.nio.file.{Files, Paths}
 import java.util.UUID
-import scala.concurrent.Await
-import scala.concurrent.duration.DurationInt
 import scala.io.Source
 import scala.language.postfixOps
 
@@ -98,12 +95,12 @@ class ResultEntityCsvSinkSpec
 
       val path = Paths.get(outFileName)
       // create output file (should not exist yet at this point)
-      Await.ready(
-        org.apache.pekko.stream.scaladsl.Source
-          .single(testText)
-          .map(t => ByteString(t))
-          .runWith(FileIO.toPath(path, Set(WRITE, TRUNCATE_EXISTING, CREATE))),
-        5.seconds,
+      Files.write(
+        path,
+        testText.getBytes(StandardCharsets.UTF_8),
+        WRITE,
+        TRUNCATE_EXISTING,
+        CREATE,
       )
 
       val resultEntityProcessor = new ResultEntityProcessor(classOf[PvResult])

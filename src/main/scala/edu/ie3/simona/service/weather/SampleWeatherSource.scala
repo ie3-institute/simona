@@ -170,12 +170,13 @@ object SampleWeatherSource {
     }
 
     override def findCornerPoints(
-        point: Point,
+        coordinate: Point,
         distance: ComparableQuantity[Length],
-    ): util.List[CoordinateDistance] = {
-      // just a dummy implementation, because this is just a sample weather source
-      getClosestCoordinates(point, 4, distance)
-    }
+    ): util.List[CoordinateDistance] =
+      findCornerPoints(
+        coordinate,
+        getClosestCoordinates(coordinate, 9, distance),
+      )
 
     override def validate(): Unit = {
       /* nothing to do here */

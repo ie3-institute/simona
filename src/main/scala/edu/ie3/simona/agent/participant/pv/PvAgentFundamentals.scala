@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent.participant.pv
 
 import edu.ie3.datamodel.models.input.system.PvInput
+import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.{
   PvResult,
   SystemParticipantResult,
@@ -270,7 +271,11 @@ protected trait PvAgentFundamentals
       data: PvRelevantData,
       lastState: ConstantState.type,
       setPower: squants.Power,
-  ): (ConstantState.type, ApparentPower, FlexChangeIndicator) = {
+  ): (
+      ConstantState.type,
+      AccompaniedSimulationResult[ApparentPower],
+      FlexChangeIndicator,
+  ) = {
     /* Calculate result */
     val voltage = getAndCheckNodalVoltage(baseStateData, tick)
 
@@ -278,7 +283,10 @@ protected trait PvAgentFundamentals
       setPower,
       voltage,
     )
-    val result = ApparentPower(setPower, reactivePower)
+    val result = AccompaniedSimulationResult(
+      ApparentPower(setPower, reactivePower),
+      Seq.empty[ResultEntity],
+    )
 
     /* Handle the request within the model */
     val (updatedState, flexChangeIndicator) =

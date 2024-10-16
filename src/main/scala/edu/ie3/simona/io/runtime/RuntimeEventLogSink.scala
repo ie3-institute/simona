@@ -14,6 +14,7 @@ import edu.ie3.util.TimeUtil
 import org.slf4j.Logger
 
 import java.time.ZonedDateTime
+import scala.concurrent.duration.DurationLong
 
 /** Runtime event sink that just logs all received events.
   *
@@ -84,12 +85,14 @@ final case class RuntimeEventLogSink(
   }
 
   private def convertDuration(duration: Long): String = {
-    val durationInSeconds = duration / 1000
+    val time = duration.milliseconds
 
-    val hours = durationInSeconds / 3600
-    val minutes = (durationInSeconds / 60) % 60
-    val seconds = durationInSeconds % 60
-    s"${hours}h : ${minutes}m : ${seconds}s"
+    val hours = time.toHours
+    val minutes = time.toMinutes % 60
+    val seconds = time.toSeconds % 60
+    val milliseconds =
+      (time - hours.hours - minutes.minutes - seconds.seconds).toMillis
+    s"${hours}h : ${minutes}m : ${seconds}s : ${milliseconds}ms"
   }
 
   private def durationAndMemoryString(duration: Long) = {

@@ -14,7 +14,7 @@ import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
-  ActorEvMovementsService,
+  ActorExtEvDataService,
   ActorWeatherService,
 }
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
@@ -23,6 +23,7 @@ import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.load.LoadAgent
 import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
+import edu.ie3.simona.agent.participant.storage.StorageAgent
 import edu.ie3.simona.agent.participant.wec.WecAgent
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig._
@@ -127,8 +128,7 @@ class GridAgentController(
                 curSysPart,
               ) =>
             curSysPart match {
-              case entity @ (_: BmInput | _: ChpInput | _: EvInput |
-                  _: StorageInput) =>
+              case entity @ (_: BmInput | _: ChpInput | _: EvInput) =>
                 (
                   notProcessedElements + entity.getClass.getSimpleName,
                   availableSystemParticipants,
@@ -201,6 +201,18 @@ class GridAgentController(
       .map { participant =>
         val node = participant.getNode
 
+        val controllingEm =
+          participant.getControllingEm.toScala
+            .map(_.getUuid)
+            .map(uuid =>
+              allEms.getOrElse(
+                uuid,
+                throw new CriticalFailureException(
+                  s"EM actor with UUID $uuid not found."
+                ),
+              )
+            )
+
         val actorRef = buildParticipantActor(
           participantsConfig.requestVoltageDeviationThreshold,
           participantConfigUtil,
@@ -208,7 +220,7 @@ class GridAgentController(
           participant,
           thermalIslandGridsByBusId,
           environmentRefs,
-          allEms.get(participant.getUuid),
+          controllingEm,
         )
         introduceAgentToEnvironment(actorRef)
         // return uuid to actorRef
@@ -409,6 +421,20 @@ class GridAgentController(
             s"Unable to find thermal island grid for heat pump '${hpInput.getUuid}' with thermal bus '${hpInput.getThermalBus.getUuid}'."
           )
       }
+    case input: StorageInput =>
+      buildStorage(
+        input,
+        participantConfigUtil.getOrDefault[StorageRuntimeConfig](
+          input.getUuid
+        ),
+        environmentRefs.primaryServiceProxy,
+        simulationStartDate,
+        simulationEndDate,
+        resolution,
+        requestVoltageDeviationThreshold,
+        outputConfigUtil.getOrDefault(NotifierIdentifier.Storage),
+        maybeControllingEm,
+      )
     case input: SystemParticipantInput =>
       throw new NotImplementedError(
         s"Building ${input.getClass.getSimpleName} is not implemented, yet."
@@ -640,7 +666,7 @@ class GridAgentController(
             modelConfiguration,
             primaryServiceProxy,
             Iterable(
-              ActorEvMovementsService(
+              ActorExtEvDataService(
                 evMovementsService
               )
             ),
@@ -652,7 +678,8 @@ class GridAgentController(
             maybeControllingEm,
           ),
           listener.map(_.toClassic),
-        )
+        ),
+        evcsInput.getId,
       )
       .toTyped
 
@@ -767,6 +794,63 @@ class GridAgentController(
           listener.map(_.toClassic),
         ),
         wecInput.getId,
+      )
+      .toTyped
+
+  /** Creates a storage agent and determines the needed additional information
+    * for later initialization of the agent.
+    *
+    * @param storageInput
+    *   Storage input model to derive information from
+    * @param modelConfiguration
+    *   User-provided configuration for this specific storage model
+    * @param primaryServiceProxy
+    *   Reference to the primary data service proxy
+    * @param simulationStartDate
+    *   First wall clock time in simulation
+    * @param simulationEndDate
+    *   Last wall clock time in simulation
+    * @param resolution
+    *   Frequency of power flow calculations
+    * @param requestVoltageDeviationThreshold
+    *   Maximum deviation in p.u. of request voltages to be considered equal
+    * @param outputConfig
+    *   Configuration of the output behavior
+    * @param maybeControllingEm
+    *   The parent EmAgent, if applicable
+    * @return
+    *   The [[StorageAgent]] 's [[ActorRef]]
+    */
+  private def buildStorage(
+      storageInput: StorageInput,
+      modelConfiguration: SimonaConfig.StorageRuntimeConfig,
+      primaryServiceProxy: ClassicRef,
+      simulationStartDate: ZonedDateTime,
+      simulationEndDate: ZonedDateTime,
+      resolution: Long,
+      requestVoltageDeviationThreshold: Double,
+      outputConfig: NotifierConfig,
+      maybeControllingEm: Option[ActorRef[FlexResponse]] = None,
+  ): ActorRef[ParticipantMessage] =
+    gridAgentContext.toClassic
+      .simonaActorOf(
+        StorageAgent.props(
+          environmentRefs.scheduler.toClassic,
+          ParticipantInitializeStateData(
+            storageInput,
+            modelConfiguration,
+            primaryServiceProxy,
+            None,
+            simulationStartDate,
+            simulationEndDate,
+            resolution,
+            requestVoltageDeviationThreshold,
+            outputConfig,
+            maybeControllingEm,
+          ),
+          listener.map(_.toClassic),
+        ),
+        storageInput.getId,
       )
       .toTyped
 

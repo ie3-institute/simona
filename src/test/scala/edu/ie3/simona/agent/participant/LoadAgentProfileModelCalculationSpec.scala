@@ -243,7 +243,7 @@ class LoadAgentProfileModelCalculationSpec
         RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
 
       loadAgent.stateName shouldBe Idle
@@ -299,7 +299,7 @@ class LoadAgentProfileModelCalculationSpec
         RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
-      /* I am not interested in the CompletionMessage */
+      /* I am not interested in the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(loadAgent.stateName shouldBe Idle)
       /* State data is tested in another test */

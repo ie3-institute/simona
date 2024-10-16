@@ -123,8 +123,7 @@ final case class WeatherService(
   ): Try[(WeatherInitializedStateData, Option[Long])] =
     initServiceData match {
       case InitWeatherServiceStateData(sourceDefinition) =>
-        val weatherSource =
-          WeatherSource(sourceDefinition, simulationStart)
+        val weatherSource = WeatherSource(sourceDefinition)
 
         /* What is the first tick to be triggered for? And what are further activation ticks */
         val (maybeNextTick, furtherActivationTicks) = SortedDistinctSeq(

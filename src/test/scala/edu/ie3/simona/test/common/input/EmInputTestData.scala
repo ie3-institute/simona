@@ -27,12 +27,10 @@ import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
-import edu.ie3.simona.test.common.model.participant.HpTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.quantities.PowerSystemUnits._
 import squants.energy.Kilowatts
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units._
 
 import java.util.UUID
 import scala.jdk.CollectionConverters.SeqHasAsJava
@@ -41,7 +39,7 @@ trait EmInputTestData
     extends NodeInputTestData
     with PvInputTestData
     with LoadInputTestData
-    with HpTestData {
+    with HpInputTestData {
 
   protected val emInput = new EmInput(
     UUID.randomUUID(),
@@ -70,8 +68,8 @@ trait EmInputTestData
   protected val householdStorageTypeInput = new StorageTypeInput(
     UUID.randomUUID(),
     "Dummy_Household_StorageTypeInput",
-    Quantities.getQuantity(100d, EURO),
-    Quantities.getQuantity(101d, EURO_PER_MEGAWATTHOUR),
+    Quantities.getQuantity(4000d, EURO),
+    Quantities.getQuantity(0.05d, EURO_PER_MEGAWATTHOUR),
     Quantities.getQuantity(15d, KILOWATTHOUR),
     Quantities.getQuantity(5d, KILOVOLTAMPERE),
     0.997,
@@ -130,7 +128,7 @@ trait EmInputTestData
     "test hp",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
-    nodeInput,
+    nodeInputNoSlackNs04KvA,
     thermalBusInput,
     ReactivePowerCharacteristic.parse("cosPhiFixed:{(0.00,0.98)}"),
     emInput,
