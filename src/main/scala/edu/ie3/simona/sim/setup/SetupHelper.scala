@@ -13,8 +13,8 @@ import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.utils.ContainerUtils
+import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.agent.grid.GridAgentMessage
 import edu.ie3.simona.config.RefSystemParser.ConfigRefSystems
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.InitializationException
@@ -24,8 +24,8 @@ import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.util.ConfigUtil.{GridOutputConfigUtil, OutputConfigUtil}
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
 import edu.ie3.simona.util.{EntityMapperUtil, ResultFileHierarchy}
-import org.apache.pekko.actor.typed.ActorRef
 import edu.ie3.util.quantities.PowerSystemUnits
+import org.apache.pekko.actor.typed.ActorRef
 import squants.electro.Kilovolts
 
 /** Methods to support the setup of a simona simulation
@@ -58,7 +58,7 @@ trait SetupHelper extends LazyLogging {
     */
   def buildGridAgentInitData(
       subGridContainer: SubGridContainer,
-      subGridToActorRef: Map[Int, ActorRef[GridAgentMessage]],
+      subGridToActorRef: Map[Int, ActorRef[GridAgent.Request]],
       gridGates: Set[SubGridGate],
       configRefSystems: ConfigRefSystems,
       thermalGrids: Seq[ThermalGrid],
@@ -99,10 +99,10 @@ trait SetupHelper extends LazyLogging {
     *   A mapping from [[SubGridGate]] to corresponding actor reference
     */
   def buildGateToActorRef(
-      subGridToActorRefMap: Map[Int, ActorRef[GridAgentMessage]],
+      subGridToActorRefMap: Map[Int, ActorRef[GridAgent.Request]],
       subGridGates: Set[SubGridGate],
       currentSubGrid: Int,
-  ): Map[SubGridGate, ActorRef[GridAgentMessage]] =
+  ): Map[SubGridGate, ActorRef[GridAgent.Request]] =
     subGridGates
       .groupBy(gate => (gate.superiorNode, gate.inferiorNode))
       .flatMap(_._2.headOption)
@@ -144,10 +144,10 @@ trait SetupHelper extends LazyLogging {
     *   The actor reference of the sub grid to look for
     */
   def getActorRef(
-      subGridToActorRefMap: Map[Int, ActorRef[GridAgentMessage]],
+      subGridToActorRefMap: Map[Int, ActorRef[GridAgent.Request]],
       currentSubGrid: Int,
       queriedSubGrid: Int,
-  ): ActorRef[GridAgentMessage] = {
+  ): ActorRef[GridAgent.Request] = {
     subGridToActorRefMap.get(queriedSubGrid) match {
       case Some(hit) => hit
       case _ =>
@@ -260,9 +260,11 @@ object SetupHelper {
     ).simulationResultEntitiesToConsider ++
       (OutputConfigUtil(
         outputConfig.participant
-      ).simulationResultIdentifiersToConsider ++ OutputConfigUtil(
+      ).simulationResultIdentifiersToConsider(thermal =
+        false
+      ) ++ OutputConfigUtil(
         outputConfig.thermal
-      ).simulationResultIdentifiersToConsider)
+      ).simulationResultIdentifiersToConsider(thermal = true))
         .map(notifierId => EntityMapperUtil.getResultEntityClass(notifierId)) ++
       (if (outputConfig.flex) Seq(classOf[FlexOptionsResult]) else Seq.empty)
 }

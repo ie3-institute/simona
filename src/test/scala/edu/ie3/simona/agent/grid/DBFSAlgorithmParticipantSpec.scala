@@ -9,16 +9,13 @@ package edu.ie3.simona.agent.grid
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.agent.grid.GridAgentMessage.{
-  CreateGridAgent,
-  FinishGridSimulationTrigger,
-  WrappedActivation,
+import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
+  ExchangePower,
+  ExchangeVoltage,
 }
-import edu.ie3.simona.agent.grid.VoltageMessage.ProvideSlackVoltageMessage
-import edu.ie3.simona.agent.grid.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
+import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.model.grid.RefSystem
-import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -85,7 +82,7 @@ class DBFSAlgorithmParticipantSpec
     s"initialize itself when it receives an init activation" in {
 
       // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
-      val subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgentMessage]] =
+      val subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]] =
         hvSubGridGates.map { gate =>
           gate -> superiorGridAgent.ref
         }.toMap
@@ -163,7 +160,7 @@ class DBFSAlgorithmParticipantSpec
 
       // we now answer the request of our gridAgentsWithParticipants
       // with a fake slack voltage message
-      firstSlackVoltageRequestSender ! ProvideSlackVoltageMessage(
+      firstSlackVoltageRequestSender ! SlackVoltageResponse(
         firstSweepNo,
         Seq(
           ExchangeVoltage(
@@ -208,7 +205,7 @@ class DBFSAlgorithmParticipantSpec
         superiorGridAgent.expectSlackVoltageRequest(secondSweepNo)
 
       // the superior grid would answer with updated slack voltage values
-      secondSlackAskSender ! ProvideSlackVoltageMessage(
+      secondSlackAskSender ! SlackVoltageResponse(
         secondSweepNo,
         Seq(
           ExchangeVoltage(

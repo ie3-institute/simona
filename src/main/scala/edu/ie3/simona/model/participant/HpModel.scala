@@ -18,6 +18,7 @@ import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMin
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.energy.Kilowatts
 import squants.{Power, Temperature}
 
@@ -184,6 +185,7 @@ final case class HpModel(
         relevantData.currentTick,
         state.thermalGridState,
         state.ambientTemperature.getOrElse(relevantData.ambientTemperature),
+        relevantData.ambientTemperature,
         newThermalPower,
       )
 
@@ -217,14 +219,14 @@ final case class HpModel(
 
     val lowerBoundary =
       if (canBeOutOfOperation)
-        Kilowatts(0d)
+        zeroKW
       else
         updatedState.activePower
     val upperBoundary =
       if (canOperate)
         sRated * cosPhiRated
       else
-        Kilowatts(0d)
+        zeroKW
 
     ProvideMinMaxFlexOptions(
       uuid,

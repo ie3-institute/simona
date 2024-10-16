@@ -9,14 +9,14 @@ package edu.ie3.simona.agent.grid
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.agent.grid.GridAgentMessage._
-import edu.ie3.simona.agent.grid.VoltageMessage.ProvideSlackVoltageMessage
-import edu.ie3.simona.agent.grid.VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
+import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
+  ExchangePower,
+  ExchangeVoltage,
+}
+import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.model.grid.RefSystem
-import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage
-import edu.ie3.simona.ontology.messages.PowerMessage.ProvideGridPowerMessage.ExchangePower
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -216,43 +216,37 @@ class DBFSAlgorithmCenGridSpec
       // we now answer the request of our centerGridAgent
       // with three fake grid power messages and one fake slack voltage message
 
-      firstPowerRequestSender11 ! WrappedPowerMessage(
-        ProvideGridPowerMessage(
-          inferiorGrid11.nodeUuids.map(nodeUuid =>
-            ExchangePower(
-              nodeUuid,
-              Megawatts(0.0),
-              Megavars(0.0),
-            )
+      firstPowerRequestSender11 ! GridPowerResponse(
+        inferiorGrid11.nodeUuids.map(nodeUuid =>
+          ExchangePower(
+            nodeUuid,
+            Megawatts(0.0),
+            Megavars(0.0),
           )
         )
       )
 
-      firstPowerRequestSender12 ! WrappedPowerMessage(
-        ProvideGridPowerMessage(
-          inferiorGrid12.nodeUuids.map(nodeUuid =>
-            ExchangePower(
-              nodeUuid,
-              Megawatts(0.0),
-              Megavars(0.0),
-            )
+      firstPowerRequestSender12 ! GridPowerResponse(
+        inferiorGrid12.nodeUuids.map(nodeUuid =>
+          ExchangePower(
+            nodeUuid,
+            Megawatts(0.0),
+            Megavars(0.0),
           )
         )
       )
 
-      firstPowerRequestSender13 ! WrappedPowerMessage(
-        ProvideGridPowerMessage(
-          inferiorGrid13.nodeUuids.map(nodeUuid =>
-            ExchangePower(
-              nodeUuid,
-              Megawatts(0.0),
-              Megavars(0.0),
-            )
+      firstPowerRequestSender13 ! GridPowerResponse(
+        inferiorGrid13.nodeUuids.map(nodeUuid =>
+          ExchangePower(
+            nodeUuid,
+            Megawatts(0.0),
+            Megavars(0.0),
           )
         )
       )
 
-      firstSlackVoltageRequestSender ! ProvideSlackVoltageMessage(
+      firstSlackVoltageRequestSender ! SlackVoltageResponse(
         firstSweepNo,
         Seq(
           ExchangeVoltage(
@@ -298,7 +292,7 @@ class DBFSAlgorithmCenGridSpec
         superiorGridAgent.expectSlackVoltageRequest(secondSweepNo)
 
       // the superior grid would answer with updated slack voltage values
-      secondSlackAskSender ! ProvideSlackVoltageMessage(
+      secondSlackAskSender ! SlackVoltageResponse(
         secondSweepNo,
         Seq(
           ExchangeVoltage(
@@ -380,38 +374,32 @@ class DBFSAlgorithmCenGridSpec
       // we now answer the requests of our centerGridAgent
       // with three fake grid power message
 
-      secondPowerRequestSender11 ! WrappedPowerMessage(
-        ProvideGridPowerMessage(
-          inferiorGrid11.nodeUuids.map(nodeUuid =>
-            ExchangePower(
-              nodeUuid,
-              Megawatts(0.0),
-              Megavars(0.0),
-            )
+      secondPowerRequestSender11 ! GridPowerResponse(
+        inferiorGrid11.nodeUuids.map(nodeUuid =>
+          ExchangePower(
+            nodeUuid,
+            Megawatts(0.0),
+            Megavars(0.0),
           )
         )
       )
 
-      secondPowerRequestSender12 ! WrappedPowerMessage(
-        ProvideGridPowerMessage(
-          inferiorGrid12.nodeUuids.map(nodeUuid =>
-            ExchangePower(
-              nodeUuid,
-              Megawatts(0.0),
-              Megavars(0.0),
-            )
+      secondPowerRequestSender12 ! GridPowerResponse(
+        inferiorGrid12.nodeUuids.map(nodeUuid =>
+          ExchangePower(
+            nodeUuid,
+            Megawatts(0.0),
+            Megavars(0.0),
           )
         )
       )
 
-      secondPowerRequestSender13 ! WrappedPowerMessage(
-        ProvideGridPowerMessage(
-          inferiorGrid13.nodeUuids.map(nodeUuid =>
-            ExchangePower(
-              nodeUuid,
-              Megawatts(0.0),
-              Megavars(0.0),
-            )
+      secondPowerRequestSender13 ! GridPowerResponse(
+        inferiorGrid13.nodeUuids.map(nodeUuid =>
+          ExchangePower(
+            nodeUuid,
+            Megawatts(0.0),
+            Megavars(0.0),
           )
         )
       )

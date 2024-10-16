@@ -9,12 +9,14 @@ package edu.ie3.simona.model.grid
 import breeze.linalg.DenseMatrix
 import breeze.math.Complex
 import breeze.numerics.abs
-import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.MeasurementUnitInput
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.model.control.{GridControls, TransformerControlGroupModel}
-import edu.ie3.simona.model.grid.GridModel.GridComponents
+import edu.ie3.simona.model.grid.GridModel.{
+  GridComponents,
+  updateUuidToIndexMap,
+}
 import edu.ie3.simona.test.common.input.{GridInputTestData, LineInputTestData}
 import edu.ie3.simona.test.common.model.grid.{
   BasicGrid,
@@ -229,7 +231,14 @@ class GridSpec
       nodes.foreach(_.enable())
 
       // remove a line from the grid
-      val adaptedLines: Set[LineModel] = lines - line0To1
+      val adaptedLines = lines - line3To4
+      adaptedLines.foreach(_.enable())
+
+      // enable transformer
+      transformer2wModel.enable()
+
+      // enable switches
+      switches.foreach(_.enable())
 
       // get the grid from the raw data
       val gridModel = new GridModel(
@@ -240,7 +249,7 @@ class GridSpec
           adaptedLines,
           Set(transformer2wModel),
           Set.empty[Transformer3wModel],
-          Set.empty[SwitchModel],
+          switches,
         ),
         GridControls.empty,
       )
@@ -255,53 +264,6 @@ class GridSpec
         }
 
       exception.getMessage shouldBe "The grid with subnetNo 1 is not connected! Please ensure that all elements are connected correctly and inOperation is set to true!"
-
-    }
-
-    "throw an InvalidGridException if two switches are connected @ the same node" in new BasicGridWithSwitches {
-      // enable nodes
-      override val nodes: Seq[NodeModel] = super.nodes
-      nodes.foreach(_.enable())
-
-      // add a second switch @ node13 (between node1 and node13)
-      val secondSwitch = new SwitchModel(
-        UUID.fromString("ebeaad04-0ee3-4b2e-ae85-8c76a583295b"),
-        "SecondSwitch1",
-        defaultOperationInterval,
-        node1.uuid,
-        node13.uuid,
-      )
-      // add the second switch + enable switches
-      override val switches: Set[SwitchModel] = super.switches + secondSwitch
-      switches.foreach(_.enable())
-      // open the switches
-      switches.foreach(_.open())
-
-      // get the grid from the raw data
-      val gridModel = new GridModel(
-        1,
-        default400Kva10KvRefSystem,
-        GridComponents(
-          nodes,
-          lines,
-          Set(transformer2wModel),
-          Set.empty[Transformer3wModel],
-          switches,
-        ),
-        GridControls.empty,
-      )
-
-      // get the private method for validation
-      val validateConsistency: PrivateMethod[Unit] =
-        PrivateMethod[Unit](Symbol("validateConsistency"))
-
-      // call the validation method
-      val exception: InvalidGridException = intercept[InvalidGridException] {
-        GridModel invokePrivate validateConsistency(gridModel)
-      }
-
-      // expect an exception for node 13
-      exception.getMessage shouldBe s"The grid model for subnet 1 has nodes with multiple switches. This is not supported yet! Duplicates are located @ nodes: Vector(${node13.uuid})"
 
     }
 
@@ -467,6 +429,131 @@ class GridSpec
           nodes.map(node => node.uuid).toVector.sorted
         )
       }
+
+      "contains two closed switches with a common node" in new BasicGridWithSwitches {
+        // enable nodes
+        override val nodes: Seq[NodeModel] = super.nodes
+        nodes.foreach(_.enable())
+
+        // add a second switch @ node13 (between node1 and node13)
+        val secondSwitch = new SwitchModel(
+          UUID.fromString("ebeaad04-0ee3-4b2e-ae85-8c76a583295b"),
+          "SecondSwitch1",
+          defaultOperationInterval,
+          node1.uuid,
+          node13.uuid,
+        )
+        // add the second switch + enable switches
+        override val switches: Set[SwitchModel] = super.switches + secondSwitch
+        switches.foreach(_.enable())
+        // close the switches
+        switches.foreach(_.close())
+
+        // get the grid from the raw data
+        val gridModel = new GridModel(
+          1,
+          default400Kva10KvRefSystem,
+          GridComponents(
+            nodes,
+            lines,
+            Set(transformer2wModel),
+            Set.empty[Transformer3wModel],
+            switches,
+          ),
+          GridControls.empty,
+        )
+
+        updateUuidToIndexMap(gridModel)
+
+        // nodes 1, 13 and 14 should map to the same node
+        val node1Index = gridModel.nodeUuidToIndexMap
+          .get(node1.uuid)
+          .value
+        gridModel.nodeUuidToIndexMap.get(node13.uuid).value shouldBe node1Index
+        gridModel.nodeUuidToIndexMap.get(node14.uuid).value shouldBe node1Index
+      }
+
+      "contains closed switches in a complex pattern" in new BasicGridWithSwitches {
+        // just six nodes from the basic grid
+        override val nodes: Seq[NodeModel] =
+          Seq(node1, node2, node3, node4, node5, node6)
+        nodes.foreach(_.enable())
+
+        // nodes 1-4 connected by switches in a rectangle plus diagonal,
+        // nodes 5-6 connected separately
+        override val switches: Set[SwitchModel] = Set(
+          SwitchModel(
+            UUID.fromString("0-0-0-0-1"),
+            "Switch1",
+            defaultOperationInterval,
+            node1.uuid,
+            node2.uuid,
+          ),
+          SwitchModel(
+            UUID.fromString("0-0-0-0-2"),
+            "Switch2",
+            defaultOperationInterval,
+            node2.uuid,
+            node3.uuid,
+          ),
+          SwitchModel(
+            UUID.fromString("0-0-0-0-3"),
+            "Switch3",
+            defaultOperationInterval,
+            node3.uuid,
+            node4.uuid,
+          ),
+          SwitchModel(
+            UUID.fromString("0-0-0-0-4"),
+            "Switch4",
+            defaultOperationInterval,
+            node1.uuid,
+            node4.uuid,
+          ),
+          SwitchModel(
+            UUID.fromString("0-0-0-0-5"),
+            "Switch5",
+            defaultOperationInterval,
+            node2.uuid,
+            node4.uuid,
+          ),
+          SwitchModel(
+            UUID.fromString("0-0-0-0-6"),
+            "Switch6",
+            defaultOperationInterval,
+            node5.uuid,
+            node6.uuid,
+          ),
+        )
+        switches.foreach(_.enable())
+        // close the switches
+        switches.foreach(_.close())
+
+        // get the grid from the raw data
+        val gridModel = new GridModel(
+          1,
+          default400Kva10KvRefSystem,
+          GridComponents(
+            nodes,
+            Set.empty,
+            Set.empty,
+            Set.empty,
+            switches,
+          ),
+          GridControls.empty,
+        )
+
+        // testing the assignment of nodes to indices
+        updateUuidToIndexMap(gridModel)
+
+        gridModel.nodeUuidToIndexMap.get(node1.uuid).value shouldBe 0
+        gridModel.nodeUuidToIndexMap.get(node2.uuid).value shouldBe 0
+        gridModel.nodeUuidToIndexMap.get(node3.uuid).value shouldBe 0
+        gridModel.nodeUuidToIndexMap.get(node4.uuid).value shouldBe 0
+        gridModel.nodeUuidToIndexMap.get(node5.uuid).value shouldBe 1
+        gridModel.nodeUuidToIndexMap.get(node6.uuid).value shouldBe 1
+      }
+
     }
 
     "build correct transformer control models" should {

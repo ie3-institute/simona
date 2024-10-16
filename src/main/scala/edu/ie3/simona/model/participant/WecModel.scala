@@ -22,6 +22,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptio
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants._
 import squants.energy.{Kilowatts, Watts}
 import squants.mass.{Kilograms, KilogramsPerCubicMeter}
@@ -89,7 +90,7 @@ final case class WecModel(
     * @return
     *   active power output
     */
-  override protected def calculateActivePower(
+  override def calculateActivePower(
       modelState: ConstantState.type,
       wecData: WecRelevantData,
   ): Power = {
@@ -153,7 +154,7 @@ final case class WecModel(
     * @return
     *   betz coefficient cₚ
     */
-  private def determineBetzCoefficient(
+  def determineBetzCoefficient(
       windVelocity: Velocity
   ): Dimensionless = {
     betzCurve.interpolateXy(windVelocity) match {
@@ -173,7 +174,7 @@ final case class WecModel(
     *   current air pressure
     * @return
     */
-  private def calculateAirDensity(
+  def calculateAirDensity(
       temperature: Temperature,
       airPressure: Option[Pressure],
   ): Density = {
@@ -195,7 +196,7 @@ final case class WecModel(
   ): ProvideFlexOptions = {
     val power = calculateActivePower(ConstantState, data)
 
-    ProvideMinMaxFlexOptions(uuid, power, power, Kilowatts(0d))
+    ProvideMinMaxFlexOptions(uuid, power, power, zeroKW)
   }
 
   override def handleControlledPowerChange(
@@ -213,7 +214,7 @@ object WecModel {
   /** This class is initialized with a [[WecCharacteristicInput]], which
     * contains the needed betz curve.
     */
-  final case class WecCharacteristic private (
+  final case class WecCharacteristic(
       override val xyCoordinates: SortedSet[
         XYPair[Velocity, Dimensionless]
       ]

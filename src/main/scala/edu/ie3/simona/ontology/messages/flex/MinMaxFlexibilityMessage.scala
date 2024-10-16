@@ -8,6 +8,7 @@ package edu.ie3.simona.ontology.messages.flex
 
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.Power
 
 import java.util.UUID
@@ -39,20 +40,26 @@ object MinMaxFlexibilityMessage {
       ref: Power,
       min: Power,
       max: Power,
-  ) extends ProvideFlexOptions {
-
-    /** Checks whether given power fits within the min-max interval and thus
-      * would be a feasible solution
-      * @param power
-      *   The active power to check against the flex options
-      * @return
-      *   Whether the given power is within the min-max interval or not
-      */
-    def fits(power: Power): Boolean =
-      min <= power && power <= max
-  }
+  ) extends ProvideFlexOptions
 
   object ProvideMinMaxFlexOptions {
+
+    implicit class RichIterable(
+        private val flexOptions: Iterable[ProvideMinMaxFlexOptions]
+    ) extends AnyVal {
+      def flexSum: (Power, Power, Power) =
+        flexOptions.foldLeft((zeroKW, zeroKW, zeroKW)) {
+          case (
+                (sumRef, sumMin, sumMax),
+                ProvideMinMaxFlexOptions(_, addRef, addMin, addMax),
+              ) =>
+            (
+              sumRef + addRef,
+              sumMin + addMin,
+              sumMax + addMax,
+            )
+        }
+    }
 
     /** Creates a [[ProvideMinMaxFlexOptions]] message with sanity checks
       * regarding the power values

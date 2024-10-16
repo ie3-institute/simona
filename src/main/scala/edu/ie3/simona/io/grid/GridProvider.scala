@@ -48,17 +48,9 @@ object GridProvider extends LazyLogging {
               params.isHierarchic,
             )
 
-            Try(ValidationUtils.check(jointGridContainer)) match {
-              case Failure(exception) =>
-                logger.warn(
-                  s"Validation of grid ${jointGridContainer.getGridName} failed: \n\t{}",
-                  exception.getMessage,
-                )
-              case Success(_) =>
-                logger.debug(
-                  s"Validation of given grid ${jointGridContainer.getGridName} was successful."
-                )
-            }
+            // checks the grid container and throws exception if there is an error
+            ValidationUtils.check(jointGridContainer)
+
             jointGridContainer
           case None =>
             throw new RuntimeException(

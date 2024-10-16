@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent.participant.fixedfeedin
 
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
+import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.{
   FixedFeedInResult,
   SystemParticipantResult,
@@ -34,6 +35,7 @@ import edu.ie3.simona.exceptions.agent.{
   InconsistentStateException,
   InvalidRequestException,
 }
+import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.{
@@ -231,7 +233,11 @@ protected trait FixedFeedInAgentFundamentals
       data: FixedRelevantData.type,
       lastState: ConstantState.type,
       setPower: squants.Power,
-  ): (ConstantState.type, ApparentPower, FlexChangeIndicator) = {
+  ): (
+      ConstantState.type,
+      AccompaniedSimulationResult[ApparentPower],
+      FlexChangeIndicator,
+  ) = {
     /* Calculate result */
     val voltage = getAndCheckNodalVoltage(baseStateData, tick)
 
@@ -239,7 +245,10 @@ protected trait FixedFeedInAgentFundamentals
       setPower,
       voltage,
     )
-    val result = ApparentPower(setPower, reactivePower)
+    val result = AccompaniedSimulationResult(
+      ApparentPower(setPower, reactivePower),
+      Seq.empty[ResultEntity],
+    )
 
     /* Handle the request within the model */
     val (updatedState, flexChangeIndicator) =

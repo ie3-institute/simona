@@ -14,6 +14,7 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{
   DefaultQuantities,
   Megavars,
@@ -238,7 +239,7 @@ abstract class SystemParticipant[
           logger.warn(
             s"Active power of model exceeds sRated. Set reactive power to 0!"
           )
-          Megavars(0d)
+          zeroMVAr
         } else {
           Megavars(
             Math.sqrt(powerSquaredDifference)

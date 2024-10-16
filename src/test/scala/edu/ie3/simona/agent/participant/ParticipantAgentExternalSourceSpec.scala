@@ -15,6 +15,11 @@ import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.ValueStore
+import edu.ie3.simona.agent.grid.GridAgentMessages.{
+  AssetPowerChangedMessage,
+  AssetPowerUnchangedMessage,
+}
+import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ActivePower,
   ActivePowerAndHeat,
@@ -39,11 +44,6 @@ import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage,
-}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
@@ -247,7 +247,7 @@ class ParticipantAgentExternalSourceSpec
         RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(mockAgent.stateName shouldBe Idle)
 
@@ -312,7 +312,7 @@ class ParticipantAgentExternalSourceSpec
         RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(mockAgent.stateName shouldBe Idle)
 
@@ -413,7 +413,7 @@ class ParticipantAgentExternalSourceSpec
         RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(mockAgent.stateName shouldBe Idle)
 
@@ -508,7 +508,7 @@ class ParticipantAgentExternalSourceSpec
         RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(mockAgent.stateName shouldBe Idle)
 
@@ -624,7 +624,7 @@ class ParticipantAgentExternalSourceSpec
         RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(mockAgent.stateName shouldBe Idle)
 

@@ -9,6 +9,7 @@ package edu.ie3.simona.agent.participant
 import org.apache.pekko.actor.{ActorRef, FSM, Props}
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
@@ -32,6 +33,7 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InvalidRequestException
+import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
@@ -405,11 +407,18 @@ class ParticipantAgentMock(
       data: CalcRelevantData.FixedRelevantData.type,
       lastState: ModelState.ConstantState.type,
       setPower: squants.Power,
-  ): (ModelState.ConstantState.type, ApparentPower, FlexChangeIndicator) = (
+  ): (
+      ModelState.ConstantState.type,
+      AccompaniedSimulationResult[ApparentPower],
+      FlexChangeIndicator,
+  ) = (
     ConstantState,
-    ApparentPower(
-      Kilowatts(0.0),
-      Kilovars(0.0),
+    AccompaniedSimulationResult(
+      ApparentPower(
+        Kilowatts(0.0),
+        Kilovars(0.0),
+      ),
+      Seq.empty[ResultEntity],
     ),
     FlexChangeIndicator(),
   )

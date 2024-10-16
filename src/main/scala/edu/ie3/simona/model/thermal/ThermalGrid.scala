@@ -22,7 +22,8 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import squants.energy.{Kilowatts, MegawattHours, Megawatts}
+import edu.ie3.util.scala.quantities.DefaultQuantities._
+import squants.energy.Kilowatts
 import squants.{Energy, Power, Temperature}
 
 import java.time.ZonedDateTime
@@ -82,7 +83,7 @@ final case class ThermalGrid(
           )
         }
         .getOrElse(
-          (MegawattHours(0d), MegawattHours(0d))
+          (zeroMWH, zeroMWH)
         )
     }
 
@@ -104,8 +105,10 @@ final case class ThermalGrid(
     *   Instance in time
     * @param state
     *   Currently applicable state
+    * @param lastAmbientTemperature
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   Ambient temperature
+    *   Current ambient temperature
     * @param qDot
     *   Thermal energy balance
     * @return
@@ -114,19 +117,28 @@ final case class ThermalGrid(
   def updateState(
       tick: Long,
       state: ThermalGridState,
+      lastAmbientTemperature: Temperature,
       ambientTemperature: Temperature,
       qDot: Power,
-  ): (ThermalGridState, Option[ThermalThreshold]) = if (qDot > Kilowatts(0d))
-    handleInfeed(tick, ambientTemperature, state, qDot)
+  ): (ThermalGridState, Option[ThermalThreshold]) = if (qDot > zeroKW)
+    handleInfeed(tick, lastAmbientTemperature, ambientTemperature, state, qDot)
   else
-    handleConsumption(tick, ambientTemperature, state, qDot)
+    handleConsumption(
+      tick,
+      lastAmbientTemperature,
+      ambientTemperature,
+      state,
+      qDot,
+    )
 
   /** Handles the case, when a grid has infeed. First, heat up all the houses to
     * their maximum temperature, then fill up the storages
     * @param tick
     *   Current tick
+    * @param lastAmbientTemperature
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   Ambient temperature
+    *   Current ambient temperature
     * @param state
     *   Current state of the houses
     * @param qDot
@@ -136,6 +148,7 @@ final case class ThermalGrid(
     */
   private def handleInfeed(
       tick: Long,
+      lastAmbientTemperature: Temperature,
       ambientTemperature: Temperature,
       state: ThermalGridState,
       qDot: Power,
@@ -150,7 +163,7 @@ final case class ThermalGrid(
               thermalStorage
                 .updateState(
                   tick,
-                  Kilowatts(0d),
+                  zeroKW,
                   storageState,
                 )
                 ._1
@@ -162,6 +175,7 @@ final case class ThermalGrid(
           thermalHouse.determineState(
             tick,
             lastHouseState,
+            lastAmbientTemperature,
             ambientTemperature,
             qDot,
           )
@@ -176,8 +190,9 @@ final case class ThermalGrid(
             thermalHouse.determineState(
               tick,
               lastHouseState,
+              lastAmbientTemperature,
               ambientTemperature,
-              Kilowatts(0d),
+              zeroKW,
             )
           storage.zip(updatedStorageState) match {
             case Some((thermalStorage, storageState)) =>
@@ -247,8 +262,10 @@ final case class ThermalGrid(
     *
     * @param tick
     *   Current tick
+    * @param lastAmbientTemperature
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   Ambient temperature
+    *   Current ambient temperature
     * @param state
     *   Current state of the houses
     * @param qDot
@@ -258,6 +275,7 @@ final case class ThermalGrid(
     */
   private def handleConsumption(
       tick: Long,
+      lastAmbientTemperature: Temperature,
       ambientTemperature: Temperature,
       state: ThermalGridState,
       qDot: Power,
@@ -268,8 +286,9 @@ final case class ThermalGrid(
         house.determineState(
           tick,
           houseState,
+          lastAmbientTemperature,
           ambientTemperature,
-          Megawatts(0d),
+          zeroMW,
         )
       }
 
@@ -286,6 +305,7 @@ final case class ThermalGrid(
         maybeUpdatedStorageState,
         state.houseState,
         state.storageState,
+        lastAmbientTemperature,
         ambientTemperature,
         qDot,
       )
@@ -318,8 +338,10 @@ final case class ThermalGrid(
     *   Previous thermal house state before a first update was performed
     * @param formerStorageState
     *   Previous thermal storage state before a first update was performed
+    * @param lastAmbientTemperature
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   Ambient temperature
+    *   Current ambient temperature
     * @param qDot
     *   Thermal influx
     * @return
@@ -333,6 +355,7 @@ final case class ThermalGrid(
       ],
       formerHouseState: Option[ThermalHouseState],
       formerStorageState: Option[ThermalStorageState],
+      lastAmbientTemperature: Temperature,
       ambientTemperature: Temperature,
       qDot: Power,
   ): (
@@ -345,7 +368,7 @@ final case class ThermalGrid(
             (thermalStorage, (storageState, _)),
           )
         )
-        if qDot.~=(Kilowatts(0d))(Kilowatts(10e-3)) &&
+        if qDot.~=(zeroKW)(Kilowatts(10e-3)) &&
           thermalHouse.isInnerTemperatureTooLow(
             houseState.innerTemperature
           ) && !thermalStorage.isEmpty(storageState.storedEnergy) =>
@@ -366,6 +389,7 @@ final case class ThermalGrid(
             "Impossible to find no house state"
           )
         ),
+        lastAmbientTemperature,
         ambientTemperature,
         thermalStorage.getChargingPower,
       )
@@ -413,7 +437,7 @@ final case class ThermalGrid(
             storage.uuid,
             storedEnergy.toMegawattHours.asMegaWattHour,
             qDot.toMegawatts.asMegaWatt,
-            (storage.maxEnergyThreshold / storedEnergy).asPu,
+            (storedEnergy / storage.maxEnergyThreshold).asPu,
           )
         case _ =>
           throw new NotImplementedError(
@@ -480,7 +504,7 @@ object ThermalGrid {
       possible + rhs.possible,
     )
 
-    def hasRequiredDemand: Boolean = required > MegawattHours(0d)
+    def hasRequiredDemand: Boolean = required > zeroMWH
 
     def hasAdditionalDemand: Boolean = possible > required
   }
@@ -507,8 +531,8 @@ object ThermalGrid {
     }
 
     def noDemand: ThermalEnergyDemand = ThermalEnergyDemand(
-      MegawattHours(0d),
-      MegawattHours(0d),
+      zeroMWH,
+      zeroMWH,
     )
   }
 }

@@ -15,6 +15,10 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.datamodel.models.result.thermal.ThermalUnitResult
 import edu.ie3.simona.agent.ValueStore
+import edu.ie3.simona.agent.grid.GridAgentMessages.{
+  AssetPowerChangedMessage,
+  AssetPowerUnchangedMessage,
+}
 import edu.ie3.simona.agent.participant.ParticipantAgent.StartCalculationTrigger
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals.RelevantResultValues
 import edu.ie3.simona.agent.participant.data.Data
@@ -68,14 +72,7 @@ import edu.ie3.simona.model.participant.{
   SystemParticipant,
 }
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
@@ -85,6 +82,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
@@ -303,7 +301,7 @@ protected trait ParticipantAgentFundamentals[
           awaitRegistrationResponsesFrom,
         )
       } else {
-        /* Determine the next activation tick, create a ScheduleTriggerMessage and remove the recently triggered tick */
+        /* Determine the next activation tick, create a ScheduleActivation and remove the recently triggered tick */
         val (newTick, nextBaseStateData) = popNextActivationTrigger(
           baseStateData
         )
@@ -512,36 +510,6 @@ protected trait ParticipantAgentFundamentals[
             None
         }
       }
-
-    val unexpectedSender = baseStateData.foreseenDataTicks.exists {
-      case (ref, None) => msg.serviceRef == ref
-      case _           => false
-    }
-
-    /* If we have received unexpected data, we also have not been scheduled before */
-    if (unexpectedSender) {
-      baseStateData match {
-        case modelStateData: ParticipantModelBaseStateData[_, _, _, _] =>
-          val maybeEmAgent = modelStateData.flexStateData.map(_.emAgent)
-
-          maybeEmAgent match {
-            case Some(emAgent) =>
-              emAgent ! ScheduleFlexRequest(
-                modelStateData.model.getUuid,
-                msg.tick,
-                msg.unlockKey,
-              )
-            case None =>
-              scheduler ! ScheduleActivation(
-                self.toTyped,
-                msg.tick,
-                msg.unlockKey,
-              )
-          }
-        case _ =>
-          false
-      }
-    }
 
     /* If the sender announces a new next tick, add it to the list of expected ticks, else remove the current entry */
     val foreseenDataTicks =
@@ -829,13 +797,18 @@ protected trait ParticipantAgentFundamentals[
       )
       .getOrElse((flexChangeIndicator.changesAtTick, stateDataWithResults))
 
-    flexStateData.emAgent ! FlexCtrlCompletion(
+    flexStateData.emAgent ! FlexResult(
       baseStateData.modelUuid,
-      result.toApparentPower,
+      result.primaryData.toApparentPower,
+    )
+
+    flexStateData.emAgent ! FlexCompletion(
+      baseStateData.modelUuid,
       flexChangeIndicator.changesAtNextActivation,
       nextActivation,
     )
 
+    unstashAll()
     stay() using stateDataFinal
   }
 
@@ -853,7 +826,7 @@ protected trait ParticipantAgentFundamentals[
     */
   protected def handleCalculatedResult(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      result: PD,
+      result: AccompaniedSimulationResult[PD],
       currentTick: Long,
   ): ParticipantModelBaseStateData[PD, CD, MS, M] = {
 
@@ -861,14 +834,14 @@ protected trait ParticipantAgentFundamentals[
     announceSimulationResult(
       baseStateData,
       currentTick,
-      AccompaniedSimulationResult(result),
+      result,
     )(baseStateData.outputConfig)
 
     baseStateData.copy(
       resultValueStore = ValueStore.updateValueStore(
         baseStateData.resultValueStore,
         currentTick,
-        result,
+        result.primaryData,
       )
     )
   }
@@ -934,7 +907,7 @@ protected trait ParticipantAgentFundamentals[
       updatedState,
     )
 
-    /* In this case, without secondary data, the agent has been triggered by an ActivityStartTrigger by itself,
+    /* In this case, without secondary data, the agent has been triggered by an Activation(tick) by itself,
      * therefore pop the next one */
     val baseStateDataWithUpdatedResultStore =
       baseStateData.copy(
@@ -1001,7 +974,7 @@ protected trait ParticipantAgentFundamentals[
           )(p)
     } else { _: Power =>
       /* Use trivial reactive power */
-      Megavars(0d)
+      zeroMVAr
     }
 
   /** Try to get and process the received data
@@ -1097,9 +1070,9 @@ protected trait ParticipantAgentFundamentals[
         false
     }
 
-    // Only for completing initialization:
-    // if we are EM-managed, there is no new tick for the
-    // scheduler, since we are activated by the EmAgent from now on
+    // If we're completing initialization and we're EM-managed:
+    // There is no new tick for the scheduler,
+    // since we are activated by the EmAgent from now on
     scheduler ! Completion(
       self.toTyped,
       maybeNextTick.filterNot(_ => emManaged),
@@ -1192,7 +1165,7 @@ protected trait ParticipantAgentFundamentals[
   }
 
   /** Determining the reply to an
-    * [[edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage]],
+    * [[edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage]],
     * send this answer and stay in the current state. If no reply can be
     * determined (because an activation or incoming data is expected), the
     * message is stashed.
@@ -1373,7 +1346,7 @@ protected trait ParticipantAgentFundamentals[
   }
 
   /** Determine a reply on a
-    * [[edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage]]
+    * [[edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage]]
     * by looking up the detailed simulation results, averaging them and
     * returning the equivalent state transition.
     *
@@ -2051,7 +2024,7 @@ object ParticipantAgentFundamentals {
           "Unable to determine average active power. Apply 0 instead. Cause:\n\t{}",
           exception,
         )
-        Megawatts(0d)
+        zeroMW
     }
 
     val q = QuantityUtil.average[Power, Energy](
@@ -2074,7 +2047,7 @@ object ParticipantAgentFundamentals {
           "Unable to determine average reactive power. Apply 0 instead. Cause:\n\t{}",
           exception,
         )
-        Megavars(0d)
+        zeroMVAr
     }
 
     ApparentPower(p, q)
@@ -2132,7 +2105,7 @@ object ParticipantAgentFundamentals {
           "Unable to determine average thermal power. Apply 0 instead. Cause:\n\t{}",
           exception,
         )
-        Megawatts(0d)
+        zeroMW
     }
 
     ApparentPowerAndHeat(apparentPower.p, apparentPower.q, qDot)

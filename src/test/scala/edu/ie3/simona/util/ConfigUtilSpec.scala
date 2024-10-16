@@ -58,7 +58,7 @@ class ConfigUtilSpec
 
       inside(actual) { case ParticipantConfigUtil(configs, defaultConfigs) =>
         configs shouldBe Map.empty[UUID, SimonaConfig.LoadRuntimeConfig]
-        defaultConfigs.size shouldBe 6
+        defaultConfigs.size shouldBe 8
 
         inside(defaultConfigs.get(classOf[LoadRuntimeConfig])) {
           case Some(
@@ -118,7 +118,7 @@ class ConfigUtilSpec
           UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
         )
 
-        defaultConfigs.size shouldBe 6
+        defaultConfigs.size shouldBe 8
         inside(defaultConfigs.get(classOf[LoadRuntimeConfig])) {
           case Some(
                 LoadRuntimeConfig(
@@ -331,7 +331,7 @@ class ConfigUtilSpec
           UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
         )
 
-        defaultConfigs.size shouldBe 6
+        defaultConfigs.size shouldBe 8
         inside(defaultConfigs.get(classOf[FixedFeedInRuntimeConfig])) {
           case Some(
                 FixedFeedInRuntimeConfig(
@@ -721,11 +721,14 @@ class ConfigUtilSpec
         ),
       )
       val configUtil = OutputConfigUtil(inputConfig)
-      val expectedResult: Set[Value] = NotifierIdentifier.values -- Vector(
-        NotifierIdentifier.PvPlant
-      )
+      val expectedResult: Set[Value] =
+        NotifierIdentifier.getParticipantIdentifiers -- Vector(
+          NotifierIdentifier.PvPlant
+        )
 
-      configUtil.simulationResultIdentifiersToConsider shouldBe expectedResult
+      configUtil.simulationResultIdentifiersToConsider(
+        false
+      ) shouldBe expectedResult
     }
 
     "return the correct notifier identifiers when the default is to NOT inform about new simulation results" in {
@@ -761,7 +764,9 @@ class ConfigUtilSpec
       val expectedResult: Set[Value] =
         Set(NotifierIdentifier.Load, NotifierIdentifier.ChpPlant)
 
-      configUtil.simulationResultIdentifiersToConsider shouldBe expectedResult
+      configUtil.simulationResultIdentifiersToConsider(
+        false
+      ) shouldBe expectedResult
     }
 
     "return the correct result entity classes to be considered " in {
@@ -797,7 +802,9 @@ class ConfigUtilSpec
       val expectedResult: Set[Class[_ <: ResultEntity]] =
         Set[Class[_ <: ResultEntity]](classOf[LoadResult], classOf[ChpResult])
 
-      configUtil.simulationResultEntitiesToConsider shouldBe expectedResult
+      configUtil.simulationResultEntitiesToConsider(
+        false
+      ) shouldBe expectedResult
     }
   }
 

@@ -18,13 +18,13 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageFull,
 }
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.SquantsUtils.RichEnergy
 import edu.ie3.util.scala.quantities.{
   DefaultQuantities,
   KilowattHoursPerKelvinCubicMeters,
   SpecificHeatCapacity,
 }
-import squants.energy.{Kilowatts, Megawatts}
 import squants.space.{CubicMeters, Volume}
 import squants.thermal.Celsius
 import squants.time.{Hours, Seconds}
@@ -63,7 +63,7 @@ final case class CylindricalThermalStorage(
     minEnergyThreshold: Energy,
     maxEnergyThreshold: Energy,
     chargingPower: Power,
-    override protected var _storedEnergy: Energy,
+    override var _storedEnergy: Energy,
 ) extends ThermalStorage(
       uuid,
       id,
@@ -108,14 +108,14 @@ final case class CylindricalThermalStorage(
 
     /* Determine, when a threshold is reached */
     val nextThreshold =
-      if (qDot > Megawatts(0d)) {
+      if (qDot > zeroMW) {
         val duration = (maxEnergyThreshold - updatedEnergy) / qDot
         val durationInTicks = Math.round(duration.toSeconds)
         if (durationInTicks <= 0L)
           None
         else
           Some(StorageFull(tick + durationInTicks))
-      } else if (qDot < Megawatts(0d)) {
+      } else if (qDot < zeroMW) {
         val duration = (updatedEnergy - minEnergyThreshold) / qDot * (-1)
         val durationInTicks = Math.round(duration.toSeconds)
         if (durationInTicks <= 0L)
@@ -132,7 +132,7 @@ final case class CylindricalThermalStorage(
   override def startingState: ThermalStorageState = ThermalStorageState(
     -1L,
     getMinEnergyThreshold,
-    Kilowatts(0d),
+    zeroKW,
   )
 
   @deprecated("Use thermal storage state instead")
@@ -143,7 +143,7 @@ final case class CylindricalThermalStorage(
   override def tryToStoreAndReturnRemainder(
       addedEnergy: Energy
   ): Option[Energy] = {
-    if (addedEnergy > zeroEnergy) {
+    if (addedEnergy > zeroKWH) {
       _storedEnergy = _storedEnergy + addedEnergy
       if (_storedEnergy > maxEnergyThreshold) {
         val surplus = _storedEnergy - maxEnergyThreshold
@@ -158,7 +158,7 @@ final case class CylindricalThermalStorage(
   override def tryToTakeAndReturnLack(
       takenEnergy: Energy
   ): Option[Energy] = {
-    if (takenEnergy > zeroEnergy) {
+    if (takenEnergy > zeroKWH) {
       _storedEnergy = _storedEnergy - takenEnergy
       if (_storedEnergy < minEnergyThreshold) {
         val lack = minEnergyThreshold - _storedEnergy

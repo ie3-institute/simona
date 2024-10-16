@@ -12,6 +12,7 @@ import edu.ie3.simona.exceptions.QControlException
 import edu.ie3.simona.model.system.Characteristic
 import edu.ie3.simona.model.system.Characteristic.XYPair
 import edu.ie3.util.quantities.PowerSystemUnits.PU
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
 import squants.{Dimensionless, Each, Power}
 import tech.units.indriya.AbstractUnit
@@ -25,7 +26,7 @@ sealed trait QControl {
   protected val _cosPhiMultiplication: (Double, Power) => ReactivePower =
     (cosPhi: Double, p: Power) =>
       if ((cosPhi - 1).abs < 0.0000001) {
-        Megavars(0d)
+        zeroMVAr
       } else {
         /* q = p * tan( phi ) = p * tan( acos( cosphi )) */
         Megavars((p * tan(acos(cosPhi))).toMegawatts)

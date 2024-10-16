@@ -22,8 +22,9 @@ import edu.ie3.simona.model.thermal.ThermalHouse.{
   temperatureTolerance,
 }
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{ThermalConductance, WattsPerKelvin}
-import squants.energy.{KilowattHours, Kilowatts, MegawattHours, Megawatts}
+import squants.energy.KilowattHours
 import squants.thermal.{Kelvin, ThermalCapacity}
 import squants.time.{Hours, Seconds}
 import squants.{Energy, Power, Temperature, Time}
@@ -108,7 +109,7 @@ final case class ThermalHouse(
     val temperatureToTriggerRequiredEnergy =
       if (
         currentInnerTemp <= state.innerTemperature &&
-        state.qDot <= Kilowatts(0d)
+        state.qDot <= zeroKW
       ) {
         // temperature has been decreasing and heat source has been turned off
         // => we have reached target temp before and are now targeting lower temp
@@ -122,7 +123,7 @@ final case class ThermalHouse(
         )
       ) energy(targetTemperature, currentInnerTemp)
       else
-        MegawattHours(0d)
+        zeroMWH
 
     val possibleEnergy =
       if (!isInnerTemperatureTooHigh(currentInnerTemp)) {
@@ -130,7 +131,7 @@ final case class ThermalHouse(
         // there is an amount of optional energy that could be stored
         energy(upperBoundaryTemperature, currentInnerTemp)
       } else
-        MegawattHours(0d)
+        zeroMWH
     ThermalEnergyDemand(requiredEnergy, possibleEnergy)
   }
 
@@ -159,10 +160,11 @@ final case class ThermalHouse(
     *   true, if inner temperature is too high
     */
   def isInnerTemperatureTooHigh(
-      innerTemperature: Temperature
+      innerTemperature: Temperature,
+      boundaryTemperature: Temperature = upperBoundaryTemperature,
   ): Boolean =
     innerTemperature > Kelvin(
-      upperBoundaryTemperature.toKelvinScale - temperatureTolerance.toKelvinScale
+      boundaryTemperature.toKelvinScale - temperatureTolerance.toKelvinScale
     )
 
   /** Check if inner temperature is lower than preferred minimum temperature
@@ -191,124 +193,49 @@ final case class ThermalHouse(
     * @return
     *   new inner temperature
     */
-  private def newInnerTemperature(
+  def newInnerTemperature(
       thermalPower: Power,
       duration: Time,
       currentInnerTemperature: Temperature,
       ambientTemperature: Temperature,
   ): Temperature = {
-    val thermalEnergyChange = calcThermalEnergyChange(
-      calcThermalEnergyGain(thermalPower, duration),
-      calcThermalEnergyLoss(
-        currentInnerTemperature,
-        ambientTemperature,
-        duration,
-      ),
-    )
-    calcNewInnerTemperature(
+    val thermalEnergyGain = thermalPower * duration
+
+    // thermal energy loss due to the deviation between outside and inside temperature
+    val thermalEnergyLoss = ethLosses.calcThermalEnergyChange(
       currentInnerTemperature,
-      calcInnerTemperatureChange(thermalEnergyChange),
-    )
-  }
-
-  /** Calculate the new inner temperature of the thermal house
-    *
-    * @param oldInnerTemperature
-    *   previous inner temperature
-    * @param temperatureChange
-    *   temperature change
-    * @return
-    *   new inner temperature
-    */
-  private def calcNewInnerTemperature(
-      oldInnerTemperature: Temperature,
-      temperatureChange: Temperature,
-  ): Temperature =
-    oldInnerTemperature + temperatureChange
-
-  /** Calculate the temperature change for the thermal house form the thermal
-    * energy change
-    *
-    * @param thermalEnergyChange
-    *   thermal energy change (e.g. through heat pump)
-    * @return
-    *   temperature change
-    */
-  private def calcInnerTemperatureChange(
-      thermalEnergyChange: Energy
-  ): Temperature = {
-    thermalEnergyChange / ethCapa
-  }
-
-  /** Calculate the thermal energy change combining the added and lost energy
-    *
-    * @param thermalEnergyGain
-    *   thermal energy added
-    * @param thermalEnergyLoss
-    *   thermal energy lost
-    * @return
-    *   thermal energy change
-    */
-  private def calcThermalEnergyChange(
-      thermalEnergyGain: Energy,
-      thermalEnergyLoss: Energy,
-  ): Energy =
-    thermalEnergyGain - thermalEnergyLoss
-
-  /** Calculate the thermal energy gain, e.g. due to a running heat pump
-    *
-    * @param pThermal
-    *   added thermal power (e.g. of heat pump)
-    * @param time
-    *   time step length in which thermal power is added
-    * @return
-    *   resulting thermal energy gain
-    */
-  private def calcThermalEnergyGain(
-      pThermal: Power,
-      time: Time,
-  ): Energy = pThermal * time
-
-  /** Calculate the thermal energy loss due to the temperature deviation over
-    * the time step
-    *
-    * @param innerTemperature
-    *   previous inner temperature
-    * @param ambientTemperature
-    *   ambient temperature of thermal house
-    * @param time
-    *   time step length
-    * @return
-    *   resulting thermal energy loss
-    */
-  private def calcThermalEnergyLoss(
-      innerTemperature: Temperature,
-      ambientTemperature: Temperature,
-      time: Time,
-  ): Energy = {
-    ethLosses.thermalConductanceToEnergy(
-      innerTemperature,
       ambientTemperature,
-      time,
+      duration,
     )
+
+    val energyChange = thermalEnergyGain - thermalEnergyLoss
+
+    // temperature change calculated from energy change(WattHours) and thermal capacity(Joules per Kelvin)
+    val temperatureChange = energyChange / ethCapa
+
+    // return value new inner temperature
+    currentInnerTemperature + temperatureChange
   }
 
   /** Update the current state of the house
     *
     * @param tick
-    *   current instance in time
+    *   Current instance in time
     * @param state
-    *   currently applicable state
+    *   Currently applicable state
+    * @param lastAmbientTemperature
+    *   Ambient temperature valid up until (not including) the current tick
     * @param ambientTemperature
-    *   Ambient temperature
+    *   Current ambient temperature
     * @param qDot
-    *   new thermal influx
+    *   New thermal influx
     * @return
     *   Updated state and the tick in which the next threshold is reached
     */
   def determineState(
       tick: Long,
       state: ThermalHouseState,
+      lastAmbientTemperature: Temperature,
       ambientTemperature: Temperature,
       qDot: Power,
   ): (ThermalHouseState, Option[ThermalThreshold]) = {
@@ -317,7 +244,7 @@ final case class ThermalHouse(
       state.qDot,
       duration,
       state.innerTemperature,
-      ambientTemperature,
+      lastAmbientTemperature,
     )
 
     /* Calculate the next given threshold */
@@ -353,14 +280,14 @@ final case class ThermalHouse(
       ambientTemperature: Temperature,
   ): Option[ThermalThreshold] = {
     val artificialDuration = Hours(1d)
-    val loss = calcThermalEnergyLoss(
+    val loss = ethLosses.calcThermalEnergyChange(
       innerTemperature,
       ambientTemperature,
       artificialDuration,
     ) / artificialDuration
     val resultingQDot = qDotExternal - loss
     if (
-      resultingQDot < Megawatts(0d) && !isInnerTemperatureTooLow(
+      resultingQDot < zeroMW && !isInnerTemperatureTooLow(
         innerTemperature
       )
     ) {
@@ -372,7 +299,7 @@ final case class ThermalHouse(
         resultingQDot,
       ).map(HouseTemperatureLowerBoundaryReached)
     } else if (
-      resultingQDot > Megawatts(0d) && !isInnerTemperatureTooHigh(
+      resultingQDot > zeroMW && !isInnerTemperatureTooHigh(
         innerTemperature
       )
     ) {
@@ -396,7 +323,7 @@ final case class ThermalHouse(
       qDot: Power,
   ): Option[Long] = {
     val flexibleEnergy = energy(higherTemperature, lowerTemperature)
-    if (flexibleEnergy < MegawattHours(0d))
+    if (flexibleEnergy < zeroMWH)
       None
     else {
       val duration = Math.round(
@@ -459,7 +386,7 @@ object ThermalHouse {
     ThermalHouseState(
       -1L,
       house.targetTemperature,
-      Megawatts(0d),
+      zeroMW,
     )
 
   object ThermalHouseThreshold {
