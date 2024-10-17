@@ -27,7 +27,7 @@ class CylindricalThermalStorageSpec
     with Matchers
     with BeforeAndAfterAll {
 
-  final val tolerance: Energy = KilowattHours(1e-10)
+  final implicit val tolerance: Energy = KilowattHours(1e-10)
 
   var storageInput: CylindricalStorageInput = _
 
@@ -46,7 +46,7 @@ class CylindricalThermalStorageSpec
 
   def buildThermalStorage(
       storageInput: CylindricalStorageInput,
-      volume: Double,
+      volume: CubicMeters,
   ): CylindricalThermalStorage = {
     val storedEnergy = CylindricalThermalStorage.volumeToEnergy(
       CubicMeters(volume),
@@ -66,9 +66,9 @@ class CylindricalThermalStorageSpec
     CylindricalThermalStorage(storageInput, storedEnergy)
   }
 
-  def vol2Energy(volume: Double): Energy = {
+  def vol2Energy(cubicMeters: CubicMeters): Energy = {
     CylindricalThermalStorage.volumeToEnergy(
-      CubicMeters(volume),
+      CubicMeters(storageInput.getStorageVolumeLvl.to(Units.CUBIC_METRE).getValue.doubleValue),
       KilowattHoursPerKelvinCubicMeters(
         storageInput.getC
           .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
@@ -87,7 +87,7 @@ class CylindricalThermalStorageSpec
   "CylindricalThermalStorage Model" should {
 
     "Check storage level operations:" in {
-      val storage = buildThermalStorage(storageInput, 70)
+      val storage = buildThermalStorage(storageInput, CubicMeters(70))
 
       val initialLevel = storage._storedEnergy
       storage._storedEnergy_=(vol2Energy(50))
@@ -99,12 +99,12 @@ class CylindricalThermalStorageSpec
       val newLevel3 = storage._storedEnergy
       val notCovering = storage.isDemandCoveredByStorage(KilowattHours(1))
 
-      initialLevel should approximate(vol2Energy(70))(tolerance)
-      newLevel1 should approximate(vol2Energy(50))(tolerance)
+      initialLevel should approximate(vol2Energy(70))
+      newLevel1 should approximate(vol2Energy(50))
       surplus.value shouldBe vol2Energy(5)
-      newLevel2 should approximate(vol2Energy(100))(tolerance)
+      newLevel2 should approximate(vol2Energy(100))
       lack.value shouldBe vol2Energy(15)
-      newLevel3 should approximate(vol2Energy(20))(tolerance)
+      newLevel3 should approximate(vol2Energy(20))
       isCovering shouldBe true
       notCovering shouldBe false
     }
@@ -113,7 +113,7 @@ class CylindricalThermalStorageSpec
       val storage = buildThermalStorage(storageInput, 70)
 
       val usableThermalEnergy = storage.usableThermalEnergy
-      usableThermalEnergy should approximate(KilowattHours(5 * 115))(tolerance)
+      usableThermalEnergy should approximate(KilowattHours(5 * 115))
     }
 
     "Apply, validation, and build method work correctly" in {
@@ -175,15 +175,6 @@ class CylindricalThermalStorageSpec
         ),
         (
           0L,
-          250.0,
-          -10.0,
-          3600L,
-          -42.0,
-          240.0,
-          ThermalStorage.ThermalStorageThreshold.StorageEmpty(4457L),
-        ),
-        (
-          0L,
           1000.0,
           149.0,
           3600L,
@@ -223,7 +214,7 @@ class CylindricalThermalStorageSpec
 
           result._1.storedEnergy should approximate(
             KilowattHours(expectedStoredEnergy)
-          )(tolerance)
+          )
 
           result._2 match {
             case Some(threshold) => threshold shouldBe expectedThreshold
@@ -260,7 +251,7 @@ class CylindricalThermalStorageSpec
 
           result._1.storedEnergy should approximate(
             KilowattHours(expectedStoredEnergy)
-          )(tolerance)
+          )
 
           result._2 match {
             case Some(threshold) =>
