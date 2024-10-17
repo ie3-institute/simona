@@ -94,11 +94,11 @@ simona.output.sink.csv {
   fileFormat = ".csv"
   filePrefix = ""
   fileSuffix = ""
-  zipFiles = false
+  compressOutputs = false
 }
 ```
 
-While using a csv sink, the raw data output files can be zipped directly when `zipFiles = true` is used.
+While using a csv sink, the raw data output files can be zipped directly when `compressOutputs = true` is used.
 
 
 #### Output configuration of the grid
