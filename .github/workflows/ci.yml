@@ -30,11 +30,12 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref || github.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
 
-      - name: Check Branch & Files
+      - name: Determine Project Version
+        id: version
         run: |
-          git rev-parse --abbrev-ref HEAD
-          pwd
-          ls -la
+          branch_name=$(echo ${{ github.ref_name }})
+          project_version=$(./gradlew -q $([ "$branch_name" = "dev" ] && echo "devVersion" || echo "currentVersion"))
+          echo "project_version=${project_version}" >> $GITHUB_ENV
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -59,5 +60,29 @@ jobs:
         run: |
           ./gradlew javadoc
 
-      - name: Run SonarQube with Gradle
-        run: ./gradlew reportScoverage sonarqube -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} -Dsonar.host.url=${{ vars.SONAR_HOST_URL }} -Dsonar.login=${{ secrets.SONAR_TOKEN }} -Dsonar.branch.name=${{ github.head_ref || github.ref_name }}
+      - name: SonarQube Scan
+        run: |
+          ./gradlew reportScoverage sonarqube \
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
+            -Dsonar.host.url=${{ vars.SONAR_HOST_URL }} \
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
+            -Dsonar.branch.name=${{ github.head_ref || github.ref_name }}
+
+      - name: SonarQube Quality Gate
+        id: sonarqube-quality-gate-check
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        # Force to fail step after specific time.
+        timeout-hours: 1
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+
+      - name: Deploy
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+        run: |
+          ./gradlew --refresh-dependencies test publish\
+            -Puser=${{ secrets.MAVENCENTRAL_USER }} \
+            -Ppassword=${{ secrets.MAVENCENTRAL_PASS }} \
+            -Psigning.keyId=${{ secrets.MAVENCENTRAL_SIGNINGKEYID }} \
+            -Psigning.password=${{ secrets.MAVENCENTRAL_SIGNINGPASS }} \
+            -Psigning.secretKeyRingFile=${{ secrets.MAVENCENTRAL_SIGNINGKEY }}
