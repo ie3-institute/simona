@@ -92,32 +92,33 @@ class CylindricalThermalStorageSpec
       val initialLevel = storage._storedEnergy
       storage._storedEnergy_=(vol2Energy(CubicMeters(50)))
       val newLevel1 = storage._storedEnergy
-      val surplus = storage.tryToStoreAndReturnRemainder(vol2Energy(55))
+      val surplus =
+        storage.tryToStoreAndReturnRemainder(vol2Energy(CubicMeters(55)))
       val newLevel2 = storage._storedEnergy
       val isCovering = storage.isDemandCoveredByStorage(KilowattHours(5))
-      val lack = storage.tryToTakeAndReturnLack(vol2Energy(95))
+      val lack = storage.tryToTakeAndReturnLack(vol2Energy(CubicMeters(95)))
       val newLevel3 = storage._storedEnergy
       val notCovering = storage.isDemandCoveredByStorage(KilowattHours(1))
 
-      initialLevel should approximate(vol2Energy(70))
-      newLevel1 should approximate(vol2Energy(50))
-      surplus.value shouldBe vol2Energy(5)
-      newLevel2 should approximate(vol2Energy(100))
-      lack.value shouldBe vol2Energy(15)
-      newLevel3 should approximate(vol2Energy(20))
+      initialLevel should approximate(vol2Energy(CubicMeters(70)))
+      newLevel1 should approximate(vol2Energy(CubicMeters(50)))
+      surplus.value shouldBe vol2Energy(CubicMeters(5))
+      newLevel2 should approximate(vol2Energy(CubicMeters(100)))
+      lack.value shouldBe vol2Energy(CubicMeters(15))
+      newLevel3 should approximate(vol2Energy(CubicMeters(20)))
       isCovering shouldBe true
       notCovering shouldBe false
     }
 
     "Converting methods work correctly" in {
-      val storage = buildThermalStorage(storageInput, 70)
+      val storage = buildThermalStorage(storageInput, CubicMeters(70))
 
       val usableThermalEnergy = storage.usableThermalEnergy
       usableThermalEnergy should approximate(KilowattHours(5 * 115))
     }
 
     "Apply, validation, and build method work correctly" in {
-      val storage = buildThermalStorage(storageInput, 70)
+      val storage = buildThermalStorage(storageInput, CubicMeters(70))
 
       storage.uuid shouldBe storageInput.getUuid
       storage.id shouldBe storageInput.getId
@@ -203,7 +204,7 @@ class CylindricalThermalStorageSpec
             expectedStoredEnergy,
             expectedThreshold,
         ) =>
-          val storage = buildThermalStorage(storageInput, 70)
+          val storage = buildThermalStorage(storageInput, CubicMeters(70))
           val lastState = ThermalStorage.ThermalStorageState(
             tick,
             KilowattHours(storedEnergy),
@@ -240,7 +241,7 @@ class CylindricalThermalStorageSpec
 
       forAll(cases) {
         (tick, storedEnergy, qDot, newTick, newQDot, expectedStoredEnergy) =>
-          val storage = buildThermalStorage(storageInput, 70)
+          val storage = buildThermalStorage(storageInput, CubicMeters(70))
           val lastState = ThermalStorage.ThermalStorageState(
             tick,
             KilowattHours(storedEnergy),
