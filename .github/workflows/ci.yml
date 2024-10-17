@@ -59,6 +59,7 @@ jobs:
       - name: Build Java-Docs
         run: |
           ./gradlew javadoc
+          ls -la
 
       - name: SonarQube Analysis
         uses: sonarsource/sonarqube-scan-action@master
