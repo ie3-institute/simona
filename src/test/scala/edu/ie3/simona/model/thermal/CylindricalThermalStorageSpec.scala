@@ -15,7 +15,7 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import squants.Energy
 import squants.energy.{KilowattHours, Kilowatts}
-import squants.space.CubicMeters
+import squants.space.{CubicMeters, Volume}
 import squants.thermal.Celsius
 import tech.units.indriya.quantity.Quantities.getQuantity
 import tech.units.indriya.unit.Units
@@ -46,10 +46,10 @@ class CylindricalThermalStorageSpec
 
   def buildThermalStorage(
       storageInput: CylindricalStorageInput,
-      volume: CubicMeters,
+      volume: Volume,
   ): CylindricalThermalStorage = {
     val storedEnergy = CylindricalThermalStorage.volumeToEnergy(
-      CubicMeters(volume),
+      volume,
       KilowattHoursPerKelvinCubicMeters(
         storageInput.getC
           .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
@@ -66,9 +66,9 @@ class CylindricalThermalStorageSpec
     CylindricalThermalStorage(storageInput, storedEnergy)
   }
 
-  def vol2Energy(cubicMeters: CubicMeters): Energy = {
+  def vol2Energy(volume: Volume): Energy = {
     CylindricalThermalStorage.volumeToEnergy(
-      CubicMeters(storageInput.getStorageVolumeLvl.to(Units.CUBIC_METRE).getValue.doubleValue),
+      volume,
       KilowattHoursPerKelvinCubicMeters(
         storageInput.getC
           .to(PowerSystemUnits.KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
@@ -90,7 +90,7 @@ class CylindricalThermalStorageSpec
       val storage = buildThermalStorage(storageInput, CubicMeters(70))
 
       val initialLevel = storage._storedEnergy
-      storage._storedEnergy_=(vol2Energy(50))
+      storage._storedEnergy_=(vol2Energy(CubicMeters(50)))
       val newLevel1 = storage._storedEnergy
       val surplus = storage.tryToStoreAndReturnRemainder(vol2Energy(55))
       val newLevel2 = storage._storedEnergy
