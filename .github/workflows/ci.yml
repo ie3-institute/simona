@@ -62,7 +62,7 @@ jobs:
 
       - name: SonarQube Scan
         run: |
-          ./gradlew reportScoverage sonarqube \
+          ./gradlew reportScoverage sonar \
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
             -Dsonar.host.url=${{ vars.SONAR_HOST_URL }} \
             -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
