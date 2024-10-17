@@ -68,7 +68,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
         typeInput
       )
     }
-  }
+
 
   def buildStorageModel(targetSoc: Option[Double] = Option.empty): StorageModel = {
     StorageModel.apply(
@@ -81,8 +81,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
     )
   }
 
-  "Calculate flex options" should {
-    "correctly compute the flexibility options" in {
+    "Calculate flex options correctly compute the flexibility options" in {
       val storageModel = buildStorageModel()
       val startTick = 3600L
 
@@ -118,5 +117,4 @@ class StorageModelSpec extends UnitSpec with Matchers {
         result.max should approximate(Kilowatts(pMax))
       }
     }
-  }
 }
