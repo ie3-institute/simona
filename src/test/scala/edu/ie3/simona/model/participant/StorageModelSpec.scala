@@ -7,18 +7,19 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.OperationTime
-import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.input.system.StorageInput
 import edu.ie3.datamodel.models.input.system.`type`.StorageTypeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
+import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.quantities.PowerSystemUnits._
 import org.scalatest.matchers.should.Matchers
+import squants.Power
 import squants.energy.{KilowattHours, Kilowatts}
-import squants.market.EUR
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.quantity.Quantities.getQuantity
 
@@ -28,9 +29,9 @@ class StorageModelSpec extends UnitSpec with Matchers {
 
   var inputModel: StorageInput = _
   final val TOLERANCE = 1e-10
+  final implicit val TOLERANCE2: Power = Kilowatts(1e-10)
 
-  "Setup for StorageModel" should {
-    "initialize the input model" in {
+  "StorageModel" should {
       val nodeInput = new NodeInput(
         UUID.fromString("ad39d0b9-5ad6-4588-8d92-74c7d7de9ace"),
         "NodeInput",
@@ -46,7 +47,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
       val typeInput = new StorageTypeInput(
         UUID.fromString("fbee4995-24dd-45e4-9c85-7d986fe99ff3"),
         "Test_StorageTypeInput",
-        Quantities.getQuantity(10000d, EUR0),
+        Quantities.getQuantity(10000d, EURO),
         getQuantity(0.05d, EURO_PER_MEGAWATTHOUR),
         Quantities.getQuantity(100d, KILOWATTHOUR),
         getQuantity(13d, KILOVOLTAMPERE),
@@ -112,9 +113,9 @@ class StorageModelSpec extends UnitSpec with Matchers {
 
         val result = storageModel.determineFlexOptions(data, oldState).asInstanceOf[ProvideMinMaxFlexOptions]
 
-        result.ref.toKilowatts shouldBe pRef +- TOLERANCE
-        result.min.toKilowatts shouldBe pMin +- TOLERANCE
-        result.max.toKilowatts shouldBe pMax +- TOLERANCE
+        result.ref should approximate(Kilowatts(pRef))
+        result.min should approximate(Kilowatts(pMin))
+        result.max should approximate(Kilowatts(pMax))
       }
     }
   }
