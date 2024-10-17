@@ -34,5 +34,6 @@ sonarqube {
 }
 
 // sonarqube task dependencies
+project.tasks["sonarqube"].dependsOn "test"
 project.tasks["sonarqube"].dependsOn "reportScoverage"
 project.tasks["sonarqube"].dependsOn "checkScoverage"
