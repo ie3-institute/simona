@@ -60,21 +60,15 @@ jobs:
         run: |
           ./gradlew javadoc
 
-      - name: SonarQube Scan
-        run: |
-          ./gradlew reportScoverage sonar \
-            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
-            -Dsonar.host.url=${{ vars.SONAR_HOST_URL }} \
-            -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
-            -Dsonar.branch.name=${{ github.head_ref || github.ref_name }}
-
-      - name: Check if SonarQube Report Exists
-        id: verify-report
-        run: |
-          if [ ! -f ".scannerwork/report-task.txt" ]; then
-            echo "SonarQube report not found. Exiting."
-            exit 1
-          fi
+      - name: SonarQube Analysis
+        uses: sonarsource/sonarqube-scan-action@master
+        with:
+            projectBaseDir: '.'
+            args: >
+              -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
 
       - name: SonarQube Quality Gate
         id: sonarqube-quality-gate-check
