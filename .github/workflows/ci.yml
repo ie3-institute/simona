@@ -1,0 +1,100 @@
+# © 2024. TU Dortmund University,
+# Institute of Energy Systems, Energy Efficiency and Energy Economics,
+# Research group Distribution grid planning and operation
+#
+
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - 'feature/*'
+      - 'hotfix/*'
+      - 'release/*'
+  pull_request:
+    branches:
+      - main
+      - dev
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+
+      - name: Determine Project Version
+        id: version
+        run: |
+          branch_name=$(echo ${{ github.ref_name }})
+          project_version=$(./gradlew -q $([ "$branch_name" = "dev" ] && echo "devVersion" || echo "currentVersion"))
+          echo "project_version=${project_version}" >> $GITHUB_ENV
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 17
+
+      - name: Setup Gradle 8.10
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.10"
+
+      - name: Build Project
+        run: |
+          ./gradlew clean assemble
+
+      - name: Run Tests
+        run: |
+          ./gradlew --refresh-dependencies spotlessCheck pmdMain pmdTest
+
+      - name: Build Scala-Docs
+        run: |
+          ./gradlew scaladoc
+
+      - name: SonarQube Analysis
+        uses: sonarsource/sonarqube-scan-action@master
+        with:
+            projectBaseDir: '.'
+            args: >
+              -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
+              -Dsonar.java.binaries=build/classes/scala/main
+              -Dsonar.verbose=true
+              -Dsonar.sourceEncoding=UTF-8
+              -Dsonar.sources=src/main/resources,src/main/scala
+              -Dsonar.tests=src/test/resources,src/test/scala,src/test/groovy
+              -Dsonar.junit.reportPaths=build/test-results/test
+              -Dsonar.scala.scapegoat.reportPaths=build/reports/scapegoat/src/scapegoat-scalastyle.xml,build/reports/scapegoat/testsrc/scapegoat-scalastyle.xml
+              -Dsonar.scala.coverage.reportPaths=build/reports/scoverageTest/scoverage.xml
+              -Dsonar.groovy.binaries=build/classes/groovy
+              -Dsonar.exclusions=src/main/scala/edu/ie3/simona/config/SimonaConfig.scala
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+
+      - name: SonarQube Quality Gate
+        id: sonarqube-quality-gate-check
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        # Force to fail step after specific time.
+        timeout-minutes: 60
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+
+      - name: Deploy
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+        run: |
+          ./gradlew --refresh-dependencies test publish\
+            -Puser=${{ secrets.MAVENCENTRAL_USER }} \
+            -Ppassword=${{ secrets.MAVENCENTRAL_PASS }} \
+            -Psigning.keyId=${{ secrets.MAVENCENTRAL_SIGNINGKEYID }} \
+            -Psigning.password=${{ secrets.MAVENCENTRAL_SIGNINGPASS }} \
+            -Psigning.secretKeyRingFile=${{ secrets.MAVENCENTRAL_SIGNINGKEY }}
