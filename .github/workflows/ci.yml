@@ -68,6 +68,14 @@ jobs:
             -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
             -Dsonar.branch.name=${{ github.head_ref || github.ref_name }}
 
+      - name: Check if SonarQube Report Exists
+        id: verify-report
+        run: |
+          if [ ! -f ".scannerwork/report-task.txt" ]; then
+            echo "SonarQube report not found. Exiting."
+            exit 1
+          fi
+
       - name: SonarQube Quality Gate
         id: sonarqube-quality-gate-check
         uses: sonarsource/sonarqube-quality-gate-action@master
