@@ -56,9 +56,9 @@ jobs:
         run: |
           ./gradlew --refresh-dependencies spotlessCheck pmdMain pmdTest
 
-      - name: Build Java-Docs
+      - name: Build Scala-Docs
         run: |
-          ./gradlew javadoc
+          ./gradlew scaladoc
 
       - name: SonarQube Analysis
         uses: sonarsource/sonarqube-scan-action@master
