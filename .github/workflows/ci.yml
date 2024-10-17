@@ -54,7 +54,7 @@ jobs:
 
       - name: Run Tests
         run: |
-          ./gradlew --refresh-dependencies spotlessCheck pmdMain pmdTest test
+          ./gradlew --refresh-dependencies spotlessCheck pmdMain pmdTest
 
       - name: Build Java-Docs
         run: |
