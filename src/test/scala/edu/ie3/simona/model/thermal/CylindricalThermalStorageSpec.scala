@@ -29,10 +29,7 @@ class CylindricalThermalStorageSpec
 
   final implicit val tolerance: Energy = KilowattHours(1e-10)
 
-  var storageInput: CylindricalStorageInput = _
-
-  override def beforeAll(): Unit = {
-    storageInput = new CylindricalStorageInput(
+  lazy val storageInput = new CylindricalStorageInput(
       UUID.randomUUID(),
       "ThermalStorage",
       null,
@@ -42,7 +39,6 @@ class CylindricalThermalStorageSpec
       getQuantity(40, StandardUnits.TEMPERATURE),
       getQuantity(1.15, StandardUnits.SPECIFIC_HEAT_CAPACITY),
     )
-  }
 
   def buildThermalStorage(
       storageInput: CylindricalStorageInput,
