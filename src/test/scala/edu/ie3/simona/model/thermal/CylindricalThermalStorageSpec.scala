@@ -27,7 +27,7 @@ class CylindricalThermalStorageSpec
     with Matchers
     with BeforeAndAfterAll {
 
-  final implicit val tolerance: Energy = KilowattHours(1e-10)
+  implicit val tolerance: Energy = KilowattHours(1e-10)
 
   lazy val storageInput = new CylindricalStorageInput(
       UUID.randomUUID(),
