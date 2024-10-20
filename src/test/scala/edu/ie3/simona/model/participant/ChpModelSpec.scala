@@ -50,17 +50,13 @@ class ChpModelSpec
     ChpState(isRunning = false, 0, Kilowatts(0), KilowattHours(0))
   val chpStateRunning: ChpState =
     ChpState(isRunning = true, 0, Kilowatts(0), KilowattHours(0))
-  var storageInput: CylindricalStorageInput = _
-  var chpInput: ChpInput = _
 
-  override def beforeAll(): Unit = {
-    setupSpec()
-  }
+  val (storageInput, chpInput) = setupSpec()
 
-  def setupSpec(): Unit = {
+  def setupSpec(): (CylindricalStorageInput, ChpInput) = {
     val thermalBus = new ThermalBusInput(UUID.randomUUID(), "thermal bus")
 
-    storageInput = new CylindricalStorageInput(
+    val storageInput = new CylindricalStorageInput(
       UUID.randomUUID(),
       "ThermalStorage",
       thermalBus,
@@ -84,7 +80,7 @@ class ChpModelSpec
       getQuantity(0, KILOWATT),
     )
 
-    chpInput = new ChpInput(
+    val chpInput = new ChpInput(
       UUID.randomUUID(),
       "ChpInput",
       null,
@@ -98,6 +94,8 @@ class ChpModelSpec
       null,
       false,
     )
+
+    (storageInput, chpInput)
   }
 
   def buildChpModel(thermalStorage: CylindricalThermalStorage): ChpModel = {
