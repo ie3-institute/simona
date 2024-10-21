@@ -520,13 +520,14 @@ object LoadAgentFundamentals {
         operationInterval: OperationInterval,
         modelConfig: LoadRuntimeConfig,
         reference: LoadReference,
-    ): RandomLoadModel =
+    ): RandomLoadModel = {
       RandomLoadModel(
         inputModel,
         operationInterval,
         modelConfig.scaling,
         reference,
       )
+    }
 
     override protected def createCalcRelevantData(
         baseStateData: ParticipantModelBaseStateData[
