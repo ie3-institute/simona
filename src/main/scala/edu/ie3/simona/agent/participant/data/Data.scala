@@ -10,12 +10,11 @@ import edu.ie3.datamodel.models.value._
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.interfaces.EnergyPrice
-import edu.ie3.util.scala.quantities.{Kilovars, Megavars, ReactivePower}
-import squants.energy.{Power, Kilowatts, Megawatts}
-import tech.units.indriya.ComparableQuantity
 import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities.{Kilovars, ReactivePower}
+import squants.energy.{Kilowatts, Power}
+import tech.units.indriya.ComparableQuantity
 
-import java.time.ZonedDateTime
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
@@ -241,7 +240,6 @@ object Data {
     */
   trait SecondaryData extends Data
   object SecondaryData {
-    final case class DateTime(dateTime: ZonedDateTime) extends SecondaryData
     final case class WholesalePrice(price: ComparableQuantity[EnergyPrice])
         extends SecondaryData
   }
