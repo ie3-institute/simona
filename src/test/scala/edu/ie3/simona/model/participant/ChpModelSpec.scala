@@ -83,7 +83,7 @@ class ChpModelSpec
     val chpInput = new ChpInput(
       UUID.randomUUID(),
       "ChpInput",
-      null,
+      OperatorInput.NO_OPERATOR_ASSIGNED,
       OperationTime.notLimited(),
       TestObjectFactory
         .buildNodeInput(false, GermanVoltageLevelUtils.MV_10KV, 0),
