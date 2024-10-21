@@ -30,15 +30,15 @@ class CylindricalThermalStorageSpec
   implicit val tolerance: Energy = KilowattHours(1e-10)
 
   lazy val storageInput = new CylindricalStorageInput(
-      UUID.randomUUID(),
-      "ThermalStorage",
-      null,
-      getQuantity(100, StandardUnits.VOLUME),
-      getQuantity(20, StandardUnits.VOLUME),
-      getQuantity(30, StandardUnits.TEMPERATURE),
-      getQuantity(40, StandardUnits.TEMPERATURE),
-      getQuantity(1.15, StandardUnits.SPECIFIC_HEAT_CAPACITY),
-    )
+    UUID.randomUUID(),
+    "ThermalStorage",
+    null,
+    getQuantity(100, StandardUnits.VOLUME),
+    getQuantity(20, StandardUnits.VOLUME),
+    getQuantity(30, StandardUnits.TEMPERATURE),
+    getQuantity(40, StandardUnits.TEMPERATURE),
+    getQuantity(1.15, StandardUnits.SPECIFIC_HEAT_CAPACITY),
+  )
 
   def buildThermalStorage(
       storageInput: CylindricalStorageInput,
