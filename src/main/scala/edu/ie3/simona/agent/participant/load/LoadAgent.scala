@@ -14,6 +14,7 @@ import edu.ie3.simona.agent.participant.load.LoadAgentFundamentals.{
   ProfileLoadAgentFundamentals,
   RandomLoadAgentFundamentals,
 }
+import edu.ie3.simona.agent.participant.load.markov.MarkovAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
@@ -47,6 +48,8 @@ object LoadAgent {
         Props(new ProfileLoadAgent(scheduler, initStateData, listener))
       case LoadModelBehaviour.RANDOM =>
         Props(new RandomLoadAgent(scheduler, initStateData, listener))
+      case LoadModelBehaviour.MARKOV =>
+        Props(new MarkovAgent(scheduler, initStateData, listener))
       case unsupported =>
         throw new IllegalArgumentException(
           s"The load agent behaviour '$unsupported' is currently not supported."
