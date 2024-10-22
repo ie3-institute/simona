@@ -16,7 +16,6 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel.{
@@ -30,7 +29,6 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities._
 import squants._
 import squants.energy.Kilowatts
@@ -793,57 +791,39 @@ object PvModel {
   ) extends OperationRelevantData
 
   def apply(
-      inputModel: PvInput,
-      scalingFactor: Double,
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
-  ): PvModel = {
-
-    val scaledInput = inputModel.copy().scale(scalingFactor).build()
-
-    /* Determine the operation interval */
-    val operationInterval: OperationInterval =
-      SystemComponent.determineOperationInterval(
-        simulationStartDate,
-        simulationEndDate,
-        scaledInput.getOperationTime,
-      )
-
-    // moduleSurface and yieldSTC are left out for now
+      inputModel: PvInput
+  ): PvModel =
     new PvModel(
-      scaledInput.getUuid,
-      scaledInput.getId,
-      operationInterval,
-      QControl(scaledInput.getqCharacteristics),
+      inputModel.getUuid,
       Kilowatts(
-        scaledInput.getsRated
+        inputModel.getsRated
           .to(PowerSystemUnits.KILOWATT)
           .getValue
           .doubleValue
       ),
-      scaledInput.getCosPhiRated,
-      Degrees(scaledInput.getNode.getGeoPosition.getY),
-      Degrees(scaledInput.getNode.getGeoPosition.getX),
-      scaledInput.getAlbedo,
+      inputModel.getCosPhiRated,
+      QControl(inputModel.getqCharacteristics),
+      Degrees(inputModel.getNode.getGeoPosition.getY),
+      Degrees(inputModel.getNode.getGeoPosition.getX),
+      inputModel.getAlbedo,
       Each(
-        scaledInput.getEtaConv
+        inputModel.getEtaConv
           .to(PowerSystemUnits.PU)
           .getValue
           .doubleValue
       ),
       Radians(
-        scaledInput.getAzimuth
+        inputModel.getAzimuth
           .to(RADIAN)
           .getValue
           .doubleValue
       ),
       Radians(
-        scaledInput.getElevationAngle
+        inputModel.getElevationAngle
           .to(RADIAN)
           .getValue
           .doubleValue
       ),
     )
-  }
 
 }

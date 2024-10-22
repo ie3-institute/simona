@@ -21,14 +21,9 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   OperationRelevantData,
   ParticipantConstantModel,
 }
-import edu.ie3.simona.model.participant2.PrimaryDataParticipantModel.{
-  PrimaryActivePowerOperatingPoint,
-  PrimaryApparentPowerOperatingPoint,
-  PrimaryOperatingPoint,
-  PrimaryOperationRelevantData,
-  PrimaryResultFunc,
-}
+import edu.ie3.simona.model.participant2.PrimaryDataParticipantModel._
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.scala.quantities.ReactivePower
 import squants.{Dimensionless, Power}
@@ -79,8 +74,15 @@ final case class PrimaryDataParticipantModel[T <: PrimaryData: ClassTag](
     )
   }
 
+  override def createPrimaryDataResult(
+      data: PrimaryDataWithApparentPower[_],
+      dateTime: ZonedDateTime,
+  ): SystemParticipantResult = throw new CriticalFailureException(
+    "Method not implemented by this model."
+  )
+
   override def getRequiredServices: Iterable[ServiceType] = {
-    // primary service should not be specified here
+    // only secondary services should be specified here
     Iterable.empty
   }
 
@@ -107,20 +109,21 @@ final case class PrimaryDataParticipantModel[T <: PrimaryData: ClassTag](
   override def calcFlexOptions(
       state: ParticipantModel.ConstantState.type,
       relevantData: PrimaryOperationRelevantData[T],
-  ): FlexibilityMessage.ProvideFlexOptions = ???
+  ): FlexibilityMessage.ProvideFlexOptions = {
+    val (operatingPoint, _) = determineOperatingPoint(state, relevantData)
+    val power = operatingPoint.activePower
+
+    ProvideMinMaxFlexOptions.noFlexOption(uuid, power)
+  }
 
   override def handlePowerControl(
       state: ParticipantModel.ConstantState.type,
       flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,
-  ): (PrimaryOperatingPoint[T], ParticipantModel.ModelChangeIndicator) = ???
+  ): (PrimaryOperatingPoint[T], ParticipantModel.ModelChangeIndicator) = {
+    ??? // fixme hmmm
+  }
 
-  override def createPrimaryDataResult(
-      data: PrimaryDataWithApparentPower[_],
-      dateTime: ZonedDateTime,
-  ): SystemParticipantResult = throw new CriticalFailureException(
-    "Method not implemented by this model."
-  )
 }
 
 object PrimaryDataParticipantModel {

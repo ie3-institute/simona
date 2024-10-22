@@ -7,29 +7,21 @@
 package edu.ie3.simona.agent.participant2
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent._
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.participant2.{
-  ParticipantModel,
-  ParticipantModelInit,
-}
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.model.participant2.ParticipantModelShell
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
-  FlexCompletion,
-  FlexRequest,
-  FlexResponse,
-  RegisterParticipant,
-  ScheduleFlexRequest,
-}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 import java.time.ZonedDateTime
@@ -135,41 +127,43 @@ object ParticipantAgentInit {
         ),
       )
 
-      // todo T parameter, receive from primary proxy
-      val model = ParticipantModelInit.createPrimaryModel(
-        participantInput,
-        config.scaling,
-        simulationStartDate,
-        simulationEndDate,
-      )
-
       val expectedFirstData = Map(serviceRef -> nextDataTick)
 
-      ParticipantAgent(
-        model,
+      createAgent(
+        ParticipantModelShell.createForPrimaryData(
+          participantInput,
+          config,
+          simulationStartDate,
+          simulationEndDate,
+        ),
         expectedFirstData,
         ???,
         ???,
         parentData,
       )
 
-    case (_, RegistrationFailedMessage(serviceRef)) =>
-      val model = ParticipantModelInit.createModel(
+    case (_, RegistrationFailedMessage(_)) =>
+      val modelShell = ParticipantModelShell.createForModel(
         participantInput,
-        config.scaling,
+        config,
         simulationStartDate,
         simulationEndDate,
       )
-      val requiredServices = model.getRequiredServices.toSeq
+
+      val requiredServices = modelShell.model.getRequiredServices.toSeq
       if (requiredServices.isEmpty) {
-        ParticipantAgent(model, Map.empty, ???, ???, parentData)
+        createAgent(modelShell, Map.empty, ???, ???, parentData)
       } else {
-        waitingForServices(model, requiredServices, parentData = parentData)
+        waitingForServices(
+          modelShell,
+          requiredServices,
+          parentData = parentData,
+        )
       }
   }
 
   private def waitingForServices(
-      model: ParticipantModel[_, _, _],
+      modelShell: ParticipantModelShell[_, _, _],
       expectedRegistrations: Set[ClassicRef],
       expectedFirstData: Map[ClassicRef, Long] = Map.empty,
       parentData: Either[SchedulerData, FlexControlledData],
@@ -197,20 +191,33 @@ object ParticipantAgentInit {
                 earliestNextTick,
               ),
             _.emAgent ! FlexCompletion(
-              model.uuid,
+              modelShell.model.uuid,
               requestAtNextActivation = false,
               earliestNextTick,
             ),
           )
 
-          ParticipantAgent(model, newExpectedFirstData, ???, ???, parentData)
+          createAgent(modelShell, newExpectedFirstData, ???, ???, parentData)
         } else
           waitingForServices(
-            model,
+            modelShell,
             newExpectedRegistrations,
             newExpectedFirstData,
             parentData,
           )
     }
 
+  def createAgent(
+      modelShell: ParticipantModelShell[_, _, _],
+      expectedData: Map[ClassicRef, Long],
+      gridAgentRef: ActorRef[GridAgent.Request],
+      expectedPowerRequestTick: Long,
+      parentData: Either[SchedulerData, FlexControlledData],
+  ): Behavior[Request] =
+    ParticipantAgent(
+      modelShell,
+      ParticipantInputHandler(expectedData),
+      ParticipantGridAdapter(gridAgentRef, expectedPowerRequestTick),
+      parentData,
+    )
 }

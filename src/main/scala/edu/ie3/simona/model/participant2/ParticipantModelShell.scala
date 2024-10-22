@@ -6,11 +6,14 @@
 
 package edu.ie3.simona.model.participant2
 
+import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
+import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.em.EmTools
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelChangeIndicator,
@@ -23,10 +26,14 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssueFlexControl,
   ProvideFlexOptions,
 }
+import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.ReactivePower
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import squants.Dimensionless
 import squants.energy.Power
+
+import java.time.ZonedDateTime
 
 /** Takes care of:
   *   - holding id information
@@ -41,8 +48,9 @@ final case class ParticipantModelShell[
     S <: ModelState,
     OR <: OperationRelevantData,
 ](
-    model: ParticipantModel[OP, S, OR]
-      with ParticipantFlexibility[OP, S, OR], // todo primary replay model?
+    model: ParticipantModel[OP, S, OR] with ParticipantFlexibility[OP, S, OR],
+    operationInterval: OperationInterval,
+    simulationStartDate: ZonedDateTime,
     state: S,
     relevantData: Option[OR],
     flexOptions: Option[ProvideFlexOptions],
@@ -64,6 +72,8 @@ final case class ParticipantModelShell[
   def updateOperatingPoint(
       currentTick: Long
   ): ParticipantModelShell[OP, S, OR] = {
+    // todo consider operationInterval
+
     val currentState = determineCurrentState(currentTick)
 
     if (currentState.tick != currentTick)
@@ -106,7 +116,7 @@ final case class ParticipantModelShell[
       state,
       op,
       complexPower,
-      ???,
+      currentTick.toDateTime(simulationStartDate),
     )
 
     ResultsContainer(
@@ -140,19 +150,7 @@ final case class ParticipantModelShell[
     )
 
     val (newOperatingPoint, modelChange) =
-      model.handlePowerControl(fo, setPointActivePower)
-
-    val activePower = newOperatingPoint.activePower
-
-    // todo where store the reactive power?
-    val reactivePower = ???
-
-    val results = model.createResults(
-      state,
-      newOperatingPoint,
-      ApparentPower(activePower, reactivePower),
-      ???,
-    )
+      model.handlePowerControl(currentState, fo, setPointActivePower)
 
     copy(
       state = currentState,
@@ -184,16 +182,64 @@ final case class ParticipantModelShell[
 
 object ParticipantModelShell {
 
-  def apply(
-      model: ParticipantModel[_, _, _]
-  ): ParticipantModelShell[_, _, _] =
+  def createForPrimaryData(
+      participantInput: SystemParticipantInput,
+      config: BaseRuntimeConfig,
+      simulationStartDate: ZonedDateTime,
+      simulationEndDate: ZonedDateTime,
+  ): ParticipantModelShell[_, _, _] = {
+    // todo T parameter, receive from primary proxy
+    val model = ParticipantModelInit.createPrimaryModel(
+      participantInput,
+      config,
+    )
+    val operationInterval: OperationInterval =
+      SystemComponent.determineOperationInterval(
+        simulationStartDate,
+        simulationEndDate,
+        participantInput.getOperationTime,
+      )
+
     new ParticipantModelShell(
       model = model,
+      operationInterval = operationInterval,
+      simulationStartDate = simulationStartDate,
       state = model.getInitialState(),
       relevantData = None,
       flexOptions = None,
       operatingPoint = None,
       modelChange = ModelChangeIndicator(),
     )
+  }
+
+  def createForModel(
+      participantInput: SystemParticipantInput,
+      config: BaseRuntimeConfig,
+      simulationStartDate: ZonedDateTime,
+      simulationEndDate: ZonedDateTime,
+  ): ParticipantModelShell[_, _, _] = {
+
+    val model = ParticipantModelInit.createModel(
+      participantInput,
+      config,
+    )
+    val operationInterval: OperationInterval =
+      SystemComponent.determineOperationInterval(
+        simulationStartDate,
+        simulationEndDate,
+        participantInput.getOperationTime,
+      )
+
+    new ParticipantModelShell(
+      model = model,
+      operationInterval = operationInterval,
+      simulationStartDate = simulationStartDate,
+      state = model.getInitialState(),
+      relevantData = None,
+      flexOptions = None,
+      operatingPoint = None,
+      modelChange = ModelChangeIndicator(),
+    )
+  }
 
 }

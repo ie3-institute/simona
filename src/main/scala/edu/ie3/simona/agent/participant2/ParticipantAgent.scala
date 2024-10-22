@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.participant2
 
 import breeze.numerics.{pow, sqrt}
-import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
@@ -15,10 +14,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.participant2.{
-  ParticipantModel,
-  ParticipantModelShell,
-}
+import edu.ie3.simona.model.participant2.ParticipantModelShell
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ProvisionMessage
@@ -140,21 +136,6 @@ object ParticipantAgent {
   }
 
   def apply(
-      model: ParticipantModel[_, _, _],
-      expectedData: Map[ClassicRef, Long],
-      gridAgentRef: ActorRef[GridAgent.Request],
-      expectedPowerRequestTick: Long,
-      parentData: Either[SchedulerData, FlexControlledData],
-  ): Behavior[Request] = {
-    ParticipantAgent(
-      ParticipantModelShell(model),
-      ParticipantInputHandler(expectedData),
-      ParticipantGridAdapter(gridAgentRef, expectedPowerRequestTick),
-      parentData,
-    )
-  }
-
-  private def apply(
       modelShell: ParticipantModelShell[_, _, _],
       inputHandler: ParticipantInputHandler,
       gridAdapter: ParticipantGridAdapter,
@@ -332,7 +313,20 @@ object ParticipantAgent {
             case Flex(flexControl: IssueFlexControl) =>
               val modelWithOP = shell.updateOperatingPoint(flexControl)
 
-              // todo results
+              val results =
+                modelWithOP.determineResults(
+                  flexControl.tick,
+                  gridAdapter.nodalVoltage,
+                )
+
+              results.modelResults.foreach { res => // todo send out results
+              }
+
+              val gridAdapterWithResult =
+                gridAdapter.storePowerValue(
+                  results.totalPower,
+                  flexControl.tick,
+                )
 
               parentData.fold(
                 _ =>
@@ -346,7 +340,7 @@ object ParticipantAgent {
                 ),
               )
 
-              modelWithOP
+              (modelWithOP, gridAdapterWithResult)
           }
         }
         .get
