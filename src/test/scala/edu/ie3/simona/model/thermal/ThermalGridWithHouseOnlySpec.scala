@@ -14,9 +14,9 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureUpperBoundaryReached,
 }
 import edu.ie3.simona.test.common.UnitSpec
-import squants.energy.{Kilowatts, Megawatts, WattHours, Watts}
+import squants.energy._
 import squants.thermal.Celsius
-import squants.{Energy, Power, Temperature}
+import squants.{Energy, Kelvin, Power, Temperature}
 
 import scala.jdk.CollectionConverters._
 
@@ -73,21 +73,29 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
 
     "determining the energy demand" should {
       "exactly be the demand of the house" in {
-        val tick = 10800 // after three house
-        val houseDemand = thermalHouse.energyDemand(
+        val tick = 10800 // after three hours
+        val expectedHouseDemand = thermalHouse.energyDemand(
           tick,
           testGridAmbientTemperature,
           expectedHouseStartingState,
         )
 
-        val gridDemand = thermalGrid.energyDemand(
-          tick,
-          testGridAmbientTemperature,
-          ThermalGrid.startingState(thermalGrid),
-        )
+        val (houseDemand, storageDemand, updatedThermalGridState) =
+          thermalGrid.energyDemandAndUpdatedState(
+            tick,
+            testGridAmbientTemperature,
+            testGridAmbientTemperature,
+            ThermalGrid.startingState(thermalGrid),
+          )
 
-        gridDemand.required should approximate(houseDemand.required)
-        gridDemand.possible should approximate(houseDemand.possible)
+        houseDemand.required should approximate(expectedHouseDemand.required)
+        houseDemand.possible should approximate(expectedHouseDemand.possible)
+        storageDemand.required should approximate(KilowattHours(0d))
+        storageDemand.possible should approximate(KilowattHours(0d))
+        updatedThermalGridState.houseState shouldBe Some(
+          ThermalHouseState(10800, Kelvin(292.0799935185185), Kilowatts(0d))
+        )
+        updatedThermalGridState.storageState shouldBe None
       }
     }
 
@@ -127,7 +135,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       }
 
       "not withdraw energy from the house, if actual consumption is given" in {
-        val tick = 0L // after three house
+        val tick = 0L // after three hours
         val gridState = ThermalGrid.startingState(thermalGrid)
 
         val (updatedGridState, reachedThreshold) =
