@@ -8,9 +8,13 @@ package edu.ie3.simona.model.participant2
 
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.PvInput
-import edu.ie3.datamodel.models.result.system.PvResult
+import edu.ie3.datamodel.models.result.system.{
+  PvResult,
+  SystemParticipantResult,
+}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.Data
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
@@ -20,7 +24,6 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ConstantState,
   OperationRelevantData,
   ParticipantConstantModel,
-  ResultsContainer,
 }
 import edu.ie3.simona.model.participant2.PvModel.PvRelevantData
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
@@ -40,7 +43,7 @@ import java.util.UUID
 import java.util.stream.IntStream
 import scala.math._
 
-final class PvModel private (
+class PvModel private (
     override val uuid: UUID,
     override val sRated: Power,
     override val cosPhiRated: Double,
@@ -722,23 +725,30 @@ final class PvModel private (
   }
 
   override def createResults(
-      lastState: ParticipantModel.ConstantState.type,
+      state: ParticipantModel.ConstantState.type,
       operatingPoint: ActivePowerOperatingPoint,
       complexPower: ApparentPower,
       dateTime: ZonedDateTime,
-  ): ResultsContainer = {
-    ResultsContainer(
-      complexPower,
-      Seq(
-        new PvResult(
-          dateTime,
-          uuid,
-          complexPower.p.toMegawatts.asMegaWatt,
-          complexPower.q.toMegavars.asMegaVar,
-        )
-      ),
+  ): Iterable[SystemParticipantResult] =
+    Iterable(
+      new PvResult(
+        dateTime,
+        uuid,
+        complexPower.p.toMegawatts.asMegaWatt,
+        complexPower.q.toMegavars.asMegaVar,
+      )
     )
-  }
+
+  override def createPrimaryDataResult(
+      data: PrimaryData.PrimaryDataWithApparentPower[_],
+      dateTime: ZonedDateTime,
+  ): SystemParticipantResult =
+    new PvResult(
+      dateTime,
+      uuid,
+      data.p.toMegawatts.asMegaWatt,
+      data.q.toMegavars.asMegaVar,
+    )
 
   override def getRequiredServices: Iterable[ServiceType] =
     Iterable(ServiceType.WeatherService)
@@ -750,7 +760,7 @@ final class PvModel private (
   ): PvRelevantData = {
     receivedData
       .collectFirst { case weatherData: WeatherData =>
-        PvRelevantData(weatherData.diffIrr, weatherData.dirIrr)
+        PvRelevantData(???, ???, weatherData.diffIrr, weatherData.dirIrr)
       }
       .getOrElse {
         throw new CriticalFailureException(

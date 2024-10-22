@@ -6,9 +6,13 @@
 
 package edu.ie3.simona.model.participant2
 
+import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  EnrichableData,
+  PrimaryDataWithApparentPower,
+}
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantModel.{
@@ -18,8 +22,11 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ParticipantConstantModel,
 }
 import edu.ie3.simona.model.participant2.PrimaryDataParticipantModel.{
+  PrimaryActivePowerOperatingPoint,
+  PrimaryApparentPowerOperatingPoint,
   PrimaryOperatingPoint,
   PrimaryOperationRelevantData,
+  PrimaryResultFunc,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
 import edu.ie3.simona.service.ServiceType
@@ -37,6 +44,7 @@ final case class PrimaryDataParticipantModel[T <: PrimaryData: ClassTag](
     override val sRated: Power,
     override val cosPhiRated: Double,
     override val qControl: QControl,
+    primaryDataResultFunc: PrimaryResultFunc[T],
 ) extends ParticipantModel[
       PrimaryOperatingPoint[T],
       ConstantState.type,
@@ -55,13 +63,26 @@ final case class PrimaryDataParticipantModel[T <: PrimaryData: ClassTag](
     (PrimaryOperatingPoint(relevantData.data), None)
 
   override def createResults(
-      lastState: ParticipantModel.ConstantState.type,
+      state: ParticipantModel.ConstantState.type,
       operatingPoint: PrimaryOperatingPoint[T],
       complexPower: PrimaryData.ApparentPower,
       dateTime: ZonedDateTime,
-  ): ParticipantModel.ResultsContainer = ???
+  ): Iterable[SystemParticipantResult] = {
+    val primaryDataWithApparentPower = operatingPoint match {
+      case PrimaryApparentPowerOperatingPoint(data) =>
+        data
+      case PrimaryActivePowerOperatingPoint(data) =>
+        data.add(complexPower.q)
+    }
+    Iterable(
+      primaryDataResultFunc.createResult(primaryDataWithApparentPower, dateTime)
+    )
+  }
 
-  override def getRequiredServices: Iterable[ServiceType] = ???
+  override def getRequiredServices: Iterable[ServiceType] = {
+    // primary service should not be specified here
+    Iterable.empty
+  }
 
   /** @param receivedData
     * @throws CriticalFailureException
@@ -89,9 +110,17 @@ final case class PrimaryDataParticipantModel[T <: PrimaryData: ClassTag](
   ): FlexibilityMessage.ProvideFlexOptions = ???
 
   override def handlePowerControl(
+      state: ParticipantModel.ConstantState.type,
       flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,
   ): (PrimaryOperatingPoint[T], ParticipantModel.ModelChangeIndicator) = ???
+
+  override def createPrimaryDataResult(
+      data: PrimaryDataWithApparentPower[_],
+      dateTime: ZonedDateTime,
+  ): SystemParticipantResult = throw new CriticalFailureException(
+    "Method not implemented by this model."
+  )
 }
 
 object PrimaryDataParticipantModel {
@@ -123,9 +152,25 @@ object PrimaryDataParticipantModel {
     override val reactivePower: Option[ReactivePower] = Some(data.q)
   }
 
-  private final case class PrimaryActivePowerOperatingPoint[+T <: PrimaryData](
+  private final case class PrimaryActivePowerOperatingPoint[
+      +T <: PrimaryData with EnrichableData[T2],
+      T2 <: T with PrimaryDataWithApparentPower[T2],
+  ](
       override val data: T
   ) extends PrimaryOperatingPoint[T] {
     override val reactivePower: Option[ReactivePower] = None
   }
+
+  /** Function needs to be packaged to be store it in a val
+    * @tparam T
+    */
+  trait PrimaryResultFunc[
+      T <: PrimaryData
+  ] {
+    def createResult(
+        data: T with PrimaryDataWithApparentPower[_],
+        dateTime: ZonedDateTime,
+    ): SystemParticipantResult
+  }
+
 }

@@ -100,12 +100,18 @@ final case class ParticipantModelShell[
     val reactivePower = op.reactivePower.getOrElse(
       activeToReactivePowerFunc(nodalVoltage)(activePower)
     )
+    val complexPower = ApparentPower(activePower, reactivePower)
 
-    model.createResults(
+    val participantResults = model.createResults(
       state,
       op,
-      ApparentPower(activePower, reactivePower),
+      complexPower,
       ???,
+    )
+
+    ResultsContainer(
+      complexPower,
+      participantResults,
     )
   }
 

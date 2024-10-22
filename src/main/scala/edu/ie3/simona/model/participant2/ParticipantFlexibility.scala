@@ -29,6 +29,7 @@ trait ParticipantFlexibility[
   def calcFlexOptions(state: S, relevantData: OR): ProvideFlexOptions
 
   def handlePowerControl(
+      state: S,
       flexOptions: ProvideFlexOptions,
       setPower: Power,
   ): (OP, ModelChangeIndicator)
@@ -43,14 +44,18 @@ object ParticipantFlexibility {
   ] extends ParticipantFlexibility[ActivePowerOperatingPoint, S, OR] {
     this: ParticipantModel[ActivePowerOperatingPoint, S, OR] =>
 
-    def calcFlexOptions(state: S, relevantData: OR): ProvideFlexOptions = {
+    override def calcFlexOptions(
+        state: S,
+        relevantData: OR,
+    ): ProvideFlexOptions = {
       val (operatingPoint, _) = determineOperatingPoint(state, relevantData)
       val power = operatingPoint.activePower
 
       ProvideMinMaxFlexOptions(uuid, power, power, DefaultQuantities.zeroKW)
     }
 
-    def handlePowerControl(
+    override def handlePowerControl(
+        state: S,
         flexOptions: ProvideFlexOptions,
         setPower: Power,
     ): (ActivePowerOperatingPoint, ModelChangeIndicator) = {

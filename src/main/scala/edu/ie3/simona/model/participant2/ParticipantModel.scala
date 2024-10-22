@@ -7,7 +7,10 @@
 package edu.ie3.simona.model.participant2
 
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPower,
+  PrimaryDataWithApparentPower,
+}
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
@@ -53,16 +56,48 @@ abstract class ParticipantModel[
         nodalVoltage,
       )
 
+  /** With the given current state and the given relevant data, determines the
+    * operating point that is currently valid until the next operating point is
+    * determined. Also, optionally returns a tick at which the state will change
+    * unless the operating point changes beforehand.
+    *
+    * This method is only called if the participant is *not* em-controlled.
+    *
+    * @param state
+    *   the current state
+    * @param relevantData
+    *   the relevant data for the current tick
+    * @return
+    *   the operating point and optionally a next activation tick
+    */
   def determineOperatingPoint(state: S, relevantData: OR): (OP, Option[Long])
 
+  /** Determines the current state given the last state and the operating point
+    * that has been valid from the last state up until now.
+    *
+    * @param lastState
+    *   the last state
+    * @param operatingPoint
+    *   the operating point valid from the simulation time of the last state up
+    *   until now
+    * @param currentTick
+    *   the current tick
+    * @return
+    *   the current state
+    */
   def determineState(lastState: S, operatingPoint: OP, currentTick: Long): S
 
   def createResults(
-      lastState: S,
+      state: S,
       operatingPoint: OP,
       complexPower: ApparentPower,
       dateTime: ZonedDateTime,
-  ): ResultsContainer
+  ): Iterable[SystemParticipantResult]
+
+  def createPrimaryDataResult(
+      data: PrimaryDataWithApparentPower[_],
+      dateTime: ZonedDateTime,
+  ): SystemParticipantResult
 
   /** Handling requests that are not part of the standard participant protocol
     *
@@ -154,7 +189,7 @@ object ParticipantModel {
 
   final case class ResultsContainer(
       totalPower: ApparentPower,
-      modelResults: Seq[SystemParticipantResult],
+      modelResults: Iterable[SystemParticipantResult],
   )
 
 }
