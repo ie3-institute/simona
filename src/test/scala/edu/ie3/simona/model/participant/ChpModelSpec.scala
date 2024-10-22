@@ -8,6 +8,7 @@ package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.input.system.ChpInput
 import edu.ie3.datamodel.models.input.system.`type`.ChpTypeInput
+import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.thermal.{
   CylindricalStorageInput,
