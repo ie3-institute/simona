@@ -90,6 +90,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reorganized Jenkins pipeline to separate build and test stages for better efficiency [#938](https://github.com/ie3-institute/simona/issues/938)
 - Rewrote SystemParticipantTest and MockParticipant from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Rewrote ChpModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Rewrote CylindricalThermalStorageTest Test from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Prepare ThermalStorageTestData for Storage without storageVolumeLvlMin [#894](https://github.com/ie3-institute/simona/issues/894)
 - Refactoring of `ThermalGrid.energyGrid` to distinguish between demand of house and storage [#928](https://github.com/ie3-institute/simona/issues/928)
 
