@@ -8,3 +8,7 @@
  */
 
 rootProject.name = 'simona_public'
+
+include(':simopsim')
+project(':simopsim').projectDir = file('C:\\Users\\smjobaoo\\IdeaProjects\\simonaAPI_dev_simopsim\\opsim_simona_demo_extern')
+

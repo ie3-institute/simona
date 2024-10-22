@@ -107,6 +107,8 @@ dependencies {
     exclude group: 'edu.ie3'
   }
 
+  implementation project('simopsim')
+
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.5" // pekko scala logging
   implementation "ch.qos.logback:logback-classic:1.5.8"

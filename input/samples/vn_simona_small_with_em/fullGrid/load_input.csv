@@ -1,5 +1,0 @@
-uuid,cos_phi_rated,dsm,e_cons_annual,id,load_profile,node,operates_from,operates_until,operator,q_characteristics,s_rated,em
-4dca3b1d-5d24-444a-b4df-f4fa23b9ef1b,0.949999988079071,false,4000.0,LOAD_NS_Node_1,h0,00d03670-7833-47ee-ad52-04d18d1c64fd,,,,"cosPhiFixed:{(0.0,1.0)}",4.1237101554870605,
-9c5991bc-24df-496b-b4ce-5ec27657454c,0.949999988079071,false,4000.0,LOAD_NS_Node_2,h0,dfae9806-9b44-4995-ba27-d66d8e4a43e0,,,,"cosPhiFixed:{(0.0,1.0)}",4.1237101554870605,
-58b9f934-f7c4-4335-9894-3c80d9e6b852,0.949999988079071,false,4000.0,LOAD_NS_Node_3,h0,33f29587-f63e-45b7-960b-037bda37a3cb,,,,"cosPhiFixed:{(0.0,1.0)}",4.1237101554870605,""
-283a1252-a774-4b04-bfcf-fe8879065982,0.949999988079071,false,4000.0,LOAD_NS_Node_4,h0,401f37f8-6f2c-4564-bc78-6736cb9cbf8d,,,,"cosPhiFixed:{(0.0,1.0)}",2.3157899379730225,ff0b995a-86ff-4f4d-987e-e475a64f2180
