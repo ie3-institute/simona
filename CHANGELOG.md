@@ -87,6 +87,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed `ActivityStartTrigger`, `ScheduleTriggerMessage`, `CompletionMessage` in UML Diagrams[#675](https://github.com/ie3-institute/simona/issues/675)
 - Simplifying quantity integration in QuantityUtil [#973](https://github.com/ie3-institute/simona/issues/973)
 - Reorganized Jenkins pipeline to separate build and test stages for better efficiency [#938](https://github.com/ie3-institute/simona/issues/938)
+- Rewrote StorageModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
