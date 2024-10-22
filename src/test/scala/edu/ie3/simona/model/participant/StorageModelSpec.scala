@@ -363,9 +363,9 @@ class StorageModelSpec extends UnitSpec with Matchers {
     "Handle the edge case of discharging in positive target margin" in {
       val storageModel = buildStorageModel(Some(0.3d))
       val startTick = 1800L
-      val data = new StorageModel.StorageRelevantData(startTick + 1)
+      val data = StorageModel.StorageRelevantData(startTick + 1)
       // margin is at ~ 30.0025 kWh
-      val oldState = new StorageModel.StorageState(
+      val oldState = StorageModel.StorageState(
         KilowattHours(30.0024d),
         Kilowatts(0d),
         startTick,
@@ -390,9 +390,9 @@ class StorageModelSpec extends UnitSpec with Matchers {
     "Handle the edge case of charging in negative target margin" in {
       val storageModel = buildStorageModel(Some(0.4d))
       val startTick = 1800L
-      val data = new StorageModel.StorageRelevantData(startTick + 1)
+      val data = StorageModel.StorageRelevantData(startTick + 1)
       // margin is at ~ 39.9975 kWh
-      val oldState = new StorageModel.StorageState(
+      val oldState = StorageModel.StorageState(
         KilowattHours(39.998d),
         Kilowatts(0d),
         startTick,
