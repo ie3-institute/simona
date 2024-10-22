@@ -21,7 +21,7 @@ object ResultSinkType {
       fileFormat: String = ".csv",
       filePrefix: String = "",
       fileSuffix: String = "",
-      zipFiles: Boolean = false,
+      compressOutputs: Boolean = false,
   ) extends ResultSinkType
 
   final case class InfluxDb1x(url: String, database: String, scenario: String)
@@ -53,7 +53,7 @@ object ResultSinkType {
           params.fileFormat,
           params.filePrefix,
           params.fileSuffix,
-          params.zipFiles,
+          params.compressOutputs,
         )
       case Some(params: SimonaConfig.Simona.Output.Sink.InfluxDb1x) =>
         InfluxDb1x(buildInfluxDb1xUrl(params), params.database, runName)

@@ -91,6 +91,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rewrote SystemParticipantTest and MockParticipant from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Rewrote ChpModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Rewrote CylindricalThermalStorageTest Test from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Move compression of output files into `ResultEventListener`[#965](https://github.com/ie3-institute/simona/issues/965)
 
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
