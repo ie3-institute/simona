@@ -1912,8 +1912,9 @@ protected trait ParticipantAgentFundamentals[
   def buildResultEvent[R <: ResultEntity](
       result: R
   ): Option[ResultEvent] = result match {
-    case thermalResult: ThermalUnitResult =>
-      Some(ThermalResultEvent(thermalResult))
+    case thermalUnitResult: ThermalUnitResult =>
+      Some(ThermalResultEvent(thermalUnitResult))
+
     case unsupported =>
       log.debug(
         s"Results of class '${unsupported.getClass.getSimpleName}' are currently not supported."

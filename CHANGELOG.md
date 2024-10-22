@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added option to directly zip the output files [#793](https://github.com/ie3-institute/simona/issues/793)
 - Added weatherData HowTo for Copernicus ERA5 data [#967](https://github.com/ie3-institute/simona/issues/967)
 - Add some quote to 'printGoodbye' [#997](https://github.com/ie3-institute/simona/issues/997)
+- Add unapply method for ThermalHouseResults [#934](https://github.com/ie3-institute/simona/issues/934)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
