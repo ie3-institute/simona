@@ -993,17 +993,17 @@ protected trait ParticipantAgentFundamentals[
       .flatMap { case (_, maybeData) =>
         maybeData
       }
-      .fold[Try[PrimaryData]] {
+      .fold[Try[PrimaryData[_]]] {
         Failure(
           new IllegalStateException(
             "Not able to determine the most recent result, although it should have been sent."
           )
         )
       } {
-        case result: PrimaryData
+        case result: PrimaryData[_]
             if pdClassTag.runtimeClass.equals(result.getClass) =>
           Success(result)
-        case primaryData: PrimaryData =>
+        case primaryData: PrimaryData[_] =>
           primaryData match {
             case pd: EnrichableData[_] =>
               val q =
@@ -1981,7 +1981,7 @@ object ParticipantAgentFundamentals {
     * @tparam PD
     *   Type of primary data, that is relevant for the next calculation
     */
-  final case class RelevantResultValues[+PD <: PrimaryData](
+  final case class RelevantResultValues[+PD <: PrimaryData[_]](
       windowStart: Long,
       windowEnd: Long,
       relevantData: Map[Long, PD],

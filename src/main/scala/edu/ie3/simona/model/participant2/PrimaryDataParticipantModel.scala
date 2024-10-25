@@ -34,36 +34,38 @@ import scala.reflect.ClassTag
 
 /** Just "replaying" primary data
   */
-final case class PrimaryDataParticipantModel[T <: PrimaryData: ClassTag](
+final case class PrimaryDataParticipantModel[P <: PrimaryData[_]: ClassTag](
     override val uuid: UUID,
     override val sRated: Power,
     override val cosPhiRated: Double,
     override val qControl: QControl,
-    primaryDataResultFunc: PrimaryResultFunc[T],
+    primaryDataResultFunc: PrimaryResultFunc[P],
 ) extends ParticipantModel[
-      PrimaryOperatingPoint[T],
+      PrimaryOperatingPoint[_, P],
       ConstantState.type,
-      PrimaryOperationRelevantData[T],
+      PrimaryOperationRelevantData[P],
     ]
     with ParticipantConstantModel[PrimaryOperatingPoint[
-      T
+      _,
+      P,
     ], PrimaryOperationRelevantData[
-      T
+      P
     ]] {
 
   override def determineOperatingPoint(
       state: ParticipantModel.ConstantState.type,
-      relevantData: PrimaryOperationRelevantData[T],
-  ): (PrimaryOperatingPoint[T], Option[Long]) =
+      relevantData: PrimaryOperationRelevantData[P],
+  ): (PrimaryOperatingPoint[_, P], Option[Long]) =
     (PrimaryOperatingPoint(relevantData.data), None)
 
   override def createResults(
       state: ParticipantModel.ConstantState.type,
-      operatingPoint: PrimaryOperatingPoint[T],
+      lastOperatingPoint: Option[PrimaryOperatingPoint[_, P]],
+      currentOperatingPoint: PrimaryOperatingPoint[_, P],
       complexPower: PrimaryData.ApparentPower,
       dateTime: ZonedDateTime,
   ): Iterable[SystemParticipantResult] = {
-    val primaryDataWithApparentPower = operatingPoint match {
+    val primaryDataWithApparentPower = currentOperatingPoint match {
       case PrimaryApparentPowerOperatingPoint(data) =>
         data
       case PrimaryActivePowerOperatingPoint(data) =>
@@ -96,9 +98,9 @@ final case class PrimaryDataParticipantModel[T <: PrimaryData: ClassTag](
       nodalVoltage: Dimensionless,
       tick: Long,
       simulationTime: ZonedDateTime,
-  ): PrimaryOperationRelevantData[T] =
+  ): PrimaryOperationRelevantData[P] =
     receivedData
-      .collectFirst { case data: T =>
+      .collectFirst { case data: P =>
         PrimaryOperationRelevantData(data)
       }
       .getOrElse {
@@ -109,7 +111,7 @@ final case class PrimaryDataParticipantModel[T <: PrimaryData: ClassTag](
 
   override def calcFlexOptions(
       state: ParticipantModel.ConstantState.type,
-      relevantData: PrimaryOperationRelevantData[T],
+      relevantData: PrimaryOperationRelevantData[P],
   ): FlexibilityMessage.ProvideFlexOptions = {
     val (operatingPoint, _) = determineOperatingPoint(state, relevantData)
     val power = operatingPoint.activePower
@@ -121,26 +123,32 @@ final case class PrimaryDataParticipantModel[T <: PrimaryData: ClassTag](
       state: ParticipantModel.ConstantState.type,
       flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,
-  ): (PrimaryOperatingPoint[T], ParticipantModel.ModelChangeIndicator) = {
-    ??? // fixme hmmm
+      // todo relevant data needed
+  ): (PrimaryOperatingPoint[_, P], ParticipantModel.ModelChangeIndicator) = {
+    ??? // fixme hmmm. scale by amount of setPower in relation to active power
   }
 
 }
 
 object PrimaryDataParticipantModel {
 
-  final case class PrimaryOperationRelevantData[+T <: PrimaryData](data: T)
+  final case class PrimaryOperationRelevantData[+P <: PrimaryData[_]](data: P)
       extends OperationRelevantData
 
-  trait PrimaryOperatingPoint[+T <: PrimaryData] extends OperatingPoint {
-    val data: T
+  trait PrimaryOperatingPoint[T <: PrimaryOperatingPoint[
+    T,
+    P,
+  ], +P <: PrimaryData[_]]
+      extends OperatingPoint[PrimaryOperatingPoint[T, P]] {
+    val data: P
 
     override val activePower: Power = data.p
-
   }
 
   object PrimaryOperatingPoint {
-    def apply[T <: PrimaryData: ClassTag](data: T): PrimaryOperatingPoint[T] =
+    def apply[P <: PrimaryData[_]: ClassTag](
+        data: P
+    ): PrimaryOperatingPoint[_, P] =
       data match {
         case apparentPowerData: PrimaryDataWithApparentPower[_] =>
           PrimaryApparentPowerOperatingPoint(apparentPowerData)
@@ -150,29 +158,35 @@ object PrimaryDataParticipantModel {
   }
 
   private final case class PrimaryApparentPowerOperatingPoint[
-      T <: PrimaryDataWithApparentPower[T]
-  ](override val data: T)
-      extends PrimaryOperatingPoint[T] {
+      +P <: PrimaryDataWithApparentPower[P]
+  ](override val data: P)
+      extends PrimaryOperatingPoint[PrimaryApparentPowerOperatingPoint[_], P] {
     override val reactivePower: Option[ReactivePower] = Some(data.q)
+
+    override def zero: PrimaryApparentPowerOperatingPoint[P] =
+      copy(data = data.scale(0d))
   }
 
   private final case class PrimaryActivePowerOperatingPoint[
-      +T <: PrimaryData with EnrichableData[T2],
-      T2 <: T with PrimaryDataWithApparentPower[T2],
+      +P <: PrimaryData[P] with EnrichableData[P2],
+      P2 <: P with PrimaryDataWithApparentPower[P2],
   ](
-      override val data: T
-  ) extends PrimaryOperatingPoint[T] {
+      override val data: P
+  ) extends PrimaryOperatingPoint[PrimaryActivePowerOperatingPoint[_, P2], P] {
     override val reactivePower: Option[ReactivePower] = None
+
+    override def zero: PrimaryActivePowerOperatingPoint[P, P2] =
+      copy(data = data.scale(0d))
   }
 
   /** Function needs to be packaged to be store it in a val
-    * @tparam T
+    * @tparam P
     */
   trait PrimaryResultFunc[
-      T <: PrimaryData
+      P <: PrimaryData[_]
   ] {
     def createResult(
-        data: T with PrimaryDataWithApparentPower[_],
+        data: P with PrimaryDataWithApparentPower[_],
         dateTime: ZonedDateTime,
     ): SystemParticipantResult
   }

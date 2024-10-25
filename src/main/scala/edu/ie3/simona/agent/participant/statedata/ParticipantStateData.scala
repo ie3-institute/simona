@@ -22,18 +22,18 @@ import java.time.ZonedDateTime
 /** Trait to denote all common forms of state data related to each participant
   * agent
   */
-trait ParticipantStateData[+PD <: PrimaryData]
+trait ParticipantStateData[+PD <: PrimaryData[_]]
 
 object ParticipantStateData {
 
   /** Data for the state, in which the agent is not initialized, yet.
     * <p>IMPORTANT: Needs to be an empty case class due to typing</p>
     */
-  final class ParticipantUninitializedStateData[+PD <: PrimaryData]()
+  final class ParticipantUninitializedStateData[+PD <: PrimaryData[_]]()
       extends UninitializedStateData[PD]
 
   object ParticipantUninitializedStateData {
-    def apply[PD <: PrimaryData](): ParticipantUninitializedStateData[PD] =
+    def apply[PD <: PrimaryData[_]](): ParticipantUninitializedStateData[PD] =
       new ParticipantUninitializedStateData()
   }
 
@@ -67,7 +67,7 @@ object ParticipantStateData {
   final case class ParticipantInitializingStateData[
       I <: SystemParticipantInput,
       C <: SimonaConfig.BaseRuntimeConfig,
-      PD <: PrimaryData,
+      PD <: PrimaryData[_],
   ](
       inputModel: InputModelContainer[I],
       modelConfig: C,
@@ -111,7 +111,7 @@ object ParticipantStateData {
   final case class ParticipantInitializeStateData[
       I <: SystemParticipantInput,
       C <: SimonaConfig.BaseRuntimeConfig,
-      PD <: PrimaryData,
+      PD <: PrimaryData[_],
   ](
       inputModel: InputModelContainer[I],
       modelConfig: C,
@@ -130,7 +130,7 @@ object ParticipantStateData {
     def apply[
         I <: SystemParticipantInput,
         C <: SimonaConfig.BaseRuntimeConfig,
-        PD <: PrimaryData,
+        PD <: PrimaryData[_],
     ](
         inputModel: I,
         modelConfig: C,
@@ -159,7 +159,7 @@ object ParticipantStateData {
     def apply[
         I <: SystemParticipantInput,
         C <: SimonaConfig.BaseRuntimeConfig,
-        PD <: PrimaryData,
+        PD <: PrimaryData[_],
     ](
         inputModel: I,
         modelConfig: C,
@@ -190,7 +190,7 @@ object ParticipantStateData {
     def apply[
         I <: SystemParticipantInput,
         C <: SimonaConfig.BaseRuntimeConfig,
-        PD <: PrimaryData,
+        PD <: PrimaryData[_],
     ](
         inputModel: I,
         thermalGrid: ThermalGrid,
@@ -221,7 +221,7 @@ object ParticipantStateData {
     def apply[
         I <: SystemParticipantInput,
         C <: SimonaConfig.BaseRuntimeConfig,
-        PD <: PrimaryData,
+        PD <: PrimaryData[_],
     ](
         inputModel: I,
         thermalGrid: ThermalGrid,

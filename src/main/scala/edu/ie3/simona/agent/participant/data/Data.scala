@@ -33,9 +33,11 @@ object Data {
     * model invocation. Anyway, primary data has to have at least active power
     * given
     */
-  sealed trait PrimaryData extends Data {
+  sealed trait PrimaryData[+T <: PrimaryData[T]] extends Data {
     val p: Power
     def toApparentPower: ApparentPower
+
+    def scale(factor: Double): T
   }
 
   object PrimaryData {
@@ -48,7 +50,7 @@ object Data {
       */
     sealed trait PrimaryDataWithApparentPower[
         +T <: PrimaryDataWithApparentPower[T]
-    ] extends PrimaryData {
+    ] extends PrimaryData[T] {
       val q: ReactivePower
 
       def withReactivePower(q: ReactivePower): T
@@ -68,7 +70,7 @@ object Data {
       *   Active power
       */
     final case class ActivePower(override val p: Power)
-        extends PrimaryData
+        extends PrimaryData[ActivePower]
         with EnrichableData[ApparentPower] {
       override def toApparentPower: ApparentPower =
         ApparentPower(
@@ -78,6 +80,9 @@ object Data {
 
       override def add(q: ReactivePower): ApparentPower =
         ApparentPower(p, q)
+
+      override def scale(factor: Double): ActivePower =
+        ActivePower(p = p * factor)
     }
 
     /** Active and Reactive power as participant simulation result
@@ -95,6 +100,9 @@ object Data {
 
       override def withReactivePower(q: ReactivePower): ApparentPower =
         copy(q = q)
+
+      override def scale(factor: Double): ApparentPower =
+        ApparentPower(p = p * factor, q = q * factor)
     }
 
     /** Active power and heat demand as participant simulation result
@@ -107,7 +115,7 @@ object Data {
     final case class ActivePowerAndHeat(
         override val p: Power,
         override val qDot: Power,
-    ) extends PrimaryData
+    ) extends PrimaryData[ActivePowerAndHeat]
         with Heat
         with EnrichableData[ApparentPowerAndHeat] {
       override def toApparentPower: ApparentPower =
@@ -118,6 +126,9 @@ object Data {
 
       override def add(q: ReactivePower): ApparentPowerAndHeat =
         ApparentPowerAndHeat(p, q, qDot)
+
+      override def scale(factor: Double): ActivePowerAndHeat =
+        ActivePowerAndHeat(p = p * factor, qDot = qDot * factor)
     }
 
     /** Apparent power and heat demand as participant simulation result
@@ -140,10 +151,17 @@ object Data {
 
       override def withReactivePower(q: ReactivePower): ApparentPowerAndHeat =
         copy(q = q)
+
+      override def scale(factor: Double): ApparentPowerAndHeat =
+        ApparentPowerAndHeat(
+          p = p * factor,
+          q = q * factor,
+          qDot = qDot * factor,
+        )
     }
 
     implicit class RichValue(private val value: Value) {
-      def toPrimaryData: Try[PrimaryData] =
+      def toPrimaryData: Try[PrimaryData[_]] =
         value match {
           case hs: HeatAndSValue =>
             (hs.getP.toScala, hs.getQ.toScala, hs.getHeatDemand.toScala) match {

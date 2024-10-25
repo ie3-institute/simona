@@ -131,7 +131,8 @@ class StorageModel private (
 
   override def createResults(
       state: StorageState,
-      operatingPoint: ActivePowerOperatingPoint,
+      lastOperatingPoint: Option[ActivePowerOperatingPoint],
+      currentOperatingPoint: ActivePowerOperatingPoint,
       complexPower: PrimaryData.ApparentPower,
       dateTime: ZonedDateTime,
   ): Iterable[SystemParticipantResult] =

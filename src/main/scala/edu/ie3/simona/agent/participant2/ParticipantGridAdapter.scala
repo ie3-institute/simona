@@ -46,7 +46,7 @@ final case class ParticipantGridAdapter(
       power: ApparentPower,
       tick: Long,
   ): ParticipantGridAdapter =
-    copy(tickToPower = tickToPower + (tick, power))
+    copy(tickToPower = tickToPower.updated(tick, power))
 
   def handlePowerRequest(
       newVoltage: Dimensionless,
@@ -84,7 +84,7 @@ final case class ParticipantGridAdapter(
         Right(0, currentTick)
     }).fold(
       cachedResult => cachedResult.copy(newResult = false),
-      { case (windowStart, windowEnd) =>
+      { case (windowStart: Long, windowEnd: Long) =>
         val avgPower = averageApparentPower(
           tickToPower,
           windowStart,

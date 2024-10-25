@@ -7,6 +7,7 @@
 package edu.ie3.simona.model.participant2
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant2.ParticipantAgent
@@ -20,8 +21,8 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
   OperatingPoint,
   OperationRelevantData,
-  ResultsContainer,
 }
+import edu.ie3.simona.model.participant2.ParticipantModelShell.ResultsContainer
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssueFlexControl,
   ProvideFlexOptions,
@@ -54,6 +55,7 @@ final case class ParticipantModelShell[
     state: S,
     relevantData: Option[OR],
     flexOptions: Option[ProvideFlexOptions],
+    lastOperatingPoint: Option[OP],
     operatingPoint: Option[OP],
     modelChange: ModelChangeIndicator,
 ) {
@@ -63,8 +65,14 @@ final case class ParticipantModelShell[
       nodalVoltage: Dimensionless,
       tick: Long,
   ): ParticipantModelShell[OP, S, OR] = {
+    val currentSimulationTime = tick.toDateTime(simulationStartDate)
     val updatedRelevantData =
-      model.createRelevantData(receivedData, nodalVoltage, tick)
+      model.createRelevantData(
+        receivedData,
+        nodalVoltage,
+        tick,
+        currentSimulationTime,
+      )
 
     copy(relevantData = Some(updatedRelevantData))
   }
@@ -82,7 +90,9 @@ final case class ParticipantModelShell[
     val (newOperatingPoint, newNextTick) =
       model.determineOperatingPoint(
         state,
-        relevantData.getOrElse("No relevant data available!"),
+        relevantData.getOrElse(
+          throw new CriticalFailureException("No relevant data available!")
+        ),
       )
 
     val (adaptedOperatingPoint, adaptedNextTick) =
@@ -95,6 +105,7 @@ final case class ParticipantModelShell[
 
     copy(
       state = currentState,
+      lastOperatingPoint = operatingPoint,
       operatingPoint = Some(adaptedOperatingPoint),
       modelChange = ModelChangeIndicator(changesAtTick = adaptedNextTick),
     )
@@ -120,6 +131,7 @@ final case class ParticipantModelShell[
 
     val participantResults = model.createResults(
       state,
+      lastOperatingPoint,
       op,
       complexPower,
       currentTick.toDateTime(simulationStartDate),
@@ -135,7 +147,9 @@ final case class ParticipantModelShell[
     val currentState = determineCurrentState(currentTick)
     val flexOptions = model.calcFlexOptions(
       currentState,
-      relevantData.getOrElse("No relevant data available!"),
+      relevantData.getOrElse(
+        throw new CriticalFailureException("No relevant data available!")
+      ),
     )
 
     copy(state = currentState, flexOptions = Some(flexOptions))
@@ -160,6 +174,7 @@ final case class ParticipantModelShell[
 
     copy(
       state = currentState,
+      lastOperatingPoint = operatingPoint,
       operatingPoint = Some(newOperatingPoint),
       modelChange = modelChange,
     )
@@ -187,6 +202,11 @@ final case class ParticipantModelShell[
 }
 
 object ParticipantModelShell {
+
+  final case class ResultsContainer(
+      totalPower: ApparentPower,
+      modelResults: Iterable[SystemParticipantResult],
+  )
 
   def createForPrimaryData(
       participantInput: SystemParticipantInput,
@@ -245,6 +265,7 @@ object ParticipantModelShell {
       state = modelContainer.initialState,
       relevantData = None,
       flexOptions = None,
+      lastOperatingPoint = None,
       operatingPoint = None,
       modelChange = ModelChangeIndicator(),
     )

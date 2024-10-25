@@ -10,5 +10,5 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData
 
 /** Properties common to all participant agents not yet initialized
   */
-trait UninitializedStateData[+PD <: PrimaryData]
+trait UninitializedStateData[+PD <: PrimaryData[_]]
     extends ParticipantStateData[PD]

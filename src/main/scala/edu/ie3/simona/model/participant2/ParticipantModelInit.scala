@@ -23,6 +23,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.ModelState
 import edu.ie3.simona.model.participant2.PrimaryDataParticipantModel.PrimaryResultFunc
 
 import java.time.ZonedDateTime
+import scala.reflect.ClassTag
 
 object ParticipantModelInit {
 
@@ -34,7 +35,7 @@ object ParticipantModelInit {
     // function needed because Scala does not recognize Java type parameter
     def scale[B <: SystemParticipantInputCopyBuilder[B]](
         builder: B
-    ): Double => B =
+    ): Double => SystemParticipantInputCopyBuilder[B] =
       factor => builder.scale(factor)
 
     val scaledParticipantInput =
@@ -58,7 +59,7 @@ object ParticipantModelInit {
     }
   }
 
-  def createPrimaryModel[T <: PrimaryData](
+  def createPrimaryModel[P <: PrimaryData[_]: ClassTag](
       participantInput: SystemParticipantInput,
       modelConfig: BaseRuntimeConfig,
   ): ParticipantModelInitContainer[_] = {
@@ -69,15 +70,15 @@ object ParticipantModelInit {
     )
     val physicalModel = modelContainer.model
 
-    val primaryResultFunc = new PrimaryResultFunc[T] {
+    val primaryResultFunc = new PrimaryResultFunc[P] {
       override def createResult(
-          data: T with PrimaryData.PrimaryDataWithApparentPower[_],
+          data: P with PrimaryData.PrimaryDataWithApparentPower[_],
           dateTime: ZonedDateTime,
       ): SystemParticipantResult =
         physicalModel.createPrimaryDataResult(data, dateTime)
     }
 
-    val primaryDataModel = new PrimaryDataParticipantModel[T](
+    val primaryDataModel = new PrimaryDataParticipantModel[P](
       physicalModel.uuid,
       physicalModel.sRated,
       physicalModel.cosPhiRated,

@@ -8,6 +8,7 @@ package edu.ie3.simona.model.participant2.evcs
 
 import edu.ie3.datamodel.models.ElectricCurrentType
 import edu.ie3.datamodel.models.result.system.{
+  EvResult,
   EvcsResult,
   SystemParticipantResult,
 }
@@ -38,6 +39,7 @@ import edu.ie3.util.scala.quantities.ReactivePower
 import squants.energy.Watts
 import squants.time.Seconds
 import squants.{Dimensionless, Energy, Power}
+import tech.units.indriya.unit.Units.PERCENT
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -57,6 +59,7 @@ class EvcsModel private (
       EvcsRelevantData,
     ]
     with EvcsChargingProperties {
+
   override def determineOperatingPoint(
       state: EvcsState,
       relevantData: EvcsRelevantData,
@@ -129,10 +132,53 @@ class EvcsModel private (
 
   override def createResults(
       state: EvcsState,
-      operatingPoint: EvcsOperatingPoint,
+      lastOperatingPoint: Option[EvcsOperatingPoint],
+      currentOperatingPoint: EvcsOperatingPoint,
       complexPower: PrimaryData.ApparentPower,
       dateTime: ZonedDateTime,
-  ): Iterable[SystemParticipantResult] = ???
+  ): Iterable[SystemParticipantResult] = {
+    val evResults = state.evs.flatMap { case (uuid, ev) =>
+      val lastOp = lastOperatingPoint.flatMap(_.evOperatingPoints.get(uuid))
+      val currentOp = currentOperatingPoint.evOperatingPoints.get(uuid)
+
+      val currentPower = currentOp.getOrElse(zeroKW)
+
+      val resultPower =
+        // only take results that are different from last time
+        if (!lastOp.contains(currentPower))
+          Some(currentPower)
+        // create 0 kW results for EVs that are not charging anymore
+        else if (lastOp.isDefined && currentOp.isEmpty)
+          Some(zeroKW)
+        else
+          None
+
+      resultPower.map { activePower =>
+        // assume that reactive power is proportional to active power
+        val reactivePower = complexPower.q * (activePower / complexPower.p)
+
+        val soc = (ev.storedEnergy / ev.eStorage).asPu
+          .to(PERCENT)
+
+        new EvResult(
+          dateTime,
+          uuid,
+          activePower.toMegawatts.asMegaWatt,
+          reactivePower.toMegavars.asMegaVar,
+          soc,
+        )
+      }
+    }
+
+    val evcsResult = new EvcsResult(
+      dateTime,
+      uuid,
+      complexPower.p.toMegawatts.asMegaWatt,
+      complexPower.q.toMegavars.asMegaVar,
+    )
+
+    evResults ++ Iterable(evcsResult)
+  }
 
   override def createPrimaryDataResult(
       data: PrimaryData.PrimaryDataWithApparentPower[_],
@@ -149,8 +195,6 @@ class EvcsModel private (
     Iterable(
       ServiceType.EvMovementService
     )
-
-  def getInitialState: EvcsState = EvcsState(Map.empty, -1)
 
   override def createRelevantData(
       receivedData: Seq[Data],
@@ -297,6 +341,7 @@ class EvcsModel private (
     evPower.min(sRated)
   }
 
+  def getInitialState: EvcsState = EvcsState(Map.empty, -1)
 }
 
 object EvcsModel {
@@ -307,15 +352,11 @@ object EvcsModel {
     override val activePower: Power =
       evOperatingPoints.values.reduceOption(_ + _).getOrElse(zeroKW)
 
-    override val reactivePower: Option[ReactivePower] = ???
+    override val reactivePower: Option[ReactivePower] = None
 
     override def zero: EvcsOperatingPoint = EvcsOperatingPoint(Map.empty)
   }
 
-  /** @param evs
-    *   TODO also save starting tick, so that results are not cluttered
-    * @param tick
-    */
   final case class EvcsState(
       evs: Map[UUID, EvModelWrapper],
       override val tick: Long,

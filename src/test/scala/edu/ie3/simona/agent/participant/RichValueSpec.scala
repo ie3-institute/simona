@@ -135,7 +135,7 @@ class RichValueSpec extends UnitSpec with TableDrivenPropertyChecks {
         ),
       )
 
-      forAll(table)({ case (value: Value, primaryData: PrimaryData) =>
+      forAll(table)({ case (value: Value, primaryData: PrimaryData[_]) =>
         value.toPrimaryData match {
           case Success(actualPrimaryData) =>
             actualPrimaryData shouldBe primaryData

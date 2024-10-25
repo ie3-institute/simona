@@ -87,9 +87,24 @@ abstract class ParticipantModel[
     */
   def determineState(lastState: S, operatingPoint: OP, currentTick: Long): S
 
+  /** @param state
+    *   the current state
+    * @param lastOperatingPoint
+    *   the last operating point before the current one, i.e. the one valid up
+    *   until the last state, if applicable
+    * @param currentOperatingPoint
+    *   the operating point valid from the simulation time of the last state up
+    *   until now
+    * @param complexPower
+    *   the total complex power derived from the current operating point
+    * @param dateTime
+    *   the current simulation date and time
+    * @return
+    */
   def createResults(
       state: S,
-      operatingPoint: OP,
+      lastOperatingPoint: Option[OP],
+      currentOperatingPoint: OP,
       complexPower: ApparentPower,
       dateTime: ZonedDateTime,
   ): Iterable[SystemParticipantResult]
@@ -145,7 +160,7 @@ object ParticipantModel {
 
   trait OperationRelevantData
 
-  trait OperatingPoint[OP <: OperatingPoint[OP]] {
+  trait OperatingPoint[+OP <: OperatingPoint[OP]] {
     this: OP =>
 
     val activePower: Power
@@ -199,11 +214,6 @@ object ParticipantModel {
   final case class ModelChangeIndicator(
       changesAtNextActivation: Boolean = false,
       changesAtTick: Option[Long] = None,
-  )
-
-  final case class ResultsContainer(
-      totalPower: ApparentPower,
-      modelResults: Iterable[SystemParticipantResult],
   )
 
 }

@@ -724,7 +724,8 @@ class PvModel private (
 
   override def createResults(
       state: ParticipantModel.ConstantState.type,
-      operatingPoint: ActivePowerOperatingPoint,
+      lastOperatingPoint: Option[ActivePowerOperatingPoint],
+      currentOperatingPoint: ActivePowerOperatingPoint,
       complexPower: ApparentPower,
       dateTime: ZonedDateTime,
   ): Iterable[SystemParticipantResult] =
