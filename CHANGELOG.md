@@ -91,7 +91,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rewrote SystemParticipantTest and MockParticipant from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Rewrote ChpModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Rewrote CylindricalThermalStorageTest Test from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
-- Prepare ThermalStorageTestData for Storage without storageVolumeLvlMin [#894](https://github.com/ie3-institute/simona/issues/894)
+- Replace mutable var in ChpModelSpec [#1002](https://github.com/ie3-institute/simona/issues/1002)
 - Refactoring of `ThermalGrid.energyGrid` to distinguish between demand of house and storage [#928](https://github.com/ie3-institute/simona/issues/928)
 
 ### Fixed
@@ -124,6 +124,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix power flow calculation with em agents [#962](https://github.com/ie3-institute/simona/issues/962)
 - Fix scheduling at Evcs with more than one Ev at a time without Em [#787](https://github.com/ie3-institute/simona/issues/787)
 - Fix CheckWindow duration [#921](https://github.com/ie3-institute/simona/issues/921)
+- Fixed ThermalStorageResults having multiple entries [#924](https://github.com/ie3-institute/simona/issues/924)
 
 ## [3.0.0] - 2023-08-07
 

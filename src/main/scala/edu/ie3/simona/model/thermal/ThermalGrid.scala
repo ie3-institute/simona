@@ -146,6 +146,7 @@ final case class ThermalGrid(
   }
 
   /** Update the current state of the grid
+    *
     * @param tick
     *   Instance in time
     * @param state
@@ -178,6 +179,7 @@ final case class ThermalGrid(
 
   /** Handles the case, when a grid has infeed. First, heat up all the houses to
     * their maximum temperature, then fill up the storages
+    *
     * @param tick
     *   Current tick
     * @param lastAmbientTemperature
@@ -373,6 +375,7 @@ final case class ThermalGrid(
     * <li>the house has reached it's lower temperature boundary,</li> <li>there
     * is no infeed from external and</li> <li>the storage is not empty
     * itself</li> </ul>
+    *
     * @param tick
     *   The current tick
     * @param maybeHouseState
@@ -444,6 +447,9 @@ final case class ThermalGrid(
 
   /** Convert the given state of the thermal grid into result models of it's
     * constituent models
+    *
+    * @param currentTick
+    *   Actual simulation tick
     * @param state
     *   State to be converted
     * @param startDateTime
@@ -451,33 +457,35 @@ final case class ThermalGrid(
     * @return
     *   A [[Seq]] of results of the constituent thermal model
     */
-  def results(
-      state: ThermalGridState
-  )(implicit startDateTime: ZonedDateTime): Seq[ResultEntity] = {
-    val houseResults = house
+  def results(currentTick: Long, state: ThermalGridState)(implicit
+      startDateTime: ZonedDateTime
+  ): Seq[ResultEntity] = {
+
+    val maybeHouseResult = house
       .zip(state.houseState)
+      .filter { case (_, state) => state.tick == currentTick }
       .map {
         case (
               thermalHouse,
               ThermalHouseState(tick, innerTemperature, thermalInfeed),
             ) =>
-          Seq.empty[ResultEntity] :+ new ThermalHouseResult(
+          new ThermalHouseResult(
             tick.toDateTime,
             thermalHouse.uuid,
             thermalInfeed.toMegawatts.asMegaWatt,
             innerTemperature.toKelvinScale.asKelvin,
           )
       }
-      .getOrElse(Seq.empty[ResultEntity])
 
-    storage
+    val maybeStorageResult = storage
       .zip(state.storageState)
+      .filter { case (_, state) => state.tick == currentTick }
       .map {
         case (
               storage: CylindricalThermalStorage,
               ThermalStorageState(tick, storedEnergy, qDot),
             ) =>
-          houseResults :+ new CylindricalStorageResult(
+          new CylindricalStorageResult(
             tick.toDateTime,
             storage.uuid,
             storedEnergy.toMegawattHours.asMegaWattHour,
@@ -489,7 +497,8 @@ final case class ThermalGrid(
             s"Result handling for storage type '${storage.getClass.getSimpleName}' not supported."
           )
       }
-      .getOrElse(houseResults)
+
+    Seq(maybeHouseResult, maybeStorageResult).flatten
   }
 }
 
