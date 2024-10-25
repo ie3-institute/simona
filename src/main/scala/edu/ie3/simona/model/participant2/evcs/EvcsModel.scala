@@ -150,7 +150,7 @@ class EvcsModel private (
       ServiceType.EvMovementService
     )
 
-  override def getInitialState(): EvcsState = EvcsState(Map.empty, -1)
+  def getInitialState: EvcsState = EvcsState(Map.empty, -1)
 
   override def createRelevantData(
       receivedData: Seq[Data],
@@ -301,12 +301,14 @@ class EvcsModel private (
 object EvcsModel {
 
   final case class EvcsOperatingPoint(evOperatingPoints: Map[UUID, Power])
-      extends OperatingPoint {
+      extends OperatingPoint[EvcsOperatingPoint] {
 
     override val activePower: Power =
       evOperatingPoints.values.reduceOption(_ + _).getOrElse(zeroKW)
 
     override val reactivePower: Option[ReactivePower] = ???
+
+    override def zero: EvcsOperatingPoint = EvcsOperatingPoint(Map.empty)
   }
 
   /** @param evs

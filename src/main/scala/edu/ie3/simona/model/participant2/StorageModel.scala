@@ -159,9 +159,6 @@ class StorageModel private (
 
   override def getRequiredServices: Iterable[ServiceType] = Iterable.empty
 
-  override def getInitialState(): StorageState =
-    StorageState(storedEnergy = zeroKWH, -1L)
-
   override def createRelevantData(
       receivedData: Seq[Data],
       nodalVoltage: Dimensionless,
@@ -330,6 +327,10 @@ class StorageModel private (
   private def isEmpty(storedEnergy: Energy): Boolean =
     storedEnergy <= minEnergyWithMargin
 
+  def getInitialState(config: StorageRuntimeConfig): StorageState = {
+    val initialStorage = eStorage * config.initialSoc
+    StorageState(storedEnergy = initialStorage, -1L)
+  }
 }
 
 object StorageModel {

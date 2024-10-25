@@ -44,7 +44,7 @@ import java.time.ZonedDateTime
   *       - flex options? (only current needed)
   */
 final case class ParticipantModelShell[
-    OP <: OperatingPoint,
+    OP <: OperatingPoint[_],
     S <: ModelState,
     OR <: OperationRelevantData,
 ](
@@ -72,8 +72,6 @@ final case class ParticipantModelShell[
   def updateOperatingPoint(
       currentTick: Long
   ): ParticipantModelShell[OP, S, OR] = {
-    // todo consider operationInterval
-
     val currentState = determineCurrentState(currentTick)
 
     if (currentState.tick != currentTick)
@@ -81,16 +79,24 @@ final case class ParticipantModelShell[
         s"New state $currentState is not set to current tick $currentTick"
       )
 
-    val (newOperatingPoint, maybeNextTick) =
+    val (newOperatingPoint, newNextTick) =
       model.determineOperatingPoint(
         state,
         relevantData.getOrElse("No relevant data available!"),
       )
 
+    val (adaptedOperatingPoint, adaptedNextTick) =
+      if (!operationInterval.includes(currentTick)) {
+        // Current tick is outside of operation interval.
+        // Set operating point to "zero"
+        (newOperatingPoint.zero, None)
+      } else
+        (newOperatingPoint, newNextTick)
+
     copy(
       state = currentState,
-      operatingPoint = Some(newOperatingPoint),
-      modelChange = ModelChangeIndicator(changesAtTick = maybeNextTick),
+      operatingPoint = Some(adaptedOperatingPoint),
+      modelChange = ModelChangeIndicator(changesAtTick = adaptedNextTick),
     )
   }
 
@@ -189,26 +195,15 @@ object ParticipantModelShell {
       simulationEndDate: ZonedDateTime,
   ): ParticipantModelShell[_, _, _] = {
     // todo T parameter, receive from primary proxy
-    val model = ParticipantModelInit.createPrimaryModel(
+    val modelContainer = ParticipantModelInit.createPrimaryModel(
       participantInput,
       config,
     )
-    val operationInterval: OperationInterval =
-      SystemComponent.determineOperationInterval(
-        simulationStartDate,
-        simulationEndDate,
-        participantInput.getOperationTime,
-      )
-
-    new ParticipantModelShell(
-      model = model,
-      operationInterval = operationInterval,
-      simulationStartDate = simulationStartDate,
-      state = model.getInitialState(),
-      relevantData = None,
-      flexOptions = None,
-      operatingPoint = None,
-      modelChange = ModelChangeIndicator(),
+    createShell(
+      modelContainer,
+      participantInput,
+      simulationEndDate,
+      simulationStartDate,
     )
   }
 
@@ -218,11 +213,24 @@ object ParticipantModelShell {
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
   ): ParticipantModelShell[_, _, _] = {
-
-    val model = ParticipantModelInit.createModel(
+    val modelContainer = ParticipantModelInit.createModel(
       participantInput,
       config,
     )
+    createShell(
+      modelContainer,
+      participantInput,
+      simulationEndDate,
+      simulationStartDate,
+    )
+  }
+
+  private def createShell(
+      modelContainer: ParticipantModelInit.ParticipantModelInitContainer[_],
+      participantInput: SystemParticipantInput,
+      simulationEndDate: ZonedDateTime,
+      simulationStartDate: ZonedDateTime,
+  ): ParticipantModelShell[_, _, _] = {
     val operationInterval: OperationInterval =
       SystemComponent.determineOperationInterval(
         simulationStartDate,
@@ -231,15 +239,14 @@ object ParticipantModelShell {
       )
 
     new ParticipantModelShell(
-      model = model,
+      model = modelContainer.model,
       operationInterval = operationInterval,
       simulationStartDate = simulationStartDate,
-      state = model.getInitialState(),
+      state = modelContainer.initialState,
       relevantData = None,
       flexOptions = None,
       operatingPoint = None,
       modelChange = ModelChangeIndicator(),
     )
   }
-
 }

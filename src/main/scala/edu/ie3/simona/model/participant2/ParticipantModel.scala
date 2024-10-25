@@ -16,12 +16,12 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
   OperatingPoint,
   OperationRelevantData,
-  ResultsContainer,
 }
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.service.ServiceType
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import edu.ie3.util.scala.quantities.ReactivePower
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import squants.Dimensionless
@@ -31,7 +31,7 @@ import java.time.ZonedDateTime
 import java.util.UUID
 
 abstract class ParticipantModel[
-    OP <: OperatingPoint,
+    OP <: OperatingPoint[_],
     S <: ModelState,
     OR <: OperationRelevantData,
 ] extends ParticipantFlexibility[OP, S, OR] {
@@ -120,8 +120,6 @@ abstract class ParticipantModel[
   // todo split off the following to ParticipantModelMeta?
   def getRequiredServices: Iterable[ServiceType]
 
-  def getInitialState(): S
-
   /** @param receivedData
     * @throws CriticalFailureException
     *   if unexpected type of data was provided
@@ -139,18 +137,26 @@ object ParticipantModel {
 
   trait OperationRelevantData
 
-  trait OperatingPoint {
+  trait OperatingPoint[OP <: OperatingPoint[OP]] {
+    this: OP =>
+
     val activePower: Power
 
     /** Reactive power can be overridden by the model itself. If this is None,
       * the active-to-reactive-power function is used.
       */
     val reactivePower: Option[ReactivePower]
+
+    def zero: OP
   }
 
   final case class ActivePowerOperatingPoint(override val activePower: Power)
-      extends OperatingPoint {
+      extends OperatingPoint[ActivePowerOperatingPoint] {
     override val reactivePower: Option[ReactivePower] = None
+
+    override def zero: ActivePowerOperatingPoint = ActivePowerOperatingPoint(
+      zeroKW
+    )
   }
 
   trait ModelState {
@@ -162,12 +168,12 @@ object ParticipantModel {
   }
 
   trait ParticipantConstantModel[
-      OP <: OperatingPoint,
+      OP <: OperatingPoint[_],
       OR <: OperationRelevantData,
   ] {
     this: ParticipantModel[OP, ConstantState.type, OR] =>
 
-    override def getInitialState(): ConstantState.type = ConstantState
+    def getInitialState: ConstantState.type = ConstantState
 
     override def determineState(
         lastState: ConstantState.type,

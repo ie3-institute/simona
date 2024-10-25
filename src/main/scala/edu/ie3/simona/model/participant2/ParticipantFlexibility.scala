@@ -19,7 +19,7 @@ import edu.ie3.util.scala.quantities.DefaultQuantities
 import squants.energy.Power
 
 trait ParticipantFlexibility[
-    OP <: OperatingPoint,
+    OP <: OperatingPoint[_],
     S <: ModelState,
     OR <: OperationRelevantData,
 ] {
