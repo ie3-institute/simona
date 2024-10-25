@@ -36,6 +36,8 @@ object ParticipantAgentInit {
       participantInput: SystemParticipantInput,
       config: BaseRuntimeConfig,
       primaryServiceProxy: ClassicRef,
+      gridAgentRef: ActorRef[GridAgent.Request],
+      expectedPowerRequestTick: Long,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
@@ -77,6 +79,8 @@ object ParticipantAgentInit {
       participantInput,
       config,
       primaryServiceProxy,
+      gridAgentRef,
+      expectedPowerRequestTick,
       simulationStartDate,
       simulationEndDate,
       parentData,
@@ -87,27 +91,35 @@ object ParticipantAgentInit {
       participantInput: SystemParticipantInput,
       config: BaseRuntimeConfig,
       primaryServiceProxy: ClassicRef,
+      gridAgentRef: ActorRef[GridAgent.Request],
+      expectedPowerRequestTick: Long,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       parentData: Either[SchedulerData, FlexControlledData],
-  ): Behavior[Request] = Behaviors.receivePartial {
-    case (ctx, activation: ActivationRequest)
-        if activation.tick == INIT_SIM_TICK =>
+  ): Behavior[Request] = Behaviors.receiveMessagePartial {
+
+    case activation: ActivationRequest if activation.tick == INIT_SIM_TICK =>
       primaryServiceProxy ! PrimaryServiceRegistrationMessage(
         participantInput.getUuid
       )
+
       waitingForPrimaryProxy(
         participantInput,
         config,
+        gridAgentRef,
+        expectedPowerRequestTick,
         simulationStartDate,
         simulationEndDate,
         parentData,
       )
+
   }
 
   private def waitingForPrimaryProxy(
       participantInput: SystemParticipantInput,
       config: BaseRuntimeConfig,
+      gridAgentRef: ActorRef[GridAgent.Request],
+      expectedPowerRequestTick: Long,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       parentData: Either[SchedulerData, FlexControlledData],
@@ -137,8 +149,8 @@ object ParticipantAgentInit {
           simulationEndDate,
         ),
         expectedFirstData,
-        ???,
-        ???,
+        gridAgentRef,
+        expectedPowerRequestTick,
         parentData,
       )
 
@@ -150,12 +162,24 @@ object ParticipantAgentInit {
         simulationEndDate,
       )
 
-      val requiredServices = modelShell.model.getRequiredServices.toSeq
-      if (requiredServices.isEmpty) {
-        createAgent(modelShell, Map.empty, ???, ???, parentData)
+      val requiredServiceTypes = modelShell.model.getRequiredServices.toSeq
+
+      if (requiredServiceTypes.isEmpty) {
+        createAgent(
+          modelShell,
+          Map.empty,
+          gridAgentRef,
+          expectedPowerRequestTick,
+          parentData,
+        )
       } else {
+        // TODO request service actorrefs
+        val requiredServices = ???
+
         waitingForServices(
           modelShell,
+          gridAgentRef,
+          expectedPowerRequestTick,
           requiredServices,
           parentData = parentData,
         )
@@ -164,6 +188,8 @@ object ParticipantAgentInit {
 
   private def waitingForServices(
       modelShell: ParticipantModelShell[_, _, _],
+      gridAgentRef: ActorRef[GridAgent.Request],
+      expectedPowerRequestTick: Long,
       expectedRegistrations: Set[ClassicRef],
       expectedFirstData: Map[ClassicRef, Long] = Map.empty,
       parentData: Either[SchedulerData, FlexControlledData],
@@ -197,10 +223,18 @@ object ParticipantAgentInit {
             ),
           )
 
-          createAgent(modelShell, newExpectedFirstData, ???, ???, parentData)
+          createAgent(
+            modelShell,
+            newExpectedFirstData,
+            gridAgentRef,
+            expectedPowerRequestTick,
+            parentData,
+          )
         } else
           waitingForServices(
             modelShell,
+            gridAgentRef,
+            expectedPowerRequestTick,
             newExpectedRegistrations,
             newExpectedFirstData,
             parentData,

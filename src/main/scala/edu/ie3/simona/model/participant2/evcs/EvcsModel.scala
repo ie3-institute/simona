@@ -156,6 +156,7 @@ class EvcsModel private (
       receivedData: Seq[Data],
       nodalVoltage: Dimensionless,
       tick: Long,
+      simulationTime: ZonedDateTime,
   ): EvcsRelevantData = {
     receivedData
       .collectFirst { case evData: ArrivingEvs =>

@@ -121,16 +121,24 @@ abstract class ParticipantModel[
   def getRequiredServices: Iterable[ServiceType]
 
   /** @param receivedData
-    * @throws CriticalFailureException
-    *   if unexpected type of data was provided
+    *   The received primary or secondary data
+    * @param nodalVoltage
+    *   The voltage at the node that we're connected to
+    * @param tick
+    *   The current tick
+    * @param simulationTime
+    *   The current simulation time (matches the tick)
     * @return
+    *   The operation relevant date for the current point in simulation time
+    * @throws edu.ie3.simona.exceptions.CriticalFailureException
+    *   if unexpected type of data was provided
     */
   def createRelevantData(
       receivedData: Seq[Data],
       nodalVoltage: Dimensionless,
       tick: Long,
+      simulationTime: ZonedDateTime,
   ): OR
-
 }
 
 object ParticipantModel {

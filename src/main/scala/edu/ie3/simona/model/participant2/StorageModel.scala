@@ -163,6 +163,7 @@ class StorageModel private (
       receivedData: Seq[Data],
       nodalVoltage: Dimensionless,
       tick: Long,
+      simulationTime: ZonedDateTime,
   ): StorageRelevantData = {
     if (receivedData.nonEmpty) {
       throw new CriticalFailureException(

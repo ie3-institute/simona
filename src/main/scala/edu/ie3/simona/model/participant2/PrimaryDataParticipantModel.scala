@@ -95,6 +95,7 @@ final case class PrimaryDataParticipantModel[T <: PrimaryData: ClassTag](
       receivedData: Seq[Data],
       nodalVoltage: Dimensionless,
       tick: Long,
+      simulationTime: ZonedDateTime,
   ): PrimaryOperationRelevantData[T] =
     receivedData
       .collectFirst { case data: T =>

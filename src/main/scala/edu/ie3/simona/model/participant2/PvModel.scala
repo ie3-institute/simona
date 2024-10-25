@@ -755,10 +755,16 @@ class PvModel private (
       receivedData: Seq[Data],
       nodalVoltage: Dimensionless,
       tick: Long,
+      simulationTime: ZonedDateTime,
   ): PvRelevantData = {
     receivedData
       .collectFirst { case weatherData: WeatherData =>
-        PvRelevantData(???, ???, weatherData.diffIrr, weatherData.dirIrr)
+        PvRelevantData(
+          simulationTime,
+          ???,
+          weatherData.diffIrr,
+          weatherData.dirIrr,
+        )
       }
       .getOrElse {
         throw new CriticalFailureException(
