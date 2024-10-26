@@ -81,6 +81,9 @@ class EvcsModel private (
     (EvcsOperatingPoint(chargingPowers), nextEvent)
   }
 
+  override def zeroPowerOperatingPoint: EvcsOperatingPoint =
+    EvcsOperatingPoint.zero
+
   private def determineNextEvent(
       ev: EvModelWrapper,
       chargingPower: Power,
@@ -276,6 +279,7 @@ class EvcsModel private (
 
   override def handlePowerControl(
       state: EvcsState,
+      relevantData: EvcsRelevantData,
       flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,
   ): (EvcsOperatingPoint, ParticipantModel.ModelChangeIndicator) = ???
@@ -347,14 +351,16 @@ class EvcsModel private (
 object EvcsModel {
 
   final case class EvcsOperatingPoint(evOperatingPoints: Map[UUID, Power])
-      extends OperatingPoint[EvcsOperatingPoint] {
+      extends OperatingPoint {
 
     override val activePower: Power =
       evOperatingPoints.values.reduceOption(_ + _).getOrElse(zeroKW)
 
     override val reactivePower: Option[ReactivePower] = None
+  }
 
-    override def zero: EvcsOperatingPoint = EvcsOperatingPoint(Map.empty)
+  object EvcsOperatingPoint {
+    def zero: EvcsOperatingPoint = EvcsOperatingPoint(Map.empty)
   }
 
   final case class EvcsState(

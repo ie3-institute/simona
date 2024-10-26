@@ -19,7 +19,7 @@ import edu.ie3.util.scala.quantities.DefaultQuantities
 import squants.energy.Power
 
 trait ParticipantFlexibility[
-    OP <: OperatingPoint[_],
+    OP <: OperatingPoint,
     S <: ModelState,
     OR <: OperationRelevantData,
 ] {
@@ -30,6 +30,7 @@ trait ParticipantFlexibility[
 
   def handlePowerControl(
       state: S,
+      relevantData: OR,
       flexOptions: ProvideFlexOptions,
       setPower: Power,
   ): (OP, ModelChangeIndicator)
@@ -56,6 +57,7 @@ object ParticipantFlexibility {
 
     override def handlePowerControl(
         state: S,
+        relevantData: OR,
         flexOptions: ProvideFlexOptions,
         setPower: Power,
     ): (ActivePowerOperatingPoint, ModelChangeIndicator) = {

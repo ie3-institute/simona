@@ -22,6 +22,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   OperatingPoint,
   OperationRelevantData,
 }
+import edu.ie3.simona.model.participant2.ParticipantModelInit.ParticipantModelInitContainer
 import edu.ie3.simona.model.participant2.ParticipantModelShell.ResultsContainer
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssueFlexControl,
@@ -45,7 +46,7 @@ import java.time.ZonedDateTime
   *       - flex options? (only current needed)
   */
 final case class ParticipantModelShell[
-    OP <: OperatingPoint[_],
+    OP <: OperatingPoint,
     S <: ModelState,
     OR <: OperationRelevantData,
 ](
@@ -88,26 +89,23 @@ final case class ParticipantModelShell[
       )
 
     val (newOperatingPoint, newNextTick) =
-      model.determineOperatingPoint(
-        state,
-        relevantData.getOrElse(
-          throw new CriticalFailureException("No relevant data available!")
-        ),
-      )
-
-    val (adaptedOperatingPoint, adaptedNextTick) =
-      if (!operationInterval.includes(currentTick)) {
+      if (!operationInterval.includes(currentTick))
         // Current tick is outside of operation interval.
         // Set operating point to "zero"
-        (newOperatingPoint.zero, None)
-      } else
-        (newOperatingPoint, newNextTick)
+        (model.zeroPowerOperatingPoint, None)
+      else
+        model.determineOperatingPoint(
+          state,
+          relevantData.getOrElse(
+            throw new CriticalFailureException("No relevant data available!")
+          ),
+        )
 
     copy(
       state = currentState,
       lastOperatingPoint = operatingPoint,
-      operatingPoint = Some(adaptedOperatingPoint),
-      modelChange = ModelChangeIndicator(changesAtTick = adaptedNextTick),
+      operatingPoint = Some(newOperatingPoint),
+      modelChange = ModelChangeIndicator(changesAtTick = newNextTick),
     )
   }
 
@@ -170,7 +168,14 @@ final case class ParticipantModelShell[
     )
 
     val (newOperatingPoint, modelChange) =
-      model.handlePowerControl(currentState, fo, setPointActivePower)
+      model.handlePowerControl(
+        currentState,
+        relevantData.getOrElse(
+          throw new CriticalFailureException("No relevant data available!")
+        ),
+        fo,
+        setPointActivePower,
+      )
 
     copy(
       state = currentState,
@@ -245,12 +250,17 @@ object ParticipantModelShell {
     )
   }
 
-  private def createShell(
-      modelContainer: ParticipantModelInit.ParticipantModelInitContainer[_],
+  private def createShell[
+      OP <: OperatingPoint,
+      S <: ModelState,
+      OR <: OperationRelevantData,
+  ](
+      modelContainer: ParticipantModelInitContainer[OP, S, OR],
       participantInput: SystemParticipantInput,
       simulationEndDate: ZonedDateTime,
       simulationStartDate: ZonedDateTime,
-  ): ParticipantModelShell[_, _, _] = {
+  ): ParticipantModelShell[OP, S, OR] = {
+
     val operationInterval: OperationInterval =
       SystemComponent.determineOperationInterval(
         simulationStartDate,

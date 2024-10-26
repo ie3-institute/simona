@@ -113,6 +113,9 @@ class StorageModel private (
       "Storage model cannot calculate operation point without flexibility control."
     )
 
+  override def zeroPowerOperatingPoint: ActivePowerOperatingPoint =
+    ActivePowerOperatingPoint.zero
+
   override def determineState(
       lastState: StorageState,
       operatingPoint: ActivePowerOperatingPoint,
@@ -213,6 +216,7 @@ class StorageModel private (
 
   override def handlePowerControl(
       state: StorageState,
+      relevantData: StorageRelevantData,
       flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,
   ): (ActivePowerOperatingPoint, ParticipantModel.ModelChangeIndicator) = {

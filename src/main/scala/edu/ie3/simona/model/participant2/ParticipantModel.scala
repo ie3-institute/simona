@@ -31,7 +31,7 @@ import java.time.ZonedDateTime
 import java.util.UUID
 
 abstract class ParticipantModel[
-    OP <: OperatingPoint[_],
+    OP <: OperatingPoint,
     S <: ModelState,
     OR <: OperationRelevantData,
 ] extends ParticipantFlexibility[OP, S, OR] {
@@ -71,6 +71,8 @@ abstract class ParticipantModel[
     *   the operating point and optionally a next activation tick
     */
   def determineOperatingPoint(state: S, relevantData: OR): (OP, Option[Long])
+
+  def zeroPowerOperatingPoint: OP
 
   /** Determines the current state given the last state and the operating point
     * that has been valid from the last state up until now.
@@ -160,8 +162,7 @@ object ParticipantModel {
 
   trait OperationRelevantData
 
-  trait OperatingPoint[+OP <: OperatingPoint[OP]] {
-    this: OP =>
+  trait OperatingPoint {
 
     val activePower: Power
 
@@ -169,17 +170,19 @@ object ParticipantModel {
       * the active-to-reactive-power function is used.
       */
     val reactivePower: Option[ReactivePower]
+  }
 
-    def zero: OP
+  object OperatingPoint {
+    def a: String = "a"
   }
 
   final case class ActivePowerOperatingPoint(override val activePower: Power)
-      extends OperatingPoint[ActivePowerOperatingPoint] {
+      extends OperatingPoint {
     override val reactivePower: Option[ReactivePower] = None
+  }
 
-    override def zero: ActivePowerOperatingPoint = ActivePowerOperatingPoint(
-      zeroKW
-    )
+  object ActivePowerOperatingPoint {
+    def zero: ActivePowerOperatingPoint = ActivePowerOperatingPoint(zeroKW)
   }
 
   trait ModelState {
@@ -191,7 +194,7 @@ object ParticipantModel {
   }
 
   trait ParticipantConstantModel[
-      OP <: OperatingPoint[_],
+      OP <: OperatingPoint,
       OR <: OperationRelevantData,
   ] {
     this: ParticipantModel[OP, ConstantState.type, OR] =>

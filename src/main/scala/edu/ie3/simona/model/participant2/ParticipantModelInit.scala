@@ -19,7 +19,11 @@ import edu.ie3.simona.config.SimonaConfig.{
   StorageRuntimeConfig,
 }
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.participant2.ParticipantModel.ModelState
+import edu.ie3.simona.model.participant2.ParticipantModel.{
+  ModelState,
+  OperatingPoint,
+  OperationRelevantData,
+}
 import edu.ie3.simona.model.participant2.PrimaryDataParticipantModel.PrimaryResultFunc
 
 import java.time.ZonedDateTime
@@ -27,19 +31,20 @@ import scala.reflect.ClassTag
 
 object ParticipantModelInit {
 
-  def createModel[S <: ModelState](
+  def createModel(
       participantInput: SystemParticipantInput,
       modelConfig: BaseRuntimeConfig,
-  ): ParticipantModelInitContainer[_] = {
-
-    // function needed because Scala does not recognize Java type parameter
-    def scale[B <: SystemParticipantInputCopyBuilder[B]](
-        builder: B
-    ): Double => SystemParticipantInputCopyBuilder[B] =
-      factor => builder.scale(factor)
+  ): ParticipantModelInitContainer[
+    _ <: OperatingPoint,
+    _ <: ModelState,
+    _ <: OperationRelevantData,
+  ] = {
 
     val scaledParticipantInput =
-      scale(participantInput.copy)(modelConfig.scaling).build()
+      (participantInput.copy().scale(modelConfig.scaling) match {
+        // matching needed because Scala has trouble recognizing the Java type parameter
+        case copyBuilder: SystemParticipantInputCopyBuilder[_] => copyBuilder
+      }).build()
 
     (scaledParticipantInput, modelConfig) match {
       case (input: PvInput, _) =>
@@ -62,7 +67,11 @@ object ParticipantModelInit {
   def createPrimaryModel[P <: PrimaryData[_]: ClassTag](
       participantInput: SystemParticipantInput,
       modelConfig: BaseRuntimeConfig,
-  ): ParticipantModelInitContainer[_] = {
+  ): ParticipantModelInitContainer[
+    _ <: OperatingPoint,
+    _ <: ModelState,
+    _ <: OperationRelevantData,
+  ] = {
     // Create a fitting physical model to extract parameters from
     val modelContainer = createModel(
       participantInput,
@@ -84,6 +93,7 @@ object ParticipantModelInit {
       physicalModel.cosPhiRated,
       physicalModel.qControl,
       primaryResultFunc,
+      ???, // todo needs to be provided by primary data service?
     )
 
     ParticipantModelInitContainer(
@@ -92,8 +102,12 @@ object ParticipantModelInit {
     )
   }
 
-  final case class ParticipantModelInitContainer[S <: ModelState](
-      model: ParticipantModel[_, S, _],
+  final case class ParticipantModelInitContainer[
+      OP <: OperatingPoint,
+      S <: ModelState,
+      OR <: OperationRelevantData,
+  ](
+      model: ParticipantModel[OP, S, OR] with ParticipantFlexibility[OP, S, OR],
       initialState: S,
   )
 }

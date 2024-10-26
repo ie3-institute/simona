@@ -158,6 +158,9 @@ class PvModel private (
     (ActivePowerOperatingPoint(power), None)
   }
 
+  override def zeroPowerOperatingPoint: ActivePowerOperatingPoint =
+    ActivePowerOperatingPoint.zero
+
   /** Calculates the position of the earth in relation to the sun (day angle)
     * for the provided time
     *

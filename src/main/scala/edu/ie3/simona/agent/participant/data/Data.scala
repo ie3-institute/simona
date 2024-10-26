@@ -33,11 +33,16 @@ object Data {
     * model invocation. Anyway, primary data has to have at least active power
     * given
     */
-  sealed trait PrimaryData[+T <: PrimaryData[T]] extends Data {
+  sealed trait PrimaryData[T <: PrimaryData[T]] extends Data {
+
     val p: Power
     def toApparentPower: ApparentPower
 
-    def scale(factor: Double): T
+    def scale(factor: Double): this.type
+  }
+
+  sealed trait PrimaryDataMeta[T <: PrimaryData[_]] {
+    def zero: T
   }
 
   object PrimaryData {
@@ -49,7 +54,7 @@ object Data {
     /** Denoting all primary data, that carry apparent power
       */
     sealed trait PrimaryDataWithApparentPower[
-        +T <: PrimaryDataWithApparentPower[T]
+        T <: PrimaryDataWithApparentPower[T]
     ] extends PrimaryData[T] {
       val q: ReactivePower
 
