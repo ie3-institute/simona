@@ -133,7 +133,7 @@ final case class HpModel(
     val (turnOn, canOperate, canBeOutOfOperation, houseDemand, storageDemand) =
       operatesInNextState(lastState, relevantData)
     val updatedState =
-      calcState(lastState, relevantData, turnOn, houseDemand, storageDemand)
+      calcState(lastState, relevantData, turnOn)
     (canOperate, canBeOutOfOperation, updatedState)
   }
 
@@ -224,8 +224,6 @@ final case class HpModel(
       state: HpState,
       relevantData: HpRelevantData,
       isRunning: Boolean,
-      houseDemand: Boolean,
-      storageDemand: Boolean,
   ): HpState = {
     val lastStateStorageqDot = state.thermalGridState.storageState
       .map(_.qDot)
@@ -311,36 +309,11 @@ final case class HpModel(
     /* If the setpoint value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
     val turnOn = setPower > (sRated * cosPhiRated * 0.5)
 
-    val (
-      thermalEnergyDemandHouse,
-      thermalEnergyDemandStorage,
-      updatedThermalGridState,
-    ) =
-      thermalGrid.energyDemandAndUpdatedState(
-        data.currentTick,
-        lastState.ambientTemperature.getOrElse(data.ambientTemperature),
-        data.ambientTemperature,
-        lastState.thermalGridState,
-      )
-
-    val (
-      houseDemand,
-      heatStorageDemand,
-      noThermalStorageOrThermalStorageIsEmpty,
-    ) = determineDemandBooleans(
-      lastState,
-      updatedThermalGridState,
-      thermalEnergyDemandHouse,
-      thermalEnergyDemandStorage,
-    )
-
     val updatedHpState: HpState =
       calcState(
         lastState,
         data,
         turnOn,
-        houseDemand,
-        heatStorageDemand,
       )
 
     (
