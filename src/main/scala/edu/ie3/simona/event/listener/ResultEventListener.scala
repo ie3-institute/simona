@@ -88,12 +88,13 @@ object ResultEventListener extends Transformer3wResultSupport {
 
           filePathFuture.flatMap { fileName =>
             val finalFileName =
-              fileName.endsWith(".gz") match {
-                case true  => fileName.replace(".gz", "")
-                case false => fileName
-                case _ =>
+              fileName match {
+                case name if name.endsWith(".csv.gz") && enableCompression =>
+                  name.replace(".gz", "")
+                case name if name.endsWith(".csv") => name
+                case fileName =>
                   throw new ProcessResultEventException(
-                    s"Invalid output file format for file $fileName provided. Currently only '.csv' or '.csv.gz' is supported!"
+                    s"Invalid output file format for file $fileName provided or compression is not activated but filename indicates compression. Currently only '.csv' or '.csv.gz' is supported!"
                   )
               }
 
