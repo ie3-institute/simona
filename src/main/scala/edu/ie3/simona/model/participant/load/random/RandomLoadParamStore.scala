@@ -36,7 +36,7 @@ final case class RandomLoadParamStore private (reader: Reader) {
         dayType,
         throw new RuntimeException(
           s"Cannot determine the random load parameters for '$time' (day type '$dayType')."
-        )
+        ),
       )
       .getQuarterHourParameters(time)
   }
@@ -73,6 +73,11 @@ case object RandomLoadParamStore extends LazyLogging {
   def apply(reader: Reader): RandomLoadParamStore =
     new RandomLoadParamStore(reader)
 
+  /** Returns a [[CSVFormat]] with the first line as its header
+    */
+  private def csvParser: CSVFormat =
+    CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).build()
+
   /** Initializes all type day values by receiving values from provided reader.
     *
     * @param reader
@@ -81,7 +86,7 @@ case object RandomLoadParamStore extends LazyLogging {
   def initializeDayTypeValues(
       reader: Reader
   ): Map[DayType.Value, TypeDayParameters] = {
-    val parser = CSVFormat.DEFAULT.withFirstRecordAsHeader.parse(reader)
+    val parser = csvParser.parse(reader)
     /* records list is an ArrayList */
     val records = parser.getRecords
 
@@ -101,7 +106,7 @@ case object RandomLoadParamStore extends LazyLogging {
             case e: FileIOException =>
               throw new FileIOException(
                 s"Cannot determine random load parameters for day type '$dayType' and quarter hour '$quartHour'",
-                e
+                e,
               )
           }
         }
@@ -175,7 +180,7 @@ case object RandomLoadParamStore extends LazyLogging {
     */
   private def assembleParameters(
       record: CSVRecord,
-      parameterToCol: Map[RandomLoadParameters.Value, Int]
+      parameterToCol: Map[RandomLoadParameters.Value, Int],
   ): RandomLoadParameters = {
     val k = record
       .get(
@@ -183,7 +188,7 @@ case object RandomLoadParamStore extends LazyLogging {
           RandomLoadParameters.K,
           throw new FileIOException(
             s"Cannot determine column index for random load parameter ${RandomLoadParameters.K}."
-          )
+          ),
         )
       )
       .toDouble
@@ -193,7 +198,7 @@ case object RandomLoadParamStore extends LazyLogging {
           RandomLoadParameters.MY,
           throw new FileIOException(
             s"Cannot determine column index for random load parameter ${RandomLoadParameters.MY}."
-          )
+          ),
         )
       )
       .toDouble
@@ -203,7 +208,7 @@ case object RandomLoadParamStore extends LazyLogging {
           RandomLoadParameters.SIGMA,
           throw new FileIOException(
             s"Cannot determine column index for random load parameter ${RandomLoadParameters.SIGMA}."
-          )
+          ),
         )
       )
       .toDouble

@@ -6,12 +6,13 @@
 
 package edu.ie3.simona.model.thermal
 
-import java.util.UUID
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
-import squants.Energy
-import squants.energy.WattHours
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
+import squants.{Energy, Power, Seconds}
+
+import java.util.UUID
 
 /** Thermal storage model.
   *
@@ -25,14 +26,63 @@ import squants.energy.WattHours
   *   Operation time
   * @param bus
   *   Thermal bus input
+  * @param minEnergyThreshold
+  *   Minimum permissible energy stored in the storage
+  * @param maxEnergyThreshold
+  *   Maximum permissible energy stored in the storage
+  * @param chargingPower
+  *   Thermal power, that can be charged / discharged
   */
 abstract class ThermalStorage(
     uuid: UUID,
     id: String,
     operatorInput: OperatorInput,
     operationTime: OperationTime,
-    bus: ThermalBusInput
+    bus: ThermalBusInput,
+    minEnergyThreshold: Energy,
+    maxEnergyThreshold: Energy,
+    chargingPower: Power,
 ) {
-  protected val zeroEnergy: Energy =
-    WattHours(0d)
+
+  /** In order to avoid faulty flexibility options, we want to avoid offering
+    * charging/discharging that could last less than one second.
+    */
+  private val toleranceMargin = chargingPower * Seconds(1d)
+
+  def getUuid: UUID = uuid
+
+  def getMinEnergyThreshold: Energy = minEnergyThreshold
+
+  def getMaxEnergyThreshold: Energy = maxEnergyThreshold
+
+  def getChargingPower: Power = chargingPower
+
+  def startingState: ThermalStorageState
+
+  def isFull(energy: Energy): Boolean =
+    energy > (maxEnergyThreshold - toleranceMargin)
+
+  def isEmpty(energy: Energy): Boolean =
+    energy < (minEnergyThreshold + toleranceMargin)
+
+  def updateState(
+      tick: Long,
+      qDot: Power,
+      lastState: ThermalStorageState,
+  ): (ThermalStorageState, Option[ThermalThreshold])
+}
+
+object ThermalStorage {
+  final case class ThermalStorageState(
+      tick: Long,
+      storedEnergy: Energy,
+      qDot: Power,
+  )
+
+  object ThermalStorageThreshold {
+    final case class StorageEmpty(override val tick: Long)
+        extends ThermalThreshold
+    final case class StorageFull(override val tick: Long)
+        extends ThermalThreshold
+  }
 }

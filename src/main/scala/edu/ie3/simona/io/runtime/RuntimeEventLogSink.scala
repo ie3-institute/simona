@@ -5,27 +5,33 @@
  */
 
 package edu.ie3.simona.io.runtime
+
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent._
+import edu.ie3.simona.io.runtime.RuntimeEventSink.RuntimeStats
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
 import org.slf4j.Logger
 
-import java.time.format.DateTimeFormatter
-import java.time.{Instant, ZoneId, ZonedDateTime}
+import java.time.ZonedDateTime
+import scala.concurrent.duration.DurationLong
 
 /** Runtime event sink that just logs all received events.
+  *
   * @param simulationStartDate
   *   the simulation start date time, used for calculating simulation time from
   *   ticks
+  * @param log
+  *   The logger to use
   */
 final case class RuntimeEventLogSink(
-    simulationStartDate: ZonedDateTime
+    simulationStartDate: ZonedDateTime,
+    log: Logger,
 ) extends RuntimeEventSink {
 
   override def handleRuntimeEvent(
       runtimeEvent: RuntimeEvent,
-      log: Logger
+      runtimeStats: RuntimeStats,
   ): Unit =
     runtimeEvent match {
       case Initializing =>
@@ -51,11 +57,12 @@ final case class RuntimeEventLogSink(
           s"******* Simulating from ${calcTime(startTick)} until ${calcTime(endTick)}. *******"
         )
 
-      case Done(currentTick, duration, noOfFailedPF, errorInSim) =>
+      case Done(currentTick, duration, errorInSim) =>
         val simStatus =
           if (errorInSim)
-            s"\u001b[0;31mERROR (Failed PF: $noOfFailedPF)\u001b[0;30m"
-          else s"\u001b[0;32mSUCCESS (Failed PF: $noOfFailedPF)\u001b[0;30m"
+            s"\u001b[0;31mERROR (Failed PF: ${runtimeStats.failedPowerFlows})\u001b[0;0m"
+          else
+            s"\u001b[0;32mSUCCESS (Failed PF: ${runtimeStats.failedPowerFlows})\u001b[0;0m"
         log.info(
           s"******* Simulation completed with $simStatus in time step ${calcTime(currentTick)}. Total runtime: ${convertDuration(duration)} *******"
         )
@@ -77,13 +84,15 @@ final case class RuntimeEventLogSink(
     )
   }
 
-  def convertDuration(duration: Long): String = {
-    val durationInSeconds = duration / 1000
+  private def convertDuration(duration: Long): String = {
+    val time = duration.milliseconds
 
-    val hours = durationInSeconds / 3600
-    val minutes = (durationInSeconds / 60) % 60
-    val seconds = durationInSeconds % 60
-    s"${hours}h : ${minutes}m : ${seconds}s"
+    val hours = time.toHours
+    val minutes = time.toMinutes % 60
+    val seconds = time.toSeconds % 60
+    val milliseconds =
+      (time - hours.hours - minutes.minutes - seconds.seconds).toMillis
+    s"${hours}h : ${minutes}m : ${seconds}s : ${milliseconds}ms"
   }
 
   private def durationAndMemoryString(duration: Long) = {

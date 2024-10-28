@@ -18,30 +18,43 @@ import tech.units.indriya.quantity.Quantities;
 public class MockEvModel implements EvModel {
   private final UUID uuid;
   private final String id;
-  private final ComparableQuantity<Power> sRated;
+  private final ComparableQuantity<Power> sRatedAC;
+  private final ComparableQuantity<Power> sRatedDC;
   private final ComparableQuantity<Energy> eStorage;
   private final ComparableQuantity<Energy> storedEnergy;
+  private final Long departureTick;
 
   public MockEvModel(
       UUID uuid,
       String id,
-      ComparableQuantity<Power> sRated,
+      ComparableQuantity<Power> sRatedAC,
+      ComparableQuantity<Power> sRatedDC,
       ComparableQuantity<Energy> eStorage,
-      ComparableQuantity<Energy> storedEnergy) {
+      ComparableQuantity<Energy> storedEnergy,
+      Long departureTick) {
     this.uuid = uuid;
     this.id = id;
-    this.sRated = sRated;
+    this.sRatedAC = sRatedAC;
+    this.sRatedDC = sRatedDC;
     this.eStorage = eStorage;
     this.storedEnergy = storedEnergy;
+    this.departureTick = departureTick;
   }
 
   public MockEvModel(
-      UUID uuid, String id, ComparableQuantity<Power> sRated, ComparableQuantity<Energy> eStorage) {
+      UUID uuid,
+      String id,
+      ComparableQuantity<Power> sRatedAC,
+      ComparableQuantity<Power> sRatedDC,
+      ComparableQuantity<Energy> eStorage,
+      Long departureTick) {
     this.uuid = uuid;
     this.id = id;
-    this.sRated = sRated;
+    this.sRatedAC = sRatedAC;
+    this.sRatedDC = sRatedDC;
     this.eStorage = eStorage;
     this.storedEnergy = Quantities.getQuantity(0d, PowerSystemUnits.KILOWATTHOUR);
+    this.departureTick = departureTick;
   }
 
   @Override
@@ -56,12 +69,12 @@ public class MockEvModel implements EvModel {
 
   @Override
   public ComparableQuantity<Power> getSRatedAC() {
-    return sRated;
+    return sRatedAC;
   }
 
   @Override
   public ComparableQuantity<Power> getSRatedDC() {
-    return sRated;
+    return sRatedDC;
   }
 
   @Override
@@ -76,12 +89,16 @@ public class MockEvModel implements EvModel {
 
   @Override
   public Long getDepartureTick() {
-    return 0L;
+    return departureTick;
   }
 
   @Override
   public MockEvModel copyWith(ComparableQuantity<Energy> newStoredEnergy) {
-    return new MockEvModel(uuid, id, sRated, eStorage, newStoredEnergy);
+    return new MockEvModel(uuid, id, sRatedAC, sRatedDC, eStorage, newStoredEnergy, departureTick);
+  }
+
+  public MockEvModel copyWithDeparture(Long departureTick) {
+    return new MockEvModel(uuid, id, sRatedAC, sRatedDC, eStorage, storedEnergy, departureTick);
   }
 
   @Override
@@ -91,13 +108,15 @@ public class MockEvModel implements EvModel {
     MockEvModel that = (MockEvModel) o;
     return uuid.equals(that.uuid)
         && id.equals(that.id)
-        && sRated.equals(that.sRated)
+        && sRatedAC.equals(that.sRatedAC)
+        && sRatedDC.equals(that.sRatedDC)
         && eStorage.equals(that.eStorage)
-        && storedEnergy.equals(that.storedEnergy);
+        && storedEnergy.equals(that.storedEnergy)
+        && departureTick.equals(that.departureTick);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(uuid, id, sRated, eStorage, storedEnergy);
+    return Objects.hash(uuid, id, sRatedAC, sRatedDC, eStorage, storedEnergy, departureTick);
   }
 }

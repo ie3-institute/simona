@@ -6,14 +6,19 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ApparentPower,
+  PrimaryDataWithApparentPower,
+}
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{
   DefaultQuantities,
   Megavars,
-  ReactivePower
+  ReactivePower,
 }
 import squants.Dimensionless
 import squants.energy.{Kilowatts, Power}
@@ -28,8 +33,6 @@ import java.util.UUID
   *   the element's human readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
-  * @param scalingFactor
-  *   Scaling the output of the system
   * @param qControl
   *   Type of reactive power control
   * @param sRated
@@ -38,15 +41,22 @@ import java.util.UUID
   *   Rated power factor
   * @tparam CD
   *   Type of data, that is needed for model calculation
+  * @tparam PD
+  *   Primary data, that this asset does produce
+  * @tparam MS
+  *   Type of model state data
   */
-abstract class SystemParticipant[CD <: CalcRelevantData](
+abstract class SystemParticipant[
+    CD <: CalcRelevantData,
+    +PD <: PrimaryDataWithApparentPower[PD],
+    MS <: ModelState,
+](
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
-    cosPhiRated: Double
+    cosPhiRated: Double,
 ) extends SystemComponent(uuid, id, operationInterval) {
 
   /** Maximum allowed apparent power output of this system participant. Used to
@@ -62,6 +72,8 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
     *   Regarded instant in simulation
     * @param voltage
     *   Nodal voltage magnitude
+    * @param modelState
+    *   Current state of the model
     * @param data
     *   Further needed, secondary data
     * @return
@@ -70,29 +82,84 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
   def calculatePower(
       tick: Long,
       voltage: Dimensionless,
-      data: CD
+      modelState: MS,
+      data: CD,
+  ): PD
+
+  /** Calculate the apparent power behaviour based on the given data.
+    *
+    * @param tick
+    *   Regarded instant in simulation
+    * @param voltage
+    *   Nodal voltage magnitude
+    * @param data
+    *   Further needed, secondary data
+    * @return
+    *   A tuple of active and reactive power
+    */
+  protected def calculateApparentPower(
+      tick: Long,
+      voltage: Dimensionless,
+      modelState: MS,
+      data: CD,
   ): ApparentPower = {
     if (isInOperation(tick)) {
-      val activePower = calculateActivePower(data)
+      val activePower = calculateActivePower(modelState, data)
       val reactivePower =
         calculateReactivePower(activePower, voltage)
-      ApparentPower(activePower, reactivePower)
+      ApparentPower(
+        activePower,
+        reactivePower,
+      )
     } else {
       ApparentPower(
         DefaultQuantities.zeroMW,
-        DefaultQuantities.zeroMVAr
+        DefaultQuantities.zeroMVAr,
       )
     }
   }
 
   /** Calculate the active power behaviour of the model
     *
+    * @param modelState
+    *   Current state of the model
     * @param data
     *   Further needed, secondary data
     * @return
     *   Active power
     */
-  protected def calculateActivePower(data: CD): Power
+  protected def calculateActivePower(
+      modelState: MS,
+      data: CD,
+  ): Power
+
+  /** @param data
+    *   The relevant data for calculation
+    * @param lastState
+    *   The last reached state
+    * @return
+    *   flex options
+    */
+  def determineFlexOptions(
+      data: CD,
+      lastState: MS,
+  ): ProvideFlexOptions
+
+  /** @param data
+    *   The relevant data for calculation
+    * @param lastState
+    *   The last reached state
+    * @param setPower
+    *   power that has been set by EmAgent
+    * @return
+    *   updated relevant data and an indication at which circumstances flex
+    *   options will change next
+    */
+  def handleControlledPowerChange(
+      data: CD,
+      lastState: MS,
+      setPower: Power,
+  ): (MS, FlexChangeIndicator)
 
   /** Get a partial function, that transfers the current active into reactive
     * power based on the participants properties and the given nodal voltage
@@ -106,9 +173,9 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
       nodalVoltage: Dimensionless
   ): Power => ReactivePower =
     qControl.activeToReactivePowerFunc(
-      sRated * scalingFactor,
+      sRated,
       cosPhiRated,
-      nodalVoltage
+      nodalVoltage,
     )
 
   /** Calculate the reactive power of the model
@@ -122,11 +189,11 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
     */
   def calculateReactivePower(
       activePower: Power,
-      voltage: Dimensionless
+      voltage: Dimensionless,
   ): ReactivePower = {
     limitReactivePower(
       activePower,
-      activeToReactivePowerFunc(voltage)(activePower)
+      activeToReactivePowerFunc(voltage)(activePower),
     )
   }
 
@@ -142,7 +209,7 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
     */
   private def limitReactivePower(
       activePower: Power,
-      reactivePower: ReactivePower
+      reactivePower: ReactivePower,
   ): ReactivePower = {
     {
       val apparentPower: Power = Kilowatts(
@@ -170,10 +237,9 @@ abstract class SystemParticipant[CD <: CalcRelevantData](
 
         if (powerSquaredDifference < 0) {
           logger.warn(
-            s"Difference between sMax and active power is negative when limiting reactive power. " +
-              s"Set reactive power to 0!"
+            s"Active power of model exceeds sRated. Set reactive power to 0!"
           )
-          Megavars(0d)
+          zeroMVAr
         } else {
           Megavars(
             Math.sqrt(powerSquaredDifference)

@@ -38,7 +38,7 @@ trait Characteristic[A <: Quantity[A], O <: Quantity[O]] {
         xyCoordinates.toSeq
           .map(xyPair => xyPair.x -> xyPair.y)
           .toMap,
-        requestedAbscissaQuantity
+        requestedAbscissaQuantity,
       )
 
     xyCoords.foldLeft(
@@ -56,7 +56,7 @@ trait Characteristic[A <: Quantity[A], O <: Quantity[O]] {
           Some(requestedAbscissaQuantity),
           Some(
             b.map(_ + (m * deltaX).value)
-          )
+          ),
         )
       case _ =>
         throw new CharacteristicsException(
@@ -75,7 +75,7 @@ trait Characteristic[A <: Quantity[A], O <: Quantity[O]] {
 object Characteristic {
   final case class XYPair[A <: Quantity[A], O <: Quantity[O]](
       x: A,
-      y: O
+      y: O,
   ) extends Ordered[XYPair[A, O]] {
 
     /** The pairs are ordered by their x value first. If two pairs have the same

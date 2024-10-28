@@ -6,24 +6,38 @@
 
 package edu.ie3.simona.service
 
-import akka.actor.{Actor, ActorRef, Stash}
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, Stash}
 import edu.ie3.simona.logging.SimonaActorLogging
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
+  Completion,
+  ScheduleActivation,
 }
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeServiceTrigger
-}
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
-  ServiceBaseStateData
+  ServiceBaseStateData,
 }
+import edu.ie3.simona.service.SimonaService.Create
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 
 import scala.util.{Failure, Success, Try}
+
+object SimonaService {
+
+  /** Service initialization data can sometimes only be constructed once the
+    * service actor is created (e.g.
+    * [[edu.ie3.simona.service.ev.ExtEvDataService]]. Thus, we need an extra
+    * initialization message.
+    */
+  final case class Create[+I <: InitializeServiceStateData](
+      initializeStateData: I,
+      unlockKey: ScheduleKey,
+  )
+}
 
 /** Abstract description of a service agent, that is able to announce new
   * information to registered participants
@@ -50,21 +64,36 @@ abstract class SimonaService[
     */
   private def uninitialized: Receive = {
 
-    // initialize trigger message received from scheduler
-    case TriggerWithIdMessage(
-          InitializeServiceTrigger(
-            initializeStateData: InitializeServiceStateData
-          ),
-          triggerId,
-          _
+    case Create(
+          initializeStateData: InitializeServiceStateData,
+          unlockKey: ScheduleKey,
         ) =>
+      scheduler ! ScheduleActivation(
+        self.toTyped,
+        INIT_SIM_TICK,
+        Some(unlockKey),
+      )
+
+      context become initializing(initializeStateData)
+
+    // not ready yet to handle registrations, stash request away
+    case _: ServiceRegistrationMessage =>
+      stash()
+
+  }
+
+  private def initializing(
+      initializeStateData: InitializeServiceStateData
+  ): Receive = {
+
+    case Activation(INIT_SIM_TICK) =>
       // init might take some time and could go wrong if invalid initialize service data is received
       // execute complete and unstash only if init is carried out successfully
       init(
         initializeStateData
       ) match {
-        case Success((serviceStateData, maybeTriggersToBeScheduled)) =>
-          scheduler ! CompletionMessage(triggerId, maybeTriggersToBeScheduled)
+        case Success((serviceStateData, maybeNewTick)) =>
+          scheduler ! Completion(self.toTyped, maybeNewTick)
           unstashAll()
           context become idle(serviceStateData)
         case Failure(exception) =>
@@ -74,13 +103,13 @@ abstract class SimonaService[
               s"\nReceivedData: {}" +
               s"\nException: {}",
             initializeStateData,
-            exception
+            exception,
           )
           throw exception // if a service fails startup we don't want to go on with the simulation
       }
 
     // not ready yet to handle registrations, stash request away
-    case _: ServiceRegistrationMessage | _: ActivityStartTrigger =>
+    case _: ServiceRegistrationMessage | _: Activation =>
       stash()
 
     // unhandled message
@@ -113,17 +142,24 @@ abstract class SimonaService[
               "\nMsg: {}" +
               "\nException: {}",
             registrationMsg,
-            exception
+            exception,
           )
           unhandled(registrationMsg)
       }
 
+    case ScheduleServiceActivation(tick, unlockKey) =>
+      scheduler ! ScheduleActivation(
+        self.toTyped,
+        tick,
+        Some(unlockKey),
+      )
+
     // activity start trigger for this service
-    case TriggerWithIdMessage(ActivityStartTrigger(tick), triggerId, _) =>
+    case Activation(tick) =>
       /* The scheduler sends out an activity start trigger. Announce new data to all registered recipients. */
       val (updatedStateData, maybeNewTriggers) =
-        announceInformation(tick)(stateData)
-      scheduler ! CompletionMessage(triggerId, maybeNewTriggers)
+        announceInformation(tick)(stateData, context)
+      scheduler ! Completion(self.toTyped, maybeNewTriggers)
       context become idle(updatedStateData)
 
     // unhandled message
@@ -147,19 +183,19 @@ abstract class SimonaService[
     * initialization data. This method should perform all heavyweight tasks
     * before the actor becomes ready. The return values are a) the state data of
     * the initialized service and b) optional triggers that should be send to
-    * the [[edu.ie3.simona.scheduler.SimScheduler]] together with the completion
+    * the [[edu.ie3.simona.scheduler.Scheduler]] together with the completion
     * message that is send in response to the trigger that is send to start the
     * initialization process
     *
     * @param initServiceData
     *   the data that should be used for initialization
     * @return
-    *   the state data of this service and optional triggers that should be
-    *   included in the completion message
+    *   the state data of this service and optional tick that should be included
+    *   in the completion message
     */
   def init(
       initServiceData: InitializeServiceStateData
-  ): Try[(S, Option[Seq[ScheduleTriggerMessage]])]
+  ): Try[(S, Option[Long])]
 
   /** Handle a request to register for information from this service
     *
@@ -189,7 +225,8 @@ abstract class SimonaService[
     *   in response to the trigger that was sent to start this announcement
     */
   protected def announceInformation(tick: Long)(implicit
-      serviceStateData: S
-  ): (S, Option[Seq[ScheduleTriggerMessage]])
+      serviceStateData: S,
+      ctx: ActorContext,
+  ): (S, Option[Long])
 
 }

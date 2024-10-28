@@ -29,7 +29,7 @@ final class ScalaNumberSystem extends DefaultNumberSystem {
   override def divideAndRemainder(
       x: Number,
       y: Number,
-      roundRemainderTowardsZero: Boolean
+      roundRemainderTowardsZero: Boolean,
   ): Array[Number] = {
     val signX = signum(x)
     val signY = signum(y)
@@ -84,8 +84,4 @@ final class ScalaNumberSystem extends DefaultNumberSystem {
 
   override def isLessThanOne(number: Number): Boolean =
     number.doubleValue < 1d
-
-  override def isInteger(number: Number): Boolean =
-    super.isInteger(number)
-
 }

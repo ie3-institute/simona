@@ -21,11 +21,14 @@ import scala.concurrent.duration.Duration
   * @param maxIterations
   *   Maximum amount of iterations in a [[edu.ie3.powerflow.NewtonRaphsonPF]]
   * @param sweepTimeout
-  *   [[akka.pattern.ask]] timeout for a sweep
+  *   [[org.apache.pekko.pattern.ask]] timeout for a sweep
+  * @param stopOnFailure
+  *   Whether to stop the GridAgent after a power flow calculation failed
   */
 final case class PowerFlowParams(
     maxSweepPowerDeviation: Double,
     epsilon: Vector[Double],
     maxIterations: Int,
-    sweepTimeout: Duration
+    sweepTimeout: Duration,
+    stopOnFailure: Boolean,
 )

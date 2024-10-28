@@ -6,18 +6,19 @@
 
 package edu.ie3.simona.agent.participant.load
 
-import akka.actor.{ActorRef, Props}
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.load.LoadAgentFundamentals.{
   FixedLoadAgentFundamentals,
   ProfileLoadAgentFundamentals,
-  RandomLoadAgentFundamentals
+  RandomLoadAgentFundamentals,
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel
 import edu.ie3.simona.model.participant.load.profile.ProfileLoadModel.ProfileRelevantData
 import edu.ie3.simona.model.participant.load.random.RandomLoadModel
@@ -25,22 +26,27 @@ import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomReleva
 import edu.ie3.simona.model.participant.load.{
   FixedLoadModel,
   LoadModel,
-  LoadModelBehaviour
+  LoadModelBehaviour,
 }
+import org.apache.pekko.actor.{ActorRef, Props}
 
 object LoadAgent {
   def props(
       scheduler: ActorRef,
+      initStateData: ParticipantInitializeStateData[
+        LoadInput,
+        LoadRuntimeConfig,
+        ApparentPower,
+      ],
       listener: Iterable[ActorRef],
-      modelConfig: LoadRuntimeConfig
   ): Props =
-    LoadModelBehaviour(modelConfig.modelBehaviour) match {
+    LoadModelBehaviour(initStateData.modelConfig.modelBehaviour) match {
       case LoadModelBehaviour.FIX =>
-        Props(new FixedLoadAgent(scheduler, listener))
+        Props(new FixedLoadAgent(scheduler, initStateData, listener))
       case LoadModelBehaviour.PROFILE =>
-        Props(new ProfileLoadAgent(scheduler, listener))
+        Props(new ProfileLoadAgent(scheduler, initStateData, listener))
       case LoadModelBehaviour.RANDOM =>
-        Props(new RandomLoadAgent(scheduler, listener))
+        Props(new RandomLoadAgent(scheduler, initStateData, listener))
       case unsupported =>
         throw new IllegalArgumentException(
           s"The load agent behaviour '$unsupported' is currently not supported."
@@ -49,29 +55,44 @@ object LoadAgent {
 
   final class FixedLoadAgent(
       scheduler: ActorRef,
-      override val listener: Iterable[ActorRef]
+      initStateData: ParticipantInitializeStateData[
+        LoadInput,
+        LoadRuntimeConfig,
+        ApparentPower,
+      ],
+      override val listener: Iterable[ActorRef],
   ) extends LoadAgent[
         FixedLoadModel.FixedLoadRelevantData.type,
-        FixedLoadModel
-      ](scheduler, listener)
+        FixedLoadModel,
+      ](scheduler, initStateData, listener)
       with FixedLoadAgentFundamentals
 
   final class ProfileLoadAgent(
       scheduler: ActorRef,
-      override val listener: Iterable[ActorRef]
+      initStateData: ParticipantInitializeStateData[
+        LoadInput,
+        LoadRuntimeConfig,
+        ApparentPower,
+      ],
+      override val listener: Iterable[ActorRef],
   ) extends LoadAgent[
         ProfileRelevantData,
-        ProfileLoadModel
-      ](scheduler, listener)
+        ProfileLoadModel,
+      ](scheduler, initStateData, listener)
       with ProfileLoadAgentFundamentals
 
   final class RandomLoadAgent(
       scheduler: ActorRef,
-      override val listener: Iterable[ActorRef]
+      initStateData: ParticipantInitializeStateData[
+        LoadInput,
+        LoadRuntimeConfig,
+        ApparentPower,
+      ],
+      override val listener: Iterable[ActorRef],
   ) extends LoadAgent[
         RandomRelevantData,
-        RandomLoadModel
-      ](scheduler, listener)
+        RandomLoadModel,
+      ](scheduler, initStateData, listener)
       with RandomLoadAgentFundamentals
 }
 
@@ -84,15 +105,21 @@ object LoadAgent {
   */
 abstract class LoadAgent[LD <: LoadRelevantData, LM <: LoadModel[LD]](
     scheduler: ActorRef,
-    override val listener: Iterable[ActorRef]
+    initStateData: ParticipantInitializeStateData[
+      LoadInput,
+      LoadRuntimeConfig,
+      ApparentPower,
+    ],
+    override val listener: Iterable[ActorRef],
 ) extends ParticipantAgent[
       ApparentPower,
       LD,
+      ConstantState.type,
       ParticipantStateData[ApparentPower],
       LoadInput,
       LoadRuntimeConfig,
-      LM
-    ](scheduler)
+      LM,
+    ](scheduler, initStateData)
     with LoadAgentFundamentals[LD, LM] {
   /*
    * "Hey, SIMONA! What is handled in ParticipantAgent?"

@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.data.secondary
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData.WholesalePrice
 import edu.ie3.simona.agent.participant.data.DataService
@@ -24,6 +24,6 @@ object SecondaryDataService {
   final case class ActorWeatherService(override val actorRef: ActorRef)
       extends SecondaryDataService[WeatherData]
 
-  final case class ActorEvMovementsService(override val actorRef: ActorRef)
+  final case class ActorExtEvDataService(override val actorRef: ActorRef)
       extends SecondaryDataService[EvData]
 }

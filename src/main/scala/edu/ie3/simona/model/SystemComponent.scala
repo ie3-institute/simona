@@ -13,7 +13,7 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.simona.exceptions.{
   InvalidActionRequestException,
-  InvalidParameterException
+  InvalidParameterException,
 }
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.scala.OperationInterval
@@ -35,7 +35,7 @@ import scala.util.{Failure, Success, Try}
 abstract class SystemComponent(
     uuid: UUID,
     id: String,
-    operationInterval: OperationInterval
+    operationInterval: OperationInterval,
 ) extends LazyLogging {
 
   private val elementType: String = this.getClass.getSimpleName
@@ -107,7 +107,7 @@ case object SystemComponent {
   def determineOperationInterval(
       startDate: ZonedDateTime,
       endDate: ZonedDateTime,
-      operationTime: OperationTime
+      operationTime: OperationTime,
   ): OperationInterval = {
     val operationStartOpt = operationTime.getStartDate.toScala
     val operationEndOpt = operationTime.getEndDate.toScala

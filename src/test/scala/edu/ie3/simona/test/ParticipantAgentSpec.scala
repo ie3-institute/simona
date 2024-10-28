@@ -6,11 +6,12 @@
 
 package edu.ie3.simona.test
 
-import akka.actor.ActorSystem
-import akka.testkit.TestProbe
 import edu.ie3.simona.test.common.AgentSpec
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.testkit.TestProbe
 
-/** Class to help building tests for [[ParticipantAgent]] s
+/** Class to help building tests for
+  * [[edu.ie3.simona.agent.participant.ParticipantAgent]]s
   *
   * @param actorSystem
   *   The actor system to use for building actors

@@ -34,6 +34,6 @@ final case class OperationInterval(start: java.lang.Long, end: java.lang.Long)
   def getEnd: Long = getUpper
 }
 
-case object OperationInterval {
+object OperationInterval {
   def apply(start: Long, end: Long) = new OperationInterval(start, end)
 }

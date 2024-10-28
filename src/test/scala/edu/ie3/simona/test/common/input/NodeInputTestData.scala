@@ -31,7 +31,7 @@ trait NodeInputTestData extends DefaultTestData {
     false,
     defaultLatLong,
     GermanVoltageLevelUtils.LV,
-    -1
+    -1,
   )
   protected val nodeInputNoSlackNs04KvB = new NodeInput(
     UUID.fromString("ad39d0b9-5ad6-4588-8d92-74c7d7de9ace"),
@@ -42,7 +42,7 @@ trait NodeInputTestData extends DefaultTestData {
     false,
     NodeInput.DEFAULT_GEO_POSITION,
     GermanVoltageLevelUtils.LV,
-    -1
+    -1,
   )
   protected val nodeInputNoSlackNs04KvWrongVTarget = new NodeInput(
     UUID.fromString("7be605eb-fc14-4fdc-a580-a2c2a9abd5f7"),
@@ -53,7 +53,7 @@ trait NodeInputTestData extends DefaultTestData {
     false,
     NodeInput.DEFAULT_GEO_POSITION,
     GermanVoltageLevelUtils.LV,
-    -1
+    -1,
   )
 
   // 10 kV node input models
@@ -66,7 +66,7 @@ trait NodeInputTestData extends DefaultTestData {
     false,
     NodeInput.DEFAULT_GEO_POSITION,
     GermanVoltageLevelUtils.MV_10KV,
-    -1
+    -1,
   )
 
   // 20 kV node input models
@@ -80,7 +80,7 @@ trait NodeInputTestData extends DefaultTestData {
       false,
       NodeInput.DEFAULT_GEO_POSITION,
       GermanVoltageLevelUtils.MV_20KV,
-      1
+      1,
     )
 
   // 110 kV node input models
@@ -94,6 +94,6 @@ trait NodeInputTestData extends DefaultTestData {
       false,
       NodeInput.DEFAULT_GEO_POSITION,
       GermanVoltageLevelUtils.HV,
-      1
+      1,
     )
 }

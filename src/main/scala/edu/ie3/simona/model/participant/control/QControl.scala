@@ -12,8 +12,9 @@ import edu.ie3.simona.exceptions.QControlException
 import edu.ie3.simona.model.system.Characteristic
 import edu.ie3.simona.model.system.Characteristic.XYPair
 import edu.ie3.util.quantities.PowerSystemUnits.PU
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
-import squants.Each
+import squants.{Dimensionless, Each, Power}
 import tech.units.indriya.AbstractUnit
 
 import scala.collection.SortedSet
@@ -22,11 +23,10 @@ import scala.jdk.CollectionConverters._
 import scala.math._
 
 sealed trait QControl {
-  protected val _cosPhiMultiplication
-      : (Double, squants.Power) => ReactivePower =
-    (cosPhi: Double, p: squants.Power) =>
+  protected val _cosPhiMultiplication: (Double, Power) => ReactivePower =
+    (cosPhi: Double, p: Power) =>
       if ((cosPhi - 1).abs < 0.0000001) {
-        Megavars(0d)
+        zeroMVAr
       } else {
         /* q = p * tan( phi ) = p * tan( acos( cosphi )) */
         Megavars((p * tan(acos(cosPhi))).toMegawatts)
@@ -44,10 +44,10 @@ sealed trait QControl {
     *   The function
     */
   def activeToReactivePowerFunc(
-      sRated: squants.Power,
+      sRated: Power,
       cosPhiRated: Double,
-      nodalVoltage: squants.Dimensionless
-  ): squants.Power => ReactivePower
+      nodalVoltage: Dimensionless,
+  ): Power => ReactivePower
 }
 
 /** Object to create a [[QControl]]. Currently the following QControls
@@ -72,9 +72,9 @@ object QControl {
         CosPhiP(
           TreeSet.from(
             cosPhiP.getPoints.asScala.map(point =>
-              XYPair[squants.Dimensionless, squants.Dimensionless](
+              XYPair[Dimensionless, Dimensionless](
                 Each(point.getX.getValue.doubleValue()),
-                Each(point.getY.getValue.doubleValue())
+                Each(point.getY.getValue.doubleValue()),
               )
             )
           )
@@ -84,9 +84,9 @@ object QControl {
           TreeSet.from(
             qv.getPoints.asScala
               .map(point =>
-                XYPair[squants.Dimensionless, squants.Dimensionless](
+                XYPair[Dimensionless, Dimensionless](
                   Each(point.getX.getValue.doubleValue()),
-                  Each(point.getY.getValue.doubleValue())
+                  Each(point.getY.getValue.doubleValue()),
                 )
               )
               .toSeq
@@ -117,10 +117,10 @@ object QControl {
       *   The function
       */
     override def activeToReactivePowerFunc(
-        sRated: squants.Power,
+        sRated: Power,
         cosPhiRated: Double,
-        nodalVoltage: squants.Dimensionless
-    ): squants.Power => ReactivePower = { activePower: squants.Power =>
+        nodalVoltage: Dimensionless,
+    ): Power => ReactivePower = { activePower: Power =>
       _cosPhiMultiplication(cosPhi, activePower)
     }
   }
@@ -132,10 +132,10 @@ object QControl {
     */
   final case class QV private (
       xyCoordinates: SortedSet[
-        XYPair[squants.Dimensionless, squants.Dimensionless]
+        XYPair[Dimensionless, Dimensionless]
       ]
   ) extends QControl
-      with Characteristic[squants.Dimensionless, squants.Dimensionless] {
+      with Characteristic[Dimensionless, Dimensionless] {
 
     /** Returns the resulting reactive power for the requested voltage level
       * value. The conversion to abstract unit [[AbstractUnit.ONE]] is necessary
@@ -151,8 +151,8 @@ object QControl {
       *   the resulting reactive power q
       */
     def q(
-        vInPu: squants.Dimensionless,
-        qMax: ReactivePower
+        vInPu: Dimensionless,
+        qMax: ReactivePower,
     ): ReactivePower = {
       qMax * interpolateXy(vInPu)._2.toEach
     }
@@ -169,10 +169,10 @@ object QControl {
       *   The function
       */
     override def activeToReactivePowerFunc(
-        sRated: squants.Power,
+        sRated: Power,
         cosPhiRated: Double,
-        nodalVoltage: squants.Dimensionless
-    ): squants.Power => ReactivePower = { activePower: squants.Power =>
+        nodalVoltage: Dimensionless,
+    ): Power => ReactivePower = { activePower: Power =>
       val qMaxFromP = Megavars(
         sqrt(
           pow(sRated.toMegawatts, 2) -
@@ -198,7 +198,7 @@ object QControl {
       */
     private def qMaxPossible(
         qMaxFromP: ReactivePower,
-        qFromCharacteristic: ReactivePower
+        qFromCharacteristic: ReactivePower,
     ): ReactivePower =
       if (qFromCharacteristic.abs >= qMaxFromP.abs)
         qMaxFromP * copySign(1, qFromCharacteristic.toMegavars)
@@ -213,10 +213,10 @@ object QControl {
     */
   final case class CosPhiP private (
       xyCoordinates: SortedSet[
-        XYPair[squants.Dimensionless, squants.Dimensionless]
+        XYPair[Dimensionless, Dimensionless]
       ]
   ) extends QControl
-      with Characteristic[squants.Dimensionless, squants.Dimensionless] {
+      with Characteristic[Dimensionless, Dimensionless] {
 
     /** Returns the requested cosine phi value for a provided power value
       * (p/sRated) in p.u. If the cosine phi cannot be found for the requested
@@ -228,8 +228,8 @@ object QControl {
       *   the cosine phi for the requested p.u. value
       */
     def cosPhi(
-        pInPu: squants.Dimensionless
-    ): squants.Dimensionless =
+        pInPu: Dimensionless
+    ): Dimensionless =
       interpolateXy(pInPu)._2
 
     /** Obtain the function, that transfers active into reactive power
@@ -244,10 +244,10 @@ object QControl {
       *   The function
       */
     override def activeToReactivePowerFunc(
-        sRated: squants.Power,
+        sRated: Power,
         cosPhiRated: Double,
-        nodalVoltage: squants.Dimensionless
-    ): squants.Power => ReactivePower = { activePower: squants.Power =>
+        nodalVoltage: Dimensionless,
+    ): Power => ReactivePower = { activePower: Power =>
       /* cosphi( P / P_N ) = cosphi( P / (S_N * cosphi_rated) ) */
       val pInPu =
         activePower / (sRated * cosPhiRated)

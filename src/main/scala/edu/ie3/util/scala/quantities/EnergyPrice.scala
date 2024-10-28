@@ -17,7 +17,7 @@ import scala.util.Try
 
 final class EnergyPrice private (
     val value: Double,
-    val unit: EnergyPriceUnit
+    val unit: EnergyPriceUnit,
 ) extends squants.Quantity[EnergyPrice] {
 
   def dimension: EnergyPrice.type = EnergyPrice

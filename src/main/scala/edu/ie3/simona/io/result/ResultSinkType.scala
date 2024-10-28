@@ -22,7 +22,8 @@ object ResultSinkType {
   final case class Csv(
       fileFormat: String = ".csv",
       filePrefix: String = "",
-      fileSuffix: String = ""
+      fileSuffix: String = "",
+      zipFiles: Boolean = false,
   ) extends ResultSinkType
 
   final case class InfluxDb1x(url: String, database: String, scenario: String)
@@ -33,12 +34,12 @@ object ResultSinkType {
       runId: UUID,
       bootstrapServers: String,
       schemaRegistryUrl: String,
-      linger: Int
+      linger: Int,
   ) extends ResultSinkType
 
   def apply(
       sinkConfig: OutputSinkConfig,
-      runName: String
+      runName: String,
   ): ResultSinkType = {
     val sink: Seq[Any] =
       Seq(sinkConfig.csv, sinkConfig.influxDb1x, sinkConfig.kafka).flatten
@@ -50,7 +51,12 @@ object ResultSinkType {
 
     sink.headOption match {
       case Some(params: OutputCsvParams) =>
-        Csv(params.fileFormat, params.filePrefix, params.fileSuffix)
+        Csv(
+          params.fileFormat,
+          params.filePrefix,
+          params.fileSuffix,
+          params.zipFiles,
+        )
       case Some(params: InfluxDb1xParams) =>
         InfluxDb1x(buildInfluxDb1xUrl(params), params.database, runName)
       case Some(params: ResultKafkaParams) =>
@@ -59,7 +65,7 @@ object ResultSinkType {
           UUID.fromString(params.runId),
           params.bootstrapServers,
           params.schemaRegistryUrl,
-          params.linger
+          params.linger,
         )
       case None =>
         throw new IllegalArgumentException(

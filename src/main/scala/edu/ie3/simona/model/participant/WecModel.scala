@@ -8,22 +8,27 @@ package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.input.system.WecInput
 import edu.ie3.datamodel.models.input.system.characteristic.WecCharacteristicInput
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.SystemComponent
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.WecModel.{
   WecCharacteristic,
-  WecRelevantData
+  WecRelevantData,
 }
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.system.Characteristic
 import edu.ie3.simona.model.system.Characteristic.XYPair
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.DefaultQuantities._
+import squants._
 import squants.energy.{Kilowatts, Watts}
 import squants.mass.{Kilograms, KilogramsPerCubicMeter}
 import squants.motion.{MetersPerSecond, Pressure}
 import squants.space.SquareMeters
 import squants.thermal.JoulesPerKelvin
-import squants._
 import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
@@ -39,8 +44,6 @@ import scala.collection.SortedSet
   *   the element's human readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
-  * @param scalingFactor
-  *   Scaling the output of the system
   * @param qControl
   *   Type of reactive power control
   * @param sRated
@@ -56,23 +59,22 @@ final case class WecModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
     cosPhiRated: Double,
     rotorArea: Area,
-    betzCurve: WecCharacteristic
-) extends SystemParticipant[WecRelevantData](
+    betzCurve: WecCharacteristic,
+) extends SystemParticipant[WecRelevantData, ApparentPower, ConstantState.type](
       uuid,
       id,
       operationInterval,
-      scalingFactor,
       qControl,
       sRated,
-      cosPhiRated
-    ) {
+      cosPhiRated,
+    )
+    with ApparentPowerParticipant[WecRelevantData, ConstantState.type] {
 
-  /** Universal gas constant, actually in J/(K * mol)
+  /** Universal gas constant
     */
   private val UniversalGasConstantR = JoulesPerKelvin(8.31446261815324d)
 
@@ -88,8 +90,9 @@ final case class WecModel(
     * @return
     *   active power output
     */
-  override protected def calculateActivePower(
-      wecData: WecRelevantData
+  override def calculateActivePower(
+      modelState: ConstantState.type,
+      wecData: WecRelevantData,
   ): Power = {
     val activePower = determinePower(wecData)
     val pMax = sMax * cosPhiRated
@@ -99,7 +102,7 @@ final case class WecModel(
          "The fed in active power is higher than the estimated maximum active power of this plant ({} > {}). " +
            "Did you provide wrong weather input data?",
          activePower,
-         pMax
+         pMax,
        )
        pMax
      } else {
@@ -128,7 +131,7 @@ final case class WecModel(
     val airDensity =
       calculateAirDensity(
         wecData.temperature,
-        wecData.airPressure
+        wecData.airPressure,
       ).toKilogramsPerCubicMeter
 
     val v = wecData.windVelocity.toMetersPerSecond
@@ -151,7 +154,7 @@ final case class WecModel(
     * @return
     *   betz coefficient cₚ
     */
-  private def determineBetzCoefficient(
+  def determineBetzCoefficient(
       windVelocity: Velocity
   ): Dimensionless = {
     betzCurve.interpolateXy(windVelocity) match {
@@ -171,9 +174,9 @@ final case class WecModel(
     *   current air pressure
     * @return
     */
-  private def calculateAirDensity(
+  def calculateAirDensity(
       temperature: Temperature,
-      airPressure: Option[Pressure]
+      airPressure: Option[Pressure],
   ): Density = {
     airPressure match {
       case None =>
@@ -186,6 +189,22 @@ final case class WecModel(
         )
     }
   }
+
+  override def determineFlexOptions(
+      data: WecRelevantData,
+      lastState: ConstantState.type,
+  ): ProvideFlexOptions = {
+    val power = calculateActivePower(ConstantState, data)
+
+    ProvideMinMaxFlexOptions(uuid, power, power, zeroKW)
+  }
+
+  override def handleControlledPowerChange(
+      data: WecRelevantData,
+      lastState: ConstantState.type,
+      setPower: Power,
+  ): (ConstantState.type, FlexChangeIndicator) =
+    (lastState, FlexChangeIndicator())
 }
 
 /** Create valid [[WecModel]] by calling the apply function.
@@ -195,7 +214,7 @@ object WecModel {
   /** This class is initialized with a [[WecCharacteristicInput]], which
     * contains the needed betz curve.
     */
-  final case class WecCharacteristic private (
+  final case class WecCharacteristic(
       override val xyCoordinates: SortedSet[
         XYPair[Velocity, Dimensionless]
       ]
@@ -214,7 +233,7 @@ object WecModel {
           input.getPoints.asScala.map(p =>
             XYPair[Velocity, Dimensionless](
               MetersPerSecond(p.getX.to(METRE_PER_SECOND).getValue.doubleValue),
-              Each(p.getY.to(PU).getValue.doubleValue)
+              Each(p.getY.to(PU).getValue.doubleValue),
             )
           )
       )
@@ -233,33 +252,36 @@ object WecModel {
   final case class WecRelevantData(
       windVelocity: Velocity,
       temperature: Temperature,
-      airPressure: Option[Pressure]
+      airPressure: Option[Pressure],
   ) extends CalcRelevantData
 
   def apply(
       inputModel: WecInput,
       scalingFactor: Double,
       simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime
+      simulationEndDate: ZonedDateTime,
   ): WecModel = {
+    val scaledInput = inputModel.copy().scale(scalingFactor).build()
+
     val operationInterval = SystemComponent.determineOperationInterval(
       simulationStartDate,
       simulationEndDate,
-      inputModel.getOperationTime
+      scaledInput.getOperationTime,
     )
 
     val model = new WecModel(
-      inputModel.getUuid,
-      inputModel.getId,
+      scaledInput.getUuid,
+      scaledInput.getId,
       operationInterval,
-      scalingFactor,
-      QControl(inputModel.getqCharacteristics),
-      Kilowatts(inputModel.getType.getsRated.to(KILOWATT).getValue.doubleValue),
-      inputModel.getType.getCosPhiRated,
-      SquareMeters(
-        inputModel.getType.getRotorArea.to(SQUARE_METRE).getValue.doubleValue
+      QControl(scaledInput.getqCharacteristics),
+      Kilowatts(
+        scaledInput.getType.getsRated.to(KILOWATT).getValue.doubleValue
       ),
-      WecCharacteristic(inputModel.getType.getCpCharacteristic)
+      scaledInput.getType.getCosPhiRated,
+      SquareMeters(
+        scaledInput.getType.getRotorArea.to(SQUARE_METRE).getValue.doubleValue
+      ),
+      WecCharacteristic(scaledInput.getType.getCpCharacteristic),
     )
 
     model.enable()

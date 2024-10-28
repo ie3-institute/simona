@@ -6,13 +6,14 @@
 
 package edu.ie3.simona.test.common.model.grid
 
+import edu.ie3.simona.model.control.GridControls
 import edu.ie3.simona.model.grid.GridModel.GridComponents
 import edu.ie3.simona.model.grid.{
   GridModel,
   LineModel,
   NodeModel,
   SwitchModel,
-  Transformer3wModel
+  Transformer3wModel,
 }
 import edu.ie3.util.quantities.PowerSystemUnits._
 import tech.units.indriya.quantity.Quantities
@@ -47,42 +48,42 @@ trait BasicGridWithSwitches extends BasicGrid {
       "node13",
       "69f08e1d-725d-4bae-80c3-5b5a472493c9",
       false,
-      linesRatedVoltage
+      linesRatedVoltage,
     )
   def node14: NodeModel =
     _nodeCreator(
       "node14",
       "c09cb11f-4e2c-4871-84c6-a22dc6702679",
       false,
-      linesRatedVoltage
+      linesRatedVoltage,
     )
   def node15: NodeModel =
     _nodeCreator(
       "node15",
       "2b45e1e2-591e-49c1-bcbe-0e4ceed79c9b",
       false,
-      linesRatedVoltage
+      linesRatedVoltage,
     )
   def node16: NodeModel =
     _nodeCreator(
       "node16",
       "8aec5998-9c8a-453d-8556-e8630f4c053a",
       false,
-      linesRatedVoltage
+      linesRatedVoltage,
     )
   def node17: NodeModel =
     _nodeCreator(
       "node17",
       "e1002827-0430-4ba0-950f-8107fefc09fa",
       false,
-      linesRatedVoltage
+      linesRatedVoltage,
     )
   def node18: NodeModel =
     _nodeCreator(
       "node18",
       "4ab4904e-dde3-4591-8eb5-3e0ca4fd8e3d",
       false,
-      linesRatedVoltage
+      linesRatedVoltage,
     )
 
   // add nodes to nodes list
@@ -97,7 +98,7 @@ trait BasicGridWithSwitches extends BasicGrid {
       node15.uuid -> 9,
       node16.uuid -> 10,
       node17.uuid -> 11,
-      node18.uuid -> 12
+      node18.uuid -> 12,
     )
 
   // rebuild lines
@@ -109,7 +110,7 @@ trait BasicGridWithSwitches extends BasicGrid {
     Quantities.getQuantity(0.0013109999999999999, PU),
     Quantities.getQuantity(0.0010680000000000002, PU),
     Quantities.getQuantity(0, PU),
-    Quantities.getQuantity(0.0000048375, PU)
+    Quantities.getQuantity(0.0000048375, PU),
   )
   def line18To1: LineModel = _lineCreator(
     "line18To1",
@@ -119,7 +120,7 @@ trait BasicGridWithSwitches extends BasicGrid {
     Quantities.getQuantity(0.0013109999999999999, PU),
     Quantities.getQuantity(0.0010680000000000002, PU),
     Quantities.getQuantity(0, PU),
-    Quantities.getQuantity(0.0000048375, PU)
+    Quantities.getQuantity(0.0000048375, PU),
   )
   def line1To13: LineModel = _lineCreator(
     "line1To13",
@@ -129,7 +130,7 @@ trait BasicGridWithSwitches extends BasicGrid {
     Quantities.getQuantity(0.001748, PU),
     Quantities.getQuantity(0.001424, PU),
     Quantities.getQuantity(0, PU),
-    Quantities.getQuantity(0.00000645, PU)
+    Quantities.getQuantity(0.00000645, PU),
   )
   def line14To2: LineModel = _lineCreator(
     "line14To2",
@@ -139,7 +140,7 @@ trait BasicGridWithSwitches extends BasicGrid {
     Quantities.getQuantity(0.001748, PU),
     Quantities.getQuantity(0.001424, PU),
     Quantities.getQuantity(0, PU),
-    Quantities.getQuantity(0.00000645, PU)
+    Quantities.getQuantity(0.00000645, PU),
   )
   def line0To15: LineModel = _lineCreator(
     "line0To15",
@@ -149,7 +150,7 @@ trait BasicGridWithSwitches extends BasicGrid {
     Quantities.getQuantity(0.000874, PU),
     Quantities.getQuantity(0.000712, PU),
     Quantities.getQuantity(0, PU),
-    Quantities.getQuantity(0.000003225, PU)
+    Quantities.getQuantity(0.000003225, PU),
   )
   def line16To3: LineModel = _lineCreator(
     "line16To3",
@@ -159,7 +160,7 @@ trait BasicGridWithSwitches extends BasicGrid {
     Quantities.getQuantity(0.000874, PU),
     Quantities.getQuantity(0.000712, PU),
     Quantities.getQuantity(0, PU),
-    Quantities.getQuantity(0.000003225, PU)
+    Quantities.getQuantity(0.000003225, PU),
   )
 
   def line2To3: LineModel = _lineCreator(
@@ -170,7 +171,7 @@ trait BasicGridWithSwitches extends BasicGrid {
     Quantities.getQuantity(0.0013109999999999999, PU),
     Quantities.getQuantity(0.0010680000000000002, PU),
     Quantities.getQuantity(0, PU),
-    Quantities.getQuantity(0.0000048375, PU)
+    Quantities.getQuantity(0.0000048375, PU),
   )
 
   override protected val lines: Set[LineModel] = Set(
@@ -182,7 +183,7 @@ trait BasicGridWithSwitches extends BasicGrid {
     line16To3,
     line3To4,
     line3To5,
-    line2To3
+    line2To3,
   )
 
   // switches
@@ -191,21 +192,21 @@ trait BasicGridWithSwitches extends BasicGrid {
     "TestSwitch1",
     defaultOperationInterval,
     node13.uuid,
-    node14.uuid
+    node14.uuid,
   )
   val switch2 = new SwitchModel(
     UUID.fromString("e9eb5598-1611-46ad-a44f-fde689c3f558"),
     "TestSwitch2",
     defaultOperationInterval,
     node15.uuid,
-    node16.uuid
+    node16.uuid,
   )
   val switch3 = new SwitchModel(
     UUID.fromString("01731a4a-7801-4656-96c9-26d002ff52da"),
     "TestSwitch3",
     defaultOperationInterval,
     node17.uuid,
-    node18.uuid
+    node18.uuid,
   )
 
   def switches: Set[SwitchModel] = Set(switch1, switch2, switch3)
@@ -228,8 +229,9 @@ trait BasicGridWithSwitches extends BasicGrid {
         gridLines,
         Set(transformer2wModel),
         Set.empty[Transformer3wModel],
-        gridSwitches
-      )
+        gridSwitches,
+      ),
+      GridControls.empty,
     )
   }
 

@@ -8,13 +8,21 @@ package edu.ie3.simona.model.participant.load
 
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.LoadInput
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
-import edu.ie3.simona.model.participant.SystemParticipant
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.model.participant.{
+  ApparentPowerParticipant,
+  FlexChangeIndicator,
+  SystemParticipant,
+}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
+import squants.energy.Kilowatts
 import squants.{Energy, Power}
-import squants.energy.Megawatts
 
 import java.util.UUID
 
@@ -27,21 +35,37 @@ abstract class LoadModel[D <: LoadRelevantData](
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    scalingFactor: Double,
     qControl: QControl,
     sRated: Power,
-    cosPhiRated: Double
-) extends SystemParticipant[D](
+    cosPhiRated: Double,
+) extends SystemParticipant[D, ApparentPower, ConstantState.type](
       uuid,
       id,
       operationInterval,
-      scalingFactor,
       qControl,
       sRated,
-      cosPhiRated
+      cosPhiRated,
+    )
+    with ApparentPowerParticipant[D, ConstantState.type] {
+
+  override def determineFlexOptions(
+      data: D,
+      lastState: ConstantState.type,
+  ): ProvideFlexOptions =
+    ProvideMinMaxFlexOptions.noFlexOption(
+      uuid,
+      calculateActivePower(lastState, data),
     )
 
-case object LoadModel extends LazyLogging {
+  override def handleControlledPowerChange(
+      data: D,
+      lastState: ConstantState.type,
+      setPower: Power,
+  ): (ConstantState.type, FlexChangeIndicator) =
+    (lastState, FlexChangeIndicator())
+}
+
+object LoadModel extends LazyLogging {
 
   /** Scale profile based load models' sRated based on a provided active power
     * value
@@ -64,11 +88,11 @@ case object LoadModel extends LazyLogging {
   def scaleSRatedActivePower(
       inputModel: LoadInput,
       activePower: Power,
-      safetyFactor: Double = 1d
+      safetyFactor: Double = 1d,
   ): Power = {
-    val sRated = Megawatts(
+    val sRated = Kilowatts(
       inputModel.getsRated
-        .to(PowerSystemUnits.MEGAWATT)
+        .to(PowerSystemUnits.KILOWATT)
         .getValue
         .doubleValue
     )
@@ -82,7 +106,7 @@ case object LoadModel extends LazyLogging {
     *
     * When the load is scaled based on the consumed energy per year, the
     * installed sRated capacity is not usable anymore instead, the load's rated
-    * apparent power ist scaled on the maximum power occurring in the specified
+    * apparent power is scaled on the maximum power occurring in the specified
     * load profile multiplied by the ratio of the annual consumption and the
     * standard load profile scale
     *
@@ -95,6 +119,10 @@ case object LoadModel extends LazyLogging {
     * @param profileEnergyScaling
     *   the energy scaling factor of the profile (= amount of yearly energy the
     *   profile is scaled to)
+    * @param safetyFactor
+    *   a safety factor to address potential higher sRated values than the
+    *   original scaling would provide (e.g. when using unrestricted probability
+    *   functions)
     * @return
     *   he inputs model sRated scaled to the provided energy consumption
     */
@@ -102,11 +130,12 @@ case object LoadModel extends LazyLogging {
       inputModel: LoadInput,
       energyConsumption: Energy,
       profileMaxPower: Power,
-      profileEnergyScaling: Energy
+      profileEnergyScaling: Energy,
+      safetyFactor: Double = 1d,
   ): Power = {
     (profileMaxPower / inputModel.getCosPhiRated) * (
       energyConsumption / profileEnergyScaling
-    )
+    ) * safetyFactor
   }
 
 }

@@ -25,7 +25,7 @@ import edu.ie3.simona.model.participant.load.{DayType, profile}
 final case class LoadProfileKey(
     standardLoadProfile: StandardLoadProfile,
     season: Season.Value,
-    dayType: DayType.Value
+    dayType: DayType.Value,
 )
 
 case object LoadProfileKey {
@@ -64,19 +64,19 @@ case object LoadProfileKey {
   def apply(
       loadProfile: String,
       season: String,
-      dayType: String
+      dayType: String,
   ): LoadProfileKey = {
     try {
       new LoadProfileKey(
         StandardLoadProfile.parse(loadProfile),
         Season(season),
-        DayType(dayType)
+        DayType(dayType),
       )
     } catch {
       case e: ParsingException =>
         throw new IllegalArgumentException(
           s"Cannot parse '$loadProfile' to a now StandardLoadProfile.",
-          e
+          e,
         )
     }
   }
@@ -93,12 +93,12 @@ case object LoadProfileKey {
     */
   def apply(
       loadProfile: StandardLoadProfile,
-      time: ZonedDateTime
+      time: ZonedDateTime,
   ): LoadProfileKey = {
     new LoadProfileKey(
       loadProfile,
       profile.Season(time),
-      load.DayType(time.getDayOfWeek)
+      load.DayType(time.getDayOfWeek),
     )
   }
 }

@@ -6,10 +6,8 @@
 
 package edu.ie3.simona.io.result
 
-import akka.actor.ActorSystem
-import akka.testkit.TestActorRef
+import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import com.sksamuel.avro4s.RecordFormat
-import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.result.NodeResult
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.event.listener.ResultEventListener
@@ -17,7 +15,6 @@ import edu.ie3.simona.io.result.plain.PlainResult.PlainNodeResult
 import edu.ie3.simona.io.result.plain.PlainWriter
 import edu.ie3.simona.test.KafkaSpecLike
 import edu.ie3.simona.test.KafkaSpecLike.Topic
-import edu.ie3.simona.test.common.TestKitWithShutdown
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.io.ScalaReflectionSerde
@@ -28,6 +25,7 @@ import org.apache.kafka.common.serialization.{Deserializer, Serdes}
 import org.apache.kafka.common.utils.Bytes
 import org.scalatest.GivenWhenThen
 import org.scalatest.concurrent.Eventually
+import org.scalatest.wordspec.AnyWordSpecLike
 import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
@@ -41,18 +39,9 @@ import scala.language.postfixOps
   * https://kafka-tutorials.confluent.io/produce-consume-lang/scala.html
   */
 class ResultEntityKafkaSpec
-    extends TestKitWithShutdown(
-      ActorSystem(
-        "ResultEntityKafkaSpec",
-        ConfigFactory
-          .parseString(
-            """akka.loggers = ["edu.ie3.simona.test.common.SilentTestEventListener"]
-          |akka.loglevel="info"
-          """.stripMargin
-          )
-      )
-    )
+    extends ScalaTestWithActorTestKit
     with KafkaSpecLike
+    with AnyWordSpecLike
     with GivenWhenThen
     with Eventually {
 
@@ -76,19 +65,19 @@ class ResultEntityKafkaSpec
 
   deserializer.configure(
     Map(SCHEMA_REGISTRY_URL_CONFIG -> mockSchemaRegistryUrl).asJava,
-    false
+    false,
   )
 
   override def beforeAll(): Unit = {
     super.beforeAll()
     val config = Map[String, AnyRef](
       "group.id" -> "test",
-      "bootstrap.servers" -> kafka.bootstrapServers
+      "bootstrap.servers" -> kafka.bootstrapServers,
     )
     testConsumer = new KafkaConsumer[Bytes, PlainNodeResult](
       config.asJava,
       Serdes.Bytes().deserializer(),
-      deserializer
+      deserializer,
     )
 
     testConsumer.assign(topicPartitions.asJava)
@@ -102,8 +91,8 @@ class ResultEntityKafkaSpec
       val runId = UUID.randomUUID()
 
       // build the listener
-      val listenerRef = TestActorRef(
-        ResultEventListener.props(
+      val listenerRef = spawn(
+        ResultEventListener(
           ResultFileHierarchy(
             "out",
             "simName",
@@ -114,9 +103,9 @@ class ResultEntityKafkaSpec
                 runId,
                 kafka.bootstrapServers,
                 mockSchemaRegistryUrl,
-                20
-              )
-            )
+                20,
+              ),
+            ),
           )
         )
       )
@@ -126,19 +115,19 @@ class ResultEntityKafkaSpec
         ZonedDateTime.parse("2021-01-01T00:00:00+01:00[Europe/Berlin]"),
         UUID.randomUUID(),
         Quantities.getQuantity(1d, PowerSystemUnits.PU),
-        Quantities.getQuantity(0d, PowerSystemUnits.DEGREE_GEOM)
+        Quantities.getQuantity(0d, PowerSystemUnits.DEGREE_GEOM),
       )
       val nodeRes2 = new NodeResult(
         ZonedDateTime.parse("2021-01-01T00:00:00+01:00[Europe/Berlin]"),
         UUID.randomUUID(),
         Quantities.getQuantity(0.8d, PowerSystemUnits.PU),
-        Quantities.getQuantity(15d, PowerSystemUnits.DEGREE_GEOM)
+        Quantities.getQuantity(15d, PowerSystemUnits.DEGREE_GEOM),
       )
       val nodeRes3 = new NodeResult(
         ZonedDateTime.parse("2021-01-10T00:00:00+01:00[Europe/Berlin]"),
         UUID.randomUUID(),
         Quantities.getQuantity(0.75d, PowerSystemUnits.PU),
-        Quantities.getQuantity(90d, PowerSystemUnits.DEGREE_GEOM)
+        Quantities.getQuantity(90d, PowerSystemUnits.DEGREE_GEOM),
       )
 
       When("receiving the NodeResults")
@@ -147,7 +136,7 @@ class ResultEntityKafkaSpec
         Iterable.empty,
         Iterable.empty,
         Iterable.empty,
-        Iterable.empty
+        Iterable.empty,
       )
 
       Then("records can be fetched from Kafka")
@@ -163,30 +152,27 @@ class ResultEntityKafkaSpec
           PlainNodeResult(
             runId,
             PlainWriter.createSimpleTimeStamp(nodeRes1.getTime),
-            nodeRes1.getUuid,
             nodeRes1.getInputModel,
             nodeRes1.getvMag().getValue.doubleValue(),
-            nodeRes1.getvAng().getValue.doubleValue()
+            nodeRes1.getvAng().getValue.doubleValue(),
           )
         )
         records should contain(
           PlainNodeResult(
             runId,
             PlainWriter.createSimpleTimeStamp(nodeRes2.getTime),
-            nodeRes2.getUuid,
             nodeRes2.getInputModel,
             nodeRes2.getvMag().getValue.doubleValue(),
-            nodeRes2.getvAng().getValue.doubleValue()
+            nodeRes2.getvAng().getValue.doubleValue(),
           )
         )
         records should contain(
           PlainNodeResult(
             runId,
             PlainWriter.createSimpleTimeStamp(nodeRes3.getTime),
-            nodeRes3.getUuid,
             nodeRes3.getInputModel,
             nodeRes3.getvMag().getValue.doubleValue(),
-            nodeRes3.getvAng().getValue.doubleValue()
+            nodeRes3.getvAng().getValue.doubleValue(),
           )
         )
       }

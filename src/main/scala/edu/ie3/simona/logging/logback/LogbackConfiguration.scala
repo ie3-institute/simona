@@ -39,7 +39,7 @@ object LogbackConfiguration extends LazyLogging {
             log,
             "simona-default",
             fileLoggerFilterList,
-            loggerContext
+            loggerContext,
           )
         )
 
@@ -61,7 +61,7 @@ object LogbackConfiguration extends LazyLogging {
       logPath: String,
       appenderName: String,
       maybeFilterList: Option[Seq[Filter[ILoggingEvent]]],
-      loggerContext: LoggerContext
+      loggerContext: LoggerContext,
   ): FileAppender[ILoggingEvent] = {
 
     val layoutEncoder = new PatternLayoutEncoder

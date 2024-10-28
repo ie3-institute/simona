@@ -12,9 +12,9 @@ import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.grid.{LineModel, NodeModel}
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
+import squants.{Amperes, Each}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units._
 
 import java.util.UUID
 import javax.measure.Quantity
@@ -25,10 +25,10 @@ import javax.measure.quantity.{Dimensionless, ElectricPotential}
   *
   * {{{
   * (5)
-  * |
-  * | (0)-----(3)-----(4)
-  * |
-  * | (1)-----(2)
+  *  |
+  * (3) ----- (4)
+  *  |
+  * (0) ----- (1)-----(2)
   * }}}
   *
   * Reference System: 400 kVA @ 10 kV --> Reference admittance: 4 mS
@@ -51,15 +51,15 @@ trait FiveLinesWithNodes {
       String,
       String,
       Boolean,
-      ComparableQuantity[ElectricPotential]
+      ComparableQuantity[ElectricPotential],
   ) => NodeModel = { (nodeId, uuid, isSlack, vNominal) =>
     new NodeModel(
       UUID.fromString(uuid),
       nodeId,
       OperationInterval(0L, 7200L),
       isSlack,
-      Quantities.getQuantity(1.0, PU),
-      GermanVoltageLevelUtils.parse(vNominal)
+      Each(1.0d),
+      GermanVoltageLevelUtils.parse(vNominal),
     )
   }
 
@@ -71,7 +71,7 @@ trait FiveLinesWithNodes {
       Quantity[Dimensionless],
       Quantity[Dimensionless],
       Quantity[Dimensionless],
-      Quantity[Dimensionless]
+      Quantity[Dimensionless],
   ) => LineModel = { (lineId, uuid, nodeA, nodeB, r, x, g, b) =>
     new LineModel(
       UUID.fromString(uuid),
@@ -80,11 +80,11 @@ trait FiveLinesWithNodes {
       nodeA.uuid,
       nodeB.uuid,
       1,
-      Quantities.getQuantity(300, AMPERE),
-      Quantities.getQuantity(r.getValue.doubleValue(), PU),
-      Quantities.getQuantity(x.getValue.doubleValue(), PU),
-      Quantities.getQuantity(g.getValue.doubleValue(), PU),
-      Quantities.getQuantity(b.getValue.doubleValue(), PU)
+      Amperes(300d),
+      Each(r.getValue.doubleValue()),
+      Each(x.getValue.doubleValue()),
+      Each(g.getValue.doubleValue()),
+      Each(b.getValue.doubleValue()),
     )
   }
 
@@ -93,42 +93,42 @@ trait FiveLinesWithNodes {
       "node0",
       "51c03963-f28b-4892-9053-c6bb58d20a45",
       true,
-      linesRatedVoltage
+      linesRatedVoltage,
     )
   def node1: NodeModel =
     _nodeCreator(
       "node1",
       "890fb76c-2c6c-4eea-a47d-cf0244750718",
       false,
-      linesRatedVoltage
+      linesRatedVoltage,
     )
   def node2: NodeModel =
     _nodeCreator(
       "node2",
       "be77fa50-613e-4fc9-854a-cfb694443e2f",
       false,
-      linesRatedVoltage
+      linesRatedVoltage,
     )
   def node3: NodeModel =
     _nodeCreator(
       "node3",
       "9a41fd03-fb9a-4966-925e-d847a28ca97d",
       false,
-      linesRatedVoltage
+      linesRatedVoltage,
     )
   def node4: NodeModel =
     _nodeCreator(
       "node4",
       "7f058275-476a-4d84-b1fa-12381204ac4f",
       false,
-      linesRatedVoltage
+      linesRatedVoltage,
     )
   def node5: NodeModel =
     _nodeCreator(
       "node5",
       "ea93feca-0947-4869-a961-9cf942143feb",
       false,
-      linesRatedVoltage
+      linesRatedVoltage,
     )
 
   protected def nodes: Seq[NodeModel] =
@@ -142,7 +142,7 @@ trait FiveLinesWithNodes {
     Quantities.getQuantity(0.0013109999999999999, PU),
     Quantities.getQuantity(0.0010680000000000002, PU),
     Quantities.getQuantity(0, PU),
-    Quantities.getQuantity(0.0000048375, PU)
+    Quantities.getQuantity(0.0000048375, PU),
   )
 
   val line1To2: LineModel = _lineCreator(
@@ -153,7 +153,7 @@ trait FiveLinesWithNodes {
     Quantities.getQuantity(0.001748, PU),
     Quantities.getQuantity(0.001424, PU),
     Quantities.getQuantity(0, PU),
-    Quantities.getQuantity(0.00000645, PU)
+    Quantities.getQuantity(0.00000645, PU),
   )
 
   val line0To3: LineModel = _lineCreator(
@@ -164,7 +164,7 @@ trait FiveLinesWithNodes {
     Quantities.getQuantity(0.000874, PU),
     Quantities.getQuantity(0.000712, PU),
     Quantities.getQuantity(0, PU),
-    Quantities.getQuantity(0.000003225, PU)
+    Quantities.getQuantity(0.000003225, PU),
   )
 
   val line3To4: LineModel = _lineCreator(
@@ -175,7 +175,7 @@ trait FiveLinesWithNodes {
     Quantities.getQuantity(0.000437, PU),
     Quantities.getQuantity(0.000356, PU),
     Quantities.getQuantity(0, PU),
-    Quantities.getQuantity(0.0000016125, PU)
+    Quantities.getQuantity(0.0000016125, PU),
   )
 
   val line3To5: LineModel = _lineCreator(
@@ -186,7 +186,7 @@ trait FiveLinesWithNodes {
     Quantities.getQuantity(0.002185, PU),
     Quantities.getQuantity(0.00178, PU),
     Quantities.getQuantity(0, PU),
-    Quantities.getQuantity(0.0000080625, PU)
+    Quantities.getQuantity(0.0000080625, PU),
   )
 
   protected val lines: Set[LineModel] =
@@ -200,7 +200,7 @@ trait FiveLinesWithNodes {
       node2.uuid -> 2,
       node3.uuid -> 3,
       node4.uuid -> 4,
-      node5.uuid -> 5
+      node5.uuid -> 5,
     )
 
   // corresponding admittance matrix
@@ -211,7 +211,7 @@ trait FiveLinesWithNodes {
       C.zero,
       C(-687.7449206024457, 560.2681733054249),
       C.zero,
-      C.zero
+      C.zero,
     ),
     (
       C(-458.4966137349637, 373.5121155369499),
@@ -219,7 +219,7 @@ trait FiveLinesWithNodes {
       C(-343.8724603012229, 280.1340866527124),
       C.zero,
       C.zero,
-      C.zero
+      C.zero,
     ),
     (
       C.zero,
@@ -227,7 +227,7 @@ trait FiveLinesWithNodes {
       C(343.8724603012229, -280.1340834277124),
       C.zero,
       C.zero,
-      C.zero
+      C.zero,
     ),
     (
       C(-687.7449206024457, 560.2681733054249),
@@ -235,7 +235,7 @@ trait FiveLinesWithNodes {
       C.zero,
       C(2338.3327300483156, -1904.9117827884445),
       C(-1375.4898412048915, 1120.5363466108497),
-      C(-275.0979682409783, 224.10726932216994)
+      C(-275.0979682409783, 224.10726932216994),
     ),
     (
       C.zero,
@@ -243,7 +243,7 @@ trait FiveLinesWithNodes {
       C.zero,
       C(-1375.4898412048915, 1120.5363466108497),
       C(1375.4898412048915, -1120.5363458045997),
-      C.zero
+      C.zero,
     ),
     (
       C.zero,
@@ -251,8 +251,8 @@ trait FiveLinesWithNodes {
       C.zero,
       C(-275.0979682409783, 224.10726932216994),
       C.zero,
-      C(275.0979682409783, -224.10726529091994)
-    )
+      C(275.0979682409783, -224.10726529091994),
+    ),
   )
 
 }

@@ -6,13 +6,20 @@
 
 package edu.ie3.simona.sim.setup
 
-import akka.actor.{ActorContext, ActorRef, ActorSystem}
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.connector.Transformer3WInput
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
-import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
+import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
+import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
+import edu.ie3.simona.ontology.messages.SchedulerMessage
+import edu.ie3.simona.scheduler.TimeAdvancer
+import edu.ie3.simona.scheduler.core.Core.CoreFactory
+import edu.ie3.simona.scheduler.core.RegularSchedulerCore
+import edu.ie3.simona.sim.SimonaSim
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.ActorContext
+import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 /** Trait that can be used to setup a customized simona simulation by providing
   * implementations for all setup information required by a
@@ -31,30 +38,31 @@ trait SimonaSetup {
     */
   val args: Array[String]
 
-  /** A function, that constructs the [[ActorSystem]], the simulation shall live
-    * in
+  /** Directory of the log output.
     */
-  val buildActorSystem: () => ActorSystem
+  def logOutputDir: String
 
-  /** Creates a sequence of runtime event listeners
+  /** Creates the runtime event listener
     *
     * @param context
     *   Actor context to use
     * @return
-    *   A sequence of actor references to runtime event listeners
+    *   An actor reference to the runtime event listener
     */
-  def runtimeEventListener(context: ActorContext): Seq[ActorRef]
+  def runtimeEventListener(
+      context: ActorContext[_]
+  ): ActorRef[RuntimeEventListener.Request]
 
-  /** Creates a sequence of system participant event listeners
+  /** Creates a sequence of result event listeners
     *
     * @param context
     *   Actor context to use
     * @return
-    *   A sequence of actor references to runtime event listeners
+    *   A sequence of actor references to result event listeners
     */
-  def systemParticipantsListener(
-      context: ActorContext
-  ): Seq[ActorRef]
+  def resultEventListener(
+      context: ActorContext[_]
+  ): Seq[ActorRef[ResultEventListener.Request]]
 
   /** Creates a primary service proxy. The proxy is the first instance to ask
     * for primary data. If necessary, it delegates the registration request to
@@ -65,13 +73,12 @@ trait SimonaSetup {
     * @param scheduler
     *   Actor reference to it's according scheduler to use
     * @return
-    *   An actor reference to the service as well as matching data to initialize
-    *   the service
+    *   An actor reference to the service
     */
   def primaryServiceProxy(
-      context: ActorContext,
-      scheduler: ActorRef
-  ): (ActorRef, InitPrimaryServiceProxyStateData)
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
+  ): ClassicRef
 
   /** Creates a weather service
     *
@@ -84,35 +91,58 @@ trait SimonaSetup {
     *   the service
     */
   def weatherService(
-      context: ActorContext,
-      scheduler: ActorRef
-  ): (ActorRef, InitWeatherServiceStateData)
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
+  ): ClassicRef
 
   /** Loads external simulations and provides corresponding actors and init data
     *
     * @param context
     *   Actor context to use
     * @param scheduler
-    *   Actor reference to it's according scheduler to use
+    *   Actor reference to the scheduler to use
     * @return
     *   External simulations and their init data
     */
   def extSimulations(
-      context: ActorContext,
-      scheduler: ActorRef
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
   ): ExtSimSetupData
+
+  /** Creates the time advancer
+    *
+    * @param context
+    *   Actor context to use
+    * @param simulation
+    *   The simulation root actor ([[edu.ie3.simona.sim.SimonaSim]])
+    * @param runtimeEventListener
+    *   Runtime event listener
+    * @return
+    *   An actor reference to the time advancer
+    */
+  def timeAdvancer(
+      context: ActorContext[_],
+      simulation: ActorRef[SimonaSim.SimulationEnded.type],
+      runtimeEventListener: ActorRef[RuntimeEvent],
+  ): ActorRef[TimeAdvancer.Request]
 
   /** Creates a scheduler service
     *
     * @param context
     *   Actor context to use
+    * @param parent
+    *   The parent scheduler, which could be a time advancer
+    * @param coreFactory
+    *   The factory creating a scheduler core that determines the scheduler's
+    *   behavior, defaulting to a regular scheduler
     * @return
     *   An actor reference to the scheduler
     */
   def scheduler(
-      context: ActorContext,
-      runtimeEventListener: Seq[ActorRef]
-  ): ActorRef
+      context: ActorContext[_],
+      parent: ActorRef[SchedulerMessage],
+      coreFactory: CoreFactory = RegularSchedulerCore,
+  ): ActorRef[SchedulerMessage]
 
   /** Creates all the needed grid agents
     *
@@ -120,17 +150,17 @@ trait SimonaSetup {
     *   Actor context to use
     * @param environmentRefs
     *   EnvironmentRefs to use
-    * @param systemParticipantListener
+    * @param resultEventListeners
     *   Listeners that await events from system participants
     * @return
     *   A mapping from actor reference to it's according initialization data to
     *   be used when setting up the agents
     */
   def gridAgents(
-      context: ActorContext,
+      context: ActorContext[_],
       environmentRefs: EnvironmentRefs,
-      systemParticipantListener: Seq[ActorRef]
-  ): Map[ActorRef, GridAgentInitData]
+      resultEventListeners: Seq[ActorRef[ResultEvent]],
+  ): Iterable[ActorRef[GridAgent.Request]]
 
   /** SIMONA links sub grids connected by a three winding transformer a bit
     * different. Therefore, the internal node has to be set as superior node.
@@ -144,7 +174,7 @@ trait SimonaSetup {
           new SubGridGate(
             transformer,
             transformer.getNodeInternal,
-            gate.inferiorNode
+            gate.inferiorNode,
           )
         case _ => gate
       }

@@ -6,19 +6,17 @@
 
 package edu.ie3.simona.model.thermal
 
-import edu.ie3.util.scala.quantities.KilowattHoursPerKelvinCubicMeters$
-
 import static edu.ie3.util.quantities.PowerSystemUnits.KILOWATTHOUR
-
 import static tech.units.indriya.quantity.Quantities.getQuantity
 
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
+import edu.ie3.util.scala.quantities.KilowattHoursPerKelvinCubicMeters$
 import edu.ie3.util.scala.quantities.Sq
-
 import spock.lang.Shared
 import spock.lang.Specification
-import squants.energy.*
+import squants.energy.KilowattHours$
+import squants.energy.Kilowatts$
 import squants.space.CubicMeters$
 import squants.thermal.Celsius$
 
@@ -28,7 +26,6 @@ class CylindricalThermalStorageTest extends Specification {
 
   @Shared
   CylindricalStorageInput storageInput
-
 
   def setupSpec() {
     storageInput = new CylindricalStorageInput(
@@ -43,19 +40,16 @@ class CylindricalThermalStorageTest extends Specification {
   }
 
   static def buildThermalStorage(CylindricalStorageInput storageInput, Double volume) {
-    def storedEnergy =
-        CylindricalThermalStorage.volumeToEnergy(
-        Sq.create(volume, CubicMeters$.MODULE$),
+    def storedEnergy = CylindricalThermalStorage.volumeToEnergy(Sq.create(volume, CubicMeters$.MODULE$),
         Sq.create(storageInput.c.value.doubleValue(), KilowattHoursPerKelvinCubicMeters$.MODULE$),
         Sq.create(storageInput.inletTemp.value.doubleValue(), Celsius$.MODULE$),
-        Sq.create(storageInput.returnTemp.value.doubleValue(), Celsius$.MODULE$)
-        )
+        Sq.create(storageInput.returnTemp.value.doubleValue(), Celsius$.MODULE$))
     def thermalStorage = CylindricalThermalStorage.apply(storageInput, storedEnergy)
     return thermalStorage
   }
 
   def vol2Energy(Double volume) {
-    return CylindricalThermalStorage.volumeToEnergy(
+    return CylindricalThermalStorage.volumeToEnergy( // FIXME below: get values in units with to..()
         Sq.create(volume, CubicMeters$.MODULE$),
         Sq.create(storageInput.c.value.doubleValue(), KilowattHoursPerKelvinCubicMeters$.MODULE$),
         Sq.create(storageInput.inletTemp.value.doubleValue(), Celsius$.MODULE$),
@@ -99,11 +93,9 @@ class CylindricalThermalStorageTest extends Specification {
 
     when:
     def usableThermalEnergy = storage.usableThermalEnergy()
-    def volumeFromUsableEnergy = CylindricalThermalStorage.energyToVolume(usableThermalEnergy, storage.c(), storage.inletTemp(), storage.returnTemp())
 
     then:
-    Math.abs(usableThermalEnergy.toKilowattHours()) - 50 * 10 * 1.15 < TESTING_TOLERANCE
-    Math.abs(volumeFromUsableEnergy.toCubicMeters()) - 50 < TESTING_TOLERANCE
+    Math.abs(usableThermalEnergy.toKilowattHours() - 5 * 115) < TESTING_TOLERANCE
   }
 
   def "Check apply, validation and build method:"() {
@@ -116,10 +108,43 @@ class CylindricalThermalStorageTest extends Specification {
     storage.operatorInput() == storageInput.operator
     storage.operationTime() == storageInput.operationTime
     storage.bus() == storageInput.thermalBus
-    storage.storageVolumeLvlMax() =~ Sq.create(storageInput.storageVolumeLvl.value.doubleValue(), CubicMeters$.MODULE$)
-    storage.storageVolumeLvlMin() =~ Sq.create(storageInput.storageVolumeLvlMin.value.doubleValue(), CubicMeters$.MODULE$)
-    storage.inletTemp() =~ Sq.create(storageInput.inletTemp.value.doubleValue(), Celsius$.MODULE$)
-    storage.returnTemp() =~ Sq.create(storageInput.returnTemp.value.doubleValue(), Celsius$.MODULE$)
-    storage.c().value().doubleValue() =~ storageInput.c.value.doubleValue()
+  }
+
+  def "Check mutable state update:"() {
+    when:
+    def storage = buildThermalStorage(storageInput, 70)
+    def lastState = new ThermalStorage.ThermalStorageState(tick, Sq.create(storedEnergy, KilowattHours$.MODULE$), Sq.create(qDot, Kilowatts$.MODULE$))
+    def result = storage.updateState(newTick, Sq.create(newQDot, Kilowatts$.MODULE$), lastState)
+
+    then:
+    Math.abs(result._1().storedEnergy().toKilowattHours() - expectedStoredEnergy.doubleValue()) < TESTING_TOLERANCE
+    result._2.defined
+    result._2.get() == expectedThreshold
+
+    where:
+    tick | storedEnergy  | qDot   | newTick | newQDot  || expectedStoredEnergy  | expectedThreshold
+    0L   | 250.0d        | 10.0d  | 3600L   | 42.0d    || 260.0d                | new ThermalStorage.ThermalStorageThreshold.StorageFull(79886L)
+    0L   | 250.0d        | 10.0d  | 3600L   | -42.0d   || 260.0d                | new ThermalStorage.ThermalStorageThreshold.StorageEmpty(6171L)
+    0L   | 250.0d        | -10.0d | 3600L   | 42.0d    || 240.0d                | new ThermalStorage.ThermalStorageThreshold.StorageFull(81600L)
+    0L   | 250.0d        | -10.0d | 3600L   | -42.0d   || 240.0d                | new ThermalStorage.ThermalStorageThreshold.StorageEmpty(4457L)
+    0L   | 250.0d        | -10.0d | 3600L   | -42.0d   || 240.0d                | new ThermalStorage.ThermalStorageThreshold.StorageEmpty(4457L)
+    0L   | 1000.0d       | 149.0d | 3600L   | 5000.0d  || 1149.0d               | new ThermalStorage.ThermalStorageThreshold.StorageFull(3601L)
+    0L   | 240.0d        | -9.0d  | 3600L   | -5000.0d || 231.0d                | new ThermalStorage.ThermalStorageThreshold.StorageEmpty(3601L)
+  }
+
+  def "Check mutable state update, if no threshold is reached:"() {
+    when:
+    def storage = buildThermalStorage(storageInput, 70)
+    def lastState = new ThermalStorage.ThermalStorageState(tick, Sq.create(storedEnergy, KilowattHours$.MODULE$), Sq.create(qDot, Kilowatts$.MODULE$))
+    def result = storage.updateState(newTick, Sq.create(newQDot, Kilowatts$.MODULE$), lastState)
+
+    then:
+    Math.abs(result._1().storedEnergy().toKilowattHours() - expectedStoredEnergy.doubleValue()) < TESTING_TOLERANCE
+    result._2.empty
+
+    where:
+    tick | storedEnergy  | qDot   | newTick | newQDot  || expectedStoredEnergy
+    0L   | 250.0d        | 10.0d  | 3600L   | 0.0d     || 260.0d
+    0L   | 250.0d        | -10.0d | 3600L   | 0.0d     || 240.0d
   }
 }

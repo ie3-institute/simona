@@ -9,9 +9,10 @@ package edu.ie3.simona.ontology.messages.services
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ProvisionMessage,
-  ServiceRegistrationMessage
+  ServiceRegistrationMessage,
 }
 import edu.ie3.util.scala.quantities.Irradiance
+import org.apache.pekko.actor.ActorRef
 import squants.{Temperature, Velocity}
 
 sealed trait WeatherMessage
@@ -34,7 +35,7 @@ object WeatherMessage {
     */
   final case class RegisterForWeatherMessage(
       latitude: Double,
-      longitude: Double
+      longitude: Double,
   ) extends WeatherMessage
       with ServiceRegistrationMessage
 
@@ -49,8 +50,9 @@ object WeatherMessage {
     */
   final case class ProvideWeatherMessage(
       override val tick: Long,
+      override val serviceRef: ActorRef,
       override val data: WeatherData,
-      override val nextDataTick: Option[Long]
+      override val nextDataTick: Option[Long],
   ) extends WeatherMessage
       with ProvisionMessage[WeatherData]
 
@@ -70,7 +72,7 @@ object WeatherMessage {
       diffIrr: Irradiance,
       dirIrr: Irradiance,
       temp: Temperature,
-      windVel: Velocity
+      windVel: Velocity,
   ) extends SecondaryData
 
 }

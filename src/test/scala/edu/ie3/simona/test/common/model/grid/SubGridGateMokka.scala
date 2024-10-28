@@ -12,7 +12,7 @@ import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.input.connector.{
   ConnectorPort,
   Transformer2WInput,
-  Transformer3WInput
+  Transformer3WInput,
 }
 import org.mockito.Mockito._
 import org.scalatestplus.mockito.MockitoSugar
@@ -49,7 +49,7 @@ trait SubGridGateMokka extends MockitoSugar {
     */
   protected def mockTransformer2w(
       nodeA: NodeInput,
-      nodeB: NodeInput
+      nodeB: NodeInput,
   ): Transformer2WInput = {
     val transformer = mock[Transformer2WInput]
     when(transformer.getNodeA).thenReturn(nodeA)
@@ -75,7 +75,7 @@ trait SubGridGateMokka extends MockitoSugar {
       nodeA: NodeInput,
       nodeASubnet: Int,
       nodeB: NodeInput,
-      nodeC: NodeInput
+      nodeC: NodeInput,
   ): Transformer3WInput = {
     val internalNode = mock[NodeInput]
     when(internalNode.getUuid).thenReturn(UUID.randomUUID())
@@ -106,7 +106,7 @@ trait SubGridGateMokka extends MockitoSugar {
       nodeAUuid: UUID,
       subGridA: Int,
       nodeBUuud: UUID,
-      subGridB: Int
+      subGridB: Int,
   ): SubGridGate = {
     val nodeA = mockNode(nodeAUuid, subGridA)
     val nodeB = mockNode(nodeBUuud, subGridB)
@@ -140,7 +140,7 @@ trait SubGridGateMokka extends MockitoSugar {
       subGridB: Int,
       nodeCUuid: UUID,
       subGridC: Int,
-      inferiorPort: ConnectorPort
+      inferiorPort: ConnectorPort,
   ): SubGridGate = {
     val nodeA = mockNode(nodeAUuid, subGridA)
     val nodeB = mockNode(nodeBUuid, subGridB)

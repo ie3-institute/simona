@@ -12,7 +12,7 @@ import edu.ie3.datamodel.models.profile.StandardLoadProfile
 import edu.ie3.simona.model.participant.load.profile.{
   LoadProfileKey,
   LoadProfileStore,
-  TypeDayProfile
+  TypeDayProfile,
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
@@ -48,30 +48,30 @@ class LoadProfileStoreSpec
           (
             "2019-04-01T05:00:00+02:00[Europe/Berlin]",
             L0,
-            55.6d
+            55.6d,
           ), // Weekday, transitional, 20th quarter hour
           (
             "2019-06-02T00:00:00+02:00[Europe/Berlin]",
             G0,
-            68.8d
+            68.8d,
           ), // Sunday, summer, 0th quarter hour
           (
             "2019-01-05T02:15:00+01:00[Europe/Berlin]",
             H0,
-            52.8d
+            52.8d,
           ), // Saturday, winter, 9th quarter hour, 5th day -> dynamization factor 1.2473
           (
             "2019-07-21T01:00:00+02:00[Europe/Berlin]",
             H0,
-            58.1d
-          ) // Sunday, summer, 4th quarter hour, 202nd day -> dynamization factor 0.7847
+            58.1d,
+          ), // Sunday, summer, 4th quarter hour, 202nd day -> dynamization factor 0.7847
         )
 
       forAll(params) {
         (
             timestamp: String,
             loadProfile: StandardLoadProfile,
-            paramValue: Double
+            paramValue: Double,
         ) =>
           val time = ZonedDateTime.parse(timestamp)
           val param = Watts(paramValue)
@@ -86,7 +86,7 @@ class LoadProfileStoreSpec
           ("profile", "maxParamValue"),
           (H0, 268.6d),
           (L0, 240.4d),
-          (G0, 240.4d)
+          (G0, 240.4d),
         )
 
       forAll(maxParams) {
@@ -110,12 +110,12 @@ class LoadProfileStoreSpec
           H0 -> KilowattHours(1000.0),
           L0 -> KilowattHours(1002.0),
           /* TODO: Check, if this is correct */
-          G0 -> KilowattHours(1022.0)
+          G0 -> KilowattHours(1022.0),
         )
 
       /* Collect all available time steps in 2020 */
       val startDate =
-        TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
+        TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
       val testDates =
         Range(0, 35136).map(cnt => startDate.plus(cnt * 15, ChronoUnit.MINUTES))
 
@@ -143,7 +143,7 @@ class LoadProfileStoreSpec
         implicit val powerTolerance: squants.Energy = KilowattHours(1.0)
 
         /* Check the deviation against the expected value (deviation should be smaller than 1 kWh) */
-        (annualEnergy ~= expected) shouldBe true
+        annualEnergy should approximate(expected)
       })
     }
   }

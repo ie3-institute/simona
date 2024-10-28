@@ -6,7 +6,8 @@
 
 package edu.ie3.simona.test.common
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
+import com.typesafe.config.{Config, ConfigFactory}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.listener.SimonaListenerCompanion
 import pureconfig.{ConfigObjectSource, ConfigSource}
@@ -58,6 +59,13 @@ trait ConfigTestData {
       |    simulationResult = false
       |}
       |simona.output.participant.individualConfigs = []
+      |simona.output.thermal = {
+      |  defaultConfig = {
+      |    notifier = "default",
+      |    simulationResult = false
+      |  }
+      |  individualConfigs = []
+      |}
       |
       |simona.runtime.participant.requestVoltageDeviationThreshold = 1E-14
       |simona.runtime.participant.load = {
@@ -106,8 +114,35 @@ trait ConfigTestData {
       |  individualConfigs = []
       |}
       |
+      |simona.runtime.participant.hp = {
+      |  defaultConfig = {
+      |       calculateMissingReactivePowerWithModel = false
+      |       uuids = ["default"]
+      |       scaling = 1.0
+      |  }
+      |  individualConfigs = []
+      |}
+      |
+      |simona.runtime.participant.storage = {
+      |  defaultConfig = {
+      |       calculateMissingReactivePowerWithModel = false
+      |       uuids = ["default"]
+      |       scaling = 1.0
+      |  }
+      |  individualConfigs = []
+      |}
+      |
+      |simona.runtime.participant.em = {
+      |  defaultConfig = {
+      |       calculateMissingReactivePowerWithModel = false
+      |       uuids = ["default"]
+      |       scaling = 1.0
+      |  }
+      |  individualConfigs = []
+      |}
+      |
       |simona.powerflow.maxSweepPowerDeviation = 1E-5 // the maximum allowed deviation in power between two sweeps, before overall convergence is assumed
-      |simona.powerflow.skipOnFailure = true
+      |simona.powerflow.stopOnFailure = true
       |simona.powerflow.newtonraphson.epsilon = [1E-12]
       |simona.powerflow.newtonraphson.iterations = 50
       |

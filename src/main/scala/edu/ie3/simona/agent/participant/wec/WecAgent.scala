@@ -6,26 +6,35 @@
 
 package edu.ie3.simona.agent.participant.wec
 
-import akka.actor.{ActorRef, Props}
 import edu.ie3.datamodel.models.input.system.WecInput
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.ParticipantAgent
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.config.RuntimeConfig.SimpleRuntimeConfig
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
+import edu.ie3.simona.config.SimonaConfig.WecRuntimeConfig
+import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.WecModel
 import edu.ie3.simona.model.participant.WecModel._
+import org.apache.pekko.actor.{ActorRef, Props}
 
 object WecAgent {
   def props(
       scheduler: ActorRef,
-      listener: Iterable[ActorRef]
+      initStateData: ParticipantInitializeStateData[
+        WecInput,
+        WecRuntimeConfig,
+        ApparentPower,
+      ],
+      listener: Iterable[ActorRef],
   ): Props =
     Props(
       new WecAgent(
         scheduler,
-        listener
+        initStateData,
+        listener,
       )
     )
 
@@ -43,15 +52,21 @@ object WecAgent {
   */
 class WecAgent(
     scheduler: ActorRef,
-    override val listener: Iterable[ActorRef]
+    initStateData: ParticipantInitializeStateData[
+      WecInput,
+      WecRuntimeConfig,
+      ApparentPower,
+    ],
+    override val listener: Iterable[ActorRef],
 ) extends ParticipantAgent[
       ApparentPower,
       WecRelevantData,
+      ConstantState.type,
       ParticipantStateData[ApparentPower],
       WecInput,
       SimpleRuntimeConfig,
-      WecModel
-    ](scheduler)
+      WecModel,
+    ](scheduler, initStateData)
     with WecAgentFundamentals {
 
   /*

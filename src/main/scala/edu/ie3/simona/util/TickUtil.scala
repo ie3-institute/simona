@@ -19,8 +19,7 @@ import java.time.temporal.ChronoUnit
 object TickUtil {
 
   /** Provides conversions from ZonedDateTime into ticks (actually seconds) */
-  implicit class RichZonedDateTime(private val zdt: ZonedDateTime)
-      extends AnyVal {
+  implicit class RichZonedDateTime(private val zdt: ZonedDateTime) {
 
     /** Calculates the difference between this date time and the provided date
       * time in ticks (= actual seconds)
@@ -33,7 +32,7 @@ object TickUtil {
   /** Provides conversions from ticks (seconds) into instances of
     * [[ZonedDateTime]]
     */
-  implicit class TickLong(private val tick: Long) extends AnyVal {
+  implicit class TickLong(private val tick: Long) {
 
     /** Calculates the current [[ZonedDateTime]] based on this tick */
     def toDateTime(implicit startDateTime: ZonedDateTime): ZonedDateTime =
@@ -46,7 +45,7 @@ object TickUtil {
     /** Calculate the length for the time interval */
     def durationUntil(
         otherTick: Long,
-        tickDuration: Time = Seconds(1d)
+        tickDuration: Time = Seconds(1d),
     ): Time =
       tickDuration * (otherTick - tick).toDouble
 

@@ -20,8 +20,10 @@ sealed trait LoadReference {
   val key: String
 
   def getKey: String = key
+
+  def scale(factor: Double): LoadReference
 }
-case object LoadReference {
+object LoadReference {
 
   /** Scale the load model behaviour to reach the given active power in max
     *
@@ -30,6 +32,9 @@ case object LoadReference {
     */
   final case class ActivePower(power: Power) extends LoadReference {
     override val key: String = "power"
+
+    override def scale(factor: Double): ActivePower =
+      copy(power = power * factor)
   }
 
   /** Scale the load model behaviour to reach the given annual energy
@@ -42,6 +47,9 @@ case object LoadReference {
       energyConsumption: Energy
   ) extends LoadReference {
     override val key: String = "energy"
+
+    override def scale(factor: Double): LoadReference =
+      copy(energyConsumption = energyConsumption * factor)
   }
 
   def isEligibleKey(key: String): Boolean = {
@@ -62,7 +70,7 @@ case object LoadReference {
     */
   def apply(
       inputModel: LoadInput,
-      modelConfig: LoadRuntimeConfig
+      modelConfig: LoadRuntimeConfig,
   ): LoadReference =
     StringUtils.cleanString(modelConfig.reference).toLowerCase match {
       case "power" =>

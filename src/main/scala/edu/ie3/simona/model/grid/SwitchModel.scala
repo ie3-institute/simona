@@ -35,11 +35,11 @@ final case class SwitchModel(
     id: String,
     operationInterval: OperationInterval,
     nodeAUuid: UUID,
-    nodeBUuid: UUID
+    nodeBUuid: UUID,
 ) extends SystemComponent(
       uuid,
       id,
-      operationInterval
+      operationInterval,
     ) {
 
   private var _isClosed = true
@@ -86,7 +86,7 @@ case object SwitchModel {
   def apply(
       switchInput: SwitchInput,
       simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime
+      simulationEndDate: ZonedDateTime,
   ): SwitchModel = {
 
     // validate the input model
@@ -96,7 +96,7 @@ case object SwitchModel {
       SystemComponent.determineOperationInterval(
         simulationStartDate,
         simulationEndDate,
-        switchInput.getOperationTime
+        switchInput.getOperationTime,
       )
 
     val switchModel = new SwitchModel(
@@ -104,7 +104,7 @@ case object SwitchModel {
       switchInput.getId,
       operationInterval,
       switchInput.getNodeA.getUuid,
-      switchInput.getNodeB.getUuid
+      switchInput.getNodeB.getUuid,
     )
     if (!switchInput.isClosed)
       switchModel.open()

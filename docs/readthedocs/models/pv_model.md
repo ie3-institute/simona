@@ -30,7 +30,7 @@ To calculate the overall feed in of the pv unit, the sum of the direct radiation
 
 **Caution:** all angles are given in radian!
 
-The azimuth angle $\alpha_{E}$ starts at negative values in the East and moves over 0° (South) towards positive values in the West. [Source](https://www.photovoltaik.org/wissen/azimutwinkel)
+The surface azimuth angle $\alpha_{E}$ starts at negative values in the East and moves over 0° (South) towards positive values in the West. [(Source)](https://www.photovoltaik.org/wissen/azimutwinkel)
 
 ### Declination Angle
 
@@ -46,17 +46,16 @@ $$
 Based on $J$ the declination angle $\delta$ (in radian!) can be calculated as follows:
 
 $$
-\begin{eqnarray*}\delta = 0.006918 - 0.399912 \cdot cos(J) + 0.070257 \cdot
-sin(J) \\ - 0.006758 \cdot cos(2\cdot J) + 0.000907 \cdot sin(2 \cdot J) \\ - 0.002697 \cdot cos(3 \cdot J) + 0.00148 \cdot sin(3 \cdot J)
+\begin{eqnarray*}\delta = 0.006918 - 0.399912 \cdot \cos(J) + 0.070257 \cdot
+\sin(J) \\ - 0.006758 \cdot \cos(2\cdot J) + 0.000907 \cdot \sin(2 \cdot J) \\ - 0.002697 \cdot \cos(3 \cdot J) + 0.00148 \cdot \sin(3 \cdot J)
 \end{eqnarray*}
 $$
 
 **References:**
 
-```{eval-rst}
-* :cite:cts:`Maleki.2017` 
-* :cite:ts:`Spencer.1971`
-```
+* {cite:cts}`Maleki.2017`
+* {cite:cts}`Spencer.1971`
+
 
 ### Hour Angle
 
@@ -92,8 +91,8 @@ $$
 **λ** = longitude of the location of the PV panel
 
 $$
-\begin{eqnarray*}ET = 0.0066 + 7.3525 \cdot cos(J + 1.4992378274631293) \\ +
-9.9359 \cdot cos(2 \cdot J + 1.9006635554218247) \\ + 0.3387 \cdot cos(3 \cdot J + 1.8360863730980346)
+\begin{eqnarray*}ET = 0.0066 + 7.3525 \cdot \cos(J + 1.4992378274631293) \\ +
+9.9359 \cdot \cos(2 \cdot J + 1.9006635554218247) \\ + 0.3387 \cdot \cos(3 \cdot J + 1.8360863730980346)
 \end{eqnarray*}
 $$
 
@@ -104,39 +103,39 @@ $$
 
 **References:**
 
-```{eval-rst}
-* :cite:cts:`Watter.2013` 
-* :cite:ts:`Maleki.2017`
-* :cite:ts:`Wang.2019`
-```
+* {cite:cts}`Watter.2013`
+* {cite:cts}`Maleki.2017`
+* {cite:cts}`Wang.2019`
+
 
 ### Sunrise Angle
 
-The hour angles at sunrise and sunset are very useful quantities to know. These two values have the same absolute value, however the sunrise angle ($\omega_{SR}$) is positive and the sunset angle ($\omega_{S}$) is negative. Both can be calculated from:
+The hour angles at sunrise and sunset are very useful quantities to know. These two values have the same absolute value, however the sunset angle ($\omega_{SS}$) is positive and the sunrise angle ($\omega_{SR}$) is negative. Both can be calculated from:
 
 $$
-\omega_{SR}=\cos^{-1}(-\tan (\phi) \cdot \tan (\delta))
+\omega_{SS}=\cos^{-1}(-\tan (\phi) \cdot \tan (\delta))
 $$
 
 $$
-\omega_{SS}=-\omega_{SR}
+\omega_{SR}=-\omega_{SS}
 $$
 
 *with*\
-**$\delta$** = the declination angle
+**$\delta$** = the declination angle\
+**$\phi$** = observer's latitude
 
 **References:**
-```{eval-rst}
-* :cite:cts:`Maleki.2017` 
-* :cite:ts:`Itaca_Sun`
-```
+
+* {cite:cts}`Maleki.2017`
+* {cite:cts}`Itaca_Sun`
+
 
 ### Solar Altitude Angle
 
 Represents the angle between the horizontal and the line to the sun, that is, the complement of the zenith angle.
 
 $$
-sin(\alpha_{s}) = sin (\phi) \cdot sin (\delta) + cos (\delta) \cdot cos (\omega) \cdot cos (\phi)
+\sin(\alpha_{s}) = \sin (\phi) \cdot \sin (\delta) + \cos (\delta) \cdot \cos (\omega) \cdot \cos (\phi)
 $$
 
 *with*\
@@ -146,10 +145,9 @@ $$
 
 **References:**
 
-```{eval-rst} 
-* :cite:ts:`Maleki.2017` p. 5
-* :cite:ts:`Itaca_Sun`
-```
+* {cite:cts}`Maleki.2017` p. 5
+* {cite:cts}`Itaca_Sun`
+
 
 ### Zenith Angle
 
@@ -177,14 +175,13 @@ $$
 \cos(\delta) \cdot \cos(\phi) \cdot \cos(\gamma_{e}) \cdot
 \cos(\omega) \\ + \cos(\delta) \cdot \sin(\phi) \cdot \sin(\gamma_{e})
 \cdot \cos(\alpha_{e}) \cdot \cos(\omega) \\ +
-cos(\delta) \cdot sin(\gamma_{e}) \cdot sin(\alpha_{e}) \cdot
-sin(\omega))
+\cos(\delta) \cdot \sin(\gamma_{e}) \cdot \sin(\alpha_{e}) \cdot
+\sin(\omega))
 \end{eqnarray*}
 $$
 
 *with*\
-**$\alpha_e$** = sun azimuth\
-**$\alpha_s$** = solar altitude angle\
+**$\alpha_e$** = surface azimuth angle\
 **$\gamma_e$** = slope angle of the surface\
 **$\delta$** = the declination angle\
 **$\phi$** = observer's latitude\
@@ -192,10 +189,9 @@ $$
 
 **References:**
 
-```{eval-rst} 
-* :cite:ts:`Quaschning.2013`
-* :cite:ts:`Maleki.2017` p. 18
-```
+* {cite:cts}`Quaschning.2013`
+* {cite:cts}`Maleki.2017` p. 18
+
 
 ### Air Mass
 
@@ -211,10 +207,9 @@ $$
 
 **References:**
 
-```{eval-rst} 
-* :cite:ts:`Schoenberg.1929`
-* :cite:ts:`WikiAirMass`
-```
+* {cite:cts}`Schoenberg.1929`
+* {cite:cts}`WikiAirMass`
+
 
 ### Extraterrestrial Radiation
 
@@ -237,10 +232,9 @@ $$
 
 **References:**
 
-```{eval-rst} 
-* :cite:ts:`Zheng.2017` p. 53, formula 2.3b
-* :cite:ts:`Iqbal.1983`
-```
+* {cite:cts}`Zheng.2017` p. 53, formula 2.3b
+* {cite:cts}`Iqbal.1983`
+
 
 ### Beam Radiation on Sloped Surface
 
@@ -254,6 +248,8 @@ $$
 \end{eqnarray*}
 $$
 
+Additionally, the condition $\theta_{g} < 90°$ must be met (the sun must not be behind the surface).
+
 *with*\
 **$\omega$** = hour angle\
 **$\omega_{SS}$** = hour angle $\omega$ at sunset\
@@ -264,10 +260,10 @@ From here on, formulas from given reference below are used:
 
 $$
 \begin{eqnarray*}
-a = (\sin(\delta) \cdot \sin(\phi) \cdot \cos(\gamma_{e})
+a = (\sin(\delta) \cdot \sin(\phi) \cdot \cos(\gamma_{e}) - 
 \sin(\delta) \cdot \cos(\phi) \cdot \sin(\gamma_{e}) \cdot
 \cos(\alpha_{e})) \cdot (\omega_{2} - \omega_{1}) \\ + (\cos(\delta) \cdot \cos(\phi) \cdot \cos(\gamma_{e}) +
-\cos(\delta) \cdot \sin(\phi) \cdot \sin(\gamma\_{e}) \cdot
+\cos(\delta) \cdot \sin(\phi) \cdot \sin(\gamma_{e}) \cdot
 \cos(\alpha_{e})) \cdot (\sin(\omega_{2}) \\ -
 \sin(\omega_{1}))  - (\cos(\delta) \cdot \sin(\gamma_{e}) \cdot \sin(\alpha_{e})) \cdot (\cos(\omega_{2}) - \cos(\omega_{1}))
 \end{eqnarray*}
@@ -278,7 +274,7 @@ b = (\cos(\phi) \cdot \cos(\delta)) \cdot (\sin(\omega_{2}) - \sin(\omega_{1})) 
 $$
 
 $$
-E_{dir,S} = E_{dir,H} \cdot \frac{a}{b}
+E_{beam,S} = E_{beam,H} \cdot \frac{a}{b}
 $$
 
 **Please note:** $\frac{1}{180}\pi$ is omitted from these formulas, as we are already working with data in *radians*.
@@ -286,17 +282,16 @@ $$
 *with*\
 **$\delta$** = the declination angle\
 **$\phi$** = observer's latitude\
-**$\gamma$** = slope angle of the surface\
+**$\gamma_{e}$** = slope angle of the surface\
 **$\omega_1$** = hour angle $\omega$\
 **$\omega_2$** = hour angle $\omega$ + 1 hour\
-**$\alpha_e$** = sun azimuth\
-**$E_{dir,H}$** = beam radiation (horizontal surface)
+**$\alpha_e$** = surface azimuth angle\
+**$E_{beam,H}$** = beam radiation (horizontal surface)
 
 **Reference:**
 
-```{eval-rst} 
-* :cite:ts:`Duffie.2013` p. 88
-```
+* {cite:cts}`Duffie.2013` p. 88
+
 
 ### Diffuse Radiation on Sloped Surface
 
@@ -305,7 +300,7 @@ The diffuse radiation is computed using the Perez model, which divides the radia
 A cloud index is defined by
 
 $$
-\epsilon = \frac{\frac{E_{dif,H} + E_{dir,H}}{E_{dif,H}} + 5.535 \cdot 10^{-6} \cdot \theta_{z}^3}{1 + 5.535 \cdot 10^{-6} \cdot \theta_{z}^3}
+\epsilon = \frac{\frac{E_{dif,H} + E_{beam,H}}{E_{dif,H}} + 5.535 \cdot 10^{-6} \cdot \theta_{z}^3}{1 + 5.535 \cdot 10^{-6} \cdot \theta_{z}^3}
 $$
 
 Calculating a brightness index
@@ -398,20 +393,18 @@ $$
 **$\theta_{z}$** = zenith angle\
 **$\theta_{g}$** = angle of incidence\
 **$\alpha_{s}$** = solar altitude angle\
-**$\alpha_{z}$** = sun azimuth\
 **$\gamma_{e}$** = slope angle of the surface\
 **$I_{0}$** = Extraterrestrial Radiation\
 **$m$** = air mass\
-**$E_{dir,H}$** = direct radiation (horizontal surface)\
+**$E_{beam,H}$** = beam radiation (horizontal surface)\
 **$E_{dif,H}$** = diffuse radiation (horizontal surface)
 
 **References:**
 
-```{eval-rst} 
-* :cite:ts:`Perez.1987`
-* :cite:ts:`Perez.1990`
-* :cite:ts:`Myers.2017` p. 96f
-```
+* {cite:cts}`Perez.1987`
+* {cite:cts}`Perez.1990`
+* {cite:cts}`Myers.2017` p. 96f
+
 
 ### Reflected Radiation on Sloped Surface
 
@@ -421,14 +414,13 @@ E_{ref,S} = E_{Ges,H} \cdot \frac{\rho}{2} \cdot (1-
 $$
 
 *with*\
-**$E_{Ges,H}$** = total horizontal radiation ($E_{dir,H} + E_{dif,H})$\
+**$E_{Ges,H}$** = total horizontal radiation ($E_{beam,H} + E_{dif,H})$\
 **$\gamma_e$** = slope angle of the surface\
 **$\rho$** = albedo
 
 **Reference:**
-```{eval-rst} 
-* :cite:ts:`Maleki.2017` p. 19
-```
+
+* {cite:cts}`Maleki.2017` p. 19
 
 
 ### Output
@@ -436,11 +428,11 @@ $$
 Received energy is calculated as the sum of all three types of irradiation.
 
 $$
-E_{total} = E_{dir,S} + E_{dif,S} + E_{ref,S}
+E_{total} = E_{beam,S} + E_{dif,S} + E_{ref,S}
 $$
 
 *with*\
-**$E_{dir,S}$** = Beam radiation\
+**$E_{beam,S}$** = Beam radiation\
 **$E_{dif,S}$** = Diffuse radiation\
 **$E_{ref,S}$** = Reflected radiation
 

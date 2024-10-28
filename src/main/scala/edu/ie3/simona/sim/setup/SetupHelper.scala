@@ -6,13 +6,14 @@
 
 package edu.ie3.simona.sim.setup
 
-import akka.actor.ActorRef
 import com.typesafe.config.{Config => TypesafeConfig}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.graph.SubGridGate
-import edu.ie3.datamodel.models.input.container.SubGridContainer
+import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.result.ResultEntity
+import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.utils.ContainerUtils
+import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.config.RefSystemParser.ConfigRefSystems
 import edu.ie3.simona.config.{OutputConfig, SimonaConfig}
@@ -20,9 +21,12 @@ import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.model.grid.RefSystem
-import edu.ie3.simona.util.ConfigUtil.{BaseOutputConfigUtil, GridOutputConfigUtil}
+import edu.ie3.simona.util.ConfigUtil.{ GridOutputConfigUtil, OutputConfigUtil}
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
 import edu.ie3.simona.util.{EntityMapperUtil, ResultFileHierarchy}
+import edu.ie3.util.quantities.PowerSystemUnits
+import org.apache.pekko.actor.typed.ActorRef
+import squants.electro.Kilovolts
 
 import java.nio.file.Path
 
@@ -48,20 +52,23 @@ trait SetupHelper extends LazyLogging {
     *   ancestors and children
     * @param configRefSystems
     *   Collection of reference systems defined in config
+    * @param thermalGrids
+    *   Collection of applicable thermal grids
     * @return
     *   Initialization data for the [[edu.ie3.simona.agent.grid.GridAgent]]
     *   representing this sub grid
     */
   def buildGridAgentInitData(
       subGridContainer: SubGridContainer,
-      subGridToActorRef: Map[Int, ActorRef],
+      subGridToActorRef: Map[Int, ActorRef[GridAgent.Request]],
       gridGates: Set[SubGridGate],
-      configRefSystems: ConfigRefSystems
+      configRefSystems: ConfigRefSystems,
+      thermalGrids: Seq[ThermalGrid],
   ): GridAgentInitData = {
     val subGridGateToActorRef = buildGateToActorRef(
       subGridToActorRef,
       gridGates,
-      subGridContainer.getSubnet
+      subGridContainer.getSubnet,
     )
 
     /* Find the matching reference system */
@@ -73,7 +80,12 @@ trait SetupHelper extends LazyLogging {
       ContainerUtils.withTrafoNodeAsSlack(subGridContainer)
 
     // build the grid agent data and check for its validity
-    GridAgentInitData(updatedSubGridContainer, subGridGateToActorRef, refSystem)
+    GridAgentInitData(
+      updatedSubGridContainer,
+      thermalGrids,
+      subGridGateToActorRef,
+      refSystem,
+    )
   }
 
   /** Maps the [[SubGridGate]] s of a given sub grid to the corresponding actor
@@ -89,10 +101,10 @@ trait SetupHelper extends LazyLogging {
     *   A mapping from [[SubGridGate]] to corresponding actor reference
     */
   def buildGateToActorRef(
-      subGridToActorRefMap: Map[Int, ActorRef],
+      subGridToActorRefMap: Map[Int, ActorRef[GridAgent.Request]],
       subGridGates: Set[SubGridGate],
-      currentSubGrid: Int
-  ): Map[SubGridGate, ActorRef] =
+      currentSubGrid: Int,
+  ): Map[SubGridGate, ActorRef[GridAgent.Request]] =
     subGridGates
       .groupBy(gate => (gate.superiorNode, gate.inferiorNode))
       .flatMap(_._2.headOption)
@@ -104,14 +116,14 @@ trait SetupHelper extends LazyLogging {
           gate -> getActorRef(
             subGridToActorRefMap,
             currentSubGrid,
-            superiorSubGrid
+            superiorSubGrid,
           )
         } else if (superiorSubGrid == currentSubGrid) {
           /* This is a gate to an inferior sub grid */
           gate -> getActorRef(
             subGridToActorRefMap,
             currentSubGrid,
-            inferiorSubGrid
+            inferiorSubGrid,
           )
         } else {
           throw new GridAgentInitializationException(
@@ -134,10 +146,10 @@ trait SetupHelper extends LazyLogging {
     *   The actor reference of the sub grid to look for
     */
   def getActorRef(
-      subGridToActorRefMap: Map[Int, ActorRef],
+      subGridToActorRefMap: Map[Int, ActorRef[GridAgent.Request]],
       currentSubGrid: Int,
-      queriedSubGrid: Int
-  ): ActorRef = {
+      queriedSubGrid: Int,
+  ): ActorRef[GridAgent.Request] = {
     subGridToActorRefMap.get(queriedSubGrid) match {
       case Some(hit) => hit
       case _ =>
@@ -159,12 +171,12 @@ trait SetupHelper extends LazyLogging {
     */
   def getRefSystem(
       configRefSystems: ConfigRefSystems,
-      subGridContainer: SubGridContainer
+      subGridContainer: SubGridContainer,
   ): RefSystem = {
     val refSystem = configRefSystems
       .find(
         subGridContainer.getSubnet,
-        Some(subGridContainer.getPredominantVoltageLevel)
+        Some(subGridContainer.getPredominantVoltageLevel),
       )
       .getOrElse(
         throw new InitializationException(
@@ -173,15 +185,17 @@ trait SetupHelper extends LazyLogging {
         )
       )
 
-    if (
-      !refSystem.nominalVoltage.equals(
-        subGridContainer.getPredominantVoltageLevel.getNominalVoltage
-      )
+    val containerPotential = Kilovolts(
+      subGridContainer.getPredominantVoltageLevel.getNominalVoltage
+        .to(PowerSystemUnits.KILOVOLT)
+        .getValue
+        .doubleValue
     )
+
+    if (refSystem.nominalVoltage != containerPotential)
       logger.warn(
         s"The configured RefSystem for subGrid ${subGridContainer.getSubnet} differs in its nominal voltage (${refSystem.nominalVoltage}) from the grids" +
-          s"predominant voltage level nominal voltage (${subGridContainer.getPredominantVoltageLevel.getNominalVoltage}). If this is by intention and still valid, this " +
-          s"warning can be just ignored!"
+          s"predominant voltage level nominal voltage ($containerPotential). If this is by intention and still valid, this warning can be just ignored!"
       )
 
     refSystem
@@ -200,7 +214,7 @@ trait SetupHelper extends LazyLogging {
   def buildResultFileHierarchy(
       tscfg: TypesafeConfig,
       simonaConfig: SimonaConfig,
-      createDirs: Boolean = true
+      createDirs: Boolean = true,
   ): ResultFileHierarchy = {
 
     /* Determine the result models to write */
@@ -214,12 +228,12 @@ trait SetupHelper extends LazyLogging {
         modelsToWrite,
         ResultSinkType(
           simonaConfig.output.sink,
-          simonaConfig.simulationName
-        )
+          simonaConfig.simulationName,
+        ),
       ),
       addTimeStampToOutputDir =
         simonaConfig.output.base.addTimestampToOutputDir,
-      createDirs = createDirs
+      createDirs = createDirs,
     )
 
     // copy config data to output directory
@@ -229,7 +243,7 @@ trait SetupHelper extends LazyLogging {
   }
 }
 
-case object SetupHelper {
+object SetupHelper {
 
   /** Determine a comprehensive collection of all [[ResultEntity]] classes, that
     * will have to be considered
@@ -245,8 +259,13 @@ case object SetupHelper {
     GridOutputConfigUtil(
       outputConfig.grid
     ).simulationResultEntitiesToConsider ++
-      BaseOutputConfigUtil(
+      (OutputConfigUtil(
         outputConfig.participant
-      ).simulationResultIdentifiersToConsider
-        .map(notifierId => EntityMapperUtil.getResultEntityClass(notifierId))
+      ).simulationResultIdentifiersToConsider(thermal =
+        false
+      ) ++ OutputConfigUtil(
+        outputConfig.thermal
+      ).simulationResultIdentifiersToConsider(thermal = true))
+        .map(notifierId => EntityMapperUtil.getResultEntityClass(notifierId)) ++
+      (if (outputConfig.flex) Seq(classOf[FlexOptionsResult]) else Seq.empty)
 }

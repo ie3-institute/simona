@@ -13,6 +13,7 @@ import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.test.common.input.FixedFeedInputTestData
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits.MEGAVOLTAMPERE
 import org.scalatest.PrivateMethodTester
 import squants.energy.{Kilowatts, Megawatts, Watts}
@@ -29,13 +30,11 @@ class FixedFeedInModelSpec
 
   "The fixed feed in model object" should {
 
-    val foreSeenScalingFactor: Double = 1.0
-
     "build a correct FixedFeedModel from correct input" in {
       val simonaConfig: SimonaConfig =
         createSimonaConfig(
           LoadModelBehaviour.FIX,
-          LoadReference.ActivePower(Kilowatts(0.0))
+          LoadReference.ActivePower(Kilowatts(0.0)),
         )
       val modelConfig = ConfigUtil
         .ParticipantConfigUtil(
@@ -47,7 +46,7 @@ class FixedFeedInModelSpec
         fixedFeedInput,
         modelConfig,
         defaultSimulationStart,
-        defaultSimulationEnd
+        defaultSimulationEnd,
       )
 
       inside(actualModel) {
@@ -55,21 +54,51 @@ class FixedFeedInModelSpec
               uuid,
               id,
               operationInterval,
-              scalingFactor,
               qControl,
               sRated,
-              cosPhiRated
+              cosPhiRated,
             ) =>
           uuid shouldBe fixedFeedInput.getUuid
           id shouldBe fixedFeedInput.getId
           operationInterval shouldBe defaultOperationInterval
-          scalingFactor shouldBe foreSeenScalingFactor
           qControl shouldBe QControl(fixedFeedInput.getqCharacteristics)
-          (sRated ~= Megawatts(
-            fixedFeedInput.getsRated().to(MEGAVOLTAMPERE).getValue.doubleValue
-          )) shouldBe true
+          sRated should approximate(
+            Megawatts(
+              fixedFeedInput.getsRated().to(MEGAVOLTAMPERE).getValue.doubleValue
+            )
+          )
           cosPhiRated shouldBe fixedFeedInput.getCosPhiRated
       }
+    }
+
+    "return approximately correct power calculations" in {
+      val expectedPower = Kilowatts(
+        fixedFeedInput
+          .getsRated()
+          .to(PowerSystemUnits.KILOWATT)
+          .getValue
+          .doubleValue() * -1 * fixedFeedInput.getCosPhiRated
+      )
+
+      val actualModel = new FixedFeedInModel(
+        fixedFeedInput.getUuid,
+        fixedFeedInput.getId,
+        defaultOperationInterval,
+        QControl.apply(fixedFeedInput.getqCharacteristics()),
+        Kilowatts(
+          fixedFeedInput
+            .getsRated()
+            .to(PowerSystemUnits.KILOWATT)
+            .getValue
+            .doubleValue()
+        ),
+        fixedFeedInput.getCosPhiRated,
+      )
+
+      actualModel.calculateActivePower(
+        ModelState.ConstantState,
+        CalcRelevantData.FixedRelevantData,
+      ) shouldBe expectedPower
     }
   }
 }

@@ -6,31 +6,33 @@
 
 package edu.ie3.simona.main
 
-import akka.actor.ActorSystem
-
-import java.util.concurrent.TimeUnit
-import akka.pattern.ask
-import akka.util.Timeout
 import edu.ie3.simona.config.{ArgsParser, ConfigFailFast, SimonaConfig}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{InitSimMessage, SimulationFailureMessage, SimulationSuccessfulMessage}
+import edu.ie3.simona.main.RunSimona._
 import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
+import edu.ie3.util.io.FileIOUtils
+import org.apache.pekko.actor.typed.scaladsl.AskPattern._
+import org.apache.pekko.actor.typed.{ActorSystem, Scheduler}
+import org.apache.pekko.util.Timeout
 
-import java.nio.file.{Paths}
+import java.nio.file.{Path, Paths}
 import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.{Duration, DurationInt}
+import scala.jdk.FutureConverters.CompletionStageOps
+import scala.util.{Failure, Success}
 
 /** Run a standalone simulation of simona
  *
- * @version 0.1
+
  * @since 01.07.20
  */
 object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
 
-  override implicit val timeout: Timeout = Timeout(50000, TimeUnit.SECONDS)
+  override implicit val timeout: Timeout = Timeout(12.hours)
+  implicit val compressTimeoutDuration: Duration = 15.minutes
 
-  override def setup(
-      args: Array[String]
-  ): Seq[SimonaStandaloneSetup] = {
+  override def setup(args: Array[String]): SimonaStandaloneSetup = {
 
     // Note: We parse the config as tscfg separately, as it includes the akka configuration,
     // which is passed to the actor system
@@ -43,39 +45,62 @@ object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
     val simonaConfig = SimonaConfig(cfgPath)
     ConfigFailFast.check(tscfg, simonaConfig)
 
-    Seq(
-      SimonaStandaloneSetup(
-        simonaConfig,
+    SimonaStandaloneSetup(
+      simonaConfig,
         tscfg,
-        SimonaStandaloneSetup.buildResultFileHierarchy(tscfg, simonaConfig),
-        mainArgs = arguments.mainArgs
-      )
+      SimonaStandaloneSetup.buildResultFileHierarchy(tscfg, simonaConfig),
+      mainArgs = arguments.mainArgs,
     )
   }
 
-  override def run(
-      simonaSetup: SimonaStandaloneSetup
-  ): Unit = {
-    val actorSystem: ActorSystem = simonaSetup.buildActorSystem.apply()
-    // build the simulation container actor
-    val simonaSim = actorSystem.actorOf(
-      SimonaSim.props(simonaSetup)
+  override def run(simonaSetup: SimonaStandaloneSetup): Boolean = {
+    val simonaSim = ActorSystem(
+      SimonaSim(simonaSetup),
+      name = "Simona",
+      config = simonaSetup.typeSafeConfig,
     )
 
+    implicit val scheduler: Scheduler = simonaSim.scheduler
+
     // run the simulation
-    val terminated = simonaSim ? InitSimMessage
+    val terminated = simonaSim.ask[SimonaEnded](ref => SimonaSim.Start(ref))
 
     Await.result(terminated, timeout.duration) match {
-      case SimulationFailureMessage | SimulationSuccessfulMessage =>
-        Await.ready(shutdownGracefully(simonaSim), timeout.duration)
-        Await.ready(actorSystem.terminate(), timeout.duration)
+      case SimonaEnded(successful) =>
+        simonaSim.terminate()
 
-      case unknown =>
-        throw new RuntimeException(
-          s"Unexpected message from SimonaSim $unknown"
-        )
+        val config = SimonaConfig(simonaSetup.typeSafeConfig).simona.output
+
+        config.sink.csv.map(_.zipFiles).foreach { zipFiles =>
+          if (zipFiles) {
+            val rawOutputPath =
+              Path.of(simonaSetup.resultFileHierarchy.rawOutputDataDir)
+
+            rawOutputPath.toFile.listFiles().foreach { file =>
+              val fileName = file.getName
+              val archiveName = fileName.replace(".csv", "")
+              val filePath = rawOutputPath.resolve(fileName)
+
+              val compressFuture =
+                FileIOUtils
+                  .compressFile(filePath, rawOutputPath.resolve(archiveName))
+                  .asScala
+              compressFuture.onComplete {
+                case Success(_) =>
+                  FileIOUtils.deleteRecursively(filePath)
+                case Failure(exception) =>
+                  logger.error(
+                    s"Compression of output file to '$archiveName' has failed. Keep raw data.",
+                    exception,
+                  )
+              }
+              Await.ready(compressFuture, compressTimeoutDuration)
+            }
+          }
+        }
+
+        successful
     }
-
   }
 
 }

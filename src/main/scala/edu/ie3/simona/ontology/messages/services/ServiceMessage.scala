@@ -6,17 +6,18 @@
 
 package edu.ie3.simona.ontology.messages.services
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 
 import java.util.UUID
 import edu.ie3.simona.agent.participant.data.Data
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 
 /** Collections of all messages, that are send to and from the different
   * services
   */
 sealed trait ServiceMessage
 
-case object ServiceMessage {
+object ServiceMessage {
 
   /** Message used to register for a service
     */
@@ -40,18 +41,29 @@ case object ServiceMessage {
   final case class WorkerRegistrationMessage(requestingActor: ActorRef)
       extends ServiceRegistrationMessage
 
-  sealed trait RegistrationResponseMessage extends ServiceMessage
+  sealed trait RegistrationResponseMessage extends ServiceMessage {
+    val serviceRef: ActorRef
+  }
 
-  case object RegistrationResponseMessage {
+  object RegistrationResponseMessage {
 
     /** Message, that is used to confirm a successful registration
       */
-    final case class RegistrationSuccessfulMessage(nextDataTick: Option[Long])
-        extends RegistrationResponseMessage
+    final case class RegistrationSuccessfulMessage(
+        override val serviceRef: ActorRef,
+        nextDataTick: Option[Long],
+    ) extends RegistrationResponseMessage
 
     /** Message, that is used to announce a failed registration
       */
-    case object RegistrationFailedMessage extends RegistrationResponseMessage
+    final case class RegistrationFailedMessage(
+        override val serviceRef: ActorRef
+    ) extends RegistrationResponseMessage
+
+    final case class ScheduleServiceActivation(
+        tick: Long,
+        unlockKey: ScheduleKey,
+    )
   }
 
   /** Actual provision of data
@@ -61,7 +73,12 @@ case object ServiceMessage {
     */
   trait ProvisionMessage[D <: Data] extends ServiceMessage {
     val tick: Long
+    val serviceRef: ActorRef
     val data: D
+
+    /** Next tick at which data could arrive. If None, no data is expected for
+      * the rest of the simulation
+      */
     val nextDataTick: Option[Long]
   }
 }

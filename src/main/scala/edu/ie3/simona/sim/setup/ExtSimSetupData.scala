@@ -6,25 +6,14 @@
 
 package edu.ie3.simona.sim.setup
 
-import akka.actor.ActorRef
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  InitializeExtSimAdapterTrigger,
-  InitializeServiceTrigger,
-  InitializeTrigger
-}
-import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
+import org.apache.pekko.actor.{ActorRef => ClassicRef}
+import edu.ie3.simona.service.ev.ExtEvDataService
 
 final case class ExtSimSetupData(
-    extSimAdapters: Iterable[(ActorRef, InitializeExtSimAdapterTrigger)],
-    extDataServices: Iterable[(ActorRef, InitializeServiceTrigger[_])]
+    extSimAdapters: Iterable[ClassicRef],
+    extDataServices: Map[Class[_], ClassicRef],
 ) {
 
-  def allActorsAndInitTriggers: Iterable[(ActorRef, InitializeTrigger)] =
-    extSimAdapters ++ extDataServices
-
-  def evDataService: Option[ActorRef] =
-    extDataServices.collectFirst {
-      case (actorRef, InitializeServiceTrigger(InitExtEvData(_))) =>
-        actorRef
-    }
+  def evDataService: Option[ClassicRef] =
+    extDataServices.get(classOf[ExtEvDataService])
 }

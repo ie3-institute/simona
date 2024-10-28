@@ -1,27 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright (c) 2019. TU Dortmund University,
+  ~ Copyright (c) 2024. TU Dortmund University,
   ~ Institute of Energy Systems, Energy Efficiency and Energy Economics,
   ~ Research group Distribution grid planning and operation
   -->
 <configuration>
-    <timestamp key="bySecond" datePattern="yyyyMMdd'T'HHmmss"/>
+
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <!-- encoders are assigned the type
              ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
         <encoder>
             <pattern>%highlight%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
         </encoder>
-        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-            <level>OFF</level>
-        </filter>
     </appender>
+
     <appender name="RF" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>test/logs/simona/simona_tests.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- daily rollover -->
-            <fileNamePattern>test/logs/simona/archive/simona_tests-%d{yyyyMMdd'T'HHmmss}-${bySecond}.log</fileNamePattern>
-            <!-- keep 30 days' worth of history capped at 3GB total size -->
+            <fileNamePattern>test/logs/simona/archive/simona_tests-%d{yyyyMMdd'T'HHmmss}.log</fileNamePattern>
+            <!-- keep 10 days worth of history capped at 3GB total size -->
             <maxHistory>10</maxHistory>
             <totalSizeCap>3GB</totalSizeCap>
         </rollingPolicy>
@@ -32,8 +30,30 @@
             <level>DEBUG</level>
         </filter>
     </appender>
-    <root level="debug">
+
+    <!--
+        Logging from tests are silenced by this appender. When there is a test failure
+        the captured logging events are flushed to the appenders defined for the
+        org.apache.pekko.actor.testkit.typed.internal.CapturingAppenderDelegate logger.
+    -->
+    <appender name="CapturingAppender" class="org.apache.pekko.actor.testkit.typed.internal.CapturingAppender" />
+
+    <!--
+        The appenders defined for this CapturingAppenderDelegate logger are used
+        when there is a test failure and all logging events from the test are
+        flushed to these appenders. The test spec must extend
+        org.apache.pekko.actor.testkit.typed.scaladsl.LogCapturing.
+    -->
+    <logger name="org.apache.pekko.actor.testkit.typed.internal.CapturingAppenderDelegate" >
         <appender-ref ref="STDOUT"/>
+    </logger>
+
+    <root level="debug">
+        <!--
+            No direct reference to STDOUT here, since we only want logs in console on failure
+        -->
+        <appender-ref ref="CapturingAppender"/>
         <appender-ref ref="RF"/>
     </root>
+
 </configuration>

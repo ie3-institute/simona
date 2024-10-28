@@ -11,7 +11,7 @@ import java.io.InputStreamReader
 import edu.ie3.simona.model.participant.load.random.{
   RandomLoadParamStore,
   RandomLoadParameters,
-  TypeDayParameters
+  TypeDayParameters,
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
@@ -40,25 +40,25 @@ class RandomLoadParamStoreSpec
           "sigmaSa",
           "sigmaSu",
           "sigmaWd",
-          "quarterHour"
+          "quarterHour",
         )
       )
       val expected = Map(
         DayType.weekday -> Map(
           RandomLoadParameters.K -> 2,
           RandomLoadParameters.MY -> 5,
-          RandomLoadParameters.SIGMA -> 8
+          RandomLoadParameters.SIGMA -> 8,
         ),
         DayType.saturday -> Map(
           RandomLoadParameters.K -> 0,
           RandomLoadParameters.MY -> 3,
-          RandomLoadParameters.SIGMA -> 6
+          RandomLoadParameters.SIGMA -> 6,
         ),
         DayType.sunday -> Map(
           RandomLoadParameters.K -> 1,
           RandomLoadParameters.MY -> 4,
-          RandomLoadParameters.SIGMA -> 7
-        )
+          RandomLoadParameters.SIGMA -> 7,
+        ),
       )
 
       actual shouldBe expected
@@ -87,35 +87,35 @@ class RandomLoadParamStoreSpec
         Table(
           ("timestamp", "expected"),
           (
-            "2019-04-01 05:00:00",
+            "2019-04-01T05:00:00Z",
             RandomLoadParameters(
               0.146539300680161,
               0.0430354326963425,
-              0.0201929099857807
-            )
+              0.0201929099857807,
+            ),
           ), // Weekday
           (
-            "2019-06-02 00:00:00",
+            "2019-06-02T00:00:00Z",
             RandomLoadParameters(
               0.295997023582459,
               0.0630703344941139,
-              0.0370676517486572
-            )
+              0.0370676517486572,
+            ),
           ), // Sunday
           (
-            "2019-01-05 02:15:00",
+            "2019-01-05T02:15:00Z",
             RandomLoadParameters(
               0.132398754358292,
               0.0439879409968853,
-              0.0208074823021889
-            )
-          ) // Saturday
+              0.0208074823021889,
+            ),
+          ), // Saturday
         )
 
       forAll(params) {
         (
             timestamp: String,
-            expected: RandomLoadParameters
+            expected: RandomLoadParameters,
         ) =>
           val time = TimeUtil.withDefaults.toZonedDateTime(timestamp)
           randomParameterStore.parameters(time) shouldBe expected

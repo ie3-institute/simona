@@ -6,21 +6,28 @@
 
 package edu.ie3.simona.agent.participant.fixedfeedin
 
-import akka.actor.{ActorRef, Props}
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.RuntimeConfig.{LoadRuntimeConfig, SimpleRuntimeConfig}
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.FixedFeedInModel
+import edu.ie3.simona.model.participant.ModelState.ConstantState
+import org.apache.pekko.actor.{ActorRef, Props}
 
 object FixedFeedInAgent {
   def props(
       scheduler: ActorRef,
-      listener: Iterable[ActorRef]
+      initStateData: ParticipantInitializeStateData[
+        FixedFeedInInput,
+        FixedFeedInRuntimeConfig,
+        ApparentPower,
+      ],
+      listener: Iterable[ActorRef],
   ): Props =
-    Props(new FixedFeedInAgent(scheduler, listener))
+    Props(new FixedFeedInAgent(scheduler, initStateData, listener))
 }
 
 /** Creating a fixed feed in agent
@@ -32,15 +39,21 @@ object FixedFeedInAgent {
   */
 class FixedFeedInAgent(
     scheduler: ActorRef,
-    override val listener: Iterable[ActorRef]
+    initStateData: ParticipantInitializeStateData[
+      FixedFeedInInput,
+      FixedFeedInRuntimeConfig,
+      ApparentPower,
+    ],
+    override val listener: Iterable[ActorRef],
 ) extends ParticipantAgent[
       ApparentPower,
       FixedRelevantData.type,
+      ConstantState.type,
       ParticipantStateData[ApparentPower],
       FixedFeedInInput,
       SimpleRuntimeConfig,
-      FixedFeedInModel
-    ](scheduler)
+      FixedFeedInModel,
+    ](scheduler, initStateData)
     with FixedFeedInAgentFundamentals {
 
   /*

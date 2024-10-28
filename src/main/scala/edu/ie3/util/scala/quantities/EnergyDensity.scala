@@ -20,7 +20,7 @@ import scala.util.Try
   */
 final class EnergyDensity private (
     val value: Double,
-    val unit: EnergyDensityUnit
+    val unit: EnergyDensityUnit,
 ) extends Quantity[EnergyDensity] {
 
   def dimension: EnergyDensity.type = EnergyDensity

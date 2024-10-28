@@ -9,20 +9,30 @@ package edu.ie3.simona.model.grid
 import breeze.linalg.DenseMatrix
 import breeze.math.Complex
 import breeze.numerics.abs
-import edu.ie3.datamodel.exceptions.InvalidGridException
+import edu.ie3.datamodel.models.input.MeasurementUnitInput
+import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.exceptions.GridInconsistencyException
-import edu.ie3.simona.model.grid.GridModel.GridComponents
+import edu.ie3.simona.model.control.{GridControls, TransformerControlGroupModel}
+import edu.ie3.simona.model.grid.GridModel.{
+  GridComponents,
+  updateUuidToIndexMap,
+}
 import edu.ie3.simona.test.common.input.{GridInputTestData, LineInputTestData}
 import edu.ie3.simona.test.common.model.grid.{
   BasicGrid,
   BasicGridWithSwitches,
-  FiveLinesWithNodes
+  FiveLinesWithNodes,
 }
-import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
+import edu.ie3.simona.test.common.{ConfigTestData, DefaultTestData, UnitSpec}
+import testutils.TestObjectFactory
 
 import java.util.UUID
 
-class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
+class GridSpec
+    extends UnitSpec
+    with LineInputTestData
+    with DefaultTestData
+    with ConfigTestData {
 
   private val _printAdmittanceMatrixOnMismatch
       : (DenseMatrix[Complex], DenseMatrix[Complex]) => Unit = {
@@ -66,12 +76,12 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
         )
       val getLinesAdmittance: (
           Map[UUID, Int],
-          LineModel
+          LineModel,
       ) => (Int, Int, Complex, Complex, Complex) =
         (nodeUuidToIndexMap, line) =>
           GridModel invokePrivate getLinesAdmittanceMethod(
             nodeUuidToIndexMap,
-            line
+            line,
           )
 
       // result of method call
@@ -79,7 +89,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
         GridModel invokePrivate buildAssetAdmittanceMatrix(
           nodeUuidToIndexMap,
           lines,
-          getLinesAdmittance
+          getLinesAdmittance,
         )
 
       _printAdmittanceMatrixOnMismatch(actualResult, lineAdmittanceMatrix)
@@ -94,7 +104,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
       GridModel.updateUuidToIndexMap(withClosedSwitches)
       private val admittanceMatixClosed = GridModel.composeAdmittanceMatrix(
         withClosedSwitches.nodeUuidToIndexMap,
-        withClosedSwitches.gridComponents
+        withClosedSwitches.gridComponents,
       )
 
       private val withOpenSwitches = createGridCopy()
@@ -102,7 +112,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
       GridModel.updateUuidToIndexMap(withOpenSwitches)
       private val admittanceMatrixOpen = GridModel.composeAdmittanceMatrix(
         withOpenSwitches.nodeUuidToIndexMap,
-        withOpenSwitches.gridComponents
+        withOpenSwitches.gridComponents,
       )
 
       // dimension of admittance matrix with closed switches should be the dimension
@@ -120,7 +130,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
         .flatMap { switch =>
           Iterable(
             switch.nodeAUuid -> switch.nodeBUuid,
-            switch.nodeBUuid -> switch.nodeAUuid
+            switch.nodeBUuid -> switch.nodeAUuid,
           )
         }
         .groupMap { case (key, _) => key } { case (_, value) => value }
@@ -168,7 +178,7 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
 
           admittanceMatixClosed.valueAt(
             iClosed,
-            jClosed
+            jClosed,
           ) shouldBe sumOfAdmittancesOpenSwitches withClue s" at \n\tposition ($iClosed, $jClosed) of the grid with closed switches/" +
             s"\n\tpositions (${iOpenAll.mkString(",")}) x (${jOpenAll.mkString(",")}) of the grid with open switches"
 
@@ -203,8 +213,9 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
           lines,
           Set(transformer2wModel),
           Set.empty[Transformer3wModel],
-          switches
-        )
+          switches,
+        ),
+        GridControls.empty,
       )
       // get the private method for validation
       val validateConnectivity: PrivateMethod[Unit] =
@@ -220,7 +231,14 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
       nodes.foreach(_.enable())
 
       // remove a line from the grid
-      val adaptedLines: Set[LineModel] = lines - line0To1
+      val adaptedLines = lines - line3To4
+      adaptedLines.foreach(_.enable())
+
+      // enable transformer
+      transformer2wModel.enable()
+
+      // enable switches
+      switches.foreach(_.enable())
 
       // get the grid from the raw data
       val gridModel = new GridModel(
@@ -231,8 +249,9 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
           adaptedLines,
           Set(transformer2wModel),
           Set.empty[Transformer3wModel],
-          Set.empty[SwitchModel]
-        )
+          switches,
+        ),
+        GridControls.empty,
       )
 
       // get the private method for validation
@@ -245,52 +264,6 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
         }
 
       exception.getMessage shouldBe "The grid with subnetNo 1 is not connected! Please ensure that all elements are connected correctly and inOperation is set to true!"
-
-    }
-
-    "throw an InvalidGridException if two switches are connected @ the same node" in new BasicGridWithSwitches {
-      // enable nodes
-      override val nodes: Seq[NodeModel] = super.nodes
-      nodes.foreach(_.enable())
-
-      // add a second switch @ node13 (between node1 and node13)
-      val secondSwitch = new SwitchModel(
-        UUID.fromString("ebeaad04-0ee3-4b2e-ae85-8c76a583295b"),
-        "SecondSwitch1",
-        defaultOperationInterval,
-        node1.uuid,
-        node13.uuid
-      )
-      // add the second switch + enable switches
-      override val switches: Set[SwitchModel] = super.switches + secondSwitch
-      switches.foreach(_.enable())
-      // open the switches
-      switches.foreach(_.open())
-
-      // get the grid from the raw data
-      val gridModel = new GridModel(
-        1,
-        default400Kva10KvRefSystem,
-        GridComponents(
-          nodes,
-          lines,
-          Set(transformer2wModel),
-          Set.empty[Transformer3wModel],
-          switches
-        )
-      )
-
-      // get the private method for validation
-      val validateConsistency: PrivateMethod[Unit] =
-        PrivateMethod[Unit](Symbol("validateConsistency"))
-
-      // call the validation method
-      val exception: InvalidGridException = intercept[InvalidGridException] {
-        GridModel invokePrivate validateConsistency(gridModel)
-      }
-
-      // expect an exception for node 13
-      exception.getMessage shouldBe s"The grid model for subnet 1 has nodes with multiple switches. This is not supported yet! Duplicates are located @ nodes: Vector(${node13.uuid})"
 
     }
 
@@ -380,8 +353,9 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
             lines,
             Set(transformer2wModel),
             Set.empty[Transformer3wModel],
-            switches
-          )
+            switches,
+          ),
+          GridControls.empty,
         )
 
         // update the uuidToIndexMap
@@ -431,8 +405,9 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
             lines,
             Set(transformer2wModel),
             Set.empty[Transformer3wModel],
-            Set.empty[SwitchModel]
-          )
+            Set.empty[SwitchModel],
+          ),
+          GridControls.empty,
         )
 
         // update the uuidToIndexMap
@@ -453,7 +428,213 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
         gridModel.nodeUuidToIndexMap.keySet.toVector.sorted should be(
           nodes.map(node => node.uuid).toVector.sorted
         )
+      }
 
+      "contains two closed switches with a common node" in new BasicGridWithSwitches {
+        // enable nodes
+        override val nodes: Seq[NodeModel] = super.nodes
+        nodes.foreach(_.enable())
+
+        // add a second switch @ node13 (between node1 and node13)
+        val secondSwitch = new SwitchModel(
+          UUID.fromString("ebeaad04-0ee3-4b2e-ae85-8c76a583295b"),
+          "SecondSwitch1",
+          defaultOperationInterval,
+          node1.uuid,
+          node13.uuid,
+        )
+        // add the second switch + enable switches
+        override val switches: Set[SwitchModel] = super.switches + secondSwitch
+        switches.foreach(_.enable())
+        // close the switches
+        switches.foreach(_.close())
+
+        // get the grid from the raw data
+        val gridModel = new GridModel(
+          1,
+          default400Kva10KvRefSystem,
+          GridComponents(
+            nodes,
+            lines,
+            Set(transformer2wModel),
+            Set.empty[Transformer3wModel],
+            switches,
+          ),
+          GridControls.empty,
+        )
+
+        updateUuidToIndexMap(gridModel)
+
+        // nodes 1, 13 and 14 should map to the same node
+        val node1Index = gridModel.nodeUuidToIndexMap
+          .get(node1.uuid)
+          .value
+        gridModel.nodeUuidToIndexMap.get(node13.uuid).value shouldBe node1Index
+        gridModel.nodeUuidToIndexMap.get(node14.uuid).value shouldBe node1Index
+      }
+
+      "contains closed switches in a complex pattern" in new BasicGridWithSwitches {
+        // just six nodes from the basic grid
+        override val nodes: Seq[NodeModel] =
+          Seq(node1, node2, node3, node4, node5, node6)
+        nodes.foreach(_.enable())
+
+        // nodes 1-4 connected by switches in a rectangle plus diagonal,
+        // nodes 5-6 connected separately
+        override val switches: Set[SwitchModel] = Set(
+          SwitchModel(
+            UUID.fromString("0-0-0-0-1"),
+            "Switch1",
+            defaultOperationInterval,
+            node1.uuid,
+            node2.uuid,
+          ),
+          SwitchModel(
+            UUID.fromString("0-0-0-0-2"),
+            "Switch2",
+            defaultOperationInterval,
+            node2.uuid,
+            node3.uuid,
+          ),
+          SwitchModel(
+            UUID.fromString("0-0-0-0-3"),
+            "Switch3",
+            defaultOperationInterval,
+            node3.uuid,
+            node4.uuid,
+          ),
+          SwitchModel(
+            UUID.fromString("0-0-0-0-4"),
+            "Switch4",
+            defaultOperationInterval,
+            node1.uuid,
+            node4.uuid,
+          ),
+          SwitchModel(
+            UUID.fromString("0-0-0-0-5"),
+            "Switch5",
+            defaultOperationInterval,
+            node2.uuid,
+            node4.uuid,
+          ),
+          SwitchModel(
+            UUID.fromString("0-0-0-0-6"),
+            "Switch6",
+            defaultOperationInterval,
+            node5.uuid,
+            node6.uuid,
+          ),
+        )
+        switches.foreach(_.enable())
+        // close the switches
+        switches.foreach(_.close())
+
+        // get the grid from the raw data
+        val gridModel = new GridModel(
+          1,
+          default400Kva10KvRefSystem,
+          GridComponents(
+            nodes,
+            Set.empty,
+            Set.empty,
+            Set.empty,
+            switches,
+          ),
+          GridControls.empty,
+        )
+
+        // testing the assignment of nodes to indices
+        updateUuidToIndexMap(gridModel)
+
+        gridModel.nodeUuidToIndexMap.get(node1.uuid).value shouldBe 0
+        gridModel.nodeUuidToIndexMap.get(node2.uuid).value shouldBe 0
+        gridModel.nodeUuidToIndexMap.get(node3.uuid).value shouldBe 0
+        gridModel.nodeUuidToIndexMap.get(node4.uuid).value shouldBe 0
+        gridModel.nodeUuidToIndexMap.get(node5.uuid).value shouldBe 1
+        gridModel.nodeUuidToIndexMap.get(node6.uuid).value shouldBe 1
+      }
+
+    }
+
+    "build correct transformer control models" should {
+      /* Testing of distinct transformer control group building can be found in the spec for transformer control groups */
+
+      "determine node uuids correctly" in {
+        val determineNodeUuids =
+          PrivateMethod[Set[UUID]](Symbol("determineNodeUuids"))
+
+        val node0 = TestObjectFactory.buildNodeInput(
+          false,
+          GermanVoltageLevelUtils.MV_10KV,
+          1,
+        )
+        val node1 = TestObjectFactory.buildNodeInput(
+          false,
+          GermanVoltageLevelUtils.MV_10KV,
+          1,
+        )
+        val node2 = TestObjectFactory.buildNodeInput(
+          false,
+          GermanVoltageLevelUtils.MV_10KV,
+          1,
+        )
+        val node3 = TestObjectFactory.buildNodeInput(
+          false,
+          GermanVoltageLevelUtils.MV_10KV,
+          1,
+        )
+
+        val measurementUnits = Set(
+          new MeasurementUnitInput(
+            UUID.fromString("3ad9e076-c02b-4cf9-8720-18e2bb541ede"),
+            "measurement_unit_0",
+            node0,
+            true,
+            false,
+            false,
+            false,
+          ),
+          new MeasurementUnitInput(
+            UUID.fromString("ab66fbb0-ece1-44b9-9341-86a884233ec4"),
+            "measurement_unit_1",
+            node1,
+            true,
+            false,
+            false,
+            false,
+          ),
+          new MeasurementUnitInput(
+            UUID.fromString("93b4d0d8-cc67-41f5-9d5c-1cd6dbb2e70d"),
+            "measurement_unit_2",
+            node2,
+            true,
+            false,
+            false,
+            false,
+          ),
+          new MeasurementUnitInput(
+            UUID.fromString("8e84eb8a-2940-4900-b0ce-0eeb6bca8bae"),
+            "measurement_unit_3",
+            node3,
+            false,
+            false,
+            false,
+            false,
+          ),
+        )
+        val selectedMeasurements = Set(
+          "ab66fbb0-ece1-44b9-9341-86a884233ec4",
+          "93b4d0d8-cc67-41f5-9d5c-1cd6dbb2e70d",
+          "8e84eb8a-2940-4900-b0ce-0eeb6bca8bae",
+        )
+        val expectedUuids = Set(node1, node2).map(_.getUuid)
+
+        val actual =
+          TransformerControlGroupModel invokePrivate determineNodeUuids(
+            measurementUnits,
+            selectedMeasurements,
+          )
+        actual should contain theSameElementsAs expectedUuids
       }
 
     }
@@ -463,7 +644,8 @@ class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
         validTestGridInputModel,
         gridInputModelTestDataRefSystem,
         defaultSimulationStart,
-        defaultSimulationEnd
+        defaultSimulationEnd,
+        simonaConfig,
       )
 
     }

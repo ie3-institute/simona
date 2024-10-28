@@ -6,18 +6,19 @@
 
 package edu.ie3.simona.event.listener
 
-import akka.actor.typed.{Behavior, PostStop}
-import akka.actor.typed.scaladsl.Behaviors
 import edu.ie3.simona.config.{RuntimeConfig, SimonaConfig}
 import edu.ie3.simona.event.RuntimeEvent
+import edu.ie3.simona.event.RuntimeEvent.PowerFlowFailed
+import edu.ie3.simona.io.runtime.RuntimeEventSink.RuntimeStats
 import edu.ie3.simona.io.runtime.{
   RuntimeEventKafkaSink,
   RuntimeEventLogSink,
   RuntimeEventQueueSink,
-  RuntimeEventSink
+  RuntimeEventSink,
 }
 import edu.ie3.util.TimeUtil
-import org.slf4j.Logger
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.{Behavior, PostStop}
 
 import java.util.concurrent.BlockingQueue
 
@@ -27,7 +28,10 @@ import java.util.concurrent.BlockingQueue
   */
 object RuntimeEventListener {
 
+  trait Request
+
   /** Creates a runtime event listener behavior with given configuration.
+    *
     * @param listenerConf
     *   configuration that determines additional sinks and event filters
     * @param queue
@@ -40,40 +44,52 @@ object RuntimeEventListener {
   def apply(
       listenerConf: RuntimeConfig.RuntimeListenerConfig,
       queue: Option[BlockingQueue[RuntimeEvent]],
-      startDateTimeString: String
-  ): Behavior[RuntimeEvent] = {
+      startDateTimeString: String,
+  ): Behavior[Request] = Behaviors.setup { ctx =>
     val listeners = Iterable(
       Some(
         RuntimeEventLogSink(
-          TimeUtil.withDefaults.toZonedDateTime(startDateTimeString)
+          TimeUtil.withDefaults.toZonedDateTime(startDateTimeString),
+          ctx.log,
         )
       ),
       queue.map(qu => RuntimeEventQueueSink(qu)),
-      listenerConf.kafka.map(kafkaConf => RuntimeEventKafkaSink(kafkaConf))
+      listenerConf.kafka.map(kafkaConf =>
+        RuntimeEventKafkaSink(kafkaConf, ctx.log)
+      ),
     ).flatten
 
-    RuntimeEventListener(
+    apply(
       listeners,
-      listenerConf.eventsToProcess
+      listenerConf.eventsToProcess,
     )
   }
 
-  def apply(
+  private def apply(
       listeners: Iterable[RuntimeEventSink],
-      eventsToProcess: Option[Seq[String]] = None
-  ): Behavior[RuntimeEvent] = Behaviors
-    .receive[RuntimeEvent] { case (ctx, event) =>
-      eventsToProcess match {
-        case None => processEvent(listeners, event, ctx.log)
-        case Some(events) if events.contains(event.id) =>
-          processEvent(listeners, event, ctx.log)
-        case _ =>
+      eventsToProcess: Option[Seq[String]] = None,
+      runtimeStats: RuntimeStats = RuntimeStats(),
+  ): Behavior[Request] = Behaviors
+    .receive[Request] {
+      case (_, PowerFlowFailed) =>
+        val updatedRuntimeData = runtimeStats
+          .copy(failedPowerFlows = runtimeStats.failedPowerFlows + 1)
+        RuntimeEventListener(listeners, eventsToProcess, updatedRuntimeData)
+
+      case (ctx, event: RuntimeEvent) =>
+        val process = eventsToProcess.forall(_.contains(event.id))
+
+        if (process)
+          processEvent(listeners, event, runtimeStats)
+        else
           ctx.log.debug(
             "Skipping event {} as it is not in the list of events to process.",
-            event.id
+            event.id,
           )
-      }
-      Behaviors.same
+        Behaviors.same
+
+      case (ctx, msg: DelayedStopHelper.StoppingMsg) =>
+        DelayedStopHelper.handleMsg((ctx, msg))
     }
     .receiveSignal { case (_, PostStop) =>
       listeners.foreach(_.close())
@@ -83,8 +99,8 @@ object RuntimeEventListener {
   private def processEvent(
       listeners: Iterable[RuntimeEventSink],
       event: RuntimeEvent,
-      log: Logger
+      runtimeStats: RuntimeStats,
   ): Unit =
-    listeners.foreach(_.handleRuntimeEvent(event, log))
+    listeners.foreach(_.handleRuntimeEvent(event, runtimeStats))
 
 }

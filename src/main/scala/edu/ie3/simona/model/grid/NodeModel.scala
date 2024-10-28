@@ -6,17 +6,17 @@
 
 package edu.ie3.simona.model.grid
 
-import java.time.ZonedDateTime
-import java.util.UUID
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.datamodel.models.voltagelevels.VoltageLevel
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
+import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import tech.units.indriya.ComparableQuantity
+import squants.Each
 
-import javax.measure.quantity.Dimensionless
+import java.time.ZonedDateTime
+import java.util.UUID
 
 /** This model represents an electric node
   *
@@ -38,19 +38,19 @@ final case class NodeModel(
     id: String,
     operationInterval: OperationInterval,
     isSlack: Boolean,
-    vTarget: ComparableQuantity[Dimensionless],
-    voltLvl: VoltageLevel
+    vTarget: squants.Dimensionless,
+    voltLvl: VoltageLevel,
 ) extends SystemComponent(
       uuid,
       id,
-      operationInterval
+      operationInterval,
     )
 
 case object NodeModel {
   def apply(
       nodeInput: NodeInput,
       simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime
+      simulationEndDate: ZonedDateTime,
   ): NodeModel = {
 
     // validate the input model
@@ -60,7 +60,7 @@ case object NodeModel {
       SystemComponent.determineOperationInterval(
         simulationStartDate,
         simulationEndDate,
-        nodeInput.getOperationTime
+        nodeInput.getOperationTime,
       )
 
     val nodeModel = new NodeModel(
@@ -68,8 +68,8 @@ case object NodeModel {
       nodeInput.getId,
       operationInterval,
       nodeInput.isSlack,
-      nodeInput.getvTarget(),
-      nodeInput.getVoltLvl
+      Each(nodeInput.getvTarget.to(PowerSystemUnits.PU).getValue.doubleValue()),
+      nodeInput.getVoltLvl,
     )
 
     /* Checks, if the participant is in operation right from the start */

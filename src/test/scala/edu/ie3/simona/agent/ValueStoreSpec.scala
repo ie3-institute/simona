@@ -7,9 +7,10 @@
 package edu.ie3.simona.agent
 
 import edu.ie3.simona.test.common.UnitSpec
-import org.scalatest.PrivateMethodTester
 
-class ValueStoreSpec extends UnitSpec with PrivateMethodTester {
+import scala.collection.SortedMap
+
+class ValueStoreSpec extends UnitSpec {
   "An empty value store" should {
     val emptyValueStore: ValueStore[String] = ValueStore[String](Long.MaxValue)
 
@@ -42,7 +43,7 @@ class ValueStoreSpec extends UnitSpec with PrivateMethodTester {
   "A filled value store" should {
     val filledValueStore: ValueStore[String] = ValueStore[String](
       5,
-      Map(1L -> "One", 2L -> "Two", 3L -> "Three", 4L -> "Four")
+      SortedMap(1L -> "One", 2L -> "Two", 3L -> "Three", 4L -> "Four"),
     )
 
     "be properly instantiated" in {
@@ -52,7 +53,7 @@ class ValueStoreSpec extends UnitSpec with PrivateMethodTester {
         1L -> "One",
         2L -> "Two",
         3L -> "Three",
-        4L -> "Four"
+        4L -> "Four",
       )
       filledValueStore.maxTickSpan shouldBe 5
     }
@@ -72,7 +73,7 @@ class ValueStoreSpec extends UnitSpec with PrivateMethodTester {
     "return an empty map on request of tick window" in {
       filledValueStore.get(2L, 3L) shouldBe Map(
         2L -> "Two",
-        3L -> "Three"
+        3L -> "Three",
       )
     }
 
@@ -86,7 +87,7 @@ class ValueStoreSpec extends UnitSpec with PrivateMethodTester {
         3L -> "Three",
         4L -> "Four",
         5L -> "Five",
-        6L -> "Six"
+        6L -> "Six",
       )
     }
   }

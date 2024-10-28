@@ -30,5 +30,5 @@ abstract class ThermalSink(
     id: String,
     operatorInput: OperatorInput,
     operationTime: OperationTime,
-    bus: ThermalBusInput
+    bus: ThermalBusInput,
 )

@@ -6,35 +6,33 @@
 
 package edu.ie3.simona.api
 
-import akka.actor.{ActorSystem, Terminated}
-import akka.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
-import edu.ie3.simona.api.ExtSimAdapter.InitExtSimAdapter
+import edu.ie3.simona.api.ExtSimAdapter.Stop
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.api.simulation.ontology.{
-  Terminate,
+  ActivationMessage,
   TerminationCompleted,
-  ActivityStartTrigger => ExtActivityStartTrigger,
-  CompletionMessage => ExtCompletionMessage
+  TerminationMessage,
+  CompletionMessage => ExtCompletionMessage,
 }
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage
+  Completion,
+  ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.StopMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeExtSimAdapterTrigger
-}
-import edu.ie3.simona.test.common.TestKitWithShutdown
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
+import edu.ie3.simona.test.common.{TestKitWithShutdown, TestSpawnerClassic}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorSystem, Terminated}
+import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 import org.scalatest.wordspec.AnyWordSpecLike
-import org.scalatest.prop.TableDrivenPropertyChecks._
 
+import java.util.UUID
 import scala.concurrent.duration.DurationInt
-import scala.jdk.CollectionConverters.SeqHasAsJava
+import scala.jdk.OptionConverters.RichOption
 
 class ExtSimAdapterSpec
     extends TestKitWithShutdown(
@@ -42,98 +40,60 @@ class ExtSimAdapterSpec
         "ExtSimAdapterSpec",
         ConfigFactory
           .parseString("""
-                     |akka.loggers = ["akka.testkit.TestEventListener"]
-                     |akka.loglevel = "INFO"
-                     |""".stripMargin)
+            |pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
+            |pekko.loglevel = "INFO"
+            |""".stripMargin),
       )
     )
-    with AnyWordSpecLike {
+    with AnyWordSpecLike
+    with TestSpawnerClassic {
 
   private val scheduler = TestProbe("scheduler")
   private val mainArgs = Array.empty[String]
 
   "An uninitialized ExtSimScheduler" must {
     "send correct completion message after initialisation" in {
+      val lock = TestProbe("lock")
+
       val extSimAdapter = TestActorRef(
         new ExtSimAdapter(scheduler.ref)
       )
 
       val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
 
-      val triggerId = 1L
-
-      scheduler.send(
-        extSimAdapter,
-        TriggerWithIdMessage(
-          InitializeExtSimAdapterTrigger(
-            InitExtSimAdapter(
-              extData
-            )
-          ),
-          triggerId,
-          extSimAdapter
-        )
-      )
-
+      val key1 = ScheduleKey(lock.ref.toTyped, UUID.randomUUID())
+      scheduler.send(extSimAdapter, ExtSimAdapter.Create(extData, key1))
       scheduler.expectMsg(
-        CompletionMessage(
-          triggerId,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(INIT_SIM_TICK),
-                extSimAdapter
-              )
-            )
-          )
-        )
+        ScheduleActivation(extSimAdapter.toTyped, INIT_SIM_TICK, Some(key1))
       )
     }
   }
 
   "An initialized ExtSimScheduler" must {
     "forward an activation trigger and a corresponding completion message properly" in {
+      val lock = TestProbe("lock")
+
       val extSimAdapter = TestActorRef(
         new ExtSimAdapter(scheduler.ref)
       )
 
       val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
 
-      scheduler.send(
-        extSimAdapter,
-        TriggerWithIdMessage(
-          InitializeExtSimAdapterTrigger(
-            InitExtSimAdapter(
-              extData
-            )
-          ),
-          1L,
-          extSimAdapter
-        )
+      val key1 = ScheduleKey(lock.ref.toTyped, UUID.randomUUID())
+      scheduler.send(extSimAdapter, ExtSimAdapter.Create(extData, key1))
+      scheduler.expectMsg(
+        ScheduleActivation(extSimAdapter.toTyped, INIT_SIM_TICK, Some(key1))
       )
 
-      scheduler.expectMsgType[CompletionMessage]
-
-      val triggerId = 2L
-
-      scheduler.send(
-        extSimAdapter,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(
-            INIT_SIM_TICK
-          ),
-          triggerId,
-          extSimAdapter
-        )
-      )
+      scheduler.send(extSimAdapter, Activation(INIT_SIM_TICK))
 
       awaitCond(
         !extData.receiveMessageQueue.isEmpty,
         max = 3.seconds,
-        message = "No message received"
+        message = "No message received",
       )
       extData.receiveMessageQueue.size() shouldBe 1
-      extData.receiveMessageQueue.take() shouldBe new ExtActivityStartTrigger(
+      extData.receiveMessageQueue.take() shouldBe new ActivationMessage(
         INIT_SIM_TICK
       )
       scheduler.expectNoMessage()
@@ -142,26 +102,16 @@ class ExtSimAdapterSpec
       val nextTick = 900L
       extData.send(
         new ExtCompletionMessage(
-          List[java.lang.Long](nextTick).asJava
+          Option[java.lang.Long](nextTick).toJava
         )
       )
 
-      scheduler.expectMsg(
-        CompletionMessage(
-          triggerId,
-          Some(
-            Seq(
-              ScheduleTriggerMessage(
-                ActivityStartTrigger(nextTick),
-                extSimAdapter
-              )
-            )
-          )
-        )
-      )
+      scheduler.expectMsg(Completion(extSimAdapter.toTyped, Some(nextTick)))
     }
 
     "schedule the data service when it is told to" in {
+      val lock = TestProbe("lock")
+
       val extSimAdapter = TestActorRef(
         new ExtSimAdapter(scheduler.ref)
       )
@@ -169,92 +119,63 @@ class ExtSimAdapterSpec
       val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
       val dataService = TestProbe("dataService")
 
-      scheduler.send(
-        extSimAdapter,
-        TriggerWithIdMessage(
-          InitializeExtSimAdapterTrigger(
-            InitExtSimAdapter(
-              extData
-            )
-          ),
-          1L,
-          extSimAdapter
-        )
+      val key1 = ScheduleKey(lock.ref.toTyped, UUID.randomUUID())
+      scheduler.send(extSimAdapter, ExtSimAdapter.Create(extData, key1))
+      scheduler.expectMsg(
+        ScheduleActivation(extSimAdapter.toTyped, INIT_SIM_TICK, Some(key1))
       )
 
-      scheduler.expectMsgType[CompletionMessage]
-
-      val triggerId = 2L
-      val tick = 0L
-
-      scheduler.send(
-        extSimAdapter,
-        TriggerWithIdMessage(
-          ActivityStartTrigger(
-            tick
-          ),
-          triggerId,
-          extSimAdapter
-        )
-      )
+      scheduler.send(extSimAdapter, Activation(INIT_SIM_TICK))
 
       awaitCond(
         !extData.receiveMessageQueue.isEmpty,
         max = 3.seconds,
-        message = "No message received"
+        message = "No message received",
       )
       extData.receiveMessageQueue.size() shouldBe 1
       extData.receiveMessageQueue.take()
-      scheduler.expectNoMessage()
 
       extSimAdapter ! new ScheduleDataServiceMessage(
         dataService.ref
       )
+      scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
 
-      scheduler.expectMsg(
-        ScheduleTriggerMessage(
-          ActivityStartTrigger(tick),
-          dataService.ref
-        )
-      )
-      dataService.expectNoMessage()
+      dataService
+        .expectMsgType[ScheduleServiceActivation]
+        .tick shouldBe INIT_SIM_TICK
+      scheduler.expectNoMessage()
     }
 
     "terminate the external simulation and itself when told to" in {
       forAll(Table("simSuccessful", true, false)) { (simSuccessful: Boolean) =>
+        val lock = TestProbe("lock")
+
         val extSimAdapter = TestActorRef(
           new ExtSimAdapter(scheduler.ref)
         )
 
         val extData = new ExtSimAdapterData(extSimAdapter, mainArgs)
 
-        scheduler.send(
-          extSimAdapter,
-          TriggerWithIdMessage(
-            InitializeExtSimAdapterTrigger(
-              InitExtSimAdapter(
-                extData
-              )
-            ),
-            1L,
-            extSimAdapter
-          )
+        val key1 = ScheduleKey(lock.ref.toTyped, UUID.randomUUID())
+        scheduler.send(extSimAdapter, ExtSimAdapter.Create(extData, key1))
+        scheduler.expectMsg(
+          ScheduleActivation(extSimAdapter.toTyped, INIT_SIM_TICK, Some(key1))
         )
-
-        scheduler.expectMsgType[CompletionMessage]
 
         val stopWatcher = TestProbe()
         stopWatcher.watch(extSimAdapter)
 
-        extSimAdapter ! StopMessage(simSuccessful)
+        extSimAdapter ! Stop(simSuccessful)
 
         awaitCond(
           !extData.receiveMessageQueue.isEmpty,
           max = 3.seconds,
-          message = "No message received"
+          message = "No message received",
         )
         extData.receiveMessageQueue.size() shouldBe 1
-        extData.receiveMessageQueue.take() shouldBe new Terminate(simSuccessful)
+        extData.receiveMessageQueue.take() shouldBe new TerminationMessage(
+          simSuccessful
+        )
 
         // up until now, extSimAdapter should still be running
         stopWatcher.expectNoMessage()

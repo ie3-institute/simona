@@ -12,16 +12,16 @@ import edu.ie3.datamodel.models.input.connector.{
   LineInput,
   SwitchInput,
   Transformer2WInput,
-  Transformer3WInput
+  Transformer3WInput,
 }
 import edu.ie3.datamodel.models.input.container.{
   RawGridElements,
-  SubGridContainer
+  SubGridContainer,
 }
 import edu.ie3.datamodel.models.input.{
   MeasurementUnitInput,
   NodeInput,
-  OperatorInput
+  OperatorInput,
 }
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
@@ -30,6 +30,8 @@ import edu.ie3.simona.util.TestGridFactory
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.OperationInterval
+import squants.electro.Kilovolts
+import squants.energy.Kilowatts
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units._
 
@@ -44,9 +46,9 @@ import scala.jdk.CollectionConverters._
   */
 trait TransformerTestGrid {
   val defaultSimulationStart: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2019-01-01 00:00:00")
+    TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")
   val defaultSimulationEnd: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2019-12-31 23:00:00")
+    TimeUtil.withDefaults.toZonedDateTime("2019-12-31T23:00:00Z")
 
   private val operationTimeBuilder = OperationTime.builder()
   operationTimeBuilder.withStart(defaultSimulationStart)
@@ -58,12 +60,12 @@ trait TransformerTestGrid {
     SystemComponent.determineOperationInterval(
       defaultSimulationStart,
       defaultSimulationEnd,
-      defaultOperationTime
+      defaultOperationTime,
     )
 
   def mainRefSystem: RefSystem = {
-    val nominalPower = Quantities.getQuantity(400, KILOVOLTAMPERE)
-    val nominalVoltage = Quantities.getQuantity(0.4, KILOVOLT)
+    val nominalPower = Kilowatts(400d)
+    val nominalVoltage = Kilovolts(0.4d)
     RefSystem(nominalPower, nominalVoltage)
     /* Z_Ref = 0.4 Ω, Y_Ref = 2.5 Siemens */
   }
@@ -83,7 +85,7 @@ trait TransformerTestGrid {
     false,
     0,
     -10,
-    10
+    10,
   )
 
   val transformerTypeTapLv = new Transformer2WTypeInput(
@@ -101,7 +103,7 @@ trait TransformerTestGrid {
     true,
     0,
     -10,
-    10
+    10,
   )
 
   val nodeA = new NodeInput(
@@ -113,7 +115,7 @@ trait TransformerTestGrid {
     true,
     NodeInput.DEFAULT_GEO_POSITION,
     GermanVoltageLevelUtils.MV_10KV,
-    0
+    0,
   )
 
   val nodeB = new NodeInput(
@@ -125,7 +127,7 @@ trait TransformerTestGrid {
     false,
     NodeInput.DEFAULT_GEO_POSITION,
     GermanVoltageLevelUtils.LV,
-    1
+    1,
   )
 
   val transformerInputTapHv = new Transformer2WInput(
@@ -138,14 +140,14 @@ trait TransformerTestGrid {
     1,
     transformerTypeTapHv,
     0,
-    false
+    false,
   )
 
   val transformerModelTapHv: TransformerModel = TransformerModel(
     transformerInputTapHv,
     mainRefSystem,
     defaultSimulationStart,
-    defaultSimulationEnd
+    defaultSimulationEnd,
   )
 
   val transformerInputTapLv = new Transformer2WInput(
@@ -158,14 +160,14 @@ trait TransformerTestGrid {
     1,
     transformerTypeTapLv,
     0,
-    false
+    false,
   )
 
   val transformerModelTapLv: TransformerModel = TransformerModel(
     transformerInputTapLv,
     mainRefSystem,
     defaultSimulationStart,
-    defaultSimulationEnd
+    defaultSimulationEnd,
   )
 
   val gridTapHv: SubGridContainer = {
@@ -175,12 +177,12 @@ trait TransformerTestGrid {
       Set(transformerInputTapHv).asJava,
       Set.empty[Transformer3WInput].asJava,
       Set.empty[SwitchInput].asJava,
-      Set.empty[MeasurementUnitInput].asJava
+      Set.empty[MeasurementUnitInput].asJava,
     )
     TestGridFactory.createSubGrid(
       gridName = "transformer_test_grid",
       subgrid = 1,
-      rawGridElements = rawGridElements
+      rawGridElements = rawGridElements,
     )
   }
 
@@ -191,12 +193,12 @@ trait TransformerTestGrid {
       Set(transformerInputTapLv).asJava,
       Set.empty[Transformer3WInput].asJava,
       Set.empty[SwitchInput].asJava,
-      Set.empty[MeasurementUnitInput].asJava
+      Set.empty[MeasurementUnitInput].asJava,
     )
     TestGridFactory.createSubGrid(
       gridName = "transformer_test_grid",
       subgrid = 1,
-      rawGridElements = rawGridElements
+      rawGridElements = rawGridElements,
     )
   }
 }

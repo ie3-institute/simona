@@ -106,7 +106,7 @@ object CollectionUtils {
     */
   def closestKeyValuePairs[A <: Quantity[A], O <: Quantity[O]](
       map: Map[A, O],
-      key: A
+      key: A,
   ): Seq[(A, O)] = {
     import scala.collection.immutable.TreeMap
     implicit val ordering: Double.IeeeOrdering.type =
@@ -115,7 +115,7 @@ object CollectionUtils {
 
     Seq(
       treeMap.rangeTo(key).lastOption,
-      treeMap.rangeFrom(key).headOption
+      treeMap.rangeFrom(key).headOption,
     ).flatten.distinct
       .map { case (k, v) => (k, v) }
   }

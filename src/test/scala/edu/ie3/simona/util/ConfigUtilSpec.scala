@@ -6,18 +6,21 @@
 
 package edu.ie3.simona.util
 
-import edu.ie3.datamodel.models.result.connector.{LineResult, SwitchResult, Transformer2WResult, Transformer3WResult}
+import edu.ie3.datamodel.models.result.connector.{LineResult, SwitchResult, Transformer2WResult, Transformer3WResult,
+}
 import edu.ie3.datamodel.models.result.system.{ChpResult, LoadResult}
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.config.IoConfigUtils.ResultKafkaParams
 import edu.ie3.simona.config.OutputConfig.{BaseOutputConfig, GridOutputConfig, ParticipantOutputConfig}
 import edu.ie3.simona.config.RuntimeConfig.{LoadRuntimeConfig, SimpleRuntimeConfig}
 import edu.ie3.simona.config.SimonaConfig.{apply => _, _}
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
+import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier._
-import edu.ie3.simona.util.ConfigUtil.{BaseOutputConfigUtil, GridOutputConfigUtil, NotifierIdentifier, ParticipantConfigUtil}
+import edu.ie3.simona.util.ConfigUtil.{ GridOutputConfigUtil, NotifierIdentifier, ParticipantConfigUtil,
+  OutputConfigUtil,
+}
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor2}
 
 import java.util.UUID
@@ -46,7 +49,7 @@ class ConfigUtilSpec
 
       inside(actual) { case ParticipantConfigUtil(configs, defaultConfigs) =>
         configs shouldBe Map.empty[UUID, LoadRuntimeConfig]
-        defaultConfigs.size shouldBe 5
+        defaultConfigs.size shouldBe 8
 
         inside(defaultConfigs.get(classOf[LoadRuntimeConfig])) {
           case Some(
@@ -55,7 +58,7 @@ class ConfigUtilSpec
           scaling,
           uuids,
           modelBehaviour,
-          reference
+          reference,
           )
           ) =>
             calculateMissingReactivePowerWithModel shouldBe false
@@ -103,7 +106,7 @@ class ConfigUtilSpec
           UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
         )
 
-        defaultConfigs.size shouldBe 5
+        defaultConfigs.size shouldBe 8
         inside(defaultConfigs.get(classOf[LoadRuntimeConfig])) {
           case Some(
           LoadRuntimeConfig(
@@ -111,7 +114,7 @@ class ConfigUtilSpec
           scaling,
           uuids,
           modelBehaviour,
-          reference
+          reference,
           )
           ) =>
             calculateMissingReactivePowerWithModel shouldBe false
@@ -221,7 +224,7 @@ class ConfigUtilSpec
             uuids = Seq("49f250fa-41ff-4434-a083-79c98d260a76"),
             scaling = 1.3,
             modelBehaviour = "profile",
-            reference = "power"
+            reference = "power",
           )
       actual.getOrDefault[LoadRuntimeConfig](
         UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
@@ -231,7 +234,7 @@ class ConfigUtilSpec
             scaling = 1.5,
             uuids = Seq("fb8f1443-1843-4ecd-a94a-59be8148397f"),
             modelBehaviour = "random",
-            reference = "energy"
+            reference = "energy",
           )
     }
   }
@@ -262,7 +265,7 @@ class ConfigUtilSpec
           SimpleRuntimeConfig(
           calculateMissingReactivePowerWithModel,
           scaling,
-          uuids
+          uuids,
           )
           ) =>
             calculateMissingReactivePowerWithModel shouldBe false
@@ -303,13 +306,13 @@ class ConfigUtilSpec
           UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
         )
 
-        defaultConfigs.size shouldBe 5
+        defaultConfigs.size shouldBe 8
         inside(defaultConfigs.get(classOf[SimpleRuntimeConfig])) {
           case Some(
           SimpleRuntimeConfig(
           calculateMissingReactivePowerWithModel,
           scaling,
-          uuids
+          uuids,
           )
           ) =>
             calculateMissingReactivePowerWithModel shouldBe false
@@ -513,7 +516,7 @@ class ConfigUtilSpec
             1.0,
             calculateMissingReactivePowerWithModel = false,
             "profile",
-            "power"
+            "power",
           )
 
       // return default if a request for pv is done, but fixed feed is found
@@ -542,7 +545,7 @@ class ConfigUtilSpec
                 transformers2w = false,
                 transformers3w = false,
               ),
-              Set.empty[Class[_ <: ResultEntity]]
+              Set.empty[Class[_ <: ResultEntity]],
           ),
           (
               GridOutputConfig(
@@ -552,7 +555,7 @@ class ConfigUtilSpec
                 transformers2w = false,
                 transformers3w = false,
               ),
-              Set(classOf[LineResult])
+              Set(classOf[LineResult]),
           ),
           (
               GridOutputConfig(
@@ -562,7 +565,7 @@ class ConfigUtilSpec
                 transformers2w = false,
                 transformers3w = false,
               ),
-              Set(classOf[NodeResult])
+              Set(classOf[NodeResult]),
           ),
           (
               GridOutputConfig(
@@ -572,7 +575,7 @@ class ConfigUtilSpec
                 transformers2w = false,
                 transformers3w = false,
               ),
-              Set(classOf[SwitchResult])
+              Set(classOf[SwitchResult]),
           ),
           (
               GridOutputConfig(
@@ -582,7 +585,7 @@ class ConfigUtilSpec
                 switches = false,
                 transformers3w = false,
               ),
-              Set(classOf[Transformer2WResult])
+              Set(classOf[Transformer2WResult]),
           ),
           (
               GridOutputConfig(
@@ -592,7 +595,7 @@ class ConfigUtilSpec
                 switches = false,
                 transformers2w = false,
               ),
-              Set(classOf[Transformer3WResult])
+              Set(classOf[Transformer3WResult]),
           ),
           (
               GridOutputConfig(
@@ -603,9 +606,9 @@ class ConfigUtilSpec
                 classOf[NodeResult],
                 classOf[SwitchResult],
                 classOf[Transformer2WResult],
-                classOf[Transformer3WResult]
-              )
-          )
+                classOf[Transformer3WResult],
+              ),
+          ),
         )
 
       forAll(ddt) {
@@ -618,166 +621,243 @@ class ConfigUtilSpec
   }
 
   "The participant model output config util" should {
+    val validInput = new Simona.Output.Participant(
+      SimonaConfig.ParticipantBaseOutputConfig(
+      /*fixme mh
     val validInput = ParticipantOutputConfig(
       BaseOutputConfig(
+
+       */
         notifier = "default",
         powerRequestReply = false,
-        simulationResult = false
+        simulationResult = false,
+        flexResult = false,
       ),
+      List(
+        SimonaConfig.ParticipantBaseOutputConfig(
+          /*fixme mh
       Seq(
         BaseOutputConfig(
+
+           */
           notifier = "load",
           powerRequestReply = false,
-          simulationResult = false
+          simulationResult = false,
+          flexResult = false,
         ),
+        SimonaConfig.ParticipantBaseOutputConfig(
+          /*fixme mh
         BaseOutputConfig(
+
+           */
           notifier = "pv",
           powerRequestReply = false,
-          simulationResult = false
+          simulationResult = false,
+          flexResult = false,
         ),
+        SimonaConfig.ParticipantBaseOutputConfig(
+          /*fixme mh
         BaseOutputConfig(
+
+           */
           notifier = "chp",
           powerRequestReply = false,
-          simulationResult = false
-        )
-      )
+          simulationResult = false,
+          flexResult = false,
+        ),
+      ),
     )
 
     "build the correct map on valid input" in {
-      val configUtil = BaseOutputConfigUtil(validInput)
-      inside(configUtil) { case BaseOutputConfigUtil(default, configs) =>
-        default shouldBe ParticipantNotifierConfig(
+      val configUtil = OutputConfigUtil(validInput)
+      inside(configUtil) { case OutputConfigUtil(default, configs) =>
+        default shouldBe NotifierConfig(
           simulationResultInfo = false,
-          powerRequestReply = false
+          powerRequestReply = false,
+          flexResult = false,
         )
         configs shouldBe Map(
-          Load -> ParticipantNotifierConfig(
+          Load -> NotifierConfig(
             simulationResultInfo = false,
-            powerRequestReply = false
+            powerRequestReply = false,
+            flexResult = false,
           ),
-          PvPlant -> ParticipantNotifierConfig(
+          PvPlant -> NotifierConfig(
             simulationResultInfo = false,
-            powerRequestReply = false
+            powerRequestReply = false,
+            flexResult = false,
           ),
-          ChpPlant -> ParticipantNotifierConfig(
+          ChpPlant -> NotifierConfig(
             simulationResultInfo = false,
-            powerRequestReply = false
-          )
+            powerRequestReply = false,
+            flexResult = false,
+          ),
         )
       }
     }
 
-    val configUtil = BaseOutputConfigUtil(validInput)
+    val configUtil = OutputConfigUtil(validInput)
     "return the correct config on request" in {
       val actual = configUtil.getOrDefault(PvPlant)
-      actual shouldBe ParticipantNotifierConfig(
+      actual shouldBe NotifierConfig(
         simulationResultInfo = false,
-        powerRequestReply = false
+        powerRequestReply = false,
+        flexResult = false,
       )
     }
 
     "return default config, when the requested model type is not apparent" in {
-      configUtil.getOrDefault(Wec) shouldBe ParticipantNotifierConfig(
+      configUtil.getOrDefault(Wec) shouldBe NotifierConfig(
         simulationResultInfo = false,
-        powerRequestReply = false
+        powerRequestReply = false,
+        flexResult = false,
       )
     }
 
     "return the correct notifier identifiers when the default is to inform about new simulation results" in {
+      val inputConfig = new Simona.Output.Participant(
+        SimonaConfig.ParticipantBaseOutputConfig(
+        /*fixme mh
       val inputConfig = ParticipantOutputConfig(
         BaseOutputConfig(
+
+         */
           notifier = "default",
           powerRequestReply = false,
-          simulationResult = true
+          simulationResult = true,
+          flexResult = false,
         ),
+        List(
+          SimonaConfig.ParticipantBaseOutputConfig(
+            /*fixme mh
         Seq(
           BaseOutputConfig(
+
+             */
             notifier = "load",
             powerRequestReply = true,
-            simulationResult = true
+            simulationResult = true,
+            flexResult = false,
           ),
-          BaseOutputConfig(
+          SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "pv",
             powerRequestReply = true,
-            simulationResult = false
+            simulationResult = false,
+            flexResult = false,
           ),
-          BaseOutputConfig(
+          SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "chp",
             powerRequestReply = true,
-            simulationResult = true
-          )
+            simulationResult = true,
+            flexResult = false,
+          ),
+        ),
+      )
+      val configUtil = OutputConfigUtil(inputConfig)
+      val expectedResult: Set[Value] =
+        NotifierIdentifier.getParticipantIdentifiers -- Vector(
+          NotifierIdentifier.PvPlant
         )
-      )
-      val configUtil = BaseOutputConfigUtil(inputConfig)
-      val expectedResult: Set[Value] = NotifierIdentifier.values -- Vector(
-        NotifierIdentifier.PvPlant
-      )
 
-      configUtil.simulationResultIdentifiersToConsider shouldBe expectedResult
+      configUtil.simulationResultIdentifiersToConsider(
+        false
+      ) shouldBe expectedResult
     }
 
     "return the correct notifier identifiers when the default is to NOT inform about new simulation results" in {
+      val inputConfig = new Simona.Output.Participant(
+        SimonaConfig.ParticipantBaseOutputConfig(
+        /*fixme mh
       val inputConfig = ParticipantOutputConfig(
         BaseOutputConfig(
+
+         */
           notifier = "default",
           powerRequestReply = false,
-          simulationResult = false
+          simulationResult = false,
+          flexResult = false,
         ),
+        List(
+          SimonaConfig.ParticipantBaseOutputConfig(
+            /*fixme mh
         Seq(
           BaseOutputConfig(
+
+             */
             notifier = "load",
             powerRequestReply = true,
-            simulationResult = true
+            simulationResult = true,
+            flexResult = false,
           ),
-          BaseOutputConfig(
+          SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "pv",
             powerRequestReply = true,
-            simulationResult = false
+            simulationResult = false,
+            flexResult = false,
           ),
-          BaseOutputConfig(
+          SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "chp",
             powerRequestReply = true,
-            simulationResult = true
-          )
-        )
+            simulationResult = true,
+            flexResult = false,
+          ),
+        ),
       )
-      val configUtil = BaseOutputConfigUtil(inputConfig)
+      val configUtil = OutputConfigUtil(inputConfig)
       val expectedResult: Set[Value] =
         Set(NotifierIdentifier.Load, NotifierIdentifier.ChpPlant)
 
-      configUtil.simulationResultIdentifiersToConsider shouldBe expectedResult
+      configUtil.simulationResultIdentifiersToConsider(
+        false
+      ) shouldBe expectedResult
     }
 
     "return the correct result entity classes to be considered " in {
+      val inputConfig = new Simona.Output.Participant(
+        SimonaConfig.ParticipantBaseOutputConfig(
+        /*fixme mh commit
       val inputConfig = ParticipantOutputConfig(
         BaseOutputConfig(
+
+         */
           notifier = "default",
           powerRequestReply = false,
-          simulationResult = false
+          simulationResult = false,
+          flexResult = false,
         ),
+        List(
+          SimonaConfig.ParticipantBaseOutputConfig(
+            /*fixme mh
         Seq(
           BaseOutputConfig(
+
+             */
             notifier = "load",
             powerRequestReply = true,
-            simulationResult = true
+            simulationResult = true,
+            flexResult = false,
           ),
-          BaseOutputConfig(
+          SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "pv",
             powerRequestReply = true,
-            simulationResult = false
+            simulationResult = false,
+            flexResult = false,
           ),
-          BaseOutputConfig(
+          SimonaConfig.ParticipantBaseOutputConfig(
             notifier = "chp",
             powerRequestReply = true,
-            simulationResult = true
-          )
-        )
+            simulationResult = true,
+            flexResult = false,
+          ),
+        ),
       )
-      val configUtil = BaseOutputConfigUtil(inputConfig)
+      val configUtil = OutputConfigUtil(inputConfig)
       val expectedResult: Set[Class[_ <: ResultEntity]] =
         Set[Class[_ <: ResultEntity]](classOf[LoadResult], classOf[ChpResult])
 
-      configUtil.simulationResultEntitiesToConsider shouldBe expectedResult
+      configUtil.simulationResultEntitiesToConsider(
+        false
+      ) shouldBe expectedResult
     }
   }
 
@@ -790,9 +870,9 @@ class ConfigUtilSpec
             "server:1234",
             "https://reg:123",
             0,
-            "topic"
+            "topic",
           ),
-          Seq("topic")
+          Seq("topic"),
         )
       }.getMessage shouldBe "The UUID '-not-a-uuid-' cannot be parsed as it is invalid."
     }
@@ -805,9 +885,9 @@ class ConfigUtilSpec
             "not#a#server",
             "https://reg:123",
             0,
-            "topic"
+            "topic",
           ),
-          Seq("topic")
+          Seq("topic"),
         )
       }.getMessage shouldBe "Exception creating kafka client for broker not#a#server."
     }
@@ -820,9 +900,9 @@ class ConfigUtilSpec
             "localhost:12345",
             "https://reg:123",
             0,
-            "topic"
+            "topic",
           ),
-          Seq("topic")
+          Seq("topic"),
         )
       }.getMessage shouldBe "Connection with kafka broker localhost:12345 failed."
     }

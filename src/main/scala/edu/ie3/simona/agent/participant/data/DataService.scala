@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant.data
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 
 /** Common properties to all data sources providing data from the outside of a
   * SystemParticipant model but not necessarily from the outside of the

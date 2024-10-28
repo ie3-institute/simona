@@ -6,36 +6,29 @@
 
 package edu.ie3.simona.model.participant
 
-import java.nio.file.Path
-
-import static edu.ie3.util.quantities.PowerSystemUnits.MEGAWATT
-
-import static java.util.Locale.US
-import static java.util.Locale.setDefault
-import static tech.units.indriya.quantity.Quantities.getQuantity
-
 import edu.ie3.datamodel.io.source.csv.CsvJointGridContainerSource
 import edu.ie3.datamodel.models.input.system.PvInput
-
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
 import edu.ie3.util.TimeUtil
-
 import edu.ie3.util.scala.quantities.Sq
-
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter$
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVRecord
 import spock.lang.Shared
 import spock.lang.Specification
-import squants.*
+import squants.Dimensionless
+import squants.Each$
+import squants.energy.Megawatts$
+import squants.energy.Power
 import squants.motion.MetersPerSecond$
 import squants.thermal.Kelvin$
 
-import javax.measure.Quantity
-
-import javax.measure.quantity.Power
+import java.nio.file.Path
 import java.time.ZonedDateTime
 import java.util.zip.GZIPInputStream
+
+import static java.util.Locale.US
+import static java.util.Locale.setDefault
 
 /**
  * A simple integration test that uses pre-calculated data to check if the pv model works as expected.
@@ -45,13 +38,13 @@ import java.util.zip.GZIPInputStream
 class PvModelIT extends Specification implements PvModelITHelper {
 
   @Shared
-  HashMap<String, PvModel> pvModels
+  Map<String, PvModel> pvModels
 
   @Shared
-  HashMap<ZonedDateTime, HashMap<String, WeatherMessage.WeatherData>> weatherMap
+  Map<ZonedDateTime, Map<String, WeatherMessage.WeatherData>> weatherMap
 
   @Shared
-  HashMap<ZonedDateTime, HashMap<String, Quantity<Power>>> resultsMap
+  Map<ZonedDateTime, Map<String, Power>> resultsMap
 
 
   def setupSpec() {
@@ -81,7 +74,7 @@ class PvModelIT extends Specification implements PvModelITHelper {
 
     for (ZonedDateTime dateTime : keyList) {
 
-      HashMap modelToWeatherMap = weatherMap.get(dateTime)
+      Map<String, WeatherMessage.WeatherData> modelToWeatherMap = weatherMap.get(dateTime)
 
       String[] row = new String[2*modelCount+1]
       row[0] = dateTime.toString()
@@ -101,8 +94,8 @@ class PvModelIT extends Specification implements PvModelITHelper {
         Dimensionless voltage = Sq.create(1.414213562d, Each$.MODULE$)
 
         "collect the results and calculate the difference between the provided results and the calculated ones"
-        double calc = model.calculatePower(0L, voltage, neededData).p().value().doubleValue()
-        double sol = resultsMap.get(dateTime).get(modelId).value.doubleValue()
+        double calc = model.calculatePower(0L, voltage, ModelState.ConstantState$.MODULE$,  neededData).p().toMegawatts()
+        double sol = resultsMap.get(dateTime).get(modelId).toMegawatts()
 
         testRes.add(Math.abs(calc - sol))
 
@@ -132,16 +125,16 @@ trait PvModelITHelper {
     return CSV_FORMAT.parse(br)
   }
 
-  HashMap<String, PvModel> createPvModels() {
+  Map<String, PvModel> createPvModels() {
     "load the grid input data from the corresponding resources folder"
 
     def csvGridSource = CsvJointGridContainerSource.read("it_grid", ";",
         Path.of(this.getClass().getResource("_pv/it/grid_data").toURI()), false)
 
-    def simulationStartDate = TimeUtil.withDefaults.toZonedDateTime("2011-01-01 00:00:00")
-    def simulationEndDate = TimeUtil.withDefaults.toZonedDateTime("2012-01-01 00:00:00")
+    def simulationStartDate = TimeUtil.withDefaults.toZonedDateTime("2011-01-01T00:00:00Z")
+    def simulationEndDate = TimeUtil.withDefaults.toZonedDateTime("2012-01-01T00:00:00Z")
 
-    HashMap<String, PvModel> pvModels = new HashMap<>()
+    Map<String, PvModel> pvModels = new HashMap<>()
     for (PvInput inputModel : csvGridSource.systemParticipants.pvPlants) {
       PvModel model = PvModel.apply(
           inputModel,
@@ -156,15 +149,15 @@ trait PvModelITHelper {
     return pvModels
   }
 
-  HashMap<ZonedDateTime, HashMap<String, WeatherMessage.WeatherData>> getWeatherData() {
+  Map<ZonedDateTime, Map<String, WeatherMessage.WeatherData>> getWeatherData() {
     "read the weather data from the provided weather data file"
     final String fileName = "_pv/it/weather.tar.gz"
     final def csvRecords = getCsvRecords(fileName)
 
-    HashMap<ZonedDateTime, HashMap<String, WeatherMessage.WeatherData>> weatherMap = new HashMap<>()
+    Map<ZonedDateTime, Map<String, WeatherMessage.WeatherData>> weatherMap = new HashMap<>()
     for (row in csvRecords) {
       ZonedDateTime time = TimeUtil.withDefaults.toZonedDateTime(row.get(0))
-      HashMap modelToWeatherMap
+      Map<String, WeatherMessage.WeatherData> modelToWeatherMap
       if (weatherMap.containsKey(time)) {
         modelToWeatherMap = weatherMap.get(time)
       }
@@ -191,7 +184,7 @@ trait PvModelITHelper {
     return weatherMap
   }
 
-  HashMap<ZonedDateTime, HashMap<String, Quantity<Power>>> getResultsData() {
+  Map<ZonedDateTime, Map<String, Power>> getResultsData() {
     "read the results data from the provided file"
     final String fileName = "_pv/it/results2.tar.gz"
     def csvRecords = getCsvRecords(fileName)
@@ -209,18 +202,18 @@ trait PvModelITHelper {
       "pv_west_2"
     ]
 
-    HashMap<ZonedDateTime, HashMap<String, Quantity<Power>>> resultsMap = new HashMap<>()
+    Map<ZonedDateTime, Map<String, Power>> resultsMap = new HashMap<>()
     for(row in csvRecords) {
       // last line is trash
       if (row.get(0).startsWith('\u0000'))
         break
 
-      ZonedDateTime time = ZonedDateTime.parse(row.get(0))
-      HashMap<String, Quantity<Power>> modelToPowerMap = new HashMap<String, Quantity<Power>>()
+      ZonedDateTime time = TimeUtil.withDefaults.toZonedDateTime(row.get(0))
+      Map<String, Power> modelToPowerMap = new HashMap<>()
       for (int i = 1; i < headers.length; i++) {
         String modelId = headers[i]
         String rawValue = row[i]
-        Quantity<Power> power = getQuantity(Double.parseDouble(rawValue), MEGAWATT)
+        Power power = Sq.create(Double.parseDouble(rawValue), Megawatts$.MODULE$)
         modelToPowerMap.put(modelId, power)
       }
       resultsMap.put(time, modelToPowerMap)

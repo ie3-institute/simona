@@ -6,33 +6,38 @@
 
 package edu.ie3.simona.agent.participant
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import edu.ie3.datamodel.models.input.system.{EvcsInput, SystemParticipantInput}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
-  ActorEvMovementsService,
+  ActorExtEvDataService,
   ActorPriceService,
-  ActorWeatherService
+  ActorWeatherService,
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.exceptions.agent.ServiceRegistrationException
+import edu.ie3.simona.model.participant.{
+  CalcRelevantData,
+  ModelState,
+  SystemParticipant,
+}
 import edu.ie3.simona.ontology.messages.services.EvMessage.RegisterForEvDataMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
 
 trait ServiceRegistration[
     PD <: PrimaryDataWithApparentPower[PD],
     CD <: CalcRelevantData,
+    MS <: ModelState,
     D <: ParticipantStateData[PD],
     I <: SystemParticipantInput,
     MC <: BaseRuntimeConfig,
-    M <: SystemParticipant[CD]
+    M <: SystemParticipant[CD, PD, MS],
 ] {
-  this: ParticipantAgent[PD, CD, D, I, MC, M] =>
+  this: ParticipantAgent[PD, CD, MS, D, I, MC, M] =>
 
   /** Registers the agent for the needed services and collects all actor
     * references, with which the actor has been registered
@@ -42,19 +47,15 @@ trait ServiceRegistration[
     * @param services
     *   Definition of where to get what
     * @return
-    *   a vector of actor references to wait for responses
+    *   an iterable of actor references to wait for responses
     */
   def registerForServices(
       inputModel: I,
-      services: Option[Vector[SecondaryDataService[_ <: SecondaryData]]]
-  ): Vector[ActorRef] =
-    services
-      .map(sources =>
-        sources.flatMap(service =>
-          registerForSecondaryService(service, inputModel)
-        )
-      )
-      .getOrElse(Vector.empty[ActorRef])
+      services: Iterable[SecondaryDataService[_ <: SecondaryData]],
+  ): Iterable[ActorRef] =
+    services.flatMap(service =>
+      registerForSecondaryService(service, inputModel)
+    )
 
   /** Register for the distinct secondary service
     *
@@ -72,20 +73,20 @@ trait ServiceRegistration[
       S <: SecondaryData
   ](
       serviceDefinition: SecondaryDataService[S],
-      inputModel: I
+      inputModel: I,
   ): Option[ActorRef] = serviceDefinition match {
     case SecondaryDataService.ActorPriceService(_) =>
       log.debug(
         s"Attempt to register for {}. This is currently not supported.",
-        ActorPriceService
+        ActorPriceService,
       )
       None
-    case ActorWeatherService(actorRef) =>
-      registerForWeather(actorRef, inputModel)
-      Some(actorRef)
-    case ActorEvMovementsService(actorRef) =>
-      registerForEvMovements(actorRef, inputModel)
-      Some(actorRef)
+    case ActorWeatherService(serviceRef) =>
+      registerForWeather(serviceRef, inputModel)
+      Some(serviceRef)
+    case ActorExtEvDataService(serviceRef) =>
+      registerForEvData(serviceRef, inputModel)
+      Some(serviceRef)
   }
 
   /** Register for the weather service
@@ -98,7 +99,7 @@ trait ServiceRegistration[
     */
   private def registerForWeather(
       actorRef: ActorRef,
-      inputModel: I
+      inputModel: I,
   ): Unit = {
     /* If we are asked to register for weather, determine the proper geo position */
     val geoPosition = inputModel.getNode.getGeoPosition
@@ -118,19 +119,19 @@ trait ServiceRegistration[
 
   /** Register for the EV movement service
     *
-    * @param actorRef
+    * @param serviceRef
     *   Actor reference of the EV movements service
     * @param inputModel
     *   Input model of the simulation mode
     * @return
     */
-  private def registerForEvMovements(
-      actorRef: ActorRef,
-      inputModel: I
+  private def registerForEvData(
+      serviceRef: ActorRef,
+      inputModel: I,
   ): Unit = {
     inputModel match {
       case evcsInput: EvcsInput =>
-        actorRef ! RegisterForEvDataMessage(evcsInput.getUuid)
+        serviceRef ! RegisterForEvDataMessage(evcsInput.getUuid)
       case _ =>
         throw new ServiceRegistrationException(
           s"Cannot register for EV movements information at node ${inputModel.getNode.getId} " +

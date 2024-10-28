@@ -17,7 +17,7 @@ import scala.util.Try
   */
 final class ThermalConductance private (
     val value: Double,
-    val unit: ThermalConductanceUnit
+    val unit: ThermalConductanceUnit,
 ) extends Quantity[ThermalConductance] {
 
   def dimension: ThermalConductance.type = ThermalConductance
@@ -33,10 +33,10 @@ final class ThermalConductance private (
     *   Time duration
     * @return
     */
-  def thermalConductanceToEnergy(
+  def calcThermalEnergyChange(
       temperatureInner: Temperature,
       temperatureOuter: Temperature,
-      time: squants.Time
+      time: squants.Time,
   ): Energy = WattHours(
     this.toWattsPerKelvin * (temperatureInner.toKelvinScale - temperatureOuter.toKelvinScale) * time.toHours
   )

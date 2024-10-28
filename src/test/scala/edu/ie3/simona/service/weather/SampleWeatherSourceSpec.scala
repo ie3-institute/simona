@@ -10,7 +10,7 @@ import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.weather.WeatherSource.{
   AgentCoordinates,
-  WeightedCoordinates
+  WeightedCoordinates,
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.util.TickUtil._
@@ -30,7 +30,7 @@ class SampleWeatherSourceSpec
     with MockitoSugar
     with TableDrivenPropertyChecks {
   implicit val simulationStart: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2011-01-01 00:00:00")
+    TimeUtil.withDefaults.toZonedDateTime("2011-01-01T00:00:00Z")
   implicit val toleranceIrradiance: Irradiance = WattsPerSquareMeter(0.1)
   implicit val toleranceVelocity: Velocity = MetersPerSecond(0.01)
   implicit val toleranceTemperature: Temperature = Celsius(0.01)
@@ -40,12 +40,12 @@ class SampleWeatherSourceSpec
     "always return the queried coordinate itself as nearest coordinate" in {
       val queryCoordinate = AgentCoordinates(
         NodeInput.DEFAULT_GEO_POSITION.getY,
-        NodeInput.DEFAULT_GEO_POSITION.getX
+        NodeInput.DEFAULT_GEO_POSITION.getX,
       )
 
       source.getWeightedCoordinates(
         queryCoordinate,
-        4
+        4,
       ) match {
         case Success(WeightedCoordinates(weighting)) =>
           weighting.corresponds(
@@ -58,7 +58,7 @@ class SampleWeatherSourceSpec
         case Failure(exception) =>
           fail(
             "Querying the nearest coordinates was supposed to pass.",
-            exception
+            exception,
           )
       }
     }
@@ -69,7 +69,7 @@ class SampleWeatherSourceSpec
         (0L, 86400L, (0L to 86400L by 3600L).toArray),
         (1L, 86400L, (3600L to 86400L by 3600L).toArray),
         (0L, 86399L, (0L to 82800L by 3600L).toArray),
-        (1L, 86399L, (3600L to 82800L by 3600L).toArray)
+        (1L, 86399L, (3600L to 82800L by 3600L).toArray),
       )
 
       testData.forEvery {
@@ -80,7 +80,7 @@ class SampleWeatherSourceSpec
 
     val getWeatherPrivate = PrivateMethod[WeatherData](Symbol("getWeather"))
     val tick =
-      TimeUtil.withDefaults.toZonedDateTime("2011-02-01 15:00:00").toTick
+      TimeUtil.withDefaults.toZonedDateTime("2011-02-01T15:00:00Z").toTick
 
     "return correct weather data in value and unit" in {
       val actual = source invokePrivate getWeatherPrivate(tick)
@@ -92,13 +92,10 @@ class SampleWeatherSourceSpec
       actual.windVel.unit shouldBe MetersPerSecond
 
       /* Values meet expectations */
-      (actual.diffIrr ~= WattsPerSquareMeter(72.7656)) shouldBe true
-
-      (actual.dirIrr ~= WattsPerSquareMeter(80.1172)) shouldBe true
-
-      (actual.windVel ~= MetersPerSecond(11.11602)) shouldBe true
-
-      (actual.temp ~= Celsius(6.459)) shouldBe true
+      actual.diffIrr should approximate(WattsPerSquareMeter(72.7656))
+      actual.dirIrr should approximate(WattsPerSquareMeter(80.1172))
+      actual.windVel should approximate(MetersPerSecond(11.11602))
+      actual.temp should approximate(Celsius(6.459))
 
     }
 
@@ -109,17 +106,16 @@ class SampleWeatherSourceSpec
       source.getWeather(tick, weightedCoordinates) match {
         case WeatherData(diffIrr, dirIrr, temp, windVel) =>
           diffIrr.unit shouldBe WattsPerSquareMeter
-          (diffIrr ~= WattsPerSquareMeter(72.7656)) shouldBe true
+          diffIrr should approximate(WattsPerSquareMeter(72.7656))
 
           dirIrr.unit shouldBe WattsPerSquareMeter
-          (dirIrr ~= WattsPerSquareMeter(80.1172)) shouldBe true
+          dirIrr should approximate(WattsPerSquareMeter(80.1172))
 
           temp.unit shouldBe Celsius
-          (temp ~= Celsius(6.459d)) shouldBe true
+          temp should approximate(Celsius(6.459d))
 
           windVel.unit shouldBe MetersPerSecond
-          (windVel ~= MetersPerSecond(11.11602d)) shouldBe true
-
+          windVel should approximate(MetersPerSecond(11.11602d))
       }
     }
   }

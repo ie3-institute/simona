@@ -20,16 +20,27 @@ class ResultSinkTypeSpec extends UnitSpec {
       val conf = OutputSinkConfig(
         csv = Some(
           OutputCsvParams()
+            /*fixme mh dev version:
+          SimonaConfig.Simona.Output.Sink.Csv(
+            fileFormat = ".csv",
+            filePrefix = "",
+            fileSuffix = "",
+            isHierarchic = false,
+            zipFiles = false,
+          )
+
+             */
         ),
         influxDb1x = None,
-        kafka = None
+        kafka = None,
       )
 
       inside(ResultSinkType(conf, "testRun")) {
-        case Csv(fileFormat, filePrefix, fileSuffix) =>
+        case Csv(fileFormat, filePrefix, fileSuffix, zipFiles) =>
           fileFormat shouldBe conf.csv.value.fileFormat
           filePrefix shouldBe conf.csv.value.filePrefix
           fileSuffix shouldBe conf.csv.value.fileSuffix
+          zipFiles shouldBe conf.csv.value.zipFiles
         case _ =>
           fail("Wrong ResultSinkType got instantiated.")
       }
@@ -42,10 +53,10 @@ class ResultSinkTypeSpec extends UnitSpec {
           InfluxDb1xParams(
             database = "test",
             port = 1,
-            url = "localhost/"
+            url = "localhost/",
           )
         ),
-        kafka = None
+        kafka = None,
       )
       val runName = "testRun"
 
@@ -69,9 +80,9 @@ class ResultSinkTypeSpec extends UnitSpec {
             "localhost:9092",
             "https://reg:123",
             12,
-            "topic"
+            "topic",
           )
-        )
+        ),
       )
       val runName = "testRun"
 
@@ -81,7 +92,7 @@ class ResultSinkTypeSpec extends UnitSpec {
               runId,
               bootstrapServers,
               schemaRegistryUrl,
-              linger
+              linger,
             ) =>
           topicNodeRes shouldBe "topic"
           runId shouldBe UUID.fromString("00000000-0000-0000-0000-000000000000")
@@ -97,15 +108,25 @@ class ResultSinkTypeSpec extends UnitSpec {
       val conf = OutputSinkConfig(
         csv = Some(
           OutputCsvParams()
+            /*fixme mh
+          SimonaConfig.Simona.Output.Sink.Csv(
+            fileFormat = ".csv",
+            filePrefix = "",
+            fileSuffix = "",
+            isHierarchic = false,
+            zipFiles = false,
+          )
+
+             */
         ),
         influxDb1x = Some(
           InfluxDb1xParams(
             database = "test",
             port = 1,
-            url = "localhost"
+            url = "localhost",
           )
         ),
-        kafka = None
+        kafka = None,
       )
 
       assertThrows[IllegalArgumentException](ResultSinkType(conf, "testRun"))
@@ -115,7 +136,7 @@ class ResultSinkTypeSpec extends UnitSpec {
       val conf = OutputSinkConfig(
         csv = None,
         influxDb1x = None,
-        kafka = None
+        kafka = None,
       )
 
       assertThrows[IllegalArgumentException](ResultSinkType(conf, "testRun"))
