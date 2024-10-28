@@ -90,6 +90,10 @@ object Data {
         ActivePower(p = p * factor)
     }
 
+    object ActivePowerMeta extends PrimaryDataMeta[ActivePower] {
+      override def zero: ActivePower = ActivePower(zeroKW)
+    }
+
     /** Active and Reactive power as participant simulation result
       *
       * @param p

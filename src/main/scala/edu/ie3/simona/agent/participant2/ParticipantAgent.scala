@@ -199,7 +199,11 @@ object ParticipantAgent {
             ctx.log,
           )
 
-        val result = updatedGridAdapter.avgPowerResult.get
+        val result = updatedGridAdapter.avgPowerResult.getOrElse(
+          throw new CriticalFailureException(
+            "Power result has not been calculated"
+          )
+        )
         gridAdapter.gridAgent !
           (if (result.newResult) {
              AssetPowerChangedMessage(
