@@ -35,7 +35,7 @@ import scala.reflect.ClassTag
 
 /** Just "replaying" primary data
   */
-final case class PrimaryDataParticipantModel[P <: PrimaryData[_]: ClassTag](
+final case class PrimaryDataParticipantModel[P <: PrimaryData: ClassTag](
     override val uuid: UUID,
     override val sRated: Power,
     override val cosPhiRated: Double,
@@ -138,17 +138,17 @@ final case class PrimaryDataParticipantModel[P <: PrimaryData[_]: ClassTag](
 
 object PrimaryDataParticipantModel {
 
-  final case class PrimaryOperationRelevantData[+P <: PrimaryData[_]](data: P)
+  final case class PrimaryOperationRelevantData[+P <: PrimaryData](data: P)
       extends OperationRelevantData
 
-  trait PrimaryOperatingPoint[+P <: PrimaryData[_]] extends OperatingPoint {
+  trait PrimaryOperatingPoint[+P <: PrimaryData] extends OperatingPoint {
     val data: P
 
     override val activePower: Power = data.p
   }
 
   object PrimaryOperatingPoint {
-    def apply[P <: PrimaryData[_]: ClassTag](
+    def apply[P <: PrimaryData: ClassTag](
         data: P
     ): PrimaryOperatingPoint[P] =
       data match {
@@ -167,7 +167,7 @@ object PrimaryDataParticipantModel {
   }
 
   private final case class PrimaryActivePowerOperatingPoint[
-      PE <: PrimaryData[_] with EnrichableData[_]: ClassTag
+      PE <: PrimaryData with EnrichableData[_]: ClassTag
   ](
       override val data: PE
   ) extends PrimaryOperatingPoint[PE] {

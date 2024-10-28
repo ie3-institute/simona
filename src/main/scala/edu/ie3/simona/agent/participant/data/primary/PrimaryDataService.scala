@@ -13,7 +13,7 @@ import edu.ie3.simona.agent.participant.data.DataService
 
 /** Enum-like trait to denote possible external data sources for systems
   */
-sealed trait PrimaryDataService[+D <: PrimaryData[_]] extends DataService[D]
+sealed trait PrimaryDataService[+D <: PrimaryData] extends DataService[D]
 
 object PrimaryDataService {
 

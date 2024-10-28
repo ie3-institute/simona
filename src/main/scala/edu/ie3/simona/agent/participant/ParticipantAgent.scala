@@ -888,7 +888,7 @@ object ParticipantAgent {
     *   nodal voltage
     */
   def getAndCheckNodalVoltage(
-      baseStateData: BaseStateData[_ <: PrimaryData[_]],
+      baseStateData: BaseStateData[_ <: PrimaryData],
       currentTick: Long,
   ): Dimensionless = {
     baseStateData.voltageValueStore.last(currentTick) match {

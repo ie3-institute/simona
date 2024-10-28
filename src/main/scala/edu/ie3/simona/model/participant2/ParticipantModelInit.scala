@@ -64,7 +64,7 @@ object ParticipantModelInit {
     }
   }
 
-  def createPrimaryModel[P <: PrimaryData[_]: ClassTag](
+  def createPrimaryModel[P <: PrimaryData: ClassTag](
       participantInput: SystemParticipantInput,
       modelConfig: BaseRuntimeConfig,
   ): ParticipantModelInitContainer[

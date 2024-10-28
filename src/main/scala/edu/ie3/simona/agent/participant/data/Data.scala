@@ -33,12 +33,12 @@ object Data {
     * model invocation. Anyway, primary data has to have at least active power
     * given
     */
-  sealed trait PrimaryData[+T <: PrimaryData[T]] extends Data {
+  sealed trait PrimaryData extends Data {
     val p: Power
     def toApparentPower: ApparentPower
   }
 
-  sealed trait PrimaryDataMeta[T <: PrimaryData[_]] {
+  sealed trait PrimaryDataMeta[T <: PrimaryData] {
     def zero: T
 
     def scale(data: T, factor: Double): T
@@ -54,7 +54,7 @@ object Data {
       */
     sealed trait PrimaryDataWithApparentPower[
         +T <: PrimaryDataWithApparentPower[T]
-    ] extends PrimaryData[T] {
+    ] extends PrimaryData {
       val q: ReactivePower
 
       def withReactivePower(q: ReactivePower): T
@@ -74,7 +74,7 @@ object Data {
       *   Active power
       */
     final case class ActivePower(override val p: Power)
-        extends PrimaryData[ActivePower]
+        extends PrimaryData
         with EnrichableData[ApparentPower] {
       override def toApparentPower: ApparentPower =
         ApparentPower(
@@ -127,7 +127,7 @@ object Data {
     final case class ActivePowerAndHeat(
         override val p: Power,
         override val qDot: Power,
-    ) extends PrimaryData[ActivePowerAndHeat]
+    ) extends PrimaryData
         with Heat
         with EnrichableData[ApparentPowerAndHeat] {
       override def toApparentPower: ApparentPower =
@@ -189,7 +189,7 @@ object Data {
     }
 
     implicit class RichValue(private val value: Value) {
-      def toPrimaryData: Try[PrimaryData[_]] =
+      def toPrimaryData: Try[PrimaryData] =
         value match {
           case hs: HeatAndSValue =>
             (hs.getP.toScala, hs.getQ.toScala, hs.getHeatDemand.toScala) match {
