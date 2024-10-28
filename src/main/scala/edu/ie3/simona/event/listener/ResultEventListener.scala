@@ -86,7 +86,7 @@ object ResultEventListener extends Transformer3wResultSupport {
               )
           }
 
-          filePathFuture.flatMap { fileName =>
+          filePathFuture.map { fileName =>
             val finalFileName =
               fileName match {
                 case name if name.endsWith(".csv.gz") && enableCompression =>
@@ -98,16 +98,15 @@ object ResultEventListener extends Transformer3wResultSupport {
                   )
               }
 
-            Future {
-              (
-                resultClass,
-                ResultEntityCsvSink(
-                  finalFileName,
-                  new ResultEntityProcessor(resultClass),
-                  enableCompression,
-                ),
-              )
-            }
+            (
+              resultClass,
+              ResultEntityCsvSink(
+                finalFileName,
+                new ResultEntityProcessor(resultClass),
+                enableCompression,
+              ),
+            )
+
           }
         }
 
