@@ -8,6 +8,7 @@ package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.input.system.ChpInput
 import edu.ie3.datamodel.models.input.system.`type`.ChpTypeInput
+import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.thermal.{
   CylindricalStorageInput,
@@ -50,17 +51,13 @@ class ChpModelSpec
     ChpState(isRunning = false, 0, Kilowatts(0), KilowattHours(0))
   val chpStateRunning: ChpState =
     ChpState(isRunning = true, 0, Kilowatts(0), KilowattHours(0))
-  var storageInput: CylindricalStorageInput = _
-  var chpInput: ChpInput = _
 
-  override def beforeAll(): Unit = {
-    setupSpec()
-  }
+  val (storageInput, chpInput) = setupSpec()
 
-  def setupSpec(): Unit = {
+  def setupSpec(): (CylindricalStorageInput, ChpInput) = {
     val thermalBus = new ThermalBusInput(UUID.randomUUID(), "thermal bus")
 
-    storageInput = new CylindricalStorageInput(
+    val storageInput = new CylindricalStorageInput(
       UUID.randomUUID(),
       "ThermalStorage",
       thermalBus,
@@ -84,10 +81,10 @@ class ChpModelSpec
       getQuantity(0, KILOWATT),
     )
 
-    chpInput = new ChpInput(
+    val chpInput = new ChpInput(
       UUID.randomUUID(),
       "ChpInput",
-      null,
+      OperatorInput.NO_OPERATOR_ASSIGNED,
       OperationTime.notLimited(),
       TestObjectFactory
         .buildNodeInput(false, GermanVoltageLevelUtils.MV_10KV, 0),
@@ -98,6 +95,8 @@ class ChpModelSpec
       null,
       false,
     )
+
+    (storageInput, chpInput)
   }
 
   def buildChpModel(thermalStorage: CylindricalThermalStorage): ChpModel = {
