@@ -130,7 +130,7 @@ final case class HpModel(
       lastState: HpState,
       relevantData: HpRelevantData,
   ): (Boolean, Boolean, HpState) = {
-    val (turnOn, canOperate, canBeOutOfOperation, houseDemand, storageDemand) =
+    val (turnOn, canOperate, canBeOutOfOperation) =
       operatesInNextState(lastState, relevantData)
     val updatedState =
       calcState(lastState, relevantData, turnOn)
@@ -149,12 +149,12 @@ final case class HpModel(
     *   Relevant (external) data
     * @return
     *   boolean defining if heat pump runs in next time step, if it can be in
-    *   operation and out of operation plus the demand of house and storage
+    *   operation and can be out of operation
     */
   private def operatesInNextState(
       state: HpState,
       relevantData: HpRelevantData,
-  ): (Boolean, Boolean, Boolean, Boolean, Boolean) = {
+  ): (Boolean, Boolean, Boolean) = {
     val (demandHouse, demandThermalStorage, updatedState) =
       thermalGrid.energyDemandAndUpdatedState(
         relevantData.currentTick,
@@ -183,7 +183,7 @@ final case class HpModel(
     val canBeOutOfOperation =
       !(demandHouse.hasRequiredDemand && noThermalStorageOrThermalStorageIsEmpty)
 
-    (turnHpOn, canOperate, canBeOutOfOperation, houseDemand, heatStorageDemand)
+    (turnHpOn, canOperate, canBeOutOfOperation)
   }
 
   def determineDemandBooleans(
