@@ -170,6 +170,12 @@ object ParticipantModel {
     */
   case object FixedRelevantData extends OperationRelevantData
 
+  /** OperationRelevantData that just transports the current datetime
+    * @param dateTime
+    *   The current datetime
+    */
+  case class DateTimeData(dateTime: ZonedDateTime) extends OperationRelevantData
+
   trait OperatingPoint {
 
     val activePower: Power
