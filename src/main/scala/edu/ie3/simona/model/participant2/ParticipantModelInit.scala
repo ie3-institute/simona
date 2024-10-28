@@ -11,6 +11,7 @@ import edu.ie3.datamodel.models.input.system.{
   PvInput,
   StorageInput,
   SystemParticipantInput,
+  WecInput,
 }
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
@@ -49,6 +50,10 @@ object ParticipantModelInit {
     (scaledParticipantInput, modelConfig) match {
       case (input: PvInput, _) =>
         val model = PvModel(input)
+        val state = model.getInitialState
+        ParticipantModelInitContainer(model, state)
+      case (input: WecInput, _) =>
+        val model = WecModel(input)
         val state = model.getInitialState
         ParticipantModelInitContainer(model, state)
       case (input: StorageInput, config: StorageRuntimeConfig) =>
