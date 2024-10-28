@@ -569,6 +569,7 @@ final case class ThermalGrid(
     * <li>the house has reached it's lower temperature boundary,</li> <li>there
     * is no infeed from external and</li> <li>the storage is not empty
     * itself</li> </ul>
+    *
     * @param tick
     *   The current tick
     * @param maybeHouseState
@@ -640,6 +641,9 @@ final case class ThermalGrid(
 
   /** Convert the given state of the thermal grid into result models of it's
     * constituent models
+    *
+    * @param currentTick
+    *   Actual simulation tick
     * @param state
     *   State to be converted
     * @param startDateTime
@@ -647,72 +651,36 @@ final case class ThermalGrid(
     * @return
     *   A [[Seq]] of results of the constituent thermal model
     */
-  def results(
-      state: ThermalGridState
-  )(implicit startDateTime: ZonedDateTime): Seq[ResultEntity] = {
-    /* FIXME: We only want to write results when there is a change within the participant.
-     * At the moment we write an storage result when the house result gets updated and vice versa.
-     * */
+  def results(currentTick: Long, state: ThermalGridState)(implicit
+      startDateTime: ZonedDateTime
+  ): Seq[ResultEntity] = {
 
-    val houseResultTick: Option[Long] = house
+    val maybeHouseResult = house
       .zip(state.houseState)
-      .headOption
-      .flatMap {
-        case (
-              thermalHouse,
-              ThermalHouseState(tick, _, _),
-            ) =>
-          Some(tick)
-        case _ => None
-      }
-
-    val storageResultTick: Option[Long] = storage
-      .zip(state.storageState)
-      .headOption
-      .flatMap {
-        case (
-              thermalStorage,
-              ThermalStorageState(tick, _, _),
-            ) =>
-          Some(tick)
-        case _ => None
-      }
-
-    val actualResultTick: Long = (houseResultTick, storageResultTick) match {
-      case (Some(hTick), Some(sTick)) => math.max(hTick, sTick)
-      case (Some(hTick), None)        => hTick
-      case (None, Some(sTick))        => sTick
-      case (None, None) =>
-        throw new RuntimeException(
-          "ThermalGrid result should be carried out but it was not possible to get the tick for the result"
-        )
-    }
-
-    val houseResults = house
-      .zip(state.houseState)
+      .filter { case (_, state) => state.tick == currentTick }
       .map {
         case (
               thermalHouse,
               ThermalHouseState(tick, innerTemperature, thermalInfeed),
             ) =>
-          Seq.empty[ResultEntity] :+ new ThermalHouseResult(
-            actualResultTick.toDateTime,
+          new ThermalHouseResult(
+            tick.toDateTime,
             thermalHouse.uuid,
             thermalInfeed.toMegawatts.asMegaWatt,
             innerTemperature.toKelvinScale.asKelvin,
           )
       }
-      .getOrElse(Seq.empty[ResultEntity])
 
-    storage
+    val maybeStorageResult = storage
       .zip(state.storageState)
+      .filter { case (_, state) => state.tick == currentTick }
       .map {
         case (
               storage: CylindricalThermalStorage,
               ThermalStorageState(tick, storedEnergy, qDot),
             ) =>
-          houseResults :+ new CylindricalStorageResult(
-            actualResultTick.toDateTime,
+          new CylindricalStorageResult(
+            tick.toDateTime,
             storage.uuid,
             storedEnergy.toMegawattHours.asMegaWattHour,
             qDot.toMegawatts.asMegaWatt,
@@ -723,7 +691,8 @@ final case class ThermalGrid(
             s"Result handling for storage type '${storage.getClass.getSimpleName}' not supported."
           )
       }
-      .getOrElse(houseResults)
+
+    Seq(maybeHouseResult, maybeStorageResult).flatten
   }
 }
 
