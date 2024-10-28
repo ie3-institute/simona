@@ -165,6 +165,11 @@ object ParticipantModel {
 
   trait OperationRelevantData
 
+  /** Passed to model calculation classes for each participant when no secondary
+    * data is required
+    */
+  case object FixedRelevantData extends OperationRelevantData
+
   trait OperatingPoint {
 
     val activePower: Power
