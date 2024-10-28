@@ -40,7 +40,7 @@ final case class PrimaryDataParticipantModel[P <: PrimaryData[_]: ClassTag](
     override val sRated: Power,
     override val cosPhiRated: Double,
     override val qControl: QControl,
-    primaryDataResultFunc: PrimaryResultFunc[P],
+    primaryDataResultFunc: PrimaryResultFunc,
     primaryDataMeta: PrimaryDataMeta[P],
 ) extends ParticipantModel[
       PrimaryOperatingPoint[P],
@@ -68,11 +68,11 @@ final case class PrimaryDataParticipantModel[P <: PrimaryData[_]: ClassTag](
       complexPower: PrimaryData.ApparentPower,
       dateTime: ZonedDateTime,
   ): Iterable[SystemParticipantResult] = {
-    val primaryDataWithApparentPower = currentOperatingPoint match {
-      case PrimaryApparentPowerOperatingPoint(data) =>
-        data
-      case PrimaryActivePowerOperatingPoint(data) =>
-        data.add(complexPower.q)
+    val primaryDataWithApparentPower = currentOperatingPoint.data match {
+      case primaryDataWithApparentPower: PrimaryDataWithApparentPower[_] =>
+        primaryDataWithApparentPower
+      case enrichableData: EnrichableData[_] =>
+        enrichableData.add(complexPower.q): PrimaryDataWithApparentPower[_]
     }
     Iterable(
       primaryDataResultFunc.createResult(primaryDataWithApparentPower, dateTime)
@@ -152,9 +152,9 @@ object PrimaryDataParticipantModel {
         data: P
     ): PrimaryOperatingPoint[P] =
       data match {
-        case apparentPowerData: PrimaryDataWithApparentPower[_] =>
+        case apparentPowerData: P with PrimaryDataWithApparentPower[_] =>
           PrimaryApparentPowerOperatingPoint(apparentPowerData)
-        case other =>
+        case other: P with EnrichableData[_] =>
           PrimaryActivePowerOperatingPoint(other)
       }
   }
@@ -167,22 +167,18 @@ object PrimaryDataParticipantModel {
   }
 
   private final case class PrimaryActivePowerOperatingPoint[
-      P <: PrimaryData[_] with EnrichableData[P2],
-      P2 <: P with PrimaryDataWithApparentPower[P2],
+      PE <: PrimaryData[_] with EnrichableData[_]: ClassTag
   ](
-      override val data: P
-  ) extends PrimaryOperatingPoint[P] {
+      override val data: PE
+  ) extends PrimaryOperatingPoint[PE] {
     override val reactivePower: Option[ReactivePower] = None
   }
 
   /** Function needs to be packaged to be store it in a val
-    * @tparam P
     */
-  trait PrimaryResultFunc[
-      P <: PrimaryData[_]
-  ] {
+  trait PrimaryResultFunc {
     def createResult(
-        data: P with PrimaryDataWithApparentPower[_],
+        data: PrimaryDataWithApparentPower[_],
         dateTime: ZonedDateTime,
     ): SystemParticipantResult
   }
