@@ -79,9 +79,9 @@ object ParticipantModelInit {
     )
     val physicalModel = modelContainer.model
 
-    val primaryResultFunc = new PrimaryResultFunc[P] {
+    val primaryResultFunc = new PrimaryResultFunc {
       override def createResult(
-          data: P with PrimaryData.PrimaryDataWithApparentPower[_],
+          data: PrimaryData.PrimaryDataWithApparentPower[_],
           dateTime: ZonedDateTime,
       ): SystemParticipantResult =
         physicalModel.createPrimaryDataResult(data, dateTime)

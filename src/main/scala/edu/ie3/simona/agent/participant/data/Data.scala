@@ -33,16 +33,15 @@ object Data {
     * model invocation. Anyway, primary data has to have at least active power
     * given
     */
-  sealed trait PrimaryData[T <: PrimaryData[T]] extends Data {
-
+  sealed trait PrimaryData[+T <: PrimaryData[T]] extends Data {
     val p: Power
     def toApparentPower: ApparentPower
-
-    def scale(factor: Double): this.type
   }
 
   sealed trait PrimaryDataMeta[T <: PrimaryData[_]] {
     def zero: T
+
+    def scale(data: T, factor: Double): T
   }
 
   object PrimaryData {
@@ -54,7 +53,7 @@ object Data {
     /** Denoting all primary data, that carry apparent power
       */
     sealed trait PrimaryDataWithApparentPower[
-        T <: PrimaryDataWithApparentPower[T]
+        +T <: PrimaryDataWithApparentPower[T]
     ] extends PrimaryData[T] {
       val q: ReactivePower
 
@@ -85,13 +84,13 @@ object Data {
 
       override def add(q: ReactivePower): ApparentPower =
         ApparentPower(p, q)
-
-      override def scale(factor: Double): ActivePower =
-        ActivePower(p = p * factor)
     }
 
     object ActivePowerMeta extends PrimaryDataMeta[ActivePower] {
       override def zero: ActivePower = ActivePower(zeroKW)
+
+      override def scale(data: ActivePower, factor: Double): ActivePower =
+        ActivePower(data.p * factor)
     }
 
     /** Active and Reactive power as participant simulation result
@@ -109,9 +108,13 @@ object Data {
 
       override def withReactivePower(q: ReactivePower): ApparentPower =
         copy(q = q)
+    }
 
-      override def scale(factor: Double): ApparentPower =
-        ApparentPower(p = p * factor, q = q * factor)
+    object ApparentPowerMeta extends PrimaryDataMeta[ApparentPower] {
+      override def zero: ApparentPower = ApparentPower(zeroKW, zeroKVAr)
+
+      override def scale(data: ApparentPower, factor: Double): ApparentPower =
+        ApparentPower(data.p * factor, data.q * factor)
     }
 
     /** Active power and heat demand as participant simulation result
@@ -135,9 +138,16 @@ object Data {
 
       override def add(q: ReactivePower): ApparentPowerAndHeat =
         ApparentPowerAndHeat(p, q, qDot)
+    }
 
-      override def scale(factor: Double): ActivePowerAndHeat =
-        ActivePowerAndHeat(p = p * factor, qDot = qDot * factor)
+    object ActivePowerAndHeatMeta extends PrimaryDataMeta[ActivePowerAndHeat] {
+      override def zero: ActivePowerAndHeat = ActivePowerAndHeat(zeroKW, zeroKW)
+
+      override def scale(
+          data: ActivePowerAndHeat,
+          factor: Double,
+      ): ActivePowerAndHeat =
+        ActivePowerAndHeat(data.p * factor, data.qDot * factor)
     }
 
     /** Apparent power and heat demand as participant simulation result
@@ -160,12 +170,21 @@ object Data {
 
       override def withReactivePower(q: ReactivePower): ApparentPowerAndHeat =
         copy(q = q)
+    }
 
-      override def scale(factor: Double): ApparentPowerAndHeat =
+    object ApparentPowerAndHeatMeta
+        extends PrimaryDataMeta[ApparentPowerAndHeat] {
+      override def zero: ApparentPowerAndHeat =
+        ApparentPowerAndHeat(zeroKW, zeroKVAr, zeroKW)
+
+      override def scale(
+          data: ApparentPowerAndHeat,
+          factor: Double,
+      ): ApparentPowerAndHeat =
         ApparentPowerAndHeat(
-          p = p * factor,
-          q = q * factor,
-          qDot = qDot * factor,
+          data.p * factor,
+          data.q * factor,
+          data.qDot * factor,
         )
     }
 

@@ -72,7 +72,7 @@ final case class PrimaryDataParticipantModel[P <: PrimaryData[_]: ClassTag](
       case primaryDataWithApparentPower: PrimaryDataWithApparentPower[_] =>
         primaryDataWithApparentPower
       case enrichableData: EnrichableData[_] =>
-        enrichableData.add(complexPower.q): PrimaryDataWithApparentPower[_]
+        enrichableData.add(complexPower.q)
     }
     Iterable(
       primaryDataResultFunc.createResult(primaryDataWithApparentPower, dateTime)
@@ -129,7 +129,7 @@ final case class PrimaryDataParticipantModel[P <: PrimaryData[_]: ClassTag](
       setPower: Power,
   ): (PrimaryOperatingPoint[P], ModelChangeIndicator) = {
     val factor = relevantData.data.p / setPower
-    val scaledData = relevantData.data.scale(factor)
+    val scaledData: P = primaryDataMeta.scale(relevantData.data, factor)
 
     (PrimaryOperatingPoint(scaledData), ModelChangeIndicator())
   }
