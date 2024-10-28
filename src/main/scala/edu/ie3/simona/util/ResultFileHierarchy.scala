@@ -11,7 +11,9 @@ import java.nio.file.{Files, Path, Paths, StandardCopyOption}
 import java.text.SimpleDateFormat
 import com.typesafe.config.{ConfigRenderOptions, Config => TypesafeConfig}
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.io.naming.{EntityPersistenceNamingStrategy, FileNamingStrategy,
+import edu.ie3.datamodel.io.naming.{
+  EntityPersistenceNamingStrategy,
+  FileNamingStrategy,
 }
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.simona.exceptions.FileHierarchyException

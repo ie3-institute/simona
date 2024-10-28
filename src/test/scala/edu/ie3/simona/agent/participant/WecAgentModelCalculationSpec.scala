@@ -19,7 +19,10 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{CollectRegistrationConfirmMessages, ParticipantInitializeStateData,  ParticipantUninitializedStateData,
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
+  CollectRegistrationConfirmMessages,
+  ParticipantInitializeStateData,
+  ParticipantUninitializedStateData,
 }
 import edu.ie3.simona.agent.participant.wec.WecAgent
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
@@ -43,15 +46,29 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
   RegisterForWeatherMessage,
   WeatherData,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{RegistrationFailedMessage, RegistrationSuccessfulMessage}
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.{ProvideWeatherMessage, RegisterForWeatherMessage, WeatherData}
-import edu.ie3.simona.ontology.trigger.Trigger.{ActivityStartTrigger, InitializeParticipantAgentTrigger}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
+  RegistrationFailedMessage,
+  RegistrationSuccessfulMessage,
+}
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
+  ProvideWeatherMessage,
+  RegisterForWeatherMessage,
+  WeatherData,
+}
+import edu.ie3.simona.ontology.trigger.Trigger.{
+  ActivityStartTrigger,
+  InitializeParticipantAgentTrigger,
+}
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.WecInputTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars, WattsPerSquareMeter,
+import edu.ie3.util.scala.quantities.{
+  Megavars,
+  ReactivePower,
+  Vars,
+  WattsPerSquareMeter,
 }
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.{ActorRef, ActorSystem}

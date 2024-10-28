@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.service.primary
 
-import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.factory.timeseries.TimeBasedSimpleValueFactory
 import edu.ie3.datamodel.io.naming.timeseries.ColumnScheme
@@ -17,17 +16,23 @@ import edu.ie3.datamodel.io.source.sql.SqlTimeSeriesSource
 import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.RichValue
-import edu.ie3.simona.config.IoConfigUtils.{BaseSqlParams, TimeStampedSqlParams}
+import edu.ie3.simona.config.IoConfigUtils.TimeStampedSqlParams
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
-import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceActivationBaseStateData,}
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.{PrimaryServiceInitializedStateData, ProvidePrimaryDataMessage,
+import edu.ie3.simona.service.ServiceStateData.{
+  InitializeServiceStateData,
+  ServiceActivationBaseStateData,
+}
+import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
+  PrimaryServiceInitializedStateData,
+  ProvidePrimaryDataMessage,
 }
 import edu.ie3.simona.service.{ServiceStateData, SimonaService}
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
+import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 
 import java.nio.file.Path
 import java.time.ZonedDateTime

@@ -81,7 +81,7 @@ trait DefaultTestData {
   ): SimonaConfig = {
     SimonaConfig(
       ConfigSource.string(
-      s"""
+        s"""
          |simona.simulationName = "ParticipantAgentTest"
          |
          |simona.time.startDateTime = "01/01/2020 00:00:00Z"
@@ -238,6 +238,7 @@ trait DefaultTestData {
          |
          |simona.gridConfig.refSystems = []
          |""".stripMargin
-    ))
+      )
+    )
   }
 }

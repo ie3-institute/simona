@@ -7,8 +7,17 @@
 package edu.ie3.simona.util
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.io.connectors.{CouchbaseConnector, InfluxDbConnector, SqlConnector}
-import edu.ie3.datamodel.models.result.connector.{LineResult, SwitchResult, Transformer2WResult, Transformer3WResult}
+import edu.ie3.datamodel.io.connectors.{
+  CouchbaseConnector,
+  InfluxDbConnector,
+  SqlConnector,
+}
+import edu.ie3.datamodel.models.result.connector.{
+  LineResult,
+  SwitchResult,
+  Transformer2WResult,
+  Transformer3WResult,
+}
 import edu.ie3.datamodel.io.connectors.{
   CouchbaseConnector,
   InfluxDbConnector,
@@ -21,9 +30,21 @@ import edu.ie3.datamodel.models.result.connector.{
   Transformer3WResult,
 }
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
-import edu.ie3.simona.config.IoConfigUtils.{BaseCsvParams, BaseKafkaParams, CouchbaseParams, CsvParams, BaseSqlParams}
-import edu.ie3.simona.config.OutputConfig.{GridOutputConfig, ParticipantOutputConfig}
-import edu.ie3.simona.config.RuntimeConfig.{BaseRuntimeConfig, RuntimeParticipantsConfig}
+import edu.ie3.simona.config.IoConfigUtils.{
+  BaseCsvParams,
+  BaseKafkaParams,
+  CouchbaseParams,
+  CsvParams,
+  BaseSqlParams,
+}
+import edu.ie3.simona.config.OutputConfig.{
+  GridOutputConfig,
+  ParticipantOutputConfig,
+}
+import edu.ie3.simona.config.RuntimeConfig.{
+  BaseRuntimeConfig,
+  RuntimeParticipantsConfig,
+}
 import edu.ie3.simona.config.OutputConfig
 import edu.ie3.simona.event.notifier.{Notifier, ParticipantNotifierConfig}
 import edu.ie3.simona.config.SimonaConfig
@@ -98,7 +119,7 @@ object ConfigUtil {
         )
       ParticipantConfigUtil(
         individual,
-        default
+        default,
         /*fixme mh verschiedene subConfigs hinzugefügt
         buildUuidMapping(
           Seq(
@@ -214,7 +235,7 @@ object ConfigUtil {
               powerRequestReply,
             ) =>
           NotifierConfig(simulationResult, powerRequestReply, flexResult)
-          /*fixme mh commit Lösung
+        /*fixme mh commit Lösung
         case OutputConfig.BaseOutputConfig(
               _,
               powerRequestReply,
@@ -222,7 +243,7 @@ object ConfigUtil {
             ) =>
           ParticipantNotifierConfig(simulationResult, powerRequestReply)
 
-           */
+         */
       }
       val configMap = subConfig.individualConfigs.map {
         case ParticipantBaseOutputConfig(

@@ -181,7 +181,9 @@ object ArgsParser extends LazyLogging {
               .resolveClassNameToCompanion(listenerElem.fullClassPath) match {
               case Some(listener: SimonaListenerCompanion) =>
                 // TODO: Double check if we should have an Optional here by design
-                listenerMap + (listener -> Some(listenerElem.eventsToProcess.toList))
+                listenerMap + (listener -> Some(
+                  listenerElem.eventsToProcess.toList
+                ))
               case nonListenerCompanion =>
                 logger.warn(
                   s"Invalid value ${nonListenerCompanion.getClass} for 'event.listener' config parameter!"

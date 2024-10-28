@@ -179,19 +179,19 @@ class RefSystemParserSpec extends UnitSpec {
         Some(
           List(
             RefSystemConfig(
-            gridIds = Some(List("asd")),
-            sNom = "100 MVA",
-            vNom = "10 kV",
-            voltLvls = Some(
-              List(VoltLvlConfig("MV", "10 kV"), VoltLvlConfig("MV", "20 kV"))
+              gridIds = Some(List("asd")),
+              sNom = "100 MVA",
+              vNom = "10 kV",
+              voltLvls = Some(
+                List(VoltLvlConfig("MV", "10 kV"), VoltLvlConfig("MV", "20 kV"))
               ),
             ),
             RefSystemConfig(
-            gridIds = None,
-            sNom = "100 MVA",
-            vNom = "10 kV",
-            voltLvls = Some(
-              List(VoltLvlConfig("MV", "10 kV"), VoltLvlConfig("MV", "20 kV"))
+              gridIds = None,
+              sNom = "100 MVA",
+              vNom = "10 kV",
+              voltLvls = Some(
+                List(VoltLvlConfig("MV", "10 kV"), VoltLvlConfig("MV", "20 kV"))
               ),
             ),
           )
@@ -212,19 +212,20 @@ class RefSystemParserSpec extends UnitSpec {
       Some(
         List(
           RefSystemConfig(
-          gridIds = Some(List("1", "2-10", "15...20")),
-          sNom = "100 MVA",
-          vNom = "10 kV",
-          voltLvls = Some(
-            List(VoltLvlConfig("MV", "10 kV"), VoltLvlConfig("MV", "20 kV"))
+            gridIds = Some(List("1", "2-10", "15...20")),
+            sNom = "100 MVA",
+            vNom = "10 kV",
+            voltLvls = Some(
+              List(VoltLvlConfig("MV", "10 kV"), VoltLvlConfig("MV", "20 kV"))
             ),
           ),
           RefSystemConfig(
-          gridIds = Some(List("100")),
-          sNom = "5000 MVA",
-          vNom = "110 kV",
-          voltLvls = Some(
-            List(VoltLvlConfig("HV", "110 kV"),
+            gridIds = Some(List("100")),
+            sNom = "5000 MVA",
+            vNom = "110 kV",
+            voltLvls = Some(
+              List(
+                VoltLvlConfig("HV", "110 kV"),
                 VoltLvlConfig("EHV", "380 kV"),
               )
             ),

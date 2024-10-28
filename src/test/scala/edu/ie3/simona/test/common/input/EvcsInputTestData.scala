@@ -68,7 +68,7 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
     )
 
    */
-/* fixme mh removed
+  /* fixme mh removed
   protected val modelConfig: SimpleRuntimeConfig =
     configUtil.getOrDefault[SimpleRuntimeConfig](
       evcsInputModel.getUuid
@@ -79,5 +79,5 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
   protected val simulationEndDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01 02:00:00")
 
- */
+   */
 }

@@ -21,12 +21,12 @@ import edu.ie3.datamodel.models.value.WeatherValue
 import edu.ie3.simona.config.InputConfig.{
   CoordinateSourceConfig,
   WeatherDataSourceConfig,
-  WeatherSampleParams
+  WeatherSampleParams,
 }
 import edu.ie3.simona.config.{IoConfigUtils, SimonaConfig}
 import edu.ie3.simona.exceptions.{
   InvalidConfigParameterException,
-  ServiceException
+  ServiceException,
 }
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
@@ -258,7 +258,8 @@ object WeatherSource {
 
   def apply(
       dataSourceConfig: WeatherDataSourceConfig,
-     simulationStart: ZonedDateTime): WeatherSource =
+      simulationStart: ZonedDateTime,
+  ): WeatherSource =
     checkConfig(dataSourceConfig)(simulationStart)
 
   /** Check the provided weather data source configuration to ensure its
@@ -279,7 +280,6 @@ object WeatherSource {
     // check and get coordinate source
     implicit val coordinateSourceFunction: IdCoordinateSource =
       buildCoordinateSource(weatherDataSourceCfg.coordinateSource)
-
 
     val definedWeatherSources = Vector(
       weatherDataSourceCfg.sampleParams,

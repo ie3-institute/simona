@@ -6,24 +6,27 @@
 
 package edu.ie3.simona.service.primary
 
-import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 import com.dimafeng.testcontainers.{ForAllTestContainer, PostgreSQLContainer}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.io.naming.DatabaseNamingStrategy
 import edu.ie3.datamodel.models.value.{HeatAndSValue, PValue}
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{ActivePower, ApparentPowerAndHeat,
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ActivePower,
+  ApparentPowerAndHeat,
 }
 import edu.ie3.simona.config.IoConfigUtils.TimeStampedSqlParams
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion, ScheduleActivation,}
+  Completion,
+  ScheduleActivation,
+}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.WorkerRegistrationMessage
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.SimonaService
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.{ProvidePrimaryDataMessage, SqlInitPrimaryServiceStateData,
+import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
+  ProvidePrimaryDataMessage,
+  SqlInitPrimaryServiceStateData,
 }
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
 import edu.ie3.simona.test.common.{AgentSpec, TestSpawnerClassic}
@@ -31,6 +34,9 @@ import edu.ie3.simona.test.helper.TestContainerHelper
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.Kilovars
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.testcontainers.utility.DockerImageName

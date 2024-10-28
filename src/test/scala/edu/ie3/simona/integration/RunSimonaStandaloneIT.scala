@@ -66,7 +66,7 @@ class RunSimonaStandaloneIT
           .withFallback(ConfigFactory.parseFile(new File(configFile)))
           .withFallback(ConfigFactory.parseString(s"config=$configFile"))
           .resolve()
-          /*fixme mh commit with akka
+      /*fixme mh commit with akka
       val tscfgConf = ConfigFactory.parseString(
        """
          |akka.loggers = ["akka.event.slf4j.Slf4jLogger"]
@@ -85,7 +85,7 @@ class RunSimonaStandaloneIT
       // TODO: Removed the following line because not sure why that is needed. Remove if indded not needed
       // .withFallback(ConfigFactory.parseString(s"config=$configFile"))
 
-           */
+       */
 
       /* validate config */
       val simonaConfig = SimonaConfig(confSrc)

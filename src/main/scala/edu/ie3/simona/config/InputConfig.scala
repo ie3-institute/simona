@@ -12,7 +12,7 @@ import edu.ie3.simona.config.IoConfigUtils._
 case class InputConfig(
     grid: GridConfig,
     primary: PrimaryConfig = PrimaryConfig.empty,
-    weather: WeatherConfig = WeatherConfig.sample
+    weather: WeatherConfig = WeatherConfig.sample,
 )
 
 object InputConfig {
@@ -23,7 +23,7 @@ object InputConfig {
 
   case class GridDataSource(
       id: String,
-      csvParams: Option[PsdmCsvParams] = None
+      csvParams: Option[PsdmCsvParams] = None,
   )
 
   case class PrimaryConfig(
@@ -32,7 +32,7 @@ object InputConfig {
       influxDb1xParams: Option[InfluxDb1xParams] = None,
       // TODO: primary service does not need table in params
       sqlParams: Option[TimeStampedSqlParams] = None,
-      couchbaseParams: Option[CouchbaseParams] = None
+      couchbaseParams: Option[CouchbaseParams] = None,
   )
 
   object PrimaryConfig {
@@ -57,7 +57,7 @@ object InputConfig {
       influxDb1xParams: Option[InfluxDb1xParams],
       sqlParams: Option[BaseSqlParams],
       couchbaseParams: Option[CouchbaseParams],
-      coordinateSource: CoordinateSourceConfig
+      coordinateSource: CoordinateSourceConfig,
   )
 
   object WeatherDataSourceConfig {
@@ -70,7 +70,7 @@ object InputConfig {
       influxDb1xParams = None,
       sqlParams = None,
       couchbaseParams = None,
-      coordinateSource = CoordinateSourceConfig.sample
+      coordinateSource = CoordinateSourceConfig.sample,
     )
   }
 
@@ -78,17 +78,17 @@ object InputConfig {
       gridModel: String = "icon",
       csvParams: Option[BaseCsvParams],
       sampleParams: Option[WeatherSampleParams],
-      sqlParams: Option[BaseSqlParams]
+      sqlParams: Option[BaseSqlParams],
   )
 
   object CoordinateSourceConfig {
     def sample: CoordinateSourceConfig = {
       CoordinateSourceConfig(
-            csvParams = None,
-            sampleParams = Some(WeatherSampleParams(use = true)),
-            sqlParams = None
-          )
-        }
+        csvParams = None,
+        sampleParams = Some(WeatherSampleParams(use = true)),
+        sqlParams = None,
+      )
+    }
   }
 
   // TODO: this class is useless

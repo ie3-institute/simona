@@ -8,7 +8,13 @@ package edu.ie3.simona.event.listener
 
 import edu.ie3.simona.config.RuntimeConfig.RuntimeListenerConfig
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.event.RuntimeEvent.{Done, Error, Initializing, Ready, Simulating}
+import edu.ie3.simona.event.RuntimeEvent.{
+  Done,
+  Error,
+  Initializing,
+  Ready,
+  Simulating,
+}
 import edu.ie3.simona.test.common.UnitSpec
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 

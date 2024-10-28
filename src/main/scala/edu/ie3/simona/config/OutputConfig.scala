@@ -13,31 +13,32 @@ final case class OutputConfig(
     base: OutputBaseConfig,
     sink: OutputSinkConfig = OutputSinkConfig.csv,
     grid: GridOutputConfig,
-    participant: ParticipantOutputConfig
+    participant: ParticipantOutputConfig,
 )
 
 object OutputConfig {
 
   final case class OutputBaseConfig(
       dir: String,
-      addTimestampToOutputDir: Boolean = true ,
+      addTimestampToOutputDir: Boolean = true,
   )
 
   final case class OutputSinkConfig(
       csv: Option[OutputCsvParams],
       influxDb1x: Option[InfluxDb1xParams],
-      kafka: Option[ResultKafkaParams]
+      kafka: Option[ResultKafkaParams],
   )
 
   object OutputSinkConfig {
-    def csv: OutputSinkConfig = OutputSinkConfig(Some(OutputCsvParams.default), None, None)
+    def csv: OutputSinkConfig =
+      OutputSinkConfig(Some(OutputCsvParams.default), None, None)
   }
 
   final case class OutputCsvParams(
       fileFormat: String = ".csv",
       isHierarchic: Boolean = false,
       filePrefix: String = "",
-      fileSuffix: String = ""
+      fileSuffix: String = "",
   )
 
   object OutputCsvParams {
@@ -50,18 +51,18 @@ object OutputConfig {
       lines: Boolean = true,
       switches: Boolean = true,
       transformers2w: Boolean = true,
-      transformers3w: Boolean = true
+      transformers3w: Boolean = true,
   )
 
   final case class ParticipantOutputConfig(
       defaultConfig: BaseOutputConfig,
-      individualConfigs: Seq[BaseOutputConfig]
+      individualConfigs: Seq[BaseOutputConfig],
   )
 
   final case class BaseOutputConfig(
       notifier: String,
       powerRequestReply: Boolean,
-      simulationResult: Boolean
+      simulationResult: Boolean,
   )
 
 }

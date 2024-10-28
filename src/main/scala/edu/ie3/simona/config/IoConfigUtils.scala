@@ -15,19 +15,19 @@ object IoConfigUtils {
 
   case class BaseCsvParams(
       directoryPath: String,
-      csvSep: String
+      csvSep: String,
   ) extends CsvParams
 
   case class PsdmCsvParams(
       directoryPath: String,
       csvSep: String,
-      isHierarchic: Boolean
+      isHierarchic: Boolean,
   ) extends CsvParams
 
   case class TimeStampedDataCsvParams(
       directoryPath: String,
       csvSep: String,
-      timePattern: String = "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'"
+      timePattern: String = "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'",
   ) extends CsvParams
 
   case class InfluxDb1xParams(
@@ -50,7 +50,7 @@ object IoConfigUtils {
       userName: String,
       password: String,
       tableName: String,
-      schemaName: String = "public"
+      schemaName: String = "public",
   ) extends SqlParams
 
   case class TimeStampedSqlParams(
@@ -59,7 +59,7 @@ object IoConfigUtils {
       password: String,
       tableName: String,
       schemaName: String = "public",
-      timePattern: String
+      timePattern: String,
   ) extends SqlParams
 
   case class CouchbaseParams(
@@ -68,7 +68,7 @@ object IoConfigUtils {
       userName: String,
       password: String,
       coordinateColumnName: String,
-      keyPrefix: String
+      keyPrefix: String,
   )
 
   trait BaseKafkaParams {
@@ -83,7 +83,7 @@ object IoConfigUtils {
       bootstrapServers: String,
       schemaRegistryUrl: String,
       linger: Int,
-      topicNodeRes: String
+      topicNodeRes: String,
   ) extends BaseKafkaParams
 
   final case class RuntimeKafkaParams(
@@ -91,6 +91,6 @@ object IoConfigUtils {
       bootstrapServers: String,
       schemaRegistryUrl: String,
       linger: Int,
-      topic: String
+      topic: String,
   ) extends BaseKafkaParams
 }

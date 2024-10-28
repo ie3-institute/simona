@@ -15,13 +15,19 @@ import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.FailedPowerFlowResult.FailedNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.enums.NodeType
-import edu.ie3.simona.agent.grid.GridAgent.idleimport edu.ie3.simona.agent.grid.GridAgentData.{GridAgentBaseData,GridAgentConstantData, PowerFlowDoneData,
+import edu.ie3.simona.agent.grid.GridAgent.idle
+import edu.ie3.simona.agent.grid.GridAgentData.{
+  GridAgentBaseData,
+  GridAgentConstantData,
+  PowerFlowDoneData,
 }
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangeVoltage
 import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.agent.participant.ParticipantAgent.{
   FinishParticipantSimulation,
-  ParticipantMessage, RequestAssetPowerMessage, }
+  ParticipantMessage,
+  RequestAssetPowerMessage,
+}
 import edu.ie3.simona.event.RuntimeEvent.PowerFlowFailed
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid.{NodeModel, RefSystem}
@@ -43,11 +49,9 @@ import org.apache.pekko.util.{Timeout => PekkoTimeout}
 import org.slf4j.Logger
 import squants.Each
 
-import java.time.ZonedDateTime
+import java.time.{ZonedDateTime, Duration => JavaDuration}
 import java.util.UUID
-import javax.measure.quantity.ElectricPotential
 import scala.concurrent.duration.Duration
-import java.time.{Duration => JavaDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
@@ -1240,7 +1244,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   )(implicit
       ctx: ActorContext[GridAgent.Request]
   ): Boolean = {
-    implicit val timeout: PekkoTimeout = PekkoTimeout.create(JavaDuration.ofSeconds(askTimeout.toSeconds))
+    implicit val timeout: PekkoTimeout =
+      PekkoTimeout.create(JavaDuration.ofSeconds(askTimeout.toSeconds))
     implicit val ec: ExecutionContext = ctx.executionContext
     implicit val scheduler: Scheduler = ctx.system.scheduler
 
@@ -1311,7 +1316,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   )(implicit
       ctx: ActorContext[GridAgent.Request]
   ): Boolean = {
-    implicit val timeout: PekkoTimeout = PekkoTimeout.create(JavaDuration.ofSeconds(askTimeout.toSeconds))
+    implicit val timeout: PekkoTimeout =
+      PekkoTimeout.create(JavaDuration.ofSeconds(askTimeout.toSeconds))
     implicit val ec: ExecutionContext = ctx.executionContext
     implicit val scheduler: Scheduler = ctx.system.scheduler
 

@@ -32,8 +32,7 @@ import edu.ie3.simona.config.IoConfigUtils.{
   InfluxDb1xParams,
   /*fixme mh
      Base
-  */SqlParams,
-
+   */ SqlParams,
 }
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.ontology.messages.services.WeatherMessage

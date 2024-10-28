@@ -28,7 +28,7 @@ import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.RuntimeConfig.{
   RuntimeParticipantConfig,
-  SimpleRuntimeConfig
+  SimpleRuntimeConfig,
 }
 import edu.ie3.simona.model.participant.evcs.EvcsModel
 import edu.ie3.simona.model.participant.evcs.EvcsModel.{

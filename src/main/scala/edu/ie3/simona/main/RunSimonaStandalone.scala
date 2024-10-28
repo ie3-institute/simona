@@ -23,10 +23,9 @@ import scala.jdk.FutureConverters.CompletionStageOps
 import scala.util.{Failure, Success}
 
 /** Run a standalone simulation of simona
- *
-
- * @since 01.07.20
- */
+  *
+  * @since 01.07.20
+  */
 object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
 
   override implicit val timeout: Timeout = Timeout(12.hours)
@@ -37,17 +36,19 @@ object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
     // Note: We parse the config as tscfg separately, as it includes the akka configuration,
     // which is passed to the actor system
     val (arguments, tscfg) = ArgsParser.prepareConfig(args)
-    val cfgPath = Paths.get(arguments.configLocation.getOrElse(
-      throw new RuntimeException(
-        "Please provide a valid config file via --config <path-to-config-file>."
+    val cfgPath = Paths.get(
+      arguments.configLocation.getOrElse(
+        throw new RuntimeException(
+          "Please provide a valid config file via --config <path-to-config-file>."
+        )
       )
-    ))
+    )
     val simonaConfig = SimonaConfig(cfgPath)
     ConfigFailFast.check(tscfg, simonaConfig)
 
     SimonaStandaloneSetup(
       simonaConfig,
-        tscfg,
+      tscfg,
       SimonaStandaloneSetup.buildResultFileHierarchy(tscfg, simonaConfig),
       mainArgs = arguments.mainArgs,
     )

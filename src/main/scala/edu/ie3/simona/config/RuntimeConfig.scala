@@ -16,13 +16,13 @@ final case class RuntimeConfig(
     selectedSubgrids: Option[Seq[Int]],
     selectedVoltLvls: Option[Seq[VoltLvlConfig]],
     listener: RuntimeListenerConfig = RuntimeListenerConfig(None, None),
-    participant: RuntimeParticipantsConfig
+    participant: RuntimeParticipantsConfig,
 )
 
 object RuntimeConfig {
   final case class RuntimeListenerConfig(
       eventsToProcess: Option[Seq[String]],
-      kafka: Option[RuntimeKafkaParams]
+      kafka: Option[RuntimeKafkaParams],
   )
 
   final case class RuntimeParticipantsConfig(
@@ -31,7 +31,7 @@ object RuntimeConfig {
       pv: RuntimeParticipantConfig[SimpleRuntimeConfig],
       fixedFeedIn: RuntimeParticipantConfig[SimpleRuntimeConfig],
       wec: RuntimeParticipantConfig[SimpleRuntimeConfig],
-      evcs: RuntimeParticipantConfig[SimpleRuntimeConfig]
+      evcs: RuntimeParticipantConfig[SimpleRuntimeConfig],
   ) {
     def asSeq: Seq[RuntimeParticipantConfig[_ <: BaseRuntimeConfig]] = {
       Seq(
@@ -39,14 +39,14 @@ object RuntimeConfig {
         pv,
         fixedFeedIn,
         wec,
-        evcs
+        evcs,
       )
     }
   }
 
   final case class RuntimeParticipantConfig[+T <: BaseRuntimeConfig](
       defaultConfig: T,
-      individualConfigs: Seq[T]
+      individualConfigs: Seq[T],
   )
 
   trait BaseRuntimeConfig {
@@ -58,7 +58,7 @@ object RuntimeConfig {
   final case class SimpleRuntimeConfig(
       uuids: Seq[String],
       scaling: Double,
-      calculateMissingReactivePowerWithModel: Boolean
+      calculateMissingReactivePowerWithModel: Boolean,
   ) extends BaseRuntimeConfig
 
   final case class LoadRuntimeConfig(
@@ -66,7 +66,7 @@ object RuntimeConfig {
       scaling: Double,
       calculateMissingReactivePowerWithModel: Boolean,
       modelBehaviour: String,
-      reference: String
+      reference: String,
   ) extends BaseRuntimeConfig
 
 }

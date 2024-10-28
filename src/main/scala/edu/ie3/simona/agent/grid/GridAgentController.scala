@@ -49,7 +49,7 @@ import edu.ie3.simona.config.RuntimeConfig.{
   BaseRuntimeConfig,
   LoadRuntimeConfig,
   RuntimeParticipantsConfig,
-  SimpleRuntimeConfig
+  SimpleRuntimeConfig,
 }
 
 import java.time.ZonedDateTime
@@ -511,7 +511,7 @@ class GridAgentController(
         fixedFeedInInput.getId,
       )
       .toTyped
-      /*fixme mh vor dev:
+  /*fixme mh vor dev:
       outputConfig: ParticipantNotifierConfig
   ): (
       ActorRef,
@@ -541,7 +541,7 @@ class GridAgentController(
     )
   )
 
-       */
+   */
 
   /** Creates a load agent and determines the needed additional information for
     * later initialization of the agent.
@@ -599,7 +599,7 @@ class GridAgentController(
         loadInput.getId,
       )
       .toTyped
-      /*fixme mh vor dev:
+  /*fixme mh vor dev:
       outputConfig: ParticipantNotifierConfig
   ): (
       ActorRef,
@@ -630,7 +630,7 @@ class GridAgentController(
     )
   )
 
-       */
+   */
 
   /** Creates a pv agent and determines the needed additional information for
     * later initialization of the agent.
