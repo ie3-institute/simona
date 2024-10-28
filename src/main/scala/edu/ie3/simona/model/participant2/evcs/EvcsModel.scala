@@ -19,6 +19,7 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.model.participant2.ParticipantModel
 import edu.ie3.simona.model.participant2.ParticipantModel.{
+  ModelChangeIndicator,
   ModelState,
   OperatingPoint,
   OperationRelevantData,
@@ -36,7 +37,7 @@ import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.ReactivePower
-import squants.energy.Watts
+import squants.energy.{Kilowatts, Watts}
 import squants.time.Seconds
 import squants.{Dimensionless, Energy, Power}
 import tech.units.indriya.unit.Units.PERCENT
@@ -65,18 +66,16 @@ class EvcsModel private (
       relevantData: EvcsRelevantData,
   ): (EvcsOperatingPoint, Option[Long]) = {
     val chargingPowers =
-      strategy.determineChargingPowers(state.evs.values, state.tick, this)
+      strategy.determineChargingPowers(state.evs, state.tick, this)
 
-    val nextEvent = chargingPowers.flatMap { case (uuid, power) =>
-      val ev = state.evs.getOrElse(
-        uuid,
-        throw new CriticalFailureException(
-          s"Charging strategy ${strategy.getClass.getSimpleName} returned a charging power for unknown UUID $uuid"
-        ),
-      )
-
-      determineNextEvent(ev, power)
-    }.minOption
+    val nextEvent = state.evs
+      .flatMap { ev =>
+        chargingPowers.get(ev.uuid).map((ev, _))
+      }
+      .flatMap { case (ev, power) =>
+        determineNextEvent(ev, power)
+      }
+      .minOption
 
     (EvcsOperatingPoint(chargingPowers), nextEvent)
   }
@@ -116,18 +115,17 @@ class EvcsModel private (
       currentTick: Long,
   ): EvcsState = {
 
-    val updatedEvs = lastState.evs.map { case (uuid, ev) =>
-      uuid ->
-        operatingPoint.evOperatingPoints
-          .get(uuid)
-          .map { chargingPower =>
-            val newStoredEnergy = ev.storedEnergy +
-              chargingPower * Seconds(
-                currentTick - lastState.tick
-              )
-            ev.copy(storedEnergy = newStoredEnergy)
-          }
-          .getOrElse(ev)
+    val updatedEvs = lastState.evs.map { ev =>
+      operatingPoint.evOperatingPoints
+        .get(ev.uuid)
+        .map { chargingPower =>
+          val newStoredEnergy = ev.storedEnergy +
+            chargingPower * Seconds(
+              currentTick - lastState.tick
+            )
+          ev.copy(storedEnergy = newStoredEnergy)
+        }
+        .getOrElse(ev)
     }
 
     EvcsState(updatedEvs, currentTick)
@@ -140,9 +138,9 @@ class EvcsModel private (
       complexPower: PrimaryData.ApparentPower,
       dateTime: ZonedDateTime,
   ): Iterable[SystemParticipantResult] = {
-    val evResults = state.evs.flatMap { case (uuid, ev) =>
-      val lastOp = lastOperatingPoint.flatMap(_.evOperatingPoints.get(uuid))
-      val currentOp = currentOperatingPoint.evOperatingPoints.get(uuid)
+    val evResults = state.evs.flatMap { ev =>
+      val lastOp = lastOperatingPoint.flatMap(_.evOperatingPoints.get(ev.uuid))
+      val currentOp = currentOperatingPoint.evOperatingPoints.get(ev.uuid)
 
       val currentPower = currentOp.getOrElse(zeroKW)
 
@@ -165,7 +163,7 @@ class EvcsModel private (
 
         new EvResult(
           dateTime,
-          uuid,
+          ev.uuid,
           activePower.toMegawatts.asMegaWatt,
           reactivePower.toMegavars.asMegaVar,
           soc,
@@ -222,7 +220,7 @@ class EvcsModel private (
   ): FlexibilityMessage.ProvideFlexOptions = {
 
     val preferredPowers =
-      strategy.determineChargingPowers(state.evs.values, state.tick, this)
+      strategy.determineChargingPowers(state.evs, state.tick, this)
 
     val (maxCharging, preferredPower, forcedCharging, maxDischarging) =
       state.evs.foldLeft(
@@ -230,7 +228,7 @@ class EvcsModel private (
       ) {
         case (
               (chargingSum, preferredSum, forcedSum, dischargingSum),
-              (uuid, ev),
+              ev,
             ) =>
           val maxPower = getMaxAvailableChargingPower(ev)
 
@@ -282,7 +280,201 @@ class EvcsModel private (
       relevantData: EvcsRelevantData,
       flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,
-  ): (EvcsOperatingPoint, ParticipantModel.ModelChangeIndicator) = ???
+  ): (EvcsOperatingPoint, ModelChangeIndicator) = {
+    if (setPower == zeroKW)
+      return (
+        EvcsOperatingPoint(Map.empty),
+        ModelChangeIndicator(),
+      )
+
+    // applicable evs can be charged/discharged, other evs cannot
+    val applicableEvs = state.evs.filter { ev =>
+      if (setPower > zeroKW)
+        !isFull(ev)
+      else
+        !isEmpty(ev)
+    }
+
+    val (forcedChargingEvs, regularChargingEvs) =
+      if (setPower > zeroKW)
+        // lower margin is excluded since charging is not required here anymore
+        applicableEvs.partition { ev =>
+          isEmpty(ev) && !isInLowerMargin(ev)
+        }
+      else
+        (Seq.empty, applicableEvs)
+
+    val (forcedSchedules, remainingPower) =
+      createScheduleWithSetPower(state.tick, forcedChargingEvs, setPower)
+
+    val (regularSchedules, _) =
+      createScheduleWithSetPower(state.tick, regularChargingEvs, remainingPower)
+
+    val combinedSchedules = forcedSchedules ++ regularSchedules
+
+    val allSchedules = combinedSchedules.map { case (ev, (power, _)) =>
+      ev -> power
+    }.toMap
+
+    val aggregatedChangeIndicator = combinedSchedules
+      .map { case (_, (_, indicator)) => indicator }
+      .foldLeft(ModelChangeIndicator()) {
+        case (aggregateIndicator, otherIndicator) =>
+          aggregateIndicator | otherIndicator
+      }
+
+    (
+      EvcsOperatingPoint(allSchedules),
+      aggregatedChangeIndicator,
+    )
+  }
+
+  /** Distributes some set power value across given EVs, taking into
+    * consideration the maximum charging power of EVs and the charging station
+    *
+    * @param currentTick
+    *   The current tick
+    * @param evs
+    *   The collection of EVs to assign charging power to
+    * @param setPower
+    *   The remaining power to assign to given EVs
+    * @return
+    *   A set of EV model and possibly charging schedule and activation
+    *   indicators, as well as the remaining power that could not be assigned to
+    *   given EVs
+    */
+  private def createScheduleWithSetPower(
+      currentTick: Long,
+      evs: Seq[EvModelWrapper],
+      setPower: Power,
+  ): (
+      Seq[(UUID, (Power, ModelChangeIndicator))],
+      Power,
+  ) = {
+
+    if (evs.isEmpty) return (Seq.empty, setPower)
+
+    if (setPower.~=(zeroKW)(Kilowatts(1e-6))) {
+      // No power left. Rest is not charging
+      return (Seq.empty, zeroKW)
+    }
+
+    val proposedPower = setPower.divide(evs.size)
+
+    val (exceedingPowerEvs, fittingPowerEvs) = evs.partition { ev =>
+      if (setPower > zeroKW)
+        proposedPower > getMaxAvailableChargingPower(ev)
+      else
+        proposedPower < (getMaxAvailableChargingPower(ev) * -1)
+    }
+
+    if (exceedingPowerEvs.isEmpty) {
+      // end of recursion, rest of charging power fits to all
+
+      val results = fittingPowerEvs.map { ev =>
+        val chargingTicks = calcFlexOptionsChange(ev, proposedPower)
+        val endTick = Math.min(currentTick + chargingTicks, ev.departureTick)
+
+        (
+          ev.uuid,
+          (
+            proposedPower,
+            ModelChangeIndicator(
+              changesAtNextActivation =
+                isFull(ev) || isEmpty(ev) || isInLowerMargin(ev),
+              changesAtTick = Some(endTick),
+            ),
+          ),
+        )
+      }
+
+      (results, zeroKW)
+    } else {
+      // not all evs can be charged with proposed power
+
+      // charge all exceeded evs with their respective maximum power
+      val maxCharged = exceedingPowerEvs.map { ev =>
+        val maxPower = getMaxAvailableChargingPower(ev)
+        val power =
+          if (setPower > zeroKW)
+            maxPower
+          else
+            maxPower * (-1)
+
+        val chargingTicks = calcFlexOptionsChange(ev, power)
+        val endTick = Math.min(currentTick + chargingTicks, ev.departureTick)
+
+        (ev, power, endTick)
+      }
+
+      val maxChargedResults = maxCharged.map { case (ev, power, endTick) =>
+        (
+          ev.uuid,
+          (
+            power,
+            ModelChangeIndicator(
+              changesAtNextActivation =
+                isFull(ev) || isEmpty(ev) || isInLowerMargin(ev),
+              changesAtTick = Some(endTick),
+            ),
+          ),
+        )
+      }
+
+      // sum up allocated power
+      val chargingPowerSum = maxCharged.foldLeft(zeroKW) {
+        case (powerSum, (_, chargingPower, _)) =>
+          powerSum + chargingPower
+      }
+
+      val remainingAfterAllocation = setPower - chargingPowerSum
+
+      // go into the next recursion step with the remaining power
+      val (nextIterationResults, remainingAfterRecursion) =
+        createScheduleWithSetPower(
+          currentTick,
+          fittingPowerEvs,
+          remainingAfterAllocation,
+        )
+
+      val combinedResults = maxChargedResults ++ nextIterationResults
+
+      (combinedResults, remainingAfterRecursion)
+    }
+
+  }
+
+  /** Calculates the duration (in ticks) until the flex options will change
+    * next, which could be the battery being fully charged or discharged or the
+    * minimum SOC requirement being reached
+    *
+    * @param ev
+    *   The EV to charge/discharge
+    * @param power
+    *   The charging/discharging power
+    * @return
+    *   The tick at which flex options will change
+    */
+  private def calcFlexOptionsChange(
+      ev: EvModelWrapper,
+      power: Power,
+  ): Long = {
+    val timeUntilFullOrEmpty =
+      if (power > zeroKW) {
+
+        // if we're below lowest SOC, flex options will change at that point
+        val targetEnergy =
+          if (isEmpty(ev) && !isInLowerMargin(ev))
+            ev.eStorage * lowestEvSoc
+          else
+            ev.eStorage
+
+        (targetEnergy - ev.storedEnergy) / power
+      } else
+        (ev.storedEnergy - (ev.eStorage * lowestEvSoc)) / (power * (-1))
+
+    Math.round(timeUntilFullOrEmpty.toSeconds)
+  }
 
   /** @param ev
     *   the ev whose stored energy is to be checked
@@ -345,7 +537,7 @@ class EvcsModel private (
     evPower.min(sRated)
   }
 
-  def getInitialState: EvcsState = EvcsState(Map.empty, -1)
+  def getInitialState: EvcsState = EvcsState(Seq.empty, -1)
 }
 
 object EvcsModel {
@@ -364,7 +556,7 @@ object EvcsModel {
   }
 
   final case class EvcsState(
-      evs: Map[UUID, EvModelWrapper],
+      evs: Seq[EvModelWrapper],
       override val tick: Long,
   ) extends ModelState
 

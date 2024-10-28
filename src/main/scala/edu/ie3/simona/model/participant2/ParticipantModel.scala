@@ -217,6 +217,23 @@ object ParticipantModel {
   final case class ModelChangeIndicator(
       changesAtNextActivation: Boolean = false,
       changesAtTick: Option[Long] = None,
-  )
+  ) {
+
+    /** Combines two ModelChangeIndicators by aggregating
+      * changesAtNextActivation via OR function and picking the earlier (or any)
+      * of both changesAtTick values.
+      *
+      * @param otherIndicator
+      *   The other ModelChangeIndicator to combine with this one
+      * @return
+      *   An aggregated ModelChangeIndicator
+      */
+    def |(otherIndicator: ModelChangeIndicator): ModelChangeIndicator = {
+      ModelChangeIndicator(
+        changesAtNextActivation || otherIndicator.changesAtNextActivation,
+        Seq(changesAtTick, otherIndicator.changesAtTick).flatten.minOption,
+      )
+    }
+  }
 
 }
