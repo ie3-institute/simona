@@ -134,8 +134,11 @@ abstract class ParticipantModel[
   ): S =
     throw new NotImplementedError(s"Method not implemented by $getClass")
 
-  // todo split off the following to ParticipantModelMeta?
-  def getRequiredServices: Iterable[ServiceType]
+  /** @return
+    *   All secondary services required by the model for creating operation
+    *   relevant data [[OR]]
+    */
+  def getRequiredSecondaryServices: Iterable[ServiceType]
 
   /** @param receivedData
     *   The received primary or secondary data

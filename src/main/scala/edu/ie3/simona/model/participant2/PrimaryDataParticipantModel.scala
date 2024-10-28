@@ -86,7 +86,7 @@ final case class PrimaryDataParticipantModel[P <: PrimaryData: ClassTag](
     "Method not implemented by this model."
   )
 
-  override def getRequiredServices: Iterable[ServiceType] = {
+  override def getRequiredSecondaryServices: Iterable[ServiceType] = {
     // only secondary services should be specified here
     Iterable.empty
   }

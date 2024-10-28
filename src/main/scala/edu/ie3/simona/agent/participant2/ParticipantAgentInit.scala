@@ -162,7 +162,8 @@ object ParticipantAgentInit {
         simulationEndDate,
       )
 
-      val requiredServiceTypes = modelShell.model.getRequiredServices.toSeq
+      val requiredServiceTypes =
+        modelShell.model.getRequiredSecondaryServices.toSeq
 
       if (requiredServiceTypes.isEmpty) {
         createAgent(

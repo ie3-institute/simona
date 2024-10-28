@@ -161,7 +161,8 @@ class StorageModel private (
       (-1).asPu, // FIXME currently not supported
     )
 
-  override def getRequiredServices: Iterable[ServiceType] = Iterable.empty
+  override def getRequiredSecondaryServices: Iterable[ServiceType] =
+    Iterable.empty
 
   override def createRelevantData(
       receivedData: Seq[Data],

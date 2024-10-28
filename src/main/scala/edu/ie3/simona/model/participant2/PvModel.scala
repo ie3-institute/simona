@@ -752,7 +752,7 @@ class PvModel private (
       data.q.toMegavars.asMegaVar,
     )
 
-  override def getRequiredServices: Iterable[ServiceType] =
+  override def getRequiredSecondaryServices: Iterable[ServiceType] =
     Iterable(ServiceType.WeatherService)
 
   override def createRelevantData(
