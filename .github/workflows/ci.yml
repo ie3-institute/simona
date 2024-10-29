@@ -15,6 +15,7 @@ on:
       - 'hotfix/*'
       - 'rel/*'
       - 'dependabot/*'
+      - '??/#*'
   pull_request:
     branches:
       - main
