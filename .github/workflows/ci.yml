@@ -28,6 +28,9 @@ jobs:
       - name: Check Branch
         run: |
           branch_name="${GITHUB_REF#refs/heads/}"
+          echo "Current branch name is: $branch_name"
+          
+          branch_name="${GITHUB_REF#refs/heads/}"
           if [[ ! "$branch_name" =~ ^[\\p{Ll}]{2}/#\\d+.* ]]; then
             echo "Error: Branch name must start with two lowercase initials (e.g., ps/#1337-FeatureName)."
             exit 1
