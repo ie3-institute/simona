@@ -12,9 +12,9 @@ on:
     branches:
       - main
       - dev
-      - 'feature/*'
       - 'hotfix/*'
-      - 'release/*'
+      - 'rel/*'
+      - 'dependabot/*'
   pull_request:
     branches:
       - main
@@ -44,7 +44,7 @@ jobs:
           distribution: 'temurin'
           java-version: 17
 
-      - name: Setup Gradle 8.10
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build Project
