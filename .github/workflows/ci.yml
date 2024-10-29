@@ -42,7 +42,7 @@ jobs:
             BRANCH_NAME="${GITHUB_HEAD_REF}"
           fi
           
-          # Extract the branch name from refs/heads/ for push events :)
+          # Extract the branch name from refs/heads/ for push events
           branch_name="${BRANCH_NAME#refs/heads/}"
 
           # Adjusted regex pattern to match two lowercase initials, slash, hashtag, and number
