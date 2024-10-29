@@ -23,7 +23,7 @@ class ResultSinkTypeSpec extends UnitSpec {
             filePrefix = "",
             fileSuffix = "",
             isHierarchic = false,
-            zipFiles = false,
+            compressOutputs = false,
           )
         ),
         influxDb1x = None,
@@ -35,7 +35,7 @@ class ResultSinkTypeSpec extends UnitSpec {
           fileFormat shouldBe conf.csv.value.fileFormat
           filePrefix shouldBe conf.csv.value.filePrefix
           fileSuffix shouldBe conf.csv.value.fileSuffix
-          zipFiles shouldBe conf.csv.value.zipFiles
+          zipFiles shouldBe conf.csv.value.compressOutputs
         case _ =>
           fail("Wrong ResultSinkType got instantiated.")
       }
@@ -107,7 +107,7 @@ class ResultSinkTypeSpec extends UnitSpec {
             filePrefix = "",
             fileSuffix = "",
             isHierarchic = false,
-            zipFiles = false,
+            compressOutputs = false,
           )
         ),
         influxDb1x = Some(
