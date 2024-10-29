@@ -59,7 +59,7 @@ jobs:
       - name: Generate Scoverage Report
         run: |
           ./gradlew scoverage
-          ls -la
+          find . -name "scoverage.xml"
 
       - name: Build Scala-Docs
         run: |
