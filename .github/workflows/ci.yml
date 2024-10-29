@@ -34,22 +34,25 @@ jobs:
 
       - name: Check Branch
         run: |
-          # Default to the GITHUB_REF_NAME, which works for push events
+          # Default to GITHUB_REF_NAME (works for push events)
           BRANCH_NAME="${GITHUB_REF_NAME}"
 
-          # If it's a pull request, extract the branch from GITHUB_HEAD_REF
+          # If it's a pull request, use GITHUB_HEAD_REF
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
             BRANCH_NAME="${GITHUB_HEAD_REF}"
           fi
 
-          echo "Branch name is $BRANCH_NAME"
-          echo "branch_name=$BRANCH_NAME" >> $GITHUB_ENV
+          # Extract the branch name from refs/heads/ for push events
+          branch_name="${BRANCH_NAME#refs/heads/}"
 
-          branch_name="${GITHUB_REF#refs/heads/}"
-          if [[ ! "$branch_name" =~ ^[\\p{Ll}]{2}/#\\d+.* ]]; then
+          # Check if branch name matches pattern (e.g., `ps/#1337-FeatureName`)
+          if [[ ! "$branch_name" =~ ^[a-z]{2}/#\\d+.* ]]; then
             echo "Error: Branch name must start with two lowercase initials (e.g., ps/#1337-FeatureName)."
             exit 1
           fi
+
+          echo "Branch name is $branch_name"
+          echo "branch_name=$branch_name" >> $GITHUB_ENV
 
       - name: Determine Project Version
         id: version
