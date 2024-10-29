@@ -25,6 +25,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
+      - name: Checkout Source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+
       - name: Check Branch
         run: |
           # Default to the GITHUB_REF_NAME, which works for push events
@@ -37,18 +44,12 @@ jobs:
 
           echo "Branch name is $BRANCH_NAME"
           echo "branch_name=$BRANCH_NAME" >> $GITHUB_ENV
-          
+
           branch_name="${GITHUB_REF#refs/heads/}"
           if [[ ! "$branch_name" =~ ^[\\p{Ll}]{2}/#\\d+.* ]]; then
             echo "Error: Branch name must start with two lowercase initials (e.g., ps/#1337-FeatureName)."
             exit 1
           fi
-
-      - name: Checkout Source
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref || github.ref }}
-          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
 
       - name: Determine Project Version
         id: version
