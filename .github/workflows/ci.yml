@@ -7,6 +7,8 @@ name: CI
 
 on:
   push:
+    paths-ignore:
+      - 'docs/**'
     branches:
       - main
       - dev
@@ -19,7 +21,6 @@ on:
       - dev
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
 
@@ -45,16 +46,14 @@ jobs:
 
       - name: Setup Gradle 8.10
         uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "8.10"
 
       - name: Build Project
         run: |
-          ./gradlew clean assemble
+          ./gradlew --refresh-dependencies clean assemble
 
       - name: Run Tests
         run: |
-          ./gradlew --refresh-dependencies spotlessCheck pmdMain pmdTest
+          ./gradlew spotlessCheck pmdMain pmdTest
 
       - name: Build Scala-Docs
         run: |
@@ -84,7 +83,7 @@ jobs:
         id: sonarqube-quality-gate-check
         uses: sonarsource/sonarqube-quality-gate-action@master
         # Force to fail step after specific time.
-        timeout-minutes: 60
+        timeout-minutes: 15
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
