@@ -414,7 +414,7 @@ final case class ThermalGrid(
     *   A [[Seq]] of results of the constituent thermal model
     */
   def results(lastTick: Long, state: ThermalGridState)(implicit
-                                                       startDateTime: ZonedDateTime
+      startDateTime: ZonedDateTime
   ): Seq[ResultEntity] = {
 
     val maybeHouseResult = house
