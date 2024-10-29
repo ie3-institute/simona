@@ -59,7 +59,9 @@ jobs:
       - name: Generate Scoverage Report
         run: |
           ./gradlew scoverage
-          find . -name "scoverage.xml"
+
+      - name: Find scov
+        run: find . -name "scoverage.xml"
 
       - name: Build Scala-Docs
         run: |
