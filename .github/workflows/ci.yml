@@ -28,6 +28,7 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@v4
         with:
+          fetch-depth: '1'
           ref: ${{ github.event.pull_request.head.ref || github.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
 
