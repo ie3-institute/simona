@@ -57,7 +57,9 @@ jobs:
           ./gradlew spotlessCheck pmdMain pmdTest
 
       - name: Generate Scoverage Report
-        run: ./gradlew scoverage
+        run: |
+          ./gradlew scoverage
+          ls -la
 
       - name: Build Scala-Docs
         run: |
