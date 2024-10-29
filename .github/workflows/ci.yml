@@ -27,8 +27,15 @@ jobs:
     steps:
       - name: Check Branch
         run: |
-          branch_name="${GITHUB_REF#refs/heads/}"
-          echo "Current branch name is: $branch_name"
+          if [ "$GITHUB_REF" == "refs/pull/"* ]; then
+            # For pull request events, use GITHUB_HEAD_REF
+            branch_name="${GITHUB_HEAD_REF}"
+          else
+            # For push events, extract from GITHUB_REF
+            branch_name="${GITHUB_REF#refs/heads/}"
+          fi
+
+          echo "Branch name is: $branch_name"
           
           branch_name="${GITHUB_REF#refs/heads/}"
           if [[ ! "$branch_name" =~ ^[\\p{Ll}]{2}/#\\d+.* ]]; then
