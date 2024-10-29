@@ -45,8 +45,8 @@ jobs:
           # Extract the branch name from refs/heads/ for push events
           branch_name="${BRANCH_NAME#refs/heads/}"
 
-          # Check if branch name matches pattern (e.g., `ps/#1337-FeatureName`)
-          if [[ ! "$branch_name" =~ ^[a-z]{2}/#\\d+.* ]]; then
+          # Adjusted regex pattern to match two lowercase initials, slash, hashtag, and number
+          if [[ ! "$branch_name" =~ ^[a-z]{2}/#([0-9]+)(-.*)?$ ]]; then
             echo "Error: Branch name must start with two lowercase initials (e.g., ps/#1337-FeatureName)."
             exit 1
           fi
