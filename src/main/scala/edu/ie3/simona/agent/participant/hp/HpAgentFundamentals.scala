@@ -189,7 +189,7 @@ trait HpAgentFundamentals
 
     val accompanyingResults = baseStateData.model.thermalGrid.results(
       tick,
-      updatedState.thermalGridState,
+      updatedState.currentThermalGridState,
     )(baseStateData.startDate)
     val result = AccompaniedSimulationResult(power, accompanyingResults)
 
@@ -254,7 +254,7 @@ trait HpAgentFundamentals
     )
     val accompanyingResults = baseStateData.model.thermalGrid.results(
       currentTick,
-      lastModelState.thermalGridState,
+      lastModelState.currentThermalGridState,
     )(baseStateData.startDate)
     val result = AccompaniedSimulationResult(power, accompanyingResults)
 
