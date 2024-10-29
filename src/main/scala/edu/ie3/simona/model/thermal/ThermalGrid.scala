@@ -404,7 +404,7 @@ final case class ThermalGrid(
   /** Convert the given state of the thermal grid into result models of it's
     * constituent models
     *
-    * @param lastTick
+    * @param currentTick
     *   Actual simulation tick
     * @param state
     *   State to be converted
@@ -413,13 +413,13 @@ final case class ThermalGrid(
     * @return
     *   A [[Seq]] of results of the constituent thermal model
     */
-  def results(lastTick: Long, state: ThermalGridState)(implicit
+  def results(currentTick: Long, state: ThermalGridState)(implicit
       startDateTime: ZonedDateTime
   ): Seq[ResultEntity] = {
 
     val maybeHouseResult = house
       .zip(state.houseState)
-      .filter { case (_, state) => state.tick == lastTick }
+      .filter { case (_, state) => state.tick == currentTick }
       .map {
         case (
               thermalHouse,
@@ -435,7 +435,7 @@ final case class ThermalGrid(
 
     val maybeStorageResult = storage
       .zip(state.storageState)
-      .filter { case (_, state) => state.tick == lastTick }
+      .filter { case (_, state) => state.tick == currentTick }
       .map {
         case (
               storage: CylindricalThermalStorage,
