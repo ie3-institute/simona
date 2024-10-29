@@ -65,7 +65,7 @@ object ParticipantAgent {
     */
   final case class RegistrationSuccessfulMessage(
       override val serviceRef: ClassicRef,
-      nextDataTick: Long,
+      firstDataTick: Long,
   ) extends RegistrationResponseMessage
 
   /** Message, that is used to announce a failed registration

@@ -125,23 +125,10 @@ object ParticipantAgentInit {
       parentData: Either[SchedulerData, FlexControlledData],
   ): Behavior[Request] = Behaviors.receivePartial {
 
-    case (_, RegistrationSuccessfulMessage(serviceRef, nextDataTick)) =>
-      parentData.fold(
-        schedulerData =>
-          schedulerData.scheduler ! Completion(
-            schedulerData.activationAdapter,
-            Some(nextDataTick),
-          ),
-        _.emAgent ! FlexCompletion(
-          participantInput.getUuid,
-          requestAtNextActivation = false,
-          Some(nextDataTick),
-        ),
-      )
+    case (_, RegistrationSuccessfulMessage(serviceRef, firstDataTick)) =>
+      val expectedFirstData = Map(serviceRef -> firstDataTick)
 
-      val expectedFirstData = Map(serviceRef -> nextDataTick)
-
-      createAgent(
+      completeInitialization(
         ParticipantModelShell.createForPrimaryData(
           participantInput,
           config,
@@ -152,6 +139,7 @@ object ParticipantAgentInit {
         gridAgentRef,
         expectedPowerRequestTick,
         parentData,
+        firstDataTick,
       )
 
     case (_, RegistrationFailedMessage(_)) =>
@@ -166,12 +154,15 @@ object ParticipantAgentInit {
         modelShell.model.getRequiredSecondaryServices.toSeq
 
       if (requiredServiceTypes.isEmpty) {
-        createAgent(
+        val firstTick = ???
+
+        completeInitialization(
           modelShell,
           Map.empty,
           gridAgentRef,
           expectedPowerRequestTick,
           parentData,
+          firstTick,
         )
       } else {
         // TODO request service actorrefs
@@ -207,29 +198,22 @@ object ParticipantAgentInit {
           expectedFirstData.updated(serviceRef, nextDataTick)
 
         if (newExpectedRegistrations.isEmpty) {
-          val earliestNextTick = expectedFirstData.map { case (_, nextTick) =>
-            nextTick
-          }.minOption
+          val firstTick = expectedFirstData
+            .map { case (_, nextTick) =>
+              nextTick
+            }
+            .minOption
+            .getOrElse(
+              throw new CriticalFailureException("No expected data registered.")
+            )
 
-          parentData.fold(
-            schedulerData =>
-              schedulerData.scheduler ! Completion(
-                schedulerData.activationAdapter,
-                earliestNextTick,
-              ),
-            _.emAgent ! FlexCompletion(
-              modelShell.model.uuid,
-              requestAtNextActivation = false,
-              earliestNextTick,
-            ),
-          )
-
-          createAgent(
+          completeInitialization(
             modelShell,
             newExpectedFirstData,
             gridAgentRef,
             expectedPowerRequestTick,
             parentData,
+            firstTick,
           )
         } else
           waitingForServices(
@@ -242,17 +226,44 @@ object ParticipantAgentInit {
           )
     }
 
-  def createAgent(
+  /** Completes initialization activation and creates actual
+    * [[ParticipantAgent]]
+    *
+    * @param modelShell
+    * @param expectedData
+    * @param gridAgentRef
+    * @param expectedPowerRequestTick
+    * @param parentData
+    * @param firstTick
+    * @return
+    */
+  private def completeInitialization(
       modelShell: ParticipantModelShell[_, _, _],
       expectedData: Map[ClassicRef, Long],
       gridAgentRef: ActorRef[GridAgent.Request],
       expectedPowerRequestTick: Long,
       parentData: Either[SchedulerData, FlexControlledData],
-  ): Behavior[Request] =
+      firstTick: Long,
+  ): Behavior[Request] = {
+
+    parentData.fold(
+      schedulerData =>
+        schedulerData.scheduler ! Completion(
+          schedulerData.activationAdapter,
+          Some(firstTick),
+        ),
+      _.emAgent ! FlexCompletion(
+        modelShell.model.uuid,
+        requestAtNextActivation = false,
+        Some(firstTick),
+      ),
+    )
+
     ParticipantAgent(
       modelShell,
       ParticipantInputHandler(expectedData),
       ParticipantGridAdapter(gridAgentRef, expectedPowerRequestTick),
       parentData,
     )
+  }
 }
