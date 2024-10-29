@@ -25,8 +25,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check branch naming convention
-        if: startsWith(github.ref, 'refs/heads/')
+      - name: Check Branch
         run: |
           branch_name="${GITHUB_REF#refs/heads/}"
           if [[ ! "$branch_name" =~ ^[\\p{Ll}]{2}/#\\d+.* ]]; then
