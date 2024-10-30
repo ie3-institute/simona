@@ -41,7 +41,7 @@ import java.time.{ZoneId, ZonedDateTime}
 import java.util
 import java.util.{Optional, UUID}
 import javax.measure.quantity.Length
-import scala.jdk.CollectionConverters.{MapHasAsJava, SetHasAsJava}
+import scala.jdk.CollectionConverters._
 
 class WeatherSourceWrapperSpec extends UnitSpec {
 
@@ -258,6 +258,10 @@ object WeatherSourceWrapperSpec {
         DummyIdCoordinateSource,
         new IconTimeBasedWeatherValueFactory(),
       ) {
+
+    override def getTimeKeysAfter(zonedDateTime: ZonedDateTime): util.Map[Point, util.List[ZonedDateTime]] = {
+      new util.HashMap[Point, util.List[ZonedDateTime]]()
+    }
 
     private val dummyValues = Map(
       coordinate1a -> new WeatherValue(
