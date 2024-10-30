@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - EmAgents should be able to handle initialization [#945](https://github.com/ie3-institute/simona/issues/945)
 - Added option to directly zip the output files [#793](https://github.com/ie3-institute/simona/issues/793)
 - Added weatherData HowTo for Copernicus ERA5 data [#967](https://github.com/ie3-institute/simona/issues/967)
+- Add some quote to 'printGoodbye' [#997](https://github.com/ie3-institute/simona/issues/997)
 - Integration test for thermal grids [#878](https://github.com/ie3-institute/simona/issues/878)
 
 ### Changed
@@ -87,6 +88,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Prepare ThermalStorageTestData for Storage without storageVolumeLvlMin [#894](https://github.com/ie3-institute/simona/issues/894)
 - Renamed `ActivityStartTrigger`, `ScheduleTriggerMessage`, `CompletionMessage` in UML Diagrams[#675](https://github.com/ie3-institute/simona/issues/675)
 - Simplifying quantity integration in QuantityUtil [#973](https://github.com/ie3-institute/simona/issues/973)
+- Reorganized Jenkins pipeline to separate build and test stages for better efficiency [#938](https://github.com/ie3-institute/simona/issues/938)
+- Rewrote SystemParticipantTest and MockParticipant from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Rewrote ChpModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Rewrote CylindricalThermalStorageTest Test from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Replace mutable var in ChpModelSpec [#1002](https://github.com/ie3-institute/simona/issues/1002)
+- Move compression of output files into `ResultEventListener`[#965](https://github.com/ie3-institute/simona/issues/965)
 
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
@@ -117,6 +124,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improve code quality in fixedloadmodelspec and other tests [#919](https://github.com/ie3-institute/simona/issues/919)
 - Fix power flow calculation with em agents [#962](https://github.com/ie3-institute/simona/issues/962)
 - Fix scheduling at Evcs with more than one Ev at a time without Em [#787](https://github.com/ie3-institute/simona/issues/787)
+- Fix CheckWindow duration [#921](https://github.com/ie3-institute/simona/issues/921)
+- Fixed ThermalStorageResults having multiple entries [#924](https://github.com/ie3-institute/simona/issues/924)
 - Fixed Hp results leading to overheating house and other effects [#827](https://github.com/ie3-institute/simona/issues/827)
 - Fixed thermal storage getting recharged when empty [#827](https://github.com/ie3-institute/simona/issues/827)
 

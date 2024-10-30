@@ -1312,6 +1312,7 @@ final case class ThermalGrid(
     * <li>the house has reached it's lower temperature boundary,</li> <li>there
     * is no infeed from external and</li> <li>the storage is not empty
     * itself</li> </ul>
+    *
     * @param tick
     *   The current tick
     * @param maybeHouseState
@@ -1383,6 +1384,9 @@ final case class ThermalGrid(
 
   /** Convert the given state of the thermal grid into result models of it's
     * constituent models
+    *
+    * @param currentTick
+    *   Actual simulation tick
     * @param state
     *   State to be converted
     * @param startDateTime
@@ -1390,85 +1394,36 @@ final case class ThermalGrid(
     * @return
     *   A [[Seq]] of results of the constituent thermal model
     */
-  def results(
-      state: ThermalGridState
-  )(implicit startDateTime: ZonedDateTime): Seq[ResultEntity] = {
-    /* FIXME: We only want to write results when there is a change within the participant.
-     * At the moment we write an storage result when the house result gets updated and vice versa.
-     * */
+  def results(currentTick: Long, state: ThermalGridState)(implicit
+      startDateTime: ZonedDateTime
+  ): Seq[ResultEntity] = {
 
-    val houseResultTick: Option[Long] = house
+    val maybeHouseResult = house
       .zip(state.houseState)
-      .flatMap {
-        case (
-              _,
-              ThermalHouseState(tick, _, _),
-            ) =>
-          Some(tick)
-        case _ => None
-      }
-
-    val storageResultTick: Option[Long] = heatStorage
-      .zip(state.storageState)
-      .flatMap {
-        case (
-              _,
-              ThermalStorageState(tick, _, _),
-            ) =>
-          Some(tick)
-        case _ => None
-      }
-
-    val domesticHotWaterStorageResultTick: Option[Long] =
-      domesticHotWaterStorage
-        .zip(state.domesticHotWaterStorageState)
-        .flatMap {
-          case (
-                _,
-                ThermalStorageState(tick, _, _),
-              ) =>
-            Some(tick)
-          case _ => None
-        }
-
-    val actualResultTick = Seq(
-      houseResultTick,
-      storageResultTick,
-      domesticHotWaterStorageResultTick,
-    ).flatten.maxOption.getOrElse(
-      throw new InconsistentStateException(
-        s"Was not able to get tick for thermal result. Result tick of thermal house: $houseResultTick," +
-          s" Result tick of thermal heat storage: $storageResultTick, Result tick of domestic hot water storage: $domesticHotWaterStorageResultTick."
-      )
-    )
-
-    val houseResults = house
-      .zip(state.houseState)
+      .filter { case (_, state) => state.tick == currentTick }
       .map {
         case (
               thermalHouse,
               ThermalHouseState(_, innerTemperature, thermalInfeed),
             ) =>
-          Seq(
-            new ThermalHouseResult(
-              actualResultTick.toDateTime,
-              thermalHouse.uuid,
-              thermalInfeed.toMegawatts.asMegaWatt,
-              innerTemperature.toKelvinScale.asKelvin,
-            )
+          new ThermalHouseResult(
+            tick.toDateTime,
+            thermalHouse.uuid,
+            thermalInfeed.toMegawatts.asMegaWatt,
+            innerTemperature.toKelvinScale.asKelvin,
           )
       }
-      .getOrElse(Seq.empty[ResultEntity])
 
-    val storageResults = heatStorage
+    val maybeStorageResult = storage
       .zip(state.storageState)
+      .filter { case (_, state) => state.tick == currentTick }
       .map {
         case (
               storage: CylindricalThermalStorage,
               ThermalStorageState(_, storedEnergy, qDot),
             ) =>
-          houseResults :+ new CylindricalStorageResult(
-            actualResultTick.toDateTime,
+          new CylindricalStorageResult(
+            tick.toDateTime,
             storage.uuid,
             storedEnergy.toMegawattHours.asMegaWattHour,
             qDot.toMegawatts.asMegaWatt,
@@ -1479,6 +1434,8 @@ final case class ThermalGrid(
             s"Result handling for storage type '${heatStorage.getClass.getSimpleName}' not supported."
           )
       }
+
+    Seq(maybeHouseResult, maybeStorageResult).flatten
       .getOrElse(houseResults)
 
     val finalResults = domesticHotWaterStorage
