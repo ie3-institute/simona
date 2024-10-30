@@ -1436,7 +1436,7 @@ final case class ThermalGrid(
       }
 
     val maybeDomesticHotWaterStorageResult = domesticHotWaterStorage
-      .zip(state.storageState)
+      .zip(state.domesticHotWaterStorageState)
       .filter { case (_, state) => state.tick == currentTick }
       .map {
         case (
