@@ -259,7 +259,9 @@ object WeatherSourceWrapperSpec {
         new IconTimeBasedWeatherValueFactory(),
       ) {
 
-    override def getTimeKeysAfter(zonedDateTime: ZonedDateTime): util.Map[Point, util.List[ZonedDateTime]] = {
+    override def getTimeKeysAfter(
+        zonedDateTime: ZonedDateTime
+    ): util.Map[Point, util.List[ZonedDateTime]] = {
       new util.HashMap[Point, util.List[ZonedDateTime]]()
     }
 
