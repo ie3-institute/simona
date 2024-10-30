@@ -1404,7 +1404,7 @@ final case class ThermalGrid(
       .map {
         case (
               thermalHouse,
-              ThermalHouseState(_, innerTemperature, thermalInfeed),
+              ThermalHouseState(tick, innerTemperature, thermalInfeed),
             ) =>
           new ThermalHouseResult(
             tick.toDateTime,
@@ -1414,13 +1414,13 @@ final case class ThermalGrid(
           )
       }
 
-    val maybeStorageResult = storage
+    val maybeThermalStorageResult = heatStorage
       .zip(state.storageState)
       .filter { case (_, state) => state.tick == currentTick }
       .map {
         case (
               storage: CylindricalThermalStorage,
-              ThermalStorageState(_, storedEnergy, qDot),
+              ThermalStorageState(tick, storedEnergy, qDot),
             ) =>
           new CylindricalStorageResult(
             tick.toDateTime,
@@ -1435,18 +1435,16 @@ final case class ThermalGrid(
           )
       }
 
-    Seq(maybeHouseResult, maybeStorageResult).flatten
-      .getOrElse(houseResults)
-
-    val finalResults = domesticHotWaterStorage
-      .zip(state.domesticHotWaterStorageState)
+    val maybeDomesticHotWaterStorageResult = domesticHotWaterStorage
+      .zip(state.storageState)
+      .filter { case (_, state) => state.tick == currentTick }
       .map {
         case (
               storage: DomesticHotWaterStorage,
-              ThermalStorageState(_, storedEnergy, qDot),
+              ThermalStorageState(tick, storedEnergy, qDot),
             ) =>
-          storageResults :+ new DomesticHotWaterStorageResult(
-            actualResultTick.toDateTime,
+          new DomesticHotWaterStorageResult(
+            tick.toDateTime,
             storage.uuid,
             storedEnergy.toMegawattHours.asMegaWattHour,
             qDot.toMegawatts.asMegaWatt,
@@ -1454,12 +1452,16 @@ final case class ThermalGrid(
           )
         case _ =>
           throw new NotImplementedError(
-            s"Result handling for storage type '${heatStorage.getClass.getSimpleName}' not supported."
+            s"Result handling for storage type '${domesticHotWaterStorage.getClass.getSimpleName}' not supported."
           )
       }
-      .getOrElse(storageResults)
 
-    finalResults
+    Seq(
+      maybeHouseResult,
+      maybeThermalStorageResult,
+      maybeDomesticHotWaterStorageResult,
+    ).flatten
+
   }
 }
 
