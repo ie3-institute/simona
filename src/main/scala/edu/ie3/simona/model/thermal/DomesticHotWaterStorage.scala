@@ -182,8 +182,7 @@ object DomesticHotWaterStorage extends ThermalStorageCalculations {
     *   electric parameters
     */
   def apply(
-      input: DomesticHotWaterStorageInput,
-      initialStoredEnergy: Energy = DefaultQuantities.zeroKWH,
+      input: DomesticHotWaterStorageInput
   ): DomesticHotWaterStorage = {
     val maxEnergyThreshold: Energy =
       volumeToEnergy(
@@ -216,7 +215,7 @@ object DomesticHotWaterStorage extends ThermalStorageCalculations {
       input.getThermalBus,
       maxEnergyThreshold,
       chargingPower,
-      initialStoredEnergy,
+      maxEnergyThreshold,
     )
   }
 }
