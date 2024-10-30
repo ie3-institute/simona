@@ -501,7 +501,7 @@ class HpAgentModelCalculationSpec
                     _,
                     HpState(
                       isRunning,
-                      lastTimeTick,
+                      tick,
                       _,
                       activePower,
                       qDot,
@@ -511,7 +511,7 @@ class HpAgentModelCalculationSpec
                   )
                 ) =>
               isRunning shouldBe false
-              lastTimeTick shouldBe 0L
+              tick shouldBe 0L
               activePower should approximate(Kilowatts(0.0))
               qDot should approximate(Kilowatts(0.0))
 
@@ -629,7 +629,7 @@ class HpAgentModelCalculationSpec
                     _,
                     HpState(
                       isRunning,
-                      lastTimeTick,
+                      tick,
                       _,
                       activePower,
                       qDot,
@@ -639,7 +639,7 @@ class HpAgentModelCalculationSpec
                   )
                 ) =>
               isRunning shouldBe false
-              lastTimeTick shouldBe 0L
+              tick shouldBe 0L
               activePower should approximate(Kilowatts(0d))
               qDot should approximate(Kilowatts(0d))
 
