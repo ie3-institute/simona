@@ -171,15 +171,15 @@ final case class DomesticHotWaterStorage(
 
 object DomesticHotWaterStorage extends ThermalStorageCalculations {
 
-  /** Function to construct a new [[CylindricalThermalStorage]] based on a
-    * provided [[CylindricalStorageInput]]
+  /** Function to construct a new [[DomesticHotWaterStorage]] based on a
+    * provided [[DomesticHotWaterStorageInput]]
     *
     * @param input
-    *   instance of [[CylindricalStorageInput]] this storage should be built
-    *   from
+    *   instance of [[DomesticHotWaterStorageInput]] this storage should be
+    *   built from
     * @return
-    *   a ready-to-use [[CylindricalThermalStorage]] with referenced electric
-    *   parameters
+    *   a ready-to-use [[DomesticHotWaterStorageStorage]] with referenced
+    *   electric parameters
     */
   def apply(
       input: DomesticHotWaterStorageInput,
