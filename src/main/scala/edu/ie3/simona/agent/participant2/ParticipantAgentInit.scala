@@ -154,7 +154,8 @@ object ParticipantAgentInit {
         modelShell.model.getRequiredSecondaryServices.toSeq
 
       if (requiredServiceTypes.isEmpty) {
-        val firstTick = ???
+        // Models that do not use secondary data always start at tick 0
+        val firstTick = 0L
 
         completeInitialization(
           modelShell,
