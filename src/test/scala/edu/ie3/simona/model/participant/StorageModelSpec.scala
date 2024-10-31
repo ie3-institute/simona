@@ -198,23 +198,23 @@ class StorageModelSpec extends UnitSpec with Matchers {
           "expDelta",
         ),
         // no power
-        (0.0, 0.0, 0.0, false, false, 0),
-        (50.0, 0.0, 0.0, false, false, 0),
-        (100.0, 0.0, 0.0, false, false, 0),
+        (0.0, 0.0, 0.0, false, false, 0.0),
+        (50.0, 0.0, 0.0, false, false, 0.0),
+        (100.0, 0.0, 0.0, false, false, 0.0),
         // charging on empty
-        (0.0, 1.0, 1.0, true, true, (100 * 3600 / 0.9).toInt),
-        (0.0, 2.5, 2.5, true, true, (40 * 3600 / 0.9).toInt),
-        (0.0, 5.0, 5.0, true, true, (20 * 3600 / 0.9).toInt),
-        (0.0, 10.0, 10.0, true, true, (10 * 3600 / 0.9).toInt),
+        (0.0, 1.0, 1.0, true, true, 100 * 3600 / 0.9),
+        (0.0, 2.5, 2.5, true, true, 40 * 3600 / 0.9),
+        (0.0, 5.0, 5.0, true, true, 20 * 3600 / 0.9),
+        (0.0, 10.0, 10.0, true, true, 10 * 3600 / 0.9),
         // charging on half full
-        (50.0, 5.0, 5.0, false, true, (10 * 3600 / 0.9).toInt),
-        (50.0, 10.0, 10.0, false, true, (5 * 3600 / 0.9).toInt),
+        (50.0, 5.0, 5.0, false, true, 10 * 3600 / 0.9),
+        (50.0, 10.0, 10.0, false, true, 5 * 3600 / 0.9),
         // discharging on half full
-        (50.0, -4.5, -4.5, false, true, 10 * 3600),
-        (50.0, -9.0, -9.0, false, true, 5 * 3600),
+        (50.0, -4.5, -4.5, false, true, 10 * 3600.0),
+        (50.0, -9.0, -9.0, false, true, 5 * 3600.0),
         // discharging on full
-        (100.0, -4.5, -4.5, true, true, 20 * 3600),
-        (100.0, -9.0, -9.0, true, true, 10 * 3600),
+        (100.0, -4.5, -4.5, true, true, 20 * 3600.0),
+        (100.0, -9.0, -9.0, true, true, 10 * 3600.0),
       )
 
       forAll(testCases) {
@@ -224,7 +224,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
             expPower: Double,
             expActiveNext: Boolean,
             expScheduled: Boolean,
-            expDelta: Int,
+            expDelta: Double,
         ) =>
           val oldState = StorageModel.StorageState(
             KilowattHours(lastStored),
@@ -232,11 +232,12 @@ class StorageModelSpec extends UnitSpec with Matchers {
             startTick,
           )
 
-          val (newState, flexChangeIndication) = storageModel.handleControlledPowerChange(
-            data,
-            oldState,
-            Kilowatts(setPower),
-          )
+          val (newState, flexChangeIndication) =
+            storageModel.handleControlledPowerChange(
+              data,
+              oldState,
+              Kilowatts(setPower),
+            )
 
           newState.chargingPower should approximate(Kilowatts(expPower))
           newState.tick shouldBe (startTick + 1)
@@ -265,29 +266,27 @@ class StorageModelSpec extends UnitSpec with Matchers {
           "expDelta",
         ),
         // no power
-        (0.0, 0.0, 0.0, false, false, 0),
-        (50.0, 0.0, 0.0, false, false, 0),
-        (100.0, 0.0, 0.0, false, false, 0),
+        (0.0, 0.0, 0.0, false, false, 0.0),
+        (50.0, 0.0, 0.0, false, false, 0.0),
+        (100.0, 0.0, 0.0, false, false, 0.0),
         // charging on empty
         (0.0, 1.0, 1.0, true, true, 50 * 3600 / 0.9),
-        //),
-       // (0.0, 2.5, 2.5, true, true, (20 * 3600 / 0.9)),
-       // (0.0, 5.0, 5.0, true, true, (10 * 3600 / 0.9)),
-       //(0.0, 10.0, 10.0, true, true, 5 * 3600 / 0.9),
+        (0.0, 2.5, 2.5, true, true, 20 * 3600 / 0.9),
+        (0.0, 5.0, 5.0, true, true, 10 * 3600 / 0.9),
+        (0.0, 10.0, 10.0, true, true, 5 * 3600 / 0.9),
         // charging on target ref
-       // (50.0, 5.0, 5.0, true, true, 10 * 3600 / 0.9),
-       // (50.0, 10.0, 10.0, true, true, 5 * 3600 / 0.9),
+        (50.0, 5.0, 5.0, true, true, 10 * 3600 / 0.9),
+        (50.0, 10.0, 10.0, true, true, 5 * 3600 / 0.9),
         // discharging on target ref
-        (50.0, -4.5, -4.5, true, true, 10 * 3600),
-        (50.0, -9.0, -9.0, true, true, 5 * 3600),
+        (50.0, -4.5, -4.5, true, true, 10 * 3600.0),
+        (50.0, -9.0, -9.0, true, true, 5 * 3600.0),
         // discharging on full
-        (100.0, -4.5, -4.5, true, true, 10 * 3600),
-        (100.0, -9.0, -9.0, true, true, 5 * 3600),
+        (100.0, -4.5, -4.5, true, true, 10 * 3600.0),
+        (100.0, -9.0, -9.0, true, true, 5 * 3600.0),
       )
 
       forAll(testCases) {
         (
-
             lastStored: Double,
             setPower: Double,
             expPower: Double,
@@ -314,7 +313,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
           newState.storedEnergy should approximate(KilowattHours(lastStored))
 
           flexChangeIndication.changesAtTick.isDefined shouldBe expScheduled
-          // flexChangeIndication.changesAtTick().map(x -> x == startTick + 1 + expDelta).getOrElse(_ -> true)
           flexChangeIndication.changesAtTick.forall(
             _ == (startTick + 1 + expDelta)
           ) shouldBe true
