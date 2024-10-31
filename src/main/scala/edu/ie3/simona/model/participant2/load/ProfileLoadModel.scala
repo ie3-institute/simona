@@ -12,11 +12,13 @@ import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.profile.LoadProfileStore
+import edu.ie3.simona.model.participant.load.random.RandomLoadParamStore
 import edu.ie3.simona.model.participant2.ParticipantModel
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   DateTimeData,
 }
+import edu.ie3.simona.util.TickUtil
 import squants.{Dimensionless, Power}
 
 import java.time.ZonedDateTime
@@ -36,10 +38,21 @@ class ProfileLoadModel(
       state: ParticipantModel.ConstantState.type,
       relevantData: DateTimeData,
   ): (ParticipantModel.ActivePowerOperatingPoint, Option[Long]) = {
-    val averagePower =
-      loadProfileStore.entry(relevantData.dateTime, loadProfile)
+    val resolution = RandomLoadParamStore.resolution.getSeconds
 
-    (ActivePowerOperatingPoint(averagePower * referenceScalingFactor), None)
+    val (modelTick, modelDateTime) = TickUtil.roundToResolution(
+      relevantData.tick,
+      relevantData.dateTime,
+      resolution.toInt,
+    )
+
+    val averagePower = loadProfileStore.entry(modelDateTime, loadProfile)
+    val nextTick = modelTick + resolution
+
+    (
+      ActivePowerOperatingPoint(averagePower * referenceScalingFactor),
+      Some(nextTick),
+    )
   }
 
   override def createRelevantData(
@@ -47,7 +60,7 @@ class ProfileLoadModel(
       nodalVoltage: Dimensionless,
       tick: Long,
       simulationTime: ZonedDateTime,
-  ): DateTimeData = DateTimeData(simulationTime)
+  ): DateTimeData = DateTimeData(tick, simulationTime)
 
 }
 

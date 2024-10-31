@@ -88,6 +88,7 @@ final case class ParticipantModelShell[
         s"New state $currentState is not set to current tick $currentTick"
       )
 
+    // todo also include operation start and end as ticks
     val (newOperatingPoint, newNextTick) =
       if (!operationInterval.includes(currentTick))
         // Current tick is outside of operation interval.

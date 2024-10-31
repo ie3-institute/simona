@@ -170,11 +170,14 @@ object ParticipantModel {
     */
   case object FixedRelevantData extends OperationRelevantData
 
-  /** OperationRelevantData that just transports the current datetime
+  /** OperationRelevantData that just transports the current datetime and tick
+    * @param tick
+    *   The current tick
     * @param dateTime
-    *   The current datetime
+    *   The current datetime, corresponding to the current tick
     */
-  case class DateTimeData(dateTime: ZonedDateTime) extends OperationRelevantData
+  case class DateTimeData(tick: Long, dateTime: ZonedDateTime)
+      extends OperationRelevantData
 
   trait OperatingPoint {
 

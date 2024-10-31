@@ -19,6 +19,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   DateTimeData,
 }
+import edu.ie3.simona.util.TickUtil
 import edu.ie3.util.TimeUtil
 import squants.energy.{KilowattHours, Kilowatts, Watts}
 import squants.{Dimensionless, Power}
@@ -46,18 +47,27 @@ class RandomLoadModel(
       state: ParticipantModel.ConstantState.type,
       relevantData: DateTimeData,
   ): (ParticipantModel.ActivePowerOperatingPoint, Option[Long]) = {
-    val gev = getGevDistribution(relevantData.dateTime)
+    val resolution = RandomLoadParamStore.resolution.getSeconds
+
+    val (modelTick, modelDateTime) = TickUtil.roundToResolution(
+      relevantData.tick,
+      relevantData.dateTime,
+      resolution.toInt,
+    )
+
+    val gev = getGevDistribution(modelDateTime)
 
     /* Get a next random power (in kW) */
     val randomPower = gev.nextRandom()
     if (randomPower < 0)
       determineOperatingPoint(state, relevantData)
     else {
+      val nextTick = modelTick + resolution
       (
         ActivePowerOperatingPoint(
           Kilowatts(randomPower) * referenceScalingFactor
         ),
-        None,
+        Some(nextTick),
       )
     }
   }
@@ -101,7 +111,7 @@ class RandomLoadModel(
       nodalVoltage: Dimensionless,
       tick: Long,
       simulationTime: ZonedDateTime,
-  ): DateTimeData = DateTimeData(simulationTime)
+  ): DateTimeData = DateTimeData(tick, simulationTime)
 }
 
 object RandomLoadModel {
