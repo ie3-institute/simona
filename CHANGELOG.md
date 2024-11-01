@@ -126,6 +126,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix scheduling at Evcs with more than one Ev at a time without Em [#787](https://github.com/ie3-institute/simona/issues/787)
 - Fix CheckWindow duration [#921](https://github.com/ie3-institute/simona/issues/921)
 - Fixed ThermalStorageResults having multiple entries [#924](https://github.com/ie3-institute/simona/issues/924)
+- Fix filter for thermal result checking for lastTick not for currentTick [#1008](https://github.com/ie3-institute/simona/issues/1008)
 
 ## [3.0.0] - 2023-08-07
 
