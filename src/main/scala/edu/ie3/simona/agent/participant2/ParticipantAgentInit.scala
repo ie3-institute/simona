@@ -264,6 +264,7 @@ object ParticipantAgentInit {
       modelShell,
       ParticipantInputHandler(expectedData),
       ParticipantGridAdapter(gridAgentRef, expectedPowerRequestTick),
+      ???,
       parentData,
     )
   }

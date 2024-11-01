@@ -13,6 +13,8 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
 }
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
+import edu.ie3.simona.event.ResultEvent
+import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant2.ParticipantModelShell
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
@@ -142,13 +144,20 @@ object ParticipantAgent {
       modelShell: ParticipantModelShell[_, _, _],
       inputHandler: ParticipantInputHandler,
       gridAdapter: ParticipantGridAdapter,
+      resultListener: Iterable[ActorRef[ResultEvent]],
       parentData: Either[SchedulerData, FlexControlledData],
   ): Behavior[Request] =
     Behaviors.receivePartial {
       case (ctx, request: ParticipantRequest) =>
         val updatedShell = modelShell.handleRequest(ctx, request)
 
-        ParticipantAgent(updatedShell, inputHandler, gridAdapter, parentData)
+        ParticipantAgent(
+          updatedShell,
+          inputHandler,
+          gridAdapter,
+          resultListener,
+          parentData,
+        )
 
       case (_, activation: ActivationRequest) =>
         val coreWithActivation = inputHandler.handleActivation(activation)
@@ -158,6 +167,7 @@ object ParticipantAgent {
             modelShell,
             coreWithActivation,
             gridAdapter,
+            resultListener,
             parentData,
           )
 
@@ -165,6 +175,7 @@ object ParticipantAgent {
           updatedShell,
           updatedCore,
           updatedGridAdapter,
+          resultListener,
           parentData,
         )
 
@@ -172,12 +183,19 @@ object ParticipantAgent {
         val coreWithData = inputHandler.handleDataProvision(msg)
 
         val (updatedShell, updatedCore, updatedGridAdapter) =
-          maybeCalculate(modelShell, coreWithData, gridAdapter, parentData)
+          maybeCalculate(
+            modelShell,
+            coreWithData,
+            gridAdapter,
+            resultListener,
+            parentData,
+          )
 
         ParticipantAgent(
           updatedShell,
           updatedCore,
           updatedGridAdapter,
+          resultListener,
           parentData,
         )
 
@@ -224,6 +242,7 @@ object ParticipantAgent {
           modelShell,
           inputHandler,
           updatedGridAdapter,
+          resultListener,
           parentData,
         )
 
@@ -235,6 +254,7 @@ object ParticipantAgent {
           modelShell,
           inputHandler,
           updatedGridAdapter,
+          resultListener,
           parentData,
         )
     }
@@ -243,6 +263,7 @@ object ParticipantAgent {
       modelShell: ParticipantModelShell[_, _, _],
       inputHandler: ParticipantInputHandler,
       gridAdapter: ParticipantGridAdapter,
+      listener: Iterable[ActorRef[ResultEvent]],
       parentData: Either[SchedulerData, FlexControlledData],
   ): (
       ParticipantModelShell[_, _, _],
@@ -281,7 +302,8 @@ object ParticipantAgent {
               val results =
                 modelWithOP.determineResults(tick, gridAdapter.nodalVoltage)
 
-              results.modelResults.foreach { res => // todo send out results
+              results.modelResults.foreach { res =>
+                listener.foreach(_ ! ParticipantResultEvent(res))
               }
 
               val gridAdapterWithResult =
@@ -326,7 +348,8 @@ object ParticipantAgent {
                   gridAdapter.nodalVoltage,
                 )
 
-              results.modelResults.foreach { res => // todo send out results
+              results.modelResults.foreach { res =>
+                listener.foreach(_ ! ParticipantResultEvent(res))
               }
 
               val gridAdapterWithResult =

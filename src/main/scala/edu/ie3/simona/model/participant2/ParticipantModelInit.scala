@@ -45,7 +45,6 @@ object ParticipantModelInit {
       }).build()
 
     (scaledParticipantInput, modelConfig) match {
-      // fixme ticks not scheduled for fixed feed-in/load models
       case (input: FixedFeedInInput, _) =>
         val model = FixedFeedInModel(input)
         val state = model.getInitialState
