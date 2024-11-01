@@ -23,12 +23,15 @@ import scala.util.{Failure, Success}
 /** Provides (average) power values to grid agent
   *
   * @param gridAgent
+  *   The ActorRef for the [[GridAgent]]
   * @param expectedRequestTick
   *   Tick at which next power request is expected
   * @param nodalVoltage
+  *   The currently valid nodal voltage in p.u.
   * @param tickToPower
   *   power values
   * @param avgPowerResult
+  *   The calculated average power for the current request window
   */
 final case class ParticipantGridAdapter(
     gridAgent: ActorRef[GridAgent.Request],
@@ -38,7 +41,15 @@ final case class ParticipantGridAdapter(
     avgPowerResult: Option[AvgPowerResult],
 ) {
 
-  def isPowerRequestExpected(currentTick: Long): Boolean = {
+  /** Whether a power request is expected and has not yet arrived, thus is
+    * awaited, for the given tick.
+    *
+    * @param currentTick
+    *   The current tick
+    * @return
+    *   Whether a power request is awaited for the given tick
+    */
+  def isPowerRequestAwaited(currentTick: Long): Boolean = {
     expectedRequestTick == currentTick
   }
 

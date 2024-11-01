@@ -132,6 +132,9 @@ object ParticipantAgent {
     * ways of interacting with the agent
     */
   trait ParticipantRequest extends Request {
+
+    /** The tick for which the request is valid, which is the current tick
+      */
     val tick: Long
   }
 
@@ -147,7 +150,7 @@ object ParticipantAgent {
 
         ParticipantAgent(updatedShell, inputHandler, gridAdapter, parentData)
 
-      case (ctx, activation: ActivationRequest) =>
+      case (_, activation: ActivationRequest) =>
         val coreWithActivation = inputHandler.handleActivation(activation)
 
         val (updatedShell, updatedCore, updatedGridAdapter) =
@@ -165,7 +168,7 @@ object ParticipantAgent {
           parentData,
         )
 
-      case (ctx, msg: ProvisionMessage[Data]) =>
+      case (_, msg: ProvisionMessage[Data]) =>
         val coreWithData = inputHandler.handleDataProvision(msg)
 
         val (updatedShell, updatedCore, updatedGridAdapter) =
@@ -224,7 +227,7 @@ object ParticipantAgent {
           parentData,
         )
 
-      case (ctx, FinishParticipantSimulation(_, nextRequestTick)) =>
+      case (_, FinishParticipantSimulation(_, nextRequestTick)) =>
         val updatedGridAdapter =
           gridAdapter.updateNextRequestTick(nextRequestTick)
 
@@ -354,19 +357,18 @@ object ParticipantAgent {
       (modelShell, inputHandler, gridAdapter)
   }
 
-  def isDataComplete(
+  private def isDataComplete(
       inputHandler: ParticipantInputHandler,
       gridAdapter: ParticipantGridAdapter,
-  ): Boolean =
-    if (inputHandler.isComplete) {
-      val activation = inputHandler.activation.getOrElse(
-        throw new CriticalFailureException(
-          "Activation should be present when data collection is complete"
-        )
+  ): Boolean = {
+    lazy val activation = inputHandler.activation.getOrElse(
+      throw new CriticalFailureException(
+        "Activation should be present when data collection is complete"
       )
+    )
 
-      !gridAdapter.isPowerRequestExpected(activation.tick)
-    } else
-      false
+    inputHandler.isComplete &&
+    !gridAdapter.isPowerRequestAwaited(activation.tick)
+  }
 
 }
