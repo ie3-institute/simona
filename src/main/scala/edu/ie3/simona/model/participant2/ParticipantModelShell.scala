@@ -28,8 +28,10 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssueFlexControl,
   ProvideFlexOptions,
 }
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.ReactivePower
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import squants.Dimensionless
@@ -78,6 +80,11 @@ final case class ParticipantModelShell[
     copy(relevantData = Some(updatedRelevantData))
   }
 
+  /** Update operating point when the model is '''not''' em-controlled.
+    *
+    * @param currentTick
+    * @return
+    */
   def updateOperatingPoint(
       currentTick: Long
   ): ParticipantModelShell[OP, S, OR] = {
@@ -88,25 +95,25 @@ final case class ParticipantModelShell[
         s"New state $currentState is not set to current tick $currentTick"
       )
 
-    // todo also include operation start and end as ticks
-    val (newOperatingPoint, newNextTick) =
-      if (!operationInterval.includes(currentTick))
-        // Current tick is outside of operation interval.
-        // Set operating point to "zero"
-        (model.zeroPowerOperatingPoint, None)
-      else
-        model.determineOperatingPoint(
-          state,
-          relevantData.getOrElse(
-            throw new CriticalFailureException("No relevant data available!")
-          ),
-        )
+    def modelOperatingPoint() = {
+      val (modelOp, modelNextTick) = model.determineOperatingPoint(
+        state,
+        relevantData.getOrElse(
+          throw new CriticalFailureException("No relevant data available!")
+        ),
+      )
+      val modelIndicator = ModelChangeIndicator(changesAtTick = modelNextTick)
+      (modelOp, modelIndicator)
+    }
+
+    val (newOperatingPoint, newChangeIndicator) =
+      determineOperatingPointInInterval(modelOperatingPoint, currentTick)
 
     copy(
       state = currentState,
       lastOperatingPoint = operatingPoint,
       operatingPoint = Some(newOperatingPoint),
-      modelChange = ModelChangeIndicator(changesAtTick = newNextTick),
+      modelChange = newChangeIndicator,
     )
   }
 
@@ -144,31 +151,46 @@ final case class ParticipantModelShell[
 
   def updateFlexOptions(currentTick: Long): ParticipantModelShell[OP, S, OR] = {
     val currentState = determineCurrentState(currentTick)
-    val flexOptions = model.calcFlexOptions(
-      currentState,
-      relevantData.getOrElse(
-        throw new CriticalFailureException("No relevant data available!")
-      ),
-    )
+
+    val flexOptions =
+      if (operationInterval.includes(currentTick)) {
+        model.calcFlexOptions(
+          currentState,
+          relevantData.getOrElse(
+            throw new CriticalFailureException("No relevant data available!")
+          ),
+        )
+      } else {
+        // Out of operation, there's no way to operate besides 0 kW
+        ProvideMinMaxFlexOptions.noFlexOption(model.uuid, zeroKW)
+      }
 
     copy(state = currentState, flexOptions = Some(flexOptions))
   }
 
+  /** Update operating point on receiving [[IssueFlexControl]], i.e. when the
+    * model is em-controlled.
+    *
+    * @param flexControl
+    * @return
+    */
   def updateOperatingPoint(
       flexControl: IssueFlexControl
   ): ParticipantModelShell[OP, S, OR] = {
-    val fo = flexOptions.getOrElse(
-      throw new CriticalFailureException("No flex options available!")
-    )
-
     val currentState = determineCurrentState(flexControl.tick)
 
-    val setPointActivePower = EmTools.determineFlexPower(
-      fo,
-      flexControl,
-    )
+    val currentTick = flexControl.tick
 
-    val (newOperatingPoint, modelChange) =
+    def modelOperatingPoint() = {
+      val fo = flexOptions.getOrElse(
+        throw new CriticalFailureException("No flex options available!")
+      )
+
+      val setPointActivePower = EmTools.determineFlexPower(
+        fo,
+        flexControl,
+      )
+
       model.handlePowerControl(
         currentState,
         relevantData.getOrElse(
@@ -177,13 +199,46 @@ final case class ParticipantModelShell[
         fo,
         setPointActivePower,
       )
+    }
+
+    val (newOperatingPoint, newChangeIndicator) =
+      determineOperatingPointInInterval(modelOperatingPoint, currentTick)
 
     copy(
       state = currentState,
       lastOperatingPoint = operatingPoint,
       operatingPoint = Some(newOperatingPoint),
-      modelChange = modelChange,
+      modelChange = newChangeIndicator,
     )
+  }
+
+  private def determineOperatingPointInInterval(
+      modelOperatingPoint: () => (OP, ModelChangeIndicator),
+      currentTick: Long,
+  ): (OP, ModelChangeIndicator) = {
+    if (operationInterval.includes(currentTick)) {
+      val (modelOp, modelIndicator) = modelOperatingPoint()
+
+      // Check if the end of the operation interval is *before* the next tick calculated by the model
+      val adaptedNextTick =
+        Seq(
+          modelIndicator.changesAtTick,
+          Option(operationInterval.end),
+        ).flatten.minOption
+
+      (modelOp, modelIndicator.copy(changesAtTick = adaptedNextTick))
+    } else {
+      // Current tick is outside of operation interval.
+      // Set operating point to "zero"
+      val op = model.zeroPowerOperatingPoint
+
+      // If the model is not active *yet*, schedule the operation start
+      val nextTick = Option.when(operationInterval.start < currentTick)(
+        operationInterval.start
+      )
+
+      (op, ModelChangeIndicator(changesAtTick = nextTick))
+    }
   }
 
   def handleRequest(

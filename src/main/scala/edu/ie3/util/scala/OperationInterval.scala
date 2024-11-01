@@ -16,24 +16,5 @@ import edu.ie3.util.interval.ClosedInterval
   * @param end
   *   End of operation period (included)
   */
-final case class OperationInterval(start: java.lang.Long, end: java.lang.Long)
-    extends ClosedInterval[java.lang.Long](start, end) {
-
-  /** Get the first tick, in which the operation starts
-    *
-    * @return
-    *   Tick, in which operation starts
-    */
-  def getStart: Long = getLower
-
-  /** Get the last tick, in which the operation end
-    *
-    * @return
-    *   Tick, in which operation end
-    */
-  def getEnd: Long = getUpper
-}
-
-object OperationInterval {
-  def apply(start: Long, end: Long) = new OperationInterval(start, end)
-}
+final case class OperationInterval(start: Long, end: Long)
+    extends ClosedInterval[java.lang.Long](start, end)

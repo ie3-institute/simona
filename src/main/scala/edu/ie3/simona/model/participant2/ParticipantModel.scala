@@ -56,12 +56,20 @@ abstract class ParticipantModel[
         nodalVoltage,
       )
 
-  /** With the given current state and the given relevant data, determines the
-    * operating point that is currently valid until the next operating point is
-    * determined. Also, optionally returns a tick at which the state will change
-    * unless the operating point changes beforehand.
+  /** With the given current state and the given operation-relevant data,
+    * determines the operating point that is currently valid until the next
+    * operating point is determined. Also, optionally returns a tick at which
+    * the state will change unless the operating point changes due to external
+    * influences beforehand.
     *
-    * This method is only called if the participant is *not* em-controlled.
+    * This method should be able to handle calls at arbitrary points in
+    * simulation time (i.e. ticks), which are situated after the tick of the
+    * last state.
+    *
+    * This method is only called if the participant is *not* em-controlled. If
+    * the participant *is* em-controlled,
+    * [[ParticipantFlexibility.handlePowerControl()]] determines the operating
+    * point instead.
     *
     * @param state
     *   the current state
