@@ -66,8 +66,8 @@ abstract class ParticipantModel[
     * simulation time (i.e. ticks), which are situated after the tick of the
     * last state.
     *
-    * This method is only called if the participant is *not* em-controlled. If
-    * the participant *is* em-controlled,
+    * This method is only called if the participant is '''not''' em-controlled.
+    * If the participant '''is''' em-controlled,
     * [[ParticipantFlexibility.handlePowerControl()]] determines the operating
     * point instead.
     *
