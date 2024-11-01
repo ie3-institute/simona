@@ -325,7 +325,7 @@ object HpModel {
     * temperature.
     *
     * @param isRunning
-    *   indicates if CHP is turned on
+    *   indicates if HP is turned on
     * @param tick
     *   the time tick of the HpState
     * @param ambientTemperature
