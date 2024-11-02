@@ -21,7 +21,7 @@ sonarqube {
       "build/reports/scapegoat/src/scapegoat-scalastyle.xml",
       "build/reports/scapegoat/testsrc/scapegoat-scalastyle.xml"] // Comma-delimited list of paths to Scapegoat reports in the Scalastyle format
     // scala specific stuff
-    property 'sonar.scala.coverage.reportPaths', 'build/reports/scoverageTest/scoverage.xml'
+    property 'sonar.scala.coverage.reportPaths', '(pwd)/build/reports/scoverageTest/scoverage.xml'
 
     // groovy specific stuff
     property 'sonar.groovy.binaries', 'build/classes/groovy' // groovy binaries
