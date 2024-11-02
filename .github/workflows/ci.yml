@@ -58,7 +58,8 @@ jobs:
 
       - name: Generate Scoverage Report
         run: |
-          ./gradlew scoverage
+          ./gradlew reportScoverage
+          ls -la build/reports/scoverage/
 
       - name: Find scov
         run: find . -name "scoverage.xml"
