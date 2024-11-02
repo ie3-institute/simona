@@ -61,12 +61,8 @@ jobs:
           ./gradlew reportScoverage
           ls -la build/reports/scoverage/
 
-      - name: Check if scoverage.xml Exists
-        run: |
-          if [ ! -f /build/reports/scoverage/scoverage.xml ]; then
-            echo "Coverage report not found at build/reports/scoverage/scoverage.xml"
-            exit 1
-          fi
+      - name: Find scov
+        run: find . -name "scoverage.xml"
 
       - name: Build Scala-Docs
         run: |
@@ -85,7 +81,7 @@ jobs:
           -Dsonar.tests=src/test/resources,src/test/scala,src/test/groovy \
           -Dsonar.junit.reportPaths=build/test-results/test \
           -Dsonar.scala.scapegoat.reportPaths=build/reports/scapegoat/src/scapegoat-scalastyle.xml,build/reports/scapegoat/testsrc/scapegoat-scalastyle.xml \
-          -Dsonar.scala.coverage.reportPaths=/build/reports/scoverage/scoverage.xml \
+          -Dsonar.scala.coverage.reportPaths=/home/runner/work/simona/simona/build/reports/scoverage/scoverage.xml \
           -Dsonar.groovy.binaries=build/classes/groovy \
           -Dsonar.exclusions=src/main/scala/edu/ie3/simona/config/SimonaConfig.scala
         env:
