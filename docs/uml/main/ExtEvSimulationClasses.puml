@@ -147,46 +147,46 @@ package simona-api {
 }
 
 package simona {
-     abstract class ParticipantAgent
+    abstract class ParticipantAgent
 
-     class EvcsModel
+    class EvcsModel
 
-     class EvcsAgent
+    class EvcsAgent
 
-     interface SecondaryData
-     class EvMovementData {
-         movements: Set[EvMovement]
-     }
+    interface SecondaryData
+    class EvMovementData {
+        movements: Set[EvMovement]
+    }
 
-     class SimonaSim
+    class SimonaSim
 
-     class Scheduler
+    class Scheduler
 
-     class SimonaStandaloneSetup
+    class SimonaStandaloneSetup
 
-     class ExtSimLoader
+    class ExtSimLoader
 
-     class ExtSimAdapter
+    class ExtSimAdapter
 
-     class ExtEvDataService
+    class ExtEvDataService
 
-     Scheduler -- SimonaSim
-     SimonaSim *- SimonaStandaloneSetup
-     SimonaStandaloneSetup *- ExtSimLoader
+    Scheduler -- SimonaSim
+    SimonaSim *- SimonaStandaloneSetup
+    SimonaStandaloneSetup *- ExtSimLoader
 
-     ExtSimAdapter - Scheduler
-     ExtEvDataService -- Scheduler
+    ExtSimAdapter - Scheduler
+    ExtEvDataService -- Scheduler
 
-     SecondaryData <|-- EvMovementData
+    SecondaryData <|-- EvMovementData
 
-     SimonaService <|- ExtEvDataService
-     ExtEvData --- ExtEvDataService
+    SimonaService <|- ExtEvDataService
+    ExtEvData --- ExtEvDataService
 
-     ExtSimAdapterData <--- ExtSimAdapter
+    ExtSimAdapterData <--- ExtSimAdapter
 
-     ExtEvDataService "n" <-> "1" EvcsAgent
-     EvcsAgent --|> ParticipantAgent
-     EvcsAgent *- EvcsModel
+    ExtEvDataService "n" <-> "1" EvcsAgent
+    EvcsAgent --|> ParticipantAgent
+    EvcsAgent *- EvcsModel
 
 }
 
