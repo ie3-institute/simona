@@ -4,16 +4,16 @@ skinparam linetype ortho
 skinparam nodesep 50
 skinparam ranksep 40
 
-skinparam node{
-      borderColor Transparent
-      fontColor Transparent
-    }
+skinparam node {
+    borderColor Transparent
+    fontColor Transparent
+}
 
 package MobilitySimulator {
     class ExtLink
     class MobilitySim
     class ElectricVehicle
-    }
+}
 
 package simona-api {
 
@@ -53,10 +53,9 @@ package simona-api {
             + ComparableQuantity<Energy> getStoredEnergy()
             + Long getDepartureTick()
             + EvModel copyWith(ComparableQuantity<Energy> newStoredEnergy)
-        }
+    }
 
     ElectricVehicle --|> EvModel
-
 
     interface ExtData
 
@@ -70,22 +69,22 @@ package simona-api {
             + void provideArrivingEvs(Map<UUID, List<EvModel>> arrivals, Optional<Long> maybeNextTick)
             + void sendExtMsg(EvDataMessageFromExt msg)
             + void queueExtResponseMsg(EvDataResponseMessageToExt extEvResponse)
-        }
+    }
 
     node sub2{
-    interface EvDataMessageFromExt
+        interface EvDataMessageFromExt
 
-    interface DataMessageFromExt
+        interface DataMessageFromExt
 
-    class ProvideArrivingEvs
+        class ProvideArrivingEvs
 
-    class RequestCurrentPrices
+        class RequestCurrentPrices
 
-    class RequestDepartingEvs
+        class RequestDepartingEvs
 
-    class RequestEvcsFreeLots
+        class RequestEvcsFreeLots
+    }
 
-}
     RequestDepartingEvs --u|> EvDataMessageFromExt
     RequestEvcsFreeLots --u|> EvDataMessageFromExt
     ProvideArrivingEvs --u|> EvDataMessageFromExt
@@ -96,60 +95,56 @@ package simona-api {
     ExtEvData --u|> ExtData
     ExtEvSimulation -u> ExtEvData
 
-node sub1{
-    interface DataResponseMessageToExt
+    node sub1{
+        interface DataResponseMessageToExt
 
-    interface EvDataResponseMessageToExt
+        interface EvDataResponseMessageToExt
 
-    class ProvideCurrentPrices{
-        + ProvideCurrentPrices()
+        class ProvideCurrentPrices{
+            + ProvideCurrentPrices()
+        }
+
+        class ProvideDepartingEvs{
+            + ProvideDepartingEvs()
+        }
+
+        class ProvideEvcsFreeLots{
+             + ProvideEvcsFreeLots()
+        }
+
+         ProvideEvcsFreeLots --|> EvDataResponseMessageToExt
+         ProvideDepartingEvs --|> EvDataResponseMessageToExt
+         ProvideCurrentPrices --|> EvDataResponseMessageToExt
+         ExtEvData --> EvDataResponseMessageToExt
+         DataResponseMessageToExt --|> EvDataResponseMessageToExt
     }
 
-    class ProvideDepartingEvs{
-        + ProvideDepartingEvs()
+    node sub3 {
+        class ExtSimAdapterData {
+                    + LinkedBlockingQueue<ExtTrigger> receiveTriggerQueue
+                    - ActorRef extSimAdapter
+                    - String[] mainArgs
+                    + void queueExtMsg(ControlMessageToExt msg)
+                    + void send(ControlResponseMessageFromExt msg)
+                    + String[] getMainArgs()
+        }
+
+        interface ControlMessageToExt
+
+        interface ControlResponseMessageFromExt
+
+        class CompletionMessage
+
+        class ActivationMessage
+
+        ExtSimAdapterData --u> ControlMessageToExt
+        ExtSimAdapterData --u> ControlResponseMessageFromExt
+        CompletionMessage --d|> ControlResponseMessageFromExt
+        ActivationMessage --d|> ControlMessageToExt
+        ExtSimulation -----> ExtSimAdapterData
     }
-
-    class ProvideEvcsFreeLots{
-         + ProvideEvcsFreeLots()
-    }
-
-     ProvideEvcsFreeLots --|> EvDataResponseMessageToExt
-     ProvideDepartingEvs --|> EvDataResponseMessageToExt
-     ProvideCurrentPrices --|> EvDataResponseMessageToExt
-     ExtEvData --> EvDataResponseMessageToExt
-     DataResponseMessageToExt --|> EvDataResponseMessageToExt
-}
-
-
-node sub3{
-    class ExtSimAdapterData {
-                + LinkedBlockingQueue<ExtTrigger> receiveTriggerQueue
-                - ActorRef extSimAdapter
-                - String[] mainArgs
-                + void queueExtMsg(ControlMessageToExt msg)
-                + void send(ControlResponseMessageFromExt msg)
-                + String[] getMainArgs()
-            }
-
-    interface ControlMessageToExt
-
-    interface ControlResponseMessageFromExt
-
-    class CompletionMessage
-
-    class ActivationMessage
-
-    ExtSimAdapterData --u> ControlMessageToExt
-    ExtSimAdapterData --u> ControlResponseMessageFromExt
-    CompletionMessage --d|> ControlResponseMessageFromExt
-    ActivationMessage --d|> ControlMessageToExt
-    ExtSimulation -----> ExtSimAdapterData
-    }
-
 
 }
-
-
 
 package simona {
      abstract class ParticipantAgent
@@ -193,15 +188,15 @@ package simona {
      EvcsAgent --|> ParticipantAgent
      EvcsAgent *- EvcsModel
 
-     }
+}
 
-   'Order of classes/interfaces established through hidden connections:
+'Order of classes/interfaces established through hidden connections:
 
-    ExtSimAdapter -[hidden]> SimonaService
-    sub1 ---[hidden]d> sub2
-    ExtLink -[hidden]> ElectricVehicle
-    ExtSimulation -[hidden]> ExtEvSimulation
-    ExtSimulation -[hidden]> DataResponseMessageToExt
-    RequestDepartingEvs --[hidden]> SecondaryData
+ExtSimAdapter -[hidden]> SimonaService
+sub1 ---[hidden]d> sub2
+ExtLink -[hidden]> ElectricVehicle
+ExtSimulation -[hidden]> ExtEvSimulation
+ExtSimulation -[hidden]> DataResponseMessageToExt
+RequestDepartingEvs --[hidden]> SecondaryData
 
 @enduml
