@@ -65,17 +65,7 @@ jobs:
           ./gradlew sonarqube \
           -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
           -Dsonar.host.url=${{ vars.SONAR_HOST_URL }} \
-          -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
-          -Dsonar.java.binaries=build/classes/scala/main \
-          -Dsonar.verbose=true \
-          -Dsonar.sourceEncoding=UTF-8 \
-          -Dsonar.sources=src/main/resources,src/main/scala \
-          -Dsonar.tests=src/test/resources,src/test/scala,src/test/groovy \
-          -Dsonar.junit.reportPaths=build/test-results/test \
-          -Dsonar.scala.scapegoat.reportPaths=build/reports/scapegoat/src/scapegoat-scalastyle.xml,build/reports/scapegoat/testsrc/scapegoat-scalastyle.xml \
-          -Dsonar.scala.coverage.reportPaths=/home/runner/work/simona/simona/build/reports/scoverage/scoverage.xml \
-          -Dsonar.groovy.binaries=build/classes/groovy \
-          -Dsonar.exclusions=src/main/scala/edu/ie3/simona/config/SimonaConfig.scala
+          -Dsonar.login=${{ secrets.SONAR_TOKEN }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
