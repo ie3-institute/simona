@@ -40,6 +40,17 @@ object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
     )
   }
 
+  def new_method() = {
+    println("lorem");
+    println("ipsum");
+    println("ipsum");
+    println("ipsum");
+    println("ipsum");
+    println("ipsum");
+    println("ipsum");
+    println("ipsum");
+  }
+
   override def run(simonaSetup: SimonaStandaloneSetup): Boolean = {
     val simonaSim = ActorSystem(
       SimonaSim(simonaSetup),
