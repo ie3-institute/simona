@@ -139,7 +139,7 @@ final case class HpModel(
           relevantData.ambientTemperature
         ),
         relevantData.ambientTemperature,
-        lastHpState.currentThermalGridState,
+        lastHpState.thermalGridState,
       )
 
     // Determining the operation point and limitations at this tick
@@ -262,7 +262,7 @@ final case class HpModel(
       relevantData: HpRelevantData,
       isRunning: Boolean,
   ): HpState = {
-    val lastStateStorageQDot = lastState.currentThermalGridState.storageState
+    val lastStateStorageQDot = lastState.thermalGridState.storageState
       .map(_.qDot)
       .getOrElse(zeroKW)
 
@@ -277,7 +277,7 @@ final case class HpModel(
     val (thermalGridState, maybeThreshold) =
       thermalGrid.updateState(
         relevantData.currentTick,
-        lastState.currentThermalGridState,
+        lastState.thermalGridState,
         lastState.ambientTemperature.getOrElse(relevantData.ambientTemperature),
         relevantData.ambientTemperature,
         newThermalPower,
@@ -425,8 +425,8 @@ object HpModel {
     *   result active power
     * @param qDot
     *   result heat power
-    * @param currentThermalGridState
-    *   Currently applicable state of the thermal grid
+    * @param thermalGridState
+    *   applicable state of the thermal grid
     * @param maybeThermalThreshold
     *   An optional threshold of the thermal grid, indicating the next state
     *   change
@@ -437,7 +437,7 @@ object HpModel {
       ambientTemperature: Option[Temperature],
       activePower: Power,
       qDot: Power,
-      currentThermalGridState: ThermalGridState,
+      thermalGridState: ThermalGridState,
       maybeThermalThreshold: Option[ThermalThreshold],
   ) extends ModelState
 
