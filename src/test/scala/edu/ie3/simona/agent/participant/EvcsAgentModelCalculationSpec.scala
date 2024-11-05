@@ -2020,7 +2020,7 @@ class EvcsAgentModelCalculationSpec
       val initStateData = ParticipantInitializeStateData[
         EvcsInput,
         EvcsRuntimeConfig,
-        ApparentPower,
+        ComplexPower,
       ](
         evcsInputModel,
         modelConfig = modelConfig,

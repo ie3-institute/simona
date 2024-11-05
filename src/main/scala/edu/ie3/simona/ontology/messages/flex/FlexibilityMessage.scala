@@ -128,7 +128,7 @@ object FlexibilityMessage {
     */
   final case class FlexResult(
       override val modelUuid: UUID,
-      result: ApparentPower,
+      result: ComplexPower,
   ) extends FlexResponse
 
   /** Message sent by flex options providers indicating that the

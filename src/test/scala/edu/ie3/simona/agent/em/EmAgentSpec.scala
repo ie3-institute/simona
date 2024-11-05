@@ -307,7 +307,7 @@ class EmAgentSpec
       // send completions
       emAgent ! FlexResult(
         modelUuid = pvInput.getUuid,
-        result = ApparentPower(Kilowatts(-5d), Kilovars(-0.5d)),
+        result = ComplexPower(Kilowatts(-5d), Kilovars(-0.5d)),
       )
       emAgent ! FlexCompletion(
         modelUuid = pvInput.getUuid,
@@ -316,7 +316,7 @@ class EmAgentSpec
 
       emAgent ! FlexResult(
         modelUuid = evcsInput.getUuid,
-        result = ApparentPower(Kilowatts(5d), Kilovars(0.1d)),
+        result = ComplexPower(Kilowatts(5d), Kilovars(0.1d)),
       )
 
       scheduler.expectNoMessage()
@@ -361,7 +361,7 @@ class EmAgentSpec
 
       emAgent ! FlexResult(
         modelUuid = pvInput.getUuid,
-        result = ApparentPower(Kilowatts(-3d), Kilovars(-0.06d)),
+        result = ComplexPower(Kilowatts(-3d), Kilovars(-0.06d)),
       )
 
       emAgent ! FlexCompletion(
@@ -378,7 +378,7 @@ class EmAgentSpec
 
       emAgent ! FlexResult(
         modelUuid = evcsInput.getUuid,
-        result = ApparentPower(Kilowatts(3d), Kilovars(0.06d)),
+        result = ComplexPower(Kilowatts(3d), Kilovars(0.06d)),
       )
       emAgent ! FlexCompletion(
         modelUuid = evcsInput.getUuid,
@@ -470,7 +470,7 @@ class EmAgentSpec
       // send completions
       emAgent ! FlexResult(
         modelUuid = pvInput.getUuid,
-        result = ApparentPower(Kilowatts(-5d), Kilovars(-0.5d)),
+        result = ComplexPower(Kilowatts(-5d), Kilovars(-0.5d)),
       )
       emAgent ! FlexCompletion(
         modelUuid = pvInput.getUuid,
@@ -479,7 +479,7 @@ class EmAgentSpec
 
       emAgent ! FlexResult(
         modelUuid = evcsInput.getUuid,
-        result = ApparentPower(Kilowatts(5d), Kilovars(0.1d)),
+        result = ComplexPower(Kilowatts(5d), Kilovars(0.1d)),
       )
 
       scheduler.expectNoMessage()
@@ -534,7 +534,7 @@ class EmAgentSpec
 
       emAgent ! FlexResult(
         modelUuid = pvInput.getUuid,
-        result = ApparentPower(Kilowatts(-3d), Kilovars(-0.06d)),
+        result = ComplexPower(Kilowatts(-3d), Kilovars(-0.06d)),
       )
       emAgent ! FlexCompletion(
         modelUuid = pvInput.getUuid
@@ -549,7 +549,7 @@ class EmAgentSpec
 
       emAgent ! FlexResult(
         modelUuid = evcsInput.getUuid,
-        result = ApparentPower(Kilowatts(3d), Kilovars(0.06d)),
+        result = ComplexPower(Kilowatts(3d), Kilovars(0.06d)),
       )
       emAgent ! FlexCompletion(
         modelUuid = evcsInput.getUuid // revoking tick 600
@@ -696,7 +696,7 @@ class EmAgentSpec
 
       emAgent ! FlexResult(
         modelUuid = pvInput.getUuid,
-        result = ApparentPower(Kilowatts(-5), Kilovars(-0.5)),
+        result = ComplexPower(Kilowatts(-5), Kilovars(-0.5)),
       )
       emAgent ! FlexCompletion(
         modelUuid = pvInput.getUuid,
@@ -712,7 +712,7 @@ class EmAgentSpec
 
       emAgent ! FlexResult(
         modelUuid = evcsInput.getUuid,
-        result = ApparentPower(Kilowatts(11), Kilovars(1.1)),
+        result = ComplexPower(Kilowatts(11), Kilovars(1.1)),
       )
       emAgent ! FlexCompletion(
         modelUuid = evcsInput.getUuid,
@@ -762,7 +762,7 @@ class EmAgentSpec
 
       emAgent ! FlexResult(
         modelUuid = evcsInput.getUuid,
-        result = ApparentPower(Kilowatts(5.0), Kilovars(0.5)),
+        result = ComplexPower(Kilowatts(5.0), Kilovars(0.5)),
       )
       emAgent ! FlexCompletion(
         modelUuid = evcsInput.getUuid,
