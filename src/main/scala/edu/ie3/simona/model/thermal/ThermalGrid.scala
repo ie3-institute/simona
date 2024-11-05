@@ -69,7 +69,7 @@ final case class ThermalGrid(
     val (houseDemand, updatedHouseState) =
       house.zip(state.houseState) match {
         case Some((thermalHouse, lastHouseState)) =>
-          val (updatedHouseState, updatedStorageState) =
+          val (updatedHouseState, _) =
             thermalHouse.determineState(
               tick,
               lastHouseState,
