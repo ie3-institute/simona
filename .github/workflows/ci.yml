@@ -41,27 +41,25 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Check Code Formatting
+        run: ./gradlew spotlessCheck
+
       - name: Build Project
-        run: |
-          ./gradlew --refresh-dependencies clean assemble
+        run: ./gradlew --refresh-dependencies clean assemble
 
       - name: Run Tests
-        run: |
-          ./gradlew spotlessCheck pmdMain pmdTest reportScoverage checkScoverage
+        run: ./gradlew pmdMain pmdTest reportScoverage checkScoverage
 
       - name: Build Scala-Docs
-        run: |
-          ./gradlew scaladoc
+        run: ./gradlew scaladoc
 
-      - name: SonarQube Analysis
+      - name: SonarQube
         run: |
           ./gradlew sonarqube \
           -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
           -Dsonar.host.url=${{ vars.SONAR_HOST_URL }} \
           -Dsonar.login=${{ secrets.SONAR_TOKEN }}
 
-      - name: SonarQube Quality Gate
-        run: |
           SONAR_STATUS_URL="${{ vars.SONAR_HOST_URL }}/api/qualitygates/project_status?projectKey=${{ vars.SONAR_PROJECT_KEY }}"
           QUALITY_GATE_STATUS=$(curl -s -u "${{ secrets.SONAR_TOKEN }}:" "$SONAR_STATUS_URL" | jq -r '.projectStatus.status')
             
