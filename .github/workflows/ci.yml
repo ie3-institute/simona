@@ -54,7 +54,7 @@ jobs:
 
       - name: Run Tests
         run: |
-          ./gradlew spotlessCheck pmdMain pmdTest reportScoverage
+          ./gradlew spotlessCheck pmdMain pmdTest reportScoverage checkScoverage
 
       - name: Build Scala-Docs
         run: |
