@@ -428,7 +428,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
           Kilowatts(5d),
         )
 
-      (newState, flexChangeIndication)._1.chargingPower should approximate(
+      newState.chargingPower should approximate(
         Kilowatts(5d)
       )
       (newState, flexChangeIndication)._1.tick shouldBe (startTick + 1)
