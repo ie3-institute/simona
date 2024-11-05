@@ -218,9 +218,9 @@ final case class HpModel(
     * @param demandHouse
     * @param demandThermalStorage
     * @return
-    *   First boolean: true, if house has heat demand Second boolean: true, if
-    *   thermalStorage has heat demand Third boolean: true, if there is no
-    *   thermalStorage or it's empty
+    *   First boolean is true, if house has heat demand. Second boolean is true,
+    *   if thermalStorage has heat demand. Third boolean is true, if there is no
+    *   thermalStorage or it's empty.
     */
 
   def determineDemandBooleans(
