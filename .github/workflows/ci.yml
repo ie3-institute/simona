@@ -54,15 +54,7 @@ jobs:
 
       - name: Run Tests
         run: |
-          ./gradlew spotlessCheck pmdMain pmdTest
-
-      - name: Generate Scoverage Report
-        run: |
-          ./gradlew reportScoverage
-          ls -la build/reports/scoverage/
-
-      - name: Find scov
-        run: find . -name "scoverage.xml"
+          ./gradlew spotlessCheck pmdMain pmdTest reportScoverage
 
       - name: Build Scala-Docs
         run: |
