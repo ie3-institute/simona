@@ -62,7 +62,7 @@ object ResultEvent {
           ComparableQuantity[Temperature],
       )
     ] = {
-      if (result != null) {
+      Option(result).flatMap { result =>
         Some(
           (
             result.getTime,
@@ -71,8 +71,6 @@ object ResultEvent {
             result.getIndoorTemperature,
           )
         )
-      } else {
-        None
       }
     }
   }
@@ -86,7 +84,7 @@ object ResultEvent {
           ComparableQuantity[Energy],
       )
     ] = {
-      if (result != null) {
+      Option(result).flatMap { result =>
         Some(
           (
             result.getTime,
@@ -95,8 +93,6 @@ object ResultEvent {
             result.getEnergy,
           )
         )
-      } else {
-        None
       }
     }
   }
