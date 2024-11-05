@@ -228,7 +228,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
         ) =>
           val oldState = StorageModel.StorageState(
             KilowattHours(lastStored),
-            Kilowatts(0d),
+            zeroKW,
             startTick,
           )
 
@@ -300,13 +300,12 @@ class StorageModelSpec extends UnitSpec with Matchers {
             startTick,
           )
 
-          val result = storageModel.handleControlledPowerChange(
-            data,
-            oldState,
-            Kilowatts(setPower),
-          )
-
-          val (newState, flexChangeIndication) = result
+          val (newState, flexChangeIndication) =
+            storageModel.handleControlledPowerChange(
+              data,
+              oldState,
+              Kilowatts(setPower),
+            )
 
           newState.chargingPower should approximate(Kilowatts(expPower))
           newState.tick shouldBe (startTick + 1)
@@ -331,19 +330,23 @@ class StorageModelSpec extends UnitSpec with Matchers {
         startTick,
       )
 
-      val result = storageModel.handleControlledPowerChange(
-        data,
-        oldState,
-        Kilowatts(-5d),
+      val (newState, flexChangeIndication) =
+        storageModel.handleControlledPowerChange(
+          data,
+          oldState,
+          Kilowatts(-5d),
+        )
+
+      (newState, flexChangeIndication)._1.chargingPower should approximate(
+        zeroKW
+      )
+      (newState, flexChangeIndication)._1.tick shouldBe (startTick + 1)
+      (newState, flexChangeIndication)._1.storedEnergy should approximate(
+        oldState.storedEnergy
       )
 
-      result._1.chargingPower should approximate(zeroKW)
-      result._1.tick shouldBe (startTick + 1)
-      result._1.storedEnergy should approximate(oldState.storedEnergy)
-
-      val flexChangeIndication = result._2
-      flexChangeIndication.changesAtTick.isDefined shouldBe false
-      flexChangeIndication.changesAtNextActivation shouldBe true
+      (newState, flexChangeIndication)._2.changesAtTick.isDefined shouldBe false
+      (newState, flexChangeIndication)._2.changesAtNextActivation shouldBe true
     }
 
     "Handle the edge case of charging in tolerance margins" in {
@@ -357,19 +360,23 @@ class StorageModelSpec extends UnitSpec with Matchers {
         startTick,
       )
 
-      val result = storageModel.handleControlledPowerChange(
-        data,
-        oldState,
-        Kilowatts(9d),
+      val (newState, flexChangeIndication) =
+        storageModel.handleControlledPowerChange(
+          data,
+          oldState,
+          Kilowatts(9d),
+        )
+
+      (newState, flexChangeIndication)._1.chargingPower should approximate(
+        zeroKW
+      )
+      (newState, flexChangeIndication)._1.tick shouldBe (startTick + 1)
+      (newState, flexChangeIndication)._1.storedEnergy should approximate(
+        oldState.storedEnergy
       )
 
-      result._1.chargingPower should approximate(zeroKW)
-      result._1.tick shouldBe (startTick + 1)
-      result._1.storedEnergy should approximate(oldState.storedEnergy)
-
-      val flexChangeIndication = result._2
-      flexChangeIndication.changesAtTick.isDefined shouldBe false
-      flexChangeIndication.changesAtNextActivation shouldBe true
+      (newState, flexChangeIndication)._2.changesAtTick.isDefined shouldBe false
+      (newState, flexChangeIndication)._2.changesAtNextActivation shouldBe true
     }
     "Handle the edge case of discharging in positive target margin" in {
       val storageModel = buildStorageModel(Some(0.3d))
@@ -382,20 +389,26 @@ class StorageModelSpec extends UnitSpec with Matchers {
         startTick,
       )
 
-      val result = storageModel.handleControlledPowerChange(
-        data,
-        oldState,
-        Kilowatts(-9d),
-      )
+      val (newState, flexChangeIndication) =
+        storageModel.handleControlledPowerChange(
+          data,
+          oldState,
+          Kilowatts(-9d),
+        )
 
-      result._1.chargingPower should approximate(Kilowatts(-9d))
-      result._1.tick shouldBe (startTick + 1)
-      result._1.storedEnergy should approximate(oldState.storedEnergy)
-      val flexChangeIndication = result._2
-      flexChangeIndication.changesAtTick should be(
+      (newState, flexChangeIndication)._1.chargingPower should approximate(
+        Kilowatts(-9d)
+      )
+      (newState, flexChangeIndication)._1.tick shouldBe (startTick + 1)
+      (newState, flexChangeIndication)._1.storedEnergy should approximate(
+        oldState.storedEnergy
+      )
+      (newState, flexChangeIndication)._2.changesAtTick should be(
         Some(startTick + 1L + 10801L)
       )
-      flexChangeIndication.changesAtNextActivation should be(true)
+      (newState, flexChangeIndication)._2.changesAtNextActivation should be(
+        true
+      )
     }
     "Handle the edge case of charging in negative target margin" in {
       val storageModel = buildStorageModel(Some(0.4d))
@@ -408,20 +421,26 @@ class StorageModelSpec extends UnitSpec with Matchers {
         startTick,
       )
 
-      val result = storageModel.handleControlledPowerChange(
-        data,
-        oldState,
-        Kilowatts(5d),
-      )
+      val (newState, flexChangeIndication) =
+        storageModel.handleControlledPowerChange(
+          data,
+          oldState,
+          Kilowatts(5d),
+        )
 
-      result._1.chargingPower should approximate(Kilowatts(5d))
-      result._1.tick shouldBe (startTick + 1)
-      result._1.storedEnergy should approximate(oldState.storedEnergy)
-      val flexChangeIndication = result._2
-      flexChangeIndication.changesAtTick should be(
+      (newState, flexChangeIndication)._1.chargingPower should approximate(
+        Kilowatts(5d)
+      )
+      (newState, flexChangeIndication)._1.tick shouldBe (startTick + 1)
+      (newState, flexChangeIndication)._1.storedEnergy should approximate(
+        oldState.storedEnergy
+      )
+      (newState, flexChangeIndication)._2.changesAtTick should be(
         Some(startTick + 1L + 48002L)
       )
-      flexChangeIndication.changesAtNextActivation should be(true)
+      (newState, flexChangeIndication)._2.changesAtNextActivation should be(
+        true
+      )
     }
   }
 }
