@@ -67,7 +67,7 @@ final case class ThermalGrid(
     /* First get the energy demand of the houses but only if inner temperature is below target temperature */
 
     val (houseDemand, updatedHouseState) =
-      house.zip(state.houseState).headOption match {
+      house.zip(state.houseState) match {
         case Some((thermalHouse, lastHouseState)) =>
           val (updatedHouseState, updatedStorageState) =
             thermalHouse.determineState(
