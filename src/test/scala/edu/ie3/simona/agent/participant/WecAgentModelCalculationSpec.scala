@@ -356,7 +356,7 @@ class WecAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
 
       wecAgent.stateName shouldBe Idle
@@ -424,7 +424,7 @@ class WecAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(wecAgent.stateName shouldBe Idle)
       /* State data is tested in another test */
@@ -546,7 +546,7 @@ class WecAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(wecAgent.stateName shouldBe Idle)
 
@@ -666,7 +666,7 @@ class WecAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(wecAgent.stateName shouldBe Idle)
 
@@ -737,7 +737,7 @@ class WecAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(wecAgent.stateName shouldBe Idle)
 

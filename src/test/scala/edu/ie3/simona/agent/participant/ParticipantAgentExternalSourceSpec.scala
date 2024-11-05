@@ -247,7 +247,7 @@ class ParticipantAgentExternalSourceSpec
         RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(mockAgent.stateName shouldBe Idle)
 
@@ -312,7 +312,7 @@ class ParticipantAgentExternalSourceSpec
         RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(mockAgent.stateName shouldBe Idle)
 
@@ -413,7 +413,7 @@ class ParticipantAgentExternalSourceSpec
         RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(mockAgent.stateName shouldBe Idle)
 
@@ -508,7 +508,7 @@ class ParticipantAgentExternalSourceSpec
         RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(mockAgent.stateName shouldBe Idle)
 
@@ -624,7 +624,7 @@ class ParticipantAgentExternalSourceSpec
         RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(mockAgent.stateName shouldBe Idle)
 

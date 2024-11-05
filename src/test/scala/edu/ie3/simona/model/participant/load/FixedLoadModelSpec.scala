@@ -95,13 +95,12 @@ class FixedLoadModelSpec
           reference,
         )
 
-        for (_ <- 0 until 10000) {
+        (1 to 10000).foreach { _ =>
           val calculatedPower = dut
             .calculateActivePower(
               ModelState.ConstantState,
               FixedLoadModel.FixedLoadRelevantData,
             )
-
           calculatedPower should approximate(expectedPower)
         }
       }
@@ -117,8 +116,10 @@ class FixedLoadModelSpec
       forAll(testData) { (reference, expectedPower: Power) =>
         val relevantData = FixedLoadModel.FixedLoadRelevantData
 
-        var scale = 0.0
-        while (scale <= 2) {
+        val scales: LazyList[Double] =
+          LazyList.iterate(0.0)(_ + 0.1).takeWhile(_ <= 2.0)
+
+        scales.foreach { scale =>
           val scaledSRated = Kilovoltamperes(
             loadInput.getsRated
               .to(PowerSystemUnits.KILOWATT)
@@ -143,8 +144,6 @@ class FixedLoadModelSpec
           val expectedScaledPower = expectedPower * scale
 
           calculatedPower should approximate(expectedScaledPower)
-
-          scale += 0.1
         }
       }
     }

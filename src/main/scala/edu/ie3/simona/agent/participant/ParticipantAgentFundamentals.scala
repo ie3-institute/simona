@@ -301,7 +301,7 @@ protected trait ParticipantAgentFundamentals[
           awaitRegistrationResponsesFrom,
         )
       } else {
-        /* Determine the next activation tick, create a ScheduleTriggerMessage and remove the recently triggered tick */
+        /* Determine the next activation tick, create a ScheduleActivation and remove the recently triggered tick */
         val (newTick, nextBaseStateData) = popNextActivationTrigger(
           baseStateData
         )
@@ -797,13 +797,18 @@ protected trait ParticipantAgentFundamentals[
       )
       .getOrElse((flexChangeIndicator.changesAtTick, stateDataWithResults))
 
-    flexStateData.emAgent ! FlexCtrlCompletion(
+    flexStateData.emAgent ! FlexResult(
       baseStateData.modelUuid,
       result.primaryData.toComplexPower,
+    )
+
+    flexStateData.emAgent ! FlexCompletion(
+      baseStateData.modelUuid,
       flexChangeIndicator.changesAtNextActivation,
       nextActivation,
     )
 
+    unstashAll()
     stay() using stateDataFinal
   }
 
@@ -902,7 +907,7 @@ protected trait ParticipantAgentFundamentals[
       updatedState,
     )
 
-    /* In this case, without secondary data, the agent has been triggered by an ActivityStartTrigger by itself,
+    /* In this case, without secondary data, the agent has been triggered by an Activation(tick) by itself,
      * therefore pop the next one */
     val baseStateDataWithUpdatedResultStore =
       baseStateData.copy(

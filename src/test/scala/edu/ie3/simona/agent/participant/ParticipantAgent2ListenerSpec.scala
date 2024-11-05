@@ -286,7 +286,7 @@ class ParticipantAgent2ListenerSpec
       /* Trigger the data generation in tick 0 */
       scheduler.send(mockAgent, Activation(0))
 
-      /* Appreciate the existence of two CompletionMessages */
+      /* Appreciate the existence of two Completion */
       scheduler.expectMsg(Completion(mockAgent.toTyped))
 
       /* Ask the agent for average power in tick 3000 */

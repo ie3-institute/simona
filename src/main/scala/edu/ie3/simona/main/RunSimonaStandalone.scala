@@ -58,7 +58,6 @@ object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
 
         successful
     }
-
   }
 
 }

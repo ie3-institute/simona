@@ -32,6 +32,8 @@ import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities._
+import squants.energy.Kilowatts
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants.energy.Kilowatts
 import squants.time.Seconds
@@ -515,13 +517,17 @@ final case class EvcsModel(
       modelState: EvcsState,
       data: EvcsRelevantData,
   ): ComplexPower =
-    throw new NotImplementedError("Use calculatePowerAndEvSoc() instead.")
+    throw new NotImplementedError(
+      "Use calculateNewScheduling() or chargeEv() instead."
+    )
 
   override protected def calculateActivePower(
       modelState: EvcsState,
       data: EvcsRelevantData,
   ): Power =
-    throw new NotImplementedError("Use calculatePowerAndEvSoc() instead.")
+    throw new NotImplementedError(
+      "Use calculateNewScheduling() or chargeEv() instead."
+    )
 
   override def determineFlexOptions(
       data: EvcsRelevantData,

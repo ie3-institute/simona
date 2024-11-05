@@ -104,28 +104,44 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
 
     "determine Betz coefficient correctly" in {
       val wecModel = buildWecModel()
-      val velocities = Seq(2.0, 2.5, 18.0, 27.0, 34.0, 40.0)
-      val expectedBetzResults = Seq(0.115933516, 0.2010945555, 0.108671106,
-        0.032198846, 0.000196644, 0.0)
-      velocities.zip(expectedBetzResults).foreach {
-        case (velocity, betzResult) =>
-          val windVel = MetersPerSecond(velocity)
-          val betzFactor = wecModel.determineBetzCoefficient(windVel)
-          val expected = Each(betzResult)
-          betzFactor shouldEqual expected
+
+      val testCases = Table(
+        ("velocity", "expectedBetzResult"),
+        (2.0, 0.115933516),
+        (2.5, 0.2010945555),
+        (18.0, 0.108671106),
+        (27.0, 0.032198846),
+        (34.0, 0.000196644),
+        (40.0, 0.0),
+      )
+
+      forAll(testCases) { case (velocity: Double, expectedBetzResult: Double) =>
+        val windVel = MetersPerSecond(velocity)
+        val betzFactor = wecModel.determineBetzCoefficient(windVel)
+
+        betzFactor shouldEqual Each(expectedBetzResult)
       }
     }
 
     "calculate active power output depending on velocity" in {
       val wecModel = buildWecModel()
-      val velocities =
-        Seq(1.0, 2.0, 3.0, 7.0, 9.0, 13.0, 15.0, 19.0, 23.0, 27.0, 34.0, 40.0)
-      val expectedPowers =
-        Seq(0, -2948.8095851378266, -24573.41320418286, -522922.2325710509,
-          -1140000, -1140000, -1140000, -1140000, -1140000, -1140000,
-          -24573.39638823692, 0)
+      val testCases = Table(
+        ("velocity", "expectedPower"),
+        (1.0, 0.0),
+        (2.0, -2948.8095851378266),
+        (3.0, -24573.41320418286),
+        (7.0, -522922.2325710509),
+        (9.0, -1140000.0),
+        (13.0, -1140000.0),
+        (15.0, -1140000.0),
+        (19.0, -1140000.0),
+        (23.0, -1140000.0),
+        (27.0, -1140000.0),
+        (34.0, -24573.39638823692),
+        (40.0, 0.0),
+      )
 
-      velocities.zip(expectedPowers).foreach { case (velocity, power) =>
+      forAll(testCases) { (velocity: Double, expectedPower: Double) =>
         val wecData = WecRelevantData(
           MetersPerSecond(velocity),
           Celsius(20),
@@ -133,9 +149,9 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
         )
         val result =
           wecModel.calculateActivePower(ModelState.ConstantState, wecData)
-        val expectedPower = Watts(power)
+        val expectedPowerInWatts = Watts(expectedPower)
 
-        result should be(expectedPower)
+        result should be(expectedPowerInWatts)
       }
     }
 
@@ -170,21 +186,23 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
 
     "calculate active power output depending on temperature" in {
       val wecModel = buildWecModel()
-      val temperatures = Seq(35.0, 20.0, -25.0)
-      val expectedPowers =
-        Seq(-23377.23862017266, -24573.41320418286, -29029.60338829823)
+      val testCases = Table(
+        ("temperature", "expectedPower"),
+        (35.0, -23377.23862017266),
+        (20.0, -24573.41320418286),
+        (-25.0, -29029.60338829823),
+      )
 
-      temperatures.zip(expectedPowers).foreach { case (temperature, power) =>
+      forAll(testCases) { (temperature: Double, expectedPower: Double) =>
         val wecData = WecRelevantData(
           MetersPerSecond(3.0),
           Celsius(temperature),
           Some(Pascals(101325d)),
         )
-        val result = {
+        val result =
           wecModel.calculateActivePower(ModelState.ConstantState, wecData)
-        }
-        val expectedPower = Watts(power)
-        result shouldBe expectedPower
+        val expectedPowerInWatts = Watts(expectedPower)
+        result shouldBe expectedPowerInWatts
       }
     }
   }

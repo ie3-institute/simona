@@ -328,9 +328,9 @@ object HpModel {
     * temperature.
     *
     * @param isRunning
-    *   indicates if CHP is turned on
-    * @param lastTimeTick
-    *   contains last time tick
+    *   indicates if HP is turned on
+    * @param tick
+    *   the time tick of the HpState
     * @param ambientTemperature
     *   Optional ambient temperature, if available
     * @param activePower
@@ -345,7 +345,7 @@ object HpModel {
     */
   final case class HpState(
       isRunning: Boolean,
-      lastTimeTick: Long,
+      tick: Long,
       ambientTemperature: Option[Temperature],
       activePower: Power,
       qDot: Power,

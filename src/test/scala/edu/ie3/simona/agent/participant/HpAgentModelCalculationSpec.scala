@@ -382,7 +382,7 @@ class HpAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
 
       hpAgent.stateName shouldBe Idle
@@ -446,7 +446,7 @@ class HpAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(hpAgent.stateName shouldBe Idle)
       /* State data is tested in another test */
@@ -506,7 +506,7 @@ class HpAgentModelCalculationSpec
                     _,
                     HpState(
                       isRunning,
-                      lastTimeTick,
+                      tick,
                       _,
                       activePower,
                       qDot,
@@ -516,7 +516,7 @@ class HpAgentModelCalculationSpec
                   )
                 ) =>
               isRunning shouldBe false
-              lastTimeTick shouldBe 0L
+              tick shouldBe 0L
               activePower should approximate(Kilowatts(0.0))
               qDot should approximate(Kilowatts(0.0))
 
@@ -577,7 +577,7 @@ class HpAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(hpAgent.stateName shouldBe Idle)
 
@@ -634,7 +634,7 @@ class HpAgentModelCalculationSpec
                     _,
                     HpState(
                       isRunning,
-                      lastTimeTick,
+                      tick,
                       _,
                       activePower,
                       qDot,
@@ -644,7 +644,7 @@ class HpAgentModelCalculationSpec
                   )
                 ) =>
               isRunning shouldBe false
-              lastTimeTick shouldBe 0L
+              tick shouldBe 0L
               activePower should approximate(Kilowatts(0d))
               qDot should approximate(Kilowatts(0d))
 
@@ -706,7 +706,7 @@ class HpAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(3600L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(hpAgent.stateName shouldBe Idle)
 
@@ -777,7 +777,7 @@ class HpAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(hpAgent.stateName shouldBe Idle)
 
