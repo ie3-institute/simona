@@ -21,7 +21,7 @@ on:
       - dev
 
 jobs:
-  build:
+  buildAndTest:
     runs-on: ubuntu-latest
 
     steps:
