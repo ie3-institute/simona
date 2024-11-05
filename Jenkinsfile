@@ -116,7 +116,6 @@ node {
         sh(script: """set +x && cd $projectName""" + ''' set +x; ./gradlew javadoc''', returnStdout: true)
       }
 
-/*
       // sonarqube analysis & quality gate
       stage('sonarqube') {
         String sonarqubeCurrentBranchName = prFromFork() ? prJsonObj.head.repo.full_name : currentBranchName // forks needs to be handled differently
@@ -133,7 +132,7 @@ node {
           }
         }
       }
-*/
+
       // deploy stage only if branch is main or dev
       if (env.BRANCH_NAME == "main" || env.BRANCH_NAME == "dev") {
         stage('deploy') {
