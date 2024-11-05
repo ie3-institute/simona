@@ -78,7 +78,8 @@ final case class ThermalGrid(
               lastHouseState.qDot,
             )
           if (
-            updatedHouseState.innerTemperature < thermalHouse.targetTemperature | (lastHouseState.qDot > zeroKW && updatedHouseState.innerTemperature < thermalHouse.upperBoundaryTemperature)
+            updatedHouseState.innerTemperature < thermalHouse.targetTemperature |
+              (lastHouseState.qDot > zeroKW && updatedHouseState.innerTemperature < thermalHouse.upperBoundaryTemperature)
           ) {
             (
               thermalHouse.energyDemand(
