@@ -327,7 +327,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
       // margin is at ~ 0.0030864 kWh
       val oldState = StorageModel.StorageState(
         KilowattHours(0.002d),
-            zeroKW,
+        zeroKW,
         startTick,
       )
 
