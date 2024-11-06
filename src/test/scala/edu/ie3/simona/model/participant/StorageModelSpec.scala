@@ -337,16 +337,16 @@ class StorageModelSpec extends UnitSpec with Matchers {
           Kilowatts(-5d),
         )
 
-      (newState, flexChangeIndication)._1.chargingPower should approximate(
+      newState.chargingPower should approximate(
         zeroKW
       )
-      (newState, flexChangeIndication)._1.tick shouldBe (startTick + 1)
-      (newState, flexChangeIndication)._1.storedEnergy should approximate(
+      newState.tick shouldBe (startTick + 1)
+      newState.storedEnergy should approximate(
         oldState.storedEnergy
       )
 
-      (newState, flexChangeIndication)._2.changesAtTick.isDefined shouldBe false
-      (newState, flexChangeIndication)._2.changesAtNextActivation shouldBe true
+      flexChangeIndication.changesAtTick.isDefined shouldBe false
+      flexChangeIndication.changesAtNextActivation shouldBe true
     }
 
     "Handle the edge case of charging in tolerance margins" in {
@@ -367,16 +367,16 @@ class StorageModelSpec extends UnitSpec with Matchers {
           Kilowatts(9d),
         )
 
-      (newState, flexChangeIndication)._1.chargingPower should approximate(
+      newState.chargingPower should approximate(
         zeroKW
       )
-      (newState, flexChangeIndication)._1.tick shouldBe (startTick + 1)
-      (newState, flexChangeIndication)._1.storedEnergy should approximate(
+      newState.tick shouldBe (startTick + 1)
+      newState.storedEnergy should approximate(
         oldState.storedEnergy
       )
 
-      (newState, flexChangeIndication)._2.changesAtTick.isDefined shouldBe false
-      (newState, flexChangeIndication)._2.changesAtNextActivation shouldBe true
+      flexChangeIndication.changesAtTick.isDefined shouldBe false
+      flexChangeIndication.changesAtNextActivation shouldBe true
     }
     "Handle the edge case of discharging in positive target margin" in {
       val storageModel = buildStorageModel(Some(0.3d))
@@ -396,17 +396,17 @@ class StorageModelSpec extends UnitSpec with Matchers {
           Kilowatts(-9d),
         )
 
-      (newState, flexChangeIndication)._1.chargingPower should approximate(
+      newState.chargingPower should approximate(
         Kilowatts(-9d)
       )
-      (newState, flexChangeIndication)._1.tick shouldBe (startTick + 1)
-      (newState, flexChangeIndication)._1.storedEnergy should approximate(
+      newState.tick shouldBe (startTick + 1)
+      newState.storedEnergy should approximate(
         oldState.storedEnergy
       )
-      (newState, flexChangeIndication)._2.changesAtTick should be(
+      flexChangeIndication.changesAtTick should be(
         Some(startTick + 1L + 10801L)
       )
-      (newState, flexChangeIndication)._2.changesAtNextActivation should be(
+      flexChangeIndication.changesAtNextActivation should be(
         true
       )
     }
@@ -431,14 +431,14 @@ class StorageModelSpec extends UnitSpec with Matchers {
       newState.chargingPower should approximate(
         Kilowatts(5d)
       )
-      (newState, flexChangeIndication)._1.tick shouldBe (startTick + 1)
-      (newState, flexChangeIndication)._1.storedEnergy should approximate(
+      newState.tick shouldBe (startTick + 1)
+      newState.storedEnergy should approximate(
         oldState.storedEnergy
       )
-      (newState, flexChangeIndication)._2.changesAtTick should be(
+      flexChangeIndication.changesAtTick should be(
         Some(startTick + 1L + 48002L)
       )
-      (newState, flexChangeIndication)._2.changesAtNextActivation should be(
+      flexChangeIndication.changesAtNextActivation should be(
         true
       )
     }
