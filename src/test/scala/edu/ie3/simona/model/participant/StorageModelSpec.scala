@@ -132,13 +132,15 @@ class StorageModelSpec extends UnitSpec with Matchers {
             startTick,
           )
 
-          val result = storageModel
-            .determineFlexOptions(data, oldState)
-            .asInstanceOf[ProvideMinMaxFlexOptions]
-
-          result.ref should approximate(Kilowatts(pRef))
-          result.min should approximate(Kilowatts(pMin))
-          result.max should approximate(Kilowatts(pMax))
+          storageModel
+            .determineFlexOptions(data, oldState) match {
+            case result: ProvideMinMaxFlexOptions =>
+              result.ref should approximate(Kilowatts(pRef))
+              result.min should approximate(Kilowatts(pMin))
+              result.max should approximate(Kilowatts(pMax))
+            case _ =>
+              fail("Expected result of type ProvideMinMaxFlexOptions")
+          }
       }
     }
     "Calculate flex options with target SOC" in {
@@ -174,13 +176,15 @@ class StorageModelSpec extends UnitSpec with Matchers {
             startTick,
           )
 
-          val result = storageModel
-            .determineFlexOptions(data, oldState)
-            .asInstanceOf[ProvideMinMaxFlexOptions]
-
-          result.ref should approximate(Kilowatts(pRef))
-          result.min should approximate(Kilowatts(pMin))
-          result.max should approximate(Kilowatts(pMax))
+          storageModel
+            .determineFlexOptions(data, oldState) match {
+            case result: ProvideMinMaxFlexOptions =>
+              result.ref should approximate(Kilowatts(pRef))
+              result.min should approximate(Kilowatts(pMin))
+              result.max should approximate(Kilowatts(pMax))
+            case _ =>
+              fail("Expected result of type ProvideMinMaxFlexOptions")
+          }
       }
     }
 
