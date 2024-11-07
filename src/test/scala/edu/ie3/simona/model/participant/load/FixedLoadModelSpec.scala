@@ -53,7 +53,7 @@ class FixedLoadModelSpec
           QControl.apply(loadInput.getqCharacteristics),
           Kilovoltamperes(
             loadInput.getsRated
-              .to(PowerSystemUnits.KILOWATT)
+              .to(PowerSystemUnits.KILOVOLTAMPERE)
               .getValue
               .doubleValue()
           ),
@@ -87,7 +87,7 @@ class FixedLoadModelSpec
           QControl.apply(loadInput.getqCharacteristics),
           Kilovoltamperes(
             loadInput.getsRated
-              .to(PowerSystemUnits.KILOWATT)
+              .to(PowerSystemUnits.KILOVOLTAMPERE)
               .getValue
               .doubleValue()
           ),

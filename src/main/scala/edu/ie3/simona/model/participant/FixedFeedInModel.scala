@@ -71,7 +71,7 @@ final case class FixedFeedInModel(
   override def calculateActivePower(
       modelState: ConstantState.type,
       data: FixedRelevantData.type = FixedRelevantData,
-  ): Power = sRated.toPower(cosPhiRated) * (-1)
+  ): Power = sRated.toPower(cosPhiRated) * -1
 
   override def determineFlexOptions(
       data: FixedRelevantData.type,
@@ -116,7 +116,7 @@ object FixedFeedInModel extends LazyLogging {
       QControl.apply(scaledInput.getqCharacteristics),
       Kilovoltamperes(
         scaledInput.getsRated
-          .to(PowerSystemUnits.KILOWATT)
+          .to(PowerSystemUnits.KILOVOLTAMPERE)
           .getValue
           .doubleValue
       ),

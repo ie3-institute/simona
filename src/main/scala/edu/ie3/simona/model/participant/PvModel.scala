@@ -240,7 +240,7 @@ final case class PvModel private (
   /** Calculates the sunrise hour angle omegaSR given omegaSS.
     */
   private val calcSunriseAngleOmegaSR =
-    (omegaSS: Angle) => omegaSS * (-1)
+    (omegaSS: Angle) => omegaSS * -1
 
   /** Calculates the solar altitude angle alphaS which represents the angle
     * between the horizontal and the line to the sun, that is, the complement of
@@ -691,7 +691,7 @@ final case class PvModel private (
 
     /* Calculate the foreseen active power output without boundary condition adaptions */
     val proposal =
-      sRated.toPower(cosPhiRated) * (-1) * (actYield / irradiationSTC)
+      sRated.toPower(cosPhiRated) * -1 * (actYield / irradiationSTC)
 
     /* Do sanity check, if the proposed feed in is above the estimated maximum to be apparent active power of the plant */
     if (proposal < pMax)
@@ -771,7 +771,7 @@ object PvModel {
       QControl(scaledInput.getqCharacteristics),
       Kilovoltamperes(
         scaledInput.getsRated
-          .to(PowerSystemUnits.KILOWATT)
+          .to(PowerSystemUnits.KILOVOLTAMPERE)
           .getValue
           .doubleValue
       ),

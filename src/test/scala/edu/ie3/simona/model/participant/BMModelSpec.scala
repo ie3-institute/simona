@@ -174,7 +174,7 @@ class BMModelSpec extends UnitSpec {
       )
 
       val pElCalc = bmModel.calculateElOutput(usage, eff)
-      pElCalc.value should be(Kilovoltamperes(pElSol).toVoltamperes +- 1e-4)
+      pElCalc should approximate(Kilowatts(pElSol))
     }
   }
 

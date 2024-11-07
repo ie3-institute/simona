@@ -102,7 +102,7 @@ final case class RandomLoadModel(
         case ActivePower(activePower) =>
           /* scale the reference active power based on the random profiles averagePower/maxPower ratio */
           val referenceScalingFactor =
-            profilePower / RandomLoadModel.randomMaxPower.toPower(
+            profilePower / RandomLoadModel.randomMaxApparentPower.toPower(
               1.0
             ) // only active power => cosPhi = 1.0
           activePower * referenceScalingFactor
@@ -171,9 +171,9 @@ object RandomLoadModel {
     * active power.
     *
     * @return
-    *   Reference power to use for later model calculations
+    *   Reference apparent power to use for later model calculations
     */
-  private val randomMaxPower: ApparentPower = Voltamperes(159d)
+  private val randomMaxApparentPower: ApparentPower = Voltamperes(159d)
 
   def apply(
       input: LoadInput,
@@ -193,7 +193,7 @@ object RandomLoadModel {
         LoadModel.scaleSRatedEnergy(
           scaledInput,
           energyConsumption,
-          randomMaxPower,
+          randomMaxApparentPower,
           randomProfileEnergyScaling,
           1.1,
         )

@@ -141,7 +141,6 @@ class SystemParticipantSpec extends UnitSpec with Matchers {
       val power = Kilowatts(pVal)
       val qCalc = loadMock.calculateReactivePower(power, adjustedVoltage)
       qCalc should approximate(qSol)
-
     }
   }
 

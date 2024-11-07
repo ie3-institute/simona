@@ -195,9 +195,9 @@ final case class BMModel(
       isCostControlled && avgOpex.value.doubleValue() < feedInTariff.value
         .doubleValue()
     )
-      sRated.toPower(cosPhiRated) * (-1)
+      sRated.toPower(cosPhiRated) * -1
     else
-      sRated.toPower(cosPhiRated) * usage * eff * (-1)
+      sRated.toPower(cosPhiRated) * usage * eff * -1
   }
 
   /** Applies the load gradient to the electrical output
@@ -217,7 +217,7 @@ final case class BMModel(
         pEl - lastPowerVal match {
           case pElDelta if pElDelta > pElDeltaMaxAbs =>
             lastPowerVal + pElDeltaMaxAbs
-          case pElDelta if pElDelta < (pElDeltaMaxAbs * (-1)) =>
+          case pElDelta if pElDelta < (pElDeltaMaxAbs * -1) =>
             lastPowerVal - pElDeltaMaxAbs
           case _ =>
             pEl

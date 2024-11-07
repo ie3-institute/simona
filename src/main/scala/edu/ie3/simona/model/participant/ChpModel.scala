@@ -393,7 +393,7 @@ object ChpModel {
       qControl,
       Kilovoltamperes(
         scaledInput.getType.getsRated
-          .to(PowerSystemUnits.KILOWATT)
+          .to(PowerSystemUnits.KILOVOLTAMPERE)
           .getValue
           .doubleValue
       ),

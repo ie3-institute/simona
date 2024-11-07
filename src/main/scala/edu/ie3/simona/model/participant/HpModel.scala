@@ -305,7 +305,7 @@ object HpModel {
       qControl,
       Kilovoltamperes(
         scaledInput.getType.getsRated
-          .to(PowerSystemUnits.KILOWATT)
+          .to(PowerSystemUnits.KILOVOLTAMPERE)
           .getValue
           .doubleValue
       ),
@@ -408,7 +408,7 @@ object HpModel {
       qControl,
       Kilovoltamperes(
         scaledInput.getType.getsRated
-          .to(PowerSystemUnits.KILOWATT)
+          .to(PowerSystemUnits.KILOVOLTAMPERE)
           .getValue
           .doubleValue
       ),

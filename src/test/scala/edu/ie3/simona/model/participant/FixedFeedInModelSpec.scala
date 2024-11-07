@@ -94,7 +94,7 @@ class FixedFeedInModelSpec
         Kilovoltamperes(
           fixedFeedInput
             .getsRated()
-            .to(PowerSystemUnits.KILOWATT)
+            .to(PowerSystemUnits.KILOVOLTAMPERE)
             .getValue
             .doubleValue()
         ),

@@ -13,6 +13,13 @@ import squants.time.Time
 import scala.math.{acos, sin}
 import scala.util.Try
 
+/** Class that represents an apparent power. An apparent power is the absolute
+  * value of the complex power (|S|).
+  * @param value
+  *   power value
+  * @param unit
+  *   of the power
+  */
 final class ApparentPower private (
     val value: Double,
     val unit: ApparentPowerUnit,
@@ -26,10 +33,26 @@ final class ApparentPower private (
   def toMegavoltamperes: Double = to(Megavoltamperes)
   def toGigavoltamperes: Double = to(Gigavoltamperes)
 
+  /** Method to convert this apparent power into a [[Power]] using a given
+    * cosPhi.
+    * @param cosPhi
+    *   cosine of the corresponding angle
+    * @return
+    *   the resulting active power
+    */
   def toPower(cosPhi: Double): Power = Watts(toVoltamperes * cosPhi)
 
-  def toReactivePower(cosPhi: Double): ReactivePower =
+  /** Method to convert this apparent power into a [[ReactivePower]] using a
+    * given cosPhi.
+    * @param cosPhi
+    *   cosine of the corresponding angle
+    * @return
+    *   the resulting reactive power
+    */
+  def toReactivePower(cosPhi: Double): ReactivePower = {
+    // Q = |S| * sin(φ), φ = acos(cosPhi)
     Vars(toVoltamperes * sin(acos(cosPhi)))
+  }
 }
 
 object ApparentPower extends Dimension[ApparentPower] {

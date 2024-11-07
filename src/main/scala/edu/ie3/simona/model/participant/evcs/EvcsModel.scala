@@ -753,7 +753,7 @@ final case class EvcsModel(
           if (setPower > zeroKW)
             maxPower
           else
-            maxPower * (-1)
+            maxPower * -1
 
         val chargingTicks = calcFlexOptionsChange(ev, power)
         val endTick = Math.min(currentTick + chargingTicks, ev.departureTick)
@@ -822,7 +822,7 @@ final case class EvcsModel(
 
         (targetEnergy - ev.storedEnergy) / power
       } else
-        (ev.storedEnergy - (ev.eStorage * lowestEvSoc)) / (power * (-1))
+        (ev.storedEnergy - (ev.eStorage * lowestEvSoc)) / (power * -1)
 
     Math.round(timeUntilFullOrEmpty.toSeconds)
   }
@@ -1070,7 +1070,7 @@ object EvcsModel {
       simulationStartDate,
       QControl(scaledInput.getqCharacteristics),
       Kilovoltamperes(
-        scaledInput.getType.getsRated.to(KILOWATT).getValue.doubleValue
+        scaledInput.getType.getsRated.to(KILOVOLTAMPERE).getValue.doubleValue
       ),
       scaledInput.getType.getElectricCurrentType,
       scaledInput.getCosPhiRated,
