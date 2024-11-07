@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added option to directly zip the output files [#793](https://github.com/ie3-institute/simona/issues/793)
 - Added weatherData HowTo for Copernicus ERA5 data [#967](https://github.com/ie3-institute/simona/issues/967)
 - Add some quote to 'printGoodbye' [#997](https://github.com/ie3-institute/simona/issues/997)
+- Added `ApparentPower` to differentiate between different power types [#794](https://github.com/ie3-institute/simona/issues/794)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -94,7 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replace mutable var in ChpModelSpec [#1002](https://github.com/ie3-institute/simona/issues/1002)
 - Move compression of output files into `ResultEventListener`[#965](https://github.com/ie3-institute/simona/issues/965)
 - Rewrote StorageModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
- 
+
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
 - Removed version number "2.0" from the logo printed to console [#642](https://github.com/ie3-institute/simona/issues/642)
