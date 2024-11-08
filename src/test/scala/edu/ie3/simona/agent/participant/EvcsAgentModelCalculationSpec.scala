@@ -1355,9 +1355,9 @@ class EvcsAgentModelCalculationSpec
               maxPower,
             ) =>
           modelUuid shouldBe evcsInputModelQv.getUuid
-          referencePower shouldBe ev900.sRatedAc.toPower(1.0)
-          minPower shouldBe ev900.sRatedAc.toPower(1.0) // battery is empty
-          maxPower shouldBe ev900.sRatedAc.toPower(1.0)
+          referencePower shouldBe ev900.pRatedAc
+          minPower shouldBe ev900.pRatedAc // battery is empty
+          maxPower shouldBe ev900.pRatedAc
       }
 
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
@@ -1472,9 +1472,9 @@ class EvcsAgentModelCalculationSpec
               maxPower,
             ) =>
           modelUuid shouldBe evcsInputModelQv.getUuid
-          referencePower shouldBe ev4500.sRatedAc.toPower(1.0)
-          minPower shouldBe ev900.sRatedAc.toPower(1.0) // battery is empty
-          maxPower shouldBe ev4500.sRatedAc.toPower(1.0)
+          referencePower shouldBe ev4500.pRatedAc
+          minPower shouldBe ev900.pRatedAc // battery is empty
+          maxPower shouldBe ev4500.pRatedAc
       }
 
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
@@ -1522,9 +1522,9 @@ class EvcsAgentModelCalculationSpec
               maxPower,
             ) =>
           modelUuid shouldBe evcsInputModelQv.getUuid
-          referencePower shouldBe ev4500.sRatedAc.toPower(1.0)
+          referencePower shouldBe ev4500.pRatedAc
           minPower shouldBe Kilowatts(0.0) // battery is exactly at margin
-          maxPower shouldBe ev4500.sRatedAc.toPower(1.0)
+          maxPower shouldBe ev4500.pRatedAc
       }
 
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>
@@ -1611,9 +1611,7 @@ class EvcsAgentModelCalculationSpec
           refPower shouldBe combinedChargingPowerSq
 
           // battery of earlier ev is above lowest soc now
-          minPower shouldBe ev4500.sRatedAc.toPower(
-            1.0
-          ) * -1
+          minPower shouldBe ev4500.pRatedAc * -1
           maxPower shouldBe combinedChargingPowerSq
       }
 
@@ -1763,9 +1761,7 @@ class EvcsAgentModelCalculationSpec
             ) =>
           modelUuid shouldBe evcsInputModelQv.getUuid
           referencePower shouldBe combinedChargingPowerSq
-          minPower shouldBe ev4500.sRatedAc.toPower(
-            1.0
-          ) * -1 // battery of ev11700 is below lowest soc now
+          minPower shouldBe ev4500.pRatedAc * -1 // battery of ev11700 is below lowest soc now
           maxPower shouldBe combinedChargingPowerSq
       }
 
@@ -1961,9 +1957,9 @@ class EvcsAgentModelCalculationSpec
               maxPower,
             ) =>
           modelUuid shouldBe evcsInputModelQv.getUuid
-          referencePower shouldBe ev4500.sRatedAc.toPower(1.0)
+          referencePower shouldBe ev4500.pRatedAc
           minPower shouldBe Kilowatts(0d)
-          maxPower shouldBe ev4500.sRatedAc.toPower(1.0)
+          maxPower shouldBe ev4500.pRatedAc
       }
 
       resultListener.expectMsgPF() { case FlexOptionsResultEvent(flexResult) =>

@@ -85,7 +85,7 @@ class MaximumPowerChargingSpec
             ScheduleEntry(
               offset,
               offset + expectedDuration,
-              ev.sRatedAc.toPower(1.0),
+              ev.pRatedAc,
             )
           )
         )

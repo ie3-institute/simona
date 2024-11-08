@@ -32,8 +32,6 @@ import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities._
-import squants.energy.Kilowatts
-import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants.energy.Kilowatts
 import squants.time.Seconds
@@ -503,7 +501,7 @@ final case class EvcsModel(
   ): Power = {
     val evPower = currentType match {
       case ElectricCurrentType.AC =>
-        ev.sRatedAc.toPower(1.0)
+        ev.pRatedAc
       case ElectricCurrentType.DC =>
         ev.pRatedDc
     }
