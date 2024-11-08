@@ -19,7 +19,6 @@ import edu.ie3.simona.model.participant.evcs.uncontrolled.{
   ConstantPowerCharging,
   MaximumPowerCharging,
 }
-import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.simona.model.participant.{
   CalcRelevantData,
   FlexChangeIndicator,
@@ -32,7 +31,8 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.OperationInterval
-import squants.energy.{KilowattHours, Kilowatts}
+import edu.ie3.util.scala.quantities.DefaultQuantities._
+import squants.energy.Kilowatts
 import squants.time.Seconds
 import squants.{Dimensionless, Energy, Power}
 import tech.units.indriya.unit.Units.PERCENT
@@ -514,13 +514,17 @@ final case class EvcsModel(
       modelState: EvcsState,
       data: EvcsRelevantData,
   ): ApparentPower =
-    throw new NotImplementedError("Use calculatePowerAndEvSoc() instead.")
+    throw new NotImplementedError(
+      "Use calculateNewScheduling() or chargeEv() instead."
+    )
 
   override protected def calculateActivePower(
       modelState: EvcsState,
       data: EvcsRelevantData,
   ): Power =
-    throw new NotImplementedError("Use calculatePowerAndEvSoc() instead.")
+    throw new NotImplementedError(
+      "Use calculateNewScheduling() or chargeEv() instead."
+    )
 
   override def determineFlexOptions(
       data: EvcsRelevantData,

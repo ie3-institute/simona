@@ -3,7 +3,7 @@
 // https://github.com/scoverage/gradle-scoverage/issues/109 for details
 
 scoverage {
-  scoverageVersion = "2.1.1"
+  scoverageVersion = "2.2.1"
   scoverageScalaVersion = scalaBinaryVersion
   coverageOutputHTML = false
   coverageOutputXML = true

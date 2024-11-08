@@ -856,7 +856,9 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate checkDataSink(
               Sink(
-                Some(Csv("", "", "", isHierarchic = false)),
+                Some(
+                  Csv(compressOutputs = false, "", "", "", isHierarchic = false)
+                ),
                 Some(InfluxDb1x("", 0, "")),
                 None,
               )
