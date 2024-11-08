@@ -92,7 +92,7 @@ class LoadProfileStoreSpec
 
       forAll(maxParams) {
         (loadProfile: StandardLoadProfile, maxParamValue: Double) =>
-          val maxParam = Voltamperes(maxParamValue)
+          val maxParam = Watts(maxParamValue)
 
           customStore.maxPower(loadProfile) shouldBe maxParam
       }

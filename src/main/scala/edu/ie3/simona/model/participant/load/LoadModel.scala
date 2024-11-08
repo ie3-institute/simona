@@ -129,13 +129,15 @@ object LoadModel extends LazyLogging {
   def scaleSRatedEnergy(
       inputModel: LoadInput,
       energyConsumption: Energy,
-      profileMaxPower: ApparentPower,
+      profileMaxPower: Power,
       profileEnergyScaling: Energy,
       safetyFactor: Double = 1d,
   ): ApparentPower = {
-    (profileMaxPower / inputModel.getCosPhiRated) * (
+    val power = (profileMaxPower / inputModel.getCosPhiRated) * (
       energyConsumption / profileEnergyScaling
     ) * safetyFactor
+
+    Kilovoltamperes(power.toKilowatts)
   }
 
 }

@@ -37,7 +37,7 @@ final case class EvModelWrapper(
     Kilovoltamperes(
       original.getSRatedAC.to(KILOVOLTAMPERE).getValue.doubleValue
     )
-  lazy val sRatedDc: squants.Power =
+  lazy val pRatedDc: squants.Power =
     Kilowatts(original.getSRatedDC.to(KILOWATT).getValue.doubleValue)
   lazy val eStorage: squants.Energy = KilowattHours(
     original.getEStorage.to(KILOWATTHOUR).getValue.doubleValue

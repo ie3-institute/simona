@@ -30,9 +30,10 @@ class FixedFeedInModelSpec
     with DefaultTestData
     with PrivateMethodTester {
 
+  // Equals to 1 VA power
   private implicit val powerTolerance: ApparentPower = Voltamperes(
     1.0
-  ) // Equals to 1 W power
+  )
 
   "The fixed feed in model object" should {
 

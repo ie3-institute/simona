@@ -505,7 +505,7 @@ final case class EvcsModel(
       case ElectricCurrentType.AC =>
         ev.sRatedAc.toPower(1.0)
       case ElectricCurrentType.DC =>
-        ev.sRatedDc
+        ev.pRatedDc
     }
     /* Limit the charging power to the minimum of ev's and evcs' permissible power */
     evPower.min(sRated.toPower(1.0))

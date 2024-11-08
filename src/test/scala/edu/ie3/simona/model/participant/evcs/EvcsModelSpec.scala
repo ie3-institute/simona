@@ -189,7 +189,7 @@ class EvcsModelSpec
             actualEv.uuid shouldBe ev.uuid
             actualEv.id shouldBe ev.id
             actualEv.sRatedAc shouldBe ev.sRatedAc
-            actualEv.sRatedDc shouldBe ev.sRatedDc
+            actualEv.pRatedDc shouldBe ev.pRatedDc
             actualEv.eStorage shouldBe ev.eStorage
             actualEv.storedEnergy should approximate(
               KilowattHours(expectedStored)

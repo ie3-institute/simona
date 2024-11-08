@@ -1609,9 +1609,11 @@ class EvcsAgentModelCalculationSpec
             ) =>
           modelUuid shouldBe evcsInputModelQv.getUuid
           refPower shouldBe combinedChargingPowerSq
+
+          // battery of earlier ev is above lowest soc now
           minPower shouldBe ev4500.sRatedAc.toPower(
             1.0
-          ) * -1 // battery of earlier ev is above lowest soc now
+          ) * -1
           maxPower shouldBe combinedChargingPowerSq
       }
 
