@@ -151,8 +151,9 @@ object RefSystemParser {
             "The provided voltLvls in simona.gridConfig.refSystems contain duplicates. " +
               "Please check your configuration for duplicates in voltLvl entries!"
           )
-          /*fixme mh für seq
         }
+      /*fixme mh für seq
+
          check for duplicates of gridIds and voltLevels which will be the key for the following map conversion
     if (
       CollectionUtils.seqHasDuplicates(
@@ -185,8 +186,8 @@ object RefSystemParser {
         }
     }
 
-           */
-        }
+       */
+
     }
   }
 }

@@ -126,56 +126,6 @@ protected trait EvcsAgentFundamentals
       throw new AgentInitializationException(
         s"EvcsAgent cannot be initialized without an ev data service!"
       )
-    /*fixme mh removed
-    baseStateDataForModelCalculation(
-      inputModel,
-      modelConfig,
-      services,
-      simulationStartDate,
-      simulationEndDate,
-      timeBin,
-      requestVoltageDeviationThreshold,
-      outputConfig
-    )
-  }
-
-  /** Determine needed base state data for model calculation simulation mode.
-     *
-     * @param inputModel
-     *   Input model
-     * @param modelConfig
-     *   Configuration for the model
-     * @param servicesOpt
-     *   [[Option]] on a vector of [[SecondaryDataService]] s
-     * @param simulationStartDate
-     *   Real world time date time, when the simulation starts
-     * @param simulationEndDate
-     *   Real world time date time, when the simulation ends
-     * @param timeBin
-     *   Agents regular time bin it wants to be triggered e.g one hour
-     * @param requestVoltageDeviationThreshold
-     *   Threshold, after which two nodal voltage magnitudes from participant
-     *   power requests for the same tick are considered to be different
-     * @param outputConfig
-     *   Config of the output behaviour for simulation results
-     * @return
-     *   Needed base state data for model calculation
-     */
-  def baseStateDataForModelCalculation(
-      inputModel: EvcsInput,
-      modelConfig: SimpleRuntimeConfig,
-      servicesOpt: Option[Vector[SecondaryDataService[_ <: SecondaryData]]],
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
-      timeBin: Long,
-      requestVoltageDeviationThreshold: Double,
-      outputConfig: ParticipantNotifierConfig
-  ): ParticipantModelBaseStateData[
-    ApparentPower,
-    EvcsRelevantData,
-    EvcsModel
-  ] = {
-     */
 
     /* Build the calculation model */
     val model =

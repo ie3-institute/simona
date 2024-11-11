@@ -511,37 +511,6 @@ class GridAgentController(
         fixedFeedInInput.getId,
       )
       .toTyped
-  /*fixme mh vor dev:
-      outputConfig: ParticipantNotifierConfig
-  ): (
-      ActorRef,
-      ParticipantInitializeStateData[
-        FixedFeedInInput,
-        LoadRuntimeConfig,
-        ApparentPower
-      ]
-  ) = (
-    gridAgentContext.simonaActorOf(
-      FixedFeedInAgent.props(
-        environmentRefs.scheduler,
-        listener
-      ),
-      fixedFeedInInput.getId
-    ),
-    ParticipantInitializeStateData(
-      fixedFeedInInput,
-      modelConfiguration,
-      primaryServiceProxy,
-      None,
-      simulationStartDate,
-      simulationEndDate,
-      resolution,
-      requestVoltageDeviationThreshold,
-      outputConfig
-    )
-  )
-
-   */
 
   /** Creates a load agent and determines the needed additional information for
     * later initialization of the agent.
@@ -599,38 +568,6 @@ class GridAgentController(
         loadInput.getId,
       )
       .toTyped
-  /*fixme mh vor dev:
-      outputConfig: ParticipantNotifierConfig
-  ): (
-      ActorRef,
-      ParticipantInitializeStateData[
-        LoadInput,
-        LoadRuntimeConfig,
-        ApparentPower
-      ]
-  ) = (
-    gridAgentContext.simonaActorOf(
-      LoadAgent.props(
-        environmentRefs.scheduler,
-        listener,
-        modelConfiguration
-      ),
-      loadInput.getId
-    ),
-    ParticipantInitializeStateData(
-      loadInput,
-      modelConfiguration,
-      primaryServiceProxy,
-      None,
-      simulationStartDate,
-      simulationEndDate,
-      resolution,
-      requestVoltageDeviationThreshold,
-      outputConfig
-    )
-  )
-
-   */
 
   /** Creates a pv agent and determines the needed additional information for
     * later initialization of the agent.
@@ -672,20 +609,6 @@ class GridAgentController(
   ): ActorRef[ParticipantMessage] =
     gridAgentContext.toClassic
       .simonaActorOf(
-        /*fixme mh
-      outputConfig: ParticipantNotifierConfig
-  ): (
-      ActorRef,
-      ParticipantInitializeStateData[
-        PvInput,
-        SimpleRuntimeConfig,
-        ApparentPower
-      ]
-  ) =
-    (
-      gridAgentContext.simonaActorOf(
-
-         */
         PvAgent.props(
           environmentRefs.scheduler.toClassic,
           ParticipantInitializeStateData(
@@ -886,20 +809,6 @@ class GridAgentController(
   ): ActorRef[ParticipantMessage] =
     gridAgentContext.toClassic
       .simonaActorOf(
-        /* fixme mh
-      outputConfig: ParticipantNotifierConfig
-  ): (
-      ActorRef,
-      ParticipantInitializeStateData[
-        WecInput,
-        SimpleRuntimeConfig,
-        ApparentPower
-      ]
-  ) =
-    (
-      gridAgentContext.simonaActorOf(
-
-         */
         WecAgent.props(
           environmentRefs.scheduler.toClassic,
           ParticipantInitializeStateData(

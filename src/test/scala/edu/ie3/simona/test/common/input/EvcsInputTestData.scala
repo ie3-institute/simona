@@ -14,11 +14,14 @@ import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationTyp
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.simona.config.RuntimeConfig.SimpleRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
-import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.model.participant.evcs.EvcsModel
+import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.test.common.DefaultTestData
+import edu.ie3.simona.util.ConfigUtil
+import edu.ie3.util.TimeUtil
+import squants.energy.Kilowatts
 
+import java.time.ZonedDateTime
 import java.util.UUID
 
 trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
@@ -36,20 +39,16 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
     0.95,
     EvcsLocationType.HOME,
     true,
-    /*fixme mh removed through dev
-    true
   )
 
   protected val simonaConfig: SimonaConfig =
     createSimonaConfig(
       LoadModelBehaviour.FIX,
-      LoadReference.ActivePower(Kilowatts(0.0))
+      LoadReference.ActivePower(Kilowatts(0.0)),
     )
 
   private val configUtil = ConfigUtil.ParticipantConfigUtil(
     simonaConfig.runtime.participant
-
-     */
   )
 
   protected val evcsStandardModel: EvcsModel = EvcsModel(
@@ -60,15 +59,13 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
     "maxPower",
     lowestEvSoc = 0.2,
   )
-  /* fixme mh replaced with above
+
   protected val defaultOutputConfig: ParticipantNotifierConfig =
     ParticipantNotifierConfig(
       simonaConfig.output.participant.defaultConfig.simulationResult,
-      simonaConfig.output.participant.defaultConfig.powerRequestReply
+      simonaConfig.output.participant.defaultConfig.powerRequestReply,
     )
 
-   */
-  /* fixme mh removed
   protected val modelConfig: SimpleRuntimeConfig =
     configUtil.getOrDefault[SimpleRuntimeConfig](
       evcsInputModel.getUuid
@@ -79,5 +76,4 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
   protected val simulationEndDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01 02:00:00")
 
-   */
 }

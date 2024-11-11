@@ -39,6 +39,7 @@ object OutputConfig {
       isHierarchic: Boolean = false,
       filePrefix: String = "",
       fileSuffix: String = "",
+      zipFiles: Boolean = false,
   )
 
   object OutputCsvParams {

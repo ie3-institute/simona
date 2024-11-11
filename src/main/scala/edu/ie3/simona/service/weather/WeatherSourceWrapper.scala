@@ -25,15 +25,12 @@ import edu.ie3.datamodel.io.source.{
   IdCoordinateSource,
   WeatherSource => PsdmWeatherSource,
 }
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
 import edu.ie3.simona.config.IoConfigUtils.{
   CouchbaseParams,
   InfluxDb1xParams,
-  /*fixme mh
-     Base
-   */ SqlParams,
+  SqlParams,
 }
+import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData

@@ -20,16 +20,6 @@ class ResultSinkTypeSpec extends UnitSpec {
       val conf = OutputSinkConfig(
         csv = Some(
           OutputCsvParams()
-          /*fixme mh dev version:
-          SimonaConfig.Simona.Output.Sink.Csv(
-            fileFormat = ".csv",
-            filePrefix = "",
-            fileSuffix = "",
-            isHierarchic = false,
-            zipFiles = false,
-          )
-
-           */
         ),
         influxDb1x = None,
         kafka = None,
@@ -108,16 +98,6 @@ class ResultSinkTypeSpec extends UnitSpec {
       val conf = OutputSinkConfig(
         csv = Some(
           OutputCsvParams()
-          /*fixme mh
-          SimonaConfig.Simona.Output.Sink.Csv(
-            fileFormat = ".csv",
-            filePrefix = "",
-            fileSuffix = "",
-            isHierarchic = false,
-            zipFiles = false,
-          )
-
-           */
         ),
         influxDb1x = Some(
           InfluxDb1xParams(

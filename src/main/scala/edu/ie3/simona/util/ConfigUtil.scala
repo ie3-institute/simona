@@ -120,7 +120,7 @@ object ConfigUtil {
       ParticipantConfigUtil(
         individual,
         default,
-        /*fixme mh verschiedene subConfigs hinzugefügt
+        /*fixme mh different subConfigs added
         buildUuidMapping(
           Seq(
             subConfig.load.individualConfigs,
@@ -235,7 +235,7 @@ object ConfigUtil {
               powerRequestReply,
             ) =>
           NotifierConfig(simulationResult, powerRequestReply, flexResult)
-        /*fixme mh commit Lösung
+        /*fixme mh commit solution
         case OutputConfig.BaseOutputConfig(
               _,
               powerRequestReply,
@@ -252,7 +252,7 @@ object ConfigUtil {
               flexResult,
               powerRequestReply,
             ) =>
-          /*fixme mh commit Lösung
+          /*fixme mh commit solution
         case OutputConfig.BaseOutputConfig(
               notifier,
               powerRequestReply,

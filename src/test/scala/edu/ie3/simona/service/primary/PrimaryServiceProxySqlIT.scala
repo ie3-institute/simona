@@ -8,8 +8,8 @@ package edu.ie3.simona.service.primary
 
 import com.dimafeng.testcontainers.{ForAllTestContainer, PostgreSQLContainer}
 import com.typesafe.config.ConfigFactory
+import edu.ie3.simona.config.InputConfig.PrimaryConfig
 import edu.ie3.simona.config.IoConfigUtils.TimeStampedSqlParams
-import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
@@ -93,16 +93,7 @@ class PrimaryServiceProxySqlIT
   )
 
   private def createProxy(): TestActorRef[PrimaryServiceProxy] = {
-    val initData = InitPrimaryServiceProxyStateData(
-      SimonaConfig.Simona.Input.Primary(
-        None,
-        None,
-        None,
-        sqlParams = Some(sqlParams),
-      ),
-      simulationStart,
-    )
-    /*fixme mh commit:
+
     "initialize when given proper SQL input configs" in {
       val initData = InitPrimaryServiceProxyStateData(
         PrimaryConfig(
@@ -111,81 +102,80 @@ class PrimaryServiceProxySqlIT
           sqlParams = Some(sqlParams),
           None,
         ),
-        simulationStart
-      )
-
-     */
-
-    TestActorRef(
-      PrimaryServiceProxy.props(
-        scheduler.ref,
-        initData,
         simulationStart,
       )
-    )
-  }
 
-  "A primary service proxy with SQL source" should {
-
-    "initialize when given proper SQL input configs" in {
-      val proxyRef = createProxy()
-
-      scheduler.send(proxyRef, Activation(INIT_SIM_TICK))
-      scheduler.expectMsg(Completion(proxyRef.toTyped))
-    }
-
-    "handle participant request correctly if participant has primary data" in {
-      val systemParticipantProbe = TestProbe("SystemParticipant")
-
-      val proxyRef = createProxy()
-
-      scheduler.send(proxyRef, Activation(INIT_SIM_TICK))
-      scheduler.expectMsg(Completion(proxyRef.toTyped))
-
-      systemParticipantProbe.send(
-        proxyRef,
-        PrimaryServiceRegistrationMessage(
-          UUID.fromString("b86e95b0-e579-4a80-a534-37c7a470a409")
-        ),
-      )
-      scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
-
-      val initActivation = scheduler.expectMsgType[ScheduleActivation]
-      initActivation.tick shouldBe INIT_SIM_TICK
-      initActivation.unlockKey should not be empty
-
-      // extract ref to the worker that the proxy created
-      val workerRef = initActivation.actor
-      scheduler.send(
-        workerRef.toClassic,
-        Activation(INIT_SIM_TICK),
-      )
-
-      scheduler.expectMsg(Completion(workerRef, Some(0)))
-
-      systemParticipantProbe.expectMsg(
-        RegistrationSuccessfulMessage(workerRef.toClassic, Some(0L))
+      TestActorRef(
+        PrimaryServiceProxy.props(
+          scheduler.ref,
+          initData,
+          simulationStart,
+        )
       )
     }
 
-    "handle participant request correctly if participant does not have primary data" in {
-      val systemParticipantProbe = TestProbe("SystemParticipant")
+    "A primary service proxy with SQL source" should {
 
-      val proxyRef = createProxy()
+      "initialize when given proper SQL input configs" in {
+        val proxyRef = createProxy()
 
-      scheduler.send(proxyRef, Activation(INIT_SIM_TICK))
-      scheduler.expectMsg(Completion(proxyRef.toTyped))
+        scheduler.send(proxyRef, Activation(INIT_SIM_TICK))
+        scheduler.expectMsg(Completion(proxyRef.toTyped))
+      }
 
-      systemParticipantProbe.send(
-        proxyRef,
-        PrimaryServiceRegistrationMessage(
-          UUID.fromString("db958617-e49d-44d3-b546-5f7b62776afd")
-        ),
-      )
+      "handle participant request correctly if participant has primary data" in {
+        val systemParticipantProbe = TestProbe("SystemParticipant")
 
-      scheduler.expectNoMessage()
+        val proxyRef = createProxy()
 
-      systemParticipantProbe.expectMsg(RegistrationFailedMessage(proxyRef))
+        scheduler.send(proxyRef, Activation(INIT_SIM_TICK))
+        scheduler.expectMsg(Completion(proxyRef.toTyped))
+
+        systemParticipantProbe.send(
+          proxyRef,
+          PrimaryServiceRegistrationMessage(
+            UUID.fromString("b86e95b0-e579-4a80-a534-37c7a470a409")
+          ),
+        )
+        scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
+
+        val initActivation = scheduler.expectMsgType[ScheduleActivation]
+        initActivation.tick shouldBe INIT_SIM_TICK
+        initActivation.unlockKey should not be empty
+
+        // extract ref to the worker that the proxy created
+        val workerRef = initActivation.actor
+        scheduler.send(
+          workerRef.toClassic,
+          Activation(INIT_SIM_TICK),
+        )
+
+        scheduler.expectMsg(Completion(workerRef, Some(0)))
+
+        systemParticipantProbe.expectMsg(
+          RegistrationSuccessfulMessage(workerRef.toClassic, Some(0L))
+        )
+      }
+
+      "handle participant request correctly if participant does not have primary data" in {
+        val systemParticipantProbe = TestProbe("SystemParticipant")
+
+        val proxyRef = createProxy()
+
+        scheduler.send(proxyRef, Activation(INIT_SIM_TICK))
+        scheduler.expectMsg(Completion(proxyRef.toTyped))
+
+        systemParticipantProbe.send(
+          proxyRef,
+          PrimaryServiceRegistrationMessage(
+            UUID.fromString("db958617-e49d-44d3-b546-5f7b62776afd")
+          ),
+        )
+
+        scheduler.expectNoMessage()
+
+        systemParticipantProbe.expectMsg(RegistrationFailedMessage(proxyRef))
+      }
     }
   }
 }

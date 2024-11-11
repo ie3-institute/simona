@@ -44,6 +44,8 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
 
+import java.time.ZonedDateTime
+
 class WeatherServiceSpec
     extends TestKitWithShutdown(
       ActorSystem(
@@ -90,14 +92,6 @@ class WeatherServiceSpec
     AgentCoordinates(52.02083574, 7.40110716)
 
   private val scheduler = TestProbe("scheduler")
-  /*fixme mh old version:
-  // convert tick from long into JAVA ZonedDateTime
-  private implicit val startDateTime: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime(
-      simonaConfig.time.startDateTime
-    )
-
-   */
 
   // build the weather service
   private val weatherActor: TestActorRef[WeatherService] = TestActorRef(

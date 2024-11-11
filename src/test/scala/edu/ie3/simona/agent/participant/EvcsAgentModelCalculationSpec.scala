@@ -59,7 +59,7 @@ import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.testkit.TestProbe
+import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
 import squants.energy._
 import squants.{Each, Energy, Power}
 
@@ -111,22 +111,14 @@ class EvcsAgentModelCalculationSpec
     .qCharacteristics(new QV("qV:{(0.95,-0.625),(1.05,0.625)}"))
     .build()
 
-  private val resolution = 3600L
-
   private implicit val powerTolerance: Power = Watts(0.1)
   private implicit val energyTolerance: Energy = WattHours(0.1)
   private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
-  /*fixme mh removed:
-  private val noServices = None
-  private val withServices = Some(
-    Vector(
-      ActorEvMovementsService(evService.ref)
-    )
-  )
 
-  private val resolution = simonaConfig.powerflow.resolution.toSeconds
-
+  /*fixme mh resolution in dev:
+  private val resolution = 3600L
    */
+  private val resolution = simonaConfig.powerflow.resolution.toSeconds
 
   "An evcs agent with model calculation depending on no secondary data service" should {
     val initStateData = ParticipantInitializeStateData[

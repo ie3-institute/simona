@@ -199,32 +199,6 @@ object ArgsParser extends LazyLogging {
       }
 
     clusterSingletonsWithEvents
-    /*fixme mh
-      listenerConfigOption: Option[List[SimonaConfig.Simona.Event.Listener$Elm]]
-  ): Map[SimonaListenerCompanion, Option[List[String]]] = {
-    listenerConfigOption match {
-      case Some(listenerElems) =>
-        listenerElems.foldLeft(
-          Map.empty[SimonaListenerCompanion, Option[List[String]]]
-        )((listenerMap, listenerElem) =>
-          ReflectionTools
-            .resolveClassNameToCompanion(listenerElem.fullClassPath) match {
-            case Some(listener: SimonaListenerCompanion) =>
-              listenerMap + (listener -> listenerElem.eventsToProcess)
-            case nonListenerCompanion =>
-              logger.warn(
-                s"Invalid value ${nonListenerCompanion.getClass} for 'event.listener' config parameter!"
-              )
-              listenerMap
-          }
-        )
-      case None =>
-        logger.info(
-          "No listener assigned in configuration value 'event.listener'. No event are going to be processed!"
-        )
-        Map.empty[SimonaListenerCompanion, Option[List[String]]]
-    }
-     */
   }
 
   /** Prepare the config by parsing the provided program arguments

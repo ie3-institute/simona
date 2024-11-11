@@ -391,11 +391,6 @@ object SimonaStandaloneSetup extends LazyLogging with SetupHelper {
     new SimonaStandaloneSetup(
       typeSafeConfig,
       SimonaConfig(typeSafeConfig),
-      /*fixme mh commit:
-      () => ActorSystem("simona", tscfg),
-      simonaConfig,
-
-       */
       resultFileHierarchy,
       runtimeEventQueue,
       mainArgs,

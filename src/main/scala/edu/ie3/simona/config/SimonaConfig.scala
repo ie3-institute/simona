@@ -30,7 +30,28 @@ case class SimonaConfig(
     powerflow: PowerFlowConfig,
     gridConfig: GridConfig,
     event: EventConfig = EventConfig(None),
-)
+) {
+
+  object simona {
+
+    object input {
+
+      object grid {
+
+        object datasource
+      }
+    }
+
+    object time {
+
+      object startDateTime
+
+      object endDateTime
+
+      object schedulerReadyCheckWindow
+    }
+  }
+}
 
 object SimonaConfig {
   implicit def productHint[T]: ProductHint[T] =
@@ -269,4 +290,6 @@ object SimonaConfig {
       fullClassPath: String,
       eventsToProcess: Seq[String],
   )
+
+  case class Simona()
 }
