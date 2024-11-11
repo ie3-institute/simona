@@ -44,8 +44,6 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
 
-import java.time.ZonedDateTime
-
 class WeatherServiceSpec
     extends TestKitWithShutdown(
       ActorSystem(

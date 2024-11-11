@@ -18,24 +18,12 @@ import edu.ie3.datamodel.models.result.connector.{
   Transformer2WResult,
   Transformer3WResult,
 }
-import edu.ie3.datamodel.io.connectors.{
-  CouchbaseConnector,
-  InfluxDbConnector,
-  SqlConnector,
-}
-import edu.ie3.datamodel.models.result.connector.{
-  LineResult,
-  SwitchResult,
-  Transformer2WResult,
-  Transformer3WResult,
-}
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.config.IoConfigUtils.{
-  BaseCsvParams,
   BaseKafkaParams,
+  BaseSqlParams,
   CouchbaseParams,
   CsvParams,
-  BaseSqlParams,
 }
 import edu.ie3.simona.config.OutputConfig.{
   GridOutputConfig,
@@ -45,9 +33,7 @@ import edu.ie3.simona.config.RuntimeConfig.{
   BaseRuntimeConfig,
   RuntimeParticipantsConfig,
 }
-import edu.ie3.simona.config.OutputConfig
-import edu.ie3.simona.event.notifier.{Notifier, ParticipantNotifierConfig}
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.{OutputConfig, SimonaConfig}
 import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.event.notifier.{Notifier, NotifierConfig}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
@@ -228,38 +214,24 @@ object ConfigUtil {
         subConfig: ParticipantOutputConfig
     ): OutputConfigUtil = {
       val defaultConfig = subConfig.defaultConfig match {
-        case ParticipantBaseOutputConfig(
+
+        case OutputConfig.BaseOutputConfig(
               _,
+              powerRequestReply,
               simulationResult,
               flexResult,
-              powerRequestReply,
             ) =>
           NotifierConfig(simulationResult, powerRequestReply, flexResult)
-        /*fixme mh commit solution
-        case OutputConfig.BaseOutputConfig(
-              _,
-              powerRequestReply,
-              simulationResult
-            ) =>
-          ParticipantNotifierConfig(simulationResult, powerRequestReply)
 
-         */
       }
       val configMap = subConfig.individualConfigs.map {
-        case ParticipantBaseOutputConfig(
-              notifier,
-              simulationResult,
-              flexResult,
-              powerRequestReply,
-            ) =>
-          /*fixme mh commit solution
+
         case OutputConfig.BaseOutputConfig(
               notifier,
               powerRequestReply,
-              simulationResult
+              simulationResult,
+              flexResult,
             ) =>
-
-           */
           try {
             val id = NotifierIdentifier(notifier)
             id -> NotifierConfig(

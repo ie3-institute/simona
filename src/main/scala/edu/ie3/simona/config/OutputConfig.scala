@@ -64,6 +64,7 @@ object OutputConfig {
       notifier: String,
       powerRequestReply: Boolean,
       simulationResult: Boolean,
+      flexResult: Boolean,
   )
 
 }

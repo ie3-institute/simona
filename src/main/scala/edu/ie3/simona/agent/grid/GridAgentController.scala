@@ -669,28 +669,6 @@ class GridAgentController(
   ): ActorRef[ParticipantMessage] =
     gridAgentContext.toClassic
       .simonaActorOf(
-        /* fixme mh
-      outputConfig: ParticipantNotifierConfig
-  ): (
-      ActorRef,
-      ParticipantInitializeStateData[
-        EvcsInput,
-        SimpleRuntimeConfig,
-        ApparentPower
-      ]
-  ) = {
-    val sources = Some(
-      Vector(
-        ActorEvMovementsService(
-          evMovementsService
-        )
-      )
-    )
-
-    (
-      gridAgentContext.simonaActorOf(
-
-         */
         EvcsAgent.props(
           environmentRefs.scheduler.toClassic,
           ParticipantInitializeStateData(
