@@ -21,11 +21,7 @@ class LoadProfileStoreSpec extends UnitSpec {
 
   "The load profile store" should {
     "be create correctly" in {
-      val buildInsStore = LoadProfileStore(
-        Some(LoadProfileSource.getBDEWLoadProfiles.asScala.toMap),
-        Some(LoadProfileSource.getRandomLoadProfile),
-        Map.empty,
-      )
+      val buildInsStore = LoadProfileStore()
 
       BdewStandardLoadProfile
         .values()

@@ -90,51 +90,6 @@ class RandomLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
         }
       }
     }
-
-    "calculating results" should {
-      "deliver the correct distribution on request" in {
-        val dut = new RandomLoadModel(
-          loadInput.getUuid,
-          loadInput.getId,
-          foreSeenOperationInterval,
-          QControl.apply(loadInput.getqCharacteristics()),
-          Kilowatts(
-            loadInput
-              .getsRated()
-              .to(PowerSystemUnits.KILOWATT)
-              .getValue
-              .doubleValue()
-          ),
-          loadInput.getCosPhiRated,
-          ActivePower(Watts(268.6)),
-        )
-        /* Working day, 61th quarter hour */
-        val queryDate =
-          TimeUtil.withDefaults.toZonedDateTime("2019-07-19T15:21:00Z")
-        val expectedParams = new RandomLoadParameters(
-          0.405802458524704,
-          0.0671483352780342,
-          0.0417016632854939,
-        )
-
-        /* First query leeds to generation of distribution */
-        val getGevDistribution =
-          PrivateMethod[GeneralizedExtremeValueDistribution](
-            Symbol("getGevDistribution")
-          )
-
-        def firstHit = dut invokePrivate getGevDistribution(queryDate)
-
-        firstHit.getK shouldBe expectedParams.k
-        firstHit.getMu shouldBe expectedParams.my
-        firstHit.getSigma shouldBe expectedParams.sigma
-
-        /* Second query is only look up in storage */
-        def secondHit = dut invokePrivate getGevDistribution(queryDate)
-
-        secondHit shouldBe firstHit
-      }
-    }
   }
 }
 

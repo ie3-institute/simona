@@ -52,6 +52,7 @@ import edu.ie3.simona.service.load.LoadProfileService.{
   LoadProfileInitializedStateData,
   initLoadProfileStore,
 }
+import edu.ie3.simona.service.load.LoadProfileStore.LoadProfileSources
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.simona.util.{SimonaConstants, TickUtil}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
@@ -170,20 +171,20 @@ final case class LoadProfileService(
       serviceStateData: LoadProfileInitializedStateData
   ): LoadProfileInitializedStateData = {
 
-    Try(serviceStateData.loadProfileStore.maxValueMap(loadProfile)) match {
-      case Success(_) =>
-        // a function was found, updating state data
-        serviceStateData.copy(refToProfile =
-          serviceStateData.refToProfile + (agentToBeRegistered -> loadProfile)
-        )
-      case Failure(exception) =>
-        log.error(
-          s"Unable to register the agent with ref: $agentToBeRegistered!",
-          exception,
-        )
+    if (
+      serviceStateData.loadProfileStore.getKnownProfiles.contains(loadProfile)
+    ) {
+      // a function was found, updating state data
+      serviceStateData.copy(refToProfile =
+        serviceStateData.refToProfile + (agentToBeRegistered -> loadProfile)
+      )
+    } else {
+      log.error(
+        s"Unable to register the agent with ref: $agentToBeRegistered!, because no value was found for load profile '$loadProfile'."
+      )
 
-        sender() ! RegistrationFailedMessage(self)
-        serviceStateData
+      sender() ! RegistrationFailedMessage(self)
+      serviceStateData
     }
   }
 
@@ -301,14 +302,7 @@ object LoadProfileService {
       )
     }
 
-    val (bdewLoadProfiles, randomLoadProfile) = if (cfg.loadBuildIns) {
-      (
-        Some(LoadProfileSource.getBDEWLoadProfiles.asScala.toMap),
-        Some(LoadProfileSource.getRandomLoadProfile),
-      )
-    } else (None, None)
-
-    val sources: Map[LoadProfile, LoadProfileSource[_, _]] =
+    val otherSources: Map[LoadProfile, LoadProfileSource[_, _]] =
       definedSources.toSeq(0) match {
         case BaseCsvParams(csvSep, directoryPath, _) =>
           // initializing a csv load profile source
@@ -327,11 +321,7 @@ object LoadProfileService {
           Map.empty[LoadProfile, LoadProfileSource[_, _]]
       }
 
-    LoadProfileStore(
-      bdewLoadProfiles,
-      randomLoadProfile,
-      sources,
-    )
+    LoadProfileStore(otherSources)
   }
 
   /** Method to read csv load profiles.

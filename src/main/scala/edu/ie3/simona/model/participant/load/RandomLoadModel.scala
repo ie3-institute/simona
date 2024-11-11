@@ -14,10 +14,9 @@ import edu.ie3.simona.model.participant.load.LoadReference._
 import edu.ie3.simona.model.participant.load.RandomLoadModel.RandomRelevantData
 import edu.ie3.util.scala.OperationInterval
 import squants.Power
-import squants.energy.{KilowattHours, Kilowatts, Watts}
+import squants.energy.{KilowattHours, Watts}
 
 import java.util.UUID
-import scala.annotation.tailrec
 
 /** A load model consuming energy followed by time resolved probability. The
   * referencing to rated active power maps the output's 95 % quantile to this

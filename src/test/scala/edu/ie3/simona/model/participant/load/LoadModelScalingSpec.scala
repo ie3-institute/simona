@@ -10,7 +10,7 @@ import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
-import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
+import edu.ie3.datamodel.models.profile.{BdewStandardLoadProfile, LoadProfile}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.LoadRelevantData
@@ -19,6 +19,7 @@ import edu.ie3.simona.model.participant.load.LoadReference.{
   ActivePower,
   EnergyConsumption,
 }
+import edu.ie3.simona.service.load.LoadProfileStore
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -33,6 +34,8 @@ import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
+  // necessary to init and load psdm build in profiles
+  private val loadProfileStore = LoadProfileStore()
 
   "Testing correct scaling of load models" when {
     val simulationStartDate =
@@ -98,11 +101,13 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
            * are officially permissible. But, as we currently do not take (bank) holidays into account, we cannot reach
            * this accuracy. */
 
-          calculateEnergyDiffForYear(
+          val x = calculateEnergyDiffForYear(
             model,
             simulationStartDate,
             targetEnergyConsumption,
-          ) should be < Percent(2d)
+          )
+
+          x should be < Percent(2d)
         }
       }
 
@@ -339,13 +344,18 @@ class LoadModelScalingSpec extends UnitSpec with TableDrivenPropertyChecks {
   ): ZonedDateTime => C =
     model match {
       case _: RandomLoadModel =>
-        time => RandomLoadModel.RandomRelevantData(Watts(1)) // TODO: Fix this
-      case _: ProfileLoadModel =>
         time =>
-          ProfileLoadModel.ProfileRelevantData(
-            Watts(1),
-            Watts(1),
-          ) // TODO: Fix this
+          loadProfileStore
+            .entry(time, LoadProfile.RandomLoadProfile.RANDOM_LOAD_PROFILE)
+            .map(RandomLoadModel.RandomRelevantData)
+            .getOrElse(fail("No value found for random load model!"))
+      case loadModel: ProfileLoadModel =>
+        time => {
+          val (averagePower, maxPower) = loadProfileStore
+            .valueOptions(time, loadModel.loadProfile)
+            .getOrElse(fail("No values found for average and max power here!"))
+          ProfileLoadModel.ProfileRelevantData(averagePower, maxPower)
+        }
     }
 
   def getRelativeDifference[Q <: Quantity[Q]](

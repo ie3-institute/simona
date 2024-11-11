@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent.grid
 
 import edu.ie3.datamodel.graph.SubGridGate
+import edu.ie3.datamodel.models.profile.{BdewStandardLoadProfile, LoadProfile}
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
@@ -20,9 +21,13 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
+import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.RegisterForLoadProfileService
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
+  RegistrationFailedMessage,
+  RegistrationSuccessfulMessage,
+}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.test.common.model.grid.DbfsTestGridWithParticipants
@@ -52,7 +57,9 @@ class DBFSAlgorithmParticipantSpec
     TestProbe("runtimeEvents")
   private val primaryService: TestProbe[ServiceMessage] =
     TestProbe("primaryService")
-  private val loadProfileService = TestProbe("loadProfileService")
+  private val loadProfileService: TestProbe[ServiceMessage] = TestProbe(
+    "loadProfileService"
+  )
   private val weatherService = TestProbe("weatherService")
 
   private val environmentRefs = EnvironmentRefs(
@@ -126,6 +133,18 @@ class DBFSAlgorithmParticipantSpec
 
       loadAgent.toClassic ! RegistrationFailedMessage(
         primaryService.ref.toClassic
+      )
+
+      /* Expect a registration message */
+      loadProfileService.expectMessage(
+        RegisterForLoadProfileService(
+          LoadProfile.DefaultLoadProfiles.NO_LOAD_PROFILE
+        )
+      )
+
+      loadAgent.toClassic ! RegistrationSuccessfulMessage(
+        loadProfileService.ref.toClassic,
+        None,
       )
 
       scheduler.expectMessage(Completion(loadAgent, Some(0)))

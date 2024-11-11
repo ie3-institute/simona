@@ -124,7 +124,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
     /* Check for needed services */
     if (!services.toSeq.map(_.getClass).containsSlice(neededServices))
       throw new AgentInitializationException(
-        s"LoadAgent cannot be initialized without a weather service!"
+        s"LoadAgent cannot be initialized without a load profile service!"
       )
 
     /* Build the calculation model */

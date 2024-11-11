@@ -9,6 +9,7 @@ package edu.ie3.simona.agent.participant
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.input.system.characteristic.QV
+import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerChangedMessage,
@@ -16,14 +17,11 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
 }
 import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorLoadProfileService
 import edu.ie3.simona.agent.participant.load.LoadAgent.ProfileLoadAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
-  ParticipantInitializeStateData,
-  ParticipantInitializingStateData,
-  ParticipantUninitializedStateData,
-  SimpleInputContainer,
-}
+import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData._
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
 import edu.ie3.simona.config.SimonaConfig
@@ -32,8 +30,16 @@ import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
+import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.{
+  LoadProfileData,
+  ProvideLoadProfileValue,
+  RegisterForLoadProfileService,
+}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
+  RegistrationFailedMessage,
+  RegistrationSuccessfulMessage,
+}
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.model.participant.LoadTestData
 import edu.ie3.simona.util.ConfigUtil
@@ -41,7 +47,7 @@ import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.testkit.TestFSMRef
+import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
 import org.apache.pekko.util.Timeout
 import org.scalatest.PrivateMethodTester
 import squants.Each
@@ -89,7 +95,15 @@ class LoadAgentProfileModelCalculationSpec
     loadConfigUtil.getOrDefault[LoadRuntimeConfig](
       voltageSensitiveInput.getUuid
     )
-  private val services = Iterable.empty
+
+  protected val loadProfileService: TestProbe = TestProbe(
+    "loadProfileServiceProbe"
+  )
+
+  private val noServices = Iterable.empty
+  private val withServices = Iterable(
+    ActorLoadProfileService(loadProfileService.ref)
+  )
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
   private implicit val powerTolerance: squants.Power = Watts(0.1)
@@ -103,7 +117,71 @@ class LoadAgentProfileModelCalculationSpec
     ](
       inputModel = voltageSensitiveInput,
       modelConfig = modelConfig,
-      secondaryDataServices = services,
+      secondaryDataServices = noServices,
+      simulationStartDate = simulationStartDate,
+      simulationEndDate = simulationEndDate,
+      resolution = resolution,
+      requestVoltageDeviationThreshold =
+        simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+      outputConfig = defaultOutputConfig,
+      primaryServiceProxy = primaryServiceProxy.ref,
+    )
+
+    "be instantiated correctly" in {
+      val loadAgent = TestFSMRef(
+        new ProfileLoadAgent(
+          scheduler = scheduler.ref,
+          initStateData = initStateData,
+          listener = systemListener,
+        )
+      )
+
+      loadAgent.stateName shouldBe Uninitialized
+      // ParticipantUninitializedStateData is an empty class (due to typing). If it contains content one day
+      inside(loadAgent.stateData) {
+        case _: ParticipantUninitializedStateData[_] => succeed
+        case _ =>
+          fail(
+            s"Expected $ParticipantUninitializedStateData, but got ${loadAgent.stateData}."
+          )
+      }
+    }
+
+    "fail initialisation and stop agent" in {
+      val deathProbe = TestProbe("deathProbe")
+
+      val pvAgent = TestFSMRef(
+        new ProfileLoadAgent(
+          scheduler = scheduler.ref,
+          initStateData = initStateData,
+          listener = systemListener,
+        )
+      )
+
+      scheduler.send(pvAgent, Activation(INIT_SIM_TICK))
+
+      deathProbe.watch(pvAgent.ref)
+
+      /* Refuse registration with primary service */
+      primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
+      primaryServiceProxy.send(
+        pvAgent,
+        RegistrationFailedMessage(primaryServiceProxy.ref),
+      )
+
+      deathProbe.expectTerminated(pvAgent.ref)
+    }
+  }
+
+  "A load agent with profile model calculation depending on secondary data service" should {
+    val initStateData = ParticipantInitializeStateData[
+      LoadInput,
+      LoadRuntimeConfig,
+      ApparentPower,
+    ](
+      inputModel = voltageSensitiveInput,
+      modelConfig = modelConfig,
+      secondaryDataServices = withServices,
       simulationStartDate = simulationStartDate,
       simulationEndDate = simulationEndDate,
       resolution = resolution,
@@ -163,7 +241,7 @@ class LoadAgentProfileModelCalculationSpec
             ) =>
           inputModel shouldBe SimpleInputContainer(voltageSensitiveInput)
           modelConfig shouldBe modelConfig
-          secondaryDataServices shouldBe services
+          secondaryDataServices shouldBe withServices
           simulationStartDate shouldBe this.simulationStartDate
           simulationEndDate shouldBe this.simulationEndDate
           resolution shouldBe this.resolution
@@ -180,43 +258,81 @@ class LoadAgentProfileModelCalculationSpec
         RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
-      /* Expect a completion notification */
-      scheduler.expectMsg(Completion(loadAgent.toTyped, Some(0)))
+      /* Expect a registration message */
+      loadProfileService.expectMsg(
+        RegisterForLoadProfileService(BdewStandardLoadProfile.H0)
+      )
 
       /* ... as well as corresponding state and state data */
-      loadAgent.stateName shouldBe Idle
+      loadAgent.stateName shouldBe HandleInformation
       loadAgent.stateData match {
-        case ParticipantModelBaseStateData(
-              startDate,
-              endDate,
-              _,
-              services,
-              outputConfig,
-              additionalActivationTicks,
-              foreseenDataTicks,
-              _,
-              voltageValueStore,
-              resultValueStore,
-              requestValueStore,
-              _,
-              _,
-              _,
+        case CollectRegistrationConfirmMessages(
+              ParticipantModelBaseStateData(
+                startDate,
+                endDate,
+                _,
+                services,
+                outputConfig,
+                additionalActivationTicks,
+                foreseenDataTicks,
+                _,
+                voltageValueStore,
+                resultValueStore,
+                requestValueStore,
+                _,
+                _,
+                _,
+              ),
+              awaitRegistrationResponsesFrom,
+              foreseenNextDataTicks,
             ) =>
           /* Base state data */
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
-          services shouldBe Iterable.empty
-          outputConfig shouldBe defaultOutputConfig
-          additionalActivationTicks
-            .corresponds(Seq(900L, 1800L, 2700L, 3600L))(_ == _) shouldBe true
+          services shouldBe Iterable(
+            ActorLoadProfileService(loadProfileService.ref)
+          )
+          outputConfig shouldBe NotifierConfig(
+            simulationResultInfo = false,
+            powerRequestReply = false,
+            flexResult = false,
+          )
+          additionalActivationTicks shouldBe empty
           foreseenDataTicks shouldBe Map.empty
           voltageValueStore shouldBe ValueStore(
             resolution,
             SortedMap(0L -> Each(1.0)),
           )
           resultValueStore shouldBe ValueStore(resolution)
-          requestValueStore shouldBe ValueStore[ApparentPower](
-            resolution
+          requestValueStore shouldBe ValueStore[ApparentPower](resolution)
+
+          /* Additional information */
+          awaitRegistrationResponsesFrom shouldBe Iterable(
+            loadProfileService.ref
+          )
+          foreseenNextDataTicks shouldBe Map.empty
+        case _ =>
+          fail(
+            s"Did not find expected state data $CollectRegistrationConfirmMessages, but ${loadAgent.stateData}"
+          )
+      }
+
+      /* Reply, that registration was successful */
+      loadProfileService.send(
+        loadAgent,
+        RegistrationSuccessfulMessage(loadProfileService.ref, Some(0L)),
+      )
+
+      /* Expect a completion notification */
+      scheduler.expectMsg(Completion(loadAgent.toTyped, Some(0)))
+
+      /* ... as well as corresponding state and state data */
+      loadAgent.stateName shouldBe Idle
+      loadAgent.stateData match {
+        case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
+          /* Only check the awaited next data ticks, as the rest has yet been checked */
+          baseStateData.foreseenDataTicks shouldBe Map(
+            loadProfileService.ref -> Some(0L)
           )
         case _ =>
           fail(
@@ -241,6 +357,15 @@ class LoadAgentProfileModelCalculationSpec
       primaryServiceProxy.send(
         loadAgent,
         RegistrationFailedMessage(primaryServiceProxy.ref),
+      )
+
+      /* Expect a registration message */
+      loadProfileService.expectMsg(
+        RegisterForLoadProfileService(BdewStandardLoadProfile.H0)
+      )
+      loadProfileService.send(
+        loadAgent,
+        RegistrationSuccessfulMessage(loadProfileService.ref, Some(900L)),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -299,19 +424,66 @@ class LoadAgentProfileModelCalculationSpec
         RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
+      /* I'm not interested in the content of the RegistrationMessage */
+      loadProfileService.expectMsgType[RegisterForLoadProfileService]
+      loadProfileService.send(
+        loadAgent,
+        RegistrationSuccessfulMessage(loadProfileService.ref, Some(0L)),
+      )
+
       /* I am not interested in the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(loadAgent.stateName shouldBe Idle)
       /* State data is tested in another test */
 
+      /* Send out an activity start trigger */
       scheduler.send(loadAgent, Activation(0))
+
+      /* Find yourself in appropriate state with state data */
+      loadAgent.stateName shouldBe HandleInformation
+      loadAgent.stateData match {
+        case DataCollectionStateData(
+              baseStateData: ParticipantModelBaseStateData[_, _, _, _],
+              expectedSenders,
+              isYetTriggered,
+            ) =>
+          /* The next data tick is already registered */
+          baseStateData.foreseenDataTicks shouldBe Map(
+            loadProfileService.ref -> Some(0L)
+          )
+
+          /* The yet sent data is also registered */
+          expectedSenders shouldBe Map(loadProfileService.ref -> None)
+
+          /* It is yet triggered */
+          isYetTriggered shouldBe true
+        case _ =>
+          fail(
+            s"Did not find expected state data $DataCollectionStateData, but ${loadAgent.stateData}"
+          )
+      }
+
+      /* Providing the awaited data will lead to the foreseen transitions */
+      val loadProfileData = LoadProfileData(
+        Watts(84d),
+        Watts(268.6d),
+      )
+
+      loadProfileService.send(
+        loadAgent,
+        ProvideLoadProfileValue(
+          0L,
+          loadProfileService.ref,
+          loadProfileData,
+          Some(900L),
+        ),
+      )
 
       /* Expect confirmation */
       scheduler.expectMsg(Completion(loadAgent.toTyped, Some(900)))
 
       /* Intermediate transitions and states cannot be tested, as the agents triggers itself
        * too fast */
-
       awaitAssert(loadAgent.stateName shouldBe Idle)
       inside(loadAgent.stateData) {
         case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
@@ -351,14 +523,58 @@ class LoadAgentProfileModelCalculationSpec
         RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
+      /* I'm not interested in the content of the RegistrationMessage */
+      loadProfileService.expectMsgType[RegisterForLoadProfileService]
+      loadProfileService.send(
+        loadAgent,
+        RegistrationSuccessfulMessage(loadProfileService.ref, Some(0L)),
+      )
+
       scheduler.expectMsg(Completion(loadAgent.toTyped, Some(0)))
+
+      /* Send out the three data points */
+      /* ... for tick 0 */
+      loadProfileService.send(
+        loadAgent,
+        ProvideLoadProfileValue(
+          0L,
+          loadProfileService.ref,
+          LoadProfileData(Watts(84d), Watts(268.6d)),
+          Some(900L),
+        ),
+      )
 
       /* Trigger the data generation in tick 0, 900, 1800 */
       scheduler.send(loadAgent, Activation(0))
       scheduler.expectMsg(Completion(loadAgent.toTyped, Some(900)))
 
+      /* ... for tick 900 */
+      loadProfileService.send(
+        loadAgent,
+        ProvideLoadProfileValue(
+          900L,
+          loadProfileService.ref,
+          LoadProfileData(Watts(75.5d), Watts(268.6d)),
+          Some(1800L),
+        ),
+      )
+
       scheduler.send(loadAgent, Activation(900))
       scheduler.expectMsg(Completion(loadAgent.toTyped, Some(1800)))
+
+      /* ... for tick 1800 */
+      loadProfileService.send(
+        loadAgent,
+        ProvideLoadProfileValue(
+          1800L,
+          loadProfileService.ref,
+          LoadProfileData(Watts(68.2d), Watts(268.6d)),
+          None,
+        ),
+      )
+
+      scheduler.send(loadAgent, Activation(2700))
+      scheduler.expectMsg(Completion(loadAgent.toTyped))
 
       awaitAssert(loadAgent.stateName shouldBe Idle)
 

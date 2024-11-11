@@ -61,7 +61,7 @@ final case class ProfileLoadModel(
   private lazy val energyReferenceScalingFactor =
     reference match {
       case EnergyConsumption(energyConsumption) =>
-        energyConsumption / LoadProfileStore.defaultLoadProfileEnergyScaling
+        energyConsumption / LoadProfileStore.profileScaling(loadProfile)
       case _ =>
         throw new IllegalArgumentException(
           s"Applying energy reference scaling factor for reference mode '$reference' is not supported!"
@@ -86,7 +86,7 @@ final case class ProfileLoadModel(
         val referenceScalingFactor = data.averagePower / data.maxPower
         activePower * referenceScalingFactor
       case _: EnergyConsumption =>
-        /* scale the profiles average power based on the energyConsumption/profileEnergyScaling(=1000kWh/year) ratio  */
+        /* scale the profiles average power based on the energyConsumption/profileEnergyScaling ratio  */
         data.averagePower * energyReferenceScalingFactor
     }
   }

@@ -7,24 +7,36 @@
 package edu.ie3.simona.agent.participant
 
 import org.apache.pekko.actor.ActorRef
-import edu.ie3.datamodel.models.input.system.{EvcsInput, SystemParticipantInput}
+import edu.ie3.datamodel.models.input.system.{
+  EvcsInput,
+  LoadInput,
+  SystemParticipantInput,
+}
+import edu.ie3.datamodel.models.profile.LoadProfile
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
   ActorExtEvDataService,
+  ActorLoadProfileService,
   ActorPriceService,
   ActorWeatherService,
 }
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.agent.ServiceRegistrationException
+import edu.ie3.simona.model.participant.load.{
+  LoadModel,
+  ProfileLoadModel,
+  RandomLoadModel,
+}
 import edu.ie3.simona.model.participant.{
   CalcRelevantData,
   ModelState,
   SystemParticipant,
 }
 import edu.ie3.simona.ontology.messages.services.EvMessage.RegisterForEvDataMessage
+import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.RegisterForLoadProfileService
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
 
 trait ServiceRegistration[
@@ -74,19 +86,46 @@ trait ServiceRegistration[
       serviceDefinition: SecondaryDataService[S],
       inputModel: I,
   ): Option[ActorRef] = serviceDefinition match {
-    case SecondaryDataService.ActorPriceService(_) =>
+    case ActorPriceService(_) =>
       log.debug(
         s"Attempt to register for {}. This is currently not supported.",
         ActorPriceService,
       )
       None
+    case ActorLoadProfileService(serviceRef) =>
+      registerForLoadProfile(serviceRef, inputModel)
+      Some(serviceRef)
     case ActorWeatherService(serviceRef) =>
       registerForWeather(serviceRef, inputModel)
       Some(serviceRef)
     case ActorExtEvDataService(serviceRef) =>
       registerForEvData(serviceRef, inputModel)
       Some(serviceRef)
+    case service: SecondaryDataService[S] =>
+      log.debug(
+        s"Attempt to register for {}. This is currently not supported.",
+        service,
+      )
+      None
   }
+
+  /** Register for the load profile service
+    *
+    * @param actorRef
+    *   Actor reference of the weather service
+    * @param inputModel
+    *   Input model of the simulation mode
+    * @return
+    */
+  private def registerForLoadProfile(actorRef: ActorRef, inputModel: I): Unit =
+    inputModel match {
+      case load: LoadInput =>
+        actorRef ! RegisterForLoadProfileService(load.getLoadProfile)
+      case other =>
+        throw new ServiceRegistrationException(
+          s"Cannot register for load profile information for model $other, because only profile and random load model can register for this."
+        )
+    }
 
   /** Register for the weather service
     *

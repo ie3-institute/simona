@@ -7,6 +7,7 @@
 package edu.ie3.simona.model.participant.load
 
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.service.load.LoadProfileStore
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.LoadInputTestData
 import org.scalatest.PrivateMethodTester
@@ -22,6 +23,9 @@ class LoadModelSpec
   private implicit val powerTolerance: Power = Watts(1e-3)
 
   "The load model object" should {
+
+    // necessary to init and load psdm build in profiles
+    val loadProfileStore = LoadProfileStore()
 
     "build a correct ProfileLoadModel from correct input" in {
 
