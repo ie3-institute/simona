@@ -42,7 +42,7 @@ package simona-api {
 
     interface ExtDataSimulation
 
-    ExtEvSimulation --|> ExtDataSimulation
+    ExtEvSimulation --u|> ExtDataSimulation
 
     interface EvModel {
             + UUID getUuid()
@@ -91,7 +91,7 @@ package simona-api {
     RequestCurrentPrices --u|> EvDataMessageFromExt
 
     DataMessageFromExt --d|> EvDataMessageFromExt
-    ExtEvData --r[norank]> EvDataMessageFromExt
+    ExtEvData -----> EvDataMessageFromExt
     ExtEvData --u|> ExtData
     ExtEvSimulation -u> ExtEvData
 
@@ -101,22 +101,22 @@ package simona-api {
         interface EvDataResponseMessageToExt
 
         class ProvideCurrentPrices{
-            + ProvideCurrentPrices()
+            + Map<UUID, Double> prices
         }
 
         class ProvideDepartingEvs{
-            + ProvideDepartingEvs()
+            + List<EvModel> departedEvs
         }
 
         class ProvideEvcsFreeLots{
-             + ProvideEvcsFreeLots()
+             + Map<UUID, Integer> evcs
         }
 
          ProvideEvcsFreeLots --|> EvDataResponseMessageToExt
          ProvideDepartingEvs --|> EvDataResponseMessageToExt
          ProvideCurrentPrices --|> EvDataResponseMessageToExt
          ExtEvData --> EvDataResponseMessageToExt
-         DataResponseMessageToExt --|> EvDataResponseMessageToExt
+         EvDataResponseMessageToExt  --|> DataResponseMessageToExt
     }
 
     node sub3 {
@@ -154,9 +154,22 @@ package simona {
     class EvcsAgent
 
     interface SecondaryData
-    class EvMovementData {
-        movements: Set[EvMovement]
+
+    class ArrivingEvs{
+        + arrivals Seq[EvModelWrapper]
     }
+
+    class DepartingEvsRequest{
+        + evcs UUID
+        + evModels Seq[EvModelWrapper]
+    }
+
+    class EvFreeLotsRequest{
+        + evcs: UUID,
+        + freeLots: Int,
+    }
+
+    abstract EvData
 
     class SimonaSim
 
@@ -177,7 +190,10 @@ package simona {
     ExtSimAdapter - Scheduler
     ExtEvDataService -- Scheduler
 
-    SecondaryData <|-- EvMovementData
+    ArrivingEvs --u|> EvData
+    EvFreeLotsRequest --u|> EvData
+    DepartingEvsRequest --u|> EvData
+    SecondaryData <|-- EvData
 
     SimonaService <|- ExtEvDataService
     ExtEvData --- ExtEvDataService
@@ -197,6 +213,6 @@ sub1 ---[hidden]d> sub2
 ExtLink -[hidden]> ElectricVehicle
 ExtSimulation -[hidden]> ExtEvSimulation
 ExtSimulation -[hidden]> DataResponseMessageToExt
-RequestDepartingEvs --[hidden]> SecondaryData
+ProvideArrivingEvs --[hidden]> ExtSimAdapter
 
 @enduml
