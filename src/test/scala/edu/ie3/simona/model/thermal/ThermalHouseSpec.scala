@@ -42,43 +42,15 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
         (23d, true, false),
       )
 
-      testCases.foreach { case (innerTemperature, isTooHigh, isTooLow) =>
-        val innerTemp = Temperature(innerTemperature, Celsius)
-        val isHigher = thermalHouseTest.isInnerTemperatureTooHigh(innerTemp)
-        val isLower = thermalHouseTest.isInnerTemperatureTooLow(innerTemp)
+      forAll(testCases) {
+        (innerTemperature: Double, isTooHigh: Boolean, isTooLow: Boolean) =>
+          val innerTemp = Temperature(innerTemperature, Celsius)
+          val isHigher = thermalHouseTest.isInnerTemperatureTooHigh(innerTemp)
+          val isLower = thermalHouseTest.isInnerTemperatureTooLow(innerTemp)
 
-        isHigher shouldBe isTooHigh
-        isLower shouldBe isTooLow
+          isHigher shouldBe isTooHigh
+          isLower shouldBe isTooLow
       }
-    }
-
-    "Calculation of thermal energy change and new inner temperature is performed correctly" in {
-      val thermalHouseTest = thermalHouse(18, 22)
-      val innerTemperature = Temperature(20, Celsius)
-
-      val thermalEnergyGain =
-        thermalHouseTest.calcThermalEnergyGain(Kilowatts(100), Seconds(3600))
-      val thermalEnergyLoss = thermalHouseTest.calcThermalEnergyLoss(
-        innerTemperature,
-        Temperature(10, Celsius),
-        Seconds(3600),
-      )
-      val thermalEnergyChange = thermalHouseTest.calcThermalEnergyChange(
-        thermalEnergyGain,
-        thermalEnergyLoss,
-      )
-      val innerTemperatureChange =
-        thermalHouseTest.calcInnerTemperatureChange(thermalEnergyChange)
-      val newInnerTemperature = thermalHouseTest.calcNewInnerTemperature(
-        innerTemperature,
-        innerTemperatureChange,
-      )
-
-      thermalEnergyGain should approximate(KilowattHours(100))
-      thermalEnergyLoss should approximate(KilowattHours(10))
-      thermalEnergyChange should approximate(KilowattHours(90))
-      innerTemperatureChange should approximate(Kelvin(9.0))
-      newInnerTemperature should approximate(Celsius(29.0))
     }
 
     "Comprising function to calculate new inner temperature works as expected" in {

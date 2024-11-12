@@ -33,7 +33,7 @@ final class ThermalConductance private (
     *   Time duration
     * @return
     */
-  def thermalConductanceToEnergy(
+  def calcThermalEnergyChange(
       temperatureInner: Temperature,
       temperatureOuter: Temperature,
       time: squants.Time,

@@ -25,12 +25,12 @@ ext {
   javaVersion = JavaVersion.VERSION_17
 
   scalaVersion = '2.13'
-  scalaBinaryVersion = '2.13.14'
-  pekkoVersion = '1.0.3'
+  scalaBinaryVersion = '2.13.15'
+  pekkoVersion = '1.1.2'
   jtsVersion = '1.20.0'
   confluentKafkaVersion = '7.4.0'
   tscfgVersion = '1.1.3'
-  scapegoatVersion = '3.0.0'
+  scapegoatVersion = '3.1.2'
 
   testContainerVersion = '0.41.4'
 
@@ -98,12 +98,12 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.5" // pekko scala logging
-  implementation "ch.qos.logback:logback-classic:1.5.7"
+  implementation "ch.qos.logback:logback-classic:1.5.12"
 
   /* testing */
   testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
   testImplementation 'org.scalatestplus:mockito-3-4_2.13:3.2.10.0'
-  testImplementation 'org.mockito:mockito-core:5.13.0' // mocking framework
+  testImplementation 'org.mockito:mockito-core:5.14.2' // mocking framework
   testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.19"
   testRuntimeOnly 'com.vladsch.flexmark:flexmark-all:0.64.8' //scalatest html output
   testImplementation group: 'org.pegdown', name: 'pegdown', version: '1.6.0'
@@ -149,7 +149,7 @@ dependencies {
   implementation 'javax.measure:unit-api:2.2'
   implementation 'tech.units:indriya:2.2' // quantities
   implementation "org.typelevel:squants_${scalaVersion}:1.8.3"
-  implementation 'org.apache.commons:commons-csv:1.11.0'
+  implementation 'org.apache.commons:commons-csv:1.12.0'
   implementation 'org.scalanlp:breeze_2.13:2.1.0' // scientific calculations (http://www.scalanlp.org/)
   implementation 'de.lmu.ifi.dbs.elki:elki:0.7.5' // Statistics (for random load model)
   implementation 'org.jgrapht:jgrapht-core:1.5.2'

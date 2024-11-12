@@ -2187,6 +2187,7 @@ object SimonaConfig {
       )
       object Sink {
         final case class Csv(
+            compressOutputs: scala.Boolean,
             fileFormat: java.lang.String,
             filePrefix: java.lang.String,
             fileSuffix: java.lang.String,
@@ -2199,6 +2200,10 @@ object SimonaConfig {
               $tsCfgValidator: $TsCfgValidator,
           ): SimonaConfig.Simona.Output.Sink.Csv = {
             SimonaConfig.Simona.Output.Sink.Csv(
+              compressOutputs =
+                c.hasPathOrNull("compressOutputs") && c.getBoolean(
+                  "compressOutputs"
+                ),
               fileFormat =
                 if (c.hasPathOrNull("fileFormat")) c.getString("fileFormat")
                 else ".csv",

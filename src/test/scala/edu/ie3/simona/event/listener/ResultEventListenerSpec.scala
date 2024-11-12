@@ -20,6 +20,7 @@ import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent,
   PowerFlowResultEvent,
 }
+import edu.ie3.simona.io.result.ResultSinkType.Csv
 import edu.ie3.simona.io.result.{ResultEntitySink, ResultSinkType}
 import edu.ie3.simona.test.common.result.PowerFlowResultData
 import edu.ie3.simona.test.common.{IOTestCommons, UnitSpec}
@@ -71,16 +72,21 @@ class ResultEventListenerSpec
       runId: Int,
       fileFormat: String,
       classes: Set[Class[_ <: ResultEntity]] = resultEntitiesToBeWritten,
-  ): ResultFileHierarchy =
+      compressResults: Boolean = false,
+  ): ResultFileHierarchy = {
+    val resultSinkType: ResultSinkType =
+      Csv(fileFormat, "", "", compressResults)
+
     ResultFileHierarchy(
       outputDir = testTmpDir + File.separator + runId,
       simulationName,
       ResultEntityPathConfig(
         classes,
-        ResultSinkType.Csv(fileFormat = fileFormat),
+        resultSinkType,
       ),
       createDirs = true,
     )
+  }
 
   def createDir(
       resultFileHierarchy: ResultFileHierarchy
@@ -367,7 +373,8 @@ class ResultEventListenerSpec
 
     "shutting down" should {
       "shutdown and compress the data when requested to do so without any errors" in {
-        val specificOutputFileHierarchy = resultFileHierarchy(6, ".csv.gz")
+        val specificOutputFileHierarchy =
+          resultFileHierarchy(6, ".csv.gz", compressResults = true)
         val listenerRef = spawn(
           ResultEventListener(
             specificOutputFileHierarchy
