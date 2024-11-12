@@ -22,7 +22,7 @@ package simona-api {
         + void setup(ExtSimAdapterData data, List<ExtData> adapters)
         + void run()
         # {abstract} Optional<Long> doActivity(long tick)
-        # {abstract} Long intitialize()
+        # {abstract} Long initialize()
     }
     ExtSimulation --r> ExtData
     MobilitySim -|> ExtSimulation
@@ -71,7 +71,7 @@ package simona-api {
             + void queueExtResponseMsg(EvDataResponseMessageToExt extEvResponse)
     }
 
-    node sub2{
+    node sub2 {
         interface EvDataMessageFromExt
 
         interface DataMessageFromExt
@@ -95,20 +95,20 @@ package simona-api {
     ExtEvData --u|> ExtData
     ExtEvSimulation -u> ExtEvData
 
-    node sub1{
+    node sub1 {
         interface DataResponseMessageToExt
 
         interface EvDataResponseMessageToExt
 
-        class ProvideCurrentPrices{
+        class ProvideCurrentPrices {
             + Map<UUID, Double> prices
         }
 
-        class ProvideDepartingEvs{
+        class ProvideDepartingEvs {
             + List<EvModel> departedEvs
         }
 
-        class ProvideEvcsFreeLots{
+        class ProvideEvcsFreeLots {
              + Map<UUID, Integer> evcs
         }
 
@@ -116,7 +116,7 @@ package simona-api {
          ProvideDepartingEvs --|> EvDataResponseMessageToExt
          ProvideCurrentPrices --|> EvDataResponseMessageToExt
          ExtEvData --> EvDataResponseMessageToExt
-         EvDataResponseMessageToExt  --|> DataResponseMessageToExt
+         EvDataResponseMessageToExt --|> DataResponseMessageToExt
     }
 
     node sub3 {
@@ -155,18 +155,17 @@ package simona {
 
     interface SecondaryData
 
-    class ArrivingEvs{
-        + arrivals Seq[EvModelWrapper]
+    class ArrivingEvs {
+        + arrivals: Seq[EvModelWrapper]
     }
 
-    class DepartingEvsRequest{
-        + evcs UUID
-        + evModels Seq[EvModelWrapper]
+    class DepartingEvsRequest {
+        + evcs: UUID
+        + departingEvs: Seq[EvModelWrapper]
     }
 
-    class EvFreeLotsRequest{
-        + evcs: UUID,
-        + freeLots: Int,
+    class EvFreeLotsRequest {
+        + freeLots: Int
     }
 
     abstract EvData
