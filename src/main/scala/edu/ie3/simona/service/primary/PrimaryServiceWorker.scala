@@ -20,6 +20,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.RichValue
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
+import edu.ie3.simona.exceptions.agent.ServiceRegistrationException
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.service.ServiceStateData.{
@@ -131,10 +132,10 @@ final case class PrimaryServiceWorker[V <: Value](
             s"Provided init data '${unsupported.getClass.getSimpleName}' for primary service are invalid!"
           )
         )
-    }).map { case (source, simulationStart) =>
+    }).flatMap { case (source, simulationStart) =>
       implicit val startDateTime: ZonedDateTime = simulationStart
 
-      val (maybeNextTick, furtherActivationTicks) = SortedDistinctSeq(
+      val foundTicks = SortedDistinctSeq(
         // Note: The whole data set is used here, which might be inefficient depending on the source implementation.
         source.getTimeSeries.getEntries.asScala
           .filter { timeBasedValue =>
@@ -146,17 +147,27 @@ final case class PrimaryServiceWorker[V <: Value](
           .map(timeBasedValue => timeBasedValue.getTime.toTick)
           .toSeq
           .sorted
-      ).pop
+      )
 
-      /* Set up the state data and determine the next activation tick. */
-      val initializedStateData =
-        PrimaryServiceInitializedStateData(
-          maybeNextTick,
-          furtherActivationTicks,
-          simulationStart,
-          source,
+      if (foundTicks.nonEmpty) {
+        val (maybeNextTick, furtherActivationTicks) = foundTicks.pop
+
+        /* Set up the state data and determine the next activation tick. */
+        val initializedStateData =
+          PrimaryServiceInitializedStateData(
+            maybeNextTick,
+            furtherActivationTicks,
+            simulationStart,
+            source,
+          )
+
+        Success(initializedStateData, maybeNextTick)
+      } else
+        Failure(
+          new ServiceRegistrationException(
+            s"No future data found for timeseries ${source.getTimeSeries.getUuid}!"
+          )
         )
-      (initializedStateData, maybeNextTick)
     }
   }
 
