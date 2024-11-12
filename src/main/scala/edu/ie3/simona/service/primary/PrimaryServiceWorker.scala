@@ -164,7 +164,7 @@ final case class PrimaryServiceWorker[V <: Value](
       } else
         Failure(
           new ServiceRegistrationException(
-            s"No future data found for timeseries ${source.getTimeSeries.getUuid}!"
+            s"No appropriate data found within simulation time range in timeseries ${source.getTimeSeries.getUuid}!"
           )
         )
     }
