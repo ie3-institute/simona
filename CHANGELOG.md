@@ -94,7 +94,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replace mutable var in ChpModelSpec [#1002](https://github.com/ie3-institute/simona/issues/1002)
 - Move compression of output files into `ResultEventListener`[#965](https://github.com/ie3-institute/simona/issues/965)
 - Rewrote StorageModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
- 
+- Changed implementation of actor naming for unique name generation [#103](https://github.com/ie3-institute/simona/issues/103)
+
 ### Fixed
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
 - Removed version number "2.0" from the logo printed to console [#642](https://github.com/ie3-institute/simona/issues/642)
@@ -127,6 +128,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix CheckWindow duration [#921](https://github.com/ie3-institute/simona/issues/921)
 - Fixed ThermalStorageResults having multiple entries [#924](https://github.com/ie3-institute/simona/issues/924)
 - Fix filter for thermal result checking for lastTick not for currentTick [#1008](https://github.com/ie3-institute/simona/issues/1008)
+- Fixed `CHANGELOG` entry for issue ([#103](https://github.com/ie3-institute/simona/issues/103)) [#941](https://github.com/ie3-institute/simona/issues/941)
 
 ## [3.0.0] - 2023-08-07
 
@@ -189,7 +191,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed format of example grid `vn_simona` [#216](https://github.com/ie3-institute/simona/issues/216)
 - Renamed ChpData to ChpRelevantData [#494](https://github.com/ie3-institute/simona/issues/494)
 - Updated gradle to 8.2.1, cleaned up `build.gradle` and `Jenkinsfile` [#572](https://github.com/ie3-institute/simona/issues/572)
-- Changed implementation of actor naming for unique name generation [#103](https://github.com/ie3-institute/simona/issues/103)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)
