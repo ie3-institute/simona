@@ -135,7 +135,7 @@ final case class PrimaryServiceWorker[V <: Value](
     }).flatMap { case (source, simulationStart) =>
       implicit val startDateTime: ZonedDateTime = simulationStart
 
-      val foundTicks = SortedDistinctSeq(
+      val (maybeNextTick, furtherActivationTicks) = SortedDistinctSeq(
         // Note: The whole data set is used here, which might be inefficient depending on the source implementation.
         source.getTimeSeries.getEntries.asScala
           .filter { timeBasedValue =>
@@ -147,10 +147,9 @@ final case class PrimaryServiceWorker[V <: Value](
           .map(timeBasedValue => timeBasedValue.getTime.toTick)
           .toSeq
           .sorted
-      )
+      ).pop
 
-      if (foundTicks.nonEmpty) {
-        val (maybeNextTick, furtherActivationTicks) = foundTicks.pop
+      if (maybeNextTick.nonEmpty) {
 
         /* Set up the state data and determine the next activation tick. */
         val initializedStateData =
