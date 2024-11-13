@@ -7,6 +7,7 @@
 package edu.ie3.simona.config
 
 import SimonaConfig._
+import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 
 import scala.concurrent.duration.{Duration, DurationInt}
 import pureconfig._
@@ -87,47 +88,47 @@ object SimonaConfig {
   }
 
   case class TimeConfig(
-                         // TODO: remove  date time defaults ?
-                         startDateTime: String = "2011-05-01 00:00:00",
-                         endDateTime: String = "2011-05-01 01:00:00",
-                         stopOnFailedPowerFlow: Boolean = false,
-                         schedulerReadyCheckWindow: Option[Int] = None,
-                       )
+      // TODO: remove  date time defaults ?
+      startDateTime: String = "2011-05-01 00:00:00",
+      endDateTime: String = "2011-05-01 01:00:00",
+      stopOnFailedPowerFlow: Boolean = false,
+      schedulerReadyCheckWindow: Option[Int] = None,
+  )
 
   final case class PowerFlowConfig(
-                                    maxSweepPowerDeviation: Double,
-                                    sweepTimeOut: Duration = 30.second,
-                                    newtonraphson: NewtonRaphsonConfig,
-                                    resolution: Duration = 1.hour,
-                                  )
+      maxSweepPowerDeviation: Double,
+      sweepTimeOut: Duration = 30.second,
+      newtonraphson: NewtonRaphsonConfig,
+      resolution: Duration = 1.hour,
+  )
 
   final case class NewtonRaphsonConfig(
-                                        epsilon: Seq[Double],
-                                        iterations: Int,
-                                      )
+      epsilon: Seq[Double],
+      iterations: Int,
+  )
 
   final case class GridConfig(
-                               refSystems: Seq[RefSystemConfig]
-                             )
+      refSystems: Seq[RefSystemConfig]
+  )
 
   final case class RefSystemConfig(
-                                    sNom: String,
-                                    vNom: String,
-                                    voltLvls: Option[Seq[VoltLvlConfig]],
-                                    gridIds: Option[Seq[String]],
-                                  )
+      sNom: String,
+      vNom: String,
+      voltLvls: Option[Seq[VoltLvlConfig]],
+      gridIds: Option[Seq[String]],
+  )
 
   final case class SimpleOutputConfig(
-                                       override val notifier: java.lang.String,
-                                       override val simulationResult: scala.Boolean,
-                                     ) extends BaseOutputConfig(notifier, simulationResult)
+      override val notifier: java.lang.String,
+      override val simulationResult: scala.Boolean,
+  ) extends BaseOutputConfig(notifier, simulationResult)
 
   object SimpleOutputConfig {
     def apply(
-               c: com.typesafe.config.Config,
-               parentPath: java.lang.String,
-               $tsCfgValidator: $TsCfgValidator,
-             ): SimonaConfig.SimpleOutputConfig = {
+        c: com.typesafe.config.Config,
+        parentPath: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator,
+    ): SimonaConfig.SimpleOutputConfig = {
       SimonaConfig.SimpleOutputConfig(
         notifier = $_reqStr(parentPath, c, "notifier", $tsCfgValidator),
         simulationResult =
@@ -136,11 +137,11 @@ object SimonaConfig {
     }
 
     private def $_reqBln(
-                          parentPath: java.lang.String,
-                          c: com.typesafe.config.Config,
-                          path: java.lang.String,
-                          $tsCfgValidator: $TsCfgValidator,
-                        ): scala.Boolean = {
+        parentPath: java.lang.String,
+        c: com.typesafe.config.Config,
+        path: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator,
+    ): scala.Boolean = {
       if (c == null) false
       else
         try c.getBoolean(path)
@@ -152,11 +153,11 @@ object SimonaConfig {
     }
 
     private def $_reqStr(
-                          parentPath: java.lang.String,
-                          c: com.typesafe.config.Config,
-                          path: java.lang.String,
-                          $tsCfgValidator: $TsCfgValidator,
-                        ): java.lang.String = {
+        parentPath: java.lang.String,
+        c: com.typesafe.config.Config,
+        path: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator,
+    ): java.lang.String = {
       if (c == null) null
       else
         try c.getString(path)
@@ -170,23 +171,23 @@ object SimonaConfig {
   }
 
   final case class StorageRuntimeConfig(
-                                         override val calculateMissingReactivePowerWithModel: scala.Boolean,
-                                         override val scaling: scala.Double,
-                                         override val uuids: scala.List[java.lang.String],
-                                         initialSoc: scala.Double,
-                                         targetSoc: scala.Option[scala.Double],
-                                       ) extends BaseRuntimeConfig(
-    calculateMissingReactivePowerWithModel,
-    scaling,
-    uuids,
-  )
+      override val calculateMissingReactivePowerWithModel: scala.Boolean,
+      override val scaling: scala.Double,
+      override val uuids: scala.List[java.lang.String],
+      initialSoc: scala.Double,
+      targetSoc: scala.Option[scala.Double],
+  ) extends BaseRuntimeConfig(
+        calculateMissingReactivePowerWithModel,
+        scaling,
+        uuids,
+      )
 
   object StorageRuntimeConfig {
     def apply(
-               c: com.typesafe.config.Config,
-               parentPath: java.lang.String,
-               $tsCfgValidator: $TsCfgValidator,
-             ): SimonaConfig.StorageRuntimeConfig = {
+        c: com.typesafe.config.Config,
+        parentPath: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator,
+    ): SimonaConfig.StorageRuntimeConfig = {
       SimonaConfig.StorageRuntimeConfig(
         initialSoc =
           if (c.hasPathOrNull("initialSoc")) c.getDouble("initialSoc") else 0,
@@ -205,11 +206,11 @@ object SimonaConfig {
     }
 
     private def $_reqBln(
-                          parentPath: java.lang.String,
-                          c: com.typesafe.config.Config,
-                          path: java.lang.String,
-                          $tsCfgValidator: $TsCfgValidator,
-                        ): scala.Boolean = {
+        parentPath: java.lang.String,
+        c: com.typesafe.config.Config,
+        path: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator,
+    ): scala.Boolean = {
       if (c == null) false
       else
         try c.getBoolean(path)
@@ -221,11 +222,11 @@ object SimonaConfig {
     }
 
     private def $_reqDbl(
-                          parentPath: java.lang.String,
-                          c: com.typesafe.config.Config,
-                          path: java.lang.String,
-                          $tsCfgValidator: $TsCfgValidator,
-                        ): scala.Double = {
+        parentPath: java.lang.String,
+        c: com.typesafe.config.Config,
+        path: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator,
+    ): scala.Double = {
       if (c == null) 0
       else
         try c.getDouble(path)
@@ -239,18 +240,18 @@ object SimonaConfig {
   }
 
   final case class TransformerControlGroup(
-                                            measurements: scala.List[java.lang.String],
-                                            transformers: scala.List[java.lang.String],
-                                            vMax: scala.Double,
-                                            vMin: scala.Double,
-                                          )
+      measurements: scala.List[java.lang.String],
+      transformers: scala.List[java.lang.String],
+      vMax: scala.Double,
+      vMin: scala.Double,
+  )
 
   object TransformerControlGroup {
     def apply(
-               c: com.typesafe.config.Config,
-               parentPath: java.lang.String,
-               $tsCfgValidator: $TsCfgValidator,
-             ): SimonaConfig.TransformerControlGroup = {
+        c: com.typesafe.config.Config,
+        parentPath: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator,
+    ): SimonaConfig.TransformerControlGroup = {
       SimonaConfig.TransformerControlGroup(
         measurements =
           $_L$_str(c.getList("measurements"), parentPath, $tsCfgValidator),
@@ -262,11 +263,11 @@ object SimonaConfig {
     }
 
     private def $_reqDbl(
-                          parentPath: java.lang.String,
-                          c: com.typesafe.config.Config,
-                          path: java.lang.String,
-                          $tsCfgValidator: $TsCfgValidator,
-                        ): scala.Double = {
+        parentPath: java.lang.String,
+        c: com.typesafe.config.Config,
+        path: java.lang.String,
+        $tsCfgValidator: $TsCfgValidator,
+    ): scala.Double = {
       if (c == null) 0
       else
         try c.getDouble(path)
@@ -280,32 +281,31 @@ object SimonaConfig {
   }
 
   final case class VoltLvlConfig(
-                                  id: String,
-                                  vNom: String,
-                                )
+      id: String,
+      vNom: String,
+  )
 
   final case class EventConfig(
-                                listener: Option[Seq[EventListenerConfig]]
-                              )
+      listener: Option[Seq[EventListenerConfig]]
+  )
 
   final case class EventListenerConfig(
-                                        fullClassPath: String,
-                                        eventsToProcess: Seq[String],
-                                      )
+      fullClassPath: String,
+      eventsToProcess: Seq[String],
+  )
 
   case class Simona()
 
   case class ParticipantBaseOutputConfig(
-                                          notifier: String,
-                                          powerRequestReply: Boolean,
-                                          simulationResult: Boolean,
-                                          flexResult: Boolean,
-                                        )
+      notifier: String,
+      powerRequestReply: Boolean,
+      simulationResult: Boolean,
+      flexResult: Boolean,
+  )
 
-  case class BaseRuntimeConfig()
 
-  case class EvcsRuntimeConfig()
+
+
+
 
 }
-
-

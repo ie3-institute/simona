@@ -25,6 +25,7 @@ import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData._
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
+import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.{FlexOptionsResultEvent, ParticipantResultEvent}
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
@@ -102,10 +103,6 @@ class EvcsAgentModelCalculationSpec
   private implicit val powerTolerance: Power = Watts(0.1)
   private implicit val energyTolerance: Energy = WattHours(0.1)
   private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
-
-  /*fixme mh resolution in dev:
-  private val resolution = 3600L
-   */
   private val resolution = simonaConfig.powerflow.resolution.toSeconds
 
   "An evcs agent with model calculation depending on no secondary data service" should {

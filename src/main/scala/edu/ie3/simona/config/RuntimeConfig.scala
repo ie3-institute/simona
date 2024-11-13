@@ -10,8 +10,6 @@ import edu.ie3.simona.config.IoConfigUtils.RuntimeKafkaParams
 import edu.ie3.simona.config.RuntimeConfig._
 import edu.ie3.simona.config.SimonaConfig._
 
-import scala.collection.immutable.Seq
-
 final case class RuntimeConfig(
     selectedSubgrids: Option[Seq[Int]],
     selectedVoltLvls: Option[Seq[VoltLvlConfig]],
@@ -69,4 +67,19 @@ object RuntimeConfig {
       reference: String,
   ) extends BaseRuntimeConfig
 
+  final case class EvcsRuntimeConfig(
+      uuids: Seq[String],
+      scaling: Double,
+      calculateMissingReactivePowerWithModel: Boolean,
+      chargingStrategy: String,
+      lowestEvSoc: Double,
+  ) extends BaseRuntimeConfig
+
+  final case class EmRuntimeConfig(
+      uuids: Seq[String],
+      scaling: Double,
+      calculateMissingReactivePowerWithModel: Boolean,
+      curtailRegenerative: Boolean,
+      aggregateFlex: String,
+  ) extends BaseRuntimeConfig
 }

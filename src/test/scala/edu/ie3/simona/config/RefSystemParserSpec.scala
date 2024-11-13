@@ -199,9 +199,6 @@ class RefSystemParserSpec extends UnitSpec {
       intercept[InvalidConfigParameterException] {
         RefSystemParser.parse(validRefSystems)
       }.getMessage startsWith "Unknown gridId format asd provided for refSystem"
-      /*fixme mh
-      }.getMessage shouldBe "Unknown gridId format asd provided for refSystem RefSystemConfig(Some(List(asd)),100 MVA,10 kV,Some(List(VoltLvlConfig(MV,10 kV), VoltLvlConfig(MV,20 kV))))"
-       */
     }
 
   }

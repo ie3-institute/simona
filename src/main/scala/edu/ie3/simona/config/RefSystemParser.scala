@@ -6,7 +6,10 @@
 
 package edu.ie3.simona.config
 
-import edu.ie3.datamodel.models.voltagelevels.{GermanVoltageLevelUtils, VoltageLevel}
+import edu.ie3.datamodel.models.voltagelevels.{
+  GermanVoltageLevelUtils,
+  VoltageLevel,
+}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.util.CollectionUtils

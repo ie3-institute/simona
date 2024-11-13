@@ -130,7 +130,7 @@ object ParticipantStateData {
 
     def apply[
         I <: SystemParticipantInput,
-        C <: SimonaConfig.BaseRuntimeConfig,
+        C <: BaseRuntimeConfig,
         PD <: PrimaryData,
     ](
         inputModel: I,
@@ -159,7 +159,7 @@ object ParticipantStateData {
       )
     def apply[
         I <: SystemParticipantInput,
-        C <: SimonaConfig.BaseRuntimeConfig,
+        C <: BaseRuntimeConfig,
         PD <: PrimaryData,
     ](
         inputModel: I,
@@ -190,7 +190,7 @@ object ParticipantStateData {
 
     def apply[
         I <: SystemParticipantInput,
-        C <: SimonaConfig.BaseRuntimeConfig,
+        C <: BaseRuntimeConfig,
         PD <: PrimaryData,
     ](
         inputModel: I,
@@ -221,7 +221,7 @@ object ParticipantStateData {
 
     def apply[
         I <: SystemParticipantInput,
-        C <: SimonaConfig.BaseRuntimeConfig,
+        C <: BaseRuntimeConfig,
         PD <: PrimaryData,
     ](
         inputModel: I,

@@ -7,19 +7,11 @@
 package edu.ie3.simona.config
 
 import com.typesafe.config.ConfigFactory
-import edu.ie3.simona.config.IoConfigUtils.{
-  BaseCsvParams,
-  InfluxDb1xParams,
-  PsdmCsvParams,
-  ResultKafkaParams,
-}
+import edu.ie3.simona.config.InputConfig.{WeatherDataSourceConfig, WeatherSampleParams}
+import edu.ie3.simona.config.IoConfigUtils.{BaseCsvParams, InfluxDb1xParams, PsdmCsvParams, ResultKafkaParams}
 import edu.ie3.simona.config.OutputConfig.{OutputCsvParams, OutputSinkConfig}
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
-import edu.ie3.simona.config.SimonaConfig.{
-  NewtonRaphsonConfig,
-  PowerFlowConfig,
-  TimeConfig,
-}
+import edu.ie3.simona.config.SimonaConfig.{NewtonRaphsonConfig, PowerFlowConfig, TimeConfig}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.util.TimeUtil
@@ -1000,11 +992,6 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         )
 
         "detects invalid weather data scheme" in {
-          intercept[InvalidConfigParameterException] {
-            ConfigFailFast invokePrivate checkWeatherDataSource(
-              weatherDataSource.copy(scheme = "this won't work")
-              /*fixme mh commit
-        "detects invalid weather data scheme" in {
           val weatherDataSource =
             WeatherDataSourceConfig(
               "this won't work",
@@ -1026,8 +1013,10 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 ),
                 None,
               )
-
-               */
+            )
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkWeatherDataSource(
+              weatherDataSource
             )
           }.getMessage shouldBe "The weather data scheme 'this won't work' is not supported. " +
             "Supported schemes:\n\ticon\n\tcosmo"
