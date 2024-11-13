@@ -11,7 +11,12 @@ import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 
 import scala.concurrent.duration.{Duration, DurationInt}
 import pureconfig._
-import pureconfig.error.{CannotParse, CannotRead, ConvertFailure, ThrowableFailure}
+import pureconfig.error.{
+  CannotParse,
+  CannotRead,
+  ConvertFailure,
+  ThrowableFailure,
+}
 import pureconfig.generic.ProductHint
 import pureconfig.generic.auto._
 import tscfg.codeDefs.resources.ScalaDefs.$TsCfgValidator
@@ -302,10 +307,5 @@ object SimonaConfig {
       simulationResult: Boolean,
       flexResult: Boolean,
   )
-
-
-
-
-
 
 }
