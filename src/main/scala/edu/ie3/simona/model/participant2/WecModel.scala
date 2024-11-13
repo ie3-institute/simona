@@ -37,6 +37,7 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATT, PU}
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.Scope
 import squants._
 import squants.energy.{Kilowatts, Watts}
 import squants.mass.{Kilograms, KilogramsPerCubicMeter}
@@ -92,12 +93,26 @@ class WecModel private (
       */
     val cubedVelocity = v * v * v
 
-    // Combined, we get (kg * m²)/s³, which is Watts
-    val power = Watts(
-      cubedVelocity * 0.5 * betzCoefficient.toEach * airDensity * rotorArea.toSquareMeters
-    )
+    val activePower = Scope(
+      // Combined, we get (kg * m²)/s³, which is Watts
+      Watts(
+        cubedVelocity * 0.5 * betzCoefficient.toEach * airDensity * rotorArea.toSquareMeters
+      )
+    ).map { power =>
+      if (power > pRated) {
+        logger.warn(
+          "The fed in active power is higher than the estimated maximum active power of this plant ({} > {}). " +
+            "Did you provide wrong weather input data?",
+          power,
+          pRated,
+        )
+        pRated
+      } else
+        power
+    }.map(_ * -1)
+      .get
 
-    (ActivePowerOperatingPoint(power), None)
+    (ActivePowerOperatingPoint(activePower), None)
   }
 
   /** The coefficient is dependent on the wind velocity v. Therefore use v to

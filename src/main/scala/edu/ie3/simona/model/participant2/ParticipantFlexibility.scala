@@ -31,7 +31,7 @@ trait ParticipantFlexibility[
   def handlePowerControl(
       state: S,
       relevantData: OR,
-      flexOptions: ProvideFlexOptions,
+      flexOptions: ProvideFlexOptions, // TODO is this needed?
       setPower: Power,
   ): (OP, ModelChangeIndicator)
 

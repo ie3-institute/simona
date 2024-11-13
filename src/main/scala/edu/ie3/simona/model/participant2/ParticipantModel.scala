@@ -41,6 +41,8 @@ abstract class ParticipantModel[
   val cosPhiRated: Double
   val qControl: QControl
 
+  protected val pRated: Power = sRated * cosPhiRated
+
   /** Get a partial function, that transfers the current active into reactive
     * power based on the participants properties and the given nodal voltage
     *
