@@ -20,10 +20,10 @@ import org.apache.pekko.actor.{ActorRef => ClassicRef}
   *   Reference to the runtime event listener
   * @param primaryServiceProxy
   *   Reference to the primary service proxy
-  * @param loadProfiles
-  *   Reference to the service, that provides load profile information
   * @param weather
   *   Reference to the service, that provides weather information
+  * @param loadProfiles
+  *   Reference to the service, that provides load profile information
   * @param evDataService
   *   Reference to the EV data service, if existing
   */
@@ -31,7 +31,7 @@ final case class EnvironmentRefs(
     scheduler: ActorRef[SchedulerMessage],
     runtimeEventListener: ActorRef[RuntimeEvent],
     primaryServiceProxy: ClassicRef,
-    loadProfiles: ClassicRef,
     weather: ClassicRef,
+    loadProfiles: ClassicRef,
     evDataService: Option[ClassicRef],
 )

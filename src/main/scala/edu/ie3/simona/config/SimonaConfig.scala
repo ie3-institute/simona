@@ -1318,7 +1318,6 @@ object SimonaConfig {
       object Loadprofile {
         final case class Datasource(
             csvParams: scala.Option[SimonaConfig.BaseCsvParams],
-            loadBuildIns: scala.Boolean,
             sqlParams: scala.Option[
               SimonaConfig.Simona.Input.Loadprofile.Datasource.SqlParams
             ],
@@ -1382,9 +1381,6 @@ object SimonaConfig {
                     )
                   )
                 else None,
-              loadBuildIns = !c.hasPathOrNull("loadBuildIns") || c.getBoolean(
-                "loadBuildIns"
-              ),
               sqlParams =
                 if (c.hasPathOrNull("sqlParams"))
                   scala.Some(

@@ -1026,20 +1026,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
         val loadProfileDataSource = Loadprofile.Datasource(
           None,
-          loadBuildIns = true,
           None,
         )
-
-        "detect missing source" in {
-          intercept[InvalidConfigParameterException] {
-            ConfigFailFast invokePrivate checkLoadProfileDataSource(
-              loadProfileDataSource.copy(loadBuildIns = false)
-            )
-          }.getMessage should startWith(
-            "No load profile source defined! This is currently not supported! Please provide the config parameters for " +
-              "one of the following load profile sources:"
-          )
-        }
 
         "detect too many sources" in {
           val tooManySources = loadProfileDataSource.copy(

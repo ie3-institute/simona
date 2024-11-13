@@ -553,30 +553,29 @@ case object ConfigFailFast extends LazyLogging {
   ): Unit = {
     // check weather source parameters
     val supportedLoadProfileSources = Set("csv", "sql")
-    val definedWeatherSources = Vector(
+    val definedLoadProfileSources = Vector(
       loadProfileDataSourceCfg.csvParams,
       loadProfileDataSourceCfg.sqlParams,
     ).filter(_.isDefined)
 
     // check that only one source is defined
-    if (definedWeatherSources.size > 1)
+    if (definedLoadProfileSources.size > 1)
       throw new InvalidConfigParameterException(
-        s"Multiple load profile sources defined: '${definedWeatherSources.map(_.getClass.getSimpleName).mkString("\n\t")}'." +
+        s"Multiple load profile sources defined: '${definedLoadProfileSources.map(_.getClass.getSimpleName).mkString("\n\t")}'." +
           s"Please define only one source!\nAvailable sources:\n\t${supportedLoadProfileSources.mkString("\n\t")}"
       )
 
-    definedWeatherSources.headOption.flatten match {
+    definedLoadProfileSources.headOption.flatten match {
       case Some(baseCsvParams: BaseCsvParams) =>
         checkBaseCsvParams(baseCsvParams, "LoadProfileSource")
       case Some(params: SqlParams) =>
         checkSqlParams(params)
-      case None if loadProfileDataSourceCfg.loadBuildIns =>
-        logger.info("Using only the build in load profiles!")
-      case None | Some(_) =>
-        throw new InvalidConfigParameterException(
-          s"No load profile source defined! This is currently not supported! Please provide the config parameters for one " +
-            s"of the following load profile sources:\n\t${supportedLoadProfileSources.mkString("\n\t")}"
+      case Some(other) =>
+        logger.warn(
+          s"The source '$other' is currently not supported. Therefore only the build in load profiles will be used!"
         )
+      case None =>
+        logger.info("Using only the build in load profiles!")
     }
   }
 
@@ -818,7 +817,7 @@ case object ConfigFailFast extends LazyLogging {
 
   /** Check the suitability of storage config parameters.
     *
-    * @param StorageRuntimeConfig
+    * @param storageConfig
     *   RuntimeConfig of Storages
     */
   private def checkStoragesConfig(

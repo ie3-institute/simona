@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.service.load
 
-import edu.ie3.datamodel.exceptions.SourceException
 import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.csv.CsvLoadProfileMetaInformation
 import edu.ie3.datamodel.io.factory.timeseries.{
@@ -41,7 +40,10 @@ import edu.ie3.simona.ontology.messages.services.LoadProfileMessage.{
   RegisterForLoadProfileService,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
+  RegistrationFailedMessage,
+  RegistrationSuccessfulMessage,
+}
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceActivationBaseStateData,
@@ -52,7 +54,6 @@ import edu.ie3.simona.service.load.LoadProfileService.{
   LoadProfileInitializedStateData,
   initLoadProfileStore,
 }
-import edu.ie3.simona.service.load.LoadProfileStore.LoadProfileSources
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.simona.util.{SimonaConstants, TickUtil}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
@@ -171,20 +172,58 @@ final case class LoadProfileService(
       serviceStateData: LoadProfileInitializedStateData
   ): LoadProfileInitializedStateData = {
 
-    if (
-      serviceStateData.loadProfileStore.getKnownProfiles.contains(loadProfile)
-    ) {
-      // a function was found, updating state data
-      serviceStateData.copy(refToProfile =
-        serviceStateData.refToProfile + (agentToBeRegistered -> loadProfile)
-      )
-    } else {
-      log.error(
-        s"Unable to register the agent with ref: $agentToBeRegistered!, because no value was found for load profile '$loadProfile'."
-      )
+    serviceStateData.profileToRefs.get(loadProfile) match {
+      case None =>
+        /* The load profile itself is not known yet. Try to figure out, which weather coordinates are relevant */
+        serviceStateData.loadProfileStore.valueProvider.get(loadProfile) match {
+          case Some(_) =>
+            // we can provide data for the agent
+            agentToBeRegistered ! RegistrationSuccessfulMessage(
+              self,
+              serviceStateData.maybeNextActivationTick,
+            )
 
-      sender() ! RegistrationFailedMessage(self)
-      serviceStateData
+            serviceStateData.copy(profileToRefs =
+              serviceStateData.profileToRefs + (loadProfile -> Vector(
+                agentToBeRegistered
+              ))
+            )
+
+          case None =>
+            // we cannot provide data for the agent
+            log.error(
+              s"Unable to obtain necessary information to register for load profile '${loadProfile.getKey}'."
+            )
+
+            sender() ! RegistrationFailedMessage(self)
+            serviceStateData
+        }
+
+      case Some(actorRefs) if !actorRefs.contains(agentToBeRegistered) =>
+        // load profile is already known (= we have data for it), but this actor is not registered yet
+        agentToBeRegistered ! RegistrationSuccessfulMessage(
+          self,
+          serviceStateData.maybeNextActivationTick,
+        )
+
+        serviceStateData.copy(
+          profileToRefs =
+            serviceStateData.profileToRefs + (loadProfile -> (actorRefs :+ agentToBeRegistered))
+        )
+
+      case Some(actorRefs) if actorRefs.contains(agentToBeRegistered) =>
+        // actor is already registered, do nothing
+        log.warning(
+          "Sending actor {} is already registered",
+          agentToBeRegistered,
+        )
+        serviceStateData
+
+      case _ =>
+        // actor is not registered and we don't have data for it
+        // inform the agentToBeRegistered that the registration failed as we don't have data for it
+        agentToBeRegistered ! RegistrationFailedMessage(self)
+        serviceStateData
     }
   }
 
@@ -216,21 +255,23 @@ final case class LoadProfileService(
     val time = tick.toDateTime(simulationStartTime)
     val loadProfileStore = serviceStateData.loadProfileStore
 
-    serviceStateData.refToProfile.foreach { case (actorRef, loadProfile) =>
+    serviceStateData.profileToRefs.foreach { case (loadProfile, actorRefs) =>
       loadProfileStore.valueOptions(time, loadProfile) match {
         case Some((averagePower, maxPower)) =>
           /* Sending the found value to the requester */
-          actorRef ! ProvideLoadProfileValue(
-            tick,
-            self,
-            LoadProfileData(averagePower, maxPower),
-            maybeNextTick,
+          actorRefs.foreach(recipient =>
+            recipient ! ProvideLoadProfileValue(
+              tick,
+              self,
+              LoadProfileData(averagePower, maxPower),
+              maybeNextTick,
+            )
           )
         case None =>
           /* There is no data available in the source. */
           log.warning(
-            s"No power value found for actorRef {} for time: {}",
-            actorRef,
+            s"No power value found for load profile {} for time: {}",
+            loadProfile,
             time,
           )
       }
@@ -256,7 +297,7 @@ object LoadProfileService {
 
   /** @param loadProfileStore
     *   that stores that contains all load profiles
-    * @param refToProfile
+    * @param profileToRefs
     *   map: actor ref to [[LoadProfile]]
     * @param maybeNextActivationTick
     *   the next tick, when this actor is triggered by scheduler
@@ -266,7 +307,7 @@ object LoadProfileService {
     */
   final case class LoadProfileInitializedStateData(
       loadProfileStore: LoadProfileStore,
-      refToProfile: Map[ActorRef, LoadProfile],
+      profileToRefs: Map[LoadProfile, Vector[ActorRef]] = Map.empty,
       override val maybeNextActivationTick: Option[Long],
       override val activationTicks: SortedDistinctSeq[Long],
   ) extends ServiceActivationBaseStateData
@@ -295,20 +336,13 @@ object LoadProfileService {
       cfg.sqlParams,
     ).find(_.isDefined).flatten
 
-    if (definedSources.isEmpty && !cfg.loadBuildIns) {
-      // should not happen, due to the config fail fast check
-      throw new SourceException(
-        s"Expected a LoadProfileSource, but no source where defined in $cfg."
-      )
-    }
-
     val otherSources: Map[LoadProfile, LoadProfileSource[_, _]] =
-      definedSources.toSeq(0) match {
-        case BaseCsvParams(csvSep, directoryPath, _) =>
+      definedSources match {
+        case Some(BaseCsvParams(csvSep, directoryPath, _)) =>
           // initializing a csv load profile source
           readCsvSources(csvSep, Path.of(directoryPath))
 
-        case sqlParams: SqlParams =>
+        case Some(sqlParams: SqlParams) =>
           // initializing a sql load profile source
           val sqlConnector = new SqlConnector(
             sqlParams.jdbcUrl,

@@ -38,7 +38,13 @@ object LoadAgent {
   ): Props =
     LoadModelBehaviour(initStateData.modelConfig.modelBehaviour) match {
       case LoadModelBehaviour.FIX =>
-        Props(new FixedLoadAgent(scheduler, initStateData, listener))
+        Props(
+          new FixedLoadAgent(
+            scheduler,
+            initStateData.copy(secondaryDataServices = Iterable.empty),
+            listener,
+          )
+        )
       case LoadModelBehaviour.PROFILE =>
         Props(new ProfileLoadAgent(scheduler, initStateData, listener))
       case LoadModelBehaviour.RANDOM =>

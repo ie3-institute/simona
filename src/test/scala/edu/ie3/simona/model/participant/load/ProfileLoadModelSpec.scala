@@ -17,6 +17,7 @@ import edu.ie3.simona.model.participant.load.LoadReference.{
   ActivePower,
   EnergyConsumption,
 }
+import edu.ie3.simona.service.load.LoadProfileStore
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -68,6 +69,9 @@ class ProfileLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
         simulationEndDate,
         loadInput.getOperationTime,
       )
+
+    // necessary to init and load psdm build in profiles
+    val loadProfileStore = LoadProfileStore()
 
     "instantiating it" should {
       "deliver a proper model" in {

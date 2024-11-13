@@ -7,7 +7,7 @@
 package edu.ie3.simona.agent.grid
 
 import edu.ie3.datamodel.graph.SubGridGate
-import edu.ie3.datamodel.models.profile.{BdewStandardLoadProfile, LoadProfile}
+import edu.ie3.datamodel.models.profile.LoadProfile
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
@@ -133,18 +133,6 @@ class DBFSAlgorithmParticipantSpec
 
       loadAgent.toClassic ! RegistrationFailedMessage(
         primaryService.ref.toClassic
-      )
-
-      /* Expect a registration message */
-      loadProfileService.expectMessage(
-        RegisterForLoadProfileService(
-          LoadProfile.DefaultLoadProfiles.NO_LOAD_PROFILE
-        )
-      )
-
-      loadAgent.toClassic ! RegistrationSuccessfulMessage(
-        loadProfileService.ref.toClassic,
-        None,
       )
 
       scheduler.expectMessage(Completion(loadAgent, Some(0)))
