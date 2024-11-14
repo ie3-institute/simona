@@ -143,7 +143,7 @@ final case class HpModel(
       )
 
     // Determining the operation point and limitations at this tick
-    val (turnOn, canOperate, canBeOutOfOperation) =
+    val (turnOn, canOperate, canBeOutOfOperation, houseDemand, storageDemand) =
       operatesInNextState(
         lastHpState,
         currentThermalGridState,
@@ -154,7 +154,7 @@ final case class HpModel(
 
     // Updating the HpState
     val updatedState =
-      calcState(lastHpState, relevantData, turnOn)
+      calcState(lastHpState, relevantData, turnOn, houseDemand, storageDemand)
     (canOperate, canBeOutOfOperation, updatedState)
   }
 
@@ -176,7 +176,8 @@ final case class HpModel(
     *   ThermalEnergyDemand of the thermal storage
     * @return
     *   boolean defining if heat pump runs in next time step, if it can be in
-    *   operation and can be out of operation
+    *   operation and can be out of operation plus the demand of house and
+    *   storage
     */
   private def operatesInNextState(
       lastState: HpState,
@@ -184,7 +185,7 @@ final case class HpModel(
       relevantData: HpRelevantData,
       demandHouse: ThermalEnergyDemand,
       demandThermalStorage: ThermalEnergyDemand,
-  ): (Boolean, Boolean, Boolean) = {
+  ): (Boolean, Boolean, Boolean, Boolean, Boolean) = {
 
     val (
       houseHasDemand,
@@ -206,7 +207,13 @@ final case class HpModel(
     val canBeOutOfOperation =
       !(demandHouse.hasRequiredDemand && noThermalStorageOrThermalStorageIsEmpty)
 
-    (turnHpOn, canOperate, canBeOutOfOperation)
+    (
+      turnHpOn,
+      canOperate,
+      canBeOutOfOperation,
+      houseHasDemand,
+      heatStorageHasDemand,
+    )
   }
 
   /** This method will return booleans whether there is a heat demand of house
@@ -268,6 +275,8 @@ final case class HpModel(
       lastState: HpState,
       relevantData: HpRelevantData,
       isRunning: Boolean,
+      houseDemand: Boolean,
+      storageDemand: Boolean,
   ): HpState = {
     val lastStateStorageQDot = lastState.thermalGridState.storageState
       .map(_.qDot)
@@ -353,13 +362,38 @@ final case class HpModel(
       lastState: HpState,
       setPower: Power,
   ): (HpState, FlexChangeIndicator) = {
-    /* If the setpoint value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
+    /* If the set point value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
     val turnOn = setPower > (sRated * cosPhiRated * 0.5)
+
+    val (
+      thermalEnergyDemandHouse,
+      thermalEnergyDemandStorage,
+      updatedThermalGridState,
+    ) =
+      thermalGrid.energyDemandAndUpdatedState(
+        data.currentTick,
+        lastState.ambientTemperature.getOrElse(data.ambientTemperature),
+        data.ambientTemperature,
+        lastState.thermalGridState,
+      )
+
+    val (
+      houseDemand,
+      heatStorageDemand,
+      _,
+    ) = determineDemandBooleans(
+      lastState,
+      updatedThermalGridState,
+      thermalEnergyDemandHouse,
+      thermalEnergyDemandStorage,
+    )
 
     val updatedHpState = calcState(
       lastState,
       data,
       turnOn,
+      houseDemand,
+      heatStorageDemand,
     )
 
     (
