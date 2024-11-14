@@ -128,7 +128,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix CheckWindow duration [#921](https://github.com/ie3-institute/simona/issues/921)
 - Fixed ThermalStorageResults having multiple entries [#924](https://github.com/ie3-institute/simona/issues/924)
 - Fix filter for thermal result checking for lastTick not for currentTick [#1008](https://github.com/ie3-institute/simona/issues/1008)
-- Fix initialisation freezing on empty primary data [#1014](https://github.com/ie3-institute/simona/issues/1014)
+- Fix initialisation freezing on empty primary data [#981](https://github.com/ie3-institute/simona/issues/981)
 
 ## [3.0.0] - 2023-08-07
 

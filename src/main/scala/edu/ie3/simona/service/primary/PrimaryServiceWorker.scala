@@ -138,35 +138,41 @@ final case class PrimaryServiceWorker[V <: Value](
       val (maybeNextTick, furtherActivationTicks) = SortedDistinctSeq(
         // Note: The whole data set is used here, which might be inefficient depending on the source implementation.
         source.getTimeSeries.getEntries.asScala
-          .filter { timeBasedValue =>
-            val dateTime = timeBasedValue.getTime
-            dateTime.isEqual(simulationStart) || dateTime.isAfter(
-              simulationStart
-            )
-          }
           .map(timeBasedValue => timeBasedValue.getTime.toTick)
+          .filter(_ >= 0L)
           .toSeq
           .sorted
       ).pop
 
-      if (maybeNextTick.nonEmpty) {
+      (maybeNextTick, furtherActivationTicks) match {
+        case (maybeNextTick @ Some(tick), furtherActivationTicks)
+            if tick == 0L =>
+          /* Set up the state data and determine the next activation tick. */
+          val initializedStateData =
+            PrimaryServiceInitializedStateData(
+              maybeNextTick,
+              furtherActivationTicks,
+              simulationStart,
+              source,
+            )
 
-        /* Set up the state data and determine the next activation tick. */
-        val initializedStateData =
-          PrimaryServiceInitializedStateData(
-            maybeNextTick,
-            furtherActivationTicks,
-            simulationStart,
-            source,
+          Success(initializedStateData, maybeNextTick)
+
+        case (Some(tick), _) if tick > 0L =>
+          /* The start of the data needs to be at the first tick of the simulation or before. */
+          Failure(
+            new ServiceRegistrationException(
+              s"The data for the timeseries '${source.getTimeSeries.getUuid}' starts after the start of this simulation (tick: $tick)! This is not allowed!"
+            )
           )
 
-        Success(initializedStateData, maybeNextTick)
-      } else
-        Failure(
-          new ServiceRegistrationException(
-            s"No appropriate data found within simulation time range in timeseries ${source.getTimeSeries.getUuid}!"
+        case _ =>
+          Failure(
+            new ServiceRegistrationException(
+              s"No appropriate data found within simulation time range in timeseries '${source.getTimeSeries.getUuid}'!"
+            )
           )
-        )
+      }
     }
   }
 
