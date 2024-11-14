@@ -13,6 +13,7 @@ import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.config.SimonaConfig.StorageRuntimeConfig
+import edu.ie3.simona.model.participant2.ParticipantModel.ActivePowerOperatingPoint
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -88,6 +89,93 @@ class StorageModelSpec extends UnitSpec with Matchers {
   }
 
   "StorageModel" should {
+
+    "Determine the current state" in {
+      val storageModel = buildStorageModel()
+
+      val lastTick = 3600L
+
+      val testCases = Table(
+        ("lastEnergy", "power", "duration", "expEnergy"),
+        /* empty storage */
+        // zero power
+        (0.0, 0.0, 3600, 0.0),
+        // zero duration
+        (0.0, 5.0, 0, 0.0),
+        // charging a tiny bit
+        (0.0, 1.0, 1, 0.00025),
+        // charging until half
+        (0.0, 10.0, 20000, 50.0),
+        // charging until almost full
+        (0.0, 10.0, 39999, 99.9975),
+        // charging until full
+        (0.0, 10.0, 40000, 100.0),
+        // overcharging a tiny bit
+        (0.0, 10.0, 40001, 100.0),
+        // discharging
+        (0.0, -10.0, 3600, 0.0),
+        /* half full storage */
+        // zero power
+        (50.0, 0.0, 3600, 50.0),
+        // zero duration
+        (50.0, 5.0, 0, 50.0),
+        // charging a tiny bit
+        (50.0, 1.0, 1, 50.00025),
+        // charging until almost full
+        (50.0, 10.0, 19999, 99.9975),
+        // charging until full
+        (50.0, 10.0, 20000, 100.0),
+        // overcharging a tiny bit
+        (50.0, 10.0, 20001, 100.0),
+        // discharging a tiny bit
+        (50.0, -0.81, 1, 49.99975),
+        // discharging until almost empty
+        (50.0, -8.1, 19999, 0.0025),
+        // discharging until empty
+        (50.0, -8.1, 20000, 0.0),
+        // undercharging a tiny bit
+        (50.0, -8.1, 20001, 0.0),
+        /* full storage */
+        // zero power
+        (100.0, 0.0, 3600, 100.0),
+        // zero duration
+        (100.0, -5.0, 0, 100.0),
+        // discharging a tiny bit
+        (100.0, -0.81, 1, 99.99975),
+        // discharging until half
+        (100.0, -8.1, 20000, 50.0),
+        // discharging until almost empty
+        (100.0, -8.1, 39999, 0.0025),
+        // discharging until empty
+        (100.0, -8.1, 40000, 0.0),
+        // undercharging a tiny bit
+        (100.0, -8.1, 40001, 0.0),
+        // charging
+        (100.0, 10.0, 3600, 100.0),
+      )
+
+      forAll(testCases) {
+        (lastEnergy: Double, power: Double, duration: Int, expEnergy: Double) =>
+          val lastState = StorageModel.StorageState(
+            KilowattHours(lastEnergy),
+            lastTick,
+          )
+
+          val operatingPoint =
+            ActivePowerOperatingPoint(Kilowatts(power))
+
+          val currentTick = lastTick + duration
+
+          val newState = storageModel.determineState(
+            lastState,
+            operatingPoint,
+            currentTick,
+          )
+
+          newState.tick shouldBe currentTick
+          newState.storedEnergy should approximate(KilowattHours(expEnergy))
+      }
+    }
 
     "Calculate flex options" in {
       val storageModel = buildStorageModel()
