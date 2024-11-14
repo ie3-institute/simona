@@ -96,6 +96,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Move compression of output files into `ResultEventListener`[#965](https://github.com/ie3-institute/simona/issues/965)
 - Rewrote StorageModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Updated `ExtEvSimulationClasses` [#898](https://github.com/ie3-institute/simona/issues/898)
+- Refactoring of `ThermalGrid.energyGrid` to distinguish between demand of house and storage [#928](https://github.com/ie3-institute/simona/issues/928)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
