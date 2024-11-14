@@ -244,7 +244,7 @@ final case class ThermalGrid(
     }
 
     if (
-      (qDotHouseLastState > zeroKW && !(qDotStorageLastState < zeroKW)) | (qDotStorageLastState > zeroKW & heatStorageDemand)
+      (qDotHouseLastState > zeroKW && (qDotStorageLastState >= zeroKW)) | (qDotStorageLastState > zeroKW & heatStorageDemand)
     ) {
       val (updatedHouseState, thermalHouseThreshold, remainingQDotHouse) =
         handleInfeedHouse(
