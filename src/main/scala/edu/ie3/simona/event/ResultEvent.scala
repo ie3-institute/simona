@@ -53,47 +53,44 @@ object ResultEvent {
       thermalResult: ThermalUnitResult
   ) extends ResultEvent
 
-  object ThermalHouseResult {
-    def unapply(result: ThermalHouseResult): Option[
-      (
-          ZonedDateTime,
-          UUID,
-          ComparableQuantity[Power],
-          ComparableQuantity[Temperature],
-      )
-    ] = {
-      Option(result).flatMap { result =>
-        Some(
-          (
-            result.getTime,
-            result.getInputModel,
-            result.getqDot,
-            result.getIndoorTemperature,
-          )
+  object ThermalHouseResult
+  def unapply(result: ThermalHouseResult): Option[
+    (
+        ZonedDateTime,
+        UUID,
+        ComparableQuantity[Power],
+        ComparableQuantity[Temperature],
+    )
+  ] =
+    Option(result).flatMap { result =>
+      Some(
+        (
+          result.getTime,
+          result.getInputModel,
+          result.getqDot,
+          result.getIndoorTemperature,
         )
-      }
+      )
     }
-  }
 
-  object CylindricalThermalStorageResult {
-    def unapply(result: CylindricalStorageResult): Option[
-      (
-          ZonedDateTime,
-          UUID,
-          ComparableQuantity[Power],
-          ComparableQuantity[Energy],
-      )
-    ] = {
-      Option(result).flatMap { result =>
-        Some(
-          (
-            result.getTime,
-            result.getInputModel,
-            result.getqDot,
-            result.getEnergy,
-          )
+  object CylindricalThermalStorageResult
+  def unapply(result: CylindricalStorageResult): Option[
+    (
+        ZonedDateTime,
+        UUID,
+        ComparableQuantity[Power],
+        ComparableQuantity[Energy],
+    )
+  ] = {
+    Option(result).flatMap { result =>
+      Some(
+        (
+          result.getTime,
+          result.getInputModel,
+          result.getqDot,
+          result.getEnergy,
         )
-      }
+      )
     }
   }
 
