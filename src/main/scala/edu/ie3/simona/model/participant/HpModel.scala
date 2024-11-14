@@ -211,7 +211,7 @@ final case class HpModel(
 
   /** This method will return booleans whether there is a heat demand of house
     * or thermal storage as well as a boolean indicating if there is no thermal
-    * storage or it is empty.
+    * storage, or it is empty.
     *
     * @param lastHpState
     * @param updatedGridState
@@ -220,7 +220,7 @@ final case class HpModel(
     * @return
     *   First boolean is true, if house has heat demand. Second boolean is true,
     *   if thermalStorage has heat demand. Third boolean is true, if there is no
-    *   thermalStorage or it's empty.
+    *   thermalStorage, or it's empty.
     */
 
   private def determineDemandBooleans(
