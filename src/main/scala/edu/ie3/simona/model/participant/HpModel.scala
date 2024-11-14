@@ -214,9 +214,13 @@ final case class HpModel(
     * storage, or it is empty.
     *
     * @param lastHpState
+    *   Current state of the heat pump
     * @param updatedGridState
+    *   The updated state of the [[ThermalGrid]]
     * @param demandHouse
+    *   heat demand of the thermal house
     * @param demandThermalStorage
+    *   heat demand of the thermal storage
     * @return
     *   First boolean is true, if house has heat demand. Second boolean is true,
     *   if thermalStorage has heat demand. Third boolean is true, if there is no
