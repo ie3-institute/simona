@@ -130,7 +130,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix power flow calculation with em agents [#962](https://github.com/ie3-institute/simona/issues/962)
 - Fix scheduling at Evcs with more than one Ev at a time without Em [#787](https://github.com/ie3-institute/simona/issues/787)
 - Fix CheckWindow duration [#921](https://github.com/ie3-institute/simona/issues/921)
-- Fixed ThermalStorageResults having multiple entries [#924](https://github.com/ie3-institute/simona/issues/924)
 - Fix filter for thermal result checking for lastTick not for currentTick [#1008](https://github.com/ie3-institute/simona/issues/1008)
 - Fixed `CHANGELOG` entry for issue ([#103](https://github.com/ie3-institute/simona/issues/103)) [#941](https://github.com/ie3-institute/simona/issues/941)
 - Refactoring of `ThermalGrid.handleInfeed` to fix thermal storage recharge correctly when empty [#930](https://github.com/ie3-institute/simona/issues/930)
