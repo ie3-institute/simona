@@ -2,7 +2,7 @@
 
 # Developer’s Guide
 
-The SIMONA repository can be found [on GitHub](https://github.com/ie3-institute/simona).
+The SIMONA repository can be found [on Github](https://github.com/ie3-institute/simona).
 
 ```{contents}
 ---

@@ -26,7 +26,7 @@ abstract class ParsableEnumeration extends Enumeration {
     withName(cleanedInput)
   }
 
-  /** Checks, if the given input is an eligible description of an enum value
+  /** Checks, if the given input is an eligible description of a enum value
     *
     * @param input
     *   Input string

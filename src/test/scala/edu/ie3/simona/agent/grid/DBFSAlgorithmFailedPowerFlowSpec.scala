@@ -145,7 +145,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       val slackVoltageRequestSender =
         superiorGridAgent.expectSlackVoltageRequest(sweepNo)
 
-      // normally the inferior grid agents ask for the slack voltage as well to run their power flow calculation
+      // normally the inferior grid agents ask for the slack voltage as well to do their power flow calculation
       // we simulate this behaviour now by doing the same for our inferior grid agent
       inferiorGridAgent.requestSlackVoltage(centerGridAgent, sweepNo)
 
@@ -191,7 +191,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       // hence we ask for them and expect a corresponding response
       superiorGridAgent.requestGridPower(centerGridAgent, sweepNo)
 
-      // the requested power is too high for the grid to handle, therefore the superior grid agent
+      // the requested power is to high for the grid to handle, therefore the superior grid agent
       // receives a FailedPowerFlow message
       // wait 30 seconds max for power flow to finish
       superiorGridAgent.gaProbe.expectMessage(30 seconds, FailedPowerFlow)
@@ -229,7 +229,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       val slackVoltageRequestSender =
         superiorGridAgent.expectSlackVoltageRequest(sweepNo)
 
-      // normally the inferior grid agents ask for the slack voltage as well to run their power flow calculation
+      // normally the inferior grid agents ask for the slack voltage as well to do their power flow calculation
       // we simulate this behaviour now by doing the same for our inferior grid agent
       inferiorGridAgent.requestSlackVoltage(centerGridAgent, sweepNo)
 
@@ -341,7 +341,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
       val powerRequestSender = hvGridAgent.expectGridPowerRequest()
 
-      // normally the inferior grid agents ask for the slack voltage as well to run their power flow calculation
+      // normally the inferior grid agents ask for the slack voltage as well to do their power flow calculation
       // we simulate this behaviour now by doing the same for our inferior grid agent
       hvGridAgent.requestSlackVoltage(slackGridAgent, sweepNo)
 

@@ -6,7 +6,7 @@ This page documents the functionality of the Heat Pump Model (HP model) availabl
 
 ## Assumptions
 
-The HP unit is able to operate either at full load or not at all. Uncovered heat demand of former time-steps is not considered in the following steps, as the HP unit does not possess a memory. 
+The HP unit is able to operate either at full load or not at all. Uncovered heat demand of former time-steps is not considered in the following steps, as the HP unit does not posses a memory. 
 
 ## Parameters
 

@@ -37,7 +37,7 @@ You can either delegate the job to your preferred IDE or build an executable jar
 In order to be able to execute SIMONA from a CLI, you need an executable fat jar. A fat jar contains all compiled classes and dependencies, ready for execution. For building one, you can use a Gradle task of the project.
 
 1. Open a CLI and change directories to the top level directory of the project.   
-2. Execute ``gradlew shadowJar`` within the CLI. This creates a fat jar of SIMONA inside the directory ``build/libs``.   
+2. Execute ``gradlew shadowJar`` within the CLI. This creates a fat jar of SIMONA inside of the directory ``build/libs``.   
 3. For executing a fat jar you need to specify the classpath of the entrypoint of your application. Assuming we are still in the top level directory of our project, the execution command would look as follows:
 
     

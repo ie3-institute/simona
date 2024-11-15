@@ -45,7 +45,7 @@ object WeatherServiceException {
       private val cause: Throwable = None.orNull,
   ) extends WeatherServiceException(msg, cause)
 
-  /** Exception to be thrown if the registration of an agent fails
+  /** Exception to be thrown if the registration of the an agent fails
     * @param msg
     *   Message to prompt to the end user
     * @param cause

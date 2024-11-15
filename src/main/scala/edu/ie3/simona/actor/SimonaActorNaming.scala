@@ -21,7 +21,7 @@ object SimonaActorNaming {
       refFactory.actorOf(props, actorName(props, simonaActorId(actorId)))
   }
 
-  /** Constructs an id for convenience actor naming. Although this is dangerous
+  /** Constructs an Id for convenience actor naming. Although this is dangerous
     * as duplicates might be possible, it should be sufficient in our case as
     * the uniqueness is only required in one actor system
     *

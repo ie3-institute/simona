@@ -158,7 +158,7 @@ class GridAgentController(
   /** Go through all provided input models, build agents for those and group the
     * resulting actor references for each connection nodes. All participant
     * agents are also introduced to the agent environment and the scheduler is
-    * requested to send an initialisation trigger.
+    * requested to send a initialisation trigger.
     *
     * @param participantsConfig
     *   Configuration information for participant models

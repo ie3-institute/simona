@@ -29,7 +29,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 import org.slf4j.event.Level
 
 /** Logging must be tested in a separate test, since LoggingTestKit can still
-  * receive logs from test that it was not enabled for
+  * receives logs from test that it was not enabled for
   */
 class RuntimeEventListenerLoggingSpec
     extends ScalaTestWithActorTestKit(

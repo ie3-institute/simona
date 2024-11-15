@@ -122,7 +122,7 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
             (issueCtrlMsgs, Some(remainingExcessPower))
           } else if (remainingExcessPower < flexPotential) {
             // we cannot cover the excess feed-in with just this flexibility,
-            // thus use all the available flexibility and continue
+            // thus use all of the available flexibility and continue
             (
               issueCtrlMsgs :+ (inputModel.getUuid, flexOption.max),
               Some(remainingExcessPower - flexPotential),
@@ -171,7 +171,7 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
             (issueCtrlMsgs, Some(remainingExcessPower))
           } else if (remainingExcessPower > flexPotential) {
             // we cannot cover the excess load with just this flexibility,
-            // thus use all the available flexibility and continue
+            // thus use all of the available flexibility and continue
             (
               issueCtrlMsgs :+ (inputModel.getUuid, flexOption.min),
               Some(remainingExcessPower - flexPotential),

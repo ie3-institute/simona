@@ -388,7 +388,7 @@ protected trait ParticipantAgentFundamentals[
 
   /** Assume we have information, that are available in a fixed resolution after
     * each full hour (including the full hour), then we have to determine, at
-    * what first tick this information are available.
+    * what first tick those information are available.
     *
     * @param simulationStartDate
     *   Beginning of the simulation
@@ -515,7 +515,7 @@ protected trait ParticipantAgentFundamentals[
     val foreseenDataTicks =
       baseStateData.foreseenDataTicks + (msg.serviceRef -> msg.nextDataTick)
 
-    /* Go over to handling this information */
+    /* Go over to handling these information */
     val nextStateData = DataCollectionStateData(
       BaseStateData.updateBaseStateData(
         baseStateData,
@@ -538,9 +538,8 @@ protected trait ParticipantAgentFundamentals[
     * Announce result, add content to result value store, go to [[Idle]] and
     * answer the scheduler, that the activity start trigger is fulfilled. 2.2)
     * All secondary data is there, go to [[Calculate]] and ask the scheduler to
-    * trigger ourselves for starting the model based calculation 3) Everything
-    * is at place and the [[Activation]] has NOT yet been sent: Stay here and
-    * wait
+    * trigger ourself for starting the model based calculation 3) Everything is
+    * at place and the [[Activation]] has NOT yet been sent: Stay here and wait
     *
     * @param stateData
     *   Apparent state data
@@ -646,7 +645,7 @@ protected trait ParticipantAgentFundamentals[
           )
       }
     } else {
-      /* We still have to wait - either for data or activation */
+      /* We sill have to wait - either for data or activation */
       stay() using stateData
     }
   }
@@ -1142,7 +1141,7 @@ protected trait ParticipantAgentFundamentals[
           baseStateData,
         )
       case (Some(additionalTick), _) =>
-        /* The next activation is additional (either there is no foreseen data tick or it is after the additional tick).
+        /* The next activation is additional (either there is no foreseen data tick or it is after the additional tick.
          * Remove the tick from the list of additional activation ticks. */
         val upcomingActivationTicks =
           baseStateData.additionalActivationTicks.rangeFrom(additionalTick + 1)
@@ -1160,7 +1159,7 @@ protected trait ParticipantAgentFundamentals[
           updatedBaseStateData,
         )
       case (None, None) =>
-        /* We don't know anything about either additional activation nor new incoming data */
+        /* We don't know nothing about either additional activation nor new incoming data */
         (None, baseStateData)
     }
   }
@@ -1259,7 +1258,7 @@ protected trait ParticipantAgentFundamentals[
   }
 
   /** Checks, if a fast reply is possible, when the very same request (in terms
-    * of tick and nodal voltage) already has been answered. Then an Option on
+    * of tick and nodal voltage) already has been answered. Then a Option on
     * stay in the same state with sending an [[AssetPowerUnchangedMessage]] is
     * given back. If a fast reply is not possible, [[None]] is given back.
     * Additionally, the listener are informed about the result.
@@ -1293,7 +1292,7 @@ protected trait ParticipantAgentFundamentals[
       case Some((mostRecentRequestTick, latestProvidedValues))
           if mostRecentRequestTick == requestTick =>
         /* A request for this tick has already been answered. Check, if it has been the same request.
-         * if it has been the same request we want to answer with the same values afterwards, this data MUST always
+         * if it has been the same request we wanna answer with the same values afterwards, this data MUST always
          * be available when we already provided data for this tick */
         baseStateData match {
           case externalBaseStateData: FromOutsideBaseStateData[M, PD] =>
@@ -1754,7 +1753,7 @@ protected trait ParticipantAgentFundamentals[
     * @param tick
     *   Tick, the result belongs to
     * @param result
-    *   The result to build an event for
+    *   The result to build a event for
     * @param outputConfig
     *   Configuration of the output behaviour
     */
