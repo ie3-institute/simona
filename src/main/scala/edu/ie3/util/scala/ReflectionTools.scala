@@ -47,7 +47,7 @@ object ReflectionTools {
     * @tparam A
     *   type of the object
     * @return
-    *   a map containing the field method and it's value of the object instance
+    *   a map containing the field method, and it's value of the object instance
     */
   def classFieldToVal[A](a: A)(implicit
       tt: TypeTag[A],

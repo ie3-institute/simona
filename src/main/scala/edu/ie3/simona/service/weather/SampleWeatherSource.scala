@@ -183,7 +183,7 @@ object SampleWeatherSource {
     }
   }
 
-  // these lists contain the hourly weather values for each first of the month of 2011 + january of
+  // these lists contain the hourly weather values for each first of the month of 2011 + january
   // 2012 at coordinate id 213089
   private val diffuseRadiation: Vector[Double] = Vector(0, 0, 0, 0, 0,
     1.18179e-12, 4.42315e-11, 0.0585938, 1.94141, 15.1172, 74.8438, 89.0469,

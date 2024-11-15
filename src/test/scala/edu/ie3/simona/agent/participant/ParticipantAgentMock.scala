@@ -175,7 +175,7 @@ class ParticipantAgentMock(
     * @param simulationEndDate
     *   Real world time date time, when the simulation ends
     * @param resolution
-    *   Agents regular time bin it wants to be triggered e.g one hour
+    *   Agents regular time bin it wants to be triggered e.g. one hour
     * @param requestVoltageDeviationThreshold
     *   Threshold, after which two nodal voltage magnitudes from participant
     *   power requests for the same tick are considered to be different
@@ -311,7 +311,7 @@ class ParticipantAgentMock(
     FixedRelevantData
 
   /** To clean up agent value stores after power flow convergence. This is
-    * necessary for agents whose results are time dependent e.g. storage agents
+    * necessary for agents whose results are time-dependent e.g. storage agents
     * @param baseStateData
     *   Basic state data
     * @param currentTick

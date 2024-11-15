@@ -96,7 +96,7 @@ private[grid] trait GridResultsSupport {
     * and the corresponding sweep value data
     *
     * @param lines
-    *   the set of lines which the result should be build for
+    *   the set of lines which the result should be built for
     * @param sweepValueStoreData
     *   the value store with all power flow result values of the provided lines
     * @param iNominal
@@ -142,7 +142,7 @@ private[grid] trait GridResultsSupport {
     * [[TransformerModel]] and the corresponding sweep value data
     *
     * @param transformers
-    *   the set of transformers which the result should be build for
+    *   the set of transformers which the result should be built for
     * @param sweepValueStoreData
     *   the value store with all power flow result values of the provided
     *   transformers
@@ -190,7 +190,7 @@ private[grid] trait GridResultsSupport {
     * [[Transformer3wModel]] and the corresponding sweep value data
     *
     * @param transformers3w
-    *   the set of 3 winding transformers which the result should be build for
+    *   the set of 3 winding transformers which the result should be built for
     * @param sweepValueStoreData
     *   the value store with all power flow result values of the provided 3
     *   winding transformers
@@ -496,7 +496,7 @@ private[grid] trait GridResultsSupport {
   /** Calculate the current magnitude and the current angle in physical units
     * based on a provided electric current in p.u. and the nominal referenced
     * electric current. The arctangent "only" calculates the angle between the
-    * complex current and it's real part. This means, that i = (i_real, i_imag)
+    * complex current, and it's real part. This means, that i = (i_real, i_imag)
     * and i' = (-i_real, -i_imag) will lead to the same angle. However, for
     * power system simulation, the absolute orientation in the complex plane
     * with regard to the positive real axis is of interest. Therefore,

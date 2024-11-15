@@ -17,7 +17,7 @@ import tech.units.indriya.quantity.Quantities
   * necessary to override updateTapPos (e.g. in [[Transformer3wModel]]). The
   * provided [[TransformerTappingModel]] *should* be protected and not be
   * accessible from outside to prevent direct access to internal functions!
-  * Instead all the functions provided here should be used for tap position
+  * Instead, all the functions provided here should be used for tap position
   * manipulation.
   */
 trait TransformerTapping {

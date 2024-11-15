@@ -43,7 +43,7 @@ class ProportionalFlexStratSpec
        *
        * Specifically, we use 40% of the flex potential 2 kW - 1 kW = 1 kW of
        * the first unit and 40% of the flex potential 4 kW - 0 kW = 4 kW of the
-       * second unit. Thus we arrive at 1 kW + 40% * 1 kW = 1.4 kW for the
+       * second unit. Thus, we arrive at 1 kW + 40% * 1 kW = 1.4 kW for the
        * first unit and 0 kW + 40% * 4 kW = 1.6 kW for the second unit.
        */
 

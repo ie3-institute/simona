@@ -92,7 +92,7 @@ protected trait FixedFeedInAgentFundamentals
     * @param simulationEndDate
     *   Real world time date time, when the simulation ends
     * @param resolution
-    *   Agents regular time bin it wants to be triggered e.g one hour
+    *   Agents regular time bin it wants to be triggered e.g. one hour
     * @param requestVoltageDeviationThreshold
     *   Threshold, after which two nodal voltage magnitudes from participant
     *   power requests for the same tick are considered to be different
@@ -132,10 +132,10 @@ protected trait FixedFeedInAgentFundamentals
     val lastTickInSimulation = simulationEndDate.toTick(simulationStartDate)
     val dataTicks =
       /* As participant agents always return their last known operation point on request, it is sufficient
-       * to let a fixed fixed in model determine it's operation point on:
+       * to let a FixedFeedIn-Model determine its operation point on:
        *  1) The first tick of the simulation
-       *  2) The tick, it turns on (in time dependent operation)
-       *  3) The tick, it turns off (in time dependent operation)
+       *  2) The tick, it turns on (in time-dependent operation)
+       *  3) The tick, it turns off (in time-dependent operation)
        * Coinciding ticks are summarized and the last tick is removed, as the change in operation status
        * doesn't affect anything then */
       SortedSet[Long](
