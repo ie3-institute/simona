@@ -47,7 +47,7 @@ import scala.collection.immutable.SortedSet
   * @param uuid
   *   the element's uuid
   * @param id
-  *   the element's human readable id
+  *   the element's human-readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
   * @param simulationStartDate
@@ -194,7 +194,7 @@ final case class EvcsModel(
     state.evs
   }
 
-  /** Charge the given EV under consideration a applicable schedule
+  /** Charge the given EV under consideration an applicable schedule
     *
     * @param ev
     *   Electric vehicle to charge
@@ -271,7 +271,7 @@ final case class EvcsModel(
         /* Filter for entries, that end after the last schedule application
                and that start before the current tick.
                Entries that end at lastTick are not included because schedule
-               intervals are open at the right hand side.
+               intervals are open on the right hand side.
                Entries that start at currentTick are not included because these
                will be calculated with the next state.
          */

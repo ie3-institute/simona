@@ -94,7 +94,7 @@ final case class BMModel(
     applyLoadGradient(pEl)
   }
 
-  /** Calculates first time dependent factor for heat demand
+  /** Calculates first time-dependent factor for heat demand
     * @param time
     *   the time
     * @return
@@ -114,7 +114,7 @@ final case class BMModel(
     }
   }
 
-  /** Calculates second time dependent factor for heat demand
+  /** Calculates second time-dependent factor for heat demand
     * @param time
     *   the time
     * @return

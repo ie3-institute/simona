@@ -41,8 +41,8 @@ import scala.language.postfixOps
   * be able to do if the DBFSAlgorithm is used. The scheduler, the weather
   * service as well as the inferior and superior [[GridAgent]] s are simulated
   * by the TestKit. By now this test does NOT cover interactions with generation
-  * or load asset agents due to unavailability during test development. Hence it
-  * would make sense to extend this test in the future to include asset agent
+  * or load asset agents due to unavailability during test development. Hence,
+  * it would make sense to extend this test in the future to include asset agent
   * interaction or cover this behaviour by another (integration) test!
   */
 class DBFSAlgorithmCenGridSpec
@@ -164,7 +164,7 @@ class DBFSAlgorithmCenGridSpec
       val firstSlackVoltageRequestSender =
         superiorGridAgent.expectSlackVoltageRequest(firstSweepNo)
 
-      // normally the inferior grid agents ask for the slack voltage as well to do their power flow calculations
+      // normally the inferior grid agents ask for the slack voltage as well to run their power flow calculations
       // we simulate this behaviour now by doing the same for our three inferior grid agents
       inferiorGrid11.requestSlackVoltage(centerGridAgent, firstSweepNo)
 
@@ -300,7 +300,7 @@ class DBFSAlgorithmCenGridSpec
             Kilovolts(374.22694614463d), // 380 kV @ 10°
             Kilovolts(65.9863075134335d), // 380 kV @ 10°
           ),
-          ExchangeVoltage( // this one should currently be ignored anyways
+          ExchangeVoltage( // this one should currently be ignored anyway
             supNodeA.getUuid,
             Kilovolts(380d),
             Kilovolts(0d),
@@ -320,7 +320,7 @@ class DBFSAlgorithmCenGridSpec
       val secondPowerRequestSender13 =
         inferiorGrid13.expectGridPowerRequest()
 
-      // normally the inferior grid agents ask for the slack voltage as well to do their power flow calculations
+      // normally the inferior grid agents ask for the slack voltage as well to run their power flow calculations
       // we simulate this behaviour now by doing the same for our three inferior grid agents
 
       inferiorGrid11.requestSlackVoltage(centerGridAgent, secondSweepNo)
@@ -424,8 +424,8 @@ class DBFSAlgorithmCenGridSpec
       // connected inferior grids, because the slack node is just a mock, we imitate this behavior
       centerGridAgent ! FinishGridSimulationTrigger(3600)
 
-      // after a FinishGridSimulationTrigger is send the inferior grids, they themselves will send the
-      // Trigger forward the trigger to their connected inferior grids. Therefore the inferior grid
+      // after a FinishGridSimulationTrigger is sent the inferior grids, they themselves will send the
+      // Trigger forward the trigger to their connected inferior grids. Therefore, the inferior grid
       // agent should receive a FinishGridSimulationTrigger
       inferiorGrid11.gaProbe.expectMessage(FinishGridSimulationTrigger(3600))
 
