@@ -10,8 +10,8 @@ import java.util.UUID
 
 /** Results that are sent out with Kafka and avro should use this trait and
   * corresponding implementing classes, since these give more control over
-  * attribute types and naming, and they include sim run id. Plain result
-  * objects can be created by [[PlainWriter]].
+  * attribute types and naming and they include sim run id. Plain result objects
+  * can be created by [[PlainWriter]].
   */
 sealed trait PlainResult
 

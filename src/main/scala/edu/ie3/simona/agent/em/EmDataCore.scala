@@ -260,7 +260,7 @@ object EmDataCore {
           awaitedConnectedAgents.excl(flexOptions.modelUuid),
       )
 
-    /** Checks whether all awaited flex options have been received, and we can
+    /** Checks whether all awaited flex options have been received and we can
       * continue by calculating flex control. This method does not change the
       * state of the [[AwaitingFlexOptions]] data core.
       * @return

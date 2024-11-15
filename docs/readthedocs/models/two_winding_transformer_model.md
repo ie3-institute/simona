@@ -32,7 +32,7 @@ When the load flow calculation asks for the values with regard to the low voltag
 3. Main field resistance: $R_{M,LV} = \frac{R_{M}}{\gamma^{2}}$
 4. Main field reactance: $X_{M,LV} = \frac{X_{M}}{\gamma^{2}}$
 
-Finally, all values are delivered as per unit-values and ready to use in the fundamental $\pi$circuit:
+Finally all values are delivered as per unit-values and ready to use in the fundamental $\pi$circuit:
 
 1. Short circuit conductance: $g_{ij} = \frac{Z_{Ref}}{R_{SC}}$
 2. Short circuit susceptance: $b_{ij} = \frac{Z_{Ref}}{X_{SC}}$

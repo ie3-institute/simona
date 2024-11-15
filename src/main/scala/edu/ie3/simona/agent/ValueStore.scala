@@ -129,7 +129,7 @@ object ValueStore {
   def forResult[D](maxTickSpan: Long, multiplier: Long): ValueStore[D] =
     new ValueStore[D](maxTickSpan * multiplier)
 
-  /** Updates the value store. Additionally, the size of the store is limited to
+  /** Updates the value store. Additionally the size of the store is limited to
     * it's defined maximum capacity. Therefore, the oldest entries are removed.
     *
     * @param valueStore

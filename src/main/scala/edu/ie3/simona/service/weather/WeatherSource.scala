@@ -165,7 +165,7 @@ trait WeatherSource {
           val weightMap = nearestCoordinates
             .map(coordinateDistance => {
               /* Maybe some words on the calculus of the weight here: We intend to have a weight, that linear increases
-               * from zero to one, the closer the coordinate is to the coordinate in question. Therefore, we calculate the
+               * from zero to one, the closer the coordinate is to the coordinate in question. Therefore we calculate the
                * proximity of each node as a linear function between 1 at 0m distance to the questioned coordinate to zero
                * at the sum of all coordinates' distances (1 - d / d_sum). However, summing up this proximity over all
                * n coordinates brings n*1 from the left part of the sum and -1 as the sum of all distances shares.

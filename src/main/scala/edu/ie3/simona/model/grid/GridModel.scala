@@ -194,7 +194,7 @@ object GridModel {
 
     /*
     Nodes that are connected via a [closed] switch map to the same idx as we fuse them during the power flow.
-    Therefore, the admittance matrix has to be of the size of the distinct node idxs.
+    Therefore the admittance matrix has to be of the size of the distinct node idxs.
      */
     val linesAdmittanceMatrix = buildAssetAdmittanceMatrix(
       nodeUuidToIndexMap,

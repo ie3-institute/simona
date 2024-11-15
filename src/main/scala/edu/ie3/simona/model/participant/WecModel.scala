@@ -146,7 +146,7 @@ final case class WecModel(
     )
   }
 
-  /** The coefficient is dependent on the wind velocity v. Therefore, use v to
+  /** The coefficient is dependent on the wind velocity v. Therefore use v to
     * determine the betz coefficient cₚ.
     *
     * @param windVelocity

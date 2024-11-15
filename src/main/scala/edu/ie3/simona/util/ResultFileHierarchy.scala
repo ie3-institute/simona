@@ -28,7 +28,7 @@ import scala.jdk.OptionConverters.RichOptional
 
 /** Represents the output directory where the results will be materialized. If
   * new directories are added please remember to add them to the dirsToBeCreated
-  * Vector if they should be created. Otherwise, they will not be created!
+  * Vector if they should be created. Otherwise they will not be created!
   *
   * @version 0.1
   * @since 12.01.20
