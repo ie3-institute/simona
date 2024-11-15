@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.service.ev
 
-import edu.ie3.simona.api.data.ev.ExtEvData
+import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology._
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
@@ -47,7 +47,7 @@ object ExtEvDataService {
     )
 
   final case class ExtEvStateData(
-      extEvData: ExtEvData,
+      extEvData: ExtEvDataConnection,
       uuidToActorRef: Map[UUID, ActorRef] = Map.empty[UUID, ActorRef],
       extEvMessage: Option[EvDataMessageFromExt] = None,
       freeLots: ReceiveDataMap[UUID, Int] = ReceiveDataMap.empty,
@@ -56,7 +56,7 @@ object ExtEvDataService {
   ) extends ServiceBaseStateData
 
   final case class InitExtEvData(
-      extEvData: ExtEvData
+      extEvData: ExtEvDataConnection
   ) extends InitializeServiceStateData
 
 }

@@ -11,6 +11,7 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.ontology.messages.SchedulerMessage
+import edu.ie3.simona.sim.setup.ExtSimSetup.setupExtSim
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simosaik.simosaikElectrolyzer.MosaikElectrolyzerSimulation
 import org.apache.pekko.actor.typed.ActorRef
@@ -26,7 +27,7 @@ import java.util.concurrent.LinkedBlockingQueue
   * @since 01.07.20
   */
 class SimonaMosaikSetup(
-    override val typeSafeConfig: Config,
+    val typeSafeConfig: Config,
     override val simonaConfig: SimonaConfig,
     override val resultFileHierarchy: ResultFileHierarchy,
     override val runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] =
@@ -34,13 +35,8 @@ class SimonaMosaikSetup(
     override val args: Array[String],
     mosaikIP: Option[String] = None,
     mosaikMappingPath: Option[String] = None,
-) extends SimonaExtSimSetup(
-      typeSafeConfig,
-      simonaConfig,
-      resultFileHierarchy,
-      runtimeEventQueue,
-      args,
-    ) {
+) extends SimonaSetup {
+
   override def extSimulations(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
@@ -54,11 +50,7 @@ class SimonaMosaikSetup(
     val mosaikExtSim =
       new MosaikElectrolyzerSimulation(mosaikAddress, Path.of(mosaikMapping))
 
-    extSimulationSetup(
-      context,
-      scheduler,
-      mosaikExtSim,
-    )
+    setupExtSim(List(mosaikExtSim), args)(context, scheduler, simonaConfig)
   }
 }
 

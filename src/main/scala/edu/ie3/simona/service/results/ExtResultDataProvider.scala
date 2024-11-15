@@ -6,9 +6,8 @@
 
 package edu.ie3.simona.service.results
 
-import edu.ie3.datamodel.models.result.{ModelResultEntity, ResultEntity}
-import edu.ie3.datamodel.models.result.system.PvResult
-import edu.ie3.simona.api.data.results.ExtResultData
+import edu.ie3.datamodel.models.result.ModelResultEntity
+import edu.ie3.simona.api.data.results.ExtResultDataConnection
 import edu.ie3.simona.api.data.results.ontology.{
   ProvideResultEntities,
   RequestResultEntities,
@@ -25,11 +24,10 @@ import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop}
 import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 import java.util.UUID
-import scala.collection.immutable.Set
 import scala.jdk.CollectionConverters._
 
 object ExtResultDataProvider {
@@ -333,7 +331,7 @@ object ExtResultDataProvider {
 
   // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
   final case class ExtResultStateData(
-      extResultData: ExtResultData,
+      extResultData: ExtResultDataConnection,
       currentTick: Long,
       extResultSchedule: ExtResultSchedule,
       extResultsMessage: Option[ResultDataMessageFromExt] = None,
@@ -347,7 +345,7 @@ object ExtResultDataProvider {
     }
   }
   final case class InitExtResultData(
-      extResultData: ExtResultData,
+      extResultData: ExtResultDataConnection,
       powerFlowResolution: Long,
   )
 

@@ -9,7 +9,7 @@ package edu.ie3.simona.service.primary
 import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.RichValue
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
-import edu.ie3.simona.api.data.primarydata.ExtPrimaryData
+import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.api.data.primarydata.ontology.{
   PrimaryDataMessageFromExt,
   ProvidePrimaryData,
@@ -46,7 +46,7 @@ object ExtPrimaryDataService {
     )
 
   final case class ExtPrimaryDataStateData(
-      extPrimaryData: ExtPrimaryData,
+      extPrimaryData: ExtPrimaryDataConnection,
       subscribers: List[UUID] = List.empty,
       uuidToActorRef: Map[UUID, ActorRef] =
         Map.empty[UUID, ActorRef], // subscribers in SIMONA
@@ -55,7 +55,7 @@ object ExtPrimaryDataService {
   ) extends ServiceBaseStateData
 
   case class InitExtPrimaryData(
-      extPrimaryData: ExtPrimaryData
+      extPrimaryData: ExtPrimaryDataConnection
   ) extends InitializeServiceStateData
 
 }
