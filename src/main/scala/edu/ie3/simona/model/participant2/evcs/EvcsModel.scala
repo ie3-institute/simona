@@ -566,6 +566,19 @@ object EvcsModel {
   ) extends OperationRelevantData
 
   trait ChargingStrategy {
+
+    /** Determine scheduling for charging the EVs currently parked at the
+      * charging station until their departure.
+      *
+      * @param evs
+      *   currently parked evs at the charging station
+      * @param currentTick
+      *   current tick
+      * @param chargingProps
+      *   interface that provides information on charging station
+      * @return
+      *   scheduling for charging the EVs
+      */
     def determineChargingPowers(
         evs: Iterable[EvModelWrapper],
         currentTick: Long,
