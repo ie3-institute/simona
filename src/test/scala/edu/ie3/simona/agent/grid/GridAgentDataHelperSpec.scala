@@ -70,15 +70,15 @@ class GridAgentDataHelperSpec extends UnitSpec with SubGridGateMokka {
     UUID.fromString("3bcda4b0-2d1a-44f5-95c1-a63ce1d40bed"),
     3000,
   )
-  val superiorGridGates = Vector(superiorSubGridGate1)
-  val centerGridGates = Vector(
+  val superiorGridGates: Vector[SubGridGate] = Vector(superiorSubGridGate1)
+  val centerGridGates: Vector[SubGridGate] = Vector(
     superiorSubGridGate1,
     superiorSubGridGate2,
     centerSubGridGate1,
     centerSubGridGate2,
     centerSubGridGate3,
   )
-  val inferiorGridGates = Vector(centerSubGridGate1)
+  val inferiorGridGates: Vector[SubGridGate] = Vector(centerSubGridGate1)
 
   val superiorGridId = 1
   val superiorGridAgent: TestGridData =
