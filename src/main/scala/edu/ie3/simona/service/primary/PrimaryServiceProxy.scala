@@ -126,7 +126,7 @@ case class PrimaryServiceProxy(
   }
 
   /** Prepare the needed state data by building a
-    * [[edu.ie3.datamodel.io.source.TimeSeriesMappingSource]], obtain it's
+    * [[edu.ie3.datamodel.io.source.TimeSeriesMappingSource]], obtain its
     * information and compile them to state data
     *
     * @param primaryConfig

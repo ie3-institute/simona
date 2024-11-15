@@ -17,6 +17,6 @@ Please refer to {doc}`PowerSystemDataModel - HP Model <psdm:models/input/partici
 ## Implemented Behaviour
 
 - Agent Objectives
-  The objective of the HP agent is to cover the given heat demand of it's thermal bus in each time-step.
+  The objective of the HP agent is to cover the given heat demand of its thermal bus in each time-step.
 
 The implemented behaviour is shown in the program sequence plan below. In general, the unit will turn on, if the thermal bus is demanding heat. During operation, the HP unit operates at full utilization.
