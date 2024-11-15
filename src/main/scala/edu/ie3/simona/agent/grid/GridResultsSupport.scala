@@ -96,7 +96,7 @@ private[grid] trait GridResultsSupport {
     * and the corresponding sweep value data
     *
     * @param lines
-    *   the set of lines which the result should be build for
+    *   the set of lines which the result should be built for
     * @param sweepValueStoreData
     *   the value store with all power flow result values of the provided lines
     * @param iNominal
@@ -142,7 +142,7 @@ private[grid] trait GridResultsSupport {
     * [[TransformerModel]] and the corresponding sweep value data
     *
     * @param transformers
-    *   the set of transformers which the result should be build for
+    *   the set of transformers which the result should be built for
     * @param sweepValueStoreData
     *   the value store with all power flow result values of the provided
     *   transformers
@@ -190,7 +190,7 @@ private[grid] trait GridResultsSupport {
     * [[Transformer3wModel]] and the corresponding sweep value data
     *
     * @param transformers3w
-    *   the set of 3 winding transformers which the result should be build for
+    *   the set of 3 winding transformers which the result should be built for
     * @param sweepValueStoreData
     *   the value store with all power flow result values of the provided 3
     *   winding transformers
