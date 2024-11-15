@@ -197,7 +197,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               case None =>
                 // this happens if this agent is either a) the superior grid agent, because it will always get a request for
                 // the next sweep, as it triggers calculations for the next sweep or b) at all other
-                // (non-last downstream grid agents) in sweep 0
+                // (non last downstream grid agents) in sweep 0
                 ctx.log.debug(
                   "Unable to find slack voltage for nodes '{}' in sweep '{}'. Try to get voltage of previous sweep.",
                   nodeUuids,
@@ -386,7 +386,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
                   // update the sweep value store and clear all received maps
                   // note: normally it is expected that this has to be done after power flow calculations but for the sake
-                  // of having it only once in the code we put this here. Otherwise, it would have to be put before EVERY
+                  // of having it only once in the code we put this here. Otherwise it would have to been put before EVERY
                   // return with a valid power flow result (currently happens already in two situations)
                   val updatedGridAgentBaseData =
                     if (stillPendingRequestAnswers.isEmpty) {
@@ -955,13 +955,13 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       }
   }
 
-  /** Checks if all data has been received and if yes checks if there are any
-    * failed power flow indications from inferior grids. If both == true, then
-    * no [[Behavior]] change is triggered but the sweep value store is updated
-    * with a [[FailedPowerFlow]] information as well, the now used data is set
-    * to [[PowerFlowDoneData]] and this is escalated to the superior grid(s). If
-    * there is no [[FailedPowerFlow]] in the [[GridAgentBaseData]] a behavior
-    * transition to [[handlePowerFlowCalculations]] is triggered.
+  /** Checks if all data has been received and if yes checks if the there are
+    * any failed power flow indications from inferior grids. If both == true,
+    * then no [[Behavior]] change is triggered but the sweep value store is
+    * updated with a [[FailedPowerFlow]] information as well, the now used data
+    * is set to [[PowerFlowDoneData]] and this is escalated to the superior
+    * grid(s). If there is no [[FailedPowerFlow]] in the [[GridAgentBaseData]] a
+    * behavior transition to [[handlePowerFlowCalculations]] is triggered.
     *
     * If allReceived == false, no [[Behavior]] transition is triggered
     *
@@ -1023,11 +1023,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
   /** Normally only reached by the superior (dummy) agent!
     *
-    * Checks if all data has been received and if yes checks if there are any
-    * failed power flow indications from inferior grids. If both == true, then a
-    * finish simulation is triggered and depending on the configuration this
-    * step is skipped and the simulation goes on or this leads to a termination
-    * of the simulation due to a failed power flow calculation.
+    * Checks if all data has been received and if yes checks if the there are
+    * any failed power flow indications from inferior grids. If both == true,
+    * then a finish simulation is triggered and depending on the configuration
+    * this step is skipped and the simulation goes on or this leads to a
+    * termination of the simulation due to a failed power flow calculation.
     *
     * If there is no [[FailedPowerFlow]] in the [[GridAgentBaseData]] a
     * [[Behavior]] transition to [[checkPowerDifferences]] is triggered.

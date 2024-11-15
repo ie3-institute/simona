@@ -314,8 +314,8 @@ case object ConfigFailFast extends LazyLogging {
     )
   }
 
-  /** Check participants' basic runtime configurations, as well as in default as
-    * in individual configs. This comprises
+  /** Check participants's basic runtime configurations, as well as in default
+    * as in individual configs. This comprises
     * i.e. uuid and scaling factor
     */
   private def checkBaseRuntimeConfigs(
@@ -663,7 +663,7 @@ case object ConfigFailFast extends LazyLogging {
 
   }
 
-  /** Check the config subtree for output parameterization
+  /** Check the config sub tree for output parameterization
     *
     * @param subConfig
     *   Output sub config tree for participants
@@ -685,7 +685,7 @@ case object ConfigFailFast extends LazyLogging {
     checkIndividualOutputConfigs(subConfig.individualConfigs)
   }
 
-  /** Check the config subtree for output parameterization
+  /** Check the config sub tree for output parameterization
     *
     * @param subConfig
     *   Output sub config tree for participants
