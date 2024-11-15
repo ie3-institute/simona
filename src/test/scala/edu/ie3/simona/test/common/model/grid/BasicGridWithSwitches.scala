@@ -20,7 +20,7 @@ import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
 
-/** Note: the line parameters are NOT adapted. Instead, the line params from
+/** Note: the line parameters are NOT adapted. Instead the line params from
   * [[FiveLinesWithNodes]] are used instead!
   *
   * {{{

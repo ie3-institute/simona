@@ -51,7 +51,7 @@ trait BaseStateData[+PD <: PrimaryDataWithApparentPower[PD]]
     */
   val modelUuid: UUID
 
-  /** By default, the agent should be triggered in the same tick, where data is
+  /** By default the agent should be triggered in the same tick, where data is
     * incoming from primary or secondary sources. However, if there is no other
     * information needed, we might have the need to schedule ourselves for
     * activation triggers
