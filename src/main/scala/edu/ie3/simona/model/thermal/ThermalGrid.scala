@@ -643,7 +643,7 @@ final case class ThermalGrid(
     case _ => (maybeHouseState, maybeStorageState)
   }
 
-  /** Convert the given state of the thermal grid into result models of it's
+  /** Convert the given state of the thermal grid into result models of its
     * constituent models
     *
     * @param currentTick

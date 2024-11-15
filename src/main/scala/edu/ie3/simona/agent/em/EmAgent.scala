@@ -302,7 +302,7 @@ object EmAgent {
       }
 
     /* We do not need to handle ScheduleFlexRequests here, since active agents
-       can schedule themselves with there completions and inactive agents should
+       can schedule themselves with their completions and inactive agents should
        be sleeping right now
      */
   }

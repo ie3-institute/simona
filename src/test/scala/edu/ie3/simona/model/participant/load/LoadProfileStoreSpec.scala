@@ -49,22 +49,22 @@ class LoadProfileStoreSpec
             "2019-04-01T05:00:00+02:00[Europe/Berlin]",
             L0,
             55.6d,
-          ), // Weekday, transitional, 20th quarter hour
+          ), // Weekday, transitional, 20th quarter-hour
           (
             "2019-06-02T00:00:00+02:00[Europe/Berlin]",
             G0,
             68.8d,
-          ), // Sunday, summer, 0th quarter hour
+          ), // Sunday, summer, 0th quarter-hour
           (
             "2019-01-05T02:15:00+01:00[Europe/Berlin]",
             H0,
             52.8d,
-          ), // Saturday, winter, 9th quarter hour, 5th day -> dynamization factor 1.2473
+          ), // Saturday, winter, 9th quarter-hour, 5th day -> dynamization factor 1.2473
           (
             "2019-07-21T01:00:00+02:00[Europe/Berlin]",
             H0,
             58.1d,
-          ), // Sunday, summer, 4th quarter hour, 202nd day -> dynamization factor 0.7847
+          ), // Sunday, summer, 4th quarter-hour, 202nd day -> dynamization factor 0.7847
         )
 
       forAll(params) {
