@@ -107,9 +107,9 @@ final case class WeatherService(
   /** Initialize the concrete service implementation using the provided
     * initialization data. This method should perform all heavyweight tasks
     * before the actor becomes ready. The return values are a) the state data of
-    * the initialized service and b) optional triggers that should be sent to
+    * the initialized service and b) optional triggers that should be send to
     * the [[edu.ie3.simona.scheduler.Scheduler]] together with the completion
-    * message that is sent in response to the trigger that is sent to start the
+    * message that is send in response to the trigger that is send to start the
     * initialization process
     *
     * @param initServiceData
@@ -284,7 +284,7 @@ final case class WeatherService(
     *   the current state data of this service
     * @return
     *   the service stata data that should be used in the next state (normally
-    *   with updated values) together with the completion message that is sent
+    *   with updated values) together with the completion message that is send
     *   in response to the trigger that was sent to start this announcement
     */
   override protected def announceInformation(tick: Long)(implicit
