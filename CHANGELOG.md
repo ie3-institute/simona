@@ -134,6 +134,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed ThermalStorageResults having multiple entries [#924](https://github.com/ie3-institute/simona/issues/924)
 - Fix filter for thermal result checking for lastTick not for currentTick [#1008](https://github.com/ie3-institute/simona/issues/1008)
 - Fixed `CHANGELOG` entry for issue ([#103](https://github.com/ie3-institute/simona/issues/103)) [#941](https://github.com/ie3-institute/simona/issues/941)
+- Fix grammar and spelling in docs and comments [#1022](https://github.com/ie3-institute/simona/issues/1022)
 
 ## [3.0.0] - 2023-08-07
 
@@ -226,7 +227,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for three winding transformers  [#63](https://github.com/ie3-institute/simona/issues/63)
   - Handle incoming slack voltage accordingly
   - Allow multiple sub grid gates at one node (also allows multiple two winding transformers at one node)
-  - Perform power flow calculation in highest grid, if a three winding transformer is apparent
+  - Perform power flow calculation in the highest grid, if a three winding transformer is apparent
   - Write out results
 - Fixed broken layout in RTD documentation [#500](https://github.com/ie3-institute/simona/issues/500)
 - Corrected tests in RefSystemTest [#560](https://github.com/ie3-institute/simona/issues/560)

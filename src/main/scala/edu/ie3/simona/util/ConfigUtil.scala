@@ -73,7 +73,7 @@ object ConfigUtil {
       * participants config for faster access.
       *
       * @param subConfig
-      *   Configuration sub tree for the behaviour of system participants
+      *   Configuration subtree for the behaviour of system participants
       * @return
       *   a matching config utility
       */
@@ -124,7 +124,7 @@ object ConfigUtil {
     * @param defaultConfig
     *   Default config to use, when there is no specific one
     * @param configs
-    *   Mapping from notifier identifier to it's notifier configuration
+    *   Mapping from notifier identifier to its notifier configuration
     */
   final case class OutputConfigUtil(
       private val defaultConfig: NotifierConfig,
