@@ -291,8 +291,8 @@ final case class HpModel(
     val (newActivePower, newThermalPower) =
       if (isRunning)
         (pRated, pThermal)
-      else if (lastStateStorageqDot < zeroKW)
-        (zeroKW, lastStateStorageqDot * (-1))
+      else if (lastStateStorageQDot < zeroKW)
+        (zeroKW, lastStateStorageQDot * (-1))
       else (zeroKW, zeroKW)
 
     /* Push thermal energy to the thermal grid and get its updated state in return */
