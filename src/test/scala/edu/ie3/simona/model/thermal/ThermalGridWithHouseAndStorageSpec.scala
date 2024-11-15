@@ -16,7 +16,7 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureLowerBoundaryReached,
   HouseTemperatureUpperBoundaryReached,
 }
-import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWH}
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageEmpty,
@@ -140,7 +140,7 @@ class ThermalGridWithHouseAndStorageSpec
             defaultSimulationStart,
             houseInhabitants,
           )
-        houseDemand.required should approximate(zeroKWH)
+        houseDemand.required should approximate(zeroKWh)
         houseDemand.possible should approximate(KilowattHours(31.05009722d))
         storageDemand.required should approximate(KilowattHours(1150d))
         storageDemand.possible should approximate(KilowattHours(1150d))
@@ -150,7 +150,7 @@ class ThermalGridWithHouseAndStorageSpec
           ThermalHouseState(10800, Kelvin(292.0799935185185), zeroKW)
         )
         updatedThermalGridState.storageState shouldBe Some(
-          ThermalStorageState(10800, zeroKWH, zeroKW)
+          ThermalStorageState(10800, zeroKWh, zeroKW)
         )
         updatedThermalGridState.domesticHotWaterStorageState shouldBe Some(
           ThermalStorageState(
@@ -235,7 +235,7 @@ class ThermalGridWithHouseAndStorageSpec
           ThermalHouseState(10800, Celsius(15.959996296296296), zeroKW)
         )
         updatedThermalGridState.storageState shouldBe Some(
-          ThermalStorageState(10800, zeroKWH, zeroKW)
+          ThermalStorageState(10800, zeroKWh, zeroKW)
         )
         updatedThermalGridState.domesticHotWaterStorageState shouldBe Some(
           ThermalStorageState(
@@ -566,7 +566,7 @@ class ThermalGridWithHouseAndStorageSpec
           (
             ThermalStorageState(
               tick,
-              zeroKWH,
+              zeroKWh,
               testGridQDotInfeed,
             ),
             Some(StorageEmpty(tick)),

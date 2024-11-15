@@ -18,7 +18,7 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageEmpty,
   StorageFull,
 }
-import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWH}
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWH}
 import squants.energy._
@@ -135,10 +135,10 @@ class ThermalGridWithHouseOnlySpec
 
         houseDemand.required should approximate(expectedHouseDemand.required)
         houseDemand.possible should approximate(expectedHouseDemand.possible)
-        storageDemand.required should approximate(zeroKWH)
-        storageDemand.possible should approximate(zeroKWH)
-        domesticHotWaterDemand.required should approximate(KilowattHours(0d))
-        domesticHotWaterDemand.possible should approximate(KilowattHours(0d))
+        storageDemand.required should approximate(zeroKWh)
+        storageDemand.possible should approximate(zeroKWh)
+        domesticHotWaterDemand.required should approximate(zeroKWh)
+        domesticHotWaterDemand.possible should approximate(zeroKWh)
         updatedThermalGridState.houseState shouldBe Some(
           ThermalHouseState(10800, Kelvin(292.0799935185185), zeroKW)
         )

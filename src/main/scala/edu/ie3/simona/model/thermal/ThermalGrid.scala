@@ -141,7 +141,7 @@ final case class ThermalGrid(
               storage.getMaxEnergyThreshold - storedEnergy
 
             } else {
-              zeroMWH
+              zeroMWh
             }
           }
 
@@ -156,7 +156,7 @@ final case class ThermalGrid(
 
         }
         .getOrElse(
-          ThermalEnergyDemand(zeroMWH, zeroMWH),
+          ThermalEnergyDemand(zeroMWh, zeroMWh),
           None,
         )
     }
@@ -1534,7 +1534,7 @@ object ThermalGrid {
       possible + rhs.possible,
     )
 
-    def hasRequiredDemand: Boolean = required > zeroMWH
+    def hasRequiredDemand: Boolean = required > zeroMWh
 
     def hasAdditionalDemand: Boolean = possible > zeroMWH
   }
@@ -1564,8 +1564,8 @@ object ThermalGrid {
     }
 
     def noDemand: ThermalEnergyDemand = ThermalEnergyDemand(
-      zeroMWH,
-      zeroMWH,
+      zeroMWh,
+      zeroMWh,
     )
   }
 }

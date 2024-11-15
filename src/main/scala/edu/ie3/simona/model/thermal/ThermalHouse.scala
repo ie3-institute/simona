@@ -133,7 +133,7 @@ final case class ThermalHouse(
         )
       ) energy(targetTemperature, currentInnerTemp)
       else
-        zeroMWH
+        zeroMWh
 
     val possibleEnergy =
       if (!isInnerTemperatureTooHigh(currentInnerTemp)) {
@@ -141,7 +141,7 @@ final case class ThermalHouse(
         // there is an amount of optional energy that could be stored
         energy(upperBoundaryTemperature, currentInnerTemp)
       } else
-        zeroMWH
+        zeroMWh
     ThermalEnergyDemand(requiredEnergy, possibleEnergy)
   }
 
@@ -533,7 +533,7 @@ final case class ThermalHouse(
       qDot: Power,
   ): Option[Long] = {
     val flexibleEnergy = energy(higherTemperature, lowerTemperature)
-    if (flexibleEnergy < zeroMWH)
+    if (flexibleEnergy < zeroMWh)
       None
     else {
       val duration = Math.round(
