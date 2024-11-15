@@ -41,8 +41,8 @@ import scala.language.postfixOps
   * be able to do if the DBFSAlgorithm is used. The scheduler, the weather
   * service as well as the inferior and superior [[GridAgent]] s are simulated
   * by the TestKit. By now this test does NOT cover interactions with generation
-  * or load asset agents due to unavailability during test development. Hence it
-  * would make sense to extend this test in the future to include asset agent
+  * or load asset agents due to unavailability during test development. Hence,
+  * it would make sense to extend this test in the future to include asset agent
   * interaction or cover this behaviour by another (integration) test!
   */
 class DBFSAlgorithmCenGridSpec

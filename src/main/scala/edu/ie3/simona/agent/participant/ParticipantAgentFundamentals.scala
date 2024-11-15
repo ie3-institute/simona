@@ -1071,7 +1071,7 @@ protected trait ParticipantAgentFundamentals[
         false
     }
 
-    // If we're completing initialization and we're EM-managed:
+    // If we're completing initialization, and we're EM-managed:
     // There is no new tick for the scheduler,
     // since we are activated by the EmAgent from now on
     scheduler ! Completion(
@@ -1476,7 +1476,7 @@ protected trait ParticipantAgentFundamentals[
       determineTickWindow(requestTick, requestValueStore)
 
     /* All participants simulation results between the most recent simulation tick BEFORE or at the beginning of the
-     * averaging window and it's end (both including) are relevant for averaging the simulated primary data */
+     * averaging window, and it's end (both including) are relevant for averaging the simulated primary data */
     val firstRelevantTick = determineFirstRelevantTick(
       averagingWindowStart,
       resultValueStore,

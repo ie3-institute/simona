@@ -269,7 +269,7 @@ final case class WeatherService(
         serviceStateData
 
       case _ =>
-        // actor is not registered and we don't have data for it
+        // actor is not registered, and we don't have data for it
         // inform the agentToBeRegistered that the registration failed as we don't have data for it
         agentToBeRegistered ! RegistrationFailedMessage(self)
         serviceStateData
@@ -303,7 +303,7 @@ final case class WeatherService(
 
     // get the weather and send it to the subscribed agents
     // no sanity check needed here as we can assume that we always have weather available
-    // when we announce it. Otherwise the registration would have failed already!
+    // when we announce it. Otherwise, the registration would have failed already!
     updatedStateData.weatherSource
       .getWeather(tick, updatedStateData.weightedWeatherCoordinates)
       .foreach { case coordinate -> weatherResult =>

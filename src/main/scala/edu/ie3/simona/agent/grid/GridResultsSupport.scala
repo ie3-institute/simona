@@ -495,7 +495,7 @@ private[grid] trait GridResultsSupport {
   /** Calculate the current magnitude and the current angle in physical units
     * based on a provided electric current in p.u. and the nominal referenced
     * electric current. The arctangent "only" calculates the angle between the
-    * complex current and it's real part. This means, that i = (i_real, i_imag)
+    * complex current, and it's real part. This means, that i = (i_real, i_imag)
     * and i' = (-i_real, -i_imag) will lead to the same angle. However, for
     * power system simulation, the absolute orientation in the complex plane
     * with regard to the positive real axis is of interest. Therefore,
