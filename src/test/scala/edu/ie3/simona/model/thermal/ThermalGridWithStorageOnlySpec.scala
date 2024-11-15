@@ -109,8 +109,8 @@ class ThermalGridWithStorageOnlySpec
         houseDemand.possible should approximate(zeroKWh)
         storageDemand.required should approximate(KilowattHours(1150d))
         storageDemand.possible should approximate(KilowattHours(1150d))
-        waterStorageDemand.required should approximate(zeroKWH)
-        waterStorageDemand.possible should approximate(zeroKWH)
+        waterStorageDemand.required should approximate(zeroKWh)
+        waterStorageDemand.possible should approximate(zeroKWh)
         updatedThermalGridState.houseState shouldBe None
         updatedThermalGridState.storageState shouldBe Some(
           ThermalStorageState(10800, zeroKWh, zeroKW)
@@ -144,8 +144,8 @@ class ThermalGridWithStorageOnlySpec
         houseDemand.possible should approximate(zeroKWh)
         storageDemand.required should approximate(zeroKWh)
         storageDemand.possible should approximate(KilowattHours(575d))
-        waterStorageDemand.required should approximate(zeroKWH)
-        waterStorageDemand.possible should approximate(zeroKWH)
+        waterStorageDemand.required should approximate(zeroKWh)
+        waterStorageDemand.possible should approximate(zeroKWh)
         updatedThermalGridState.houseState shouldBe None
         updatedThermalGridState.storageState shouldBe Some(
           ThermalStorageState(10800L, KilowattHours(575d), zeroKW)
@@ -218,9 +218,9 @@ class ThermalGridWithStorageOnlySpec
             gridState,
             false,
             testGridQDotInfeed,
-            ThermalEnergyDemand(zeroKWH, zeroKWH),
+            ThermalEnergyDemand(zeroKWh, zeroKWh),
             ThermalEnergyDemand(KilowattHours(1), KilowattHours(1)),
-            ThermalEnergyDemand(zeroKWH, zeroKWH),
+            ThermalEnergyDemand(zeroKWh, zeroKWh),
             defaultSimulationStart,
             houseInhabitants,
           )
@@ -249,9 +249,9 @@ class ThermalGridWithStorageOnlySpec
           testGridAmbientTemperature,
           isRunning,
           testGridQDotInfeed,
-          ThermalEnergyDemand(zeroKWH, zeroKWH),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
           ThermalEnergyDemand(KilowattHours(1150), KilowattHours(1150)),
-          ThermalEnergyDemand(zeroKWH, zeroKWH),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
           defaultSimulationStart,
           houseInhabitants,
         )
@@ -289,9 +289,9 @@ class ThermalGridWithStorageOnlySpec
           testGridAmbientTemperature,
           isRunning,
           testGridQDotConsumptionHigh,
-          ThermalEnergyDemand(zeroKWH, zeroKWH),
-          ThermalEnergyDemand(zeroKWH, zeroKWH),
-          ThermalEnergyDemand(zeroKWH, zeroKWH),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
           defaultSimulationStart,
           houseInhabitants,
         ) match {
@@ -319,9 +319,9 @@ class ThermalGridWithStorageOnlySpec
           testGridAmbientTemperature,
           isRunning,
           zeroKW,
-          ThermalEnergyDemand(zeroKWH, zeroKWH),
-          ThermalEnergyDemand(zeroKWH, zeroKWH),
-          ThermalEnergyDemand(zeroKWH, zeroKWH),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
           defaultSimulationStart,
           houseInhabitants,
         )
