@@ -200,8 +200,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
       // connected inferior grids, because the slack node is just a mock, we imitate this behavior
       centerGridAgent ! FinishGridSimulationTrigger(3600)
 
-      // after a FinishGridSimulationTrigger is send to the inferior grids, they themselves will
-      // forward the trigger to their connected inferior grids. Therefore the inferior grid agent
+      // after a FinishGridSimulationTrigger is sent to the inferior grids, they themselves will
+      // forward the trigger to their connected inferior grids. Therefore, the inferior grid agent
       // should receive a FinishGridSimulationTrigger
       inferiorGridAgent.gaProbe.expectMessage(FinishGridSimulationTrigger(3600))
 
@@ -272,8 +272,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
       // connected inferior grids, because the slack node is just a mock, we imitate this behavior
       centerGridAgent ! FinishGridSimulationTrigger(3600)
 
-      // after a FinishGridSimulationTrigger is send to the inferior grids, they themselves will
-      // forward the trigger to their connected inferior grids. Therefore the inferior grid agent
+      // after a FinishGridSimulationTrigger is sent to the inferior grids, they themselves will
+      // forward the trigger to their connected inferior grids. Therefore, the inferior grid agent
       // should receive a FinishGridSimulationTrigger
       inferiorGridAgent.gaProbe.expectMessage(FinishGridSimulationTrigger(3600))
 
