@@ -7,6 +7,7 @@
 package edu.ie3.simona.model.participant2.evcs
 
 import edu.ie3.datamodel.models.ElectricCurrentType
+import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.result.system.{
   EvResult,
   EvcsResult,
@@ -14,6 +15,9 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
+import edu.ie3.simona.agent.participant2.ParticipantAgent
+import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
+import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
@@ -25,7 +29,6 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   OperationRelevantData,
 }
 import edu.ie3.simona.model.participant2.evcs.EvcsModel.{
-  ChargingStrategy,
   EvcsOperatingPoint,
   EvcsRelevantData,
   EvcsState,
@@ -34,9 +37,11 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.EvMessage.ArrivingEvs
 import edu.ie3.simona.service.ServiceType
+import edu.ie3.util.quantities.PowerSystemUnits.KILOWATT
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.ReactivePower
+import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import squants.energy.{Kilowatts, Watts}
 import squants.time.Seconds
 import squants.{Dimensionless, Energy, Power}
@@ -50,9 +55,10 @@ class EvcsModel private (
     override val sRated: Power,
     override val cosPhiRated: Double,
     override val qControl: QControl,
-    strategy: ChargingStrategy,
+    strategy: EvcsChargingStrategy,
     override val currentType: ElectricCurrentType,
     override val lowestEvSoc: Double,
+    chargingPoints: Int,
     vehicle2grid: Boolean,
 ) extends ParticipantModel[
       EvcsOperatingPoint,
@@ -476,6 +482,27 @@ class EvcsModel private (
     Math.round(timeUntilFullOrEmpty.toSeconds)
   }
 
+  /** Handling requests that are not part of the standard participant protocol
+    *
+    * @param state
+    *   The current state
+    * @param ctx
+    *   The actor context that can be used to send replies
+    * @param msg
+    *   The received request
+    * @return
+    *   An updated state, or the same state provided as parameter
+    */
+  override def handleRequest(
+      state: EvcsState,
+      ctx: ActorContext[ParticipantAgent.Request],
+      msg: ParticipantRequest,
+  ): EvcsState = {
+    ??? // todo
+  }
+
+  /* HELPER METHODS */
+
   /** @param ev
     *   the ev whose stored energy is to be checked
     * @return
@@ -544,25 +571,22 @@ object EvcsModel {
       arrivals: Seq[EvModelWrapper],
   ) extends OperationRelevantData
 
-  trait ChargingStrategy {
-
-    /** Determine scheduling for charging the EVs currently parked at the
-      * charging station until their departure.
-      *
-      * @param evs
-      *   currently parked evs at the charging station
-      * @param currentTick
-      *   current tick
-      * @param chargingProps
-      *   interface that provides information on charging station
-      * @return
-      *   scheduling for charging the EVs
-      */
-    def determineChargingPowers(
-        evs: Iterable[EvModelWrapper],
-        currentTick: Long,
-        chargingProps: EvcsChargingProperties,
-    ): Map[UUID, Power]
-  }
+  def apply(
+      inputModel: EvcsInput,
+      modelConfig: EvcsRuntimeConfig,
+  ): EvcsModel =
+    new EvcsModel(
+      inputModel.getUuid,
+      Kilowatts(
+        inputModel.getType.getsRated.to(KILOWATT).getValue.doubleValue
+      ),
+      inputModel.getCosPhiRated,
+      QControl(inputModel.getqCharacteristics),
+      EvcsChargingStrategy(modelConfig.chargingStrategy),
+      inputModel.getType.getElectricCurrentType,
+      modelConfig.lowestEvSoc,
+      inputModel.getChargingPoints,
+      inputModel.getV2gSupport,
+    )
 
 }

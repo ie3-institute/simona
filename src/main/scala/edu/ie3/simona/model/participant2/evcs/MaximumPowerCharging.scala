@@ -7,7 +7,6 @@
 package edu.ie3.simona.model.participant2.evcs
 
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
-import edu.ie3.simona.model.participant2.evcs.EvcsModel.ChargingStrategy
 import squants.Power
 
 import java.util.UUID
@@ -16,7 +15,7 @@ import java.util.UUID
   * station by charging with maximum power from current time until it reaches
   * either 100% SoC or its departure time.
   */
-object MaximumPowerCharging extends ChargingStrategy {
+object MaximumPowerCharging extends EvcsChargingStrategy {
 
   def determineChargingPowers(
       evs: Iterable[EvModelWrapper],
@@ -28,4 +27,5 @@ object MaximumPowerCharging extends ChargingStrategy {
       ev.uuid -> chargingProps.getMaxAvailableChargingPower(ev)
     }
     .toMap
+
 }

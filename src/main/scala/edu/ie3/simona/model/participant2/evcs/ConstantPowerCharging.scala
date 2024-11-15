@@ -7,7 +7,6 @@
 package edu.ie3.simona.model.participant2.evcs
 
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
-import edu.ie3.simona.model.participant2.evcs.EvcsModel.ChargingStrategy
 import squants.{Power, Seconds}
 
 import java.util.UUID
@@ -17,7 +16,7 @@ import java.util.UUID
   * If less than the maximum power is required to reach 100% SoC, the power is
   * reduced accordingly.
   */
-object ConstantPowerCharging extends ChargingStrategy {
+object ConstantPowerCharging extends EvcsChargingStrategy {
 
   override def determineChargingPowers(
       evs: Iterable[EvModelWrapper],
@@ -40,4 +39,5 @@ object ConstantPowerCharging extends ChargingStrategy {
       ev.uuid -> chargingPower
     }
     .toMap
+
 }
