@@ -105,7 +105,7 @@ case object RandomLoadParamStore extends LazyLogging {
           } catch {
             case e: FileIOException =>
               throw new FileIOException(
-                s"Cannot determine random load parameters for day type '$dayType' and quarter hour '$quartHour'",
+                s"Cannot determine random load parameters for day type '$dayType' and quarter-hour '$quartHour'",
                 e,
               )
           }
@@ -115,7 +115,7 @@ case object RandomLoadParamStore extends LazyLogging {
         case (_, quarterHour, randomLoadParameters) =>
           (quarterHour, randomLoadParameters)
       } // Group entries by day type
-      .map { // For each day type, sort the parameters by quarter hour and build a type day parameter object from it
+      .map { // For each day type, sort the parameters by quarter-hour and build a type day parameter object from it
         case (dayType, quarterHourToParameters) =>
           dayType -> TypeDayParameters(
             quarterHourToParameters.sortBy(_._1).map(_._2).toArray

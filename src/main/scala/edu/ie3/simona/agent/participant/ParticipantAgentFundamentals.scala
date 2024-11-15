@@ -368,7 +368,7 @@ protected trait ParticipantAgentFundamentals[
       operationStart: Long,
       operationEnd: Long,
   ): SortedSet[Long] = {
-    /* The profile load model holds values in the specified resolution (e.g. for each full quarter hour (00:00,
+    /* The profile load model holds values in the specified resolution (e.g. for each full quarter-hour (00:00,
      * 00:15, ...)). As the simulation might not start at an integer multiple of the resolution, we have to
      * determine, what the first tick is, in which profile information do exist */
     val firstProfileTick =
@@ -1244,7 +1244,7 @@ protected trait ParticipantAgentFundamentals[
         nodalVoltage,
         lastNodalVoltage,
       ).getOrElse {
-        /* If a fast reply is not possible, determine it the old fashioned way */
+        /* If a fast reply is not possible, determine it the old-fashioned way */
         determineReply(
           requestTick,
           baseStateData,
@@ -1851,7 +1851,7 @@ protected trait ParticipantAgentFundamentals[
     }
 
   /** To clean up agent value stores after power flow convergence. This is
-    * necessary for agents whose results are time dependent e.g. storage agents
+    * necessary for agents whose results are time-dependent e.g. storage agents
     *
     * @param baseStateData
     *   Basic state data

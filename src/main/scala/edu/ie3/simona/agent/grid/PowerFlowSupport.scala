@@ -369,7 +369,7 @@ trait PowerFlowSupport {
     * from a [[ValidNewtonRaphsonPFResult]]
     *
     * @param validResult
-    *   the result that should be converted to a human readable debug string
+    *   the result that should be converted to a human-readable debug string
     * @param gridModel
     *   the grid model this result comes from
     * @return
