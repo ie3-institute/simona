@@ -49,7 +49,7 @@ final case class ThermalGrid(
     * @param tick
     *   Questioned instance in time
     * @param lastAmbientTemperature
-    *   Ambient temperature valid up until (not including) the current tick
+    *   Ambient temperature until this tick
     * @param ambientTemperature
     *   Current ambient temperature in the instance in question
     * @param state
@@ -68,9 +68,9 @@ final case class ThermalGrid(
     /* First get the energy demand of the houses but only if inner temperature is below target temperature */
 
     val (houseDemand, updatedHouseState) =
-      house.zip(state.houseState).headOption match {
+      house.zip(state.houseState) match {
         case Some((thermalHouse, lastHouseState)) =>
-          val (updatedHouseState, updatedStorageState) =
+          val (updatedHouseState, _) =
             thermalHouse.determineState(
               tick,
               lastHouseState,
@@ -79,7 +79,8 @@ final case class ThermalGrid(
               lastHouseState.qDot,
             )
           if (
-            updatedHouseState.innerTemperature < thermalHouse.targetTemperature | (lastHouseState.qDot > zeroKW && updatedHouseState.innerTemperature < thermalHouse.upperBoundaryTemperature)
+            updatedHouseState.innerTemperature < thermalHouse.targetTemperature |
+              (lastHouseState.qDot > zeroKW && updatedHouseState.innerTemperature < thermalHouse.upperBoundaryTemperature)
           ) {
             (
               thermalHouse.energyDemand(
