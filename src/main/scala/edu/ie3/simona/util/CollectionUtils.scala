@@ -98,7 +98,7 @@ object CollectionUtils {
     * smallest map key is provided.
     *
     * @param map
-    *   containing containing the (k,v) pairs (e.g. x,y pairs)
+    *   containing the (k,v) pairs (e.g. x,y pairs)
     * @param key
     *   the key values are needed for
     * @return
