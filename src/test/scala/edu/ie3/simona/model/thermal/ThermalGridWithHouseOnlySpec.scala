@@ -13,7 +13,7 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureLowerBoundaryReached,
   HouseTemperatureUpperBoundaryReached,
 }
-import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWH}
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import edu.ie3.simona.test.common.UnitSpec
 import squants.energy._
 import squants.thermal.Celsius
@@ -91,8 +91,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
 
         houseDemand.required should approximate(expectedHouseDemand.required)
         houseDemand.possible should approximate(expectedHouseDemand.possible)
-        storageDemand.required should approximate(zeroKWH)
-        storageDemand.possible should approximate(zeroKWH)
+        storageDemand.required should approximate(zeroKWh)
+        storageDemand.possible should approximate(zeroKWh)
         updatedThermalGridState.houseState shouldBe Some(
           ThermalHouseState(10800, Kelvin(292.0799935185185), zeroKW)
         )

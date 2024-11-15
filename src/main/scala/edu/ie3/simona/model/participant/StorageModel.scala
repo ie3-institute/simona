@@ -47,7 +47,7 @@ final case class StorageModel(
       cosPhiRated,
     ) {
 
-  private val minEnergy = zeroKWH
+  private val minEnergy = zeroKWh
 
   /** Tolerance for power comparisons. With very small (dis-)charging powers,
     * problems can occur when calculating the future tick at which storage is
