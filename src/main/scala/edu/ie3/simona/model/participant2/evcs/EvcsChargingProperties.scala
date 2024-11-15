@@ -20,5 +20,24 @@ trait EvcsChargingProperties {
 
   val lowestEvSoc: Double
 
-  def getMaxAvailableChargingPower(ev: EvModelWrapper): Power
+  /** Returns the maximum available charging power for an EV, which depends on
+    * ev and charging station limits for AC and DC current
+    *
+    * @param ev
+    *   ev for which the max charging power should be returned
+    * @return
+    *   maximum charging power for the EV at this charging station
+    */
+  def getMaxAvailableChargingPower(
+      ev: EvModelWrapper
+  ): Power = {
+    val evPower = currentType match {
+      case ElectricCurrentType.AC =>
+        ev.sRatedAc
+      case ElectricCurrentType.DC =>
+        ev.sRatedDc
+    }
+    /* Limit the charging power to the minimum of ev's and evcs' permissible power */
+    evPower.min(sRated)
+  }
 }
