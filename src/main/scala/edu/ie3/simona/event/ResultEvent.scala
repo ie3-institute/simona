@@ -62,16 +62,14 @@ object ResultEvent {
         ComparableQuantity[Temperature],
     )
   ] =
-    Option(result).flatMap { result =>
-      Some(
+      Option(result).map { result =>
         (
           result.getTime,
           result.getInputModel,
           result.getqDot,
           result.getIndoorTemperature,
         )
-      )
-    }
+      }
 
   object CylindricalThermalStorageResult
   def unapply(result: CylindricalStorageResult): Option[
