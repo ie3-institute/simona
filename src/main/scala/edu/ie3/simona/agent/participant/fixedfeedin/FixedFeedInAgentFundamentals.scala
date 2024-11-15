@@ -134,8 +134,8 @@ protected trait FixedFeedInAgentFundamentals
       /* As participant agents always return their last known operation point on request, it is sufficient
        * to let a fixed fixed in model determine it's operation point on:
        *  1) The first tick of the simulation
-       *  2) The tick, it turns on (in time dependent operation)
-       *  3) The tick, it turns off (in time dependent operation)
+       *  2) The tick, it turns on (in time-dependent operation)
+       *  3) The tick, it turns off (in time-dependent operation)
        * Coinciding ticks are summarized and the last tick is removed, as the change in operation status
        * doesn't affect anything then */
       SortedSet[Long](
