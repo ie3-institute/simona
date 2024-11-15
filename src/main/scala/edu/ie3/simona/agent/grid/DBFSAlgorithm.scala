@@ -1153,7 +1153,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     * @param askTimeout
     *   a timeout for the request
     * @return
-    *   true if this grids contains assets or false if no request has been sent
+    *   true if this grids contains assets or false if no request has been send
     *   due to non-existence of assets
     */
   private def askForAssetPowers(
@@ -1383,11 +1383,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   }
 
   /** This method uses [[ActorContext.pipeToSelf()]] to send a future message to
-    * itself. If the future is a [[Success]] the message is sent, else a
-    * [[WrappedFailure]] with the thrown error is sent.
+    * itself. If the future is a [[Success]] the message is send, else a
+    * [[WrappedFailure]] with the thrown error is send.
     *
     * @param future
-    *   future message that should be sent to the agent after it was processed
+    *   future message that should be send to the agent after it was processed
     * @param ctx
     *   [[ActorContext]] of the receiving actor
     */
