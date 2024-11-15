@@ -332,7 +332,7 @@ object GridModel {
   }
 
   /** This checks whether the provided grid model graph is connected, that means
-    * if every node can be reached from every other node trough a sequence of
+    * if every node can be reached from every other node through a sequence of
     * edges. Also checks for referenced nodes that are missing. This check
     * considers the state (enabled/disabled) of the elements.
     *
@@ -605,7 +605,7 @@ object GridModel {
 
     /** Check and validates the grid. Especially the consistency of the grid
       * model the connectivity of the grid model if there is InitData for
-      * superior or inferior GridGates if there exits voltage measurements for
+      * superior or inferior GridGates if there exists voltage measurements for
       * transformerControlGroups
       */
 

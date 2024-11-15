@@ -269,7 +269,7 @@ case class PrimaryServiceProxy(
       unhandled(x)
   }
 
-  /** Handle the registration request for a covered model. First, try to get a
+  /** Handle the registration request for a covered model. First, try to get an
     * already existing worker for this time series, otherwise spin-off a new
     * one, remember it and forward the request
     *

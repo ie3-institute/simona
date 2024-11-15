@@ -40,7 +40,7 @@ abstract class SystemComponent(
 
   private val elementType: String = this.getClass.getSimpleName
 
-  // check if a uuid is provided
+  // check if an uuid is provided
   if (Option.apply(uuid).isEmpty)
     throw new InvalidParameterException(
       s"Uuid of $elementType $id cannot be null!"

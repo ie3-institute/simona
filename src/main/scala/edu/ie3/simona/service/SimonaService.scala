@@ -30,7 +30,7 @@ object SimonaService {
 
   /** Service initialization data can sometimes only be constructed once the
     * service actor is created (e.g.
-    * [[edu.ie3.simona.service.ev.ExtEvDataService]]. Thus, we need an extra
+    * [[edu.ie3.simona.service.ev.ExtEvDataService]]). Thus, we need an extra
     * initialization message.
     */
   final case class Create[+I <: InitializeServiceStateData](
