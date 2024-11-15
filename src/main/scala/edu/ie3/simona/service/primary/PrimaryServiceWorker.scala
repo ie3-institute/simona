@@ -198,8 +198,8 @@ final case class PrimaryServiceWorker[V <: Value](
     *   the current state data of this service
     * @return
     *   the service stata data that should be used in the next state (normally
-    *   with updated values) together with the completion message that is sent
-    *   in response to the trigger that is sent to start the initialization
+    *   with updated values) together with the completion message that is send
+    *   in response to the trigger that is send to start the initialization
     *   process
     */
   override protected def announceInformation(

@@ -424,8 +424,8 @@ class DBFSAlgorithmCenGridSpec
       // connected inferior grids, because the slack node is just a mock, we imitate this behavior
       centerGridAgent ! FinishGridSimulationTrigger(3600)
 
-      // after a FinishGridSimulationTrigger is sent the inferior grids, they themselves will send the
-      // Trigger forward the trigger to their connected inferior grids. Therefore, the inferior grid
+      // after a FinishGridSimulationTrigger is send the inferior grids, they themselves will send the
+      // Trigger forward the trigger to their connected inferior grids. Therefore the inferior grid
       // agent should receive a FinishGridSimulationTrigger
       inferiorGrid11.gaProbe.expectMessage(FinishGridSimulationTrigger(3600))
 
