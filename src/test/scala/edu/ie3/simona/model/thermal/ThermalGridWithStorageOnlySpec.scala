@@ -184,8 +184,7 @@ class ThermalGridWithStorageOnlySpec
             gridState,
             isNotRunning,
             testGridQDotInfeed,
-            noThermalDemand,
-            thermalDemand,
+            onlyThermalDemandOfHeatStorage,
           )
 
         updatedGridState match {
@@ -211,8 +210,7 @@ class ThermalGridWithStorageOnlySpec
           testGridAmbientTemperature,
           isRunning,
           testGridQDotInfeed,
-          noThermalDemand,
-          thermalDemand,
+          onlyThermalDemandOfHeatStorage,
         )
 
         nextThreshold shouldBe Some(StorageFull(276000L))
@@ -247,8 +245,7 @@ class ThermalGridWithStorageOnlySpec
           testGridAmbientTemperature,
           isRunning,
           testGridQDotConsumptionHigh,
-          thermalDemand,
-          noThermalDemand,
+          onlyThermalDemandOfHouse,
         ) match {
           case (
                 ThermalGridState(
@@ -273,7 +270,6 @@ class ThermalGridWithStorageOnlySpec
           testGridAmbientTemperature,
           isRunning,
           Kilowatts(0d),
-          noThermalDemand,
           noThermalDemand,
         )
         updatedState match {

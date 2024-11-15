@@ -133,8 +133,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed ThermalStorageResults having multiple entries [#924](https://github.com/ie3-institute/simona/issues/924)
 - Fix filter for thermal result checking for lastTick not for currentTick [#1008](https://github.com/ie3-institute/simona/issues/1008)
 - Fixed `CHANGELOG` entry for issue ([#103](https://github.com/ie3-institute/simona/issues/103)) [#941](https://github.com/ie3-institute/simona/issues/941)
-- Fixed Hp results leading to overheating house and other effects [#827](https://github.com/ie3-institute/simona/issues/827)
-- Fixed thermal storage getting recharged when empty [#827](https://github.com/ie3-institute/simona/issues/827)
+- Refactoring of `ThermalGrid.handleInfeed` to fix thermal storage recharge correctly when empty [#930](https://github.com/ie3-institute/simona/issues/930)
 
 ## [3.0.0] - 2023-08-07
 
