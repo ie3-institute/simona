@@ -185,7 +185,7 @@ object SampleWeatherSource {
 
   // these lists contain the hourly weather values for each first of the month of 2011 + january of
   // 2012 at coordinate id 213089
-  val diffuseRadiation: Vector[Double] = Vector(0, 0, 0, 0, 0, 1.18179e-12,
+  private val diffuseRadiation: Vector[Double] = Vector(0, 0, 0, 0, 0, 1.18179e-12,
     4.42315e-11, 0.0585938, 1.94141, 15.1172, 74.8438, 89.0469, 104.062,
     131.211, 98.3984, 74.5664, 9.52576e-10, 5.61295e-09, 3.74196e-09, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 4.3031e-12, 1.26833e-10, 0.123047, 21.7734, 44.8906, 62.5,
@@ -220,7 +220,7 @@ object SampleWeatherSource {
     0.0546875, 1.91406, 17.5312, 69.7578, 86.0391, 87.2578, 102.062, 78.9297,
     64.0508, 4.10171e-09, 7.74083e-09, 1.05629e-08, 0, 0, 0, 0, 0)
 
-  val directRadiation: Vector[Double] = Vector(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  private val directRadiation: Vector[Double] = Vector(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0.03125, 0.34375, 0.171875, 0.117188, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0.0136719, 3.625, 36.7266, 83.5, 278.094, 312.328, 333.422, 350.391,
     314.328, 266.484, 80.1172, 43.6875, 29.125, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
