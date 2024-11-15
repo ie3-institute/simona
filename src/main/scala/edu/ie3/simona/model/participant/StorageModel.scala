@@ -52,7 +52,7 @@ final case class StorageModel(
   /** Tolerance for power comparisons. With very small (dis-)charging powers,
     * problems can occur when calculating the future tick at which storage is
     * full or empty. For sufficiently large time frames, the maximum Long value
-    * ([[Long.MaxValue]]) can be exceeded, thus the Long value overflows and we
+    * ([[Long.MaxValue]]) can be exceeded, thus the Long value overflows, and we
     * get undefined behavior.
     *
     * Thus, small (dis-)charging powers compared to storage capacity have to be

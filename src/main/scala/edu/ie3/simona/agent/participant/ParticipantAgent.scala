@@ -149,7 +149,7 @@ abstract class ParticipantAgent[
           Activation(tick),
           modelBaseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
         ) if modelBaseStateData.services.isEmpty =>
-      /* An activity start trigger is sent and no data is awaited (neither secondary nor primary). Therefore go straight
+      /* An activity start trigger is sent and no data is awaited (neither secondary nor primary). Therefore, go straight
        * ahead to calculations */
 
       /* Hold tick, as state transition is needed */
