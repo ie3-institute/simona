@@ -33,7 +33,7 @@ import scala.util.Random
   * @param uuid
   *   unique identifier
   * @param id
-  *   human-readable id
+  *   human readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
   * @param qControl

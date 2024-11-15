@@ -132,7 +132,7 @@ F_t = -3.92 \cdot 10^{-10} \cdot t^4 + 3.2 \cdot 10^{-7}
 \cdot t + 1.24
 $$
 
-The factor $F_t$, after calculation, shall be rounded to four decimal places. After multiplication with the profile value for given quarter-hour, the result should again be rounded to one decimal place.
+The factor $F_t$, after calculation, shall be rounded to four decimal places. After multiplication with the profile value for given quarter hour, the result should again be rounded to one decimal place.
 
 #### Maximum value
 

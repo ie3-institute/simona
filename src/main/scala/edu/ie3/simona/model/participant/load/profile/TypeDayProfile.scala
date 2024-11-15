@@ -26,8 +26,8 @@ final case class TypeDayProfile(private val values: Array[Double]) {
       "You may only instantiate type day parameters with 96 values."
     )
 
-  /** Returns a value for given time. If time is not a 15-min step, it is
-    * rounded up to the next 15-min slice.
+  /** Returns a value for given time. If time is not a 15 min step, it is
+    * rounded up to the next 15 min slice.
     *
     * @param time
     *   the time

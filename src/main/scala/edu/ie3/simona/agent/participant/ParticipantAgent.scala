@@ -835,7 +835,7 @@ abstract class ParticipantAgent[
   )(implicit outputConfig: NotifierConfig): Unit
 
   /** Abstract definition to clean up agent value stores after power flow
-    * convergence. This is necessary for agents whose results are time-dependent
+    * convergence. This is necessary for agents whose results are time dependent
     * e.g. storage agents
     *
     * @param baseStateData

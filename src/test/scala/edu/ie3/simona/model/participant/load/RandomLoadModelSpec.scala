@@ -112,7 +112,7 @@ class RandomLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
           loadInput.getCosPhiRated,
           ActivePower(Watts(268.6)),
         )
-        /* Working day, 61st quarter-hour */
+        /* Working day, 61th quarter hour */
         val queryDate =
           TimeUtil.withDefaults.toZonedDateTime("2019-07-19T15:21:00Z")
         val expectedParams = new RandomLoadParameters(

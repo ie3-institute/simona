@@ -12,8 +12,8 @@ import edu.ie3.simona.model.participant.load.DayType
 import edu.ie3.util.TimeUtil
 
 /** Stores a slice of random load parameters, that comprises a whole day (96
-  * quarter-hours). The data describes a typical day, that can unequivocally be
-  * identified by its [[DayType]].
+  * quarter hours). The data describes a typical day, that can unequivocally be
+  * identified by it's [[DayType]].
   *
   * @param values
   *   96 quarter-hour values for this day type
@@ -26,8 +26,8 @@ final case class TypeDayParameters(
       s"You may only instantiate type day parameters with 96 values. Apparent: ${values.length}."
     )
 
-  /** Returns a value for given time. If time is not a 15-min step, it is
-    * rounded up to the next 15-min slice.
+  /** Returns a value for given time. If time is not a 15 min step, it is
+    * rounded up to the next 15 min slice.
     *
     * @param time
     *   the time

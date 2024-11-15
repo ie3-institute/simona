@@ -17,7 +17,7 @@ import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
   * @param uuid
   *   the element's uuid
   * @param id
-  *   the element's human-readable id
+  *   the element's human readable id
   * @param operatorInput
   *   Operator input
   * @param operationTime

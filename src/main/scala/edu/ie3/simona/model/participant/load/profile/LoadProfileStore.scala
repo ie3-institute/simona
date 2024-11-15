@@ -45,7 +45,7 @@ class LoadProfileStore private (val reader: Reader) {
     )
 
   /** Returns the load profiles entry (average power consumption for the
-    * following quarter-hour) for given time and load profile.
+    * following quarter hour) for given time and load profile.
     *
     * @param time
     *   the requested time
@@ -77,7 +77,7 @@ class LoadProfileStore private (val reader: Reader) {
     }
   }
 
-  /** Returns the maximum average power consumption per quarter-hour for a given
+  /** Returns the maximum average power consumption per quarter hour for a given
     * load profile, calculated over all seasons and weekday types of given load
     * profile
     *
@@ -171,7 +171,7 @@ object LoadProfileStore extends LazyLogging {
 
     val headerKeys: util.List[String] = parser.getHeaderNames
 
-    // skip last column "quarter-hour"
+    // skip last column "quarter hour"
     (for (i <- Range(0, headerKeys.size() - 1)) yield {
       val headerKey = headerKeys.get(i)
       val profileKey = LoadProfileKey(headerKey)
