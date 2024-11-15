@@ -486,14 +486,14 @@ final case class ThermalGrid(
   }
 
   /** Determines the most recent threshold of two given input thresholds
-   *
-   * @param maybeHouseThreshold
-   *   Option of a possible next threshold of the thermal house
-   * @param maybeStorageThreshold
-   *   Option of a possible next threshold of the thermal storage
-   * @return
-   *   The next threshold
-   */
+    *
+    * @param maybeHouseThreshold
+    *   Option of a possible next threshold of the thermal house
+    * @param maybeStorageThreshold
+    *   Option of a possible next threshold of the thermal storage
+    * @return
+    *   The next threshold
+    */
 
   private def determineMostRecentThreshold(
       maybeHouseThreshold: Option[ThermalThreshold],
