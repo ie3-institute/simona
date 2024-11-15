@@ -87,7 +87,7 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
   }
 
   /** Method to be implemented to set up everything that is necessary for a
-    * simulations. This is by creating an instance of [[SimonaSetup]]
+    * simulation. This is by creating an instance of [[SimonaSetup]]
     * implementation
     *
     * @param args
