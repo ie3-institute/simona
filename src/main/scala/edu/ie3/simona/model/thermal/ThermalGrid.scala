@@ -213,7 +213,7 @@ final case class ThermalGrid(
     *   Infeed to the grid
     * @param houseDemand
     *   determines if the thermal house has heat demand
-    * @param storageDemand
+    * @param heatStorageDemand
     *   determines if the thermal storage has heat demand
     * @return
     *   Updated thermal grid state
@@ -360,7 +360,7 @@ final case class ThermalGrid(
     *   Current state of the thermal grid
     * @param qDotHouse
     *   Infeed to the house
-    * @param qDotStorage
+    * @param qDotHeatStorage
     *   Infeed to the heat storage
     * @return
     *   Updated thermal grid state and the next threshold if there is one
@@ -459,8 +459,6 @@ final case class ThermalGrid(
     * grid (negative qDot).
     * @param tick
     *   Current tick
-    * @param ambientTemperature
-    *   Ambient temperature
     * @param state
     *   Current state of the houses
     * @param qDot
