@@ -498,8 +498,7 @@ class ThermalGridWithHouseAndStorageSpec
             initialGridState,
             isNotRunning,
             externalQDot,
-            thermalDemand,
-            noThermalDemand,
+            onlyThermalDemandOfHouse,
           )
 
         updatedGridState match {
@@ -547,8 +546,7 @@ class ThermalGridWithHouseAndStorageSpec
             gridState,
             isNotRunning,
             externalQDot,
-            noThermalDemand,
-            thermalDemand,
+            onlyThermalDemandOfHeatStorage,
           )
 
         updatedGridState match {

@@ -9,6 +9,7 @@ package edu.ie3.simona.model.thermal
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
+import edu.ie3.simona.model.thermal.ThermalGrid.ThermalDemandIndicator
 import squants.energy.{Kilowatts, Power}
 import squants.thermal.{Celsius, Temperature}
 
@@ -25,8 +26,12 @@ trait ThermalGridTestData {
   protected val testGridQDotInfeed: Power = Kilowatts(15d)
   protected val testGridQDotConsumption: Power = Kilowatts(-42d)
   protected val testGridQDotConsumptionHigh: Power = Kilowatts(-200d)
-  protected val noThermalDemand: Boolean = false
-  protected val thermalDemand: Boolean = true
+  protected val noThermalDemand: ThermalDemandIndicator =
+    ThermalDemandIndicator(false, false)
+  protected val onlyThermalDemandOfHouse: ThermalDemandIndicator =
+    ThermalDemandIndicator(true, false)
+  protected val onlyThermalDemandOfHeatStorage: ThermalDemandIndicator =
+    ThermalDemandIndicator(false, true)
   protected val isRunning: Boolean = true
   protected val isNotRunning: Boolean = false
 }
