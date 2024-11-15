@@ -77,7 +77,7 @@ final case class LineModel(
     *   branch conductance g_ij between node A and B of the element in p.u.
     */
   override def gij(): squants.Dimensionless =
-    super.gij() * amount
+    super.gij() * (amount)
 
   /** see [[PiEquivalentCircuit.g0()]]
     *
