@@ -53,15 +53,15 @@ object ResultEvent {
       thermalResult: ThermalUnitResult
   ) extends ResultEvent
 
-  object ThermalHouseResult
-  def unapply(result: ThermalHouseResult): Option[
-    (
-        ZonedDateTime,
-        UUID,
-        ComparableQuantity[Power],
-        ComparableQuantity[Temperature],
-    )
-  ] =
+  object ThermalHouseResult {
+    def unapply(result: ThermalHouseResult): Option[
+      (
+          ZonedDateTime,
+          UUID,
+          ComparableQuantity[Power],
+          ComparableQuantity[Temperature],
+      )
+    ] =
       Option(result).map { result =>
         (
           result.getTime,
@@ -70,16 +70,17 @@ object ResultEvent {
           result.getIndoorTemperature,
         )
       }
+  }
 
-  object CylindricalThermalStorageResult
-  def unapply(result: CylindricalStorageResult): Option[
-    (
-        ZonedDateTime,
-        UUID,
-        ComparableQuantity[Power],
-        ComparableQuantity[Energy],
-    )
-  ] = {
+  object CylindricalThermalStorageResult {
+    def unapply(result: CylindricalStorageResult): Option[
+      (
+          ZonedDateTime,
+          UUID,
+          ComparableQuantity[Power],
+          ComparableQuantity[Energy],
+      )
+    ] = {
       Option(result).map { result =>
         (
           result.getTime,
@@ -88,6 +89,7 @@ object ResultEvent {
           result.getEnergy,
         )
       }
+    }
   }
 
   /** Event that holds all grid calculation results of a power flow calculation.
