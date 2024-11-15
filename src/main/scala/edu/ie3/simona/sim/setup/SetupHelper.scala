@@ -46,7 +46,7 @@ trait SetupHelper extends LazyLogging {
     *   Mapping from sub grid number to [[edu.ie3.simona.agent.grid.GridAgent]]
     *   's [[ActorRef]]
     * @param gridGates
-    *   [[Set]] of all [[SubGridGate]] s connecting this sub grid with it's
+    *   [[Set]] of all [[SubGridGate]] s connecting this sub grid with its
     *   ancestors and children
     * @param configRefSystems
     *   Collection of reference systems defined in config

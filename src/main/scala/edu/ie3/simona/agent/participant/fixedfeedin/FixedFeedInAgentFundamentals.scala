@@ -132,7 +132,7 @@ protected trait FixedFeedInAgentFundamentals
     val lastTickInSimulation = simulationEndDate.toTick(simulationStartDate)
     val dataTicks =
       /* As participant agents always return their last known operation point on request, it is sufficient
-       * to let a fixed fixed in model determine it's operation point on:
+       * to let a fixed model determine its operation point on:
        *  1) The first tick of the simulation
        *  2) The tick, it turns on (in time dependent operation)
        *  3) The tick, it turns off (in time dependent operation)

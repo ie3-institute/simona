@@ -21,7 +21,7 @@ import org.scalatestplus.mockito.MockitoSugar
   */
 trait SubGridGateMokka extends MockitoSugar {
 
-  /** Mocks a node with it's basic needed information
+  /** Mocks a node with its basic needed information
     *
     * @param uuid
     *   Unique identifier of the node

@@ -145,7 +145,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       /* If no secondary data is needed (implicitly by fixed load model), add activation ticks for the simple model */
       case fixedLoadModel: FixedLoadModel =>
         /* As participant agents always return their last known operation point on request, it is sufficient
-         * to let a fixed load model determine it's operation point on:
+         * to let a fixed load model determine its operation point on:
          *  1) The first tick of the simulation
          *  2) The tick, it turns on (in time-dependent operation)
          *  3) The tick, it turns off (in time-dependent operation)

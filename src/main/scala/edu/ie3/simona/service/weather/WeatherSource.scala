@@ -424,7 +424,7 @@ object WeatherSource {
     * coordinates
     *
     * @param weighting
-    *   Mapping from weather coordinate to it's weight in averaging
+    *   Mapping from weather coordinate to its weight in averaging
     */
   private[weather] final case class WeightedCoordinates(
       weighting: Map[Point, Double]
