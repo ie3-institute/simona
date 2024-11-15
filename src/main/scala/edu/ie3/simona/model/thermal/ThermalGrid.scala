@@ -369,8 +369,7 @@ final case class ThermalGrid(
       qDotHouse: Power,
       qDotHeatStorage: Power,
   ): (ThermalGridState, Option[ThermalThreshold]) = {
-    // FIXME: Is there any case where we get back some remainingQDotHouse?
-    val (updatedHouseState, thermalHouseThreshold, remainingQDotHouse) =
+    val (updatedHouseState, thermalHouseThreshold, _) =
       handleInfeedHouse(
         tick,
         lastAmbientTemperature,
