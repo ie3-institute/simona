@@ -13,9 +13,8 @@ import squants.Power
 import java.util.UUID
 
 /** Determine scheduling for charging the EVs currently parked at the charging
-  * station until their departure. In this case, each EV is charged with maximum
-  * power from current time until it reaches either 100% SoC or its departure
-  * time.
+  * station by charging with maximum power from current time until it reaches
+  * either 100% SoC or its departure time.
   */
 object MaximumPowerCharging extends ChargingStrategy {
 
