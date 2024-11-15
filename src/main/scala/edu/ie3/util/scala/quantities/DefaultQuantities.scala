@@ -17,8 +17,8 @@ object DefaultQuantities {
   val zeroKVAr: ReactivePower = Kilovars(0d)
   val zeroMVAr: ReactivePower = Megavars(0d)
 
-  val zeroKWH: Energy = KilowattHours(0d)
-  val zeroMWH: Energy = MegawattHours(0d)
+  val zeroKWh: Energy = KilowattHours(0d)
+  val zeroMWh: Energy = MegawattHours(0d)
 
   val zeroPU: Dimensionless = Each(0d)
 
