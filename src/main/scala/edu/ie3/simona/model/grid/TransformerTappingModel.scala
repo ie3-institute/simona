@@ -114,7 +114,7 @@ final case class TransformerTappingModel(
     * inverted.
     *
     * Furthermore, this method also considers the transformer not being able to
-    * change its tap position anymore. Hence, 0 is returned, if no change is
+    * change it's tap position anymore. Hence, 0 is returned, if no change is
     * possible anymore.
     *
     * @param vChangeRequest

@@ -8,7 +8,7 @@ package edu.ie3.util.scala.quantities
 
 import tech.units.indriya.function.DefaultNumberSystem
 
-/** This number system simply delegates the method calls to its parent class.
+/** This number system simply delegates the method calls to it's parent class.
   * The only difference is, that [[BigDecimal]] is transferred to
   * [[java.math.BigDecimal]] and back upon necessity. Due to its functionality
   * as an extension of the [[DefaultNumberSystem]] it CANNOT be an object!

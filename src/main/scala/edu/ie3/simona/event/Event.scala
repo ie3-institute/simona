@@ -7,7 +7,7 @@
 package edu.ie3.simona.event
 
 /** Trait that should be mixed into each event in [[edu.ie3.simona.event]] to
-  * provide easy access to its name
+  * provide an easy access to it's name
   */
 trait Event {
 
