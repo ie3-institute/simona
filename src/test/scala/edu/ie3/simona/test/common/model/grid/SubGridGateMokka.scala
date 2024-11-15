@@ -28,7 +28,7 @@ trait SubGridGateMokka extends MockitoSugar {
     * @param subnet
     *   Sub net number
     * @return
-    *   [[NodeInput]] with these information
+    *   [[NodeInput]] with this information
     */
   protected def mockNode(uuid: UUID, subnet: Int): NodeInput = {
     val node = mock[NodeInput]

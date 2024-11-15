@@ -164,7 +164,7 @@ class DBFSAlgorithmCenGridSpec
       val firstSlackVoltageRequestSender =
         superiorGridAgent.expectSlackVoltageRequest(firstSweepNo)
 
-      // normally the inferior grid agents ask for the slack voltage as well to do their power flow calculations
+      // normally the inferior grid agents ask for the slack voltage as well to run their power flow calculations
       // we simulate this behaviour now by doing the same for our three inferior grid agents
       inferiorGrid11.requestSlackVoltage(centerGridAgent, firstSweepNo)
 
@@ -300,7 +300,7 @@ class DBFSAlgorithmCenGridSpec
             Kilovolts(374.22694614463d), // 380 kV @ 10°
             Kilovolts(65.9863075134335d), // 380 kV @ 10°
           ),
-          ExchangeVoltage( // this one should currently be ignored anyways
+          ExchangeVoltage( // this one should currently be ignored anyway
             supNodeA.getUuid,
             Kilovolts(380d),
             Kilovolts(0d),
@@ -320,7 +320,7 @@ class DBFSAlgorithmCenGridSpec
       val secondPowerRequestSender13 =
         inferiorGrid13.expectGridPowerRequest()
 
-      // normally the inferior grid agents ask for the slack voltage as well to do their power flow calculations
+      // normally the inferior grid agents ask for the slack voltage as well to run their power flow calculations
       // we simulate this behaviour now by doing the same for our three inferior grid agents
 
       inferiorGrid11.requestSlackVoltage(centerGridAgent, secondSweepNo)
