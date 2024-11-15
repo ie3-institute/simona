@@ -37,7 +37,7 @@ trait SetupHelper extends LazyLogging {
 
   /** Build the [[GridAgentInitData]]. This also includes the determination of a
     * mapping from [[SubGridGate]] to [[ActorRef]] of the representing
-    * [[edu.ie3.simona.agent.grid.GridAgent]] as well as the look up of the
+    * [[edu.ie3.simona.agent.grid.GridAgent]] as well as the look-up of the
     * [[RefSystem]] to use being defined in the config.
     *
     * @param subGridContainer

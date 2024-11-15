@@ -28,7 +28,7 @@ import scala.util.{Failure, Success, Try}
   * @param uuid
   *   the element's uuid
   * @param id
-  *   the element's human readable id
+  *   the element's human-readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
   */
