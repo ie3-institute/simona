@@ -159,7 +159,7 @@ final case class PrimaryServiceWorker[V <: Value](
           Success(initializedStateData, maybeNextTick)
 
         case (Some(tick), _) if tick > 0L =>
-          /* The start of the data needs to be at the first tick of the simulation or before. */
+          /* The start of the data needs to be at the first tick of the simulation. */
           Failure(
             new ServiceRegistrationException(
               s"The data for the timeseries '${source.getTimeSeries.getUuid}' starts after the start of this simulation (tick: $tick)! This is not allowed!"
@@ -167,6 +167,7 @@ final case class PrimaryServiceWorker[V <: Value](
           )
 
         case _ =>
+          /* No data for the simulation. */
           Failure(
             new ServiceRegistrationException(
               s"No appropriate data found within simulation time range in timeseries '${source.getTimeSeries.getUuid}'!"
