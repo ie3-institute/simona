@@ -80,16 +80,14 @@ object ResultEvent {
         ComparableQuantity[Energy],
     )
   ] = {
-    Option(result).flatMap { result =>
-      Some(
+      Option(result).map { result =>
         (
           result.getTime,
           result.getInputModel,
           result.getqDot,
           result.getEnergy,
         )
-      )
-    }
+      }
   }
 
   /** Event that holds all grid calculation results of a power flow calculation.
