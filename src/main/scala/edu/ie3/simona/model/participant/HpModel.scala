@@ -237,7 +237,7 @@ final case class HpModel(
     val noThermalStorageOrThermalStorageIsEmpty: Boolean =
       updatedGridState.storageState.isEmpty || updatedGridState.storageState
         .exists(
-          _.storedEnergy =~ zeroKWH
+          _.storedEnergy =~ zeroKWh
         )
 
     val houseDemand =
