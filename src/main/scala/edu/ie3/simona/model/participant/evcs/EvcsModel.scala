@@ -222,7 +222,7 @@ final case class EvcsModel(
           tickStop > lastSchedulingTick && tickStart < currentTick
         }
         .sortBy(_.tickStart)
-        .foldLeft(zeroKWH) { case (accumulatedEnergy, scheduleEntry) =>
+        .foldLeft(zeroKWh) { case (accumulatedEnergy, scheduleEntry) =>
           /* Only the timeframe from the start of last scheduling update and current tick must be considered */
           val trimmedEntry = trimScheduleEntry(
             scheduleEntry,
