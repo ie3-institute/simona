@@ -35,11 +35,18 @@ import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
-import edu.ie3.simpleextsim.{SimpleExtSimulationWithEm, SimpleExtSimulationWithPowerFlow}
+import edu.ie3.simpleextsim.{
+  SimpleExtSimulationWithEm,
+  SimpleExtSimulationWithPowerFlow,
+}
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.typed.scaladsl.adapter.{ClassicActorRefOps, TypedActorContextOps, TypedActorRefOps}
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
+  ClassicActorRefOps,
+  TypedActorContextOps,
+  TypedActorRefOps,
+}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 import java.util.UUID
@@ -53,31 +60,32 @@ import scala.jdk.CollectionConverters._
   * @since 01.07.20
   */
 class SimonaSimpleExtSimulationSetup(
-                                      override val typeSafeConfig: Config,
-                                      override val simonaConfig: SimonaConfig,
-                                      override val resultFileHierarchy: ResultFileHierarchy,
-                                      override val runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
-                                      override val args: Array[String],
+    override val typeSafeConfig: Config,
+    override val simonaConfig: SimonaConfig,
+    override val resultFileHierarchy: ResultFileHierarchy,
+    override val runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] =
+      None,
+    override val args: Array[String],
 ) extends SimonaExtSimSetup(
-  typeSafeConfig,
-  simonaConfig,
-  resultFileHierarchy,
-  runtimeEventQueue,
-  args
-) {
+      typeSafeConfig,
+      simonaConfig,
+      resultFileHierarchy,
+      runtimeEventQueue,
+      args,
+    ) {
 
   override def extSimulations(
-                               context: ActorContext[_],
-                               scheduler: ActorRef[SchedulerMessage],
-                             ): ExtSimSetupData = {
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
+  ): ExtSimSetupData = {
     val simpleExtSim = new SimpleExtSimulationWithPowerFlow()
-    //val simpleExtSim = new SimpleExtSimulationWithEm()
-    //val simpleExtSim = new SimpleExtSimulationWithPrimaryData()
+    // val simpleExtSim = new SimpleExtSimulationWithEm()
+    // val simpleExtSim = new SimpleExtSimulationWithPrimaryData()
 
     extSimulationSetup(
       context,
       scheduler,
-      simpleExtSim
+      simpleExtSim,
     )
   }
 }

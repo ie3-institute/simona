@@ -95,7 +95,7 @@ object SimonaSim {
           primaryServiceProxy,
           weatherService,
           extSimulationData.evDataService,
-          extSimulationData.extEmDataService
+          extSimulationData.extEmDataService,
         )
 
         val resultEventListeners =
@@ -120,11 +120,9 @@ object SimonaSim {
         /* watch all actors */
         resultEventListeners.foreach(ctx.watch)
         ctx.watch(runtimeEventListener)
-        extSimulationData.extResultDataService.foreach(
-          ref => ctx.watch(ref)
-        )
-        extSimulationData.extSimAdapters.foreach(
-          extSimAdapter => ctx.watch(extSimAdapter.toTyped)
+        extSimulationData.extResultDataService.foreach(ref => ctx.watch(ref))
+        extSimulationData.extSimAdapters.foreach(extSimAdapter =>
+          ctx.watch(extSimAdapter.toTyped)
         )
         otherActors.foreach(ctx.watch)
 
@@ -133,8 +131,8 @@ object SimonaSim {
 
         val delayedActors = resultEventListeners.appended(runtimeEventListener)
 
-        extSimulationData.extResultDataService.foreach(
-          ref => delayedActors.appended(ref)
+        extSimulationData.extResultDataService.foreach(ref =>
+          delayedActors.appended(ref)
         )
 
         idle(
@@ -205,12 +203,10 @@ object SimonaSim {
       ctx.stop(ref)
     }
 
-    actorData.extSimAdapters.foreach(
-      extSimAdapter => {
-        ctx.unwatch(extSimAdapter)
-        extSimAdapter ! ExtSimAdapter.Stop(simulationSuccessful)
-      }
-    )
+    actorData.extSimAdapters.foreach(extSimAdapter => {
+      ctx.unwatch(extSimAdapter)
+      extSimAdapter ! ExtSimAdapter.Stop(simulationSuccessful)
+    })
 
     // if the simulation is successful, we're waiting for the delayed
     // stopping listeners to terminate and thus do not unwatch them here

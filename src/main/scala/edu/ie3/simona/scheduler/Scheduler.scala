@@ -64,9 +64,9 @@ object Scheduler {
           .activate(tick)
           .takeNewActivations()
 
-        ////ctx.log.info(s"[$tick] Got Activation -> toActivate = $toActivate")
+        //// ctx.log.info(s"[$tick] Got Activation -> toActivate = $toActivate")
         toActivate.foreach { _ ! Activation(tick) }
-        //ctx.log.info(s"[$tick] Got Activation -> activeCore = $activeCore")
+        // ctx.log.info(s"[$tick] Got Activation -> activeCore = $activeCore")
 
         active(data, activeCore)
 
@@ -95,7 +95,7 @@ object Scheduler {
         inactive(data, newCore)
 
       case (ctx, unexpected) =>
-        ////ctx.log.info(s"Got $unexpected but I can't handle it!")
+        //// ctx.log.info(s"Got $unexpected but I can't handle it!")
         stopOnError(
           ctx,
           s"Received unexpected message $unexpected when inactive",
@@ -125,12 +125,12 @@ object Scheduler {
       toActivate.foreach {
         _ ! Activation(newCore.activeTick)
       }
-      //ctx.log.info(s"Got ScheduleActivation from $actor ->newCore = $newCore")
+      // ctx.log.info(s"Got ScheduleActivation from $actor ->newCore = $newCore")
 
       active(data, newCore)
 
     case (ctx, Completion(actor, maybeNewTick)) =>
-      ////ctx.log.info(s"[1] Got Completion from $actor")
+      //// ctx.log.info(s"[1] Got Completion from $actor")
       Scope(core.handleCompletion(actor))
         .map { newCore =>
           maybeNewTick
@@ -142,7 +142,7 @@ object Scheduler {
           toActivate.foreach {
             _ ! Activation(updatedCore.activeTick)
           }
-          ////ctx.log.info(s"[2] Got Completion from $actor -> updatedCore = $updatedCore")
+          //// ctx.log.info(s"[2] Got Completion from $actor -> updatedCore = $updatedCore")
           updatedCore
         }
         .map { newCore =>
@@ -153,11 +153,11 @@ object Scheduler {
                 data.activationAdapter,
                 maybeScheduleTick,
               )
-              //ctx.log.info(s"[3] Got Completion from $actor -> inactiveCore = $inactiveCore -> inactive")
+              // ctx.log.info(s"[3] Got Completion from $actor -> inactiveCore = $inactiveCore -> inactive")
               inactive(data, inactiveCore)
             }
             .getOrElse {
-              //ctx.log.info(s"[4] Got Completion from $actor -> newCore = $newCore -> active")
+              // ctx.log.info(s"[4] Got Completion from $actor -> newCore = $newCore -> active")
               active(data, newCore)
             }
         }

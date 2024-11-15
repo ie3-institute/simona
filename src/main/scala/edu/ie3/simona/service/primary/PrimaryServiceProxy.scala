@@ -9,25 +9,55 @@ package edu.ie3.simona.service.primary
 import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformation
-import edu.ie3.datamodel.io.naming.{DatabaseNamingStrategy, EntityPersistenceNamingStrategy, FileNamingStrategy}
-import edu.ie3.datamodel.io.source.csv.{CsvTimeSeriesMappingSource, CsvTimeSeriesMetaInformationSource}
-import edu.ie3.datamodel.io.source.sql.{SqlTimeSeriesMappingSource, SqlTimeSeriesMetaInformationSource}
-import edu.ie3.datamodel.io.source.{TimeSeriesMappingSource, TimeSeriesMetaInformationSource}
+import edu.ie3.datamodel.io.naming.{
+  DatabaseNamingStrategy,
+  EntityPersistenceNamingStrategy,
+  FileNamingStrategy,
+}
+import edu.ie3.datamodel.io.source.csv.{
+  CsvTimeSeriesMappingSource,
+  CsvTimeSeriesMetaInformationSource,
+}
+import edu.ie3.datamodel.io.source.sql.{
+  SqlTimeSeriesMappingSource,
+  SqlTimeSeriesMetaInformationSource,
+}
+import edu.ie3.datamodel.io.source.{
+  TimeSeriesMappingSource,
+  TimeSeriesMetaInformationSource,
+}
 import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryData
 import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.{Primary => PrimaryConfig}
-import edu.ie3.simona.exceptions.{InitializationException, InvalidConfigParameterException}
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
+  Primary => PrimaryConfig
+}
+import edu.ie3.simona.exceptions.{
+  InitializationException,
+  InvalidConfigParameterException,
+}
 import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{ExtPrimaryDataServiceRegistrationMessage, PrimaryServiceRegistrationMessage, WorkerRegistrationMessage}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  ExtPrimaryDataServiceRegistrationMessage,
+  PrimaryServiceRegistrationMessage,
+  WorkerRegistrationMessage,
+}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
-import edu.ie3.simona.service.primary.PrimaryServiceProxy.{InitPrimaryServiceProxyStateData, PrimaryServiceStateData, SourceRef}
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.{CsvInitPrimaryServiceStateData, InitPrimaryServiceStateData, SqlInitPrimaryServiceStateData}
+import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
+  InitPrimaryServiceProxyStateData,
+  PrimaryServiceStateData,
+  SourceRef,
+}
+import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
+  CsvInitPrimaryServiceStateData,
+  InitPrimaryServiceStateData,
+  SqlInitPrimaryServiceStateData,
+}
 import edu.ie3.simona.service.{ServiceStateData, SimonaService}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
@@ -80,7 +110,7 @@ case class PrimaryServiceProxy(
         initStateData.primaryConfig,
         initStateData.simulationStart,
         initStateData.extSimulation,
-        initStateData.extPrimaryData
+        initStateData.extPrimaryData,
       ) match {
         case Success(stateData) =>
           scheduler ! Completion(self.toTyped)
@@ -114,7 +144,7 @@ case class PrimaryServiceProxy(
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime,
       extSimulation: Option[ActorRef],
-      extPrimaryData: Option[ExtPrimaryData]
+      extPrimaryData: Option[ExtPrimaryData],
   ): Try[PrimaryServiceStateData] = {
     createSources(primaryConfig).map {
       case (mappingSource, metaInformationSource) =>
@@ -151,7 +181,14 @@ case class PrimaryServiceProxy(
             simulationStart,
             primaryConfig,
             mappingSource,
-            extPrimaryData.getOrElse(throw new Exception("External Primary Data Simulation is requested without ExtPrimaryData")).getPrimaryDataAssets.asScala,
+            extPrimaryData
+              .getOrElse(
+                throw new Exception(
+                  "External Primary Data Simulation is requested without ExtPrimaryData"
+                )
+              )
+              .getPrimaryDataAssets
+              .asScala,
             extSimulation,
           )
         } else {
@@ -530,7 +567,7 @@ object PrimaryServiceProxy {
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime,
       extSimulation: Option[ActorRef],
-      extPrimaryData: Option[ExtPrimaryData]
+      extPrimaryData: Option[ExtPrimaryData],
   ) extends InitializeServiceStateData
 
   /** Holding the state of an initialized proxy.

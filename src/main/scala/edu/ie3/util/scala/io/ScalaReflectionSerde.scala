@@ -7,7 +7,10 @@
 package edu.ie3.util.scala.io
 
 import com.sksamuel.avro4s.RecordFormat
-import io.confluent.kafka.streams.serdes.avro.{GenericAvroDeserializer, GenericAvroSerializer}
+import io.confluent.kafka.streams.serdes.avro.{
+  GenericAvroDeserializer,
+  GenericAvroSerializer,
+}
 import org.apache.kafka.common.serialization.{Deserializer, Serializer}
 
 /** As seen at

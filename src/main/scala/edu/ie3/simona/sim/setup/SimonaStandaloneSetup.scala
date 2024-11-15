@@ -44,7 +44,11 @@ import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.typed.scaladsl.adapter.{ClassicActorRefOps, TypedActorContextOps, TypedActorRefOps}
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
+  ClassicActorRefOps,
+  TypedActorContextOps,
+  TypedActorRefOps,
+}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 import java.util.UUID
@@ -157,7 +161,7 @@ class SimonaStandaloneSetup(
           simonaConfig.simona.input.primary,
           simulationStart,
           extSimSetupData.extPrimaryDataService,
-          extSimSetupData.extPrimaryData
+          extSimSetupData.extPrimaryData,
         ),
         simulationStart,
       ),
@@ -241,14 +245,14 @@ class SimonaStandaloneSetup(
                 (extEvData, (classOf[ExtEvDataService], extEvDataService))
             }.unzip
 
-            extLink.getExtSimulation.setup(
-              extSimAdapterData,
-              extData.toList.asJava,
-            )
+          extLink.getExtSimulation.setup(
+            extSimAdapterData,
+            extData.toList.asJava,
+          )
 
-            // starting external simulation
-            new Thread(extLink.getExtSimulation, s"External simulation $index")
-              .start()
+          // starting external simulation
+          new Thread(extLink.getExtSimulation, s"External simulation $index")
+            .start()
 
           (extSimAdapter, (extDataServiceToRef, extData))
         }.unzip
@@ -260,9 +264,9 @@ class SimonaStandaloneSetup(
         extSimAdapters,
         extDataServices.flatten.toMap,
         Map.empty,
-        extDatas
+        extDatas,
       )
-  } else {
+    } else {
       ExtSimSetupData(Iterable.empty, Map.empty, Map.empty, Set.empty)
     }
   }
