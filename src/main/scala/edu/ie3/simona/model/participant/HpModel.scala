@@ -132,13 +132,6 @@ final case class HpModel(
       relevantData: HpRelevantData,
   ): (Boolean, Boolean, HpState) = {
 
-    /* FIXME
-        val (turnOn, canOperate, canBeOutOfOperation, houseDemand, storageDemand) =
-      operatesInNextState(lastState, relevantData)
-    val updatedState =
-      calcState(lastState, relevantData, turnOn, houseDemand, storageDemand)
-    (canOperate, canBeOutOfOperation, updatedState)
-     */
     // Use lastHpState and relevantData to update state of thermalGrid to the current tick
     val (demandHouse, demandThermalStorage, currentThermalGridState) =
       thermalGrid.energyDemandAndUpdatedState(
