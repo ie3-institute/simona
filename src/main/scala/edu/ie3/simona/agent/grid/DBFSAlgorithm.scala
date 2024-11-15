@@ -737,7 +737,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                   gridAgentBaseData.powerFlowParams.sweepTimeout,
                 )(ctx)
 
-              // when we don't have inferior grids and no assets both methods return None and we can skip doing another power
+              // when we don't have inferior grids and no assets both methods return None, and we can skip doing another power
               // flow calculation otherwise we go back to simulate grid and wait for the answers
               if (!askForAssetPowersOpt && !askForInferiorGridPowersOpt) {
                 ctx.log.debug(
@@ -832,7 +832,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       )
 
       /* Regarding the power flow result of this grid, there are two cases. If this is the "highest" grid in a
-       * simulation without a three winding transformer, the grid consists of only one node and we can mock the power
+       * simulation without a three winding transformer, the grid consists of only one node, and we can mock the power
        * flow results. If there is a three winding transformer apparent, we actually have to perform power flow
        * calculations, as the high voltage branch of the transformer is modeled here. */
       (if (gridModel.gridComponents.transformers3w.isEmpty) {
