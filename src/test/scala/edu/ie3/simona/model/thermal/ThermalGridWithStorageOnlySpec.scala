@@ -80,31 +80,46 @@ class ThermalGridWithStorageOnlySpec
       "deliver the capabilities of the storage" in {
         val tick = 10800 // after three hours
 
-        val gridDemand = thermalGrid.energyDemand(
-          tick,
-          testGridAmbientTemperature,
-          ThermalGrid.startingState(thermalGrid),
+        val (houseDemand, storageDemand, updatedThermalGridState) =
+          thermalGrid.energyDemandAndUpdatedState(
+            tick,
+            testGridAmbientTemperature,
+            testGridAmbientTemperature,
+            ThermalGrid.startingState(thermalGrid),
+          )
+
+        houseDemand.required should approximate(KilowattHours(0d))
+        houseDemand.possible should approximate(KilowattHours(0d))
+        storageDemand.required should approximate(KilowattHours(1150d))
+        storageDemand.possible should approximate(KilowattHours(1150d))
+        updatedThermalGridState.houseState shouldBe None
+        updatedThermalGridState.storageState shouldBe Some(
+          ThermalStorageState(10800, KilowattHours(0d), Kilowatts(0d))
         )
-
-        gridDemand.required should approximate(KilowattHours(0d))
-        gridDemand.possible should approximate(KilowattHours(1150d))
-
       }
 
       "deliver the capabilities of a half full storage" in {
         val tick = 10800 // after three hours
 
-        val gridDemand = thermalGrid.energyDemand(
-          tick,
-          testGridAmbientTemperature,
-          ThermalGridState(
-            None,
-            Some(ThermalStorageState(0L, KilowattHours(575d), Kilowatts(0d))),
-          ),
-        )
+        val (houseDemand, storageDemand, updatedThermalGridState) =
+          thermalGrid.energyDemandAndUpdatedState(
+            tick,
+            testGridAmbientTemperature,
+            testGridAmbientTemperature,
+            ThermalGridState(
+              None,
+              Some(ThermalStorageState(0L, KilowattHours(575d), Kilowatts(0d))),
+            ),
+          )
 
-        gridDemand.required should approximate(KilowattHours(0d))
-        gridDemand.possible should approximate(KilowattHours(575d))
+        houseDemand.required should approximate(KilowattHours(0d))
+        houseDemand.possible should approximate(KilowattHours(0d))
+        storageDemand.required should approximate(KilowattHours(0d))
+        storageDemand.possible should approximate(KilowattHours(575d))
+        updatedThermalGridState.houseState shouldBe None
+        updatedThermalGridState.storageState shouldBe Some(
+          ThermalStorageState(10800L, KilowattHours(575d), Kilowatts(0d))
+        )
       }
     }
 

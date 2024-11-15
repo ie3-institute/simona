@@ -65,7 +65,7 @@ import squants.{Dimensionless, Each, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.collection.SortedSet
+import scala.collection.immutable.SortedSet
 import scala.reflect.{ClassTag, classTag}
 
 protected trait EvcsAgentFundamentals
@@ -494,9 +494,10 @@ protected trait EvcsAgentFundamentals
     val relevantData =
       createCalcRelevantData(modelBaseStateData, tick)
 
+    val lastState = getLastOrInitialStateData(modelBaseStateData, tick)
+
     val updatedBaseStateData = {
       if (relevantData.arrivals.nonEmpty) {
-        val lastState = getLastOrInitialStateData(modelBaseStateData, tick)
 
         val currentEvs = modelBaseStateData.model.determineCurrentEvs(
           relevantData,
@@ -526,6 +527,15 @@ protected trait EvcsAgentFundamentals
         // Empty arrivals means that there is no data for this EVCS at the current tick,
         // thus we just return and wait for the next activation
         modelBaseStateData
+    }
+
+    // if the lastState's tick is the same as the actual tick the results have already been determined and announced when we handled the departedEvs
+    if (lastState.tick != tick) {
+      determineResultsAnnounceUpdateValueStore(
+        lastState,
+        currentTick,
+        modelBaseStateData,
+      )
     }
 
     // We're only here if we're not flex-controlled, thus sending a Completion is always right

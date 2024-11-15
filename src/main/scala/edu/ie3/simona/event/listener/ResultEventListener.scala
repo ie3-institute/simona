@@ -65,41 +65,48 @@ object ResultEventListener extends Transformer3wResultSupport {
       resultFileHierarchy: ResultFileHierarchy
   ): Iterable[Future[(Class[_], ResultEntitySink)]] = {
     resultFileHierarchy.resultSinkType match {
-      case _: ResultSinkType.Csv =>
-        resultFileHierarchy.resultEntitiesToConsider
-          .map(resultClass => {
-            resultFileHierarchy.rawOutputDataFilePaths
-              .get(resultClass)
-              .map(Future.successful)
-              .getOrElse(
-                Future.failed(
-                  new FileHierarchyException(
-                    s"Unable to get file path for result class '${resultClass.getSimpleName}' from output file hierarchy! " +
-                      s"Available file result file paths: ${resultFileHierarchy.rawOutputDataFilePaths}"
-                  )
+      case csv: ResultSinkType.Csv =>
+        val enableCompression = csv.compressOutputs
+
+        resultFileHierarchy.resultEntitiesToConsider.map { resultClass =>
+          val filePathOpt =
+            resultFileHierarchy.rawOutputDataFilePaths.get(resultClass)
+
+          val filePathFuture = filePathOpt match {
+            case Some(fileName) => Future.successful(fileName)
+            case None =>
+              Future.failed(
+                new FileHierarchyException(
+                  s"Unable to get file path for result class '${resultClass.getSimpleName}' from output file hierarchy! " +
+                    s"Available file result file paths: ${resultFileHierarchy.rawOutputDataFilePaths}"
                 )
               )
-              .flatMap { fileName =>
-                if (fileName.endsWith(".csv") || fileName.endsWith(".csv.gz")) {
-                  Future {
-                    (
-                      resultClass,
-                      ResultEntityCsvSink(
-                        fileName.replace(".gz", ""),
-                        new ResultEntityProcessor(resultClass),
-                        fileName.endsWith(".gz"),
-                      ),
-                    )
-                  }
-                } else {
-                  Future.failed(
-                    new ProcessResultEventException(
-                      s"Invalid output file format for file $fileName provided. Currently only '.csv' or '.csv.gz' is supported!"
-                    )
+          }
+
+          filePathFuture.map { fileName =>
+            val finalFileName =
+              fileName match {
+                case name if name.endsWith(".csv.gz") && enableCompression =>
+                  name.replace(".gz", "")
+                case name if name.endsWith(".csv") => name
+                case fileName =>
+                  throw new ProcessResultEventException(
+                    s"Invalid output file format for file $fileName provided or compression is not activated but filename indicates compression. Currently only '.csv' or '.csv.gz' is supported!"
                   )
-                }
               }
-          })
+
+            (
+              resultClass,
+              ResultEntityCsvSink(
+                finalFileName,
+                new ResultEntityProcessor(resultClass),
+                enableCompression,
+              ),
+            )
+
+          }
+        }
+
       case ResultSinkType.InfluxDb1x(url, database, scenario) =>
         // creates one connection per result entity that should be processed
         resultFileHierarchy.resultEntitiesToConsider

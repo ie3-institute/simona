@@ -111,8 +111,12 @@ final case class RuntimeNotifier(
         val completedWindows =
           (adjustedLastCheck + checkWindow) to completedTick by checkWindow
 
-        completedWindows.foreach { tick =>
-          notify(CheckWindowPassed(tick, duration(lastStartTime, nowTime)))
+        completedWindows.foldLeft(lastCheckWindowTime) {
+          case (lastTime, tick) =>
+            notify(
+              CheckWindowPassed(tick, duration(lastTime, nowTime))
+            )
+            None
         }
 
         completedWindows.lastOption
