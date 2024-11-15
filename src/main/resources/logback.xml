@@ -18,14 +18,6 @@
         </filter>
     </appender>
     <appender name="RF" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/simona/simona.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <!-- daily rollover -->
-            <fileNamePattern>logs/simona/archive/simona-%d{yyyyMMdd'T'HHmmss}-${bySecond}.log</fileNamePattern>
-            <!-- keep 30 days' worth of history capped at 3GB total size -->
-            <maxHistory>10</maxHistory>
-            <totalSizeCap>3GB</totalSizeCap>
-        </rollingPolicy>
         <encoder>
             <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>

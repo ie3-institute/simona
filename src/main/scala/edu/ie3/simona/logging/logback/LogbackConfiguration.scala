@@ -43,12 +43,11 @@ object LogbackConfiguration extends LazyLogging {
           )
         )
 
-        rootLogger.iteratorForAppenders().asScala.foreach {
-          case rf: RollingFileAppender[_] =>
-            rf.getTriggeringPolicy.start()
-            rf.start()
-          case appender => appender.start()
-        }
+        rootLogger
+          .iteratorForAppenders()
+          .asScala
+          .foreach(appender => appender.start())
+
       case factory =>
         logger.error(
           s"Cannot configure simulation run logger! Invalid factory: $factory"
