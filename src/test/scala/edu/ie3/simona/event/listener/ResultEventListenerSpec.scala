@@ -316,7 +316,7 @@ class ResultEventListenerSpec
             ),
           )
         )
-        /* The result file is created at start up and only contains a headline. */
+        /* The result file is created at start up and only contains a head line. */
         awaitCond(
           outputFile.exists(),
           interval = 500.millis,

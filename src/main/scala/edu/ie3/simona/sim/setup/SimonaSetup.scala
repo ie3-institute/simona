@@ -21,7 +21,7 @@ import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
-/** Trait that can be used to set up a customized simona simulation by providing
+/** Trait that can be used to setup a customized simona simulation by providing
   * implementations for all setup information required by a
   * [[edu.ie3.simona.sim.SimonaSim]]. Most of the time, using or extending
   * [[SimonaStandaloneSetup]] might be considered instead of providing your own

@@ -210,7 +210,7 @@ protected trait PvAgentFundamentals
           tick - dataTick
         case _ =>
           /* At the first tick, we are not able to determine the tick interval from last tick
-           * (since there is none). Then we use a fallback pv stem distance. */
+           * (since there is none). Then we use a fall back pv stem distance. */
           FALLBACK_WEATHER_STEM_DISTANCE
       }
 
