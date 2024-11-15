@@ -186,8 +186,8 @@ object GridAgentMessages {
   /** Provide values as a reply to a
     * [[edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage]].
     * In contrast to [[AssetPowerChangedMessage]], this message indicates that
-    * the same values for [[p]] and [[q]] as to the previous request have been
-    * sent again
+    * the same values for [[p]] and [[q]] has been sent again as in the previous
+    * request
     *
     * @param p
     *   Active power from the previous request

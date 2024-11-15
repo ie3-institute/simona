@@ -50,7 +50,7 @@ sealed trait QControl {
   ): Power => ReactivePower
 }
 
-/** Object to create a [[QControl]]. Currently the following QControls
+/** Object to create a [[QControl]]. Currently, the following QControls
   * characteristics are supported.
   *   - cosine-Phi-Fixed
   *   - cosine-Phi(P)
