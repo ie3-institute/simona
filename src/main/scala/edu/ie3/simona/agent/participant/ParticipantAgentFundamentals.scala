@@ -1081,7 +1081,7 @@ protected trait ParticipantAgentFundamentals[
     goto(Idle) using updatedBaseStateData
   }
 
-  def pollNextActivationTrigger(
+  private def pollNextActivationTrigger(
       baseStateData: BaseStateData[PD]
   ): Option[Long] = {
     /* Determine what comes next: An additional activation or new data - or both at once */
@@ -1278,7 +1278,7 @@ protected trait ParticipantAgentFundamentals[
     * @return
     *   Option on a possible fast state change
     */
-  final def determineFastReply(
+  private final def determineFastReply(
       baseStateData: BaseStateData[PD],
       mostRecentRequest: Option[(Long, PD)],
       requestTick: Long,
@@ -1655,7 +1655,7 @@ protected trait ParticipantAgentFundamentals[
     * @return
     *   Averaged result
     */
-  def determineAverageResult(
+  private def determineAverageResult(
       baseStateData: BaseStateData[PD],
       tickToResult: Map[Long, PD],
       windowStartTick: Long,
@@ -1757,7 +1757,7 @@ protected trait ParticipantAgentFundamentals[
     * @param outputConfig
     *   Configuration of the output behaviour
     */
-  protected def announceSimulationResult(
+  private def announceSimulationResult(
       baseStateData: BaseStateData[PD],
       tick: Long,
       result: AccompaniedSimulationResult[PD],
@@ -1888,7 +1888,7 @@ protected trait ParticipantAgentFundamentals[
     * @return
     *   The equivalent event
     */
-  def buildResultEvent(
+  private def buildResultEvent(
       baseStateData: BaseStateData[PD],
       tick: Long,
       result: PD,
@@ -1909,7 +1909,7 @@ protected trait ParticipantAgentFundamentals[
     * @return
     *   Optionally wrapped event
     */
-  def buildResultEvent[R <: ResultEntity](
+  private def buildResultEvent[R <: ResultEntity](
       result: R
   ): Option[ResultEvent] = result match {
     case thermalResult: ThermalUnitResult =>

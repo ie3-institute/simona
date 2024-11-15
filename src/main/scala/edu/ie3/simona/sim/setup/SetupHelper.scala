@@ -143,7 +143,7 @@ trait SetupHelper extends LazyLogging {
     * @return
     *   The actor reference of the sub grid to look for
     */
-  def getActorRef(
+  private def getActorRef(
       subGridToActorRefMap: Map[Int, ActorRef[GridAgent.Request]],
       currentSubGrid: Int,
       queriedSubGrid: Int,
@@ -167,7 +167,7 @@ trait SetupHelper extends LazyLogging {
     * @return
     *   The reference system to use
     */
-  def getRefSystem(
+  private def getRefSystem(
       configRefSystems: ConfigRefSystems,
       subGridContainer: SubGridContainer,
   ): RefSystem = {
@@ -252,7 +252,7 @@ object SetupHelper {
     * @return
     *   Set of [[ResultEntity]] classes
     */
-  def allResultEntitiesToWrite(
+  private def allResultEntitiesToWrite(
       outputConfig: SimonaConfig.Simona.Output
   ): Set[Class[_ <: ResultEntity]] =
     GridOutputConfigUtil(

@@ -79,7 +79,7 @@ object CollectionUtils {
     *   otherwise
     */
   @tailrec
-  def isSorted[T](list: List[T])(implicit ord: Ordering[T]): Boolean =
+  private def isSorted[T](list: List[T])(implicit ord: Ordering[T]): Boolean =
     list match {
       case Nil      => true // an empty list is sorted
       case _ :: Nil => true // a single-element list is sorted
