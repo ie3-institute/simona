@@ -62,20 +62,15 @@ object ResultEvent {
           ComparableQuantity[Power],
           ComparableQuantity[Temperature],
       )
-    ] = {
-      if (result != null) {
-        Some(
-          (
-            result.getTime,
-            result.getInputModel,
-            result.getqDot,
-            result.getIndoorTemperature,
-          )
+    ] =
+      Option(result).map { result =>
+        (
+          result.getTime,
+          result.getInputModel,
+          result.getqDot,
+          result.getIndoorTemperature,
         )
-      } else {
-        None
       }
-    }
   }
 
   object CylindricalThermalStorageResult {
@@ -87,17 +82,13 @@ object ResultEvent {
           ComparableQuantity[Energy],
       )
     ] = {
-      if (result != null) {
-        Some(
-          (
-            result.getTime,
-            result.getInputModel,
-            result.getqDot,
-            result.getEnergy,
-          )
+      Option(result).map { result =>
+        (
+          result.getTime,
+          result.getInputModel,
+          result.getqDot,
+          result.getEnergy,
         )
-      } else {
-        None
       }
     }
   }
@@ -105,23 +96,19 @@ object ResultEvent {
   object DomesticHotWaterStorageResult {
     def unapply(result: DomesticHotWaterStorageResult): Option[
       (
-          ZonedDateTime,
+        ZonedDateTime,
           UUID,
           ComparableQuantity[Power],
           ComparableQuantity[Energy],
-      )
-    ] = {
-      if (result != null) {
-        Some(
-          (
-            result.getTime,
-            result.getInputModel,
-            result.getqDot,
-            result.getEnergy,
-          )
         )
-      } else {
-        None
+    ] = {
+      Option(result).map { result =>
+        (
+          result.getTime,
+          result.getInputModel,
+          result.getqDot,
+          result.getEnergy,
+        )
       }
     }
   }

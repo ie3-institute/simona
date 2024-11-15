@@ -314,9 +314,7 @@ trait HpAgentFundamentals
       nodalVoltage: squants.Dimensionless,
       model: HpModel,
   ): HpState = {
-    val (_, _, state) =
-      model.determineState(modelState, calcRelevantData)
-    state
+    model.determineState(modelState, calcRelevantData)._3
   }
 
   /** Abstract definition, individual implementations found in individual agent

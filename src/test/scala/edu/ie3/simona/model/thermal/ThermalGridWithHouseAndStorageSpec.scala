@@ -16,6 +16,7 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureLowerBoundaryReached,
   HouseTemperatureUpperBoundaryReached,
 }
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWH}
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageEmpty,

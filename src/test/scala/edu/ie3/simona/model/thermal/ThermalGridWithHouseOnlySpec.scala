@@ -18,6 +18,7 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageEmpty,
   StorageFull,
 }
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWH}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWH}
 import squants.energy._
@@ -190,7 +191,7 @@ class ThermalGridWithHouseOnlySpec
       "deliver the house state by just letting it cool down, if just no infeed is given" in {
         val tick = 0L
         val gridState = ThermalGrid.startingState(thermalGrid)
-        val externalQDot = Megawatts(0d)
+        val externalQDot = zeroKW
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleConsumption(

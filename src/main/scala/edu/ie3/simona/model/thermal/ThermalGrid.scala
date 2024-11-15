@@ -56,7 +56,7 @@ final case class ThermalGrid(
     * @param tick
     *   Questioned instance in time
     * @param lastAmbientTemperature
-    *   Ambient temperature valid up until (not including) the current tick
+    *   Ambient temperature until this tick
     * @param ambientTemperature
     *   Current ambient temperature
     * @param state
@@ -132,8 +132,8 @@ final case class ThermalGrid(
       heatStorage
         .zip(state.storageState)
         .map { case (storage, state) =>
-          val updatedStorageState =
-            storage.updateState(tick, state.qDot, state)._1
+          val (updatedStorageState,_) =
+            storage.updateState(tick, state.qDot, state)
           val storedEnergy = updatedStorageState.storedEnergy
           val soc = storedEnergy / storage.getMaxEnergyThreshold
           val storageRequired = {
@@ -173,8 +173,8 @@ final case class ThermalGrid(
           )
         )
         .getOrElse(ThermalEnergyDemand(zeroKWH, zeroKWH))
-      val applicableqDotDomesticStorage =
-        identifyApplicableQDot(tick, domesticHotWaterDemand)._1
+      val (applicableqDotDomesticStorage,_) =
+        identifyApplicableQDot(tick, domesticHotWaterDemand)
 
       domesticHotWaterStorage
         .zip(state.domesticHotWaterStorageState)

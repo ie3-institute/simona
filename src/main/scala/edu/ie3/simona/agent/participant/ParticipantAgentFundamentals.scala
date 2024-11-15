@@ -1913,7 +1913,6 @@ protected trait ParticipantAgentFundamentals[
   ): Option[ResultEvent] = result match {
     case thermalUnitResult: ThermalUnitResult =>
       Some(ResultEvent.ThermalResultEvent(thermalUnitResult))
-
     case unsupported =>
       log.debug(
         s"Results of class '${unsupported.getClass.getSimpleName}' are currently not supported."
