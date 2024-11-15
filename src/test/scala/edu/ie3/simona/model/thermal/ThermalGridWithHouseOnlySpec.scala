@@ -109,7 +109,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       "deliver the house state by just letting it cool down, if just no infeed is given" in {
         val tick = 0L
         val gridState = ThermalGrid.startingState(thermalGrid)
-        val externalQDot =zeroKW
+        val externalQDot = zeroKW
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
