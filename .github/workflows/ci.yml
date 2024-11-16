@@ -42,10 +42,10 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Spotless Check
-        run: ./gradlew spotlessCheck
+        run: ./gradlew --refresh-dependencies spotlessCheck
 
       - name: Build Project
-        run: ./gradlew --refresh-dependencies clean assemble
+        run: ./gradlew clean assemble
 
       - name: Run Tests
         run: ./gradlew pmdMain pmdTest reportScoverage checkScoverage
