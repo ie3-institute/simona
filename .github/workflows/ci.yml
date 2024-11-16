@@ -41,11 +41,14 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Spotless Check
+        run: ./gradlew spotlessCheck
+
       - name: Build Project
         run: ./gradlew --refresh-dependencies clean assemble
 
       - name: Run Tests
-        run: ./gradlew spotlessCheck pmdMain pmdTest reportScoverage checkScoverage
+        run: ./gradlew pmdMain pmdTest reportScoverage checkScoverage
 
       - name: Build Scala-Docs
         run: ./gradlew scaladoc
