@@ -72,7 +72,7 @@ jobs:
       - name: Deploy
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
         run: |
-          ./gradlew --refresh-dependencies test publish\
+          ./gradlew publish\
             -Puser=${{ secrets.MAVENCENTRAL_USER }} \
             -Ppassword=${{ secrets.MAVENCENTRAL_PASS }} \
             -Psigning.keyId=${{ secrets.MAVENCENTRAL_SIGNINGKEYID }} \
