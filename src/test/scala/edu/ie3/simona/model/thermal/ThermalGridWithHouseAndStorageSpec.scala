@@ -13,6 +13,7 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureLowerBoundaryReached,
   HouseTemperatureUpperBoundaryReached,
 }
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageEmpty,
@@ -96,53 +97,51 @@ class ThermalGridWithHouseAndStorageSpec
       "deliver the house demand (no demand) with added flexibility by storage" in {
         val tick = 10800 // after three hours
 
-        val gridDemand = thermalGrid.energyDemand(
-          tick,
-          testGridAmbientTemperature,
-          ThermalGrid.startingState(thermalGrid),
+        val (houseDemand, storageDemand, updatedThermalGridState) =
+          thermalGrid.energyDemandAndUpdatedState(
+            tick,
+            testGridAmbientTemperature,
+            testGridAmbientTemperature,
+            ThermalGrid.startingState(thermalGrid),
+          )
+        houseDemand.required should approximate(zeroKWh)
+        houseDemand.possible should approximate(KilowattHours(31.05009722d))
+        storageDemand.required should approximate(KilowattHours(1150d))
+        storageDemand.possible should approximate(KilowattHours(1150d))
+        updatedThermalGridState.houseState shouldBe Some(
+          ThermalHouseState(10800, Kelvin(292.0799935185185), zeroKW)
         )
-
-        gridDemand.required should approximate(KilowattHours(0d))
-        gridDemand.possible should approximate(
-          KilowattHours(31.05009722 + 1150)
+        updatedThermalGridState.storageState shouldBe Some(
+          ThermalStorageState(10800, zeroKWh, zeroKW)
         )
       }
 
-      "consider stored energy to reduce house demand" in {
+      "deliver the correct house and storage demand" in {
         val tick = 10800 // after three hours
 
         val startingState = ThermalGrid.startingState(thermalGrid)
-        val gridDemand = thermalGrid.energyDemand(
-          tick,
-          testGridAmbientTemperature,
-          startingState.copy(houseState =
-            startingState.houseState.map(
-              _.copy(innerTemperature = Celsius(16d))
-            )
-          ),
-        )
+        val (houseDemand, storageDemand, updatedThermalGridState) =
+          thermalGrid.energyDemandAndUpdatedState(
+            tick,
+            testGridAmbientTemperature,
+            testGridAmbientTemperature,
+            startingState.copy(houseState =
+              startingState.houseState.map(
+                _.copy(innerTemperature = Celsius(16d))
+              )
+            ),
+          )
 
-        gridDemand.required should approximate(KilowattHours(45.60005555555534))
-        gridDemand.possible should approximate(KilowattHours(1225.600055555))
-      }
-
-      "consider stored energy to reduce house demand if stored energy is not enough" in {
-        val tick = 10800 // after three hours
-
-        val startingState = ThermalGrid.startingState(thermalGrid)
-        val gridDemand = thermalGrid.energyDemand(
-          tick,
-          testGridAmbientTemperature,
-          startingState.copy(houseState =
-            startingState.houseState.map(
-              _.copy(innerTemperature = Celsius(3d))
-            )
-          ),
+        houseDemand.required should approximate(KilowattHours(45.6000555))
+        houseDemand.possible should approximate(KilowattHours(75.600055555))
+        storageDemand.required should approximate(KilowattHours(1150d))
+        storageDemand.possible should approximate(KilowattHours(1150d))
+        updatedThermalGridState.houseState shouldBe Some(
+          ThermalHouseState(10800, Celsius(15.959996296296296), zeroKW)
         )
-        gridDemand.required should approximate(
-          KilowattHours(238.64987499999984)
+        updatedThermalGridState.storageState shouldBe Some(
+          ThermalStorageState(10800, zeroKWh, zeroKW)
         )
-        gridDemand.possible should approximate(KilowattHours(1418.64987499999))
       }
     }
 
@@ -161,7 +160,7 @@ class ThermalGridWithHouseAndStorageSpec
             storageState.copy(storedEnergy = initialLoading)
           )
         )
-        val externalQDot = Kilowatts(0d)
+        val externalQDot = zeroKW
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
@@ -218,7 +217,7 @@ class ThermalGridWithHouseAndStorageSpec
               ) =>
             houseTick shouldBe 0L
             innerTemperature should approximate(Celsius(18.9999d))
-            qDotHouse should approximate(Kilowatts(0d))
+            qDotHouse should approximate(zeroKW)
 
             storageTick shouldBe 0L
             storedEnergy should approximate(initialLoading)
@@ -230,7 +229,7 @@ class ThermalGridWithHouseAndStorageSpec
     }
 
     "revising infeed from storage to house" should {
-      val zeroInflux = Kilowatts(0d)
+      val zeroInflux = zeroKW
       val tick = 3600L
       val ambientTemperature = Celsius(14d)
       "hand back unaltered information if needed information is missing" in {
@@ -373,7 +372,7 @@ class ThermalGridWithHouseAndStorageSpec
           (
             ThermalStorageState(
               tick,
-              KilowattHours(0d),
+              zeroKWh,
               testGridQDotInfeed,
             ),
             Some(StorageEmpty(tick)),
@@ -519,7 +518,7 @@ class ThermalGridWithHouseAndStorageSpec
                 .getOrElse(fail("No initial storage state found"))
             )
 
-            qDotStorage should approximate(Kilowatts(0d))
+            qDotStorage should approximate(zeroKW)
 
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
@@ -556,7 +555,7 @@ class ThermalGridWithHouseAndStorageSpec
               ) =>
             houseTick shouldBe 0L
             innerTemperature should approximate(Celsius(20.99999167d))
-            qDotHouse should approximate(Kilowatts(0d))
+            qDotHouse should approximate(zeroKW)
 
             storageTick shouldBe 0L
             storedEnergy should approximate(
