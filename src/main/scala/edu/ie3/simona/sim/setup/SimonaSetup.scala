@@ -21,6 +21,8 @@ import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
+import java.nio.file.Path
+
 /** Trait that can be used to setup a customized simona simulation by providing
   * implementations for all setup information required by a
   * [[edu.ie3.simona.sim.SimonaSim]]. Most of the time, using or extending
@@ -40,7 +42,7 @@ trait SimonaSetup {
 
   /** Directory of the log output.
     */
-  def logOutputDir: String
+  def logOutputDir: Path
 
   /** Creates the runtime event listener
     *
