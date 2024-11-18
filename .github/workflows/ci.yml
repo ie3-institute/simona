@@ -52,7 +52,7 @@ jobs:
           fi
 
           echo "Branch name is $branch_name"
-          echo "branch_name=$branch_name" >> $GITHUB_EN
+          echo "branch_name=$branch_name" >> $GITHUB_ENV
 
       - name: Setup Java
         uses: actions/setup-java@v4
