@@ -161,7 +161,7 @@ object ResultFileHierarchy extends LazyLogging {
   )
 
   /** @param modelClass
-    *   the model class a file path should be build for
+    *   the model class a file path should be built for
     * @param csvSink
     *   the csv sink type parameters
     * @param rawOutputDataDir
