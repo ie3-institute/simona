@@ -48,7 +48,7 @@ jobs:
         run: ./gradlew clean assemble
 
       - name: Run Tests
-        run: ./gradlew pmdMain pmdTest reportScoverage checkScoverage
+        run: ./gradlew test reportScoverage checkScoverage
 
       - name: Build Scala-Docs
         run: ./gradlew scaladoc
