@@ -220,7 +220,7 @@ trait SetupHelper extends LazyLogging {
     val modelsToWrite =
       SetupHelper.allResultEntitiesToWrite(simonaConfig.simona.output)
 
-    val resultFileHierarchy = ResultFileHierarchy(
+    ResultFileHierarchy(
       simonaConfig.simona.output.base.dir,
       simonaConfig.simona.simulationName,
       ResultEntityPathConfig(
@@ -230,15 +230,10 @@ trait SetupHelper extends LazyLogging {
           simonaConfig.simona.simulationName,
         ),
       ),
+      config = Some(config),
       addTimeStampToOutputDir =
         simonaConfig.simona.output.base.addTimestampToOutputDir,
-      createDirs = createDirs,
     )
-
-    // copy config data to output directory
-    ResultFileHierarchy.prepareDirectories(config, resultFileHierarchy)
-
-    resultFileHierarchy
   }
 }
 
