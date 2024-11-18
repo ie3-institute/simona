@@ -120,7 +120,9 @@ object SimonaSim {
         /* watch all actors */
         resultEventListeners.foreach(ctx.watch)
         ctx.watch(runtimeEventListener)
-        extSimulationData.extResultDataService.foreach(ref => ctx.watch(ref))
+        extSimulationData.extResultListeners.values.foreach(ref =>
+          ctx.watch(ref)
+        )
         extSimulationData.extSimAdapters.foreach(extSimAdapter =>
           ctx.watch(extSimAdapter.toTyped)
         )
@@ -131,7 +133,7 @@ object SimonaSim {
 
         val delayedActors = resultEventListeners.appended(runtimeEventListener)
 
-        extSimulationData.extResultDataService.foreach(ref =>
+        extSimulationData.extResultListeners.foreach(ref =>
           delayedActors.appended(ref)
         )
 

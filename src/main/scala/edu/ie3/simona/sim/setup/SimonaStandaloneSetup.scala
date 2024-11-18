@@ -31,23 +31,7 @@ class SimonaStandaloneSetup(
     override val runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] =
       None,
     override val args: Array[String],
-) extends SimonaSetup {
-
-  override def extSimulations(
-      context: ActorContext[_],
-      scheduler: ActorRef[SchedulerMessage],
-  ): ExtSimSetupData = {
-    val jars = ExtSimLoader.scanInputFolder()
-
-    val extLinks = jars.flatMap(ExtSimLoader.loadExtLink).toList
-
-    setupExtSim(extLinks.map(_.getExtSimulation), args)(
-      context,
-      scheduler,
-      simonaConfig,
-    )
-  }
-}
+) extends SimonaSetup
 
 /** Companion object to provide [[SetupHelper]] methods for
   * [[SimonaStandaloneSetup]]

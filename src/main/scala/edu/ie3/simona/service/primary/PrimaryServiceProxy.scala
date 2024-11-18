@@ -109,8 +109,7 @@ case class PrimaryServiceProxy(
       prepareStateData(
         initStateData.primaryConfig,
         initStateData.simulationStart,
-        initStateData.extSimulation,
-        initStateData.extPrimaryData,
+        initStateData.extSimulationData,
       ) match {
         case Success(stateData) =>
           scheduler ! Completion(self.toTyped)
@@ -143,8 +142,7 @@ case class PrimaryServiceProxy(
   private def prepareStateData(
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime,
-      extSimulation: Option[ActorRef],
-      extPrimaryData: Option[ExtPrimaryDataConnection],
+      extSimulationData: Map[ExtPrimaryDataConnection, ActorRef],
   ): Try[PrimaryServiceStateData] = {
     createSources(primaryConfig).map {
       case (mappingSource, metaInformationSource) =>
@@ -173,7 +171,12 @@ case class PrimaryServiceProxy(
             }
           }
           .toMap
-        if (extSimulation.isDefined) {
+        if (extSimulationData.nonEmpty) {
+          val extSubscribersToService = extSimulationData.flatMap {
+            case (connection, ref) =>
+              connection.getPrimaryDataAssets.asScala.map(id => id -> ref)
+          }
+
           // Ask ExtPrimaryDataService which UUIDs should be substituted
           PrimaryServiceStateData(
             modelToTimeSeries,
@@ -181,15 +184,7 @@ case class PrimaryServiceProxy(
             simulationStart,
             primaryConfig,
             mappingSource,
-            extPrimaryData
-              .getOrElse(
-                throw new Exception(
-                  "External Primary Data Simulation is requested without ExtPrimaryData"
-                )
-              )
-              .getPrimaryDataAssets
-              .asScala,
-            extSimulation,
+            extSubscribersToService,
           )
         } else {
           PrimaryServiceStateData(
@@ -272,36 +267,33 @@ case class PrimaryServiceProxy(
   private def onMessage(stateData: PrimaryServiceStateData): Receive = {
     case PrimaryServiceRegistrationMessage(modelUuid) =>
       /* Try to register for this model */
-      stateData.modelToTimeSeries.get(modelUuid) match {
-        case Some(timeSeriesUuid) =>
-          /* There is a time series apparent for this model, try to get a worker for it */
-          handleCoveredModel(
-            modelUuid,
-            timeSeriesUuid,
-            stateData,
-            sender(),
-          )
+      stateData.extSubscribersToService.get(modelUuid) match {
+        case Some(_) =>
+          /* There is external data apparent for this model */
+          handleExternalModel(modelUuid, stateData, sender())
+
         case None =>
-          if (stateData.extSubscribers.nonEmpty) {
-            log.debug(
-              s"Try to find external primary data for the model with uuid '{}'.",
-              modelUuid,
-            )
-            if (stateData.extSubscribers.exists(_ == modelUuid)) {
-              handleExternalModel(modelUuid, stateData, sender())
-            } else {
+          log.debug(
+            s"There is no external data apparent for the model with uuid '{}'.",
+            modelUuid,
+          )
+
+          stateData.modelToTimeSeries.get(modelUuid) match {
+            case Some(timeSeriesUuid) =>
+              /* There is a time series apparent for this model, try to get a worker for it */
+              handleCoveredModel(
+                modelUuid,
+                timeSeriesUuid,
+                stateData,
+                sender(),
+              )
+
+            case None =>
               log.debug(
-                s"There is no external data apparent for the model with uuid '{}'.",
+                s"There is no time series apparent for the model with uuid '{}'.",
                 modelUuid,
               )
               sender() ! RegistrationFailedMessage(self)
-            }
-          } else {
-            log.debug(
-              s"There is no time series apparent for the model with uuid '{}'.",
-              modelUuid,
-            )
-            sender() ! RegistrationFailedMessage(self)
           }
       }
     case x =>
@@ -372,12 +364,11 @@ case class PrimaryServiceProxy(
       stateData: PrimaryServiceStateData,
       requestingActor: ActorRef,
   ): Unit = {
-    stateData.extPrimaryDataService match {
-      case Some(primaryDataService) =>
-        primaryDataService ! ExtPrimaryDataServiceRegistrationMessage(
-          modelUuid,
-          requestingActor,
-        )
+    stateData.extSubscribersToService.foreach { case (_, ref) =>
+      ref ! ExtPrimaryDataServiceRegistrationMessage(
+        modelUuid,
+        requestingActor,
+      )
     }
   }
 
@@ -566,8 +557,7 @@ object PrimaryServiceProxy {
   final case class InitPrimaryServiceProxyStateData(
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime,
-      extSimulation: Option[ActorRef],
-      extPrimaryData: Option[ExtPrimaryDataConnection],
+      extSimulationData: Map[ExtPrimaryDataConnection, ActorRef],
   ) extends InitializeServiceStateData
 
   /** Holding the state of an initialized proxy.
@@ -589,8 +579,7 @@ object PrimaryServiceProxy {
       simulationStart: ZonedDateTime,
       primaryConfig: PrimaryConfig,
       mappingSource: TimeSeriesMappingSource,
-      extSubscribers: Iterable[UUID] = Iterable.empty[UUID],
-      extPrimaryDataService: Option[ActorRef] = None,
+      extSubscribersToService: Map[UUID, ActorRef] = Map.empty,
   ) extends ServiceStateData
 
   /** Giving reference to the target time series and source worker.

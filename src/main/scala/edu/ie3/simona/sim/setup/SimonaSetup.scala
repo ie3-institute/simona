@@ -14,6 +14,7 @@ import edu.ie3.simona.actor.SimonaActorNaming.RichActorRefFactory
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentMessages.CreateGridAgent
+import edu.ie3.simona.api.data.results.ExtResultDataConnection
 import edu.ie3.simona.config.{ArgsParser, RefSystemParser, SimonaConfig}
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
@@ -31,6 +32,7 @@ import edu.ie3.simona.service.results.ExtResultDataProvider
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.sim.SimonaSim
+import edu.ie3.simona.sim.setup.ExtSimSetup.setupExtSim
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
@@ -103,9 +105,7 @@ trait SimonaSetup {
   def resultEventListener(
       context: ActorContext[_],
       extSimulationData: ExtSimSetupData,
-  ): Seq[ActorRef[ResultEventListener.Request]] = {
-    val extResultDataService: Option[ActorRef[ExtResultDataProvider.Request]] =
-      extSimulationData.extResultDataService
+  ): Seq[ActorRef[ResultEventListener.Request]] =
     // append ResultEventListener as well to write raw output files
     ArgsParser
       .parseListenerConfigOption(simonaConfig.simona.event.listener)
@@ -122,11 +122,10 @@ trait SimonaSetup {
       .spawn(
         ResultEventListener(
           resultFileHierarchy,
-          extResultDataService,
+          extSimulationData.extResultListeners,
         ),
         ResultEventListener.getClass.getSimpleName,
       )
-  }
 
   /** Creates a primary service proxy. The proxy is the first instance to ask
     * for primary data. If necessary, it delegates the registration request to
@@ -153,7 +152,6 @@ trait SimonaSetup {
         InitPrimaryServiceProxyStateData(
           simonaConfig.simona.input.primary,
           simulationStart,
-          extSimSetupData.extPrimaryDataService,
           extSimSetupData.extPrimaryData,
         ),
         simulationStart,
@@ -211,7 +209,17 @@ trait SimonaSetup {
   def extSimulations(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
-  ): ExtSimSetupData
+  ): ExtSimSetupData = {
+    val jars = ExtSimLoader.scanInputFolder()
+
+    val extLinks = jars.flatMap(ExtSimLoader.loadExtLink).toList
+
+    setupExtSim(extLinks.map(_.getExtSimulation), args)(
+      context,
+      scheduler,
+      simonaConfig,
+    )
+  }
 
   /** Creates the time advancer
     *

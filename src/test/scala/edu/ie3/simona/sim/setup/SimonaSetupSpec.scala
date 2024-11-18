@@ -13,6 +13,7 @@ import edu.ie3.datamodel.models.input.connector.{
 }
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.ontology.messages.SchedulerMessage
@@ -22,17 +23,25 @@ import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.grid.SubGridGateMokka
+import edu.ie3.simona.util.ResultFileHierarchy
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 import java.util.UUID
+import java.util.concurrent.LinkedBlockingQueue
 
 class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
 
   override val args: Array[String] = Array.empty[String]
 
-  override def logOutputDir: String = throw new NotImplementedError()
+  override val simonaConfig: SimonaConfig = throw new NotImplementedError()
+  override val resultFileHierarchy: ResultFileHierarchy =
+    throw new NotImplementedError()
+  override val runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] =
+    throw new NotImplementedError()
+
+  override val logOutputDir: String = throw new NotImplementedError()
 
   override def runtimeEventListener(
       context: ActorContext[_]

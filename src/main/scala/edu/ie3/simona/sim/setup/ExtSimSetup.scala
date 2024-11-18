@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.sim.setup
 
-import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.actor.SimonaActorNaming.RichActorRefFactory
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.data.em.ExtEmDataConnection
@@ -49,7 +48,7 @@ import org.apache.pekko.util.{Timeout => PekkoTimeout}
 import java.time.temporal.ChronoUnit
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
-import scala.jdk.CollectionConverters.{ListHasAsScala, SeqHasAsJava}
+import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.DurationConverters._
 
 object ExtSimSetup {
@@ -63,13 +62,21 @@ object ExtSimSetup {
       scheduler: ActorRef[SchedulerMessage],
       simonaConfig: SimonaConfig,
   ): ExtSimSetupData = {
+
+    val extInputDataConnections: List[ExtInputDataConnection] = extSimulations
+      .flatMap(_.getDataConnections.asScala)
+      .flatMap {
+        case connection: ExtInputDataConnection => Some(connection)
+        case _                                  => None
+      }
+
     // checking the given data connections
-    checkExtDataConnections(
-      extSimulations.flatMap(_.getDataConnections.asScala)
-    )
+    checkExtInputDataConnections(extInputDataConnections)
 
     val emptyExtSimSetupData = ExtSimSetupData(
       Iterable.empty,
+      Map.empty,
+      Map.empty,
       Map.empty,
       Map.empty,
       Set.empty,
@@ -82,7 +89,9 @@ object ExtSimSetup {
           ExtSimAdapter.props(scheduler.toClassic),
           s"$index",
         )
-        val extSimAdapterData = new ExtSimAdapterData(extSimAdapter, args)
+
+        implicit val extSimAdapterData: ExtSimAdapterData =
+          new ExtSimAdapterData(extSimAdapter, args)
 
         // send init data right away, init activation is scheduled
         extSimAdapter ! ExtSimAdapter.Create(
@@ -92,7 +101,7 @@ object ExtSimSetup {
 
         // setup data services that belong to this external simulation
         val (updatedSetupData, dataConnections) =
-          connect(extSimulation, extSimAdapterData, extSimSetupData)
+          connect(extSimulation, extSimSetupData)
 
         extSimulation.setup(extSimAdapterData)
 
@@ -114,11 +123,11 @@ object ExtSimSetup {
   // connects the external simulation
   private[setup] def connect(
       extLink: ExtSimulation,
-      extSimAdapterData: ExtSimAdapterData,
       extSimSetupData: ExtSimSetupData,
   )(implicit
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
+      extSimAdapterData: ExtSimAdapterData,
       simonaConfig: SimonaConfig,
   ): (ExtSimSetupData, Set[ExtDataConnection]) = {
     implicit val extSimAdapter: ClassicRef = extSimAdapterData.getAdapter
@@ -129,199 +138,120 @@ object ExtSimSetup {
     val updatedSetupData = connections.foldLeft(extSimSetupData) {
       case (setupData, connection) =>
         connection match {
-          case extPrimaryData: ExtPrimaryDataConnection =>
-            inputDataConnectionSetup(
-              setupData,
-              extPrimaryData,
-              classOf[ExtPrimaryDataService],
-              extPrimaryDataSimulationSetup,
+          case extPrimaryDataConnection: ExtPrimaryDataConnection =>
+            extPrimaryDataSetup(setupData, extPrimaryDataConnection)
+
+          case extEmDataConnection: ExtEmDataConnection =>
+            setupInputService(
+              extSimSetupData,
+              extEmDataConnection,
+              ExtEmDataService.props,
+              "ExtEmDataService",
+              InitExtEmData,
             )
 
-          case extEmData: ExtEmDataConnection =>
-            inputDataConnectionSetup(
-              setupData,
-              extEmData,
-              classOf[ExtEmDataService],
-              extEmDataSimulationSetup,
+          case extEvDataConnection: ExtEvDataConnection =>
+            setupInputService(
+              extSimSetupData,
+              extEvDataConnection,
+              ExtEvDataService.props,
+              "ExtEvDataService",
+              InitExtEvData,
             )
 
-          case extEvData: ExtEvDataConnection =>
-            inputDataConnectionSetup(
-              setupData,
-              extEvData,
-              classOf[ExtEmDataService],
-              extEvDataSimulationSetup,
-            )
-
-          case extResultData: ExtResultDataConnection =>
-            extResultDataSetup(setupData, extResultData)
+          case extResultDataConnection: ExtResultDataConnection =>
+            extResultDataSetup(setupData, extResultDataConnection)
         }
     }
 
     (updatedSetupData, connections)
   }
 
-  /** Checks the external data connection, if there are multiple connection that
-    * provide data to the same asset.
-    * @param extDataConnections
-    *   given external data connections
-    */
-  private def checkExtDataConnections(
-      extDataConnections: Seq[ExtDataConnection]
-  ): Unit = {
-    val extDataProvision: Seq[Class[_ <: AssetInput]] =
-      extDataConnections.flatMap {
-        case extInputDataConnection: ExtInputDataConnection =>
-          extInputDataConnection.getTargetClasses.asScala
-      }
-
-    val extDataProvisionSet = extDataProvision.toSet
-
-    if (extDataProvisionSet.size != extDataProvision.size) {
-      val duplicateDataProvision: Set[Class[_ <: AssetInput]] = extDataProvision
-        .groupBy(identity)
-        .map { case (value, list) => value -> list.size }
-        .filter(_._2 > 1)
-        .keySet
-
-      throw ServiceException(
-        s"Duplicate data provision for inputs: $duplicateDataProvision"
-      )
-    }
-  }
-
-  private[setup] def inputDataConnectionSetup[T <: ExtInputDataConnection](
+  private[setup] def setupInputService[T <: ExtInputDataConnection](
       extSimSetupData: ExtSimSetupData,
       extInputData: T,
-      serviceClass: Class[_],
-      setupMethod: T => ClassicRef,
-  )(implicit extSimAdapter: ClassicRef): ExtSimSetupData = {
-    val extDataServices = extSimSetupData.extDataServices
-
-    val (updatedSetupData, extPrimaryDataService) =
-      extDataServices.get(serviceClass) match {
-        case Some(service) =>
-          (extSimSetupData, service)
-
-        case None =>
-          val service = setupMethod(extInputData)
-
-          (
-            extSimSetupData.copy(extDataServices =
-              extDataServices ++ Map(serviceClass -> service)
-            ),
-            service,
-          )
-      }
-
-    extInputData.setActorRefs(extPrimaryDataService, extSimAdapter)
-
-    updatedSetupData
-  }
-
-  private[setup] def extPrimaryDataSimulationSetup(
-      extPrimaryData: ExtPrimaryDataConnection
-  )(implicit
-      context: ActorContext[_],
-      scheduler: ActorRef[SchedulerMessage],
-  ): ClassicRef =
-    setupService(
-      ExtPrimaryDataService.props,
-      "ExtPrimaryDataService",
-      InitExtPrimaryData(extPrimaryData),
-    )
-
-  private[setup] def extEmDataSimulationSetup(extEmData: ExtEmDataConnection)(
-      implicit
-      context: ActorContext[_],
-      scheduler: ActorRef[SchedulerMessage],
-  ): ClassicRef =
-    setupService(
-      ExtEmDataService.props,
-      "ExtEmDataService",
-      InitExtEmData(extEmData),
-    )
-
-  private[setup] def extEvDataSimulationSetup(extEvData: ExtEvDataConnection)(
-      implicit
-      context: ActorContext[_],
-      scheduler: ActorRef[SchedulerMessage],
-  ): ClassicRef = setupService(
-    ExtEvDataService.props,
-    "ExtEvDataService",
-    InitExtEvData(extEvData),
-  )
-
-  private[setup] def setupService(
       props: ClassicRef => Props,
       name: String,
-      initData: InitializeServiceStateData,
+      initData: T => InitializeServiceStateData,
   )(implicit
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
-  ): ClassicRef = {
-    val extEvDataService = context.toClassic.simonaActorOf(
+      extSimAdapterData: ExtSimAdapterData,
+  ): ExtSimSetupData = {
+    val extDataServices = extSimSetupData.extDataServices
+    val serviceClass = extInputData.getClass
+
+    val extDataService = context.toClassic.simonaActorOf(
       props(scheduler.toClassic),
       name,
     )
 
-    extEvDataService ! SimonaService.Create(
-      initData,
+    extDataService ! SimonaService.Create(
+      initData(extInputData),
       ScheduleLock.singleKey(
         context,
         scheduler,
         INIT_SIM_TICK,
       ),
     )
-    extEvDataService
+
+    extInputData.setActorRefs(extDataService, extSimAdapterData.getAdapter)
+
+    extSimSetupData.copy(extDataServices =
+      extDataServices ++ Map(serviceClass -> extDataService)
+    )
+  }
+
+  private[setup] def extPrimaryDataSetup(
+      extSimSetupData: ExtSimSetupData,
+      extPrimaryDataConnection: ExtPrimaryDataConnection,
+  )(implicit
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
+      extSimAdapter: ClassicRef,
+  ): ExtSimSetupData = {
+    val extPrimaryDataService = context.toClassic.simonaActorOf(
+      ExtPrimaryDataService.props(scheduler.toClassic),
+      "ExtPrimaryDataService",
+    )
+
+    extPrimaryDataService ! SimonaService.Create(
+      InitExtPrimaryData(extPrimaryDataConnection),
+      ScheduleLock.singleKey(
+        context,
+        scheduler,
+        INIT_SIM_TICK,
+      ),
+    )
+
+    extPrimaryDataConnection.setActorRefs(extPrimaryDataService, extSimAdapter)
+
+    val extPrimaryData = extSimSetupData.extPrimaryData ++ Map(
+      extPrimaryDataConnection -> extPrimaryDataService
+    )
+
+    val extDatas = extSimSetupData.extDatas ++ Set(extPrimaryDataConnection)
+
+    extSimSetupData.copy(
+      extPrimaryData = extPrimaryData,
+      extDatas = extDatas,
+    )
   }
 
   private[setup] def extResultDataSetup(
       extSimSetupData: ExtSimSetupData,
-      extResultData: ExtResultDataConnection,
+      extResultDataConnection: ExtResultDataConnection,
   )(implicit
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
       extSimAdapter: ClassicRef,
       simonaConfig: SimonaConfig,
   ): ExtSimSetupData = {
-    val extDataListener = extSimSetupData.extDataListener
-    val serviceClass = ExtResultDataProvider.getClass
-
-    val (updatedSetupData, extResultDataProvider) =
-      extDataListener.get(serviceClass) match {
-        case Some(service) =>
-          (extSimSetupData, service)
-
-        case None =>
-          val extResultDataProvider = {
-            context.spawn(
-              ExtResultDataProvider(scheduler),
-              s"ExtResultDataProvider",
-            )
-          }
-
-          val powerFlowResolution =
-            simonaConfig.simona.powerflow.resolution.get(
-              ChronoUnit.SECONDS
-            )
-
-          extResultDataProvider ! ExtResultDataProvider.Create(
-            InitExtResultData(extResultData, powerFlowResolution),
-            ScheduleLock.singleKey(
-              context,
-              scheduler,
-              INIT_SIM_TICK,
-            ),
-          )
-
-          (
-            extSimSetupData.copy(extDataListener =
-              extDataListener ++ Map(serviceClass -> extResultDataProvider)
-            ),
-            extResultDataProvider,
-          )
-      }
+    val extResultDataProvider =
+      context.spawn(
+        ExtResultDataProvider(scheduler),
+        s"ExtResultDataProvider",
+      )
 
     val timeout: PekkoTimeout = PekkoTimeout.create(5.seconds.toJava)
     val scheduler2: Scheduler = context.system.scheduler
@@ -339,12 +269,85 @@ object ExtSimSetup {
       timeout.duration,
     )
 
-    extResultData.setActorRefs(
+    extResultDataConnection.setActorRefs(
       adapterRef.toClassic,
       adapterScheduleRef.toClassic,
       extSimAdapter,
     )
 
-    updatedSetupData
+    val powerFlowResolution =
+      simonaConfig.simona.powerflow.resolution.get(ChronoUnit.SECONDS)
+
+    extResultDataProvider ! ExtResultDataProvider.Create(
+      InitExtResultData(extResultDataConnection, powerFlowResolution),
+      ScheduleLock.singleKey(
+        context,
+        scheduler,
+        INIT_SIM_TICK,
+      ),
+    )
+
+    extSimSetupData.copy(extResultListeners =
+      extSimSetupData.extResultListeners ++ Map(
+        extResultDataConnection -> extResultDataProvider
+      )
+    )
+  }
+
+  /** Checks the external input data connections.
+    * @param extInputDataConnections
+    *   given external input data connections
+    */
+  private[setup] def checkExtInputDataConnections(
+      extInputDataConnections: Seq[ExtInputDataConnection]
+  ): Unit = {
+
+    val dataConnectionSizes: Map[Class[_ <: ExtInputDataConnection], Int] =
+      extInputDataConnections
+        .map(_.getClass)
+        .groupBy(identity)
+        .map { case (value, list) => value -> list.size }
+
+    // check for connections that should one be present once
+    val allowOnlySingleConnection: Set[Class[_ <: ExtInputDataConnection]] =
+      Set(
+        classOf[ExtEvDataConnection],
+        classOf[ExtEmDataConnection],
+      )
+
+    val notAllowedConfiguration = allowOnlySingleConnection.flatMap {
+      connectionType =>
+        dataConnectionSizes.get(connectionType) match {
+          case Some(value) if value > 1 => Some(connectionType)
+          case _                        => None
+        }
+    }
+
+    if (notAllowedConfiguration.nonEmpty) {
+      throw ServiceException(
+        s"Found multiple data connections, that only allows one occurrence ($allowOnlySingleConnection)."
+      )
+    }
+
+    // check primary data connections
+    dataConnectionSizes.get(classOf[ExtPrimaryDataConnection]) match {
+      case Some(size) if size > 1 =>
+        val assetUuids = extInputDataConnections.map {
+          case extPrimaryDataConnection: ExtPrimaryDataConnection =>
+            extPrimaryDataConnection.getPrimaryDataAssets.asScala
+        }
+
+        if (assetUuids.size != assetUuids.toSet.size) {
+          val duplicateAssets =
+            assetUuids.groupBy(identity).filter(_._2.size > 1)
+          throw ServiceException(
+            s"Multiple data connections provide primary data for assets: $duplicateAssets"
+          )
+        }
+
+      case _ =>
+      // do nothing
+    }
+
   }
 }
