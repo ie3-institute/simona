@@ -52,14 +52,7 @@ jobs:
           fi
 
           echo "Branch name is $branch_name"
-          echo "branch_name=$branch_name" >> $GITHUB_ENV
-
-      - name: Determine Project Version
-        id: version
-        run: |
-          branch_name=$(echo ${{ github.ref_name }})
-          project_version=$(./gradlew -q $([ "$branch_name" = "dev" ] && echo "devVersion" || echo "currentVersion"))
-          echo "project_version=${project_version}" >> $GITHUB_ENV
+          echo "branch_name=$branch_name" >> $GITHUB_EN
 
       - name: Setup Java
         uses: actions/setup-java@v4
