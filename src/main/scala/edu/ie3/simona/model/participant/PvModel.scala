@@ -57,12 +57,13 @@ final case class PvModel private (
   override val sMax: ApparentPower = sRated * 1.1
 
   /** Permissible maximum active power feed in (therefore negative) */
-  protected val pMax: Power = sMax.toPower(cosPhiRated) * -1d
+  protected val pMax: Power = sMax.toActivePower(cosPhiRated) * -1d
 
   /** Reference yield at standard testing conditions (STC) */
   private val yieldSTC = WattsPerSquareMeter(1000d)
 
-  private val activationThreshold = sRated.toPower(cosPhiRated) * 0.001 * -1d
+  private val activationThreshold =
+    sRated.toActivePower(cosPhiRated) * 0.001 * -1d
 
   /** Calculate the active power behaviour of the model
     *
@@ -691,7 +692,7 @@ final case class PvModel private (
 
     /* Calculate the foreseen active power output without boundary condition adaptions */
     val proposal =
-      sRated.toPower(cosPhiRated) * -1 * (actYield / irradiationSTC)
+      sRated.toActivePower(cosPhiRated) * -1 * (actYield / irradiationSTC)
 
     /* Do sanity check, if the proposed feed in is above the estimated maximum to be apparent active power of the plant */
     if (proposal < pMax)

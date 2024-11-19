@@ -74,7 +74,7 @@ final case class HpModel(
     )
     with ApparentPowerAndHeatParticipant[HpRelevantData, HpState] {
 
-  private val pRated: Power = sRated.toPower(cosPhiRated)
+  private val pRated: Power = sRated.toActivePower(cosPhiRated)
 
   /** As this is a state-full model (with respect to the current operation
     * condition and inner temperature), the power calculation operates on the
@@ -312,7 +312,7 @@ final case class HpModel(
         updatedHpState.activePower
     val upperBoundary =
       if (canOperate)
-        sRated.toPower(cosPhiRated)
+        sRated.toActivePower(cosPhiRated)
       else
         zeroKW
 
@@ -347,7 +347,7 @@ final case class HpModel(
       setPower: Power,
   ): (HpState, FlexChangeIndicator) = {
     /* If the setpoint value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
-    val turnOn = setPower > (sRated.toPower(cosPhiRated) * 0.5)
+    val turnOn = setPower > (sRated.toActivePower(cosPhiRated) * 0.5)
 
     val updatedHpState = calcState(
       lastState,

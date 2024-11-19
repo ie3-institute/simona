@@ -175,7 +175,7 @@ object QControl {
     ): Power => ReactivePower = { activePower: Power =>
       val qMaxFromP = Megavars(
         sqrt(
-          pow(sRated.toPower(1.0).toMegawatts, 2) -
+          pow(sRated.toActivePower(1.0).toMegawatts, 2) -
             pow(activePower.toMegawatts, 2)
         )
       )
@@ -252,7 +252,7 @@ object QControl {
     ): Power => ReactivePower = { activePower: Power =>
       /* cosphi( P / P_N ) = cosphi( P / (S_N * cosphi_rated) ) */
       val pInPu =
-        activePower / sRated.toPower(cosPhiRated)
+        activePower / sRated.toActivePower(cosPhiRated)
       val instantCosPhi = cosPhi(Each(pInPu))
       _cosPhiMultiplication(instantCosPhi.value.doubleValue, activePower)
     }

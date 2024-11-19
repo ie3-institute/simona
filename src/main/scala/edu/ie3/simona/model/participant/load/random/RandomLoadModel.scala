@@ -169,7 +169,7 @@ object RandomLoadModel {
     * active power.
     *
     * @return
-    *   Reference apparent power to use for later model calculations
+    *   Reference active power to use for later model calculations
     */
   private val randomMaxPower: Power = Watts(159d)
 

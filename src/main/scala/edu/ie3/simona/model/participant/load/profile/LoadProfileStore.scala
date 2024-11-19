@@ -17,7 +17,6 @@ import edu.ie3.simona.model.participant.load.profile.LoadProfileStore.{
   initializeTypeDayValues,
 }
 import edu.ie3.simona.model.participant.load.{DayType, profile}
-import edu.ie3.util.scala.quantities.{ApparentPower, Voltamperes}
 import org.apache.commons.csv.CSVFormat
 import squants.Power
 import squants.energy.{KilowattHours, Watts}

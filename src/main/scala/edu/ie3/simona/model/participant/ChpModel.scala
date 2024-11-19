@@ -68,7 +68,7 @@ final case class ChpModel(
     )
     with ApparentPowerParticipant[ChpRelevantData, ConstantState.type] {
 
-  val pRated: Power = sRated.toPower(cosPhiRated)
+  val pRated: Power = sRated.toActivePower(cosPhiRated)
 
   /** As this is a state-full model (with respect to the current operation
     * condition and its thermal storage), the power calculation operates on the

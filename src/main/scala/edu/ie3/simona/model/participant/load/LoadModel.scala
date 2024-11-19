@@ -96,7 +96,7 @@ object LoadModel extends LazyLogging {
         .getValue
         .doubleValue
     )
-    val pRated = sRated.toPower(inputModel.getCosPhiRated)
+    val pRated = sRated.toActivePower(inputModel.getCosPhiRated)
     val referenceScalingFactor = activePower / pRated
     sRated * referenceScalingFactor * safetyFactor
   }

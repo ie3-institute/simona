@@ -96,7 +96,7 @@ final case class WecModel(
       wecData: WecRelevantData,
   ): Power = {
     val activePower = determinePower(wecData)
-    val pMax = sMax.toPower(cosPhiRated)
+    val pMax = sMax.toActivePower(cosPhiRated)
 
     (if (activePower > pMax) {
        logger.warn(

@@ -71,7 +71,7 @@ final case class FixedFeedInModel(
   override def calculateActivePower(
       modelState: ConstantState.type,
       data: FixedRelevantData.type = FixedRelevantData,
-  ): Power = sRated.toPower(cosPhiRated) * -1
+  ): Power = sRated.toActivePower(cosPhiRated) * -1
 
   override def determineFlexOptions(
       data: FixedRelevantData.type,

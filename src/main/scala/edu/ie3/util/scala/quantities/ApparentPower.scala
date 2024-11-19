@@ -40,7 +40,7 @@ final class ApparentPower private (
     * @return
     *   the resulting active power
     */
-  def toPower(cosPhi: Double): Power = Watts(toVoltamperes * cosPhi)
+  def toActivePower(cosPhi: Double): Power = Watts(toVoltamperes * cosPhi)
 
   /** Method to convert this apparent power into a [[ReactivePower]] using a
     * given cosPhi.

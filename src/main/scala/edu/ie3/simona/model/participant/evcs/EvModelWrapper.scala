@@ -10,7 +10,7 @@ import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import squants.Power
-import squants.energy.{KilowattHours, Kilowatts}
+import squants.energy.{Energy, KilowattHours, Kilowatts}
 
 import java.util.UUID
 
@@ -27,21 +27,23 @@ import java.util.UUID
   *   The wrapped [[EvModel]]
   */
 final case class EvModelWrapper(
-    storedEnergy: squants.Energy,
+    storedEnergy: Energy,
     private val original: EvModel,
 ) {
 
   def uuid: UUID = original.getUuid
   def id: String = original.getId
-  lazy val pRatedAc: Power =
-    Kilowatts(
-      original.getSRatedAC.to(KILOWATT).getValue.doubleValue
-    )
-  lazy val pRatedDc: squants.Power =
-    Kilowatts(original.getSRatedDC.to(KILOWATT).getValue.doubleValue)
-  lazy val eStorage: squants.Energy = KilowattHours(
+
+  lazy val pRatedAc: Power = Kilowatts(
+    original.getSRatedAC.to(KILOWATT).getValue.doubleValue
+  )
+  lazy val pRatedDc: Power = Kilowatts(
+    original.getSRatedDC.to(KILOWATT).getValue.doubleValue
+  )
+  lazy val eStorage: Energy = KilowattHours(
     original.getEStorage.to(KILOWATTHOUR).getValue.doubleValue
   )
+
   def departureTick: Long = original.getDepartureTick
 
   /** Unwrapping the original [[EvModel]] while also updating the

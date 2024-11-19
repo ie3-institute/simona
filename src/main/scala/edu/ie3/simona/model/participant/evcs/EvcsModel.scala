@@ -506,7 +506,7 @@ final case class EvcsModel(
         ev.pRatedDc
     }
     /* Limit the charging power to the minimum of ev's and evcs' permissible power */
-    evPower.min(sRated.toPower(1.0))
+    evPower.min(sRated.toActivePower(1.0))
   }
 
   override def calculatePower(
