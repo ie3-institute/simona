@@ -105,6 +105,32 @@ class PrimaryServiceWorkerSpec
       }
     }
 
+    "fail to init, if time series ends with delay before simulation start" in {
+      val initData = validInitData.copy(
+        simulationStart = validInitData.simulationStart.plusHours(1)
+      )
+
+      service.init(initData) match {
+        case Failure(exception) =>
+          exception.getMessage shouldBe "No appropriate data found within simulation time range in timeseries '9185b8c1-86ba-4a16-8dea-5ac898e8caa5'!"
+        case Success(_) =>
+          fail("Initialisation with unsupported init data is meant to fail.")
+      }
+    }
+
+    "fail to init, if time series starts with delay after simulation start" in {
+      val initData = validInitData.copy(
+        simulationStart = validInitData.simulationStart.minusHours(1)
+      )
+
+      service.init(initData) match {
+        case Failure(exception) =>
+          exception.getMessage shouldBe "The data for the timeseries '9185b8c1-86ba-4a16-8dea-5ac898e8caa5' starts after the start of this simulation (tick: 3600)! This is not allowed!"
+        case Success(_) =>
+          fail("Initialisation with unsupported init data is meant to fail.")
+      }
+    }
+
     "fail, if pointed to the wrong file" in {
       // time series exists, but is malformed
       val tsUuid = UUID.fromString("3fbfaa97-cff4-46d4-95ba-a95665e87c27")
