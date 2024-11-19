@@ -97,9 +97,6 @@ class ResultFileHierarchySpec
 
   }
 
-  private def relativizePath(fullPath: Path): Path =
-    new File(new File("").getAbsolutePath).toPath.relativize(fullPath)
-
   // todo output model path config compression should always be disabled -> test for this
 
 }

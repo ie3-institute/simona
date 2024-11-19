@@ -202,17 +202,13 @@ trait SetupHelper extends LazyLogging {
   /** Build the result file hierarchy based on the provided configuration file.
     * The provided type safe config must be able to be parsed as
     * [[SimonaConfig]], otherwise an exception is thrown
+    *
     * @param config
     *   the configuration file
-    * @param createDirs
-    *   if directories of the result file hierarchy should be created or not
     * @return
     *   the resulting result file hierarchy
     */
-  def buildResultFileHierarchy(
-      config: TypesafeConfig,
-      createDirs: Boolean = true,
-  ): ResultFileHierarchy = {
+  def buildResultFileHierarchy(config: TypesafeConfig): ResultFileHierarchy = {
 
     val simonaConfig = SimonaConfig(config)
 
