@@ -928,7 +928,7 @@ final case class EvcsModel(
     * @param chargingPoints
     *   max number of charging points available at this CS
     */
-  def validateArrivals(
+  private def validateArrivals(
       lastEvs: Seq[EvModelWrapper],
       arrivals: Seq[EvModelWrapper],
       chargingPoints: Int,
