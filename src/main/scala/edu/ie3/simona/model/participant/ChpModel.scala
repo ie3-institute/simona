@@ -35,7 +35,7 @@ import java.util.UUID
   * @param uuid
   *   the element's uuid
   * @param id
-  *   the element's human readable id
+  *   the element's human-readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
   * @param qControl
@@ -122,7 +122,7 @@ final case class ChpModel(
       chpData: ChpRelevantData
   ): ChpRelevantData => ChpState = {
     val isRunning = chpData.chpState.isRunning
-    val hasDemand = chpData.heatDemand > DefaultQuantities.zeroKWH
+    val hasDemand = chpData.heatDemand > DefaultQuantities.zeroKWh
     val isCovered = isDemandCovered(chpData)
 
     (isRunning, hasDemand, isCovered) match {
@@ -149,7 +149,7 @@ final case class ChpModel(
       isRunning = false,
       chpData.currentTimeTick,
       DefaultQuantities.zeroKW,
-      DefaultQuantities.zeroKWH,
+      DefaultQuantities.zeroKWh,
     )
 
   /** The demand cannot be covered, therefore this function sets storage level
@@ -186,7 +186,7 @@ final case class ChpModel(
       isRunning = false,
       chpData.currentTimeTick,
       DefaultQuantities.zeroKW,
-      DefaultQuantities.zeroKWH,
+      DefaultQuantities.zeroKWh,
     )
   }
 
@@ -203,7 +203,7 @@ final case class ChpModel(
       chpData: ChpRelevantData
   ): ChpState = {
     val differenceEnergy = chpEnergy(chpData) - chpData.heatDemand
-    if (differenceEnergy < zeroKWH) {
+    if (differenceEnergy < zeroKWh) {
       // Returned lack is always zero, because demand is covered.
       storage.tryToTakeAndReturnLack(differenceEnergy * -1)
       calculateStateRunningSurplus(chpData)

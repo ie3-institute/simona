@@ -42,7 +42,7 @@ import scala.collection.SortedSet
   * @param uuid
   *   the element's uuid
   * @param id
-  *   the element's human readable id
+  *   the element's human-readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
   * @param qControl
@@ -147,7 +147,7 @@ final case class WecModel(
     )
   }
 
-  /** The coefficient is dependent on the wind velocity v. Therefore use v to
+  /** The coefficient is dependent on the wind velocity v. Therefore, use v to
     * determine the betz coefficient cₚ.
     *
     * @param windVelocity

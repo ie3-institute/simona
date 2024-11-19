@@ -48,7 +48,7 @@ import scala.collection.immutable.SortedSet
   * @param uuid
   *   the element's uuid
   * @param id
-  *   the element's human readable id
+  *   the element's human-readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
   * @param simulationStartDate
@@ -195,7 +195,7 @@ final case class EvcsModel(
     state.evs
   }
 
-  /** Charge the given EV under consideration a applicable schedule
+  /** Charge the given EV under consideration an applicable schedule
     *
     * @param ev
     *   Electric vehicle to charge
@@ -223,7 +223,7 @@ final case class EvcsModel(
           tickStop > lastSchedulingTick && tickStart < currentTick
         }
         .sortBy(_.tickStart)
-        .foldLeft(zeroKWH) { case (accumulatedEnergy, scheduleEntry) =>
+        .foldLeft(zeroKWh) { case (accumulatedEnergy, scheduleEntry) =>
           /* Only the timeframe from the start of last scheduling update and current tick must be considered */
           val trimmedEntry = trimScheduleEntry(
             scheduleEntry,
@@ -272,7 +272,7 @@ final case class EvcsModel(
         /* Filter for entries, that end after the last schedule application
                and that start before the current tick.
                Entries that end at lastTick are not included because schedule
-               intervals are open at the right hand side.
+               intervals are open on the right hand side.
                Entries that start at currentTick are not included because these
                will be calculated with the next state.
          */
@@ -929,7 +929,7 @@ final case class EvcsModel(
     * @param chargingPoints
     *   max number of charging points available at this CS
     */
-  def validateArrivals(
+  private def validateArrivals(
       lastEvs: Seq[EvModelWrapper],
       arrivals: Seq[EvModelWrapper],
       chargingPoints: Int,
