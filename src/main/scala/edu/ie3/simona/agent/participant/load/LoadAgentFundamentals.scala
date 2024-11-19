@@ -103,7 +103,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
     * @param simulationEndDate
     *   Real world time date time, when the simulation ends
     * @param resolution
-    *   Agents regular time bin it wants to be triggered e.g one hour
+    *   Agents regular time bin it wants to be triggered e.g. one hour
     * @param requestVoltageDeviationThreshold
     *   Threshold, after which two nodal voltage magnitudes from participant
     *   power requests for the same tick are considered to be different
@@ -145,10 +145,10 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       /* If no secondary data is needed (implicitly by fixed load model), add activation ticks for the simple model */
       case fixedLoadModel: FixedLoadModel =>
         /* As participant agents always return their last known operation point on request, it is sufficient
-         * to let a fixed load model determine it's operation point on:
+         * to let a fixed load model determine its operation point on:
          *  1) The first tick of the simulation
-         *  2) The tick, it turns on (in time dependent operation)
-         *  3) The tick, it turns off (in time dependent operation)
+         *  2) The tick, it turns on (in time-dependent operation)
+         *  3) The tick, it turns off (in time-dependent operation)
          * Coinciding ticks are summarized and the last tick is removed, as the change in operation status
          * doesn't affect anything then */
         SortedSet[Long](
@@ -298,7 +298,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
     *
     * @param baseStateData
     *   The base state data with collected secondary data
-    * @param maybeLastModelState
+    * @param lastModelState
     *   Optional last model state
     * @param currentTick
     *   Tick, the trigger belongs to
