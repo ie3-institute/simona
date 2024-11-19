@@ -24,6 +24,7 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal._
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.Kilovoltamperes
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.thermal.Celsius
 import squants.{Power, Temperature}
@@ -62,7 +63,7 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
     "HpModel",
     OperationInterval.apply(0L, 86400L),
     QControl.CosPhiFixed(0.95),
-    Kilowatts(100d),
+    Kilovoltamperes(100d),
     0.95,
     Kilowatts(15d),
     thermalGrid,

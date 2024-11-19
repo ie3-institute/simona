@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.input.system.ChpInput
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.ChpModel._
 import edu.ie3.simona.model.participant.ModelState.ConstantState
@@ -17,8 +17,12 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptio
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.DefaultQuantities
 import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities.{
+  ApparentPower,
+  DefaultQuantities,
+  Kilovoltamperes,
+}
 import squants.energy.Kilowatts
 import squants.{Energy, Power, Seconds, Time}
 
@@ -50,11 +54,11 @@ final case class ChpModel(
     id: String,
     operationInterval: OperationInterval,
     qControl: QControl,
-    sRated: Power,
+    sRated: ApparentPower,
     cosPhiRated: Double,
     pThermal: Power,
     storage: ThermalStorage with MutableStorage,
-) extends SystemParticipant[ChpRelevantData, ApparentPower, ConstantState.type](
+) extends SystemParticipant[ChpRelevantData, ComplexPower, ConstantState.type](
       uuid,
       id,
       operationInterval,
@@ -64,7 +68,7 @@ final case class ChpModel(
     )
     with ApparentPowerParticipant[ChpRelevantData, ConstantState.type] {
 
-  val pRated: Power = sRated * cosPhiRated
+  val pRated: Power = sRated.toActivePower(cosPhiRated)
 
   /** As this is a state-full model (with respect to the current operation
     * condition and its thermal storage), the power calculation operates on the
@@ -387,9 +391,9 @@ object ChpModel {
       scaledInput.getId,
       operationInterval,
       qControl,
-      Kilowatts(
+      Kilovoltamperes(
         scaledInput.getType.getsRated
-          .to(PowerSystemUnits.KILOWATT)
+          .to(PowerSystemUnits.KILOVOLTAMPERE)
           .getValue
           .doubleValue
       ),
