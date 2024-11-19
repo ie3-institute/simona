@@ -145,8 +145,7 @@ final case class PrimaryServiceWorker[V <: Value](
       ).pop
 
       (maybeNextTick, furtherActivationTicks) match {
-        case (Some(tick), furtherActivationTicks)
-            if tick == 0L =>
+        case (Some(tick), furtherActivationTicks) if tick == 0L =>
           /* Set up the state data and determine the next activation tick. */
           val initializedStateData =
             PrimaryServiceInitializedStateData(
