@@ -37,8 +37,6 @@ object RunSimonaWithMosaik extends RunSimona[SimonaMosaikSetup] {
       parsedConfig,
       SimonaMosaikSetup.buildResultFileHierarchy(parsedConfig),
       mainArgs = arguments.mainArgs,
-      mosaikIP = arguments.extAddress,
-      mosaikMappingPath = arguments.mappingPath,
     )
   }
 

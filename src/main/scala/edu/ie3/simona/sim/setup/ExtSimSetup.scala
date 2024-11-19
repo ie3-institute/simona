@@ -93,6 +93,8 @@ object ExtSimSetup {
         implicit val extSimAdapterData: ExtSimAdapterData =
           new ExtSimAdapterData(extSimAdapter, args)
 
+        extSimulation.setup(extSimAdapterData)
+
         // send init data right away, init activation is scheduled
         extSimAdapter ! ExtSimAdapter.Create(
           extSimAdapterData,
@@ -102,8 +104,6 @@ object ExtSimSetup {
         // setup data services that belong to this external simulation
         val (updatedSetupData, dataConnections) =
           connect(extSimulation, extSimSetupData)
-
-        extSimulation.setup(extSimAdapterData)
 
         // starting external simulation
         new Thread(extSimulation, s"External simulation $index")
