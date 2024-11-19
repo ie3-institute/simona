@@ -180,7 +180,7 @@ object QControl {
 
       val qFromCharacteristic = q(
         nodalVoltage,
-        Megavars(sRated.toReactivePower(cosPhiRated).toMegavars),
+        sRated.toReactivePower(cosPhiRated),
       )
       qMaxPossible(qMaxFromP, qFromCharacteristic)
     }
