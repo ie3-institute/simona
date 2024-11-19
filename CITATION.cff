@@ -1,0 +1,41 @@
+cff-version: 1.2.0
+title: SIMONA
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - family-names: Hiry
+    given-names: Johannes
+    orcid: https://orcid.org/0000-0002-1447-0607
+  - family-names: Kittl
+    given-names: Chris
+    orcid: https://orcid.org/0000-0002-1187-0568
+  - family-names: Sen-Sarma
+    given-names: Debopama
+    orcid: https://orcid.org/0000-0003-3311-3020
+  - family-names: Oberließen
+    given-names: Thomas
+    orcid: https://orcid.org/0000-0001-5805-5408
+  - family-names: Peter
+    given-names: Sebastian
+    orcid: https://orcid.org/0000-0001-6311-6113
+  - family-names: Feismann
+    given-names: Daniel
+    orcid: https://orcid.org/0000-0002-3531-9025
+  - family-names: Bao
+    given-names: Johannes
+    orcid: https://orcid.org/0009-0008-3641-6469
+  - family-names: Hohmann
+    given-names: Julian
+  - family-names: Staudt
+    given-names: Marius
+repository-code: https://github.com/ie3-institute/simona
+url: https://simona.ie3.e-technik.tu-dortmund.de
+repository-artifact: https://central.sonatype.com/artifact/com.github.ie3-institute/simona
+keywords:
+  - agent-based
+  - discrete-event simulation
+  - powerflow
+  - electricity distribution grid
+license: BSD-3-Clause
+version: 3.0.0
+date-released: 2023-08-07
