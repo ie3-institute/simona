@@ -1,0 +1,77 @@
+# © 2024. TU Dortmund University,
+# Institute of Energy Systems, Energy Efficiency and Energy Economics,
+# Research group Distribution grid planning and operation
+#
+
+name: CI
+
+on:
+  push:
+    paths-ignore:
+      - 'docs/**'
+    branches:
+      - main
+      - dev
+      - 'hotfix/*'
+      - 'rel/*'
+      - 'dependabot/*'
+  pull_request:
+    branches:
+      - main
+      - dev
+
+jobs:
+  buildAndTest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 17
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build Project
+        run: ./gradlew --refresh-dependencies clean assemble spotlessCheck
+
+      - name: Run Tests
+        run: ./gradlew test reportScoverage checkScoverage
+
+      - name: Build Scala-Docs
+        run: ./gradlew scaladoc
+
+      - name: SonarQube
+        run: |
+          ./gradlew sonar \
+          -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
+          -Dsonar.host.url=${{ vars.SONAR_HOST_URL }} \
+          -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+
+          SONAR_STATUS_URL="${{ vars.SONAR_HOST_URL }}/api/qualitygates/project_status?projectKey=${{ vars.SONAR_PROJECT_KEY }}"
+          QUALITY_GATE_STATUS=$(curl -s -u "${{ secrets.SONAR_TOKEN }}:" "$SONAR_STATUS_URL" | jq -r '.projectStatus.status')
+            
+          echo "Quality Gate Status: $QUALITY_GATE_STATUS"
+          if [ "$QUALITY_GATE_STATUS" != "OK" ]; then
+            echo "Quality Gate failed!"
+            exit 1
+          fi
+
+      - name: Deploy
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+        run: |
+          ./gradlew publish\
+            -Puser=${{ secrets.MAVENCENTRAL_USER }} \
+            -Ppassword=${{ secrets.MAVENCENTRAL_PASS }} \
+            -Psigning.keyId=${{ secrets.MAVENCENTRAL_SIGNINGKEYID }} \
+            -Psigning.password=${{ secrets.MAVENCENTRAL_SIGNINGPASS }} \
+            -Psigning.secretKeyRingFile=${{ secrets.MAVENCENTRAL_SIGNINGKEY }}

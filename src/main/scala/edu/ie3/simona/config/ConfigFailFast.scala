@@ -785,29 +785,29 @@ case object ConfigFailFast extends LazyLogging {
 
   /** Check the suitability of storage config parameters.
     *
-    * @param StorageRuntimeConfig
+    * @param storageRuntimeConfig
     *   RuntimeConfig of Storages
     */
   private def checkStoragesConfig(
-      storageConfig: SimonaConfig.Simona.Runtime.Participant.Storage
+      storageRuntimeConfig: SimonaConfig.Simona.Runtime.Participant.Storage
   ): Unit = {
     if (
-      storageConfig.defaultConfig.initialSoc < 0.0 || storageConfig.defaultConfig.initialSoc > 1.0
+      storageRuntimeConfig.defaultConfig.initialSoc < 0.0 || storageRuntimeConfig.defaultConfig.initialSoc > 1.0
     )
       throw new RuntimeException(
         s"StorageRuntimeConfig: Default initial SOC needs to be between 0.0 and 1.0."
       )
 
     if (
-      storageConfig.defaultConfig.targetSoc.exists(
+      storageRuntimeConfig.defaultConfig.targetSoc.exists(
         _ < 0.0
-      ) || storageConfig.defaultConfig.targetSoc.exists(_ > 1.0)
+      ) || storageRuntimeConfig.defaultConfig.targetSoc.exists(_ > 1.0)
     )
       throw new RuntimeException(
         s"StorageRuntimeConfig: Default target SOC needs to be between 0.0 and 1.0."
       )
 
-    storageConfig.individualConfigs.foreach { config =>
+    storageRuntimeConfig.individualConfigs.foreach { config =>
       if (config.initialSoc < 0.0 || config.initialSoc > 1.0)
         throw new RuntimeException(
           s"StorageRuntimeConfig: ${config.uuids} initial SOC needs to be between 0.0 and 1.0."
