@@ -18,6 +18,7 @@ import edu.ie3.simona.model.participant.load.profile.LoadProfileStore.{
 }
 import edu.ie3.simona.model.participant.load.{DayType, profile}
 import org.apache.commons.csv.CSVFormat
+import squants.Power
 import squants.energy.{KilowattHours, Watts}
 
 import java.io.{InputStreamReader, Reader}
@@ -88,7 +89,7 @@ class LoadProfileStore private (val reader: Reader) {
     */
   def maxPower(
       loadProfile: StandardLoadProfile
-  ): squants.Power = {
+  ): Power = {
     maxParamMap.get(loadProfile) match {
       case Some(value) =>
         Watts(value)

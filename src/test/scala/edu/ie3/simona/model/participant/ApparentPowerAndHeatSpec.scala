@@ -6,17 +6,22 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPowerAndHeat
 import edu.ie3.simona.model.participant.ApparentPowerAndHeatSpec.ApparentPowerAndHeatMock
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
-import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
-import squants.energy.{Kilowatts, Megawatts, Watts}
+import edu.ie3.util.scala.quantities.{
+  Kilovoltamperes,
+  Megavars,
+  ReactivePower,
+  Vars,
+}
+import squants.energy.{Megawatts, Watts}
 import squants.{Each, Power}
 
 import java.util.UUID
@@ -33,7 +38,7 @@ class ApparentPowerAndHeatSpec extends UnitSpec {
           ConstantState,
           FixedRelevantData,
         ) match {
-          case ApparentPowerAndHeat(p, q, qDot) =>
+          case ComplexPowerAndHeat(p, q, qDot) =>
             p should approximate(Megawatts(0d))
             q should approximate(Megavars(0d))
             qDot should approximate(Megawatts(0d))
@@ -48,7 +53,7 @@ class ApparentPowerAndHeatSpec extends UnitSpec {
           ConstantState,
           FixedRelevantData,
         ) match {
-          case ApparentPowerAndHeat(p, q, qDot) =>
+          case ComplexPowerAndHeat(p, q, qDot) =>
             p should approximate(Megawatts(43d))
             q should approximate(Megavars(0d))
             qDot should approximate(Megawatts(42d))
@@ -62,14 +67,14 @@ object ApparentPowerAndHeatSpec {
   object ApparentPowerAndHeatMock
       extends SystemParticipant[
         FixedRelevantData.type,
-        ApparentPowerAndHeat,
+        ComplexPowerAndHeat,
         ConstantState.type,
       ](
         UUID.randomUUID(),
         "ParticipantMock",
         OperationInterval.apply(0L, 42L),
         CosPhiFixed(0.97),
-        Kilowatts(42d),
+        Kilovoltamperes(42d),
         0.97,
       )
       with ApparentPowerAndHeatParticipant[

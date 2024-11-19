@@ -16,16 +16,16 @@ import ch.qos.logback.core.filter.Filter
 import com.typesafe.scalalogging.LazyLogging
 import org.slf4j.LoggerFactory
 
-import java.io.File
+import java.nio.file.Path
 import scala.jdk.CollectionConverters._
 
 object LogbackConfiguration extends LazyLogging {
 
-  def default(logPath: String): Unit = {
+  def default(logPath: Path): Unit = {
     LoggerFactory.getILoggerFactory match {
       case loggerContext: LoggerContext =>
         val rootLogger = loggerContext.getLogger("root")
-        val log = logPath.concat(File.separator).concat("simona.log")
+        val log = logPath.resolve("simona.log")
         // stop all appenders
         rootLogger.iteratorForAppenders().asScala.foreach(_.stop())
         /* Identify the filters of existing rolling file appender */
@@ -58,7 +58,7 @@ object LogbackConfiguration extends LazyLogging {
   }
 
   private def fileAppender(
-      logPath: String,
+      logPath: Path,
       appenderName: String,
       maybeFilterList: Option[Seq[Filter[ILoggingEvent]]],
       loggerContext: LoggerContext,
@@ -70,7 +70,7 @@ object LogbackConfiguration extends LazyLogging {
     layoutEncoder.start()
 
     val fileAppender = new FileAppender[ILoggingEvent]
-    fileAppender.setFile(logPath)
+    fileAppender.setFile(logPath.toString)
     fileAppender.setEncoder(layoutEncoder)
     fileAppender.setContext(loggerContext)
     fileAppender.setName(appenderName)
