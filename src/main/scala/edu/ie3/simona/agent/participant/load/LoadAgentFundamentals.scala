@@ -16,7 +16,7 @@ import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
+  ComplexPower,
   ZERO_POWER,
 }
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
@@ -76,18 +76,18 @@ import scala.reflect.{ClassTag, classTag}
 protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
   LD
 ]] extends ParticipantAgentFundamentals[
-      ApparentPower,
+      ComplexPower,
       LD,
       ConstantState.type,
-      ParticipantStateData[ApparentPower],
+      ParticipantStateData[ComplexPower],
       LoadInput,
       LoadRuntimeConfig,
       LM,
     ] {
   this: LoadAgent[LD, LM] =>
-  override protected val pdClassTag: ClassTag[ApparentPower] =
-    classTag[ApparentPower]
-  override val alternativeResult: ApparentPower = ZERO_POWER
+  override protected val pdClassTag: ClassTag[ComplexPower] =
+    classTag[ComplexPower]
+  override val alternativeResult: ComplexPower = ZERO_POWER
 
   /** Determines the needed base state data in dependence of the foreseen
     * simulation mode of the agent.
@@ -124,7 +124,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       outputConfig: NotifierConfig,
       maybeEmAgent: Option[TypedActorRef[FlexResponse]],
   ): ParticipantModelBaseStateData[
-    ApparentPower,
+    ComplexPower,
     LD,
     ConstantState.type,
     LM,
@@ -174,7 +174,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
         SortedSet.empty[Long]
     }
 
-    ParticipantModelBaseStateData[ApparentPower, LD, ConstantState.type, LM](
+    ParticipantModelBaseStateData[ComplexPower, LD, ConstantState.type, LM](
       simulationStartDate,
       simulationEndDate,
       model,
@@ -231,7 +231,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
 
   override protected def createInitialState(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         LD,
         ConstantState.type,
         LM,
@@ -255,7 +255,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
   def handleControlledPowerChange(
       tick: Long,
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         LD,
         ConstantState.type,
         LM,
@@ -265,7 +265,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       setPower: squants.Power,
   ): (
       ConstantState.type,
-      AccompaniedSimulationResult[ApparentPower],
+      AccompaniedSimulationResult[ComplexPower],
       FlexChangeIndicator,
   ) = {
     /* Calculate result */
@@ -276,7 +276,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       voltage,
     )
     val result = AccompaniedSimulationResult(
-      ApparentPower(setPower, reactivePower),
+      ComplexPower(setPower, reactivePower),
       Seq.empty[ResultEntity],
     )
 
@@ -309,7 +309,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
     */
   override def calculatePowerWithSecondaryDataAndGoToIdle(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         LD,
         ConstantState.type,
         LM,
@@ -317,7 +317,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       lastModelState: ConstantState.type,
       currentTick: Long,
       scheduler: ActorRef,
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] =
+  ): FSM.State[AgentState, ParticipantStateData[ComplexPower]] =
     throw new InconsistentStateException(
       s"Load model is not able to calculate power with secondary data."
     )
@@ -336,13 +336,13 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
     *   The averaged result
     */
   override def averageResults(
-      tickToResults: Map[Long, ApparentPower],
+      tickToResults: Map[Long, ComplexPower],
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         Power => ReactivePower
       ] = None,
-  ): ApparentPower =
+  ): ComplexPower =
     ParticipantAgentFundamentals.averageApparentPower(
       tickToResults,
       windowStart,
@@ -365,7 +365,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
   override protected def buildResult(
       uuid: UUID,
       dateTime: ZonedDateTime,
-      result: ApparentPower,
+      result: ComplexPower,
   ): SystemParticipantResult =
     new LoadResult(
       dateTime,
@@ -406,7 +406,7 @@ object LoadAgentFundamentals {
 
     override protected def createCalcRelevantData(
         baseStateData: ParticipantModelBaseStateData[
-          ApparentPower,
+          ComplexPower,
           FixedLoadRelevantData.type,
           ConstantState.type,
           FixedLoadModel,
@@ -422,17 +422,17 @@ object LoadAgentFundamentals {
     override val calculateModelPowerFunc: (
         Long,
         ParticipantModelBaseStateData[
-          ApparentPower,
+          ComplexPower,
           FixedLoadRelevantData.type,
           ConstantState.type,
           FixedLoadModel,
         ],
         ConstantState.type,
         Dimensionless,
-    ) => ApparentPower = (
+    ) => ComplexPower = (
         tick: Long,
         baseStateData: ParticipantModelBaseStateData[
-          ApparentPower,
+          ComplexPower,
           FixedLoadRelevantData.type,
           ConstantState.type,
           FixedLoadModel,
@@ -470,7 +470,7 @@ object LoadAgentFundamentals {
 
     override protected def createCalcRelevantData(
         baseStateData: ParticipantModelBaseStateData[
-          ApparentPower,
+          ComplexPower,
           ProfileRelevantData,
           ConstantState.type,
           ProfileLoadModel,
@@ -488,14 +488,14 @@ object LoadAgentFundamentals {
     override val calculateModelPowerFunc: (
         Long,
         ParticipantModelBaseStateData[
-          ApparentPower,
+          ComplexPower,
           ProfileRelevantData,
           ConstantState.type,
           ProfileLoadModel,
         ],
         ConstantState.type,
         Dimensionless,
-    ) => ApparentPower = (tick, baseStateData, _, voltage) => {
+    ) => ComplexPower = (tick, baseStateData, _, voltage) => {
       val profileRelevantData =
         createCalcRelevantData(baseStateData, tick)
 
@@ -530,7 +530,7 @@ object LoadAgentFundamentals {
 
     override protected def createCalcRelevantData(
         baseStateData: ParticipantModelBaseStateData[
-          ApparentPower,
+          ComplexPower,
           RandomRelevantData,
           ConstantState.type,
           RandomLoadModel,
@@ -548,14 +548,14 @@ object LoadAgentFundamentals {
     override val calculateModelPowerFunc: (
         Long,
         ParticipantModelBaseStateData[
-          ApparentPower,
+          ComplexPower,
           RandomRelevantData,
           ConstantState.type,
           RandomLoadModel,
         ],
         ConstantState.type,
         Dimensionless,
-    ) => ApparentPower = (tick, baseStateData, _, voltage) => {
+    ) => ComplexPower = (tick, baseStateData, _, voltage) => {
       val profileRelevantData =
         createCalcRelevantData(baseStateData, tick)
 

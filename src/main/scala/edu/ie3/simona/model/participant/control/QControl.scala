@@ -13,7 +13,7 @@ import edu.ie3.simona.model.system.Characteristic
 import edu.ie3.simona.model.system.Characteristic.XYPair
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.scala.quantities.DefaultQuantities._
-import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
+import edu.ie3.util.scala.quantities.{ApparentPower, Megavars, ReactivePower}
 import squants.{Dimensionless, Each, Power}
 import tech.units.indriya.AbstractUnit
 
@@ -44,7 +44,7 @@ sealed trait QControl {
     *   The function
     */
   def activeToReactivePowerFunc(
-      sRated: Power,
+      sRated: ApparentPower,
       cosPhiRated: Double,
       nodalVoltage: Dimensionless,
   ): Power => ReactivePower
@@ -117,7 +117,7 @@ object QControl {
       *   The function
       */
     override def activeToReactivePowerFunc(
-        sRated: Power,
+        sRated: ApparentPower,
         cosPhiRated: Double,
         nodalVoltage: Dimensionless,
     ): Power => ReactivePower = { activePower: Power =>
@@ -169,19 +169,19 @@ object QControl {
       *   The function
       */
     override def activeToReactivePowerFunc(
-        sRated: Power,
+        sRated: ApparentPower,
         cosPhiRated: Double,
         nodalVoltage: Dimensionless,
     ): Power => ReactivePower = { activePower: Power =>
+      // Q = sqrt(S^2 - P^2)
       val qMaxFromP = Megavars(
-        sqrt(
-          pow(sRated.toMegawatts, 2) -
-            pow(activePower.toMegawatts, 2)
-        )
+        sqrt(pow(sRated.toMegavoltamperes, 2) - pow(activePower.toMegawatts, 2))
       )
 
-      val qFromCharacteristic =
-        q(nodalVoltage, Megavars((sRated * sin(acos(cosPhiRated))).toMegawatts))
+      val qFromCharacteristic = q(
+        nodalVoltage,
+        sRated.toReactivePower(cosPhiRated),
+      )
       qMaxPossible(qMaxFromP, qFromCharacteristic)
     }
 
@@ -244,13 +244,13 @@ object QControl {
       *   The function
       */
     override def activeToReactivePowerFunc(
-        sRated: Power,
+        sRated: ApparentPower,
         cosPhiRated: Double,
         nodalVoltage: Dimensionless,
     ): Power => ReactivePower = { activePower: Power =>
       /* cosphi( P / P_N ) = cosphi( P / (S_N * cosphi_rated) ) */
       val pInPu =
-        activePower / (sRated * cosPhiRated)
+        activePower / sRated.toActivePower(cosPhiRated)
       val instantCosPhi = cosPhi(Each(pInPu))
       _cosPhiMultiplication(instantCosPhi.value.doubleValue, activePower)
     }
