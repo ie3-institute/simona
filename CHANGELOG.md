@@ -100,6 +100,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `ExtEvSimulationClasses` [#898](https://github.com/ie3-institute/simona/issues/898)
 - Refactoring of `ThermalGrid.energyGrid` to distinguish between demand of house and storage [#928](https://github.com/ie3-institute/simona/issues/928)
 - Refactoring to use zeroKW and zeroKWH in thermal grid unit tests [#1023](https://github.com/ie3-institute/simona/issues/1023)
+- Refactor `ResultFileHierarchy` [#1031](https://github.com/ie3-institute/simona/issues/1031)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
