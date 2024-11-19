@@ -136,6 +136,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix filter for thermal result checking for lastTick not for currentTick [#1008](https://github.com/ie3-institute/simona/issues/1008)
 - Fixed `CHANGELOG` entry for issue ([#103](https://github.com/ie3-institute/simona/issues/103)) [#941](https://github.com/ie3-institute/simona/issues/941)
 - Fix grammar and spelling in docs and comments [#1022](https://github.com/ie3-institute/simona/issues/1022)
+- Fix some minor issues and findings from inspections [#1019](https://github.com/ie3-institute/simona/issues/1019)
 - Refactoring of `ThermalGrid.handleInfeed` to fix thermal storage recharge correctly when empty [#930](https://github.com/ie3-institute/simona/issues/930)
 
 ## [3.0.0] - 2023-08-07

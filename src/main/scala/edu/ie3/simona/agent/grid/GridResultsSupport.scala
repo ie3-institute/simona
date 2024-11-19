@@ -201,8 +201,9 @@ private[grid] trait GridResultsSupport {
     * @return
     *   a set of [[PartialTransformer3wResult]] s
     */
-  def buildTransformer3wResults(transformers3w: Set[Transformer3wModel])(
-      implicit
+  private def buildTransformer3wResults(
+      transformers3w: Set[Transformer3wModel]
+  )(implicit
       sweepValueStoreData: Map[UUID, SweepValueStoreData],
       iNominal: ElectricCurrent,
       timestamp: ZonedDateTime,

@@ -257,7 +257,7 @@ object ResultFileHierarchy extends LazyLogging {
     * @param outputFileHierarchy
     *   the [[ResultFileHierarchy]] the directories should be created for
     */
-  def createOutputDirectories(
+  private def createOutputDirectories(
       outputFileHierarchy: ResultFileHierarchy
   ): Unit = {
     // try to create base output dir

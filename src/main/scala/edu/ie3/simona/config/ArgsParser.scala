@@ -148,11 +148,11 @@ object ArgsParser extends LazyLogging {
   // sealed trait for cluster type
   sealed trait ClusterType
 
-  case object MasterNode extends ClusterType {
+  private case object MasterNode extends ClusterType {
     override def toString = "master"
   }
 
-  case object SeedNode extends ClusterType {
+  private case object SeedNode extends ClusterType {
     override def toString = "worker"
   }
 
