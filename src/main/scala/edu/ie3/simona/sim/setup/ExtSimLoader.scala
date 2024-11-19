@@ -20,7 +20,7 @@ object ExtSimLoader extends LazyLogging {
 
   private val extSimPath = "input" + java.io.File.separator + "ext_sim"
 
-  def getStandardDirectory: File = {
+  private def getStandardDirectory: File = {
     val workingDir = new File(System.getProperty("user.dir"))
     if (!workingDir.isDirectory)
       throw new IOException("Error when accessing working directory.")

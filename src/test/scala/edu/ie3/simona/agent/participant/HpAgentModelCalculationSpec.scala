@@ -14,7 +14,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerUnchangedMessage,
 }
 import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPowerAndHeat
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
@@ -116,7 +116,7 @@ class HpAgentModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       HpInput,
       HpRuntimeConfig,
-      ApparentPowerAndHeat,
+      ComplexPowerAndHeat,
     ](
       inputModel = hpInput,
       modelConfig = modelConfig,
@@ -181,7 +181,7 @@ class HpAgentModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       HpInput,
       HpRuntimeConfig,
-      ApparentPowerAndHeat,
+      ComplexPowerAndHeat,
     ](
       inputModel = hpInput,
       thermalGrid = defaultThermalGrid,
@@ -313,7 +313,7 @@ class HpAgentModelCalculationSpec
             SortedMap(0L -> Each(1.0)),
           )
           resultValueStore shouldBe ValueStore(resolution)
-          requestValueStore shouldBe ValueStore[ApparentPowerAndHeat](
+          requestValueStore shouldBe ValueStore[ComplexPowerAndHeat](
             resolution
           )
 
@@ -398,11 +398,11 @@ class HpAgentModelCalculationSpec
       inside(hpAgent.stateData) {
         case modelBaseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           modelBaseStateData.requestValueStore shouldBe ValueStore[
-            ApparentPowerAndHeat
+            ComplexPowerAndHeat
           ](
             resolution,
             SortedMap(
-              0L -> ApparentPowerAndHeat(
+              0L -> ComplexPowerAndHeat(
                 Megawatts(0.0),
                 Megavars(0.0),
                 Megawatts(0.0),
@@ -534,7 +534,7 @@ class HpAgentModelCalculationSpec
                 0L,
                 fail("Expected a simulation result for tick 900."),
               ) match {
-                case ApparentPowerAndHeat(p, q, qDot) =>
+                case ComplexPowerAndHeat(p, q, qDot) =>
                   p should approximate(Megawatts(0d))
                   q should approximate(Megavars(0d))
                   qDot should approximate(Megawatts(0d))
@@ -662,7 +662,7 @@ class HpAgentModelCalculationSpec
                 0L,
                 fail("Expected a simulation result for tick 0."),
               ) match {
-                case ApparentPowerAndHeat(p, q, qDot) =>
+                case ComplexPowerAndHeat(p, q, qDot) =>
                   p should approximate(Megawatts(0d))
                   q should approximate(Megavars(0d))
                   qDot should approximate(Megawatts(0d))

@@ -111,7 +111,7 @@ node {
 
         sh 'java -version'
 
-        gradle('--refresh-dependencies spotlessCheck pmdMain pmdTest', projectName)
+        gradle('--refresh-dependencies spotlessCheck test', projectName)
 
         sh(script: """set +x && cd $projectName""" + ''' set +x; ./gradlew javadoc''', returnStdout: true)
       }
@@ -420,9 +420,6 @@ def determineDisplayName(String currentBranchName, String commitHash, String org
 def publishReports(String relativeProjectDir) {
   // publish test reports
   publishHTML([allowMissing: true, alwaysLinkToLastBuild: true, escapeUnderscores: false, keepAll: true, reportDir: relativeProjectDir + '/build/reports/tests/allTests', reportFiles: 'index.html', reportName: "${relativeProjectDir}_java_tests_report", reportTitles: ''])
-
-  // publish pmd report for main project only
-  publishHTML([allowMissing: true, alwaysLinkToLastBuild: true, escapeUnderscores: false, keepAll: true, reportDir: relativeProjectDir + '/build/reports/pmd', reportFiles: 'main.html', reportName: "${relativeProjectDir}_pmd_report", reportTitles: ''])
 
   // publish scalatest reports for main project only (currently the only one with scala sources!)
   publishHTML([allowMissing: false, alwaysLinkToLastBuild: true, escapeUnderscores: false, keepAll: true, reportDir: relativeProjectDir + '/build/reports/tests/scalatest', reportFiles: 'index.html', reportName: "${relativeProjectDir}_scala_tests_report", reportTitles: ''])
