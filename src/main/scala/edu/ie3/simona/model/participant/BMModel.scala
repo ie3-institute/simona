@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.model.participant.BMModel.BMCalcRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
@@ -14,7 +14,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptio
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities._
-import edu.ie3.util.scala.quantities.EnergyPrice
+import edu.ie3.util.scala.quantities.{ApparentPower, EnergyPrice}
 import squants.energy.Megawatts
 import squants.{Dimensionless, Money, Power, Temperature}
 
@@ -29,8 +29,8 @@ final case class BMModel(
     id: String,
     operationInterval: OperationInterval,
     qControl: QControl,
-    sRated: Power,
-    cosPhi: Double,
+    sRated: ApparentPower,
+    cosPhiRated: Double,
     private val node: String,
     private val isCostControlled: Boolean,
     private val opex: Money,
@@ -38,7 +38,7 @@ final case class BMModel(
     private val loadGradient: Double,
 ) extends SystemParticipant[
       BMCalcRelevantData,
-      ApparentPower,
+      ComplexPower,
       ConstantState.type,
     ](
       uuid,
@@ -46,7 +46,7 @@ final case class BMModel(
       operationInterval,
       qControl,
       sRated,
-      cosPhi,
+      cosPhiRated,
     )
     with ApparentPowerParticipant[BMCalcRelevantData, ConstantState.type] {
 
@@ -59,7 +59,7 @@ final case class BMModel(
       voltage: Dimensionless,
       modelState: ConstantState.type,
       data: BMCalcRelevantData,
-  ): ApparentPower = {
+  ): ComplexPower = {
     val result = super.calculatePower(tick, voltage, modelState, data)
     _lastPower = Some(result.p)
 
@@ -195,9 +195,9 @@ final case class BMModel(
       isCostControlled && avgOpex.value.doubleValue() < feedInTariff.value
         .doubleValue()
     )
-      sRated * cosPhi * (-1)
+      sRated.toActivePower(cosPhiRated) * -1
     else
-      sRated * usage * eff * cosPhi * (-1)
+      sRated.toActivePower(cosPhiRated) * usage * eff * -1
   }
 
   /** Applies the load gradient to the electrical output
@@ -212,12 +212,12 @@ final case class BMModel(
     _lastPower match {
       case None => pEl
       case Some(lastPowerVal) =>
-        val pElDeltaMaxAbs = sRated * cosPhi * loadGradient
+        val pElDeltaMaxAbs = sRated.toActivePower(cosPhiRated) * loadGradient
 
         pEl - lastPowerVal match {
           case pElDelta if pElDelta > pElDeltaMaxAbs =>
             lastPowerVal + pElDeltaMaxAbs
-          case pElDelta if pElDelta < (pElDeltaMaxAbs * (-1)) =>
+          case pElDelta if pElDelta < (pElDeltaMaxAbs * -1) =>
             lastPowerVal - pElDeltaMaxAbs
           case _ =>
             pEl

@@ -16,6 +16,7 @@ import edu.ie3.simona.model.participant.{
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.ApparentPower
 import squants.Dimensionless
 import squants.energy._
 
@@ -26,11 +27,11 @@ class MockParticipant(
     id: String,
     operationInterval: OperationInterval,
     qControl: QControl,
-    sRated: Power,
+    sRated: ApparentPower,
     cosPhiRated: Double,
 ) extends SystemParticipant[
       CalcRelevantData,
-      Data.PrimaryData.ApparentPower,
+      Data.PrimaryData.ComplexPower,
       ModelState,
     ](
       uuid,
@@ -46,7 +47,7 @@ class MockParticipant(
       voltage: Dimensionless,
       state: ModelState,
       data: CalcRelevantData,
-  ): Data.PrimaryData.ApparentPower = {
+  ): Data.PrimaryData.ComplexPower = {
     super.calculateApparentPower(tick, voltage, state, data)
   }
 

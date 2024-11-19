@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPowerAndHeat
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.{Dimensionless, Power}
 
@@ -14,13 +14,13 @@ trait ApparentPowerAndHeatParticipant[
     CD <: CalcRelevantData,
     MS <: ModelState,
 ] {
-  this: SystemParticipant[CD, ApparentPowerAndHeat, MS] =>
+  this: SystemParticipant[CD, ComplexPowerAndHeat, MS] =>
   override def calculatePower(
       tick: Long,
       voltage: Dimensionless,
       modelState: MS,
       data: CD,
-  ): ApparentPowerAndHeat = {
+  ): ComplexPowerAndHeat = {
     val apparentPower =
       calculateApparentPower(tick, voltage, modelState, data)
     val heat =
@@ -29,7 +29,7 @@ trait ApparentPowerAndHeatParticipant[
       else
         zeroMW
 
-    ApparentPowerAndHeat(apparentPower.p, apparentPower.q, heat)
+    ComplexPowerAndHeat(apparentPower.p, apparentPower.q, heat)
   }
 
   /** Calculate the heat of the asset. As for electrical assets, positive values

@@ -16,6 +16,7 @@ import edu.ie3.simona.model.participant.load.profile.{
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
+import edu.ie3.util.scala.quantities.Voltamperes
 import org.scalatest.PrivateMethodTester
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.energy.{KilowattHours, Watts}

@@ -95,7 +95,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
       wecModel.rotorArea.toSquareMeters shouldBe (typeInput.getRotorArea.toSystemUnit.getValue
         .doubleValue() +- 1e-5)
       wecModel.cosPhiRated shouldBe typeInput.getCosPhiRated
-      wecModel.sRated.toWatts shouldBe (typeInput.getsRated.toSystemUnit.getValue
+      wecModel.sRated.toVoltamperes shouldBe (typeInput.getsRated.toSystemUnit.getValue
         .doubleValue() +- 1e-5)
       wecModel.betzCurve shouldBe WecModel.WecCharacteristic.apply(
         inputModel.getType.getCpCharacteristic
