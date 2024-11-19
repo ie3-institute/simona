@@ -20,6 +20,7 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.result.ResultSinkType
+import edu.ie3.simona.logging.logback.LogbackConfiguration
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.util.ConfigUtil.{GridOutputConfigUtil, OutputConfigUtil}
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
@@ -226,6 +227,8 @@ trait SetupHelper extends LazyLogging {
           simonaConfig.simona.simulationName,
         ),
       ),
+      configureLogger =
+        LogbackConfiguration.default(simonaConfig.simona.output.log.level),
       config = Some(config),
       addTimeStampToOutputDir =
         simonaConfig.simona.output.base.addTimestampToOutputDir,

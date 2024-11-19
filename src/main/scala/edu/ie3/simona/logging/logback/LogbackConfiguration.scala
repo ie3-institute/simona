@@ -18,7 +18,7 @@ import java.nio.file.Path
 
 object LogbackConfiguration extends LazyLogging {
 
-  def default(logPath: Path, logLevel: String): Unit = {
+  def default(logLevel: String)(logPath: Path): Unit = {
     LoggerFactory.getILoggerFactory match {
       case loggerContext: LoggerContext =>
         val rootLogger = loggerContext.getLogger("root")
