@@ -139,9 +139,8 @@ protected trait ParticipantAgentFundamentals[
 
     /* Confirm final initialization */
     releaseTick()
-    senderToMaybeTick._2.foreach { tick =>
-      scheduler ! Completion(self.toTyped, Some(tick))
-    }
+    scheduler ! Completion(self.toTyped, senderToMaybeTick._2)
+
     goto(Idle) using stateData
   }
 
