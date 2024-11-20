@@ -69,7 +69,7 @@ class PrimaryServiceProxySpec
           .parseString("""
             |pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
             |pekko.loglevel="OFF"
-          """.stripMargin)
+          """.stripMargin),
       )
     )
     with TableDrivenPropertyChecks
@@ -137,7 +137,7 @@ class PrimaryServiceProxySpec
         Some(TimeStampedDataCsvParams("", "", "")),
         None,
         None,
-        Some(CouchbaseParams("", "", "", "", "", ""))
+        Some(CouchbaseParams("", "", "", "", "", "")),
       )
 
       val exception = intercept[InvalidConfigParameterException](
@@ -165,7 +165,7 @@ class PrimaryServiceProxySpec
         None,
         None,
         None,
-        Some(CouchbaseParams("", "", "", "", "", ""))
+        Some(CouchbaseParams("", "", "", "", "", "")),
       )
 
       val exception = intercept[InvalidConfigParameterException](
@@ -421,7 +421,7 @@ class PrimaryServiceProxySpec
         None,
         None,
         None,
-        Some(CouchbaseParams("", "", "", "", "", ""))
+        Some(CouchbaseParams("", "", "", "", "", "")),
       )
       proxy invokePrivate initializeWorker(
         metaPq,
@@ -614,7 +614,7 @@ class PrimaryServiceProxySpec
           None,
           None,
           None,
-          Some(CouchbaseParams("", "", "", "", "", ""))
+          Some(CouchbaseParams("", "", "", "", "", "")),
         )
       )
 

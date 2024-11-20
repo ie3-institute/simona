@@ -11,9 +11,17 @@ import akka.testkit.{TestActorRef, TestProbe}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.config.InputConfig.{CoordinateSourceConfig, PrimaryConfig, WeatherDataSourceConfig}
+import edu.ie3.simona.config.InputConfig.{
+  CoordinateSourceConfig,
+  PrimaryConfig,
+  WeatherDataSourceConfig,
+}
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{InitSimMessage, ScheduleTriggerMessage, SimulationFailureMessage}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  InitSimMessage,
+  ScheduleTriggerMessage,
+  SimulationFailureMessage,
+}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.weather.WeatherService
@@ -32,7 +40,7 @@ class SimonaSimFailSpec
           .parseString("""
                      |akka.loggers = ["akka.testkit.TestEventListener"]
                      |akka.loglevel="OFF"
-        """.stripMargin)
+        """.stripMargin),
       )
     ) {
   "A SimonaSim" should {
@@ -45,7 +53,7 @@ class SimonaSimFailSpec
         system,
         Props(
           new FailSim(system, primaryService, weatherService, scheduler.ref)
-        )
+        ),
       )
       /*Expect the initialization triggers for weather and the primary service */
       scheduler.expectMsgType[ScheduleTriggerMessage]
@@ -70,7 +78,7 @@ object SimonaSimFailSpec {
       actorSystem: ActorSystem,
       primaryService: ActorRef,
       weatherService: ActorRef,
-      scheduler: ActorRef
+      scheduler: ActorRef,
   ) extends SimonaSim(
         new DummySetup(actorSystem, primaryService, weatherService, scheduler)
       ) {
@@ -91,7 +99,7 @@ object SimonaSimFailSpec {
       primaryService: ActorRef,
       weatherService: ActorRef,
       scheduler: ActorRef,
-      override val args: Array[String] = Array.empty[String]
+      override val args: Array[String] = Array.empty[String],
   ) extends SimonaSetup {
 
     /** A function, that constructs the [[ActorSystem]], the simulation shall
@@ -134,14 +142,14 @@ object SimonaSimFailSpec {
       */
     override def primaryServiceProxy(
         context: ActorContext,
-        scheduler: ActorRef
+        scheduler: ActorRef,
     ): (ActorRef, PrimaryServiceProxy.InitPrimaryServiceProxyStateData) =
       (
         primaryService,
         InitPrimaryServiceProxyStateData(
           PrimaryConfig(None, None, None, None),
-          ZonedDateTime.now()
-        )
+          ZonedDateTime.now(),
+        ),
       )
 
     /** Creates a weather service
@@ -156,7 +164,7 @@ object SimonaSimFailSpec {
       */
     override def weatherService(
         context: ActorContext,
-        scheduler: ActorRef
+        scheduler: ActorRef,
     ): (ActorRef, WeatherService.InitWeatherServiceStateData) =
       (
         weatherService,
@@ -175,10 +183,10 @@ object SimonaSimFailSpec {
               "foo",
               None,
               None,
-              None
+              None,
             ),
           )
-        )
+        ),
       )
 
     /** Creates a scheduler service
@@ -190,7 +198,7 @@ object SimonaSimFailSpec {
       */
     override def scheduler(
         context: ActorContext,
-        runtimeEventListener: Seq[ActorRef]
+        runtimeEventListener: Seq[ActorRef],
     ): ActorRef = scheduler
 
     /** Creates all the needed grid agents
@@ -208,12 +216,12 @@ object SimonaSimFailSpec {
     override def gridAgents(
         context: ActorContext,
         environmentRefs: EnvironmentRefs,
-        systemParticipantListener: Seq[ActorRef]
+        systemParticipantListener: Seq[ActorRef],
     ): Map[ActorRef, GridAgentInitData] = Map.empty[ActorRef, GridAgentInitData]
 
     override def extSimulations(
         context: ActorContext,
-        scheduler: ActorRef
+        scheduler: ActorRef,
     ): ExtSimSetupData =
       ExtSimSetupData(Iterable.empty, Iterable.empty)
   }

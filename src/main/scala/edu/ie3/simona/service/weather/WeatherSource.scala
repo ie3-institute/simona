@@ -316,7 +316,7 @@ object WeatherSource {
               Some(
                 baseCsvParams @ IoConfigUtils.BaseCsvParams(
                   directoryPath,
-                  csvSep
+                  csvSep,
                 )
               )
             ) =>
@@ -329,7 +329,7 @@ object WeatherSource {
               timestampPattern,
               scheme,
               resolution,
-              distance
+              distance,
             )(simulationStart)
         case Some(Some(params: IoConfigUtils.CouchbaseParams)) =>
           checkCouchbaseParams(params)
@@ -340,7 +340,7 @@ object WeatherSource {
               timestampPattern,
               scheme,
               resolution,
-              distance
+              distance,
             )(simulationStart)
         case Some(
               Some(params @ IoConfigUtils.InfluxDb1xParams(database, _, url))
@@ -353,7 +353,7 @@ object WeatherSource {
               timestampPattern,
               scheme,
               resolution,
-              distance
+              distance,
             )(simulationStart)
         case Some(Some(params: IoConfigUtils.BaseSqlParams)) =>
           checkSqlParams(params)
@@ -364,7 +364,7 @@ object WeatherSource {
               timestampPattern,
               scheme,
               resolution,
-              distance
+              distance,
             )(simulationStart)
         case Some(Some(_: WeatherSampleParams)) =>
           // sample weather, no check required

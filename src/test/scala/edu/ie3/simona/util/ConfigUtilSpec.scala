@@ -28,11 +28,11 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.OutputConfig.{
   BaseOutputConfig,
   GridOutputConfig,
-  ParticipantOutputConfig
+  ParticipantOutputConfig,
 }
 import edu.ie3.simona.config.RuntimeConfig.{
   LoadRuntimeConfig,
-  SimpleRuntimeConfig
+  SimpleRuntimeConfig,
 }
 import edu.ie3.simona.config.SimonaConfig.{apply => _, _}
 import edu.ie3.simona.event.notifier.NotifierConfig
@@ -432,7 +432,7 @@ class ConfigUtilSpec
         SimpleRuntimeConfig(
           Seq("49f250fa-41ff-4434-a083-79c98d260a76"),
           1.3,
-          calculateMissingReactivePowerWithModel = false
+          calculateMissingReactivePowerWithModel = false,
         )
       actual.getOrDefault[SimpleRuntimeConfig](
         UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
@@ -440,7 +440,7 @@ class ConfigUtilSpec
         SimpleRuntimeConfig(
           Seq("fb8f1443-1843-4ecd-a94a-59be8148397f"),
           1.5,
-          calculateMissingReactivePowerWithModel = false
+          calculateMissingReactivePowerWithModel = false,
         )
     }
   }
@@ -528,7 +528,7 @@ class ConfigUtilSpec
         SimpleRuntimeConfig(
           Seq("default"),
           1.0,
-          calculateMissingReactivePowerWithModel = false
+          calculateMissingReactivePowerWithModel = false,
         )
 
       // return default if a request for load is done, but fixed feed is found
@@ -550,7 +550,7 @@ class ConfigUtilSpec
         SimpleRuntimeConfig(
           List("default"),
           1.0,
-          calculateMissingReactivePowerWithModel = false
+          calculateMissingReactivePowerWithModel = false,
         )
     }
   }
@@ -567,7 +567,7 @@ class ConfigUtilSpec
               lines = false,
               switches = false,
               transformers2w = false,
-              transformers3w = false
+              transformers3w = false,
             ),
             Set.empty[Class[_ <: ResultEntity]],
           ),
@@ -577,7 +577,7 @@ class ConfigUtilSpec
               nodes = false,
               switches = false,
               transformers2w = false,
-              transformers3w = false
+              transformers3w = false,
             ),
             Set(classOf[LineResult]),
           ),
@@ -587,7 +587,7 @@ class ConfigUtilSpec
               lines = false,
               switches = false,
               transformers2w = false,
-              transformers3w = false
+              transformers3w = false,
             ),
             Set(classOf[NodeResult]),
           ),
@@ -597,7 +597,7 @@ class ConfigUtilSpec
               nodes = false,
               lines = false,
               transformers2w = false,
-              transformers3w = false
+              transformers3w = false,
             ),
             Set(classOf[SwitchResult]),
           ),
@@ -607,7 +607,7 @@ class ConfigUtilSpec
               nodes = false,
               lines = false,
               switches = false,
-              transformers3w = false
+              transformers3w = false,
             ),
             Set(classOf[Transformer2WResult]),
           ),
@@ -617,7 +617,7 @@ class ConfigUtilSpec
               nodes = false,
               lines = false,
               switches = false,
-              transformers2w = false
+              transformers2w = false,
             ),
             Set(classOf[Transformer3WResult]),
           ),
