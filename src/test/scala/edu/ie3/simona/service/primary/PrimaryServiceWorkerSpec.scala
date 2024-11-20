@@ -147,7 +147,21 @@ class PrimaryServiceWorkerSpec
         case Failure(_) =>
           fail("Initialisation with init data is meant to succeed.")
       }
+    }
 
+    "init, if there are values before and after the simulation start" in {
+      val initData = validInitData.copy(
+        simulationStart = validInitData.simulationStart.plusMinutes(5)
+      )
+
+      service.init(initData) match {
+        case Success((stateData, maybeNextTick)) =>
+          stateData.maybeValue shouldBe Some(new PValue(1000.asKiloWatt))
+          maybeNextTick shouldBe Some(600L)
+
+        case Failure(_) =>
+          fail("Initialisation with init data is meant to succeed.")
+      }
     }
 
     "fail, if pointed to the wrong file" in {
