@@ -8,6 +8,8 @@ package edu.ie3.simona.sim.setup
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.simona.api.ExtLinkInterface
+import edu.ie3.simona.api.simulation.{ExtSimAdapterData, ExtSimulation}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.ontology.messages.SchedulerMessage
@@ -42,7 +44,12 @@ class SimonaSimpleExtSimulationSetup(
     // val simpleExtSim = new SimpleExtSimulationWithEm()
     // val simpleExtSim = new SimpleExtSimulationWithPrimaryData()
 
-    setupExtSim(List(simpleExtSim), args)(context, scheduler, simonaConfig)
+    val extLink = new ExtLinkInterface {
+      override def getExtSimulation: ExtSimulation = simpleExtSim
+      override def setup(data: ExtSimAdapterData): Unit = {}
+    }
+
+    setupExtSim(List(extLink), args)(context, scheduler, simonaConfig)
   }
 }
 

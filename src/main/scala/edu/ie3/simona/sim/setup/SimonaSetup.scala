@@ -150,7 +150,7 @@ trait SimonaSetup {
         InitPrimaryServiceProxyStateData(
           simonaConfig.simona.input.primary,
           simulationStart,
-          extSimSetupData.extPrimaryData,
+          extSimSetupData.extPrimaryDataServices,
         ),
         simulationStart,
       ),
@@ -209,12 +209,9 @@ trait SimonaSetup {
       scheduler: ActorRef[SchedulerMessage],
   ): ExtSimSetupData = {
     val jars = ExtSimLoader.scanInputFolder()
-
     val extLinks = jars.flatMap(ExtSimLoader.loadExtLink).toList
 
-    extLinks.foreach(_.setup(args))
-
-    setupExtSim(extLinks.map(_.getExtSimulation), args)(
+    setupExtSim(extLinks, args)(
       context,
       scheduler,
       simonaConfig,

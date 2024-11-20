@@ -21,31 +21,60 @@ import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 final case class ExtSimSetupData(
     extSimAdapters: Iterable[ClassicRef],
-    extPrimaryData: Map[ExtPrimaryDataConnection, ClassicRef],
-    extDataServices: Map[Class[_ <: ExtInputDataConnection], ClassicRef],
+    extPrimaryDataServices: Map[ExtPrimaryDataConnection, ClassicRef],
+    extDataServices: Map[ExtInputDataConnection, ClassicRef],
     extResultListeners: Map[ExtResultDataConnection, ActorRef[
       ExtResultDataProvider.Request
     ]],
     extDataListener: Map[_ <: ExtOutputDataConnection, ClassicRef],
-    extDatas: Set[ExtDataConnection],
 ) {
 
+  private[setup] def +(
+      connection: ExtPrimaryDataConnection,
+      ref: ClassicRef,
+  ): ExtSimSetupData =
+    copy(extPrimaryDataServices =
+      extPrimaryDataServices ++ Map(connection -> ref)
+    )
+
+  private[setup] def +(
+      connection: ExtInputDataConnection,
+      ref: ClassicRef,
+  ): ExtSimSetupData =
+    copy(extDataServices = extDataServices ++ Map(connection -> ref))
+
+  private[setup] def +(
+      connection: ExtResultDataConnection,
+      ref: ActorRef[ExtResultDataProvider.Request],
+  ): ExtSimSetupData =
+    copy(extResultListeners = extResultListeners ++ Map(connection -> ref))
+
   def evDataService: Option[ClassicRef] =
-    extDataServices.get(classOf[ExtEvDataConnection])
+    extDataServices.collectFirst { case (_: ExtEvDataConnection, ref) => ref }
 
   def extEmDataService: Option[ClassicRef] =
-    extDataServices.get(classOf[ExtEmDataConnection])
+    extDataServices.collectFirst { case (_: ExtEmDataConnection, ref) => ref }
 
-  def extEvData: Option[ExtEvDataConnection] = {
-    extDatas.collectFirst { case extData: ExtEvDataConnection => extData }
-  }
+  def extEvDataConnection: Option[ExtEvDataConnection] =
+    extDataServices.collectFirst { case (connection: ExtEvDataConnection, _) =>
+      connection
+    }
 
-  def extEmData: Option[ExtEmDataConnection] = {
-    extDatas.collectFirst { case extData: ExtEmDataConnection => extData }
-  }
+  def extEmDataConnection: Option[ExtEmDataConnection] =
+    extDataServices.collectFirst { case (connection: ExtEmDataConnection, _) =>
+      connection
+    }
 
-  def extResultData: Set[ExtResultDataConnection] = {
-    extDatas.map { case extData: ExtResultDataConnection => extData }
-  }
+  def extResultDataConnection: Set[ExtResultDataConnection] =
+    extResultListeners.keySet
+}
 
+object ExtSimSetupData {
+  def apply(): ExtSimSetupData = ExtSimSetupData(
+    Iterable.empty,
+    Map.empty,
+    Map.empty,
+    Map.empty,
+    Map.empty,
+  )
 }
