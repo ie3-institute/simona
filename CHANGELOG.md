@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add some quote to 'printGoodbye' [#997](https://github.com/ie3-institute/simona/issues/997)
 - Add unapply method for ThermalHouseResults [#934](https://github.com/ie3-institute/simona/issues/934)
 - Added `ApparentPower` to differentiate between different power types [#794](https://github.com/ie3-institute/simona/issues/794)
+- Considering primary data that start before simulation [#1034](https://github.com/ie3-institute/simona/issues/1034)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
