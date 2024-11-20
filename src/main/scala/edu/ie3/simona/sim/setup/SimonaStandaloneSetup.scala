@@ -55,6 +55,7 @@ import org.apache.pekko.actor.typed.scaladsl.adapter.{
 }
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
+import java.nio.file.Path
 import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
 import scala.jdk.CollectionConverters._
@@ -73,7 +74,7 @@ class SimonaStandaloneSetup(
     override val args: Array[String],
 ) extends SimonaSetup {
 
-  override def logOutputDir: String = resultFileHierarchy.logOutputDir
+  override def logOutputDir: Path = resultFileHierarchy.logOutputDir
 
   override def gridAgents(
       context: ActorContext[_],

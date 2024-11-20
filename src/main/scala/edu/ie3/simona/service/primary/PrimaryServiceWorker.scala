@@ -20,6 +20,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.RichValue
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
+import edu.ie3.simona.exceptions.agent.ServiceRegistrationException
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.service.ServiceStateData.{
@@ -131,32 +132,47 @@ final case class PrimaryServiceWorker[V <: Value](
             s"Provided init data '${unsupported.getClass.getSimpleName}' for primary service are invalid!"
           )
         )
-    }).map { case (source, simulationStart) =>
+    }).flatMap { case (source, simulationStart) =>
       implicit val startDateTime: ZonedDateTime = simulationStart
 
       val (maybeNextTick, furtherActivationTicks) = SortedDistinctSeq(
         // Note: The whole data set is used here, which might be inefficient depending on the source implementation.
         source.getTimeSeries.getEntries.asScala
-          .filter { timeBasedValue =>
-            val dateTime = timeBasedValue.getTime
-            dateTime.isEqual(simulationStart) || dateTime.isAfter(
-              simulationStart
-            )
-          }
           .map(timeBasedValue => timeBasedValue.getTime.toTick)
+          .filter(_ >= 0L)
           .toSeq
           .sorted
       ).pop
 
-      /* Set up the state data and determine the next activation tick. */
-      val initializedStateData =
-        PrimaryServiceInitializedStateData(
-          maybeNextTick,
-          furtherActivationTicks,
-          simulationStart,
-          source,
-        )
-      (initializedStateData, maybeNextTick)
+      (maybeNextTick, furtherActivationTicks) match {
+        case (Some(tick), furtherActivationTicks) if tick == 0L =>
+          /* Set up the state data and determine the next activation tick. */
+          val initializedStateData =
+            PrimaryServiceInitializedStateData(
+              maybeNextTick,
+              furtherActivationTicks,
+              simulationStart,
+              source,
+            )
+
+          Success(initializedStateData, maybeNextTick)
+
+        case (Some(tick), _) if tick > 0L =>
+          /* The start of the data needs to be at the first tick of the simulation. */
+          Failure(
+            new ServiceRegistrationException(
+              s"The data for the timeseries '${source.getTimeSeries.getUuid}' starts after the start of this simulation (tick: $tick)! This is not allowed!"
+            )
+          )
+
+        case _ =>
+          /* No data for the simulation. */
+          Failure(
+            new ServiceRegistrationException(
+              s"No appropriate data found within simulation time range in timeseries '${source.getTimeSeries.getUuid}'!"
+            )
+          )
+      }
     }
   }
 
@@ -198,8 +214,8 @@ final case class PrimaryServiceWorker[V <: Value](
     *   the current state data of this service
     * @return
     *   the service stata data that should be used in the next state (normally
-    *   with updated values) together with the completion message that is send
-    *   in response to the trigger that is send to start the initialization
+    *   with updated values) together with the completion message that is sent
+    *   in response to the trigger that is sent to start the initialization
     *   process
     */
   override protected def announceInformation(

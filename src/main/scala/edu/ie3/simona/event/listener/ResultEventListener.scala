@@ -88,7 +88,7 @@ object ResultEventListener extends Transformer3wResultSupport {
 
           filePathFuture.map { fileName =>
             val finalFileName =
-              fileName match {
+              fileName.toString match {
                 case name if name.endsWith(".csv.gz") && enableCompression =>
                   name.replace(".gz", "")
                 case name if name.endsWith(".csv") => name

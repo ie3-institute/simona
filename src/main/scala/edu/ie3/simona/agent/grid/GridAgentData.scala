@@ -123,7 +123,7 @@ object GridAgentData {
     }
   }
 
-  /** Data that is send to the [[GridAgent]] directly after startup. It contains
+  /** Data that is sent to the [[GridAgent]] directly after startup. It contains
     * the main information for initialization. This data should include all
     * [[GridAgent]] individual data, for data that is the same for all
     * [[GridAgent]] s please use [[GridAgent.apply()]]

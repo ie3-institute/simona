@@ -51,7 +51,7 @@ trait BaseStateData[+PD <: PrimaryDataWithApparentPower[PD]]
     */
   val modelUuid: UUID
 
-  /** By default the agent should be triggered in the same tick, where data is
+  /** By default, the agent should be triggered in the same tick, where data is
     * incoming from primary or secondary sources. However, if there is no other
     * information needed, we might have the need to schedule ourselves for
     * activation triggers
@@ -68,8 +68,9 @@ trait BaseStateData[+PD <: PrimaryDataWithApparentPower[PD]]
   val resultValueStore: ValueStore[PD]
 
   /** A store, holding information of the lastly requested and provided results.
-    * The request from the grid always targets at [[ApparentPower]], but for the
-    * sake of traceability, the whole averaged result ist stored
+    * The request from the grid always targets at
+    * [[edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower]],
+    * but for the sake of traceability, the whole averaged result ist stored
     */
   val requestValueStore: ValueStore[PD]
 

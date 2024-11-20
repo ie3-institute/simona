@@ -10,57 +10,44 @@ import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder
 import ch.qos.logback.classic.filter.ThresholdFilter
 import ch.qos.logback.classic.spi.ILoggingEvent
-import ch.qos.logback.core.rolling.RollingFileAppender
 import ch.qos.logback.core.FileAppender
-import ch.qos.logback.core.filter.Filter
 import com.typesafe.scalalogging.LazyLogging
 import org.slf4j.LoggerFactory
 
-import java.io.File
-import scala.jdk.CollectionConverters._
+import java.nio.file.Path
 
 object LogbackConfiguration extends LazyLogging {
 
-  def default(logPath: String): Unit = {
+  def default(logLevel: String)(logPath: Path): Unit = {
     LoggerFactory.getILoggerFactory match {
       case loggerContext: LoggerContext =>
         val rootLogger = loggerContext.getLogger("root")
-        val log = logPath.concat(File.separator).concat("simona.log")
-        // stop all appenders
-        rootLogger.iteratorForAppenders().asScala.foreach(_.stop())
-        /* Identify the filters of existing rolling file appender */
-        val fileLoggerFilterList = rootLogger
-          .iteratorForAppenders()
-          .asScala
-          .find(_.getName == "RF")
-          .map(_.getCopyOfAttachedFiltersList.asScala.toSeq)
+
+        // Since logback configuration is static
+        val logFile = logPath.resolve("simona.log")
+
         rootLogger.addAppender(
-          fileAppender(
-            log,
+          createFileAppender(
+            logFile,
+            logLevel,
             "simona-default",
-            fileLoggerFilterList,
             loggerContext,
           )
         )
 
-        rootLogger.iteratorForAppenders().asScala.foreach {
-          case rf: RollingFileAppender[_] =>
-            rf.getTriggeringPolicy.start()
-            rf.start()
-          case appender => appender.start()
-        }
       case factory =>
         logger.error(
           s"Cannot configure simulation run logger! Invalid factory: $factory"
         )
     }
-
   }
 
-  private def fileAppender(
-      logPath: String,
+  /** Creates a FileAppender that logs to given path
+    */
+  private def createFileAppender(
+      logPath: Path,
+      logLevel: String,
       appenderName: String,
-      maybeFilterList: Option[Seq[Filter[ILoggingEvent]]],
       loggerContext: LoggerContext,
   ): FileAppender[ILoggingEvent] = {
 
@@ -69,23 +56,16 @@ object LogbackConfiguration extends LazyLogging {
     layoutEncoder.setContext(loggerContext)
     layoutEncoder.start()
 
+    val filter = new ThresholdFilter()
+    filter.setLevel(logLevel)
+    filter.start()
+
     val fileAppender = new FileAppender[ILoggingEvent]
-    fileAppender.setFile(logPath)
+    fileAppender.setFile(logPath.toString)
     fileAppender.setEncoder(layoutEncoder)
     fileAppender.setContext(loggerContext)
     fileAppender.setName(appenderName)
-    /* If applicable, apply the filters from existing file logger else log with "INFO"-Level */
-    maybeFilterList match {
-      case Some(filterList) =>
-        if (filterList.isEmpty) { // No filters in appenders -> Empty List
-          val filter = new ThresholdFilter()
-          filter.setLevel("INFO")
-          filter.start()
-          fileAppender.addFilter(filter)
-        } else {
-          filterList.foreach(fileAppender.addFilter)
-        }
-    }
+    fileAppender.addFilter(filter)
     fileAppender.start()
 
     fileAppender
