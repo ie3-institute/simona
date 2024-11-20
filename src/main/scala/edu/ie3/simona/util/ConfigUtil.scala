@@ -18,6 +18,17 @@ import edu.ie3.datamodel.models.result.connector.{
   Transformer2WResult,
   Transformer3WResult,
 }
+import edu.ie3.datamodel.io.connectors.{
+  CouchbaseConnector,
+  InfluxDbConnector,
+  SqlConnector
+}
+import edu.ie3.datamodel.models.result.connector.{
+  LineResult,
+  SwitchResult,
+  Transformer2WResult,
+  Transformer3WResult
+}
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.config.IoConfigUtils.{
   BaseKafkaParams,

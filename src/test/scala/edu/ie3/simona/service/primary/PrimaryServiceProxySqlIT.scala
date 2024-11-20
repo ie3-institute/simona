@@ -19,6 +19,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRe
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
+
 }
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.test.common.{AgentSpec, TestSpawnerClassic}
@@ -89,7 +90,7 @@ class PrimaryServiceProxySqlIT
     password = container.password,
     schemaName = schemaName,
     tableName = "is_ignored",
-    timePattern = "yyyy-MM-dd'T'HH:mm:ssX",
+    timePattern = "yyyy-MM-dd'T'HH:mm:ssX"
   )
 
   private def createProxy(): TestActorRef[PrimaryServiceProxy] = {
@@ -100,7 +101,7 @@ class PrimaryServiceProxySqlIT
           None,
           None,
           sqlParams = Some(sqlParams),
-          None,
+          None
         ),
         simulationStart,
       )
@@ -113,7 +114,7 @@ class PrimaryServiceProxySqlIT
         )
       )
     }
-
+  }
     "A primary service proxy with SQL source" should {
 
       "initialize when given proper SQL input configs" in {
@@ -177,5 +178,5 @@ class PrimaryServiceProxySqlIT
         systemParticipantProbe.expectMsg(RegistrationFailedMessage(proxyRef))
       }
     }
-  }
+
 }

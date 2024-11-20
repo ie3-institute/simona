@@ -46,6 +46,10 @@ import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
+import edu.ie3.simona.ontology.trigger.Trigger.{
+  ActivityStartTrigger,
+  InitializeParticipantAgentTrigger
+}
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.ProvidePrimaryDataMessage
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.DefaultTestData

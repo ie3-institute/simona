@@ -26,6 +26,15 @@ import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
+import edu.ie3.simona.ontology.messages.PowerMessage.{
+  AssetPowerChangedMessage,
+  AssetPowerUnchangedMessage,
+  RequestAssetPowerMessage
+}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  CompletionMessage,
+  TriggerWithIdMessage
+}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.ontology.trigger.Trigger.{

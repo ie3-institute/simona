@@ -12,6 +12,23 @@ import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformatio
 import edu.ie3.datamodel.io.naming.{
   DatabaseNamingStrategy,
   EntityPersistenceNamingStrategy,
+  FileNamingStrategy
+}
+import edu.ie3.datamodel.io.source.csv.{
+  CsvTimeSeriesMappingSource,
+  CsvTimeSeriesMetaInformationSource
+}
+import edu.ie3.datamodel.io.source.sql.{
+  SqlTimeSeriesMappingSource,
+  SqlTimeSeriesMetaInformationSource
+}
+import edu.ie3.datamodel.io.source.{
+  TimeSeriesMappingSource,
+  TimeSeriesMetaInformationSource
+}
+import edu.ie3.datamodel.io.naming.{
+  DatabaseNamingStrategy,
+  EntityPersistenceNamingStrategy,
   FileNamingStrategy,
 }
 import edu.ie3.datamodel.io.source.csv.{
@@ -441,7 +458,7 @@ case class PrimaryServiceProxy(
             None,
             None,
             Some(sqlParams: TimeStampedSqlParams),
-            None,
+            None
           ) =>
         Success(
           SqlInitPrimaryServiceStateData(

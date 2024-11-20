@@ -27,9 +27,33 @@ import edu.ie3.simona.config.RuntimeConfig.SimpleRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
+import edu.ie3.simona.ontology.messages.PowerMessage.{
+  AssetPowerChangedMessage,
+  AssetPowerUnchangedMessage,
+  RequestAssetPowerMessage
+}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  CompletionMessage,
+  IllegalTriggerMessage,
+  ScheduleTriggerMessage,
+  TriggerWithIdMessage
+}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
+  RegistrationFailedMessage,
+  RegistrationSuccessfulMessage
+}
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
+  ProvideWeatherMessage,
+  RegisterForWeatherMessage,
+  WeatherData
+}
+import edu.ie3.simona.ontology.trigger.Trigger.{
+  ActivityStartTrigger,
+  InitializeParticipantAgentTrigger
+}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
@@ -101,7 +125,7 @@ class PvAgentModelCalculationSpec
   private val defaultOutputConfig = NotifierConfig(
     simonaConfig.output.participant.defaultConfig.simulationResult,
     simonaConfig.output.participant.defaultConfig.powerRequestReply,
-    simonaConfig.simona.output.participant.defaultConfig.flexResult,
+    simonaConfig.output.participant.defaultConfig.flexResult,
   )
   private val configUtil = ConfigUtil.ParticipantConfigUtil(
     simonaConfig.runtime.participant
@@ -131,7 +155,7 @@ class PvAgentModelCalculationSpec
       simulationEndDate = simulationEndDate,
       resolution = resolution,
       requestVoltageDeviationThreshold =
-        simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+        simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
       primaryServiceProxy = primaryServiceProxy.ref,
     )

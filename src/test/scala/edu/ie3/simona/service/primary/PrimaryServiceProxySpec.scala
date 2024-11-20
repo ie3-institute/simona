@@ -6,10 +6,6 @@
 
 package edu.ie3.simona.service.primary
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{ActorRef, ActorSystem, PoisonPill}
-import org.apache.pekko.testkit.{TestActorRef, TestProbe}
-import org.apache.pekko.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
@@ -17,23 +13,6 @@ import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformatio
 import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
 import edu.ie3.datamodel.models.value.{SValue, Value}
-import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.{
-  CouchbaseParams,
-  InfluxDb1xParams,
-}
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
-  Primary => PrimaryConfig
-}
-import edu.ie3.simona.exceptions.{
-  InitializationException,
-  InvalidConfigParameterException,
-}
-import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
 import edu.ie3.simona.config.InputConfig.PrimaryConfig
 import edu.ie3.simona.config.IoConfigUtils.{
   CouchbaseParams,
@@ -44,10 +23,10 @@ import edu.ie3.simona.exceptions.{
   InitializationException,
   InvalidConfigParameterException,
 }
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage,
+  Completion,
+  ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
@@ -64,25 +43,14 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   CsvInitPrimaryServiceStateData,
   InitPrimaryServiceStateData,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  PrimaryServiceRegistrationMessage,
-  WorkerRegistrationMessage,
-}
-import edu.ie3.simona.ontology.trigger.Trigger.InitializeServiceTrigger
-import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
-  InitPrimaryServiceProxyStateData,
-  PrimaryServiceStateData,
-  SourceRef,
-}
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
-  CsvInitPrimaryServiceStateData,
-  InitPrimaryServiceStateData,
-}
-import edu.ie3.simona.test.common.AgentSpec
-import edu.ie3.simona.test.common.input.TimeSeriesTestData
 import edu.ie3.simona.test.common.{AgentSpec, TestSpawnerClassic}
+import edu.ie3.simona.test.common.input.TimeSeriesTestData
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorRef, ActorSystem, PoisonPill}
+import org.apache.pekko.testkit.{TestActorRef, TestProbe}
+import org.apache.pekko.util.Timeout
 import org.scalatest.PartialFunctionValues
 import org.scalatest.prop.TableDrivenPropertyChecks
 
@@ -101,7 +69,7 @@ class PrimaryServiceProxySpec
           .parseString("""
             |pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
             |pekko.loglevel="OFF"
-          """.stripMargin),
+          """.stripMargin)
       )
     )
     with TableDrivenPropertyChecks
@@ -125,7 +93,12 @@ class PrimaryServiceProxySpec
         TimeStampedDataCsvParams(
           baseDirectoryPath.toString,
           csvSep,
+          /*fixme mh
           TimeUtil.withDefaults.getDateTimeFormatter.toString,
+          TimeUtil.withDefaults.getDtfPattern,
+
+
+           */
         )
       ),
       None,
@@ -164,7 +137,7 @@ class PrimaryServiceProxySpec
         Some(TimeStampedDataCsvParams("", "", "")),
         None,
         None,
-        Some(CouchbaseParams("", "", "", "", "", "")),
+        Some(CouchbaseParams("", "", "", "", "", ""))
       )
 
       val exception = intercept[InvalidConfigParameterException](
@@ -192,7 +165,7 @@ class PrimaryServiceProxySpec
         None,
         None,
         None,
-        Some(CouchbaseParams("", "", "", "", "", "")),
+        Some(CouchbaseParams("", "", "", "", "", ""))
       )
 
       val exception = intercept[InvalidConfigParameterException](
@@ -448,7 +421,7 @@ class PrimaryServiceProxySpec
         None,
         None,
         None,
-        Some(CouchbaseParams("", "", "", "", "", "")),
+        Some(CouchbaseParams("", "", "", "", "", ""))
       )
       proxy invokePrivate initializeWorker(
         metaPq,
@@ -641,7 +614,7 @@ class PrimaryServiceProxySpec
           None,
           None,
           None,
-          Some(CouchbaseParams("", "", "", "", "", "")),
+          Some(CouchbaseParams("", "", "", "", "", ""))
         )
       )
 

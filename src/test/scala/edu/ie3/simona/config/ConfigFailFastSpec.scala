@@ -24,6 +24,31 @@ import edu.ie3.simona.config.SimonaConfig.{
   PowerFlowConfig,
   TimeConfig,
 }
+import edu.ie3.simona.config.InputConfig.{
+  GridDataSource,
+  WeatherDataSourceConfig,
+  WeatherSampleParams
+}
+import edu.ie3.simona.config.IoConfigUtils.{
+  BaseCsvParams,
+  InfluxDb1xParams,
+  PsdmCsvParams,
+  ResultKafkaParams
+}
+import edu.ie3.simona.config.OutputConfig.{
+  BaseOutputConfig,
+  OutputCsvParams,
+  OutputSinkConfig
+}
+import edu.ie3.simona.config.RuntimeConfig.{
+  LoadRuntimeConfig,
+  SimpleRuntimeConfig
+}
+import edu.ie3.simona.config.SimonaConfig.{
+  NewtonRaphsonConfig,
+  PowerFlowConfig,
+  TimeConfig
+}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.util.TimeUtil
@@ -934,7 +959,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         "identify unsupported id" in {
           val gridDataSource = GridDataSource(
             id = "someWhereUndefined",
-            None,
+            None
           )
 
           intercept[InvalidConfigParameterException] {
@@ -945,7 +970,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         "identify missing csv parameters" in {
           val gridDataSource = GridDataSource(
             id = "csv",
-            None,
+            None
           )
 
           intercept[InvalidConfigParameterException] {
@@ -963,7 +988,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
                 ",",
                 isHierarchic = false,
               )
-            ),
+            )
           )
 
           noException shouldBe thrownBy {
