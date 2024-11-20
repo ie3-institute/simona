@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
+  ComplexPower,
   PrimaryDataWithApparentPower,
 }
 import edu.ie3.simona.model.SystemComponent
@@ -15,13 +15,9 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities._
-import edu.ie3.util.scala.quantities.{
-  DefaultQuantities,
-  Megavars,
-  ReactivePower,
-}
+import edu.ie3.util.scala.quantities._
 import squants.Dimensionless
-import squants.energy.{Kilowatts, Power}
+import squants.energy.Power
 
 import java.util.UUID
 
@@ -30,7 +26,7 @@ import java.util.UUID
   * @param uuid
   *   the element's uuid
   * @param id
-  *   the element's human readable id
+  *   the element's human-readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
   * @param qControl
@@ -55,7 +51,7 @@ abstract class SystemParticipant[
     id: String,
     operationInterval: OperationInterval,
     qControl: QControl,
-    sRated: Power,
+    sRated: ApparentPower,
     cosPhiRated: Double,
 ) extends SystemComponent(uuid, id, operationInterval) {
 
@@ -64,7 +60,7 @@ abstract class SystemParticipant[
     * overwritten if the system participant's apparent power can be higher than
     * sRated.
     */
-  protected val sMax: Power = sRated
+  protected val sMax: ApparentPower = sRated
 
   /** Calculate the power behaviour based on the given data.
     *
@@ -102,17 +98,17 @@ abstract class SystemParticipant[
       voltage: Dimensionless,
       modelState: MS,
       data: CD,
-  ): ApparentPower = {
+  ): ComplexPower = {
     if (isInOperation(tick)) {
       val activePower = calculateActivePower(modelState, data)
       val reactivePower =
         calculateReactivePower(activePower, voltage)
-      ApparentPower(
+      ComplexPower(
         activePower,
         reactivePower,
       )
     } else {
-      ApparentPower(
+      ComplexPower(
         DefaultQuantities.zeroMW,
         DefaultQuantities.zeroMVAr,
       )
@@ -212,7 +208,7 @@ abstract class SystemParticipant[
       reactivePower: ReactivePower,
   ): ReactivePower = {
     {
-      val apparentPower: Power = Kilowatts(
+      val apparentPower: ApparentPower = Kilovoltamperes(
         Math
           .sqrt(
             Math.pow(activePower.toKilowatts, 2) + Math
@@ -232,8 +228,8 @@ abstract class SystemParticipant[
             s"in correspondence to the existing active power $activePower."
         )
 
-        val powerSquaredDifference = Math.pow(sMax.toMegawatts, 2) -
-          Math.pow(activePower.toMegawatts, 2)
+        val powerSquaredDifference = Math.pow(sMax.toMegavoltamperes, 2) - Math
+          .pow(activePower.toMegawatts, 2)
 
         if (powerSquaredDifference < 0) {
           logger.warn(

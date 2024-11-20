@@ -203,7 +203,7 @@ trait PowerFlowSupport {
     * p/q values from the provided sweepDataValues and combines them with
     * updated receivedSlackValues. Normally used in a forward sweep phase of
     * [[DBFSAlgorithm]] as in this state only voltages are updated and a power
-    * flow with new voltages but old p/q values is executed afterwards
+    * flow with new voltages but old p/q values is executed afterward.
     *
     * @param receivedSlackValues
     *   new slack voltages provided by the superior grid
@@ -369,7 +369,7 @@ trait PowerFlowSupport {
     * from a [[ValidNewtonRaphsonPFResult]]
     *
     * @param validResult
-    *   the result that should be converted to a human readable debug string
+    *   the result that should be converted to a human-readable debug string
     * @param gridModel
     *   the grid model this result comes from
     * @return

@@ -44,6 +44,8 @@ import org.apache.pekko.actor.typed.scaladsl.adapter.{
 }
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
+import java.nio.file.Path
+
 import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
 import scala.jdk.CollectionConverters.SetHasAsScala
@@ -51,8 +53,8 @@ import scala.jdk.CollectionConverters.SetHasAsScala
 /** Trait that can be used to setup a customized simona simulation by providing
   * implementations for all setup information required by a
   * [[edu.ie3.simona.sim.SimonaSim]]. Most of the time, using or extending
-  * [[SimonaStandaloneSetup]] might be considered instead of providing a your
-  * own implementation for all methods.
+  * [[SimonaStandaloneSetup]] might be considered instead of providing your own
+  * implementation for all methods.
   *
   * @version 0.1
   * @since 01.07.20
@@ -71,7 +73,7 @@ trait SimonaSetup {
 
   /** Directory of the log output.
     */
-  val logOutputDir: String = resultFileHierarchy.logOutputDir
+  def logOutputDir: Path = resultFileHierarchy.logOutputDir
 
   /** Creates the runtime event listener
     *

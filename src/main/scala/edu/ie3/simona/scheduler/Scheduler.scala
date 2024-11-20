@@ -167,7 +167,7 @@ object Scheduler {
       stopOnError(ctx, s"Received unexpected message $unexpected when active")
   }
 
-  /** Data that is constant over the life time of a scheduler.
+  /** Data that is constant over the lifetime of a scheduler.
     * @param parent
     *   The parent of the scheduler
     * @param activationAdapter

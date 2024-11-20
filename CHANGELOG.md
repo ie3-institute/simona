@@ -36,6 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added option to directly zip the output files [#793](https://github.com/ie3-institute/simona/issues/793)
 - Added weatherData HowTo for Copernicus ERA5 data [#967](https://github.com/ie3-institute/simona/issues/967)
 - Add some quote to 'printGoodbye' [#997](https://github.com/ie3-institute/simona/issues/997)
+- Add unapply method for ThermalHouseResults [#934](https://github.com/ie3-institute/simona/issues/934)
+- Added `ApparentPower` to differentiate between different power types [#794](https://github.com/ie3-institute/simona/issues/794)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -97,6 +99,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rewrote StorageModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Updated `ExtEvSimulationClasses` [#898](https://github.com/ie3-institute/simona/issues/898)
 - Refactoring of `ThermalGrid.energyGrid` to distinguish between demand of house and storage [#928](https://github.com/ie3-institute/simona/issues/928)
+- Refactoring to use zeroKW and zeroKWH in thermal grid unit tests [#1023](https://github.com/ie3-institute/simona/issues/1023)
+- Refactor `ResultFileHierarchy` [#1031](https://github.com/ie3-institute/simona/issues/1031)
+- Removing logs in `logs/simona` [#1017](https://github.com/ie3-institute/simona/issues/1017)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
@@ -132,6 +137,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed ThermalStorageResults having multiple entries [#924](https://github.com/ie3-institute/simona/issues/924)
 - Fix filter for thermal result checking for lastTick not for currentTick [#1008](https://github.com/ie3-institute/simona/issues/1008)
 - Fixed `CHANGELOG` entry for issue ([#103](https://github.com/ie3-institute/simona/issues/103)) [#941](https://github.com/ie3-institute/simona/issues/941)
+- Fix grammar and spelling in docs and comments [#1022](https://github.com/ie3-institute/simona/issues/1022)
+- Fix some minor issues and findings from inspections [#1019](https://github.com/ie3-institute/simona/issues/1019)
+- Fix initialisation freezing on empty primary data [#981](https://github.com/ie3-institute/simona/issues/981)
 
 ## [3.0.0] - 2023-08-07
 
@@ -224,7 +232,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for three winding transformers  [#63](https://github.com/ie3-institute/simona/issues/63)
   - Handle incoming slack voltage accordingly
   - Allow multiple sub grid gates at one node (also allows multiple two winding transformers at one node)
-  - Perform power flow calculation in highest grid, if a three winding transformer is apparent
+  - Perform power flow calculation in the highest grid, if a three winding transformer is apparent
   - Write out results
 - Fixed broken layout in RTD documentation [#500](https://github.com/ie3-institute/simona/issues/500)
 - Corrected tests in RefSystemTest [#560](https://github.com/ie3-institute/simona/issues/560)

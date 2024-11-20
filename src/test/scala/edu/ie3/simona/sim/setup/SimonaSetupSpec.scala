@@ -28,6 +28,7 @@ import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
+import java.nio.file.Path
 import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
 
@@ -41,7 +42,7 @@ class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
   override val runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] =
     throw new NotImplementedError()
 
-  override val logOutputDir: String = throw new NotImplementedError()
+  override val logOutputDir: Path = throw new NotImplementedError()
 
   override def runtimeEventListener(
       context: ActorContext[_]

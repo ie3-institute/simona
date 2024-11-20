@@ -129,7 +129,7 @@ case class PrimaryServiceProxy(
   }
 
   /** Prepare the needed state data by building a
-    * [[edu.ie3.datamodel.io.source.TimeSeriesMappingSource]], obtain it's
+    * [[edu.ie3.datamodel.io.source.TimeSeriesMappingSource]], obtain its
     * information and compile them to state data
     *
     * @param primaryConfig
@@ -303,7 +303,7 @@ case class PrimaryServiceProxy(
       unhandled(x)
   }
 
-  /** Handle the registration request for a covered model. First, try to get a
+  /** Handle the registration request for a covered model. First, try to get an
     * already existing worker for this time series, otherwise spin-off a new
     * one, remember it and forward the request
     *

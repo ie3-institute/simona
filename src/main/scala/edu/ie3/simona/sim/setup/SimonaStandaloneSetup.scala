@@ -16,6 +16,8 @@ import edu.ie3.simona.util.ResultFileHierarchy
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
+import java.nio.file.Path
+import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
 
 /** Sample implementation to run a standalone simulation of simona configured
