@@ -93,12 +93,10 @@ class PrimaryServiceProxySpec
         TimeStampedDataCsvParams(
           baseDirectoryPath.toString,
           csvSep,
-          /*fixme mh
+
           TimeUtil.withDefaults.getDateTimeFormatter.toString,
-          TimeUtil.withDefaults.getDtfPattern,
+          //TimeUtil.withDefaults.getDtfPattern,
 
-
-           */
         )
       ),
       None,

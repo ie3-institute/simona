@@ -8,6 +8,7 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.config.InputConfig.{
+  GridDataSource,
   WeatherDataSourceConfig,
   WeatherSampleParams,
 }
@@ -19,31 +20,6 @@ import edu.ie3.simona.config.IoConfigUtils.{
 }
 import edu.ie3.simona.config.OutputConfig.{OutputCsvParams, OutputSinkConfig}
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
-import edu.ie3.simona.config.SimonaConfig.{
-  NewtonRaphsonConfig,
-  PowerFlowConfig,
-  TimeConfig,
-}
-import edu.ie3.simona.config.InputConfig.{
-  GridDataSource,
-  WeatherDataSourceConfig,
-  WeatherSampleParams,
-}
-import edu.ie3.simona.config.IoConfigUtils.{
-  BaseCsvParams,
-  InfluxDb1xParams,
-  PsdmCsvParams,
-  ResultKafkaParams,
-}
-import edu.ie3.simona.config.OutputConfig.{
-  BaseOutputConfig,
-  OutputCsvParams,
-  OutputSinkConfig,
-}
-import edu.ie3.simona.config.RuntimeConfig.{
-  LoadRuntimeConfig,
-  SimpleRuntimeConfig,
-}
 import edu.ie3.simona.config.SimonaConfig.{
   NewtonRaphsonConfig,
   PowerFlowConfig,

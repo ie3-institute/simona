@@ -16,18 +16,10 @@ import edu.ie3.powerflow.model.PowerFlowResult.FailedPowerFlowResult.FailedNewto
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.enums.NodeType
 import edu.ie3.simona.agent.grid.GridAgent.idle
-import edu.ie3.simona.agent.grid.GridAgentData.{
-  GridAgentBaseData,
-  GridAgentConstantData,
-  PowerFlowDoneData,
-}
+import edu.ie3.simona.agent.grid.GridAgentData.{GridAgentBaseData, GridAgentConstantData, PowerFlowDoneData}
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangeVoltage
 import edu.ie3.simona.agent.grid.GridAgentMessages._
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  FinishParticipantSimulation,
-  ParticipantMessage,
-  RequestAssetPowerMessage,
-}
+import edu.ie3.simona.agent.participant.ParticipantAgent.{FinishParticipantSimulation, ParticipantMessage, RequestAssetPowerMessage}
 import edu.ie3.simona.event.RuntimeEvent.PowerFlowFailed
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid.{NodeModel, RefSystem}
@@ -38,11 +30,7 @@ import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.SquantsUtils.RichElectricPotential
 import org.apache.pekko.actor.typed.scaladsl.AskPattern._
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
-import org.apache.pekko.actor.typed.scaladsl.{
-  ActorContext,
-  Behaviors,
-  StashBuffer,
-}
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior, Scheduler}
 import org.apache.pekko.pattern.ask
 import org.apache.pekko.util.{Timeout => PekkoTimeout}
@@ -51,7 +39,6 @@ import squants.Each
 
 import java.time.{ZonedDateTime, Duration => JavaDuration}
 import java.util.UUID
-import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
@@ -1162,7 +1149,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       sweepValueStore: Option[SweepValueStore],
       nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]],
       refSystem: RefSystem,
-      askTimeout: Duration,
+      askTimeout: JavaDuration,
   )(implicit
       ctx: ActorContext[GridAgent.Request]
   ): Boolean = {
@@ -1240,7 +1227,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       currentSweepNo: Int,
       subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
       inferiorGridGates: Seq[SubGridGate],
-      askTimeout: Duration,
+      askTimeout: JavaDuration,
   )(implicit
       ctx: ActorContext[GridAgent.Request]
   ): Boolean = {
@@ -1312,7 +1299,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       currentSweepNo: Int,
       subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
       superiorGridGates: Vector[SubGridGate],
-      askTimeout: Duration,
+      askTimeout: JavaDuration,
   )(implicit
       ctx: ActorContext[GridAgent.Request]
   ): Boolean = {
