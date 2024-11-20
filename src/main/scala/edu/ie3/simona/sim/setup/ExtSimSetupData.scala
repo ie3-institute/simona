@@ -19,6 +19,18 @@ import edu.ie3.simona.service.results.ExtResultDataProvider
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
+/** Case class that holds information regarding the external data connections as
+  * well as the actor references of the created services
+  *
+  * @param extSimAdapters
+  *   all adapters to external simulations
+  * @param extPrimaryDataServices
+  *   map: external primary data connections to service references
+  * @param extDataServices
+  *   map: external input data connection to service references
+  * @param extResultListeners
+  *   map: external result data connections to result data providers
+  */
 final case class ExtSimSetupData(
     extSimAdapters: Iterable[ClassicRef],
     extPrimaryDataServices: Map[ExtPrimaryDataConnection, ClassicRef],
@@ -26,7 +38,6 @@ final case class ExtSimSetupData(
     extResultListeners: Map[ExtResultDataConnection, ActorRef[
       ExtResultDataProvider.Request
     ]],
-    extDataListener: Map[_ <: ExtOutputDataConnection, ClassicRef],
 ) {
 
   private[setup] def +(
@@ -70,9 +81,11 @@ final case class ExtSimSetupData(
 }
 
 object ExtSimSetupData {
+
+  /** Returns an empty [[ExtSimSetupData]].
+    */
   def apply(): ExtSimSetupData = ExtSimSetupData(
     Iterable.empty,
-    Map.empty,
     Map.empty,
     Map.empty,
     Map.empty,

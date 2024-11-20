@@ -19,6 +19,7 @@ import edu.ie3.simpleextsim.SimpleExtSimulationWithPowerFlow
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
+import java.nio.file.Path
 import java.util.concurrent.LinkedBlockingQueue
 
 /** Sample implementation to run a standalone simulation of simona configured
@@ -39,6 +40,7 @@ class SimonaSimpleExtSimulationSetup(
   override def extSimulations(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
+      extSimDir: Option[Path],
   ): ExtSimSetupData = {
     val simpleExtSim = new SimpleExtSimulationWithPowerFlow()
     // val simpleExtSim = new SimpleExtSimulationWithEm()

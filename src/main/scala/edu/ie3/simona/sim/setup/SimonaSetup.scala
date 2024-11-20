@@ -209,8 +209,9 @@ trait SimonaSetup {
   def extSimulations(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
+      extSimPath: Option[Path],
   ): ExtSimSetupData = {
-    val jars = ExtSimLoader.scanInputFolder()
+    val jars = ExtSimLoader.scanInputFolder(extSimPath)
     val extLinks = jars.flatMap(ExtSimLoader.loadExtLink).toList
 
     setupExtSim(extLinks, args)(

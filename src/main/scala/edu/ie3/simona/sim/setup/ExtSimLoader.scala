@@ -11,6 +11,7 @@ import edu.ie3.simona.api.ExtLinkInterface
 
 import java.io.{File, IOException}
 import java.net.URLClassLoader
+import java.nio.file.Path
 import java.util.ServiceLoader
 import scala.jdk.CollectionConverters._
 
@@ -18,19 +19,24 @@ import scala.jdk.CollectionConverters._
   */
 object ExtSimLoader extends LazyLogging {
 
-  private val extSimPath = "input" + java.io.File.separator + "ext_sim"
+  private val extSimPath = Path.of("input", "ext_sim")
 
-  private def getStandardDirectory: File = {
+  private def buildDir(path: Path): File = {
     val workingDir = new File(System.getProperty("user.dir"))
     if (!workingDir.isDirectory)
       throw new IOException("Error when accessing working directory.")
 
-    new File(workingDir, extSimPath)
+    new File(workingDir, path.toString)
   }
 
+  private def getStandardDirectory: File = buildDir(extSimPath)
+
   def scanInputFolder(
-      extSimDir: File = getStandardDirectory
+      extSimDirOption: Option[Path] = None
   ): Iterable[File] = {
+    val extSimDir =
+      extSimDirOption.map(buildDir).getOrElse(getStandardDirectory)
+
     if (!extSimDir.isDirectory) {
       logger.warn(
         s"External simulation directory ${extSimDir.getPath} does not exist or is not a directory, no external simulation loaded."

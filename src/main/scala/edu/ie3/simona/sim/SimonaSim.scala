@@ -19,6 +19,8 @@ import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop, Terminated}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
+import java.nio.file.Path
+
 /** Main entrance point to a simona simulation as the guardian actor. This actor
   * starts the initialization of all actors and waits for the simulation to end.
   * This actor does NOT report back any simulation status except of if the
@@ -77,8 +79,11 @@ object SimonaSim {
 
         // External simulations have to be scheduled for initialization first,
         // so that the phase switch permanently activates them first
+        val extSimDir =
+          simonaSetup.simonaConfig.simona.input.extSimDir.map(Path.of(_))
+
         val extSimulationData: ExtSimSetupData =
-          simonaSetup.extSimulations(ctx, scheduler)
+          simonaSetup.extSimulations(ctx, scheduler, extSimDir)
 
         /* start services */
         // primary service proxy

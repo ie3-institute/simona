@@ -55,6 +55,23 @@ import scala.jdk.DurationConverters._
 object ExtSimSetup {
 
   // sets up the external simulations
+
+  /** Method to set up all external simulations defined via the given
+    * [[ExtLinkInterface]]s.
+    * @param extLinks
+    *   interfaces that hold information regarding external simulations
+    * @param args
+    *   the main args the simulation is started with
+    * @param context
+    *   the actor context of this actor system
+    * @param scheduler
+    *   the scheduler of simona
+    * @param simonaConfig
+    *   the config
+    * @return
+    *   an [[ExtSimSetupData]] that holds information regarding the external
+    *   data connections as well as the actor references of the created services
+    */
   def setupExtSim(
       extLinks: List[ExtLinkInterface],
       args: Array[String],
@@ -70,6 +87,7 @@ object ExtSimSetup {
         s"$index",
       )
 
+      // creating the adapter data
       implicit val extSimAdapterData: ExtSimAdapterData =
         new ExtSimAdapterData(extSimAdapter, args)
 
@@ -90,10 +108,10 @@ object ExtSimSetup {
       new Thread(extSimulation, s"External simulation $index")
         .start()
 
-      val adapters = updatedSetupData.extSimAdapters
-
       // updating the data with newly connected external simulation
-      updatedSetupData.copy(extSimAdapters = adapters ++ Set(extSimAdapter))
+      updatedSetupData.copy(extSimAdapters =
+        updatedSetupData.extSimAdapters ++ Set(extSimAdapter)
+      )
   }
 
   // connects the external simulation
