@@ -15,7 +15,7 @@ import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPowerAndHeat
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.hp.HpAgent.neededServices
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
@@ -64,18 +64,18 @@ import scala.reflect.{ClassTag, classTag}
 
 trait HpAgentFundamentals
     extends ParticipantAgentFundamentals[
-      ApparentPowerAndHeat,
+      ComplexPowerAndHeat,
       HpRelevantData,
       HpState,
-      ParticipantStateData[ApparentPowerAndHeat],
+      ParticipantStateData[ComplexPowerAndHeat],
       HpInput,
       HpRuntimeConfig,
       HpModel,
     ] {
   this: HpAgent =>
-  override protected val pdClassTag: ClassTag[ApparentPowerAndHeat] =
-    classTag[ApparentPowerAndHeat]
-  override val alternativeResult: ApparentPowerAndHeat = ApparentPowerAndHeat(
+  override protected val pdClassTag: ClassTag[ComplexPowerAndHeat] =
+    classTag[ComplexPowerAndHeat]
+  override val alternativeResult: ComplexPowerAndHeat = ComplexPowerAndHeat(
     zeroMW,
     zeroMVAr,
     zeroMW,
@@ -88,14 +88,14 @@ trait HpAgentFundamentals
   override val calculateModelPowerFunc: (
       Long,
       BaseStateData.ParticipantModelBaseStateData[
-        ApparentPowerAndHeat,
+        ComplexPowerAndHeat,
         HpRelevantData,
         HpState,
         HpModel,
       ],
       HpState,
       Dimensionless,
-  ) => ApparentPowerAndHeat =
+  ) => ComplexPowerAndHeat =
     (_, _, _, _) =>
       throw new InvalidRequestException(
         "Heat pump model cannot be run without secondary data."
@@ -103,7 +103,7 @@ trait HpAgentFundamentals
 
   override protected def createInitialState(
       baseStateData: BaseStateData.ParticipantModelBaseStateData[
-        ApparentPowerAndHeat,
+        ComplexPowerAndHeat,
         HpRelevantData,
         HpState,
         HpModel,
@@ -139,7 +139,7 @@ trait HpAgentFundamentals
   def handleControlledPowerChange(
       tick: Long,
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPowerAndHeat,
+        ComplexPowerAndHeat,
         HpRelevantData,
         HpState,
         HpModel,
@@ -149,7 +149,7 @@ trait HpAgentFundamentals
       setPower: squants.Power,
   ): (
       HpState,
-      AccompaniedSimulationResult[ApparentPowerAndHeat],
+      AccompaniedSimulationResult[ComplexPowerAndHeat],
       FlexChangeIndicator,
   ) = {
     /* Determine needed information */
@@ -220,7 +220,7 @@ trait HpAgentFundamentals
     */
   override def calculatePowerWithSecondaryDataAndGoToIdle(
       baseStateData: BaseStateData.ParticipantModelBaseStateData[
-        ApparentPowerAndHeat,
+        ComplexPowerAndHeat,
         HpRelevantData,
         HpState,
         HpModel,
@@ -228,7 +228,7 @@ trait HpAgentFundamentals
       lastModelState: HpState,
       currentTick: Long,
       scheduler: ActorRef,
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPowerAndHeat]] = {
+  ): FSM.State[AgentState, ParticipantStateData[ComplexPowerAndHeat]] = {
 
     /* Determine needed information */
     val voltage =
@@ -331,7 +331,7 @@ trait HpAgentFundamentals
       outputConfig: NotifierConfig,
       maybeEmAgent: Option[TypedActorRef[FlexResponse]],
   ): BaseStateData.ParticipantModelBaseStateData[
-    ApparentPowerAndHeat,
+    ComplexPowerAndHeat,
     HpRelevantData,
     HpState,
     HpModel,
@@ -360,7 +360,7 @@ trait HpAgentFundamentals
         )
 
         ParticipantModelBaseStateData[
-          ApparentPowerAndHeat,
+          ComplexPowerAndHeat,
           HpRelevantData,
           HpState,
           HpModel,
@@ -399,7 +399,7 @@ trait HpAgentFundamentals
 
   override protected def createCalcRelevantData(
       baseStateData: BaseStateData.ParticipantModelBaseStateData[
-        ApparentPowerAndHeat,
+        ComplexPowerAndHeat,
         HpRelevantData,
         HpState,
         HpModel,
@@ -480,13 +480,13 @@ trait HpAgentFundamentals
     *   The averaged result
     */
   override def averageResults(
-      tickToResults: Map[Long, ApparentPowerAndHeat],
+      tickToResults: Map[Long, ComplexPowerAndHeat],
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         Power => ReactivePower
       ],
-  ): ApparentPowerAndHeat =
+  ): ComplexPowerAndHeat =
     ParticipantAgentFundamentals.averageApparentPowerAndHeat(
       tickToResults,
       windowStart,
@@ -509,7 +509,7 @@ trait HpAgentFundamentals
   override protected def buildResult(
       uuid: UUID,
       dateTime: ZonedDateTime,
-      result: ApparentPowerAndHeat,
+      result: ComplexPowerAndHeat,
   ): SystemParticipantResult = new HpResult(
     dateTime,
     uuid,

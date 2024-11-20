@@ -45,6 +45,7 @@ trait TransformerTapping {
   /** Increase transformer tap position by the provided delta value
     *
     * @param deltaTap
+    *   number of tap positions to increase
     */
   def incrTapPos(deltaTap: Int = 1): Unit =
     tapRatio = transformerTappingModel.incrTapPos(deltaTap)
@@ -52,6 +53,7 @@ trait TransformerTapping {
   /** Decrease transformer tap position by the provided delta value
     *
     * @param deltaTap
+    *   number of tap positions to decrease
     */
   def decrTapPos(deltaTap: Int = 1): Unit =
     tapRatio = transformerTappingModel.decrTapPos(deltaTap)

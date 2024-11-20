@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added weatherData HowTo for Copernicus ERA5 data [#967](https://github.com/ie3-institute/simona/issues/967)
 - Add some quote to 'printGoodbye' [#997](https://github.com/ie3-institute/simona/issues/997)
 - Add unapply method for ThermalHouseResults [#934](https://github.com/ie3-institute/simona/issues/934)
+- Added `ApparentPower` to differentiate between different power types [#794](https://github.com/ie3-institute/simona/issues/794)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -99,6 +100,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `ExtEvSimulationClasses` [#898](https://github.com/ie3-institute/simona/issues/898)
 - Refactoring of `ThermalGrid.energyGrid` to distinguish between demand of house and storage [#928](https://github.com/ie3-institute/simona/issues/928)
 - Refactoring to use zeroKW and zeroKWH in thermal grid unit tests [#1023](https://github.com/ie3-institute/simona/issues/1023)
+- Refactor `ResultFileHierarchy` [#1031](https://github.com/ie3-institute/simona/issues/1031)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
@@ -135,6 +137,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix filter for thermal result checking for lastTick not for currentTick [#1008](https://github.com/ie3-institute/simona/issues/1008)
 - Fixed `CHANGELOG` entry for issue ([#103](https://github.com/ie3-institute/simona/issues/103)) [#941](https://github.com/ie3-institute/simona/issues/941)
 - Fix grammar and spelling in docs and comments [#1022](https://github.com/ie3-institute/simona/issues/1022)
+- Fix some minor issues and findings from inspections [#1019](https://github.com/ie3-institute/simona/issues/1019)
+- Fix initialisation freezing on empty primary data [#981](https://github.com/ie3-institute/simona/issues/981)
 
 ## [3.0.0] - 2023-08-07
 
