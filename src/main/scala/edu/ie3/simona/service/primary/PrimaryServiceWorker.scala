@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.service.primary
 
-import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.factory.timeseries.TimeBasedSimpleValueFactory
 import edu.ie3.datamodel.io.naming.timeseries.ColumnScheme
@@ -34,6 +33,7 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
 import edu.ie3.simona.service.{ServiceStateData, SimonaService}
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
+import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 
 import java.nio.file.Path
 import java.time.ZonedDateTime
@@ -144,8 +144,13 @@ final case class PrimaryServiceWorker[V <: Value](
           .sorted
       ).pop
 
-      (maybeNextTick, furtherActivationTicks) match {
-        case (Some(tick), furtherActivationTicks) if tick == 0L =>
+      // todo: improve the get method
+      val previousOption = source.getTimeSeries
+        .getPreviousTimeBasedValue(simulationStart)
+        .toScala
+
+      (maybeNextTick, furtherActivationTicks, previousOption) match {
+        case (Some(tick), _, _) if tick == 0L =>
           /* Set up the state data and determine the next activation tick. */
           val initializedStateData =
             PrimaryServiceInitializedStateData(
@@ -158,51 +163,59 @@ final case class PrimaryServiceWorker[V <: Value](
 
           Success(initializedStateData, maybeNextTick)
 
-        case (Some(tick), _) if tick > 0L =>
-          /* The start of the data needs to be at the first tick of the simulation. */
+        case (Some(tick), _, None) if tick > 0L =>
+          /* We have data after the start of the simulation, but not data that can be used for tick 0 */
           Failure(
             new ServiceRegistrationException(
               s"The data for the timeseries '${source.getTimeSeries.getUuid}' starts after the start of this simulation (tick: $tick)! This is not allowed!"
             )
           )
 
-        case _ =>
-          // todo: improve the get method
-          val previousOption = source.getTimeSeries
-            .getPreviousTimeBasedValue(simulationStart)
-            .toScala
-            .map(timeBasedValue =>
-              (timeBasedValue.getValue, timeBasedValue.getTime)
+        case (Some(_), _, Some(value)) =>
+          /* We have data before and after the start of the simulation, but not at tick 0 */
+          log.debug(
+            s"No data at the start of the simulation. Use last know data for tick: ${value.getTime.toTick}"
+          )
+
+          /* Set up the state data. */
+          val initializedStateData =
+            PrimaryServiceInitializedStateData(
+              maybeNextTick,
+              furtherActivationTicks,
+              simulationStart,
+              source,
+              Some(value.getValue),
             )
 
-          previousOption match {
-            case Some((value, time)) =>
-              log.debug(
-                s"Found data lies before simulation start. Tick: ${time.toTick}"
-              )
+          Success(initializedStateData, maybeNextTick)
 
-              val maybeNextTick = Some(0L)
+        case (_, _, Some(value)) =>
+          /* We have data before, but after the start of the simulation */
+          log.debug(
+            s"Only found data before the start of the simulation. Tick: ${value.getTime.toTick}"
+          )
 
-              /* Set up the state data. */
-              val initializedStateData =
-                PrimaryServiceInitializedStateData(
-                  maybeNextTick,
-                  furtherActivationTicks,
-                  simulationStart,
-                  source,
-                  Some(value),
-                )
+          val maybeNextTick = Some(0L)
 
-              Success(initializedStateData, maybeNextTick)
+          /* Set up the state data. */
+          val initializedStateData =
+            PrimaryServiceInitializedStateData(
+              maybeNextTick,
+              furtherActivationTicks,
+              simulationStart,
+              source,
+              Some(value.getValue),
+            )
 
-            case None =>
-              /* No data for the simulation. */
-              Failure(
-                new ServiceRegistrationException(
-                  s"No data found for timeseries '${source.getTimeSeries.getUuid}'!"
-                )
-              )
-          }
+          Success(initializedStateData, maybeNextTick)
+
+        case _ =>
+          /* No data for the simulation. */
+          Failure(
+            new ServiceRegistrationException(
+              s"No data found for timeseries '${source.getTimeSeries.getUuid}'!"
+            )
+          )
       }
     }
   }
