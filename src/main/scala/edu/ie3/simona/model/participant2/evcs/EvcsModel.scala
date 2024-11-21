@@ -21,7 +21,7 @@ import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
-import edu.ie3.simona.model.participant2.ParticipantModel
+import edu.ie3.simona.model.participant2.{ChargingHelper, ParticipantModel}
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelChangeIndicator,
   ModelState,
@@ -79,7 +79,11 @@ class EvcsModel private (
         chargingPowers.get(ev.uuid).map((ev, _))
       }
       .flatMap { case (ev, power) =>
-        determineNextEvent(ev, power)
+        determineNextEvent(
+          ev,
+          power,
+          relevantData.tick,
+        )
       }
       .minOption
 
@@ -88,32 +92,6 @@ class EvcsModel private (
 
   override def zeroPowerOperatingPoint: EvcsOperatingPoint =
     EvcsOperatingPoint.zero
-
-  private def determineNextEvent(
-      ev: EvModelWrapper,
-      chargingPower: Power,
-  ): Option[Long] = {
-    implicit val tolerance: Power = Watts(1e-3)
-    if (chargingPower ~= zeroKW)
-      None
-    else {
-      val timeUntilFullOrEmpty =
-        if (chargingPower > zeroKW) {
-
-          // if we're below lowest SOC, flex options will change at that point
-          val targetEnergy =
-            if (isEmpty(ev) && !isInLowerMargin(ev))
-              ev.eStorage * lowestEvSoc
-            else
-              ev.eStorage
-
-          (targetEnergy - ev.storedEnergy) / chargingPower
-        } else
-          (ev.storedEnergy - (ev.eStorage * lowestEvSoc)) / (chargingPower * (-1))
-
-      Some(Math.round(timeUntilFullOrEmpty.toSeconds))
-    }
-  }
 
   override def determineState(
       lastState: EvcsState,
@@ -125,11 +103,15 @@ class EvcsModel private (
       operatingPoint.evOperatingPoints
         .get(ev.uuid)
         .map { chargingPower =>
-          val newStoredEnergy = ev.storedEnergy +
-            chargingPower * Seconds(
-              currentTick - lastState.tick
-            )
-          ev.copy(storedEnergy = newStoredEnergy)
+          val currentEnergy = ChargingHelper.calcEnergy(
+            ev.storedEnergy,
+            chargingPower,
+            lastState.tick,
+            currentTick,
+            ev.eStorage,
+          )
+
+          ev.copy(storedEnergy = currentEnergy)
         }
         .getOrElse(ev)
     }
@@ -177,14 +159,24 @@ class EvcsModel private (
       }
     }
 
-    val evcsResult = new EvcsResult(
-      dateTime,
-      uuid,
-      complexPower.p.toMegawatts.asMegaWatt,
-      complexPower.q.toMegavars.asMegaVar,
+    val powerDifferent = lastOperatingPoint.forall(
+      _.activePower != complexPower.p
     )
 
-    evResults ++ Iterable(evcsResult)
+    val evcsResult =
+      if (powerDifferent)
+        Iterable(
+          new EvcsResult(
+            dateTime,
+            uuid,
+            complexPower.p.toMegawatts.asMegaWatt,
+            complexPower.q.toMegavars.asMegaVar,
+          )
+        )
+      else
+        Iterable.empty
+
+    evResults ++ evcsResult
   }
 
   override def createPrimaryDataResult(
@@ -238,7 +230,7 @@ class EvcsModel private (
             ) =>
           val maxPower = getMaxAvailableChargingPower(ev)
 
-          val preferredPower = preferredPowers.get(uuid)
+          val preferredPower = preferredPowers.get(ev.uuid)
 
           val maxCharging =
             if (!isFull(ev))
@@ -378,8 +370,9 @@ class EvcsModel private (
       // end of recursion, rest of charging power fits to all
 
       val results = fittingPowerEvs.map { ev =>
-        val chargingTicks = calcFlexOptionsChange(ev, proposedPower)
-        val endTick = Math.min(currentTick + chargingTicks, ev.departureTick)
+        val endTick = determineNextEvent(ev, proposedPower, currentTick)
+          .map(math.min(_, ev.departureTick))
+          .getOrElse(ev.departureTick)
 
         (
           ev.uuid,
@@ -405,10 +398,11 @@ class EvcsModel private (
           if (setPower > zeroKW)
             maxPower
           else
-            maxPower * (-1)
+            maxPower * -1
 
-        val chargingTicks = calcFlexOptionsChange(ev, power)
-        val endTick = Math.min(currentTick + chargingTicks, ev.departureTick)
+        val endTick = determineNextEvent(ev, power, currentTick)
+          .map(math.min(_, ev.departureTick))
+          .getOrElse(ev.departureTick)
 
         (ev, power, endTick)
       }
@@ -447,39 +441,43 @@ class EvcsModel private (
 
       (combinedResults, remainingAfterRecursion)
     }
-
   }
 
-  /** Calculates the duration (in ticks) until the flex options will change
-    * next, which could be the battery being fully charged or discharged or the
-    * minimum SOC requirement being reached
+  /** Calculates the tick at which the target energy (e.g. full on charging or
+    * empty on discharging) is reached.
     *
     * @param ev
     *   The EV to charge/discharge
     * @param power
     *   The charging/discharging power
+    * @param currentTick
+    *   The current simulation tick
     * @return
-    *   The tick at which flex options will change
+    *   The tick wat which the target is reached
     */
-  private def calcFlexOptionsChange(
+  private def determineNextEvent(
       ev: EvModelWrapper,
       power: Power,
-  ): Long = {
-    val timeUntilFullOrEmpty =
-      if (power > zeroKW) {
+      currentTick: Long,
+  ): Option[Long] = {
+    // TODO adapt like in StorageModel: dependent tolerance
+    implicit val tolerance: Power = Watts(1e-3)
 
-        // if we're below lowest SOC, flex options will change at that point
-        val targetEnergy =
-          if (isEmpty(ev) && !isInLowerMargin(ev))
-            ev.eStorage * lowestEvSoc
-          else
-            ev.eStorage
+    val chargingEnergyTarget = () =>
+      if (isEmpty(ev) && !isInLowerMargin(ev))
+        ev.eStorage * lowestEvSoc
+      else
+        ev.eStorage
 
-        (targetEnergy - ev.storedEnergy) / power
-      } else
-        (ev.storedEnergy - (ev.eStorage * lowestEvSoc)) / (power * (-1))
+    val dischargingEnergyTarget = () => ev.eStorage * lowestEvSoc
 
-    Math.round(timeUntilFullOrEmpty.toSeconds)
+    ChargingHelper.calcNextEventTick(
+      ev.storedEnergy,
+      power,
+      currentTick,
+      chargingEnergyTarget,
+      dischargingEnergyTarget,
+    )
   }
 
   /** Handling requests that are not part of the standard participant protocol
