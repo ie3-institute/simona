@@ -14,7 +14,7 @@ task checkBranchName {
 
     def pattern = /^[a-z]{2}\/#([0-9]+)(-.*)?$/
     if (!branchName.matches(pattern)) {
-      throw new GradleException("Error: Branch name must start with two lowercase initials (e.g., ps/#1337-FeatureName).")
+      throw new GradleException("Error: Check Branch name format (e.g., ps/#1337-FeatureName).")
     }
 
     println "Branch name is $branchName"
