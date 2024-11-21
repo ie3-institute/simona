@@ -14,7 +14,7 @@ trait EvcsChargingProperties {
 
   /** Charging station rated power
     */
-  val sRated: Power
+  protected val pRated: Power
 
   val currentType: ElectricCurrentType
 
@@ -33,11 +33,11 @@ trait EvcsChargingProperties {
   ): Power = {
     val evPower = currentType match {
       case ElectricCurrentType.AC =>
-        ev.sRatedAc
+        ev.pRatedAc
       case ElectricCurrentType.DC =>
-        ev.sRatedDc
+        ev.pRatedDc
     }
     /* Limit the charging power to the minimum of ev's and evcs' permissible power */
-    evPower.min(sRated)
+    evPower.min(pRated)
   }
 }

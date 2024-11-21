@@ -12,9 +12,11 @@ import edu.ie3.datamodel.models.result.system.{
   PvResult,
   SystemParticipantResult,
 }
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ComplexPower,
+  PrimaryDataWithComplexPower,
+}
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
@@ -31,7 +33,6 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities._
 import squants._
-import squants.energy.Kilowatts
 import squants.space.{Degrees, SquareMeters}
 import squants.time.Minutes
 import tech.units.indriya.unit.Units._
@@ -43,7 +44,7 @@ import scala.math._
 
 class PvModel private (
     override val uuid: UUID,
-    override val sRated: Power,
+    override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
     private val lat: Angle,
@@ -65,15 +66,15 @@ class PvModel private (
   /** Override sMax as the power output of a pv unit could become easily up to
     * 10% higher than the sRated value found in the technical sheets
     */
-  val sMax: Power = sRated * 1.1
+  val sMax: ApparentPower = sRated * 1.1
 
   /** Permissible maximum active power feed in (therefore negative) */
-  protected val pMax: Power = sMax * cosPhiRated * -1d
+  protected val pMax: Power = sMax.toActivePower(cosPhiRated) * -1
 
   /** Reference yield at standard testing conditions (STC) */
   private val yieldSTC = WattsPerSquareMeter(1000d)
 
-  private val activationThreshold = sRated * cosPhiRated * 0.001 * -1d
+  private val activationThreshold = pMax * 0.001 * -1
 
   /** Calculate the active power behaviour of the model
     *
@@ -706,9 +707,9 @@ class PvModel private (
       eTotalInWhPerSM * moduleSurface.toSquareMeters * etaConv.toEach * (genCorr * tempCorr)
 
     /* Calculate the foreseen active power output without boundary condition adaptions */
-    val proposal = sRated * (-1) * (
+    val proposal = pRated * -1 * (
       actYield / irradiationSTC
-    ) * cosPhiRated
+    )
 
     /* Do sanity check, if the proposed feed in is above the estimated maximum to be apparent active power of the plant */
     if (proposal < pMax)
@@ -729,7 +730,7 @@ class PvModel private (
       state: ParticipantModel.ConstantState.type,
       lastOperatingPoint: Option[ActivePowerOperatingPoint],
       currentOperatingPoint: ActivePowerOperatingPoint,
-      complexPower: ApparentPower,
+      complexPower: ComplexPower,
       dateTime: ZonedDateTime,
   ): Iterable[SystemParticipantResult] =
     Iterable(
@@ -742,7 +743,7 @@ class PvModel private (
     )
 
   override def createPrimaryDataResult(
-      data: PrimaryData.PrimaryDataWithApparentPower[_],
+      data: PrimaryDataWithComplexPower[_],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult =
     new PvResult(
@@ -805,9 +806,9 @@ object PvModel {
   ): PvModel =
     new PvModel(
       inputModel.getUuid,
-      Kilowatts(
+      Kilovoltamperes(
         inputModel.getsRated
-          .to(PowerSystemUnits.KILOWATT)
+          .to(PowerSystemUnits.KILOVOLTAMPERE)
           .getValue
           .doubleValue
       ),

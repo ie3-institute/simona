@@ -11,7 +11,7 @@ import squants.energy.Kilowatts
 
 object MockEvcsChargingProperties extends EvcsChargingProperties {
 
-  override val sRated: Power = Kilowatts(43)
+  override protected val pRated: Power = Kilowatts(43)
   override val currentType: ElectricCurrentType = ElectricCurrentType.AC
   override val lowestEvSoc: Double = 0.2
 

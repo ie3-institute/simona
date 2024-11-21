@@ -14,8 +14,10 @@ import edu.ie3.datamodel.models.result.system.{
   WecResult,
 }
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ComplexPower,
+  PrimaryDataWithComplexPower,
+}
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
@@ -35,11 +37,12 @@ import edu.ie3.simona.model.system.Characteristic
 import edu.ie3.simona.model.system.Characteristic.XYPair
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.ServiceType
-import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATT, PU}
+import edu.ie3.util.quantities.PowerSystemUnits.{KILOVOLTAMPERE, PU}
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.Scope
+import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants._
-import squants.energy.{Kilowatts, Watts}
+import squants.energy.Watts
 import squants.mass.{Kilograms, KilogramsPerCubicMeter}
 import squants.motion.{MetersPerSecond, Pressure}
 import squants.space.SquareMeters
@@ -52,7 +55,7 @@ import scala.collection.SortedSet
 
 class WecModel private (
     override val uuid: UUID,
-    override val sRated: Power,
+    override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
     private val rotorArea: Area,
@@ -166,7 +169,7 @@ class WecModel private (
       state: ParticipantModel.ConstantState.type,
       lastOperatingPoint: Option[ActivePowerOperatingPoint],
       currentOperatingPoint: ActivePowerOperatingPoint,
-      complexPower: ApparentPower,
+      complexPower: ComplexPower,
       dateTime: ZonedDateTime,
   ): Iterable[SystemParticipantResult] =
     Iterable(
@@ -179,7 +182,7 @@ class WecModel private (
     )
 
   override def createPrimaryDataResult(
-      data: PrimaryData.PrimaryDataWithApparentPower[_],
+      data: PrimaryDataWithComplexPower[_],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult =
     new WecResult(
@@ -273,8 +276,8 @@ object WecModel {
   ): WecModel =
     new WecModel(
       inputModel.getUuid,
-      Kilowatts(
-        inputModel.getType.getsRated.to(KILOWATT).getValue.doubleValue
+      Kilovoltamperes(
+        inputModel.getType.getsRated.to(KILOVOLTAMPERE).getValue.doubleValue
       ),
       inputModel.getType.getCosPhiRated,
       QControl(inputModel.getqCharacteristics),

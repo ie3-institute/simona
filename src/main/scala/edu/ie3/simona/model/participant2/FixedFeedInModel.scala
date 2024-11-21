@@ -12,7 +12,10 @@ import edu.ie3.datamodel.models.result.system.{
   SystemParticipantResult,
 }
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ComplexPower,
+  PrimaryDataWithComplexPower,
+}
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel.{
@@ -24,15 +27,15 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import squants.energy.Kilowatts
-import squants.{Dimensionless, Power}
+import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
+import squants.Dimensionless
 
 import java.time.ZonedDateTime
 import java.util.UUID
 
 class FixedFeedInModel(
     override val uuid: UUID,
-    override val sRated: Power,
+    override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
 ) extends ParticipantModel[
@@ -53,7 +56,7 @@ class FixedFeedInModel(
       state: ParticipantModel.ConstantState.type,
       relevantData: ParticipantModel.FixedRelevantData.type,
   ): (ActivePowerOperatingPoint, Option[Long]) = {
-    val power = sRated * (-1) * cosPhiRated
+    val power = pRated * -1
 
     (ActivePowerOperatingPoint(power), None)
   }
@@ -65,7 +68,7 @@ class FixedFeedInModel(
       state: ParticipantModel.ConstantState.type,
       lastOperatingPoint: Option[ActivePowerOperatingPoint],
       currentOperatingPoint: ActivePowerOperatingPoint,
-      complexPower: PrimaryData.ApparentPower,
+      complexPower: ComplexPower,
       dateTime: ZonedDateTime,
   ): Iterable[SystemParticipantResult] =
     Iterable(
@@ -78,7 +81,7 @@ class FixedFeedInModel(
     )
 
   override def createPrimaryDataResult(
-      data: PrimaryData.PrimaryDataWithApparentPower[_],
+      data: PrimaryDataWithComplexPower[_],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult =
     new FixedFeedInResult(
@@ -105,9 +108,9 @@ object FixedFeedInModel {
   ): FixedFeedInModel = {
     new FixedFeedInModel(
       inputModel.getUuid,
-      Kilowatts(
+      Kilovoltamperes(
         inputModel.getsRated
-          .to(PowerSystemUnits.KILOWATT)
+          .to(PowerSystemUnits.KILOVOLTAMPERE)
           .getValue
           .doubleValue
       ),

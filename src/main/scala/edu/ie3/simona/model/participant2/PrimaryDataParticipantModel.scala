@@ -10,8 +10,9 @@ import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, PrimaryDataMeta}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ComplexPower,
   EnrichableData,
-  PrimaryDataWithApparentPower,
+  PrimaryDataWithComplexPower,
 }
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
@@ -26,7 +27,7 @@ import edu.ie3.simona.model.participant2.PrimaryDataParticipantModel._
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.service.ServiceType
-import edu.ie3.util.scala.quantities.ReactivePower
+import edu.ie3.util.scala.quantities.{ApparentPower, ReactivePower}
 import squants.{Dimensionless, Power}
 
 import java.time.ZonedDateTime
@@ -37,7 +38,7 @@ import scala.reflect.ClassTag
   */
 final case class PrimaryDataParticipantModel[P <: PrimaryData: ClassTag](
     override val uuid: UUID,
-    override val sRated: Power,
+    override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
     primaryDataResultFunc: PrimaryResultFunc,
@@ -65,11 +66,11 @@ final case class PrimaryDataParticipantModel[P <: PrimaryData: ClassTag](
       state: ConstantState.type,
       lastOperatingPoint: Option[PrimaryOperatingPoint[P]],
       currentOperatingPoint: PrimaryOperatingPoint[P],
-      complexPower: PrimaryData.ApparentPower,
+      complexPower: ComplexPower,
       dateTime: ZonedDateTime,
   ): Iterable[SystemParticipantResult] = {
     val primaryDataWithApparentPower = currentOperatingPoint.data match {
-      case primaryDataWithApparentPower: PrimaryDataWithApparentPower[_] =>
+      case primaryDataWithApparentPower: PrimaryDataWithComplexPower[_] =>
         primaryDataWithApparentPower
       case enrichableData: EnrichableData[_] =>
         enrichableData.add(complexPower.q)
@@ -80,7 +81,7 @@ final case class PrimaryDataParticipantModel[P <: PrimaryData: ClassTag](
   }
 
   override def createPrimaryDataResult(
-      data: PrimaryDataWithApparentPower[_],
+      data: PrimaryDataWithComplexPower[_],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult = throw new CriticalFailureException(
     "Method not implemented by this model."
@@ -152,7 +153,7 @@ object PrimaryDataParticipantModel {
         data: P
     ): PrimaryOperatingPoint[P] =
       data match {
-        case apparentPowerData: P with PrimaryDataWithApparentPower[_] =>
+        case apparentPowerData: P with PrimaryDataWithComplexPower[_] =>
           PrimaryApparentPowerOperatingPoint(apparentPowerData)
         case other: P with EnrichableData[_] =>
           PrimaryActivePowerOperatingPoint(other)
@@ -160,7 +161,7 @@ object PrimaryDataParticipantModel {
   }
 
   private final case class PrimaryApparentPowerOperatingPoint[
-      P <: PrimaryDataWithApparentPower[_]
+      P <: PrimaryDataWithComplexPower[_]
   ](override val data: P)
       extends PrimaryOperatingPoint[P] {
     override val reactivePower: Option[ReactivePower] = Some(data.q)
@@ -178,7 +179,7 @@ object PrimaryDataParticipantModel {
     */
   trait PrimaryResultFunc {
     def createResult(
-        data: PrimaryDataWithApparentPower[_],
+        data: PrimaryDataWithComplexPower[_],
         dateTime: ZonedDateTime,
     ): SystemParticipantResult
   }

@@ -8,7 +8,7 @@ package edu.ie3.simona.model.participant2
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
@@ -133,7 +133,7 @@ final case class ParticipantModelShell[
     val reactivePower = op.reactivePower.getOrElse(
       activeToReactivePowerFunc(nodalVoltage)(activePower)
     )
-    val complexPower = ApparentPower(activePower, reactivePower)
+    val complexPower = ComplexPower(activePower, reactivePower)
 
     val participantResults = model.createResults(
       state,
@@ -265,7 +265,7 @@ final case class ParticipantModelShell[
 object ParticipantModelShell {
 
   final case class ResultsContainer(
-      totalPower: ApparentPower,
+      totalPower: ComplexPower,
       modelResults: Iterable[SystemParticipantResult],
   )
 

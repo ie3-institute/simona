@@ -21,7 +21,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   FixedRelevantData,
 }
 import edu.ie3.util.quantities.PowerSystemUnits
-import squants.energy.Kilowatts
+import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants.time.Days
 import squants.{Dimensionless, Power}
 
@@ -30,7 +30,7 @@ import java.util.UUID
 
 class FixedLoadModel(
     override val uuid: UUID,
-    override val sRated: Power,
+    override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
     private val activePower: Power,
@@ -67,9 +67,9 @@ object FixedLoadModel {
 
     new FixedLoadModel(
       inputModel.getUuid,
-      Kilowatts(
+      Kilovoltamperes(
         inputModel.getsRated
-          .to(PowerSystemUnits.KILOWATT)
+          .to(PowerSystemUnits.KILOVOLTAMPERE)
           .getValue
           .doubleValue
       ),

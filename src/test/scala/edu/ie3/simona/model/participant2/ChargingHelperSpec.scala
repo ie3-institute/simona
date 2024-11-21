@@ -7,11 +7,11 @@
 package edu.ie3.simona.model.participant2
 
 import edu.ie3.simona.test.common.UnitSpec
-import squants.energy.{KilowattHours, Kilowatts}
+import squants.energy.{Energy, KilowattHours, Kilowatts}
 
 class ChargingHelperSpec extends UnitSpec {
 
-  private implicit val energyTolerance: squants.Energy = KilowattHours(1e-10)
+  private implicit val energyTolerance: Energy = KilowattHours(1e-10)
 
   "A ChargingHelper" should {
 

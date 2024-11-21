@@ -21,6 +21,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
 }
 import edu.ie3.simona.util.TickUtil
 import edu.ie3.util.TimeUtil
+import edu.ie3.util.scala.quantities.ApparentPower
 import squants.energy.{KilowattHours, Kilowatts, Watts}
 import squants.{Dimensionless, Power}
 
@@ -31,7 +32,7 @@ import scala.util.Random
 
 class RandomLoadModel(
     override val uuid: UUID,
-    override val sRated: Power,
+    override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
     private val referenceScalingFactor: Double,

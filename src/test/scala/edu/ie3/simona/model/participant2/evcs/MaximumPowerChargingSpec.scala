@@ -76,7 +76,7 @@ class MaximumPowerChargingSpec extends UnitSpec with TableDrivenPropertyChecks {
         )
 
         chargingMap shouldBe Map(
-          ev.uuid -> ev.sRatedAc
+          ev.uuid -> ev.pRatedAc
         )
       }
 

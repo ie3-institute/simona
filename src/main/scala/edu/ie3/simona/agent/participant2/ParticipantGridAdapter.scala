@@ -7,7 +7,7 @@
 package edu.ie3.simona.agent.participant2
 
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant2.ParticipantGridAdapter._
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroMVAr, zeroMW}
@@ -37,7 +37,7 @@ final case class ParticipantGridAdapter(
     gridAgent: ActorRef[GridAgent.Request],
     nodalVoltage: Dimensionless,
     expectedRequestTick: Long,
-    tickToPower: SortedMap[Long, ApparentPower],
+    tickToPower: SortedMap[Long, ComplexPower],
     avgPowerResult: Option[AvgPowerResult],
 ) {
 
@@ -54,7 +54,7 @@ final case class ParticipantGridAdapter(
   }
 
   def storePowerValue(
-      power: ApparentPower,
+      power: ComplexPower,
       tick: Long,
   ): ParticipantGridAdapter =
     copy(tickToPower = tickToPower.updated(tick, power))
@@ -133,7 +133,7 @@ object ParticipantGridAdapter {
       windowStart: Long,
       windowEnd: Long,
       voltage: Dimensionless,
-      avgPower: ApparentPower,
+      avgPower: ComplexPower,
       newResult: Boolean,
   )
 
@@ -150,9 +150,9 @@ object ParticipantGridAdapter {
     )
 
   private def reduceTickToPowerMap(
-      tickToPower: SortedMap[Long, ApparentPower],
+      tickToPower: SortedMap[Long, ComplexPower],
       windowStart: Long,
-  ): SortedMap[Long, ApparentPower] = {
+  ): SortedMap[Long, ComplexPower] = {
     // keep the last entry at or before windowStart
     val lastTickBeforeWindowStart =
       tickToPower.rangeUntil(windowStart + 1).lastOption
@@ -178,14 +178,14 @@ object ParticipantGridAdapter {
     *   The averaged apparent power
     */
   private def averageApparentPower(
-      tickToPower: Map[Long, ApparentPower],
+      tickToPower: Map[Long, ComplexPower],
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         Power => ReactivePower
       ] = None,
       log: Logger,
-  ): ApparentPower = {
+  ): ComplexPower = {
     val p = QuantityUtil.average[Power, Energy](
       tickToPower.map { case (tick, pd) =>
         tick -> pd.p
@@ -209,8 +209,8 @@ object ParticipantGridAdapter {
           case Some(qFunc) =>
             // NOTE: The type conversion to Megawatts is done to satisfy the methods type constraints
             // and is undone after unpacking the results
-            tick -> Megawatts(qFunc(pd.toApparentPower.p).toMegavars)
-          case None => tick -> Megawatts(pd.toApparentPower.q.toMegavars)
+            tick -> Megawatts(qFunc(pd.p).toMegavars)
+          case None => tick -> Megawatts(pd.q.toMegavars)
         }
       },
       windowStart,
@@ -226,6 +226,6 @@ object ParticipantGridAdapter {
         zeroMVAr
     }
 
-    ApparentPower(p, q)
+    ComplexPower(p, q)
   }
 }

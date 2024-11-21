@@ -12,7 +12,10 @@ import edu.ie3.datamodel.models.result.system.{
   SystemParticipantResult,
 }
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ComplexPower,
+  PrimaryDataWithComplexPower,
+}
 import edu.ie3.simona.config.SimonaConfig.StorageRuntimeConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.StorageModel.RefTargetSocParams
@@ -31,6 +34,7 @@ import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMin
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.{Dimensionless, Each, Energy, Power, Seconds}
@@ -40,7 +44,7 @@ import java.util.UUID
 
 class StorageModel private (
     override val uuid: UUID,
-    override val sRated: Power,
+    override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
     eStorage: Energy,
@@ -138,7 +142,7 @@ class StorageModel private (
       state: StorageState,
       lastOperatingPoint: Option[ActivePowerOperatingPoint],
       currentOperatingPoint: ActivePowerOperatingPoint,
-      complexPower: PrimaryData.ApparentPower,
+      complexPower: ComplexPower,
       dateTime: ZonedDateTime,
   ): Iterable[SystemParticipantResult] =
     Iterable(
@@ -152,7 +156,7 @@ class StorageModel private (
     )
 
   override def createPrimaryDataResult(
-      data: PrimaryData.PrimaryDataWithApparentPower[_],
+      data: PrimaryDataWithComplexPower[_],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult =
     new StorageResult(
@@ -335,9 +339,9 @@ object StorageModel {
   ): StorageModel =
     new StorageModel(
       inputModel.getUuid,
-      Kilowatts(
+      Kilovoltamperes(
         inputModel.getType.getsRated
-          .to(PowerSystemUnits.KILOWATT)
+          .to(PowerSystemUnits.KILOVOLTAMPERE)
           .getValue
           .doubleValue
       ),

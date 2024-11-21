@@ -11,7 +11,10 @@ import edu.ie3.datamodel.models.result.system.{
   LoadResult,
   SystemParticipantResult,
 }
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ComplexPower,
+  PrimaryDataWithComplexPower,
+}
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
 import edu.ie3.simona.model.participant.load.LoadModelBehaviour
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
@@ -25,7 +28,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import squants.energy.Kilowatts
+import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants.{Energy, Power}
 
 import java.time.ZonedDateTime
@@ -52,7 +55,7 @@ abstract class LoadModel[OR <: OperationRelevantData]
       state: ParticipantModel.ConstantState.type,
       lastOperatingPoint: Option[ActivePowerOperatingPoint],
       currentOperatingPoint: ActivePowerOperatingPoint,
-      complexPower: PrimaryData.ApparentPower,
+      complexPower: ComplexPower,
       dateTime: ZonedDateTime,
   ): Iterable[SystemParticipantResult] =
     Iterable(
@@ -65,7 +68,7 @@ abstract class LoadModel[OR <: OperationRelevantData]
     )
 
   override def createPrimaryDataResult(
-      data: PrimaryData.PrimaryDataWithApparentPower[_],
+      data: PrimaryDataWithComplexPower[_],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult =
     new LoadResult(
@@ -104,14 +107,14 @@ object LoadModel {
       inputModel: LoadInput,
       activePower: Power,
       safetyFactor: Double = 1d,
-  ): Power = {
-    val sRated = Kilowatts(
+  ): ApparentPower = {
+    val sRated = Kilovoltamperes(
       inputModel.getsRated
-        .to(PowerSystemUnits.KILOWATT)
+        .to(PowerSystemUnits.KILOVOLTAMPERE)
         .getValue
         .doubleValue
     )
-    val pRated = sRated * inputModel.getCosPhiRated
+    val pRated = sRated.toActivePower(inputModel.getCosPhiRated)
     val referenceScalingFactor = activePower / pRated
     sRated * referenceScalingFactor * safetyFactor
   }
@@ -147,10 +150,12 @@ object LoadModel {
       profileMaxPower: Power,
       profileEnergyScaling: Energy,
       safetyFactor: Double = 1d,
-  ): Power = {
-    (profileMaxPower / inputModel.getCosPhiRated) * (
-      energyConsumption / profileEnergyScaling
-    ) * safetyFactor
+  ): ApparentPower = {
+    val profileMaxApparentPower = Kilovoltamperes(
+      profileMaxPower.toKilowatts / inputModel.getCosPhiRated
+    )
+
+    profileMaxApparentPower * (energyConsumption / profileEnergyScaling) * safetyFactor
   }
 
   def apply(

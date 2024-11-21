@@ -8,8 +8,8 @@ package edu.ie3.simona.model.participant2
 
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
-  PrimaryDataWithApparentPower,
+  ComplexPower,
+  PrimaryDataWithComplexPower,
 }
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.model.participant2.ParticipantModel.{
@@ -22,7 +22,7 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
-import edu.ie3.util.scala.quantities.ReactivePower
+import edu.ie3.util.scala.quantities.{ApparentPower, ReactivePower}
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import squants.Dimensionless
 import squants.energy.Power
@@ -37,11 +37,11 @@ abstract class ParticipantModel[
 ] extends ParticipantFlexibility[OP, S, OR] {
 
   val uuid: UUID
-  val sRated: Power
+  val sRated: ApparentPower
   val cosPhiRated: Double
   val qControl: QControl
 
-  protected val pRated: Power = sRated * cosPhiRated
+  protected val pRated: Power = sRated.toActivePower(cosPhiRated)
 
   /** Get a partial function, that transfers the current active into reactive
     * power based on the participants properties and the given nodal voltage
@@ -117,12 +117,12 @@ abstract class ParticipantModel[
       state: S,
       lastOperatingPoint: Option[OP],
       currentOperatingPoint: OP,
-      complexPower: ApparentPower,
+      complexPower: ComplexPower,
       dateTime: ZonedDateTime,
   ): Iterable[SystemParticipantResult]
 
   def createPrimaryDataResult(
-      data: PrimaryDataWithApparentPower[_],
+      data: PrimaryDataWithComplexPower[_],
       dateTime: ZonedDateTime,
   ): SystemParticipantResult
 

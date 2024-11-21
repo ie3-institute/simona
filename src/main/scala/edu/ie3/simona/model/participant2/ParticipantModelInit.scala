@@ -91,7 +91,7 @@ object ParticipantModelInit {
 
     val primaryResultFunc = new PrimaryResultFunc {
       override def createResult(
-          data: PrimaryData.PrimaryDataWithApparentPower[_],
+          data: PrimaryData.PrimaryDataWithComplexPower[_],
           dateTime: ZonedDateTime,
       ): SystemParticipantResult =
         physicalModel.createPrimaryDataResult(data, dateTime)

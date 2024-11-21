@@ -46,14 +46,14 @@ object Data {
 
   object PrimaryData {
 
-    sealed trait EnrichableData[E <: PrimaryDataWithApparentPower[E]] {
+    sealed trait EnrichableData[E <: PrimaryDataWithComplexPower[E]] {
       def add(q: ReactivePower): E
     }
 
-    /** Denoting all primary data, that carry apparent power
+    /** Denoting all primary data, that carry complex power
       */
-    sealed trait PrimaryDataWithApparentPower[
-        +T <: PrimaryDataWithApparentPower[T]
+    sealed trait PrimaryDataWithComplexPower[
+        +T <: PrimaryDataWithComplexPower[T]
     ] extends PrimaryData {
       val q: ReactivePower
 
@@ -103,18 +103,18 @@ object Data {
     final case class ComplexPower(
         override val p: Power,
         override val q: ReactivePower,
-    ) extends PrimaryDataWithApparentPower[ComplexPower] {
+    ) extends PrimaryDataWithComplexPower[ComplexPower] {
       override def toComplexPower: ComplexPower = this
 
       override def withReactivePower(q: ReactivePower): ComplexPower =
         copy(q = q)
     }
 
-    object ApparentPowerMeta extends PrimaryDataMeta[ApparentPower] {
-      override def zero: ApparentPower = ApparentPower(zeroKW, zeroKVAr)
+    object ComplexPowerMeta extends PrimaryDataMeta[ComplexPower] {
+      override def zero: ComplexPower = ComplexPower(zeroKW, zeroKVAr)
 
-      override def scale(data: ApparentPower, factor: Double): ApparentPower =
-        ApparentPower(data.p * factor, data.q * factor)
+      override def scale(data: ComplexPower, factor: Double): ComplexPower =
+        ComplexPower(data.p * factor, data.q * factor)
     }
 
     /** Active power and heat demand as participant simulation result
@@ -163,7 +163,7 @@ object Data {
         override val p: Power,
         override val q: ReactivePower,
         override val qDot: Power,
-    ) extends PrimaryDataWithApparentPower[ComplexPowerAndHeat]
+    ) extends PrimaryDataWithComplexPower[ComplexPowerAndHeat]
         with Heat {
       override def toComplexPower: ComplexPower =
         ComplexPower(p, q)
@@ -172,16 +172,16 @@ object Data {
         copy(q = q)
     }
 
-    object ApparentPowerAndHeatMeta
-        extends PrimaryDataMeta[ApparentPowerAndHeat] {
-      override def zero: ApparentPowerAndHeat =
-        ApparentPowerAndHeat(zeroKW, zeroKVAr, zeroKW)
+    object ComplexPowerAndHeatMeta
+        extends PrimaryDataMeta[ComplexPowerAndHeat] {
+      override def zero: ComplexPowerAndHeat =
+        ComplexPowerAndHeat(zeroKW, zeroKVAr, zeroKW)
 
       override def scale(
-          data: ApparentPowerAndHeat,
+          data: ComplexPowerAndHeat,
           factor: Double,
-      ): ApparentPowerAndHeat =
-        ApparentPowerAndHeat(
+      ): ComplexPowerAndHeat =
+        ComplexPowerAndHeat(
           data.p * factor,
           data.q * factor,
           data.qDot * factor,

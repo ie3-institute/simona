@@ -13,10 +13,14 @@ import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.scala.quantities.{Irradiation, WattHoursPerSquareMeter}
+import edu.ie3.util.scala.quantities.{
+  ApparentPower,
+  Irradiation,
+  Kilovoltamperes,
+  WattHoursPerSquareMeter,
+}
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import org.scalatest.GivenWhenThen
-import squants.energy.{Kilowatts, Power}
 import squants.space.{Angle, Degrees, Radians}
 import tech.units.indriya.quantity.Quantities.getQuantity
 import tech.units.indriya.unit.Units._
@@ -83,7 +87,9 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
   private implicit val angleTolerance: Angle = Radians(1e-10)
   private implicit val irradiationTolerance: Irradiation =
     WattHoursPerSquareMeter(1e-10)
-  private implicit val powerTolerance: Power = Kilowatts(1e-10)
+  private implicit val apparentPowerTolerance: ApparentPower = Kilovoltamperes(
+    1e-10
+  )
 
   "A PV Model" should {
     "have sMax set to be 10% higher than its sRated" in {

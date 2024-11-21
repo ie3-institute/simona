@@ -19,6 +19,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   DateTimeData,
 }
 import edu.ie3.simona.util.TickUtil
+import edu.ie3.util.scala.quantities.ApparentPower
 import squants.{Dimensionless, Power}
 
 import java.time.ZonedDateTime
@@ -26,7 +27,7 @@ import java.util.UUID
 
 class ProfileLoadModel(
     override val uuid: UUID,
-    override val sRated: Power,
+    override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
     private val loadProfileStore: LoadProfileStore,

@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant2.evcs
 
 import edu.ie3.datamodel.models.result.system.{EvResult, EvcsResult}
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.model.participant2.ParticipantModel.ModelChangeIndicator
@@ -200,8 +200,8 @@ class EvcsModelSpec
 
             actualEv.uuid shouldBe ev.uuid
             actualEv.id shouldBe ev.id
-            actualEv.sRatedAc shouldBe ev.sRatedAc
-            actualEv.sRatedDc shouldBe ev.sRatedDc
+            actualEv.pRatedAc shouldBe ev.pRatedAc
+            actualEv.pRatedDc shouldBe ev.pRatedDc
             actualEv.eStorage shouldBe ev.eStorage
             actualEv.storedEnergy should approximate(
               KilowattHours(expectedStored)
@@ -255,7 +255,7 @@ class EvcsModelSpec
           state,
           None,
           currentOperatingPoint,
-          ApparentPower(Kilowatts(5), Kilovars(0.5)),
+          ComplexPower(Kilowatts(5), Kilovars(0.5)),
           resultDateTime,
         )
 
@@ -329,7 +329,7 @@ class EvcsModelSpec
             state,
             Some(lastOperatingPoint),
             currentOperatingPoint,
-            ApparentPower(Kilowatts(evcsP), Kilovars(evcsQ)),
+            ComplexPower(Kilowatts(evcsP), Kilovars(evcsQ)),
             resultDateTime,
           )
 
@@ -656,7 +656,7 @@ class EvcsModelSpec
             modelUuid shouldBe evcsModel.uuid
             refPower should approximate(Kilowatts(5.0)) // one hour left
             minPower should approximate(Kilowatts(0d)) // no v2g allowed!
-            maxPower should approximate(ev1.sRatedAc)
+            maxPower should approximate(ev1.pRatedAc)
         }
 
       }
