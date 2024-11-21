@@ -44,6 +44,7 @@ import org.apache.pekko.actor.typed.scaladsl.adapter.{
 import org.apache.pekko.actor.typed.{ActorRef, Scheduler}
 import org.apache.pekko.actor.{Props, ActorRef => ClassicRef}
 import org.apache.pekko.util.{Timeout => PekkoTimeout}
+import org.slf4j.{Logger, LoggerFactory}
 
 import java.time.temporal.ChronoUnit
 import java.util.UUID
@@ -54,7 +55,7 @@ import scala.jdk.DurationConverters._
 
 object ExtSimSetup {
 
-  // sets up the external simulations
+  private val log: Logger = LoggerFactory.getLogger(ExtSimSetup.getClass)
 
   /** Method to set up all external simulations defined via the given
     * [[ExtLinkInterface]]s.
@@ -116,7 +117,7 @@ object ExtSimSetup {
 
   // connects the external simulation
   private[setup] def connect(
-      extLink: ExtSimulation,
+      extSimulation: ExtSimulation,
       extSimSetupData: ExtSimSetupData,
   )(implicit
       context: ActorContext[_],
@@ -127,7 +128,11 @@ object ExtSimSetup {
     implicit val extSimAdapter: ClassicRef = extSimAdapterData.getAdapter
 
     // the data connections this external simulation provides
-    val connections = extLink.getDataConnections.asScala.toSet
+    val connections = extSimulation.getDataConnections.asScala.toSet
+
+    log.info(
+      s"Setting up external simulation `${extSimulation.getSimulationName}` with the following data connections: ${connections.map(_.getClass).mkString(",")}."
+    )
 
     val updatedSetupData = connections.foldLeft(extSimSetupData) {
       case (setupData, connection) =>

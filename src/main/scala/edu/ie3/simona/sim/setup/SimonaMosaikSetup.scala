@@ -14,10 +14,10 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.sim.setup.ExtSimSetup.setupExtSim
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simosaik.ExtLink
-import edu.ie3.simosaik.simosaikElectrolyzer.MosaikElectrolyzerSimulation
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
+import java.nio.file.Path
 import java.util.concurrent.LinkedBlockingQueue
 
 /** Sample implementation to run a standalone simulation of simona configured
@@ -39,6 +39,7 @@ class SimonaMosaikSetup(
   override def extSimulations(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
+      extSimPath: Option[Path],
   ): ExtSimSetupData =
     setupExtSim(List(new ExtLink()), args)(context, scheduler, simonaConfig)
    */
