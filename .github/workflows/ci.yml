@@ -32,6 +32,9 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref || github.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Check Branch
         run: |
           ./gradlew checkBranchName \
@@ -44,9 +47,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 17
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
 
       - name: Build Project
         run: ./gradlew --refresh-dependencies clean assemble spotlessCheck
