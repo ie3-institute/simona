@@ -46,8 +46,8 @@ jobs:
           if [[ "$branchName" == refs/heads/* ]]; then
             branchName="${branchName#refs/heads/}"
           fi
-          
-          ./gradlew checkBranchName -PbranchName="$GITHUB_REF_NAME"
+
+          ./gradlew checkBranchName -PbranchName="$branchName"
 
       - name: Setup Java
         uses: actions/setup-java@v4
