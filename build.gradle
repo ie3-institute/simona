@@ -54,6 +54,7 @@ apply from: scriptsLocation + 'scoverage.gradle' // scoverage scala code coverag
 apply from: scriptsLocation + 'deploy.gradle'
 apply from: scriptsLocation + 'semVer.gradle'
 apply from: scriptsLocation + 'mavenCentralPublish.gradle'
+apply from: scriptsLocation + 'BranchName.gradle'
 
 configurations {
   scalaCompilerPlugin

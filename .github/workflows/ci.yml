@@ -33,26 +33,7 @@ jobs:
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
 
       - name: Check Branch
-        run: |
-          # Default to GITHUB_REF_NAME (works for push events)
-          BRANCH_NAME="${GITHUB_REF_NAME}"
-
-          # If it's a pull request, use GITHUB_HEAD_REF
-          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-            BRANCH_NAME="${GITHUB_HEAD_REF}"
-          fi
-          
-          # Extract the branch name from refs/heads/ for push events
-          branch_name="${BRANCH_NAME#refs/heads/}"
-
-          # Adjusted regex pattern to match two lowercase initials, slash, hashtag, and number
-          if [[ ! "$branch_name" =~ ^[a-z]{2}/#([0-9]+)(-.*)?$ ]]; then
-            echo "Error: Branch name must start with two lowercase initials (e.g., ps/#1337-FeatureName)."
-            exit 1
-          fi
-
-          echo "Branch name is $branch_name"
-          echo "branch_name=$branch_name" >> $GITHUB_ENV
+        run: ./gradlew checkBranchName
 
       - name: Setup Java
         uses: actions/setup-java@v4
