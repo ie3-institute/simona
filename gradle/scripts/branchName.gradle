@@ -1,0 +1,26 @@
+tasks.register('checkBranchName') {
+  doLast {
+    if (!project.hasProperty('branchName') || !project.hasProperty('eventName') || !project.hasProperty('headRef')) {
+      throw new GradleException("Error: Missing required properties 'branchName', 'eventName', or 'headRef'.")
+    }
+
+    def branchName = project.property('branchName')
+    def eventName = project.property('eventName')
+    def headRef = project.property('headRef')
+
+    if (eventName == 'pull_request') {
+      branchName = headRef
+    }
+
+    if (branchName.startsWith('refs/heads/')) {
+      branchName = branchName.replaceFirst('refs/heads/', '')
+    }
+
+    def pattern = /^[a-z]{2}\\/#[0-9]+(?:-.+)?$/
+    if (!branchName.matches(pattern)) {
+      throw new GradleException("Error: Check Branch name format (e.g., ps/#1337-FeatureName).")
+    }
+
+    println "Branch name is $branchName"
+  }
+}

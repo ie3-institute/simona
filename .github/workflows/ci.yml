@@ -33,7 +33,11 @@ jobs:
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
 
       - name: Check Branch
-        run: ./gradlew checkBranchName
+        run: |
+          ./gradlew checkBranchName \
+          -PbranchName="$GITHUB_REF_NAME" \
+          -PeventName="$GITHUB_EVENT_NAME" \
+          -PheadRef="$GITHUB_HEAD_REF"
 
       - name: Setup Java
         uses: actions/setup-java@v4
