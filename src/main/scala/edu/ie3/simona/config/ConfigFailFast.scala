@@ -47,7 +47,7 @@ import scala.util.{Failure, Success, Try}
   * missing config parameters where at least one is needed or check for invalid
   * or contradicting parameters
   */
-case object ConfigFailFast extends LazyLogging {
+object ConfigFailFast extends LazyLogging {
 
   def check(typeSafeConfig: Config, simonaConfig: SimonaConfig): Unit = {
     check(typeSafeConfig)
@@ -139,18 +139,7 @@ case object ConfigFailFast extends LazyLogging {
     /* Check if the provided combination of data source and parameters are valid */
     checkWeatherDataSource(simonaConfig.simona.input.weather.datasource)
 
-    /* check if at least one data sink is defined */
-    checkDataSink(simonaConfig.simona.output.sink)
-
-    /* Check all output configurations for participant models */
-    checkParticipantsOutputConfig(
-      simonaConfig.simona.output.participant
-    )
-
-    /* Check all output configurations for thermal models */
-    checkThermalOutputConfig(
-      simonaConfig.simona.output.thermal
-    )
+    checkOutputConfig(simonaConfig.simona.output)
 
     /* Check power flow resolution configuration */
     checkPowerFlowResolutionConfiguration(simonaConfig.simona.powerflow)
@@ -160,6 +149,28 @@ case object ConfigFailFast extends LazyLogging {
 
     /* Check correct parameterization of storages */
     checkStoragesConfig(simonaConfig.simona.runtime.participant.storage)
+  }
+
+  /** Checks for valid output configuration
+    *
+    * @param outputConfig
+    *   the output configuration that should be checked
+    */
+  private def checkOutputConfig(
+      outputConfig: SimonaConfig.Simona.Output
+  ): Unit = {
+
+    /* check if at least one data sink is defined */
+    checkDataSink(outputConfig.sink)
+
+    /* Check all output configurations for participant models */
+    checkParticipantsOutputConfig(outputConfig.participant)
+
+    /* Check all output configurations for thermal models */
+    checkThermalOutputConfig(outputConfig.thermal)
+
+    /* Check output configurations for log */
+    checkLogOutputConfig(outputConfig.log)
   }
 
   /** Checks for valid sink configuration
@@ -696,6 +707,21 @@ case object ConfigFailFast extends LazyLogging {
     implicit val elementType: String = "thermal"
     checkDefaultBaseOutputConfig(subConfig.defaultConfig)
     checkIndividualOutputConfigs(subConfig.individualConfigs)
+  }
+
+  /** Check the config subtree for log output parameterization
+    *
+    * @param subConfig
+    *   Output sub config tree for log
+    */
+  private def checkLogOutputConfig(
+      subConfig: SimonaConfig.Simona.Output.Log
+  ): Unit = {
+    val validLogLevels = Seq("TRACE", "DEBUG", "INFO", "WARN", "ERROR")
+    if (!validLogLevels.contains(subConfig.level))
+      throw new InvalidConfigParameterException(
+        s"Invalid log level \"${subConfig.level}\". Valid log levels: ${validLogLevels.mkString(", ")}"
+      )
   }
 
   /** Checks resolution of power flow calculation
