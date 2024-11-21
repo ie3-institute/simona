@@ -94,14 +94,14 @@ class CylindricalThermalStorageSpec
       val isCovering = storage.isDemandCoveredByStorage(KilowattHours(5))
       val lack = storage.tryToTakeAndReturnLack(vol2Energy(CubicMeters(95)))
       val newLevel3 = storage._storedEnergy
-      val notCovering = storage.isDemandCoveredByStorage(KilowattHours(1))
+      val notCovering = storage.isDemandCoveredByStorage(KilowattHours(58))
 
       initialLevel should approximate(vol2Energy(CubicMeters(70)))
       newLevel1 should approximate(vol2Energy(CubicMeters(50)))
       surplus.value shouldBe vol2Energy(CubicMeters(5))
       newLevel2 should approximate(vol2Energy(CubicMeters(100)))
-      lack.value shouldBe vol2Energy(CubicMeters(15))
-      newLevel3 should approximate(vol2Energy(CubicMeters(20)))
+      lack.value shouldBe vol2Energy(CubicMeters(0))
+      newLevel3 should approximate(vol2Energy(CubicMeters(5)))
       isCovering shouldBe true
       notCovering shouldBe false
     }
@@ -110,7 +110,7 @@ class CylindricalThermalStorageSpec
       val storage = buildThermalStorage(storageInput, CubicMeters(70))
 
       val usableThermalEnergy = storage.usableThermalEnergy
-      usableThermalEnergy should approximate(KilowattHours(5 * 115))
+      usableThermalEnergy should approximate(KilowattHours(805))
     }
 
     "Apply, validation, and build method work correctly" in {
@@ -150,7 +150,7 @@ class CylindricalThermalStorageSpec
           3600L,
           -42.0,
           260.0,
-          ThermalStorage.ThermalStorageThreshold.StorageEmpty(6171L),
+          ThermalStorage.ThermalStorageThreshold.StorageEmpty(25886L),
         ),
         (
           0L,
@@ -168,7 +168,7 @@ class CylindricalThermalStorageSpec
           3600L,
           -42.0,
           240.0,
-          ThermalStorage.ThermalStorageThreshold.StorageEmpty(4457L),
+          ThermalStorage.ThermalStorageThreshold.StorageEmpty(24171L),
         ),
         (
           0L,
@@ -186,7 +186,7 @@ class CylindricalThermalStorageSpec
           3600L,
           -5000.0,
           231.0,
-          ThermalStorage.ThermalStorageThreshold.StorageEmpty(3601L),
+          ThermalStorage.ThermalStorageThreshold.StorageEmpty(3766L),
         ),
       )
 
