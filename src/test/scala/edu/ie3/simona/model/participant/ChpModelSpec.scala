@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.model.participant
 
+import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.system.ChpInput
 import edu.ie3.datamodel.models.input.system.`type`.ChpTypeInput
-import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.thermal.{
   CylindricalStorageInput,
@@ -105,7 +105,7 @@ class ChpModelSpec
       "ChpModel",
       null,
       null,
-      Kilowatts(100),
+      Kilovoltamperes(100),
       0.95,
       Kilowatts(50),
       thermalStorage,

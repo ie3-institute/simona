@@ -188,8 +188,8 @@ class EvcsModelSpec
 
             actualEv.uuid shouldBe ev.uuid
             actualEv.id shouldBe ev.id
-            actualEv.sRatedAc shouldBe ev.sRatedAc
-            actualEv.sRatedDc shouldBe ev.sRatedDc
+            actualEv.pRatedAc shouldBe ev.pRatedAc
+            actualEv.pRatedDc shouldBe ev.pRatedDc
             actualEv.eStorage shouldBe ev.eStorage
             actualEv.storedEnergy should approximate(
               KilowattHours(expectedStored)
@@ -812,7 +812,7 @@ class EvcsModelSpec
             modelUuid shouldBe evcsModel.getUuid
             refPower should approximate(Kilowatts(5.0)) // one hour left
             minPower should approximate(Kilowatts(0d)) // no v2g allowed!
-            maxPower should approximate(ev1.sRatedAc)
+            maxPower should approximate(ev1.pRatedAc)
         }
 
       }

@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.em
 
 import edu.ie3.datamodel.models.input.EmInput
 import edu.ie3.datamodel.models.result.system.{EmResult, FlexOptionsResult}
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.FlexControlledData
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
@@ -409,7 +409,7 @@ object EmAgent {
     // After initialization, there are no results yet.
     val maybeResult = inactiveCore.getResults
       .reduceOption { (power1, power2) =>
-        ApparentPower(power1.p + power2.p, power1.q + power2.q)
+        ComplexPower(power1.p + power2.p, power1.q + power2.q)
       }
 
     maybeResult.foreach { result =>

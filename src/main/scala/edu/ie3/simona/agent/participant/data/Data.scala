@@ -7,7 +7,7 @@
 package edu.ie3.simona.agent.participant.data
 
 import edu.ie3.datamodel.models.value._
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.interfaces.EnergyPrice
 import edu.ie3.util.scala.quantities.DefaultQuantities._
@@ -35,7 +35,7 @@ object Data {
     */
   sealed trait PrimaryData extends Data {
     val p: Power
-    def toApparentPower: ApparentPower
+    def toComplexPower: ComplexPower
   }
 
   sealed trait PrimaryDataMeta[T <: PrimaryData] {
@@ -66,7 +66,7 @@ object Data {
       val qDot: Power
     }
 
-    val ZERO_POWER: ApparentPower = ApparentPower(zeroMW, zeroMVAr)
+    val ZERO_POWER: ComplexPower = ComplexPower(zeroMW, zeroMVAr)
 
     /** Active power as participant simulation result
       *
@@ -75,15 +75,15 @@ object Data {
       */
     final case class ActivePower(override val p: Power)
         extends PrimaryData
-        with EnrichableData[ApparentPower] {
-      override def toApparentPower: ApparentPower =
-        ApparentPower(
+        with EnrichableData[ComplexPower] {
+      override def toComplexPower: ComplexPower =
+        ComplexPower(
           p,
           zeroMVAr,
         )
 
-      override def add(q: ReactivePower): ApparentPower =
-        ApparentPower(p, q)
+      override def add(q: ReactivePower): ComplexPower =
+        ComplexPower(p, q)
     }
 
     object ActivePowerMeta extends PrimaryDataMeta[ActivePower] {
@@ -100,13 +100,13 @@ object Data {
       * @param q
       *   Reactive power
       */
-    final case class ApparentPower(
+    final case class ComplexPower(
         override val p: Power,
         override val q: ReactivePower,
-    ) extends PrimaryDataWithApparentPower[ApparentPower] {
-      override def toApparentPower: ApparentPower = this
+    ) extends PrimaryDataWithApparentPower[ComplexPower] {
+      override def toComplexPower: ComplexPower = this
 
-      override def withReactivePower(q: ReactivePower): ApparentPower =
+      override def withReactivePower(q: ReactivePower): ComplexPower =
         copy(q = q)
     }
 
@@ -129,15 +129,15 @@ object Data {
         override val qDot: Power,
     ) extends PrimaryData
         with Heat
-        with EnrichableData[ApparentPowerAndHeat] {
-      override def toApparentPower: ApparentPower =
-        ApparentPower(
+        with EnrichableData[ComplexPowerAndHeat] {
+      override def toComplexPower: ComplexPower =
+        ComplexPower(
           p,
           zeroMVAr,
         )
 
-      override def add(q: ReactivePower): ApparentPowerAndHeat =
-        ApparentPowerAndHeat(p, q, qDot)
+      override def add(q: ReactivePower): ComplexPowerAndHeat =
+        ComplexPowerAndHeat(p, q, qDot)
     }
 
     object ActivePowerAndHeatMeta extends PrimaryDataMeta[ActivePowerAndHeat] {
@@ -159,16 +159,16 @@ object Data {
       * @param qDot
       *   Heat demand
       */
-    final case class ApparentPowerAndHeat(
+    final case class ComplexPowerAndHeat(
         override val p: Power,
         override val q: ReactivePower,
         override val qDot: Power,
-    ) extends PrimaryDataWithApparentPower[ApparentPowerAndHeat]
+    ) extends PrimaryDataWithApparentPower[ComplexPowerAndHeat]
         with Heat {
-      override def toApparentPower: ApparentPower =
-        ApparentPower(p, q)
+      override def toComplexPower: ComplexPower =
+        ComplexPower(p, q)
 
-      override def withReactivePower(q: ReactivePower): ApparentPowerAndHeat =
+      override def withReactivePower(q: ReactivePower): ComplexPowerAndHeat =
         copy(q = q)
     }
 
@@ -195,7 +195,7 @@ object Data {
             (hs.getP.toScala, hs.getQ.toScala, hs.getHeatDemand.toScala) match {
               case (Some(p), Some(q), Some(qDot)) =>
                 Success(
-                  ApparentPowerAndHeat(
+                  ComplexPowerAndHeat(
                     Kilowatts(
                       p.to(PowerSystemUnits.KILOWATT).getValue.doubleValue
                     ),
@@ -218,7 +218,7 @@ object Data {
             (s.getP.toScala, s.getQ.toScala) match {
               case (Some(p), Some(q)) =>
                 Success(
-                  ApparentPower(
+                  ComplexPower(
                     Kilowatts(
                       p.to(PowerSystemUnits.KILOWATT).getValue.doubleValue
                     ),
