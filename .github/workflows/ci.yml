@@ -37,10 +37,17 @@ jobs:
 
       - name: Check Branch
         run: |
-          ./gradlew checkBranchName \
-          -PbranchName="$GITHUB_REF_NAME" \
-          -PeventName="$GITHUB_EVENT_NAME" \
-          -PheadRef="$GITHUB_HEAD_REF"
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            branchName="${{ github.head_ref }}"
+          else
+            branchName="${{ github.ref_name }}"
+          fi
+
+          if [[ "$branchName" == refs/heads/* ]]; then
+            branchName="${branchName#refs/heads/}"
+          fi
+          
+          ./gradlew checkBranchName -PbranchName="$GITHUB_REF_NAME"
 
       - name: Setup Java
         uses: actions/setup-java@v4
