@@ -15,7 +15,7 @@ import edu.ie3.datamodel.models.result.thermal.{
 }
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.thermal.ThermalGrid.{
-  ThermalDemandIndicator,
+  ThermalDemandWrapper,
   ThermalEnergyDemand,
   ThermalGridState,
 }
@@ -64,7 +64,7 @@ final case class ThermalGrid(
       lastAmbientTemperature: Temperature,
       ambientTemperature: Temperature,
       state: ThermalGridState,
-  ): (ThermalEnergyDemand, ThermalEnergyDemand, ThermalGridState) = {
+  ): (ThermalDemandWrapper, ThermalGridState) = {
     /* First get the energy demand of the houses but only if inner temperature is below target temperature */
 
     val (houseDemand, updatedHouseState) =
@@ -135,13 +135,15 @@ final case class ThermalGrid(
     }
 
     (
-      ThermalEnergyDemand(
-        houseDemand.required,
-        houseDemand.possible,
-      ),
-      ThermalEnergyDemand(
-        storageDemand.required,
-        storageDemand.possible,
+      ThermalDemandWrapper(
+        ThermalEnergyDemand(
+          houseDemand.required,
+          houseDemand.possible,
+        ),
+        ThermalEnergyDemand(
+          storageDemand.required,
+          storageDemand.possible,
+        ),
       ),
       ThermalGridState(updatedHouseState, updatedStorageState),
     )
@@ -161,9 +163,8 @@ final case class ThermalGrid(
     *   determines whether the heat pump is running or not
     * @param qDot
     *   Thermal energy balance
-    * @param demandIndicator
-    *   determines if the thermal units (house, storage) having some heat demand
-    *   or not
+    * @param thermalDemands
+    *   holds the thermal demands of the thermal units (house, storage)
     * @return
     *   The updated state of the grid
     */
@@ -174,7 +175,7 @@ final case class ThermalGrid(
       ambientTemperature: Temperature,
       isRunning: Boolean,
       qDot: Power,
-      demandIndicator: ThermalDemandIndicator,
+      thermalDemands: ThermalDemandWrapper,
   ): (ThermalGridState, Option[ThermalThreshold]) = if (qDot > zeroKW)
     handleInfeed(
       tick,
@@ -183,7 +184,7 @@ final case class ThermalGrid(
       state,
       isRunning,
       qDot,
-      demandIndicator,
+      thermalDemands,
     )
   else
     handleConsumption(
@@ -209,9 +210,8 @@ final case class ThermalGrid(
     *   determines whether the heat pump is running or not
     * @param qDot
     *   Infeed to the grid
-    * @param demandIndicator
-    *   determines if the thermal units (house, storage) having some heat demand
-    *   or not
+    * @param thermalDemands
+    *   holds the thermal demands of the thermal units (house, storage)
     * @return
     *   Updated thermal grid state
     */
@@ -222,7 +222,7 @@ final case class ThermalGrid(
       state: ThermalGridState,
       isRunning: Boolean,
       qDot: Power,
-      demandIndicator: ThermalDemandIndicator,
+      thermalDemands: ThermalDemandWrapper,
   ): (ThermalGridState, Option[ThermalThreshold]) = {
     // TODO: We would need to issue a storage result model here...
 
@@ -240,7 +240,8 @@ final case class ThermalGrid(
     }
 
     if (
-      (qDotHouseLastState > zeroKW && (qDotStorageLastState >= zeroKW)) | (qDotStorageLastState > zeroKW & demandIndicator.heatStorageDemand)
+      // todo: Check if it has to be hasRequiredDemand or hasAdditionalDemand
+      (qDotHouseLastState > zeroKW && (qDotStorageLastState >= zeroKW)) | (qDotStorageLastState > zeroKW & thermalDemands.heatStorageDemand.hasAdditionalDemand)
     ) {
       val (updatedHouseState, thermalHouseThreshold, remainingQDotHouse) =
         handleInfeedHouse(
@@ -302,8 +303,11 @@ final case class ThermalGrid(
         )
       }
     } else {
-
-      (demandIndicator.houseDemand, demandIndicator.heatStorageDemand) match {
+      // todo: Check if it has to be hasRequiredDemand or hasAdditionalDemand
+      (
+        thermalDemands.houseDemand.hasRequiredDemand,
+        thermalDemands.heatStorageDemand.hasRequiredDemand,
+      ) match {
 
         case (true, _) =>
           // house first then heatStorage after heating House
@@ -737,17 +741,16 @@ object ThermalGrid {
       thermalGrid.storage.map(_.startingState),
     )
 
-  /** Wraps booleans indicating the demand of thermal units (thermal house,
-    * thermal storage).
+  /** Wraps the demand of thermal units (thermal house, thermal storage).
     *
     * @param houseDemand
-    *   Boolean indicating the demand of the thermal house
+    *   the demand of the thermal house
     * @param heatStorageDemand
-    *   Boolean indicating the demand of the thermal heat storage
+    *   the demand of the thermal heat storage
     */
-  final case class ThermalDemandIndicator private (
-      houseDemand: Boolean,
-      heatStorageDemand: Boolean,
+  final case class ThermalDemandWrapper private (
+      houseDemand: ThermalEnergyDemand,
+      heatStorageDemand: ThermalEnergyDemand,
   )
 
   /** Defines the thermal energy demand of a thermal grid. It comprises the
@@ -776,8 +779,7 @@ object ThermalGrid {
   object ThermalEnergyDemand {
 
     /** Builds a new instance of [[ThermalEnergyDemand]]. If the possible energy
-      * is less than the required energy, this is considered to be a bad state
-      * and the required energy is curtailed to the possible energy.
+      * is less than the required energy, this is considered to be a bad state.
       * @param required
       *   The absolutely required energy to reach target state
       * @param possible

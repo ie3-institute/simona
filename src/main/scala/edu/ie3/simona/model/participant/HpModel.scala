@@ -12,8 +12,7 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.thermal.ThermalGrid.{
-  ThermalDemandIndicator,
-  ThermalEnergyDemand,
+  ThermalDemandWrapper,
   ThermalGridState,
 }
 import edu.ie3.simona.model.thermal.{ThermalGrid, ThermalThreshold}
@@ -133,7 +132,7 @@ final case class HpModel(
   ): (Boolean, Boolean, HpState) = {
 
     // Use lastHpState and relevantData to update state of thermalGrid to the current tick
-    val (demandHouse, demandThermalStorage, currentThermalGridState) =
+    val (thermalDemandWrapper, currentThermalGridState) =
       thermalGrid.energyDemandAndUpdatedState(
         relevantData.currentTick,
         lastHpState.ambientTemperature.getOrElse(
@@ -144,18 +143,17 @@ final case class HpModel(
       )
 
     // Determining the operation point and limitations at this tick
-    val (turnOn, canOperate, canBeOutOfOperation, demandIndicator) =
+    val (turnOn, canOperate, canBeOutOfOperation) =
       operatesInNextState(
         lastHpState,
         currentThermalGridState,
         relevantData,
-        demandHouse,
-        demandThermalStorage,
+        thermalDemandWrapper,
       )
 
     // Updating the HpState
     val updatedState =
-      calcState(lastHpState, relevantData, turnOn, demandIndicator)
+      calcState(lastHpState, relevantData, turnOn, thermalDemandWrapper)
     (canOperate, canBeOutOfOperation, updatedState)
   }
 
@@ -171,35 +169,30 @@ final case class HpModel(
     *   to current tick updated state of the thermalGrid
     * @param relevantData
     *   Relevant (external) data
-    * @param demandHouse
-    *   ThermalEnergyDemand of the house
-    * @param demandThermalStorage
-    *   ThermalEnergyDemand of the thermal storage
+    * @param thermalDemands
+    *   ThermalEnergyDemand of the house and the thermal storage
     * @return
     *   boolean defining if heat pump runs in next time step, if it can be in
-    *   operation and can be out of operation plus the
-    *   [[ThermalDemandIndicator]] of the thermal units
+    *   operation and can be out of operation
     */
   private def operatesInNextState(
       lastState: HpState,
       currentThermalGridState: ThermalGridState,
       relevantData: HpRelevantData,
-      demandHouse: ThermalEnergyDemand,
-      demandThermalStorage: ThermalEnergyDemand,
-  ): (Boolean, Boolean, Boolean, ThermalDemandIndicator) = {
+      thermalDemands: ThermalDemandWrapper,
+  ): (Boolean, Boolean, Boolean) = {
 
-    val (
-      demandIndicator,
-      noThermalStorageOrThermalStorageIsEmpty,
-    ) = determineDemandBooleans(
+    val demandHouse = thermalDemands.houseDemand
+    val demandThermalStorage = thermalDemands.heatStorageDemand
+
+    val noThermalStorageOrThermalStorageIsEmpty = determineThermalStorageStatus(
       lastState,
       currentThermalGridState,
-      demandHouse,
-      demandThermalStorage,
     )
 
     val turnHpOn =
-      demandIndicator.houseDemand || demandIndicator.heatStorageDemand
+      (demandHouse.hasRequiredDemand && noThermalStorageOrThermalStorageIsEmpty) ||
+        demandThermalStorage.hasRequiredDemand || (demandThermalStorage.hasAdditionalDemand && lastState.isRunning)
 
     val canOperate =
       demandHouse.hasRequiredDemand || demandHouse.hasAdditionalDemand ||
@@ -211,7 +204,6 @@ final case class HpModel(
       turnHpOn,
       canOperate,
       canBeOutOfOperation,
-      demandIndicator,
     )
   }
 
@@ -223,22 +215,14 @@ final case class HpModel(
     *   Current state of the heat pump
     * @param updatedGridState
     *   The updated state of the [[ThermalGrid]]
-    * @param demandHouse
-    *   heat demand of the thermal house
-    * @param demandThermalStorage
-    *   heat demand of the thermal storage
     * @return
-    *   First boolean is true, if house has heat demand. Second boolean is true,
-    *   if thermalStorage has heat demand. Third boolean is true, if there is no
-    *   thermalStorage, or it's empty.
+    *   boolean which is true, if there is no thermalStorage, or it's empty.
     */
 
-  private def determineDemandBooleans(
+  private def determineThermalStorageStatus(
       lastHpState: HpState,
       updatedGridState: ThermalGridState,
-      demandHouse: ThermalEnergyDemand,
-      demandThermalStorage: ThermalEnergyDemand,
-  ): (ThermalDemandIndicator, Boolean) = {
+  ): Boolean = {
     implicit val tolerance: Energy = KilowattHours(1e-3)
     val noThermalStorageOrThermalStorageIsEmpty: Boolean =
       updatedGridState.storageState.isEmpty || updatedGridState.storageState
@@ -246,13 +230,7 @@ final case class HpModel(
           _.storedEnergy =~ zeroKWh
         )
 
-    val houseDemand =
-      (demandHouse.hasRequiredDemand && noThermalStorageOrThermalStorageIsEmpty) || (lastHpState.isRunning && demandHouse.hasAdditionalDemand)
-    val heatStorageDemand =
-      demandThermalStorage.hasRequiredDemand || (lastHpState.isRunning && demandThermalStorage.hasAdditionalDemand)
-
-    val demandIndicator = ThermalDemandIndicator(houseDemand, heatStorageDemand)
-    (demandIndicator, noThermalStorageOrThermalStorageIsEmpty)
+    noThermalStorageOrThermalStorageIsEmpty
   }
 
   /** Calculate state depending on whether heat pump is needed or not. Also
@@ -265,9 +243,8 @@ final case class HpModel(
     *   data of heat pump including state of the heat pump
     * @param isRunning
     *   determines whether the heat pump is running or not
-    * @param demandIndicator
-    *   determines if the thermal units (house, storage) having some heat demand
-    *   or not
+    * @param demandWrapper
+    *   holds the thermal demands of the thermal units (house, storage)
     * @return
     *   next [[HpState]]
     */
@@ -275,7 +252,7 @@ final case class HpModel(
       lastState: HpState,
       relevantData: HpRelevantData,
       isRunning: Boolean,
-      demandIndicator: ThermalDemandIndicator,
+      demandWrapper: ThermalDemandWrapper,
   ): HpState = {
     val lastStateStorageQDot = lastState.thermalGridState.storageState
       .map(_.qDot)
@@ -297,7 +274,7 @@ final case class HpModel(
         relevantData.ambientTemperature,
         isRunning,
         newThermalPower,
-        demandIndicator,
+        demandWrapper,
       )
 
     HpState(
@@ -364,9 +341,8 @@ final case class HpModel(
     val turnOn = setPower > (sRated.toActivePower(cosPhiRated) * 0.5)
 
     val (
-      thermalEnergyDemandHouse,
-      thermalEnergyDemandStorage,
-      updatedThermalGridState,
+      thermalDemandWrapper,
+      _,
     ) =
       thermalGrid.energyDemandAndUpdatedState(
         data.currentTick,
@@ -375,21 +351,11 @@ final case class HpModel(
         lastState.thermalGridState,
       )
 
-    val (
-      demandIndicator,
-      _,
-    ) = determineDemandBooleans(
-      lastState,
-      updatedThermalGridState,
-      thermalEnergyDemandHouse,
-      thermalEnergyDemandStorage,
-    )
-
     val updatedHpState = calcState(
       lastState,
       data,
       turnOn,
-      demandIndicator,
+      thermalDemandWrapper,
     )
 
     (
