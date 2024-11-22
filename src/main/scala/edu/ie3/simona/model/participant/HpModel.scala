@@ -192,7 +192,9 @@ final case class HpModel(
 
     val turnHpOn =
       (demandHouse.hasRequiredDemand && noThermalStorageOrThermalStorageIsEmpty) ||
-    demandThermalStorage.hasRequiredDemand || (demandThermalStorage.hasAdditionalDemand && lastState.isRunning)
+    (demandHouse.hasAdditionalDemand && lastState.isRunning) ||
+        demandThermalStorage.hasRequiredDemand ||
+        (demandThermalStorage.hasAdditionalDemand && lastState.isRunning)
 
     val canOperate =
       demandHouse.hasRequiredDemand || demandHouse.hasAdditionalDemand ||
