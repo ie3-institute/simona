@@ -50,7 +50,7 @@ import java.time.temporal.ChronoUnit
 import java.util.UUID
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
-import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.{ListHasAsScala, SetHasAsScala}
 import scala.jdk.DurationConverters._
 
 object ExtSimSetup {
