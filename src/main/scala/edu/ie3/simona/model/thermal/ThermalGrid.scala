@@ -241,8 +241,7 @@ final case class ThermalGrid(
     }
 
     if (
-      // todo: Check if it has to be hasRequiredDemand or hasAdditionalDemand
-      (qDotHouseLastState > zeroKW && (qDotStorageLastState >= zeroKW)) | (qDotStorageLastState > zeroKW & thermalDemands.heatStorageDemand.hasAdditionalDemand)
+      (qDotHouseLastState > zeroKW && (qDotStorageLastState >= zeroKW)) | (qDotStorageLastState > zeroKW && thermalDemands.heatStorageDemand.hasAdditionalDemand)
     ) {
       val (updatedHouseState, thermalHouseThreshold, remainingQDotHouse) =
         handleInfeedHouse(
@@ -281,7 +280,7 @@ final case class ThermalGrid(
         nextThreshold,
       )
     }
-    // Handle edge case where house get heated from storage and HP will be activated in between
+    // Handle edge case where house was heated from storage and HP will be activated in between
     else if ((qDotHouseLastState > zeroKW && qDotStorageLastState < zeroKW)) {
       if (isRunning) {
         handleCases(
@@ -303,14 +302,28 @@ final case class ThermalGrid(
           qDotStorageLastState,
         )
       }
-    } else {
-      // todo: Check if it has to be hasRequiredDemand or hasAdditionalDemand
+    }
+    // Handle edge case where house should be heated from storage
+    else if ((!isRunning && qDot > zeroKW)) {
+      handleCases(
+          tick,
+          lastAmbientTemperature,
+          ambientTemperature,
+          state,
+          qDot,
+          -qDot,
+        )
+      }
+
+
+    else {
       (
         thermalDemands.houseDemand.hasRequiredDemand,
-        thermalDemands.heatStorageDemand.hasRequiredDemand,
+        thermalDemands.houseDemand.hasAdditionalDemand,
+        thermalDemands.heatStorageDemand.hasAdditionalDemand,
       ) match {
 
-        case (true, _) =>
+        case (true,_, _) =>
           // house first then heatStorage after heating House
           handleCases(
             tick,
@@ -321,7 +334,7 @@ final case class ThermalGrid(
             zeroKW,
           )
 
-        case (false, true) =>
+        case (false,_, true) =>
           handleCases(
             tick,
             lastAmbientTemperature,
@@ -331,7 +344,17 @@ final case class ThermalGrid(
             qDot,
           )
 
-        case (false, false) =>
+        case (false,true, false) =>
+          handleCases(
+            tick,
+            lastAmbientTemperature,
+            ambientTemperature,
+            state,
+            qDot,
+            zeroKW,
+          )
+
+        case (false,false, false) =>
           handleCases(
             tick,
             lastAmbientTemperature,
