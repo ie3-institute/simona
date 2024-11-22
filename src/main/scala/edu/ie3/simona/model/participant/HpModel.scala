@@ -258,12 +258,20 @@ final case class HpModel(
       .map(_.qDot)
       .getOrElse(zeroKW)
 
-    val (newActivePower, newThermalPower) =
+    val (newActivePower, newThermalPower) = {
       if (isRunning)
         (pRated, pThermal)
       else if (lastStateStorageQDot < zeroKW)
         (zeroKW, lastStateStorageQDot * (-1))
+      else if (
+        lastStateStorageQDot == zeroKW && (demandWrapper.houseDemand.hasRequiredDemand || demandWrapper.heatStorageDemand.hasRequiredDemand)
+      )
+        (
+          zeroKW,
+          thermalGrid.storage.map(_.getChargingPower: squants.Power).get * (-1),
+        )
       else (zeroKW, zeroKW)
+    }
 
     /* Push thermal energy to the thermal grid and get its updated state in return */
     val (thermalGridState, maybeThreshold) =

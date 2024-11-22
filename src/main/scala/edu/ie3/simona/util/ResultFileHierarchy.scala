@@ -45,7 +45,7 @@ object ResultFileHierarchy extends LazyLogging {
       outputDir: String,
       simulationName: String,
       resultEntityPathConfig: ResultEntityPathConfig,
-      configureLogger: Path => Unit = LogbackConfiguration.default,
+      configureLogger: Path => Unit = LogbackConfiguration.default("INFO"),
       config: Option[TypesafeConfig] = None,
       addTimeStampToOutputDir: Boolean = true,
   ): ResultFileHierarchy = {

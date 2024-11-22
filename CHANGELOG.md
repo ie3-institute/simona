@@ -102,6 +102,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactoring of `ThermalGrid.energyGrid` to distinguish between demand of house and storage [#928](https://github.com/ie3-institute/simona/issues/928)
 - Refactoring to use zeroKW and zeroKWH in thermal grid unit tests [#1023](https://github.com/ie3-institute/simona/issues/1023)
 - Refactor `ResultFileHierarchy` [#1031](https://github.com/ie3-institute/simona/issues/1031)
+- Removing logs in `logs/simona` [#1017](https://github.com/ie3-institute/simona/issues/1017)
+- Fix implausible test cases of HpModelSpec [#1042](https://github.com/ie3-institute/simona/issues/1042)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
@@ -140,6 +142,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix grammar and spelling in docs and comments [#1022](https://github.com/ie3-institute/simona/issues/1022)
 - Fix some minor issues and findings from inspections [#1019](https://github.com/ie3-institute/simona/issues/1019)
 - Fix initialisation freezing on empty primary data [#981](https://github.com/ie3-institute/simona/issues/981)
+- Shallow fetch in CI [#1041](https://github.com/ie3-institute/simona/issues/1041)
+- Refactoring of `ThermalGrid.handleInfeed` to fix thermal storage recharge correctly when empty [#930](https://github.com/ie3-institute/simona/issues/930)
 - Refactoring of `ThermalGrid.handleInfeed` to fix thermal storage recharge correctly when empty [#930](https://github.com/ie3-institute/simona/issues/930)
 
 ## [3.0.0] - 2023-08-07
