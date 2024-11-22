@@ -36,7 +36,13 @@ import edu.ie3.simona.model.participant2.evcs.EvcsModel.{
 import edu.ie3.simona.model.participant2.{ChargingHelper, ParticipantModel}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.simona.ontology.messages.services.EvMessage.ArrivingEvs
+import edu.ie3.simona.ontology.messages.services.EvMessage.{
+  ArrivingEvs,
+  DepartingEvsRequest,
+  DepartingEvsResponse,
+  EvFreeLotsRequest,
+  FreeLotsResponse,
+}
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits.KILOVOLTAMPERE
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
@@ -500,8 +506,39 @@ class EvcsModel private (
       state: EvcsState,
       ctx: ActorContext[ParticipantAgent.Request],
       msg: ParticipantRequest,
-  ): EvcsState = {
-    ??? // todo
+  ): EvcsState = msg match {
+    case freeLotsRequest: EvFreeLotsRequest =>
+      val stayingEvsCount =
+        state.evs.count(_.departureTick > freeLotsRequest.tick)
+
+      freeLotsRequest.replyTo ! FreeLotsResponse(
+        uuid,
+        chargingPoints - stayingEvsCount,
+      )
+
+      state
+
+    case departingEvsRequest: DepartingEvsRequest =>
+      // create a set for faster containment checking
+      val requestedEvs = departingEvsRequest.departingEvs.toSet
+
+      val (departingEvs, stayingEvs) = state.evs.partition { ev =>
+        requestedEvs.contains(ev.uuid)
+      }
+
+      if (departingEvs.size != requestedEvs.size) {
+        requestedEvs.foreach { requestedUuid =>
+          if (!departingEvs.exists(_.uuid == requestedUuid))
+            ctx.log.warn(
+              s"EV $requestedUuid should depart from this station (according to external simulation), but has not been parked here."
+            )
+        }
+      }
+
+      departingEvsRequest.replyTo ! DepartingEvsResponse(uuid, departingEvs)
+
+      state.copy(evs = stayingEvs)
+
   }
 
   /* HELPER METHODS */

@@ -7,6 +7,7 @@
 package edu.ie3.simona.ontology.messages.services
 
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
+import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ProvisionMessage,
@@ -55,8 +56,11 @@ object EvMessage {
     *
     * @param tick
     *   The latest tick that the data is requested for
+    * @param replyTo
+    *   The actor to receive the response
     */
-  final case class EvFreeLotsRequest(tick: Long)
+  final case class EvFreeLotsRequest(tick: Long, replyTo: ActorRef)
+      extends ParticipantRequest
 
   /** Requests EV models of departing EVs with given UUIDs
     *
@@ -64,8 +68,14 @@ object EvMessage {
     *   The latest tick that the data is requested for
     * @param departingEvs
     *   The UUIDs of EVs that are requested
+    * @param replyTo
+    *   The actor to receive the response
     */
-  final case class DepartingEvsRequest(tick: Long, departingEvs: Seq[UUID])
+  final case class DepartingEvsRequest(
+      tick: Long,
+      departingEvs: Seq[UUID],
+      replyTo: ActorRef,
+  ) extends ParticipantRequest
 
   /** Holds arrivals for one charging station
     *

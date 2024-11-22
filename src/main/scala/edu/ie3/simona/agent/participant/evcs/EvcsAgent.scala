@@ -85,7 +85,7 @@ class EvcsAgent(
 
   when(Idle) {
     case Event(
-          EvFreeLotsRequest(tick),
+          EvFreeLotsRequest(tick, _),
           modelBaseStateData: ParticipantModelBaseStateData[
             ComplexPower,
             EvcsRelevantData,
@@ -97,7 +97,7 @@ class EvcsAgent(
       stay()
 
     case Event(
-          DepartingEvsRequest(tick, departingEvs),
+          DepartingEvsRequest(tick, departingEvs, _),
           modelBaseStateData: ParticipantModelBaseStateData[
             ComplexPower,
             EvcsRelevantData,
@@ -115,7 +115,7 @@ class EvcsAgent(
     // in case the activation has arrived first
 
     case Event(
-          EvFreeLotsRequest(tick),
+          EvFreeLotsRequest(tick, _),
           stateData: DataCollectionStateData[ComplexPower],
         ) =>
       stateData.baseStateData match {
@@ -134,7 +134,7 @@ class EvcsAgent(
       }
 
     case Event(
-          DepartingEvsRequest(tick, departingEvs),
+          DepartingEvsRequest(tick, departingEvs, _),
           stateData: DataCollectionStateData[ComplexPower],
         ) =>
       stateData.baseStateData match {

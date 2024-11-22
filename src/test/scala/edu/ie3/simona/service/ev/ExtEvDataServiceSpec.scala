@@ -255,11 +255,11 @@ class ExtEvDataServiceSpec
       scheduler.send(evService, Activation(tick))
 
       evcs1.expectMsg(
-        EvFreeLotsRequest(tick)
+        EvFreeLotsRequest(tick, evService.ref)
       )
 
       evcs2.expectMsg(
-        EvFreeLotsRequest(tick)
+        EvFreeLotsRequest(tick, evService.ref)
       )
 
       scheduler.expectMsg(Completion(evService.toTyped))
@@ -479,10 +479,10 @@ class ExtEvDataServiceSpec
       scheduler.send(evService, Activation(tick))
 
       evcs1.expectMsg(
-        DepartingEvsRequest(tick, scala.collection.immutable.Seq(evA.getUuid))
+        DepartingEvsRequest(tick, Seq(evA.getUuid), evService.ref)
       )
       evcs2.expectMsg(
-        DepartingEvsRequest(tick, scala.collection.immutable.Seq(evB.getUuid))
+        DepartingEvsRequest(tick, Seq(evB.getUuid), evService.ref)
       )
 
       scheduler.expectMsg(Completion(evService.toTyped))

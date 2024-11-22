@@ -8,6 +8,8 @@ package edu.ie3.simona.model.participant2.evcs
 
 import edu.ie3.datamodel.models.result.system.{EvResult, EvcsResult}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
+import edu.ie3.simona.agent.participant2.ParticipantAgent
+import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.model.participant2.ParticipantModel.ModelChangeIndicator
@@ -17,6 +19,13 @@ import edu.ie3.simona.model.participant2.evcs.EvcsModel.{
   EvcsState,
 }
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.ontology.messages.services.EvMessage.{
+  DepartingEvsRequest,
+  DepartingEvsResponse,
+  EvFreeLotsRequest,
+  EvResponseMessage,
+  FreeLotsResponse,
+}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.simona.test.common.model.MockEvModel
@@ -25,13 +34,18 @@ import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import edu.ie3.util.scala.quantities.Kilovars
+import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import org.apache.pekko.actor.typed.Behavior
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import squants.energy.{KilowattHours, Kilowatts}
 
 import java.time.ZonedDateTime
 import java.util.UUID
 
 class EvcsModelSpec
-    extends UnitSpec
+    extends ScalaTestWithActorTestKit
+    with UnitSpec
     with TableDrivenHelper
     with EvcsInputTestData {
 
@@ -795,8 +809,86 @@ class EvcsModelSpec
 
     }
 
-  }
+    "reply to requests" when {
+      val evcsModel = createModel("constantpower")
 
-  // TODO testing requests
+      val evModel = EvModelWrapper(
+        new MockEvModel(
+          UUID.randomUUID(),
+          "Mock EV",
+          10.0.asKiloWatt, // AC is relevant,
+          20.0.asKiloWatt, // DC is not
+          20.0.asKiloWattHour,
+          5.0.asKiloWattHour,
+          10800L,
+        )
+      )
+
+      def testAgent(
+          model: EvcsModel,
+          state: EvcsState,
+      ): Behavior[ParticipantAgent.Request] = Behaviors.receivePartial {
+        case (ctx, request: ParticipantRequest) =>
+          val newState = model.handleRequest(
+            state,
+            ctx,
+            request,
+          )
+
+          testAgent(model, newState)
+      }
+
+      "no EVs are parked" in {
+        val service = createTestProbe[EvResponseMessage]()
+        val currentTick = 0L
+
+        val startingState = EvcsState(Seq.empty, currentTick)
+        val agent = spawn(testAgent(evcsModel, startingState))
+
+        agent ! EvFreeLotsRequest(currentTick, service.ref.toClassic)
+        service.expectMessage(FreeLotsResponse(evcsModel.uuid, 2))
+      }
+
+      "one EV is parked, departing later" in {
+        val service = createTestProbe[EvResponseMessage]()
+        val currentTick = 0L
+
+        val startingState = EvcsState(Seq(evModel), currentTick)
+        val agent = spawn(testAgent(evcsModel, startingState))
+
+        agent ! EvFreeLotsRequest(currentTick, service.ref.toClassic)
+        service.expectMessage(FreeLotsResponse(evcsModel.uuid, 1))
+
+        // ev is supposed to be departing later, but we collect it here for testing purposes
+        agent ! DepartingEvsRequest(
+          currentTick,
+          Seq(evModel.uuid),
+          service.ref.toClassic,
+        )
+        service.expectMessage(
+          DepartingEvsResponse(evcsModel.uuid, Seq(evModel))
+        )
+
+        agent ! EvFreeLotsRequest(currentTick, service.ref.toClassic)
+        // now, ev should be gone
+        service.expectMessage(FreeLotsResponse(evcsModel.uuid, 2))
+      }
+
+      "one EV is parked, departing now" in {
+        val service = createTestProbe[EvResponseMessage]()
+        // ev is supposed to be departing at this tick
+        val currentTick = 10800L
+
+        val startingState = EvcsState(Seq(evModel), currentTick)
+        val agent = spawn(testAgent(evcsModel, startingState))
+
+        agent ! EvFreeLotsRequest(currentTick, service.ref.toClassic)
+        // ev should not count, since it is departing now
+        service.expectMessage(FreeLotsResponse(evcsModel.uuid, 2))
+      }
+
+    }
+
+  }
 
 }

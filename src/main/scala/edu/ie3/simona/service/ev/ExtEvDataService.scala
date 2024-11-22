@@ -229,7 +229,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
       serviceStateData: ExtEvStateData
   ): (ExtEvStateData, Option[Long]) = {
     serviceStateData.uuidToActorRef.foreach { case (_, evcsActor) =>
-      evcsActor ! EvFreeLotsRequest(tick)
+      evcsActor ! EvFreeLotsRequest(tick, context.self)
     }
 
     val freeLots =
@@ -261,7 +261,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
       requestedDepartingEvs.flatMap { case (evcs, departingEvs) =>
         serviceStateData.uuidToActorRef.get(evcs) match {
           case Some(evcsActor) =>
-            evcsActor ! DepartingEvsRequest(tick, departingEvs)
+            evcsActor ! DepartingEvsRequest(tick, departingEvs, context.self)
 
             Some(evcs)
 
