@@ -10,18 +10,11 @@ import edu.ie3.datamodel.models.input.system.SystemParticipantInput.SystemPartic
 import edu.ie3.datamodel.models.input.system._
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
-import edu.ie3.simona.config.SimonaConfig.{
-  BaseRuntimeConfig,
-  LoadRuntimeConfig,
-  StorageRuntimeConfig,
-}
+import edu.ie3.simona.config.SimonaConfig.{BaseRuntimeConfig, EvcsRuntimeConfig, LoadRuntimeConfig, StorageRuntimeConfig}
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.participant2.ParticipantModel.{
-  ModelState,
-  OperatingPoint,
-  OperationRelevantData,
-}
+import edu.ie3.simona.model.participant2.ParticipantModel.{ModelState, OperatingPoint, OperationRelevantData}
 import edu.ie3.simona.model.participant2.PrimaryDataParticipantModel.PrimaryResultFunc
+import edu.ie3.simona.model.participant2.evcs.EvcsModel
 import edu.ie3.simona.model.participant2.load.LoadModel
 
 import java.time.ZonedDateTime
@@ -64,6 +57,10 @@ object ParticipantModelInit {
       case (input: StorageInput, config: StorageRuntimeConfig) =>
         val model = StorageModel(input, config)
         val state = model.getInitialState(config)
+        ParticipantModelInitContainer(model, state)
+      case (input: EvcsInput, config: EvcsRuntimeConfig) =>
+        val model = EvcsModel(input, config)
+        val state = model.getInitialState
         ParticipantModelInitContainer(model, state)
       case (input, config) =>
         throw new CriticalFailureException(
