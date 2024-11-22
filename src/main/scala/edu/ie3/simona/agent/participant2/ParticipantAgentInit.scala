@@ -10,6 +10,7 @@ import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent._
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
+import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant2.ParticipantModelShell
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
@@ -19,6 +20,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
@@ -32,11 +34,29 @@ object ParticipantAgentInit {
   // wait for reply and then create
   // GridAdapter
 
+  /** Container class, that gather together reference to relevant entities, that
+    * represent the environment in the simulation
+    *
+    * @param gridAgent
+    *   Reference to the grid agent
+    * @param primaryServiceProxy
+    *   Reference to the primary service proxy
+    * @param services
+    *   References to services by service type
+    * @param resultListener
+    *   Reference to the result listeners
+    */
+  final case class ParticipantRefs(
+      gridAgent: ActorRef[GridAgent.Request],
+      primaryServiceProxy: ClassicRef,
+      services: Map[ServiceType, ClassicRef],
+      resultListener: Iterable[ActorRef[ResultEvent]],
+  )
+
   def apply(
       participantInput: SystemParticipantInput,
       config: BaseRuntimeConfig,
-      primaryServiceProxy: ClassicRef,
-      gridAgentRef: ActorRef[GridAgent.Request],
+      participantRefs: ParticipantRefs,
       expectedPowerRequestTick: Long,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
@@ -78,8 +98,7 @@ object ParticipantAgentInit {
     uninitialized(
       participantInput,
       config,
-      primaryServiceProxy,
-      gridAgentRef,
+      participantRefs,
       expectedPowerRequestTick,
       simulationStartDate,
       simulationEndDate,
@@ -90,8 +109,7 @@ object ParticipantAgentInit {
   private def uninitialized(
       participantInput: SystemParticipantInput,
       config: BaseRuntimeConfig,
-      primaryServiceProxy: ClassicRef,
-      gridAgentRef: ActorRef[GridAgent.Request],
+      participantRefs: ParticipantRefs,
       expectedPowerRequestTick: Long,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
@@ -99,14 +117,14 @@ object ParticipantAgentInit {
   ): Behavior[Request] = Behaviors.receiveMessagePartial {
 
     case activation: ActivationRequest if activation.tick == INIT_SIM_TICK =>
-      primaryServiceProxy ! PrimaryServiceRegistrationMessage(
+      participantRefs.primaryServiceProxy ! PrimaryServiceRegistrationMessage(
         participantInput.getUuid
       )
 
       waitingForPrimaryProxy(
         participantInput,
         config,
-        gridAgentRef,
+        participantRefs,
         expectedPowerRequestTick,
         simulationStartDate,
         simulationEndDate,
@@ -118,7 +136,7 @@ object ParticipantAgentInit {
   private def waitingForPrimaryProxy(
       participantInput: SystemParticipantInput,
       config: BaseRuntimeConfig,
-      gridAgentRef: ActorRef[GridAgent.Request],
+      participantRefs: ParticipantRefs,
       expectedPowerRequestTick: Long,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
@@ -136,7 +154,7 @@ object ParticipantAgentInit {
           simulationEndDate,
         ),
         expectedFirstData,
-        gridAgentRef,
+        participantRefs,
         expectedPowerRequestTick,
         parentData,
         firstDataTick,
@@ -151,7 +169,7 @@ object ParticipantAgentInit {
       )
 
       val requiredServiceTypes =
-        modelShell.model.getRequiredSecondaryServices.toSeq
+        modelShell.model.getRequiredSecondaryServices.toSet
 
       if (requiredServiceTypes.isEmpty) {
         // Models that do not use secondary data always start at tick 0
@@ -160,18 +178,24 @@ object ParticipantAgentInit {
         completeInitialization(
           modelShell,
           Map.empty,
-          gridAgentRef,
+          participantRefs,
           expectedPowerRequestTick,
           parentData,
           firstTick,
         )
       } else {
-        // TODO request service actorrefs
-        val requiredServices = ???
+        val requiredServices = requiredServiceTypes.map(serviceType =>
+          participantRefs.services.getOrElse(
+            serviceType,
+            throw new CriticalFailureException(
+              s"Service of type $serviceType is not available."
+            ),
+          )
+        )
 
         waitingForServices(
           modelShell,
-          gridAgentRef,
+          participantRefs,
           expectedPowerRequestTick,
           requiredServices,
           parentData = parentData,
@@ -181,7 +205,7 @@ object ParticipantAgentInit {
 
   private def waitingForServices(
       modelShell: ParticipantModelShell[_, _, _],
-      gridAgentRef: ActorRef[GridAgent.Request],
+      participantRefs: ParticipantRefs,
       expectedPowerRequestTick: Long,
       expectedRegistrations: Set[ClassicRef],
       expectedFirstData: Map[ClassicRef, Long] = Map.empty,
@@ -211,7 +235,7 @@ object ParticipantAgentInit {
           completeInitialization(
             modelShell,
             newExpectedFirstData,
-            gridAgentRef,
+            participantRefs,
             expectedPowerRequestTick,
             parentData,
             firstTick,
@@ -219,7 +243,7 @@ object ParticipantAgentInit {
         } else
           waitingForServices(
             modelShell,
-            gridAgentRef,
+            participantRefs,
             expectedPowerRequestTick,
             newExpectedRegistrations,
             newExpectedFirstData,
@@ -229,19 +253,11 @@ object ParticipantAgentInit {
 
   /** Completes initialization activation and creates actual
     * [[ParticipantAgent]]
-    *
-    * @param modelShell
-    * @param expectedData
-    * @param gridAgentRef
-    * @param expectedPowerRequestTick
-    * @param parentData
-    * @param firstTick
-    * @return
     */
   private def completeInitialization(
       modelShell: ParticipantModelShell[_, _, _],
       expectedData: Map[ClassicRef, Long],
-      gridAgentRef: ActorRef[GridAgent.Request],
+      participantRefs: ParticipantRefs,
       expectedPowerRequestTick: Long,
       parentData: Either[SchedulerData, FlexControlledData],
       firstTick: Long,
@@ -263,8 +279,11 @@ object ParticipantAgentInit {
     ParticipantAgent(
       modelShell,
       ParticipantInputHandler(expectedData),
-      ParticipantGridAdapter(gridAgentRef, expectedPowerRequestTick),
-      ???,
+      ParticipantGridAdapter(
+        participantRefs.gridAgent,
+        expectedPowerRequestTick,
+      ),
+      participantRefs.resultListener,
       parentData,
     )
   }
