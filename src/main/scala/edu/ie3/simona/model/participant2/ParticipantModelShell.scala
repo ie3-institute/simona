@@ -61,11 +61,11 @@ final case class ParticipantModelShell[
     operationInterval: OperationInterval,
     simulationStartDate: ZonedDateTime,
     state: S,
-    relevantData: Option[OR],
-    flexOptions: Option[ProvideFlexOptions],
-    lastOperatingPoint: Option[OP],
-    operatingPoint: Option[OP],
-    modelChange: ModelChangeIndicator,
+    relevantData: Option[OR] = None,
+    flexOptions: Option[ProvideFlexOptions] = None,
+    lastOperatingPoint: Option[OP] = None,
+    operatingPoint: Option[OP] = None,
+    modelChange: ModelChangeIndicator = ModelChangeIndicator(),
 ) {
 
   def updateRelevantData(
@@ -335,11 +335,6 @@ object ParticipantModelShell {
       operationInterval = operationInterval,
       simulationStartDate = simulationStartDate,
       state = modelContainer.initialState,
-      relevantData = None,
-      flexOptions = None,
-      lastOperatingPoint = None,
-      operatingPoint = None,
-      modelChange = ModelChangeIndicator(),
     )
   }
 }
