@@ -187,7 +187,7 @@ class ThermalGridWithStorageOnlySpec
             testGridAmbientTemperature,
             testGridAmbientTemperature,
             gridState,
-            isNotRunning,
+            isRunning,
             testGridQDotInfeed,
             onlyThermalDemandOfHeatStorage,
           )
