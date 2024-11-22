@@ -102,6 +102,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactoring to use zeroKW and zeroKWH in thermal grid unit tests [#1023](https://github.com/ie3-institute/simona/issues/1023)
 - Refactor `ResultFileHierarchy` [#1031](https://github.com/ie3-institute/simona/issues/1031)
 - Removing logs in `logs/simona` [#1017](https://github.com/ie3-institute/simona/issues/1017)
+- Fix implausible test cases of HpModelSpec [#1042](https://github.com/ie3-institute/simona/issues/1042)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
