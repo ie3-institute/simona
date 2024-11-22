@@ -12,7 +12,11 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerUnchangedMessage,
 }
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.SecondaryData
+import edu.ie3.simona.agent.participant.data.Data.{
+  PrimaryData,
+  PrimaryDataMeta,
+  SecondaryData,
+}
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.exceptions.CriticalFailureException
@@ -26,6 +30,8 @@ import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import squants.{Dimensionless, Each}
+
+import scala.reflect.ClassTag
 
 object ParticipantAgent {
 
@@ -68,6 +74,17 @@ object ParticipantAgent {
   final case class RegistrationSuccessfulMessage(
       override val serviceRef: ClassicRef,
       firstDataTick: Long,
+  ) extends RegistrationResponseMessage
+
+  /** Message, that is used to confirm a successful registration with primary
+    * service
+    */
+  final case class PrimaryRegistrationSuccessfulMessage[
+      P <: PrimaryData: ClassTag
+  ](
+      override val serviceRef: ClassicRef,
+      firstDataTick: Long,
+      primaryDataMeta: PrimaryDataMeta[P],
   ) extends RegistrationResponseMessage
 
   /** Message, that is used to announce a failed registration

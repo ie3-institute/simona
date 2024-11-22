@@ -143,13 +143,21 @@ object ParticipantAgentInit {
       parentData: Either[SchedulerData, FlexControlledData],
   ): Behavior[Request] = Behaviors.receivePartial {
 
-    case (_, RegistrationSuccessfulMessage(serviceRef, firstDataTick)) =>
+    case (
+          _,
+          PrimaryRegistrationSuccessfulMessage(
+            serviceRef,
+            firstDataTick,
+            primaryDataMeta,
+          ),
+        ) =>
       val expectedFirstData = Map(serviceRef -> firstDataTick)
 
       completeInitialization(
         ParticipantModelShell.createForPrimaryData(
           participantInput,
           config,
+          primaryDataMeta,
           simulationStartDate,
           simulationEndDate,
         ),

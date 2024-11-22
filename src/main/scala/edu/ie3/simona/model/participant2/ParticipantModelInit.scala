@@ -9,10 +9,19 @@ package edu.ie3.simona.model.participant2
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput.SystemParticipantInputCopyBuilder
 import edu.ie3.datamodel.models.input.system._
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData
-import edu.ie3.simona.config.SimonaConfig.{BaseRuntimeConfig, EvcsRuntimeConfig, LoadRuntimeConfig, StorageRuntimeConfig}
+import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, PrimaryDataMeta}
+import edu.ie3.simona.config.SimonaConfig.{
+  BaseRuntimeConfig,
+  EvcsRuntimeConfig,
+  LoadRuntimeConfig,
+  StorageRuntimeConfig,
+}
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.participant2.ParticipantModel.{ModelState, OperatingPoint, OperationRelevantData}
+import edu.ie3.simona.model.participant2.ParticipantModel.{
+  ModelState,
+  OperatingPoint,
+  OperationRelevantData,
+}
 import edu.ie3.simona.model.participant2.PrimaryDataParticipantModel.PrimaryResultFunc
 import edu.ie3.simona.model.participant2.evcs.EvcsModel
 import edu.ie3.simona.model.participant2.load.LoadModel
@@ -74,6 +83,7 @@ object ParticipantModelInit {
   def createPrimaryModel[P <: PrimaryData: ClassTag](
       participantInput: SystemParticipantInput,
       modelConfig: BaseRuntimeConfig,
+      primaryDataMeta: PrimaryDataMeta[P],
   ): ParticipantModelInitContainer[
     _ <: OperatingPoint,
     _ <: ModelState,
@@ -94,13 +104,13 @@ object ParticipantModelInit {
         physicalModel.createPrimaryDataResult(data, dateTime)
     }
 
-    val primaryDataModel = new PrimaryDataParticipantModel[P](
+    val primaryDataModel = new PrimaryDataParticipantModel(
       physicalModel.uuid,
       physicalModel.sRated,
       physicalModel.cosPhiRated,
       physicalModel.qControl,
       primaryResultFunc,
-      ???, // todo needs to be provided by primary data service?
+      primaryDataMeta,
     )
 
     ParticipantModelInitContainer(

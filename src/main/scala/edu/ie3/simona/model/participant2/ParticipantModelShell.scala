@@ -9,7 +9,11 @@ package edu.ie3.simona.model.participant2
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
-import edu.ie3.simona.agent.participant.data.Data.SecondaryData
+import edu.ie3.simona.agent.participant.data.Data.{
+  PrimaryData,
+  PrimaryDataMeta,
+  SecondaryData,
+}
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
@@ -38,6 +42,7 @@ import squants.Dimensionless
 import squants.energy.Power
 
 import java.time.ZonedDateTime
+import scala.reflect.ClassTag
 
 /** Takes care of:
   *   - holding id information
@@ -269,16 +274,17 @@ object ParticipantModelShell {
       modelResults: Iterable[SystemParticipantResult],
   )
 
-  def createForPrimaryData(
+  def createForPrimaryData[P <: PrimaryData: ClassTag](
       participantInput: SystemParticipantInput,
       config: BaseRuntimeConfig,
+      primaryDataMeta: PrimaryDataMeta[P],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
   ): ParticipantModelShell[_, _, _] = {
-    // todo T parameter, receive from primary proxy
     val modelContainer = ParticipantModelInit.createPrimaryModel(
       participantInput,
       config,
+      primaryDataMeta,
     )
     createShell(
       modelContainer,
