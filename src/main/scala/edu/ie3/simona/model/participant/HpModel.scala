@@ -264,7 +264,7 @@ final case class HpModel(
       if (isRunning)
         (pRated, pThermal)
       else if (lastStateStorageQDot < zeroKW)
-        (zeroKW, lastStateStorageQDot * -1)
+        (zeroKW, lastStateStorageQDot * (-1))
       else if (
         lastStateStorageQDot == zeroKW && (demandWrapper.houseDemand.hasRequiredDemand || demandWrapper.heatStorageDemand.hasRequiredDemand)
       )

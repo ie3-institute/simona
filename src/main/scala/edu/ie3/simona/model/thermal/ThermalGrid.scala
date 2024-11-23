@@ -51,7 +51,7 @@ final case class ThermalGrid(
     * @param lastAmbientTemperature
     *   Ambient temperature until this tick
     * @param ambientTemperature
-    *   Ambient temperature in the instance in question
+    *   Current ambient temperature in the instance in question
     * @param state
     *   Currently applicable state of the thermal grid
     * @return
