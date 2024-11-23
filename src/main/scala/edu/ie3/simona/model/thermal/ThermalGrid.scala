@@ -306,24 +306,21 @@ final case class ThermalGrid(
     // Handle edge case where house should be heated from storage
     else if ((!isRunning && qDot > zeroKW)) {
       handleCases(
-          tick,
-          lastAmbientTemperature,
-          ambientTemperature,
-          state,
-          qDot,
-          -qDot,
-        )
-      }
-
-
-    else {
+        tick,
+        lastAmbientTemperature,
+        ambientTemperature,
+        state,
+        qDot,
+        -qDot,
+      )
+    } else {
       (
         thermalDemands.houseDemand.hasRequiredDemand,
         thermalDemands.houseDemand.hasAdditionalDemand,
         thermalDemands.heatStorageDemand.hasAdditionalDemand,
       ) match {
 
-        case (true,_, _) =>
+        case (true, _, _) =>
           // house first then heatStorage after heating House
           handleCases(
             tick,
@@ -334,7 +331,7 @@ final case class ThermalGrid(
             zeroKW,
           )
 
-        case (false,_, true) =>
+        case (false, _, true) =>
           handleCases(
             tick,
             lastAmbientTemperature,
@@ -344,7 +341,7 @@ final case class ThermalGrid(
             qDot,
           )
 
-        case (false,true, false) =>
+        case (false, true, false) =>
           handleCases(
             tick,
             lastAmbientTemperature,
@@ -354,7 +351,7 @@ final case class ThermalGrid(
             zeroKW,
           )
 
-        case (false,false, false) =>
+        case (false, false, false) =>
           handleCases(
             tick,
             lastAmbientTemperature,

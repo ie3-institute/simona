@@ -187,6 +187,7 @@ class ThermalGridWithStorageOnlySpec
             testGridAmbientTemperature,
             testGridAmbientTemperature,
             gridState,
+            // Fixme startingState and isRunning do not match here
             isRunning,
             testGridQDotInfeed,
             onlyThermalDemandOfHeatStorage,
@@ -232,9 +233,9 @@ class ThermalGridWithStorageOnlySpec
 
         updatedGridState match {
           case ThermalGridState(
-          None,
-          Some(ThermalStorageState(tick, storedEnergy, qDot)),
-          ) =>
+                None,
+                Some(ThermalStorageState(tick, storedEnergy, qDot)),
+              ) =>
             tick shouldBe 0L
             storedEnergy should approximate(KilowattHours(150d))
             qDot should approximate(testGridQDotInfeed * (-1))
