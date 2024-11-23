@@ -20,6 +20,7 @@ import edu.ie3.datamodel.models.result.thermal.{
 import edu.ie3.simona.exceptions.InvalidParameterException
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.thermal.ThermalGrid.{
+  ThermalDemandWrapper,
   ThermalEnergyDemand,
   ThermalGridState,
 }
@@ -58,7 +59,7 @@ final case class ThermalGrid(
     * @param lastAmbientTemperature
     *   Ambient temperature until this tick
     * @param ambientTemperature
-    *   Current ambient temperature
+    *   Current ambient temperature in the instance in question
     * @param state
     *   Currently applicable state of the thermal grid
     * @param simulationStartTime
@@ -77,12 +78,7 @@ final case class ThermalGrid(
       state: ThermalGridState,
       simulationStartTime: ZonedDateTime,
       houseInhabitants: Double,
-  ): (
-      ThermalEnergyDemand,
-      ThermalEnergyDemand,
-      ThermalEnergyDemand,
-      ThermalGridState,
-  ) = {
+  ): (ThermalDemandWrapper, ThermalGridState) = {
     /* First get the energy demand of the houses but only if inner temperature is below target temperature */
 
     val (houseDemand, updatedHouseState, demandHotDomesticWater) =
@@ -210,13 +206,15 @@ final case class ThermalGrid(
     }
 
     (
-      ThermalEnergyDemand(
-        houseDemand.required,
-        houseDemand.possible,
-      ),
-      ThermalEnergyDemand(
-        storageDemand.required,
-        storageDemand.possible,
+      ThermalDemandWrapper(
+        ThermalEnergyDemand(
+          houseDemand.required,
+          houseDemand.possible,
+        ),
+        ThermalEnergyDemand(
+          storageDemand.required,
+          storageDemand.possible,
+        ),
       ),
       ThermalEnergyDemand(
         domesticHotWaterStorageDemand.required,
@@ -244,16 +242,12 @@ final case class ThermalGrid(
     *   determines whether the heat pump is running or not
     * @param qDot
     *   Thermal energy balance
-    * @param houseDemand
-    *   determines if the thermal house has heat demand
-    * @param storageDemand
-    *   determines if the thermal storage has heat demand
-    * @param domesticHotWaterStorageDemand
-    *   determines if the domestic hot water storage has heat demand
-    * @param simulationStartTime
-    *   simulationStartDate as ZonedDateTime
-    * @param houseInhabitants
-    *   number of people living in the building
+    * @param thermalDemands
+    *   holds the thermal demands of the thermal units (house, storage)
+   * @param simulationStartTime
+   *   simulationStartDate as ZonedDateTime
+   * @param houseInhabitants
+   *   number of people living in the building
     * @return
     *   The updated state of the grid
     */
@@ -264,9 +258,7 @@ final case class ThermalGrid(
       ambientTemperature: Temperature,
       isRunning: Boolean,
       qDot: Power,
-      houseDemand: ThermalEnergyDemand,
-      storageDemand: ThermalEnergyDemand,
-      domesticHotWaterStorageDemand: ThermalEnergyDemand,
+      thermalDemands: ThermalDemandWrapper,
       simulationStartTime: ZonedDateTime,
       houseInhabitants: Double,
   ): (ThermalGridState, Option[ThermalThreshold]) = if (qDot > zeroKW)
@@ -277,9 +269,7 @@ final case class ThermalGrid(
       state,
       isRunning,
       qDot,
-      houseDemand,
-      storageDemand,
-      domesticHotWaterStorageDemand,
+      thermalDemands,
       simulationStartTime,
       houseInhabitants,
     )
@@ -309,17 +299,13 @@ final case class ThermalGrid(
     *   determines whether the heat pump is running or not
     * @param qDot
     *   Infeed to the grid
-    * @param houseDemand
-    *   determines if the thermal house has heat demand
-    * @param heatStorageDemand
-    *   determines if the thermal storage has heat demand
-    * @param domesticHotWaterStorageDemand
-    *   determines if the domestic hot water storage has heat demand
-    * @param simulationStartTime
-    *   simulationStartDate as ZonedDateTime
-    * @param houseInhabitants
-    *   number of people living in the building
-    * @return
+    * @param thermalDemands
+    *   holds the thermal demands of the thermal units (house, storage)
+   * @param simulationStartTime
+   *   simulationStartDate as ZonedDateTime
+   * @param houseInhabitants
+   *   number of people living in the building
+   *    @return
     *   Updated thermal grid state
     */
   private def handleInfeed(
@@ -329,6 +315,59 @@ final case class ThermalGrid(
       state: ThermalGridState,
       isRunning: Boolean,
       qDot: Power,
+
+
+  /** Handles the different cases, of thermal flows from and into the thermal
+    * grid.
+    *
+    * @param tick
+    *   Current tick
+    * @param lastAmbientTemperature
+    *   Ambient temperature until this tick
+    * @param ambientTemperature
+    *   actual ambient temperature
+    * @param state
+    *   Current state of the thermal grid
+    * @param qDotHouse
+    *   Infeed to the house
+    * @param qDotHeatStorage
+    *   Infeed to the heat storage
+    * @return
+    *   Updated thermal grid state and the next threshold if there is one
+    */
+  private def handleCases(
+      tick: Long,
+      lastAmbientTemperature: Temperature,
+      ambientTemperature: Temperature,
+      state: ThermalGridState,
+      qDotHouse: Power,
+      qDotHeatStorage: Power,
+  ): (ThermalGridState, Option[ThermalThreshold]) = {
+    val (updatedHouseState, thermalHouseThreshold, _) =
+      handleInfeedHouse(
+        tick,
+        lastAmbientTemperature,
+        ambientTemperature,
+        state,
+        qDotHouse,
+      )
+
+    val (updatedStorageState, thermalStorageThreshold) =
+      handleInfeedStorage(tick, state, qDotHeatStorage)
+
+    val nextThreshold = determineMostRecentThreshold(
+      thermalHouseThreshold,
+      thermalStorageThreshold,
+    )
+
+    (
+      state.copy(
+        houseState = updatedHouseState,
+        storageState = updatedStorageState,
+      ),
+      nextThreshold,
+    )
+  }
       houseDemand: ThermalEnergyDemand,
       heatStorageDemand: ThermalEnergyDemand,
       domesticHotWaterStorageDemand: ThermalEnergyDemand,
@@ -1514,6 +1553,18 @@ object ThermalGrid {
       thermalGrid.heatStorage.map(_.startingState),
       thermalGrid.domesticHotWaterStorage.map(_.startingState),
     )
+
+  /** Wraps the demand of thermal units (thermal house, thermal storage).
+    *
+    * @param houseDemand
+    *   the demand of the thermal house
+    * @param heatStorageDemand
+    *   the demand of the thermal heat storage
+    */
+  final case class ThermalDemandWrapper private (
+      houseDemand: ThermalEnergyDemand,
+      heatStorageDemand: ThermalEnergyDemand,
+  )
 
   /** Defines the thermal energy demand of a thermal grid. It comprises the
     * absolutely required energy demand to reach the target state as well as an

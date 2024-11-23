@@ -55,7 +55,7 @@ class HpModelSpec
             true,
             95,
             15.6,
-            Some(HouseTemperatureUpperBoundaryReached(31711L)),
+            Some(HouseTemperatureUpperBoundaryReached(31711)),
           ),
           (
             HpState(
@@ -70,7 +70,7 @@ class HpModelSpec
             true,
             95,
             16.4,
-            Some(HouseTemperatureUpperBoundaryReached(30642L)),
+            Some(HouseTemperatureUpperBoundaryReached(30642)),
           ),
           (
             HpState(
@@ -85,7 +85,7 @@ class HpModelSpec
             true,
             95,
             18.0,
-            Some(HouseTemperatureUpperBoundaryReached(27771L)),
+            Some(HouseTemperatureUpperBoundaryReached(27771)),
           ),
           (
             HpState(
@@ -100,7 +100,7 @@ class HpModelSpec
             false,
             0,
             19.6,
-            Some(HouseTemperatureLowerBoundaryReached(13200L)),
+            Some(HouseTemperatureLowerBoundaryReached(13200)),
           ),
           (
             HpState(
@@ -115,7 +115,7 @@ class HpModelSpec
             false,
             0,
             20.4,
-            Some(HouseTemperatureLowerBoundaryReached(15508L)),
+            Some(HouseTemperatureLowerBoundaryReached(15508)),
           ),
           (
             HpState(
@@ -124,13 +124,13 @@ class HpModelSpec
               Some(hpData.ambientTemperature),
               Kilowatts(95d),
               Kilowatts(80d),
-              thermalState(Celsius(17)),
+              thermalState(Celsius(17), Kilowatts(80d)),
               None,
             ),
-            true,
-            95,
-            15.6,
-            Some(HouseTemperatureUpperBoundaryReached(31711L)),
+            false,
+            0,
+            31.6,
+            Some(HouseTemperatureLowerBoundaryReached(29867)),
           ),
           (
             HpState(
@@ -139,13 +139,13 @@ class HpModelSpec
               Some(hpData.ambientTemperature),
               Kilowatts(95d),
               Kilowatts(80d),
-              thermalState(Celsius(18)),
+              thermalState(Celsius(18), Kilowatts(80d)),
               None,
             ),
-            true,
-            95,
-            16.4,
-            Some(HouseTemperatureUpperBoundaryReached(30642L)),
+            false,
+            0,
+            32.4,
+            Some(HouseTemperatureLowerBoundaryReached(30343)),
           ),
           (
             HpState(
@@ -154,13 +154,13 @@ class HpModelSpec
               Some(hpData.ambientTemperature),
               Kilowatts(95d),
               Kilowatts(80d),
-              thermalState(Celsius(20)),
+              thermalState(Celsius(20), Kilowatts(80d)),
               None,
             ),
-            true,
-            95,
-            18.0,
-            Some(HouseTemperatureUpperBoundaryReached(27771L)),
+            false,
+            0,
+            34.0,
+            Some(HouseTemperatureLowerBoundaryReached(31200)),
           ),
           (
             HpState(
@@ -169,13 +169,13 @@ class HpModelSpec
               Some(hpData.ambientTemperature),
               Kilowatts(0),
               Kilowatts(0),
-              thermalState(Celsius(22)),
+              thermalState(Celsius(22), zeroKW),
               None,
             ),
             false,
             0,
-            19.6,
-            Some(HouseTemperatureLowerBoundaryReached(13200L)),
+            35.6,
+            Some(HouseTemperatureLowerBoundaryReached(31950)),
           ),
           (
             HpState(
@@ -184,13 +184,13 @@ class HpModelSpec
               Some(hpData.ambientTemperature),
               Kilowatts(95d),
               Kilowatts(80d),
-              thermalState(Celsius(25)),
+              thermalState(Celsius(25), Kilowatts(80d)),
               None,
             ),
             false,
             0,
-            22.0,
-            Some(HouseTemperatureLowerBoundaryReached(19200L)),
+            38.0,
+            Some(HouseTemperatureLowerBoundaryReached(32914)),
           ),
         )
 
@@ -269,7 +269,7 @@ class HpModelSpec
               (95.0, 95.0, 95.0),
             ),
             // 2. Same as before but heat storage is NOT empty
-            // should be possible to keep hp off
+            // should be possible to turn hp on
             (
               ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(15), Kilowatts(0))),

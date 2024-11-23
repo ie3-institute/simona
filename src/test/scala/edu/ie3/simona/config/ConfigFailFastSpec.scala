@@ -897,6 +897,28 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         }
       }
 
+      "Checking log config" should {
+        val checkLogOutputConfig =
+          PrivateMethod[Unit](Symbol("checkLogOutputConfig"))
+
+        "identify an unknown log level" in {
+          val invalidLogConfig = SimonaConfig.Simona.Output.Log("INVALID")
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkLogOutputConfig(invalidLogConfig)
+          }.getMessage shouldBe "Invalid log level \"INVALID\". Valid log levels: TRACE, DEBUG, INFO, WARN, ERROR"
+        }
+
+        "let valid log output configuration pass" in {
+          val validLogConfig = SimonaConfig.Simona.Output.Log("WARN")
+
+          noException shouldBe thrownBy {
+            ConfigFailFast invokePrivate checkLogOutputConfig(validLogConfig)
+          }
+        }
+
+      }
+
       "Checking grid data sources" should {
         "identify a faulty csv separator" in {
           val csvParams =

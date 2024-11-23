@@ -791,7 +791,6 @@ class ThermalGridIT
               indoorTemperature should equalWithTolerance(
                 17.9999618660804.asDegreeCelsius
               )
-
             case CylindricalThermalStorageResult(
                   time,
                   inputModel,
@@ -1010,6 +1009,7 @@ class ThermalGridIT
               indoorTemperature should equalWithTolerance(
                 18.7550144313187.asDegreeCelsius
               )
+
             case CylindricalThermalStorageResult(
                   time,
                   inputModel,

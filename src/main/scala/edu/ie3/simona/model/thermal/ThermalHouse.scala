@@ -373,8 +373,8 @@ final case class ThermalHouse(
       innerTemperature: Temperature,
       boundaryTemperature: Temperature = upperBoundaryTemperature,
   ): Boolean =
-    innerTemperature > Kelvin(
-      boundaryTemperature.toKelvinScale - temperatureTolerance.toKelvinScale
+    innerTemperature > (
+      boundaryTemperature - temperatureTolerance
     )
 
   /** Check if inner temperature is lower than preferred minimum temperature
@@ -386,8 +386,8 @@ final case class ThermalHouse(
       innerTemperature: Temperature,
       boundaryTemperature: Temperature = lowerBoundaryTemperature,
   ): Boolean =
-    innerTemperature < Kelvin(
-      boundaryTemperature.toKelvinScale + temperatureTolerance.toKelvinScale
+    innerTemperature < (
+      boundaryTemperature + temperatureTolerance
     )
 
   /** Calculate the new inner temperature of the thermal house.
