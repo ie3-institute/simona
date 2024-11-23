@@ -186,8 +186,7 @@ final case class HpModel(
     val demandThermalStorage = thermalDemands.heatStorageDemand
 
     val noThermalStorageOrThermalStorageIsEmpty = determineThermalStorageStatus(
-      lastState,
-      currentThermalGridState,
+      currentThermalGridState
     )
 
     val turnHpOn =
@@ -213,8 +212,6 @@ final case class HpModel(
     * or thermal storage as well as a boolean indicating if there is no thermal
     * storage, or it is empty.
     *
-    * @param lastHpState
-    *   Current state of the heat pump
     * @param updatedGridState
     *   The updated state of the [[ThermalGrid]]
     * @return
@@ -222,8 +219,7 @@ final case class HpModel(
     */
 
   private def determineThermalStorageStatus(
-      lastHpState: HpState,
-      updatedGridState: ThermalGridState,
+      updatedGridState: ThermalGridState
   ): Boolean = {
     implicit val tolerance: Energy = KilowattHours(1e-3)
     val noThermalStorageOrThermalStorageIsEmpty: Boolean =
