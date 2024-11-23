@@ -270,7 +270,7 @@ final case class HpModel(
       )
         (
           zeroKW,
-          thermalGrid.storage.map(_.getChargingPower: squants.Power).get * -1,
+          thermalGrid.storage.map(_.getChargingPower: squants.Power).get,
         )
       else (zeroKW, zeroKW)
     }
