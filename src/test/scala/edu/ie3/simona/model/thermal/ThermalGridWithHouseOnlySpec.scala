@@ -193,19 +193,21 @@ class ThermalGridWithHouseOnlySpec
         )
 
       "deliver the house state by just letting it cool down, if just no infeed is given" in {
-        val tick = 0L
+        val relevantData = HpRelevantData(
+          0L,
+          testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
+        )
         val gridState = ThermalGrid.startingState(thermalGrid)
         val externalQDot = zeroKW
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
-            tick,
-            testGridAmbientTemperature,
+            relevantData,
             testGridAmbientTemperature,
             gridState,
             externalQDot,
-            defaultSimulationStart,
-            houseInhabitants,
           )
 
         updatedGridState match {
@@ -236,15 +238,19 @@ class ThermalGridWithHouseOnlySpec
           SimpleThermalThreshold(23L)
         )
 
+        val secondRelevantData = HpRelevantData(
+          23L,
+          testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
+        )
+
         val (nextUpdatedGridState, nextReachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
-            23L,
-            testGridAmbientTemperature,
+            secondRelevantData,
             testGridAmbientTemperature,
             updatedGridState,
             externalQDot,
-            defaultSimulationStart,
-            houseInhabitants,
           )
 
         nextUpdatedGridState match {
@@ -275,18 +281,20 @@ class ThermalGridWithHouseOnlySpec
       }
 
       "not withdraw energy from the house, if actual consumption is given" in {
-        val tick = 0L
+        val relevantData = HpRelevantData(
+          0L,
+          testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
+        )
         val gridState = ThermalGrid.startingState(thermalGrid)
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
-            tick,
-            testGridAmbientTemperature,
+            relevantData,
             testGridAmbientTemperature,
             gridState,
             testGridQDotConsumption,
-            defaultSimulationStart,
-            houseInhabitants,
           )
 
         updatedGridState match {
@@ -317,15 +325,19 @@ class ThermalGridWithHouseOnlySpec
           SimpleThermalThreshold(23L)
         )
 
+        val secondRelevantData = HpRelevantData(
+          23L,
+          testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
+        )
+
         val (nextUpdatedGridState, nextReachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
-            23L,
-            testGridAmbientTemperature,
+            secondRelevantData,
             testGridAmbientTemperature,
             updatedGridState,
             testGridQDotConsumption,
-            defaultSimulationStart,
-            houseInhabitants,
           )
 
         nextUpdatedGridState match {

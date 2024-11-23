@@ -8,11 +8,21 @@ package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
 import edu.ie3.simona.model.participant.HpModel.HpRelevantData
-import edu.ie3.simona.model.thermal.ThermalGrid.{ThermalDemandWrapper, ThermalEnergyDemand, ThermalGridState}
+import edu.ie3.simona.model.thermal.ThermalGrid.{
+  ThermalDemandWrapper,
+  ThermalEnergyDemand,
+  ThermalGridState,
+}
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
-import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{HouseTemperatureLowerBoundaryReached, HouseTemperatureUpperBoundaryReached}
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
+  HouseTemperatureLowerBoundaryReached,
+  HouseTemperatureUpperBoundaryReached,
+}
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{StorageEmpty, StorageFull}
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
+  StorageEmpty,
+  StorageFull,
+}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import squants.energy._
@@ -306,15 +316,19 @@ class ThermalGridWithHouseAndStorageSpec
           SimpleThermalThreshold(23L)
         )
 
+        val updatedRelevantData = HpRelevantData(
+          23,
+          testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
+        )
+
         val (nextUpdatedGridState, nextReachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
-            23L,
-            testGridAmbientTemperature,
+            updatedRelevantData,
             testGridAmbientTemperature,
             updatedGridState,
             zeroKW,
-            defaultSimulationStart,
-            houseInhabitants,
           )
 
         nextUpdatedGridState match {
@@ -354,7 +368,12 @@ class ThermalGridWithHouseAndStorageSpec
       }
 
       "take energy from storage, if there is actual consumption" in {
-        val tick = 0L
+        val relevantData = HpRelevantData(
+          0L,
+          testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
+        )
         val initialGridState = ThermalGrid.startingState(thermalGrid)
         val initialLoading = KilowattHours(200d)
         val gridState = initialGridState.copy(storageState =
@@ -366,13 +385,10 @@ class ThermalGridWithHouseAndStorageSpec
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
-            tick,
-            testGridAmbientTemperature,
+            relevantData,
             testGridAmbientTemperature,
             gridState,
             externalQDot,
-            defaultSimulationStart,
-            houseInhabitants,
           )
 
         updatedGridState match {
@@ -675,23 +691,28 @@ class ThermalGridWithHouseAndStorageSpec
         )
 
       "heat the house, if the upper temperature in the house is not reached" in {
-        val tick = 0L
+        val relevantData = HpRelevantData(
+          0L,
+          testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
+        )
+        val thermalDemands = ThermalDemandWrapper(
+          ThermalEnergyDemand(KilowattHours(10), KilowattHours(15)),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+        )
         val initialGridState = ThermalGrid.startingState(thermalGrid)
         val externalQDot = testGridQDotInfeed
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
-            tick,
-            testGridAmbientTemperature,
+            relevantData,
             testGridAmbientTemperature,
             initialGridState,
             isRunning,
             externalQDot,
-            ThermalEnergyDemand(KilowattHours(10), KilowattHours(15)),
-            ThermalEnergyDemand(zeroKWh, zeroKWh),
-            ThermalEnergyDemand(zeroKWh, zeroKWh),
-            defaultSimulationStart,
-            houseInhabitants,
+            thermalDemands,
           )
 
         updatedGridState match {
@@ -740,19 +761,26 @@ class ThermalGridWithHouseAndStorageSpec
         }
         reachedThreshold shouldBe Some(SimpleThermalThreshold(23))
 
+        val secondRelevantData = HpRelevantData(
+          23L,
+          testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
+        )
+        val secondThermalDemands = ThermalDemandWrapper(
+          ThermalEnergyDemand(KilowattHours(9.9), KilowattHours(14.9)),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+          ThermalEnergyDemand(zeroKWh, zeroKWh)
+        )
+
         val (secondUpdatedGridState, secondReachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
-            23L,
-            testGridAmbientTemperature,
+    secondRelevantData,
             testGridAmbientTemperature,
             updatedGridState,
             isRunning,
             externalQDot,
-            ThermalEnergyDemand(KilowattHours(9.9), KilowattHours(14.9)),
-            ThermalEnergyDemand(zeroKWh, zeroKWh),
-            ThermalEnergyDemand(zeroKWh, zeroKWh),
-            defaultSimulationStart,
-            houseInhabitants,
+            secondThermalDemands,
           )
 
         secondUpdatedGridState match {
@@ -801,7 +829,17 @@ class ThermalGridWithHouseAndStorageSpec
       }
 
       "heat the house and recharge the domestic hot water storage, if the house has required heat demand and domestic hot water storage is empty" in {
-        val tick = 0L
+        val firstRelevantData = HpRelevantData(
+          0,
+          testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
+        )
+        val firstThermalDemands = ThermalDemandWrapper(
+          ThermalEnergyDemand(KilowattHours(5), KilowattHours(15)),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+          ThermalEnergyDemand(KilowattHours(12.18), KilowattHours(12.18))
+        )
         val initialGridState = ThermalGrid.startingState(thermalGrid)
 
         val gridState = initialGridState.copy(domesticHotWaterStorageState =
@@ -813,17 +851,12 @@ class ThermalGridWithHouseAndStorageSpec
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
-            tick,
-            testGridAmbientTemperature,
+     firstRelevantData,
             testGridAmbientTemperature,
             gridState,
             isRunning,
             externalQDot,
-            ThermalEnergyDemand(KilowattHours(5), KilowattHours(15)),
-            ThermalEnergyDemand(zeroKWh, zeroKWh),
-            ThermalEnergyDemand(KilowattHours(12.18), KilowattHours(12.18)),
-            defaultSimulationStart,
-            houseInhabitants,
+            firstThermalDemands,
           )
 
         updatedGridState match {
@@ -870,19 +903,26 @@ class ThermalGridWithHouseAndStorageSpec
           SimpleThermalThreshold(32L)
         )
 
+        val secondRelevantData = HpRelevantData(
+          32,
+          testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
+        )
+        val secondThermalDemands = ThermalDemandWrapper(
+          ThermalEnergyDemand(KilowattHours(4.8), KilowattHours(15)),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+          ThermalEnergyDemand(KilowattHours(12.18), KilowattHours(12.18)),
+        )
+
         val (secondUpdatedGridState, secondReachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
-            32L,
-            testGridAmbientTemperature,
+       secondRelevantData,
             testGridAmbientTemperature,
             updatedGridState,
             isRunning,
             externalQDot,
-            ThermalEnergyDemand(KilowattHours(4.8), KilowattHours(15)),
-            ThermalEnergyDemand(zeroKWh, zeroKWh),
-            ThermalEnergyDemand(KilowattHours(12.18), KilowattHours(12.18)),
-            defaultSimulationStart,
-            houseInhabitants,
+            secondThermalDemands,
           )
 
         secondUpdatedGridState match {
@@ -931,7 +971,17 @@ class ThermalGridWithHouseAndStorageSpec
       }
 
       "load the heat storage, if the upper temperature in the house is reached and there is no heat demand of hot domestic water storage" in {
-        val tick = 0L
+        val firstRelevantData = HpRelevantData(
+          0L,
+          testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
+        )
+        val firstThermalDemands = ThermalDemandWrapper(
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+          ThermalEnergyDemand(KilowattHours(1150), KilowattHours(1150)),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+        )
         val initialGridState = ThermalGrid.startingState(thermalGrid)
         val gridState = initialGridState.copy(houseState =
           initialGridState.houseState.map(
@@ -942,17 +992,12 @@ class ThermalGridWithHouseAndStorageSpec
 
         val (firstUpdatedGridState, firstReachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
-            tick,
-            testGridAmbientTemperature,
+            firstRelevantData,
             testGridAmbientTemperature,
             gridState,
             false,
             externalQDot,
-            ThermalEnergyDemand(zeroKWh, zeroKWh),
-            ThermalEnergyDemand(KilowattHours(1150), KilowattHours(1150)),
-            ThermalEnergyDemand(zeroKWh, zeroKWh),
-            defaultSimulationStart,
-            houseInhabitants,
+            firstThermalDemands,
           )
 
         firstUpdatedGridState match {
@@ -1000,22 +1045,29 @@ class ThermalGridWithHouseAndStorageSpec
         }
         firstReachedThreshold shouldBe Some(SimpleThermalThreshold(23))
 
+        val secondRelevantData = HpRelevantData(
+          23L,
+          testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
+        )
+        val secondThermalDemands = ThermalDemandWrapper(
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+          ThermalEnergyDemand(
+            KilowattHours(1149.9083),
+            KilowattHours(1149.9083),
+          ),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+        )
+
         val (secondUpdatedGridState, secondReachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
-            23L,
-            testGridAmbientTemperature,
+            secondRelevantData,
             testGridAmbientTemperature,
             firstUpdatedGridState,
             false,
             externalQDot,
-            ThermalEnergyDemand(zeroKWh, zeroKWh),
-            ThermalEnergyDemand(
-              KilowattHours(1149.9083),
-              KilowattHours(1149.9083),
-            ),
-            ThermalEnergyDemand(zeroKWh, zeroKWh),
-            defaultSimulationStart,
-            houseInhabitants,
+            secondThermalDemands,
           )
 
         secondUpdatedGridState match {
@@ -1059,7 +1111,17 @@ class ThermalGridWithHouseAndStorageSpec
       }
 
       "don't load the heat storage, use qDot directly to cover hot water demand before recharge domestic hot water storage if the upper temperature in the house is reached and the domestic hot water storage is empty" in {
-        val tick = 0L
+        val firstRelevantData = HpRelevantData(
+          0L,
+          testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
+        )
+        val firstThermalDemands = ThermalDemandWrapper(
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+          ThermalEnergyDemand(KilowattHours(1150), KilowattHours(1150)),
+          ThermalEnergyDemand(KilowattHours(12.18), KilowattHours(12.18)),
+        )
         val initialGridState = ThermalGrid.startingState(thermalGrid)
         val gridState = initialGridState.copy(
           houseState = initialGridState.houseState.map(
@@ -1074,17 +1136,12 @@ class ThermalGridWithHouseAndStorageSpec
 
         val (firstUpdatedGridState, firstReachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
-            tick,
-            testGridAmbientTemperature,
+            firstRelevantData,
             testGridAmbientTemperature,
             gridState,
             isNotRunning,
             externalQDot,
-            ThermalEnergyDemand(zeroKWh, zeroKWh),
-            ThermalEnergyDemand(KilowattHours(1150), KilowattHours(1150)),
-            ThermalEnergyDemand(KilowattHours(12.18), KilowattHours(12.18)),
-            defaultSimulationStart,
-            houseInhabitants,
+            firstThermalDemands,
           )
 
         firstUpdatedGridState match {
@@ -1128,19 +1185,26 @@ class ThermalGridWithHouseAndStorageSpec
         }
         firstReachedThreshold shouldBe Some(SimpleThermalThreshold(16))
 
+        val secondRelevantData = HpRelevantData(
+          16L,
+          testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
+        )
+        val secondThermalDemands = ThermalDemandWrapper(
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+          ThermalEnergyDemand(KilowattHours(1150), KilowattHours(1150)),
+          ThermalEnergyDemand(KilowattHours(12.18), KilowattHours(12.18)),
+        )
+
         val (secondUpdatedGridState, secondReachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
-            16L,
-            testGridAmbientTemperature,
+            secondRelevantData,
             testGridAmbientTemperature,
             firstUpdatedGridState,
             isNotRunning,
             externalQDot,
-            ThermalEnergyDemand(zeroKWh, zeroKWh),
-            ThermalEnergyDemand(KilowattHours(1150), KilowattHours(1150)),
-            ThermalEnergyDemand(KilowattHours(12.18), KilowattHours(12.18)),
-            defaultSimulationStart,
-            houseInhabitants,
+            secondThermalDemands,
           )
 
         secondUpdatedGridState match {
