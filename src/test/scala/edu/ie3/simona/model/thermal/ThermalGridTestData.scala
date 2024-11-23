@@ -34,16 +34,19 @@ trait ThermalGridTestData {
     ThermalDemandWrapper(
       ThermalEnergyDemand(zeroKWh, zeroKWh),
       ThermalEnergyDemand(zeroKWh, zeroKWh),
+      ThermalEnergyDemand(zeroKWh, zeroKWh),
     )
   protected val onlyThermalDemandOfHouse: ThermalDemandWrapper =
     ThermalDemandWrapper(
       ThermalEnergyDemand(KilowattHours(1), KilowattHours(2)),
+      ThermalEnergyDemand(zeroKWh, zeroKWh),
       ThermalEnergyDemand(zeroKWh, zeroKWh),
     )
   protected val onlyThermalDemandOfHeatStorage: ThermalDemandWrapper =
     ThermalDemandWrapper(
       ThermalEnergyDemand(zeroKWh, zeroKWh),
       ThermalEnergyDemand(KilowattHours(1), KilowattHours(2)),
+      ThermalEnergyDemand(zeroKWh, zeroKWh),
     )
   protected val isRunning: Boolean = true
   protected val isNotRunning: Boolean = false

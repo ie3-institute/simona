@@ -133,7 +133,7 @@ final case class ThermalHouse(
         )
       ) energy(targetTemperature, currentInnerTemp)
       else
-        zeroMWh
+        zeroKWh
 
     val possibleEnergy =
       if (!isInnerTemperatureTooHigh(currentInnerTemp)) {
@@ -141,7 +141,7 @@ final case class ThermalHouse(
         // there is an amount of optional energy that could be stored
         energy(upperBoundaryTemperature, currentInnerTemp)
       } else
-        zeroMWh
+        zeroKWh
     ThermalEnergyDemand(requiredEnergy, possibleEnergy)
   }
 
@@ -187,7 +187,7 @@ final case class ThermalHouse(
           if (timeDiffSeconds > 3600) {
             val hoursDiff = (timeDiffSeconds / 3600).toInt
             val energyDemandWaterPastHours =
-              (0 until hoursDiff).foldLeft(zeroKWH) { (acc, i) =>
+              (0 until hoursDiff).foldLeft(zeroKWh) { (acc, i) =>
                 val nextFullHourTick = Duration
                   .between(
                     simulationStart,
@@ -206,7 +206,7 @@ final case class ThermalHouse(
           } else if (actualStateTime.getHour != lastStateTime.getHour) {
             val demand = calculateThermalEnergyOfWaterDemand(tick)
             ThermalEnergyDemand(demand, demand)
-          } else ThermalEnergyDemand(zeroKWH, zeroKWH)
+          } else ThermalEnergyDemand(zeroKWh, zeroKWh)
 
         case None => ThermalEnergyDemand.noDemand
       }
@@ -497,7 +497,7 @@ final case class ThermalHouse(
     ) / artificialDuration
     val resultingQDot = qDotExternal - loss
     if (
-      resultingQDot < zeroMW && !isInnerTemperatureTooLow(
+      resultingQDot < zeroKW && !isInnerTemperatureTooLow(
         innerTemperature
       )
     ) {
@@ -509,7 +509,7 @@ final case class ThermalHouse(
         resultingQDot,
       ).map(HouseTemperatureLowerBoundaryReached)
     } else if (
-      resultingQDot > zeroMW && !isInnerTemperatureTooHigh(
+      resultingQDot > zeroKW && !isInnerTemperatureTooHigh(
         innerTemperature
       )
     ) {
@@ -533,7 +533,7 @@ final case class ThermalHouse(
       qDot: Power,
   ): Option[Long] = {
     val flexibleEnergy = energy(higherTemperature, lowerTemperature)
-    if (flexibleEnergy < zeroMWh)
+    if (flexibleEnergy < zeroKWh)
       None
     else {
       val duration = Math.round(
@@ -598,7 +598,7 @@ object ThermalHouse {
     ThermalHouseState(
       -1L,
       house.targetTemperature,
-      zeroMW,
+      zeroKW,
     )
 
   object ThermalHouseThreshold {

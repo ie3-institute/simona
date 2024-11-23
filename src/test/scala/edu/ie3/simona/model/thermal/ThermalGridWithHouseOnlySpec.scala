@@ -7,7 +7,9 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
+import edu.ie3.simona.model.participant.HpModel.HpRelevantData
 import edu.ie3.simona.model.thermal.ThermalGrid.{
+  ThermalDemandWrapper,
   ThermalEnergyDemand,
   ThermalGridState,
 }
@@ -19,7 +21,7 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageFull,
 }
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWH}
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import squants.energy._
 import squants.thermal.Celsius
 import squants.{Energy, Kelvin, Power, Temperature}
@@ -119,7 +121,6 @@ class ThermalGridWithHouseOnlySpec
 
         val (
           thermalDemands,
-          domesticHotWaterDemand,
           updatedThermalGridState,
         ) =
           thermalGrid.energyDemandAndUpdatedState(
@@ -133,6 +134,8 @@ class ThermalGridWithHouseOnlySpec
 
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand
+        val domesticHotWaterDemand =
+          thermalDemands.domesticHotWaterStorageDemand
 
         houseDemand.required should approximate(expectedHouseDemand.required)
         houseDemand.possible should approximate(expectedHouseDemand.possible)
@@ -360,7 +363,17 @@ class ThermalGridWithHouseOnlySpec
         )
 
       "heat up the house and domestic hot water storage parallel" in {
-        val tick = 0L
+        val relevantData = HpRelevantData(
+          0L,
+          testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
+        )
+        val thermalDemands = ThermalDemandWrapper(
+          ThermalEnergyDemand(KilowattHours(10), KilowattHours(15)),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+        )
         val initialGridState = ThermalGrid.startingState(thermalGrid)
         val gridState = initialGridState.copy(
           houseState =
@@ -373,17 +386,12 @@ class ThermalGridWithHouseOnlySpec
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
-            tick,
-            testGridAmbientTemperature,
+            relevantData,
             testGridAmbientTemperature,
             gridState,
             isNotRunning,
             testGridQDotInfeed,
-            ThermalEnergyDemand(KilowattHours(10), KilowattHours(15)),
-            ThermalEnergyDemand(zeroKWH, zeroKWH),
-            ThermalEnergyDemand(zeroKWH, zeroKWH),
-            defaultSimulationStart,
-            houseInhabitants,
+            thermalDemands,
           )
 
         updatedGridState match {
@@ -415,19 +423,26 @@ class ThermalGridWithHouseOnlySpec
           StorageEmpty(23)
         )
 
+        val updatedRelevantData = HpRelevantData(
+          23,
+          testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
+        )
+        val updatedThermalDemands = ThermalDemandWrapper(
+          ThermalEnergyDemand(KilowattHours(9.9), KilowattHours(15)),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+          ThermalEnergyDemand(KilowattHours(12.18), KilowattHours(12.18)),
+        )
+
         val (nextGridState, nextReachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
-            23L,
-            testGridAmbientTemperature,
+            updatedRelevantData,
             testGridAmbientTemperature,
             updatedGridState,
             isRunning,
             testGridQDotInfeed,
-            ThermalEnergyDemand(KilowattHours(9.9), KilowattHours(15)),
-            ThermalEnergyDemand(zeroKWH, zeroKWH),
-            ThermalEnergyDemand(KilowattHours(12.18), KilowattHours(12.18)),
-            defaultSimulationStart,
-            houseInhabitants,
+            updatedThermalDemands,
           )
 
         nextGridState match {
@@ -446,7 +461,7 @@ class ThermalGridWithHouseOnlySpec
             tickDomesticHotWaterStorage shouldBe 23L
             innerTemperature should approximate(Celsius(19.005962d))
             energyDomesticHotWaterStorage should approximate(
-              zeroKWH
+              zeroKWh
             )
             qDotHouse should approximate(testGridQDotInfeed / 2)
             qDotDomesticHotWaterStorage should approximate(
@@ -462,6 +477,17 @@ class ThermalGridWithHouseOnlySpec
 
     "updating the grid state dependent on the given thermal infeed" should {
       "deliver proper result, if energy is fed into the grid, house and domestic hot water storage have demand at the same time" in {
+        val relevantData = HpRelevantData(
+          0L,
+          testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
+        )
+        val thermalDemands = ThermalDemandWrapper(
+          ThermalEnergyDemand(KilowattHours(10), KilowattHours(15)),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+        )
         val initialGridState = ThermalGrid.startingState(thermalGrid)
         // Domestic Hot Water Storage has energy for the heat demand of hot water of the first hour
         val gridState = initialGridState.copy(
@@ -474,17 +500,12 @@ class ThermalGridWithHouseOnlySpec
         )
 
         val (firstState, firstReachedThreshold) = thermalGrid.updateState(
-          0L,
+          relevantData,
           gridState,
-          testGridAmbientTemperature,
           testGridAmbientTemperature,
           isRunning,
           testGridQDotInfeed,
-          ThermalEnergyDemand(KilowattHours(10), KilowattHours(15)),
-          ThermalEnergyDemand(zeroKWH, zeroKWH),
-          ThermalEnergyDemand(zeroKWH, zeroKWH),
-          defaultSimulationStart,
-          houseInhabitants,
+          thermalDemands,
         )
 
         firstState match {
@@ -516,19 +537,26 @@ class ThermalGridWithHouseOnlySpec
         }
         firstReachedThreshold shouldBe Some(StorageEmpty(23))
 
+        val updatedRelevantData = HpRelevantData(
+          23,
+          testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
+        )
+        val updatedThermalDemands = ThermalDemandWrapper(
+          ThermalEnergyDemand(KilowattHours(9.9), KilowattHours(14.9)),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+          ThermalEnergyDemand(KilowattHours(12.18), KilowattHours(12.18)),
+        )
+
         val (secondState, secondReachedThreshold) =
           thermalGrid.updateState(
-            23L,
+            updatedRelevantData,
             firstState,
-            testGridAmbientTemperature,
             testGridAmbientTemperature,
             isRunning,
             testGridQDotInfeed,
-            ThermalEnergyDemand(KilowattHours(9.9), KilowattHours(14.9)),
-            ThermalEnergyDemand(zeroKWH, zeroKWH),
-            ThermalEnergyDemand(KilowattHours(12.18), KilowattHours(12.18)),
-            defaultSimulationStart,
-            houseInhabitants,
+            updatedThermalDemands,
           )
 
         secondState match {
@@ -549,7 +577,7 @@ class ThermalGridWithHouseOnlySpec
             tickDomesticHotWaterStorage shouldBe 23L
             innerTemperature should approximate(Celsius(19.00596))
             energyDomesticHotWaterStorage should approximate(
-              zeroKWH
+              zeroKWh
             )
             qDotHouse should approximate(testGridQDotInfeed / 2)
             qDotDomesticHotWaterStorage should approximate(
@@ -562,18 +590,25 @@ class ThermalGridWithHouseOnlySpec
       }
 
       "deliver proper result, if energy is consumed from the grid" in {
-        val updatedState = thermalGrid.updateState(
+        val relevantData = HpRelevantData(
           0L,
-          ThermalGrid.startingState(thermalGrid),
           testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
+        )
+        val thermalDemands = ThermalDemandWrapper(
+          ThermalEnergyDemand(KilowattHours(0), KilowattHours(1)),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+        )
+
+        val updatedState = thermalGrid.updateState(
+          relevantData,
+          ThermalGrid.startingState(thermalGrid),
           testGridAmbientTemperature,
           isNotRunning,
           testGridQDotConsumption,
-          ThermalEnergyDemand(KilowattHours(0), KilowattHours(1)),
-          ThermalEnergyDemand(zeroKWH, zeroKWH),
-          ThermalEnergyDemand(zeroKWH, zeroKWH),
-          defaultSimulationStart,
-          houseInhabitants,
+          thermalDemands,
         )
 
         updatedState match {
@@ -607,18 +642,25 @@ class ThermalGridWithHouseOnlySpec
           case _ => fail("Thermal grid state updated failed")
         }
 
-        val nextUpdatedState = thermalGrid.updateState(
-          22L,
-          updatedState._1,
+        val updatedRelevantData = HpRelevantData(
+          22,
           testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
+        )
+        val updatedThermalDemands = ThermalDemandWrapper(
+          ThermalEnergyDemand(KilowattHours(0), KilowattHours(1)),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+        )
+
+        val nextUpdatedState = thermalGrid.updateState(
+          updatedRelevantData,
+          updatedState._1,
           testGridAmbientTemperature,
           isNotRunning,
           testGridQDotConsumption,
-          ThermalEnergyDemand(KilowattHours(0), KilowattHours(1)),
-          ThermalEnergyDemand(zeroKWH, zeroKWH),
-          ThermalEnergyDemand(zeroKWH, zeroKWH),
-          defaultSimulationStart,
-          houseInhabitants,
+          thermalDemands,
         )
 
         nextUpdatedState match {
@@ -653,18 +695,24 @@ class ThermalGridWithHouseOnlySpec
       }
 
       "deliver proper result, if energy is neither consumed from nor fed into the grid" in {
-        val updatedState = thermalGrid.updateState(
+        val relevantData = HpRelevantData(
           0L,
-          ThermalGrid.startingState(thermalGrid),
           testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
+        )
+        val thermalDemands = ThermalDemandWrapper(
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+        )
+        val updatedState = thermalGrid.updateState(
+          relevantData,
+          ThermalGrid.startingState(thermalGrid),
           testGridAmbientTemperature,
           isNotRunning,
           zeroKW,
-          ThermalEnergyDemand(zeroKWH, zeroKWH),
-          ThermalEnergyDemand(zeroKWH, zeroKWH),
-          ThermalEnergyDemand(zeroKWH, zeroKWH),
-          defaultSimulationStart,
-          houseInhabitants,
+          thermalDemands,
         )
 
         updatedState match {
@@ -698,18 +746,25 @@ class ThermalGridWithHouseOnlySpec
           case _ => fail("Thermal grid state updated failed")
         }
 
-        val nextUpdatedState = thermalGrid.updateState(
-          22L,
-          updatedState._1,
+        val updatedRelevantData = HpRelevantData(
+          22,
           testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
+        )
+        val updatedThermalDemands = ThermalDemandWrapper(
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
+        )
+
+        val nextUpdatedState = thermalGrid.updateState(
+          updatedRelevantData,
+          updatedState._1,
           testGridAmbientTemperature,
           isNotRunning,
           zeroKW,
-          ThermalEnergyDemand(zeroKWH, zeroKWH),
-          ThermalEnergyDemand(zeroKWH, zeroKWH),
-          ThermalEnergyDemand(zeroKWH, zeroKWH),
-          defaultSimulationStart,
-          houseInhabitants,
+          updatedThermalDemands,
         )
 
         nextUpdatedState match {

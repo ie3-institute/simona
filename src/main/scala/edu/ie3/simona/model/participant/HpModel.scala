@@ -140,6 +140,8 @@ final case class HpModel(
         ),
         relevantData.ambientTemperature,
         lastHpState.thermalGridState,
+        relevantData.simulationStart,
+        relevantData.houseInhabitants,
       )
 
     // Determining the operation point and limitations at this tick
@@ -181,11 +183,12 @@ final case class HpModel(
       currentThermalGridState: ThermalGridState,
       relevantData: HpRelevantData,
       thermalDemands: ThermalDemandWrapper,
-  ): (Boolean, Boolean, Boolean, Boolean) = {
+  ): (Boolean, Boolean, Boolean) = {
 
     val demandHouse = thermalDemands.houseDemand
     val demandThermalStorage = thermalDemands.heatStorageDemand
-    val demandDomesticHotWaterStorage = thermalDemands.domesticHotWaterStorageDemand
+    val demandDomesticHotWaterStorage =
+      thermalDemands.domesticHotWaterStorageDemand
 
     val noThermalStorageOrThermalStorageIsEmpty = determineThermalStorageStatus(
       lastState,
@@ -250,12 +253,9 @@ final case class HpModel(
     * @param isRunning
     *   determines whether the heat pump is running or not
     * @param thermalDemands
-    *   holds the thermal demands of the thermal units (house, heatStorage, hotDomesticWaterStorage)
-   * @param simulationStartTime
-   *   simulationStartDate as ZonedDateTime
-   * @param houseInhabitants
-   *   number of people living in the building
-   * @return
+    *   holds the thermal demands of the thermal units (house, heatStorage,
+    *   hotDomesticWaterStorage)
+    * @return
     *   next [[HpState]]
     */
   private def calcState(
@@ -263,8 +263,6 @@ final case class HpModel(
       relevantData: HpRelevantData,
       isRunning: Boolean,
       thermalDemands: ThermalDemandWrapper,
-      simulationStartTime: ZonedDateTime,
-      houseInhabitants: Double,
   ): HpState = {
     val lastStateStorageQDot = lastState.thermalGridState.storageState
       .map(_.qDot)
@@ -276,11 +274,11 @@ final case class HpModel(
       else if (lastStateStorageQDot < zeroKW)
         (zeroKW, lastStateStorageQDot * (-1))
       else if (
-        lastStateStorageQDot == zeroKW && (demandWrapper.houseDemand.hasRequiredDemand || demandWrapper.heatStorageDemand.hasRequiredDemand)
+        lastStateStorageQDot == zeroKW && (thermalDemands.houseDemand.hasRequiredDemand || thermalDemands.heatStorageDemand.hasRequiredDemand)
       )
         (
           zeroKW,
-          thermalGrid.storage.map(_.getChargingPower: squants.Power).get,
+          thermalGrid.heatStorage.map(_.getChargingPower: squants.Power).get,
         )
       else (zeroKW, zeroKW)
     }
@@ -288,15 +286,12 @@ final case class HpModel(
     /* Push thermal energy to the thermal grid and get its updated state in return */
     val (thermalGridState, maybeThreshold) =
       thermalGrid.updateState(
-        relevantData.currentTick,
+        relevantData,
         lastState.thermalGridState,
         lastState.ambientTemperature.getOrElse(relevantData.ambientTemperature),
-        relevantData.ambientTemperature,
         isRunning,
         newThermalPower,
         thermalDemands,
-        simulationStartTime,
-        houseInhabitants,
       )
 
     HpState(
@@ -380,8 +375,6 @@ final case class HpModel(
       data,
       turnOn,
       thermalDemands,
-      data.simulationStart,
-      data.houseInhabitants,
     )
 
     (

@@ -11,7 +11,7 @@ import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import squants.{Energy, Power, Seconds}
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWH
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
 
 import java.util.UUID
 
@@ -59,7 +59,7 @@ abstract class ThermalStorage(
     energy > (maxEnergyThreshold - toleranceMargin)
 
   def isEmpty(energy: Energy): Boolean =
-    energy < (zeroKWH + toleranceMargin)
+    energy < (zeroKWh + toleranceMargin)
 
   def updateState(
       tick: Long,

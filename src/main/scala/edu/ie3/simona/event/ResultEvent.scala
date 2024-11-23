@@ -96,11 +96,11 @@ object ResultEvent {
   object DomesticHotWaterStorageResult {
     def unapply(result: DomesticHotWaterStorageResult): Option[
       (
-        ZonedDateTime,
+          ZonedDateTime,
           UUID,
           ComparableQuantity[Power],
           ComparableQuantity[Energy],
-        )
+      )
     ] = {
       Option(result).map { result =>
         (

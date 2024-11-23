@@ -100,20 +100,20 @@ final case class DomesticHotWaterStorage(
       if (isFull(newEnergy))
         maxEnergyThreshold
       else if (isEmpty(newEnergy))
-        zeroKWH
+        zeroKWh
       else
         newEnergy
 
     /* Determine, when a threshold is reached */
     val nextThreshold =
-      if (qDot > zeroMW) {
+      if (qDot > zeroKW) {
         val duration = (maxEnergyThreshold - updatedEnergy) / qDot
         val durationInTicks = Math.round(duration.toSeconds)
         if (durationInTicks <= 0L)
           None
         else
           Some(StorageFull(tick + durationInTicks))
-      } else if (qDot < zeroMW) {
+      } else if (qDot < zeroKW) {
         val duration = updatedEnergy / qDot * (-1)
         val durationInTicks = Math.round(duration.toSeconds)
         if (durationInTicks <= 0L)
@@ -141,7 +141,7 @@ final case class DomesticHotWaterStorage(
   override def tryToStoreAndReturnRemainder(
       addedEnergy: Energy
   ): Option[Energy] = {
-    if (addedEnergy > zeroKWH) {
+    if (addedEnergy > zeroKWh) {
       _storedEnergy = _storedEnergy + addedEnergy
       if (_storedEnergy > maxEnergyThreshold) {
         val surplus = _storedEnergy - maxEnergyThreshold
@@ -156,11 +156,11 @@ final case class DomesticHotWaterStorage(
   override def tryToTakeAndReturnLack(
       takenEnergy: Energy
   ): Option[Energy] = {
-    if (takenEnergy > zeroKWH) {
+    if (takenEnergy > zeroKWh) {
       _storedEnergy = _storedEnergy - takenEnergy
-      if (_storedEnergy < zeroKWH) {
-        val lack = zeroKWH - _storedEnergy
-        _storedEnergy = zeroKWH
+      if (_storedEnergy < zeroKWh) {
+        val lack = zeroKWh - _storedEnergy
+        _storedEnergy = zeroKWh
         return Some(lack)
       }
     }

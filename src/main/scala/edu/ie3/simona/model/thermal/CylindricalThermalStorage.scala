@@ -97,20 +97,20 @@ final case class CylindricalThermalStorage(
       if (isFull(newEnergy))
         maxEnergyThreshold
       else if (isEmpty(newEnergy))
-        zeroKWH
+        zeroKWh
       else
         newEnergy
 
     /* Determine, when a threshold is reached */
     val nextThreshold =
-      if (qDot > zeroMW) {
+      if (qDot > zeroKW) {
         val duration = (maxEnergyThreshold - updatedEnergy) / qDot
         val durationInTicks = Math.round(duration.toSeconds)
         if (durationInTicks <= 0L)
           None
         else
           Some(StorageFull(tick + durationInTicks))
-      } else if (qDot < zeroMW) {
+      } else if (qDot < zeroKW) {
         val duration = updatedEnergy / qDot * (-1)
         val durationInTicks = Math.round(duration.toSeconds)
         if (durationInTicks <= 0L)
@@ -126,7 +126,7 @@ final case class CylindricalThermalStorage(
 
   override def startingState: ThermalStorageState = ThermalStorageState(
     -1L,
-    zeroKWH,
+    zeroKWh,
     zeroKW,
   )
 
@@ -155,9 +155,9 @@ final case class CylindricalThermalStorage(
   ): Option[Energy] = {
     if (takenEnergy > zeroKWh) {
       _storedEnergy = _storedEnergy - takenEnergy
-      if (_storedEnergy < zeroKWH) {
-        val lack = zeroKWH - _storedEnergy
-        _storedEnergy = zeroKWH
+      if (_storedEnergy < zeroKWh) {
+        val lack = zeroKWh - _storedEnergy
+        _storedEnergy = zeroKWh
         return Some(lack)
       }
     }
@@ -182,7 +182,7 @@ object CylindricalThermalStorage extends ThermalStorageCalculations {
 
   def apply(
       input: CylindricalStorageInput,
-      initialStoredEnergy: Energy = zeroKWH,
+      initialStoredEnergy: Energy = zeroKWh,
   ): CylindricalThermalStorage = {
 
     val maxEnergyThreshold = volumeToEnergy(
