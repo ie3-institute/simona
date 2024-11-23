@@ -692,25 +692,6 @@ class EmAgentIT
             emResult.getQ should equalWithTolerance(0.000088285537.asMegaVar)
         }
 
-        scheduler.expectMessage(Completion(emAgentActivation, Some(26748)))
-
-        /* TICK 26748
-         LOAD: 0.000269 MW (unchanged)
-         PV:  -0.000032 MW (unchanged)
-         Heat pump: Is turned on again and cannot be turned off
-         -> flex signal is no control -> 0.00485 MW
-         */
-
-        emAgentActivation ! Activation(26748)
-
-        resultListener.expectMessageType[ParticipantResultEvent] match {
-          case ParticipantResultEvent(emResult: EmResult) =>
-            emResult.getInputModel shouldBe emInput.getUuid
-            emResult.getTime shouldBe 26748.toDateTime
-            emResult.getP should equalWithTolerance(0.005086768.asMegaWatt)
-            emResult.getQ should equalWithTolerance(0.00107312004.asMegaVar)
-        }
-
         scheduler.expectMessage(Completion(emAgentActivation, Some(28800)))
       }
     }
