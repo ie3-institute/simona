@@ -504,7 +504,6 @@ class ThermalGridWithHouseAndStorageSpec
             testGridAmbientTemperature,
             testGridAmbientTemperature,
             initialGridState,
-            // Fixme startingState and isRunning do not match here
             isRunning,
             externalQDot,
             onlyThermalDemandOfHouse,
@@ -555,7 +554,6 @@ class ThermalGridWithHouseAndStorageSpec
             testGridAmbientTemperature,
             testGridAmbientTemperature,
             gridState,
-            // Fixme startingState and isRunning do not match here
             isRunning,
             externalQDot,
             onlyThermalDemandOfHeatStorage,
