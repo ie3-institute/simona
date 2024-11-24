@@ -770,12 +770,12 @@ class ThermalGridWithHouseAndStorageSpec
         val secondThermalDemands = ThermalDemandWrapper(
           ThermalEnergyDemand(KilowattHours(9.9), KilowattHours(14.9)),
           ThermalEnergyDemand(zeroKWh, zeroKWh),
-          ThermalEnergyDemand(zeroKWh, zeroKWh)
+          ThermalEnergyDemand(zeroKWh, zeroKWh),
         )
 
         val (secondUpdatedGridState, secondReachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
-    secondRelevantData,
+            secondRelevantData,
             testGridAmbientTemperature,
             updatedGridState,
             isRunning,
@@ -838,7 +838,7 @@ class ThermalGridWithHouseAndStorageSpec
         val firstThermalDemands = ThermalDemandWrapper(
           ThermalEnergyDemand(KilowattHours(5), KilowattHours(15)),
           ThermalEnergyDemand(zeroKWh, zeroKWh),
-          ThermalEnergyDemand(KilowattHours(12.18), KilowattHours(12.18))
+          ThermalEnergyDemand(KilowattHours(12.18), KilowattHours(12.18)),
         )
         val initialGridState = ThermalGrid.startingState(thermalGrid)
 
@@ -851,7 +851,7 @@ class ThermalGridWithHouseAndStorageSpec
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
-     firstRelevantData,
+            firstRelevantData,
             testGridAmbientTemperature,
             gridState,
             isRunning,
@@ -917,7 +917,7 @@ class ThermalGridWithHouseAndStorageSpec
 
         val (secondUpdatedGridState, secondReachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
-       secondRelevantData,
+            secondRelevantData,
             testGridAmbientTemperature,
             updatedGridState,
             isRunning,

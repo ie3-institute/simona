@@ -194,7 +194,7 @@ class ChpModelSpec
         (
           chpStateNotRunning,
           90,
-          8 * 115 +230,
+          8 * 115 + 230,
           100,
         ), // tests case (false, true, false)
         (chpStateNotRunning, 90, 10, 0), // tests case (false, true, true)
