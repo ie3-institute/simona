@@ -241,8 +241,6 @@ final case class HpModel(
     *   data of heat pump including state of the heat pump
     * @param isRunning
     *   determines whether the heat pump is running or not
-    * @param demandWrapper
-    *   holds the thermal demands of the thermal units (house, storage)
     * @return
     *   next [[HpState]]
     */
@@ -250,7 +248,6 @@ final case class HpModel(
       lastState: HpState,
       relevantData: HpRelevantData,
       isRunning: Boolean,
-      demandWrapper: ThermalDemandWrapper,
   ): HpState = {
     val lastStateStorageQDot = lastState.thermalGridState.storageState
       .map(_.qDot)
