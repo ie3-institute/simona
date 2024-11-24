@@ -16,6 +16,7 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalEnergyDemand,
   ThermalGridState,
 }
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageEmpty,
@@ -31,6 +32,7 @@ import scala.jdk.CollectionConverters._
 
 class ThermalGridWithStorageOnlySpec
     extends UnitSpec
+    with ThermalHouseTestData
     with ThermalStorageTestData
     with DefaultTestData {
 
@@ -252,40 +254,49 @@ class ThermalGridWithStorageOnlySpec
           defaultSimulationStart,
           houseInhabitants,
         )
+        // We need a thermalHouse here to have a heat sink which is causing the discharge of the thermal storage
+        val thermalGridWithHouseAndStorage: ThermalGrid = ThermalGrid(
+          new edu.ie3.datamodel.models.input.container.ThermalGrid(
+            thermalBusInput,
+            Set[ThermalHouseInput](thermalHouseInput).asJava,
+            Set[ThermalStorageInput](thermalStorageInput).asJava,
+            Set.empty[ThermalStorageInput].asJava,
+          )
+        )
         val gridState = ThermalGrid
-          .startingState(thermalGrid)
-          .copy(storageState =
-            Some(
+          .startingState(thermalGridWithHouseAndStorage)
+          .copy(
+            houseState = Some(ThermalHouseState(0L, Celsius(18), zeroKW)),
+            storageState = Some(
               ThermalStorageState(
                 0L,
-                KilowattHours(150d),
+                KilowattHours(11d),
                 zeroKW,
               )
-            )
+            ),
           )
-
         val (updatedGridState, reachedThreshold) =
-          thermalGrid invokePrivate handleInfeed(
+          thermalGridWithHouseAndStorage invokePrivate handleInfeed(
             relevantData,
             testGridAmbientTemperature,
             gridState,
             isNotRunning,
-            testGridQDotInfeed,
-            onlyThermalDemandOfHeatStorage,
+            Kilowatts(11),
+            onlyThermalDemandOfHouse,
           )
 
         updatedGridState match {
           case ThermalGridState(
-                None,
+                _,
                 Some(ThermalStorageState(tick, storedEnergy, qDot)),
                 None,
               ) =>
             tick shouldBe 0L
-            storedEnergy should approximate(KilowattHours(150d))
-            qDot should approximate(testGridQDotInfeed * (-1))
+            storedEnergy should approximate(KilowattHours(11d))
+            qDot should approximate(Kilowatts(-11))
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
-        reachedThreshold shouldBe Some(StorageEmpty(36000L))
+        reachedThreshold shouldBe Some(StorageEmpty(3600))
       }
 
     }
