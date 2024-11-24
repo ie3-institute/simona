@@ -134,7 +134,10 @@ class ThermalGridWithStorageOnlySpec
         )
 
       "properly take the energy from storage" in {
-        val tick = 0L
+        val relevantData = HpRelevantData(
+          0L,
+          testGridAmbientTemperature,
+        )
         val gridState = ThermalGrid
           .startingState(thermalGrid)
           .copy(storageState =
@@ -149,8 +152,7 @@ class ThermalGridWithStorageOnlySpec
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
-            tick,
-            testGridAmbientTemperature,
+relevantData,
             testGridAmbientTemperature,
             gridState,
             testGridQDotConsumptionHigh,
@@ -177,13 +179,15 @@ class ThermalGridWithStorageOnlySpec
         )
 
       "properly put energy to storage" in {
-        val tick = 0L
+        val relevantData = HpRelevantData(
+          0L,
+          testGridAmbientTemperature,
+        )
         val gridState = ThermalGrid.startingState(thermalGrid)
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
-            tick,
-            testGridAmbientTemperature,
+relevantData,
             testGridAmbientTemperature,
             gridState,
             testGridQDotInfeed,

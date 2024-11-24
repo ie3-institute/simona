@@ -156,7 +156,10 @@ class ThermalGridWithHouseAndStorageSpec
         )
 
       "return house threshold, if storage is in balance" in {
-        val tick = 0L
+        val relevantData = HpRelevantData(
+          0L,
+          testGridAmbientTemperature,
+        )
         val initialGridState = ThermalGrid.startingState(thermalGrid)
         val initialLoading = KilowattHours(430d)
         val gridState = initialGridState.copy(storageState =
@@ -168,8 +171,7 @@ class ThermalGridWithHouseAndStorageSpec
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
-            tick,
-            testGridAmbientTemperature,
+            relevantData,
             testGridAmbientTemperature,
             gridState,
             externalQDot,
@@ -495,14 +497,16 @@ class ThermalGridWithHouseAndStorageSpec
         )
 
       "heat the house, if the upper temperature in the house is not reached" in {
-        val tick = 0L
+        val relevantData = HpRelevantData(
+          0L,
+          testGridAmbientTemperature,
+        )
         val initialGridState = ThermalGrid.startingState(thermalGrid)
         val externalQDot = testGridQDotInfeed
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
-            tick,
-            testGridAmbientTemperature,
+            relevantData,
             testGridAmbientTemperature,
             initialGridState,
             externalQDot,
@@ -536,7 +540,10 @@ class ThermalGridWithHouseAndStorageSpec
       }
 
       "load the storage, if the upper temperature in the house is reached" in {
-        val tick = 0L
+        val relevantData = HpRelevantData(
+          0L,
+          testGridAmbientTemperature,
+        )
         val initialGridState = ThermalGrid.startingState(thermalGrid)
         val gridState = initialGridState.copy(houseState =
           initialGridState.houseState.map(
@@ -547,8 +554,7 @@ class ThermalGridWithHouseAndStorageSpec
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
-            tick,
-            testGridAmbientTemperature,
+            relevantData,
             testGridAmbientTemperature,
             gridState,
             externalQDot,
