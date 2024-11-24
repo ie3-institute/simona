@@ -65,15 +65,15 @@ final class SampleWeatherSource(
   private def getWeather(
       tick: Long
   ): WeatherData = {
-    val wallClockTime = tick.toDateTime
-    val month = wallClockTime.get(MONTH_OF_YEAR) - 1
-    val hour = wallClockTime.get(HOUR_OF_DAY)
+    val simulationTime = tick.toDateTime
+    val month = simulationTime.get(MONTH_OF_YEAR) - 1
+    val hour = simulationTime.get(HOUR_OF_DAY)
     val year =
       if (
-        wallClockTime.get(YEAR) != 2011 && !(wallClockTime
+        simulationTime.get(YEAR) != 2011 && !(simulationTime
           .get(YEAR) == 2012 && month == 0)
       ) 2011
-      else wallClockTime.get(YEAR)
+      else simulationTime.get(YEAR)
     val index = (((year - 2011) * 288) + (month * 24) + hour) + 1
     WeatherData(
       WattsPerSquareMeter(

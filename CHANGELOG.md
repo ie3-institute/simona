@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add some quote to 'printGoodbye' [#997](https://github.com/ie3-institute/simona/issues/997)
 - Add unapply method for ThermalHouseResults [#934](https://github.com/ie3-institute/simona/issues/934)
 - Added `ApparentPower` to differentiate between different power types [#794](https://github.com/ie3-institute/simona/issues/794)
+- Update/enhance config documentation [#1013](https://github.com/ie3-institute/simona/issues/1013)
 - Create `CITATION.cff` [#1035](https://github.com/ie3-institute/simona/issues/1035)
 
 ### Changed
@@ -143,6 +144,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix some minor issues and findings from inspections [#1019](https://github.com/ie3-institute/simona/issues/1019)
 - Fix initialisation freezing on empty primary data [#981](https://github.com/ie3-institute/simona/issues/981)
 - Shallow fetch in CI [#1041](https://github.com/ie3-institute/simona/issues/1041)
+- Correct wrong use of term "wall clock time" [#727](https://github.com/ie3-institute/simona/issues/727)
 
 ## [3.0.0] - 2023-08-07
 
