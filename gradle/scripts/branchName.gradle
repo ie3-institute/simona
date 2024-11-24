@@ -6,18 +6,8 @@ tasks.register('checkBranchName') {
 
     def branchName = project.property('branchName')
 
-    def patterns = [
-            /^[a-z]{2}\\/#[0-9]+(?:-.+)?$/,
-            /.*main/,
-            /^dependabot\/.*$/,
-            /.*hotfix\/\pL{2}\/#\d+.*/,
-            /^(developer|develop|dev)$/,
-            /.*rel\/.*/
-    ]
-
-    def isValid = patterns.any { pattern -> branchName.matches(pattern) }
-
-    if (!isValid) {
+    def pattern = /^[a-z]{2}\\/#[0-9]+(?:-.+)?$/
+    if (!branchName.matches(pattern)) {
       throw new GradleException("Error: Check Branch name format (e.g., ps/#1337-FeatureName).")
     }
 
