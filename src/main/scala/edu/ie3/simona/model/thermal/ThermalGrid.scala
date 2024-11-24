@@ -15,6 +15,7 @@ import edu.ie3.datamodel.models.result.thermal.{
 }
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.thermal.ThermalGrid.{
+  ThermalDemandWrapper,
   ThermalEnergyDemand,
   ThermalGridState,
 }
@@ -63,7 +64,7 @@ final case class ThermalGrid(
       lastAmbientTemperature: Temperature,
       ambientTemperature: Temperature,
       state: ThermalGridState,
-  ): (ThermalEnergyDemand, ThermalEnergyDemand, ThermalGridState) = {
+  ): (ThermalDemandWrapper, ThermalGridState) = {
     /* First get the energy demand of the houses but only if inner temperature is below target temperature */
 
     val (houseDemand, updatedHouseState) =
@@ -134,13 +135,15 @@ final case class ThermalGrid(
     }
 
     (
-      ThermalEnergyDemand(
-        houseDemand.required,
-        houseDemand.possible,
-      ),
-      ThermalEnergyDemand(
-        storageDemand.required,
-        storageDemand.possible,
+      ThermalDemandWrapper(
+        ThermalEnergyDemand(
+          houseDemand.required,
+          houseDemand.possible,
+        ),
+        ThermalEnergyDemand(
+          storageDemand.required,
+          storageDemand.possible,
+        ),
       ),
       ThermalGridState(updatedHouseState, updatedStorageState),
     )
@@ -191,6 +194,8 @@ final case class ThermalGrid(
     *   Current state of the houses
     * @param qDot
     *   Infeed to the grid
+    * @param thermalDemands
+    *   holds the thermal demands of the thermal units (house, storage)
     * @return
     *   Updated thermal grid state
     */
@@ -539,6 +544,18 @@ object ThermalGrid {
       thermalGrid.house.map(house => ThermalHouse.startingState(house)),
       thermalGrid.storage.map(_.startingState),
     )
+
+  /** Wraps the demand of thermal units (thermal house, thermal storage).
+    *
+    * @param houseDemand
+    *   the demand of the thermal house
+    * @param heatStorageDemand
+    *   the demand of the thermal heat storage
+    */
+  final case class ThermalDemandWrapper private (
+      houseDemand: ThermalEnergyDemand,
+      heatStorageDemand: ThermalEnergyDemand,
+  )
 
   /** Defines the thermal energy demand of a thermal grid. It comprises the
     * absolutely required energy demand to reach the target state as well as an

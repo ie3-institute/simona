@@ -20,6 +20,7 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageFull,
 }
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import squants.energy._
 import squants.thermal.Celsius
 import squants.{Energy, Kelvin, Power, Temperature}
@@ -97,13 +98,16 @@ class ThermalGridWithHouseAndStorageSpec
       "deliver the house demand (no demand) with added flexibility by storage" in {
         val tick = 10800 // after three hours
 
-        val (houseDemand, storageDemand, updatedThermalGridState) =
+        val (thermalDemands, updatedThermalGridState) =
           thermalGrid.energyDemandAndUpdatedState(
             tick,
             testGridAmbientTemperature,
             testGridAmbientTemperature,
             ThermalGrid.startingState(thermalGrid),
           )
+        val houseDemand = thermalDemands.houseDemand
+        val storageDemand = thermalDemands.heatStorageDemand
+
         houseDemand.required should approximate(zeroKWh)
         houseDemand.possible should approximate(KilowattHours(31.05009722d))
         storageDemand.required should approximate(KilowattHours(1150d))
@@ -120,7 +124,7 @@ class ThermalGridWithHouseAndStorageSpec
         val tick = 10800 // after three hours
 
         val startingState = ThermalGrid.startingState(thermalGrid)
-        val (houseDemand, storageDemand, updatedThermalGridState) =
+        val (thermalDemands, updatedThermalGridState) =
           thermalGrid.energyDemandAndUpdatedState(
             tick,
             testGridAmbientTemperature,
@@ -131,6 +135,8 @@ class ThermalGridWithHouseAndStorageSpec
               )
             ),
           )
+        val houseDemand = thermalDemands.houseDemand
+        val storageDemand = thermalDemands.heatStorageDemand
 
         houseDemand.required should approximate(KilowattHours(45.6000555))
         houseDemand.possible should approximate(KilowattHours(75.600055555))

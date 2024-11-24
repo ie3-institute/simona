@@ -13,8 +13,8 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureLowerBoundaryReached,
   HouseTemperatureUpperBoundaryReached,
 }
-import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import squants.energy._
 import squants.thermal.Celsius
 import squants.{Energy, Kelvin, Power, Temperature}
@@ -81,13 +81,16 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           expectedHouseStartingState,
         )
 
-        val (houseDemand, storageDemand, updatedThermalGridState) =
+        val (thermalDemands, updatedThermalGridState) =
           thermalGrid.energyDemandAndUpdatedState(
             tick,
             testGridAmbientTemperature,
             testGridAmbientTemperature,
             ThermalGrid.startingState(thermalGrid),
           )
+
+        val houseDemand = thermalDemands.houseDemand
+        val storageDemand = thermalDemands.heatStorageDemand
 
         houseDemand.required should approximate(expectedHouseDemand.required)
         houseDemand.possible should approximate(expectedHouseDemand.possible)
