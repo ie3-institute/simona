@@ -165,12 +165,12 @@ class HpModelSpec
           ),
           (
             HpState(
-              isRunning = false,
+              isRunning = true,
               0,
               Some(hpData.ambientTemperature),
-              Kilowatts(0),
-              Kilowatts(0),
-              thermalState(Celsius(22), zeroKW),
+              Kilowatts(95d),
+              Kilowatts(80d),
+              thermalState(Celsius(22), Kilowatts(80d)),
               None,
             ),
             false,
@@ -829,7 +829,6 @@ class HpModelSpec
               ),
               (0.0, 0.0, 0.0),
             ),
-
             // 22. No capacity for flexibility at all when storage is full and house has been (externally) heated up above upperTemperatureBoundary
             (
               ThermalGridState(
