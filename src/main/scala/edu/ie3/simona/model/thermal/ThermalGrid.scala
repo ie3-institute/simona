@@ -391,17 +391,33 @@ final case class ThermalGrid(
               )
           }
 
-        // Same cases if there is Some(heatStorageDemand) or not
         case (true, _, _, _, false, _) =>
-          pushThermalHeatIntoHouseOnly(
-            relevantData.currentTick,
-            lastAmbientTemperature,
-            relevantData.ambientTemperature,
-            state,
-            qDot,
-            relevantData.simulationStart,
-            relevantData.houseInhabitants,
-          )
+          // if there is a heatStorage that isn't empty, take energy from storage
+          updatedHeatStorageState match {
+            case Some(storageState)
+                if (storageState.storedEnergy > zeroKWh && !isRunning) =>
+              handleCases(
+                relevantData.currentTick,
+                lastAmbientTemperature,
+                relevantData.ambientTemperature,
+                state,
+                heatStorage.map(_.getChargingPower).getOrElse(zeroKW),
+                heatStorage.map(_.getChargingPower).getOrElse(zeroKW) * (-1),
+                zeroKW,
+                relevantData.simulationStart,
+                relevantData.houseInhabitants,
+              )
+            case _ =>
+              pushThermalHeatIntoHouseOnly(
+                relevantData.currentTick,
+                lastAmbientTemperature,
+                relevantData.ambientTemperature,
+                state,
+                qDot,
+                relevantData.simulationStart,
+                relevantData.houseInhabitants,
+              )
+          }
 
         // Prioritize domestic hot water storage
         // Same case if there is Some(heatStorageDemand) or not
