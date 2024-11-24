@@ -134,11 +134,10 @@ final case class HpModel(
     // Use lastHpState and relevantData to update state of thermalGrid to the current tick
     val (demandHouse, demandThermalStorage, currentThermalGridState) =
       thermalGrid.energyDemandAndUpdatedState(
-        relevantData.currentTick,
+        relevantData,
         lastHpState.ambientTemperature.getOrElse(
           relevantData.ambientTemperature
         ),
-        relevantData.ambientTemperature,
         lastHpState.thermalGridState,
       )
 
@@ -279,10 +278,9 @@ final case class HpModel(
     /* Push thermal energy to the thermal grid and get its updated state in return */
     val (thermalGridState, maybeThreshold) =
       thermalGrid.updateState(
-        relevantData.currentTick,
+        relevantData,
         lastState.thermalGridState,
         lastState.ambientTemperature.getOrElse(relevantData.ambientTemperature),
-        relevantData.ambientTemperature,
         newThermalPower,
       )
 

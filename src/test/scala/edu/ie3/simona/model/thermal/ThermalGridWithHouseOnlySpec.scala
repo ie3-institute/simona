@@ -7,6 +7,7 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
+import edu.ie3.simona.model.participant.HpModel.HpRelevantData
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
@@ -74,17 +75,18 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
 
     "determining the energy demand" should {
       "exactly be the demand of the house" in {
-        val tick = 10800 // after three hours
-        val expectedHouseDemand = thermalHouse.energyDemand(
-          tick,
+        val relevantData = HpRelevantData(
+          10800, // after three hours
           testGridAmbientTemperature,
+        )
+        val expectedHouseDemand = thermalHouse.energyDemand(
+          relevantData,
           expectedHouseStartingState,
         )
 
         val (houseDemand, storageDemand, updatedThermalGridState) =
           thermalGrid.energyDemandAndUpdatedState(
-            tick,
-            testGridAmbientTemperature,
+            relevantData,
             testGridAmbientTemperature,
             ThermalGrid.startingState(thermalGrid),
           )
@@ -200,11 +202,12 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
     }
 
     "updating the grid state dependent on the given thermal infeed" should {
+      val relevantData = HpRelevantData(0, testGridAmbientTemperature)
       "deliver proper result, if energy is fed into the grid" in {
+
         thermalGrid.updateState(
-          0L,
+          relevantData,
           ThermalGrid.startingState(thermalGrid),
-          testGridAmbientTemperature,
           testGridAmbientTemperature,
           testGridQDotInfeed,
         ) match {
@@ -225,9 +228,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
 
       "deliver proper result, if energy is consumed from the grid" in {
         thermalGrid.updateState(
-          0L,
+          relevantData,
           ThermalGrid.startingState(thermalGrid),
-          testGridAmbientTemperature,
           testGridAmbientTemperature,
           testGridQDotConsumption,
         ) match {
@@ -248,9 +250,8 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
 
       "deliver proper result, if energy is neither consumed from nor fed into the grid" in {
         thermalGrid.updateState(
-          0L,
+          relevantData,
           ThermalGrid.startingState(thermalGrid),
-          testGridAmbientTemperature,
           testGridAmbientTemperature,
           zeroKW,
         ) match {
