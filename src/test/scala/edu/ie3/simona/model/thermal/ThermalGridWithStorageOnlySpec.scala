@@ -152,7 +152,7 @@ class ThermalGridWithStorageOnlySpec
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleConsumption(
-relevantData,
+            relevantData,
             testGridAmbientTemperature,
             gridState,
             testGridQDotConsumptionHigh,
@@ -187,7 +187,7 @@ relevantData,
 
         val (updatedGridState, reachedThreshold) =
           thermalGrid invokePrivate handleInfeed(
-relevantData,
+            relevantData,
             testGridAmbientTemperature,
             gridState,
             testGridQDotInfeed,
