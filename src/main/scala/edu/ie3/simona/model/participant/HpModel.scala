@@ -153,7 +153,7 @@ final case class HpModel(
 
     // Updating the HpState
     val updatedState =
-      calcState(lastHpState, relevantData, turnOn, thermalDemandWrapper)
+      calcState(lastHpState, relevantData, turnOn)
     (canOperate, canBeOutOfOperation, updatedState)
   }
 
@@ -333,22 +333,10 @@ final case class HpModel(
     /* If the set point value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
     val turnOn = setPower > (sRated.toActivePower(cosPhiRated) * 0.5)
 
-    val (
-      thermalDemands,
-      _,
-    ) =
-      thermalGrid.energyDemandAndUpdatedState(
-        data.currentTick,
-        lastState.ambientTemperature.getOrElse(data.ambientTemperature),
-        data.ambientTemperature,
-        lastState.thermalGridState,
-      )
-
     val updatedHpState = calcState(
       lastState,
       data,
       turnOn,
-      thermalDemands,
     )
 
     (
