@@ -112,7 +112,12 @@ final case class HpModel(
       tick: Long,
       currentState: HpState,
       data: HpRelevantData,
-  ): Power = currentState.qDot
+  ): Power =
+    // only if Hp is running qDot will be from Hp, else qDot results from other source, e.g. some storage
+    if (currentState.isRunning)
+      currentState.qDot
+    else
+      zeroKW
 
   /** Given a [[HpRelevantData]] object and the last [[HpState]], this function
     * calculates the heat pump's next state to get the actual active power of
