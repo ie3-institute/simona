@@ -22,8 +22,8 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
-import squants.energy.{KilowattHours, Kilowatts}
-import squants.{Energy, Power, Temperature}
+import squants.energy.Kilowatts
+import squants.{Power, Temperature}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -180,11 +180,8 @@ final case class HpModel(
 
     val demandHouse = thermalDemands.houseDemand
     val demandThermalStorage = thermalDemands.heatStorageDemand
-
-    val noThermalStorageOrThermalStorageIsEmpty = determineThermalStorageStatus(
-      lastState,
-      currentThermalGridState,
-    )
+    val noThermalStorageOrThermalStorageIsEmpty =
+      currentThermalGridState.isThermalStorageEmpty
 
     val turnHpOn =
       (demandHouse.hasRequiredDemand && noThermalStorageOrThermalStorageIsEmpty) ||
@@ -203,32 +200,6 @@ final case class HpModel(
       canOperate,
       canBeOutOfOperation,
     )
-  }
-
-  /** This method will return booleans whether there is a heat demand of house
-    * or thermal storage as well as a boolean indicating if there is no thermal
-    * storage, or it is empty.
-    *
-    * @param lastHpState
-    *   Current state of the heat pump
-    * @param updatedGridState
-    *   The updated state of the [[ThermalGrid]]
-    * @return
-    *   boolean which is true, if there is no thermalStorage, or it's empty.
-    */
-
-  private def determineThermalStorageStatus(
-      lastHpState: HpState,
-      updatedGridState: ThermalGridState,
-  ): Boolean = {
-    implicit val tolerance: Energy = KilowattHours(1e-3)
-    val noThermalStorageOrThermalStorageIsEmpty: Boolean =
-      updatedGridState.storageState.isEmpty || updatedGridState.storageState
-        .exists(
-          _.storedEnergy =~ zeroKWh
-        )
-
-    noThermalStorageOrThermalStorageIsEmpty
   }
 
   /** Calculate state depending on whether heat pump is needed or not. Also
