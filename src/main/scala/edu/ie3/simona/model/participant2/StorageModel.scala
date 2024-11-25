@@ -47,6 +47,7 @@ class StorageModel private (
     override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
+    override val initialState: Long => StorageState,
     eStorage: Energy,
     pMax: Power,
     eta: Dimensionless,
@@ -312,10 +313,6 @@ class StorageModel private (
   private def isEmpty(storedEnergy: Energy): Boolean =
     storedEnergy <= minEnergyWithMargin
 
-  def getInitialState(config: StorageRuntimeConfig): StorageState = {
-    val initialStorage = eStorage * config.initialSoc
-    StorageState(storedEnergy = initialStorage, -1L)
-  }
 }
 
 object StorageModel {
@@ -336,7 +333,20 @@ object StorageModel {
   def apply(
       inputModel: StorageInput,
       config: StorageRuntimeConfig,
-  ): StorageModel =
+  ): StorageModel = {
+    val eStorage = KilowattHours(
+      inputModel.getType.geteStorage
+        .to(PowerSystemUnits.KILOWATTHOUR)
+        .getValue
+        .doubleValue
+    )
+    def getInitialState(eStorage: Energy, config: StorageRuntimeConfig)(
+        tick: Long
+    ): StorageState = {
+      val initialStorage = eStorage * config.initialSoc
+      StorageState(storedEnergy = initialStorage, tick)
+    }
+
     new StorageModel(
       inputModel.getUuid,
       Kilovoltamperes(
@@ -347,12 +357,8 @@ object StorageModel {
       ),
       inputModel.getType.getCosPhiRated,
       QControl.apply(inputModel.getqCharacteristics),
-      KilowattHours(
-        inputModel.getType.geteStorage
-          .to(PowerSystemUnits.KILOWATTHOUR)
-          .getValue
-          .doubleValue
-      ),
+      getInitialState(eStorage, config),
+      eStorage,
       Kilowatts(
         inputModel.getType.getpMax
           .to(PowerSystemUnits.KILOWATT)
@@ -364,4 +370,6 @@ object StorageModel {
       ),
       config.targetSoc,
     )
+  }
+
 }

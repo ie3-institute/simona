@@ -41,6 +41,8 @@ abstract class ParticipantModel[
   val cosPhiRated: Double
   val qControl: QControl
 
+  val initialState: Long => S
+
   protected val pRated: Power = sRated.toActivePower(cosPhiRated)
 
   /** Get a partial function, that transfers the current active into reactive
@@ -186,7 +188,7 @@ object ParticipantModel {
     * @param dateTime
     *   The current datetime, corresponding to the current tick
     */
-  case class DateTimeData(tick: Long, dateTime: ZonedDateTime)
+  final case class DateTimeData(tick: Long, dateTime: ZonedDateTime)
       extends OperationRelevantData
 
   trait OperatingPoint {
@@ -224,7 +226,7 @@ object ParticipantModel {
   ] {
     this: ParticipantModel[OP, FixedState, OR] =>
 
-    def getInitialState: FixedState = FixedState(-1)
+    override val initialState: Long => FixedState = tick => FixedState(tick)
 
     override def determineState(
         lastState: FixedState,

@@ -78,6 +78,9 @@ class EvcsModel private (
     ]
     with EvcsChargingProperties {
 
+  override val initialState: Long => EvcsState = tick =>
+    EvcsState(Seq.empty, tick)
+
   override def determineOperatingPoint(
       state: EvcsState,
       relevantData: EvcsRelevantData,
@@ -583,7 +586,6 @@ class EvcsModel private (
   private def calcToleranceMargin(ev: EvModelWrapper): Energy =
     getMaxAvailableChargingPower(ev) * Seconds(1)
 
-  def getInitialState: EvcsState = EvcsState(Seq.empty, -1)
 }
 
 object EvcsModel {

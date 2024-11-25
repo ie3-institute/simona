@@ -9,6 +9,7 @@ package edu.ie3.simona.agent.participant2
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
+import edu.ie3.simona.agent.participant2.MockParticipantModel.MockResult
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
 import edu.ie3.simona.model.participant2.ParticipantModel
@@ -24,7 +25,10 @@ import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants.Dimensionless
 import squants.energy.{Kilowatts, Power}
+import tech.units.indriya.ComparableQuantity
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 
+import javax.measure.quantity.{Power => QuantPower}
 import java.time.ZonedDateTime
 import java.util.UUID
 
@@ -58,7 +62,15 @@ class MockParticipantModel(
       currentOperatingPoint: ActivePowerOperatingPoint,
       complexPower: PrimaryData.ComplexPower,
       dateTime: ZonedDateTime,
-  ): Iterable[SystemParticipantResult] = ???
+  ): Iterable[SystemParticipantResult] =
+    Iterable(
+      MockResult(
+        dateTime,
+        uuid,
+        complexPower.p.toMegawatts.asMegaWatt,
+        complexPower.q.toMegavars.asMegaVar,
+      )
+    )
 
   override def createPrimaryDataResult(
       data: PrimaryData.PrimaryDataWithComplexPower[_],
@@ -86,4 +98,15 @@ class MockParticipantModel(
       flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,
   ): (ActivePowerOperatingPoint, ModelChangeIndicator) = ???
+}
+
+object MockParticipantModel {
+
+  final case class MockResult(
+      time: ZonedDateTime,
+      inputModel: UUID,
+      p: ComparableQuantity[QuantPower],
+      q: ComparableQuantity[QuantPower],
+  ) extends SystemParticipantResult(time, inputModel, p, q)
+
 }

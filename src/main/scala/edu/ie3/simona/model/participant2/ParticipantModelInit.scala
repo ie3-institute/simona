@@ -34,7 +34,7 @@ object ParticipantModelInit {
   def createModel(
       participantInput: SystemParticipantInput,
       modelConfig: BaseRuntimeConfig,
-  ): ParticipantModelInitContainer[
+  ): ParticipantModel[
     _ <: OperatingPoint,
     _ <: ModelState,
     _ <: OperationRelevantData,
@@ -48,29 +48,17 @@ object ParticipantModelInit {
 
     (scaledParticipantInput, modelConfig) match {
       case (input: FixedFeedInInput, _) =>
-        val model = FixedFeedInModel(input)
-        val state = model.getInitialState
-        ParticipantModelInitContainer(model, state)
+        FixedFeedInModel(input)
       case (input: LoadInput, config: LoadRuntimeConfig) =>
-        val model = LoadModel(input, config)
-        val state = model.getInitialState
-        ParticipantModelInitContainer(model, state)
+        LoadModel(input, config)
       case (input: PvInput, _) =>
-        val model = PvModel(input)
-        val state = model.getInitialState
-        ParticipantModelInitContainer(model, state)
+        PvModel(input)
       case (input: WecInput, _) =>
-        val model = WecModel(input)
-        val state = model.getInitialState
-        ParticipantModelInitContainer(model, state)
+        WecModel(input)
       case (input: StorageInput, config: StorageRuntimeConfig) =>
-        val model = StorageModel(input, config)
-        val state = model.getInitialState(config)
-        ParticipantModelInitContainer(model, state)
+        StorageModel(input, config)
       case (input: EvcsInput, config: EvcsRuntimeConfig) =>
-        val model = EvcsModel(input, config)
-        val state = model.getInitialState
-        ParticipantModelInitContainer(model, state)
+        EvcsModel(input, config)
       case (input, config) =>
         throw new CriticalFailureException(
           s"Handling the input model ${input.getClass.getSimpleName} or " +
@@ -84,17 +72,16 @@ object ParticipantModelInit {
       participantInput: SystemParticipantInput,
       modelConfig: BaseRuntimeConfig,
       primaryDataMeta: PrimaryDataMeta[P],
-  ): ParticipantModelInitContainer[
+  ): ParticipantModel[
     _ <: OperatingPoint,
     _ <: ModelState,
     _ <: OperationRelevantData,
   ] = {
     // Create a fitting physical model to extract parameters from
-    val modelContainer = createModel(
+    val physicalModel = createModel(
       participantInput,
       modelConfig,
     )
-    val physicalModel = modelContainer.model
 
     val primaryResultFunc = new PrimaryResultFunc {
       override def createResult(
@@ -104,7 +91,7 @@ object ParticipantModelInit {
         physicalModel.createPrimaryDataResult(data, dateTime)
     }
 
-    val primaryDataModel = new PrimaryDataParticipantModel(
+    new PrimaryDataParticipantModel(
       physicalModel.uuid,
       physicalModel.sRated,
       physicalModel.cosPhiRated,
@@ -112,19 +99,6 @@ object ParticipantModelInit {
       primaryResultFunc,
       primaryDataMeta,
     )
-
-    ParticipantModelInitContainer(
-      primaryDataModel,
-      primaryDataModel.getInitialState,
-    )
   }
 
-  final case class ParticipantModelInitContainer[
-      OP <: OperatingPoint,
-      S <: ModelState,
-      OR <: OperationRelevantData,
-  ](
-      model: ParticipantModel[OP, S, OR] with ParticipantFlexibility[OP, S, OR],
-      initialState: S,
-  )
 }

@@ -26,7 +26,6 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   OperatingPoint,
   OperationRelevantData,
 }
-import edu.ie3.simona.model.participant2.ParticipantModelInit.ParticipantModelInitContainer
 import edu.ie3.simona.model.participant2.ParticipantModelShell.ResultsContainer
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssueFlexControl,
@@ -60,7 +59,7 @@ final case class ParticipantModelShell[
     model: ParticipantModel[OP, S, OR] with ParticipantFlexibility[OP, S, OR],
     operationInterval: OperationInterval,
     simulationStartDate: ZonedDateTime,
-    state: S,
+    state: Option[S] = None,
     relevantData: Option[OR] = None,
     flexOptions: Option[ProvideFlexOptions] = None,
     lastOperatingPoint: Option[OP] = None,
@@ -95,16 +94,9 @@ final case class ParticipantModelShell[
   ): ParticipantModelShell[OP, S, OR] = {
     val currentState = determineCurrentState(currentTick)
 
-    // FIXME this does not work. chicken and egg problem: state with current tick or operating point first?
-    // method for creating initial state with specific tick?
-    if (currentState.tick != currentTick)
-      throw new CriticalFailureException(
-        s"New state $currentState is not set to current tick $currentTick"
-      )
-
     def modelOperatingPoint() = {
       val (modelOp, modelNextTick) = model.determineOperatingPoint(
-        state,
+        currentState,
         relevantData.getOrElse(
           throw new CriticalFailureException("No relevant data available!")
         ),
@@ -117,7 +109,7 @@ final case class ParticipantModelShell[
       determineOperatingPointInInterval(modelOperatingPoint, currentTick)
 
     copy(
-      state = currentState,
+      state = Some(currentState),
       lastOperatingPoint = operatingPoint,
       operatingPoint = Some(newOperatingPoint),
       modelChange = newChangeIndicator,
@@ -143,7 +135,9 @@ final case class ParticipantModelShell[
     val complexPower = ComplexPower(activePower, reactivePower)
 
     val participantResults = model.createResults(
-      state,
+      state.getOrElse(
+        throw new CriticalFailureException("No model state available!")
+      ),
       lastOperatingPoint,
       op,
       complexPower,
@@ -172,7 +166,7 @@ final case class ParticipantModelShell[
         ProvideMinMaxFlexOptions.noFlexOption(model.uuid, zeroKW)
       }
 
-    copy(state = currentState, flexOptions = Some(flexOptions))
+    copy(state = Some(currentState), flexOptions = Some(flexOptions))
   }
 
   /** Update operating point on receiving [[IssueFlexControl]], i.e. when the
@@ -212,7 +206,7 @@ final case class ParticipantModelShell[
       determineOperatingPointInInterval(modelOperatingPoint, currentTick)
 
     copy(
-      state = currentState,
+      state = Some(currentState),
       lastOperatingPoint = operatingPoint,
       operatingPoint = Some(newOperatingPoint),
       modelChange = newChangeIndicator,
@@ -255,17 +249,27 @@ final case class ParticipantModelShell[
     val currentState = determineCurrentState(request.tick)
     val updatedState = model.handleRequest(currentState, ctx, request)
 
-    copy(state = updatedState)
+    copy(state = Some(updatedState))
   }
 
-  private def determineCurrentState(currentTick: Long): S =
-    operatingPoint
-      .flatMap { op =>
-        Option.when(state.tick < currentTick) {
-          model.determineState(state, op, currentTick)
+  private def determineCurrentState(currentTick: Long): S = {
+    // new state is only calculated if there's an old state and an operating point
+    val currentState = state
+      .zip(operatingPoint)
+      .flatMap { case (st, op) =>
+        Option.when(st.tick < currentTick) {
+          model.determineState(st, op, currentTick)
         }
       }
-      .getOrElse(state)
+      .getOrElse(model.initialState(currentTick))
+
+    if (currentState.tick != currentTick)
+      throw new CriticalFailureException(
+        s"New state $currentState is not set to current tick $currentTick"
+      )
+
+    currentState
+  }
 
 }
 
@@ -283,13 +287,13 @@ object ParticipantModelShell {
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
   ): ParticipantModelShell[_, _, _] = {
-    val modelContainer = ParticipantModelInit.createPrimaryModel(
+    val model = ParticipantModelInit.createPrimaryModel(
       participantInput,
       config,
       primaryDataMeta,
     )
     createShell(
-      modelContainer,
+      model,
       participantInput,
       simulationEndDate,
       simulationStartDate,
@@ -302,12 +306,12 @@ object ParticipantModelShell {
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
   ): ParticipantModelShell[_, _, _] = {
-    val modelContainer = ParticipantModelInit.createModel(
+    val model = ParticipantModelInit.createModel(
       participantInput,
       config,
     )
     createShell(
-      modelContainer,
+      model,
       participantInput,
       simulationEndDate,
       simulationStartDate,
@@ -319,7 +323,7 @@ object ParticipantModelShell {
       S <: ModelState,
       OR <: OperationRelevantData,
   ](
-      modelContainer: ParticipantModelInitContainer[OP, S, OR],
+      model: ParticipantModel[OP, S, OR],
       participantInput: SystemParticipantInput,
       simulationEndDate: ZonedDateTime,
       simulationStartDate: ZonedDateTime,
@@ -333,10 +337,9 @@ object ParticipantModelShell {
       )
 
     new ParticipantModelShell(
-      model = modelContainer.model,
+      model = model,
       operationInterval = operationInterval,
       simulationStartDate = simulationStartDate,
-      state = modelContainer.initialState,
     )
   }
 }
