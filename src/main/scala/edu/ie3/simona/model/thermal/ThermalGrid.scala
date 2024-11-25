@@ -194,8 +194,6 @@ final case class ThermalGrid(
     *   Current state of the houses
     * @param qDot
     *   Infeed to the grid
-    * @param thermalDemands
-    *   holds the thermal demands of the thermal units (house, storage)
     * @return
     *   Updated thermal grid state
     */

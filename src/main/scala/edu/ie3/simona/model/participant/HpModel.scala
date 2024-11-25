@@ -222,13 +222,10 @@ final case class HpModel(
       updatedGridState: ThermalGridState
   ): Boolean = {
     implicit val tolerance: Energy = KilowattHours(1e-3)
-    val noThermalStorageOrThermalStorageIsEmpty: Boolean =
-      updatedGridState.storageState.isEmpty || updatedGridState.storageState
-        .exists(
-          _.storedEnergy =~ zeroKWh
-        )
-
-    noThermalStorageOrThermalStorageIsEmpty
+    updatedGridState.storageState.isEmpty || updatedGridState.storageState
+      .exists(
+        _.storedEnergy =~ zeroKWh
+      )
   }
 
   /** Calculate state depending on whether heat pump is needed or not. Also
