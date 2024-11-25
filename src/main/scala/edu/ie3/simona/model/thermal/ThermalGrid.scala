@@ -748,33 +748,29 @@ object ThermalGrid {
   final case class ThermalGridState(
       houseState: Option[ThermalHouseState],
       storageState: Option[ThermalStorageState],
-  )
+  ) {
+
+    /** This method will return booleans whether there is a heat demand of house
+      * or thermal storage as well as a boolean indicating if there is no
+      * thermal storage, or it is empty.
+      *
+      * @return
+      *   boolean which is true, if there is no thermalStorage, or it's empty.
+      */
+    def isThermalStorageEmpty: Boolean = {
+      implicit val tolerance: Energy = KilowattHours(1e-3)
+      storageState.isEmpty || storageState
+        .exists(
+          _.storedEnergy =~ zeroKWh
+        )
+    }
+  }
 
   def startingState(thermalGrid: ThermalGrid): ThermalGridState =
     ThermalGridState(
       thermalGrid.house.map(house => ThermalHouse.startingState(house)),
       thermalGrid.storage.map(_.startingState),
     )
-
-  /** This method will return booleans whether there is a heat demand of house
-    * or thermal storage as well as a boolean indicating if there is no thermal
-    * storage, or it is empty.
-    *
-    * @param updatedGridState
-    *   The updated state of the [[ThermalGrid]]
-    * @return
-    *   boolean which is true, if there is no thermalStorage, or it's empty.
-    */
-
-  def isThermalStorageEmpty(
-      updatedGridState: ThermalGridState
-  ): Boolean = {
-    implicit val tolerance: Energy = KilowattHours(1e-3)
-    updatedGridState.storageState.isEmpty || updatedGridState.storageState
-      .exists(
-        _.storedEnergy =~ zeroKWh
-      )
-  }
 
   /** Wraps the demand of thermal units (thermal house, thermal storage).
     *

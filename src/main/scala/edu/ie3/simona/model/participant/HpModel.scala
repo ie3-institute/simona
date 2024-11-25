@@ -180,11 +180,8 @@ final case class HpModel(
 
     val demandHouse = thermalDemands.houseDemand
     val demandThermalStorage = thermalDemands.heatStorageDemand
-
     val noThermalStorageOrThermalStorageIsEmpty =
-      ThermalGrid.isThermalStorageEmpty(
-        currentThermalGridState
-      )
+      currentThermalGridState.isThermalStorageEmpty
 
     val turnHpOn =
       (demandHouse.hasRequiredDemand && noThermalStorageOrThermalStorageIsEmpty) ||
