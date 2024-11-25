@@ -58,7 +58,7 @@ final case class ThermalGrid(
   def energyDemandAndUpdatedState(
       relevantData: HpRelevantData,
       lastHpState: HpState,
-  ): (ThermalEnergyDemand, ThermalEnergyDemand, ThermalGridState) = {
+  ): (ThermalDemandWrapper, ThermalGridState) = {
     /* First get the energy demand of the houses but only if inner temperature is below target temperature */
 
     val (houseDemand, updatedHouseState) =
