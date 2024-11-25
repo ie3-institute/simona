@@ -7,6 +7,7 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
+import edu.ie3.simona.exceptions.InvalidParameterException
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalEnergyDemand
 import edu.ie3.simona.test.common.UnitSpec
 import squants.energy.{KilowattHours, MegawattHours, WattHours, Watts}
@@ -26,7 +27,7 @@ class ThermalGridSpec
 
   "Testing the thermal energy demand" when {
     "instantiating it from given values" should {
-      "throw exception for non-sensible input (positive)" in {
+      "throw exception for non-plausible input (positive)" in {
         val possible = MegawattHours(40d)
         val required = MegawattHours(42d)
 
