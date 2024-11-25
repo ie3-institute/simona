@@ -187,8 +187,10 @@ object CylindricalThermalStorage {
       input: CylindricalStorageInput,
       initialStoredEnergy: Energy = DefaultQuantities.zeroKWh,
   ): CylindricalThermalStorage = {
-    val minEnergyThreshold: Energy =
-      CylindricalThermalStorage.volumeToEnergy(
+    val minEnergyThreshold: Energy = {
+      //Temporary fix until changes in PSDM are released, Some minimumEnergyThreshold would lead to non-plausible behaviour
+      zeroKWh
+      /*CylindricalThermalStorage.volumeToEnergy(
         CubicMeters(
           input.getStorageVolumeLvlMin
             .to(Units.CUBIC_METRE)
@@ -204,6 +206,8 @@ object CylindricalThermalStorage {
         Celsius(input.getInletTemp.to(Units.CELSIUS).getValue.doubleValue()),
         Celsius(input.getReturnTemp.to(Units.CELSIUS).getValue.doubleValue()),
       )
+       */
+    }
 
     val maxEnergyThreshold: Energy =
       CylindricalThermalStorage.volumeToEnergy(
