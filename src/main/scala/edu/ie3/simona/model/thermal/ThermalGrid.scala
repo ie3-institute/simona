@@ -16,6 +16,7 @@ import edu.ie3.datamodel.models.result.thermal.{
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.thermal.ThermalGrid.{
+  ThermalDemandWrapper,
   ThermalEnergyDemand,
   ThermalGridState,
 }
@@ -24,7 +25,7 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
-import squants.energy.Kilowatts
+import squants.energy.{KilowattHours, Kilowatts}
 import squants.{Energy, Power, Temperature}
 
 import java.time.ZonedDateTime
@@ -57,7 +58,7 @@ final case class ThermalGrid(
   def energyDemandAndUpdatedState(
       relevantData: HpRelevantData,
       lastHpState: HpState,
-  ): (ThermalEnergyDemand, ThermalEnergyDemand, ThermalGridState) = {
+  ): (ThermalDemandWrapper, ThermalGridState) = {
     /* First get the energy demand of the houses but only if inner temperature is below target temperature */
 
     val (houseDemand, updatedHouseState) =
@@ -128,13 +129,15 @@ final case class ThermalGrid(
     }
 
     (
-      ThermalEnergyDemand(
-        houseDemand.required,
-        houseDemand.possible,
-      ),
-      ThermalEnergyDemand(
-        storageDemand.required,
-        storageDemand.possible,
+      ThermalDemandWrapper(
+        ThermalEnergyDemand(
+          houseDemand.required,
+          houseDemand.possible,
+        ),
+        ThermalEnergyDemand(
+          storageDemand.required,
+          storageDemand.possible,
+        ),
       ),
       ThermalGridState(updatedHouseState, updatedStorageState),
     )
@@ -516,13 +519,41 @@ object ThermalGrid {
   final case class ThermalGridState(
       houseState: Option[ThermalHouseState],
       storageState: Option[ThermalStorageState],
-  )
+  ) {
+
+    /** This method will return booleans whether there is a heat demand of house
+      * or thermal storage as well as a boolean indicating if there is no
+      * thermal storage, or it is empty.
+      *
+      * @return
+      *   boolean which is true, if there is no thermalStorage, or it's empty.
+      */
+    def isThermalStorageEmpty: Boolean = {
+      implicit val tolerance: Energy = KilowattHours(1e-3)
+      storageState.isEmpty || storageState
+        .exists(
+          _.storedEnergy =~ zeroKWh
+        )
+    }
+  }
 
   def startingState(thermalGrid: ThermalGrid): ThermalGridState =
     ThermalGridState(
       thermalGrid.house.map(house => ThermalHouse.startingState(house)),
       thermalGrid.storage.map(_.startingState),
     )
+
+  /** Wraps the demand of thermal units (thermal house, thermal storage).
+    *
+    * @param houseDemand
+    *   the demand of the thermal house
+    * @param heatStorageDemand
+    *   the demand of the thermal heat storage
+    */
+  final case class ThermalDemandWrapper private (
+      houseDemand: ThermalEnergyDemand,
+      heatStorageDemand: ThermalEnergyDemand,
+  )
 
   /** Defines the thermal energy demand of a thermal grid. It comprises the
     * absolutely required energy demand to reach the target state as well as an

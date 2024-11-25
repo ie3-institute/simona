@@ -94,11 +94,13 @@ class ThermalGridWithStorageOnlySpec
           None,
         )
 
-        val (houseDemand, storageDemand, updatedThermalGridState) =
+        val (thermalDemands, updatedThermalGridState) =
           thermalGrid.energyDemandAndUpdatedState(
             relevantData,
             lastHpState,
           )
+        val houseDemand = thermalDemands.houseDemand
+        val storageDemand = thermalDemands.heatStorageDemand
 
         houseDemand.required should approximate(zeroKWh)
         houseDemand.possible should approximate(zeroKWh)
@@ -128,11 +130,13 @@ class ThermalGridWithStorageOnlySpec
           None,
         )
 
-        val (houseDemand, storageDemand, updatedThermalGridState) =
+        val (thermalDemands, updatedThermalGridState) =
           thermalGrid.energyDemandAndUpdatedState(
             relevantData,
             lastHpState,
           )
+        val houseDemand = thermalDemands.houseDemand
+        val storageDemand = thermalDemands.heatStorageDemand
 
         houseDemand.required should approximate(zeroKWh)
         houseDemand.possible should approximate(zeroKWh)
