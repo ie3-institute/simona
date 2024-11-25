@@ -67,7 +67,9 @@ final case class ThermalGrid(
             thermalHouse.determineState(
               relevantData,
               lastHouseState,
-              lastAmbientTemperature,
+              lastHpState.ambientTemperature.getOrElse(
+                relevantData.ambientTemperature
+              ),
               lastHouseState.qDot,
             )
           if (
