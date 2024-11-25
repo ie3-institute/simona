@@ -6,7 +6,7 @@
 
 package edu.ie3.util.scala
 
-import edu.ie3.util.interval.{ClosedInterval, RightOpenInterval}
+import edu.ie3.util.interval.RightOpenInterval
 
 /** Wrapper class for an operation interval, as the superclass
   * [[RightOpenInterval]] only accepts [[java.lang.Long]] as type parameter
