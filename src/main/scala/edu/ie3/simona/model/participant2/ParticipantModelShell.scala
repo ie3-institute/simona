@@ -234,7 +234,7 @@ final case class ParticipantModelShell[
       val op = model.zeroPowerOperatingPoint
 
       // If the model is not active *yet*, schedule the operation start
-      val nextTick = Option.when(operationInterval.start < currentTick)(
+      val nextTick = Option.when(operationInterval.start > currentTick)(
         operationInterval.start
       )
 
