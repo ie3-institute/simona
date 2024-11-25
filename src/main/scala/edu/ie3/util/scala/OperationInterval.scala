@@ -6,10 +6,10 @@
 
 package edu.ie3.util.scala
 
-import edu.ie3.util.interval.ClosedInterval
+import edu.ie3.util.interval.{ClosedInterval, RightOpenInterval}
 
 /** Wrapper class for an operation interval, as the superclass
-  * [[ClosedInterval]] only accepts [[java.lang.Long]] as type parameter
+  * [[RightOpenInterval]] only accepts [[java.lang.Long]] as type parameter
   *
   * @param start
   *   Start of operation period (included)
@@ -17,4 +17,4 @@ import edu.ie3.util.interval.ClosedInterval
   *   End of operation period (included)
   */
 final case class OperationInterval(start: Long, end: Long)
-    extends ClosedInterval[java.lang.Long](start, end)
+    extends RightOpenInterval[java.lang.Long](start, end)
