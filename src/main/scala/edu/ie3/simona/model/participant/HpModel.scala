@@ -22,8 +22,8 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
-import squants.energy.{KilowattHours, Kilowatts}
-import squants.{Energy, Power, Temperature}
+import squants.energy.Kilowatts
+import squants.{Power, Temperature}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -202,26 +202,6 @@ final case class HpModel(
       canOperate,
       canBeOutOfOperation,
     )
-  }
-
-  /** This method will return booleans whether there is a heat demand of house
-    * or thermal storage as well as a boolean indicating if there is no thermal
-    * storage, or it is empty.
-    *
-    * @param updatedGridState
-    *   The updated state of the [[ThermalGrid]]
-    * @return
-    *   boolean which is true, if there is no thermalStorage, or it's empty.
-    */
-
-  private def determineThermalStorageStatus(
-      updatedGridState: ThermalGridState
-  ): Boolean = {
-    implicit val tolerance: Energy = KilowattHours(1e-3)
-    updatedGridState.storageState.isEmpty || updatedGridState.storageState
-      .exists(
-        _.storedEnergy =~ zeroKWh
-      )
   }
 
   /** Calculate state depending on whether heat pump is needed or not. Also

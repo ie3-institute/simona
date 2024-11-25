@@ -25,7 +25,7 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
-import squants.energy.Kilowatts
+import squants.energy.{KilowattHours, Kilowatts}
 import squants.{Energy, Power, Temperature}
 
 import java.time.ZonedDateTime
@@ -538,6 +538,26 @@ object ThermalGrid {
       thermalGrid.house.map(house => ThermalHouse.startingState(house)),
       thermalGrid.storage.map(_.startingState),
     )
+
+  /** This method will return booleans whether there is a heat demand of house
+    * or thermal storage as well as a boolean indicating if there is no thermal
+    * storage, or it is empty.
+    *
+    * @param updatedGridState
+    *   The updated state of the [[ThermalGrid]]
+    * @return
+    *   boolean which is true, if there is no thermalStorage, or it's empty.
+    */
+
+  def isThermalStorageEmpty(
+      updatedGridState: ThermalGridState
+  ): Boolean = {
+    implicit val tolerance: Energy = KilowattHours(1e-3)
+    updatedGridState.storageState.isEmpty || updatedGridState.storageState
+      .exists(
+        _.storedEnergy =~ zeroKWh
+      )
+  }
 
   /** Wraps the demand of thermal units (thermal house, thermal storage).
     *
