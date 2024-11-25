@@ -316,7 +316,7 @@ final case class ThermalGrid(
         thermalDemands.heatStorageDemand.hasAdditionalDemand,
       ) match {
 
-        case (true,_, _, _) =>
+        case (true, _, _, _) =>
           // house first then heatStorage after heating House
           handleCases(
             tick,
@@ -327,7 +327,7 @@ final case class ThermalGrid(
             zeroKW,
           )
 
-        case (_,_, true, _) =>
+        case (_, _, true, _) =>
           handleCases(
             tick,
             lastAmbientTemperature,

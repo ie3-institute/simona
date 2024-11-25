@@ -188,7 +188,7 @@ object CylindricalThermalStorage {
       initialStoredEnergy: Energy = DefaultQuantities.zeroKWh,
   ): CylindricalThermalStorage = {
     val minEnergyThreshold: Energy = {
-      //Temporary fix until changes in PSDM are released, Some minimumEnergyThreshold would lead to non-plausible behaviour
+      // Temporary fix until changes in PSDM are released, Some minimumEnergyThreshold would lead to non-plausible behaviour
       zeroKWh
       /*CylindricalThermalStorage.volumeToEnergy(
         CubicMeters(
