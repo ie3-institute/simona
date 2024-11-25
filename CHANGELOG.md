@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add unapply method for ThermalHouseResults [#934](https://github.com/ie3-institute/simona/issues/934)
 - Added `ApparentPower` to differentiate between different power types [#794](https://github.com/ie3-institute/simona/issues/794)
 - Update/enhance config documentation [#1013](https://github.com/ie3-institute/simona/issues/1013)
+- Create `CITATION.cff` [#1035](https://github.com/ie3-institute/simona/issues/1035)
 - Introduce ThermalDemandWrapper [#1049](https://github.com/ie3-institute/simona/issues/1049)
 
 ### Changed
