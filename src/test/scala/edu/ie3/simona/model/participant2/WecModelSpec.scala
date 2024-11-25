@@ -132,7 +132,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
         )
         val (operatingPoint, nextTick) =
           wecModel.determineOperatingPoint(
-            ParticipantModel.ConstantState,
+            ParticipantModel.FixedState(0),
             wecData,
           )
 
@@ -187,7 +187,7 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
         )
         val (operatingPoint, nextTick) =
           wecModel.determineOperatingPoint(
-            ParticipantModel.ConstantState,
+            ParticipantModel.FixedState(0),
             wecData,
           )
 

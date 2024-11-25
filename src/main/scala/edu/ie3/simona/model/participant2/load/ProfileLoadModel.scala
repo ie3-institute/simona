@@ -36,7 +36,7 @@ class ProfileLoadModel(
 ) extends LoadModel[DateTimeData] {
 
   override def determineOperatingPoint(
-      state: ParticipantModel.ConstantState.type,
+      state: ParticipantModel.FixedState,
       relevantData: DateTimeData,
   ): (ParticipantModel.ActivePowerOperatingPoint, Option[Long]) = {
     val resolution = RandomLoadParamStore.resolution.getSeconds

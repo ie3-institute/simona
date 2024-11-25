@@ -63,21 +63,21 @@ object ParticipantAgentInit {
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
   ): Behavior[Request] = Behaviors.setup { ctx =>
     val parentData = parent
-      .map { parentEm =>
+      .map { em =>
         val flexAdapter = ctx.messageAdapter[FlexRequest](Flex)
 
-        parentEm ! RegisterParticipant(
+        em ! RegisterParticipant(
           participantInput.getUuid,
           flexAdapter,
           participantInput,
         )
 
-        parentEm ! ScheduleFlexRequest(
+        em ! ScheduleFlexRequest(
           participantInput.getUuid,
           INIT_SIM_TICK,
         )
 
-        FlexControlledData(parentEm, flexAdapter)
+        FlexControlledData(em, flexAdapter)
       }
       .left
       .map { scheduler =>

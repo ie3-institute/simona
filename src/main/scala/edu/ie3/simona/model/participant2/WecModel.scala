@@ -23,9 +23,9 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
-  ConstantState,
+  FixedState,
   OperationRelevantData,
-  ParticipantConstantModel,
+  ParticipantFixedState,
 }
 import edu.ie3.simona.model.participant2.WecModel.{
   WecCharacteristic,
@@ -62,11 +62,11 @@ class WecModel private (
     private val betzCurve: WecCharacteristic,
 ) extends ParticipantModel[
       ActivePowerOperatingPoint,
-      ConstantState.type,
+      FixedState,
       WecRelevantData,
     ]
-    with ParticipantConstantModel[ActivePowerOperatingPoint, WecRelevantData]
-    with ParticipantSimpleFlexibility[ConstantState.type, WecRelevantData]
+    with ParticipantFixedState[ActivePowerOperatingPoint, WecRelevantData]
+    with ParticipantSimpleFlexibility[FixedState, WecRelevantData]
     with LazyLogging {
 
   /** Calculate the active power behaviour of the model
@@ -77,7 +77,7 @@ class WecModel private (
     *   Active power
     */
   override def determineOperatingPoint(
-      modelState: ConstantState.type,
+      modelState: FixedState,
       data: WecRelevantData,
   ): (ActivePowerOperatingPoint, Option[Long]) = {
     val betzCoefficient = determineBetzCoefficient(data.windVelocity)
@@ -166,7 +166,7 @@ class WecModel private (
     ActivePowerOperatingPoint.zero
 
   override def createResults(
-      state: ParticipantModel.ConstantState.type,
+      state: ParticipantModel.FixedState,
       lastOperatingPoint: Option[ActivePowerOperatingPoint],
       currentOperatingPoint: ActivePowerOperatingPoint,
       complexPower: ComplexPower,

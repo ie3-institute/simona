@@ -45,7 +45,7 @@ class RandomLoadModel(
     mutable.Map.empty[GevKey, GeneralizedExtremeValueDistribution]
 
   override def determineOperatingPoint(
-      state: ParticipantModel.ConstantState.type,
+      state: ParticipantModel.FixedState,
       relevantData: DateTimeData,
   ): (ParticipantModel.ActivePowerOperatingPoint, Option[Long]) = {
     val resolution = RandomLoadParamStore.resolution.getSeconds

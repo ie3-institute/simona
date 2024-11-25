@@ -21,9 +21,9 @@ import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpl
 import edu.ie3.simona.model.participant2.ParticipantModel
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
-  ConstantState,
+  FixedState,
   OperationRelevantData,
-  ParticipantConstantModel,
+  ParticipantFixedState,
 }
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -36,15 +36,15 @@ import java.time.ZonedDateTime
 abstract class LoadModel[OR <: OperationRelevantData]
     extends ParticipantModel[
       ActivePowerOperatingPoint,
-      ConstantState.type,
+      FixedState,
       OR,
     ]
-    with ParticipantConstantModel[
+    with ParticipantFixedState[
       ActivePowerOperatingPoint,
       OR,
     ]
     with ParticipantSimpleFlexibility[
-      ConstantState.type,
+      FixedState,
       OR,
     ] {
 
@@ -52,7 +52,7 @@ abstract class LoadModel[OR <: OperationRelevantData]
     ActivePowerOperatingPoint.zero
 
   override def createResults(
-      state: ParticipantModel.ConstantState.type,
+      state: ParticipantModel.FixedState,
       lastOperatingPoint: Option[ActivePowerOperatingPoint],
       currentOperatingPoint: ActivePowerOperatingPoint,
       complexPower: ComplexPower,

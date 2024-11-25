@@ -22,9 +22,9 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
-  ConstantState,
+  FixedState,
   OperationRelevantData,
-  ParticipantConstantModel,
+  ParticipantFixedState,
 }
 import edu.ie3.simona.model.participant2.PvModel.PvRelevantData
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
@@ -56,11 +56,11 @@ class PvModel private (
     private val moduleSurface: Area = SquareMeters(1d),
 ) extends ParticipantModel[
       ActivePowerOperatingPoint,
-      ConstantState.type,
+      FixedState,
       PvRelevantData,
     ]
-    with ParticipantConstantModel[ActivePowerOperatingPoint, PvRelevantData]
-    with ParticipantSimpleFlexibility[ConstantState.type, PvRelevantData]
+    with ParticipantFixedState[ActivePowerOperatingPoint, PvRelevantData]
+    with ParticipantSimpleFlexibility[FixedState, PvRelevantData]
     with LazyLogging {
 
   /** Override sMax as the power output of a pv unit could become easily up to
@@ -84,7 +84,7 @@ class PvModel private (
     *   Active power
     */
   override def determineOperatingPoint(
-      modelState: ConstantState.type,
+      modelState: FixedState,
       data: PvRelevantData,
   ): (ActivePowerOperatingPoint, Option[Long]) = {
     // === Weather Base Data  === //
@@ -727,7 +727,7 @@ class PvModel private (
   }
 
   override def createResults(
-      state: ParticipantModel.ConstantState.type,
+      state: ParticipantModel.FixedState,
       lastOperatingPoint: Option[ActivePowerOperatingPoint],
       currentOperatingPoint: ActivePowerOperatingPoint,
       complexPower: ComplexPower,

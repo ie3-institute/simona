@@ -20,9 +20,9 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
-  ConstantState,
+  FixedState,
   FixedRelevantData,
-  ParticipantConstantModel,
+  ParticipantFixedState,
 }
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -40,20 +40,20 @@ class FixedFeedInModel(
     override val qControl: QControl,
 ) extends ParticipantModel[
       ActivePowerOperatingPoint,
-      ConstantState.type,
+      FixedState,
       FixedRelevantData.type,
     ]
-    with ParticipantConstantModel[
+    with ParticipantFixedState[
       ActivePowerOperatingPoint,
       FixedRelevantData.type,
     ]
     with ParticipantSimpleFlexibility[
-      ConstantState.type,
+      FixedState,
       FixedRelevantData.type,
     ] {
 
   override def determineOperatingPoint(
-      state: ParticipantModel.ConstantState.type,
+      state: ParticipantModel.FixedState,
       relevantData: ParticipantModel.FixedRelevantData.type,
   ): (ActivePowerOperatingPoint, Option[Long]) = {
     val power = pRated * -1
@@ -65,7 +65,7 @@ class FixedFeedInModel(
     ActivePowerOperatingPoint.zero
 
   override def createResults(
-      state: ParticipantModel.ConstantState.type,
+      state: ParticipantModel.FixedState,
       lastOperatingPoint: Option[ActivePowerOperatingPoint],
       currentOperatingPoint: ActivePowerOperatingPoint,
       complexPower: ComplexPower,

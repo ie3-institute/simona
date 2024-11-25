@@ -37,7 +37,7 @@ class FixedLoadModel(
 ) extends LoadModel[FixedRelevantData.type] {
 
   override def determineOperatingPoint(
-      state: ParticipantModel.ConstantState.type,
+      state: ParticipantModel.FixedState,
       relevantData: ParticipantModel.FixedRelevantData.type,
   ): (ActivePowerOperatingPoint, Option[Long]) =
     (ActivePowerOperatingPoint(activePower), None)

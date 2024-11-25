@@ -17,11 +17,11 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantModel.{
-  ConstantState,
+  FixedState,
   ModelChangeIndicator,
   OperatingPoint,
   OperationRelevantData,
-  ParticipantConstantModel,
+  ParticipantFixedState,
 }
 import edu.ie3.simona.model.participant2.PrimaryDataParticipantModel._
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
@@ -45,16 +45,16 @@ final case class PrimaryDataParticipantModel[P <: PrimaryData: ClassTag](
     primaryDataMeta: PrimaryDataMeta[P],
 ) extends ParticipantModel[
       PrimaryOperatingPoint[P],
-      ConstantState.type,
+      FixedState,
       PrimaryOperationRelevantData[P],
     ]
-    with ParticipantConstantModel[
+    with ParticipantFixedState[
       PrimaryOperatingPoint[P],
       PrimaryOperationRelevantData[P],
     ] {
 
   override def determineOperatingPoint(
-      state: ConstantState.type,
+      state: FixedState,
       relevantData: PrimaryOperationRelevantData[P],
   ): (PrimaryOperatingPoint[P], Option[Long]) =
     (PrimaryOperatingPoint(relevantData.data), None)
@@ -63,7 +63,7 @@ final case class PrimaryDataParticipantModel[P <: PrimaryData: ClassTag](
     PrimaryOperatingPoint(primaryDataMeta.zero)
 
   override def createResults(
-      state: ConstantState.type,
+      state: FixedState,
       lastOperatingPoint: Option[PrimaryOperatingPoint[P]],
       currentOperatingPoint: PrimaryOperatingPoint[P],
       complexPower: ComplexPower,
@@ -114,7 +114,7 @@ final case class PrimaryDataParticipantModel[P <: PrimaryData: ClassTag](
       }
 
   override def calcFlexOptions(
-      state: ConstantState.type,
+      state: FixedState,
       relevantData: PrimaryOperationRelevantData[P],
   ): FlexibilityMessage.ProvideFlexOptions = {
     val (operatingPoint, _) = determineOperatingPoint(state, relevantData)
@@ -124,7 +124,7 @@ final case class PrimaryDataParticipantModel[P <: PrimaryData: ClassTag](
   }
 
   override def handlePowerControl(
-      state: ConstantState.type,
+      state: FixedState,
       relevantData: PrimaryOperationRelevantData[P],
       flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,

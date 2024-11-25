@@ -95,6 +95,8 @@ final case class ParticipantModelShell[
   ): ParticipantModelShell[OP, S, OR] = {
     val currentState = determineCurrentState(currentTick)
 
+    // FIXME this does not work. chicken and egg problem: state with current tick or operating point first?
+    // method for creating initial state with specific tick?
     if (currentState.tick != currentTick)
       throw new CriticalFailureException(
         s"New state $currentState is not set to current tick $currentTick"

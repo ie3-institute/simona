@@ -216,23 +216,21 @@ object ParticipantModel {
     val tick: Long
   }
 
-  case object ConstantState extends ModelState {
-    override val tick: Long = -1 // is there a better way?
-  }
+  final case class FixedState(override val tick: Long) extends ModelState
 
-  trait ParticipantConstantModel[
+  trait ParticipantFixedState[
       OP <: OperatingPoint,
       OR <: OperationRelevantData,
   ] {
-    this: ParticipantModel[OP, ConstantState.type, OR] =>
+    this: ParticipantModel[OP, FixedState, OR] =>
 
-    def getInitialState: ConstantState.type = ConstantState
+    def getInitialState: FixedState = FixedState(-1)
 
     override def determineState(
-        lastState: ConstantState.type,
+        lastState: FixedState,
         operatingPoint: OP,
         currentTick: Long,
-    ): ConstantState.type = ConstantState
+    ): FixedState = FixedState(currentTick)
 
   }
 
