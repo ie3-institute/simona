@@ -10,6 +10,7 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalHouseInput,
   ThermalStorageInput,
 }
+import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
@@ -79,14 +80,24 @@ class ThermalGridWithStorageOnlySpec
 
     "determining the energy demand" should {
       "deliver the capabilities of the storage" in {
-        val tick = 10800 // after three hours
+        val relevantData = HpRelevantData(
+          10800, // after three hours
+          testGridAmbientTemperature,
+        )
+        val lastHpState = HpState(
+          true,
+          relevantData.currentTick,
+          Some(testGridAmbientTemperature),
+          Kilowatts(42),
+          Kilowatts(42),
+          ThermalGrid.startingState(thermalGrid),
+          None,
+        )
 
         val (thermalDemands, updatedThermalGridState) =
           thermalGrid.energyDemandAndUpdatedState(
-            tick,
-            testGridAmbientTemperature,
-            testGridAmbientTemperature,
-            ThermalGrid.startingState(thermalGrid),
+            relevantData,
+            lastHpState,
           )
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand
@@ -102,17 +113,27 @@ class ThermalGridWithStorageOnlySpec
       }
 
       "deliver the capabilities of a half full storage" in {
-        val tick = 10800 // after three hours
+        val relevantData = HpRelevantData(
+          10800, // after three hours
+          testGridAmbientTemperature,
+        )
+        val lastHpState = HpState(
+          true,
+          relevantData.currentTick,
+          Some(testGridAmbientTemperature),
+          Kilowatts(42),
+          Kilowatts(42),
+          ThermalGridState(
+            None,
+            Some(ThermalStorageState(0L, KilowattHours(575d), zeroKW)),
+          ),
+          None,
+        )
 
         val (thermalDemands, updatedThermalGridState) =
           thermalGrid.energyDemandAndUpdatedState(
-            tick,
-            testGridAmbientTemperature,
-            testGridAmbientTemperature,
-            ThermalGridState(
-              None,
-              Some(ThermalStorageState(0L, KilowattHours(575d), zeroKW)),
-            ),
+            relevantData,
+            lastHpState,
           )
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand

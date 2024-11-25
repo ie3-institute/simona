@@ -105,6 +105,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactor `ResultFileHierarchy` [#1031](https://github.com/ie3-institute/simona/issues/1031)
 - Removing logs in `logs/simona` [#1017](https://github.com/ie3-institute/simona/issues/1017)
 - Fix implausible test cases of HpModelSpec [#1042](https://github.com/ie3-institute/simona/issues/1042)
+- Refactoring to only use 'lastHpState' and 'relevantData' for 'ThermalGrid' calculations [#916](https://github.com/ie3-institute/simona/issues/916)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
