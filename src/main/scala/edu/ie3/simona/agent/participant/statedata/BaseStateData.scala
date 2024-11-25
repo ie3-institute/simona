@@ -43,7 +43,7 @@ trait BaseStateData[+PD <: PrimaryDataWithComplexPower[PD]]
     */
   val startDate: ZonedDateTime
 
-  /** The wall clock date, at which the simulation ends
+  /** The simulation time at which the simulation ends
     */
   val endDate: ZonedDateTime
 
@@ -132,7 +132,7 @@ object BaseStateData {
     * @param startDate
     *   The date, that fits the tick 0
     * @param endDate
-    *   The wall clock date, at which the simulation ends
+    *   The simulation time at which the simulation ends
     * @param outputConfig
     *   Determines the output behaviour of this model
     * @param additionalActivationTicks
@@ -179,7 +179,7 @@ object BaseStateData {
     * @param startDate
     *   The date, that fits the tick 0
     * @param endDate
-    *   The wall clock date, at which the simulation ends
+    *   The simulation time at which the simulation ends
     * @param model
     *   Physical model of the load
     * @param services
