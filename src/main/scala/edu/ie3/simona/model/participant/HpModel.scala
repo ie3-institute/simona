@@ -135,10 +135,7 @@ final case class HpModel(
     val (demandHouse, demandThermalStorage, currentThermalGridState) =
       thermalGrid.energyDemandAndUpdatedState(
         relevantData,
-        lastHpState.ambientTemperature.getOrElse(
-          relevantData.ambientTemperature
-        ),
-        lastHpState.thermalGridState,
+        lastHpState,
       )
 
     // Determining the operation point and limitations at this tick

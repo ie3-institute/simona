@@ -10,7 +10,7 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalHouseInput,
   ThermalStorageInput,
 }
-import edu.ie3.simona.model.participant.HpModel.HpRelevantData
+import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
@@ -84,11 +84,20 @@ class ThermalGridWithStorageOnlySpec
           10800, // after three hours
           testGridAmbientTemperature,
         )
+        val lastHpState = HpState(
+          true,
+          relevantData.currentTick,
+          Some(testGridAmbientTemperature),
+          Kilowatts(42),
+          Kilowatts(42),
+          ThermalGrid.startingState(thermalGrid),
+          None,
+        )
+
         val (houseDemand, storageDemand, updatedThermalGridState) =
           thermalGrid.energyDemandAndUpdatedState(
             relevantData,
-            testGridAmbientTemperature,
-            ThermalGrid.startingState(thermalGrid),
+            lastHpState,
           )
 
         houseDemand.required should approximate(zeroKWh)
@@ -106,14 +115,23 @@ class ThermalGridWithStorageOnlySpec
           10800, // after three hours
           testGridAmbientTemperature,
         )
+        val lastHpState = HpState(
+          true,
+          relevantData.currentTick,
+          Some(testGridAmbientTemperature),
+          Kilowatts(42),
+          Kilowatts(42),
+          ThermalGridState(
+            None,
+            Some(ThermalStorageState(0L, KilowattHours(575d), zeroKW)),
+          ),
+          None,
+        )
+
         val (houseDemand, storageDemand, updatedThermalGridState) =
           thermalGrid.energyDemandAndUpdatedState(
             relevantData,
-            testGridAmbientTemperature,
-            ThermalGridState(
-              None,
-              Some(ThermalStorageState(0L, KilowattHours(575d), zeroKW)),
-            ),
+            lastHpState,
           )
 
         houseDemand.required should approximate(zeroKWh)

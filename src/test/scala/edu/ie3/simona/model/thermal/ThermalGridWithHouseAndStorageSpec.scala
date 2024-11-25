@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
-import edu.ie3.simona.model.participant.HpModel.HpRelevantData
+import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
@@ -100,11 +100,19 @@ class ThermalGridWithHouseAndStorageSpec
           10800, // after three hours
           testGridAmbientTemperature,
         )
+        val lastHpState = HpState(
+          true,
+          relevantData.currentTick,
+          Some(testGridAmbientTemperature),
+          Kilowatts(42),
+          Kilowatts(42),
+          ThermalGrid.startingState(thermalGrid),
+          None,
+        )
         val (houseDemand, storageDemand, updatedThermalGridState) =
           thermalGrid.energyDemandAndUpdatedState(
             relevantData,
-            testGridAmbientTemperature,
-            ThermalGrid.startingState(thermalGrid),
+            lastHpState,
           )
         houseDemand.required should approximate(zeroKWh)
         houseDemand.possible should approximate(KilowattHours(31.05009722d))
@@ -123,17 +131,25 @@ class ThermalGridWithHouseAndStorageSpec
           10800, // after three hours
           testGridAmbientTemperature,
         )
-
         val startingState = ThermalGrid.startingState(thermalGrid)
+        val lastHpState = HpState(
+          true,
+          relevantData.currentTick,
+          Some(testGridAmbientTemperature),
+          Kilowatts(42),
+          Kilowatts(42),
+          startingState.copy(houseState =
+            startingState.houseState.map(
+              _.copy(innerTemperature = Celsius(16d))
+            )
+          ),
+          None,
+        )
+
         val (houseDemand, storageDemand, updatedThermalGridState) =
           thermalGrid.energyDemandAndUpdatedState(
             relevantData,
-            testGridAmbientTemperature,
-            startingState.copy(houseState =
-              startingState.houseState.map(
-                _.copy(innerTemperature = Celsius(16d))
-              )
-            ),
+            lastHpState,
           )
 
         houseDemand.required should approximate(KilowattHours(45.6000555))

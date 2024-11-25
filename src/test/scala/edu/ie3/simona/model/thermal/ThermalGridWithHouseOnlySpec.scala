@@ -7,15 +7,15 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
-import edu.ie3.simona.model.participant.HpModel.HpRelevantData
+import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureLowerBoundaryReached,
   HouseTemperatureUpperBoundaryReached,
 }
-import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import squants.energy._
 import squants.thermal.Celsius
 import squants.{Energy, Kelvin, Power, Temperature}
@@ -79,6 +79,19 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           10800, // after three hours
           testGridAmbientTemperature,
         )
+        val lastHpState = HpState(
+          true,
+          relevantData.currentTick,
+          Some(testGridAmbientTemperature),
+          Kilowatts(42),
+          Kilowatts(42),
+          ThermalGrid.startingState(thermalGrid),
+          None,
+        )
+        val expectedHouseDemand = thermalHouse.energyDemand(
+          relevantData.currentTick,
+          testGridAmbientTemperature,
+        )
         val expectedHouseDemand = thermalHouse.energyDemand(
           relevantData,
           expectedHouseStartingState,
@@ -87,8 +100,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
         val (houseDemand, storageDemand, updatedThermalGridState) =
           thermalGrid.energyDemandAndUpdatedState(
             relevantData,
-            testGridAmbientTemperature,
-            ThermalGrid.startingState(thermalGrid),
+            lastHpState,
           )
 
         houseDemand.required should approximate(expectedHouseDemand.required)

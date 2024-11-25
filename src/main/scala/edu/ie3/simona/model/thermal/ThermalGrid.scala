@@ -14,7 +14,7 @@ import edu.ie3.datamodel.models.result.thermal.{
   ThermalHouseResult,
 }
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
-import edu.ie3.simona.model.participant.HpModel.HpRelevantData
+import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalEnergyDemand,
   ThermalGridState,
@@ -45,26 +45,23 @@ final case class ThermalGrid(
 
   /** Determine the energy demand of the total grid at the given instance in
     * time and returns it including the updatedState
+    *
+    * @param lastHpState
+    *   Last state of the heat pump
     * @param relevantData
-    *   data of heat pump including state of the heat pump
-    * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
-    * @param state
-    *   Currently applicable state of the thermal grid
+    *   data of heat pump including
     * @return
     *   The total energy demand of the house and the storage and an updated
     *   [[ThermalGridState]]
     */
   def energyDemandAndUpdatedState(
       relevantData: HpRelevantData,
-      // FIXME this is also in state
-      lastAmbientTemperature: Temperature,
-      state: ThermalGridState,
+      lastHpState: HpState,
   ): (ThermalEnergyDemand, ThermalEnergyDemand, ThermalGridState) = {
     /* First get the energy demand of the houses but only if inner temperature is below target temperature */
 
     val (houseDemand, updatedHouseState) =
-      house.zip(state.houseState) match {
+      house.zip(lastHpState.thermalGridState.houseState) match {
         case Some((thermalHouse, lastHouseState)) =>
           val (updatedHouseState, _) =
             thermalHouse.determineState(
@@ -97,7 +94,7 @@ final case class ThermalGrid(
     val (storageDemand, updatedStorageState) = {
 
       storage
-        .zip(state.storageState)
+        .zip(lastHpState.thermalGridState.storageState)
         .map { case (storage, state) =>
           val (updatedStorageState, _) =
             storage.updateState(relevantData.currentTick, state.qDot, state)
