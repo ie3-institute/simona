@@ -540,7 +540,6 @@ object ThermalGrid {
       * @return
       *   boolean which is true, if there is no thermalStorage, or it's empty.
       */
-
     def isThermalStorageEmpty: Boolean = {
       implicit val tolerance: Energy = KilowattHours(1e-3)
       storageState.isEmpty || storageState
