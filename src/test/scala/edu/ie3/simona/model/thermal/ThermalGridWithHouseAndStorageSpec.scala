@@ -109,7 +109,7 @@ class ThermalGridWithHouseAndStorageSpec
           ThermalGrid.startingState(thermalGrid),
           None,
         )
-        val (houseDemand, storageDemand, updatedThermalGridState) =
+        val (thermalDemands, updatedThermalGridState) =
           thermalGrid.energyDemandAndUpdatedState(
             relevantData,
             lastHpState,
@@ -149,7 +149,7 @@ class ThermalGridWithHouseAndStorageSpec
           None,
         )
 
-        val (houseDemand, storageDemand, updatedThermalGridState) =
+        val (thermalDemands, updatedThermalGridState) =
           thermalGrid.energyDemandAndUpdatedState(
             relevantData,
             lastHpState,
