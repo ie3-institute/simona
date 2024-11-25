@@ -507,7 +507,6 @@ final case class ThermalGrid(
     * @return
     *   The next threshold
     */
-
   private def determineMostRecentThreshold(
       maybeHouseThreshold: Option[ThermalThreshold],
       maybeStorageThreshold: Option[ThermalThreshold],
