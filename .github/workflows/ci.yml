@@ -30,14 +30,28 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Check Branch
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            branchName="${{ github.head_ref }}"
+          else
+            branchName="${{ github.ref_name }}"
+          fi
+
+          if [[ "$branchName" == refs/heads/* ]]; then
+            branchName="${branchName#refs/heads/}"
+          fi
+
+          ./gradlew checkBranchName -PbranchName="$branchName"
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: 17
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
 
       - name: Build Project
         run: ./gradlew --refresh-dependencies clean assemble spotlessCheck
