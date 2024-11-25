@@ -302,7 +302,7 @@ final case class HpModel(
     * operating state and give back the next tick in which something will
     * change.
     *
-    * @param data
+    * @param relevantData
     *   Relevant data for model calculation
     * @param lastState
     *   The last known model state
@@ -313,7 +313,7 @@ final case class HpModel(
     *   options will change next
     */
   override def handleControlledPowerChange(
-      data: HpRelevantData,
+      relevantData: HpRelevantData,
       lastState: HpState,
       setPower: Power,
   ): (HpState, FlexChangeIndicator) = {
@@ -325,15 +325,13 @@ final case class HpModel(
       _,
     ) =
       thermalGrid.energyDemandAndUpdatedState(
-        data.currentTick,
-        lastState.ambientTemperature.getOrElse(data.ambientTemperature),
-        data.ambientTemperature,
-        lastState.thermalGridState,
+        relevantData,
+        lastState,
       )
 
     val updatedHpState = calcState(
       lastState,
-      data,
+      relevantData,
       turnOn,
       thermalDemandWrapper,
     )
