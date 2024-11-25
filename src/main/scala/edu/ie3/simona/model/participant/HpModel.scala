@@ -22,8 +22,8 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
-import squants.energy.{KilowattHours, Kilowatts}
-import squants.{Energy, Power, Temperature}
+import squants.energy.Kilowatts
+import squants.{Power, Temperature}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -134,12 +134,8 @@ final case class HpModel(
     // Use lastHpState and relevantData to update state of thermalGrid to the current tick
     val (thermalDemandWrapper, currentThermalGridState) =
       thermalGrid.energyDemandAndUpdatedState(
-        relevantData.currentTick,
-        lastHpState.ambientTemperature.getOrElse(
-          relevantData.ambientTemperature
-        ),
-        relevantData.ambientTemperature,
-        lastHpState.thermalGridState,
+        relevantData,
+        lastHpState,
       )
 
     // Determining the operation point and limitations at this tick
@@ -185,9 +181,10 @@ final case class HpModel(
     val demandHouse = thermalDemands.houseDemand
     val demandThermalStorage = thermalDemands.heatStorageDemand
 
-    val noThermalStorageOrThermalStorageIsEmpty = determineThermalStorageStatus(
-      currentThermalGridState
-    )
+    val noThermalStorageOrThermalStorageIsEmpty =
+      ThermalGrid.isThermalStorageEmpty(
+        currentThermalGridState
+      )
 
     val turnHpOn =
       (demandHouse.hasRequiredDemand && noThermalStorageOrThermalStorageIsEmpty) ||
@@ -206,29 +203,6 @@ final case class HpModel(
       canOperate,
       canBeOutOfOperation,
     )
-  }
-
-  /** This method will return booleans whether there is a heat demand of house
-    * or thermal storage as well as a boolean indicating if there is no thermal
-    * storage, or it is empty.
-    *
-    * @param updatedGridState
-    *   The updated state of the [[ThermalGrid]]
-    * @return
-    *   boolean which is true, if there is no thermalStorage, or it's empty.
-    */
-
-  private def determineThermalStorageStatus(
-      updatedGridState: ThermalGridState
-  ): Boolean = {
-    implicit val tolerance: Energy = KilowattHours(1e-3)
-    val noThermalStorageOrThermalStorageIsEmpty: Boolean =
-      updatedGridState.storageState.isEmpty || updatedGridState.storageState
-        .exists(
-          _.storedEnergy =~ zeroKWh
-        )
-
-    noThermalStorageOrThermalStorageIsEmpty
   }
 
   /** Calculate state depending on whether heat pump is needed or not. Also

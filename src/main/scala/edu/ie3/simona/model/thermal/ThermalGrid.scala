@@ -14,6 +14,7 @@ import edu.ie3.datamodel.models.result.thermal.{
   ThermalHouseResult,
 }
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
+import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalDemandWrapper,
   ThermalEnergyDemand,
@@ -24,7 +25,7 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
-import squants.energy.Kilowatts
+import squants.energy.{KilowattHours, Kilowatts}
 import squants.{Energy, Power, Temperature}
 
 import java.time.ZonedDateTime
@@ -46,36 +47,31 @@ final case class ThermalGrid(
   /** Determine the energy demand of the total grid at the given instance in
     * time and returns it including the updatedState
     *
-    * @param tick
-    *   Questioned instance in time
-    * @param lastAmbientTemperature
-    *   Ambient temperature until this tick
-    * @param ambientTemperature
-    *   Current ambient temperature in the instance in question
-    * @param state
-    *   Currently applicable state of the thermal grid
+    * @param lastHpState
+    *   Last state of the heat pump
+    * @param relevantData
+    *   data of heat pump including
     * @return
     *   The total energy demand of the house and the storage and an updated
     *   [[ThermalGridState]]
     */
   def energyDemandAndUpdatedState(
-      tick: Long,
-      // FIXME this is also in state
-      lastAmbientTemperature: Temperature,
-      ambientTemperature: Temperature,
-      state: ThermalGridState,
+      relevantData: HpRelevantData,
+      lastHpState: HpState,
   ): (ThermalDemandWrapper, ThermalGridState) = {
     /* First get the energy demand of the houses but only if inner temperature is below target temperature */
 
     val (houseDemand, updatedHouseState) =
-      house.zip(state.houseState) match {
+      house.zip(lastHpState.thermalGridState.houseState) match {
         case Some((thermalHouse, lastHouseState)) =>
           val (updatedHouseState, _) =
             thermalHouse.determineState(
-              tick,
+              relevantData.currentTick,
               lastHouseState,
-              lastAmbientTemperature,
-              ambientTemperature,
+              lastHpState.ambientTemperature.getOrElse(
+                relevantData.ambientTemperature
+              ),
+              relevantData.ambientTemperature,
               lastHouseState.qDot,
             )
           if (
@@ -84,8 +80,8 @@ final case class ThermalGrid(
           ) {
             (
               thermalHouse.energyDemand(
-                tick,
-                ambientTemperature,
+                relevantData.currentTick,
+                relevantData.ambientTemperature,
                 updatedHouseState,
               ),
               Some(updatedHouseState),
@@ -103,10 +99,10 @@ final case class ThermalGrid(
     val (storageDemand, updatedStorageState) = {
 
       storage
-        .zip(state.storageState)
+        .zip(lastHpState.thermalGridState.storageState)
         .map { case (storage, state) =>
           val (updatedStorageState, _) =
-            storage.updateState(tick, state.qDot, state)
+            storage.updateState(relevantData.currentTick, state.qDot, state)
           val storedEnergy = updatedStorageState.storedEnergy
           val soc = storedEnergy / storage.getMaxEnergyThreshold
           val storageRequired = {
@@ -760,6 +756,26 @@ object ThermalGrid {
       thermalGrid.house.map(house => ThermalHouse.startingState(house)),
       thermalGrid.storage.map(_.startingState),
     )
+
+  /** This method will return booleans whether there is a heat demand of house
+    * or thermal storage as well as a boolean indicating if there is no thermal
+    * storage, or it is empty.
+    *
+    * @param updatedGridState
+    *   The updated state of the [[ThermalGrid]]
+    * @return
+    *   boolean which is true, if there is no thermalStorage, or it's empty.
+    */
+
+  def isThermalStorageEmpty(
+      updatedGridState: ThermalGridState
+  ): Boolean = {
+    implicit val tolerance: Energy = KilowattHours(1e-3)
+    updatedGridState.storageState.isEmpty || updatedGridState.storageState
+      .exists(
+        _.storedEnergy =~ zeroKWh
+      )
+  }
 
   /** Wraps the demand of thermal units (thermal house, thermal storage).
     *
