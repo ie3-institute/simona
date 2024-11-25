@@ -82,4 +82,6 @@ object RuntimeConfig {
       curtailRegenerative: Boolean,
       aggregateFlex: String,
   ) extends BaseRuntimeConfig
+
+  
 }

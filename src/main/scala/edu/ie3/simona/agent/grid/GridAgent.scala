@@ -129,7 +129,7 @@ object GridAgent extends DBFSAlgorithm {
           constantData.simonaConfig.time.startDateTime
         ),
         TimeUtil.withDefaults.toZonedDateTime(
-          constantData.simonaConfig.simona.time.endDateTime
+          constantData.simonaConfig.time.endDateTime
         ),
         simonaConfig,
       )
@@ -141,8 +141,8 @@ object GridAgent extends DBFSAlgorithm {
           constantData.simStartTime,
           TimeUtil.withDefaults
             .toZonedDateTime(constantData.simonaConfig.time.endDateTime),
-          constantData.simonaConfig.simona.runtime.participant,
-          constantData.simonaConfig.simona.output.participant,
+          constantData.simonaConfig.runtime.participant,
+          constantData.simonaConfig.output.participant,
           constantData.resolution,
           constantData.listener,
           ctx.log,
@@ -172,11 +172,11 @@ object GridAgent extends DBFSAlgorithm {
         gridAgentInitData.superiorGridNodeUuids,
         gridAgentInitData.inferiorGridGates,
         PowerFlowParams(
-          constantData.simonaConfig.simona.powerflow.maxSweepPowerDeviation,
-          constantData.simonaConfig.simona.powerflow.newtonraphson.epsilon.toVector.sorted,
-          constantData.simonaConfig.simona.powerflow.newtonraphson.iterations,
-          constantData.simonaConfig.simona.powerflow.sweepTimeout,
-          constantData.simonaConfig.simona.powerflow.stopOnFailure,
+          constantData.simonaConfig.powerflow.maxSweepPowerDeviation,
+          constantData.simonaConfig.powerflow.newtonraphson.epsilon.toVector.sorted,
+          constantData.simonaConfig.powerflow.newtonraphson.iterations,
+          constantData.simonaConfig.powerflow.sweepTimeout,
+          constantData.simonaConfig.powerflow.stopOnFailure,
         ),
         SimonaActorNaming.actorName(ctx.self),
       )
