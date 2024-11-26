@@ -1,5 +1,5 @@
 uuid,id,columnScheme,dataType
-00d03670-7833-47ee-ad52-04d18d1c64fd,NS_Node_1,p,result_grid
-dfae9806-9b44-4995-ba27-d66d8e4a43e0,NS_Node_2,p,result_grid
+00d03670-7833-47ee-ad52-04d18d1c64fd,NS_Node_1,p,grid_result
+dfae9806-9b44-4995-ba27-d66d8e4a43e0,NS_Node_2,p,grid_result
 4dca3b1d-5d24-444a-b4df-f4fa23b9ef1b,LOAD_NS_Node_1,pq,primary_input
 9c5991bc-24df-496b-b4ce-5ec27657454c,LOAD_NS_Node_2,pq,primary_input
