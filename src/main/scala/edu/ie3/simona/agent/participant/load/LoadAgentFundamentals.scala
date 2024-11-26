@@ -194,7 +194,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
     */
   protected def retrieveLoadProfileData(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         _ <: LoadRelevantData,
         ConstantState.type,
         LM,
@@ -341,7 +341,7 @@ protected trait LoadAgentFundamentals[LD <: LoadRelevantData, LM <: LoadModel[
       lastModelState: ConstantState.type,
       currentTick: Long,
       scheduler: ActorRef,
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
+  ): FSM.State[AgentState, ParticipantStateData[ComplexPower]] = {
     val voltage =
       getAndCheckNodalVoltage(baseStateData, currentTick)
 
