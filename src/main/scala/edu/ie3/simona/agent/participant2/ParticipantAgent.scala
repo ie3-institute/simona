@@ -12,11 +12,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerUnchangedMessage,
 }
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.{
-  PrimaryData,
-  PrimaryDataMeta,
-  SecondaryData,
-}
+import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, PrimaryDataMeta}
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.exceptions.CriticalFailureException
@@ -305,18 +301,10 @@ object ParticipantAgent {
         )
       )
 
-      val receivedData = inputHandler.getData.map {
-        case data: SecondaryData => data
-        case other =>
-          throw new CriticalFailureException(
-            s"Received unexpected data $other, should be secondary data"
-          )
-      }
-
       val (updatedShell, updatedGridAdapter) = Scope(modelShell)
         .map(
           _.updateRelevantData(
-            receivedData,
+            inputHandler.getData,
             gridAdapter.nodalVoltage,
             activation.tick,
           )

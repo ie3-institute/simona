@@ -8,12 +8,9 @@ package edu.ie3.simona.model.participant2
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
+import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
-import edu.ie3.simona.agent.participant.data.Data.{
-  PrimaryData,
-  PrimaryDataMeta,
-  SecondaryData,
-}
+import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, PrimaryDataMeta}
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
@@ -68,7 +65,7 @@ final case class ParticipantModelShell[
 ) {
 
   def updateRelevantData(
-      receivedData: Seq[SecondaryData],
+      receivedData: Seq[Data],
       nodalVoltage: Dimensionless,
       tick: Long,
   ): ParticipantModelShell[OP, S, OR] = {
