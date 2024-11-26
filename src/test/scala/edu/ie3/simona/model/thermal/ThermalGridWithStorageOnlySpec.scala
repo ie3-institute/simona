@@ -318,6 +318,7 @@ class ThermalGridWithStorageOnlySpec
     }
 
     "updating the grid state dependent on the given thermal infeed" should {
+      val relevantData = HpRelevantData(0, testGridAmbientTemperature)
       "deliver proper result, if energy is fed into the grid" in {
         val relevantData = HpRelevantData(
           0L,
