@@ -58,9 +58,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
   private implicit val activePowerTolerance: Power = Kilowatts(1e-10)
   private implicit val reactivePowerTolerance: ReactivePower = Kilovars(1e-10)
 
-  "A ParticipantAgent without secondary services" when {
+  "A ParticipantAgent that is not controlled by EM" when {
 
-    "not flex-controlled" should {
+    "not depending on external services" should {
 
       "calculate operating point and results correctly with no additional ticks" in {
 
@@ -340,7 +340,19 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
     }
 
-    "flex-controlled" should {
+    "depending on secondary data" should {
+      // todo
+    }
+
+    "depending on primary data" should {
+      // todo
+    }
+
+  }
+
+  "A ParticipantAgent that is controlled by EM" when {
+
+    "not depending on external services" should {
 
       "calculate operating point and results correctly with no additional ticks" in {
 
@@ -661,6 +673,14 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
       }
 
+    }
+
+    "depending on secondary data" should {
+      // todo
+    }
+
+    "depending on primary data" should {
+      // todo
     }
 
   }

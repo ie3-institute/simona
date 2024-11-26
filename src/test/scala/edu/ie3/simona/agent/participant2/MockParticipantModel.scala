@@ -8,11 +8,13 @@ package edu.ie3.simona.agent.participant2
 
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData
+import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant2.MockParticipantModel.{
+  MockRelevantData,
   MockRequestMessage,
   MockResponseMessage,
   MockResult,
+  MockSecondaryData,
 }
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.model.participant.control.QControl
@@ -20,9 +22,9 @@ import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
 import edu.ie3.simona.model.participant2.ParticipantModel
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
-  FixedRelevantData,
   FixedState,
   ModelChangeIndicator,
+  OperationRelevantData,
   ParticipantFixedState,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
@@ -49,16 +51,16 @@ class MockParticipantModel(
 ) extends ParticipantModel[
       ActivePowerOperatingPoint,
       FixedState,
-      FixedRelevantData.type,
+      MockRelevantData,
     ]
     with ParticipantFixedState[
       ActivePowerOperatingPoint,
-      FixedRelevantData.type,
+      MockRelevantData,
     ] {
 
   override def determineOperatingPoint(
       state: FixedState,
-      relevantData: FixedRelevantData.type,
+      relevantData: MockRelevantData,
   ): (ActivePowerOperatingPoint, Option[Long]) = {
     (
       ActivePowerOperatingPoint(Kilowatts(6)),
@@ -91,24 +93,29 @@ class MockParticipantModel(
   ): SystemParticipantResult = throw new NotImplementedError() // Not tested
 
   override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable.empty
+    throw new NotImplementedError() // Not tested
 
   override def createRelevantData(
       receivedData: Seq[Data],
       nodalVoltage: Dimensionless,
       tick: Long,
       simulationTime: ZonedDateTime,
-  ): FixedRelevantData.type = FixedRelevantData
+  ): MockRelevantData =
+    MockRelevantData(
+      receivedData.collectFirst { case data: MockSecondaryData =>
+        data
+      }
+    )
 
   override def calcFlexOptions(
       state: FixedState,
-      relevantData: FixedRelevantData.type,
+      relevantData: MockRelevantData,
   ): FlexibilityMessage.ProvideFlexOptions =
     ProvideMinMaxFlexOptions(uuid, Kilowatts(1), Kilowatts(-1), Kilowatts(3))
 
   override def handlePowerControl(
       state: FixedState,
-      relevantData: FixedRelevantData.type,
+      relevantData: MockRelevantData,
       flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,
   ): (ActivePowerOperatingPoint, ModelChangeIndicator) =
@@ -146,5 +153,10 @@ object MockParticipantModel {
   ) extends ParticipantRequest
 
   case object MockResponseMessage
+
+  final case class MockSecondaryData(payload: String) extends SecondaryData
+
+  final case class MockRelevantData(data: Option[MockSecondaryData])
+      extends OperationRelevantData
 
 }
