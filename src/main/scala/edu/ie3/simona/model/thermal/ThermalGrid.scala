@@ -276,7 +276,7 @@ final case class ThermalGrid(
       )
     }
     // Handle edge case where house was heated from storage and HP will be activated in between
-    else if ((qDotHouseLastState > zeroKW && qDotStorageLastState < zeroKW)) {
+    else if (qDotHouseLastState > zeroKW && qDotStorageLastState < zeroKW) {
       if (isRunning) {
         handleCases(
           tick,
@@ -299,7 +299,7 @@ final case class ThermalGrid(
       }
     }
     // Handle edge case where house should be heated from storage
-    else if ((!isRunning && qDot > zeroKW)) {
+    else if (!isRunning && qDot > zeroKW) {
       handleCases(
         tick,
         lastAmbientTemperature,
@@ -308,7 +308,15 @@ final case class ThermalGrid(
         qDot,
         -qDot,
       )
-    } else handleFinaleInfeedCases(thermalDemands, tick, lastAmbientTemperature, ambientTemperature, state, qDot)
+    } else
+      handleFinaleInfeedCases(
+        thermalDemands,
+        tick,
+        lastAmbientTemperature,
+        ambientTemperature,
+        state,
+        qDot,
+      )
   }
 
   /** Handles the last cases of [[ThermalGrid.handleInfeed]], where the thermal
@@ -342,14 +350,14 @@ final case class ThermalGrid(
     * | 4  | if(!house.reqD && house.addD && !storage.reqD && !storage.addD) => house | house     |
     * | 5  | if(all == false) => no output                                            | no output |
     */
-  def handleFinaleInfeedCases(
+  private def handleFinaleInfeedCases(
       thermalDemands: ThermalDemandWrapper,
       tick: Long,
       lastAmbientTemperature: Temperature,
       ambientTemperature: Temperature,
       state: ThermalGridState,
       qDot: Power,
-  ) = {
+  ): (ThermalGridState, Option[ThermalThreshold]) = {
     (
       thermalDemands.houseDemand.hasRequiredDemand,
       thermalDemands.houseDemand.hasAdditionalDemand,
