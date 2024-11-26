@@ -260,9 +260,9 @@ class ParticipantAgentMock(
     * @param modelConfig
     *   Configuration for the model
     * @param simulationStartDate
-    *   Wall clock time of first instant in simulation
+    *   The simulation time at which the simulation starts
     * @param simulationEndDate
-    *   Wall clock time of last instant in simulation
+    *   The simulation time at which the simulation ends
     * @return
     */
   override def buildModel(
