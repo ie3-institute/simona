@@ -339,144 +339,201 @@ final case class ThermalGrid(
         relevantData.houseInhabitants,
       )
     } else {
+      handleFinaleInfeedCases(
+        thermalDemands,
+        relevantData,
+        lastAmbientTemperature,
+        state,
+        qDot,
+        updatedHeatStorageState,
+        qDotHouseLastState,
+        qDotStorageLastState,
+        qDotDomesticWaterStorageLastState,
+        domesticHotWaterStorageLeftBoundary,
+        isRunning,
+      )
+    }
+  }
 
-      (
-        houseDemand.hasRequiredDemand,
-        houseDemand.hasAdditionalDemand,
-        heatStorageDemand.hasRequiredDemand,
-        heatStorageDemand.hasAdditionalDemand,
-        domesticHotWaterStorageDemand.hasRequiredDemand,
-        domesticHotWaterStorageDemand.hasAdditionalDemand,
-      ) match {
-        case (true, _, _, _, true, _) =>
-          updatedHeatStorageState match {
-            // if heatStorage is not empty, house and hot water storage can handleDemand
-            // take qDot to recharge domesticHotWaterStorage and
-            // cover thermal demand of house by heatStorage
-            case Some(storageState) if storageState.storedEnergy > zeroKWh =>
+  /** Handles the last cases of [[ThermalGrid.handleInfeed]], where the thermal
+    * infeed should be determined. FIXME adapt whole table
+    * | house req. demand | house add. demand | storage req. demand | storage add. demand | qDot to house | qDot to storage |
+    * |:------------------|:------------------|:--------------------|:--------------------|:--------------|:----------------|
+    * | true              | true              | true                | true                | true          | false           |
+    * | true              | true              | true                | false               | true          | false           |
+    * | true              | true              | false               | true                | true          | false           |
+    * | true              | true              | false               | false               | true          | false           |
+    * | true              | false             | true                | true                | true          | false           |
+    * | true              | false             | true                | false               | true          | false           |
+    * | true              | false             | false               | true                | true          | false           |
+    * | true              | false             | false               | false               | true          | false           |
+    * | false             | true              | true                | true                | false         | true            |
+    * | false             | true              | true                | false               | false         | true            |
+    * | false             | true              | false               | true                | false         | true            |
+    * | false             | true              | false               | false               | true          | false           |
+    * | false             | false             | true                | true                | false         | true            |
+    * | false             | false             | true                | false               | false         | true            |
+    * | false             | false             | false               | true                | false         | true            |
+    * | false             | false             | false               | false               | false         | false           |
+    *
+    * This can be simplified to five cases FIXME adapt whole table
+    * | No | Conditions                                                               | Result    |
+    * |:---|:-------------------------------------------------------------------------|:----------|
+    * | 1  | if(house.reqD) => house                                                  | house     |
+    * | 2  | if(!house.reqD && !storage.reqD) => storage                              | storage   |
+    * | 3  | if(!house.reqD && !storage.reqD && storage.addD) => storage              | storage   |
+    * | 4  | if(!house.reqD && house.addD && !storage.reqD && !storage.addD) => house | house     |
+    * | 5  | if(all == false) => no output                                            | no output |
+    */
+  def handleFinaleInfeedCases(
+      thermalDemands: ThermalDemandWrapper,
+      relevantData: HpRelevantData,
+      lastAmbientTemperature: Temperature,
+      state: ThermalGridState,
+      qDot: Power,
+      updatedHeatStorageState: Option[ThermalStorageState],
+      qDotHouseLastState: Option[Power],
+      qDotStorageLastState: Option[Power],
+      qDotDomesticWaterStorageLastState: Option[Power],
+      domesticHotWaterStorageLeftBoundary: Boolean,
+      isRunning: Boolean,
+  ) = {
+    (
+      thermalDemands.houseDemand.hasRequiredDemand,
+      thermalDemands.houseDemand.hasAdditionalDemand,
+      thermalDemands.heatStorageDemand.hasRequiredDemand,
+      thermalDemands.heatStorageDemand.hasAdditionalDemand,
+      thermalDemands.domesticHotWaterStorageDemand.hasRequiredDemand,
+      thermalDemands.domesticHotWaterStorageDemand.hasAdditionalDemand,
+    ) match {
+      case (true, _, _, _, true, _) =>
+        updatedHeatStorageState match {
+          // if heatStorage is not empty, house and hot water storage can handleDemand
+          // take qDot to recharge domesticHotWaterStorage and
+          // cover thermal demand of house by heatStorage
+          case Some(storageState) if storageState.storedEnergy > zeroKWh =>
+            handleCases(
+              relevantData.currentTick,
+              lastAmbientTemperature,
+              relevantData.ambientTemperature,
+              state,
+              heatStorage.map(_.getChargingPower).getOrElse(zeroKW),
+              heatStorage.map(_.getChargingPower).getOrElse(zeroKW) * (-1),
+              qDot,
+              relevantData.simulationStart,
+              relevantData.houseInhabitants,
+            )
+          case _ =>
+            splitThermalHeatAndPushIntoHouseAndDomesticStorage(
+              relevantData.currentTick,
+              lastAmbientTemperature,
+              relevantData.ambientTemperature,
+              state,
+              qDotHouseLastState,
+              qDotDomesticWaterStorageLastState,
+              qDot,
+              relevantData.simulationStart,
+              relevantData.houseInhabitants,
+            )
+        }
+
+      case (true, _, _, _, false, _) =>
+        // if there is a heatStorage that isn't empty, take energy from storage
+        updatedHeatStorageState match {
+          case Some(storageState)
+              if (storageState.storedEnergy > zeroKWh && !isRunning) =>
+            handleCases(
+              relevantData.currentTick,
+              lastAmbientTemperature,
+              relevantData.ambientTemperature,
+              state,
+              heatStorage.map(_.getChargingPower).getOrElse(zeroKW),
+              heatStorage.map(_.getChargingPower).getOrElse(zeroKW) * (-1),
+              zeroKW,
+              relevantData.simulationStart,
+              relevantData.houseInhabitants,
+            )
+          case _ =>
+            pushThermalHeatIntoHouseOnly(
+              relevantData.currentTick,
+              lastAmbientTemperature,
+              relevantData.ambientTemperature,
+              state,
+              qDot,
+              relevantData.simulationStart,
+              relevantData.houseInhabitants,
+            )
+        }
+
+      // Prioritize domestic hot water storage
+      // Same case if there is Some(heatStorageDemand) or not
+      case (false, _, _, _, true, _) =>
+        pushThermalHeatIntoDomesticHotWaterStorageOnly(
+          relevantData.currentTick,
+          lastAmbientTemperature,
+          relevantData.ambientTemperature,
+          state,
+          qDot,
+          relevantData.simulationStart,
+          relevantData.houseInhabitants,
+        )
+
+      case (false, _, true, _, false, _) =>
+        pushThermalHeatIntoThermalStorageOnly(
+          relevantData.currentTick,
+          lastAmbientTemperature,
+          relevantData.ambientTemperature,
+          state,
+          qDot,
+          relevantData.simulationStart,
+          relevantData.houseInhabitants,
+        )
+      //  all cases for required demands are now handled
+      // now take last action into account
+      case _ =>
+        // House and domestic hot water storage can only have additional demand now
+        domesticHotWaterStorageLeftBoundary match {
+          case true =>
+            handleCases(
+              relevantData.currentTick,
+              lastAmbientTemperature,
+              relevantData.ambientTemperature,
+              state,
+              qDotHouseLastState.getOrElse(zeroKW),
+              qDotStorageLastState.getOrElse(zeroKW),
+              zeroKW,
+              relevantData.simulationStart,
+              relevantData.houseInhabitants,
+            )
+          // if storage has additional demand charge it before heating the house
+          case _ =>
+            if (thermalDemands.heatStorageDemand.hasAdditionalDemand)
               handleCases(
                 relevantData.currentTick,
                 lastAmbientTemperature,
                 relevantData.ambientTemperature,
                 state,
-                heatStorage.map(_.getChargingPower).getOrElse(zeroKW),
-                heatStorage.map(_.getChargingPower).getOrElse(zeroKW) * (-1),
+                zeroKW,
                 qDot,
-                relevantData.simulationStart,
-                relevantData.houseInhabitants,
-              )
-            case _ =>
-              splitThermalHeatAndPushIntoHouseAndDomesticStorage(
-                relevantData.currentTick,
-                lastAmbientTemperature,
-                relevantData.ambientTemperature,
-                state,
-                qDotHouseLastState,
-                qDotDomesticWaterStorageLastState,
-                qDot,
-                relevantData.simulationStart,
-                relevantData.houseInhabitants,
-              )
-          }
-
-        case (true, _, _, _, false, _) =>
-          // if there is a heatStorage that isn't empty, take energy from storage
-          updatedHeatStorageState match {
-            case Some(storageState)
-                if (storageState.storedEnergy > zeroKWh && !isRunning) =>
-              handleCases(
-                relevantData.currentTick,
-                lastAmbientTemperature,
-                relevantData.ambientTemperature,
-                state,
-                heatStorage.map(_.getChargingPower).getOrElse(zeroKW),
-                heatStorage.map(_.getChargingPower).getOrElse(zeroKW) * (-1),
                 zeroKW,
                 relevantData.simulationStart,
                 relevantData.houseInhabitants,
               )
-            case _ =>
-              pushThermalHeatIntoHouseOnly(
-                relevantData.currentTick,
-                lastAmbientTemperature,
-                relevantData.ambientTemperature,
-                state,
-                qDot,
-                relevantData.simulationStart,
-                relevantData.houseInhabitants,
-              )
-          }
-
-        // Prioritize domestic hot water storage
-        // Same case if there is Some(heatStorageDemand) or not
-        case (false, _, _, _, true, _) =>
-          pushThermalHeatIntoDomesticHotWaterStorageOnly(
-            relevantData.currentTick,
-            lastAmbientTemperature,
-            relevantData.ambientTemperature,
-            state,
-            qDot,
-            relevantData.simulationStart,
-            relevantData.houseInhabitants,
-          )
-
-        case (false, _, true, _, false, _) =>
-          pushThermalHeatIntoThermalStorageOnly(
-            relevantData.currentTick,
-            lastAmbientTemperature,
-            relevantData.ambientTemperature,
-            state,
-            qDot,
-            relevantData.simulationStart,
-            relevantData.houseInhabitants,
-          )
-        //  all cases for required demands are now handled
-        // now take last action into account
-        case _ =>
-          // House and domestic hot water storage can only have additional demand now
-          domesticHotWaterStorageLeftBoundary match {
-            case true =>
+            else {
               handleCases(
                 relevantData.currentTick,
                 lastAmbientTemperature,
                 relevantData.ambientTemperature,
                 state,
-                qDotHouseLastState.getOrElse(zeroKW),
-                qDotStorageLastState.getOrElse(zeroKW),
+                qDot,
+                zeroKW,
                 zeroKW,
                 relevantData.simulationStart,
                 relevantData.houseInhabitants,
               )
-            // if storage has additional demand charge it before heating the house
-            case _ =>
-              if (thermalDemands.heatStorageDemand.hasAdditionalDemand)
-                handleCases(
-                  relevantData.currentTick,
-                  lastAmbientTemperature,
-                  relevantData.ambientTemperature,
-                  state,
-                  zeroKW,
-                  qDot,
-                  zeroKW,
-                  relevantData.simulationStart,
-                  relevantData.houseInhabitants,
-                )
-              else {
-                handleCases(
-                  relevantData.currentTick,
-                  lastAmbientTemperature,
-                  relevantData.ambientTemperature,
-                  state,
-                  qDot,
-                  zeroKW,
-                  zeroKW,
-                  relevantData.simulationStart,
-                  relevantData.houseInhabitants,
-                )
-              }
-          }
+            }
+        }
 
-      }
     }
   }
 
