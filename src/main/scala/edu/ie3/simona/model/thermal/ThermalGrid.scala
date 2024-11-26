@@ -758,7 +758,7 @@ object ThermalGrid {
   ): ThermalGrid = {
     val houses = input.houses().asScala.map(ThermalHouse(_)).toSet
     val storages: Set[ThermalStorage] = input
-      .heatStorages()
+      .storages()
       .asScala
       .flatMap {
         case cylindricalInput: CylindricalStorageInput =>
