@@ -6,22 +6,12 @@
 
 package edu.ie3.simona.model.thermal
 
-import edu.ie3.datamodel.models.input.thermal.{
-  ThermalHouseInput,
-  ThermalStorageInput,
-}
-import edu.ie3.simona.model.participant.HpModel.HpRelevantData
-import edu.ie3.simona.model.thermal.ThermalGrid.{
-  ThermalDemandWrapper,
-  ThermalEnergyDemand,
-  ThermalGridState,
-}
+import edu.ie3.datamodel.models.input.thermal.{ThermalHouseInput, ThermalStorageInput}
+import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
+import edu.ie3.simona.model.thermal.ThermalGrid.{ThermalDemandWrapper, ThermalEnergyDemand, ThermalGridState}
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
-  StorageEmpty,
-  StorageFull,
-}
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{StorageEmpty, StorageFull}
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import squants.energy._
@@ -94,6 +84,26 @@ class ThermalGridWithStorageOnlySpec
       "deliver the capabilities of the storage" in {
         val tick = 10800 // after three hours
 
+        val relevantData = HpRelevantData(
+          10800, // after three hours
+          testGridAmbientTemperature,
+        )
+        val lastHpState = HpState(
+          true,
+          relevantData.currentTick,
+          Some(testGridAmbientTemperature),
+          Kilowatts(42),
+          Kilowatts(42),
+          ThermalGrid.startingState(thermalGrid),
+          None,
+        )
+
+        val (thermalDemands, updatedThermalGridState) =
+          thermalGrid.energyDemandAndUpdatedState(
+            relevantData,
+            lastHpState,
+          )
+
         val (
           thermalDemands,
           updatedThermalGridState,
@@ -125,6 +135,29 @@ class ThermalGridWithStorageOnlySpec
 
       "deliver the capabilities of a half full storage" in {
         val tick = 10800 // after three hours
+
+        val relevantData = HpRelevantData(
+          10800, // after three hours
+          testGridAmbientTemperature,
+        )
+        val lastHpState = HpState(
+          true,
+          relevantData.currentTick,
+          Some(testGridAmbientTemperature),
+          Kilowatts(42),
+          Kilowatts(42),
+          ThermalGridState(
+            None,
+            Some(ThermalStorageState(0L, KilowattHours(575d), zeroKW)),
+          ),
+          None,
+        )
+
+        val (thermalDemands, updatedThermalGridState) =
+          thermalGrid.energyDemandAndUpdatedState(
+            relevantData,
+            lastHpState,
+          )
 
         val (
           thermalDemands,

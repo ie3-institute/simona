@@ -14,15 +14,9 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalGridState,
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
-import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
-  HouseTemperatureLowerBoundaryReached,
-  HouseTemperatureUpperBoundaryReached,
-}
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{HouseTemperatureLowerBoundaryReached, HouseTemperatureUpperBoundaryReached}
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
-  StorageEmpty,
-  StorageFull,
-}
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{StorageEmpty, StorageFull}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import squants.energy._
@@ -127,6 +121,20 @@ class ThermalGridWithHouseAndStorageSpec
         // hot water demand will be excluded here for test reasons
         val tick = 10800 // after three hours
 
+        val relevantData = HpRelevantData(
+          10800, // after three hours
+          testGridAmbientTemperature,
+        )
+        val lastHpState = HpState(
+          true,
+          relevantData.currentTick,
+          Some(testGridAmbientTemperature),
+          Kilowatts(42),
+          Kilowatts(42),
+          ThermalGrid.startingState(thermalGrid),
+          None,
+        )
+
         val (thermalDemands, updatedThermalGridState) =
           thermalGrid.energyDemandAndUpdatedState(
             tick,
@@ -206,6 +214,24 @@ class ThermalGridWithHouseAndStorageSpec
 
       "deliver the correct house and storage demand" in {
         val tick = 10800 // after three hours
+        val relevantData = HpRelevantData(
+          10800, // after three hours
+          testGridAmbientTemperature,
+        )
+        val startingState = ThermalGrid.startingState(thermalGrid)
+        val lastHpState = HpState(
+          true,
+          relevantData.currentTick,
+          Some(testGridAmbientTemperature),
+          Kilowatts(42),
+          Kilowatts(42),
+          startingState.copy(houseState =
+            startingState.houseState.map(
+              _.copy(innerTemperature = Celsius(16d))
+            )
+          ),
+          None,
+        )
 
         val startingState = ThermalGrid.startingState(thermalGrid)
         val (thermalDemands, updatedThermalGridState) =

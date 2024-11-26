@@ -112,7 +112,12 @@ final case class HpModel(
       tick: Long,
       currentState: HpState,
       data: HpRelevantData,
-  ): Power = currentState.qDot
+  ): Power =
+    // only if Hp is running qDot will be from Hp, else qDot results from other source, e.g. some storage
+    if (currentState.isRunning)
+      currentState.qDot
+    else
+      zeroKW
 
   /** Given a [[HpRelevantData]] object and the last [[HpState]], this function
     * calculates the heat pump's next state to get the actual active power of
@@ -134,12 +139,8 @@ final case class HpModel(
     // Use lastHpState and relevantData to update state of thermalGrid to the current tick
     val (thermalDemandWrapper, currentThermalGridState) =
       thermalGrid.energyDemandAndUpdatedState(
-        relevantData.currentTick,
-        lastHpState.ambientTemperature.getOrElse(
-          relevantData.ambientTemperature
-        ),
-        relevantData.ambientTemperature,
-        lastHpState.thermalGridState,
+        relevantData,
+        lastHpState,
         relevantData.simulationStart,
         relevantData.houseInhabitants,
       )
@@ -190,10 +191,8 @@ final case class HpModel(
     val demandDomesticHotWaterStorage =
       thermalDemands.domesticHotWaterStorageDemand
 
-    val noThermalStorageOrThermalStorageIsEmpty = determineThermalStorageStatus(
-      lastState,
-      currentThermalGridState,
-    )
+    val noThermalStorageOrThermalStorageIsEmpty =
+      currentThermalGridState.isThermalStorageEmpty
 
     val turnHpOn =
       (demandHouse.hasRequiredDemand && noThermalStorageOrThermalStorageIsEmpty) ||
@@ -215,31 +214,6 @@ final case class HpModel(
       canOperate,
       canBeOutOfOperation,
     )
-  }
-
-  /** Determines the actual status of heat pump and the status of the heat
-    * storage if there is one
-    *
-    * @param hpState
-    *   Current state of the heat pump
-    * @param updatedGridState
-    *   The updated state of the [[ThermalGrid]]
-    * @return
-    *   boolean which is true, if there is no thermalStorage, or it's empty.
-    */
-
-  private def determineThermalStorageStatus(
-      lastHpState: HpState,
-      updatedGridState: ThermalGridState,
-  ): Boolean = {
-    implicit val tolerance: Energy = KilowattHours(1e-3)
-    val noThermalStorageOrThermalStorageIsEmpty: Boolean =
-      updatedGridState.storageState.isEmpty || updatedGridState.storageState
-        .exists(
-          _.storedEnergy =~ zeroKWh
-        )
-
-    noThermalStorageOrThermalStorageIsEmpty
   }
 
   /** Calculate state depending on whether heat pump is needed or not. Also
@@ -339,7 +313,7 @@ final case class HpModel(
     * operating state and give back the next tick in which something will
     * change.
     *
-    * @param data
+    * @param relevantData
     *   Relevant data for model calculation
     * @param lastState
     *   The last known model state
@@ -350,7 +324,7 @@ final case class HpModel(
     *   options will change next
     */
   override def handleControlledPowerChange(
-      data: HpRelevantData,
+      relevantData: HpRelevantData,
       lastState: HpState,
       setPower: Power,
   ): (HpState, FlexChangeIndicator) = {
@@ -362,17 +336,15 @@ final case class HpModel(
       _,
     ) =
       thermalGrid.energyDemandAndUpdatedState(
-        data.currentTick,
-        lastState.ambientTemperature.getOrElse(data.ambientTemperature),
-        data.ambientTemperature,
-        lastState.thermalGridState,
+        relevantData,
+        lastState,
         data.simulationStart,
         data.houseInhabitants,
       )
 
     val updatedHpState = calcState(
       lastState,
-      data,
+      relevantData,
       turnOn,
       thermalDemands,
     )

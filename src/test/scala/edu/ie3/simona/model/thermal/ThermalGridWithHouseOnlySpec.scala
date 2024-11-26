@@ -112,9 +112,21 @@ class ThermalGridWithHouseOnlySpec
 
     "determining the energy demand for heating and domestic hot water" should {
       "exactly be the thermal demand for heating of the house" in {
-        val tick = 10800 // after three hours
+        val relevantData = HpRelevantData(
+          10800, // after three hours
+          testGridAmbientTemperature,
+        )
+        val lastHpState = HpState(
+          true,
+          relevantData.currentTick,
+          Some(testGridAmbientTemperature),
+          Kilowatts(42),
+          Kilowatts(42),
+          ThermalGrid.startingState(thermalGrid),
+          None,
+        )
         val expectedHouseDemand = thermalHouse.energyDemandHeating(
-          tick,
+          relevantData.currentTick,
           testGridAmbientTemperature,
           expectedHouseStartingState,
         )
@@ -124,10 +136,8 @@ class ThermalGridWithHouseOnlySpec
           updatedThermalGridState,
         ) =
           thermalGrid.energyDemandAndUpdatedState(
-            tick,
-            testGridAmbientTemperature,
-            testGridAmbientTemperature,
-            ThermalGrid.startingState(thermalGrid),
+            relevantData,
+            lastHpState,
             defaultSimulationStart,
             houseInhabitants,
           )
