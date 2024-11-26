@@ -10,14 +10,8 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.ontology.messages.SchedulerMessage
-import edu.ie3.simona.sim.setup.ExtSimSetup.setupExtSim
 import edu.ie3.simona.util.ResultFileHierarchy
-import edu.ie3.simosaik.ExtLink
-import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
-import java.nio.file.Path
 import java.util.concurrent.LinkedBlockingQueue
 
 /** Sample implementation to run a standalone simulation of simona configured

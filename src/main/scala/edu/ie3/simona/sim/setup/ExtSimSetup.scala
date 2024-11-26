@@ -162,13 +162,20 @@ object ExtSimSetup {
               )
             }
 
-            setupInputService(
-              extSimSetupData,
-              extEmDataConnection,
-              ExtEmDataService.props,
-              "ExtEmDataService",
-              InitExtEmData,
-            )
+            if (extEmDataConnection.getControlledEms.isEmpty) {
+              log.warn(
+                s"External em connection $extEmDataConnection is not used, because there are no controlled ems present!"
+              )
+              setupData
+            } else {
+              setupInputService(
+                extSimSetupData,
+                extEmDataConnection,
+                ExtEmDataService.props,
+                "ExtEmDataService",
+                InitExtEmData,
+              )
+            }
 
           case extEvDataConnection: ExtEvDataConnection =>
             if (setupData.extEvDataConnection.nonEmpty) {

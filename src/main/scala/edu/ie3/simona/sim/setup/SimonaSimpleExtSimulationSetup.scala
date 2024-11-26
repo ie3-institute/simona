@@ -15,7 +15,6 @@ import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.sim.setup.ExtSimSetup.setupExtSim
 import edu.ie3.simona.util.ResultFileHierarchy
-import edu.ie3.simpleextsim.SimpleExtSimulationWithPowerFlow
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
@@ -42,12 +41,12 @@ class SimonaSimpleExtSimulationSetup(
       scheduler: ActorRef[SchedulerMessage],
       extSimDir: Option[Path],
   ): ExtSimSetupData = {
-    val simpleExtSim = new SimpleExtSimulationWithPowerFlow()
+    // val simpleExtSim = new SimpleExtSimulationWithPowerFlow()
     // val simpleExtSim = new SimpleExtSimulationWithEm()
     // val simpleExtSim = new SimpleExtSimulationWithPrimaryData()
 
     val extLink = new ExtLinkInterface {
-      override def getExtSimulation: ExtSimulation = simpleExtSim
+      override def getExtSimulation: ExtSimulation = ??? // simpleExtSim
       override def setup(data: ExtSimAdapterData): Unit = {}
     }
 
