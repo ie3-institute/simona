@@ -308,34 +308,75 @@ final case class ThermalGrid(
         qDot,
         -qDot,
       )
-    } else {
-      (
-        thermalDemands.houseDemand.hasRequiredDemand,
-        thermalDemands.houseDemand.hasAdditionalDemand,
-        thermalDemands.heatStorageDemand.hasRequiredDemand,
-        thermalDemands.heatStorageDemand.hasAdditionalDemand,
-      ) match {
+    } else handleFinaleInfeedCases(thermalDemands, tick, lastAmbientTemperature, ambientTemperature, state, qDot)
+  }
 
-        case (true, _, _, _) =>
-          // house first then heatStorage after heating House
-          handleCases(
-            tick,
-            lastAmbientTemperature,
-            ambientTemperature,
-            state,
-            qDot,
-            zeroKW,
-          )
+  /** Handles the last cases of [[ThermalGrid.handleInfeed]], where the thermal
+    * infeed should be determined.
+    *
+    * | house req. demand | house add. demand | storage req. demand | storage add. demand | qDot to house | qDot to storage |
+    * |:------------------|:------------------|:--------------------|:--------------------|:--------------|:----------------|
+    * | true              | true              | true                | true                | true          | false           |
+    * | true              | true              | true                | false               | true          | false           |
+    * | true              | true              | false               | true                | true          | false           |
+    * | true              | true              | false               | false               | true          | false           |
+    * | true              | false             | true                | true                | true          | false           |
+    * | true              | false             | true                | false               | true          | false           |
+    * | true              | false             | false               | true                | true          | false           |
+    * | true              | false             | false               | false               | true          | false           |
+    * | false             | true              | true                | true                | false         | true            |
+    * | false             | true              | true                | false               | false         | true            |
+    * | false             | true              | false               | true                | false         | true            |
+    * | false             | true              | false               | false               | true          | false           |
+    * | false             | false             | true                | true                | false         | true            |
+    * | false             | false             | true                | false               | false         | true            |
+    * | false             | false             | false               | true                | false         | true            |
+    * | false             | false             | false               | false               | false         | false           |
+    *
+    * This can be simplified to five cases
+    * | No | Conditions                                                               | Result    |
+    * |:---|:-------------------------------------------------------------------------|:----------|
+    * | 1  | if(house.reqD) => house                                                  | house     |
+    * | 2  | if(!house.reqD && !storage.reqD) => storage                              | storage   |
+    * | 3  | if(!house.reqD && !storage.reqD && storage.addD) => storage              | storage   |
+    * | 4  | if(!house.reqD && house.addD && !storage.reqD && !storage.addD) => house | house     |
+    * | 5  | if(all == false) => no output                                            | no output |
+    */
+  def handleFinaleInfeedCases(
+      thermalDemands: ThermalDemandWrapper,
+      tick: Long,
+      lastAmbientTemperature: Temperature,
+      ambientTemperature: Temperature,
+      state: ThermalGridState,
+      qDot: Power,
+  ) = {
+    (
+      thermalDemands.houseDemand.hasRequiredDemand,
+      thermalDemands.houseDemand.hasAdditionalDemand,
+      thermalDemands.heatStorageDemand.hasRequiredDemand,
+      thermalDemands.heatStorageDemand.hasAdditionalDemand,
+    ) match {
 
-        case (_, _, true, _) =>
-          handleCases(
-            tick,
-            lastAmbientTemperature,
-            ambientTemperature,
-            state,
-            zeroKW,
-            qDot,
-          )
+      case (true, _, _, _) =>
+        // house first then heatStorage after heating House
+        handleCases(
+          tick,
+          lastAmbientTemperature,
+          ambientTemperature,
+          state,
+          qDot,
+          zeroKW,
+        )
+
+      case (_, _, true, _) =>
+        handleCases(
+          tick,
+          lastAmbientTemperature,
+          ambientTemperature,
+          state,
+          zeroKW,
+          qDot,
+        )
 
       case (false, _, false, true) =>
         handleCases(
@@ -347,30 +388,29 @@ final case class ThermalGrid(
           qDot,
         )
 
-        case (_, true, false, false) =>
-          handleCases(
-            tick,
-            lastAmbientTemperature,
-            ambientTemperature,
-            state,
-            qDot,
-            zeroKW,
-          )
+      case (_, true, false, false) =>
+        handleCases(
+          tick,
+          lastAmbientTemperature,
+          ambientTemperature,
+          state,
+          qDot,
+          zeroKW,
+        )
 
-        case (false, false, false, false) =>
-          handleCases(
-            tick,
-            lastAmbientTemperature,
-            ambientTemperature,
-            state,
-            zeroKW,
-            zeroKW,
-          )
-        case _ =>
-          throw new InconsistentStateException(
-            "There should be at least a house or a storage state."
-          )
-      }
+      case (false, false, false, false) =>
+        handleCases(
+          tick,
+          lastAmbientTemperature,
+          ambientTemperature,
+          state,
+          zeroKW,
+          zeroKW,
+        )
+      case _ =>
+        throw new InconsistentStateException(
+          "There should be at least a house or a storage state."
+        )
     }
   }
 
