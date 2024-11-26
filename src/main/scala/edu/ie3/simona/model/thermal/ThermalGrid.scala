@@ -172,7 +172,6 @@ final case class ThermalGrid(
     handleInfeed(
       relevantData,
       lastAmbientTemperature,
-
       state,
       isRunning,
       qDot,
@@ -528,7 +527,6 @@ final case class ThermalGrid(
       case _ => (None, None)
     }
   }
-
 
   /** Determines the most recent threshold of two given input thresholds
     *
