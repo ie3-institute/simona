@@ -9,7 +9,12 @@ package edu.ie3.simona.agent.participant2
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
-import edu.ie3.simona.agent.participant2.MockParticipantModel.MockResult
+import edu.ie3.simona.agent.participant2.MockParticipantModel.{
+  MockRequestMessage,
+  MockResponseMessage,
+  MockResult,
+}
+import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
 import edu.ie3.simona.model.participant2.ParticipantModel
@@ -28,6 +33,8 @@ import squants.Dimensionless
 import squants.energy.{Kilowatts, Power}
 import tech.units.indriya.ComparableQuantity
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
 import javax.measure.quantity.{Power => QuantPower}
 import java.time.ZonedDateTime
@@ -109,6 +116,19 @@ class MockParticipantModel(
       ActivePowerOperatingPoint(setPower),
       ModelChangeIndicator(changesAtTick = mockActivationTicks.get(state.tick)),
     )
+
+  override def handleRequest(
+      state: FixedState,
+      ctx: ActorContext[ParticipantAgent.Request],
+      msg: ParticipantRequest,
+  ): FixedState = {
+    msg match {
+      case MockRequestMessage(_, replyTo) =>
+        replyTo ! MockResponseMessage
+    }
+
+    state
+  }
 }
 
 object MockParticipantModel {
@@ -119,5 +139,12 @@ object MockParticipantModel {
       p: ComparableQuantity[QuantPower],
       q: ComparableQuantity[QuantPower],
   ) extends SystemParticipantResult(time, inputModel, p, q)
+
+  final case class MockRequestMessage(
+      override val tick: Long,
+      replyTo: ActorRef[MockResponseMessage.type],
+  ) extends ParticipantRequest
+
+  case object MockResponseMessage
 
 }

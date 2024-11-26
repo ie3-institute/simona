@@ -11,7 +11,11 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
 }
-import edu.ie3.simona.agent.participant2.MockParticipantModel.MockResult
+import edu.ie3.simona.agent.participant2.MockParticipantModel.{
+  MockRequestMessage,
+  MockResponseMessage,
+  MockResult,
+}
 import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   FinishParticipantSimulation,
   RequestAssetPowerMessage,
@@ -63,6 +67,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val scheduler = createTestProbe[SchedulerMessage]()
         val gridAgent = createTestProbe[GridAgent.Request]()
         val resultListener = createTestProbe[ResultEvent]()
+        val responseReceiver = createTestProbe[MockResponseMessage.type]()
 
         // receiving the activation adapter
         val receiveAdapter = createTestProbe[ActorRef[Activation]]()
@@ -94,6 +99,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 0: Outside of operation interval
 
+        participantAgent ! MockRequestMessage(0, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage)
+
         activationRef ! Activation(0)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
@@ -110,6 +118,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 8 * 3600: Start of operation interval
 
+        participantAgent ! MockRequestMessage(0, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage)
+
         activationRef ! Activation(operationInterval.start)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
@@ -125,6 +136,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         )
 
         // TICK 12 * 3600: GridAgent requests power
+
+        participantAgent ! MockRequestMessage(0, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage)
 
         // first request
         participantAgent ! RequestAssetPowerMessage(12 * 3600, Each(1), Each(0))
@@ -162,6 +176,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 20 * 3600: Outside of operation interval (last tick)
 
+        participantAgent ! MockRequestMessage(0, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage)
+
         activationRef ! Activation(operationInterval.end)
 
         resultListener.expectMessageType[ParticipantResultEvent] match {
@@ -175,6 +192,9 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         scheduler.expectMessage(Completion(activationRef))
 
         // TICK 24 * 3600: GridAgent requests power
+
+        participantAgent ! MockRequestMessage(0, responseReceiver.ref)
+        responseReceiver.expectMessage(MockResponseMessage)
 
         participantAgent ! RequestAssetPowerMessage(24 * 3600, Each(1), Each(0))
 
@@ -642,8 +662,6 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
       }
 
     }
-
-    // todo testing handleRequest
 
   }
 

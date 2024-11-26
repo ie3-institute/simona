@@ -59,7 +59,7 @@ object EvMessage {
     * @param replyTo
     *   The actor to receive the response
     */
-  final case class EvFreeLotsRequest(tick: Long, replyTo: ActorRef)
+  final case class EvFreeLotsRequest(override val tick: Long, replyTo: ActorRef)
       extends ParticipantRequest
 
   /** Requests EV models of departing EVs with given UUIDs
@@ -72,7 +72,7 @@ object EvMessage {
     *   The actor to receive the response
     */
   final case class DepartingEvsRequest(
-      tick: Long,
+      override val tick: Long,
       departingEvs: Seq[UUID],
       replyTo: ActorRef,
   ) extends ParticipantRequest
