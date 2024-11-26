@@ -2064,6 +2064,7 @@ object SimonaConfig {
         base: SimonaConfig.Simona.Output.Base,
         flex: scala.Boolean,
         grid: SimonaConfig.GridOutputConfig,
+        log: SimonaConfig.Simona.Output.Log,
         participant: SimonaConfig.Simona.Output.Participant,
         sink: SimonaConfig.Simona.Output.Sink,
         thermal: SimonaConfig.Simona.Output.Thermal,
@@ -2102,6 +2103,22 @@ object SimonaConfig {
             }
         }
 
+      }
+
+      final case class Log(
+          level: java.lang.String
+      )
+      object Log {
+        def apply(
+            c: com.typesafe.config.Config,
+            parentPath: java.lang.String,
+            $tsCfgValidator: $TsCfgValidator,
+        ): SimonaConfig.Simona.Output.Log = {
+          SimonaConfig.Simona.Output.Log(
+            level =
+              if (c.hasPathOrNull("level")) c.getString("level") else "INFO"
+          )
+        }
       }
 
       final case class Participant(
@@ -2341,6 +2358,12 @@ object SimonaConfig {
             if (c.hasPathOrNull("grid")) c.getConfig("grid")
             else com.typesafe.config.ConfigFactory.parseString("grid{}"),
             parentPath + "grid.",
+            $tsCfgValidator,
+          ),
+          log = SimonaConfig.Simona.Output.Log(
+            if (c.hasPathOrNull("log")) c.getConfig("log")
+            else com.typesafe.config.ConfigFactory.parseString("log{}"),
+            parentPath + "log.",
             $tsCfgValidator,
           ),
           participant = SimonaConfig.Simona.Output.Participant(

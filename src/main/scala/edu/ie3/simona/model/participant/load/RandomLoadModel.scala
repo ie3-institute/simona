@@ -13,6 +13,7 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.LoadReference._
 import edu.ie3.simona.model.participant.load.RandomLoadModel.RandomRelevantData
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.ApparentPower
 import squants.Power
 import squants.energy.{KilowattHours, Watts}
 
@@ -25,7 +26,7 @@ import java.util.UUID
   * @param uuid
   *   unique identifier
   * @param id
-  *   human readable id
+  *   human-readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
   * @param qControl
@@ -42,7 +43,7 @@ final case class RandomLoadModel(
     id: String,
     operationInterval: OperationInterval,
     qControl: QControl,
-    sRated: Power,
+    sRated: ApparentPower,
     cosPhiRated: Double,
     reference: LoadReference,
 ) extends LoadModel[RandomRelevantData](
@@ -110,7 +111,7 @@ object RandomLoadModel {
     * active power.
     *
     * @return
-    *   Reference power to use for later model calculations
+    *   Reference active power to use for later model calculations
     */
   private val randomMaxPower: Power = Watts(159d)
 

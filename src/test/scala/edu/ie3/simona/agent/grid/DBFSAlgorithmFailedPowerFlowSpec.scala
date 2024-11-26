@@ -147,7 +147,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       val slackVoltageRequestSender =
         superiorGridAgent.expectSlackVoltageRequest(sweepNo)
 
-      // normally the inferior grid agents ask for the slack voltage as well to do their power flow calculation
+      // normally the inferior grid agents ask for the slack voltage as well to run their power flow calculation
       // we simulate this behaviour now by doing the same for our inferior grid agent
       inferiorGridAgent.requestSlackVoltage(centerGridAgent, sweepNo)
 
@@ -193,7 +193,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       // hence we ask for them and expect a corresponding response
       superiorGridAgent.requestGridPower(centerGridAgent, sweepNo)
 
-      // the requested power is to high for the grid to handle, therefore the superior grid agent
+      // the requested power is too high for the grid to handle, therefore the superior grid agent
       // receives a FailedPowerFlow message
       // wait 30 seconds max for power flow to finish
       superiorGridAgent.gaProbe.expectMessage(30 seconds, FailedPowerFlow)
@@ -202,8 +202,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
       // connected inferior grids, because the slack node is just a mock, we imitate this behavior
       centerGridAgent ! FinishGridSimulationTrigger(3600)
 
-      // after a FinishGridSimulationTrigger is send to the inferior grids, they themselves will
-      // forward the trigger to their connected inferior grids. Therefore the inferior grid agent
+      // after a FinishGridSimulationTrigger is sent to the inferior grids, they themselves will
+      // forward the trigger to their connected inferior grids. Therefore, the inferior grid agent
       // should receive a FinishGridSimulationTrigger
       inferiorGridAgent.gaProbe.expectMessage(FinishGridSimulationTrigger(3600))
 
@@ -231,7 +231,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       val slackVoltageRequestSender =
         superiorGridAgent.expectSlackVoltageRequest(sweepNo)
 
-      // normally the inferior grid agents ask for the slack voltage as well to do their power flow calculation
+      // normally the inferior grid agents ask for the slack voltage as well to run their power flow calculation
       // we simulate this behaviour now by doing the same for our inferior grid agent
       inferiorGridAgent.requestSlackVoltage(centerGridAgent, sweepNo)
 
@@ -274,8 +274,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
       // connected inferior grids, because the slack node is just a mock, we imitate this behavior
       centerGridAgent ! FinishGridSimulationTrigger(3600)
 
-      // after a FinishGridSimulationTrigger is send to the inferior grids, they themselves will
-      // forward the trigger to their connected inferior grids. Therefore the inferior grid agent
+      // after a FinishGridSimulationTrigger is sent to the inferior grids, they themselves will
+      // forward the trigger to their connected inferior grids. Therefore, the inferior grid agent
       // should receive a FinishGridSimulationTrigger
       inferiorGridAgent.gaProbe.expectMessage(FinishGridSimulationTrigger(3600))
 
@@ -343,7 +343,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
       val powerRequestSender = hvGridAgent.expectGridPowerRequest()
 
-      // normally the inferior grid agents ask for the slack voltage as well to do their power flow calculation
+      // normally the inferior grid agents ask for the slack voltage as well to run their power flow calculation
       // we simulate this behaviour now by doing the same for our inferior grid agent
       hvGridAgent.requestSlackVoltage(slackGridAgent, sweepNo)
 

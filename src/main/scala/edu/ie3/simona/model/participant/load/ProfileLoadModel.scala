@@ -16,6 +16,7 @@ import edu.ie3.simona.model.participant.load.LoadReference._
 import edu.ie3.simona.model.participant.load.ProfileLoadModel.ProfileRelevantData
 import edu.ie3.simona.service.load.LoadProfileStore
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.ApparentPower
 import squants.Power
 
 import java.util.UUID
@@ -25,7 +26,7 @@ import java.util.UUID
   * @param uuid
   *   unique identifier
   * @param id
-  *   human readable id
+  *   human-readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
   * @param qControl
@@ -44,7 +45,7 @@ final case class ProfileLoadModel(
     id: String,
     operationInterval: OperationInterval,
     qControl: QControl,
-    sRated: Power,
+    sRated: ApparentPower,
     cosPhiRated: Double,
     loadProfile: StandardLoadProfile,
     reference: LoadReference,

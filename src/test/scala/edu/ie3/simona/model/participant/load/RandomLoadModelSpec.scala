@@ -22,15 +22,19 @@ import edu.ie3.simona.model.participant.load.LoadReference.{
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.scala.quantities.{
+  ApparentPower,
+  Kilovoltamperes,
+  Voltamperes,
+}
 import org.scalatest.prop.TableDrivenPropertyChecks
-import squants.Power
-import squants.energy.{KilowattHours, Kilowatts, Watts}
+import squants.energy.{KilowattHours, Watts}
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
 
 class RandomLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
-  implicit val tolerance: Power = Watts(1d)
+  implicit val tolerance: ApparentPower = Voltamperes(1d)
   "Having a random load model" when {
     val loadInput =
       new LoadInput(
@@ -74,11 +78,11 @@ class RandomLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
 
         val testData = Table(
           ("reference", "expectedSRated"),
-          (ActivePower(Watts(268.6)), Watts(311.0105263157895d)),
-          (EnergyConsumption(KilowattHours(2000d)), Watts(513.871737d)),
+          (ActivePower(Watts(268.6)), Voltamperes(311.0105263157895d)),
+          (EnergyConsumption(KilowattHours(2000d)), Voltamperes(513.871737d)),
         )
 
-        forAll(testData) { (reference, expectedSRated: Power) =>
+        forAll(testData) { (reference, expectedSRated: ApparentPower) =>
           val actual = RandomLoadModel(
             loadInput,
             foreSeenOperationInterval,

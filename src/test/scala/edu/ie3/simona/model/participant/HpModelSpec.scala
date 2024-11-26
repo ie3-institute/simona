@@ -55,7 +55,7 @@ class HpModelSpec
             true,
             95,
             15.6,
-            Some(HouseTemperatureUpperBoundaryReached(31711L)),
+            Some(HouseTemperatureUpperBoundaryReached(31711)),
           ),
           (
             HpState(
@@ -70,7 +70,7 @@ class HpModelSpec
             true,
             95,
             16.4,
-            Some(HouseTemperatureUpperBoundaryReached(30642L)),
+            Some(HouseTemperatureUpperBoundaryReached(30642)),
           ),
           (
             HpState(
@@ -85,7 +85,7 @@ class HpModelSpec
             true,
             95,
             18.0,
-            Some(HouseTemperatureUpperBoundaryReached(27771L)),
+            Some(HouseTemperatureUpperBoundaryReached(27771)),
           ),
           (
             HpState(
@@ -100,7 +100,7 @@ class HpModelSpec
             false,
             0,
             19.6,
-            Some(HouseTemperatureLowerBoundaryReached(13200L)),
+            Some(HouseTemperatureLowerBoundaryReached(13200)),
           ),
           (
             HpState(
@@ -115,7 +115,7 @@ class HpModelSpec
             false,
             0,
             20.4,
-            Some(HouseTemperatureLowerBoundaryReached(15508L)),
+            Some(HouseTemperatureLowerBoundaryReached(15508)),
           ),
           (
             HpState(
@@ -124,73 +124,73 @@ class HpModelSpec
               Some(hpData.ambientTemperature),
               Kilowatts(95d),
               Kilowatts(80d),
-              thermalState(Celsius(17)),
-              None,
-            ),
-            true,
-            95,
-            15.6,
-            Some(HouseTemperatureUpperBoundaryReached(31711L)),
-          ),
-          (
-            HpState(
-              isRunning = true,
-              0,
-              Some(hpData.ambientTemperature),
-              Kilowatts(95d),
-              Kilowatts(80d),
-              thermalState(Celsius(18)),
-              None,
-            ),
-            true,
-            95,
-            16.4,
-            Some(HouseTemperatureUpperBoundaryReached(30642L)),
-          ),
-          (
-            HpState(
-              isRunning = true,
-              0,
-              Some(hpData.ambientTemperature),
-              Kilowatts(95d),
-              Kilowatts(80d),
-              thermalState(Celsius(20)),
-              None,
-            ),
-            true,
-            95,
-            18.0,
-            Some(HouseTemperatureUpperBoundaryReached(27771L)),
-          ),
-          (
-            HpState(
-              isRunning = true,
-              0,
-              Some(hpData.ambientTemperature),
-              Kilowatts(95d),
-              Kilowatts(80d),
-              thermalState(Celsius(22)),
-              None,
-            ),
-            true,
-            95,
-            19.6,
-            Some(HouseTemperatureUpperBoundaryReached(23200L)),
-          ),
-          (
-            HpState(
-              isRunning = true,
-              0,
-              Some(hpData.ambientTemperature),
-              Kilowatts(95d),
-              Kilowatts(80d),
-              thermalState(Celsius(25)),
+              thermalState(Celsius(17), Kilowatts(80d)),
               None,
             ),
             false,
             0,
-            22.0,
-            Some(HouseTemperatureLowerBoundaryReached(19200L)),
+            31.6,
+            Some(HouseTemperatureLowerBoundaryReached(29867)),
+          ),
+          (
+            HpState(
+              isRunning = true,
+              0,
+              Some(hpData.ambientTemperature),
+              Kilowatts(95d),
+              Kilowatts(80d),
+              thermalState(Celsius(18), Kilowatts(80d)),
+              None,
+            ),
+            false,
+            0,
+            32.4,
+            Some(HouseTemperatureLowerBoundaryReached(30343)),
+          ),
+          (
+            HpState(
+              isRunning = true,
+              0,
+              Some(hpData.ambientTemperature),
+              Kilowatts(95d),
+              Kilowatts(80d),
+              thermalState(Celsius(20), Kilowatts(80d)),
+              None,
+            ),
+            false,
+            0,
+            34.0,
+            Some(HouseTemperatureLowerBoundaryReached(31200)),
+          ),
+          (
+            HpState(
+              isRunning = true,
+              0,
+              Some(hpData.ambientTemperature),
+              Kilowatts(95d),
+              Kilowatts(80d),
+              thermalState(Celsius(22), Kilowatts(80d)),
+              None,
+            ),
+            false,
+            0,
+            35.6,
+            Some(HouseTemperatureLowerBoundaryReached(31950)),
+          ),
+          (
+            HpState(
+              isRunning = true,
+              0,
+              Some(hpData.ambientTemperature),
+              Kilowatts(95d),
+              Kilowatts(80d),
+              thermalState(Celsius(25), Kilowatts(80d)),
+              None,
+            ),
+            false,
+            0,
+            38.0,
+            Some(HouseTemperatureLowerBoundaryReached(32914)),
           ),
         )
 
@@ -208,14 +208,18 @@ class HpModelSpec
             val hp = hpModel(grid)
 
             hp.determineState(state, data) match {
-              case HpState(
-                    isRunning,
+              case (
                     _,
                     _,
-                    activePower,
-                    _,
-                    ThermalGridState(Some(thermalHouseState), _),
-                    maybeThreshold,
+                    HpState(
+                      isRunning,
+                      _,
+                      _,
+                      activePower,
+                      _,
+                      ThermalGridState(Some(thermalHouseState), _),
+                      maybeThreshold,
+                    ),
                   ) =>
                 isRunning shouldBe expectedRunningState
                 activePower should approximate(Kilowatts(expectedActivePower))
@@ -234,166 +238,447 @@ class HpModelSpec
 
     "determining the flexibility options for different states" should {
       "deliver correct flexibility options" in {
-        val testCases = Table(
-          ("thermalState", "lastState", "expectedValues"),
-          // House is below lower temperature boundary
-          (
-            ThermalGridState(
-              Some(ThermalHouseState(0L, Celsius(15), Kilowatts(0))),
-              Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
-            ),
-            HpState(
-              isRunning = false,
-              0,
-              Some(hpData.ambientTemperature),
-              Kilowatts(0.0),
-              Kilowatts(0.0),
+        val testCases =
+          Table(
+            ("thermalState", "lastState", "expectedValues"),
+            // 1. Hp actually not running
+            // House is below lower temperature boundary
+            // Heat storage is empty
+            // hp must be turned on
+            (
               ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(15), Kilowatts(0))),
-                Some(
-                  ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
-                ),
+                Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
               ),
-              None,
-            ),
-            (95.0, 95.0, 95.0),
-          ),
-          // House is between target temperature and lower temperature boundary, Hp actually running
-          (
-            ThermalGridState(
-              Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
-              Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
-            ),
-            HpState(
-              isRunning = true,
-              0,
-              Some(hpData.ambientTemperature),
-              Kilowatts(95.0),
-              Kilowatts(80.0),
-              ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(19), Kilowatts(80))),
-                Some(
-                  ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
+              HpState(
+                isRunning = false,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(0.0),
+                Kilowatts(0.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(15), Kilowatts(0))),
+                  Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
                 ),
+                None,
               ),
-              None,
+              (95.0, 95.0, 95.0),
             ),
-            (95.0, 0.0, 95.0),
-          ),
-
-          // House is between target temperature and lower temperature boundary, Hp actually not running
-          (
-            ThermalGridState(
-              Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
-              Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
-            ),
-            HpState(
-              isRunning = false,
-              0,
-              Some(hpData.ambientTemperature),
-              Kilowatts(0.0),
-              Kilowatts(0.0),
+            // 2. Same as before but heat storage is NOT empty
+            // should be possible to keep hp off
+            (
               ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
-                Some(
-                  ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
-                ),
-              ),
-              None,
-            ),
-            (0.0, 0.0, 95.0),
-          ),
-          // Storage and house have remaining capacity
-          (
-            ThermalGridState(
-              Some(ThermalHouseState(0L, Celsius(21), Kilowatts(80))),
-              Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
-            ),
-            HpState(
-              isRunning = true,
-              0,
-              Some(hpData.ambientTemperature),
-              Kilowatts(95.0),
-              Kilowatts(80.0),
-              ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(21), Kilowatts(80))),
+                Some(ThermalHouseState(0L, Celsius(15), Kilowatts(0))),
                 Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
               ),
-              Some(HouseTemperatureUpperBoundaryReached(0L)),
-            ),
-            (95.0, 0.0, 95.0),
-          ),
-
-          // Storage is full, House has capacity till upper boundary
-          (
-            ThermalGridState(
-              Some(ThermalHouseState(0L, Celsius(21), Kilowatts(80))),
-              Some(ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))),
-            ),
-            HpState(
-              isRunning = false,
-              0,
-              Some(hpData.ambientTemperature),
-              Kilowatts(0.0),
-              Kilowatts(0.0),
-              ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(21), Kilowatts(80))),
-                Some(
-                  ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))
+              HpState(
+                isRunning = false,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(0.0),
+                Kilowatts(0.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(15), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
+                  ),
                 ),
+                None,
               ),
-              Some(HouseTemperatureUpperBoundaryReached(0L)),
+              (0.0, 0.0, 95.0),
             ),
-            (0.0, 0.0, 95.0),
-          ),
-
-          // No capacity for flexibility at all because house is
-          // at upperTempBoundary and storage is at max capacity
-          (
-            ThermalGridState(
-              Some(ThermalHouseState(0L, Celsius(22), Kilowatts(80))),
-              Some(ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))),
-            ),
-            HpState(
-              isRunning = true,
-              0,
-              Some(hpData.ambientTemperature),
-              Kilowatts(95.0),
-              Kilowatts(80.0),
+            // 3. Hp actually running
+            // House is below lower temperature boundary
+            // Heat storage is empty
+            // Hp must run because of house and storage
+            (
               ThermalGridState(
-                Some(ThermalHouseState(0L, Celsius(22), Kilowatts(80))),
-                Some(
-                  ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))
-                ),
+                Some(ThermalHouseState(0L, Celsius(15), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
               ),
-              Some(HouseTemperatureUpperBoundaryReached(0L)),
+              HpState(
+                isRunning = true,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(0.0),
+                Kilowatts(0.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(15), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))
+                  ),
+                ),
+                None,
+              ),
+              (95.0, 95.0, 95.0),
             ),
-            (0.0, 0.0, 0.0),
-          ),
+            // 4. Same as before but heat storage is NOT empty
+            // Hp should not run because of storage but can be turned on
+            (
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(15), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+              ),
+              HpState(
+                isRunning = false,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(0.0),
+                Kilowatts(0.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(15), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
+                  ),
+                ),
+                None,
+              ),
+              (0.0, 0.0, 95.0),
+            ),
+            // 5. Hp actually running
+            // House is between target temperature and lower temperature boundary
+            // Heat storage is empty
+            // Hp runs but can be turned off
+            (
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
+              ),
+              HpState(
+                isRunning = true,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(95.0),
+                Kilowatts(80.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))
+                  ),
+                ),
+                None,
+              ),
+              (95.0, 0.0, 95.0),
+            ),
+            // 6. Same as before but heat storage is NOT empty
+            // should be possible to keep hp off
+            (
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+              ),
+              HpState(
+                isRunning = true,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(95.0),
+                Kilowatts(80.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
+                  ),
+                ),
+                None,
+              ),
+              (95.0, 0.0, 95.0),
+            ),
+            // 7. Hp actually NOT running
+            // House is between target temperature and lower temperature boundary
+            // Heat storage is empty
+            // Hp should run because of storage but can be turned off
+            (
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
+              ),
+              HpState(
+                isRunning = false,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(95.0),
+                Kilowatts(80.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))
+                  ),
+                ),
+                None,
+              ),
+              (95.0, 0.0, 95.0),
+            ),
+            // 8. Same as before but heat storage is NOT empty
+            // Hp should be off but able to turn on
+            (
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+              ),
+              HpState(
+                isRunning = false,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(95.0),
+                Kilowatts(80.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))
+                  ),
+                ),
+                None,
+              ),
+              (0.0, 0.0, 95.0),
+            ),
+            // 9. Hp actually running
+            // House is between target temperature and upper temperature boundary
+            // Heat storage is empty
+            // Hp will run because of storage but can be turned off
+            (
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
+              ),
+              HpState(
+                isRunning = true,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(95.0),
+                Kilowatts(80.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
+                  Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
+                ),
+                Some(HouseTemperatureUpperBoundaryReached(0L)),
+              ),
+              (95.0, 0.0, 95.0),
+            ),
+            // 10. Same as before but storage is NOT empty
+            // Hp should run but can be turned off
+            (
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+              ),
+              HpState(
+                isRunning = true,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(95.0),
+                Kilowatts(80.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
+                  Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+                ),
+                Some(HouseTemperatureUpperBoundaryReached(0L)),
+              ),
+              (95.0, 0.0, 95.0),
+            ),
+            // 11. Hp actually not running
+            // House is between target temperature and upper temperature boundary
+            // Heat storage is empty
+            // Hp should run because of storage but can be turned off
+            (
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
+              ),
+              HpState(
+                isRunning = false,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(95.0),
+                Kilowatts(80.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
+                  Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
+                ),
+                Some(HouseTemperatureUpperBoundaryReached(0L)),
+              ),
+              (95.0, 0.0, 95.0),
+            ),
+            // 12. Same as before but storage is NOT empty
+            // Hp should not run but can be turned on for storage or house
+            (
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+              ),
+              HpState(
+                isRunning = false,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(95.0),
+                Kilowatts(80.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
+                  Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+                ),
+                Some(HouseTemperatureUpperBoundaryReached(0L)),
+              ),
+              (0.0, 0.0, 95.0),
+            ),
 
-          // No capacity for flexibility at all when storage is full and house has been (externally) heated up above upperTemperatureBoundary
-          (
-            ThermalGridState(
-              Some(ThermalHouseState(0L, Celsius(25), Kilowatts(0))),
-              Some(ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))),
+            // 13. Hp actually running
+            // House is at upper temperature boundary
+            // Heat storage is empty
+            // Hp should run because of storage but can be turned off
+            (
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(22), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
+              ),
+              HpState(
+                isRunning = true,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(95.0),
+                Kilowatts(80.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
+                  Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
+                ),
+                Some(HouseTemperatureUpperBoundaryReached(0L)),
+              ),
+              (95.0, 0.0, 95.0),
             ),
-            HpState(
-              isRunning = false,
-              0,
-              Some(hpData.ambientTemperature),
-              Kilowatts(95.0),
-              Kilowatts(80.0),
+            // 14. Same as before but storage is NOT empty
+            // Hp should run but can be turned off
+            (
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(22), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+              ),
+              HpState(
+                isRunning = true,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(95.0),
+                Kilowatts(80.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
+                  Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+                ),
+                Some(HouseTemperatureUpperBoundaryReached(0L)),
+              ),
+              (95.0, 0.0, 95.0),
+            ),
+            // 15. Hp actually not running
+            // House is at upper temperature boundary
+            // Heat storage is empty
+            // Hp should run because of storage but can be turned off
+            (
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(22), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
+              ),
+              HpState(
+                isRunning = false,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(95.0),
+                Kilowatts(80.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
+                  Some(ThermalStorageState(0L, KilowattHours(0), Kilowatts(0))),
+                ),
+                Some(HouseTemperatureUpperBoundaryReached(0L)),
+              ),
+              (95.0, 0.0, 95.0),
+            ),
+
+            // 16. Same as before but storage is NOT empty
+            // Hp should not run but can be turned on for storage
+            (
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(22), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+              ),
+              HpState(
+                isRunning = false,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(95.0),
+                Kilowatts(80.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
+                  Some(ThermalStorageState(0L, KilowattHours(20), Kilowatts(0))),
+                ),
+                Some(HouseTemperatureUpperBoundaryReached(0L)),
+              ),
+              (0.0, 0.0, 95.0),
+            ),
+
+            // Storage is full, House has capacity till upper boundary
+            (
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(21), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))),
+              ),
+              HpState(
+                isRunning = false,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(0.0),
+                Kilowatts(0.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(19), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))
+                  ),
+                ),
+                Some(HouseTemperatureUpperBoundaryReached(0L)),
+              ),
+              (0.0, 0.0, 95.0),
+            ),
+            // No capacity for flexibility at all because house is
+            // at upperTempBoundary and storage is at max capacity
+            (
+              ThermalGridState(
+                Some(ThermalHouseState(0L, Celsius(22), Kilowatts(0))),
+                Some(ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))),
+              ),
+              HpState(
+                isRunning = true,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(95.0),
+                Kilowatts(80.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(22), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))
+                  ),
+                ),
+                Some(HouseTemperatureUpperBoundaryReached(0L)),
+              ),
+              (0.0, 0.0, 0.0),
+            ),
+
+            // No capacity for flexibility at all when storage is full and house has been (externally) heated up above upperTemperatureBoundary
+            (
               ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(25), Kilowatts(0))),
-                Some(
-                  ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))
-                ),
+                Some(ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))),
               ),
-              None,
+              HpState(
+                isRunning = false,
+                0,
+                Some(hpData.ambientTemperature),
+                Kilowatts(95.0),
+                Kilowatts(80.0),
+                ThermalGridState(
+                  Some(ThermalHouseState(0L, Celsius(25), Kilowatts(0))),
+                  Some(
+                    ThermalStorageState(0L, KilowattHours(500), Kilowatts(0))
+                  ),
+                ),
+                None,
+              ),
+              (0.0, 0.0, 0.0),
             ),
-            (0.0, 0.0, 0.0),
-          ),
-        )
+          )
 
         // Run the test cases
         forAll(testCases) {

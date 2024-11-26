@@ -21,7 +21,7 @@ object RuntimeEvent {
   /** Indicates that the scheduler has finished a pre-defined advancement in
     * ticks and is ready to carry out the next task. In contrast to the
     * [[CheckWindowPassed]] event, whenever a [[Ready]] event is scheduled, the
-    * scheduled of [[edu.ie3.simona.scheduler.Scheduler]] will be stopped and
+    * schedule of [[edu.ie3.simona.scheduler.Scheduler]] will be stopped and
     * further commands are necessary to continue the schedule.
     *
     * @param tick

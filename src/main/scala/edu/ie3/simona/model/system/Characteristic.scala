@@ -14,7 +14,7 @@ import squants.Quantity
 import scala.collection.SortedSet
 import scala.reflect.ClassTag
 
-/** Describes a mapping of a x-y-pairs with possibility to interpolate the y
+/** Describes a mapping of an x-y-pairs with possibility to interpolate the y
   * values based on the provided x value
   */
 trait Characteristic[A <: Quantity[A], O <: Quantity[O]] {

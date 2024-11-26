@@ -16,6 +16,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerUnchangedMessage,
 }
 import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorLoadProfileService
 import edu.ie3.simona.agent.participant.load.LoadAgent.ProfileLoadAgent
@@ -113,7 +114,7 @@ class LoadAgentProfileModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       LoadInput,
       LoadRuntimeConfig,
-      ApparentPower,
+      ComplexPower,
     ](
       inputModel = voltageSensitiveInput,
       modelConfig = modelConfig,
@@ -389,11 +390,11 @@ class LoadAgentProfileModelCalculationSpec
       inside(loadAgent.stateData) {
         case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           baseStateData.requestValueStore shouldBe ValueStore[
-            ApparentPower
+            ComplexPower
           ](
             resolution,
             SortedMap(
-              0L -> ApparentPower(
+              0L -> ComplexPower(
                 Megawatts(0d),
                 Megavars(0d),
               )
@@ -490,7 +491,7 @@ class LoadAgentProfileModelCalculationSpec
           baseStateData.resultValueStore.last(0L) match {
             case Some((tick, entry)) =>
               tick shouldBe 0L
-              inside(entry) { case ApparentPower(p, q) =>
+              inside(entry) { case ComplexPower(p, q) =>
                 p should approximate(Megawatts(84.000938e-6))
                 q should approximate(Megavars(0.0))
               }

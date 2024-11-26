@@ -26,13 +26,14 @@ import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
+import java.nio.file.Path
 import java.util.UUID
 
 class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
 
   override val args: Array[String] = Array.empty[String]
 
-  override def logOutputDir: String = throw new NotImplementedError()
+  override def logOutputDir: Path = throw new NotImplementedError()
 
   override def runtimeEventListener(
       context: ActorContext[_]
