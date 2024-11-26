@@ -30,7 +30,7 @@ import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
-import squants.energy.Kilowatts
+import squants.energy.{KilowattHours, Kilowatts}
 import squants.{Energy, Power, Seconds, Temperature}
 
 import java.time.ZonedDateTime
@@ -68,10 +68,9 @@ final case class ThermalGrid(
       lastHpState: HpState,
   ): (ThermalDemandWrapper, ThermalGridState) = {
     /* First get the energy demand of the houses but only if inner temperature is below target temperature */
-
-    val (houseDemand, updatedHouseState) =
+    val (houseDemand, updatedHouseState, demandHotDomesticWater) =
       house.zip(lastHpState.thermalGridState.houseState) match {
-        case Some((thermalHouse, lastHouseState)) =>
+        case Some((thermalHouse, lastHouseState)) => {
           val (updatedHouseState, _) =
             thermalHouse.determineState(
               relevantData.currentTick,
@@ -100,10 +99,10 @@ final case class ThermalGrid(
 
           val energyDemandDomesticHotWater =
             thermalHouse.energyDemandDomesticHotWater(
-              tick,
+              relevantData.currentTick,
               Some(lastHouseState),
-              simulationStartTime,
-              houseInhabitants,
+              relevantData.simulationStart,
+              relevantData.houseInhabitants,
             )
           (heatDemand, newHouseState, energyDemandDomesticHotWater)
         }
@@ -152,23 +151,23 @@ final case class ThermalGrid(
       val domesticHotWaterDemand: ThermalEnergyDemand = house
         .map(
           _.energyDemandDomesticHotWater(
-            tick,
-            state.houseState,
-            simulationStartTime,
-            houseInhabitants,
+            relevantData.currentTick,
+            lastHpState.thermalGridState.houseState,
+            relevantData.simulationStart,
+            relevantData.houseInhabitants,
           )
         )
         .getOrElse(ThermalEnergyDemand(zeroKWh, zeroKWh))
       val (applicableqDotDomesticStorage, _) =
-        identifyApplicableQDot(tick, domesticHotWaterDemand)
+        identifyApplicableQDot(relevantData.currentTick, domesticHotWaterDemand)
 
       domesticHotWaterStorage
-        .zip(state.domesticHotWaterStorageState)
+        .zip(lastHpState.thermalGridState.domesticHotWaterStorageState)
         .map { case (storage, state) =>
           val updatedStorageState =
             storage
               .updateState(
-                tick,
+                relevantData.currentTick,
                 state.qDot.plus(applicableqDotDomesticStorage),
                 state,
               )
@@ -1473,7 +1472,7 @@ object ThermalGrid {
   final case class ThermalGridState(
       houseState: Option[ThermalHouseState],
       storageState: Option[ThermalStorageState],
-  domesticHotWaterStorageState: Option[ThermalStorageState],
+      domesticHotWaterStorageState: Option[ThermalStorageState],
   ) {
 
     /** This method will return booleans whether there is a heat demand of house

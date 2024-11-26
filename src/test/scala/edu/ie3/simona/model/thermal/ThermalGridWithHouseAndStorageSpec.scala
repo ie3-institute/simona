@@ -7,16 +7,22 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
-import edu.ie3.simona.model.participant.HpModel.HpRelevantData
+import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalDemandWrapper,
   ThermalEnergyDemand,
   ThermalGridState,
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
-import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{HouseTemperatureLowerBoundaryReached, HouseTemperatureUpperBoundaryReached}
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
+  HouseTemperatureLowerBoundaryReached,
+  HouseTemperatureUpperBoundaryReached,
+}
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{StorageEmpty, StorageFull}
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
+  StorageEmpty,
+  StorageFull,
+}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import squants.energy._
@@ -119,31 +125,24 @@ class ThermalGridWithHouseAndStorageSpec
     "determining the energy demand" should {
       "deliver the heat demand of the house (no demand) with added flexibility by storage" in {
         // hot water demand will be excluded here for test reasons
-        val tick = 10800 // after three hours
-
         val relevantData = HpRelevantData(
           10800, // after three hours
           testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
         )
         val lastHpState = HpState(
-          true,
+          false,
           relevantData.currentTick,
           Some(testGridAmbientTemperature),
-          Kilowatts(42),
-          Kilowatts(42),
+          zeroKW,
+          zeroKW,
           ThermalGrid.startingState(thermalGrid),
           None,
         )
 
         val (thermalDemands, updatedThermalGridState) =
-          thermalGrid.energyDemandAndUpdatedState(
-            tick,
-            testGridAmbientTemperature,
-            testGridAmbientTemperature,
-            ThermalGrid.startingState(thermalGrid),
-            defaultSimulationStart,
-            houseInhabitants,
-          )
+          thermalGrid.energyDemandAndUpdatedState(relevantData, lastHpState)
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand
         val waterStorageDemand = thermalDemands.domesticHotWaterStorageDemand
@@ -173,20 +172,28 @@ class ThermalGridWithHouseAndStorageSpec
       }
 
       "cover the hot water demand from domestic hot water storage" in {
-        val tick = 0
+        val relevantData = HpRelevantData(
+          0,
+          testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
+        )
+        val startingState = ThermalGrid.startingState(thermalGrid)
+        val lastHpState = HpState(
+          false,
+          relevantData.currentTick,
+          Some(testGridAmbientTemperature),
+          zeroKW,
+          zeroKW,
+          startingState,
+          None,
+        )
 
         val (
           thermalDemands,
           updatedThermalGridState,
         ) =
-          thermalGrid.energyDemandAndUpdatedState(
-            tick,
-            testGridAmbientTemperature,
-            testGridAmbientTemperature,
-            ThermalGrid.startingState(thermalGrid),
-            defaultSimulationStart,
-            houseInhabitants,
-          )
+          thermalGrid.energyDemandAndUpdatedState(relevantData, lastHpState)
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand
         val waterStorageDemand = thermalDemands.domesticHotWaterStorageDemand
@@ -213,10 +220,11 @@ class ThermalGridWithHouseAndStorageSpec
       }
 
       "deliver the correct house and storage demand" in {
-        val tick = 10800 // after three hours
         val relevantData = HpRelevantData(
           10800, // after three hours
           testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
         )
         val startingState = ThermalGrid.startingState(thermalGrid)
         val lastHpState = HpState(
@@ -233,20 +241,8 @@ class ThermalGridWithHouseAndStorageSpec
           None,
         )
 
-        val startingState = ThermalGrid.startingState(thermalGrid)
         val (thermalDemands, updatedThermalGridState) =
-          thermalGrid.energyDemandAndUpdatedState(
-            tick,
-            testGridAmbientTemperature,
-            testGridAmbientTemperature,
-            startingState.copy(houseState =
-              startingState.houseState.map(
-                _.copy(innerTemperature = Celsius(16d))
-              )
-            ),
-            defaultSimulationStart,
-            houseInhabitants,
-          )
+          thermalGrid.energyDemandAndUpdatedState(relevantData, lastHpState)
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand
         val waterStorageDemand = thermalDemands.domesticHotWaterStorageDemand

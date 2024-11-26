@@ -141,8 +141,6 @@ final case class HpModel(
       thermalGrid.energyDemandAndUpdatedState(
         relevantData,
         lastHpState,
-        relevantData.simulationStart,
-        relevantData.houseInhabitants,
       )
 
     // Determining the operation point and limitations at this tick
@@ -338,8 +336,6 @@ final case class HpModel(
       thermalGrid.energyDemandAndUpdatedState(
         relevantData,
         lastState,
-        data.simulationStart,
-        data.houseInhabitants,
       )
 
     val updatedHpState = calcState(

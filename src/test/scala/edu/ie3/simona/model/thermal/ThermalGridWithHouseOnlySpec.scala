@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
-import edu.ie3.simona.model.participant.HpModel.HpRelevantData
+import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalDemandWrapper,
   ThermalEnergyDemand,
@@ -115,6 +115,8 @@ class ThermalGridWithHouseOnlySpec
         val relevantData = HpRelevantData(
           10800, // after three hours
           testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
         )
         val lastHpState = HpState(
           true,
@@ -138,8 +140,6 @@ class ThermalGridWithHouseOnlySpec
           thermalGrid.energyDemandAndUpdatedState(
             relevantData,
             lastHpState,
-            defaultSimulationStart,
-            houseInhabitants,
           )
 
         val houseDemand = thermalDemands.houseDemand
