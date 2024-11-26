@@ -73,7 +73,12 @@ class ThermalHouseSpec extends UnitSpec with HpInputTestData {
 
     "Check for the correct state of house when ambient temperature changes" in {
       val ambientTemperature = Temperature(-20, Celsius)
-      val relevantData = HpRelevantData(3600, ambientTemperature)
+      val relevantData = HpRelevantData(
+        3600,
+        ambientTemperature,
+        defaultSimulationStart,
+        houseInhabitants,
+      )
       val house = thermalHouse(18, 22)
       val initialHousestate = startingState(house)
       val lastAmbientTemperature = Temperature(15, Celsius)

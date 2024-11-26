@@ -459,6 +459,8 @@ class ThermalGridWithHouseAndStorageSpec
       val relevantData = HpRelevantData(
         3600,
         testGridAmbientTemperature,
+        defaultSimulationStart,
+        houseInhabitants,
       )
       val ambientTemperature = Celsius(14d)
       "hand back unaltered information if needed information is missing" in {

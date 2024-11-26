@@ -128,8 +128,7 @@ class ThermalGridWithHouseOnlySpec
           None,
         )
         val expectedHouseDemand = thermalHouse.energyDemandHeating(
-          relevantData.currentTick,
-          testGridAmbientTemperature,
+          relevantData,
           expectedHouseStartingState,
         )
 
@@ -172,7 +171,12 @@ class ThermalGridWithHouseOnlySpec
 
     "determining the energy demand for domestic warm water supply" should {
       "exactly be the thermal demand for domestic water supply of the house" in {
-        val tick = 86399 // heat demand for one day
+        val relevantData = HpRelevantData(
+          86399, // heat demand for one day
+          testGridAmbientTemperature,
+          defaultSimulationStart,
+          houseInhabitants,
+        )
         val expectedEnergyDemandWater =
           ThermalEnergyDemand(
             KilowattHours(3.6795136),
@@ -181,10 +185,8 @@ class ThermalGridWithHouseOnlySpec
 
         val energyDemandDomesticHotWater =
           thermalHouse.energyDemandDomesticHotWater(
-            tick,
+            relevantData,
             Some(expectedHouseStartingState),
-            defaultSimulationStart,
-            houseInhabitants,
           )
 
         energyDemandDomesticHotWater.required should approximate(

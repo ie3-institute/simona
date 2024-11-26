@@ -101,7 +101,7 @@ final case class ThermalHouse(
     *   the needed energy for heating in the questioned tick
     */
   def energyDemandHeating(
-                           relevantData: HpRelevantData,
+      relevantData: HpRelevantData,
       state: ThermalHouseState,
   ): ThermalEnergyDemand = {
     /* Calculate the inner temperature of the house, at the questioned instance in time */
@@ -145,24 +145,21 @@ final case class ThermalHouse(
 
   /** Calculate the energy demand for warm water at the instance in question.
     *
-    * @param tick
-    *   Questionable tick
+    * @param relevantData
+    *   data of heat pump including state of the heat pump
     * @param state
     *   most recent state, that is valid for this model
-    * @param simulationStart
-    *   simulationStartDate as ZonedDateTime
-    * @param houseInhabitants
-    *   number of people living in the building
     * @return
     *   the needed energy for heating in the questioned tick
     */
 
   def energyDemandDomesticHotWater(
-      tick: Long,
+      relevantData: HpRelevantData,
       state: Option[ThermalHouseState],
-      simulationStart: ZonedDateTime,
-      houseInhabitants: Double,
   ): ThermalEnergyDemand = {
+    val tick = relevantData.currentTick
+    val simulationStart = relevantData.simulationStart
+    val houseInhabitants = relevantData.houseInhabitants
 
     def calculateThermalEnergyOfWaterDemand(tick: Long): Energy = {
       val waterDemand =
