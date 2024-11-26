@@ -92,7 +92,7 @@ final case class ParticipantGridAdapter(
         Right(windowEnd, currentTick)
       case None =>
         // No results have been calculated whatsoever, calculate from simulation start (0)
-        Right(0, currentTick)
+        Right(0L, currentTick)
     }).fold(
       cachedResult => cachedResult.copy(newResult = false),
       { case (windowStart: Long, windowEnd: Long) =>

@@ -179,7 +179,7 @@ object ParticipantAgent {
       case (_, activation: ActivationRequest) =>
         val coreWithActivation = inputHandler.handleActivation(activation)
 
-        val (updatedShell, updatedCore, updatedGridAdapter) =
+        val (updatedShell, updatedInputHandler, updatedGridAdapter) =
           maybeCalculate(
             modelShell,
             coreWithActivation,
@@ -190,19 +190,19 @@ object ParticipantAgent {
 
         ParticipantAgent(
           updatedShell,
-          updatedCore,
+          updatedInputHandler,
           updatedGridAdapter,
           resultListener,
           parentData,
         )
 
       case (_, msg: ProvisionMessage[Data]) =>
-        val coreWithData = inputHandler.handleDataProvision(msg)
+        val inputHandlerWithData = inputHandler.handleDataProvision(msg)
 
-        val (updatedShell, updatedCore, updatedGridAdapter) =
+        val (updatedShell, updatedInputHandler, updatedGridAdapter) =
           maybeCalculate(
             modelShell,
-            coreWithData,
+            inputHandlerWithData,
             gridAdapter,
             resultListener,
             parentData,
@@ -210,7 +210,7 @@ object ParticipantAgent {
 
         ParticipantAgent(
           updatedShell,
-          updatedCore,
+          updatedInputHandler,
           updatedGridAdapter,
           resultListener,
           parentData,
@@ -264,12 +264,22 @@ object ParticipantAgent {
         )
 
       case (_, FinishParticipantSimulation(_, nextRequestTick)) =>
-        val updatedGridAdapter =
+        val gridAdapterFinished =
           gridAdapter.updateNextRequestTick(nextRequestTick)
 
+        // Possibly start simulation if we've been activated
+        val (updatedShell, updatedInputHandler, updatedGridAdapter) =
+          maybeCalculate(
+            modelShell,
+            inputHandler,
+            gridAdapterFinished,
+            resultListener,
+            parentData,
+          )
+
         ParticipantAgent(
-          modelShell,
-          inputHandler,
+          updatedShell,
+          updatedInputHandler,
           updatedGridAdapter,
           resultListener,
           parentData,
@@ -287,7 +297,7 @@ object ParticipantAgent {
       ParticipantInputHandler,
       ParticipantGridAdapter,
   ) = {
-    if (isDataComplete(inputHandler, gridAdapter)) {
+    if (isReadyForCalculation(inputHandler, gridAdapter)) {
 
       val activation = inputHandler.activation.getOrElse(
         throw new CriticalFailureException(
@@ -381,9 +391,9 @@ object ParticipantAgent {
                     "Received issue flex control while not controlled by EM"
                   ),
                 _.emAgent ! FlexCompletion(
-                  shell.model.uuid,
-                  shell.modelChange.changesAtNextActivation,
-                  shell.modelChange.changesAtTick,
+                  modelWithOP.model.uuid,
+                  modelWithOP.modelChange.changesAtNextActivation,
+                  modelWithOP.modelChange.changesAtTick,
                 ),
               )
 
@@ -397,18 +407,27 @@ object ParticipantAgent {
       (modelShell, inputHandler, gridAdapter)
   }
 
-  private def isDataComplete(
+  /** Checks if all requirements for calculation have been met. These are:
+    *   - agent is activated (activation has been received and not completed
+    *     yet)
+    *   - all required data has been received
+    *   - the grid adapter is not waiting for power requests
+    *
+    * @param inputHandler
+    *   The participant input handler
+    * @param gridAdapter
+    *   The participant grid adapter
+    * @return
+    *   Whether power can be calculated or not.
+    */
+  private def isReadyForCalculation(
       inputHandler: ParticipantInputHandler,
       gridAdapter: ParticipantGridAdapter,
   ): Boolean = {
-    lazy val activation = inputHandler.activation.getOrElse(
-      throw new CriticalFailureException(
-        "Activation should be present when data collection is complete"
-      )
-    )
-
     inputHandler.isComplete &&
-    !gridAdapter.isPowerRequestAwaited(activation.tick)
+    inputHandler.activation.exists(activation =>
+      !gridAdapter.isPowerRequestAwaited(activation.tick)
+    )
   }
 
 }
