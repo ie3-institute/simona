@@ -643,6 +643,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
     }
 
+    // todo testing handleRequest
+
   }
 
 }
