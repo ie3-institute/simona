@@ -201,10 +201,6 @@ object ParticipantModel {
     val reactivePower: Option[ReactivePower]
   }
 
-  object OperatingPoint {
-    def a: String = "a"
-  }
-
   final case class ActivePowerOperatingPoint(override val activePower: Power)
       extends OperatingPoint {
     override val reactivePower: Option[ReactivePower] = None
