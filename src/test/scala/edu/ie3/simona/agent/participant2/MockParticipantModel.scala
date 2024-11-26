@@ -21,6 +21,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ParticipantFixedState,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
+import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants.Dimensionless
@@ -53,7 +54,7 @@ class MockParticipantModel(
       relevantData: FixedRelevantData.type,
   ): (ActivePowerOperatingPoint, Option[Long]) = {
     (
-      ActivePowerOperatingPoint(Kilowatts(5)),
+      ActivePowerOperatingPoint(Kilowatts(6)),
       mockActivationTicks.get(state.tick),
     )
   }
@@ -80,7 +81,7 @@ class MockParticipantModel(
   override def createPrimaryDataResult(
       data: PrimaryData.PrimaryDataWithComplexPower[_],
       dateTime: ZonedDateTime,
-  ): SystemParticipantResult = ???
+  ): SystemParticipantResult = throw new NotImplementedError() // Not tested
 
   override def getRequiredSecondaryServices: Iterable[ServiceType] =
     Iterable.empty
@@ -95,14 +96,19 @@ class MockParticipantModel(
   override def calcFlexOptions(
       state: FixedState,
       relevantData: FixedRelevantData.type,
-  ): FlexibilityMessage.ProvideFlexOptions = ???
+  ): FlexibilityMessage.ProvideFlexOptions =
+    ProvideMinMaxFlexOptions(uuid, Kilowatts(1), Kilowatts(-1), Kilowatts(3))
 
   override def handlePowerControl(
       state: FixedState,
       relevantData: FixedRelevantData.type,
       flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,
-  ): (ActivePowerOperatingPoint, ModelChangeIndicator) = ???
+  ): (ActivePowerOperatingPoint, ModelChangeIndicator) =
+    (
+      ActivePowerOperatingPoint(setPower),
+      ModelChangeIndicator(changesAtTick = mockActivationTicks.get(state.tick)),
+    )
 }
 
 object MockParticipantModel {
