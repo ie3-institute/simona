@@ -338,15 +338,15 @@ final case class ThermalGrid(
             qDot,
           )
 
-        case (_, false, false, true) =>
-          handleCases(
-            tick,
-            lastAmbientTemperature,
-            ambientTemperature,
-            state,
-            zeroKW,
-            qDot,
-          )
+      case (false, _, false, true) =>
+        handleCases(
+          tick,
+          lastAmbientTemperature,
+          ambientTemperature,
+          state,
+          zeroKW,
+          qDot,
+        )
 
         case (_, true, false, false) =>
           handleCases(
