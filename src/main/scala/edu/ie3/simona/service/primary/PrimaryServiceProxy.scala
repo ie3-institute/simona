@@ -79,7 +79,7 @@ import scala.util.{Failure, Success, Try}
   * @param scheduler
   *   Reference to the scheduler of the simulation
   * @param startDateTime
-  *   Wall clock time of the first instant in simulation
+  *   Simulation time of the first instant in simulation
   */
 case class PrimaryServiceProxy(
     scheduler: ActorRef,
@@ -132,7 +132,7 @@ case class PrimaryServiceProxy(
     * @param primaryConfig
     *   Configuration for the primary source
     * @param simulationStart
-    *   Wall clock time of first instant in simulation
+    *   Simulation time of first instant in simulation
     * @return
     *   State data, containing the known model and time series identifiers
     */
@@ -505,7 +505,7 @@ object PrimaryServiceProxy {
     * @param primaryConfig
     *   Configuration for the primary source
     * @param simulationStart
-    *   Wall clock time of the first instant in simulation
+    *   Simulation time of the first instant in simulation
     */
   final case class InitPrimaryServiceProxyStateData(
       primaryConfig: PrimaryConfig,
@@ -519,7 +519,7 @@ object PrimaryServiceProxy {
     * @param timeSeriesToSourceRef
     *   Mapping from time series identifier to [[SourceRef]]
     * @param simulationStart
-    *   Wall clock time of the first instant in simulation
+    *   Simulation time of the first instant in simulation
     * @param primaryConfig
     *   The configuration for the sources
     * @param mappingSource
