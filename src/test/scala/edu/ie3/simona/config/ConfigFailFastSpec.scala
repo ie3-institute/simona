@@ -856,7 +856,9 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate checkDataSink(
               Sink(
-                Some(Csv("", "", "", isHierarchic = false)),
+                Some(
+                  Csv(compressOutputs = false, "", "", "", isHierarchic = false)
+                ),
                 Some(InfluxDb1x("", 0, "")),
                 None,
               )
@@ -893,6 +895,28 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             )
           }.getMessage shouldBe "Connection with kafka broker localhost:12345 failed."
         }
+      }
+
+      "Checking log config" should {
+        val checkLogOutputConfig =
+          PrivateMethod[Unit](Symbol("checkLogOutputConfig"))
+
+        "identify an unknown log level" in {
+          val invalidLogConfig = SimonaConfig.Simona.Output.Log("INVALID")
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkLogOutputConfig(invalidLogConfig)
+          }.getMessage shouldBe "Invalid log level \"INVALID\". Valid log levels: TRACE, DEBUG, INFO, WARN, ERROR"
+        }
+
+        "let valid log output configuration pass" in {
+          val validLogConfig = SimonaConfig.Simona.Output.Log("WARN")
+
+          noException shouldBe thrownBy {
+            ConfigFailFast invokePrivate checkLogOutputConfig(validLogConfig)
+          }
+        }
+
       }
 
       "Checking grid data sources" should {

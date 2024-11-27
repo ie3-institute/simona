@@ -7,13 +7,19 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.simona.exceptions.InvalidParameterException
+import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalEnergyDemand
 import edu.ie3.simona.test.common.UnitSpec
-import squants.energy.{MegawattHours, WattHours, Watts}
+import squants.energy.{KilowattHours, MegawattHours, WattHours, Watts}
 import squants.thermal.Celsius
 import squants.{Energy, Power, Temperature}
 
-class ThermalGridSpec extends UnitSpec {
+import scala.jdk.CollectionConverters._
+
+class ThermalGridSpec
+    extends UnitSpec
+    with ThermalHouseTestData
+    with ThermalStorageTestData {
 
   implicit val tempTolerance: Temperature = Celsius(1e-3)
   implicit val powerTolerance: Power = Watts(1e-3)
@@ -164,6 +170,46 @@ class ThermalGridSpec extends UnitSpec {
         totalDemand.possible should approximate(MegawattHours(-75d))
       }
        */
+    }
+  }
+  "ThermalGridState" should {
+    val thermalGridOnlyHouse = ThermalGrid(
+      new edu.ie3.datamodel.models.input.container.ThermalGrid(
+        thermalBusInput,
+        Set(thermalHouseInput).asJava,
+        Set.empty[ThermalStorageInput].asJava,
+      )
+    )
+
+    "return true when there is no storage" in {
+      val initialState = ThermalGrid.startingState(thermalGridOnlyHouse)
+      val result = initialState.isThermalStorageEmpty
+      result shouldBe true
+    }
+
+    val thermalGrid = ThermalGrid(
+      new edu.ie3.datamodel.models.input.container.ThermalGrid(
+        thermalBusInput,
+        Set(thermalHouseInput).asJava,
+        Set[ThermalStorageInput](thermalStorageInput).asJava,
+      )
+    )
+
+    "return true when all stored energy is effectively zero" in {
+      val initialState = ThermalGrid.startingState(thermalGrid)
+      val result = initialState.isThermalStorageEmpty
+      result shouldBe true
+    }
+
+    "return false when storage is not empty" in {
+      val initialState = ThermalGrid.startingState(thermalGrid)
+      val gridState = initialState.copy(storageState =
+        initialState.storageState.map(storageState =>
+          storageState.copy(storedEnergy = KilowattHours(1))
+        )
+      )
+      val result = gridState.isThermalStorageEmpty
+      result shouldBe false
     }
   }
 }

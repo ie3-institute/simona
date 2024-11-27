@@ -154,7 +154,7 @@ class DBFSAlgorithmSupGridSpec
           )
 
           // we expect a completion message here and that the agent goes back to simulate grid
-          // and waits until the newly scheduled StartGridSimulationTrigger is send
+          // and waits until the newly scheduled StartGridSimulationTrigger is sent
           // wait 30 seconds max for power flow to finish
           scheduler.expectMessageType[Completion](130 seconds) match {
             case Completion(_, Some(3600)) =>
@@ -271,7 +271,7 @@ class DBFSAlgorithmSupGridSpec
           )
 
           // we expect a completion message here and that the agent goes back to simulate grid
-          // and waits until the newly scheduled StartGridSimulationTrigger is send
+          // and waits until the newly scheduled StartGridSimulationTrigger is sent
 
           // Simulate Grid
           // wait 30 seconds max for power flow to finish

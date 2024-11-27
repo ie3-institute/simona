@@ -158,7 +158,7 @@ class GridAgentController(
   /** Go through all provided input models, build agents for those and group the
     * resulting actor references for each connection nodes. All participant
     * agents are also introduced to the agent environment and the scheduler is
-    * requested to send a initialisation trigger.
+    * requested to send an initialisation trigger.
     *
     * @param participantsConfig
     *   Configuration information for participant models
@@ -455,9 +455,9 @@ class GridAgentController(
     * @param primaryServiceProxy
     *   Reference to the primary data service proxy
     * @param simulationStartDate
-    *   First wall clock time in simulation
+    *   The simulation time at which the simulation starts
     * @param simulationEndDate
-    *   Last wall clock time in simulation
+    *   The simulation time at which the simulation ends
     * @param resolution
     *   Frequency of power flow calculations
     * @param requestVoltageDeviationThreshold
@@ -512,9 +512,9 @@ class GridAgentController(
     * @param primaryServiceProxy
     *   Reference to the primary data service proxy
     * @param simulationStartDate
-    *   First wall clock time in simulation
+    *   The simulation time at which the simulation starts
     * @param simulationEndDate
-    *   Last wall clock time in simulation
+    *   The simulation time at which the simulation ends
     * @param resolution
     *   Frequency of power flow calculations
     * @param requestVoltageDeviationThreshold
@@ -571,9 +571,9 @@ class GridAgentController(
     * @param weatherService
     *   Reference to the weather service actor
     * @param simulationStartDate
-    *   First wall clock time in simulation
+    *   The simulation time at which the simulation starts
     * @param simulationEndDate
-    *   Last wall clock time in simulation
+    *   The simulation time at which the simulation ends
     * @param resolution
     *   Frequency of power flow calculations
     * @param requestVoltageDeviationThreshold
@@ -631,9 +631,9 @@ class GridAgentController(
     * @param evMovementsService
     *   Reference to the ev movements service actor
     * @param simulationStartDate
-    *   First wall clock time in simulation
+    *   The simulation time at which the simulation starts
     * @param simulationEndDate
-    *   Last wall clock time in simulation
+    *   The simulation time at which the simulation ends
     * @param resolution
     *   Frequency of power flow calculations
     * @param requestVoltageDeviationThreshold
@@ -749,9 +749,9 @@ class GridAgentController(
     * @param weatherService
     *   Reference to the weather service actor
     * @param simulationStartDate
-    *   First wall clock time in simulation
+    *   The simulation time at which the simulation starts
     * @param simulationEndDate
-    *   Last wall clock time in simulation
+    *   The simulation time at which the simulation ends
     * @param resolution
     *   Frequency of power flow calculations
     * @param requestVoltageDeviationThreshold
@@ -807,9 +807,9 @@ class GridAgentController(
     * @param primaryServiceProxy
     *   Reference to the primary data service proxy
     * @param simulationStartDate
-    *   First wall clock time in simulation
+    *   The simulation time at which the simulation starts
     * @param simulationEndDate
-    *   Last wall clock time in simulation
+    *   The simulation time at which the simulation ends
     * @param resolution
     *   Frequency of power flow calculations
     * @param requestVoltageDeviationThreshold

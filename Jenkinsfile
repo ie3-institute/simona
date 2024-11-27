@@ -101,31 +101,32 @@ node {
         }
       }
 
+      // Build the project
+      stage('build') {
+        gradle('clean assemble', projectName)
+      }
+
       // test the project
       stage('run tests') {
 
         sh 'java -version'
 
-        gradle('--refresh-dependencies clean spotlessCheck pmdMain pmdTest reportScoverage checkScoverage', projectName)
+        gradle('--refresh-dependencies spotlessCheck test', projectName)
 
         sh(script: """set +x && cd $projectName""" + ''' set +x; ./gradlew javadoc''', returnStdout: true)
       }
 
-      // sonarqube analysis
-      stage('sonarqube analysis') {
+      // sonarqube analysis & quality gate
+      stage('sonarqube') {
         String sonarqubeCurrentBranchName = prFromFork() ? prJsonObj.head.repo.full_name : currentBranchName // forks needs to be handled differently
         String sonarqubeCmd = determineSonarqubeGradleCmd(sonarqubeProjectKey, sonarqubeCurrentBranchName, targetBranchName, orgName, projectName, projectName)
         withSonarQubeEnv() {
           // will pick the global server connection from jenkins for sonarqube
           gradle(sonarqubeCmd, projectName)
         }
-      }
-
-      // sonarqube quality gate
-      stage("quality gate") {
         timeout(time: 1, unit: 'HOURS') {
-          // just in case something goes wrong, pipeline will be killed after a timeout
-          def qg = waitForQualityGate() // reuse taskId previously collected by withSonarQubeEnv
+          // Just in case something goes wrong, pipeline will be killed after a timeout
+          def qg = waitForQualityGate() // Reuse taskId previously collected by withSonarQubeEnv
           if (qg.status != 'OK') {
             error "Pipeline aborted due to quality gate failure: ${qg.status}"
           }
@@ -419,9 +420,6 @@ def determineDisplayName(String currentBranchName, String commitHash, String org
 def publishReports(String relativeProjectDir) {
   // publish test reports
   publishHTML([allowMissing: true, alwaysLinkToLastBuild: true, escapeUnderscores: false, keepAll: true, reportDir: relativeProjectDir + '/build/reports/tests/allTests', reportFiles: 'index.html', reportName: "${relativeProjectDir}_java_tests_report", reportTitles: ''])
-
-  // publish pmd report for main project only
-  publishHTML([allowMissing: true, alwaysLinkToLastBuild: true, escapeUnderscores: false, keepAll: true, reportDir: relativeProjectDir + '/build/reports/pmd', reportFiles: 'main.html', reportName: "${relativeProjectDir}_pmd_report", reportTitles: ''])
 
   // publish scalatest reports for main project only (currently the only one with scala sources!)
   publishHTML([allowMissing: false, alwaysLinkToLastBuild: true, escapeUnderscores: false, keepAll: true, reportDir: relativeProjectDir + '/build/reports/tests/scalatest', reportFiles: 'index.html', reportName: "${relativeProjectDir}_scala_tests_report", reportTitles: ''])

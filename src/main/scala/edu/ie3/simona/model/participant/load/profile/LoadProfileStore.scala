@@ -18,6 +18,7 @@ import edu.ie3.simona.model.participant.load.profile.LoadProfileStore.{
 }
 import edu.ie3.simona.model.participant.load.{DayType, profile}
 import org.apache.commons.csv.CSVFormat
+import squants.Power
 import squants.energy.{KilowattHours, Watts}
 
 import java.io.{InputStreamReader, Reader}
@@ -45,7 +46,7 @@ class LoadProfileStore private (val reader: Reader) {
     )
 
   /** Returns the load profiles entry (average power consumption for the
-    * following quarter hour) for given time and load profile.
+    * following quarter-hour) for given time and load profile.
     *
     * @param time
     *   the requested time
@@ -77,7 +78,7 @@ class LoadProfileStore private (val reader: Reader) {
     }
   }
 
-  /** Returns the maximum average power consumption per quarter hour for a given
+  /** Returns the maximum average power consumption per quarter-hour for a given
     * load profile, calculated over all seasons and weekday types of given load
     * profile
     *
@@ -88,7 +89,7 @@ class LoadProfileStore private (val reader: Reader) {
     */
   def maxPower(
       loadProfile: StandardLoadProfile
-  ): squants.Power = {
+  ): Power = {
     maxParamMap.get(loadProfile) match {
       case Some(value) =>
         Watts(value)
@@ -171,7 +172,7 @@ object LoadProfileStore extends LazyLogging {
 
     val headerKeys: util.List[String] = parser.getHeaderNames
 
-    // skip last column "quarter hour"
+    // skip last column "quarter-hour"
     (for (i <- Range(0, headerKeys.size() - 1)) yield {
       val headerKey = headerKeys.get(i)
       val profileKey = LoadProfileKey(headerKey)

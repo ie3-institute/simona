@@ -57,7 +57,7 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
 
   private def printGoodbye(
       successful: Boolean,
-      outputPath: String = "",
+      logOutputDir: Path,
   ): Unit = {
     val myWords = Array(
       "\"Vielleicht ist heute ein besonders guter Tag zum Sterben.\" - Worf (in Star Trek: Der erste Kontakt)",
@@ -66,6 +66,7 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
       "\"Ich bin der Anfang, das Ende, die Eine, die Viele ist. Ich bin die Borg.\" - Borg-Königin (in Star Trek: Der erste Kontakt)",
       "\"A horse! A horse! My kingdom for a horse!\" - King Richard III (in Shakespeare's Richard III, 1594)",
       "\"Und wenn du lange in einen Abgrund blickst, blickt der Abgrund auch in dich hinein\" - F. Nietzsche",
+      "\"Before anything else, preparation is the key to success.\" - Alexander Graham Bell",
     )
 
     val rand = new Random
@@ -77,7 +78,7 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
       // to ensure that the link to the log is printed last
       Thread.sleep(1000)
 
-      val path = Path.of(outputPath).resolve("simona.log").toUri
+      val path = logOutputDir.resolve("simona.log").toUri
 
       logger.error(
         s"Simulation stopped due to the occurrence of an error! The full log can be found here: $path"
@@ -85,8 +86,8 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
     }
   }
 
-  /** Method to be implemented to setup everything that is necessary for a
-    * simulations. This is by creating an instance of [[SimonaSetup]]
+  /** Method to be implemented to set up everything that is necessary for a
+    * simulation. This is by creating an instance of [[SimonaSetup]]
     * implementation
     *
     * @param args

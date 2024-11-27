@@ -15,7 +15,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerUnchangedMessage,
 }
 import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.load.LoadAgent.ProfileLoadAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
@@ -99,7 +99,7 @@ class LoadAgentProfileModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       LoadInput,
       LoadRuntimeConfig,
-      ApparentPower,
+      ComplexPower,
     ](
       inputModel = voltageSensitiveInput,
       modelConfig = modelConfig,
@@ -215,7 +215,7 @@ class LoadAgentProfileModelCalculationSpec
             SortedMap(0L -> Each(1.0)),
           )
           resultValueStore shouldBe ValueStore(resolution)
-          requestValueStore shouldBe ValueStore[ApparentPower](
+          requestValueStore shouldBe ValueStore[ComplexPower](
             resolution
           )
         case _ =>
@@ -243,7 +243,7 @@ class LoadAgentProfileModelCalculationSpec
         RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
 
       loadAgent.stateName shouldBe Idle
@@ -264,11 +264,11 @@ class LoadAgentProfileModelCalculationSpec
       inside(loadAgent.stateData) {
         case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           baseStateData.requestValueStore shouldBe ValueStore[
-            ApparentPower
+            ComplexPower
           ](
             resolution,
             SortedMap(
-              0L -> ApparentPower(
+              0L -> ComplexPower(
                 Megawatts(0d),
                 Megavars(0d),
               )
@@ -299,7 +299,7 @@ class LoadAgentProfileModelCalculationSpec
         RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
-      /* I am not interested in the CompletionMessage */
+      /* I am not interested in the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(loadAgent.stateName shouldBe Idle)
       /* State data is tested in another test */
@@ -318,7 +318,7 @@ class LoadAgentProfileModelCalculationSpec
           baseStateData.resultValueStore.last(0L) match {
             case Some((tick, entry)) =>
               tick shouldBe 0L
-              inside(entry) { case ApparentPower(p, q) =>
+              inside(entry) { case ComplexPower(p, q) =>
                 p should approximate(Megawatts(84.000938e-6))
                 q should approximate(Megavars(0.0))
               }

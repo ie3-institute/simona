@@ -1,177 +1,149 @@
 @startuml
 'https://plantuml.com/class-diagram
 skinparam linetype ortho
+skinparam nodesep 50
+skinparam ranksep 40
 
-package ev-simulation {
+skinparam node {
+    borderColor Transparent
+    fontColor Transparent
+}
+
+package MobilitySimulator {
     class ExtLink
-    class ExternalSampleSim
-    class EvModelImpl
-
-    ' adding hidden elements for layout purposes
-    class placeholderA {
-        w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w
-    }
-    hide placeholderA
-
-    class placeholderB {
-        w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w
-    }
-    hide placeholderB
-
-    ExtLink -[hidden]> placeholderA
-    placeholderA -[hidden]> ExternalSampleSim
-    ExternalSampleSim -[hidden]> placeholderB
-    placeholderB -[hidden]> EvModelImpl
+    class MobilitySim
+    class ElectricVehicle
 }
 
 package simona-api {
-    ' MIDDLE PART
-    class ExtEvData {
-        ~ LinkedBlockingQueue<EvDataResponseMessageToExt> receiveTriggerQueue
-        - ActorRef dataService
-        - ActorRef extSimAdapter
-        + List<UUID> requestAvailablePublicEvCs()
-        + List<EvModel> sendEvPositions(EvMovementsMessage evMovementsMessage)
-        - void sendData(ExtEvMessage msg)
-        + void queueExtMsg(ExtEvResponseMessage extEvResponse)
-    }
-
-    class ExtSimAdapterData {
-        ~ LinkedBlockingQueue<ExtTrigger> receiveTriggerQueue
-        - ActorRef extSimAdapter
-        + void queueExtMsg(ExtTrigger trigger)
-        + void send(ExtTriggerResponse msg)
-    }
-
-    interface ExtData
 
     abstract class ExtSimulation {
+        - ExtSimAdapterData data
         + void setup(ExtSimAdapterData data, List<ExtData> adapters)
         + void run()
-        # {abstract} List<Long> doActivity(long tick)
+        # {abstract} Optional<Long> doActivity(long tick)
+        # {abstract} Long initialize()
     }
+    ExtSimulation --r> ExtData
+    MobilitySim -|> ExtSimulation
 
-    interface ExtEvSimulation {
-        + void setExtEvData(ExtEvData evData)
-    }
-
-    interface ExtDataSimulation
-
-    ExternalSampleSim --|> ExtSimulation
-    ExternalSampleSim --|> ExtEvSimulation
-
-    ExtSimulation -[hidden]> ExtDataSimulation
-    ExtEvSimulation -|> ExtDataSimulation
-    ExtEvSimulation --> ExtEvData
-
-    ExtSimulation --> ExtData
-    ExtSimulation --> ExtSimAdapterData
-
-    ExtSimAdapterData -[hidden]> ExtEvData
-    ExtData <|-- ExtEvData
-
-    ' placeholder
-    class plchldr1 {
-        w-w-w-w-w
-    }
-    hide plchldr1
-    class placeholder2 {
-        w-w-w-w-w-w-w-w-w-w-w-w-w-w-w
-    }
-    hide placeholder2
-    class placeholder3 {
-        w-w-w-w-w-w-w-w-w-w-w
-    }
-    hide placeholder3
-    class placeholder4 {
-        w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w-w
-    }
-    hide placeholder4
-
-    ExtData -[hidden]> plchldr1
-    plchldr1 -[hidden]> placeholder4
-    placeholder4 -[hidden]> EvMovement
-    ExtSimulation -[hidden]-> placeholder2
-    placeholder2 -[hidden]-> placeholder3
-    placeholder3 -[hidden]-> ExtSimAdapterData
-    placeholder2 -[hidden]> ExtData
-
-
-    ' RIGHT PART
-    abstract class EvMovement
-    class Arrival
-    class Departure
-    Arrival --|> EvMovement
-    Departure --|> EvMovement
-    Arrival -[hidden]> Departure
-
-    interface EvModel {
-        + UUID getUuid()
-        + String getId()
-        + ComparableQuantity<Power> getSRated()
-        + ComparableQuantity<Energy> getEStorage()
-        + ComparableQuantity<Energy> getStoredEnergy()
-        + EvModel copyWith(ComparableQuantity<Energy> newStoredEnergy)
-    }
-
-    ExtDataSimulation -[hidden]> Arrival
-    EvMovement *-> EvModel
-    EvModelImpl --|> EvModel
-
-
-    interface EvDataMessageFromExt
-    class EvMovementsMessage {
-        - Map<UUID, List<EvMovement>> movements
-    }
-    class RequestEvcsFreeLots
-    RequestEvcsFreeLots --|> EvDataMessageFromExt
-    EvMovementsMessage --|> EvDataMessageFromExt
-    RequestEvcsFreeLots -[hidden]> EvMovementsMessage
-
-    interface EvDataResponseMessageToExt
-    class AllDepartedEvsRepsonse {
-        - Map<UUID, List<EvMovement>> movements
-    }
-    class ProvideEvcsFreeLots
-    ProvideEvcsFreeLots --|> EvDataResponseMessageToExt
-    AllDepartedEvsRepsonse --|> EvDataResponseMessageToExt
-    ExtEvData -> EvDataMessageFromExt
-    ExtEvData -> EvDataResponseMessageToExt
-    EvMovement -[hidden]-> RequestEvcsFreeLots
-    EvDataMessageFromExt -[hidden]> EvDataResponseMessageToExt
-    EvMovementsMessage -[hidden]> ProvideEvcsFreeLots
-    ProvideEvcsFreeLots -[hidden]> AllDepartedEvsRepsonse
-
-    class ScheduleDataServiceMessage {
-        - ExtEvDataService dataService
-    }
-    EvDataResponseMessageToExt -[hidden]> ScheduleDataServiceMessage
-    ExtEvData -> ScheduleDataServiceMessage
-
-
-    ' LEFT PART
     interface ExtLinkInterface {
         + ExtSimulation getExtSimulation()
         + List<ExtDataSimulation> getExtDataSimulations()
     }
-    ExtLinkInterface -[hidden]> ExtSimulation
+
     ExtLink --|> ExtLinkInterface
 
-    interface ExtTrigger
-    class ActivationMessage {
-        - Long tick
+    interface ExtEvSimulation {
+       + void setExtEvData(ExtEvData evData)
     }
-    ActivationMessage --|> ExtTrigger
 
-    interface ExtTriggerResponse
-    class CompletionMessage {
-        - List<Long> newTriggers
+    MobilitySim --|> ExtEvSimulation
+
+    interface ExtDataSimulation
+
+    ExtEvSimulation --u|> ExtDataSimulation
+
+    interface EvModel {
+            + UUID getUuid()
+            + String getId()
+            + ComparableQuantity<Power> getSRatedAC()
+            + ComparableQuantity<Power> getSRatedDC()
+            + ComparableQuantity<Energy> getEStorage()
+            + ComparableQuantity<Energy> getStoredEnergy()
+            + Long getDepartureTick()
+            + EvModel copyWith(ComparableQuantity<Energy> newStoredEnergy)
     }
-    CompletionMessage --|> ExtTriggerResponse
 
-    ExtTrigger -[hidden]> ExtTriggerResponse
-    ExtTrigger <- ExtSimAdapterData
-    ExtTriggerResponse <- ExtSimAdapterData
+    ElectricVehicle --|> EvModel
+
+    interface ExtData
+
+    class ExtEvData {
+            + LinkedBlockingQueue<EvDataResponseMessageToExt> receiveTriggerQueue
+            - ActorRef dataService
+            - ActorRef extSimAdapter
+            + Map<UUID, Integer> requestAvailablePublicEvcs()
+            + Map<UUID, Double> requestCurrentPrices()
+            + List<EvModel> requestDepartingEvs(Map<UUID, List<UUID>> departures)
+            + void provideArrivingEvs(Map<UUID, List<EvModel>> arrivals, Optional<Long> maybeNextTick)
+            + void sendExtMsg(EvDataMessageFromExt msg)
+            + void queueExtResponseMsg(EvDataResponseMessageToExt extEvResponse)
+    }
+
+    node sub2 {
+        interface EvDataMessageFromExt
+
+        interface DataMessageFromExt
+
+        class ProvideArrivingEvs
+
+        class RequestCurrentPrices
+
+        class RequestDepartingEvs
+
+        class RequestEvcsFreeLots
+    }
+
+    RequestDepartingEvs --u|> EvDataMessageFromExt
+    RequestEvcsFreeLots --u|> EvDataMessageFromExt
+    ProvideArrivingEvs --u|> EvDataMessageFromExt
+    RequestCurrentPrices --u|> EvDataMessageFromExt
+
+    DataMessageFromExt --d|> EvDataMessageFromExt
+    ExtEvData -----> EvDataMessageFromExt
+    ExtEvData --u|> ExtData
+    ExtEvSimulation -u> ExtEvData
+
+    node sub1 {
+        interface DataResponseMessageToExt
+
+        interface EvDataResponseMessageToExt
+
+        class ProvideCurrentPrices {
+            + Map<UUID, Double> prices
+        }
+
+        class ProvideDepartingEvs {
+            + List<EvModel> departedEvs
+        }
+
+        class ProvideEvcsFreeLots {
+             + Map<UUID, Integer> evcs
+        }
+
+         ProvideEvcsFreeLots --|> EvDataResponseMessageToExt
+         ProvideDepartingEvs --|> EvDataResponseMessageToExt
+         ProvideCurrentPrices --|> EvDataResponseMessageToExt
+         ExtEvData --> EvDataResponseMessageToExt
+         EvDataResponseMessageToExt --|> DataResponseMessageToExt
+    }
+
+    node sub3 {
+        class ExtSimAdapterData {
+                    + LinkedBlockingQueue<ExtTrigger> receiveTriggerQueue
+                    - ActorRef extSimAdapter
+                    - String[] mainArgs
+                    + void queueExtMsg(ControlMessageToExt msg)
+                    + void send(ControlResponseMessageFromExt msg)
+                    + String[] getMainArgs()
+        }
+
+        interface ControlMessageToExt
+
+        interface ControlResponseMessageFromExt
+
+        class CompletionMessage
+
+        class ActivationMessage
+
+        ExtSimAdapterData --u> ControlMessageToExt
+        ExtSimAdapterData --u> ControlResponseMessageFromExt
+        CompletionMessage --d|> ControlResponseMessageFromExt
+        ActivationMessage --d|> ControlMessageToExt
+        ExtSimulation -----> ExtSimAdapterData
+    }
+
 }
 
 package simona {
@@ -182,9 +154,21 @@ package simona {
     class EvcsAgent
 
     interface SecondaryData
-    class EvMovementData {
-        movements: Set[EvMovement]
+
+    class ArrivingEvs {
+        + arrivals: Seq[EvModelWrapper]
     }
+
+    class DepartingEvsRequest {
+        + evcs: UUID
+        + departingEvs: Seq[EvModelWrapper]
+    }
+
+    class EvFreeLotsRequest {
+        + freeLots: Int
+    }
+
+    abstract EvData
 
     class SimonaSim
 
@@ -202,22 +186,32 @@ package simona {
     SimonaSim *- SimonaStandaloneSetup
     SimonaStandaloneSetup *- ExtSimLoader
 
-    ExtSimAdapter -- Scheduler
+    ExtSimAdapter - Scheduler
     ExtEvDataService -- Scheduler
 
-    SecondaryData <|-- EvMovementData
+    ArrivingEvs --u|> EvData
+    EvFreeLotsRequest --u|> EvData
+    DepartingEvsRequest --u|> EvData
+    SecondaryData <|-- EvData
 
     SimonaService <|- ExtEvDataService
-    ExtEvData <--- ExtEvDataService
+    ExtEvData --- ExtEvDataService
 
     ExtSimAdapterData <--- ExtSimAdapter
 
-    ' 1 and n are swapped here due to bug with linetype ortho and labels
     ExtEvDataService "n" <-> "1" EvcsAgent
     EvcsAgent --|> ParticipantAgent
     EvcsAgent *- EvcsModel
 
-    ExtSimAdapter -[hidden]> SimonaService
 }
+
+'Order of classes/interfaces established through hidden connections:
+
+ExtSimAdapter -[hidden]> SimonaService
+sub1 ---[hidden]d> sub2
+ExtLink -[hidden]> ElectricVehicle
+ExtSimulation -[hidden]> ExtEvSimulation
+ExtSimulation -[hidden]> DataResponseMessageToExt
+ProvideArrivingEvs --[hidden]> ExtSimAdapter
 
 @enduml

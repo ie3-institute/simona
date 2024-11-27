@@ -15,7 +15,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerUnchangedMessage,
 }
 import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
@@ -122,7 +122,7 @@ class PvAgentModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       PvInput,
       PvRuntimeConfig,
-      ApparentPower,
+      ComplexPower,
     ](
       inputModel = voltageSensitiveInput,
       modelConfig = modelConfig,
@@ -186,7 +186,7 @@ class PvAgentModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       PvInput,
       PvRuntimeConfig,
-      ApparentPower,
+      ComplexPower,
     ](
       inputModel = voltageSensitiveInput,
       modelConfig = modelConfig,
@@ -314,7 +314,7 @@ class PvAgentModelCalculationSpec
             SortedMap(0L -> Each(1.0)),
           )
           resultValueStore shouldBe ValueStore(resolution)
-          requestValueStore shouldBe ValueStore[ApparentPower](resolution)
+          requestValueStore shouldBe ValueStore[ComplexPower](resolution)
 
           /* Additional information */
           awaitRegistrationResponsesFrom shouldBe Iterable(weatherService.ref)
@@ -376,7 +376,7 @@ class PvAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
 
       pvAgent.stateName shouldBe Idle
@@ -397,11 +397,11 @@ class PvAgentModelCalculationSpec
       inside(pvAgent.stateData) {
         case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           baseStateData.requestValueStore shouldBe ValueStore[
-            ApparentPower
+            ComplexPower
           ](
             resolution,
             SortedMap(
-              0L -> ApparentPower(
+              0L -> ComplexPower(
                 Megawatts(0d),
                 Megavars(0d),
               )
@@ -439,7 +439,7 @@ class PvAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(pvAgent.stateName shouldBe Idle)
       /* State data is tested in another test */
@@ -509,7 +509,7 @@ class PvAgentModelCalculationSpec
                 0L,
                 fail("Expected a simulation result for tick 900."),
               ) match {
-                case ApparentPower(p, q) =>
+                case ComplexPower(p, q) =>
                   p should approximate(Megawatts(0.0))
                   q should approximate(Megavars(0.0))
               }
@@ -546,7 +546,7 @@ class PvAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(pvAgent.stateName shouldBe Idle)
 
@@ -613,7 +613,7 @@ class PvAgentModelCalculationSpec
                 0L,
                 fail("Expected a simulation result for tick 0."),
               ) match {
-                case ApparentPower(p, q) =>
+                case ComplexPower(p, q) =>
                   p should approximate(Megawatts(0.0))
                   q should approximate(Megavars(0.0))
               }
@@ -651,7 +651,7 @@ class PvAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(3600L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(pvAgent.stateName shouldBe Idle)
 
@@ -722,7 +722,7 @@ class PvAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(pvAgent.stateName shouldBe Idle)
 

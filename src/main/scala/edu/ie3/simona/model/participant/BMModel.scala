@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.model.participant.BMModel.BMCalcRelevantData
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.control.QControl
@@ -14,7 +14,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptio
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities._
-import edu.ie3.util.scala.quantities.EnergyPrice
+import edu.ie3.util.scala.quantities.{ApparentPower, EnergyPrice}
 import squants.energy.Megawatts
 import squants.{Dimensionless, Money, Power, Temperature}
 
@@ -29,8 +29,8 @@ final case class BMModel(
     id: String,
     operationInterval: OperationInterval,
     qControl: QControl,
-    sRated: Power,
-    cosPhi: Double,
+    sRated: ApparentPower,
+    cosPhiRated: Double,
     private val node: String,
     private val isCostControlled: Boolean,
     private val opex: Money,
@@ -38,7 +38,7 @@ final case class BMModel(
     private val loadGradient: Double,
 ) extends SystemParticipant[
       BMCalcRelevantData,
-      ApparentPower,
+      ComplexPower,
       ConstantState.type,
     ](
       uuid,
@@ -46,20 +46,20 @@ final case class BMModel(
       operationInterval,
       qControl,
       sRated,
-      cosPhi,
+      cosPhiRated,
     )
     with ApparentPowerParticipant[BMCalcRelevantData, ConstantState.type] {
 
   /** Saves power output of last cycle. Needed for load gradient
     */
-  private var _lastPower: Option[Power] = None
+  var _lastPower: Option[Power] = None
 
   override def calculatePower(
       tick: Long,
       voltage: Dimensionless,
       modelState: ConstantState.type,
       data: BMCalcRelevantData,
-  ): ApparentPower = {
+  ): ComplexPower = {
     val result = super.calculatePower(tick, voltage, modelState, data)
     _lastPower = Some(result.p)
 
@@ -73,7 +73,7 @@ final case class BMModel(
     * @return
     *   Active power
     */
-  override protected def calculateActivePower(
+  override def calculateActivePower(
       modelState: ConstantState.type,
       data: BMCalcRelevantData,
   ): Power = {
@@ -94,13 +94,13 @@ final case class BMModel(
     applyLoadGradient(pEl)
   }
 
-  /** Calculates first time dependent factor for heat demand
+  /** Calculates first time-dependent factor for heat demand
     * @param time
     *   the time
     * @return
     *   factor k1
     */
-  private def calculateK1(time: ZonedDateTime): Double = {
+  def calculateK1(time: ZonedDateTime): Double = {
     val weekendCorr = Vector(0.98, 0.985, 0.982, 0.982, 0.97, 0.96, 0.95, 0.93,
       0.925, 0.95, 0.98, 1.01, 1.018, 1.01, 1.01, 0.995, 1, 0.995, 0.99, 0.985,
       0.99, 0.98, 0.975, 0.99)
@@ -114,13 +114,13 @@ final case class BMModel(
     }
   }
 
-  /** Calculates second time dependent factor for heat demand
+  /** Calculates second time-dependent factor for heat demand
     * @param time
     *   the time
     * @return
     *   factor k2
     */
-  private def calculateK2(time: ZonedDateTime): Double = {
+  def calculateK2(time: ZonedDateTime): Double = {
     time.getDayOfYear match {
       case x if x < 150 || x > 243 =>
         1.03 // correction factor in heating season
@@ -138,7 +138,7 @@ final case class BMModel(
     * @return
     *   heat demand in Megawatt
     */
-  private def calculatePTh(
+  def calculatePTh(
       temp: Temperature,
       k1: Double,
       k2: Double,
@@ -158,7 +158,7 @@ final case class BMModel(
     * @return
     *   usage
     */
-  private def calculateUsage(pTh: Power): Double = {
+  def calculateUsage(pTh: Power): Double = {
     // if demand exceeds capacity -> activate peak load boiler (no effect on electrical output)
     val maxHeat = Megawatts(43.14)
     val usageUnchecked = pTh / maxHeat
@@ -173,7 +173,7 @@ final case class BMModel(
     * @return
     *   efficiency
     */
-  private def calculateEff(usage: Double): Double =
+  def calculateEff(usage: Double): Double =
     min(0.18 * pow(usage, 3) - 0.595 * pow(usage, 2) + 0.692 * usage + 0.724, 1)
 
   /** Calculates electrical output from usage and efficiency
@@ -184,7 +184,7 @@ final case class BMModel(
     * @return
     *   electrical output as Power
     */
-  private def calculateElOutput(
+  def calculateElOutput(
       usage: Double,
       eff: Double,
   ): Power = {
@@ -195,9 +195,9 @@ final case class BMModel(
       isCostControlled && avgOpex.value.doubleValue() < feedInTariff.value
         .doubleValue()
     )
-      sRated * cosPhi * (-1)
+      sRated.toActivePower(cosPhiRated) * -1
     else
-      sRated * usage * eff * cosPhi * (-1)
+      sRated.toActivePower(cosPhiRated) * usage * eff * -1
   }
 
   /** Applies the load gradient to the electrical output
@@ -206,18 +206,18 @@ final case class BMModel(
     * @return
     *   electrical output after load gradient has been applied
     */
-  private def applyLoadGradient(
+  def applyLoadGradient(
       pEl: Power
   ): Power = {
     _lastPower match {
       case None => pEl
       case Some(lastPowerVal) =>
-        val pElDeltaMaxAbs = sRated * cosPhi * loadGradient
+        val pElDeltaMaxAbs = sRated.toActivePower(cosPhiRated) * loadGradient
 
         pEl - lastPowerVal match {
           case pElDelta if pElDelta > pElDeltaMaxAbs =>
             lastPowerVal + pElDeltaMaxAbs
-          case pElDelta if pElDelta < (pElDeltaMaxAbs * (-1)) =>
+          case pElDelta if pElDelta < (pElDeltaMaxAbs * -1) =>
             lastPowerVal - pElDeltaMaxAbs
           case _ =>
             pEl

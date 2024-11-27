@@ -6,17 +6,17 @@ Energy Management Agents (EmAgents) control power feed-in and load of system par
 
 ## Protocol
 
-During simulation, EmAgents send `RequestFlexOptions` and `IssueFlexControl` messages and receive `ProvideFlexOptions` and `FlexCompletion` messages.
-After having been requested to calculate flex options via `RequestFlexOptions`, controllable assets send back their flex options to the controlling unit using `ProvideFlexOptions`. 
+During simulation, EmAgents send `FlexActivation` and `IssueFlexControl` messages and receive `ProvideFlexOptions` and `FlexCompletion` messages.
+After being requested to calculate flex options via `FlexActivation`, controllable assets send back their flex options to the controlling unit using `ProvideFlexOptions`. 
 Eventually the controlling EmAgent responds with some type of `IssueFlexControl` messages, setting a power set point for operation.
 The asset then tries to realize the set power as best as it can and replies with a `FlexCompletion` messages.
-If an EmAgent is itself controlled by another EmAgent, it also behaves like a system participant (sends `RequestFlexOptions` and `IssueFlexControl` messages etc.).
+If an EmAgent is itself controlled by another EmAgent, it also behaves like a system participant (sends `FlexActivation` and `IssueFlexControl` messages etc.).
 
 
 Every EmAgent aggregates flex options and power of its connected assets and disaggregates flex control among the connected assets. 
 It also functions as a scheduler for all connected assets by processing information on the ticks of the next desired activations and conveying such information to the controlling EmAgent or a central scheduler respectively.
 
-Uncontrolled EmAgents answer to a scheduler with regards to their activation.
+Uncontrolled EmAgents answer to a scheduler with regard to their activation.
 
 ![](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/ie3-institute/simona/dev/docs/uml/protocol/em/UncontrolledEm.puml)
 
