@@ -50,7 +50,7 @@ class ChpModelSpec
   val chpStateNotRunning: ChpState =
     ChpState(isRunning = false, 0, Kilowatts(0), KilowattHours(0))
   val chpStateRunning: ChpState =
-    ChpState(isRunning = true, 0, Kilowatts(0), KilowattHours(0))
+    ChpState(isRunning = true, 0, Kilowatts(42), KilowattHours(42))
 
   val (storageInput, chpInput) = setupSpec()
 
@@ -145,32 +145,32 @@ class ChpModelSpec
     "Check active power after calculating next state with #chpState and heat demand #heatDemand kWh:" in {
       val testCases = Table(
         ("chpState", "storageLvl", "heatDemand", "expectedActivePower"),
-        (chpStateNotRunning, 90, 0, 0), // tests case (false, false, true)
+        (chpStateNotRunning, 70, 0, 0), // tests case (false, false, true)
         (
           chpStateNotRunning,
-          90,
-          8 * 115 + 230,
+          70,
+          8 * 115,
           95,
         ), // tests case (false, true, false)
-        (chpStateNotRunning, 90, 10, 0), // tests case (false, true, true)
-        (chpStateRunning, 90, 0, 95), // tests case (true, false, true)
-        (chpStateRunning, 90, 8 * 115, 95), // tests case (true, true, false)
-        (chpStateRunning, 90, 10, 95), // tests case (true, true, true)
+        (chpStateNotRunning, 70, 10, 0), // tests case (false, true, true)
+        (chpStateRunning, 70, 0, 95), // tests case (true, false, true)
+        (chpStateRunning, 70, 8 * 115, 95), // tests case (true, true, false)
+        (chpStateRunning, 70, 10, 95), // tests case (true, true, true)
         (
           chpStateRunning,
-          90,
+          70,
           7 * 115 + 1,
           95,
         ), // test case (_, true, false) and demand covered together with chp
         (
           chpStateRunning,
-          90,
+          70,
           9 * 115,
           95,
         ), // test case (_, true, false) and demand not covered together with chp
         (
           chpStateRunning,
-          92,
+          72,
           1,
           95,
         ), // test case (true, true, true) and storage volume exceeds maximum
@@ -190,34 +190,34 @@ class ChpModelSpec
     "Check total energy after calculating next state with #chpState and heat demand #heatDemand kWh:" in {
       val testCases = Table(
         ("chpState", "storageLvl", "heatDemand", "expectedTotalEnergy"),
-        (chpStateNotRunning, 90, 0, 0), // tests case (false, false, true)
+        (chpStateNotRunning, 70, 0, 0), // tests case (false, false, true)
         (
           chpStateNotRunning,
-          90,
-          8 * 115 + 230,
+          70,
+          8 * 115,
           100,
         ), // tests case (false, true, false)
-        (chpStateNotRunning, 90, 10, 0), // tests case (false, true, true)
-        (chpStateRunning, 90, 0, 100), // tests case (true, false, true)
-        (chpStateRunning, 90, 8 * 115, 100), // tests case (true, true, false)
-        (chpStateRunning, 90, 10, 100), // tests case (true, true, true)
+        (chpStateNotRunning, 70, 10, 0), // tests case (false, true, true)
+        (chpStateRunning, 70, 0, 100), // tests case (true, false, true)
+        (chpStateRunning, 70, 8 * 115, 100), // tests case (true, true, false)
+        (chpStateRunning, 70, 10, 100), // tests case (true, true, true)
         (
           chpStateRunning,
-          90,
+          70,
           7 * 115 + 1,
           100,
         ), // test case (_, true, false) and demand covered together with chp
         (
           chpStateRunning,
-          90,
+          70,
           9 * 115,
           100,
         ), // test case (_, true, false) and demand not covered together with chp
         (
           chpStateRunning,
-          92,
+          72,
           1,
-          93,
+          100,
         ), // test case (true, true, true) and storage volume exceeds maximum
       )
 
@@ -291,51 +291,51 @@ class ChpModelSpec
         ),
         (
           chpStateNotRunning,
-          90,
+          70,
           0,
           7200,
           false,
         ), // Test case (false, false, true)
         (
           chpStateNotRunning,
-          90,
-          8 * 115 + 230,
+          70,
+          8 * 115,
           7200,
           true,
         ), // Test case (false, true, false)
         (
           chpStateNotRunning,
-          90,
+          70,
           10,
           7200,
           false,
         ), // Test case (false, true, true)
-        (chpStateRunning, 90, 0, 7200, true), // Test case (true, false, true)
+        (chpStateRunning, 70, 0, 7200, true), // Test case (true, false, true)
         (
           chpStateRunning,
-          90,
+          70,
           8 * 115,
           7200,
           true,
         ), // Test case (true, true, false)
-        (chpStateRunning, 90, 10, 7200, true), // Test case (true, true, true)
+        (chpStateRunning, 70, 10, 7200, true), // Test case (true, true, true)
         (
           chpStateRunning,
-          90,
+          70,
           806,
           7200,
           true,
         ), // Test case (_, true, false) and demand covered together with chp
         (
           chpStateRunning,
-          90,
+          70,
           9 * 115,
           7200,
           true,
         ), // Test case (_, true, false) and demand not covered together with chp
         (
           chpStateRunning,
-          92,
+          72,
           1,
           7200,
           false,
