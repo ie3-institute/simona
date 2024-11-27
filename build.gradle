@@ -101,12 +101,6 @@ dependencies {
     exclude group: 'edu.ie3'
   }
 
-  implementation('com.github.ie3-institute:simosaik') {
-    exclude group: 'org.apache.logging.log4j'
-    exclude group: 'org.slf4j'
-    exclude group: 'edu.ie3'
-  }
-
   implementation project('simopsim')
 
   /* logging */

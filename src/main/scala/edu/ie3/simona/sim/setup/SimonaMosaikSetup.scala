@@ -12,7 +12,6 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.util.ResultFileHierarchy
-import edu.ie3.simosaik.simosaikElectrolyzer.MosaikElectrolyzerSimulation
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
@@ -46,12 +45,12 @@ class SimonaMosaikSetup(
                              ): ExtSimSetupData = {
     val mosaikAddress = mosaikIP.getOrElse("127.0.0.1:5678")
     val mosaikMapping = mosaikMappingPath.getOrElse(throw new RuntimeException("Cannot connect to Mosaik, because there is no mapping!"))
-    val mosaikExtSim = new MosaikElectrolyzerSimulation(mosaikAddress, Path.of(mosaikMapping))
+    //val mosaikExtSim = new MosaikElectrolyzerSimulation(mosaikAddress, Path.of(mosaikMapping))
 
     extSimulationSetup(
       context,
       scheduler,
-      mosaikExtSim
+      null
     )
   }
 }
