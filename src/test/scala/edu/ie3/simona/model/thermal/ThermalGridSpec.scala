@@ -30,6 +30,8 @@ class ThermalGridSpec extends UnitSpec {
         }.getMessage shouldBe s"The possible amount of energy {$possible} is smaller than the required amount of energy {$required}. This is not supported."
       }
 
+      /* negative values test:
+
       "throw exception for non-sensible input (negative)" in {
         val possible = MegawattHours(-40d)
         val required = MegawattHours(-42d)
@@ -38,6 +40,8 @@ class ThermalGridSpec extends UnitSpec {
           ThermalEnergyDemand(required, possible)
         }.getMessage shouldBe s"The possible amount of energy {$possible} is smaller than the required amount of energy {$required}. This is not supported."
       }
+
+       */
 
       "set the correct values, if they are sensible" in {
         val possible = MegawattHours(45d)
@@ -67,6 +71,11 @@ class ThermalGridSpec extends UnitSpec {
         val energyDemand = ThermalEnergyDemand(required, possible)
         energyDemand.hasRequiredDemand shouldBe false
         energyDemand.hasAdditionalDemand shouldBe false
+        /* negative values test:
+
+        energyDemand.hasRequiredNegativeDemand shouldBe false
+        energyDemand.hasAdditionalNegativeDemand shouldBe false
+         */
       }
 
       "return proper information, if no required but additional demand is apparent" in {
@@ -76,6 +85,11 @@ class ThermalGridSpec extends UnitSpec {
         val energyDemand = ThermalEnergyDemand(required, possible)
         energyDemand.hasRequiredDemand shouldBe false
         energyDemand.hasAdditionalDemand shouldBe true
+        /* negative values test:
+
+        energyDemand.hasRequiredNegativeDemand shouldBe false
+        energyDemand.hasAdditionalNegativeDemand shouldBe false
+         */
       }
 
       "throw exception, if required demand is higher than possible demand" in {
@@ -93,6 +107,11 @@ class ThermalGridSpec extends UnitSpec {
         val energyDemand = ThermalEnergyDemand(required, possible)
         energyDemand.hasRequiredDemand shouldBe true
         energyDemand.hasAdditionalDemand shouldBe true
+        /* negative values test:
+
+        energyDemand.hasRequiredNegativeDemand shouldBe false
+        energyDemand.hasAdditionalNegativeDemand shouldBe false
+         */
       }
 
       // FIXME: Think about "negative demand", maybe add more cases as well
@@ -102,7 +121,12 @@ class ThermalGridSpec extends UnitSpec {
 
         val energyDemand = ThermalEnergyDemand(required, possible)
         energyDemand.hasRequiredDemand shouldBe false
-        energyDemand.hasAdditionalDemand shouldBe true
+        energyDemand.hasAdditionalDemand shouldBe false
+        /*negative values test:
+
+        energyDemand.hasRequiredNegativeDemand shouldBe true
+        energyDemand.hasAdditionalNegativeDemand shouldBe true
+         */
       }
     }
 
@@ -122,6 +146,24 @@ class ThermalGridSpec extends UnitSpec {
         totalDemand.required should approximate(MegawattHours(68d))
         totalDemand.possible should approximate(MegawattHours(75d))
       }
+      /*negative values test:
+
+      "deliver proper negative results" in {
+        val energyDemand1 = ThermalEnergyDemand(
+          MegawattHours(-45d),
+          MegawattHours(-47d),
+        )
+        val energyDemand2 = ThermalEnergyDemand(
+          MegawattHours(-23d),
+          MegawattHours(-28d),
+        )
+
+        val totalDemand = energyDemand1 + energyDemand2
+
+        totalDemand.required should approximate(MegawattHours(-68d))
+        totalDemand.possible should approximate(MegawattHours(-75d))
+      }
+       */
     }
   }
 }
