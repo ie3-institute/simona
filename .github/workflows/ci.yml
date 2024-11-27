@@ -87,6 +87,8 @@ jobs:
             currentVersion=$(./gradlew -q currentVersion)
           fi
           
+          #TODO Add OSSRH key signing
+          
           ./gradlew publish\
             -Puser=${{ secrets.MAVENCENTRAL_USER }} \
             -Ppassword=${{ secrets.MAVENCENTRAL_PASS }} \
