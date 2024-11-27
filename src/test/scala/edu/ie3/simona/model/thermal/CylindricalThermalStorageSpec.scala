@@ -92,16 +92,16 @@ class CylindricalThermalStorageSpec
         storage.tryToStoreAndReturnRemainder(vol2Energy(CubicMeters(55)))
       val newLevel2 = storage._storedEnergy
       val isCovering = storage.isDemandCoveredByStorage(KilowattHours(5))
-      val lack = storage.tryToTakeAndReturnLack(vol2Energy(CubicMeters(95)))
+      val lack = storage.tryToTakeAndReturnLack(vol2Energy(CubicMeters(115)))
       val newLevel3 = storage._storedEnergy
-      val notCovering = storage.isDemandCoveredByStorage(KilowattHours(58))
+      val notCovering = storage.isDemandCoveredByStorage(KilowattHours(1))
 
       initialLevel should approximate(vol2Energy(CubicMeters(70)))
       newLevel1 should approximate(vol2Energy(CubicMeters(50)))
       surplus.value shouldBe vol2Energy(CubicMeters(5))
       newLevel2 should approximate(vol2Energy(CubicMeters(100)))
-      lack.value shouldBe vol2Energy(CubicMeters(0))
-      newLevel3 should approximate(vol2Energy(CubicMeters(5)))
+      lack.value shouldBe vol2Energy(CubicMeters(15))
+      newLevel3 should approximate(vol2Energy(CubicMeters(0)))
       isCovering shouldBe true
       notCovering shouldBe false
     }

@@ -166,7 +166,7 @@ final case class CylindricalThermalStorage(
         return Some(lack)
       }
     }
-    Some(zeroKWH)
+    None
   }
 
 }

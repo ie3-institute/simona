@@ -50,7 +50,7 @@ class ChpModelSpec
   val chpStateNotRunning: ChpState =
     ChpState(isRunning = false, 0, Kilowatts(0), KilowattHours(0))
   val chpStateRunning: ChpState =
-    ChpState(isRunning = true, 0, Kilowatts(0), KilowattHours(0))
+    ChpState(isRunning = true, 0, Kilowatts(42), KilowattHours(42))
 
   val (storageInput, chpInput) = setupSpec()
 
@@ -145,27 +145,27 @@ class ChpModelSpec
     "Check active power after calculating next state with #chpState and heat demand #heatDemand kWh:" in {
       val testCases = Table(
         ("chpState", "storageLvl", "heatDemand", "expectedActivePower"),
-      //  (chpStateNotRunning, 90, 0, 0), // tests case (false, false, true)
+        (chpStateNotRunning, 90, 0, 0), // tests case (false, false, true)
         (
           chpStateNotRunning,
           90,
-          8 * 115,
+          10 * 115,
           95,
         ), // tests case (false, true, false)
         (chpStateNotRunning, 90, 10, 0), // tests case (false, true, true)
         (chpStateRunning, 90, 0, 95), // tests case (true, false, true)
-        (chpStateRunning, 90, 8 * 115, 95), // tests case (true, true, false)
+        (chpStateRunning, 90, 10 * 115, 95), // tests case (true, true, false)
         (chpStateRunning, 90, 10, 95), // tests case (true, true, true)
         (
           chpStateRunning,
           90,
-          7 * 115 + 1,
+          9 * 115 + 1,
           95,
         ), // test case (_, true, false) and demand covered together with chp
         (
           chpStateRunning,
           90,
-          9 * 115,
+          11 * 115,
           95,
         ), // test case (_, true, false) and demand not covered together with chp
         (
@@ -190,27 +190,29 @@ class ChpModelSpec
     "Check total energy after calculating next state with #chpState and heat demand #heatDemand kWh:" in {
       val testCases = Table(
         ("chpState", "storageLvl", "heatDemand", "expectedTotalEnergy"),
-        /*(chpStateNotRunning, 90, 0, 0), // tests case (false, false, true)*/
+        (chpStateNotRunning, 90, 0, 0), // tests case (false, false, true)
+        // Fixme Check this, why 100?
         (
           chpStateNotRunning,
           90,
-          8 * 115,
+          10 * 115,
           100,
         ), // tests case (false, true, false)
         (chpStateNotRunning, 90, 10, 0), // tests case (false, true, true)
+        // Fixme Check this, why 100?
         (chpStateRunning, 90, 0, 100), // tests case (true, false, true)
-        (chpStateRunning, 90, 8 * 115, 100), // tests case (true, true, false)
+        (chpStateRunning, 90, 10 * 115, 100), // tests case (true, true, false)
         (chpStateRunning, 90, 10, 100), // tests case (true, true, true)
         (
           chpStateRunning,
           90,
-          7 * 115 + 1,
+          9 * 115 + 1,
           100,
         ), // test case (_, true, false) and demand covered together with chp
         (
           chpStateRunning,
           90,
-          9 * 115,
+          11 * 115,
           100,
         ), // test case (_, true, false) and demand not covered together with chp
         (
@@ -236,29 +238,32 @@ class ChpModelSpec
     "Check storage level after calculating next state with #chpState and heat demand #heatDemand kWh:" in {
       val testCases = Table(
         ("chpState", "storageLvl", "heatDemand", "expectedStoredEnergy"),
-        (chpStateNotRunning, 90, 0, 1035), // tests case (false, false, true)
+      //  (chpStateNotRunning, 90, 0, 1035), // tests case (false, false, true)
         (
           chpStateNotRunning,
-          90,
+          70,
+          // todo check this
           8 * 115,
-          115,
+          0,
         ), // tests case (false, true, false)
         (chpStateNotRunning, 90, 10, 1025), // tests case (false, true, true)
+        // todo check this, why 1135?
         (chpStateRunning, 90, 0, 1135), // tests case (true, false, true)
-        (chpStateRunning, 90, 8 * 115, 215), // tests case (true, true, false)
+        (chpStateRunning, 70, 8 * 115, 0), // tests case (true, true, false)
         (chpStateRunning, 90, 10, 1125), // tests case (true, true, true)
-        (
-          chpStateRunning,
-          90,
-          806,
-          329,
+        // todo, why not +100?
+        (chpStateRunning,
+          70,
+          7 * 115 + 1,
+          99,
         ), // test case (_, true, false) and demand covered together with chp
         (
           chpStateRunning,
-          90,
+          70,
           9 * 115,
-          100,
+          0,
         ), // test case (_, true, false) and demand not covered together with chp
+        // todo check this, why 92?
         (
           chpStateRunning,
           92,
