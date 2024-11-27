@@ -236,34 +236,34 @@ class ChpModelSpec
     "Check storage level after calculating next state with #chpState and heat demand #heatDemand kWh:" in {
       val testCases = Table(
         ("chpState", "storageLvl", "heatDemand", "expectedStoredEnergy"),
-        (chpStateNotRunning, 90, 0, 1035), // tests case (false, false, true)
+        (chpStateNotRunning, 70, 0, 805), // tests case (false, false, true)
         (
           chpStateNotRunning,
-          90,
+          70,
           8 * 115,
-          115,
+          0,
         ), // tests case (false, true, false)
-        (chpStateNotRunning, 90, 10, 1025), // tests case (false, true, true)
-        (chpStateRunning, 90, 0, 1135), // tests case (true, false, true)
-        (chpStateRunning, 90, 8 * 115, 215), // tests case (true, true, false)
-        (chpStateRunning, 90, 10, 1125), // tests case (true, true, true)
+        (chpStateNotRunning, 70, 10, 795), // tests case (false, true, true)
+        (chpStateRunning, 70, 0, 905), // tests case (true, false, true)
+        (chpStateRunning, 70, 8 * 115, 0), // tests case (true, true, false)
+        (chpStateRunning, 70, 10, 895), // tests case (true, true, true)
         (
           chpStateRunning,
-          90,
+          70,
           806,
-          329,
+          99,
         ), // test case (_, true, false) and demand covered together with chp
         (
           chpStateRunning,
-          90,
+          70,
           9 * 115,
-          100,
+          0,
         ), // test case (_, true, false) and demand not covered together with chp
         (
           chpStateRunning,
-          92,
+          72,
           1,
-          1150,
+          927,
         ), // test case (true, true, true) and storage volume exceeds maximum
       )
 
