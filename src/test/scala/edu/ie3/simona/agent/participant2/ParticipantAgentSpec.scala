@@ -709,12 +709,17 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val receiveAdapter = createTestProbe[ActorRef[FlexRequest]]()
 
         // no additional activation ticks
-        val model = new MockParticipantModel(mockActivationTicks =
-          Map(
-            0 * 3600L -> 4 * 3600L, // still before operation, is ignored
-            8 * 3600L -> 12 * 3600L, // middle of operation
-            12 * 3600L -> 22 * 3600L, // after operation, is ignored
-          )
+        val model = new MockParticipantModel(
+          mockActivationTicks = Map(
+            0 * 3600L -> 4 * 3600L, // out of operation, is ignored
+            8 * 3600L -> 12 * 3600L, // in operation
+            12 * 3600L -> 22 * 3600L, // out of operation, is ignored
+          ),
+          mockChangeAtNext = Set(
+            0, // out of operation, is ignored
+            12 * 3600, // in operation
+            20 * 3600, // out of operation, is ignored
+          ),
         )
         val operationInterval = OperationInterval(8 * 3600, 20 * 3600)
 
@@ -836,6 +841,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         em.expectMessage(
           FlexCompletion(
             model.uuid,
+            requestAtNextActivation = true,
             requestAtTick = Some(operationInterval.end),
           )
         )
@@ -883,7 +889,6 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
     "depending on secondary data" should {
 
       "calculate operating point and results correctly with additional ticks" in {
-        // todo test changesAtNextActivation as well
 
         val em = createTestProbe[FlexResponse]()
         val gridAgent = createTestProbe[GridAgent.Request]()
@@ -894,12 +899,17 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val receiveAdapter = createTestProbe[ActorRef[FlexRequest]]()
 
         // no additional activation ticks
-        val model = new MockParticipantModel(mockActivationTicks =
-          Map(
-            0 * 3600L -> 4 * 3600L, // still before operation, is ignored
-            8 * 3600L -> 12 * 3600L, // middle of operation
-            12 * 3600L -> 22 * 3600L, // after operation, is ignored
-          )
+        val model = new MockParticipantModel(
+          mockActivationTicks = Map(
+            0 * 3600L -> 4 * 3600L, // out of operation, is ignored
+            8 * 3600L -> 12 * 3600L, // in operation
+            12 * 3600L -> 22 * 3600L, // out of operation, is ignored
+          ),
+          mockChangeAtNext = Set(
+            0, // out of operation, is ignored
+            18 * 3600, // in operation
+            20 * 3600, // out of operation, is ignored
+          ),
         )
         val operationInterval = OperationInterval(8 * 3600, 20 * 3600)
 
@@ -1096,6 +1106,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         em.expectMessage(
           FlexCompletion(
             model.uuid,
+            requestAtNextActivation = true,
             requestAtTick = Some(operationInterval.end),
           )
         )

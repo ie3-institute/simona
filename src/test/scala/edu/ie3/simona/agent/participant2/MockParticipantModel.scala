@@ -36,7 +36,8 @@ class MockParticipantModel(
     override val sRated: ApparentPower = Kilovoltamperes(10),
     override val cosPhiRated: Double = 0.9,
     override val qControl: QControl = CosPhiFixed(0.9),
-    mockActivationTicks: Map[Long, Long],
+    mockActivationTicks: Map[Long, Long] = Map.empty,
+    mockChangeAtNext: Set[Long] = Set.empty,
 ) extends ParticipantModel[
       ActivePowerOperatingPoint,
       FixedState,
@@ -119,8 +120,9 @@ class MockParticipantModel(
   ): (ActivePowerOperatingPoint, OperationChangeIndicator) =
     (
       ActivePowerOperatingPoint(setPower),
-      OperationChangeIndicator(changesAtTick =
-        mockActivationTicks.get(state.tick)
+      OperationChangeIndicator(
+        changesAtNextActivation = mockChangeAtNext.contains(state.tick),
+        changesAtTick = mockActivationTicks.get(state.tick),
       ),
     )
 
