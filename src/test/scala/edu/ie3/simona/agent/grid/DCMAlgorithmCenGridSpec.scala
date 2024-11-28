@@ -255,7 +255,7 @@ class DCMAlgorithmCenGridSpec
         )
 
       // the superior grid will update the transformer tappings
-      // and send the the resulting voltage delta to the center grid
+      // and send the resulting voltage delta to the center grid
       tappingModels.size shouldBe 2
       tappingModels.foreach(_.decrTapPos(2))
       voltageDeltaRequest ! VoltageDeltaResponse(0.03.asPu)
