@@ -189,8 +189,8 @@ trait DBFSMockGridAgents extends UnitSpec {
     ): (ActorRef[GridAgent.Request], Set[TransformerTapping]) = {
       gaProbe.expectMessageType[VoltageRangeResponse](maxDuration) match {
         case VoltageRangeResponse(sender, (range, tappings)) =>
-          range.deltaPlus shouldBe voltageRange.deltaPlus
-          range.deltaMinus shouldBe voltageRange.deltaMinus
+          range.deltaPlus should equalWithTolerance(voltageRange.deltaPlus)
+          range.deltaMinus should equalWithTolerance(voltageRange.deltaMinus)
           range.suggestion should equalWithTolerance(voltageRange.suggestion)
 
           (sender, tappings)

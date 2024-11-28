@@ -225,7 +225,7 @@ class DCMAlgorithmCenGridSpec
       voltageRangeRequester11 ! VoltageRangeResponse(
         inferiorGrid11.ref,
         (
-          VoltageRange((-0.01).asPu, (-0.02).asPu),
+          VoltageRange(0.asPu, (-0.02).asPu),
           Set(mvTransformers(transformer11.getUuid)),
         ),
       )
@@ -251,7 +251,7 @@ class DCMAlgorithmCenGridSpec
       // the superior grid should receive a voltage range from the center grid
       val (voltageDeltaRequest, tappingModels) =
         superiorGridAgent.expectVoltageRangeResponse(
-          VoltageRange(0.04.asPu, 0.01.asPu, 0.025.asPu)
+          VoltageRange(0.05.asPu, 0.01.asPu, 0.031.asPu)
         )
 
       // the superior grid will update the transformer tappings
