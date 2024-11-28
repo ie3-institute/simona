@@ -18,7 +18,7 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.em.EmTools
 import edu.ie3.simona.model.participant2.ParticipantModel.{
-  ModelChangeIndicator,
+  OperationChangeIndicator,
   ModelState,
   OperatingPoint,
   OperationRelevantData,
@@ -61,7 +61,8 @@ final case class ParticipantModelShell[
     flexOptions: Option[ProvideFlexOptions] = None,
     lastOperatingPoint: Option[OP] = None,
     operatingPoint: Option[OP] = None,
-    private val modelChange: ModelChangeIndicator = ModelChangeIndicator(),
+    private val modelChange: OperationChangeIndicator =
+      OperationChangeIndicator(),
 ) {
 
   def updateRelevantData(
@@ -98,7 +99,8 @@ final case class ParticipantModelShell[
           throw new CriticalFailureException("No relevant data available!")
         ),
       )
-      val modelIndicator = ModelChangeIndicator(changesAtTick = modelNextTick)
+      val modelIndicator =
+        OperationChangeIndicator(changesAtTick = modelNextTick)
       (modelOp, modelIndicator)
     }
 
@@ -211,15 +213,15 @@ final case class ParticipantModelShell[
   }
 
   private def determineOperatingPoint(
-      modelOperatingPoint: () => (OP, ModelChangeIndicator),
+      modelOperatingPoint: () => (OP, OperationChangeIndicator),
       currentTick: Long,
-  ): (OP, ModelChangeIndicator) = {
+  ): (OP, OperationChangeIndicator) = {
     if (operationInterval.includes(currentTick)) {
       modelOperatingPoint()
     } else {
       // Current tick is outside of operation interval.
       // Set operating point to "zero"
-      (model.zeroPowerOperatingPoint, ModelChangeIndicator())
+      (model.zeroPowerOperatingPoint, OperationChangeIndicator())
     }
   }
 
@@ -229,7 +231,7 @@ final case class ParticipantModelShell[
   def getChangeIndicator(
       currentTick: Long,
       nextDataTick: Option[Long],
-  ): ModelChangeIndicator = {
+  ): OperationChangeIndicator = {
     if (operationInterval.includes(currentTick)) {
       // The next activation tick should be the earliest of
       // the next tick request by the model, the next data tick and
@@ -249,7 +251,7 @@ final case class ParticipantModelShell[
         operationInterval.start
       )
 
-      ModelChangeIndicator(changesAtTick = nextTick)
+      OperationChangeIndicator(changesAtTick = nextTick)
     }
   }
 

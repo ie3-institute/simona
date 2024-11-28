@@ -18,7 +18,7 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   FixedState,
-  ModelChangeIndicator,
+  OperationChangeIndicator,
   OperatingPoint,
   OperationRelevantData,
   ParticipantFixedState,
@@ -128,11 +128,11 @@ final case class PrimaryDataParticipantModel[P <: PrimaryData: ClassTag](
       relevantData: PrimaryOperationRelevantData[P],
       flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,
-  ): (PrimaryOperatingPoint[P], ModelChangeIndicator) = {
+  ): (PrimaryOperatingPoint[P], OperationChangeIndicator) = {
     val factor = relevantData.data.p / setPower
     val scaledData: P = primaryDataMeta.scale(relevantData.data, factor)
 
-    (PrimaryOperatingPoint(scaledData), ModelChangeIndicator())
+    (PrimaryOperatingPoint(scaledData), OperationChangeIndicator())
   }
 
 }

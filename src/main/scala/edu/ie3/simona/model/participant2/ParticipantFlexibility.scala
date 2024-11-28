@@ -8,7 +8,7 @@ package edu.ie3.simona.model.participant2
 
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
-  ModelChangeIndicator,
+  OperationChangeIndicator,
   ModelState,
   OperatingPoint,
   OperationRelevantData,
@@ -33,7 +33,7 @@ trait ParticipantFlexibility[
       relevantData: OR,
       flexOptions: ProvideFlexOptions, // TODO is this needed?
       setPower: Power,
-  ): (OP, ModelChangeIndicator)
+  ): (OP, OperationChangeIndicator)
 
 }
 
@@ -60,8 +60,8 @@ object ParticipantFlexibility {
         relevantData: OR,
         flexOptions: ProvideFlexOptions,
         setPower: Power,
-    ): (ActivePowerOperatingPoint, ModelChangeIndicator) = {
-      (ActivePowerOperatingPoint(setPower), ModelChangeIndicator())
+    ): (ActivePowerOperatingPoint, OperationChangeIndicator) = {
+      (ActivePowerOperatingPoint(setPower), OperationChangeIndicator())
     }
   }
 

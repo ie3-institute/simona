@@ -12,7 +12,7 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
-import edu.ie3.simona.model.participant2.ParticipantModel.ModelChangeIndicator
+import edu.ie3.simona.model.participant2.ParticipantModel.OperationChangeIndicator
 import edu.ie3.simona.model.participant2.evcs.EvcsModel.{
   EvcsOperatingPoint,
   EvcsRelevantData,
@@ -791,7 +791,10 @@ class EvcsModelSpec
             ) match {
               case (
                     EvcsOperatingPoint(evOperatingPoints),
-                    ModelChangeIndicator(actualNextActivation, actualNextTick),
+                    OperationChangeIndicator(
+                      actualNextActivation,
+                      actualNextTick,
+                    ),
                   ) =>
                 evOperatingPoints
                   .get(ev1.uuid)

@@ -116,10 +116,12 @@ class MockParticipantModel(
       relevantData: MockRelevantData,
       flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,
-  ): (ActivePowerOperatingPoint, ModelChangeIndicator) =
+  ): (ActivePowerOperatingPoint, OperationChangeIndicator) =
     (
       ActivePowerOperatingPoint(setPower),
-      ModelChangeIndicator(changesAtTick = mockActivationTicks.get(state.tick)),
+      OperationChangeIndicator(changesAtTick =
+        mockActivationTicks.get(state.tick)
+      ),
     )
 
   override def handleRequest(

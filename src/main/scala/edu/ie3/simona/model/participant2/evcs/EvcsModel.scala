@@ -23,7 +23,7 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.model.participant2.ParticipantModel.{
-  ModelChangeIndicator,
+  OperationChangeIndicator,
   ModelState,
   OperatingPoint,
   OperationRelevantData,
@@ -292,11 +292,11 @@ class EvcsModel private (
       relevantData: EvcsRelevantData,
       flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,
-  ): (EvcsOperatingPoint, ModelChangeIndicator) = {
+  ): (EvcsOperatingPoint, OperationChangeIndicator) = {
     if (setPower == zeroKW)
       return (
         EvcsOperatingPoint(Map.empty),
-        ModelChangeIndicator(),
+        OperationChangeIndicator(),
       )
 
     // applicable evs can be charged/discharged, other evs cannot
@@ -330,7 +330,7 @@ class EvcsModel private (
 
     val aggregatedChangeIndicator = combinedSchedules
       .map { case (_, (_, indicator)) => indicator }
-      .foldLeft(ModelChangeIndicator()) {
+      .foldLeft(OperationChangeIndicator()) {
         case (aggregateIndicator, otherIndicator) =>
           aggregateIndicator | otherIndicator
       }
@@ -360,7 +360,7 @@ class EvcsModel private (
       evs: Seq[EvModelWrapper],
       setPower: Power,
   ): (
-      Seq[(UUID, (Power, ModelChangeIndicator))],
+      Seq[(UUID, (Power, OperationChangeIndicator))],
       Power,
   ) = {
 
@@ -392,7 +392,7 @@ class EvcsModel private (
           ev.uuid,
           (
             proposedPower,
-            ModelChangeIndicator(
+            OperationChangeIndicator(
               changesAtNextActivation =
                 isFull(ev) || isEmpty(ev) || isInLowerMargin(ev),
               changesAtTick = Some(endTick),
@@ -426,7 +426,7 @@ class EvcsModel private (
           ev.uuid,
           (
             power,
-            ModelChangeIndicator(
+            OperationChangeIndicator(
               changesAtNextActivation =
                 isFull(ev) || isEmpty(ev) || isInLowerMargin(ev),
               changesAtTick = Some(endTick),

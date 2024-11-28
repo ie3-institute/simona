@@ -237,23 +237,24 @@ object ParticipantModel {
     * @param changesAtNextActivation
     * @param changesAtTick
     */
-  // todo rename to OperationChangeIndicator
-  final case class ModelChangeIndicator(
+  final case class OperationChangeIndicator(
       changesAtNextActivation: Boolean = false,
       changesAtTick: Option[Long] = None,
   ) {
 
-    /** Combines two ModelChangeIndicators by aggregating
+    /** Combines two [[OperationChangeIndicator]]s by aggregating
       * changesAtNextActivation via OR function and picking the earlier (or any)
       * of both changesAtTick values.
       *
       * @param otherIndicator
-      *   The other ModelChangeIndicator to combine with this one
+      *   The other [[OperationChangeIndicator]] to combine with this one
       * @return
-      *   An aggregated ModelChangeIndicator
+      *   An aggregated [[OperationChangeIndicator]]
       */
-    def |(otherIndicator: ModelChangeIndicator): ModelChangeIndicator = {
-      ModelChangeIndicator(
+    def |(
+        otherIndicator: OperationChangeIndicator
+    ): OperationChangeIndicator = {
+      OperationChangeIndicator(
         changesAtNextActivation || otherIndicator.changesAtNextActivation,
         Seq(changesAtTick, otherIndicator.changesAtTick).flatten.minOption,
       )

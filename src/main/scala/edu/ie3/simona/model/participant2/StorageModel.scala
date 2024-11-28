@@ -227,7 +227,7 @@ class StorageModel private (
       relevantData: StorageRelevantData,
       flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,
-  ): (ActivePowerOperatingPoint, ParticipantModel.ModelChangeIndicator) = {
+  ): (ActivePowerOperatingPoint, ParticipantModel.OperationChangeIndicator) = {
     val adaptedSetPower =
       if (
         // if power is close to zero, set it to zero
@@ -291,7 +291,10 @@ class StorageModel private (
 
     (
       ActivePowerOperatingPoint(adaptedSetPower),
-      ParticipantModel.ModelChangeIndicator(activateAtNextTick, maybeNextTick),
+      ParticipantModel.OperationChangeIndicator(
+        activateAtNextTick,
+        maybeNextTick,
+      ),
     )
   }
 
