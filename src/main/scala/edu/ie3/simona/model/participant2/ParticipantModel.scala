@@ -232,10 +232,20 @@ object ParticipantModel {
 
   }
 
-  /** Indicates when either flex options change (when em-controlled) or the
-    * operating point must change (when not em-controlled).
+  /** Indicates when either flex options (when em-controlled) or the operating
+    * point are going to change (when not em-controlled).
+    *
+    * A change of flex options or operating point might occur due to various
+    * reasons, including expected data arrival, internal expected model changes
+    * and operating interval limits.
+    *
     * @param changesAtNextActivation
+    *   Indicates whether flex options change at the very next tick that EM is
+    *   activated, due to e.g. storage limits being reached. Not applicable for
+    *   not-em-controlled models.
     * @param changesAtTick
+    *   The next tick at which a change of flex options or the operating point
+    *   is expected.
     */
   final case class OperationChangeIndicator(
       changesAtNextActivation: Boolean = false,
