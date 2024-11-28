@@ -252,7 +252,8 @@ class ChpModelSpec
         (chpStateRunning, 70, 8 * 115, 0), // tests case (true, true, false)
         (chpStateRunning, 70, 10, 895), // tests case (true, true, true)
         // todo, why not +100?
-        (chpStateRunning,
+        (
+          chpStateRunning,
           70,
           806,
           99,
@@ -294,7 +295,7 @@ class ChpModelSpec
           "expectedTick",
           "expectedRunningStatus",
         ),
-       (
+        (
           chpStateNotRunning,
           70,
           0,
