@@ -286,9 +286,15 @@ class ChpModelSpec
     }
 
     "Check time tick and running status after calculating next state with #chpState and heat demand #heatDemand kWh:" in {
-      val testCases = Seq(
-        // (ChpState, Storage Level, Heat Demand, Expected Time Tick, Expected Running Status)
+      val testCases = Table(
         (
+          "chpState",
+          "storageLvl",
+          "heatDemand",
+          "expectedTick",
+          "expectedRunningStatus",
+        ),
+       (
           chpStateNotRunning,
           90,
           0,
@@ -341,23 +347,22 @@ class ChpModelSpec
         ), // Test case (true, true, true) and storage volume exceeds maximum
       )
 
-      for (
+      forAll(testCases) {
         (
-          chpState,
-          storageLvl,
-          heatDemand,
-          expectedTimeTick,
-          expectedRunningStatus,
-        ) <- testCases
-      ) {
-        val chpData = buildChpRelevantData(chpState, heatDemand)
-        val thermalStorage = buildThermalStorage(storageInput, storageLvl)
-        val chpModel = buildChpModel(thermalStorage)
+            chpState,
+            storageLvl,
+            heatDemand,
+            expectedTick,
+            expectedRunningStatus,
+        ) =>
+          val chpData = buildChpRelevantData(chpState, heatDemand)
+          val thermalStorage = buildThermalStorage(storageInput, storageLvl)
+          val chpModel = buildChpModel(thermalStorage)
 
-        val nextState = chpModel.calculateNextState(chpData)
+          val nextState = chpModel.calculateNextState(chpData)
 
-        nextState.lastTimeTick shouldEqual expectedTimeTick
-        nextState.isRunning shouldEqual expectedRunningStatus
+          nextState.lastTimeTick shouldEqual expectedTick
+          nextState.isRunning shouldEqual expectedRunningStatus
       }
     }
 
