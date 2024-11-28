@@ -591,16 +591,6 @@ object GridAgentData {
     def getCongestionResult(startTime: ZonedDateTime): CongestionResult = {
       val gridModel = gridAgentBaseData.gridEnv.gridModel
 
-      val node = powerFlowResults.nodeResults.map(n =>
-        n.getvMag().getValue.doubleValue()
-      )
-      val line = powerFlowResults.lineResults.map(l =>
-        Math.max(
-          l.getiAMag().getValue.doubleValue(),
-          l.getiBMag().getValue.doubleValue(),
-        )
-      )
-
       new CongestionResult(
         startTime.plusSeconds(currentTick),
         gridModel.subnetNo,

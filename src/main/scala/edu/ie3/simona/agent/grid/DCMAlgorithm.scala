@@ -160,29 +160,28 @@ trait DCMAlgorithm extends CongestionManagementSupport {
       // switching to the next behavior
       ctx.self ! StartStep
 
-      next match {
+      val behavior: Behavior[GridAgent.Request] = next match {
         case TransformerTapping =>
           // if next state is tranformer tapping
-          buffer.unstashAll(
-            updateTransformerTapping(
-              stateData,
-              AwaitingData(stateData.inferiorGridRefs),
-            )
+          updateTransformerTapping(
+            stateData,
+            AwaitingData(stateData.inferiorGridRefs),
           )
         case TopologyChanges =>
           // if next step is topology change
-          buffer.unstashAll(
-            useTopologyChanges(
-              stateData,
-              AwaitingData(stateData.inferiorGridRefs),
-            )
+          useTopologyChanges(
+            stateData,
+            AwaitingData(stateData.inferiorGridRefs),
           )
         case UsingFlexibilities =>
           // if next step is using flexibilities
-          buffer.unstashAll(
-            useFlexOptions(stateData, AwaitingData(stateData.inferiorGridRefs))
+          useFlexOptions(
+            stateData,
+            AwaitingData(stateData.inferiorGridRefs),
           )
       }
+
+      buffer.unstashAll(behavior)
 
     case (ctx, GotoIdle) =>
       // inform my inferior grids about the end of the congestion management
@@ -266,9 +265,8 @@ trait DCMAlgorithm extends CongestionManagementSupport {
           nodesInSuperiorGrid.contains(t.hvNodeUuid)
         )
 
-        val allTransformers = (transformers ++ transformers3w).map(
-          _.asInstanceOf[TransformerTapping]
-        )
+        val allTransformers: Set[TransformerTapping] =
+          transformers ++ transformers3w
 
         // calculate the voltage range with the received data
         val range = calculatePossibleVoltageRange(

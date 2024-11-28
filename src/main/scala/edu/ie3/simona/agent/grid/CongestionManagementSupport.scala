@@ -194,8 +194,57 @@ trait CongestionManagementSupport {
       suggestion: ComparableQuantity[Dimensionless],
       possibleDeltas: Set[List[ComparableQuantity[Dimensionless]]],
   ): ComparableQuantity[Dimensionless] = {
-    // reduce all possible deltas
-    val reducedOptions = possibleDeltas.toSeq.flatMap { deltas =>
+    val expectedSize = possibleDeltas.size
+    // reduce and filter the possible options
+    val filteredOptions: Set[ComparableQuantity[Dimensionless]] =
+      getReducedOptions(suggestion, possibleDeltas)
+        .groupBy(identity)
+        .filter { case (_, seq) => seq.size == expectedSize }
+        .keySet
+
+    // find the best suitable delta
+    filteredOptions.size match {
+      case 0 => 0.asPu
+      case 1 => filteredOptions.toSeq(0)
+      case _ if filteredOptions.exists(_.isEquivalentTo(suggestion)) =>
+        suggestion
+      case _ => // get the minimal and maximal option
+        val minOption =
+          filteredOptions.filter(_.isLessThan(suggestion)).lastOption
+        val maxOption = filteredOptions.find(_.isGreaterThan(suggestion))
+
+        (minOption, maxOption) match {
+          case (Some(min), Some(max)) =>
+            val minDiff =
+              Math.abs(suggestion.subtract(min).getValue.doubleValue())
+            val maxDiff =
+              Math.abs(suggestion.subtract(max).getValue.doubleValue())
+
+            // find the difference that is smaller
+            if (minDiff < maxDiff) {
+              min
+            } else max
+
+          case (Some(min), _) => min // only minimal option found
+          case (_, Some(max)) => max // only maximal option found
+          case _ => 0.asPu // no option found -> therefore no change
+        }
+    }
+  }
+
+  /** Method to reduce the possible deltas.
+    * @param suggestion
+    *   to compare to
+    * @param possibleDeltas
+    *   the possible deltas
+    * @return
+    *   a reduced sequence
+    */
+  private[grid] def getReducedOptions(
+      suggestion: ComparableQuantity[Dimensionless],
+      possibleDeltas: Set[List[ComparableQuantity[Dimensionless]]],
+  ): Seq[ComparableQuantity[Dimensionless]] = possibleDeltas.toSeq.flatMap {
+    deltas =>
       if (deltas.exists(_.isEquivalentTo(suggestion))) {
         List(suggestion)
       } else {
@@ -211,61 +260,6 @@ trait CongestionManagementSupport {
           case _                      => List()
         }
       }
-    }
-
-    // filter the possible options
-    val filteredOptions: Set[ComparableQuantity[Dimensionless]] =
-      reducedOptions.toSet.flatMap { value: ComparableQuantity[Dimensionless] =>
-        if (
-          reducedOptions.count(_.isEquivalentTo(value)) == possibleDeltas.size
-        ) {
-          Some(value)
-        } else None
-      }
-
-    // find the best suitable delta
-    filteredOptions.size match {
-      case 0 => 0.asPu
-      case 1 => filteredOptions.toSeq(0)
-      case _ =>
-        if (filteredOptions.exists(_.isEquivalentTo(suggestion))) {
-          suggestion
-        } else {
-
-          // get the minimal and maximal option
-          val minOption = filteredOptions
-            .filter(_.isLessThan(suggestion))
-            .lastOption
-            .map(_.getValue.doubleValue())
-          val maxOption = filteredOptions
-            .find(_.isGreaterThan(suggestion))
-            .map(_.getValue.doubleValue())
-
-          (minOption, maxOption) match {
-            case (Some(min), Some(max)) =>
-              val suggestionDouble = suggestion.getValue.doubleValue()
-
-              // find the difference that is smaller
-              if (
-                Math.abs(suggestionDouble - min) < Math.abs(
-                  suggestionDouble - max
-                )
-              ) {
-                min.asPu
-              } else max.asPu
-
-            case (Some(min), _) =>
-              // only minimal option found
-              min.asPu
-            case (_, Some(max)) =>
-              // only maximal option found
-              max.asPu
-            case _ =>
-              // no option found -> therefore no change
-              0.asPu
-          }
-        }
-    }
   }
 
   /** Method to calculate the possible range of voltage changes.

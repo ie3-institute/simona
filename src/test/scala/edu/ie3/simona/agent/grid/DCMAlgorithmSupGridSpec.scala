@@ -258,17 +258,13 @@ class DCMAlgorithmSupGridSpec
       hvGrid.expectMessage(FinishGridSimulationTrigger(3600))
 
       // we expect a request for grid congestion values here
-      val lastSender =
-        hvGrid.expectMessageType[CongestionCheckRequest](10.seconds) match {
-          case CongestionCheckRequest(sender) => sender
-          case x =>
-            fail(
-              s"Invalid message received when expecting a request for grid congestion values! Message was $x"
-            )
-        }
-
-      // return the last sender
-      lastSender
+      hvGrid.expectMessageType[CongestionCheckRequest](10.seconds) match {
+        case CongestionCheckRequest(sender) => sender
+        case x =>
+          fail(
+            s"Invalid message received when expecting a request for grid congestion values! Message was $x"
+          )
+      }
     }
 
     /** Method to initialize a superior grid agent with the given config. The

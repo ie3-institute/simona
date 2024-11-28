@@ -54,7 +54,7 @@ class TransformerTappingSpec extends UnitSpec {
     }
   }
 
-  private case class DummyTransformer(
+  private final case class DummyTransformer(
       override protected val transformerTappingModel: TransformerTappingModel
   ) extends TransformerTapping {}
 

@@ -18,7 +18,7 @@ import javax.measure.quantity.Dimensionless
   * @param vMax
   *   maximal allowed voltage in the grid
   */
-case class VoltageLimits(
+final case class VoltageLimits(
     vMin: ComparableQuantity[Dimensionless],
     vMax: ComparableQuantity[Dimensionless],
 ) {
