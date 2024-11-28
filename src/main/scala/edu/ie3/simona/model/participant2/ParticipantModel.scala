@@ -237,6 +237,7 @@ object ParticipantModel {
     * @param changesAtNextActivation
     * @param changesAtTick
     */
+  // todo rename to OperationChangeIndicator
   final case class ModelChangeIndicator(
       changesAtNextActivation: Boolean = false,
       changesAtTick: Option[Long] = None,

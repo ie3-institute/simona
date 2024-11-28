@@ -19,7 +19,6 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant2.ParticipantModelShell
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.ProvisionMessage
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.util.scala.Scope
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
@@ -88,6 +87,24 @@ object ParticipantAgent {
   final case class RegistrationFailedMessage(
       override val serviceRef: ClassicRef
   ) extends RegistrationResponseMessage
+
+  /** @param tick
+    * @param serviceRef
+    * @param data
+    * @param nextDataTick
+    *   Next tick at which data could arrive. If None, no data is expected for
+    *   the rest of the simulation
+    *
+    * @tparam D
+    *
+    * TODO this should suffice as secondary data provision message
+    */
+  final case class ProvideData[D <: Data](
+      tick: Long,
+      serviceRef: ClassicRef,
+      data: D,
+      nextDataTick: Option[Long],
+  ) extends Request
 
   /** Request the power values for the requested tick from an AssetAgent and
     * provide the latest nodal voltage
@@ -192,7 +209,7 @@ object ParticipantAgent {
           parentData,
         )
 
-      case (_, msg: ProvisionMessage[Data]) =>
+      case (_, msg: ProvideData[Data]) =>
         val inputHandlerWithData = inputHandler.handleDataProvision(msg)
 
         val (updatedShell, updatedInputHandler, updatedGridAdapter) =
@@ -312,10 +329,10 @@ object ParticipantAgent {
         .map { shell =>
           activation match {
             case ParticipantActivation(tick) =>
-              val modelWithOP = shell.updateOperatingPoint(tick)
+              val shellWithOP = shell.updateOperatingPoint(tick)
 
               val results =
-                modelWithOP.determineResults(tick, gridAdapter.nodalVoltage)
+                shellWithOP.determineResults(tick, gridAdapter.nodalVoltage)
 
               results.modelResults.foreach { res =>
                 listener.foreach(_ ! ParticipantResultEvent(res))
@@ -324,18 +341,23 @@ object ParticipantAgent {
               val gridAdapterWithResult =
                 gridAdapter.storePowerValue(results.totalPower, tick)
 
+              val changeIndicator = shellWithOP.getChangeIndicator(
+                tick,
+                inputHandler.getNextActivationTick,
+              )
+
               parentData.fold(
                 schedulerData =>
                   schedulerData.scheduler ! Completion(
                     schedulerData.activationAdapter,
-                    modelWithOP.modelChange.changesAtTick,
+                    changeIndicator.changesAtTick,
                   ),
                 _ =>
                   throw new CriticalFailureException(
                     "Received activation while controlled by EM"
                   ),
               )
-              (modelWithOP, gridAdapterWithResult)
+              (shellWithOP, gridAdapterWithResult)
 
             case Flex(FlexActivation(tick)) =>
               val modelWithFlex = shell.updateFlexOptions(tick)
@@ -355,10 +377,10 @@ object ParticipantAgent {
               (modelWithFlex, gridAdapter)
 
             case Flex(flexControl: IssueFlexControl) =>
-              val modelWithOP = shell.updateOperatingPoint(flexControl)
+              val shellWithOP = shell.updateOperatingPoint(flexControl)
 
               val results =
-                modelWithOP.determineResults(
+                shellWithOP.determineResults(
                   flexControl.tick,
                   gridAdapter.nodalVoltage,
                 )
@@ -373,19 +395,24 @@ object ParticipantAgent {
                   flexControl.tick,
                 )
 
+              val changeIndicator = shellWithOP.getChangeIndicator(
+                flexControl.tick,
+                inputHandler.getNextActivationTick,
+              )
+
               parentData.fold(
                 _ =>
                   throw new CriticalFailureException(
                     "Received issue flex control while not controlled by EM"
                   ),
                 _.emAgent ! FlexCompletion(
-                  modelWithOP.model.uuid,
-                  modelWithOP.modelChange.changesAtNextActivation,
-                  modelWithOP.modelChange.changesAtTick,
+                  shellWithOP.model.uuid,
+                  changeIndicator.changesAtNextActivation,
+                  changeIndicator.changesAtTick,
                 ),
               )
 
-              (modelWithOP, gridAdapterWithResult)
+              (shellWithOP, gridAdapterWithResult)
           }
         }
         .get

@@ -61,7 +61,7 @@ final case class ParticipantModelShell[
     flexOptions: Option[ProvideFlexOptions] = None,
     lastOperatingPoint: Option[OP] = None,
     operatingPoint: Option[OP] = None,
-    modelChange: ModelChangeIndicator = ModelChangeIndicator(),
+    private val modelChange: ModelChangeIndicator = ModelChangeIndicator(),
 ) {
 
   def updateRelevantData(
@@ -103,7 +103,7 @@ final case class ParticipantModelShell[
     }
 
     val (newOperatingPoint, newChangeIndicator) =
-      determineOperatingPointInInterval(modelOperatingPoint, currentTick)
+      determineOperatingPoint(modelOperatingPoint, currentTick)
 
     copy(
       state = Some(currentState),
@@ -200,7 +200,7 @@ final case class ParticipantModelShell[
     }
 
     val (newOperatingPoint, newChangeIndicator) =
-      determineOperatingPointInInterval(modelOperatingPoint, currentTick)
+      determineOperatingPoint(modelOperatingPoint, currentTick)
 
     copy(
       state = Some(currentState),
@@ -210,32 +210,46 @@ final case class ParticipantModelShell[
     )
   }
 
-  private def determineOperatingPointInInterval(
+  private def determineOperatingPoint(
       modelOperatingPoint: () => (OP, ModelChangeIndicator),
       currentTick: Long,
   ): (OP, ModelChangeIndicator) = {
     if (operationInterval.includes(currentTick)) {
-      val (modelOp, modelIndicator) = modelOperatingPoint()
-
-      // Check if the end of the operation interval is *before* the next tick calculated by the model
-      val adaptedNextTick =
-        Seq(
-          modelIndicator.changesAtTick,
-          Option(operationInterval.end),
-        ).flatten.minOption
-
-      (modelOp, modelIndicator.copy(changesAtTick = adaptedNextTick))
+      modelOperatingPoint()
     } else {
       // Current tick is outside of operation interval.
       // Set operating point to "zero"
-      val op = model.zeroPowerOperatingPoint
+      (model.zeroPowerOperatingPoint, ModelChangeIndicator())
+    }
+  }
 
-      // If the model is not active *yet*, schedule the operation start
+  /** Determines and returns the next activation tick considering the operating
+    * interval and given next data tick.
+    */
+  def getChangeIndicator(
+      currentTick: Long,
+      nextDataTick: Option[Long],
+  ): ModelChangeIndicator = {
+    if (operationInterval.includes(currentTick)) {
+      // The next activation tick should be the earliest of
+      // the next tick request by the model, the next data tick and
+      // the end of the operation interval
+      val adaptedNextTick =
+        Seq(
+          modelChange.changesAtTick,
+          nextDataTick,
+          Option(operationInterval.end),
+        ).flatten.minOption
+
+      modelChange.copy(changesAtTick = adaptedNextTick)
+    } else {
+      // If the model is not active, all activation ticks are ignored besides
+      // potentially the operation start
       val nextTick = Option.when(operationInterval.start > currentTick)(
         operationInterval.start
       )
 
-      (op, ModelChangeIndicator(changesAtTick = nextTick))
+      ModelChangeIndicator(changesAtTick = nextTick)
     }
   }
 

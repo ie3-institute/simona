@@ -9,38 +9,27 @@ package edu.ie3.simona.agent.participant2
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
-import edu.ie3.simona.agent.participant2.MockParticipantModel.{
-  MockRelevantData,
-  MockRequestMessage,
-  MockResponseMessage,
-  MockResult,
-  MockSecondaryData,
-}
+import edu.ie3.simona.agent.participant2.MockParticipantModel._
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
 import edu.ie3.simona.model.participant2.ParticipantModel
-import edu.ie3.simona.model.participant2.ParticipantModel.{
-  ActivePowerOperatingPoint,
-  FixedState,
-  ModelChangeIndicator,
-  OperationRelevantData,
-  ParticipantFixedState,
-}
+import edu.ie3.simona.model.participant2.ParticipantModel._
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.service.ServiceType
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import squants.Dimensionless
 import squants.energy.{Kilowatts, Power}
 import tech.units.indriya.ComparableQuantity
-import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
-import javax.measure.quantity.{Power => QuantPower}
 import java.time.ZonedDateTime
 import java.util.UUID
+import javax.measure.quantity.{Power => QuantPower}
 
 class MockParticipantModel(
     override val uuid: UUID = UUID.fromString("0-0-0-0-1"),
@@ -63,7 +52,9 @@ class MockParticipantModel(
       relevantData: MockRelevantData,
   ): (ActivePowerOperatingPoint, Option[Long]) = {
     (
-      ActivePowerOperatingPoint(Kilowatts(6)),
+      ActivePowerOperatingPoint(
+        Kilowatts(6) + relevantData.additionalP.getOrElse(zeroKW)
+      ),
       mockActivationTicks.get(state.tick),
     )
   }
@@ -103,15 +94,22 @@ class MockParticipantModel(
   ): MockRelevantData =
     MockRelevantData(
       receivedData.collectFirst { case data: MockSecondaryData =>
-        data
+        data.additionalP
       }
     )
 
   override def calcFlexOptions(
       state: FixedState,
       relevantData: MockRelevantData,
-  ): FlexibilityMessage.ProvideFlexOptions =
-    ProvideMinMaxFlexOptions(uuid, Kilowatts(1), Kilowatts(-1), Kilowatts(3))
+  ): FlexibilityMessage.ProvideFlexOptions = {
+    val additionalP = relevantData.additionalP.getOrElse(zeroKW)
+    ProvideMinMaxFlexOptions(
+      uuid,
+      Kilowatts(1) + additionalP,
+      Kilowatts(-1) + additionalP,
+      Kilowatts(3) + additionalP,
+    )
+  }
 
   override def handlePowerControl(
       state: FixedState,
@@ -154,9 +152,16 @@ object MockParticipantModel {
 
   case object MockResponseMessage
 
-  final case class MockSecondaryData(payload: String) extends SecondaryData
+  final case class MockSecondaryData(additionalP: Power) extends SecondaryData
 
-  final case class MockRelevantData(data: Option[MockSecondaryData])
+  /** Simple [[OperationRelevantData]] to test its usage in operation point
+    * calculations
+    *
+    * @param additionalP
+    *   Power value that is added to the power or flex options power for testing
+    *   purposes
+    */
+  final case class MockRelevantData(additionalP: Option[Power])
       extends OperationRelevantData
 
 }

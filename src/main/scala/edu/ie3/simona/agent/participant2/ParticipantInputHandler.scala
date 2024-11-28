@@ -8,8 +8,10 @@ package edu.ie3.simona.agent.participant2
 
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant2.ParticipantAgent.ActivationRequest
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.ProvisionMessage
+import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  ActivationRequest,
+  ProvideData,
+}
 
 final case class ParticipantInputHandler(
     expectedData: Map[ClassicRef, Long],
@@ -33,7 +35,7 @@ final case class ParticipantInputHandler(
   }
 
   def handleDataProvision(
-      msg: ProvisionMessage[_ <: Data]
+      msg: ProvideData[_ <: Data]
   ): ParticipantInputHandler = {
     val updatedReceivedData = receivedData + (msg.serviceRef -> Some(msg.data))
     val updatedExpectedData = msg.nextDataTick
@@ -52,6 +54,9 @@ final case class ParticipantInputHandler(
       nextTick > activationMsg.tick
     }
   }
+
+  def getNextActivationTick: Option[Long] =
+    expectedData.values.minOption
 
   def getData: Seq[Data] =
     receivedData.values.flatten.toSeq
