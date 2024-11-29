@@ -217,9 +217,9 @@ protected trait ParticipantAgentFundamentals[
     * @param modelConfig
     *   Configuration for the model
     * @param simulationStartDate
-    *   Wall clock time of first instant in simulation
+    *   Simulation time of first instant in simulation
     * @param simulationEndDate
-    *   Wall clock time of last instant in simulation
+    *   Simulation time of last instant in simulation
     * @return
     */
   def buildModel(

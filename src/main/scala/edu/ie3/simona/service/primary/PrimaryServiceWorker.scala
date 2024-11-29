@@ -229,8 +229,8 @@ final case class PrimaryServiceWorker[V <: Value](
       Option[Long],
   ) = {
     /* Get the information to distribute */
-    val wallClockTime = tick.toDateTime(serviceBaseStateData.startDateTime)
-    serviceBaseStateData.source.getValue(wallClockTime).toScala match {
+    val simulationTime = tick.toDateTime(serviceBaseStateData.startDateTime)
+    serviceBaseStateData.source.getValue(simulationTime).toScala match {
       case Some(value) =>
         processDataAndAnnounce(tick, value, serviceBaseStateData)
       case None =>
@@ -238,7 +238,7 @@ final case class PrimaryServiceWorker[V <: Value](
         log.warning(
           s"I expected to get data for tick '{}' ({}), but data is not available",
           tick,
-          wallClockTime,
+          simulationTime,
         )
         updateStateDataAndBuildTriggerMessages(serviceBaseStateData)
     }
@@ -372,7 +372,7 @@ object PrimaryServiceWorker {
     * @param timeSeriesUuid
     *   Unique identifier of the time series to read
     * @param simulationStart
-    *   Wall clock time of the beginning of simulation time
+    *   Simulation time of the beginning of simulation time
     * @param csvSep
     *   Column separation character of the csv files
     * @param directoryPath
@@ -401,7 +401,7 @@ object PrimaryServiceWorker {
     * @param timeSeriesUuid
     *   Unique identifier of the time series to read
     * @param simulationStart
-    *   Wall clock time of the beginning of simulation time
+    *   Simulation time of the beginning of simulation time
     * @param sqlParams
     *   Parameters regarding SQL connection and table selection
     * @param databaseNamingStrategy
@@ -421,7 +421,7 @@ object PrimaryServiceWorker {
     * @param activationTicks
     *   Linked collection of ticks, in which data is available
     * @param startDateTime
-    *   Wall clock time of the first instant in simulation
+    *   Simulation time of the first instant in simulation
     * @param source
     *   Implementation of [[TimeSeriesSource]] to use for actual acquisition of
     *   data

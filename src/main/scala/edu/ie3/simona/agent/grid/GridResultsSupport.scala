@@ -624,7 +624,7 @@ object GridResultsSupport {
     /** Partial result for the port at the high voltage side
       *
       * @param time
-      *   Wall clock time, the result does belong to
+      *   Simulation time of the result
       * @param input
       *   Unique identifier of the input model
       * @param currentMagnitude
@@ -645,7 +645,7 @@ object GridResultsSupport {
     /** Partial result for the port at the medium voltage side
       *
       * @param time
-      *   Wall clock time, the result does belong to
+      *   Simulation time of the result
       * @param input
       *   Unique identifier of the input model
       * @param currentMagnitude
@@ -663,7 +663,7 @@ object GridResultsSupport {
     /** Partial result for the port at the low voltage side
       *
       * @param time
-      *   Wall clock time, the result does belong to
+      *   Simulation time of the result
       * @param input
       *   Unique identifier of the input model
       * @param currentMagnitude
