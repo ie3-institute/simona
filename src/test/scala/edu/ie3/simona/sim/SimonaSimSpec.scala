@@ -9,6 +9,7 @@ package edu.ie3.simona.sim
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.api.ExtSimAdapter
+import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.listener.{
   DelayedStopHelper,
   ResultEventListener,
@@ -25,6 +26,7 @@ import edu.ie3.simona.sim.SimonaSim.SimulationEnded
 import edu.ie3.simona.sim.SimonaSimSpec._
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.util.ResultFileHierarchy
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
@@ -33,9 +35,11 @@ import org.apache.pekko.actor.typed.scaladsl.adapter._
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
+import org.scalatestplus.mockito.MockitoSugar.mock
 
 import java.nio.file.Path
 import java.util.UUID
+import java.util.concurrent.LinkedBlockingQueue
 
 class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
@@ -62,6 +66,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
               override def extSimulations(
                   context: ActorContext[_],
                   scheduler: ActorRef[SchedulerMessage],
+                  extSimPath: Option[Path],
               ): ExtSimSetupData = {
                 // We cannot return a TestProbe ref here,
                 // needs to be a proper actor created by context
@@ -69,7 +74,12 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
                   forwardMessage(Some(extSimAdapter.ref)),
                   uniqueName("extSimAdapterForwarder"),
                 )
-                ExtSimSetupData(Iterable(extSim.toClassic), Map.empty)
+                ExtSimSetupData(
+                  Iterable(extSim.toClassic),
+                  Map.empty,
+                  Map.empty,
+                  Map.empty,
+                )
               }
             }
           ),
@@ -303,7 +313,8 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
             new MockSetup() {
 
               override def resultEventListener(
-                  context: ActorContext[_]
+                  context: ActorContext[_],
+                  extSimSetupData: ExtSimSetupData,
               ): Seq[ActorRef[ResultEventListener.Request]] =
                 throwTestException()
             }
@@ -398,6 +409,11 @@ object SimonaSimSpec {
   ) extends SimonaSetup {
 
     override val args: Array[String] = Array.empty[String]
+    override val simonaConfig: SimonaConfig = mock[SimonaConfig]
+    override val resultFileHierarchy: ResultFileHierarchy =
+      mock[ResultFileHierarchy]
+    override val runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] =
+      None
 
     override def logOutputDir: Path = throw new NotImplementedError()
 
@@ -409,7 +425,8 @@ object SimonaSimSpec {
     )
 
     override def resultEventListener(
-        context: ActorContext[_]
+        context: ActorContext[_],
+        extSimSetupData: ExtSimSetupData,
     ): Seq[ActorRef[ResultEventListener.Request]] = Seq(
       context.spawn(
         stoppableForwardMessage(resultEventProbe),
@@ -420,6 +437,7 @@ object SimonaSimSpec {
     override def primaryServiceProxy(
         context: ActorContext[_],
         scheduler: ActorRef[SchedulerMessage],
+        extSimSetupData: ExtSimSetupData,
     ): ClassicRef =
       context.spawn(empty, uniqueName("primaryService")).toClassic
 
@@ -455,7 +473,8 @@ object SimonaSimSpec {
     override def extSimulations(
         context: ActorContext[_],
         scheduler: ActorRef[SchedulerMessage],
+        extSimPath: Option[Path],
     ): ExtSimSetupData =
-      ExtSimSetupData(Iterable.empty, Map.empty)
+      ExtSimSetupData()
   }
 }

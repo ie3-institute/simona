@@ -108,6 +108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix implausible test cases of HpModelSpec [#1042](https://github.com/ie3-institute/simona/issues/1042)
 - Refactoring to only use 'lastHpState' and 'relevantData' for 'ThermalGrid' calculations [#916](https://github.com/ie3-institute/simona/issues/916)
 - Refactor thermal calcRelevantData [#1051](https://github.com/ie3-institute/simona/issues/1051)
+- Adapt external simulation setup to changes in simonaAPI [#1058](https://github.com/ie3-institute/simona/issues/1058)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
