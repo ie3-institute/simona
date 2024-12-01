@@ -83,6 +83,20 @@ object ParticipantModelInit {
       modelConfig,
     )
 
+    createPrimaryModel(
+      physicalModel,
+      primaryDataMeta,
+    )
+  }
+
+  def createPrimaryModel[P <: PrimaryData: ClassTag](
+      physicalModel: ParticipantModel[_, _, _],
+      primaryDataMeta: PrimaryDataMeta[P],
+  ): ParticipantModel[
+    _ <: OperatingPoint,
+    _ <: ModelState,
+    _ <: OperationRelevantData,
+  ] = {
     val primaryResultFunc = new PrimaryResultFunc {
       override def createResult(
           data: PrimaryData.PrimaryDataWithComplexPower[_],

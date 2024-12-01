@@ -82,7 +82,14 @@ class MockParticipantModel(
   override def createPrimaryDataResult(
       data: PrimaryData.PrimaryDataWithComplexPower[_],
       dateTime: ZonedDateTime,
-  ): SystemParticipantResult = throw new NotImplementedError() // Not tested
+  ): SystemParticipantResult = {
+    MockResult(
+      dateTime,
+      uuid,
+      data.p.toMegawatts.asMegaWatt,
+      data.q.toMegavars.asMegaVar,
+    )
+  }
 
   override def getRequiredSecondaryServices: Iterable[ServiceType] =
     throw new NotImplementedError() // Not tested

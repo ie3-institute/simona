@@ -11,6 +11,10 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerChangedMessage,
   AssetPowerUnchangedMessage,
 }
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ActivePower,
+  ActivePowerMeta,
+}
 import edu.ie3.simona.agent.participant2.MockParticipantModel.{
   MockRequestMessage,
   MockResponseMessage,
@@ -24,16 +28,12 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent.{
 }
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
-import edu.ie3.simona.model.participant2.ParticipantModelShell
-import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
-  FlexActivation,
-  FlexCompletion,
-  FlexRequest,
-  FlexResponse,
-  IssueNoControl,
-  IssuePowerControl,
+import edu.ie3.simona.model.participant2.{
+  ParticipantModelInit,
+  ParticipantModelShell,
 }
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.test.common.UnitSpec
@@ -44,9 +44,9 @@ import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.{Kilovars, ReactivePower}
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.apache.pekko.actor.typed.ActorRef
-import squants.{Each, Power}
-import squants.energy.Kilowatts
 import org.apache.pekko.actor.typed.scaladsl.adapter._
+import squants.energy.Kilowatts
+import squants.{Each, Power}
 
 import java.time.ZonedDateTime
 
@@ -76,7 +76,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val receiveAdapter = createTestProbe[ActorRef[Activation]]()
 
         // no additional activation ticks
-        val model = new MockParticipantModel(mockActivationTicks = Map.empty)
+        val model = new MockParticipantModel()
         val operationInterval = OperationInterval(8 * 3600, 20 * 3600)
 
         val participantAgent = spawn(
@@ -146,6 +146,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // first request
         participantAgent ! RequestAssetPowerMessage(12 * 3600, Each(1), Each(0))
 
+        // 8 hours of 0 kW, 4 hours of 6 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
           case AssetPowerChangedMessage(p, q) =>
             p should approximate(Kilowatts(2))
@@ -220,7 +221,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // receiving the activation adapter
         val receiveAdapter = createTestProbe[ActorRef[Activation]]()
 
-        // no additional activation ticks
+        // with additional activation ticks
         val model = new MockParticipantModel(mockActivationTicks =
           Map(
             0 * 3600L -> 4 * 3600L, // still before operation, is ignored
@@ -289,6 +290,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! RequestAssetPowerMessage(12 * 3600, Each(1), Each(0))
 
+        // 8 hours of 0 kW, 4 hours of 6 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
           case AssetPowerChangedMessage(p, q) =>
             p should approximate(Kilowatts(2))
@@ -355,7 +357,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // receiving the activation adapter
         val receiveAdapter = createTestProbe[ActorRef[Activation]]()
 
-        // no additional activation ticks
+        // with additional activation ticks
         val model = new MockParticipantModel(mockActivationTicks =
           Map(
             0 * 3600L -> 4 * 3600L, // still before operation, is ignored
@@ -549,7 +551,207 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
     }
 
     "depending on primary data" should {
-      // todo
+
+      "calculate operating point and results correctly" in {
+
+        val scheduler = createTestProbe[SchedulerMessage]()
+        val gridAgent = createTestProbe[GridAgent.Request]()
+        val resultListener = createTestProbe[ResultEvent]()
+        val service = createTestProbe()
+
+        // receiving the activation adapter
+        val receiveAdapter = createTestProbe[ActorRef[Activation]]()
+
+        // no additional activation ticks
+        val physicalModel = new MockParticipantModel()
+
+        val model = ParticipantModelInit.createPrimaryModel(
+          physicalModel,
+          ActivePowerMeta,
+        )
+        val operationInterval = OperationInterval(8 * 3600, 20 * 3600)
+
+        val participantAgent = spawn(
+          ParticipantAgentMockFactory.create(
+            ParticipantModelShell(
+              model,
+              operationInterval,
+              simulationStartDate,
+            ),
+            ParticipantInputHandler(
+              Map(service.ref.toClassic -> 0)
+            ),
+            ParticipantGridAdapter(
+              gridAgent.ref,
+              12 * 3600,
+            ),
+            Iterable(resultListener.ref),
+            Left(scheduler.ref, receiveAdapter.ref),
+          )
+        )
+        val activationRef =
+          receiveAdapter.expectMessageType[ActorRef[Activation]]
+
+        // TICK 0: Outside of operation interval
+
+        activationRef ! Activation(0)
+
+        // nothing should happen, still waiting for primary data...
+        resultListener.expectNoMessage()
+        scheduler.expectNoMessage()
+
+        participantAgent ! ProvideData(
+          0,
+          service.ref.toClassic,
+          ActivePower(Kilowatts(1)),
+          Some(6 * 3600),
+        )
+
+        // outside of operation interval, 0 MW
+        resultListener.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(result: MockResult) =>
+            result.getInputModel shouldBe model.uuid
+            result.getTime shouldBe simulationStartDate
+            result.getP should equalWithTolerance(0.0.asMegaWatt)
+            result.getQ should equalWithTolerance(0.0.asMegaVar)
+        }
+
+        // next model tick and next data tick are ignored,
+        // because we are outside of operation interval
+        scheduler.expectMessage(
+          Completion(activationRef, Some(operationInterval.start))
+        )
+
+        // TICK 6 * 3600: Outside of operation interval, only data expected, no activation
+
+        participantAgent ! ProvideData(
+          6 * 3600,
+          service.ref.toClassic,
+          ActivePower(Kilowatts(3)),
+          Some(12 * 3600),
+        )
+
+        resultListener.expectNoMessage()
+        scheduler.expectNoMessage()
+
+        // TICK 8 * 3600: Start of operation interval
+
+        activationRef ! Activation(operationInterval.start)
+
+        resultListener.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(result: MockResult) =>
+            result.getInputModel shouldBe model.uuid
+            result.getTime shouldBe operationInterval.start.toDateTime
+            result.getP should equalWithTolerance(0.003.asMegaWatt)
+            result.getQ should equalWithTolerance(0.00145296631.asMegaVar)
+        }
+
+        // next data tick is hour 12
+        scheduler.expectMessage(
+          Completion(activationRef, Some(12 * 3600))
+        )
+
+        // TICK 12 * 3600: Inside of operation interval, GridAgent requests power
+
+        activationRef ! Activation(12 * 3600)
+
+        participantAgent ! RequestAssetPowerMessage(12 * 3600, Each(1), Each(0))
+
+        // 8 hours of 0 kW, 4 hours of 3 kW
+        gridAgent.expectMessageType[AssetPowerChangedMessage] match {
+          case AssetPowerChangedMessage(p, q) =>
+            p should approximate(Kilowatts(1))
+            q should approximate(Kilovars(0.48432210484))
+        }
+
+        participantAgent ! FinishParticipantSimulation(12 * 3600, 24 * 3600)
+
+        // nothing should happen, still waiting for primary data...
+        resultListener.expectNoMessage()
+        scheduler.expectNoMessage()
+
+        participantAgent ! ProvideData(
+          12 * 3600,
+          service.ref.toClassic,
+          ActivePower(Kilowatts(6)),
+          Some(18 * 3600),
+        )
+
+        // calculation should start now
+        resultListener.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(result: MockResult) =>
+            result.getInputModel shouldBe model.uuid
+            result.getTime shouldBe (12 * 3600).toDateTime
+            result.getP should equalWithTolerance(0.006.asMegaWatt)
+            result.getQ should equalWithTolerance(0.00290593263.asMegaVar)
+        }
+
+        // new data is expected at 18 hours
+        scheduler.expectMessage(
+          Completion(activationRef, Some(18 * 3600))
+        )
+
+        // TICK 18 * 3600: Inside of operation interval because of expected primary data
+
+        activationRef ! Activation(18 * 3600)
+
+        // nothing should happen, still waiting for primary data...
+        resultListener.expectNoMessage()
+        scheduler.expectNoMessage()
+
+        participantAgent ! ProvideData(
+          18 * 3600,
+          service.ref.toClassic,
+          ActivePower(Kilowatts(3)),
+          Some(24 * 3600),
+        )
+
+        // calculation should start now
+        resultListener.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(result: MockResult) =>
+            result.getInputModel shouldBe model.uuid
+            result.getTime shouldBe (18 * 3600).toDateTime
+            result.getP should equalWithTolerance(0.003.asMegaWatt)
+            result.getQ should equalWithTolerance(0.00145296631.asMegaVar)
+        }
+
+        scheduler.expectMessage(
+          Completion(activationRef, Some(operationInterval.end))
+        )
+
+        // TICK 20 * 3600: Outside of operation interval (last tick)
+
+        activationRef ! Activation(operationInterval.end)
+
+        resultListener.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(result: MockResult) =>
+            result.getInputModel shouldBe model.uuid
+            result.getTime shouldBe operationInterval.end.toDateTime
+            result.getP should equalWithTolerance(0.0.asMegaWatt)
+            result.getQ should equalWithTolerance(0.0.asMegaVar)
+        }
+
+        // Since we left the operation interval, there are no more ticks to activate
+        scheduler.expectMessage(Completion(activationRef))
+
+        // TICK 24 * 3600: GridAgent requests power
+
+        participantAgent ! RequestAssetPowerMessage(24 * 3600, Each(1), Each(0))
+
+        // 6 hours of 6 kW, 2 hours of 3 kW, 4 hours of 0 kW
+        gridAgent.expectMessageType[AssetPowerChangedMessage] match {
+          case AssetPowerChangedMessage(p, q) =>
+            p should approximate(Kilowatts(3.5))
+            q should approximate(Kilovars(1.695127366932))
+        }
+
+        participantAgent ! FinishParticipantSimulation(24 * 3600, 36 * 3600)
+
+        resultListener.expectNoMessage()
+        scheduler.expectNoMessage()
+
+      }
+
     }
 
   }
@@ -568,7 +770,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val receiveAdapter = createTestProbe[ActorRef[FlexRequest]]()
 
         // no additional activation ticks
-        val model = new MockParticipantModel(mockActivationTicks = Map.empty)
+        val model = new MockParticipantModel()
         val operationInterval = OperationInterval(8 * 3600, 20 * 3600)
 
         val participantAgent = spawn(
@@ -639,7 +841,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             result.getInputModel shouldBe model.uuid
             result.getTime shouldBe operationInterval.start.toDateTime
             result.getP should equalWithTolerance(0.003.asMegaWatt)
-            result.getQ should equalWithTolerance(0.0014529663.asMegaVar)
+            result.getQ should equalWithTolerance(0.00145296631.asMegaVar)
         }
 
         em.expectMessage(
@@ -653,6 +855,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! RequestAssetPowerMessage(12 * 3600, Each(1), Each(0))
 
+        // 8 hours of 0 kW, 4 hours of 3 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
           case AssetPowerChangedMessage(p, q) =>
             p should approximate(Kilowatts(1))
@@ -689,6 +892,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! RequestAssetPowerMessage(24 * 3600, Each(1), Each(0))
 
+        // 8 hours of 3 kW, 4 hours of 0 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
           case AssetPowerChangedMessage(p, q) =>
             p should approximate(Kilowatts(2))
@@ -708,7 +912,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // receiving the activation adapter
         val receiveAdapter = createTestProbe[ActorRef[FlexRequest]]()
 
-        // no additional activation ticks
+        // with additional activation ticks
         val model = new MockParticipantModel(
           mockActivationTicks = Map(
             0 * 3600L -> 4 * 3600L, // out of operation, is ignored
@@ -792,7 +996,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             result.getInputModel shouldBe model.uuid
             result.getTime shouldBe operationInterval.start.toDateTime
             result.getP should equalWithTolerance(0.003.asMegaWatt)
-            result.getQ should equalWithTolerance(0.0014529663.asMegaVar)
+            result.getQ should equalWithTolerance(0.00145296631.asMegaVar)
         }
 
         em.expectMessage(
@@ -874,6 +1078,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! RequestAssetPowerMessage(24 * 3600, Each(1), Each(0))
 
+        // 8 hours of 1 kW, 4 hours of 0 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
           case AssetPowerChangedMessage(p, q) =>
             p should approximate(Kilowatts(0.6666666667))
@@ -898,7 +1103,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         // receiving the activation adapter
         val receiveAdapter = createTestProbe[ActorRef[FlexRequest]]()
 
-        // no additional activation ticks
+        // with additional activation ticks
         val model = new MockParticipantModel(
           mockActivationTicks = Map(
             0 * 3600L -> 4 * 3600L, // out of operation, is ignored
@@ -1007,7 +1212,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             result.getInputModel shouldBe model.uuid
             result.getTime shouldBe operationInterval.start.toDateTime
             result.getP should equalWithTolerance(0.003.asMegaWatt)
-            result.getQ should equalWithTolerance(0.0014529663.asMegaVar)
+            result.getQ should equalWithTolerance(0.00145296631.asMegaVar)
         }
 
         // next model tick and next data tick are both hour 12
@@ -1024,6 +1229,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         participantAgent ! RequestAssetPowerMessage(12 * 3600, Each(1), Each(0))
 
+        // 8 hours of 0 kW, 4 hours of 3 kW
         gridAgent.expectMessageType[AssetPowerChangedMessage] match {
           case AssetPowerChangedMessage(p, q) =>
             p should approximate(Kilowatts(1))
@@ -1059,7 +1265,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             result.getInputModel shouldBe model.uuid
             result.getTime shouldBe (12 * 3600).toDateTime
             result.getP should equalWithTolerance(0.003.asMegaWatt)
-            result.getQ should equalWithTolerance(0.001452966315.asMegaVar)
+            result.getQ should equalWithTolerance(0.00145296631.asMegaVar)
         }
 
         em.expectMessage(
@@ -1157,7 +1363,267 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
     }
 
     "depending on primary data" should {
-      // todo
+
+      "calculate operating point and results correctly" in {
+
+        val em = createTestProbe[FlexResponse]()
+        val gridAgent = createTestProbe[GridAgent.Request]()
+        val resultListener = createTestProbe[ResultEvent]()
+        val service = createTestProbe()
+
+        // receiving the activation adapter
+        val receiveAdapter = createTestProbe[ActorRef[FlexRequest]]()
+
+        // no additional activation ticks
+        val physicalModel = new MockParticipantModel()
+
+        val model = ParticipantModelInit.createPrimaryModel(
+          physicalModel,
+          ActivePowerMeta,
+        )
+        val operationInterval = OperationInterval(8 * 3600, 20 * 3600)
+
+        val participantAgent = spawn(
+          ParticipantAgentMockFactory.create(
+            ParticipantModelShell(
+              model,
+              operationInterval,
+              simulationStartDate,
+            ),
+            ParticipantInputHandler(
+              Map(service.ref.toClassic -> 0)
+            ),
+            ParticipantGridAdapter(
+              gridAgent.ref,
+              12 * 3600,
+            ),
+            Iterable(resultListener.ref),
+            Right(em.ref, receiveAdapter.ref),
+          )
+        )
+        val flexRef = receiveAdapter.expectMessageType[ActorRef[FlexRequest]]
+
+        // TICK 0: Outside of operation interval
+
+        flexRef ! FlexActivation(0)
+
+        // nothing should happen, still waiting for primary data...
+        resultListener.expectNoMessage()
+        em.expectNoMessage()
+
+        participantAgent ! ProvideData(
+          0,
+          service.ref.toClassic,
+          ActivePower(Kilowatts(1)),
+          Some(6 * 3600),
+        )
+
+        em.expectMessageType[ProvideMinMaxFlexOptions] match {
+          case ProvideMinMaxFlexOptions(modelUuid, ref, min, max) =>
+            modelUuid shouldBe model.uuid
+            ref should approximate(Kilowatts(0))
+            min should approximate(Kilowatts(0))
+            max should approximate(Kilowatts(0))
+        }
+
+        flexRef ! IssueNoControl(0)
+
+        // outside of operation interval, 0 MW
+        resultListener.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(result: MockResult) =>
+            result.getInputModel shouldBe model.uuid
+            result.getTime shouldBe simulationStartDate
+            result.getP should equalWithTolerance(0.0.asMegaWatt)
+            result.getQ should equalWithTolerance(0.0.asMegaVar)
+        }
+
+        // next model tick and next data tick are ignored,
+        // because we are outside of operation interval
+        em.expectMessage(
+          FlexCompletion(
+            model.uuid,
+            requestAtTick = Some(operationInterval.start),
+          )
+        )
+
+        // TICK 6 * 3600: Outside of operation interval, only data expected, no activation
+
+        participantAgent ! ProvideData(
+          6 * 3600,
+          service.ref.toClassic,
+          ActivePower(Kilowatts(3)),
+          Some(12 * 3600),
+        )
+
+        resultListener.expectNoMessage()
+        em.expectNoMessage()
+
+        // TICK 8 * 3600: Start of operation interval
+
+        flexRef ! FlexActivation(operationInterval.start)
+
+        em.expectMessageType[ProvideMinMaxFlexOptions] match {
+          case ProvideMinMaxFlexOptions(modelUuid, ref, min, max) =>
+            modelUuid shouldBe model.uuid
+            ref should approximate(Kilowatts(3))
+            min should approximate(Kilowatts(3))
+            max should approximate(Kilowatts(3))
+        }
+
+        flexRef ! IssuePowerControl(operationInterval.start, Kilowatts(3))
+
+        resultListener.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(result: MockResult) =>
+            result.getInputModel shouldBe model.uuid
+            result.getTime shouldBe operationInterval.start.toDateTime
+            result.getP should equalWithTolerance(0.003.asMegaWatt)
+            result.getQ should equalWithTolerance(0.00145296631.asMegaVar)
+        }
+
+        // next data tick is hour 12
+        em.expectMessage(
+          FlexCompletion(
+            model.uuid,
+            requestAtTick = Some(12 * 3600),
+          )
+        )
+
+        // TICK 12 * 3600: Inside of operation interval, GridAgent requests power
+
+        flexRef ! FlexActivation(12 * 3600)
+
+        participantAgent ! RequestAssetPowerMessage(12 * 3600, Each(1), Each(0))
+
+        // 8 hours of 0 kW, 4 hours of 3 kW
+        gridAgent.expectMessageType[AssetPowerChangedMessage] match {
+          case AssetPowerChangedMessage(p, q) =>
+            p should approximate(Kilowatts(1))
+            q should approximate(Kilovars(0.48432210483))
+        }
+
+        participantAgent ! FinishParticipantSimulation(12 * 3600, 24 * 3600)
+
+        // nothing should happen, still waiting for primary data...
+        resultListener.expectNoMessage()
+        em.expectNoMessage()
+
+        participantAgent ! ProvideData(
+          12 * 3600,
+          service.ref.toClassic,
+          ActivePower(Kilowatts(6)),
+          Some(18 * 3600),
+        )
+
+        // calculation should start now
+        em.expectMessageType[ProvideMinMaxFlexOptions] match {
+          case ProvideMinMaxFlexOptions(modelUuid, ref, min, max) =>
+            modelUuid shouldBe model.uuid
+            ref should approximate(Kilowatts(6))
+            min should approximate(Kilowatts(6))
+            max should approximate(Kilowatts(6))
+        }
+
+        flexRef ! IssueNoControl(12 * 3600)
+
+        resultListener.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(result: MockResult) =>
+            result.getInputModel shouldBe model.uuid
+            result.getTime shouldBe (12 * 3600).toDateTime
+            result.getP should equalWithTolerance(0.006.asMegaWatt)
+            result.getQ should equalWithTolerance(0.00290593263.asMegaVar)
+        }
+
+        em.expectMessage(
+          FlexCompletion(
+            model.uuid,
+            requestAtTick = Some(18 * 3600),
+          )
+        )
+
+        // TICK 18 * 3600: Inside of operation interval because of expected primary data
+
+        flexRef ! FlexActivation(18 * 3600)
+
+        // nothing should happen, still waiting for primary data...
+        resultListener.expectNoMessage()
+        em.expectNoMessage()
+
+        participantAgent ! ProvideData(
+          18 * 3600,
+          service.ref.toClassic,
+          ActivePower(Kilowatts(3)),
+          Some(24 * 3600),
+        )
+
+        // calculation should start now
+        em.expectMessageType[ProvideMinMaxFlexOptions] match {
+          case ProvideMinMaxFlexOptions(modelUuid, ref, min, max) =>
+            modelUuid shouldBe model.uuid
+            ref should approximate(Kilowatts(3))
+            min should approximate(Kilowatts(3))
+            max should approximate(Kilowatts(3))
+        }
+
+        flexRef ! IssueNoControl(18 * 3600)
+
+        resultListener.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(result: MockResult) =>
+            result.getInputModel shouldBe model.uuid
+            result.getTime shouldBe (18 * 3600).toDateTime
+            result.getP should equalWithTolerance(0.003.asMegaWatt)
+            result.getQ should equalWithTolerance(0.00145296631.asMegaVar)
+        }
+
+        em.expectMessage(
+          FlexCompletion(
+            model.uuid,
+            requestAtTick = Some(operationInterval.end),
+          )
+        )
+
+        // TICK 20 * 3600: Outside of operation interval (last tick)
+
+        flexRef ! FlexActivation(operationInterval.end)
+
+        em.expectMessageType[ProvideMinMaxFlexOptions] match {
+          case ProvideMinMaxFlexOptions(modelUuid, ref, min, max) =>
+            modelUuid shouldBe model.uuid
+            ref should approximate(Kilowatts(0))
+            min should approximate(Kilowatts(0))
+            max should approximate(Kilowatts(0))
+        }
+
+        flexRef ! IssueNoControl(operationInterval.end)
+
+        resultListener.expectMessageType[ParticipantResultEvent] match {
+          case ParticipantResultEvent(result: MockResult) =>
+            result.getInputModel shouldBe model.uuid
+            result.getTime shouldBe operationInterval.end.toDateTime
+            result.getP should equalWithTolerance(0.0.asMegaWatt)
+            result.getQ should equalWithTolerance(0.0.asMegaVar)
+        }
+
+        // Since we left the operation interval, there are no more ticks to activate
+        em.expectMessage(FlexCompletion(model.uuid))
+
+        // TICK 24 * 3600: GridAgent requests power
+
+        participantAgent ! RequestAssetPowerMessage(24 * 3600, Each(1), Each(0))
+
+        // 6 hours of 6 kW, 2 hours of 3 kW, 4 hours of 0 kW
+        gridAgent.expectMessageType[AssetPowerChangedMessage] match {
+          case AssetPowerChangedMessage(p, q) =>
+            p should approximate(Kilowatts(3.5))
+            q should approximate(Kilovars(1.695127366932))
+        }
+
+        participantAgent ! FinishParticipantSimulation(24 * 3600, 36 * 3600)
+
+        resultListener.expectNoMessage()
+        em.expectNoMessage()
+
+      }
+
     }
 
   }
