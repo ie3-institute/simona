@@ -92,11 +92,6 @@ final case class PrimaryDataParticipantModel[P <: PrimaryData: ClassTag](
     Iterable.empty
   }
 
-  /** @param receivedData
-    * @throws CriticalFailureException
-    *   if unexpected type of data was provided
-    * @return
-    */
   override def createRelevantData(
       receivedData: Seq[Data],
       nodalVoltage: Dimensionless,
@@ -109,7 +104,9 @@ final case class PrimaryDataParticipantModel[P <: PrimaryData: ClassTag](
       }
       .getOrElse {
         throw new CriticalFailureException(
-          s"Expected WeatherData, got $receivedData"
+          "Expected primary data of type " +
+            s"${implicitly[ClassTag[P]].runtimeClass.getSimpleName}, " +
+            s"got $receivedData"
         )
       }
 
@@ -118,9 +115,8 @@ final case class PrimaryDataParticipantModel[P <: PrimaryData: ClassTag](
       relevantData: PrimaryOperationRelevantData[P],
   ): FlexibilityMessage.ProvideFlexOptions = {
     val (operatingPoint, _) = determineOperatingPoint(state, relevantData)
-    val power = operatingPoint.activePower
 
-    ProvideMinMaxFlexOptions.noFlexOption(uuid, power)
+    ProvideMinMaxFlexOptions.noFlexOption(uuid, operatingPoint.activePower)
   }
 
   override def handlePowerControl(
@@ -148,7 +144,7 @@ object PrimaryDataParticipantModel {
     override val activePower: Power = data.p
   }
 
-  object PrimaryOperatingPoint {
+  private object PrimaryOperatingPoint {
     def apply[P <: PrimaryData: ClassTag](
         data: P
     ): PrimaryOperatingPoint[P] =
