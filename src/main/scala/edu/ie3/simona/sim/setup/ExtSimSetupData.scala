@@ -33,7 +33,7 @@ final case class ExtSimSetupData(
     extResultListeners: Map[ExtResultDataConnection, ActorRef[_]],
 ) {
 
-  private[setup] def +(
+  private[setup] def update(
       connection: ExtPrimaryDataConnection,
       ref: ClassicRef,
   ): ExtSimSetupData =
@@ -41,17 +41,20 @@ final case class ExtSimSetupData(
       extPrimaryDataServices ++ Map(connection -> ref)
     )
 
-  private[setup] def +(
+  private[setup] def update(
       connection: ExtInputDataConnection,
       ref: ClassicRef,
   ): ExtSimSetupData =
     copy(extDataServices = extDataServices ++ Map(connection -> ref))
 
-  private[setup] def +(
+  private[setup] def update(
       connection: ExtResultDataConnection,
       ref: ActorRef[_],
   ): ExtSimSetupData =
     copy(extResultListeners = extResultListeners ++ Map(connection -> ref))
+
+  private[setup] def update(extSimAdapter: ClassicRef): ExtSimSetupData =
+    copy(extSimAdapters = extSimAdapters ++ Set(extSimAdapter))
 
   def evDataService: Option[ClassicRef] =
     extDataServices.collectFirst { case (_: ExtEvDataConnection, ref) => ref }

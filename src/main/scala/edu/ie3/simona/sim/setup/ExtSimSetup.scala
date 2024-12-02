@@ -52,6 +52,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters.{ListHasAsScala, SetHasAsScala}
 import scala.jdk.DurationConverters._
+import scala.util.{Failure, Success, Try}
 
 object ExtSimSetup {
 
@@ -92,27 +93,36 @@ object ExtSimSetup {
       implicit val extSimAdapterData: ExtSimAdapterData =
         new ExtSimAdapterData(extSimAdapter, args)
 
-      // sets up the external simulation
-      extLink.setup(extSimAdapterData)
-      val extSimulation = extLink.getExtSimulation
+      Try {
+        // sets up the external simulation
+        extLink.setup(extSimAdapterData)
+        extLink.getExtSimulation
+      }.map { extSimulation =>
+        // send init data right away, init activation is scheduled
+        extSimAdapter ! ExtSimAdapter.Create(
+          extSimAdapterData,
+          ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
+        )
 
-      // send init data right away, init activation is scheduled
-      extSimAdapter ! ExtSimAdapter.Create(
-        extSimAdapterData,
-        ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
-      )
+        // setup data services that belong to this external simulation
+        val updatedSetupData = connect(extSimulation, extSimSetupData)
 
-      // setup data services that belong to this external simulation
-      val updatedSetupData = connect(extSimulation, extSimSetupData)
+        // starting external simulation
+        new Thread(extSimulation, s"External simulation $index")
+          .start()
 
-      // starting external simulation
-      new Thread(extSimulation, s"External simulation $index")
-        .start()
+        // updating the data with newly connected external simulation
+        updatedSetupData.update(extSimAdapter)
+      } match {
+        case Failure(exception) =>
+          log.warn(
+            s"External simulation of link '${extLink.getClass.getSimpleName}' could not be loaded, due to the following exception: ",
+            exception,
+          )
 
-      // updating the data with newly connected external simulation
-      updatedSetupData.copy(extSimAdapters =
-        updatedSetupData.extSimAdapters ++ Set(extSimAdapter)
-      )
+          extSimSetupData
+        case Success(setupData) => setupData
+      }
   }
 
   /** Method for connecting a given external simulation.
@@ -256,7 +266,7 @@ object ExtSimSetup {
       extSimAdapterData.getAdapter,
     )
 
-    extSimSetupData + (extInputDataConnection, extDataService)
+    extSimSetupData.update(extInputDataConnection, extDataService)
   }
 
   /** Method to set up an external primary data service.
@@ -297,7 +307,7 @@ object ExtSimSetup {
 
     extPrimaryDataConnection.setActorRefs(extPrimaryDataService, extSimAdapter)
 
-    extSimSetupData + (extPrimaryDataConnection, extPrimaryDataService)
+    extSimSetupData update (extPrimaryDataConnection, extPrimaryDataService)
   }
 
   /** Method to set up an external result data service.
@@ -366,7 +376,7 @@ object ExtSimSetup {
       ),
     )
 
-    extSimSetupData + (extResultDataConnection, extResultDataProvider)
+    extSimSetupData.update(extResultDataConnection, extResultDataProvider)
   }
 
   /** Method for validating the external primary data connections.
