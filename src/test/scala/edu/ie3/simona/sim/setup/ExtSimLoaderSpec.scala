@@ -81,21 +81,21 @@ class ExtSimLoaderSpec extends UnitSpec {
       }
     }
 
-    "load no service if the META-INF/service file is missing" ignore {
+    "load no service if the META-INF/service file is missing" in {
       val jar = getResource(missingServiceFileJar)
       val extLink = ExtSimLoader.loadExtLink(jar)
 
       extLink.isEmpty shouldBe true
     }
 
-    "load no service if service file is empty" ignore {
+    "load no service if service file is empty" in {
       val jar = getResource(emptyFileJar)
       val extLink = ExtSimLoader.loadExtLink(jar)
 
       extLink.isEmpty shouldBe true
     }
 
-    "throw an exception when ExtLinkInterface is not implemented" ignore {
+    "throw an exception when ExtLinkInterface is not implemented" in {
       val jar = getResource(wrongImplementationJar)
       assertThrows[ServiceConfigurationError] {
         ExtSimLoader.loadExtLink(jar)

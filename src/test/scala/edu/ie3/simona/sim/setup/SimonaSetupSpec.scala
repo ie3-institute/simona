@@ -21,7 +21,7 @@ import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.sim.SimonaSim
-import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.test.common.model.grid.SubGridGateMokka
 import edu.ie3.simona.util.ResultFileHierarchy
 import org.apache.pekko.actor.typed.ActorRef
@@ -32,17 +32,21 @@ import java.nio.file.Path
 import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
 
-class SimonaSetupSpec extends UnitSpec with SimonaSetup with SubGridGateMokka {
+class SimonaSetupSpec
+    extends UnitSpec
+    with SimonaSetup
+    with SubGridGateMokka
+    with ConfigTestData {
 
   override val args: Array[String] = Array.empty[String]
 
-  override val simonaConfig: SimonaConfig = throw new NotImplementedError()
+  override val simonaConfig: SimonaConfig = SimonaConfig(typesafeConfig)
   override val resultFileHierarchy: ResultFileHierarchy =
-    throw new NotImplementedError()
+    mock[ResultFileHierarchy]
   override val runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] =
-    throw new NotImplementedError()
+    None
 
-  override val logOutputDir: Path = throw new NotImplementedError()
+  override val logOutputDir: Path = mock[Path]
 
   override def runtimeEventListener(
       context: ActorContext[_]

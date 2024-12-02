@@ -20,6 +20,10 @@ import scala.jdk.CollectionConverters._
 object ExtSimLoader extends LazyLogging {
 
   private def buildDir(path: Path): File = {
+    if (path.isAbsolute) {
+      return path.toFile
+    }
+
     val workingDir = new File(System.getProperty("user.dir"))
     if (!workingDir.isDirectory)
       throw new IOException("Error when accessing working directory.")

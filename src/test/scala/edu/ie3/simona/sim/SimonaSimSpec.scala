@@ -25,7 +25,7 @@ import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.sim.SimonaSim.SimulationEnded
 import edu.ie3.simona.sim.SimonaSimSpec._
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
-import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
@@ -35,6 +35,7 @@ import org.apache.pekko.actor.typed.scaladsl.adapter._
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
+import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar.mock
 
 import java.nio.file.Path
@@ -406,16 +407,17 @@ object SimonaSimSpec {
       runtimeEventProbe: Option[ActorRef[RuntimeEventListener.Request]] = None,
       resultEventProbe: Option[ActorRef[ResultEventListener.Request]] = None,
       timeAdvancerProbe: Option[ActorRef[TimeAdvancer.Request]] = None,
-  ) extends SimonaSetup {
+  ) extends SimonaSetup
+      with ConfigTestData {
 
     override val args: Array[String] = Array.empty[String]
-    override val simonaConfig: SimonaConfig = mock[SimonaConfig]
+    override val simonaConfig: SimonaConfig = SimonaConfig(typesafeConfig)
     override val resultFileHierarchy: ResultFileHierarchy =
       mock[ResultFileHierarchy]
     override val runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] =
       None
 
-    override def logOutputDir: Path = throw new NotImplementedError()
+    override def logOutputDir: Path = mock[Path]
 
     override def runtimeEventListener(
         context: ActorContext[_]
