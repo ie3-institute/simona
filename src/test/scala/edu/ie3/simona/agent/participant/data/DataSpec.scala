@@ -41,7 +41,8 @@ class DataSpec extends UnitSpec {
   }
 
   "Meta functions for complex power and heat should work as expected" in {
-    ComplexPowerAndHeatMeta.zero shouldBe ComplexPowerAndHeat(zeroKW, zeroKVAr, zeroKW)
+    ComplexPowerAndHeatMeta.zero shouldBe
+      ComplexPowerAndHeat(zeroKW, zeroKVAr, zeroKW)
 
     ComplexPowerAndHeatMeta.scale(
       ComplexPowerAndHeat(Kilowatts(5), Kilovars(1), Kilowatts(2)),
