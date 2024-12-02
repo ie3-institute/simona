@@ -176,8 +176,7 @@ object ParticipantAgentInit {
         simulationEndDate,
       )
 
-      val requiredServiceTypes =
-        modelShell.model.getRequiredSecondaryServices.toSet
+      val requiredServiceTypes = modelShell.requiredServices.toSet
 
       if (requiredServiceTypes.isEmpty) {
         // Models that do not use secondary data always start at tick 0
@@ -278,7 +277,7 @@ object ParticipantAgentInit {
           Some(firstTick),
         ),
       _.emAgent ! FlexCompletion(
-        modelShell.model.uuid,
+        modelShell.uuid,
         requestAtNextActivation = false,
         Some(firstTick),
       ),

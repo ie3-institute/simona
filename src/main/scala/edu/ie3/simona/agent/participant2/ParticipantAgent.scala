@@ -367,11 +367,7 @@ object ParticipantAgent {
                   throw new CriticalFailureException(
                     "Received flex activation while not controlled by EM"
                   ),
-                _.emAgent ! modelWithFlex.flexOptions.getOrElse(
-                  throw new CriticalFailureException(
-                    "Flex options have not been calculated!"
-                  )
-                ),
+                _.emAgent ! modelWithFlex.flexOptions,
               )
 
               (modelWithFlex, gridAdapter)
@@ -406,7 +402,7 @@ object ParticipantAgent {
                     "Received issue flex control while not controlled by EM"
                   ),
                 _.emAgent ! FlexCompletion(
-                  shellWithOP.model.uuid,
+                  shellWithOP.uuid,
                   changeIndicator.changesAtNextActivation,
                   changeIndicator.changesAtTick,
                 ),

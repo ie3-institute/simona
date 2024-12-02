@@ -157,7 +157,7 @@ object ParticipantGridAdapter {
     val lastTickBeforeWindowStart =
       tickToPower.rangeUntil(windowStart + 1).lastOption
 
-    // throw out all entries before or at windowStart
+    // remove all entries before or at windowStart
     val reducedMap = tickToPower.rangeFrom(windowStart + 1)
 
     // combine both

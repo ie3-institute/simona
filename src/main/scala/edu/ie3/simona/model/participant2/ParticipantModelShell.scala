@@ -18,9 +18,9 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.em.EmTools
 import edu.ie3.simona.model.participant2.ParticipantModel.{
-  OperationChangeIndicator,
   ModelState,
   OperatingPoint,
+  OperationChangeIndicator,
   OperationRelevantData,
 }
 import edu.ie3.simona.model.participant2.ParticipantModelShell.ResultsContainer
@@ -29,6 +29,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   ProvideFlexOptions,
 }
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities._
@@ -38,6 +39,7 @@ import squants.Dimensionless
 import squants.energy.Power
 
 import java.time.ZonedDateTime
+import java.util.UUID
 import scala.reflect.ClassTag
 
 /** Takes care of:
@@ -53,17 +55,74 @@ final case class ParticipantModelShell[
     S <: ModelState,
     OR <: OperationRelevantData,
 ](
-    model: ParticipantModel[OP, S, OR] with ParticipantFlexibility[OP, S, OR],
-    operationInterval: OperationInterval,
-    simulationStartDate: ZonedDateTime,
-    state: Option[S] = None,
-    relevantData: Option[OR] = None,
-    flexOptions: Option[ProvideFlexOptions] = None,
-    lastOperatingPoint: Option[OP] = None,
-    operatingPoint: Option[OP] = None,
-    private val modelChange: OperationChangeIndicator =
+    private val model: ParticipantModel[OP, S, OR]
+      with ParticipantFlexibility[OP, S, OR],
+    private val operationInterval: OperationInterval,
+    private val simulationStartDate: ZonedDateTime,
+    private val _state: Option[S] = None,
+    private val _relevantData: Option[OR] = None,
+    private val _flexOptions: Option[ProvideFlexOptions] = None,
+    private val _lastOperatingPoint: Option[OP] = None,
+    private val _operatingPoint: Option[OP] = None,
+    private val _modelChange: OperationChangeIndicator =
       OperationChangeIndicator(),
 ) {
+
+  /** Returns the model UUID.
+    *
+    * @return
+    *   the UUID of the model
+    */
+  def uuid: UUID = model.uuid
+
+  /** Returns the types of required secondary services for the model to
+    * function.
+    *
+    * @return
+    *   the types of secondary services required
+    */
+  def requiredServices: Iterable[ServiceType] =
+    model.getRequiredSecondaryServices
+
+  /** Returns the current relevant data, if present, or throws a
+    * [[CriticalFailureException]]. Only call this if you are certain the
+    * operation relevant data has been set.
+    *
+    * @return
+    *   the operation relevant data
+    */
+  private def getRelevantData: OR =
+    _relevantData.getOrElse(
+      throw new CriticalFailureException("No relevant data available!")
+    )
+
+  /** Returns the current operating point, if present, or throws a
+    * [[CriticalFailureException]]. Only call this if you are certain the
+    * operating point has been set.
+    *
+    * @return
+    *   the operating point
+    */
+  private def operatingPoint: OP = {
+    _operatingPoint
+      .getOrElse(
+        throw new CriticalFailureException("No operating point available!")
+      )
+  }
+
+  /** Returns the current flex options, if present, or throws a
+    * [[CriticalFailureException]]. Only call this if you are certain the flex
+    * options have been set.
+    *
+    * @return
+    *   the flex options
+    */
+  def flexOptions: ProvideFlexOptions =
+    _flexOptions.getOrElse(
+      throw new CriticalFailureException(
+        "Flex options have not been calculated!"
+      )
+    )
 
   def updateRelevantData(
       receivedData: Seq[Data],
@@ -79,7 +138,7 @@ final case class ParticipantModelShell[
         currentSimulationTime,
       )
 
-    copy(relevantData = Some(updatedRelevantData))
+    copy(_relevantData = Some(updatedRelevantData))
   }
 
   /** Update operating point when the model is '''not''' em-controlled.
@@ -92,12 +151,10 @@ final case class ParticipantModelShell[
   ): ParticipantModelShell[OP, S, OR] = {
     val currentState = determineCurrentState(currentTick)
 
-    def modelOperatingPoint() = {
+    def modelOperatingPoint(): (OP, OperationChangeIndicator) = {
       val (modelOp, modelNextTick) = model.determineOperatingPoint(
         currentState,
-        relevantData.getOrElse(
-          throw new CriticalFailureException("No relevant data available!")
-        ),
+        getRelevantData,
       )
       val modelIndicator =
         OperationChangeIndicator(changesAtTick = modelNextTick)
@@ -108,10 +165,10 @@ final case class ParticipantModelShell[
       determineOperatingPoint(modelOperatingPoint, currentTick)
 
     copy(
-      state = Some(currentState),
-      lastOperatingPoint = operatingPoint,
-      operatingPoint = Some(newOperatingPoint),
-      modelChange = newChangeIndicator,
+      _state = Some(currentState),
+      _lastOperatingPoint = _operatingPoint,
+      _operatingPoint = Some(newOperatingPoint),
+      _modelChange = newChangeIndicator,
     )
   }
 
@@ -122,23 +179,16 @@ final case class ParticipantModelShell[
       currentTick: Long,
       nodalVoltage: Dimensionless,
   ): ResultsContainer = {
-    val op = operatingPoint
-      .getOrElse(
-        throw new CriticalFailureException("No operating point available!")
-      )
-
-    val activePower = op.activePower
-    val reactivePower = op.reactivePower.getOrElse(
+    val activePower = operatingPoint.activePower
+    val reactivePower = operatingPoint.reactivePower.getOrElse(
       activeToReactivePowerFunc(nodalVoltage)(activePower)
     )
     val complexPower = ComplexPower(activePower, reactivePower)
 
     val participantResults = model.createResults(
-      state.getOrElse(
-        throw new CriticalFailureException("No model state available!")
-      ),
-      lastOperatingPoint,
-      op,
+      determineCurrentState(currentTick),
+      _lastOperatingPoint,
+      operatingPoint,
       complexPower,
       currentTick.toDateTime(simulationStartDate),
     )
@@ -156,16 +206,14 @@ final case class ParticipantModelShell[
       if (operationInterval.includes(currentTick)) {
         model.calcFlexOptions(
           currentState,
-          relevantData.getOrElse(
-            throw new CriticalFailureException("No relevant data available!")
-          ),
+          getRelevantData,
         )
       } else {
         // Out of operation, there's no way to operate besides 0 kW
         ProvideMinMaxFlexOptions.noFlexOption(model.uuid, zeroKW)
       }
 
-    copy(state = Some(currentState), flexOptions = Some(flexOptions))
+    copy(_state = Some(currentState), _flexOptions = Some(flexOptions))
   }
 
   /** Update operating point on receiving [[IssueFlexControl]], i.e. when the
@@ -181,8 +229,8 @@ final case class ParticipantModelShell[
 
     val currentTick = flexControl.tick
 
-    def modelOperatingPoint() = {
-      val fo = flexOptions.getOrElse(
+    def modelOperatingPoint(): (OP, OperationChangeIndicator) = {
+      val fo = _flexOptions.getOrElse(
         throw new CriticalFailureException("No flex options available!")
       )
 
@@ -193,9 +241,7 @@ final case class ParticipantModelShell[
 
       model.handlePowerControl(
         currentState,
-        relevantData.getOrElse(
-          throw new CriticalFailureException("No relevant data available!")
-        ),
+        getRelevantData,
         fo,
         setPointActivePower,
       )
@@ -205,10 +251,10 @@ final case class ParticipantModelShell[
       determineOperatingPoint(modelOperatingPoint, currentTick)
 
     copy(
-      state = Some(currentState),
-      lastOperatingPoint = operatingPoint,
-      operatingPoint = Some(newOperatingPoint),
-      modelChange = newChangeIndicator,
+      _state = Some(currentState),
+      _lastOperatingPoint = _operatingPoint,
+      _operatingPoint = Some(newOperatingPoint),
+      _modelChange = newChangeIndicator,
     )
   }
 
@@ -238,12 +284,12 @@ final case class ParticipantModelShell[
       // the end of the operation interval
       val adaptedNextTick =
         Seq(
-          modelChange.changesAtTick,
+          _modelChange.changesAtTick,
           nextDataTick,
           Option(operationInterval.end),
         ).flatten.minOption
 
-      modelChange.copy(changesAtTick = adaptedNextTick)
+      _modelChange.copy(changesAtTick = adaptedNextTick)
     } else {
       // If the model is not active, all activation ticks are ignored besides
       // potentially the operation start
@@ -262,13 +308,13 @@ final case class ParticipantModelShell[
     val currentState = determineCurrentState(request.tick)
     val updatedState = model.handleRequest(currentState, ctx, request)
 
-    copy(state = Some(updatedState))
+    copy(_state = Some(updatedState))
   }
 
   private def determineCurrentState(currentTick: Long): S = {
     // new state is only calculated if there's an old state and an operating point
-    val currentState = state
-      .zip(operatingPoint)
+    val state = _state
+      .zip(_operatingPoint)
       .flatMap { case (st, op) =>
         Option.when(st.tick < currentTick) {
           model.determineState(st, op, currentTick)
@@ -276,12 +322,12 @@ final case class ParticipantModelShell[
       }
       .getOrElse(model.initialState(currentTick))
 
-    if (currentState.tick != currentTick)
+    if (state.tick != currentTick)
       throw new CriticalFailureException(
-        s"New state $currentState is not set to current tick $currentTick"
+        s"New state $state is not set to current tick $currentTick"
       )
 
-    currentState
+    state
   }
 
 }
