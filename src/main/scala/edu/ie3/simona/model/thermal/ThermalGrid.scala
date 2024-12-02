@@ -31,6 +31,7 @@ import squants.{Energy, Power, Temperature}
 
 import java.time.ZonedDateTime
 import scala.jdk.CollectionConverters.SetHasAsScala
+import scala.language.postfixOps
 
 /** Calculation model for a thermal grid. It is assumed, that all elements are
   * connected directly with exactly one thermal bus
@@ -579,12 +580,6 @@ object ThermalGrid {
 
     def hasAdditionalDemand: Boolean = possible > zeroMWh
 
-    /* for possible negative energies
-    def hasRequiredNegativeDemand: Boolean = required < zeroMWH
-
-    def hasAdditionalNegativeDemand: Boolean = possible < zeroMWH
-
-     */
   }
   object ThermalEnergyDemand {
 
@@ -602,17 +597,20 @@ object ThermalGrid {
         possible: Energy,
     ): ThermalEnergyDemand = {
       if (
-        math.abs(possible.toKilowattHours) < math.abs(
-          required.toKilowattHours
-        ) && math.signum(possible.toKilowattHours) <= math.signum(
-          required.toKilowattHours
-        )
+        math.abs(possible.toKilowattHours) < math.abs(required.toKilowattHours)
       )
         throw new InvalidParameterException(
           s"The possible amount of energy {$possible} is smaller than the required amount of energy {$required}. This is not supported."
         )
-      else
-        new ThermalEnergyDemand(required, possible)
+      else {
+        if (possible.toKilowattHours < 0 || required.toKilowattHours < 0)
+          throw new InvalidParameterException(
+            s"The possible {$possible} or required {$required} amount of energy is smaller than zero. This is not supported."
+          )
+        else {
+          new ThermalEnergyDemand(required, possible)
+        }
+      }
     }
 
     def noDemand: ThermalEnergyDemand = ThermalEnergyDemand(
