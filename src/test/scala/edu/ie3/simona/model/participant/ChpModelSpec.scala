@@ -248,7 +248,6 @@ class ChpModelSpec
         (chpStateRunning, 70, 0, 905), // tests case (true, false, true)
         (chpStateRunning, 70, 8 * 115, 0), // tests case (true, true, false)
         (chpStateRunning, 70, 10, 895), // tests case (true, true, true)
-        // todo, why not +100?
         (
           chpStateRunning,
           70,
