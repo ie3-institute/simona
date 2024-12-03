@@ -229,6 +229,7 @@ class SimonaStandaloneSetup(
                   s"$index-$dIndex",
                 )
                 val extEvData = new ExtEvDataConnection()
+                extEvData.setActorRefs(extEvDataService, extSimAdapter.ref)
 
                 extEvDataService ! SimonaService.Create(
                   InitExtEvData(extEvData),
