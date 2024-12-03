@@ -16,12 +16,6 @@ if (project.hasProperty('user') && project.hasProperty('password') && project.ha
   // snapshot version differs from normal version
   String versionString = project.getProperty('deployVersion')
 
-  signing {
-    required { !versionString.endsWith('SNAPSHOT') }
-    if (required)
-      sign(publishing.publications)
-  }
-
   publishing {
     publications {
       mavenJava(MavenPublication) {
