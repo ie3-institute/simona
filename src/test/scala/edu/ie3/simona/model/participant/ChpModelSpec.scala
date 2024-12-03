@@ -242,7 +242,6 @@ class ChpModelSpec
         (
           chpStateNotRunning,
           70,
-          // todo check this
           8 * 115,
           0,
         ), // tests case (false, true, false)
