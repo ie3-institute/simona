@@ -78,11 +78,16 @@ jobs:
             exit 1
           fi
 
+      #Deployment
+      - name: Setup GPG
+        run: |
+          echo "${{ secrets.MAVENCENTRAL_SIGNINGKEY }}" | base64 --decode > ./signingkey.asc
+          gpg --batch --import ./signingkey.asc
+          gpg --list-secret-keys --keyid-format LONG
+
       - name: Deploy
         run: |
           currentVersion=$(./gradlew -q devVersion)
-          cat <(echo -e "${{ secrets.MAVENCENTRAL_SIGNINGKEY }}") | gpg --batch --import
-          gpg --list-secret-keys --keyid-format LONG
           
           ./gradlew publish\
             -Puser=${{ secrets.MAVENCENTRAL_USER }} \
@@ -91,3 +96,9 @@ jobs:
             -Psigning.password=${{ secrets.MAVENCENTRAL_SIGNINGPASS }} \
             -Psigning.secretKeyRingFile=${{ secrets.MAVENCENTRAL_SIGNINGKEY }} \
             -Pversion=$currentVersion
+
+      - name: Clean Up
+        run: |
+          rm -rf ./signingkey.asc
+          gpg --batch --delete-secret-keys "${{ secrets.MAVENCENTRAL_SIGNINGKEYID }}"
+          gpg --batch --delete-keys "${{ secrets.MAVENCENTRAL_SIGNINGKEYID }}"
