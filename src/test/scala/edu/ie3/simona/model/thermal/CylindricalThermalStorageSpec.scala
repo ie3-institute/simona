@@ -232,7 +232,7 @@ class CylindricalThermalStorageSpec
           "expectedStoredEnergy",
         ),
         (0L, 250.0, 10.0, 3600L, 0.0, 260.0),
-        (0L, 250.0, -10.0, 3600L, 0.0, 240.0),
+        (0L, 20.0, -10.0, 3600L, 0.0, 10.0),
       )
 
       forAll(cases) {

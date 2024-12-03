@@ -244,7 +244,6 @@ class ChpModelSpec
           0,
         ), // tests case (false, true, false)
         (chpStateNotRunning, 70, 10, 795), // tests case (false, true, true)
-        // todo check this, why 1135?
         (chpStateRunning, 70, 0, 905), // tests case (true, false, true)
         (chpStateRunning, 70, 8 * 115, 0), // tests case (true, true, false)
         (chpStateRunning, 70, 10, 895), // tests case (true, true, true)
@@ -260,13 +259,12 @@ class ChpModelSpec
           9 * 115,
           0,
         ), // test case (_, true, false) and demand not covered together with chp
-        // todo check this, why 92?
         (
           chpStateRunning,
           92,
           1,
           1150,
-        ), // test case (true, true, true) and storage volume exceeds maximum
+        ), // test case (true, true, true) CHP running, storage at lvl 92 (1058 kWh) + 100 kWh from CHP exceeds max capacity (1150 kWh).
       )
 
       forAll(testCases) {
