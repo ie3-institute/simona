@@ -198,7 +198,6 @@ class ChpModelSpec
           100,
         ), // tests case (false, true, false)
         (chpStateNotRunning, 70, 10, 0), // tests case (false, true, true)
-        // Fixme Check this, why 100?
         (chpStateRunning, 70, 0, 100), // tests case (true, false, true)
         (chpStateRunning, 70, 8 * 115, 100), // tests case (true, true, false)
         (chpStateRunning, 70, 10, 100), // tests case (true, true, true)
