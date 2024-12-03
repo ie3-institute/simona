@@ -16,8 +16,7 @@ import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentMessages.CreateGridAgent
 import edu.ie3.simona.api.ExtSimAdapter
-import edu.ie3.simona.api.data.ExtData
-import edu.ie3.simona.api.data.ev.{ExtEvData, ExtEvSimulation}
+import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.config.{ArgsParser, RefSystemParser, SimonaConfig}
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
@@ -220,16 +219,16 @@ class SimonaStandaloneSetup(
 
           // setup data services that belong to this external simulation
           val (extData, extDataInit): (
-              Iterable[ExtData],
+              Iterable[ExtEvDataConnection],
               Iterable[(Class[_ <: SimonaService[_]], ClassicRef)],
           ) =
-            extLink.getExtDataSimulations.asScala.zipWithIndex.map {
-              case (_: ExtEvSimulation, dIndex) =>
+            extLink.getExtSimulation.getDataConnections.asScala.zipWithIndex.map {
+              case (_: ExtEvDataConnection, dIndex) =>
                 val extEvDataService = context.toClassic.simonaActorOf(
                   ExtEvDataService.props(scheduler.toClassic),
                   s"$index-$dIndex",
                 )
-                val extEvData = new ExtEvData(extEvDataService, extSimAdapter)
+                val extEvData = new ExtEvDataConnection()
 
                 extEvDataService ! SimonaService.Create(
                   InitExtEvData(extEvData),
@@ -243,9 +242,8 @@ class SimonaStandaloneSetup(
                 (extEvData, (classOf[ExtEvDataService], extEvDataService))
             }.unzip
 
-          extLink.getExtSimulation.setup(
-            extSimAdapterData,
-            extData.toList.asJava,
+          extLink.setup(
+            extSimAdapterData
           )
 
           // starting external simulation

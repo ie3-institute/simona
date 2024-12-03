@@ -18,8 +18,8 @@ import tech.units.indriya.quantity.Quantities;
 public class MockEvModel implements EvModel {
   private final UUID uuid;
   private final String id;
-  private final ComparableQuantity<Power> sRatedAC;
-  private final ComparableQuantity<Power> sRatedDC;
+  private final ComparableQuantity<Power> pRatedAC;
+  private final ComparableQuantity<Power> pRatedDC;
   private final ComparableQuantity<Energy> eStorage;
   private final ComparableQuantity<Energy> storedEnergy;
   private final Long departureTick;
@@ -27,15 +27,15 @@ public class MockEvModel implements EvModel {
   public MockEvModel(
       UUID uuid,
       String id,
-      ComparableQuantity<Power> sRatedAC,
-      ComparableQuantity<Power> sRatedDC,
+      ComparableQuantity<Power> pRatedAC,
+      ComparableQuantity<Power> pRatedDC,
       ComparableQuantity<Energy> eStorage,
       ComparableQuantity<Energy> storedEnergy,
       Long departureTick) {
     this.uuid = uuid;
     this.id = id;
-    this.sRatedAC = sRatedAC;
-    this.sRatedDC = sRatedDC;
+    this.pRatedAC = pRatedAC;
+    this.pRatedDC = pRatedDC;
     this.eStorage = eStorage;
     this.storedEnergy = storedEnergy;
     this.departureTick = departureTick;
@@ -44,14 +44,14 @@ public class MockEvModel implements EvModel {
   public MockEvModel(
       UUID uuid,
       String id,
-      ComparableQuantity<Power> sRatedAC,
-      ComparableQuantity<Power> sRatedDC,
+      ComparableQuantity<Power> pRatedAC,
+      ComparableQuantity<Power> pRatedDC,
       ComparableQuantity<Energy> eStorage,
       Long departureTick) {
     this.uuid = uuid;
     this.id = id;
-    this.sRatedAC = sRatedAC;
-    this.sRatedDC = sRatedDC;
+    this.pRatedAC = pRatedAC;
+    this.pRatedDC = pRatedDC;
     this.eStorage = eStorage;
     this.storedEnergy = Quantities.getQuantity(0d, PowerSystemUnits.KILOWATTHOUR);
     this.departureTick = departureTick;
@@ -68,13 +68,13 @@ public class MockEvModel implements EvModel {
   }
 
   @Override
-  public ComparableQuantity<Power> getSRatedAC() {
-    return sRatedAC;
+  public ComparableQuantity<Power> getPRatedAC() {
+    return pRatedAC;
   }
 
   @Override
-  public ComparableQuantity<Power> getSRatedDC() {
-    return sRatedDC;
+  public ComparableQuantity<Power> getPRatedDC() {
+    return pRatedDC;
   }
 
   @Override
@@ -94,11 +94,11 @@ public class MockEvModel implements EvModel {
 
   @Override
   public MockEvModel copyWith(ComparableQuantity<Energy> newStoredEnergy) {
-    return new MockEvModel(uuid, id, sRatedAC, sRatedDC, eStorage, newStoredEnergy, departureTick);
+    return new MockEvModel(uuid, id, pRatedAC, pRatedDC, eStorage, newStoredEnergy, departureTick);
   }
 
   public MockEvModel copyWithDeparture(Long departureTick) {
-    return new MockEvModel(uuid, id, sRatedAC, sRatedDC, eStorage, storedEnergy, departureTick);
+    return new MockEvModel(uuid, id, pRatedAC, pRatedDC, eStorage, storedEnergy, departureTick);
   }
 
   @Override
@@ -108,8 +108,8 @@ public class MockEvModel implements EvModel {
     MockEvModel that = (MockEvModel) o;
     return uuid.equals(that.uuid)
         && id.equals(that.id)
-        && sRatedAC.equals(that.sRatedAC)
-        && sRatedDC.equals(that.sRatedDC)
+        && pRatedAC.equals(that.pRatedAC)
+        && pRatedDC.equals(that.pRatedDC)
         && eStorage.equals(that.eStorage)
         && storedEnergy.equals(that.storedEnergy)
         && departureTick.equals(that.departureTick);
@@ -117,6 +117,6 @@ public class MockEvModel implements EvModel {
 
   @Override
   public int hashCode() {
-    return Objects.hash(uuid, id, sRatedAC, sRatedDC, eStorage, storedEnergy, departureTick);
+    return Objects.hash(uuid, id, pRatedAC, pRatedDC, eStorage, storedEnergy, departureTick);
   }
 }

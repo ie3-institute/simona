@@ -7,7 +7,7 @@
 package edu.ie3.simona.service.ev
 
 import com.typesafe.config.ConfigFactory
-import edu.ie3.simona.api.data.ev.ExtEvData
+import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology._
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
@@ -61,13 +61,14 @@ class ExtEvDataServiceSpec
   private val evcs2UUID =
     UUID.fromString("104acdaa-5dc5-4197-aed2-2fddb3c4f237")
 
+  val extEvData = new ExtEvDataConnection()
+
   "An uninitialized ev movement service" must {
     "send correct completion message after initialisation" in {
       val scheduler = TestProbe("scheduler")
       val extSimAdapter = TestProbe("extSimAdapter")
 
       val evService = TestActorRef(new ExtEvDataService(scheduler.ref))
-      val extEvData = new ExtEvData(evService, extSimAdapter.ref)
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
@@ -90,7 +91,6 @@ class ExtEvDataServiceSpec
       val extSimAdapter = TestProbe("extSimAdapter")
 
       val evService = TestActorRef(new ExtEvDataService(scheduler.ref))
-      val extEvData = new ExtEvData(evService, extSimAdapter.ref)
 
       val evcs1 = TestProbe("evcs1")
 
@@ -124,7 +124,6 @@ class ExtEvDataServiceSpec
       val extSimAdapter = TestProbe("extSimAdapter")
 
       val evService = TestActorRef(new ExtEvDataService(scheduler.ref))
-      val extEvData = new ExtEvData(evService, extSimAdapter.ref)
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
@@ -171,7 +170,6 @@ class ExtEvDataServiceSpec
       val extSimAdapter = TestProbe("extSimAdapter")
 
       val evService = TestActorRef(new ExtEvDataService(scheduler.ref))
-      val extEvData = new ExtEvData(evService, extSimAdapter.ref)
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
@@ -204,7 +202,6 @@ class ExtEvDataServiceSpec
       val extSimAdapter = TestProbe("extSimAdapter")
 
       val evService = TestActorRef(new ExtEvDataService(scheduler.ref))
-      val extEvData = new ExtEvData(evService, extSimAdapter.ref)
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
@@ -305,7 +302,6 @@ class ExtEvDataServiceSpec
       val extSimAdapter = TestProbe("extSimAdapter")
 
       val evService = TestActorRef(new ExtEvDataService(scheduler.ref))
-      val extEvData = new ExtEvData(evService, extSimAdapter.ref)
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
@@ -380,7 +376,6 @@ class ExtEvDataServiceSpec
       val extSimAdapter = TestProbe("extSimAdapter")
 
       val evService = TestActorRef(new ExtEvDataService(scheduler.ref))
-      val extEvData = new ExtEvData(evService, extSimAdapter.ref)
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
@@ -423,7 +418,6 @@ class ExtEvDataServiceSpec
       val extSimAdapter = TestProbe("extSimAdapter")
 
       val evService = TestActorRef(new ExtEvDataService(scheduler.ref))
-      val extEvData = new ExtEvData(evService, extSimAdapter.ref)
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
@@ -527,7 +521,6 @@ class ExtEvDataServiceSpec
       val extSimAdapter = TestProbe("extSimAdapter")
 
       val evService = TestActorRef(new ExtEvDataService(scheduler.ref))
-      val extEvData = new ExtEvData(evService, extSimAdapter.ref)
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
@@ -574,7 +567,6 @@ class ExtEvDataServiceSpec
       val extSimAdapter = TestProbe("extSimAdapter")
 
       val evService = TestActorRef(new ExtEvDataService(scheduler.ref))
-      val extEvData = new ExtEvData(evService, extSimAdapter.ref)
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
@@ -652,7 +644,6 @@ class ExtEvDataServiceSpec
       val extSimAdapter = TestProbe("extSimAdapter")
 
       val evService = TestActorRef(new ExtEvDataService(scheduler.ref))
-      val extEvData = new ExtEvData(evService, extSimAdapter.ref)
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref.toTyped, INIT_SIM_TICK)
