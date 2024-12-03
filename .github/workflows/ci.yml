@@ -80,13 +80,19 @@ jobs:
 
       #Deployment
       - name: Setup GPG
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
         run: |
           cat <(echo -e "${{ secrets.MAVENCENTRAL_SIGNINGKEY }}") | gpg --batch --import
           gpg --list-secret-keys --keyid-format LONG
 
       - name: Deploy
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
         run: |
-          currentVersion=$(./gradlew -q devVersion)
+          if [ "${GITHUB_REF}" == "refs/heads/dev" ]; then
+            currentVersion=$(./gradlew -q devVersion)
+          else
+            currentVersion=$(./gradlew -q currentVersion)
+          fi
           
           ./gradlew publish\
             -Puser=${{ secrets.MAVENCENTRAL_USER }} \
