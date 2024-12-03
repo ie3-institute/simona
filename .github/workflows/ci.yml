@@ -81,8 +81,7 @@ jobs:
       #Deployment
       - name: Setup GPG
         run: |
-          echo "${{ secrets.MAVENCENTRAL_SIGNINGKEY }}" | base64 --decode > ./signingkey.asc
-          gpg --batch --import ./signingkey.asc
+          cat <(echo -e "${{ secrets.MAVENCENTRAL_SIGNINGKEY }}") | gpg --batch --import
           gpg --list-secret-keys --keyid-format LONG
 
       - name: Deploy
@@ -99,6 +98,7 @@ jobs:
 
       - name: Clean Up
         run: |
-          rm -rf ./signingkey.asc
-          gpg --batch --delete-secret-keys "${{ secrets.MAVENCENTRAL_SIGNINGKEYID }}"
-          gpg --batch --delete-keys "${{ secrets.MAVENCENTRAL_SIGNINGKEYID }}"
+          gpg --list-secret-keys --keyid-format LONG
+          gpg --batch --yes --delete-secret-keys ${{ secrets.MAVENCENTRAL_SIGNINGKEYID }}
+          gpg --batch --yes --delete-keys ${{ secrets.MAVENCENTRAL_SIGNINGKEYID }}
+          gpg --list-secret-keys --keyid-format LONG
