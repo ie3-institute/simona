@@ -30,6 +30,9 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
 
   def main(args: Array[String]): Unit = {
     Locale.setDefault(Locale.ENGLISH)
+    print("This is a Test")
+    print("This is a Test")
+    print("This is a Test")
 
     /* The quantity library cannot handle scala's BigDecimal by default. Therefore, adjust the number system to use */
     QuantityUtil.adjustNumberSystem()
