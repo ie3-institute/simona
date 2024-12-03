@@ -81,8 +81,8 @@ jobs:
       #Deployment
       - name: Setup GPG
         run: |
-          echo -e "${{ secrets.MAVENCENTRAL_SIGNINGKEY }}" > signingkey.asc
-          gpg --batch --import signingkey.asc
+          cat <(echo -e "${{ secrets.MAVENCENTRAL_SIGNINGKEY }}") | gpg --batch --import
+          gpg --list-secret-keys --keyid-format LONG
 
       - name: Deploy
         run: |
@@ -93,12 +93,5 @@ jobs:
             -Ppassword=${{ secrets.MAVENCENTRAL_PASS }} \
             -Psigning.keyId=${{ secrets.MAVENCENTRAL_SIGNINGKEYID }} \
             -Psigning.password=${{ secrets.MAVENCENTRAL_SIGNINGPASS }} \
-            -Psigning.secretKeyRingFile=signingkey.asc \
+            -Psigning.secretKeyRingFile=${{ secrets.MAVENCENTRAL_SIGNINGKEY }} \
             -Pversion=$currentVersion
-
-      - name: Clean Up
-        run: |
-          gpg --list-secret-keys --keyid-format LONG
-          gpg --batch --yes --delete-secret-keys ${{ secrets.MAVENCENTRAL_SIGNINGKEYID }}
-          gpg --batch --yes --delete-keys ${{ secrets.MAVENCENTRAL_SIGNINGKEYID }}
-          gpg --list-secret-keys --keyid-format LONG

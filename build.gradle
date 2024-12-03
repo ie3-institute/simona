@@ -44,6 +44,10 @@ java {
   targetCompatibility = javaVersion
 }
 
+signing {
+  useGpgCmd()
+}
+
 apply from: scriptsLocation + 'spotless.gradle'
 apply from: scriptsLocation + 'checkJavaVersion.gradle'
 apply from: scriptsLocation + 'tscfg.gradle' // config tasks
