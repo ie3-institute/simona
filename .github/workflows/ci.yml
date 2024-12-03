@@ -86,7 +86,7 @@ jobs:
 
       - name: Deploy
         run: |
-            currentVersion=$(./gradlew -q devVersion)
+          currentVersion=$(./gradlew -q devVersion)
           
           ./gradlew publish\
             -Puser=${{ secrets.MAVENCENTRAL_USER }} \
