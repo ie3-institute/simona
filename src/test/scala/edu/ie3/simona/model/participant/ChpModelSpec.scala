@@ -191,7 +191,6 @@ class ChpModelSpec
       val testCases = Table(
         ("chpState", "storageLvl", "heatDemand", "expectedTotalEnergy"),
         (chpStateNotRunning, 70, 0, 0), // tests case (false, false, true)
-        // Fixme Check this, why 100?
         (
           chpStateNotRunning,
           70,
