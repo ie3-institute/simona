@@ -87,10 +87,13 @@ jobs:
       - name: Deploy
         run: |
           currentVersion=$(./gradlew -q devVersion)
+          echo "currentVersion=$currentVersion"
+          echo "version.semver=$currentVersion" > version.properties
 
           ./gradlew publish --rerun-tasks \
             -Puser=${{ secrets.MAVENCENTRAL_USER }} \
             -Ppassword=${{ secrets.MAVENCENTRAL_PASS }} \
             -Psigning.keyId=${{ secrets.MAVENCENTRAL_SIGNINGKEYID }} \
             -Psigning.password=${{ secrets.MAVENCENTRAL_SIGNINGPASS }} \
-            -Pversion=$currentVersion
+            -Psigning.secretKeyRingFile=${{ secrets.MAVENCENTRAL_SIGNINGKEY }} \
+            -PdeployVersion=$currentVersion
