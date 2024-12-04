@@ -100,13 +100,13 @@ dependencies {
     exclude group: 'edu.ie3'
   }
 
-  /*
-   implementation('com.github.ie3-institute:simosaik') {
+
+   implementation('com.github.ie3-institute:simopsim') {
    exclude group: 'org.apache.logging.log4j'
    exclude group: 'org.slf4j'
    exclude group: 'edu.ie3'
    }
-   */
+
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.5" // pekko scala logging

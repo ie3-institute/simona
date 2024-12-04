@@ -179,7 +179,7 @@ final case class ExtEmDataService(
   ): (ExtEmDataStateData, Option[Long]) = {
     serviceStateData.extEmDataMessage.getOrElse(
       throw ServiceException(
-        "ExtPrimaryDataService was triggered without ExtPrimaryDataMessage available"
+        "ExtPrimaryDataService was triggered without ExtEmDataMessage available"
       )
     ) match {
       case providedEmData: ProvideEmSetPointData =>
