@@ -25,12 +25,19 @@ import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant.storage.StorageAgent
 import edu.ie3.simona.agent.participant.wec.WecAgent
+import edu.ie3.simona.config.OutputConfig.ParticipantOutputConfig
+import edu.ie3.simona.config.RuntimeConfig.{
+  EmRuntimeConfig,
+  HpRuntimeConfig,
+  LoadRuntimeConfig,
+  RuntimeParticipantsConfig,
+  SimpleRuntimeConfig,
+}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.event.notifier.ParticipantNotifierConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
@@ -42,15 +49,6 @@ import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.adapter._
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import org.slf4j.Logger
-import edu.ie3.simona.actor.SimonaActorNaming._
-import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.config.OutputConfig.ParticipantOutputConfig
-import edu.ie3.simona.config.RuntimeConfig.{
-  BaseRuntimeConfig,
-  LoadRuntimeConfig,
-  RuntimeParticipantsConfig,
-  SimpleRuntimeConfig,
-}
 
 import java.time.ZonedDateTime
 import java.util.UUID

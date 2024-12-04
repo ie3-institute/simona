@@ -12,6 +12,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.RuntimeConfig.{
+  FixedFeedInRuntimeConfig,
   LoadRuntimeConfig,
   SimpleRuntimeConfig,
 }
@@ -54,7 +55,7 @@ class FixedFeedInAgent(
       ConstantState.type,
       ParticipantStateData[ApparentPower],
       FixedFeedInInput,
-      SimpleRuntimeConfig,
+      FixedFeedInRuntimeConfig,
       FixedFeedInModel,
     ](scheduler, initStateData)
     with FixedFeedInAgentFundamentals {

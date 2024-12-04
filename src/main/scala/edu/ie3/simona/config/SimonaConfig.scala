@@ -299,8 +299,23 @@ object SimonaConfig {
       eventsToProcess: Seq[String],
   )
 
-  case class Simona()
+  final case class Simona(
+      control: scala.Option[SimonaConfig.Simona.Control],
+      event: SimonaConfig.Simona.Event,
+      gridConfig: SimonaConfig.Simona.GridConfig,
+      input: SimonaConfig.Simona.Input,
+      output: SimonaConfig.Simona.Output,
+      powerflow: SimonaConfig.Simona.Powerflow,
+      runtime: SimonaConfig.Simona.Runtime,
+      simulationName: java.lang.String,
+      time: SimonaConfig.Simona.Time,
+  )
 
+  object Simona {
+    final case class Control(
+        transformer: scala.List[SimonaConfig.TransformerControlGroup]
+    )
+  }
   case class ParticipantBaseOutputConfig(
       notifier: String,
       powerRequestReply: Boolean,

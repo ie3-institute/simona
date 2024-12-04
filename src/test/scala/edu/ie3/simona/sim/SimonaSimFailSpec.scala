@@ -9,7 +9,11 @@ package edu.ie3.simona.sim
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
-import edu.ie3.simona.config.InputConfig.{CoordinateSourceConfig, PrimaryConfig, WeatherDataSourceConfig}
+import edu.ie3.simona.config.InputConfig.{
+  CoordinateSourceConfig,
+  PrimaryConfig,
+  WeatherDataSourceConfig,
+}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.weather.WeatherService
@@ -32,7 +36,7 @@ class SimonaSimFailSpec
           .parseString("""
                      |akka.loggers = ["akka.testkit.TestEventListener"]
                      |akka.loglevel="OFF"
-        """.stripMargin)
+        """.stripMargin),
       )
     ) {
   "A SimonaSim" should {

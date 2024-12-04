@@ -83,5 +83,30 @@ object RuntimeConfig {
       aggregateFlex: String,
   ) extends BaseRuntimeConfig
 
-  
+  final case class HpRuntimeConfig(
+      override val calculateMissingReactivePowerWithModel: scala.Boolean,
+      override val scaling: scala.Double,
+      override val uuids: scala.List[java.lang.String],
+  ) extends BaseRuntimeConfig
+
+  final case class StorageRuntimeConfig(
+      override val calculateMissingReactivePowerWithModel: scala.Boolean,
+      override val scaling: scala.Double,
+      override val uuids: scala.List[java.lang.String],
+      initialSoc: scala.Double,
+      targetSoc: scala.Option[scala.Double],
+  ) extends BaseRuntimeConfig
+
+  final case class FixedFeedInRuntimeConfig(
+      override val calculateMissingReactivePowerWithModel: scala.Boolean,
+      override val scaling: scala.Double,
+      override val uuids: scala.List[java.lang.String],
+  ) extends BaseRuntimeConfig
+
+  final case class PvRuntimeConfig(
+      override val calculateMissingReactivePowerWithModel: scala.Boolean,
+      override val scaling: scala.Double,
+      override val uuids: scala.List[java.lang.String],
+  ) extends BaseRuntimeConfig
+
 }
