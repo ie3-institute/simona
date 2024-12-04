@@ -11,7 +11,7 @@ import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
-import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.{BaseRuntimeConfig, SimpleRuntimeConfig}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
@@ -130,7 +130,7 @@ object ParticipantStateData {
 
     def apply[
         I <: SystemParticipantInput,
-        C <: BaseRuntimeConfig,
+        C <: SimpleRuntimeConfig,
         PD <: PrimaryData,
     ](
         inputModel: I,

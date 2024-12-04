@@ -13,10 +13,7 @@ import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
-  ActorExtEvDataService,
-  ActorWeatherService,
-}
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{ActorExtEvDataService, ActorWeatherService}
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
 import edu.ie3.simona.agent.participant.fixedfeedin.FixedFeedInAgent
 import edu.ie3.simona.agent.participant.hp.HpAgent
@@ -26,13 +23,7 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.Participa
 import edu.ie3.simona.agent.participant.storage.StorageAgent
 import edu.ie3.simona.agent.participant.wec.WecAgent
 import edu.ie3.simona.config.OutputConfig.ParticipantOutputConfig
-import edu.ie3.simona.config.RuntimeConfig.{
-  EmRuntimeConfig,
-  HpRuntimeConfig,
-  LoadRuntimeConfig,
-  RuntimeParticipantsConfig,
-  SimpleRuntimeConfig,
-}
+import edu.ie3.simona.config.RuntimeConfig.{EmRuntimeConfig, EvcsRuntimeConfig, FixedFeedInRuntimeConfig, HpRuntimeConfig, LoadRuntimeConfig, PvRuntimeConfig, RuntimeParticipantsConfig, SimpleRuntimeConfig, StorageRuntimeConfig, WecRuntimeConfig}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.event.ResultEvent
@@ -363,7 +354,7 @@ class GridAgentController(
     case input: PvInput =>
       buildPv(
         input,
-        participantConfigUtil.getOrDefault[SimpleRuntimeConfig](
+        participantConfigUtil.getOrDefault[PvRuntimeConfig](
           input.getUuid
         ),
         environmentRefs.primaryServiceProxy,
@@ -378,7 +369,7 @@ class GridAgentController(
     case input: WecInput =>
       buildWec(
         input,
-        participantConfigUtil.getOrDefault[SimpleRuntimeConfig](
+        participantConfigUtil.getOrDefault[WecRuntimeConfig](
           input.getUuid
         ),
         environmentRefs.primaryServiceProxy,
@@ -479,7 +470,7 @@ class GridAgentController(
     */
   private def buildFixedFeedIn(
       fixedFeedInInput: FixedFeedInInput,
-      modelConfiguration: LoadRuntimeConfig,
+      modelConfiguration: FixedFeedInRuntimeConfig,
       primaryServiceProxy: ClassicRef,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
@@ -595,7 +586,7 @@ class GridAgentController(
     */
   private def buildPv(
       pvInput: PvInput,
-      modelConfiguration: SimpleRuntimeConfig,
+      modelConfiguration: PvRuntimeConfig,
       primaryServiceProxy: ClassicRef,
       weatherService: ClassicRef,
       simulationStartDate: ZonedDateTime,
@@ -655,7 +646,7 @@ class GridAgentController(
     */
   private def buildEvcs(
       evcsInput: EvcsInput,
-      modelConfiguration: SimpleRuntimeConfig,
+      modelConfiguration: EvcsRuntimeConfig,
       primaryServiceProxy: ClassicRef,
       evMovementsService: ClassicRef,
       simulationStartDate: ZonedDateTime,
@@ -773,7 +764,7 @@ class GridAgentController(
     */
   private def buildWec(
       wecInput: WecInput,
-      modelConfiguration: SimpleRuntimeConfig,
+      modelConfiguration: WecRuntimeConfig,
       primaryServiceProxy: ClassicRef,
       weatherService: ClassicRef,
       simulationStartDate: ZonedDateTime,
@@ -831,7 +822,7 @@ class GridAgentController(
     */
   private def buildStorage(
       storageInput: StorageInput,
-      modelConfiguration: SimonaConfig.StorageRuntimeConfig,
+      modelConfiguration: StorageRuntimeConfig,
       primaryServiceProxy: ClassicRef,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,

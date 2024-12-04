@@ -7,16 +7,12 @@
 package edu.ie3.simona.config
 
 import SimonaConfig._
+import edu.ie3.simona.config.OutputConfig.BaseOutputConfig
 import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 
 import scala.concurrent.duration.{Duration, DurationInt}
 import pureconfig._
-import pureconfig.error.{
-  CannotParse,
-  CannotRead,
-  ConvertFailure,
-  ThrowableFailure,
-}
+import pureconfig.error.{CannotParse, CannotRead, ConvertFailure, ThrowableFailure}
 import pureconfig.generic.ProductHint
 import pureconfig.generic.auto._
 import tscfg.codeDefs.resources.ScalaDefs.$TsCfgValidator
@@ -175,17 +171,6 @@ object SimonaConfig {
 
   }
 
-  final case class StorageRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: scala.Boolean,
-      override val scaling: scala.Double,
-      override val uuids: scala.List[java.lang.String],
-      initialSoc: scala.Double,
-      targetSoc: scala.Option[scala.Double],
-  ) extends BaseRuntimeConfig(
-        calculateMissingReactivePowerWithModel,
-        scaling,
-        uuids,
-      )
 
   object StorageRuntimeConfig {
     def apply(
