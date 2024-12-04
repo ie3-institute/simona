@@ -45,10 +45,7 @@ java {
 }
 
 //Using the GPG Agent to sign the artifacts
-signing {
-  useGpgCmd()
-  sign(publishing.publications)
-}
+
 
 apply from: scriptsLocation + 'spotless.gradle'
 apply from: scriptsLocation + 'checkJavaVersion.gradle'
