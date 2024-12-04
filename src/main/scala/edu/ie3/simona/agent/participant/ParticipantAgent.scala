@@ -7,29 +7,60 @@
 package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
-import edu.ie3.simona.agent.participant.ParticipantAgent.{FinishParticipantSimulation, RequestAssetPowerMessage, StartCalculationTrigger, getAndCheckNodalVoltage}
+import edu.ie3.simona.agent.participant.ParticipantAgent.{
+  FinishParticipantSimulation,
+  RequestAssetPowerMessage,
+  StartCalculationTrigger,
+  getAndCheckNodalVoltage,
+}
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
-import edu.ie3.simona.agent.participant.statedata.BaseStateData.{FromOutsideBaseStateData, ParticipantModelBaseStateData}
+import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
+  FromOutsideBaseStateData,
+  ParticipantModelBaseStateData,
+}
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData._
-import edu.ie3.simona.agent.participant.statedata.{BaseStateData, DataCollectionStateData, ParticipantStateData}
+import edu.ie3.simona.agent.participant.statedata.{
+  BaseStateData,
+  DataCollectionStateData,
+  ParticipantStateData,
+}
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
-import edu.ie3.simona.agent.state.ParticipantAgentState.{Calculate, HandleInformation}
-import edu.ie3.simona.config.RuntimeConfig.{BaseRuntimeConfig, SimpleRuntimeConfig}
+import edu.ie3.simona.agent.state.ParticipantAgentState.{
+  Calculate,
+  HandleInformation,
+}
+import edu.ie3.simona.config.RuntimeConfig.{
+  BaseRuntimeConfig,
+  SimpleRuntimeConfig,
+}
 import edu.ie3.simona.agent.{SimonaAgent, ValueStore}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.ModelState.ConstantState
-import edu.ie3.simona.model.participant.{CalcRelevantData, FlexChangeIndicator, ModelState, SystemParticipant}
+import edu.ie3.simona.model.participant.{
+  CalcRelevantData,
+  FlexChangeIndicator,
+  ModelState,
+  SystemParticipant,
+}
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{FlexActivation, FlexResponse, IssueFlexControl}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
+  FlexActivation,
+  FlexResponse,
+  IssueFlexControl,
+}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{PrimaryServiceRegistrationMessage, ProvisionMessage, RegistrationResponseMessage}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
+  PrimaryServiceRegistrationMessage,
+  ProvisionMessage,
+  RegistrationResponseMessage,
+}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.ReactivePower
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}

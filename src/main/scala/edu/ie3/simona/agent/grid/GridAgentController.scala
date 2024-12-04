@@ -13,7 +13,10 @@ import edu.ie3.simona.actor.SimonaActorNaming._
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{ActorExtEvDataService, ActorWeatherService}
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.{
+  ActorExtEvDataService,
+  ActorWeatherService,
+}
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent
 import edu.ie3.simona.agent.participant.fixedfeedin.FixedFeedInAgent
 import edu.ie3.simona.agent.participant.hp.HpAgent

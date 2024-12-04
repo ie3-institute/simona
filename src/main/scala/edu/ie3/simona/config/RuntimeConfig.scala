@@ -109,11 +109,10 @@ object RuntimeConfig {
       override val uuids: scala.List[java.lang.String],
   ) extends BaseRuntimeConfig
 
-final case class WecRuntimeConfig(
-                                   override val calculateMissingReactivePowerWithModel: scala.Boolean,
-                                   override val scaling: scala.Double,
-                                   override val uuids: scala.List[java.lang.String],
-                                 )extends BaseRuntimeConfig
-
+  final case class WecRuntimeConfig(
+      override val calculateMissingReactivePowerWithModel: scala.Boolean,
+      override val scaling: scala.Double,
+      override val uuids: scala.List[java.lang.String],
+  ) extends BaseRuntimeConfig
 
 }
