@@ -93,4 +93,4 @@ jobs:
             -Ppassword=${{ secrets.MAVENCENTRAL_PASS }} \
             -Psigning.keyId=${{ secrets.MAVENCENTRAL_SIGNINGKEYID }} \
             -Psigning.password=${{ secrets.MAVENCENTRAL_SIGNINGPASS }} \
-            -Pversion=$currentVersion
+            -Pversion=3.1-SNAPSHOT
