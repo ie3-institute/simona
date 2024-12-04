@@ -23,9 +23,7 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.Participa
 import edu.ie3.simona.agent.participant.storage.StorageAgent
 import edu.ie3.simona.agent.participant.wec.WecAgent
 import edu.ie3.simona.config.OutputConfig.ParticipantOutputConfig
-import edu.ie3.simona.config.RuntimeConfig.{EmRuntimeConfig, EvcsRuntimeConfig, FixedFeedInRuntimeConfig, HpRuntimeConfig, LoadRuntimeConfig, PvRuntimeConfig, RuntimeParticipantsConfig, SimpleRuntimeConfig, StorageRuntimeConfig, WecRuntimeConfig}
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig._
+import edu.ie3.simona.config.RuntimeConfig._
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
@@ -326,7 +324,7 @@ class GridAgentController(
     case input: FixedFeedInInput =>
       buildFixedFeedIn(
         input,
-        participantConfigUtil.getOrDefault[LoadRuntimeConfig](
+        participantConfigUtil.getOrDefault[FixedFeedInRuntimeConfig](
           input.getUuid
         ),
         environmentRefs.primaryServiceProxy,
@@ -354,7 +352,7 @@ class GridAgentController(
     case input: PvInput =>
       buildPv(
         input,
-        participantConfigUtil.getOrDefault[PvRuntimeConfig](
+        participantConfigUtil.getOrDefault[SimpleRuntimeConfig](
           input.getUuid
         ),
         environmentRefs.primaryServiceProxy,
@@ -369,7 +367,7 @@ class GridAgentController(
     case input: WecInput =>
       buildWec(
         input,
-        participantConfigUtil.getOrDefault[WecRuntimeConfig](
+        participantConfigUtil.getOrDefault[SimpleRuntimeConfig](
           input.getUuid
         ),
         environmentRefs.primaryServiceProxy,
@@ -406,7 +404,7 @@ class GridAgentController(
           buildHp(
             hpInput,
             thermalGrid,
-            participantConfigUtil.getOrDefault[HpRuntimeConfig](
+            participantConfigUtil.getOrDefault[SimpleRuntimeConfig](
               hpInput.getUuid
             ),
             environmentRefs.primaryServiceProxy,
@@ -423,7 +421,7 @@ class GridAgentController(
     case input: StorageInput =>
       buildStorage(
         input,
-        participantConfigUtil.getOrDefault[StorageRuntimeConfig](
+        participantConfigUtil.getOrDefault[SimpleRuntimeConfig](
           input.getUuid
         ),
         environmentRefs.primaryServiceProxy,
@@ -586,7 +584,7 @@ class GridAgentController(
     */
   private def buildPv(
       pvInput: PvInput,
-      modelConfiguration: PvRuntimeConfig,
+      modelConfiguration: SimpleRuntimeConfig,
       primaryServiceProxy: ClassicRef,
       weatherService: ClassicRef,
       simulationStartDate: ZonedDateTime,
@@ -646,7 +644,7 @@ class GridAgentController(
     */
   private def buildEvcs(
       evcsInput: EvcsInput,
-      modelConfiguration: EvcsRuntimeConfig,
+      modelConfiguration: SimpleRuntimeConfig,
       primaryServiceProxy: ClassicRef,
       evMovementsService: ClassicRef,
       simulationStartDate: ZonedDateTime,
@@ -706,7 +704,7 @@ class GridAgentController(
   private def buildHp(
       hpInput: HpInput,
       thermalGrid: ThermalGrid,
-      modelConfiguration: HpRuntimeConfig,
+      modelConfiguration: SimpleRuntimeConfig,
       primaryServiceProxy: ClassicRef,
       weatherService: ClassicRef,
       requestVoltageDeviationThreshold: Double,
@@ -764,7 +762,7 @@ class GridAgentController(
     */
   private def buildWec(
       wecInput: WecInput,
-      modelConfiguration: WecRuntimeConfig,
+      modelConfiguration: SimpleRuntimeConfig,
       primaryServiceProxy: ClassicRef,
       weatherService: ClassicRef,
       simulationStartDate: ZonedDateTime,
@@ -822,7 +820,7 @@ class GridAgentController(
     */
   private def buildStorage(
       storageInput: StorageInput,
-      modelConfiguration: StorageRuntimeConfig,
+      modelConfiguration: SimpleRuntimeConfig,
       primaryServiceProxy: ClassicRef,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,

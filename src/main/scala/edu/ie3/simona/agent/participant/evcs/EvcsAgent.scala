@@ -48,7 +48,7 @@ object EvcsAgent {
       scheduler: ActorRef,
       initStateData: ParticipantInitializeStateData[
         EvcsInput,
-        EvcsRuntimeConfig,
+        SimpleRuntimeConfig,
         ApparentPower,
       ],
       listener: Iterable[ActorRef],
@@ -70,7 +70,7 @@ class EvcsAgent(
     scheduler: ActorRef,
     initStateData: ParticipantInitializeStateData[
       EvcsInput,
-      EvcsRuntimeConfig,
+      SimpleRuntimeConfig,
       ApparentPower,
     ],
     override val listener: Iterable[ActorRef],

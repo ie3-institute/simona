@@ -24,7 +24,7 @@ object PvAgent {
       scheduler: ActorRef,
       initStateData: ParticipantInitializeStateData[
         PvInput,
-        PvRuntimeConfig,
+        SimpleRuntimeConfig,
         ApparentPower,
       ],
       listener: Iterable[ActorRef],
@@ -53,7 +53,7 @@ class PvAgent(
     scheduler: ActorRef,
     initStateData: ParticipantInitializeStateData[
       PvInput,
-      PvRuntimeConfig,
+      SimpleRuntimeConfig,
       ApparentPower,
     ],
     override val listener: Iterable[ActorRef],

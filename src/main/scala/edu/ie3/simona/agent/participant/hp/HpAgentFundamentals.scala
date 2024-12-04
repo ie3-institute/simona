@@ -7,10 +7,7 @@
 package edu.ie3.simona.agent.participant.hp
 
 import edu.ie3.datamodel.models.input.system.HpInput
-import edu.ie3.datamodel.models.result.system.{
-  HpResult,
-  SystemParticipantResult,
-}
+import edu.ie3.datamodel.models.result.system.{HpResult, SystemParticipantResult}
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
@@ -18,35 +15,19 @@ import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.hp.HpAgent.neededServices
-import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
-  FlexControlledData,
-  ParticipantModelBaseStateData,
-}
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
-  InputModelContainer,
-  WithHeatInputContainer,
-}
-import edu.ie3.simona.agent.participant.statedata.{
-  BaseStateData,
-  ParticipantStateData,
-}
+import edu.ie3.simona.agent.participant.statedata.BaseStateData.{FlexControlledData, ParticipantModelBaseStateData}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{InputModelContainer, WithHeatInputContainer}
+import edu.ie3.simona.agent.participant.statedata.{BaseStateData, ParticipantStateData}
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
-import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.SimpleRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.exceptions.agent.{
-  AgentInitializationException,
-  InconsistentStateException,
-  InvalidRequestException,
-}
+import edu.ie3.simona.exceptions.agent.{AgentInitializationException, InconsistentStateException, InvalidRequestException}
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.participant.{FlexChangeIndicator, HpModel}
 import edu.ie3.simona.model.thermal.ThermalGrid
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
-  FlexRequest,
-  FlexResponse,
-}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{FlexRequest, FlexResponse}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
@@ -69,7 +50,7 @@ trait HpAgentFundamentals
       HpState,
       ParticipantStateData[ApparentPowerAndHeat],
       HpInput,
-      HpRuntimeConfig,
+      SimpleRuntimeConfig,
       HpModel,
     ] {
   this: HpAgent =>
@@ -318,7 +299,7 @@ trait HpAgentFundamentals
     */
   override def determineModelBaseStateData(
       inputModel: InputModelContainer[HpInput],
-      modelConfig: HpRuntimeConfig,
+      modelConfig: SimpleRuntimeConfig,
       services: Iterable[SecondaryDataService[_ <: Data.SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
@@ -443,7 +424,7 @@ trait HpAgentFundamentals
     */
   override def buildModel(
       inputModel: InputModelContainer[HpInput],
-      modelConfig: HpRuntimeConfig,
+      modelConfig: SimpleRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
   ): HpModel = inputModel match {

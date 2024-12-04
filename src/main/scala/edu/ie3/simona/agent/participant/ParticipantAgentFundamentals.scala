@@ -9,77 +9,36 @@ package edu.ie3.simona.agent.participant
 import breeze.numerics.{ceil, floor, pow, sqrt}
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.ResultEntity
-import edu.ie3.datamodel.models.result.system.{
-  FlexOptionsResult,
-  SystemParticipantResult,
-}
+import edu.ie3.datamodel.models.result.system.{FlexOptionsResult, SystemParticipantResult}
 import edu.ie3.datamodel.models.result.thermal.ThermalUnitResult
 import edu.ie3.simona.agent.ValueStore
-import edu.ie3.simona.agent.grid.GridAgentMessages.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-}
+import edu.ie3.simona.agent.grid.GridAgentMessages.{AssetPowerChangedMessage, AssetPowerUnchangedMessage}
 import edu.ie3.simona.agent.participant.ParticipantAgent.StartCalculationTrigger
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals.RelevantResultValues
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
-  ApparentPowerAndHeat,
-  EnrichableData,
-  PrimaryDataWithApparentPower,
-}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{ApparentPower, ApparentPowerAndHeat, EnrichableData, PrimaryDataWithApparentPower}
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
-import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
-  FromOutsideBaseStateData,
-  ParticipantModelBaseStateData,
-}
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
-  CollectRegistrationConfirmMessages,
-  InputModelContainer,
-}
-import edu.ie3.simona.agent.participant.statedata.{
-  BaseStateData,
-  DataCollectionStateData,
-  ParticipantStateData,
-}
+import edu.ie3.simona.agent.participant.statedata.BaseStateData.{FromOutsideBaseStateData, ParticipantModelBaseStateData}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{CollectRegistrationConfirmMessages, InputModelContainer}
+import edu.ie3.simona.agent.participant.statedata.{BaseStateData, DataCollectionStateData, ParticipantStateData}
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
-import edu.ie3.simona.agent.state.ParticipantAgentState.{
-  Calculate,
-  HandleInformation,
-}
-import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.agent.state.ParticipantAgentState.{Calculate, HandleInformation}
+import edu.ie3.simona.config.RuntimeConfig.{BaseRuntimeConfig, SimpleRuntimeConfig}
 import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.event.ResultEvent.{
-  FlexOptionsResultEvent,
-  ParticipantResultEvent,
-  ThermalResultEvent,
-}
+import edu.ie3.simona.event.ResultEvent.{FlexOptionsResultEvent, ParticipantResultEvent, ThermalResultEvent}
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.exceptions.agent.{
-  ActorNotRegisteredException,
-  AgentInitializationException,
-  InconsistentStateException,
-  InvalidRequestException,
-}
+import edu.ie3.simona.exceptions.agent.{ActorNotRegisteredException, AgentInitializationException, InconsistentStateException, InvalidRequestException}
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.em.EmTools
-import edu.ie3.simona.model.participant.{
-  CalcRelevantData,
-  ModelState,
-  SystemParticipant,
-}
+import edu.ie3.simona.model.participant.{CalcRelevantData, ModelState, SystemParticipant}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  ProvisionMessage,
-  RegistrationResponseMessage,
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{ProvisionMessage, RegistrationResponseMessage}
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
@@ -118,7 +77,7 @@ protected trait ParticipantAgentFundamentals[
 
   override def initializeParticipantForPrimaryDataReplay(
       inputModel: InputModelContainer[I],
-      modelConfig: MC,
+      modelConfig: SimpleRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -171,7 +130,7 @@ protected trait ParticipantAgentFundamentals[
     */
   private def determineFromOutsideBaseStateData(
       inputModel: InputModelContainer[I],
-      modelConfig: MC,
+      modelConfig: SimpleRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -222,10 +181,10 @@ protected trait ParticipantAgentFundamentals[
     * @return
     */
   def buildModel(
-      inputModel: InputModelContainer[I],
-      modelConfig: MC,
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
+                  inputModel: InputModelContainer[I],
+                  modelConfig: SimpleRuntimeConfig,
+                  simulationStartDate: ZonedDateTime,
+                  simulationEndDate: ZonedDateTime,
   ): M
 
   /** Initializing the agent based on the uninitialized state and additional
@@ -258,7 +217,7 @@ protected trait ParticipantAgentFundamentals[
     */
   override def initializeParticipantForModelCalculation(
       inputModel: InputModelContainer[I],
-      modelConfig: MC,
+      modelConfig: SimpleRuntimeConfig,
       services: Iterable[SecondaryDataService[_ <: SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
@@ -338,7 +297,7 @@ protected trait ParticipantAgentFundamentals[
     */
   def determineModelBaseStateData(
       inputModel: InputModelContainer[I],
-      modelConfig: MC,
+      modelConfig: SimpleRuntimeConfig,
       services: Iterable[SecondaryDataService[_ <: SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
