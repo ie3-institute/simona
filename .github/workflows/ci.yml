@@ -87,10 +87,10 @@ jobs:
       - name: Deploy
         run: |
           currentVersion=$(./gradlew -q devVersion)
-          
-          ./gradlew publish\
+
+          ./gradlew publish --rerun-tasks \
             -Puser=${{ secrets.MAVENCENTRAL_USER }} \
             -Ppassword=${{ secrets.MAVENCENTRAL_PASS }} \
             -Psigning.keyId=${{ secrets.MAVENCENTRAL_SIGNINGKEYID }} \
             -Psigning.password=${{ secrets.MAVENCENTRAL_SIGNINGPASS }} \
-            -Pversion=3.1-SNAPSHOT
+            -Pversion=$currentVersion
