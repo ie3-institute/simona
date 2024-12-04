@@ -10,6 +10,7 @@ import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.profile.StandardLoadProfile
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.profile.LoadProfileStore
 import edu.ie3.simona.model.participant.load.random.RandomLoadParamStore
@@ -20,7 +21,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
 }
 import edu.ie3.simona.util.TickUtil
 import edu.ie3.util.scala.quantities.ApparentPower
-import squants.{Dimensionless, Power}
+import squants.Dimensionless
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -71,7 +72,15 @@ object ProfileLoadModel {
 
     val loadProfileStore: LoadProfileStore = LoadProfileStore()
 
-    val loadProfile = input.getLoadProfile.asInstanceOf[StandardLoadProfile]
+    val loadProfile = input.getLoadProfile match {
+      case slp: StandardLoadProfile =>
+        slp
+      case other =>
+        throw new CriticalFailureException(
+          s"Expected a standard load profile type, got ${other.getClass}"
+        )
+    }
+
     val loadProfileMax = loadProfileStore.maxPower(loadProfile)
 
     val reference = LoadReference(input, config)
