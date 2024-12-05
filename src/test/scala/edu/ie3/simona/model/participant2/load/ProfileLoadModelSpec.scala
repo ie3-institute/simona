@@ -1,0 +1,130 @@
+/*
+ * © 2021. TU Dortmund University,
+ * Institute of Energy Systems, Energy Efficiency and Energy Economics,
+ * Research group Distribution grid planning and operation
+ */
+
+package edu.ie3.simona.model.participant2.load
+
+import edu.ie3.datamodel.models.OperationTime
+import edu.ie3.datamodel.models.input.system.LoadInput
+import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
+import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
+import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile._
+import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
+import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
+import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.test.matchers.DoubleMatchers
+import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.scala.quantities.{ApparentPower, Voltamperes}
+import tech.units.indriya.quantity.Quantities
+
+import java.util.UUID
+
+class ProfileLoadModelSpec extends UnitSpec with DoubleMatchers {
+
+  private implicit val powerTolerance: ApparentPower = Voltamperes(1e-2)
+  private implicit val doubleTolerance: Double = 1e-6
+
+  "A profile load model" should {
+
+    val loadInput = new LoadInput(
+      UUID.fromString("4eeaf76a-ec17-4fc3-872d-34b7d6004b03"),
+      "testLoad",
+      OperatorInput.NO_OPERATOR_ASSIGNED,
+      OperationTime.notLimited(),
+      new NodeInput(
+        UUID.fromString("e5c1cde5-c161-4a4f-997f-fcf31fecbf57"),
+        "TestNodeInputModel",
+        OperatorInput.NO_OPERATOR_ASSIGNED,
+        OperationTime.notLimited(),
+        Quantities.getQuantity(1d, PowerSystemUnits.PU),
+        false,
+        NodeInput.DEFAULT_GEO_POSITION,
+        GermanVoltageLevelUtils.LV,
+        -1,
+      ),
+      new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
+      null,
+      H0,
+      false,
+      Quantities.getQuantity(3000, PowerSystemUnits.KILOWATTHOUR),
+      Quantities.getQuantity(282.74, PowerSystemUnits.VOLTAMPERE),
+      0.95,
+    )
+
+    "be instantiated correctly with power reference" in {
+
+      forAll(
+        Table(
+          ("profile", "sRated", "expectedScalingFactor"),
+          (H0, 282.736842, 1.0),
+          (H0, 1000.0, 3.536858),
+          (L0, 253.052632, 1.0),
+          (L0, 1000.0, 3.951747),
+          (G0, 253.052632, 1.0),
+          (G0, 1000.0, 3.951747),
+        )
+      ) { (profile, sRated, expectedScalingFactor) =>
+        val config = LoadRuntimeConfig(
+          calculateMissingReactivePowerWithModel = false,
+          scaling = 1.0,
+          uuids = List.empty,
+          modelBehaviour = "profile",
+          reference = "power",
+        )
+        val model = ProfileLoadModel(
+          loadInput
+            .copy()
+            .loadprofile(profile)
+            .sRated(Quantities.getQuantity(sRated, PowerSystemUnits.VOLTAMPERE))
+            .build(),
+          config,
+        )
+
+        model.referenceScalingFactor should approximate(expectedScalingFactor)
+
+      }
+
+    }
+
+    "be instantiated correctly with energy reference" in {
+
+      forAll(
+        Table(
+          ("profile", "eConsAnnual", "expectedScalingFactor", "expectedSRated"),
+          (H0, 1000.0, 1.0, 282.74),
+          (H0, 3000.0, 3.0, 848.22),
+          (L0, 1000.0, 1.0, 253.053),
+          (L0, 3000.0, 3.0, 759.158),
+          (G0, 1000.0, 1.0, 253.053),
+          (G0, 3000.0, 3.0, 759.158),
+        )
+      ) { (profile, eConsAnnual, expectedScalingFactor, expectedSRated) =>
+        val config = LoadRuntimeConfig(
+          calculateMissingReactivePowerWithModel = false,
+          scaling = 1.0,
+          uuids = List.empty,
+          modelBehaviour = "profile",
+          reference = "energy",
+        )
+        val model = ProfileLoadModel(
+          loadInput
+            .copy()
+            .loadprofile(profile)
+            .eConsAnnual(
+              Quantities.getQuantity(eConsAnnual, PowerSystemUnits.KILOWATTHOUR)
+            )
+            .build(),
+          config,
+        )
+
+        model.referenceScalingFactor should approximate(expectedScalingFactor)
+        model.sRated should approximate(Voltamperes(expectedSRated))
+
+      }
+
+    }
+
+  }
+}
