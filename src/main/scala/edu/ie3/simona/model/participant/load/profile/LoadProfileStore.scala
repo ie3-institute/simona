@@ -18,8 +18,7 @@ import edu.ie3.simona.model.participant.load.profile.LoadProfileStore.{
 }
 import edu.ie3.simona.model.participant.load.{DayType, profile}
 import org.apache.commons.csv.CSVFormat
-import squants.Power
-import squants.energy.{KilowattHours, Watts}
+import squants.energy.{Energy, KilowattHours, Power, Watts}
 
 import java.io.{InputStreamReader, Reader}
 import java.time.{Duration, ZonedDateTime}
@@ -58,7 +57,7 @@ class LoadProfileStore private (val reader: Reader) {
   def entry(
       time: ZonedDateTime,
       loadProfile: StandardLoadProfile,
-  ): squants.Power = {
+  ): Power = {
     val key = LoadProfileKey(loadProfile, time)
     profileMap.get(key) match {
       case Some(typeDayValues) =>
@@ -112,7 +111,7 @@ object LoadProfileStore extends LazyLogging {
 
   /** Default standard load profile energy scaling
     */
-  val defaultLoadProfileEnergyScaling: squants.Energy = KilowattHours(1000d)
+  val profileReferenceEnergy: Energy = KilowattHours(1000d)
 
   /** Default entry point to get the default implementation with the provided
     * default standard load profiles

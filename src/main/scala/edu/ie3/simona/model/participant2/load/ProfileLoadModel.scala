@@ -33,7 +33,7 @@ class ProfileLoadModel(
     override val qControl: QControl,
     private val loadProfileStore: LoadProfileStore,
     private val loadProfile: StandardLoadProfile,
-    private val referenceScalingFactor: Double,
+    val referenceScalingFactor: Double,
 ) extends LoadModel[DateTimeData] {
 
   override def determineOperatingPoint(
@@ -81,31 +81,15 @@ object ProfileLoadModel {
         )
     }
 
-    val loadProfileMax = loadProfileStore.maxPower(loadProfile)
+    val referenceType = LoadReferenceType(config)
 
-    val reference = LoadReference(input, config)
-
-    val referenceScalingFactor =
-      reference match {
-        case LoadReference.ActivePower(power) =>
-          power / loadProfileMax
-        case LoadReference.EnergyConsumption(energyConsumption) =>
-          energyConsumption / LoadProfileStore.defaultLoadProfileEnergyScaling
-      }
-
-    // todo maybe this does not need to be so complicated, referenceScalingFactor is already calculated
-    val scaledSRated = reference match {
-      case LoadReference.ActivePower(power) =>
-        LoadModel.scaleSRatedActivePower(input, power)
-
-      case LoadReference.EnergyConsumption(energyConsumption) =>
-        LoadModel.scaleSRatedEnergy(
-          input,
-          energyConsumption,
-          loadProfileMax,
-          LoadProfileStore.defaultLoadProfileEnergyScaling,
-        )
-    }
+    val (referenceScalingFactor, scaledSRated) =
+      LoadModel.scaleToReference(
+        referenceType,
+        input,
+        loadProfileStore.maxPower(loadProfile),
+        LoadProfileStore.profileReferenceEnergy,
+      )
 
     new ProfileLoadModel(
       input.getUuid,

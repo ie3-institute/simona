@@ -26,9 +26,10 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   ParticipantFixedState,
 }
 import edu.ie3.simona.service.ServiceType
-import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.quantities.PowerSystemUnits.{KILOVOLTAMPERE, KILOWATTHOUR}
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
+import squants.energy.KilowattHours
 import squants.{Energy, Power}
 
 import java.time.ZonedDateTime
@@ -85,77 +86,56 @@ abstract class LoadModel[OR <: OperationRelevantData]
 
 object LoadModel {
 
-  /** Scale profile based load models' sRated based on a provided active power
-    * value
+  /** Calculates the scaling factor and scaled rated apparent power according to
+    * the reference type
     *
-    * When the load is scaled to the active power value, the models' sRated is
-    * multiplied by the ratio of the provided active power value and the active
-    * power value of the model (activePowerVal / (input.sRated*input.cosPhi)
-    *
-    * @param inputModel
-    *   the input model instance
-    * @param activePower
-    *   the active power value sRated should be scaled to
-    * @param safetyFactor
-    *   a safety factor to address potential higher sRated values than the
-    *   original scaling would provide (e.g. when using unrestricted probability
-    *   functions)
+    * @param referenceType
+    *   The type of reference according to which scaling is calculated
+    * @param input
+    *   The [[LoadInput]] of the model
+    * @param maxPower
+    *   The maximum power consumption possible for the model
+    * @param referenceEnergy
+    *   The (annual) reference energy relevant to the load model
     * @return
-    *   the inputs model sRated scaled to the provided active power
+    *   the reference scaling factor used for calculation of specific power
+    *   consumption values and the scaled rated apparent power
     */
-  def scaleSRatedActivePower(
-      inputModel: LoadInput,
-      activePower: Power,
-      safetyFactor: Double = 1d,
-  ): ApparentPower = {
+  def scaleToReference(
+      referenceType: LoadReferenceType,
+      input: LoadInput,
+      maxPower: Power,
+      referenceEnergy: Energy,
+  ): (Double, ApparentPower) = {
     val sRated = Kilovoltamperes(
-      inputModel.getsRated
-        .to(PowerSystemUnits.KILOVOLTAMPERE)
+      input.getsRated
+        .to(KILOVOLTAMPERE)
         .getValue
         .doubleValue
     )
-    val pRated = sRated.toActivePower(inputModel.getCosPhiRated)
-    val referenceScalingFactor = activePower / pRated
-    sRated * referenceScalingFactor * safetyFactor
-  }
-
-  /** Scale profile based load model's sRated based on the provided yearly
-    * energy consumption
-    *
-    * When the load is scaled based on the consumed energy per year, the
-    * installed sRated capacity is not usable anymore instead, the load's rated
-    * apparent power is scaled on the maximum power occurring in the specified
-    * load profile multiplied by the ratio of the annual consumption and the
-    * standard load profile scale
-    *
-    * @param inputModel
-    *   the input model instance
-    * @param energyConsumption
-    *   the yearly energy consumption the models' sRated should be scaled to
-    * @param profileMaxPower
-    *   the maximum power value of the profile
-    * @param profileEnergyScaling
-    *   the energy scaling factor of the profile (= amount of yearly energy the
-    *   profile is scaled to)
-    * @param safetyFactor
-    *   a safety factor to address potential higher sRated values than the
-    *   original scaling would provide (e.g. when using unrestricted probability
-    *   functions)
-    * @return
-    *   the inputs model sRated scaled to the provided energy consumption
-    */
-  def scaleSRatedEnergy(
-      inputModel: LoadInput,
-      energyConsumption: Energy,
-      profileMaxPower: Power,
-      profileEnergyScaling: Energy,
-      safetyFactor: Double = 1d,
-  ): ApparentPower = {
-    val profileMaxApparentPower = Kilovoltamperes(
-      profileMaxPower.toKilowatts / inputModel.getCosPhiRated
+    val eConsAnnual = KilowattHours(
+      input.geteConsAnnual().to(KILOWATTHOUR).getValue.doubleValue
     )
 
-    profileMaxApparentPower * (energyConsumption / profileEnergyScaling) * safetyFactor
+    val referenceScalingFactor = referenceType match {
+      case LoadReferenceType.ActivePower =>
+        val pRated = sRated.toActivePower(input.getCosPhiRated)
+        pRated / maxPower
+      case LoadReferenceType.EnergyConsumption =>
+        eConsAnnual / referenceEnergy
+    }
+
+    val scaledSRated = referenceType match {
+      case LoadReferenceType.ActivePower =>
+        sRated
+      case LoadReferenceType.EnergyConsumption =>
+        val maxApparentPower = Kilovoltamperes(
+          maxPower.toKilowatts / input.getCosPhiRated
+        )
+        maxApparentPower * referenceScalingFactor
+    }
+
+    (referenceScalingFactor, scaledSRated)
   }
 
   def apply(

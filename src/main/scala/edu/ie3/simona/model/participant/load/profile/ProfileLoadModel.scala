@@ -67,7 +67,7 @@ final case class ProfileLoadModel(
   private lazy val energyReferenceScalingFactor =
     reference match {
       case EnergyConsumption(energyConsumption) =>
-        energyConsumption / LoadProfileStore.defaultLoadProfileEnergyScaling
+        energyConsumption / LoadProfileStore.profileReferenceEnergy
       case _ =>
         throw new IllegalArgumentException(
           s"Applying energy reference scaling factor for reference mode '$reference' is not supported!"
@@ -129,7 +129,7 @@ object ProfileLoadModel {
           scaledInput,
           energyConsumption,
           loadProfileMax,
-          LoadProfileStore.defaultLoadProfileEnergyScaling,
+          LoadProfileStore.profileReferenceEnergy,
         )
     }
 

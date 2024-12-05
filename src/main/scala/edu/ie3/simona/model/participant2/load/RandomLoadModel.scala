@@ -35,7 +35,7 @@ class RandomLoadModel(
     override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
-    private val referenceScalingFactor: Double,
+    val referenceScalingFactor: Double,
 ) extends LoadModel[DateTimeData] {
 
   private val randomLoadParamStore = RandomLoadParamStore()
@@ -117,7 +117,7 @@ class RandomLoadModel(
 
 object RandomLoadModel {
 
-  /** The profile energy scaling factor, the random profile is scaled to.
+  /** The annual energy consumption that the random profile is scaled to.
     *
     * It is said in 'Kays - Agent-based simulation environment for improving the
     * planning of distribution grids', that the Generalized Extreme Value
@@ -127,45 +127,34 @@ object RandomLoadModel {
     * annual energy consumption of approx. this value. It has been found by
     * 1,000 evaluations of the year 2019.
     */
-  private val randomProfileEnergyScaling = KilowattHours(716.5416966513656)
+  private val profileReferenceEnergy = KilowattHours(716.5416966513656)
 
   /** This is the 95 % quantile resulting from 10,000 evaluations of the year
     * 2019. It is only needed, when the load is meant to be scaled to rated
     * active power.
-    *
-    * @return
-    *   Reference power to use for later model calculations
     */
-  private val randomMaxPower: Power = Watts(159d)
+  private val maxPower: Power = Watts(159d)
 
   def apply(input: LoadInput, config: LoadRuntimeConfig): RandomLoadModel = {
 
-    val reference = LoadReference(input, config)
+    val referenceType = LoadReferenceType(config)
 
-    val referenceScalingFactor = reference match {
-      case LoadReference.ActivePower(power) =>
-        power / randomMaxPower
-      case LoadReference.EnergyConsumption(energyConsumption) =>
-        energyConsumption / randomProfileEnergyScaling
-    }
+    val (referenceScalingFactor, scaledSRated) =
+      LoadModel.scaleToReference(
+        referenceType,
+        input,
+        maxPower,
+        profileReferenceEnergy,
+      )
 
-    val scaledSRated = reference match {
-      case LoadReference.ActivePower(power) =>
-        LoadModel.scaleSRatedActivePower(input, power, 1.1)
-
-      case LoadReference.EnergyConsumption(energyConsumption) =>
-        LoadModel.scaleSRatedEnergy(
-          input,
-          energyConsumption,
-          randomMaxPower,
-          randomProfileEnergyScaling,
-          1.1,
-        )
-    }
+    /** Safety factor to address potential higher sRated values when using
+      * unrestricted probability functions
+      */
+    val safetyFactor = 1.1
 
     new RandomLoadModel(
       input.getUuid,
-      scaledSRated,
+      scaledSRated * safetyFactor,
       input.getCosPhiRated,
       QControl.apply(input.getqCharacteristics()),
       referenceScalingFactor,
