@@ -79,21 +79,15 @@ jobs:
           fi
 
       #Deployment
-      - name: Setup GPG
-        run: |
-          cat <(echo -e "${{ secrets.MAVENCENTRAL_SIGNINGKEY }}") | gpg --batch --import
-          gpg --list-secret-keys --keyid-format LONG
-
       - name: Deploy
         run: |
           currentVersion=$(./gradlew -q devVersion)
           echo "currentVersion=$currentVersion"
-          echo "version.semver=$currentVersion" > version.properties
 
           ./gradlew publish --rerun-tasks \
             -Puser=${{ secrets.MAVENCENTRAL_USER }} \
             -Ppassword=${{ secrets.MAVENCENTRAL_PASS }} \
             -Psigning.keyId=${{ secrets.MAVENCENTRAL_SIGNINGKEYID }} \
             -Psigning.password=${{ secrets.MAVENCENTRAL_SIGNINGPASS }} \
-            -Psigning.secretKeyRingFile=${{ secrets.MAVENCENTRAL_SIGNINGKEY }} \
+            -Psigning.secretKey=${{ secrets.MAVENCENTRAL_SIGNINGKEY }} \
             -PdeployVersion=$currentVersion

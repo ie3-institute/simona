@@ -10,7 +10,6 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
   from javadoc.destinationDir
 }
 
-
 if (project.hasProperty('user') && project.hasProperty('password') && project.hasProperty('deployVersion')) {
 
   // snapshot version differs from normal version
@@ -81,8 +80,19 @@ if (project.hasProperty('user') && project.hasProperty('password') && project.ha
         }
       }
     }
-  }
+    signing {
+      useInMemoryPgpKeys(
+              findProperty('signing.keyId'),
+              findProperty('signing.secretKey'),
+              findProperty('signing.password')
+      )
+      sign publishing.publications.mavenJava
+    }
 
+    tasks.withType(Sign) {
+      onlyIf { !project.version.endsWith('SNAPSHOT') }
+    }
+  }
 
   model {
     tasks.generatePomFileForMavenJavaPublication {
@@ -92,7 +102,6 @@ if (project.hasProperty('user') && project.hasProperty('password') && project.ha
 }
 
 def removeTestDependenciesFromPom(pom) {
-
   pom.withXml {
     def root = asNode()
     // eliminate test-scoped dependencies (no need in maven central POMs)
