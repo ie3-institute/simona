@@ -87,10 +87,10 @@ jobs:
           ORG_GRADLE_PROJECT_user: ${{ secrets.MAVENCENTRAL_USER }}
           ORG_GRADLE_PROJECT_password: ${{ secrets.MAVENCENTRAL_PASS }}
         run: |
-          if [ "${GITHUB_REF}" == "refs/heads/dev" ]; then
-            currentVersion=$(./gradlew -q devVersion)
-          else
+          if [ "${GITHUB_REF}" == "refs/heads/main" ]; then
             currentVersion=$(./gradlew -q currentVersion)
+          else
+            currentVersion=$(./gradlew -q devVersion)
           fi
           
           echo "currentVersion=$currentVersion"
