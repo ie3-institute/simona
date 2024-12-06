@@ -18,7 +18,7 @@ tasks.register('checkBranchName') {
     def isValid = patterns.any { pattern -> branchName ==~ pattern }
 
     if (!isValid) {
-      throw new GradleException("Error: Check Branch name format (e.g., ps/#1337-FeatureName).")
+      throw new GradleException("Error: Check Branch name format (e.g., ps/#1337-FeatureName). Current branch name is $branchName.")
     }
 
     println "Branch name is $branchName"
