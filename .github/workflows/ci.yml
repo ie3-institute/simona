@@ -81,11 +81,11 @@ jobs:
       #Deployment
       - name: Deploy
         env:
-          MAVENCENTRAL_SIGNINGKEY: ${{ secrets.MAVENCENTRAL_SIGNINGKEY }}
-          MAVENCENTRAL_SIGNINGKEYID: ${{ secrets.MAVENCENTRAL_SIGNINGKEYID }}
-          MAVENCENTRAL_SIGNINGPASS: ${{ secrets.MAVENCENTRAL_SIGNINGPASS }}
-          MAVENCENTRAL_USER: ${{ secrets.MAVENCENTRAL_USER }}
-          MAVENCENTRAL_PASS: ${{ secrets.MAVENCENTRAL_PASS }}
+          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.MAVENCENTRAL_SIGNINGKEY }}
+          ORG_GRADLE_PROJECT_signingKeyId: ${{ secrets.MAVENCENTRAL_SIGNINGKEYID }}
+          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.MAVENCENTRAL_SIGNINGPASS }}
+          ORG_GRADLE_PROJECT_user: ${{ secrets.MAVENCENTRAL_USER }}
+          ORG_GRADLE_PROJECT_password: ${{ secrets.MAVENCENTRAL_PASS }}
         run: |
           currentVersion=$(./gradlew -q devVersion)
           echo "currentVersion=$currentVersion"

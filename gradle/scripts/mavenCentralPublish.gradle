@@ -10,7 +10,7 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
   from javadoc.destinationDir
 }
 
-if (project.hasProperty('MAVENCENTRAL_USER') && project.hasProperty('MAVENCENTRAL_PASS') && project.hasProperty('deployVersion')) {
+if (project.hasProperty('user') && project.hasProperty('password') && project.hasProperty('deployVersion')) {
 
   // snapshot version differs from normal version
   String versionString = project.getProperty('deployVersion')
@@ -75,16 +75,16 @@ if (project.hasProperty('MAVENCENTRAL_USER') && project.hasProperty('MAVENCENTRA
         def snapshotsRepoUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
         url = versionString.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
         credentials {
-          username project.getProperty('MAVENCENTRAL_USER')
-          password project.getProperty('MAVENCENTRAL_PASS')
+          username project.getProperty('user')
+          password project.getProperty('password')
         }
       }
     }
     signing {
       useInMemoryPgpKeys(
-          findProperty('MAVENCENTRAL_SIGNINGKEY'),
-          findProperty('MAVENCENTRAL_SIGNINGKEYID'),
-          findProperty('MAVENCENTRAL_SIGNINGPASSWORD')
+          findProperty('signingKeyId'),
+          findProperty('signingKey'),
+          findProperty('signingPassword')
           )
       sign publishing.publications.mavenJava
     }
