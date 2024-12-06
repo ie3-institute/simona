@@ -80,14 +80,14 @@ jobs:
 
       #Deployment
       - name: Deploy
+        env:
+          MAVENCENTRAL_SIGNINGKEY: ${{ secrets.MAVENCENTRAL_SIGNINGKEY }}
+          MAVENCENTRAL_SIGNINGKEYID: ${{ secrets.MAVENCENTRAL_SIGNINGKEYID }}
+          MAVENCENTRAL_SIGNINGPASS: ${{ secrets.MAVENCENTRAL_SIGNINGPASS }}
+          MAVENCENTRAL_USER: ${{ secrets.MAVENCENTRAL_USER }}
+          MAVENCENTRAL_PASS: ${{ secrets.MAVENCENTRAL_PASS }}
         run: |
           currentVersion=$(./gradlew -q devVersion)
           echo "currentVersion=$currentVersion"
 
-          ./gradlew publish --rerun-tasks \
-            -Puser=${{ secrets.MAVENCENTRAL_USER }} \
-            -Ppassword=${{ secrets.MAVENCENTRAL_PASS }} \
-            -Psigning.keyId=${{ secrets.MAVENCENTRAL_SIGNINGKEYID }} \
-            -Psigning.password=${{ secrets.MAVENCENTRAL_SIGNINGPASS }} \
-            -Psigning.secretKey=${{ secrets.MAVENCENTRAL_SIGNINGKEY }} \
-            -PdeployVersion=$currentVersion
+          ./gradlew publish -PdeployVersion=$currentVersion
