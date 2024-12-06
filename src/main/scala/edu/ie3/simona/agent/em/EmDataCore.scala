@@ -102,7 +102,7 @@ object EmDataCore {
       activationQueue.headKeyOption.foreach { nextScheduledTick =>
         if (newTick > nextScheduledTick)
           throw new CriticalFailureException(
-            s"Cannot activate with new tick $newTick because the next scheduled tick $nextScheduledTick needs to be activated first."
+            s"$this Cannot activate with new tick $newTick because the next scheduled tick $nextScheduledTick needs to be activated first."
           )
       }
 
@@ -254,6 +254,7 @@ object EmDataCore {
             correspondences = correspondences,
             awaitedCompletions = awaitedConnectedAgents.concat(toActivate),
             activeTick = activeTick,
+            nextSetPointTick = nextSetPointTick
           )
         )
       } else {
@@ -292,7 +293,11 @@ object EmDataCore {
       *   true if all awaited flex options have been received
       */
     def isComplete: Boolean =
-      awaitedConnectedAgents.isEmpty & currentSetPower.isDefined
+      awaitedConnectedAgents.isEmpty
+
+    def gotSetPoint: Boolean = currentSetPower.isDefined
+
+    def isCompleteAndGotSetPoint: Boolean = isComplete & gotSetPoint
 
     /** Returns all flex options that are currently relevant, which can include
       * flex options received at an earlier tick
@@ -425,12 +430,14 @@ object EmDataCore {
 
     def updateSetPoint(): AwaitingFlexOptions = {
       copy(
+        nextSetPointTick = nextSetPointTick,
         currentSetPower = Some(lastSetPower)
       )
     }
 
     def handleNoSetPointExpected(): AwaitingFlexOptions = {
       copy(
+        nextSetPointTick = nextSetPointTick,
         currentSetPower = Some(lastSetPower)
       )
     }

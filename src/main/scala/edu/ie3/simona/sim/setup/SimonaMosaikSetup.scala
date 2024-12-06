@@ -12,7 +12,7 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.util.ResultFileHierarchy
-import edu.ie3.simosaik.simosaikElectrolyzer.MosaikElectrolyzerSimulation
+import edu.ie3.simosaik.simosaikOptimizer.MosaikOptimizerSimulation
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
@@ -52,7 +52,7 @@ class SimonaMosaikSetup(
       )
     )
     val mosaikExtSim =
-      new MosaikElectrolyzerSimulation(mosaikAddress, Path.of(mosaikMapping))
+      new MosaikOptimizerSimulation(mosaikAddress, Path.of(mosaikMapping))
 
     extSimulationSetup(
       context,

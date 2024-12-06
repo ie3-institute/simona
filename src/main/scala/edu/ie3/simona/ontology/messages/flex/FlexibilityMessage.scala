@@ -43,6 +43,10 @@ object FlexibilityMessage {
       nextSetPointTick: Option[Long],
   ) extends FlexRequest
 
+  final case class FlexOptionsRequest(
+                                     tick: Long
+                                     ) extends FlexRequest
+
   /** Message that registers a flex options provider with an
     * [[edu.ie3.simona.agent.em.EmAgent]].
     *

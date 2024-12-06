@@ -177,6 +177,7 @@ final case class ExtEmDataService(
       serviceStateData: ExtEmDataStateData,
       ctx: ActorContext,
   ): (ExtEmDataStateData, Option[Long]) = {
+    //log.info(s"[$tick] ExtEmDataService should announce information!")
     serviceStateData.extEmDataMessage.getOrElse(
       throw ServiceException(
         "ExtPrimaryDataService was triggered without ExtPrimaryDataMessage available"
@@ -197,6 +198,7 @@ final case class ExtEmDataService(
       ExtEmDataStateData,
       Option[Long],
   ) = {
+    //log.info(s"[$tick] ExtEmDataService got msg = $emDataMessage!")
     val actorToEmData = emDataMessage.emData.asScala.flatMap {
       case (agent, emDataPerAgent) =>
         serviceStateData.uuidToAdapterRef

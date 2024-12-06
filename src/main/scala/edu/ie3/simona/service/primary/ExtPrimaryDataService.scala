@@ -167,7 +167,7 @@ final case class ExtPrimaryDataService(
       ExtPrimaryDataStateData,
       Option[Long],
   ) = {
-    log.debug(s"Got activation to distribute primaryData = $primaryDataMessage")
+    log.info(s"Got activation to distribute primaryData = $primaryDataMessage")
     val actorToPrimaryData = primaryDataMessage.primaryData.asScala.flatMap {
       case (agent, primaryDataPerAgent) =>
         serviceStateData.uuidToActorRef

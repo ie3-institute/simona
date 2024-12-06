@@ -33,9 +33,9 @@ final case class EvModelWrapper(
   def uuid: UUID = original.getUuid
   def id: String = original.getId
   lazy val sRatedAc: squants.Power =
-    Kilowatts(original.getSRatedAC.to(KILOWATT).getValue.doubleValue)
+    Kilowatts(original.getPRatedAC.to(KILOWATT).getValue.doubleValue)
   lazy val sRatedDc: squants.Power =
-    Kilowatts(original.getSRatedDC.to(KILOWATT).getValue.doubleValue)
+    Kilowatts(original.getPRatedDC.to(KILOWATT).getValue.doubleValue)
   lazy val eStorage: squants.Energy = KilowattHours(
     original.getEStorage.to(KILOWATTHOUR).getValue.doubleValue
   )

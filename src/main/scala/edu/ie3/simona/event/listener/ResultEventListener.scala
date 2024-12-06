@@ -9,22 +9,11 @@ package edu.ie3.simona.event.listener
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop}
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
-import edu.ie3.datamodel.models.result.{
-  ModelResultEntity,
-  NodeResult,
-  ResultEntity,
-}
+import edu.ie3.datamodel.models.result.system.EmResult
+import edu.ie3.datamodel.models.result.{ModelResultEntity, NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
-import edu.ie3.simona.event.ResultEvent.{
-  FlexOptionsResultEvent,
-  ParticipantResultEvent,
-  PowerFlowResultEvent,
-  ThermalResultEvent,
-}
-import edu.ie3.simona.exceptions.{
-  FileHierarchyException,
-  ProcessResultEventException,
-}
+import edu.ie3.simona.event.ResultEvent.{FlexOptionsResultEvent, ParticipantResultEvent, PowerFlowResultEvent, ThermalResultEvent}
+import edu.ie3.simona.exceptions.{FileHierarchyException, ProcessResultEventException}
 import edu.ie3.simona.io.result._
 import edu.ie3.simona.service.results.ExtResultDataProvider
 import edu.ie3.simona.service.results.ExtResultDataProvider.ResultResponseMessage
@@ -389,7 +378,7 @@ object ResultEventListener extends Transformer3wResultSupport {
 
       case (ctx, FlexOptionsResultEvent(flexOptionsResult, tick)) =>
         val updatedBaseData =
-          handleResultWithTick(flexOptionsResult, baseData, ctx.log, tick)
+          handleResultWithTick(flexOptionsResult, baseData, ctx.log, tick, Some(tick+900L))
         idle(updatedBaseData)
 
       case (ctx, msg: DelayedStopHelper.StoppingMsg) =>
