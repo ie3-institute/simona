@@ -16,10 +16,9 @@ if (project.hasProperty('user') && project.hasProperty('password') && project.ha
   String versionString = project.getProperty('deployVersion')
   signing {
     useInMemoryPgpKeys(
-            findProperty('signingKeyId'),
-            findProperty('signingKey'),
-            findProperty('signingPassword')
-    )
+        findProperty('signingKey'),
+        findProperty('signingPassword')
+        )
     sign publishing.publications.mavenJava
   }
 
