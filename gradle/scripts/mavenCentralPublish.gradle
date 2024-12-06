@@ -14,6 +14,14 @@ if (project.hasProperty('user') && project.hasProperty('password') && project.ha
 
   // snapshot version differs from normal version
   String versionString = project.getProperty('deployVersion')
+  signing {
+    useInMemoryPgpKeys(
+            findProperty('signingKeyId'),
+            findProperty('signingKey'),
+            findProperty('signingPassword')
+    )
+    sign publishing.publications.mavenJava
+  }
 
   publishing {
     publications {
@@ -79,18 +87,6 @@ if (project.hasProperty('user') && project.hasProperty('password') && project.ha
           password project.getProperty('password')
         }
       }
-    }
-    signing {
-      useInMemoryPgpKeys(
-          findProperty('signingKeyId'),
-          findProperty('signingKey'),
-          findProperty('signingPassword')
-          )
-      sign publishing.publications.mavenJava
-    }
-
-    tasks.withType(Sign) {
-      onlyIf { !project.version.endsWith('SNAPSHOT') }
     }
   }
 
