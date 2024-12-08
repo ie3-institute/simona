@@ -46,8 +46,6 @@ jobs:
           fi
 
           ./gradlew checkBranchName -PbranchName="$branchName"
-          
-          echo ${{ vars.SONAR_HOST_URL }}
 
       - name: Setup Java
         uses: actions/setup-java@v4
