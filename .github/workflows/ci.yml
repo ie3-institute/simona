@@ -47,6 +47,25 @@ jobs:
 
           ./gradlew checkBranchName -PbranchName="$branchName"
 
+      - name: Check Branch or PR
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "This is a pull request."
+            branchOrPr="PR"
+            branchName="${{ github.head_ref }}"
+          else
+            echo "This is a branch."
+            branchOrPr="Branch"
+            branchName="${{ github.ref_name }}"
+          fi
+
+          if [[ "$branchName" == refs/heads/* ]]; then
+            branchName="${branchName#refs/heads/}"
+          fi
+
+        echo "Branch or PR: $branchOrPr"
+        echo "Branch Name: $branchName"
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
