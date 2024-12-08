@@ -63,8 +63,8 @@ jobs:
             branchName="${branchName#refs/heads/}"
           fi
 
-        echo "Branch or PR: $branchOrPr"
-        echo "Branch Name: $branchName"
+          echo "Branch or PR: $branchOrPr"
+          echo "Branch Name: $branchName"
 
       - name: Setup Java
         uses: actions/setup-java@v4
