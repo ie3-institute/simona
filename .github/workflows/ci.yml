@@ -36,16 +36,18 @@ jobs:
       - name: Check Branch
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
-            branchName="${{ github.head_ref }}"
+            branch_name="${{ github.head_ref }}"
           else
-            branchName="${{ github.ref_name }}"
+            branch_name="${{ github.ref_name }}"
           fi
 
-          if [[ "$branchName" == refs/heads/* ]]; then
-            branchName="${branchName#refs/heads/}"
+          if [[ "$branch_name" == refs/heads/* ]]; then
+            branch_name="${branch_name#refs/heads/}"
           fi
-
-          ./gradlew checkBranchName -PbranchName="$branchName"
+          
+          echo "::set-output name=branch_name::$branch_name"
+          
+          ./gradlew checkBranchName -Pbranch_name="$branch_name"
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -73,12 +75,11 @@ jobs:
           
           if [[ -n "${{ github.event.pull_request.number }}" ]]; then
             SONAR_STATUS_URL="${BASE_SONAR_STATUS_URL}&pullRequest=${{ github.event.pull_request.number }}"
+            echo "SonarQube URL for PR: $SONAR_STATUS_URL"
           else
-            branchName="${{ github.ref_name }}"
-            if [[ "$branchName" == refs/heads/* ]]; then
-              branchName="${branchName#refs/heads/}"
-            fi
-            SONAR_STATUS_URL="${BASE_SONAR_STATUS_URL}&branch=$branchName"
+            branch_name="${{ steps.check_branch.outputs.branch_name }}"
+            SONAR_STATUS_URL="${BASE_SONAR_STATUS_URL}&branch=$branch_name"
+            echo "SonarQube URL for Branch: $SONAR_STATUS_URL"
           fi
 
           QUALITY_GATE_STATUS=$(curl -s -u "${{ secrets.SONAR_TOKEN }}:" "$SONAR_STATUS_URL" | jq -r '.projectStatus.status')
