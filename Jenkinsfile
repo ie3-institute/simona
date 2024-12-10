@@ -133,52 +133,6 @@ node {
         }
       }
 
-      // deploy stage only if branch is main or dev
-      if (env.BRANCH_NAME == "main" || env.BRANCH_NAME == "dev") {
-        stage('deploy') {
-          // determine project version
-          String projectVersion = sh(returnStdout: true, script: "set +x && cd ${projectName}; ./gradlew -q " +
-          "${(env.BRANCH_NAME == "dev") ? "devVersion" : "currentVersion"}").toString().trim()
-
-          // get the sonatype credentials stored in the jenkins secure keychain
-          withCredentials([
-            usernamePassword(credentialsId: mavenCentralCredentialsId, usernameVariable: 'MAVENCENTRAL_USER', passwordVariable: 'MAVENCENTRAL_PASS'),
-            file(credentialsId: mavenCentralSignKeyFileId, variable: 'MAVENCENTRAL_KEYFILE'),
-            usernamePassword(credentialsId: mavenCentralSignKeyId, usernameVariable: 'MAVENCENTRAL_SIGNINGKEYID', passwordVariable: 'MAVENCENTRAL_SIGNINGPASS')
-          ]) {
-
-            /*
-             * IMPORTANT: Do not issue 'clean' in the following task
-             */
-            sh(
-                script: """set +x && cd $projectName""" +
-                ''' set +x; ./gradlew javadoc''',
-                returnStdout: true
-                )
-
-            String deployGradleTasks = '--refresh-dependencies test ' +
-                'publish -Puser=${MAVENCENTRAL_USER} ' +
-                '-Ppassword=${MAVENCENTRAL_PASS} ' +
-                '-Psigning.keyId=${MAVENCENTRAL_SIGNINGKEYID} ' +
-                '-Psigning.password=${MAVENCENTRAL_SIGNINGPASS} ' +
-                '-Psigning.secretKeyRingFile=${MAVENCENTRAL_KEYFILE} ' +
-                "-PdeployVersion='$projectVersion'"
-
-            gradle(deployGradleTasks, projectName)
-          }
-
-          if (env.BRANCH_NAME == "main") {
-            // create tag on main and push it to origin
-            createAndPushTagOnMain(projectName, sshCredentialsId)
-
-            // todo JH create github release
-
-            // deploy java docs
-            deployJavaDocs(projectName, sshCredentialsId, gitCheckoutUrl)
-          }
-        }
-      }
-
       // post processing
       stage('post processing') {
 
