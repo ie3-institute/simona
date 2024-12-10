@@ -78,12 +78,21 @@ jobs:
             exit 1
           fi
 
+      #Deployment
       - name: Deploy
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+        env:
+          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.MAVENCENTRAL_SIGNINGKEY }}
+          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.MAVENCENTRAL_SIGNINGPASS }}
+          ORG_GRADLE_PROJECT_user: ${{ secrets.MAVENCENTRAL_USER }}
+          ORG_GRADLE_PROJECT_password: ${{ secrets.MAVENCENTRAL_PASS }}
         run: |
-          ./gradlew publish\
-            -Puser=${{ secrets.MAVENCENTRAL_USER }} \
-            -Ppassword=${{ secrets.MAVENCENTRAL_PASS }} \
-            -Psigning.keyId=${{ secrets.MAVENCENTRAL_SIGNINGKEYID }} \
-            -Psigning.password=${{ secrets.MAVENCENTRAL_SIGNINGPASS }} \
-            -Psigning.secretKeyRingFile=${{ secrets.MAVENCENTRAL_SIGNINGKEY }}
+          if [ "${GITHUB_REF}" == "refs/heads/main" ]; then
+            currentVersion=$(./gradlew -q currentVersion)
+          else
+            currentVersion=$(./gradlew -q devVersion)
+          fi
+          
+          echo "currentVersion=$currentVersion"
+
+          ./gradlew publish -PdeployVersion=$currentVersion
