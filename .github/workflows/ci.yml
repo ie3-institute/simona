@@ -45,7 +45,7 @@ jobs:
             branch_name="${branch_name#refs/heads/}"
           fi
           
-          echo "::set-output name=branch_name::$branch_name"
+          echo "branch_name=$branch_name" >> $GITHUB_ENV
           
           ./gradlew checkBranchName -Pbranch_name="$branch_name"
 
@@ -77,7 +77,7 @@ jobs:
             SONAR_STATUS_URL="${BASE_SONAR_STATUS_URL}&pullRequest=${{ github.event.pull_request.number }}"
             echo "SonarQube URL for PR: $SONAR_STATUS_URL"
           else
-            branch_name="${{ steps.check_branch.outputs.branch_name }}"
+            branch_name="${{ env.branch_name }}"
             SONAR_STATUS_URL="${BASE_SONAR_STATUS_URL}&branch=$branch_name"
             echo "SonarQube URL for Branch: $SONAR_STATUS_URL"
           fi
