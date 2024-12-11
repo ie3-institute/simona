@@ -110,7 +110,7 @@ class CylindricalThermalStorageSpec
       val storage = buildThermalStorage(storageInput, CubicMeters(70))
 
       val usableThermalEnergy = storage.usableThermalEnergy
-      usableThermalEnergy should approximate(KilowattHours(5 * 115 + 230))
+      usableThermalEnergy should approximate(KilowattHours(805))
     }
 
     "Apply, validation, and build method work correctly" in {
@@ -232,7 +232,7 @@ class CylindricalThermalStorageSpec
           "expectedStoredEnergy",
         ),
         (0L, 250.0, 10.0, 3600L, 0.0, 260.0),
-        (0L, 250.0, -10.0, 3600L, 0.0, 240.0),
+        (0L, 20.0, -10.0, 3600L, 0.0, 10.0),
       )
 
       forAll(cases) {
