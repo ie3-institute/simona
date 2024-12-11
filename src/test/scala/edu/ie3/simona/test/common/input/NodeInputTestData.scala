@@ -7,11 +7,12 @@
 package edu.ie3.simona.test.common.input
 
 import java.util.UUID
-
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.util.quantities.PowerSystemUnits.PU
+import org.locationtech.jts.geom.{Coordinate, Point}
+import spire.math.Point
 import tech.units.indriya.quantity.Quantities
 
 /** //ToDo: Class Description
@@ -96,4 +97,72 @@ trait NodeInputTestData extends DefaultTestData {
       GermanVoltageLevelUtils.HV,
       1,
     )
+  /*protected val nodeInputPvModel1 =
+    new NodeInput(
+    UUID.fromString("19a4861e-cbf5-4dcc-bc1d-98611fda6eb5"),
+    "pvmodelnode1",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    defaultOperationTime,
+    Quantities.getQuantity(1.0, PU),
+    false,
+    (53.9209, 10.3837),
+    GermanVoltageLevelUtils.MV_10KV,
+    -1,
+  )
+  protected val nodeInputPvModel2 = new NodeInput(
+    UUID.fromString("9a2524f1-3639-4e90-a547-81a259712f8c"),
+    "pvmodel node 2",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    defaultOperationTime,
+    Quantities.getQuantity(1d, PU),
+    false,
+    new Coordinate(52.3393, 9.7342),
+    GermanVoltageLevelUtils.MV_10KV,
+    -1,
+  )
+  protected val nodeInputPvModel3 = new NodeInput(
+    UUID.fromString("022a94c6-2d60-4400-875c-ab9db1ae2736"),
+    "pvmodel node 3",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    defaultOperationTime,
+    Quantities.getQuantity(1d, PU),
+    false,
+    new Coordinate(52.1861, 10.1991),
+    GermanVoltageLevelUtils.MV_10KV,
+    -1,
+  )
+
+  protected val nodeInputPvModel4 = new NodeInput(
+    UUID.fromString("9354b02c-a4a9-4e9d-905a-e48110b04d88"),
+    "pvmodel node 4",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    defaultOperationTime,
+    Quantities.getQuantity(1d, PU),
+    false,
+    new Coordinate(53.6567, 10.8245),
+    GermanVoltageLevelUtils.MV_10KV,
+    -1,
+  )
+  protected val nodeInputPvModel5 = new NodeInput(
+    UUID.fromString("393eb0e3-7873-4d51-a830-2f1d98ff5a60"),
+    "pvmodel node 5",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    defaultOperationTime,
+    Quantities.getQuantity(1d, PU),
+    false,
+    new Coordinate(51.9644, 10.0134),
+    GermanVoltageLevelUtils.MV_10KV,
+    -1,
+  )
+  protected val nodeInputPvModel6 = new NodeInput(
+    UUID.fromString("7607ca0b-959f-48b2-9c5c-1cf7c4ce0dc0"),
+    "pvmodel node 6",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    defaultOperationTime,
+    Quantities.getQuantity(1d, PU),
+    false,
+    new Coordinate(53.6454, 10.4729),
+    GermanVoltageLevelUtils.MV_10KV,
+    -1,
+  )*/
 }
