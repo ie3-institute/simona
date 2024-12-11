@@ -15,16 +15,29 @@ import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.matchers.DoubleMatchers
+import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.quantities.{ApparentPower, Voltamperes}
+import edu.ie3.util.scala.quantities.{
+  ApparentPower,
+  Kilovoltamperes,
+  Voltamperes,
+}
+import squants.Percent
+import squants.energy.{KilowattHours, Power, Watts}
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
 
-class ProfileLoadModelSpec extends UnitSpec with DoubleMatchers {
+class ProfileLoadModelSpec
+    extends UnitSpec
+    with DoubleMatchers
+    with LoadModelTestHelper {
 
   private implicit val powerTolerance: ApparentPower = Voltamperes(1e-2)
   private implicit val doubleTolerance: Double = 1e-6
+
+  private val simulationStartDate =
+    TimeUtil.withDefaults.toZonedDateTime("2022-01-01T00:00:00Z")
 
   "A profile load model" should {
 
@@ -124,6 +137,80 @@ class ProfileLoadModelSpec extends UnitSpec with DoubleMatchers {
 
       }
 
+    }
+
+    "reach the targeted annual energy consumption" in {
+      forAll(
+        Table("profile", H0, L0, G0)
+      ) { profile =>
+        val input = loadInput.copy().loadprofile(profile).build()
+
+        val config = LoadRuntimeConfig(
+          calculateMissingReactivePowerWithModel = false,
+          scaling = 1.0,
+          uuids = List.empty,
+          modelBehaviour = "profile",
+          reference = "energy",
+        )
+
+        val targetEnergyConsumption = KilowattHours(
+          loadInput
+            .geteConsAnnual()
+            .to(PowerSystemUnits.KILOWATTHOUR)
+            .getValue
+            .doubleValue
+        )
+
+        val model = ProfileLoadModel(input, config)
+
+        /* Test against a permissible deviation of 2 %. As per official documentation of the bdew load profiles
+         * [https://www.bdew.de/media/documents/2000131_Anwendung-repraesentativen_Lastprofile-Step-by-step.pdf], 1.5 %
+         * are officially permissible. But, as we currently do not take (bank) holidays into account, we cannot reach
+         * this accuracy. */
+
+        calculateEnergyDiffForYear(
+          model,
+          simulationStartDate,
+          targetEnergyConsumption,
+        ) should be < Percent(2)
+      }
+    }
+
+    "approximately reach the maximum power in a simulated year" in {
+      forAll(
+        Table("profile", H0, L0, G0)
+      ) { profile =>
+        val input = loadInput.copy().loadprofile(profile).build()
+
+        val config = LoadRuntimeConfig(
+          calculateMissingReactivePowerWithModel = false,
+          scaling = 1.0,
+          uuids = List.empty,
+          modelBehaviour = "profile",
+          reference = "power",
+        )
+
+        val model = ProfileLoadModel(input, config)
+
+        val targetMaximumPower = Kilovoltamperes(
+          input
+            .getsRated()
+            .to(PowerSystemUnits.KILOVOLTAMPERE)
+            .getValue
+            .doubleValue
+        ).toActivePower(input.getCosPhiRated)
+
+        val maximumPower = calculatePowerForYear(
+          model,
+          simulationStartDate,
+        ).maxOption.value
+
+        // the maximum value depends on the year of the simulation,
+        // since the maximum value for h0 will be reached on Saturdays in the winter
+        // and since the dynamization function reaches its maximum on day 366 (leap year)
+        implicit val tolerance: Power = Watts(1)
+        maximumPower should approximate(targetMaximumPower)
+      }
     }
 
   }
