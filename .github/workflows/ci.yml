@@ -82,6 +82,10 @@ jobs:
             echo "SonarQube URL for Branch: $SONAR_STATUS_URL"
           fi
 
+          branch_name="${{ env.branch_name }}"
+          TEST_SONAR_STATUS_URL="${BASE_SONAR_STATUS_URL}&branch=$branch_name"
+          echo "Testing: SonarQube URL for Branch: $TEST_SONAR_STATUS_URL"
+
           QUALITY_GATE_STATUS=$(curl -s -u "${{ secrets.SONAR_TOKEN }}:" "$SONAR_STATUS_URL" | jq -r '.projectStatus.status')
 
           echo "Quality Gate Status: $QUALITY_GATE_STATUS"
