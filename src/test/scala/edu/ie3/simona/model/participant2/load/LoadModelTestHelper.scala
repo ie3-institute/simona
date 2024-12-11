@@ -71,4 +71,8 @@ trait LoadModelTestHelper {
   ): Dimensionless =
     Each((expectedResult - actualResult).abs / expectedResult)
 
+  protected def get95Quantile[V](sortedArray: Array[V]): V = sortedArray(
+    (sortedArray.length * 0.95).toInt
+  )
+
 }

@@ -139,7 +139,7 @@ class ProfileLoadModelSpec
 
     }
 
-    "reach the targeted annual energy consumption" in {
+    "reach the targeted annual energy consumption in a simulated year" in {
       forAll(
         Table("profile", H0, L0, G0)
       ) { profile =>

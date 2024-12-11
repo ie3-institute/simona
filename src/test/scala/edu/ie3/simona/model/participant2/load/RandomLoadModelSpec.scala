@@ -18,15 +18,24 @@ import edu.ie3.simona.model.participant.load.random.RandomLoadParameters
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.quantities.{ApparentPower, Voltamperes}
+import edu.ie3.util.scala.quantities.{
+  ApparentPower,
+  Kilovoltamperes,
+  Voltamperes,
+}
+import squants.Percent
+import squants.energy.KilowattHours
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
 
-class RandomLoadModelSpec extends UnitSpec {
+class RandomLoadModelSpec extends UnitSpec with LoadModelTestHelper {
 
   implicit val powerTolerance: ApparentPower = Voltamperes(1e-2)
   private implicit val doubleTolerance: Double = 1e-6
+
+  private val simulationStartDate =
+    TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")
 
   "A random load model" should {
 
@@ -158,11 +167,69 @@ class RandomLoadModelSpec extends UnitSpec {
       secondHit shouldBe firstHit
     }
 
-  }
-}
+    "reach the targeted annual energy consumption in a simulated year" in {
+      val config = LoadRuntimeConfig(
+        calculateMissingReactivePowerWithModel = false,
+        scaling = 1.0,
+        uuids = List.empty,
+        modelBehaviour = "random",
+        reference = "energy",
+      )
 
-object RandomLoadModelSpec {
-  def get95Quantile[V](sortedArray: Array[V]): V = sortedArray(
-    (sortedArray.length * 0.95).toInt
-  )
+      val model = RandomLoadModel(
+        loadInput,
+        config,
+      )
+
+      val targetEnergyConsumption = KilowattHours(
+        loadInput
+          .geteConsAnnual()
+          .to(PowerSystemUnits.KILOWATTHOUR)
+          .getValue
+          .doubleValue
+      )
+
+      calculateEnergyDiffForYear(
+        model,
+        simulationStartDate,
+        targetEnergyConsumption,
+      ) should be < Percent(1d)
+    }
+
+    "approximately reach the maximum power in a simulated year" in {
+      val config = LoadRuntimeConfig(
+        calculateMissingReactivePowerWithModel = false,
+        scaling = 1.0,
+        uuids = List.empty,
+        modelBehaviour = "random",
+        reference = "power",
+      )
+
+      val model = RandomLoadModel(
+        loadInput,
+        config,
+      )
+
+      val targetMaximumPower = Kilovoltamperes(
+        loadInput
+          .getsRated()
+          .to(PowerSystemUnits.KILOVOLTAMPERE)
+          .getValue
+          .doubleValue
+      ).toActivePower(loadInput.getCosPhiRated)
+
+      val powers = calculatePowerForYear(
+        model,
+        simulationStartDate,
+      ).toIndexedSeq.sorted.toArray
+
+      val quantile95 = get95Quantile(powers)
+
+      getRelativeDifference(
+        quantile95,
+        targetMaximumPower,
+      ) should be < Percent(2d)
+    }
+
+  }
 }
