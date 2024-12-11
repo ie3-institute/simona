@@ -264,7 +264,7 @@ class ChpModelSpec
           92,
           1,
           1150,
-        ), // test case (true, true, true) and storage volume exceeds maximum
+        ), // test case (true, true, true) CHP running, storage at lvl 92 (1058 kWh) + 100 kWh from CHP exceeds max capacity (1150 kWh).
       )
 
       forAll(testCases) {
