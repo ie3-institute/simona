@@ -53,6 +53,7 @@ trait MutableStorage {
     * @return
     *   lack
     */
+  @deprecated("Use thermal storage state instead")
   def tryToTakeAndReturnLack(
       takenEnergy: Energy
   ): Option[Energy]
