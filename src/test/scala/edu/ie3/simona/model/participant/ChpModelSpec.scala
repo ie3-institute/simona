@@ -289,7 +289,7 @@ class ChpModelSpec
           "expectedTick",
           "expectedRunningStatus",
         ),
-       (
+        (
           chpStateNotRunning,
           70,
           0,
