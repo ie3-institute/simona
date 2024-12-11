@@ -13,7 +13,6 @@ import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.profile.LoadProfileStore
-import edu.ie3.simona.model.participant.load.random.RandomLoadParamStore
 import edu.ie3.simona.model.participant2.ParticipantModel
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
@@ -40,7 +39,7 @@ class ProfileLoadModel(
       state: ParticipantModel.FixedState,
       relevantData: DateTimeData,
   ): (ParticipantModel.ActivePowerOperatingPoint, Option[Long]) = {
-    val resolution = RandomLoadParamStore.resolution.getSeconds
+    val resolution = LoadProfileStore.resolution.getSeconds
 
     val (modelTick, modelDateTime) = TickUtil.roundToResolution(
       relevantData.tick,
