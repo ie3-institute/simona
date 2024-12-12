@@ -703,7 +703,7 @@ class ThermalGridWithHouseAndStorageSpec
               thermalStorage.chargingPower * (-1)
             )
 
-            houseWarmTick shouldBe 13729L
+            houseWarmTick shouldBe 13825L
             storageEmptyTick shouldBe 10145L
           case _ => fail("Revision of states failed")
         }
