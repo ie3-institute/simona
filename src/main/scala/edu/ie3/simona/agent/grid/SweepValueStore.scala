@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.grid
 
 import java.util.UUID
-
 import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.simona.agent.grid.SweepValueStore.SweepValueStoreData

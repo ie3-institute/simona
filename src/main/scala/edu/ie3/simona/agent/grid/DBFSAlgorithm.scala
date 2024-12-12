@@ -477,7 +477,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             }
 
           // check if congestion management is enabled
-          if (gridAgentBaseData.congestionManagementParams.enabled) {
+          if (gridAgentBaseData.congestionManagementParams.detectionEnabled) {
 
             // get result or build empty data
             val congestionManagementData = results

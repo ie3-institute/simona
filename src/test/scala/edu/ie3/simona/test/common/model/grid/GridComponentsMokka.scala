@@ -132,16 +132,19 @@ trait GridComponentsMokka extends MockitoSugar {
   }
 
   protected def mockTransformerModel(
-      uuid: UUID = UUID.randomUUID()
+      uuid: UUID = UUID.randomUUID(),
+      hasAutoTap: Boolean = false,
   ): TransformerModel = {
     val transformer = mock[TransformerModel]
     when(transformer.uuid).thenReturn(uuid)
+    when(transformer.hasAutoTap).thenReturn(hasAutoTap)
 
     transformer
   }
 
   protected def mockTransformer3wModel(
-      uuid: UUID = UUID.randomUUID()
+      uuid: UUID = UUID.randomUUID(),
+      hasAutoTap: Boolean = false,
   ): (Transformer3wModel, Transformer3wModel, Transformer3wModel) = {
     val transformerA = mock[Transformer3wModel]
     val transformerB = mock[Transformer3wModel]
@@ -149,6 +152,10 @@ trait GridComponentsMokka extends MockitoSugar {
     when(transformerA.uuid).thenReturn(uuid)
     when(transformerB.uuid).thenReturn(uuid)
     when(transformerC.uuid).thenReturn(uuid)
+
+    when(transformerA.hasAutoTap).thenReturn(hasAutoTap)
+    when(transformerB.hasAutoTap).thenReturn(hasAutoTap)
+    when(transformerC.hasAutoTap).thenReturn(hasAutoTap)
 
     when(transformerA.powerFlowCase).thenReturn(PowerFlowCaseA)
     when(transformerB.powerFlowCase).thenReturn(

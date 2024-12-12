@@ -10,10 +10,7 @@ import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.CongestionManagementSupport.{
-  Congestions,
-  VoltageRange,
-}
+import CongestionManagementSupport.{Congestions, VoltageRange}
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.config.SimonaConfig
@@ -55,7 +52,7 @@ class DCMAlgorithmSupGridSpec
 
   // config with congestion management and transformer tapping enabled
   private val tappingEnabledConfig = ConfigFactory.parseString("""
-      |simona.congestionManagement.enable = true
+      |simona.congestionManagement.enableDetection = true
       |simona.congestionManagement.enableTransformerTapping = true
       |""".stripMargin)
 

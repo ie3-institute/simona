@@ -33,6 +33,7 @@ import org.apache.pekko.actor.typed.scaladsl.{
   StashBuffer,
 }
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
+import org.slf4j.Logger
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
@@ -191,7 +192,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
           cfg.powerflow.stopOnFailure,
         ),
         CongestionManagementParams(
-          cfg.congestionManagement.enable,
+          cfg.congestionManagement.enableDetection,
           cfg.congestionManagement.enableTransformerTapping,
           cfg.congestionManagement.enableTopologyChanges,
           cfg.congestionManagement.enableUsingFlexOptions,
@@ -305,5 +306,12 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         s"$actorName has neither superior nor inferior grids! This can either " +
           s"be cause by wrong subnetGate information or invalid parametrization of the simulation!"
       )
+  }
+
+  private[grid] def unsupported(msg: Request, log: Logger)(implicit
+      buffer: StashBuffer[GridAgent.Request]
+  ): Unit = {
+    log.debug(s"Received unsupported msg: $msg. Stash away!")
+    buffer.stash(msg)
   }
 }

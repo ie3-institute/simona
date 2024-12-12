@@ -12,9 +12,9 @@ import edu.ie3.datamodel.models.result.connector.{
   LineResult,
   Transformer2WResult,
 }
+import edu.ie3.simona.agent.grid.CongestionManagementSupport.VoltageRange.calculatePossibleVoltageDeltaForLines
 import edu.ie3.simona.agent.grid.CongestionManagementSupport.{
   Congestions,
-  TappingGroup,
   VoltageRange,
 }
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
@@ -25,27 +25,24 @@ import edu.ie3.simona.model.grid.{
   TransformerTapping,
   VoltageLimits,
 }
-import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.test.common.model.grid.{
   DbfsTestGrid,
   GridComponentsMokka,
   SubGridGateMokka,
 }
 import edu.ie3.simona.test.common.result.ResultMokka
+import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.ActorRef
 import squants.electro.Kilovolts
 import squants.energy.Kilowatts
-import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
-import javax.measure.quantity.Dimensionless
 
 class CongestionManagementSupportSpec
     extends ScalaTestWithActorTestKit
@@ -66,256 +63,79 @@ class CongestionManagementSupportSpec
 
   "CongestionManagementSupport" should {
 
-    "group transformers correctly" in {
-      val (transformer3wA, transformer3wB, transformer3wC) =
-        mockTransformer3wModel()
-      val transformer1 = mockTransformerModel()
-      val ref1 = TestProbe[GridAgent.Request]("ref1").ref
-      val ref2 = TestProbe[GridAgent.Request]("ref2").ref
-
-      val ref3 = TestProbe[GridAgent.Request]("ref3").ref
-      val transformer3 = mockTransformerModel()
-
-      val ref4 = TestProbe[GridAgent.Request]("ref4").ref
-      val transformer4a = mockTransformerModel()
-      val transformer4b = mockTransformerModel()
-
-      // grid 1 is connected via a transformer2w and one port of a transformer3w
-      // grid 2 is connected via one port of a transformer3w
-      // grid 3 is connected via a transformer2w
-      // grid 4 is connected via two transformer2ws
-      val receivedData
-          : Map[ActorRef[GridAgent.Request], Set[TransformerTapping]] = Map(
-        ref1 -> Set(
-          transformer1,
-          transformer3wB,
-        ), // connected with both transformer2w and transformer3w
-        ref2 -> Set(transformer3wC), // connected with a transformer3w
-        ref3 -> Set(transformer3), // connected with just one transformer model
-        ref4 -> Set(
-          transformer4a,
-          transformer4b,
-        ), // connected with two transformer2w
+    "get tapping options correctly" in {
+      val tappingModel1: TransformerTapping = mockTransformerTappingModel(
+        autoTap = true,
+        currentTapPos = 3,
+        tapMax = 4,
+        tapMin = -5,
+        deltaV = 1.asPu,
       )
 
-      val groups = groupTappingModels(
-        receivedData,
-        Set(transformer3wA),
+      val tappingModel2: TransformerTapping = mockTransformerTappingModel(
+        autoTap = true,
+        currentTapPos = 1,
+        tapMax = 3,
+        tapMin = -2,
+        deltaV = 1.asPu,
       )
-
-      // explanation for the expected groups:
-      // since both grid 1 and grid 2 are connected by the same transformer3w they must be tapped by the same voltage delta
-      // since grid 1 is also connected by transformer 1, both transformer are building a group together
-      // the group contain the refs for both grids
-      //
-      // since grid 3 is only connected by a transformer2w, the group contains only this transformer and one ref
-      //
-      // since grid 4 is connected by two transformer2w, the group contains both transformers and the ref of grid 4
-      groups shouldBe Set(
-        TappingGroup(Set(ref1, ref2), Set(transformer1, transformer3wA)),
-        TappingGroup(Set(ref3), Set(transformer3)),
-        TappingGroup(Set(ref4), Set(transformer4a, transformer4b)),
-      )
-    }
-
-    "calculate the tap and voltage change for one transformer" in {
-      val tappingModel = dummyTappingModel()
-      val tapping = dummyTransformerModel(tappingModel)
 
       val cases = Table(
-        ("range", "expectedTap", "expectedDelta"),
-        (VoltageRange(0.025.asPu, 0.015.asPu, 0.02.asPu), -1, 0.015.asPu),
+        ("tappings", "expectedPlus", "expectedMinus"),
+        (Set(tappingModel1), 0.08.asPu, (-0.01).asPu),
+        (Set(tappingModel2), 0.03.asPu, (-0.02).asPu),
+        (Set(tappingModel1, tappingModel2), 0.03.asPu, (-0.01).asPu),
+      )
+
+      forAll(cases) { (tappings, expectedPlus, expectedMinus) =>
+        val (actualPlus, actualMinus) = getTappingOptions(tappings)
+
+        actualPlus shouldBe expectedPlus
+        actualMinus shouldBe expectedMinus
+      }
+    }
+  }
+
+  "A VoltageRange" should {
+
+    "calculate the suggestion correctly" in {
+      val cases = Table(
+        ("deltaPlus", "deltaMinus", "expected"),
+        (0.05.asPu, (-0.03).asPu, 0.asPu), // no voltage limit violation
         (
-          VoltageRange((-0.015).asPu, (-0.025).asPu, (-0.02).asPu),
-          1,
+          (-0.01).asPu,
+          (-0.02).asPu,
           (-0.015).asPu,
-        ),
-        (VoltageRange(0.041.asPu, 0.021.asPu, 0.031.asPu), -2, 0.03.asPu),
-        (VoltageRange(0.05.asPu, 0.03.asPu, 0.05.asPu), -3, 0.045.asPu),
-        (
-          VoltageRange(0.asPu, (-0.2).asPu, (-0.1).asPu),
-          4,
-          (-0.06).asPu,
-        ), // max tap increase
-        (
-          VoltageRange(0.2.asPu, 0.asPu, 0.1.asPu),
-          -6,
-          0.09.asPu,
-        ), // max tap decrease
-        (
-          VoltageRange(0.015.asPu, 0.03.asPu, 0.15.asPu),
-          -1,
-          0.015.asPu,
-        ),
-        (
-          VoltageRange((-0.04).asPu, (-0.03).asPu, (-0.03).asPu),
-          2,
-          (-0.03).asPu,
-        ),
-      )
-
-      forAll(cases) { (range, expectedTap, expectedDelta) =>
-        val (actualTap, actualDelta) =
-          calculateTapAndVoltage(range, Seq(tapping))
-
-        actualTap shouldBe Map(tapping -> expectedTap)
-        actualDelta should equalWithTolerance(expectedDelta)
-      }
-    }
-
-    "calculate the tap and voltage change for multiple transformers" in {
-      val tappingModel1 = dummyTappingModel()
-      val tappingModel2 = dummyTappingModel(
-        deltaV = 1.2.asPercent,
-        tapMin = -3,
-        currentTapPos = 0,
-      )
-
-      val transformer11 = dummyTransformerModel(tappingModel1)
-      val transformer12 = dummyTransformerModel(tappingModel1)
-
-      val transformer21 = dummyTransformerModel(tappingModel2)
-      val transformer22 = dummyTransformer3wModel(tappingModel2)
-
-      val transformer31 = dummyTransformerModel(tappingModel1)
-      val transformer32 = dummyTransformer3wModel(tappingModel2)
-
-      val modelCase1 = Seq(transformer11, transformer12)
-      val modelCase2 = Seq(transformer21, transformer22)
-      val modelCase3 = Seq(transformer31, transformer32)
-
-      val cases = Table(
-        ("suggestion", "models", "expectedTaps", "expectedDelta"),
-        (
-          VoltageRange(0.1.asPu, (-0.1).asPu, 0.02.asPu),
-          modelCase1,
-          Map(transformer11 -> -1, transformer12 -> -1),
-          0.015.asPu,
-        ),
-        (
-          VoltageRange(0.1.asPu, (-0.1).asPu, 0.038.asPu),
-          modelCase1,
-          Map(transformer11 -> -3, transformer12 -> -3),
-          0.045.asPu,
-        ),
-        (
-          VoltageRange(0.1.asPu, (-0.1).asPu, (-0.06).asPu),
-          modelCase1,
-          Map(transformer11 -> 4, transformer12 -> 4),
-          (-0.06).asPu,
-        ),
-        (
-          VoltageRange(0.1.asPu, (-0.1).asPu, 0.02.asPu),
-          modelCase2,
-          Map(transformer21 -> -2, transformer22 -> -2),
-          0.024.asPu,
-        ),
-        (
-          VoltageRange(0.1.asPu, (-0.1).asPu, 0.038.asPu),
-          modelCase2,
-          Map(transformer21 -> -3, transformer22 -> -3),
-          0.036.asPu,
-        ),
-        (
-          VoltageRange(0.1.asPu, (-0.1).asPu, (-0.06).asPu),
-          modelCase2,
-          Map(transformer21 -> 5, transformer22 -> 5),
-          (-0.06).asPu,
-        ),
-        (
-          VoltageRange(0.1.asPu, (-0.1).asPu, 0.02.asPu),
-          modelCase3,
-          Map(transformer31 -> 0, transformer32 -> 0),
-          0.asPu,
-        ),
-        (
-          VoltageRange(0.1.asPu, (-0.1).asPu, 0.038.asPu),
-          modelCase3,
-          Map(transformer31 -> 0, transformer32 -> 0),
-          0.asPu,
-        ),
-        (
-          VoltageRange(0.1.asPu, (-0.1).asPu, (-0.06).asPu),
-          modelCase3,
-          Map(transformer31 -> 4, transformer32 -> 5),
-          (-0.06).asPu,
-        ),
-        (
-          VoltageRange(0.015.asPu, 0.05.asPu, 0.015.asPu),
-          modelCase1,
-          Map(transformer11 -> -1, transformer12 -> -1),
-          0.015.asPu,
-        ),
-        (
-          VoltageRange((-0.05).asPu, (-0.03).asPu, (-0.03).asPu),
-          modelCase1,
-          Map(transformer11 -> 2, transformer12 -> 2),
-          (-0.03).asPu,
-        ),
-      )
-
-      forAll(cases) { (range, models, expectedTaps, expectedDelta) =>
-        val (tapChanges, delta) = calculateTapAndVoltage(range, models)
-
-        tapChanges shouldBe expectedTaps
-        delta should equalWithTolerance(expectedDelta)
-      }
-
-    }
-
-    "calculate the common delta correctly" in {
-
-      val cases = Table(
-        ("suggestion", "possibleDeltas", "expected"),
-        (0.015.asPu, Set(List(0.03.asPu, 0.015.asPu, 0.asPu)), 0.015.asPu),
-        (
-          0.012.asPu,
-          Set(List(0.03.asPu, 0.02.asPu, 0.01.asPu, 0.asPu)),
-          0.01.asPu,
-        ),
-        (0.006.asPu, Set(List(0.03.asPu, 0.015.asPu, 0.asPu)), 0.asPu),
-        (
-          0.03.asPu,
-          Set(
-            List(0.06.asPu, 0.03.asPu, 0.asPu),
-            List(0.045.asPu, 0.03.asPu, 0.015.asPu, 0.asPu),
-          ),
-          0.03.asPu,
-        ),
-        (
-          0.03.asPu,
-          Set(List(0.06.asPu, 0.03.asPu), List(0.03.asPu, 0.015.asPu)),
-          0.03.asPu,
-        ),
-        (
-          0.035.asPu,
-          Set(
-            List(0.06.asPu, 0.03.asPu, 0.asPu),
-            List(0.045.asPu, 0.03.asPu, 0.015.asPu, 0.asPu),
-          ),
-          0.03.asPu,
-        ),
+        ), // upper voltage limit violation (both are negative), decreasing voltage
         (
           0.02.asPu,
-          Set(List(0.06.asPu, 0.03.asPu), List(0.03.asPu, 0.015.asPu)),
-          0.03.asPu,
-        ),
+          0.01.asPu,
+          0.015.asPu,
+        ), // lower voltage limit violation (both are positive), increasing voltage
         (
-          0.06.asPu,
-          Set(List(0.06.asPu, 0.03.asPu), List(0.03.asPu, 0.015.asPu)),
-          0.asPu,
-        ),
+          0.01.asPu,
+          0.02.asPu,
+          0.01.asPu,
+        ), // violation of both lower limit, upper > 0, increase voltage to the upper limit
         (
           (-0.02).asPu,
-          Set(List(0.06.asPu, 0.03.asPu), List(0.03.asPu, 0.015.asPu)),
+          (-0.01).asPu,
+          (-0.01).asPu,
+        ), // violation of both upper limit, lower < 0, decrease voltage to the lower limit
+        (
+          (-0.01).asPu,
+          0.01.asPu,
           0.asPu,
-        ),
+        ), // violation of both voltage limits (upper negative, lower positive), do nothing
       )
 
-      forAll(cases) { (suggestion, possibleDeltas, expected) =>
-        val delta = findCommonDelta(suggestion, possibleDeltas)
+      forAll(cases) { (deltaPlus, deltaMinus, expected) =>
+        val suggestion = VoltageRange(
+          deltaPlus,
+          deltaMinus,
+        ).suggestion
 
-        delta should equalWithTolerance(expected)
+        suggestion should equalWithTolerance(expected)
       }
     }
 
@@ -412,7 +232,7 @@ class CongestionManagementSupportSpec
         ),
       )
 
-      val range = calculatePossibleVoltageRange(
+      val range = VoltageRange(
         powerFlowResult,
         VoltageLimits(0.9, 1.1),
         gridComponents,
@@ -467,7 +287,7 @@ class CongestionManagementSupportSpec
 
       // the voltage range of the given grid is limited by the voltage range
       // of the inferior grids and the possible transformer tapping
-      val range = calculatePossibleVoltageRange(
+      val range = VoltageRange(
         powerFlowResult,
         VoltageLimits(0.9, 1.1),
         gridComponents,
@@ -485,64 +305,6 @@ class CongestionManagementSupportSpec
       range.deltaPlus should equalWithTolerance(0.04.asPu)
       range.deltaMinus should equalWithTolerance((-0.02).asPu)
       range.suggestion should equalWithTolerance(0.asPu)
-    }
-
-    def buildPowerFlowResultEvent(
-        nodeResults: Set[NodeResult],
-        lineResults: Set[LineResult],
-    ): PowerFlowResultEvent = {
-      PowerFlowResultEvent(
-        nodeResults,
-        Set.empty,
-        lineResults,
-        Set.empty,
-        Set.empty,
-      )
-    }
-
-  }
-
-  "A VoltageRange" should {
-
-    "calculate the suggestion correctly" in {
-      val cases = Table(
-        ("deltaPlus", "deltaMinus", "expected"),
-        (0.05.asPu, (-0.03).asPu, 0.asPu), // no voltage limit violation
-        (
-          (-0.01).asPu,
-          (-0.02).asPu,
-          (-0.015).asPu,
-        ), // upper voltage limit violation (both are negative), decreasing voltage
-        (
-          0.02.asPu,
-          0.01.asPu,
-          0.015.asPu,
-        ), // lower voltage limit violation (both are positive), increasing voltage
-        (
-          0.01.asPu,
-          0.02.asPu,
-          0.01.asPu,
-        ), // violation of both lower limit, upper > 0, increase voltage to the upper limit
-        (
-          (-0.02).asPu,
-          (-0.01).asPu,
-          (-0.01).asPu,
-        ), // violation of both upper limit, lower < 0, decrease voltage to the lower limit
-        (
-          (-0.01).asPu,
-          0.01.asPu,
-          0.asPu,
-        ), // violation of both voltage limits (upper negative, lower positive), do nothing
-      )
-
-      forAll(cases) { (deltaPlus, deltaMinus, expected) =>
-        val suggestion = VoltageRange(
-          deltaPlus,
-          deltaMinus,
-        ).suggestion
-
-        suggestion should equalWithTolerance(expected)
-      }
     }
 
     "be updated with a line voltage delta correctly" in {
@@ -693,36 +455,17 @@ class CongestionManagementSupportSpec
       }
     }
 
-    "get tapping options correctly" in {
-      val tappingModel1: TransformerTapping = mockTransformerTappingModel(
-        autoTap = true,
-        currentTapPos = 3,
-        tapMax = 4,
-        tapMin = -5,
-        deltaV = 1.asPu,
+    def buildPowerFlowResultEvent(
+        nodeResults: Set[NodeResult],
+        lineResults: Set[LineResult],
+    ): PowerFlowResultEvent = {
+      PowerFlowResultEvent(
+        nodeResults,
+        Set.empty,
+        lineResults,
+        Set.empty,
+        Set.empty,
       )
-
-      val tappingModel2: TransformerTapping = mockTransformerTappingModel(
-        autoTap = true,
-        currentTapPos = 1,
-        tapMax = 3,
-        tapMin = -2,
-        deltaV = 1.asPu,
-      )
-
-      val cases = Table(
-        ("tappings", "expectedPlus", "expectedMinus"),
-        (Set(tappingModel1), 0.08.asPu, (-0.01).asPu),
-        (Set(tappingModel2), 0.03.asPu, (-0.02).asPu),
-        (Set(tappingModel1, tappingModel2), 0.03.asPu, (-0.01).asPu),
-      )
-
-      forAll(cases) { (tappings, expectedPlus, expectedMinus) =>
-        val (actualPlus, actualMinus) = VoltageRange.getTappingOptions(tappings)
-
-        actualPlus shouldBe expectedPlus
-        actualMinus shouldBe expectedMinus
-      }
     }
   }
 

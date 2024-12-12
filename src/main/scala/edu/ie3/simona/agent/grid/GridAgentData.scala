@@ -602,6 +602,9 @@ object GridAgentData {
       )
     }
 
+    def getAllResults(startTime: ZonedDateTime): PowerFlowResultEvent =
+      powerFlowResults + getCongestionResult(startTime)
+
     /** Returns the [[ActorRef]]s to all inferior grids
       */
     def inferiorGridRefs: Set[ActorRef[GridAgent.Request]] =

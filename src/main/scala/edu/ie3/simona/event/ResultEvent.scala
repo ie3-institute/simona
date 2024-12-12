@@ -117,7 +117,13 @@ object ResultEvent {
       transformer2wResults: Iterable[Transformer2WResult],
       transformer3wResults: Iterable[PartialTransformer3wResult],
       congestionResults: Iterable[CongestionResult] = Iterable.empty,
-  ) extends ResultEvent
+  ) extends ResultEvent {
+
+    def +(congestionResult: CongestionResult): PowerFlowResultEvent = copy(
+      congestionResults = Seq(congestionResult)
+    )
+
+  }
 
   /** Event that holds the flexibility options result of a
     * [[edu.ie3.simona.model.participant.SystemParticipant]]

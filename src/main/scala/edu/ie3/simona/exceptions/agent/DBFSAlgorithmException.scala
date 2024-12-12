@@ -6,8 +6,11 @@
 
 package edu.ie3.simona.exceptions.agent
 
+import edu.ie3.simona.agent.grid.DBFSAlgorithm
+
 /** Exception that should be used whenever an exception occurs in
-  * [[edu.ie3.simona.agent.grid.DBFSAlgorithm]]
+  * [[DBFSAlgorithm]]
+  *
   * @param message
   *   specific error message
   */

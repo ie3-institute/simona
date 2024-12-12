@@ -15,7 +15,11 @@ import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.{Csv, InfluxDb1x}
 import edu.ie3.simona.config.SimonaConfig.Simona.Powerflow.Newtonraphson
-import edu.ie3.simona.config.SimonaConfig.Simona.{Powerflow, Time}
+import edu.ie3.simona.config.SimonaConfig.Simona.{
+  CongestionManagement,
+  Powerflow,
+  Time,
+}
 import edu.ie3.simona.config.SimonaConfig.{
   BaseCsvParams,
   ResultKafkaParams,
@@ -82,6 +86,26 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             )
           }.getMessage shouldBe "Invalid dateTimeString: total non-sense." +
             "Please ensure that your date/time parameter match the following pattern: 'yyyy-MM-dd'T'HH:mm:ss'Z''"
+        }
+      }
+
+      "Checking congestion management configuration" should {
+        val checkCongestionManagementConfiguration =
+          PrivateMethod[Unit](Symbol("checkCongestionManagementConfiguration"))
+
+        "throw exception if a mitigation was enabled without detection" in {
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast invokePrivate checkCongestionManagementConfiguration(
+              new CongestionManagement(
+                false,
+                true,
+                false,
+                false,
+                1,
+                Duration.ofSeconds(10),
+              )
+            )
+          }.getMessage shouldBe "A congestion mitigation was enabled without enabling congestion detection!"
         }
       }
 

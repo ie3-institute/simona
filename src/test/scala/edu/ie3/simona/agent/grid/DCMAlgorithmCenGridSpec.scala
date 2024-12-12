@@ -9,11 +9,8 @@ package edu.ie3.simona.agent.grid
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.CongestionManagementSupport.CongestionManagementSteps.TransformerTapping
-import edu.ie3.simona.agent.grid.CongestionManagementSupport.{
-  Congestions,
-  VoltageRange,
-}
+import CongestionManagementSupport.CongestionManagementSteps.TransformerTapping
+import CongestionManagementSupport.{Congestions, VoltageRange}
 import edu.ie3.simona.agent.grid.GridAgentData.GridAgentInitData
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
@@ -51,7 +48,7 @@ class DCMAlgorithmCenGridSpec
     with TestSpawnerTyped {
 
   private val tappingEnabledConfig = ConfigFactory.parseString("""
-      |simona.congestionManagement.enable = true
+      |simona.congestionManagement.enableDetection = true
       |simona.congestionManagement.enableTransformerTapping = true
       |""".stripMargin)
 

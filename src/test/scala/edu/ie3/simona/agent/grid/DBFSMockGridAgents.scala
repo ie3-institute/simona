@@ -6,10 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.simona.agent.grid.CongestionManagementSupport.{
-  Congestions,
-  VoltageRange,
-}
+import CongestionManagementSupport.{Congestions, VoltageRange}
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,

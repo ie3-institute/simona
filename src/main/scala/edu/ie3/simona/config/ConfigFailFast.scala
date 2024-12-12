@@ -8,6 +8,7 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.{Config, ConfigException}
 import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.simona.config.SimonaConfig.Simona.CongestionManagement
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
   CouchbaseParams,
   InfluxDb1xParams,
@@ -143,6 +144,11 @@ object ConfigFailFast extends LazyLogging {
     checkWeatherDataSource(simonaConfig.simona.input.weather.datasource)
 
     checkOutputConfig(simonaConfig.simona.output)
+
+    /* Check congestion management configuration*/
+    checkCongestionManagementConfiguration(
+      simonaConfig.simona.congestionManagement
+    )
 
     /* Check power flow resolution configuration */
     checkPowerFlowResolutionConfiguration(simonaConfig.simona.powerflow)
@@ -781,6 +787,26 @@ object ConfigFailFast extends LazyLogging {
       throw new InvalidConfigParameterException(
         s"Invalid log level \"${subConfig.level}\". Valid log levels: ${validLogLevels.mkString(", ")}"
       )
+  }
+
+  /** Check the config of congestion management
+    * @param congestionManagement
+    *   to check
+    */
+  private def checkCongestionManagementConfiguration(
+      congestionManagement: CongestionManagement
+  ): Unit = {
+    val enabled = congestionManagement.enableDetection
+
+    val mitigationsEnabled = congestionManagement.enableTransformerTapping ||
+      congestionManagement.enableUsingFlexOptions ||
+      congestionManagement.enableTopologyChanges
+
+    if (!enabled && mitigationsEnabled) {
+      throw new InvalidConfigParameterException(
+        "A congestion mitigation was enabled without enabling congestion detection!"
+      )
+    }
   }
 
   /** Checks resolution of power flow calculation
