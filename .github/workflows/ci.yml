@@ -79,7 +79,7 @@ jobs:
           else
             branch_name="${{ env.branch_name }}"
             ENCODED_BRANCH_NAME=$(printf %s "$branch_name" | jq -sRr @uri)
-            SONAR_STATUS_URL="${BASE_SONAR_STATUS_URL}&branch=$branch_name"
+            SONAR_STATUS_URL="${BASE_SONAR_STATUS_URL}&branch=${ENCODED_BRANCH_NAME}"
             echo "SonarQube URL for Branch: $SONAR_STATUS_URL"
           fi
 
