@@ -75,19 +75,13 @@ jobs:
           
           if [[ -n "${{ github.event.pull_request.number }}" ]]; then
             SONAR_STATUS_URL="${BASE_SONAR_STATUS_URL}&pullRequest=${{ github.event.pull_request.number }}"
-            echo "SonarQube URL for PR: $SONAR_STATUS_URL"
           else
             branch_name="${{ env.branch_name }}"
             ENCODED_BRANCH_NAME=$(printf %s "$branch_name" | jq -sRr @uri)
             SONAR_STATUS_URL="${BASE_SONAR_STATUS_URL}&branch=${ENCODED_BRANCH_NAME}"
-            echo "SonarQube URL for Branch: $SONAR_STATUS_URL"
           fi
 
-          branch_name="${{ env.branch_name }}"
-          ENCODED_BRANCH_NAME=$(printf %s "$branch_name" | jq -sRr @uri)
-          TEST_SONAR_STATUS_URL="${BASE_SONAR_STATUS_URL}&branch=${ENCODED_BRANCH_NAME}"
-          echo "Testing: SonarQube URL for Branch: $TEST_SONAR_STATUS_URL"
-
+          echo "Requesting quality gate status from: $SONAR_STATUS_URL"
           QUALITY_GATE_STATUS=$(curl -s -u "${{ secrets.SONAR_TOKEN }}:" "$SONAR_STATUS_URL" | jq -r '.projectStatus.status')
 
           echo "Quality Gate Status: $QUALITY_GATE_STATUS"
