@@ -231,6 +231,7 @@ trait BasicGridWithSwitches extends BasicGrid {
         Set.empty[Transformer3wModel],
         gridSwitches,
       ),
+      defaultVoltageLimits,
       GridControls.empty,
     )
   }

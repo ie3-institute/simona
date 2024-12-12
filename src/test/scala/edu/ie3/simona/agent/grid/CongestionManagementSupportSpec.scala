@@ -1,0 +1,672 @@
+/*
+ * © 2024. TU Dortmund University,
+ * Institute of Energy Systems, Energy Efficiency and Energy Economics,
+ * Research group Distribution grid planning and operation
+ */
+
+package edu.ie3.simona.agent.grid
+
+import edu.ie3.datamodel.models.StandardUnits
+import edu.ie3.datamodel.models.result.NodeResult
+import edu.ie3.datamodel.models.result.connector.{
+  LineResult,
+  Transformer2WResult,
+}
+import edu.ie3.simona.agent.grid.CongestionManagementSupport.VoltageRange.calculatePossibleVoltageDeltaForLines
+import edu.ie3.simona.agent.grid.CongestionManagementSupport.{
+  Congestions,
+  VoltageRange,
+}
+import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
+import edu.ie3.simona.model.grid.GridModel.GridComponents
+import edu.ie3.simona.model.grid.{
+  GridModel,
+  RefSystem,
+  TransformerTapping,
+  VoltageLimits,
+}
+import edu.ie3.simona.test.common.model.grid.{
+  DbfsTestGrid,
+  GridComponentsMokka,
+  SubGridGateMokka,
+}
+import edu.ie3.simona.test.common.result.ResultMokka
+import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
+import edu.ie3.util.quantities.PowerSystemUnits.PU
+import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ScalaTestWithActorTestKit,
+  TestProbe,
+}
+import squants.electro.Kilovolts
+import squants.energy.Kilowatts
+import tech.units.indriya.quantity.Quantities
+
+import java.time.ZonedDateTime
+
+class CongestionManagementSupportSpec
+    extends ScalaTestWithActorTestKit
+    with UnitSpec
+    with GridComponentsMokka
+    with ResultMokka
+    with SubGridGateMokka
+    with DbfsTestGrid
+    with ConfigTestData
+    with CongestionManagementSupport {
+
+  val voltageTolerance = 1e-3
+
+  val inferior1: TestProbe[GridAgent.Request] =
+    TestProbe[GridAgent.Request]("inferior1")
+  val inferior2: TestProbe[GridAgent.Request] =
+    TestProbe[GridAgent.Request]("inferior2")
+
+  "CongestionManagementSupport" should {
+
+    "get tapping options correctly" in {
+      val tappingModel1: TransformerTapping = mockTransformerTappingModel(
+        autoTap = true,
+        currentTapPos = 3,
+        tapMax = 4,
+        tapMin = -5,
+        deltaV = 1.asPu,
+      )
+
+      val tappingModel2: TransformerTapping = mockTransformerTappingModel(
+        autoTap = true,
+        currentTapPos = 1,
+        tapMax = 3,
+        tapMin = -2,
+        deltaV = 1.asPu,
+      )
+
+      val cases = Table(
+        ("tappings", "expectedPlus", "expectedMinus"),
+        (Set(tappingModel1), 0.08.asPu, (-0.01).asPu),
+        (Set(tappingModel2), 0.03.asPu, (-0.02).asPu),
+        (Set(tappingModel1, tappingModel2), 0.03.asPu, (-0.01).asPu),
+      )
+
+      forAll(cases) { (tappings, expectedPlus, expectedMinus) =>
+        val (actualPlus, actualMinus) = getTappingOptions(tappings)
+
+        actualPlus shouldBe expectedPlus
+        actualMinus shouldBe expectedMinus
+      }
+    }
+  }
+
+  "A VoltageRange" should {
+
+    "calculate the suggestion correctly" in {
+      val cases = Table(
+        ("deltaPlus", "deltaMinus", "expected"),
+        (0.05.asPu, (-0.03).asPu, 0.asPu), // no voltage limit violation
+        (
+          (-0.01).asPu,
+          (-0.02).asPu,
+          (-0.015).asPu,
+        ), // upper voltage limit violation (both are negative), decreasing voltage
+        (
+          0.02.asPu,
+          0.01.asPu,
+          0.015.asPu,
+        ), // lower voltage limit violation (both are positive), increasing voltage
+        (
+          0.01.asPu,
+          0.02.asPu,
+          0.01.asPu,
+        ), // violation of both lower limit, upper > 0, increase voltage to the upper limit
+        (
+          (-0.02).asPu,
+          (-0.01).asPu,
+          (-0.01).asPu,
+        ), // violation of both upper limit, lower < 0, decrease voltage to the lower limit
+        (
+          (-0.01).asPu,
+          0.01.asPu,
+          0.asPu,
+        ), // violation of both voltage limits (upper negative, lower positive), do nothing
+      )
+
+      forAll(cases) { (deltaPlus, deltaMinus, expected) =>
+        val suggestion = VoltageRange(
+          deltaPlus,
+          deltaMinus,
+        ).suggestion
+
+        suggestion should equalWithTolerance(expected)
+      }
+    }
+
+    "calculates the possible voltage delta for lines correctly" in {
+      val node1 = nodeModel()
+      val node2 = nodeModel()
+      val node3 = nodeModel()
+
+      val line12 = lineModel(node1.uuid, node2.uuid)
+      val line13 = lineModel(node1.uuid, node3.uuid)
+
+      val gridComponents = GridComponents(
+        Seq(node1, node2, node3),
+        Set(line12, line13),
+        Set.empty,
+        Set.empty,
+        Set.empty,
+      )
+
+      val cases = Table(
+        ("results", "deltaV"),
+        (
+          buildPowerFlowResultEvent(
+            Set(
+              mockNodeResult(node1.uuid, 0.93.asPu),
+              mockNodeResult(node2.uuid, 0.95.asPu),
+              mockNodeResult(node3.uuid, 0.95.asPu),
+            ),
+            Set(
+              mockLineResult(line12.uuid, 5.asAmpere, 5.asAmpere),
+              mockLineResult(line13.uuid, 11.asAmpere, 10.9.asAmpere),
+            ),
+          ),
+          0.093.asPu, // min voltage increase to resolve line congestion
+        ),
+        (
+          buildPowerFlowResultEvent(
+            Set(
+              mockNodeResult(node1.uuid, 0.93.asPu),
+              mockNodeResult(node2.uuid, 0.95.asPu),
+              mockNodeResult(node3.uuid, 0.95.asPu),
+            ),
+            Set(
+              mockLineResult(line12.uuid, 9.3.asAmpere, 9.2.asAmpere),
+              mockLineResult(line13.uuid, 8.asAmpere, 8.asAmpere),
+            ),
+          ),
+          (-0.0651).asPu, // max voltage decrease until line congestion occur
+        ),
+      )
+
+      forAll(cases) { (results, deltaV) =>
+        val nodeResults = results.nodeResults
+          .map(res => res.getInputModel -> res.getvMag())
+          .toMap
+
+        calculatePossibleVoltageDeltaForLines(
+          nodeResults,
+          results.lineResults,
+          gridComponents,
+        ) should equalWithTolerance(deltaV, 1e-3)
+      }
+    }
+
+    "calculate the voltage range for a lowest grid correctly" in {
+      val node1 = nodeModel()
+      val node2 = nodeModel()
+      val node3 = nodeModel()
+      val node4 = nodeModel()
+
+      val line12 = lineModel(node1.uuid, node2.uuid)
+      val line13 = lineModel(node1.uuid, node3.uuid)
+      val line34 = lineModel(node3.uuid, node4.uuid)
+
+      val gridComponents = GridComponents(
+        Seq(node1, node2, node3, node4),
+        Set(line12, line13, line34),
+        Set.empty,
+        Set.empty,
+        Set.empty,
+      )
+
+      val powerFlowResult = buildPowerFlowResultEvent(
+        Set(
+          mockNodeResult(node1.uuid, 0.93.asPu),
+          mockNodeResult(node2.uuid, 0.95.asPu),
+          mockNodeResult(node3.uuid, 1.05.asPu),
+          mockNodeResult(node4.uuid, 0.97.asPu),
+        ),
+        Set(
+          mockLineResult(line12.uuid, 5.asAmpere, 5.asAmpere),
+          mockLineResult(line13.uuid, 8.asAmpere, 8.asAmpere),
+          mockLineResult(line34.uuid, 7.asAmpere, 7.asAmpere),
+        ),
+      )
+
+      val range = VoltageRange(
+        powerFlowResult,
+        VoltageLimits(0.9, 1.1),
+        gridComponents,
+        Map.empty,
+        subnetNo = 1,
+      )
+
+      range.deltaPlus should equalWithTolerance(0.05.asPu)
+      range.deltaMinus should equalWithTolerance((-0.03).asPu)
+      range.suggestion should equalWithTolerance(0.asPu)
+    }
+
+    "calculates the voltage range for a middle grid correctly" in {
+      val node1 = nodeModel()
+      val node2 = nodeModel()
+      val node3 = nodeModel()
+      val node4 = nodeModel()
+
+      val line12 = lineModel(node1.uuid, node2.uuid)
+      val line13 = lineModel(node1.uuid, node3.uuid)
+      val line34 = lineModel(node3.uuid, node4.uuid)
+
+      val gridComponents = GridComponents(
+        Seq(node1, node2, node3, node4),
+        Set(line12, line13, line34),
+        Set.empty,
+        Set.empty,
+        Set.empty,
+      )
+
+      val tappingModel = mockTransformerTappingModel(
+        autoTap = true,
+        currentTapPos = 0,
+        tapMax = 3,
+        tapMin = -3,
+        deltaV = 1.asPu,
+      )
+
+      val powerFlowResult = buildPowerFlowResultEvent(
+        Set(
+          mockNodeResult(node1.uuid, 0.93.asPu),
+          mockNodeResult(node2.uuid, 0.95.asPu),
+          mockNodeResult(node3.uuid, 1.05.asPu),
+          mockNodeResult(node4.uuid, 0.97.asPu),
+        ),
+        Set(
+          mockLineResult(line12.uuid, 5.asAmpere, 5.asAmpere),
+          mockLineResult(line13.uuid, 8.asAmpere, 8.asAmpere),
+          mockLineResult(line34.uuid, 7.asAmpere, 7.asAmpere),
+        ),
+      )
+
+      // the voltage range of the given grid is limited by the voltage range
+      // of the inferior grids and the possible transformer tapping
+      val range = VoltageRange(
+        powerFlowResult,
+        VoltageLimits(0.9, 1.1),
+        gridComponents,
+        Map(
+          inferior1.ref -> (VoltageRange(0.1.asPu, 0.01.asPu), Set(
+            tappingModel
+          )),
+          inferior2.ref -> (VoltageRange(0.01.asPu, (-0.04).asPu), Set(
+            tappingModel
+          )),
+        ),
+        subnetNo = 1,
+      )
+
+      range.deltaPlus should equalWithTolerance(0.04.asPu)
+      range.deltaMinus should equalWithTolerance((-0.02).asPu)
+      range.suggestion should equalWithTolerance(0.asPu)
+    }
+
+    "be updated with a line voltage delta correctly" in {
+      val range1 = VoltageRange(0.05.asPu, (-0.05).asPu)
+      val cases1 = Table(
+        ("deltaV", "plus", "minus"),
+        (0.01.asPu, 0.05.asPu, 0.01.asPu),
+        (0.06.asPu, 0.05.asPu, 0.05.asPu),
+        ((-0.01).asPu, 0.05.asPu, (-0.01).asPu),
+        ((-0.04).asPu, 0.05.asPu, (-0.04).asPu),
+        ((-0.06).asPu, 0.05.asPu, (-0.05).asPu),
+      )
+
+      forAll(cases1) { (deltaV, plus, minus) =>
+        val updated = range1.updateWithLineDelta(deltaV)
+        updated.deltaPlus should equalWithTolerance(plus)
+        updated.deltaMinus should equalWithTolerance(minus)
+      }
+
+      val range2 = VoltageRange((-0.01).asPu, (-0.05).asPu)
+      val cases2 = Table(
+        ("deltaV", "plus", "minus"),
+        (0.01.asPu, (-0.01).asPu, (-0.01).asPu),
+        (0.06.asPu, (-0.01).asPu, (-0.01).asPu),
+        ((-0.01).asPu, (-0.01).asPu, (-0.01).asPu),
+        ((-0.04).asPu, (-0.01).asPu, (-0.04).asPu),
+        ((-0.06).asPu, (-0.01).asPu, (-0.05).asPu),
+      )
+
+      forAll(cases2) { (deltaV, plus, minus) =>
+        val updated = range2.updateWithLineDelta(deltaV)
+        updated.deltaPlus should equalWithTolerance(plus)
+        updated.deltaMinus should equalWithTolerance(minus)
+      }
+
+      val range3 = VoltageRange(0.05.asPu, 0.01.asPu)
+      val cases3 = Table(
+        ("deltaV", "plus", "minus"),
+        (0.01.asPu, 0.05.asPu, 0.01.asPu),
+        (0.06.asPu, 0.05.asPu, 0.05.asPu),
+        ((-0.01).asPu, 0.05.asPu, 0.01.asPu),
+        ((-0.04).asPu, 0.05.asPu, 0.01.asPu),
+        ((-0.06).asPu, 0.05.asPu, 0.01.asPu),
+      )
+
+      forAll(cases3) { (deltaV, plus, minus) =>
+        val updated = range3.updateWithLineDelta(deltaV)
+        updated.deltaPlus should equalWithTolerance(plus)
+        updated.deltaMinus should equalWithTolerance(minus)
+      }
+
+    }
+
+    "be updated with inferior voltage ranges and without tapping correctly" in {
+      val range = VoltageRange(0.05.asPu, (-0.05).asPu)
+
+      val tappingModel =
+        mockTransformerTappingModel(
+          autoTap = false,
+          currentTapPos = 0,
+          tapMax = 10,
+          tapMin = -10,
+          deltaV = 1.asPu,
+        )
+
+      val cases = Table(
+        ("range1", "range2", "expected"),
+        (
+          VoltageRange(0.02.asPu, (-0.06).asPu),
+          VoltageRange(0.06.asPu, (-0.03).asPu),
+          VoltageRange(0.02.asPu, (-0.03).asPu),
+        ),
+        (
+          VoltageRange(0.06.asPu, (-0.06).asPu),
+          VoltageRange(0.06.asPu, (-0.06).asPu),
+          VoltageRange(0.05.asPu, (-0.05).asPu),
+        ),
+        (
+          VoltageRange(0.asPu, (-0.01).asPu),
+          VoltageRange(0.02.asPu, (-0.03).asPu),
+          VoltageRange(0.asPu, (-0.01).asPu),
+        ),
+        (
+          VoltageRange(0.02.asPu, 0.01.asPu),
+          VoltageRange(0.04.asPu, (-0.01).asPu),
+          VoltageRange(0.02.asPu, 0.01.asPu),
+        ),
+      )
+
+      forAll(cases) { (range1, range2, expected) =>
+        val updatedRange = range.updateWithInferiorRanges(
+          Map(
+            inferior1.ref -> (range1, Set(tappingModel)),
+            inferior2.ref -> (range2, Set(tappingModel)),
+          )
+        )
+
+        updatedRange.deltaPlus should equalWithTolerance(expected.deltaPlus)
+        updatedRange.deltaMinus should equalWithTolerance(expected.deltaMinus)
+      }
+    }
+
+    "be updated with inferior voltage ranges and with tapping correctly" in {
+      val range = VoltageRange(0.05.asPu, (-0.05).asPu)
+
+      val tappingModel = mockTransformerTappingModel(
+        autoTap = true,
+        currentTapPos = 7,
+        tapMax = 10,
+        tapMin = -10,
+        deltaV = 1.asPu,
+      )
+
+      val cases = Table(
+        ("range1", "range2", "expected"),
+        (
+          VoltageRange(0.02.asPu, (-0.06).asPu),
+          VoltageRange(0.06.asPu, (-0.03).asPu),
+          VoltageRange(0.05.asPu, (-0.05).asPu),
+        ),
+        (
+          VoltageRange(0.06.asPu, (-0.06).asPu),
+          VoltageRange(0.06.asPu, (-0.06).asPu),
+          VoltageRange(0.05.asPu, (-0.05).asPu),
+        ),
+        (
+          VoltageRange(0.asPu, (-0.01).asPu),
+          VoltageRange(0.02.asPu, (-0.03).asPu),
+          VoltageRange(0.03.asPu, (-0.05).asPu),
+        ),
+        (
+          VoltageRange(0.02.asPu, 0.01.asPu),
+          VoltageRange(0.04.asPu, (-0.01).asPu),
+          VoltageRange(0.05.asPu, (-0.05).asPu),
+        ),
+      )
+
+      forAll(cases) { (range1, range2, expected) =>
+        val updatedRange = range.updateWithInferiorRanges(
+          Map(
+            inferior1.ref -> (range1, Set(tappingModel)),
+            inferior2.ref -> (range2, Set(tappingModel)),
+          )
+        )
+
+        updatedRange.deltaPlus should equalWithTolerance(expected.deltaPlus)
+        updatedRange.deltaMinus should equalWithTolerance(expected.deltaMinus)
+      }
+    }
+
+    def buildPowerFlowResultEvent(
+        nodeResults: Set[NodeResult],
+        lineResults: Set[LineResult],
+    ): PowerFlowResultEvent = {
+      PowerFlowResultEvent(
+        nodeResults,
+        Set.empty,
+        lineResults,
+        Set.empty,
+        Set.empty,
+      )
+    }
+  }
+
+  "A Congestion" should {
+    val startTime = ZonedDateTime.now()
+
+    val gridModel = GridModel(
+      hvGridContainer,
+      RefSystem(Kilowatts(600), Kilovolts(110)),
+      VoltageLimits(0.9, 1.1),
+      startTime,
+      startTime.plusHours(2),
+      simonaConfig,
+    )
+
+    "find congestions correctly for empty results" in {
+      val emptyResults = PowerFlowResultEvent(
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+      )
+
+      Congestions(
+        emptyResults,
+        gridModel.gridComponents,
+        gridModel.voltageLimits,
+        gridModel.mainRefSystem.nominalVoltage,
+        gridModel.subnetNo,
+      ) shouldBe Congestions(
+        voltageCongestions = false,
+        lineCongestions = false,
+        transformerCongestions = false,
+      )
+    }
+
+    "find voltage congestions correctly" in {
+      val nodeResult1 = new NodeResult(
+        startTime,
+        node1.getUuid,
+        Quantities.getQuantity(1d, PU),
+        Quantities.getQuantity(0, StandardUnits.VOLTAGE_ANGLE),
+      )
+
+      val nodeResult2 = new NodeResult(
+        startTime,
+        node2.getUuid,
+        Quantities.getQuantity(0.9d, PU),
+        Quantities.getQuantity(0, StandardUnits.VOLTAGE_ANGLE),
+      )
+
+      val nodeResult3 = new NodeResult(
+        startTime,
+        node3.getUuid,
+        Quantities.getQuantity(1.1d, PU),
+        Quantities.getQuantity(0, StandardUnits.VOLTAGE_ANGLE),
+      )
+
+      val nodeResult4 = new NodeResult(
+        startTime,
+        node4.getUuid,
+        Quantities.getQuantity(0.89d, PU),
+        Quantities.getQuantity(0, StandardUnits.VOLTAGE_ANGLE),
+      )
+
+      val results = PowerFlowResultEvent(
+        Seq(nodeResult1, nodeResult2, nodeResult3, nodeResult4),
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+      )
+
+      Congestions(
+        results,
+        gridModel.gridComponents,
+        gridModel.voltageLimits,
+        gridModel.mainRefSystem.nominalVoltage,
+        gridModel.subnetNo,
+      ) shouldBe Congestions(
+        voltageCongestions = true,
+        lineCongestions = false,
+        transformerCongestions = false,
+      )
+    }
+
+    "find line congestions correctly" in {
+      val lineResult1to2 = new LineResult(
+        startTime,
+        line1To2.getUuid,
+        Quantities.getQuantity(1360d, StandardUnits.ELECTRIC_CURRENT_MAGNITUDE),
+        Quantities.getQuantity(0, StandardUnits.VOLTAGE_ANGLE),
+        Quantities.getQuantity(1360d, StandardUnits.ELECTRIC_CURRENT_MAGNITUDE),
+        Quantities.getQuantity(0, StandardUnits.VOLTAGE_ANGLE),
+      )
+
+      val lineResult1to3 = new LineResult(
+        startTime,
+        line1To3.getUuid,
+        Quantities.getQuantity(500d, StandardUnits.ELECTRIC_CURRENT_MAGNITUDE),
+        Quantities.getQuantity(0, StandardUnits.VOLTAGE_ANGLE),
+        Quantities.getQuantity(500d, StandardUnits.ELECTRIC_CURRENT_MAGNITUDE),
+        Quantities.getQuantity(0, StandardUnits.VOLTAGE_ANGLE),
+      )
+
+      val lineResult1to4 = new LineResult(
+        startTime,
+        line1To4.getUuid,
+        Quantities.getQuantity(801d, StandardUnits.ELECTRIC_CURRENT_MAGNITUDE),
+        Quantities.getQuantity(0, StandardUnits.VOLTAGE_ANGLE),
+        Quantities.getQuantity(799d, StandardUnits.ELECTRIC_CURRENT_MAGNITUDE),
+        Quantities.getQuantity(0, StandardUnits.VOLTAGE_ANGLE),
+      )
+
+      val lineResult2to3 = new LineResult(
+        startTime,
+        line2To3.getUuid,
+        Quantities.getQuantity(801d, StandardUnits.ELECTRIC_CURRENT_MAGNITUDE),
+        Quantities.getQuantity(0, StandardUnits.VOLTAGE_ANGLE),
+        Quantities.getQuantity(799d, StandardUnits.ELECTRIC_CURRENT_MAGNITUDE),
+        Quantities.getQuantity(0, StandardUnits.VOLTAGE_ANGLE),
+      )
+
+      val results = PowerFlowResultEvent(
+        Seq.empty,
+        Seq.empty,
+        Seq(lineResult1to2, lineResult1to3, lineResult1to4, lineResult2to3),
+        Seq.empty,
+        Seq.empty,
+      )
+
+      Congestions(
+        results,
+        gridModel.gridComponents,
+        gridModel.voltageLimits,
+        gridModel.mainRefSystem.nominalVoltage,
+        gridModel.subnetNo,
+      ) shouldBe Congestions(
+        voltageCongestions = false,
+        lineCongestions = true,
+        transformerCongestions = false,
+      )
+    }
+
+    "find transformer2w congestions correctly" in {
+
+      val nodeResult1 = new NodeResult(
+        startTime,
+        node1.getUuid,
+        0.9.asPu,
+        0.asDegreeGeom,
+      )
+
+      val nodeResult2 = new NodeResult(
+        startTime,
+        node2.getUuid,
+        1.0.asPu,
+        0.asDegreeGeom,
+      )
+
+      val transformerResult1 = new Transformer2WResult(
+        startTime,
+        transformer1.getUuid,
+        Quantities.getQuantity(308d, StandardUnits.ELECTRIC_CURRENT_MAGNITUDE),
+        Quantities.getQuantity(0, StandardUnits.VOLTAGE_ANGLE),
+        Quantities
+          .getQuantity(1064, StandardUnits.ELECTRIC_CURRENT_MAGNITUDE),
+        Quantities.getQuantity(0, StandardUnits.VOLTAGE_ANGLE),
+        0,
+      )
+
+      val transformerResult2 = new Transformer2WResult(
+        startTime,
+        transformer2.getUuid,
+        Quantities.getQuantity(310d, StandardUnits.ELECTRIC_CURRENT_MAGNITUDE),
+        Quantities.getQuantity(0, StandardUnits.VOLTAGE_ANGLE),
+        Quantities.getQuantity(1071d, StandardUnits.ELECTRIC_CURRENT_MAGNITUDE),
+        Quantities.getQuantity(0, StandardUnits.VOLTAGE_ANGLE),
+        0,
+      )
+
+      val results = PowerFlowResultEvent(
+        Seq(nodeResult1, nodeResult2),
+        Seq.empty,
+        Seq.empty,
+        Seq(transformerResult1, transformerResult2),
+        Seq.empty,
+      )
+
+      Congestions(
+        results,
+        gridModel.gridComponents,
+        gridModel.voltageLimits,
+        gridModel.mainRefSystem.nominalVoltage,
+        gridModel.subnetNo,
+      ) shouldBe Congestions(
+        voltageCongestions = false,
+        lineCongestions = false,
+        transformerCongestions = true,
+      )
+    }
+  }
+}

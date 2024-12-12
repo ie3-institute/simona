@@ -17,7 +17,8 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.Transformer3wTestData
 import edu.ie3.util.quantities.PowerSystemUnits._
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor4}
-import squants.Each
+import squants.energy.Megawatts
+import squants.{Amperes, Each}
 import tech.units.indriya.quantity.Quantities
 
 import scala.math.BigDecimal.RoundingMode
@@ -67,6 +68,7 @@ class Transformer3wModelSpec
               transformerTappingModel,
               amount,
               powerFlowCase,
+              sRated,
               r,
               x,
               g,
@@ -85,6 +87,7 @@ class Transformer3wModelSpec
           transformerTappingModel shouldBe expectedTappingModel
           amount shouldBe transformer3wInput.getParallelDevices
           powerFlowCase shouldBe PowerFlowCaseA
+          sRated shouldBe Megawatts(120)
           r should approximate(Each(1.03878e-3))
           x should approximate(Each(166.34349e-3))
           g should approximate(Each(1.874312e-6))
@@ -142,6 +145,7 @@ class Transformer3wModelSpec
               transformerTappingModel,
               amount,
               powerFlowCase,
+              sRated,
               r,
               x,
               g,
@@ -160,6 +164,7 @@ class Transformer3wModelSpec
           transformerTappingModel shouldBe expectedTappingModel
           amount shouldBe transformer3wInput.getParallelDevices
           powerFlowCase shouldBe PowerFlowCaseB
+          sRated shouldBe Megawatts(60)
           r should approximate(Each(240.9972299e-6))
           x should approximate(Each(24.99307479224e-3))
           g should approximate(Each(0d))
@@ -217,6 +222,7 @@ class Transformer3wModelSpec
               transformerTappingModel,
               amount,
               powerFlowCase,
+              sRated,
               r,
               x,
               g,
@@ -235,6 +241,7 @@ class Transformer3wModelSpec
           transformerTappingModel shouldBe expectedTappingModel
           amount shouldBe transformer3wInput.getParallelDevices
           powerFlowCase shouldBe PowerFlowCaseC
+          sRated shouldBe Megawatts(40)
           r should approximate(Each(3.185595567e-6))
           x should approximate(Each(556.0941828e-6))
           g should approximate(Each(0d))
@@ -480,7 +487,8 @@ class Transformer3wModelSpec
             val deadBand = Quantities.getQuantity(deadBandVal, PU)
 
             transformerModel.updateTapPos(currentTapPos)
-            val actual = transformerModel.computeDeltaTap(vChange, deadBand)
+            val actual =
+              transformerModel.computeDeltaTap(vChange, deadBand = deadBand)
             actual should be(expected)
           }
       }

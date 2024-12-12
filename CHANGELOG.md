@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update/enhance config documentation [#1013](https://github.com/ie3-institute/simona/issues/1013)
 - Create `CITATION.cff` [#1035](https://github.com/ie3-institute/simona/issues/1035)
 - Introduce ThermalDemandWrapper [#1049](https://github.com/ie3-institute/simona/issues/1049)
+- Adding basic congestion management consisting of congestion detection and transformer tapping [#953](https://github.com/ie3-institute/simona/issues/943)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)

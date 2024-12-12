@@ -215,6 +215,7 @@ class GridSpec
           Set.empty[Transformer3wModel],
           switches,
         ),
+        defaultVoltageLimits,
         GridControls.empty,
       )
       // get the private method for validation
@@ -251,6 +252,7 @@ class GridSpec
           Set.empty[Transformer3wModel],
           switches,
         ),
+        defaultVoltageLimits,
         GridControls.empty,
       )
 
@@ -355,6 +357,7 @@ class GridSpec
             Set.empty[Transformer3wModel],
             switches,
           ),
+          defaultVoltageLimits,
           GridControls.empty,
         )
 
@@ -407,6 +410,7 @@ class GridSpec
             Set.empty[Transformer3wModel],
             Set.empty[SwitchModel],
           ),
+          defaultVoltageLimits,
           GridControls.empty,
         )
 
@@ -460,6 +464,7 @@ class GridSpec
             Set.empty[Transformer3wModel],
             switches,
           ),
+          defaultVoltageLimits,
           GridControls.empty,
         )
 
@@ -540,6 +545,7 @@ class GridSpec
             Set.empty,
             switches,
           ),
+          defaultVoltageLimits,
           GridControls.empty,
         )
 
@@ -643,6 +649,7 @@ class GridSpec
       GridModel(
         validTestGridInputModel,
         gridInputModelTestDataRefSystem,
+        defaultVoltageLimits,
         defaultSimulationStart,
         defaultSimulationEnd,
         simonaConfig,

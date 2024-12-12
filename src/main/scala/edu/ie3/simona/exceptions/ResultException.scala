@@ -1,20 +1,16 @@
 /*
- * © 2020. TU Dortmund University,
+ * © 2024. TU Dortmund University,
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.exceptions.agent
+package edu.ie3.simona.exceptions
 
-import edu.ie3.simona.agent.grid.DBFSAlgorithm
-
-/** Exception that should be used whenever an exception occurs in
-  * [[DBFSAlgorithm]]
-  *
+/** Exception that is thrown if an expected result is not present.
   * @param message
-  *   specific error message
+  *   exception message
   */
-class DBFSAlgorithmException(message: String) extends Exception(message) {
+class ResultException(message: String) extends Exception(message) {
 
   def this(message: String, cause: Throwable) = {
     this(message)
@@ -28,5 +24,4 @@ class DBFSAlgorithmException(message: String) extends Exception(message) {
   def this() = {
     this(null: String)
   }
-
 }

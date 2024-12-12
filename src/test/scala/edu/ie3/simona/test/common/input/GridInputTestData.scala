@@ -21,7 +21,7 @@ import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils.{
   HV,
   MV_10KV,
 }
-import edu.ie3.simona.model.grid.RefSystem
+import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.simona.util.TestGridFactory
 import testutils.TestObjectFactory
@@ -154,6 +154,9 @@ trait GridInputTestData
   // create the reference system
   protected def gridInputModelTestDataRefSystem: RefSystem =
     default400Kva10KvRefSystem
+
+  protected def gridInputModelTestDataVoltageLimits: VoltageLimits =
+    defaultVoltageLimits
 
   // create the grid
   protected val validTestGridInputModel: SubGridContainer = {

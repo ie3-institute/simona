@@ -17,6 +17,7 @@ models/three_winding_transformer_model
 models/reference_system
 models/thermal_grid_model
 models/thermal_house_model
+models/voltage_limits
 ```
 
 ## System Participant Related Models

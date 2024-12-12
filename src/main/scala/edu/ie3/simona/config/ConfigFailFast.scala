@@ -8,6 +8,7 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.{Config, ConfigException}
 import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.simona.config.SimonaConfig.Simona.CongestionManagement
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
   CouchbaseParams,
   InfluxDb1xParams,
@@ -120,6 +121,9 @@ object ConfigFailFast extends LazyLogging {
     if (refSystems.isDefined)
       refSystems.foreach(refsys => checkRefSystem(refsys))
 
+    // check if the provided combinations of voltageLimits provided are valid
+    simonaConfig.simona.gridConfig.voltageLimits.foreach(checkVoltageLimits)
+
     /* Check all participant model configurations */
     checkParticipantRuntimeConfiguration(
       simonaConfig.simona.runtime.participant
@@ -140,6 +144,11 @@ object ConfigFailFast extends LazyLogging {
     checkWeatherDataSource(simonaConfig.simona.input.weather.datasource)
 
     checkOutputConfig(simonaConfig.simona.output)
+
+    /* Check congestion management configuration*/
+    checkCongestionManagementConfiguration(
+      simonaConfig.simona.congestionManagement
+    )
 
     /* Check power flow resolution configuration */
     checkPowerFlowResolutionConfiguration(simonaConfig.simona.powerflow)
@@ -522,6 +531,62 @@ object ConfigFailFast extends LazyLogging {
     }
   }
 
+  /** Sanity checks for a [[SimonaConfig.VoltageLimitsConfig]]
+    *
+    * @param voltageLimits
+    *   the [[SimonaConfig.VoltageLimitsConfig]] that should be checked
+    */
+  private def checkVoltageLimits(
+      voltageLimits: List[VoltageLimitsConfig]
+  ): Unit = {
+    voltageLimits.foreach { limit =>
+      val voltLvls =
+        limit.voltLvls.getOrElse(List.empty[SimonaConfig.VoltLvlConfig])
+      val gridIds = limit.gridIds.getOrElse(List.empty[String])
+
+      if (voltLvls.isEmpty && gridIds.isEmpty)
+        throw new InvalidConfigParameterException(
+          "The provided values for voltLvls and gridIds are empty! " +
+            s"At least one of these optional parameters has to be provided for valid voltage limits! " +
+            s"Provided voltage limits are: $voltageLimits."
+        )
+
+      voltLvls.foreach { voltLvl =>
+        Try(Quantities.getQuantity(voltLvl.vNom)) match {
+          case Success(quantity) =>
+            if (!quantity.getUnit.isCompatible(Units.VOLT))
+              throw new InvalidConfigParameterException(
+                s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to electrical potential! Please provide the volt level with its unit, e.g. \"20 kV\""
+              )
+          case Failure(exception) =>
+            throw new InvalidConfigParameterException(
+              s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to a quantity. Did you provide the volt level with it's unit (e.g. \"20 kV\")?",
+              exception,
+            )
+        }
+      }
+
+      gridIds.foreach {
+        case gridIdRange @ ConfigConventions.gridIdDotRange(from, to) =>
+          rangeCheck(from.toInt, to.toInt, gridIdRange)
+        case gridIdRange @ ConfigConventions.gridIdMinusRange(from, to) =>
+          rangeCheck(from.toInt, to.toInt, gridIdRange)
+        case ConfigConventions.singleGridId(_) =>
+        case gridId =>
+          throw new InvalidConfigParameterException(
+            s"The provided gridId $gridId is malformed!"
+          )
+      }
+
+      def rangeCheck(from: Int, to: Int, gridIdRange: String): Unit = {
+        if (from >= to)
+          throw new InvalidConfigParameterException(
+            s"Invalid gridId Range $gridIdRange. Start $from cannot be equals or bigger than end $to."
+          )
+      }
+    }
+  }
+
   private def checkGridDataSource(
       gridDataSource: SimonaConfig.Simona.Input.Grid.Datasource
   ): Unit = {
@@ -722,6 +787,26 @@ object ConfigFailFast extends LazyLogging {
       throw new InvalidConfigParameterException(
         s"Invalid log level \"${subConfig.level}\". Valid log levels: ${validLogLevels.mkString(", ")}"
       )
+  }
+
+  /** Check the config of congestion management
+    * @param congestionManagement
+    *   to check
+    */
+  private def checkCongestionManagementConfiguration(
+      congestionManagement: CongestionManagement
+  ): Unit = {
+    val enabled = congestionManagement.enableDetection
+
+    val mitigationsEnabled = congestionManagement.enableTransformerTapping ||
+      congestionManagement.enableUsingFlexOptions ||
+      congestionManagement.enableTopologyChanges
+
+    if (!enabled && mitigationsEnabled) {
+      throw new InvalidConfigParameterException(
+        "A congestion mitigation was enabled without enabling congestion detection!"
+      )
+    }
   }
 
   /** Checks resolution of power flow calculation

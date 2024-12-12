@@ -608,7 +608,7 @@ object GridResultsSupport {
   sealed trait PartialTransformer3wResult {
     val time: ZonedDateTime
     val input: UUID
-    protected val currentMagnitude: ElectricCurrent
+    val currentMagnitude: ElectricCurrent
     protected val currentAngle: Angle
   }
 

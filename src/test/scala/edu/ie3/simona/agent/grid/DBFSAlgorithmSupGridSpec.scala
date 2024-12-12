@@ -14,7 +14,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangePower
 import edu.ie3.simona.agent.grid.GridAgentMessages._
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
-import edu.ie3.simona.model.grid.RefSystem
+import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -87,6 +87,7 @@ class DBFSAlgorithmSupGridSpec
           Seq.empty[ThermalGrid],
           subnetGatesToActorRef,
           RefSystem("5000 MVA", "380 kV"),
+          VoltageLimits(0.9, 1.1),
         )
 
       val key =
