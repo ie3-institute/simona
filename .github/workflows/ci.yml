@@ -36,18 +36,18 @@ jobs:
       - name: Check Branch
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
-            branch_name="${{ github.head_ref }}"
+            branchName="${{ github.head_ref }}"
           else
-            branch_name="${{ github.ref_name }}"
+            branchName="${{ github.ref_name }}"
           fi
 
-          if [[ "$branch_name" == refs/heads/* ]]; then
-            branch_name="${branch_name#refs/heads/}"
+          if [[ "$branchName" == refs/heads/* ]]; then
+            branchName="${branchName#refs/heads/}"
           fi
           
-          echo "branch_name=$branch_name" >> $GITHUB_ENV
+          echo "branchName=$branchName" >> $GITHUB_ENV
           
-          ./gradlew checkBranchName -Pbranch_name="$branch_name"
+          ./gradlew checkBranchName -PbranchName="$branchName"
 
       - name: Setup Java
         uses: actions/setup-java@v4
