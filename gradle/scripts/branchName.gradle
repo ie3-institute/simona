@@ -1,10 +1,10 @@
 tasks.register('checkBranchName') {
   doLast {
-    if (!project.hasProperty('branch_name')) {
-      throw new GradleException("Error: Missing required property 'branch_name'.")
+    if (!project.hasProperty('branchName')) {
+      throw new GradleException("Error: Missing required property 'branchName'.")
     }
 
-    def branch_name = project.property('branch_name')
+    def branchName = project.property('branchName')
 
     def patterns = [
       ~/^(developer|develop|dev)$/,
@@ -15,12 +15,12 @@ tasks.register('checkBranchName') {
       ~/^[a-z]{2}\/#[0-9]+(?:-.+)?$/
     ]
 
-    def isValid = patterns.any { pattern -> branch_name ==~ pattern }
+    def isValid = patterns.any { pattern -> branchName ==~ pattern }
 
     if (!isValid) {
-      throw new GradleException("Error: Check Branch name format (e.g., ps/#1337-FeatureName). Current branch name is $branch_name.")
+      throw new GradleException("Error: Check Branch name format (e.g., ps/#1337-FeatureName). Current branch name is $branchName.")
     }
 
-    println "Branch name is $branch_name"
+    println "Branch name is $branchName"
   }
 }
