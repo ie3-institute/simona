@@ -84,7 +84,8 @@ jobs:
           fi
 
           branch_name="${{ env.branch_name }}"
-          TEST_SONAR_STATUS_URL="${BASE_SONAR_STATUS_URL}&branch=$branch_name"
+          ENCODED_BRANCH_NAME=$(printf %s "$branch_name" | jq -sRr @uri)
+          TEST_SONAR_STATUS_URL="${BASE_SONAR_STATUS_URL}&branch=${ENCODED_BRANCH_NAME}"
           echo "Testing: SonarQube URL for Branch: $TEST_SONAR_STATUS_URL"
 
           QUALITY_GATE_STATUS=$(curl -s -u "${{ secrets.SONAR_TOKEN }}:" "$SONAR_STATUS_URL" | jq -r '.projectStatus.status')
