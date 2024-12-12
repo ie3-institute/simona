@@ -1005,6 +1005,9 @@ final case class ThermalGrid(
               // Use qDot from Hp to recharge domestic hot water storage
               // Threshold will be calculated later
               (qDot, None)
+            case demand if demand.required == zeroKWh & qDot < zeroKW =>
+              // Storage was discharging but demand is now covered. Set output to zeroKw
+              (zeroKW, None)
 
             case _ =>
               throw new RuntimeException(
