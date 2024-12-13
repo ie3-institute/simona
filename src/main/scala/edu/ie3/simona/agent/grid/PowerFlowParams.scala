@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.FiniteDuration
 
 /** Holds all power flow configuration parameters used in
   * [[edu.ie3.simona.agent.grid]]
@@ -29,6 +29,6 @@ final case class PowerFlowParams(
     maxSweepPowerDeviation: Double,
     epsilon: Vector[Double],
     maxIterations: Int,
-    sweepTimeout: Duration,
+    sweepTimeout: FiniteDuration,
     stopOnFailure: Boolean,
 )

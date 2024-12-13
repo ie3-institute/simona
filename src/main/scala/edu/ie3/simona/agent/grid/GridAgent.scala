@@ -29,10 +29,12 @@ import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
-import java.time.ZonedDateTime
+import java.time.{Duration, ZonedDateTime}
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-import scala.language.postfixOps
+import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.FiniteDuration
+import scala.language.{implicitConversions, postfixOps}
 
 object GridAgent extends DBFSAlgorithm {
 
@@ -165,6 +167,10 @@ object GridAgent extends DBFSAlgorithm {
               .uuid
             nodeUuid -> actorSet
           }
+
+      // TODO: Reminder: Can be removed after changing the config framework
+      implicit def convertDuration(duration: Duration): FiniteDuration =
+        FiniteDuration.apply(duration.toSeconds, TimeUnit.SECONDS)
 
       // create the GridAgentBaseData
       val gridAgentBaseData = GridAgentBaseData(
