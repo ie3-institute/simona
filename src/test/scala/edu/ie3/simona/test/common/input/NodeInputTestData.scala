@@ -6,16 +6,18 @@
 
 package edu.ie3.simona.test.common.input
 
-import java.util.UUID
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.util.quantities.PowerSystemUnits.PU
-import org.locationtech.jts.geom.{Coordinate, Point}
+import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import spire.math.Point
 import tech.units.indriya.quantity.Quantities
 
-/** //ToDo: Class Description
+import java.util.UUID
+
+/** Default values for NodeInput's to be used in tests. Should be extended as
+  * needed.
   *
   * @version 0.1
   * @since 23.06.20
@@ -97,72 +99,86 @@ trait NodeInputTestData extends DefaultTestData {
       GermanVoltageLevelUtils.HV,
       1,
     )
-  /*protected val nodeInputPvModel1 =
+
+  // PvModelITSpec node input models
+  val geometryFactory = new GeometryFactory()
+
+  val p1: Point = geometryFactory.createPoint(new Coordinate(53.9209, 10.3837))
+  protected val nodeInputPvModel1 =
     new NodeInput(
-    UUID.fromString("19a4861e-cbf5-4dcc-bc1d-98611fda6eb5"),
-    "pvmodelnode1",
-    OperatorInput.NO_OPERATOR_ASSIGNED,
-    defaultOperationTime,
-    Quantities.getQuantity(1.0, PU),
-    false,
-    (53.9209, 10.3837),
-    GermanVoltageLevelUtils.MV_10KV,
-    -1,
-  )
+      UUID.fromString("19a4861e-cbf5-4dcc-bc1d-98611fda6eb5"),
+      "pvModelNode1",
+      OperatorInput.NO_OPERATOR_ASSIGNED,
+      defaultOperationTime,
+      Quantities.getQuantity(1.0, PU),
+      false,
+      p1,
+      GermanVoltageLevelUtils.MV_10KV,
+      -1,
+    )
+
+  val p2: Point = geometryFactory.createPoint(new Coordinate(52.3393, 9.7342))
   protected val nodeInputPvModel2 = new NodeInput(
     UUID.fromString("9a2524f1-3639-4e90-a547-81a259712f8c"),
-    "pvmodel node 2",
+    "pvModelNode2",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     defaultOperationTime,
     Quantities.getQuantity(1d, PU),
     false,
-    new Coordinate(52.3393, 9.7342),
-    GermanVoltageLevelUtils.MV_10KV,
-    -1,
-  )
-  protected val nodeInputPvModel3 = new NodeInput(
-    UUID.fromString("022a94c6-2d60-4400-875c-ab9db1ae2736"),
-    "pvmodel node 3",
-    OperatorInput.NO_OPERATOR_ASSIGNED,
-    defaultOperationTime,
-    Quantities.getQuantity(1d, PU),
-    false,
-    new Coordinate(52.1861, 10.1991),
+    p2,
     GermanVoltageLevelUtils.MV_10KV,
     -1,
   )
 
+  val p3: Point = geometryFactory.createPoint(new Coordinate(52.1861, 10.1991))
+  protected val nodeInputPvModel3 = new NodeInput(
+    UUID.fromString("022a94c6-2d60-4400-875c-ab9db1ae2736"),
+    "pvModelNode3",
+    OperatorInput.NO_OPERATOR_ASSIGNED,
+    defaultOperationTime,
+    Quantities.getQuantity(1d, PU),
+    false,
+    p3,
+    GermanVoltageLevelUtils.MV_10KV,
+    -1,
+  )
+
+  val p4: Point = geometryFactory.createPoint(new Coordinate(53.6567, 10.8245))
   protected val nodeInputPvModel4 = new NodeInput(
     UUID.fromString("9354b02c-a4a9-4e9d-905a-e48110b04d88"),
-    "pvmodel node 4",
+    "pvModelNode4",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     defaultOperationTime,
     Quantities.getQuantity(1d, PU),
     false,
-    new Coordinate(53.6567, 10.8245),
+    p4,
     GermanVoltageLevelUtils.MV_10KV,
     -1,
   )
-  protected val nodeInputPvModel5 = new NodeInput(
+
+  val p5: Point = geometryFactory.createPoint(new Coordinate(51.9644, 10.0134))
+  protected val nodeInputPvModel5: NodeInput = new NodeInput(
     UUID.fromString("393eb0e3-7873-4d51-a830-2f1d98ff5a60"),
-    "pvmodel node 5",
+    "pvModelNode5",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     defaultOperationTime,
     Quantities.getQuantity(1d, PU),
     false,
-    new Coordinate(51.9644, 10.0134),
+    p5,
     GermanVoltageLevelUtils.MV_10KV,
     -1,
   )
+
+  val p6: Point = geometryFactory.createPoint(new Coordinate(53.6454, 10.4729))
   protected val nodeInputPvModel6 = new NodeInput(
     UUID.fromString("7607ca0b-959f-48b2-9c5c-1cf7c4ce0dc0"),
-    "pvmodel node 6",
+    "pvModelNode6",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     defaultOperationTime,
     Quantities.getQuantity(1d, PU),
     false,
-    new Coordinate(53.6454, 10.4729),
+    p6,
     GermanVoltageLevelUtils.MV_10KV,
     -1,
-  )*/
+  )
 }
