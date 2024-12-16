@@ -110,6 +110,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactoring to only use 'lastHpState' and 'relevantData' for 'ThermalGrid' calculations [#916](https://github.com/ie3-institute/simona/issues/916)
 - Refactor thermal calcRelevantData [#1051](https://github.com/ie3-institute/simona/issues/1051)
 - Removed Deployment stage from Jenkinsfile [#1063](https://github.com/ie3-institute/simona/issues/1063)
+- Prepare 'ChpModelSpec' and 'CylindricalThermalStorageSpec' for Storage without storageVolumeLvlMin [#1012](https://github.com/ie3-institute/simona/issues/1012)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
@@ -151,6 +152,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Shallow fetch in CI [#1041](https://github.com/ie3-institute/simona/issues/1041)
 - Correct wrong use of term "wall clock time" [#727](https://github.com/ie3-institute/simona/issues/727)
 - Fixed Deployment of `simona` to `Maven Central` in new GHA Pipeline [#1029](https://github.com/ie3-institute/simona/issues/1029)
+- Fixed SonarQube quality gate using the right link for PRs or Branches [#1061](https://github.com/ie3-institute/simona/issues/1061)
 
 ## [3.0.0] - 2023-08-07
 
