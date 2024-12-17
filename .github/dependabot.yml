@@ -12,6 +12,7 @@ updates:
   - sebastian-peter
   - danielfeismann
   - jo-bao
+  - staudtMarius
   ignore:
     - dependency-name: org.scalatest:scalatest_2.13
       versions:
