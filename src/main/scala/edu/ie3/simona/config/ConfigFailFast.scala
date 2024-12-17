@@ -8,7 +8,7 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.{Config, ConfigException}
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.simona.config.IoConfigUtils.{InfluxDb1xParams, ResultKafkaParams}
+import edu.ie3.simona.config.IoConfigUtils._
 import edu.ie3.simona.config.OutputConfig.BaseOutputConfig
 import edu.ie3.simona.config.RuntimeConfig.{
   BaseRuntimeConfig,
@@ -21,6 +21,7 @@ import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.weather.WeatherSource.WeatherScheme
 import edu.ie3.simona.util.CollectionUtils
+import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.checkBaseCsvParams
 import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
   checkCouchbaseParams,
   checkInfluxDb1xParams,
