@@ -112,6 +112,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactor thermal calcRelevantData [#1051](https://github.com/ie3-institute/simona/issues/1051)
 - Removed Deployment stage from Jenkinsfile [#1063](https://github.com/ie3-institute/simona/issues/1063)
 - Prepare 'ChpModelSpec' and 'CylindricalThermalStorageSpec' for Storage without storageVolumeLvlMin [#1012](https://github.com/ie3-institute/simona/issues/1012)
+- Fixed SonarQube quality gate using the correct parameter '-Dsonar.qualitygate.wait=true' [#1072](https://github.com/ie3-institute/simona/issues/1072)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
