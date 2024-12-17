@@ -8,46 +8,25 @@ package edu.ie3.simona.agent.participant.storage
 
 import edu.ie3.datamodel.models.input.system.StorageInput
 import edu.ie3.datamodel.models.result.ResultEntity
-import edu.ie3.datamodel.models.result.system.{
-  StorageResult,
-  SystemParticipantResult,
-}
+import edu.ie3.datamodel.models.result.system.{StorageResult, SystemParticipantResult}
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
-  ZERO_POWER,
-}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{ApparentPower, ZERO_POWER}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
-import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
-  FlexControlledData,
-  ParticipantModelBaseStateData,
-}
+import edu.ie3.simona.agent.participant.statedata.BaseStateData.{FlexControlledData, ParticipantModelBaseStateData}
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
-import edu.ie3.simona.agent.participant.statedata.{
-  BaseStateData,
-  ParticipantStateData,
-}
-import edu.ie3.simona.config.RuntimeConfig.SimpleRuntimeConfig
+import edu.ie3.simona.agent.participant.statedata.{BaseStateData, ParticipantStateData}
+import edu.ie3.simona.config.RuntimeConfig.{SimpleRuntimeConfig, StorageRuntimeConfig}
 import edu.ie3.simona.config.SimonaConfig.StorageRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.exceptions.agent.{
-  AgentInitializationException,
-  InvalidRequestException,
-}
+import edu.ie3.simona.exceptions.agent.{AgentInitializationException, InvalidRequestException}
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
-import edu.ie3.simona.model.participant.StorageModel.{
-  StorageRelevantData,
-  StorageState,
-}
+import edu.ie3.simona.model.participant.StorageModel.{StorageRelevantData, StorageState}
 import edu.ie3.simona.model.participant.{FlexChangeIndicator, StorageModel}
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
-  FlexRequest,
-  FlexResponse,
-}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{FlexRequest, FlexResponse}
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -147,9 +126,9 @@ trait StorageAgentFundamentals
     )
   }
 
-  override def buildModel(
+  def buildModel(
       inputModel: InputModelContainer[StorageInput],
-      modelConfig: SimpleRuntimeConfig,
+      modelConfig: StorageRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
   ): StorageModel = StorageModel(
