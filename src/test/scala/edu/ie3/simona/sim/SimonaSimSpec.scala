@@ -18,6 +18,10 @@ import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.main.RunSimona.SimonaEnded
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
+import edu.ie3.simona.ontology.messages.services.{
+  PrimaryDataMessage,
+  WeatherMessage,
+}
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
@@ -32,7 +36,6 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 import org.apache.pekko.actor.typed.scaladsl.adapter._
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
-import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 import java.nio.file.Path
 import java.util.UUID
@@ -420,14 +423,14 @@ object SimonaSimSpec {
     override def primaryServiceProxy(
         context: ActorContext[_],
         scheduler: ActorRef[SchedulerMessage],
-    ): ClassicRef =
-      context.spawn(empty, uniqueName("primaryService")).toClassic
+    ): ActorRef[PrimaryDataMessage] =
+      context.spawn(empty, uniqueName("primaryService"))
 
     override def weatherService(
         context: ActorContext[_],
         scheduler: ActorRef[SchedulerMessage],
-    ): ClassicRef =
-      context.spawn(empty, uniqueName("weatherService")).toClassic
+    ): ActorRef[WeatherMessage] =
+      context.spawn(empty, uniqueName("weatherService"))
 
     override def timeAdvancer(
         context: ActorContext[_],

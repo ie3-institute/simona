@@ -9,13 +9,15 @@ package edu.ie3.simona.ontology.messages.services
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ProvisionMessage,
-  ServiceRegistrationMessage,
+  ServiceInternal,
 }
+import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.ServiceRegistrationMessage
 import edu.ie3.util.scala.quantities.Irradiance
-import org.apache.pekko.actor.ActorRef
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import squants.{Temperature, Velocity}
 
-sealed trait WeatherMessage
+sealed trait WeatherMessage extends ServiceInternal
 
 /** Declares all messages sent and received by the weather service and weather
   * data provided through these messages
@@ -25,15 +27,20 @@ sealed trait WeatherMessage
   */
 object WeatherMessage {
 
+  private[services] trait WeatherInternal extends WeatherMessage
+
   /** Indicate the [[edu.ie3.simona.service.weather.WeatherService]] that the
     * requesting agent wants to receive weather for the provided coordinates
     *
+    * @param actorRef
+    *   actor ref for the agent to be registered
     * @param latitude
     *   Latitude of the requested location
     * @param longitude
     *   Longitude of the requested location
     */
   final case class RegisterForWeatherMessage(
+      actorRef: ClassicRef,
       latitude: Double,
       longitude: Double,
   ) extends WeatherMessage
@@ -50,7 +57,7 @@ object WeatherMessage {
     */
   final case class ProvideWeatherMessage(
       override val tick: Long,
-      override val serviceRef: ActorRef,
+      override val serviceRef: ActorRef[WeatherMessage],
       override val data: WeatherData,
       override val nextDataTick: Option[Long],
   ) extends WeatherMessage

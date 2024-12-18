@@ -19,8 +19,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPower,
   ZERO_POWER,
 }
-import edu.ie3.simona.agent.participant.data.Data.SecondaryData
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.SecondaryServiceType
 import edu.ie3.simona.agent.participant.statedata.BaseStateData._
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
@@ -102,7 +101,7 @@ protected trait WecAgentFundamentals
   override def determineModelBaseStateData(
       inputModel: InputModelContainer[WecInput],
       modelConfig: WecRuntimeConfig,
-      services: Iterable[SecondaryDataService[_ <: SecondaryData]],
+      services: Iterable[SecondaryServiceType],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,

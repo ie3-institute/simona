@@ -32,8 +32,8 @@ import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
+import edu.ie3.simona.ontology.messages.services.PrimaryDataMessage.PrimaryServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.FixedFeedInputTestData
 import edu.ie3.simona.util.ConfigUtil
@@ -116,7 +116,7 @@ class FixedFeedInAgentModelCalculationSpec
       requestVoltageDeviationThreshold =
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
-      primaryServiceProxy = primaryServiceProxy.ref,
+      primaryServiceProxy = primaryServiceProxy.ref.toTyped,
     )
 
     "be instantiated correctly" in {
@@ -152,7 +152,10 @@ class FixedFeedInAgentModelCalculationSpec
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(voltageSensitiveInput.getUuid)
+        PrimaryServiceRegistrationMessage(
+          fixedFeedAgent.ref,
+          voltageSensitiveInput.getUuid,
+        )
       )
       /* State should be information handling and having correct state data */
       fixedFeedAgent.stateName shouldBe HandleInformation
@@ -184,7 +187,7 @@ class FixedFeedInAgentModelCalculationSpec
       /* Refuse registration */
       primaryServiceProxy.send(
         fixedFeedAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* Expect a completion notification */
@@ -246,7 +249,7 @@ class FixedFeedInAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         fixedFeedAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -302,7 +305,7 @@ class FixedFeedInAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         fixedFeedAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* I am not interested in the Completion */
@@ -354,7 +357,7 @@ class FixedFeedInAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         fixedFeedAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       scheduler.expectMsg(Completion(fixedFeedAgent.toTyped, Some(0)))
@@ -397,7 +400,7 @@ class FixedFeedInAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         fixedFeedAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       scheduler.expectMsg(Completion(fixedFeedAgent.toTyped, Some(0)))

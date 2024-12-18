@@ -33,13 +33,17 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
+import edu.ie3.simona.ontology.messages.services.{
+  EvMessage,
+  PrimaryDataMessage,
+  WeatherMessage,
+}
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.ConfigUtil._
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.adapter._
-import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import org.slf4j.Logger
 
 import java.time.ZonedDateTime
@@ -472,7 +476,7 @@ class GridAgentController(
   private def buildFixedFeedIn(
       fixedFeedInInput: FixedFeedInInput,
       modelConfiguration: FixedFeedInRuntimeConfig,
-      primaryServiceProxy: ClassicRef,
+      primaryServiceProxy: ActorRef[PrimaryDataMessage],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -529,7 +533,7 @@ class GridAgentController(
   private def buildLoad(
       loadInput: LoadInput,
       modelConfiguration: LoadRuntimeConfig,
-      primaryServiceProxy: ClassicRef,
+      primaryServiceProxy: ActorRef[PrimaryDataMessage],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -588,8 +592,8 @@ class GridAgentController(
   private def buildPv(
       pvInput: PvInput,
       modelConfiguration: PvRuntimeConfig,
-      primaryServiceProxy: ClassicRef,
-      weatherService: ClassicRef,
+      primaryServiceProxy: ActorRef[PrimaryDataMessage],
+      weatherService: ActorRef[WeatherMessage],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -648,8 +652,8 @@ class GridAgentController(
   private def buildEvcs(
       evcsInput: EvcsInput,
       modelConfiguration: EvcsRuntimeConfig,
-      primaryServiceProxy: ClassicRef,
-      evMovementsService: ClassicRef,
+      primaryServiceProxy: ActorRef[PrimaryDataMessage],
+      evMovementsService: ActorRef[EvMessage],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -708,8 +712,8 @@ class GridAgentController(
       hpInput: HpInput,
       thermalGrid: ThermalGrid,
       modelConfiguration: HpRuntimeConfig,
-      primaryServiceProxy: ClassicRef,
-      weatherService: ClassicRef,
+      primaryServiceProxy: ActorRef[PrimaryDataMessage],
+      weatherService: ActorRef[WeatherMessage],
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
@@ -766,8 +770,8 @@ class GridAgentController(
   private def buildWec(
       wecInput: WecInput,
       modelConfiguration: WecRuntimeConfig,
-      primaryServiceProxy: ClassicRef,
-      weatherService: ClassicRef,
+      primaryServiceProxy: ActorRef[PrimaryDataMessage],
+      weatherService: ActorRef[WeatherMessage],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -824,7 +828,7 @@ class GridAgentController(
   private def buildStorage(
       storageInput: StorageInput,
       modelConfiguration: SimonaConfig.StorageRuntimeConfig,
-      primaryServiceProxy: ClassicRef,
+      primaryServiceProxy: ActorRef[PrimaryDataMessage],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,

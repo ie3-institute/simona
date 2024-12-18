@@ -17,12 +17,19 @@ import edu.ie3.simona.exceptions.{
   ServiceException,
 }
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
+import edu.ie3.simona.ontology.messages.services.EvMessage
 import edu.ie3.simona.ontology.messages.services.EvMessage._
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.ServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.RegistrationResponseMessage.RegistrationSuccessfulMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.{
+  ServiceRegistrationMessage,
+  WrappedActivation,
+  WrappedExternalMessage,
+}
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
+  ServiceConstantStateData,
 }
 import edu.ie3.simona.service.ev.ExtEvDataService.{
   ExtEvStateData,
@@ -31,23 +38,22 @@ import edu.ie3.simona.service.ev.ExtEvDataService.{
 import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
+import org.apache.pekko.actor.{ActorRef => ClassicRef}
+import org.slf4j.Logger
 
 import java.util.UUID
+import scala.concurrent.Future
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 import scala.util.{Failure, Success, Try}
 
 object ExtEvDataService {
 
-  def props(scheduler: ActorRef): Props =
-    Props(
-      new ExtEvDataService(scheduler: ActorRef)
-    )
-
   final case class ExtEvStateData(
       extEvData: ExtEvData,
-      uuidToActorRef: Map[UUID, ActorRef] = Map.empty[UUID, ActorRef],
+      uuidToActorRef: Map[UUID, ClassicRef] = Map.empty[UUID, ClassicRef],
       extEvMessage: Option[EvDataMessageFromExt] = None,
       freeLots: ReceiveDataMap[UUID, Int] = ReceiveDataMap.empty,
       departingEvResponses: ReceiveDataMap[UUID, Seq[EvModelWrapper]] =
@@ -58,12 +64,48 @@ object ExtEvDataService {
       extEvData: ExtEvData
   ) extends InitializeServiceStateData
 
+  def adapter(evService: ActorRef[EvMessage]): Behavior[DataMessageFromExt] =
+    Behaviors.receiveMessagePartial { extMsg =>
+      evService ! WrappedExternalMessage(extMsg)
+      Behaviors.same
+    }
+
+  def apply(
+      scheduler: ActorRef[SchedulerMessage]
+  ): Behavior[EvMessage] = Behaviors.withStash[EvMessage](100) { buffer =>
+    Behaviors.setup { ctx =>
+      val activationAdapter: ActorRef[Activation] =
+        ctx.messageAdapter[Activation](msg => WrappedActivation(msg))
+
+      implicit val constantData: ServiceConstantStateData =
+        ServiceConstantStateData(
+          scheduler,
+          activationAdapter,
+        )
+
+      new ExtEvDataService().uninitialized(constantData, buffer)
+    }
+  }
 }
 
-class ExtEvDataService(override val scheduler: ActorRef)
-    extends SimonaService[ExtEvStateData](scheduler)
-    with ExtDataSupport[ExtEvStateData] {
+private final class ExtEvDataService
+    extends SimonaService[ExtEvStateData, EvMessage]
+    with ExtDataSupport[ExtEvStateData, EvMessage] {
 
+  /** Initialize the concrete service implementation using the provided
+    * initialization data. This method should perform all heavyweight tasks
+    * before the actor becomes ready. The return values are a) the state data of
+    * the initialized service and b) optional triggers that should be sent to
+    * the [[edu.ie3.simona.scheduler.Scheduler]] together with the completion
+    * message that is sent in response to the trigger that is sent to start the
+    * initialization process
+    *
+    * @param initServiceData
+    *   the data that should be used for initialization
+    * @return
+    *   the state data of this service and optional tick that should be included
+    *   in the completion message
+    */
   override def init(
       initServiceData: ServiceStateData.InitializeServiceStateData
   ): Try[
@@ -104,11 +146,12 @@ class ExtEvDataService(override val scheduler: ActorRef)
   override def handleRegistrationRequest(
       registrationMessage: ServiceRegistrationMessage
   )(implicit
-      serviceStateData: ExtEvStateData
+      serviceStateData: ExtEvStateData,
+      ctx: ActorContext[EvMessage],
   ): Try[ExtEvStateData] =
     registrationMessage match {
-      case RegisterForEvDataMessage(evcs) =>
-        Success(handleRegistrationRequest(sender(), evcs))
+      case RegisterForEvDataMessage(actorRef, evcs) =>
+        Success(handleRegistrationRequest(actorRef, evcs))
       case invalidMessage =>
         Failure(
           InvalidRegistrationRequestException(
@@ -132,12 +175,13 @@ class ExtEvDataService(override val scheduler: ActorRef)
     *   information if the registration has been carried out successfully
     */
   private def handleRegistrationRequest(
-      agentToBeRegistered: ActorRef,
+      agentToBeRegistered: ClassicRef,
       evcs: UUID,
   )(implicit
-      serviceStateData: ExtEvStateData
+      serviceStateData: ExtEvStateData,
+      ctx: ActorContext[EvMessage],
   ): ExtEvStateData = {
-    log.debug(
+    ctx.log.debug(
       "Received ev movement service registration from {} for [Evcs:{}]",
       agentToBeRegistered.path.name,
       evcs,
@@ -154,7 +198,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
         )
       case Some(_) =>
         // actor is already registered, do nothing
-        log.warning(
+        ctx.log.warn(
           "Sending actor {} is already registered",
           agentToBeRegistered,
         )
@@ -170,18 +214,23 @@ class ExtEvDataService(override val scheduler: ActorRef)
     *   the current state data of this service
     * @return
     *   the service stata data that should be used in the next state (normally
-    *   with updated values) together with the completion message that is sent
+    *   with updated values) together with the <completion> message that is sent
     *   in response to the trigger that was sent to start this announcement
     */
   override protected def announceInformation(
       tick: Long
-  )(implicit serviceStateData: ExtEvStateData, ctx: ActorContext): (
+  )(implicit
+      serviceStateData: ExtEvStateData,
+      ctx: ActorContext[EvMessage],
+  ): (
       ExtEvStateData,
       Option[Long],
   ) = {
     def asScala[E]
         : java.util.Map[UUID, java.util.List[E]] => Map[UUID, Seq[E]] = map =>
       map.asScala.view.mapValues(_.asScala.toSeq).toMap
+
+    implicit val log: Logger = ctx.log
 
     serviceStateData.extEvMessage.getOrElse(
       throw ServiceException(
@@ -200,7 +249,8 @@ class ExtEvDataService(override val scheduler: ActorRef)
           asScala(arrivingEvsProvision.arrivals),
           arrivingEvsProvision.maybeNextTick.toScala.map(Long2long),
         )(
-          serviceStateData
+          serviceStateData,
+          ctx,
         )
     }
   }
@@ -254,7 +304,8 @@ class ExtEvDataService(override val scheduler: ActorRef)
       tick: Long,
       requestedDepartingEvs: Map[UUID, Seq[UUID]],
   )(implicit
-      serviceStateData: ExtEvStateData
+      serviceStateData: ExtEvStateData,
+      log: Logger,
   ): (ExtEvStateData, Option[Long]) = {
 
     val departingEvResponses =
@@ -266,7 +317,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
             Some(evcs)
 
           case None =>
-            log.warning(
+            log.warn(
               "A corresponding actor ref for UUID {} could not be found",
               evcs,
             )
@@ -294,7 +345,8 @@ class ExtEvDataService(override val scheduler: ActorRef)
       allArrivingEvs: Map[UUID, Seq[EvModel]],
       maybeNextTick: Option[Long],
   )(implicit
-      serviceStateData: ExtEvStateData
+      serviceStateData: ExtEvStateData,
+      ctx: ActorContext[EvMessage],
   ): (ExtEvStateData, Option[Long]) = {
 
     if (tick == INIT_SIM_TICK) {
@@ -307,7 +359,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
       serviceStateData.uuidToActorRef.foreach { case (_, actor) =>
         actor ! RegistrationSuccessfulMessage(
-          self,
+          ctx.self,
           maybeNextTick,
         )
       }
@@ -319,7 +371,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
 
         actor ! ProvideEvDataMessage(
           tick,
-          self,
+          ctx.self,
           ArrivingEvs(evs.map(EvModelWrapper.apply)),
           maybeNextTick,
         )

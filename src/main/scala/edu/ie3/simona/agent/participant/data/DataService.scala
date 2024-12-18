@@ -6,15 +6,16 @@
 
 package edu.ie3.simona.agent.participant.data
 
-import org.apache.pekko.actor.ActorRef
+import edu.ie3.simona.ontology.messages.services.ServiceMessage
+import org.apache.pekko.actor.typed.ActorRef
 
 /** Common properties to all data sources providing data from the outside of a
   * SystemParticipant model but not necessarily from the outside of the
   * simulation (but could be).
   */
-trait DataService[+D <: Data] {
+trait DataService[+D <: Data, M <: ServiceMessage] {
 
   /** A reference to the actor
     */
-  val actorRef: ActorRef
+  val actorRef: ActorRef[M]
 }

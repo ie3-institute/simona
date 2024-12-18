@@ -10,24 +10,31 @@ import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
   ProvisionMessage,
-  ServiceRegistrationMessage,
+  ServiceInternal,
 }
-import org.apache.pekko.actor.ActorRef
+import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.ServiceRegistrationMessage
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 import java.util.UUID
 
-sealed trait EvMessage
+sealed trait EvMessage extends ServiceInternal
 
 object EvMessage {
+
+  private[services] trait EvInternal extends EvMessage
 
   /** Indicate the [[edu.ie3.simona.service.ev.ExtEvDataService]] that the
     * requesting agent wants to receive EV movements
     *
+    * @param actorRef
+    *   actor ref for the agent to be registered
     * @param evcs
     *   the charging station
     */
   final case class RegisterForEvDataMessage(
-      evcs: UUID
+      actorRef: ClassicRef,
+      evcs: UUID,
   ) extends EvMessage
       with ServiceRegistrationMessage
 
@@ -45,7 +52,7 @@ object EvMessage {
     */
   final case class ProvideEvDataMessage(
       override val tick: Long,
-      override val serviceRef: ActorRef,
+      override val serviceRef: ActorRef[EvMessage],
       override val data: EvData,
       override val nextDataTick: Option[Long],
   ) extends EvMessage
@@ -56,7 +63,7 @@ object EvMessage {
     * @param tick
     *   The latest tick that the data is requested for
     */
-  final case class EvFreeLotsRequest(tick: Long)
+  final case class EvFreeLotsRequest(tick: Long) extends EvMessage
 
   /** Requests EV models of departing EVs with given UUIDs
     *
@@ -66,6 +73,7 @@ object EvMessage {
     *   The UUIDs of EVs that are requested
     */
   final case class DepartingEvsRequest(tick: Long, departingEvs: Seq[UUID])
+      extends EvMessage
 
   /** Holds arrivals for one charging station
     *

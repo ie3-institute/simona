@@ -20,9 +20,12 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
+import edu.ie3.simona.ontology.messages.services.PrimaryDataMessage.PrimaryServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.RegistrationResponseMessage.RegistrationFailedMessage
+import edu.ie3.simona.ontology.messages.services.{
+  PrimaryDataMessage,
+  WeatherMessage,
+}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.test.common.model.grid.DbfsTestGridWithParticipants
@@ -48,17 +51,20 @@ class DBFSAlgorithmParticipantSpec
     with TestSpawnerTyped {
 
   private val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
-  private val runtimeEvents: TestProbe[RuntimeEvent] =
-    TestProbe("runtimeEvents")
-  private val primaryService: TestProbe[ServiceMessage] =
-    TestProbe("primaryService")
-  private val weatherService = TestProbe("weatherService")
+  private val runtimeEvents: TestProbe[RuntimeEvent] = TestProbe(
+    "runtimeEvents"
+  )
+  private val primaryService: TestProbe[PrimaryDataMessage] = TestProbe(
+    "primaryService"
+  )
+  private val weatherService =
+    TestProbe[WeatherMessage]("weatherService")
 
   private val environmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,
     runtimeEventListener = runtimeEvents.ref,
-    primaryServiceProxy = primaryService.ref.toClassic,
-    weather = weatherService.ref.toClassic,
+    primaryServiceProxy = primaryService.ref,
+    weather = weatherService.ref,
     evDataService = None,
   )
 
@@ -119,11 +125,14 @@ class DBFSAlgorithmParticipantSpec
       loadAgent ! Activation(INIT_SIM_TICK)
 
       primaryService.expectMessage(
-        PrimaryServiceRegistrationMessage(load1.getUuid)
+        PrimaryServiceRegistrationMessage(
+          loadAgent.ref.toClassic,
+          load1.getUuid,
+        )
       )
 
       loadAgent.toClassic ! RegistrationFailedMessage(
-        primaryService.ref.toClassic
+        primaryService.ref
       )
 
       scheduler.expectMessage(Completion(loadAgent, Some(0)))

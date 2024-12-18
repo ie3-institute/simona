@@ -32,11 +32,11 @@ import edu.ie3.simona.event.ResultEvent.{
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
+import edu.ie3.simona.ontology.messages.services.PrimaryDataMessage.PrimaryServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.StorageInputTestData
 import edu.ie3.simona.util.ConfigUtil
@@ -49,8 +49,8 @@ import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.{ActorRef, ActorSystem}
 import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
-import squants.{Each, Power}
 import squants.energy.{Kilowatts, Megawatts, Watts}
+import squants.{Each, Power}
 
 import java.time.ZonedDateTime
 import scala.collection.SortedMap
@@ -121,7 +121,7 @@ class StorageAgentModelCalculationSpec
       requestVoltageDeviationThreshold =
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = outputConfig,
-      primaryServiceProxy = primaryServiceProxy.ref,
+      primaryServiceProxy = primaryServiceProxy.ref.toTyped,
       maybeEmAgent = Some(emAgent.ref.toTyped),
     )
 
@@ -138,7 +138,10 @@ class StorageAgentModelCalculationSpec
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(storageInputQv.getUuid)
+        PrimaryServiceRegistrationMessage(
+          storageAgent.ref,
+          storageInputQv.getUuid,
+        )
       )
       /* State should be information handling and having correct state data */
       storageAgent.stateName shouldBe HandleInformation
@@ -170,7 +173,7 @@ class StorageAgentModelCalculationSpec
       /* Refuse registration */
       primaryServiceProxy.send(
         storageAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       emAgent.expectMsg(
@@ -244,7 +247,7 @@ class StorageAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         storageAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       emAgent.expectMsgType[RegisterParticipant]
@@ -305,7 +308,7 @@ class StorageAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         storageAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       emAgent.expectMsgType[RegisterParticipant]

@@ -15,12 +15,11 @@ import edu.ie3.datamodel.models.result.system.{
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
-import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPower,
   ZERO_POWER,
 }
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.SecondaryServiceType
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FlexControlledData,
   ParticipantModelBaseStateData,
@@ -85,7 +84,7 @@ trait StorageAgentFundamentals
   override def determineModelBaseStateData(
       inputModel: ParticipantStateData.InputModelContainer[StorageInput],
       modelConfig: StorageRuntimeConfig,
-      services: Iterable[SecondaryDataService[_ <: Data.SecondaryData]],
+      services: Iterable[SecondaryServiceType],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,

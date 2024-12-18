@@ -8,14 +8,17 @@ package edu.ie3.simona.agent.participant.statedata
 
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
-import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.SecondaryServiceType
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
+import edu.ie3.simona.ontology.messages.services.{
+  PrimaryDataMessage,
+  ServiceMessage,
+}
 import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.{ActorRef => ClassicActorRef}
 
 import java.time.ZonedDateTime
 
@@ -71,7 +74,7 @@ object ParticipantStateData {
   ](
       inputModel: InputModelContainer[I],
       modelConfig: C,
-      secondaryDataServices: Iterable[SecondaryDataService[_ <: SecondaryData]],
+      secondaryDataServices: Iterable[SecondaryServiceType],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -115,8 +118,8 @@ object ParticipantStateData {
   ](
       inputModel: InputModelContainer[I],
       modelConfig: C,
-      primaryServiceProxy: ClassicActorRef,
-      secondaryDataServices: Iterable[SecondaryDataService[_ <: SecondaryData]],
+      primaryServiceProxy: ActorRef[PrimaryDataMessage],
+      secondaryDataServices: Iterable[SecondaryServiceType],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -134,10 +137,8 @@ object ParticipantStateData {
     ](
         inputModel: I,
         modelConfig: C,
-        primaryServiceProxy: ClassicActorRef,
-        secondaryDataServices: Iterable[
-          SecondaryDataService[_ <: SecondaryData]
-        ],
+        primaryServiceProxy: ActorRef[PrimaryDataMessage],
+        secondaryDataServices: Iterable[SecondaryServiceType],
         simulationStartDate: ZonedDateTime,
         simulationEndDate: ZonedDateTime,
         resolution: Long,
@@ -163,10 +164,8 @@ object ParticipantStateData {
     ](
         inputModel: I,
         modelConfig: C,
-        primaryServiceProxy: ClassicActorRef,
-        secondaryDataServices: Iterable[
-          SecondaryDataService[_ <: SecondaryData]
-        ],
+        primaryServiceProxy: ActorRef[PrimaryDataMessage],
+        secondaryDataServices: Iterable[SecondaryServiceType],
         simulationStartDate: ZonedDateTime,
         simulationEndDate: ZonedDateTime,
         resolution: Long,
@@ -195,10 +194,8 @@ object ParticipantStateData {
         inputModel: I,
         thermalGrid: ThermalGrid,
         modelConfig: C,
-        primaryServiceProxy: ClassicActorRef,
-        secondaryDataServices: Iterable[
-          SecondaryDataService[_ <: SecondaryData]
-        ],
+        primaryServiceProxy: ActorRef[PrimaryDataMessage],
+        secondaryDataServices: Iterable[SecondaryServiceType],
         simulationStartDate: ZonedDateTime,
         simulationEndDate: ZonedDateTime,
         resolution: Long,
@@ -226,10 +223,8 @@ object ParticipantStateData {
         inputModel: I,
         thermalGrid: ThermalGrid,
         modelConfig: C,
-        primaryServiceProxy: ClassicActorRef,
-        secondaryDataServices: Iterable[
-          SecondaryDataService[_ <: SecondaryData]
-        ],
+        primaryServiceProxy: ActorRef[PrimaryDataMessage],
+        secondaryDataServices: Iterable[SecondaryServiceType],
         simulationStartDate: ZonedDateTime,
         simulationEndDate: ZonedDateTime,
         resolution: Long,
@@ -268,8 +263,9 @@ object ParticipantStateData {
       +PD <: PrimaryDataWithApparentPower[PD]
   ](
       baseStateData: BaseStateData[PD],
-      pendingResponses: Iterable[ClassicActorRef],
-      foreseenNextDataTicks: Map[ClassicActorRef, Long] = Map.empty,
+      pendingResponses: Iterable[ActorRef[_]],
+      foreseenNextDataTicks: Map[ActorRef[_ <: ServiceMessage], Long] =
+        Map.empty,
   ) extends ParticipantStateData[PD]
 
   sealed trait InputModelContainer[+I <: SystemParticipantInput] {

@@ -19,8 +19,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPower,
   ZERO_POWER,
 }
-import edu.ie3.simona.agent.participant.data.Data.SecondaryData
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.SecondaryServiceType
 import edu.ie3.simona.agent.participant.pv.PvAgent.neededServices
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FlexControlledData,
@@ -107,7 +106,7 @@ protected trait PvAgentFundamentals
   override def determineModelBaseStateData(
       inputModel: InputModelContainer[PvInput],
       modelConfig: PvRuntimeConfig,
-      services: Iterable[SecondaryDataService[_ <: SecondaryData]],
+      services: Iterable[SecondaryServiceType],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,

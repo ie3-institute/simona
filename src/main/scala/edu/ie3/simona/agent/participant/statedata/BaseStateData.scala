@@ -10,6 +10,7 @@ import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.SecondaryServiceType
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.{
   CalcRelevantData,
@@ -21,6 +22,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexResponse,
   ProvideFlexOptions,
 }
+import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.{ActorRef => ClassicActorRef}
 import squants.Dimensionless
@@ -61,7 +63,7 @@ trait BaseStateData[+PD <: PrimaryDataWithApparentPower[PD]]
   /** A mapping from service reference to it's foreseen next availability of
     * data
     */
-  val foreseenDataTicks: Map[ClassicActorRef, Option[Long]]
+  val foreseenDataTicks: Map[ActorRef[_ <: ServiceMessage], Option[Long]]
 
   /** A store, holding a map from tick to active / reactive power
     */
@@ -110,7 +112,9 @@ object BaseStateData {
 
     /** The services, the physical model depends on
       */
-    val services: Iterable[SecondaryDataService[_ <: SecondaryData]]
+    val services: Iterable[
+      SecondaryDataService[_ <: SecondaryData, _ <: ServiceMessage]
+    ]
 
     /** Stores all data that are relevant to model calculation
       */
@@ -162,7 +166,7 @@ object BaseStateData {
       override val endDate: ZonedDateTime,
       override val outputConfig: NotifierConfig,
       override val additionalActivationTicks: SortedSet[Long],
-      override val foreseenDataTicks: Map[ClassicActorRef, Option[Long]],
+      override val foreseenDataTicks: Map[ActorRef[_], Option[Long]],
       fillUpReactivePowerWithModelFunc: Boolean = false,
       requestVoltageDeviationThreshold: Double,
       override val voltageValueStore: ValueStore[
@@ -215,10 +219,12 @@ object BaseStateData {
       override val startDate: ZonedDateTime,
       override val endDate: ZonedDateTime,
       override val model: M,
-      override val services: Iterable[SecondaryDataService[_ <: SecondaryData]],
+      override val services: Iterable[SecondaryServiceType],
       override val outputConfig: NotifierConfig,
       override val additionalActivationTicks: SortedSet[Long],
-      override val foreseenDataTicks: Map[ClassicActorRef, Option[Long]],
+      override val foreseenDataTicks: Map[ActorRef[_ <: ServiceMessage], Option[
+        Long
+      ]],
       requestVoltageDeviationThreshold: Double,
       override val voltageValueStore: ValueStore[
         Dimensionless
@@ -278,7 +284,7 @@ object BaseStateData {
       updatedRequestValueStore: ValueStore[PD],
       updatedVoltageValueStore: ValueStore[Dimensionless],
       updatedAdditionalActivationTicks: SortedSet[Long],
-      updatedForeseenTicks: Map[ClassicActorRef, Option[Long]],
+      updatedForeseenTicks: Map[ActorRef[_], Option[Long]],
   ): BaseStateData[PD] = {
     baseStateData match {
       case external: FromOutsideBaseStateData[_, PD] =>

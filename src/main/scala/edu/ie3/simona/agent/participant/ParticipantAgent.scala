@@ -16,7 +16,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.{
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.SecondaryServiceType
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FromOutsideBaseStateData,
   ParticipantModelBaseStateData,
@@ -47,18 +47,17 @@ import edu.ie3.simona.model.participant.{
 }
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
+  FlexActivation,
   FlexResponse,
   IssueFlexControl,
-  FlexActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  PrimaryServiceRegistrationMessage,
-  ProvisionMessage,
-  RegistrationResponseMessage,
-}
+import edu.ie3.simona.ontology.messages.services.PrimaryDataMessage.PrimaryServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.ProvisionMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.RegistrationResponseMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.ReactivePower
+import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import org.apache.pekko.actor.{ActorRef, FSM}
 import squants.{Dimensionless, Power}
@@ -129,7 +128,8 @@ abstract class ParticipantAgent[
        * that will confirm, otherwise, a failed registration is announced. */
       holdTick(INIT_SIM_TICK)
       initStateData.primaryServiceProxy ! PrimaryServiceRegistrationMessage(
-        initStateData.inputModel.electricalInputModel.getUuid
+        self,
+        initStateData.inputModel.electricalInputModel.getUuid,
       )
       goto(HandleInformation) using ParticipantInitializingStateData(
         initStateData.inputModel,
@@ -442,7 +442,7 @@ abstract class ParticipantAgent[
             participantStateData.receivedSecondaryDataStore,
             currentTick,
             nonEmptyData.collect { case (actorRef, Some(data: SecondaryData)) =>
-              actorRef -> data
+              actorRef.toClassic -> data
             },
           )
         case _ => participantStateData.receivedSecondaryDataStore
@@ -515,7 +515,7 @@ abstract class ParticipantAgent[
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      senderToMaybeTick: (ActorRef, Option[Long]),
+      senderToMaybeTick: (TypedActorRef[_], Option[Long]),
       scheduler: ActorRef,
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
@@ -547,7 +547,7 @@ abstract class ParticipantAgent[
   def initializeParticipantForModelCalculation(
       inputModel: InputModelContainer[I],
       modelConfig: MC,
-      services: Iterable[SecondaryDataService[_ <: SecondaryData]],
+      services: Iterable[SecondaryServiceType],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,

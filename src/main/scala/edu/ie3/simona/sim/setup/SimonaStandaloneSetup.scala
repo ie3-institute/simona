@@ -18,6 +18,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.CreateGridAgent
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.data.ExtData
 import edu.ie3.simona.api.data.ev.{ExtEvData, ExtEvSimulation}
+import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.config.{ArgsParser, RefSystemParser, SimonaConfig}
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
@@ -25,11 +26,18 @@ import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.grid.GridProvider
 import edu.ie3.simona.ontology.messages.SchedulerMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
+import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.{
+  Create,
+  WrappedExternalMessage,
+}
+import edu.ie3.simona.ontology.messages.services.{
+  EvMessage,
+  PrimaryDataMessage,
+  WeatherMessage,
+}
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.scheduler.{ScheduleLock, Scheduler, TimeAdvancer}
-import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
@@ -48,7 +56,6 @@ import org.apache.pekko.actor.typed.scaladsl.adapter.{
   TypedActorContextOps,
   TypedActorRefOps,
 }
-import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 import java.nio.file.Path
 import java.util.UUID
@@ -149,43 +156,41 @@ class SimonaStandaloneSetup(
   override def primaryServiceProxy(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
-  ): ClassicRef = {
+  ): ActorRef[PrimaryDataMessage] = {
     val simulationStart = TimeUtil.withDefaults.toZonedDateTime(
       simonaConfig.simona.time.startDateTime
     )
-    val primaryServiceProxy = context.toClassic.simonaActorOf(
-      PrimaryServiceProxy.props(
-        scheduler.toClassic,
+    val primaryServiceProxy = context.spawn(
+      PrimaryServiceProxy(
+        scheduler,
         InitPrimaryServiceProxyStateData(
           simonaConfig.simona.input.primary,
           simulationStart,
         ),
-        simulationStart,
       ),
       "primaryServiceProxyAgent",
     )
-
-    scheduler ! ScheduleActivation(primaryServiceProxy.toTyped, INIT_SIM_TICK)
     primaryServiceProxy
   }
 
   override def weatherService(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
-  ): ClassicRef = {
-    val weatherService = context.toClassic.simonaActorOf(
-      WeatherService.props(
-        scheduler.toClassic,
+  ): ActorRef[WeatherMessage] = {
+    val weatherService = context.spawn(
+      WeatherService(
+        scheduler
+      ),
+      "weatherAgent",
+    )
+
+    weatherService ! Create(
+      InitWeatherServiceStateData(
+        simonaConfig.simona.input.weather.datasource,
         TimeUtil.withDefaults
           .toZonedDateTime(simonaConfig.simona.time.startDateTime),
         TimeUtil.withDefaults
           .toZonedDateTime(simonaConfig.simona.time.endDateTime),
-      ),
-      "weatherAgent",
-    )
-    weatherService ! SimonaService.Create(
-      InitWeatherServiceStateData(
-        simonaConfig.simona.input.weather.datasource
       ),
       ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
     )
@@ -221,17 +226,24 @@ class SimonaStandaloneSetup(
           // setup data services that belong to this external simulation
           val (extData, extDataInit): (
               Iterable[ExtData],
-              Iterable[(Class[_ <: SimonaService[_]], ClassicRef)],
+              Iterable[(Class[_], ActorRef[_])],
           ) =
             extLink.getExtDataSimulations.asScala.zipWithIndex.map {
               case (_: ExtEvSimulation, dIndex) =>
-                val extEvDataService = context.toClassic.simonaActorOf(
-                  ExtEvDataService.props(scheduler.toClassic),
+                val extEvDataService = context.spawn(
+                  ExtEvDataService(scheduler),
                   s"$index-$dIndex",
                 )
-                val extEvData = new ExtEvData(extEvDataService, extSimAdapter)
 
-                extEvDataService ! SimonaService.Create(
+                val extEvServiceAdapter = context.spawn(
+                  ExtEvDataService.adapter(extEvDataService),
+                  s"$index-$dIndex-adapter",
+                )
+
+                val extEvData =
+                  new ExtEvData(extEvServiceAdapter.toClassic, extSimAdapter)
+
+                extEvDataService ! Create(
                   InitExtEvData(extEvData),
                   ScheduleLock.singleKey(
                     context,
@@ -240,7 +252,7 @@ class SimonaStandaloneSetup(
                   ),
                 )
 
-                (extEvData, (classOf[ExtEvDataService], extEvDataService))
+                (extEvData, (classOf[ExtEvDataService.type], extEvDataService))
             }.unzip
 
           extLink.getExtSimulation.setup(

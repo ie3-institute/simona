@@ -30,6 +30,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
 }
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.SecondaryServiceType
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FromOutsideBaseStateData,
   ParticipantModelBaseStateData,
@@ -75,16 +76,18 @@ import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  ProvisionMessage,
-  RegistrationResponseMessage,
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.ProvisionMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.RegistrationResponseMessage
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
+  ClassicActorRefOps,
+  TypedActorRefOps,
+}
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import org.apache.pekko.actor.{ActorRef, FSM, PoisonPill}
 import org.apache.pekko.event.LoggingAdapter
@@ -123,7 +126,7 @@ protected trait ParticipantAgentFundamentals[
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      senderToMaybeTick: (ActorRef, Option[Long]),
+      senderToMaybeTick: (TypedActorRef[_], Option[Long]),
       scheduler: ActorRef,
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
     val stateData = determineFromOutsideBaseStateData(
@@ -175,7 +178,7 @@ protected trait ParticipantAgentFundamentals[
       resolution: Long,
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
-      senderToMaybeTick: (ActorRef, Option[Long]),
+      senderToMaybeTick: (TypedActorRef[_], Option[Long]),
   ): FromOutsideBaseStateData[M, PD] = {
     val model = buildModel(
       inputModel,
@@ -257,7 +260,7 @@ protected trait ParticipantAgentFundamentals[
   override def initializeParticipantForModelCalculation(
       inputModel: InputModelContainer[I],
       modelConfig: MC,
-      services: Iterable[SecondaryDataService[_ <: SecondaryData]],
+      services: Iterable[SecondaryServiceType],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -337,7 +340,7 @@ protected trait ParticipantAgentFundamentals[
   def determineModelBaseStateData(
       inputModel: InputModelContainer[I],
       modelConfig: MC,
-      services: Iterable[SecondaryDataService[_ <: SecondaryData]],
+      services: Iterable[SecondaryServiceType],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -622,7 +625,7 @@ protected trait ParticipantAgentFundamentals[
             modelStateData.receivedSecondaryDataStore,
             tick,
             stateData.data.map { case (actorRef, Some(data: SecondaryData)) =>
-              actorRef -> data
+              actorRef.toClassic -> data
             },
           )
 
@@ -987,7 +990,7 @@ protected trait ParticipantAgentFundamentals[
     *   A trial to get and process the needed data
     */
   def prepareData(
-      data: Map[ActorRef, Option[_ <: Data]],
+      data: Map[TypedActorRef[_], Option[_ <: Data]],
       reactivePowerFunction: Power => ReactivePower,
   ): Try[PD] =
     data.headOption
@@ -1943,27 +1946,17 @@ protected trait ParticipantAgentFundamentals[
     * @param services
     *   the services used in
     *   [[edu.ie3.simona.agent.participant.statedata.BaseStateData.ModelBaseStateData]]
-    * @param tag
-    *   ClassTag of T
-    * @tparam T
-    *   the type of secondary service to return
+    * @tparam S
+    *   the type of the messages of the secondary service to return
     * @return
     *   secondary service of given type
     */
-  protected def getService[T <: SecondaryDataService[_]](
-      services: Iterable[SecondaryDataService[_ <: SecondaryData]]
-  )(implicit tag: ClassTag[T]): ActorRef =
-    services
-      .find {
-        case _: T => true
-        case _    => false
-      }
-      .getOrElse(
-        throw new InconsistentStateException(
-          s"No $tag provided by ParticipantModelBaseStateData."
-        )
-      )
-      .actorRef
+  protected def getService[S <: ServiceMessage](
+      services: Iterable[SecondaryServiceType]
+  ): Option[TypedActorRef[S]] =
+    services.collectFirst { case service: SecondaryDataService[_, S] =>
+      service.actorRef
+    }
 }
 
 object ParticipantAgentFundamentals {

@@ -44,8 +44,8 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.EvMessage._
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
+import edu.ie3.simona.ontology.messages.services.PrimaryDataMessage.PrimaryServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.RegistrationResponseMessage.{
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
 }
@@ -132,7 +132,7 @@ class EvcsAgentModelCalculationSpec
       resolution = resolution,
       requestVoltageDeviationThreshold = requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
-      primaryServiceProxy = primaryServiceProxy.ref,
+      primaryServiceProxy = primaryServiceProxy.ref.toTyped,
     )
 
     "be instantiated correctly" in {
@@ -173,7 +173,7 @@ class EvcsAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         evcsAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       deathProbe.expectTerminated(evcsAgent.ref)
@@ -191,14 +191,14 @@ class EvcsAgentModelCalculationSpec
       inputModel = evcsInputModel,
       modelConfig = modelConfig,
       secondaryDataServices = Iterable(
-        ActorExtEvDataService(evService.ref)
+        ActorExtEvDataService(evService.ref.toTyped)
       ),
       simulationStartDate = simulationStartDate,
       simulationEndDate = simulationEndDate,
       resolution = resolution,
       requestVoltageDeviationThreshold = requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
-      primaryServiceProxy = primaryServiceProxy.ref,
+      primaryServiceProxy = primaryServiceProxy.ref.toTyped,
     )
 
     "be instantiated correctly" in {
@@ -234,7 +234,7 @@ class EvcsAgentModelCalculationSpec
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(evcsInputModel.getUuid)
+        PrimaryServiceRegistrationMessage(evcsAgent.ref, evcsInputModel.getUuid)
       )
       /* State should be information handling and having correct state data */
       evcsAgent.stateName shouldBe HandleInformation
@@ -253,7 +253,7 @@ class EvcsAgentModelCalculationSpec
           inputModel shouldBe SimpleInputContainer(evcsInputModel)
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe Iterable(
-            ActorExtEvDataService(evService.ref)
+            ActorExtEvDataService(evService.ref.toTyped)
           )
           simulationStartDate shouldBe simulationStartDate
           simulationEndDate shouldBe simulationEndDate
@@ -268,11 +268,13 @@ class EvcsAgentModelCalculationSpec
       /* Refuse registration */
       primaryServiceProxy.send(
         evcsAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* Expect a registration message */
-      evService.expectMsg(RegisterForEvDataMessage(evcsInputModel.getUuid))
+      evService.expectMsg(
+        RegisterForEvDataMessage(evcsAgent.ref, evcsInputModel.getUuid)
+      )
 
       /* ... as well as corresponding state and state data */
       evcsAgent.stateName shouldBe HandleInformation
@@ -301,7 +303,7 @@ class EvcsAgentModelCalculationSpec
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
           services shouldBe Iterable(
-            ActorExtEvDataService(evService.ref)
+            ActorExtEvDataService(evService.ref.toTyped)
           )
           outputConfig shouldBe NotifierConfig(
             simulationResultInfo = false,
@@ -318,7 +320,9 @@ class EvcsAgentModelCalculationSpec
           requestValueStore shouldBe ValueStore[ComplexPower](resolution)
 
           /* Additional information */
-          awaitRegistrationResponsesFrom shouldBe Iterable(evService.ref)
+          awaitRegistrationResponsesFrom shouldBe Iterable(
+            evService.ref.toTyped
+          )
           foreseenNextDataTicks shouldBe Map.empty
         case _ =>
           fail(
@@ -329,7 +333,7 @@ class EvcsAgentModelCalculationSpec
       /* Reply, that registration was successful */
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, None),
+        RegistrationSuccessfulMessage(evService.ref.toTyped, None),
       )
 
       /* Expect a completion message */
@@ -340,7 +344,9 @@ class EvcsAgentModelCalculationSpec
       evcsAgent.stateData match {
         case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
-          baseStateData.foreseenDataTicks shouldBe Map(evService.ref -> None)
+          baseStateData.foreseenDataTicks shouldBe Map(
+            evService.ref.toTyped -> None
+          )
         case _ =>
           fail(
             s"Did not find expected state data $ParticipantModelBaseStateData, but ${evcsAgent.stateData}"
@@ -363,14 +369,16 @@ class EvcsAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         evcsAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* Expect a registration message */
-      evService.expectMsg(RegisterForEvDataMessage(evcsInputModel.getUuid))
+      evService.expectMsg(
+        RegisterForEvDataMessage(evcsAgent.ref, evcsInputModel.getUuid)
+      )
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, Some(900L)),
+        RegistrationSuccessfulMessage(evService.ref.toTyped, Some(900L)),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -429,14 +437,14 @@ class EvcsAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         evcsAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       evService.expectMsgType[RegisterForEvDataMessage]
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, Some(0)),
+        RegistrationSuccessfulMessage(evService.ref.toTyped, Some(0)),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -452,7 +460,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           0L,
-          evService.ref,
+          evService.ref.toTyped,
           arrivingEvsData,
           Some(900),
         ),
@@ -468,12 +476,12 @@ class EvcsAgentModelCalculationSpec
             ) =>
           /* The next data tick is already registered */
           baseStateData.foreseenDataTicks shouldBe Map(
-            evService.ref -> Some(900)
+            evService.ref.toTyped -> Some(900)
           )
 
           /* The yet sent data is also registered */
           expectedSenders shouldBe Map(
-            evService.ref -> Some(arrivingEvsData)
+            evService.ref.toTyped -> Some(arrivingEvsData)
           )
 
           /* It is not yet triggered */
@@ -563,14 +571,14 @@ class EvcsAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         evcsAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       evService.expectMsgType[RegisterForEvDataMessage]
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, Some(0)),
+        RegistrationSuccessfulMessage(evService.ref.toTyped, Some(0)),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -593,10 +601,12 @@ class EvcsAgentModelCalculationSpec
               isYetTriggered,
             ) =>
           /* The next data tick is already registered */
-          baseStateData.foreseenDataTicks shouldBe Map(evService.ref -> Some(0))
+          baseStateData.foreseenDataTicks shouldBe Map(
+            evService.ref.toTyped -> Some(0)
+          )
 
           /* The yet sent data is also registered */
-          expectedSenders shouldBe Map(evService.ref -> None)
+          expectedSenders shouldBe Map(evService.ref.toTyped -> None)
 
           /* It is not yet triggered */
           isYetTriggered shouldBe true
@@ -614,7 +624,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           0L,
-          evService.ref,
+          evService.ref.toTyped,
           arrivingEvsData,
           Some(900),
         ),
@@ -694,14 +704,14 @@ class EvcsAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         evcsAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       evService.expectMsgType[RegisterForEvDataMessage]
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, Some(10800)),
+        RegistrationSuccessfulMessage(evService.ref.toTyped, Some(10800)),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -739,14 +749,14 @@ class EvcsAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         evcsAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       evService.expectMsgType[RegisterForEvDataMessage]
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, Some(0)),
+        RegistrationSuccessfulMessage(evService.ref.toTyped, Some(0)),
       )
 
       /* I'm not interested in the content of the CompletionM */
@@ -773,7 +783,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           0,
-          evService.ref,
+          evService.ref.toTyped,
           ArrivingEvs(Seq(EvModelWrapper(evA))),
           Some(900),
         ),
@@ -820,14 +830,14 @@ class EvcsAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         evcsAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       evService.expectMsgType[RegisterForEvDataMessage]
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, Some(0)),
+        RegistrationSuccessfulMessage(evService.ref.toTyped, Some(0)),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -839,7 +849,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           0,
-          evService.ref,
+          evService.ref.toTyped,
           ArrivingEvs(Seq(EvModelWrapper(evA))),
           Some(900),
         ),
@@ -856,7 +866,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           900,
-          evService.ref,
+          evService.ref.toTyped,
           ArrivingEvs(Seq.empty),
           Some(1800),
         ),
@@ -878,14 +888,14 @@ class EvcsAgentModelCalculationSpec
           inputModel = evcsInputModelQv,
           modelConfig = modelConfig,
           secondaryDataServices = Iterable(
-            ActorExtEvDataService(evService.ref)
+            ActorExtEvDataService(evService.ref.toTyped)
           ),
           simulationStartDate = simulationStartDate,
           simulationEndDate = simulationEndDate,
           resolution = resolution,
           requestVoltageDeviationThreshold = requestVoltageDeviationThreshold,
           outputConfig = defaultOutputConfig,
-          primaryServiceProxy = primaryServiceProxy.ref,
+          primaryServiceProxy = primaryServiceProxy.ref.toTyped,
         ),
         listener = systemListener,
       )
@@ -898,14 +908,14 @@ class EvcsAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         evcsAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       evService.expectMsgType[RegisterForEvDataMessage]
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, Some(0)),
+        RegistrationSuccessfulMessage(evService.ref.toTyped, Some(0)),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -918,7 +928,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           0,
-          evService.ref,
+          evService.ref.toTyped,
           ArrivingEvs(
             Seq(EvModelWrapper(evA.copyWithDeparture(3600)))
           ),
@@ -952,7 +962,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           3600,
-          evService.ref,
+          evService.ref.toTyped,
           ArrivingEvs(
             Seq(EvModelWrapper(evB.copyWithDeparture(7200)))
           ),
@@ -986,7 +996,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           7200,
-          evService.ref,
+          evService.ref.toTyped,
           ArrivingEvs(
             Seq(EvModelWrapper(evA.copyWithDeparture(10800)))
           ),
@@ -1060,14 +1070,14 @@ class EvcsAgentModelCalculationSpec
             inputModel = evcsInputModelQv,
             modelConfig = modelConfig,
             secondaryDataServices = Iterable(
-              ActorExtEvDataService(evService.ref)
+              ActorExtEvDataService(evService.ref.toTyped)
             ),
             simulationStartDate = simulationStartDate,
             simulationEndDate = simulationEndDate,
             resolution = resolution,
             requestVoltageDeviationThreshold = requestVoltageDeviationThreshold,
             outputConfig = defaultOutputConfig,
-            primaryServiceProxy = primaryServiceProxy.ref,
+            primaryServiceProxy = primaryServiceProxy.ref.toTyped,
             maybeEmAgent = Some(emAgent.ref.toTyped),
           ),
           listener = Iterable.empty,
@@ -1078,7 +1088,10 @@ class EvcsAgentModelCalculationSpec
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(evcsInputModelQv.getUuid)
+        PrimaryServiceRegistrationMessage(
+          evcsAgent.ref,
+          evcsInputModelQv.getUuid,
+        )
       )
       /* State should be information handling and having correct state data */
       evcsAgent.stateName shouldBe HandleInformation
@@ -1097,7 +1110,7 @@ class EvcsAgentModelCalculationSpec
           inputModel shouldBe SimpleInputContainer(evcsInputModelQv)
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe Iterable(
-            ActorExtEvDataService(evService.ref)
+            ActorExtEvDataService(evService.ref.toTyped)
           )
           simulationStartDate shouldBe simulationStartDate
           simulationEndDate shouldBe simulationEndDate
@@ -1112,7 +1125,7 @@ class EvcsAgentModelCalculationSpec
       /* Refuse registration */
       primaryServiceProxy.send(
         evcsAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       emAgent.expectMsg(
@@ -1125,10 +1138,12 @@ class EvcsAgentModelCalculationSpec
       // only receive registration message. ScheduleFlexRequest after secondary service initialized
       emAgent.expectNoMessage()
 
-      evService.expectMsg(RegisterForEvDataMessage(evcsInputModelQv.getUuid))
+      evService.expectMsg(
+        RegisterForEvDataMessage(evcsAgent.ref, evcsInputModelQv.getUuid)
+      )
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, Some(0)),
+        RegistrationSuccessfulMessage(evService.ref.toTyped, Some(0)),
       )
 
       emAgent.expectMsg(
@@ -1160,11 +1175,11 @@ class EvcsAgentModelCalculationSpec
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
           services shouldBe Iterable(
-            ActorExtEvDataService(evService.ref)
+            ActorExtEvDataService(evService.ref.toTyped)
           )
           outputConfig shouldBe defaultOutputConfig
           additionalActivationTicks shouldBe empty
-          foreseenDataTicks shouldBe Map(evService.ref -> Some(0))
+          foreseenDataTicks shouldBe Map(evService.ref.toTyped -> Some(0))
           voltageValueStore shouldBe ValueStore(
             resolution,
             SortedMap(0L -> Each(1.0)),
@@ -1194,7 +1209,7 @@ class EvcsAgentModelCalculationSpec
             inputModel = SimpleInputContainer(evcsInputModelQv),
             modelConfig = modelConfig,
             secondaryDataServices = Iterable(
-              ActorExtEvDataService(evService.ref)
+              ActorExtEvDataService(evService.ref.toTyped)
             ),
             simulationStartDate = simulationStartDate,
             simulationEndDate = simulationEndDate,
@@ -1205,7 +1220,7 @@ class EvcsAgentModelCalculationSpec
               powerRequestReply = false,
               flexResult = true,
             ),
-            primaryServiceProxy = primaryServiceProxy.ref,
+            primaryServiceProxy = primaryServiceProxy.ref.toTyped,
             maybeEmAgent = Some(emAgent.ref.toTyped),
           ),
           listener = Iterable(resultListener.ref),
@@ -1216,7 +1231,10 @@ class EvcsAgentModelCalculationSpec
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(evcsInputModelQv.getUuid)
+        PrimaryServiceRegistrationMessage(
+          evcsAgent.ref,
+          evcsInputModelQv.getUuid,
+        )
       )
       /* State should be information handling and having correct state data */
       evcsAgent.stateName shouldBe HandleInformation
@@ -1235,7 +1253,7 @@ class EvcsAgentModelCalculationSpec
           inputModel shouldBe SimpleInputContainer(evcsInputModelQv)
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe Iterable(
-            ActorExtEvDataService(evService.ref)
+            ActorExtEvDataService(evService.ref.toTyped)
           )
           simulationStartDate shouldBe simulationStartDate
           simulationEndDate shouldBe simulationEndDate
@@ -1254,7 +1272,7 @@ class EvcsAgentModelCalculationSpec
       /* Refuse registration */
       primaryServiceProxy.send(
         evcsAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       emAgent.expectMsg(
@@ -1266,10 +1284,12 @@ class EvcsAgentModelCalculationSpec
       )
       emAgent.expectNoMessage()
 
-      evService.expectMsg(RegisterForEvDataMessage(evcsInputModelQv.getUuid))
+      evService.expectMsg(
+        RegisterForEvDataMessage(evcsAgent.ref, evcsInputModelQv.getUuid)
+      )
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, Some(900)),
+        RegistrationSuccessfulMessage(evService.ref.toTyped, Some(900)),
       )
 
       emAgent.expectMsg(
@@ -1339,7 +1359,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           900,
-          evService.ref,
+          evService.ref.toTyped,
           ArrivingEvs(Seq(ev900)),
           Some(4500),
         ),
@@ -1456,7 +1476,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           4500,
-          evService.ref,
+          evService.ref.toTyped,
           ArrivingEvs(Seq(ev4500)),
           Some(11700),
         ),
@@ -1586,7 +1606,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           11700,
-          evService.ref,
+          evService.ref.toTyped,
           ArrivingEvs(Seq(ev11700)),
           None,
         ),
@@ -2023,7 +2043,7 @@ class EvcsAgentModelCalculationSpec
         evcsInputModel,
         modelConfig = modelConfig,
         secondaryDataServices = Iterable(
-          ActorExtEvDataService(evService.ref)
+          ActorExtEvDataService(evService.ref.toTyped)
         ),
         simulationStartDate = simulationStartDate,
         simulationEndDate = simulationEndDate,
@@ -2034,7 +2054,7 @@ class EvcsAgentModelCalculationSpec
           powerRequestReply = false,
           flexResult = true,
         ),
-        primaryServiceProxy = primaryServiceProxy.ref,
+        primaryServiceProxy = primaryServiceProxy.ref.toTyped,
       )
       val evcsAgent = TestFSMRef(
         new EvcsAgent(
@@ -2048,7 +2068,7 @@ class EvcsAgentModelCalculationSpec
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(inputModelUuid)
+        PrimaryServiceRegistrationMessage(evcsAgent.ref, inputModelUuid)
       )
       /* State should be information handling and having correct state data */
       evcsAgent.stateName shouldBe HandleInformation
@@ -2067,7 +2087,7 @@ class EvcsAgentModelCalculationSpec
           inputModel shouldBe SimpleInputContainer(evcsInputModel)
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe Iterable(
-            ActorExtEvDataService(evService.ref)
+            ActorExtEvDataService(evService.ref.toTyped)
           )
           simulationStartDate shouldBe simulationStartDate
           simulationEndDate shouldBe simulationEndDate
@@ -2086,13 +2106,15 @@ class EvcsAgentModelCalculationSpec
       /* Refuse registration */
       primaryServiceProxy.send(
         evcsAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
-      evService.expectMsg(RegisterForEvDataMessage(evcsInputModel.getUuid))
+      evService.expectMsg(
+        RegisterForEvDataMessage(evcsAgent.ref, evcsInputModel.getUuid)
+      )
       evService.send(
         evcsAgent,
-        RegistrationSuccessfulMessage(evService.ref, Some(0)),
+        RegistrationSuccessfulMessage(evService.ref.toTyped, Some(0)),
       )
 
       scheduler.expectMsg(Completion(evcsAgent.toTyped, Some(0)))
@@ -2106,7 +2128,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           0,
-          evService.ref,
+          evService.ref.toTyped,
           ArrivingEvs(Seq.empty),
           Some(900),
         ),
@@ -2126,7 +2148,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           900,
-          evService.ref,
+          evService.ref.toTyped,
           ArrivingEvs(Seq(ev900)),
           Some(1800),
         ),
@@ -2154,7 +2176,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           1800,
-          evService.ref,
+          evService.ref.toTyped,
           ArrivingEvs(Seq(ev1800)),
           Some(2700),
         ),
@@ -2193,7 +2215,7 @@ class EvcsAgentModelCalculationSpec
         evcsAgent,
         ProvideEvDataMessage(
           2700,
-          evService.ref,
+          evService.ref.toTyped,
           ArrivingEvs(Seq(ev2700)),
           None,
         ),

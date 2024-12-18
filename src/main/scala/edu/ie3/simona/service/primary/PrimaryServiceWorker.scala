@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.service.primary
 
-import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.factory.timeseries.TimeBasedSimpleValueFactory
 import edu.ie3.datamodel.io.naming.timeseries.ColumnScheme
@@ -21,19 +20,30 @@ import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.agent.ServiceRegistrationException
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
+import edu.ie3.simona.ontology.messages.services.PrimaryDataMessage
+import edu.ie3.simona.ontology.messages.services.PrimaryDataMessage.{
+  ProvidePrimaryDataMessage,
+  WorkerRegistrationMessage,
+}
+import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.RegistrationResponseMessage.RegistrationSuccessfulMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.{
+  ServiceRegistrationMessage,
+  WrappedActivation,
+}
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceActivationBaseStateData,
+  ServiceConstantStateData,
 }
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
-  PrimaryServiceInitializedStateData,
-  ProvidePrimaryDataMessage,
-}
-import edu.ie3.simona.service.{ServiceStateData, SimonaService}
+import edu.ie3.simona.service.SimonaService
+import edu.ie3.simona.service.primary.PrimaryServiceWorker.PrimaryServiceInitializedStateData
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
+import org.apache.pekko.actor.{ActorRef => ClassicRef}
+import org.slf4j.Logger
 
 import java.nio.file.Path
 import java.time.ZonedDateTime
@@ -43,10 +53,129 @@ import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
-final case class PrimaryServiceWorker[V <: Value](
-    override protected val scheduler: ActorRef,
-    valueClass: Class[V],
-) extends SimonaService[PrimaryServiceInitializedStateData[V]](scheduler) {
+object PrimaryServiceWorker {
+
+  /** List of supported column schemes aka. column schemes, that belong to
+    * primary data
+    */
+  val supportedColumnSchemes: Vector[ColumnScheme] = Vector(
+    ColumnScheme.ACTIVE_POWER,
+    ColumnScheme.ACTIVE_POWER_AND_HEAT_DEMAND,
+    ColumnScheme.APPARENT_POWER,
+    ColumnScheme.APPARENT_POWER_AND_HEAT_DEMAND,
+  )
+
+  /** Abstract class pattern for specific [[InitializeServiceStateData]].
+    * Different implementations are needed, because the [[PrimaryServiceProxy]]
+    * already has detailed information about different source types, that can be
+    * handed over instead of being acquired once again.
+    */
+  abstract class InitPrimaryServiceStateData[V <: Value]
+      extends InitializeServiceStateData {
+    val timeSeriesUuid: UUID
+    val simulationStart: ZonedDateTime
+    val valueClass: Class[V]
+  }
+
+  /** Specific implementation of [[InitPrimaryServiceStateData]], if the source
+    * to use utilizes csv files.
+    *
+    * @param timeSeriesUuid
+    *   Unique identifier of the time series to read
+    * @param simulationStart
+    *   Simulation time of the beginning of simulation time
+    * @param csvSep
+    *   Column separation character of the csv files
+    * @param directoryPath
+    *   Base directory path, where all input information are given
+    * @param filePath
+    *   Path of the file to read with respect to the given folder path (Without
+    *   ending!)
+    * @param fileNamingStrategy
+    *   [[FileNamingStrategy]], the input files follow
+    * @param timePattern
+    *   the time format pattern of the time series
+    */
+  final case class CsvInitPrimaryServiceStateData[V <: Value](
+      override val timeSeriesUuid: UUID,
+      override val simulationStart: ZonedDateTime,
+      override val valueClass: Class[V],
+      csvSep: String,
+      directoryPath: Path,
+      filePath: Path,
+      fileNamingStrategy: FileNamingStrategy,
+      timePattern: String,
+  ) extends InitPrimaryServiceStateData[V]
+
+  /** Specific implementation of [[InitPrimaryServiceStateData]], if the source
+    * to use utilizes an SQL database.
+    *
+    * @param timeSeriesUuid
+    *   Unique identifier of the time series to read
+    * @param simulationStart
+    *   Simulation time of the beginning of simulation time
+    * @param sqlParams
+    *   Parameters regarding SQL connection and table selection
+    * @param databaseNamingStrategy
+    *   Strategy of naming database entities, such as tables
+    */
+  final case class SqlInitPrimaryServiceStateData[V <: Value](
+      override val timeSeriesUuid: UUID,
+      override val simulationStart: ZonedDateTime,
+      override val valueClass: Class[V],
+      sqlParams: SqlParams,
+      databaseNamingStrategy: DatabaseNamingStrategy,
+  ) extends InitPrimaryServiceStateData[V]
+
+  /** Class carrying the state of a fully initialized [[PrimaryServiceWorker]]
+    *
+    * @param maybeNextActivationTick
+    *   the next tick, when this actor is triggered by scheduler
+    * @param activationTicks
+    *   Linked collection of ticks, in which data is available
+    * @param startDateTime
+    *   Simulation time of the first instant in simulation
+    * @param source
+    *   Implementation of [[TimeSeriesSource]] to use for actual acquisition of
+    *   data
+    * @param subscribers
+    *   Collection of interested actors
+    * @tparam V
+    *   Type of value to get from source
+    */
+  final case class PrimaryServiceInitializedStateData[V <: Value](
+      override val maybeNextActivationTick: Option[Long],
+      override val activationTicks: SortedDistinctSeq[Long] =
+        SortedDistinctSeq.empty,
+      startDateTime: ZonedDateTime,
+      source: TimeSeriesSource[V],
+      subscribers: Vector[ClassicRef] = Vector.empty[ClassicRef],
+  ) extends ServiceActivationBaseStateData
+
+  def apply(
+      scheduler: ActorRef[SchedulerMessage]
+  ): Behavior[PrimaryDataMessage] =
+    Behaviors.withStash(100) { buffer =>
+      Behaviors.setup { ctx =>
+        val activationAdapter: ActorRef[Activation] =
+          ctx.messageAdapter[Activation](msg => WrappedActivation(msg))
+
+        implicit val constantData: ServiceConstantStateData =
+          ServiceConstantStateData(
+            scheduler,
+            activationAdapter,
+          )
+
+        new PrimaryServiceWorker().uninitialized(constantData, buffer)
+      }
+    }
+
+}
+
+private final class PrimaryServiceWorker
+    extends SimonaService[PrimaryServiceInitializedStateData[
+      _ <: Value
+    ], PrimaryDataMessage] {
 
   /** Initialize the actor with the given information. Try to figure out the
     * initialized state data and the next activation ticks, that will then be
@@ -59,17 +188,13 @@ final case class PrimaryServiceWorker[V <: Value](
     *   included in the completion message
     */
   override def init(
-      initServiceData: ServiceStateData.InitializeServiceStateData
-  ): Try[
-    (
-        PrimaryServiceInitializedStateData[V],
-        Option[Long],
-    )
-  ] = {
+      initServiceData: InitializeServiceStateData
+  ): Try[(PrimaryServiceInitializedStateData[_ <: Value], Option[Long])] = {
     (initServiceData match {
       case PrimaryServiceWorker.CsvInitPrimaryServiceStateData(
             timeSeriesUuid,
             simulationStart,
+            valueClass,
             csvSep,
             directoryPath,
             filePath,
@@ -97,6 +222,7 @@ final case class PrimaryServiceWorker[V <: Value](
       case PrimaryServiceWorker.SqlInitPrimaryServiceStateData(
             timeSeriesUuid: UUID,
             simulationStart: ZonedDateTime,
+            valueClass,
             sqlParams: SqlParams,
             namingStrategy: DatabaseNamingStrategy,
           ) =>
@@ -147,7 +273,7 @@ final case class PrimaryServiceWorker[V <: Value](
       (maybeNextTick, furtherActivationTicks) match {
         case (Some(tick), furtherActivationTicks) if tick == 0L =>
           /* Set up the state data and determine the next activation tick. */
-          val initializedStateData =
+          val initializedStateData: PrimaryServiceInitializedStateData[Value] =
             PrimaryServiceInitializedStateData(
               maybeNextTick,
               furtherActivationTicks,
@@ -176,35 +302,27 @@ final case class PrimaryServiceWorker[V <: Value](
     }
   }
 
-  /** Handle a request to register for information from this service
-    *
-    * @param registrationMessage
-    *   registration message to handle
-    * @param serviceStateData
-    *   current state data of the actor
-    * @return
-    *   the service stata data that should be used in the next state (normally
-    *   with updated values)
-    */
   override protected def handleRegistrationRequest(
-      registrationMessage: ServiceMessage.ServiceRegistrationMessage
+      registrationMessage: ServiceRegistrationMessage
   )(implicit
-      serviceStateData: PrimaryServiceInitializedStateData[V]
-  ): Try[PrimaryServiceInitializedStateData[V]] = registrationMessage match {
-    case ServiceMessage.WorkerRegistrationMessage(requestingActor) =>
-      requestingActor ! RegistrationSuccessfulMessage(
-        self,
-        serviceStateData.maybeNextActivationTick,
-      )
-      val subscribers = serviceStateData.subscribers :+ requestingActor
-      Success(serviceStateData.copy(subscribers = subscribers))
-    case unsupported =>
-      Failure(
-        InvalidRegistrationRequestException(
-          s"A primary service provider is not able to handle registration request '$unsupported'."
+      serviceStateData: PrimaryServiceInitializedStateData[_ <: Value],
+      ctx: ActorContext[PrimaryDataMessage],
+  ): Try[PrimaryServiceInitializedStateData[_ <: Value]] =
+    registrationMessage match {
+      case WorkerRegistrationMessage(requestingActor) =>
+        requestingActor ! RegistrationSuccessfulMessage(
+          ctx.self,
+          serviceStateData.maybeNextActivationTick,
         )
-      )
-  }
+        val subscribers = serviceStateData.subscribers :+ requestingActor
+        Success(serviceStateData.copy(subscribers = subscribers))
+      case unsupported =>
+        Failure(
+          InvalidRegistrationRequestException(
+            s"A primary service provider is not able to handle registration request '$unsupported'."
+          )
+        )
+    }
 
   /** Send out the information to all registered recipients
     *
@@ -221,20 +339,23 @@ final case class PrimaryServiceWorker[V <: Value](
   override protected def announceInformation(
       tick: Long
   )(implicit
-      serviceBaseStateData: PrimaryServiceInitializedStateData[V],
-      ctx: ActorContext,
+      serviceBaseStateData: PrimaryServiceInitializedStateData[_ <: Value],
+      ctx: ActorContext[PrimaryDataMessage],
   ): (
-      PrimaryServiceInitializedStateData[V],
+      PrimaryServiceInitializedStateData[_ <: Value],
       Option[Long],
   ) = {
     /* Get the information to distribute */
     val simulationTime = tick.toDateTime(serviceBaseStateData.startDateTime)
     serviceBaseStateData.source.getValue(simulationTime).toScala match {
       case Some(value) =>
-        processDataAndAnnounce(tick, value, serviceBaseStateData)
+        processDataAndAnnounce(tick, value, serviceBaseStateData)(
+          ctx.self,
+          ctx.log,
+        )
       case None =>
         /* There is no data available in the source. */
-        log.warning(
+        ctx.log.warn(
           s"I expected to get data for tick '{}' ({}), but data is not available",
           tick,
           simulationTime,
@@ -253,9 +374,9 @@ final case class PrimaryServiceWorker[V <: Value](
     *   messages
     */
   private def updateStateDataAndBuildTriggerMessages(
-      baseStateData: PrimaryServiceInitializedStateData[V]
+      baseStateData: PrimaryServiceInitializedStateData[_ <: Value]
   ): (
-      PrimaryServiceInitializedStateData[V],
+      PrimaryServiceInitializedStateData[_ <: Value],
       Option[Long],
   ) = {
     val (maybeNextActivationTick, remainderActivationTicks) =
@@ -281,19 +402,22 @@ final case class PrimaryServiceWorker[V <: Value](
     *   updated state data as well as an optional sequence of triggers to be
     *   sent to scheduler
     */
-  private def processDataAndAnnounce(
+  private[service] def processDataAndAnnounce(
       tick: Long,
-      value: V,
-      serviceBaseStateData: PrimaryServiceInitializedStateData[V],
+      value: Value,
+      serviceBaseStateData: PrimaryServiceInitializedStateData[_ <: Value],
+  )(implicit
+      self: ActorRef[PrimaryDataMessage],
+      log: Logger,
   ): (
-      PrimaryServiceInitializedStateData[V],
+      PrimaryServiceInitializedStateData[_ <: Value],
       Option[Long],
   ) = value.toPrimaryData match {
     case Success(primaryData) =>
       announcePrimaryData(tick, primaryData, serviceBaseStateData)
     case Failure(exception) =>
       /* Processing of data failed */
-      log.warning(
+      log.warn(
         "Unable to convert received value to primary data. Skipped that data." +
           "\nException: {}",
         exception,
@@ -313,12 +437,12 @@ final case class PrimaryServiceWorker[V <: Value](
     *   updated state data as well as an optional sequence of triggers to be
     *   sent to scheduler
     */
-  private def announcePrimaryData(
+  private[service] def announcePrimaryData(
       tick: Long,
       primaryData: PrimaryData,
-      serviceBaseStateData: PrimaryServiceInitializedStateData[V],
-  ): (
-      PrimaryServiceInitializedStateData[V],
+      serviceBaseStateData: PrimaryServiceInitializedStateData[_ <: Value],
+  )(implicit self: ActorRef[PrimaryDataMessage]): (
+      PrimaryServiceInitializedStateData[_ <: Value],
       Option[Long],
   ) = {
     val (maybeNextTick, remainderActivationTicks) =
@@ -334,123 +458,4 @@ final case class PrimaryServiceWorker[V <: Value](
     serviceBaseStateData.subscribers.foreach(_ ! provisionMessage)
     (updatedStateData, maybeNextTick)
   }
-}
-
-object PrimaryServiceWorker {
-
-  /** List of supported column schemes aka. column schemes, that belong to
-    * primary data
-    */
-  val supportedColumnSchemes: Vector[ColumnScheme] = Vector(
-    ColumnScheme.ACTIVE_POWER,
-    ColumnScheme.ACTIVE_POWER_AND_HEAT_DEMAND,
-    ColumnScheme.APPARENT_POWER,
-    ColumnScheme.APPARENT_POWER_AND_HEAT_DEMAND,
-  )
-
-  def props[V <: Value](
-      scheduler: ActorRef,
-      valueClass: Class[V],
-  ): Props =
-    Props(new PrimaryServiceWorker(scheduler, valueClass))
-
-  /** Abstract class pattern for specific [[InitializeServiceStateData]].
-    * Different implementations are needed, because the [[PrimaryServiceProxy]]
-    * already has detailed information about different source types, that can be
-    * handed over instead of being acquired once again.
-    */
-  abstract class InitPrimaryServiceStateData
-      extends InitializeServiceStateData {
-    val timeSeriesUuid: UUID
-    val simulationStart: ZonedDateTime
-  }
-
-  /** Specific implementation of [[InitPrimaryServiceStateData]], if the source
-    * to use utilizes csv files.
-    *
-    * @param timeSeriesUuid
-    *   Unique identifier of the time series to read
-    * @param simulationStart
-    *   Simulation time of the beginning of simulation time
-    * @param csvSep
-    *   Column separation character of the csv files
-    * @param directoryPath
-    *   Base directory path, where all input information are given
-    * @param filePath
-    *   Path of the file to read with respect to the given folder path (Without
-    *   ending!)
-    * @param fileNamingStrategy
-    *   [[FileNamingStrategy]], the input files follow
-    * @param timePattern
-    *   the time format pattern of the time series
-    */
-  final case class CsvInitPrimaryServiceStateData(
-      override val timeSeriesUuid: UUID,
-      override val simulationStart: ZonedDateTime,
-      csvSep: String,
-      directoryPath: Path,
-      filePath: Path,
-      fileNamingStrategy: FileNamingStrategy,
-      timePattern: String,
-  ) extends InitPrimaryServiceStateData
-
-  /** Specific implementation of [[InitPrimaryServiceStateData]], if the source
-    * to use utilizes an SQL database.
-    *
-    * @param timeSeriesUuid
-    *   Unique identifier of the time series to read
-    * @param simulationStart
-    *   Simulation time of the beginning of simulation time
-    * @param sqlParams
-    *   Parameters regarding SQL connection and table selection
-    * @param databaseNamingStrategy
-    *   Strategy of naming database entities, such as tables
-    */
-  final case class SqlInitPrimaryServiceStateData(
-      override val timeSeriesUuid: UUID,
-      override val simulationStart: ZonedDateTime,
-      sqlParams: SqlParams,
-      databaseNamingStrategy: DatabaseNamingStrategy,
-  ) extends InitPrimaryServiceStateData
-
-  /** Class carrying the state of a fully initialized [[PrimaryServiceWorker]]
-    *
-    * @param maybeNextActivationTick
-    *   the next tick, when this actor is triggered by scheduler
-    * @param activationTicks
-    *   Linked collection of ticks, in which data is available
-    * @param startDateTime
-    *   Simulation time of the first instant in simulation
-    * @param source
-    *   Implementation of [[TimeSeriesSource]] to use for actual acquisition of
-    *   data
-    * @param subscribers
-    *   Collection of interested actors
-    * @tparam V
-    *   Type of value to get from source
-    */
-  final case class PrimaryServiceInitializedStateData[V <: Value](
-      override val maybeNextActivationTick: Option[Long],
-      override val activationTicks: SortedDistinctSeq[Long] =
-        SortedDistinctSeq.empty,
-      startDateTime: ZonedDateTime,
-      source: TimeSeriesSource[V],
-      subscribers: Vector[ActorRef] = Vector.empty[ActorRef],
-  ) extends ServiceActivationBaseStateData
-
-  /** Provide primary data to subscribes
-    *
-    * @param tick
-    *   Current tick
-    * @param data
-    *   The payload
-    * @param nextDataTick
-    *   The next tick, when data is available
-    */
-  final case class ProvidePrimaryDataMessage(
-      override val tick: Long,
-      override val serviceRef: ActorRef,
-      override val data: PrimaryData,
-      override val nextDataTick: Option[Long],
-  ) extends ServiceMessage.ProvisionMessage[PrimaryData]
 }

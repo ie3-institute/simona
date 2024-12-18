@@ -17,9 +17,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.AssetPowerChangedMessage
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
-import edu.ie3.simona.agent.participant.data.Data.SecondaryData
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
-import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorExtEvDataService
+import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.SecondaryServiceType
 import edu.ie3.simona.agent.participant.evcs.EvcsAgent.neededServices
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
   FlexControlledData,
@@ -35,6 +33,7 @@ import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
+import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.exceptions.agent.{
   AgentInitializationException,
   InconsistentStateException,
@@ -51,6 +50,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexRequest,
   FlexResponse,
 }
+import edu.ie3.simona.ontology.messages.services.EvMessage
 import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
@@ -109,7 +109,7 @@ protected trait EvcsAgentFundamentals
   override def determineModelBaseStateData(
       inputModel: InputModelContainer[EvcsInput],
       modelConfig: EvcsRuntimeConfig,
-      services: Iterable[SecondaryDataService[_ <: SecondaryData]],
+      services: Iterable[SecondaryServiceType],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -359,9 +359,12 @@ protected trait EvcsAgentFundamentals
         EvcsModel,
       ],
   ): Unit = {
-    val evServiceRef = getService[ActorExtEvDataService](
-      modelBaseStateData.services
-    )
+    val evServiceRef = getService[EvMessage](modelBaseStateData.services)
+      .getOrElse(
+        throw ServiceException(
+          s"No suitable service was provided by ParticipantModelBaseStateData."
+        )
+      )
 
     val lastState =
       getLastOrInitialStateData(modelBaseStateData, tick - 1)
@@ -398,9 +401,12 @@ protected trait EvcsAgentFundamentals
     EvcsState,
     EvcsModel,
   ] = {
-    val evServiceRef = getService[ActorExtEvDataService](
-      baseStateData.services
-    )
+    val evServiceRef = getService[EvMessage](baseStateData.services)
+      .getOrElse(
+        throw ServiceException(
+          s"No suitable service was provided by ParticipantModelBaseStateData."
+        )
+      )
 
     // we don't take the state at the current tick, since
     // that one cannot contain the departing EVs anymore

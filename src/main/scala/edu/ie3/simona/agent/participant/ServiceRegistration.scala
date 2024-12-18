@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.participant
 
-import org.apache.pekko.actor.ActorRef
 import edu.ie3.datamodel.models.input.system.{EvcsInput, SystemParticipantInput}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
@@ -26,6 +25,12 @@ import edu.ie3.simona.model.participant.{
 }
 import edu.ie3.simona.ontology.messages.services.EvMessage.RegisterForEvDataMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
+import edu.ie3.simona.ontology.messages.services.{
+  EvMessage,
+  ServiceMessage,
+  WeatherMessage,
+}
+import org.apache.pekko.actor.typed.ActorRef
 
 trait ServiceRegistration[
     PD <: PrimaryDataWithApparentPower[PD],
@@ -50,8 +55,10 @@ trait ServiceRegistration[
     */
   def registerForServices(
       inputModel: I,
-      services: Iterable[SecondaryDataService[_ <: SecondaryData]],
-  ): Iterable[ActorRef] =
+      services: Iterable[
+        SecondaryDataService[_ <: SecondaryData, _ <: ServiceMessage]
+      ],
+  ): Iterable[ActorRef[_]] =
     services.flatMap(service =>
       registerForSecondaryService(service, inputModel)
     )
@@ -69,11 +76,12 @@ trait ServiceRegistration[
     *   supported at the moment
     */
   private def registerForSecondaryService[
-      S <: SecondaryData
+      S <: SecondaryData,
+      M <: ServiceMessage,
   ](
-      serviceDefinition: SecondaryDataService[S],
+      serviceDefinition: SecondaryDataService[S, M],
       inputModel: I,
-  ): Option[ActorRef] = serviceDefinition match {
+  ): Option[ActorRef[_]] = serviceDefinition match {
     case SecondaryDataService.ActorPriceService(_) =>
       log.debug(
         s"Attempt to register for {}. This is currently not supported.",
@@ -97,7 +105,7 @@ trait ServiceRegistration[
     * @return
     */
   private def registerForWeather(
-      actorRef: ActorRef,
+      actorRef: ActorRef[WeatherMessage],
       inputModel: I,
   ): Unit = {
     /* If we are asked to register for weather, determine the proper geo position */
@@ -113,7 +121,7 @@ trait ServiceRegistration[
               s"is invalid."
           )
       }
-    actorRef ! RegisterForWeatherMessage(lat, lon)
+    actorRef ! RegisterForWeatherMessage(self, lat, lon)
   }
 
   /** Register for the EV movement service
@@ -125,12 +133,12 @@ trait ServiceRegistration[
     * @return
     */
   private def registerForEvData(
-      serviceRef: ActorRef,
+      serviceRef: ActorRef[EvMessage],
       inputModel: I,
   ): Unit = {
     inputModel match {
       case evcsInput: EvcsInput =>
-        serviceRef ! RegisterForEvDataMessage(evcsInput.getUuid)
+        serviceRef ! RegisterForEvDataMessage(self, evcsInput.getUuid)
       case _ =>
         throw new ServiceRegistrationException(
           s"Cannot register for EV movements information at node ${inputModel.getNode.getId} " +

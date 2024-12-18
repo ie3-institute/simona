@@ -93,7 +93,7 @@ object SimonaSim {
 
         val environmentRefs = EnvironmentRefs(
           scheduler,
-          runtimeEventListener.toClassic,
+          runtimeEventListener,
           primaryServiceProxy,
           weatherService,
           extSimulationData.evDataService,
@@ -109,11 +109,11 @@ object SimonaSim {
         val otherActors = Iterable[ActorRef[_]](
           timeAdvancer,
           scheduler,
-          primaryServiceProxy.toTyped,
-          weatherService.toTyped,
+          primaryServiceProxy,
+          weatherService,
         ) ++
           gridAgents ++
-          extSimulationData.extDataServices.values.map(_.toTyped)
+          extSimulationData.extDataServices.values
 
         /* watch all actors */
         resultEventListeners.foreach(ctx.watch)

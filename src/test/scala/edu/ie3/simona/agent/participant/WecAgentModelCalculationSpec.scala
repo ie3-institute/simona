@@ -36,8 +36,8 @@ import edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
+import edu.ie3.simona.ontology.messages.services.PrimaryDataMessage.PrimaryServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.RegistrationResponseMessage.{
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
 }
@@ -114,7 +114,9 @@ class WecAgentModelCalculationSpec
       voltageSensitiveInput.getUuid
     )
 
-  private val withServices = Iterable(ActorWeatherService(weatherService.ref))
+  private val withServices = Iterable(
+    ActorWeatherService(weatherService.ref.toTyped)
+  )
 
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
@@ -134,7 +136,7 @@ class WecAgentModelCalculationSpec
       requestVoltageDeviationThreshold =
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       modelConfig = modelConfig,
-      primaryServiceProxy = primaryServiceProxy.ref,
+      primaryServiceProxy = primaryServiceProxy.ref.toTyped,
       secondaryDataServices = Iterable.empty,
       outputConfig = NotifierConfig(
         simulationResultInfo = false,
@@ -182,7 +184,7 @@ class WecAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         wecAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       deathProbe.expectTerminated(wecAgent.ref)
@@ -202,7 +204,7 @@ class WecAgentModelCalculationSpec
       resolution = resolution,
       requestVoltageDeviationThreshold =
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
-      primaryServiceProxy = primaryServiceProxy.ref,
+      primaryServiceProxy = primaryServiceProxy.ref.toTyped,
       secondaryDataServices = withServices,
       outputConfig = NotifierConfig(
         simulationResultInfo = false,
@@ -246,11 +248,13 @@ class WecAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         wecAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* Expect a registration message */
-      weatherService.expectMsg(RegisterForWeatherMessage(51.4843281, 7.4116482))
+      weatherService.expectMsg(
+        RegisterForWeatherMessage(wecAgent.ref, 51.4843281, 7.4116482)
+      )
 
       /* ... as well as corresponding state and state data */
       wecAgent.stateName shouldBe HandleInformation
@@ -294,7 +298,9 @@ class WecAgentModelCalculationSpec
           requestValueStore shouldBe ValueStore[ComplexPower](resolution)
 
           /* Additional information */
-          awaitRegistrationResponsesFrom shouldBe Iterable(weatherService.ref)
+          awaitRegistrationResponsesFrom shouldBe Iterable(
+            weatherService.ref.toTyped
+          )
           foreseenNextDataTicks shouldBe Map.empty
         case _ =>
           fail(
@@ -305,7 +311,7 @@ class WecAgentModelCalculationSpec
       /* Reply, that registration was successful */
       weatherService.send(
         wecAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(4711L)),
+        RegistrationSuccessfulMessage(weatherService.ref.toTyped, Some(4711L)),
       )
 
       /* Expect a completion message */
@@ -322,7 +328,7 @@ class WecAgentModelCalculationSpec
             ] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
           baseStateData.foreseenDataTicks shouldBe Map(
-            weatherService.ref -> Some(4711L)
+            weatherService.ref.toTyped -> Some(4711L)
           )
         case _ =>
           fail(
@@ -346,14 +352,16 @@ class WecAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         wecAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* Expect a registration message */
-      weatherService.expectMsg(RegisterForWeatherMessage(51.4843281, 7.4116482))
+      weatherService.expectMsg(
+        RegisterForWeatherMessage(wecAgent.ref, 51.4843281, 7.4116482)
+      )
       weatherService.send(
         wecAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
+        RegistrationSuccessfulMessage(weatherService.ref.toTyped, Some(900L)),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -414,14 +422,14 @@ class WecAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         wecAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         wecAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
+        RegistrationSuccessfulMessage(weatherService.ref.toTyped, Some(900L)),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -441,7 +449,7 @@ class WecAgentModelCalculationSpec
         wecAgent,
         ProvideWeatherMessage(
           900L,
-          weatherService.ref,
+          weatherService.ref.toTyped,
           weatherData,
           Some(1800L),
         ),
@@ -462,12 +470,12 @@ class WecAgentModelCalculationSpec
             ) =>
           /* The next data tick is already registered */
           baseStateData.foreseenDataTicks shouldBe Map(
-            weatherService.ref -> Some(1800L)
+            weatherService.ref.toTyped -> Some(1800L)
           )
 
           /* The yet sent data is also registered */
           expectedSenders shouldBe Map(
-            weatherService.ref -> Some(weatherData)
+            weatherService.ref.toTyped -> Some(weatherData)
           )
 
           /* It is not yet triggered */
@@ -536,14 +544,14 @@ class WecAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         wecAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         wecAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
+        RegistrationSuccessfulMessage(weatherService.ref.toTyped, Some(900L)),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -568,11 +576,11 @@ class WecAgentModelCalculationSpec
             ) =>
           /* The next data tick is already registered */
           baseStateData.foreseenDataTicks shouldBe Map(
-            weatherService.ref -> Some(900L)
+            weatherService.ref.toTyped -> Some(900L)
           )
 
           /* The yet sent data is also registered */
-          expectedSenders shouldBe Map(weatherService.ref -> None)
+          expectedSenders shouldBe Map(weatherService.ref.toTyped -> None)
 
           /* It is yet triggered */
           isYetTriggered shouldBe true
@@ -594,7 +602,7 @@ class WecAgentModelCalculationSpec
         wecAgent,
         ProvideWeatherMessage(
           900L,
-          weatherService.ref,
+          weatherService.ref.toTyped,
           weatherData,
           Some(1800L),
         ),
@@ -656,14 +664,14 @@ class WecAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         wecAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         wecAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
+        RegistrationSuccessfulMessage(weatherService.ref.toTyped, Some(900L)),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -690,7 +698,7 @@ class WecAgentModelCalculationSpec
         wecAgent,
         ProvideWeatherMessage(
           900L,
-          weatherService.ref,
+          weatherService.ref.toTyped,
           weatherData,
           Some(1800L),
         ),
@@ -727,14 +735,14 @@ class WecAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         wecAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         wecAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
+        RegistrationSuccessfulMessage(weatherService.ref.toTyped, Some(900L)),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -747,7 +755,7 @@ class WecAgentModelCalculationSpec
         wecAgent,
         ProvideWeatherMessage(
           900L,
-          weatherService.ref,
+          weatherService.ref.toTyped,
           WeatherData(
             WattsPerSquareMeter(50d),
             WattsPerSquareMeter(100d),
@@ -765,7 +773,7 @@ class WecAgentModelCalculationSpec
         wecAgent,
         ProvideWeatherMessage(
           1800L,
-          weatherService.ref,
+          weatherService.ref.toTyped,
           WeatherData(
             WattsPerSquareMeter(50d),
             WattsPerSquareMeter(100d),
@@ -783,7 +791,7 @@ class WecAgentModelCalculationSpec
         wecAgent,
         ProvideWeatherMessage(
           2700L,
-          weatherService.ref,
+          weatherService.ref.toTyped,
           WeatherData(
             WattsPerSquareMeter(50d),
             WattsPerSquareMeter(100d),

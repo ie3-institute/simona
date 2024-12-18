@@ -9,11 +9,14 @@ package edu.ie3.simona.agent.participant.data.primary
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.data.DataService
-import org.apache.pekko.actor.ActorRef
+import edu.ie3.simona.ontology.messages.services.PrimaryDataMessage
+import org.apache.pekko.actor.typed.ActorRef
 
 /** Enum-like trait to denote possible external data sources for systems
   */
-sealed trait PrimaryDataService[+D <: PrimaryData] extends DataService[D]
+@deprecated
+sealed trait PrimaryDataService[+D <: PrimaryData]
+    extends DataService[D, PrimaryDataMessage]
 
 object PrimaryDataService {
 
@@ -22,6 +25,7 @@ object PrimaryDataService {
     * @param actorRef
     *   actor reference of the actual source
     */
-  final case class DummyPrimaryService(override val actorRef: ActorRef)
-      extends PrimaryDataService[ComplexPower]
+  final case class DummyPrimaryService(
+      override val actorRef: ActorRef[PrimaryDataMessage]
+  ) extends PrimaryDataService[ComplexPower]
 }

@@ -30,8 +30,8 @@ import edu.ie3.simona.model.participant.HpModel.HpState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
+import edu.ie3.simona.ontology.messages.services.PrimaryDataMessage.PrimaryServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.RegistrationResponseMessage.{
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
 }
@@ -113,7 +113,7 @@ class HpAgentModelCalculationSpec
     )
   private val noServices = Iterable.empty
   private val services = Iterable(
-    ActorWeatherService(weatherService.ref)
+    ActorWeatherService(weatherService.ref.toTyped)
   )
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
@@ -132,7 +132,7 @@ class HpAgentModelCalculationSpec
       requestVoltageDeviationThreshold =
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
-      primaryServiceProxy = primaryServiceProxy.ref,
+      primaryServiceProxy = primaryServiceProxy.ref.toTyped,
       maybeEmAgent = None,
     )
 
@@ -175,7 +175,7 @@ class HpAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         hpAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       deathProbe.expectTerminated(hpAgent)
@@ -198,7 +198,7 @@ class HpAgentModelCalculationSpec
       requestVoltageDeviationThreshold =
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
-      primaryServiceProxy = primaryServiceProxy.ref,
+      primaryServiceProxy = primaryServiceProxy.ref.toTyped,
       maybeEmAgent = None,
     )
 
@@ -235,7 +235,7 @@ class HpAgentModelCalculationSpec
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(hpInput.getUuid)
+        PrimaryServiceRegistrationMessage(hpAgent.ref, hpInput.getUuid)
       )
       /* State should be information handling and having correct state data */
       hpAgent.stateName shouldBe HandleInformation
@@ -269,12 +269,12 @@ class HpAgentModelCalculationSpec
       /* Refuse registration */
       primaryServiceProxy.send(
         hpAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* Expect a registration message */
       weatherService.expectMsg(
-        RegisterForWeatherMessage(52.02083574, 7.40110716)
+        RegisterForWeatherMessage(hpAgent.ref, 52.02083574, 7.40110716)
       )
 
       /* ... as well as corresponding state and state data */
@@ -304,7 +304,7 @@ class HpAgentModelCalculationSpec
           startDate shouldBe defaultSimulationStart
           endDate shouldBe defaultSimulationEnd
           services shouldBe Iterable(
-            ActorWeatherService(weatherService.ref)
+            ActorWeatherService(weatherService.ref.toTyped)
           )
           outputConfig shouldBe NotifierConfig(
             simulationResultInfo = true,
@@ -323,7 +323,9 @@ class HpAgentModelCalculationSpec
           )
 
           /* Additional information */
-          awaitRegistrationResponsesFrom shouldBe Iterable(weatherService.ref)
+          awaitRegistrationResponsesFrom shouldBe Iterable(
+            weatherService.ref.toTyped
+          )
           foreseenNextDataTicks shouldBe Map.empty
         case _ =>
           fail(
@@ -334,7 +336,7 @@ class HpAgentModelCalculationSpec
       /* Reply, that registration was successful */
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(4711L)),
+        RegistrationSuccessfulMessage(weatherService.ref.toTyped, Some(4711L)),
       )
 
       /* Expect a completion message */
@@ -346,7 +348,7 @@ class HpAgentModelCalculationSpec
         case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
           baseStateData.foreseenDataTicks shouldBe Map(
-            weatherService.ref -> Some(4711L)
+            weatherService.ref.toTyped -> Some(4711L)
           )
         case _ =>
           fail(
@@ -370,16 +372,16 @@ class HpAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         hpAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* Expect a registration message */
       weatherService.expectMsg(
-        RegisterForWeatherMessage(52.02083574, 7.40110716)
+        RegisterForWeatherMessage(hpAgent.ref, 52.02083574, 7.40110716)
       )
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
+        RegistrationSuccessfulMessage(weatherService.ref.toTyped, Some(900L)),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -436,14 +438,14 @@ class HpAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         hpAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
+        RegistrationSuccessfulMessage(weatherService.ref.toTyped, Some(0L)),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -461,7 +463,12 @@ class HpAgentModelCalculationSpec
 
       weatherService.send(
         hpAgent,
-        ProvideWeatherMessage(0L, weatherService.ref, weatherData, Some(3600L)),
+        ProvideWeatherMessage(
+          0L,
+          weatherService.ref.toTyped,
+          weatherData,
+          Some(3600L),
+        ),
       )
 
       /* Find yourself in corresponding state and state data */
@@ -474,12 +481,12 @@ class HpAgentModelCalculationSpec
             ) =>
           /* The next data tick is already registered */
           baseStateData.foreseenDataTicks shouldBe Map(
-            weatherService.ref -> Some(3600L)
+            weatherService.ref.toTyped -> Some(3600L)
           )
 
           /* The yet sent data is also registered */
           expectedSenders shouldBe Map(
-            weatherService.ref -> Some(weatherData)
+            weatherService.ref.toTyped -> Some(weatherData)
           )
 
           /* It is not yet triggered */
@@ -567,14 +574,14 @@ class HpAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         hpAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
+        RegistrationSuccessfulMessage(weatherService.ref.toTyped, Some(0L)),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -594,11 +601,11 @@ class HpAgentModelCalculationSpec
             ) =>
           /* The next data tick is already registered */
           baseStateData.foreseenDataTicks shouldBe Map(
-            weatherService.ref -> Some(0L)
+            weatherService.ref.toTyped -> Some(0L)
           )
 
           /* The yet sent data is also registered */
-          expectedSenders shouldBe Map(weatherService.ref -> None)
+          expectedSenders shouldBe Map(weatherService.ref.toTyped -> None)
 
           /* It is yet triggered */
           isYetTriggered shouldBe true
@@ -618,7 +625,12 @@ class HpAgentModelCalculationSpec
 
       weatherService.send(
         hpAgent,
-        ProvideWeatherMessage(0L, weatherService.ref, weatherData, Some(3600L)),
+        ProvideWeatherMessage(
+          0L,
+          weatherService.ref.toTyped,
+          weatherData,
+          Some(3600L),
+        ),
       )
 
       /* Expect confirmation */
@@ -696,14 +708,14 @@ class HpAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         hpAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(3600L)),
+        RegistrationSuccessfulMessage(weatherService.ref.toTyped, Some(3600L)),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -730,7 +742,7 @@ class HpAgentModelCalculationSpec
         hpAgent,
         ProvideWeatherMessage(
           3600L,
-          weatherService.ref,
+          weatherService.ref.toTyped,
           weatherData,
           Some(7200L),
         ),
@@ -767,14 +779,14 @@ class HpAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         hpAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         hpAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
+        RegistrationSuccessfulMessage(weatherService.ref.toTyped, Some(0L)),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -787,7 +799,7 @@ class HpAgentModelCalculationSpec
         hpAgent,
         ProvideWeatherMessage(
           0L,
-          weatherService.ref,
+          weatherService.ref.toTyped,
           WeatherData(
             WattsPerSquareMeter(0),
             WattsPerSquareMeter(0),
@@ -805,7 +817,7 @@ class HpAgentModelCalculationSpec
         hpAgent,
         ProvideWeatherMessage(
           3600L,
-          weatherService.ref,
+          weatherService.ref.toTyped,
           WeatherData(
             WattsPerSquareMeter(0),
             WattsPerSquareMeter(0),
@@ -823,7 +835,7 @@ class HpAgentModelCalculationSpec
         hpAgent,
         ProvideWeatherMessage(
           7200L,
-          weatherService.ref,
+          weatherService.ref.toTyped,
           WeatherData(
             WattsPerSquareMeter(0),
             WattsPerSquareMeter(0),

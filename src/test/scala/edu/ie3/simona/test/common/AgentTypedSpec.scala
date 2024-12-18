@@ -1,32 +1,26 @@
 /*
- * © 2020. TU Dortmund University,
+ * © 2024. TU Dortmund University,
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
 
 package edu.ie3.simona.test.common
 
-import org.apache.pekko.actor.{ActorRef, ActorSystem}
-import org.apache.pekko.testkit.{ImplicitSender, TestProbe}
 import com.typesafe.scalalogging.LazyLogging
+import org.apache.pekko.actor.ActorRef
+import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.scalatest.PrivateMethodTester
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
 
 /** Class to help building tests for agents
-  *
-  * @param actorSystem
-  *   The actor system to use for building actors
   */
-class AgentSpec(actorSystem: ActorSystem)
-    extends TestKitWithShutdown(actorSystem)
-    with ImplicitSender
+class AgentTypedSpec
+    extends ScalaTestWithActorTestKit
     with AnyWordSpecLike
     with should.Matchers
     with PrivateMethodTester
     with LazyLogging {
-
-  val noSender: ActorRef = TestProbe("any").ref
 
   val systemListener: Iterable[ActorRef] = Iterable.empty
 }

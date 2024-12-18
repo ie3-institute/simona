@@ -9,6 +9,7 @@ package edu.ie3.simona.agent.participant.statedata
 import org.apache.pekko.actor.ActorRef
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
+import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 
 import scala.reflect.{ClassTag, classTag}
 
@@ -31,7 +32,7 @@ final case class DataCollectionStateData[+PD <: PrimaryDataWithApparentPower[
   PD
 ]](
     baseStateData: BaseStateData[PD],
-    data: Map[ActorRef, Option[_ <: Data]],
+    data: Map[TypedActorRef[_], Option[_ <: Data]],
     yetTriggered: Boolean,
 ) extends ParticipantStateData[PD] {
 

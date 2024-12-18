@@ -38,8 +38,9 @@ import edu.ie3.util.scala.quantities.{
   ReactivePower,
   Vars,
 }
-import org.apache.pekko.actor.ActorRef.noSender
-import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.testkit.TestFSMRef
 import org.apache.pekko.util.Timeout
 import org.mockito.Mockito.when
@@ -257,8 +258,8 @@ class ParticipantAgentFundamentalsSpec
       val baseStateData = ParticipantAgentFundamentalsSpec.mockBaseStateData(
         SortedSet(100L, 200L, 300L),
         Map(
-          self -> Some(10L),
-          noSender -> Some(0L),
+          self.toTyped -> Some(10L),
+          noSender.ref.toTyped -> Some(0L),
         ),
       )
 
@@ -276,8 +277,8 @@ class ParticipantAgentFundamentalsSpec
       val baseStateData = ParticipantAgentFundamentalsSpec.mockBaseStateData(
         SortedSet(0L, 10L, 20L),
         Map(
-          self -> Some(200L),
-          noSender -> Some(100L),
+          self.toTyped -> Some(200L),
+          noSender.toTyped -> Some(100L),
         ),
       )
 
@@ -298,8 +299,8 @@ class ParticipantAgentFundamentalsSpec
       val baseStateData = ParticipantAgentFundamentalsSpec.mockBaseStateData(
         SortedSet(0L, 10L, 20L),
         Map(
-          self -> Some(20L),
-          noSender -> Some(0L),
+          self.toTyped -> Some(20L),
+          noSender.toTyped -> Some(0L),
         ),
       )
 
@@ -618,7 +619,7 @@ case object ParticipantAgentFundamentalsSpec extends MockitoSugar {
     */
   def mockBaseStateData(
       additionalActivationTicks: SortedSet[Long],
-      foreseenDataTicks: Map[ActorRef, Option[Long]],
+      foreseenDataTicks: Map[ActorRef[_], Option[Long]],
   ): ParticipantModelBaseStateData[
     ComplexPower,
     FixedRelevantData.type,

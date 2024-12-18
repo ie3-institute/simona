@@ -6,50 +6,49 @@
 
 package edu.ie3.simona.service.primary
 
-import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.actor.typed.scaladsl.adapter.{
-  ClassicActorRefOps,
-  TypedActorRefOps,
-}
-import org.apache.pekko.testkit.{TestActorRef, TestProbe}
 import com.dimafeng.testcontainers.{ForAllTestContainer, PostgreSQLContainer}
-import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
-import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
+import edu.ie3.simona.ontology.messages.services.PrimaryDataMessage.PrimaryServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.RegistrationResponseMessage.{
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
 }
+import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.WrappedActivation
+import edu.ie3.simona.ontology.messages.services.{
+  PrimaryDataMessage,
+  ServiceMessageUniversal,
+}
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
-import edu.ie3.simona.test.common.{AgentSpec, TestSpawnerClassic}
+import edu.ie3.simona.test.common.{AgentTypedSpec, TestSpawnerTyped}
 import edu.ie3.simona.test.helper.TestContainerHelper
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  BehaviorTestKit,
+  TestProbe,
+}
+import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.scalatest.BeforeAndAfterAll
 import org.testcontainers.utility.DockerImageName
 
 import java.util.UUID
+import scala.language.implicitConversions
 
 class PrimaryServiceProxySqlIT
-    extends AgentSpec(
-      ActorSystem(
-        "PrimaryServiceWorkerSqlIT",
-        ConfigFactory
-          .parseString("""
-                     |pekko.loglevel="OFF"
-          """.stripMargin),
-      )
-    )
+    extends AgentTypedSpec
     with ForAllTestContainer
     with BeforeAndAfterAll
     with TestContainerHelper
-    with TestSpawnerClassic {
+    with TestSpawnerTyped {
+
+  implicit def wrap(msg: Activation): ServiceMessageUniversal =
+    WrappedActivation(msg)
 
   override val container: PostgreSQLContainer = PostgreSQLContainer(
     DockerImageName.parse("postgres:14.2")
@@ -80,7 +79,7 @@ class PrimaryServiceProxySqlIT
     container.close()
   }
 
-  private val scheduler = TestProbe("Scheduler")
+  private val scheduler = TestProbe[SchedulerMessage]("Scheduler")
 
   // function definition because postgres parameters are only available after initialization
   private def sqlParams: SqlParams = SqlParams(
@@ -91,7 +90,7 @@ class PrimaryServiceProxySqlIT
     timePattern = "yyyy-MM-dd'T'HH:mm:ssX",
   )
 
-  private def createProxy(): TestActorRef[PrimaryServiceProxy] = {
+  private def createProxy(): BehaviorTestKit[PrimaryDataMessage] = {
     val initData = InitPrimaryServiceProxyStateData(
       SimonaConfig.Simona.Input.Primary(
         None,
@@ -102,11 +101,10 @@ class PrimaryServiceProxySqlIT
       simulationStart,
     )
 
-    TestActorRef(
-      PrimaryServiceProxy.props(
+    BehaviorTestKit(
+      PrimaryServiceProxy(
         scheduler.ref,
         initData,
-        simulationStart,
       )
     )
   }
@@ -114,64 +112,58 @@ class PrimaryServiceProxySqlIT
   "A primary service proxy with SQL source" should {
 
     "initialize when given proper SQL input configs" in {
-      val proxyRef = createProxy()
+      val proxyRef = createProxy().ref
 
-      scheduler.send(proxyRef, Activation(INIT_SIM_TICK))
-      scheduler.expectMsg(Completion(proxyRef.toTyped))
+      proxyRef ! Activation(INIT_SIM_TICK)
+      scheduler.expectMessageType[Completion]
     }
 
     "handle participant request correctly if participant has primary data" in {
-      val systemParticipantProbe = TestProbe("SystemParticipant")
+      val systemParticipantProbe = TestProbe[Any]("SystemParticipant")
 
-      val proxyRef = createProxy()
+      val proxyRef = createProxy().ref
 
-      scheduler.send(proxyRef, Activation(INIT_SIM_TICK))
-      scheduler.expectMsg(Completion(proxyRef.toTyped))
+      proxyRef ! Activation(INIT_SIM_TICK)
+      scheduler.expectMessageType[Completion]
 
-      systemParticipantProbe.send(
-        proxyRef,
-        PrimaryServiceRegistrationMessage(
-          UUID.fromString("b86e95b0-e579-4a80-a534-37c7a470a409")
-        ),
+      proxyRef ! PrimaryServiceRegistrationMessage(
+        systemParticipantProbe.ref.toClassic,
+        UUID.fromString("b86e95b0-e579-4a80-a534-37c7a470a409"),
       )
-      scheduler.expectMsgType[ScheduleActivation] // lock activation scheduled
+      scheduler
+        .expectMessageType[ScheduleActivation] // lock activation scheduled
 
-      val initActivation = scheduler.expectMsgType[ScheduleActivation]
+      val initActivation = scheduler.expectMessageType[ScheduleActivation]
       initActivation.tick shouldBe INIT_SIM_TICK
       initActivation.unlockKey should not be empty
 
       // extract ref to the worker that the proxy created
       val workerRef = initActivation.actor
-      scheduler.send(
-        workerRef.toClassic,
-        Activation(INIT_SIM_TICK),
-      )
+      workerRef ! Activation(INIT_SIM_TICK)
 
-      scheduler.expectMsg(Completion(workerRef, Some(0)))
+      scheduler.expectMessage(Completion(workerRef, Some(0)))
 
-      systemParticipantProbe.expectMsg(
-        RegistrationSuccessfulMessage(workerRef.toClassic, Some(0L))
+      systemParticipantProbe.expectMessage(
+        RegistrationSuccessfulMessage(workerRef, Some(0L))
       )
     }
 
     "handle participant request correctly if participant does not have primary data" in {
-      val systemParticipantProbe = TestProbe("SystemParticipant")
+      val systemParticipantProbe = TestProbe[Any]("SystemParticipant")
 
-      val proxyRef = createProxy()
+      val proxyRef = createProxy().ref
 
-      scheduler.send(proxyRef, Activation(INIT_SIM_TICK))
-      scheduler.expectMsg(Completion(proxyRef.toTyped))
+      proxyRef ! Activation(INIT_SIM_TICK)
+      scheduler.expectMessageType[Completion]
 
-      systemParticipantProbe.send(
-        proxyRef,
-        PrimaryServiceRegistrationMessage(
-          UUID.fromString("db958617-e49d-44d3-b546-5f7b62776afd")
-        ),
+      proxyRef ! PrimaryServiceRegistrationMessage(
+        systemParticipantProbe.ref.toClassic,
+        UUID.fromString("db958617-e49d-44d3-b546-5f7b62776afd"),
       )
 
       scheduler.expectNoMessage()
 
-      systemParticipantProbe.expectMsg(RegistrationFailedMessage(proxyRef))
+      systemParticipantProbe.expectMessage(RegistrationFailedMessage(proxyRef))
     }
   }
 }

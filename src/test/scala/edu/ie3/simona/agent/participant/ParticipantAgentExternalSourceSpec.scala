@@ -6,10 +6,6 @@
 
 package edu.ie3.simona.agent.participant
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{ActorRef, ActorSystem}
-import org.apache.pekko.testkit.TestFSMRef
-import org.apache.pekko.util.Timeout
 import breeze.numerics.{acos, tan}
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.NodeInput
@@ -20,6 +16,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerUnchangedMessage,
 }
 import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
+import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ActivePower,
   ActivePowerAndHeat,
@@ -45,19 +42,26 @@ import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.model.participant.{CalcRelevantData, SystemParticipant}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
-import edu.ie3.simona.service.primary.PrimaryServiceWorker.ProvidePrimaryDataMessage
+import edu.ie3.simona.ontology.messages.services.PrimaryDataMessage.{
+  PrimaryServiceRegistrationMessage,
+  ProvidePrimaryDataMessage,
+}
+import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.{Kilovars, Megavars, ReactivePower, Vars}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
+import org.apache.pekko.testkit.TestFSMRef
+import org.apache.pekko.util.Timeout
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
-import squants.{Each, Power}
 import squants.energy.{Kilowatts, Megawatts, Watts}
+import squants.{Each, Power}
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
@@ -139,7 +143,7 @@ class ParticipantAgentExternalSourceSpec
       requestVoltageDeviationThreshold =
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
-      primaryServiceProxy = primaryServiceProxy.ref,
+      primaryServiceProxy = primaryServiceProxy.ref.toTyped,
     )
 
     "be instantiated correctly" in {
@@ -173,7 +177,7 @@ class ParticipantAgentExternalSourceSpec
 
       /* Expect a registration message */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(testUUID)
+        PrimaryServiceRegistrationMessage(mockAgent.ref, testUUID)
       )
 
       /* ... as well as corresponding state and state data */
@@ -206,7 +210,10 @@ class ParticipantAgentExternalSourceSpec
       /* Reply, that registration was successful */
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(4711L)),
+        RegistrationSuccessfulMessage(
+          primaryServiceProxy.ref.toTyped,
+          Some(4711L),
+        ),
       )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped, Some(4711L)))
@@ -221,7 +228,7 @@ class ParticipantAgentExternalSourceSpec
             ], ComplexPower] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
           baseStateData.foreseenDataTicks shouldBe Map(
-            primaryServiceProxy.ref -> Some(4711L)
+            primaryServiceProxy.ref.toTyped -> Some(4711L)
           )
         case _ =>
           fail(
@@ -244,7 +251,10 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
+        RegistrationSuccessfulMessage(
+          primaryServiceProxy.ref.toTyped,
+          Some(900L),
+        ),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -309,7 +319,10 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
+        RegistrationSuccessfulMessage(
+          primaryServiceProxy.ref.toTyped,
+          Some(900L),
+        ),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -321,7 +334,7 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         ProvidePrimaryDataMessage(
           900L,
-          primaryServiceProxy.ref,
+          primaryServiceProxy.ref.toTyped,
           ComplexPower(
             Kilowatts(0.0),
             Kilovars(900.0),
@@ -344,12 +357,12 @@ class ParticipantAgentExternalSourceSpec
             ) =>
           /* The next data tick is already registered */
           baseStateData.foreseenDataTicks shouldBe Map(
-            primaryServiceProxy.ref -> Some(1800L)
+            primaryServiceProxy.ref.toTyped -> Some(1800L)
           )
 
           /* The yet sent data is also registered */
           expectedSenders shouldBe Map(
-            primaryServiceProxy.ref -> Some(
+            primaryServiceProxy.ref.toTyped -> Some(
               ComplexPower(
                 Kilowatts(0.0),
                 Kilovars(900.0),
@@ -410,7 +423,10 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
+        RegistrationSuccessfulMessage(
+          primaryServiceProxy.ref.toTyped,
+          Some(900L),
+        ),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -434,11 +450,11 @@ class ParticipantAgentExternalSourceSpec
             ) =>
           /* The next data tick is already registered */
           baseStateData.foreseenDataTicks shouldBe Map(
-            primaryServiceProxy.ref -> Some(900L)
+            primaryServiceProxy.ref.toTyped -> Some(900L)
           )
 
           /* The yet sent data is also registered */
-          expectedSenders shouldBe Map(primaryServiceProxy.ref -> None)
+          expectedSenders shouldBe Map(primaryServiceProxy.ref.toTyped -> None)
 
           /* It is yet triggered */
           isYetTriggered shouldBe true
@@ -453,7 +469,7 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         ProvidePrimaryDataMessage(
           900L,
-          primaryServiceProxy.ref,
+          primaryServiceProxy.ref.toTyped,
           ComplexPower(
             Kilowatts(0.0),
             Kilovars(900.0),
@@ -505,7 +521,10 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
+        RegistrationSuccessfulMessage(
+          primaryServiceProxy.ref.toTyped,
+          Some(900L),
+        ),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -526,7 +545,7 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         ProvidePrimaryDataMessage(
           900L,
-          primaryServiceProxy.ref,
+          primaryServiceProxy.ref.toTyped,
           ComplexPower(
             Kilowatts(0.0),
             Kilovars(900.0),
@@ -566,7 +585,7 @@ class ParticipantAgentExternalSourceSpec
         defaultSimulationEnd,
         defaultOutputConfig,
         SortedSet.empty,
-        Map.empty[ActorRef, Option[Long]],
+        Map.empty[TypedActorRef[_], Option[Long]],
         fillUpReactivePowerWithModelFunc = false,
         1e-4,
         ValueStore.forVoltage(
@@ -597,7 +616,7 @@ class ParticipantAgentExternalSourceSpec
         defaultSimulationEnd,
         defaultOutputConfig,
         SortedSet.empty,
-        Map.empty[ActorRef, Option[Long]],
+        Map.empty[TypedActorRef[_], Option[Long]],
         fillUpReactivePowerWithModelFunc = true,
         1e-4,
         ValueStore.forVoltage(
@@ -621,7 +640,10 @@ class ParticipantAgentExternalSourceSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationSuccessfulMessage(primaryServiceProxy.ref, Some(900L)),
+        RegistrationSuccessfulMessage(
+          primaryServiceProxy.ref.toTyped,
+          Some(900L),
+        ),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -634,7 +656,7 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         ProvidePrimaryDataMessage(
           900L,
-          primaryServiceProxy.ref,
+          primaryServiceProxy.ref.toTyped,
           ComplexPower(
             Kilowatts(100.0),
             Kilovars(33.0),
@@ -650,7 +672,7 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         ProvidePrimaryDataMessage(
           1800L,
-          primaryServiceProxy.ref,
+          primaryServiceProxy.ref.toTyped,
           ComplexPower(
             Kilowatts(150.0),
             Kilovars(49.0),
@@ -666,7 +688,7 @@ class ParticipantAgentExternalSourceSpec
         mockAgent,
         ProvidePrimaryDataMessage(
           2700L,
-          primaryServiceProxy.ref,
+          primaryServiceProxy.ref.toTyped,
           ComplexPower(
             Kilowatts(200.0),
             Kilovars(66.0),
@@ -736,8 +758,8 @@ class ParticipantAgentExternalSourceSpec
 
       "sending unsupported data" should {
         "fail" in {
-          val data = Map(
-            primaryServiceProxy.ref -> Some(
+          val data: Map[TypedActorRef[_], Option[_ <: Data]] = Map(
+            primaryServiceProxy.ref.toTyped -> Some(
               ComplexPowerAndHeat(
                 Kilowatts(0.0),
                 Kilovars(0.0),
@@ -758,8 +780,8 @@ class ParticipantAgentExternalSourceSpec
 
       "sending enhanceable data" should {
         "fail, if enhanced data are not supported" in {
-          val data = Map(
-            primaryServiceProxy.ref -> Some(
+          val data: Map[TypedActorRef[_], Option[_ <: Data]] = Map(
+            primaryServiceProxy.ref.toTyped -> Some(
               ActivePowerAndHeat(
                 Kilowatts(0.0),
                 Kilowatts(0.0),
@@ -777,8 +799,8 @@ class ParticipantAgentExternalSourceSpec
         }
 
         "lead to proper enriched data, if supported" in {
-          val data = Map(
-            primaryServiceProxy.ref -> Some(
+          val data: Map[TypedActorRef[_], Option[_ <: Data]] = Map(
+            primaryServiceProxy.ref.toTyped -> Some(
               ActivePower(Kilowatts(0.0))
             )
           )
@@ -798,8 +820,8 @@ class ParticipantAgentExternalSourceSpec
         }
 
         "lead to proper enriched data, if supported and utilizing a active to reactive power function" in {
-          val data = Map(
-            primaryServiceProxy.ref -> Some(
+          val data: Map[TypedActorRef[_], Option[_ <: Data]] = Map(
+            primaryServiceProxy.ref.toTyped -> Some(
               ActivePower(Kilowatts(100.0))
             )
           )

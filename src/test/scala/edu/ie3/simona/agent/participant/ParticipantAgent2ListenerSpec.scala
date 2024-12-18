@@ -26,8 +26,8 @@ import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
+import edu.ie3.simona.ontology.messages.services.PrimaryDataMessage.PrimaryServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -103,7 +103,7 @@ class ParticipantAgent2ListenerSpec
         requestVoltageDeviationThreshold =
           simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
         outputConfig = outputConfig,
-        primaryServiceProxy = primaryServiceProxy.ref,
+        primaryServiceProxy = primaryServiceProxy.ref.toTyped,
       )
 
     "inform listeners about new simulation results, when asked to do" in {
@@ -129,7 +129,7 @@ class ParticipantAgent2ListenerSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped))
@@ -181,7 +181,7 @@ class ParticipantAgent2ListenerSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped))
@@ -217,7 +217,7 @@ class ParticipantAgent2ListenerSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped))
@@ -278,7 +278,7 @@ class ParticipantAgent2ListenerSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         mockAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       scheduler.expectMsg(Completion(mockAgent.toTyped))

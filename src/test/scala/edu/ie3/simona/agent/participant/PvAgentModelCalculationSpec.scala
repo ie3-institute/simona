@@ -29,8 +29,8 @@ import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
+import edu.ie3.simona.ontology.messages.services.PrimaryDataMessage.PrimaryServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.RegistrationResponseMessage.{
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
 }
@@ -111,7 +111,7 @@ class PvAgentModelCalculationSpec
   )
   private val noServices = Iterable.empty
   private val withServices = Iterable(
-    ActorWeatherService(weatherService.ref)
+    ActorWeatherService(weatherService.ref.toTyped)
   )
   private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
 
@@ -133,7 +133,7 @@ class PvAgentModelCalculationSpec
       requestVoltageDeviationThreshold =
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
-      primaryServiceProxy = primaryServiceProxy.ref,
+      primaryServiceProxy = primaryServiceProxy.ref.toTyped,
     )
 
     "be instantiated correctly" in {
@@ -175,7 +175,7 @@ class PvAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         pvAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       deathProbe.expectTerminated(pvAgent.ref)
@@ -197,7 +197,7 @@ class PvAgentModelCalculationSpec
       requestVoltageDeviationThreshold =
         simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
-      primaryServiceProxy = primaryServiceProxy.ref,
+      primaryServiceProxy = primaryServiceProxy.ref.toTyped,
     )
 
     "be instantiated correctly" in {
@@ -233,7 +233,10 @@ class PvAgentModelCalculationSpec
 
       /* Actor should ask for registration with primary service */
       primaryServiceProxy.expectMsg(
-        PrimaryServiceRegistrationMessage(voltageSensitiveInput.getUuid)
+        PrimaryServiceRegistrationMessage(
+          pvAgent.ref,
+          voltageSensitiveInput.getUuid,
+        )
       )
       /* State should be information handling and having correct state data */
       pvAgent.stateName shouldBe HandleInformation
@@ -265,12 +268,12 @@ class PvAgentModelCalculationSpec
       /* Refuse registration */
       primaryServiceProxy.send(
         pvAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* Expect a registration message */
       weatherService.expectMsg(
-        RegisterForWeatherMessage(52.02083574, 7.40110716)
+        RegisterForWeatherMessage(pvAgent.ref, 52.02083574, 7.40110716)
       )
 
       /* ... as well as corresponding state and state data */
@@ -300,7 +303,7 @@ class PvAgentModelCalculationSpec
           startDate shouldBe simulationStartDate
           endDate shouldBe simulationEndDate
           services shouldBe Iterable(
-            ActorWeatherService(weatherService.ref)
+            ActorWeatherService(weatherService.ref.toTyped)
           )
           outputConfig shouldBe NotifierConfig(
             simulationResultInfo = false,
@@ -317,7 +320,9 @@ class PvAgentModelCalculationSpec
           requestValueStore shouldBe ValueStore[ComplexPower](resolution)
 
           /* Additional information */
-          awaitRegistrationResponsesFrom shouldBe Iterable(weatherService.ref)
+          awaitRegistrationResponsesFrom shouldBe Iterable(
+            weatherService.ref.toTyped
+          )
           foreseenNextDataTicks shouldBe Map.empty
         case _ =>
           fail(
@@ -328,7 +333,7 @@ class PvAgentModelCalculationSpec
       /* Reply, that registration was successful */
       weatherService.send(
         pvAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(4711L)),
+        RegistrationSuccessfulMessage(weatherService.ref.toTyped, Some(4711L)),
       )
 
       /* Expect a completion message */
@@ -340,7 +345,7 @@ class PvAgentModelCalculationSpec
         case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           /* Only check the awaited next data ticks, as the rest has yet been checked */
           baseStateData.foreseenDataTicks shouldBe Map(
-            weatherService.ref -> Some(4711L)
+            weatherService.ref.toTyped -> Some(4711L)
           )
         case _ =>
           fail(
@@ -364,16 +369,16 @@ class PvAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         pvAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* Expect a registration message */
       weatherService.expectMsg(
-        RegisterForWeatherMessage(52.02083574, 7.40110716)
+        RegisterForWeatherMessage(pvAgent.ref, 52.02083574, 7.40110716)
       )
       weatherService.send(
         pvAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
+        RegistrationSuccessfulMessage(weatherService.ref.toTyped, Some(900L)),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -429,14 +434,14 @@ class PvAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         pvAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         pvAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
+        RegistrationSuccessfulMessage(weatherService.ref.toTyped, Some(0L)),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -454,7 +459,12 @@ class PvAgentModelCalculationSpec
 
       weatherService.send(
         pvAgent,
-        ProvideWeatherMessage(0L, weatherService.ref, weatherData, Some(3600L)),
+        ProvideWeatherMessage(
+          0L,
+          weatherService.ref.toTyped,
+          weatherData,
+          Some(3600L),
+        ),
       )
 
       /* Find yourself in corresponding state and state data */
@@ -467,12 +477,12 @@ class PvAgentModelCalculationSpec
             ) =>
           /* The next data tick is already registered */
           baseStateData.foreseenDataTicks shouldBe Map(
-            weatherService.ref -> Some(3600L)
+            weatherService.ref.toTyped -> Some(3600L)
           )
 
           /* The yet sent data is also registered */
           expectedSenders shouldBe Map(
-            weatherService.ref -> Some(weatherData)
+            weatherService.ref.toTyped -> Some(weatherData)
           )
 
           /* It is not yet triggered */
@@ -536,14 +546,14 @@ class PvAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         pvAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         pvAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
+        RegistrationSuccessfulMessage(weatherService.ref.toTyped, Some(0L)),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -563,11 +573,11 @@ class PvAgentModelCalculationSpec
             ) =>
           /* The next data tick is already registered */
           baseStateData.foreseenDataTicks shouldBe Map(
-            weatherService.ref -> Some(0L)
+            weatherService.ref.toTyped -> Some(0L)
           )
 
           /* The yet sent data is also registered */
-          expectedSenders shouldBe Map(weatherService.ref -> None)
+          expectedSenders shouldBe Map(weatherService.ref.toTyped -> None)
 
           /* It is yet triggered */
           isYetTriggered shouldBe true
@@ -587,7 +597,12 @@ class PvAgentModelCalculationSpec
 
       weatherService.send(
         pvAgent,
-        ProvideWeatherMessage(0L, weatherService.ref, weatherData, Some(3600L)),
+        ProvideWeatherMessage(
+          0L,
+          weatherService.ref.toTyped,
+          weatherData,
+          Some(3600L),
+        ),
       )
 
       /* Expect confirmation */
@@ -641,14 +656,14 @@ class PvAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         pvAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         pvAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(3600L)),
+        RegistrationSuccessfulMessage(weatherService.ref.toTyped, Some(3600L)),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -675,7 +690,7 @@ class PvAgentModelCalculationSpec
         pvAgent,
         ProvideWeatherMessage(
           3600L,
-          weatherService.ref,
+          weatherService.ref.toTyped,
           weatherData,
           Some(7200L),
         ),
@@ -712,14 +727,14 @@ class PvAgentModelCalculationSpec
       primaryServiceProxy.expectMsgType[PrimaryServiceRegistrationMessage]
       primaryServiceProxy.send(
         pvAgent,
-        RegistrationFailedMessage(primaryServiceProxy.ref),
+        RegistrationFailedMessage(primaryServiceProxy.ref.toTyped),
       )
 
       /* I'm not interested in the content of the RegistrationMessage */
       weatherService.expectMsgType[RegisterForWeatherMessage]
       weatherService.send(
         pvAgent,
-        RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
+        RegistrationSuccessfulMessage(weatherService.ref.toTyped, Some(0L)),
       )
 
       /* I'm not interested in the content of the Completion */
@@ -732,7 +747,7 @@ class PvAgentModelCalculationSpec
         pvAgent,
         ProvideWeatherMessage(
           0L,
-          weatherService.ref,
+          weatherService.ref.toTyped,
           WeatherData(
             WattsPerSquareMeter(0d),
             WattsPerSquareMeter(0d),
@@ -750,7 +765,7 @@ class PvAgentModelCalculationSpec
         pvAgent,
         ProvideWeatherMessage(
           3600L,
-          weatherService.ref,
+          weatherService.ref.toTyped,
           WeatherData(
             WattsPerSquareMeter(0d),
             WattsPerSquareMeter(0d),
@@ -768,7 +783,7 @@ class PvAgentModelCalculationSpec
         pvAgent,
         ProvideWeatherMessage(
           7200L,
-          weatherService.ref,
+          weatherService.ref.toTyped,
           WeatherData(
             WattsPerSquareMeter(0d),
             WattsPerSquareMeter(0d),

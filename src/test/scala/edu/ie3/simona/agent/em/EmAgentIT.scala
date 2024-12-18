@@ -21,9 +21,8 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.services.ServiceMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
+import edu.ie3.simona.ontology.messages.services.PrimaryDataMessage.PrimaryServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.RegistrationResponseMessage.{
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
 }
@@ -31,6 +30,11 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
   ProvideWeatherMessage,
   RegisterForWeatherMessage,
   WeatherData,
+}
+import edu.ie3.simona.ontology.messages.services.{
+  PrimaryDataMessage,
+  ServiceMessage,
+  WeatherMessage,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.test.common.input.EmInputTestData
@@ -101,8 +105,8 @@ class EmAgentIT
       "be initialized correctly and run through some activations" in {
         val resultListener = TestProbe[ResultEvent]("ResultListener")
         val primaryServiceProxy =
-          TestProbe[ServiceMessage]("PrimaryServiceProxy")
-        val weatherService = TestProbe[ServiceMessage]("WeatherService")
+          TestProbe[PrimaryDataMessage]("PrimaryServiceProxy")
+        val weatherService = TestProbe[WeatherMessage]("WeatherService")
         val scheduler = TestProbe[SchedulerMessage]("Scheduler")
 
         val emAgent = spawn(
@@ -200,7 +204,7 @@ class EmAgentIT
         loadAgent ! Activation(INIT_SIM_TICK)
 
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(loadInput.getUuid)
+          PrimaryServiceRegistrationMessage(loadAgent.ref, loadInput.getUuid)
         )
         loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
@@ -227,13 +231,14 @@ class EmAgentIT
         pvAgent ! Activation(INIT_SIM_TICK)
 
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(pvInput.getUuid)
+          PrimaryServiceRegistrationMessage(pvAgent.ref, pvInput.getUuid)
         )
         pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
         // deal with weather service registration
         weatherService.expectMessage(
           RegisterForWeatherMessage(
+            pvAgent.ref,
             pvInput.getNode.getGeoPosition.getY,
             pvInput.getNode.getGeoPosition.getX,
           )
@@ -250,7 +255,10 @@ class EmAgentIT
         storageAgent ! Activation(INIT_SIM_TICK)
 
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(householdStorageInput.getUuid)
+          PrimaryServiceRegistrationMessage(
+            storageAgent.ref,
+            householdStorageInput.getUuid,
+          )
         )
         storageAgent ! RegistrationFailedMessage(
           primaryServiceProxy.ref.toClassic
@@ -485,7 +493,7 @@ class EmAgentIT
         loadAgent ! Activation(INIT_SIM_TICK)
 
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(loadInput.getUuid)
+          PrimaryServiceRegistrationMessage(loadAgent.ref, loadInput.getUuid)
         )
         loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
@@ -512,13 +520,14 @@ class EmAgentIT
         pvAgent ! Activation(INIT_SIM_TICK)
 
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(pvInput.getUuid)
+          PrimaryServiceRegistrationMessage(pvAgent.ref, pvInput.getUuid)
         )
         pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
         // deal with weather service registration
         weatherService.expectMessage(
           RegisterForWeatherMessage(
+            pvAgent.ref,
             pvInput.getNode.getGeoPosition.getY,
             pvInput.getNode.getGeoPosition.getX,
           )
@@ -535,7 +544,10 @@ class EmAgentIT
         heatPumpAgent ! Activation(INIT_SIM_TICK)
 
         primaryServiceProxy.expectMessage(
-          PrimaryServiceRegistrationMessage(adaptedHpInputModel.getUuid)
+          PrimaryServiceRegistrationMessage(
+            heatPumpAgent.ref,
+            adaptedHpInputModel.getUuid,
+          )
         )
         heatPumpAgent ! RegistrationFailedMessage(
           primaryServiceProxy.ref.toClassic
@@ -543,6 +555,7 @@ class EmAgentIT
 
         weatherService.expectMessage(
           RegisterForWeatherMessage(
+            heatPumpAgent.ref,
             hpInputModel.getNode.getGeoPosition.getY,
             hpInputModel.getNode.getGeoPosition.getX,
           )
