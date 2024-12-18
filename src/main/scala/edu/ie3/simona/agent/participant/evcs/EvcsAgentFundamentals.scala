@@ -37,7 +37,6 @@ import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   AgentInitializationException,
-  InconsistentStateException,
   InvalidRequestException,
 }
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
@@ -334,12 +333,14 @@ protected trait EvcsAgentFundamentals
             baseStateData,
           )
       }
-      .getOrElse(
-        throw new InconsistentStateException(
-          s"The model ${baseStateData.model} was not provided with needed EV data."
+      .getOrElse {
+        // Empty arrivals means that there is no data for this EVCS at the current tick,
+        // thus we just return and wait for the next activation
+        goToIdleReplyCompletionAndScheduleTriggerForNextAction(
+          baseStateData,
+          scheduler,
         )
-      )
-
+      }
   }
 
   /** Returns the number of free parking lots based on the last available state
