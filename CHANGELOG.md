@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update/enhance config documentation [#1013](https://github.com/ie3-institute/simona/issues/1013)
 - Create `CITATION.cff` [#1035](https://github.com/ie3-institute/simona/issues/1035)
 - Introduce ThermalDemandWrapper [#1049](https://github.com/ie3-institute/simona/issues/1049)
+- Added Marius Staudt to list of reviewers [#1057](https://github.com/ie3-institute/simona/issues/1057)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -111,6 +112,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactor thermal calcRelevantData [#1051](https://github.com/ie3-institute/simona/issues/1051)
 - Removed Deployment stage from Jenkinsfile [#1063](https://github.com/ie3-institute/simona/issues/1063)
 - Prepare 'ChpModelSpec' and 'CylindricalThermalStorageSpec' for Storage without storageVolumeLvlMin [#1012](https://github.com/ie3-institute/simona/issues/1012)
+- Fixed SonarQube quality gate using the correct parameter '-Dsonar.qualitygate.wait=true' [#1072](https://github.com/ie3-institute/simona/issues/1072)
 - Converted services to pekko typed [#1069](https://github.com/ie3-institute/simona/issues/1069)
 
 ### Fixed
@@ -153,6 +155,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Shallow fetch in CI [#1041](https://github.com/ie3-institute/simona/issues/1041)
 - Correct wrong use of term "wall clock time" [#727](https://github.com/ie3-institute/simona/issues/727)
 - Fixed Deployment of `simona` to `Maven Central` in new GHA Pipeline [#1029](https://github.com/ie3-institute/simona/issues/1029)
+- Fixed SonarQube quality gate using the right link for PRs or Branches [#1061](https://github.com/ie3-institute/simona/issues/1061)
 
 ## [3.0.0] - 2023-08-07
 
