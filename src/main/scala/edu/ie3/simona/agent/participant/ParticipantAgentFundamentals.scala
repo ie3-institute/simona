@@ -502,6 +502,11 @@ protected trait ParticipantAgentFundamentals[
               Some(actorRef -> Some(msg.data))
             else
               Some(actorRef -> None)
+          case Some(tick) =>
+            log.warning(
+              s"Received data for tick ${msg.tick} but expected data for tick $tick. Message: $msg."
+            )
+            Some(actorRef -> Some(msg.data))
           case None if actorRef == msg.serviceRef =>
             // unexpected data
             Some(actorRef -> Some(msg.data))

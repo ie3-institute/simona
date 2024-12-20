@@ -317,12 +317,17 @@ class ExtEvDataService(override val scheduler: ActorRef)
         val evs =
           allArrivingEvs.getOrElse(evcs, Seq.empty)
 
-        actor ! ProvideEvDataMessage(
-          tick,
-          self,
-          ArrivingEvs(evs.map(EvModelWrapper.apply)),
-          maybeNextTick,
-        )
+        if (evs.nonEmpty) {
+          actor ! ProvideEvDataMessage(
+            tick,
+            self,
+            ArrivingEvs(evs.map(EvModelWrapper.apply)),
+            maybeNextTick,
+          )
+        } else {
+
+          actor ! EvProcessingFinishedMessage(tick, self, maybeNextTick)
+        }
       }
     }
 

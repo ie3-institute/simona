@@ -14,12 +14,12 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorExtEvDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant.statedata.{
   BaseStateData,
   DataCollectionStateData,
   ParticipantStateData,
 }
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant.{
   ParticipantAgent,
   ParticipantAgentFundamentals,
@@ -35,6 +35,7 @@ import edu.ie3.simona.model.participant.evcs.EvcsModel.{
 import edu.ie3.simona.ontology.messages.services.EvMessage.{
   DepartingEvsRequest,
   EvFreeLotsRequest,
+  EvProcessingFinishedMessage,
 }
 import edu.ie3.util.scala.quantities.ReactivePower
 import org.apache.pekko.actor.{ActorRef, Props}
@@ -152,6 +153,106 @@ class EvcsAgent(
             s"Unsupported base state data '$x' when receiving DepartingEvsRequest"
           )
       }
+
+    case Event(
+          EvProcessingFinishedMessage(tick, service, maybeNextTick),
+          stateData: DataCollectionStateData[ComplexPower],
+        ) =>
+      if (tick < currentTick) {
+        log.warning(
+          s"Received EvProcessingFinishedMessage with a past tick: $tick."
+        )
+      }
+
+      stateData.baseStateData match {
+        case modelStateData: BaseStateData.ParticipantModelBaseStateData[
+              ComplexPower,
+              EvcsRelevantData,
+              EvcsState,
+              EvcsModel,
+            ] =>
+          val updatedStateData = modelStateData.copy(
+            foreseenDataTicks =
+              modelStateData.foreseenDataTicks + (service -> maybeNextTick),
+            additionalActivationTicks =
+              modelStateData.additionalActivationTicks + maybeNextTick
+                .getOrElse(
+                  throw new RuntimeException(
+                    "Expect an additionalActivationTick but there is none."
+                  )
+                ),
+          )
+
+          goToIdleReplyCompletionAndScheduleTriggerForNextAction(
+            updatedStateData,
+            scheduler,
+          )
+      }
+    case Event(
+          EvProcessingFinishedMessage(tick, service, maybeNextTick),
+          modelBaseStateData: ParticipantModelBaseStateData[
+            ComplexPower,
+            EvcsRelevantData,
+            EvcsState,
+            EvcsModel,
+          ],
+        ) =>
+      if (tick < currentTick) {
+        log.warning(
+          s"Received EvProcessingFinishedMessage with a past tick: $tick."
+        )
+      }
+
+      modelBaseStateData match {
+        case modelStateData: BaseStateData.ParticipantModelBaseStateData[
+              ComplexPower,
+              EvcsRelevantData,
+              EvcsState,
+              EvcsModel,
+            ] =>
+          val updatedStateData = modelStateData.copy(
+            foreseenDataTicks =
+              modelStateData.foreseenDataTicks + (service -> maybeNextTick),
+            additionalActivationTicks =
+              modelStateData.additionalActivationTicks + maybeNextTick
+                .getOrElse(
+                  throw new RuntimeException(
+                    "Expect an additionalActivationTick but there is none."
+                  )
+                ),
+          )
+
+          goToIdleReplyCompletionAndScheduleTriggerForNextAction(
+            updatedStateData,
+            scheduler,
+          )
+      }
+  }
+
+  override def myUnhandled: StateFunction = {
+    case Event(
+          EvProcessingFinishedMessage(tick, service, maybeNextTick),
+          modelBaseStateData: ParticipantModelBaseStateData[
+            ComplexPower,
+            EvcsRelevantData,
+            EvcsState,
+            EvcsModel,
+          ],
+        ) =>
+      val updatedStateData =
+        handleEvProcessingFinishedMessage(
+          tick,
+          service,
+          maybeNextTick,
+          modelBaseStateData,
+          scheduler,
+        )
+      goToIdleReplyCompletionAndScheduleTriggerForNextAction(
+        updatedStateData,
+        scheduler,
+      )
+
+      stay()
   }
 
   /** Determine the average result within the given tick window

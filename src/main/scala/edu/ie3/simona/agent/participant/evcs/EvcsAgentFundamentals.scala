@@ -28,6 +28,7 @@ import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.participant.statedata.{
   BaseStateData,
+  DataCollectionStateData,
   ParticipantStateData,
 }
 import edu.ie3.simona.agent.state.AgentState
@@ -457,14 +458,117 @@ protected trait EvcsAgentFundamentals
 
     val newState = EvcsState(stayingEvs, stayingSchedules, tick)
 
+    val updatedStateDataStore = ValueStore.updateValueStore(
+      baseStateData.stateDataStore,
+      tick,
+      newState,
+    )
+
     baseStateData.copy(
-      stateDataStore = ValueStore.updateValueStore(
-        baseStateData.stateDataStore,
-        tick,
-        newState,
-      ),
+      stateDataStore = updatedStateDataStore,
       resultValueStore = updatedResultValueStore,
     )
+  }
+
+  /** Handles EvProcessingFinishedMessage and updates the state accordingly.
+    *
+    * @param tick
+    *   Current tick of the simulation
+    * @param service
+    *   The service sending the message
+    * @param maybeNextTick
+    *   Option with the next tick to process
+    * @param stateData
+    *   Current state data of the EVCS agent
+    */
+  protected def handleEvProcessingFinishedMessage(
+      tick: Long,
+      service: ActorRef,
+      maybeNextTick: Option[Long],
+      stateData: DataCollectionStateData[ComplexPower],
+  ): ParticipantModelBaseStateData[
+    ComplexPower,
+    EvcsRelevantData,
+    EvcsState,
+    EvcsModel,
+  ] = {
+    if (tick < currentTick) {
+      log.warning(
+        s"Received EvProcessingFinishedMessage with a past tick: $tick."
+      )
+    }
+
+    stateData.baseStateData match {
+      case modelStateData: BaseStateData.ParticipantModelBaseStateData[
+            ComplexPower,
+            EvcsRelevantData,
+            EvcsState,
+            EvcsModel,
+          ] =>
+        modelStateData.copy(
+          foreseenDataTicks =
+            modelStateData.foreseenDataTicks + (service -> maybeNextTick),
+          additionalActivationTicks =
+            modelStateData.additionalActivationTicks + maybeNextTick.getOrElse(
+              throw new RuntimeException("ERROR: Next tick is missing!")
+            ),
+        )
+    }
+  }
+
+  /** Handles EvProcessingFinishedMessage and updates the state accordingly.
+    *
+    * @param tick
+    *   Current tick of the simulation
+    * @param service
+    *   The service sending the message
+    * @param maybeNextTick
+    *   Option with the next tick to process
+    * @param stateData
+    *   Current state data of the EVCS agent
+    */
+
+  protected def handleEvProcessingFinishedMessage(
+      tick: Long,
+      service: ActorRef,
+      maybeNextTick: Option[Long],
+      modelBaseStateData: ParticipantModelBaseStateData[
+        ComplexPower,
+        EvcsRelevantData,
+        EvcsState,
+        EvcsModel,
+      ],
+      scheduler: ActorRef,
+  ): ParticipantModelBaseStateData[
+    ComplexPower,
+    EvcsRelevantData,
+    EvcsState,
+    EvcsModel,
+  ] = {
+    if (tick < currentTick) {
+      log.warning(
+        s"Received EvProcessingFinishedMessage with a past tick: $tick."
+      )
+    }
+
+    modelBaseStateData match {
+      case modelStateData: BaseStateData.ParticipantModelBaseStateData[
+            ComplexPower,
+            EvcsRelevantData,
+            EvcsState,
+            EvcsModel,
+          ] =>
+        modelStateData.copy(
+          foreseenDataTicks =
+            modelStateData.foreseenDataTicks + (service -> maybeNextTick),
+          additionalActivationTicks =
+            modelStateData.additionalActivationTicks + maybeNextTick.getOrElse(
+              throw new RuntimeException(
+                "Expect an additionalActivationTick but there is none."
+              )
+            ),
+        )
+    }
   }
 
   /** Handles data message that contains information on arriving EVs. Updates

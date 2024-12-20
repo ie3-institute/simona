@@ -58,6 +58,21 @@ object EvMessage {
     */
   final case class EvFreeLotsRequest(tick: Long)
 
+  /** Defines a Message indicating the all Evs are processed from evcs
+    *
+    * @param tick
+    *   The latest tick that the data is requested for
+    * @param service
+    *   The ActorRef of the service
+    * @param maybeNextTick
+    *   The next tick if there is one known
+    */
+  final case class EvProcessingFinishedMessage(
+      tick: Long,
+      service: ActorRef,
+      maybeNextTick: Option[Long],
+  )
+
   /** Requests EV models of departing EVs with given UUIDs
     *
     * @param tick
