@@ -10,22 +10,22 @@ import edu.ie3.simona.api.data.ev.ExtEvData
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology._
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
-import edu.ie3.simona.exceptions.ServiceException
+import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.services.EvMessage._
-import edu.ie3.simona.ontology.messages.services.{
-  EvMessage,
-  ServiceMessageUniversal,
-}
 import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.{
   Create,
   WrappedActivation,
   WrappedExternalMessage,
+}
+import edu.ie3.simona.ontology.messages.services.{
+  EvMessage,
+  ServiceMessageUniversal,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
@@ -167,6 +167,8 @@ class ExtEvDataServiceSpec
       extSimAdapter.expectMessage(
         new ScheduleDataServiceMessage(adapter.toClassic)
       )
+      scheduler.expectNoMessage()
+
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessage(Completion(activationMsg.actor))
 
@@ -202,7 +204,7 @@ class ExtEvDataServiceSpec
       scheduler.expectMessage(Completion(activationMsg.actor))
 
       // we trigger ev service and expect an exception
-      assertThrows[Exception] {
+      assertThrows[InvalidRegistrationRequestException] {
         evService ! Activation(0)
       }
 
@@ -247,6 +249,9 @@ class ExtEvDataServiceSpec
       extSimAdapter.expectMessage(
         new ScheduleDataServiceMessage(adapter.toClassic)
       )
+
+      scheduler.expectNoMessage()
+
       evService ! Activation(INIT_SIM_TICK)
       scheduler.expectMessage(Completion(activationMsg.actor))
 

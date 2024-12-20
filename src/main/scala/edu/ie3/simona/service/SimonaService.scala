@@ -146,7 +146,7 @@ abstract class SimonaService[
     case (ctx, registrationMsg: ServiceRegistrationMessage) =>
       /* Someone asks to register for information from the service */
       handleRegistrationRequest(registrationMsg)(stateData, ctx) match {
-        case Success(stateData) => idleInternal(stateData, constantData, buffer)
+        case Success(stateData) => idle(stateData, constantData, buffer)
         case Failure(exception) =>
           ctx.log.error(
             "Error during registration." +

@@ -97,8 +97,6 @@ object PrimaryServiceProxy {
   final case class InitPrimaryServiceProxyStateData(
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime,
-      private[primary] val timeSeriesToSourceRef: Map[UUID, SourceRef] =
-        Map.empty,
   ) extends InitializeServiceStateData
 
   /** Holding the state of an initialized proxy.
@@ -371,7 +369,7 @@ object PrimaryServiceProxy {
     * @return
     *   Message handling routine
     */
-  private def onMessage(stateData: PrimaryServiceStateData)(implicit
+  private[service] def onMessage(stateData: PrimaryServiceStateData)(implicit
       constantData: ServiceConstantStateData
   ): Behavior[PrimaryDataMessage] = Behaviors.receive {
     case (ctx, PrimaryServiceRegistrationMessage(actorRef, modelUuid)) =>
@@ -419,7 +417,7 @@ object PrimaryServiceProxy {
       requestingActor: ClassicRef,
   )(implicit
       constantData: ServiceConstantStateData,
-      ctx: ActorContext[_],
+      ctx: ActorContext[PrimaryDataMessage],
   ): Unit = {
     val timeSeriesToSourceRef = stateData.timeSeriesToSourceRef
     timeSeriesToSourceRef.get(timeSeriesUuid) match {
@@ -514,7 +512,7 @@ object PrimaryServiceProxy {
     * @return
     *   The [[ActorRef]] to the spun off actor
     */
-  protected[service] def classToWorkerRef(
+  private[service] def classToWorkerRef(
       timeSeriesUuid: String
   )(implicit
       constantData: ServiceConstantStateData,

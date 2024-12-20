@@ -33,7 +33,11 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   BehaviorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
+  ClassicActorRefOps,
+  TypedActorRefOps,
+}
 import org.scalatest.BeforeAndAfterAll
 import org.testcontainers.utility.DockerImageName
 
@@ -90,7 +94,7 @@ class PrimaryServiceProxySqlIT
     timePattern = "yyyy-MM-dd'T'HH:mm:ssX",
   )
 
-  private def createProxy(): BehaviorTestKit[PrimaryDataMessage] = {
+  private def createProxy(): ActorRef[PrimaryDataMessage] = {
     val initData = InitPrimaryServiceProxyStateData(
       SimonaConfig.Simona.Input.Primary(
         None,
@@ -101,7 +105,7 @@ class PrimaryServiceProxySqlIT
       simulationStart,
     )
 
-    BehaviorTestKit(
+    testKit.spawn(
       PrimaryServiceProxy(
         scheduler.ref,
         initData,
@@ -112,16 +116,21 @@ class PrimaryServiceProxySqlIT
   "A primary service proxy with SQL source" should {
 
     "initialize when given proper SQL input configs" in {
-      val proxyRef = createProxy().ref
+      val proxyRef = createProxy()
+
+      scheduler.expectMessageType[ScheduleActivation]
 
       proxyRef ! Activation(INIT_SIM_TICK)
       scheduler.expectMessageType[Completion]
     }
 
     "handle participant request correctly if participant has primary data" in {
-      val systemParticipantProbe = TestProbe[Any]("SystemParticipant")
+      val systemParticipantProbe =
+        TestProbe[ServiceMessageUniversal]("SystemParticipant")
 
-      val proxyRef = createProxy().ref
+      val proxyRef = createProxy()
+
+      scheduler.expectMessageType[ScheduleActivation]
 
       proxyRef ! Activation(INIT_SIM_TICK)
       scheduler.expectMessageType[Completion]
@@ -143,15 +152,17 @@ class PrimaryServiceProxySqlIT
 
       scheduler.expectMessage(Completion(workerRef, Some(0)))
 
-      systemParticipantProbe.expectMessage(
-        RegistrationSuccessfulMessage(workerRef, Some(0L))
-      )
+      val msg =
+        systemParticipantProbe.expectMessageType[RegistrationSuccessfulMessage]
+      msg.nextDataTick shouldBe Some(0L)
     }
 
     "handle participant request correctly if participant does not have primary data" in {
       val systemParticipantProbe = TestProbe[Any]("SystemParticipant")
 
-      val proxyRef = createProxy().ref
+      val proxyRef = createProxy()
+
+      scheduler.expectMessageType[ScheduleActivation]
 
       proxyRef ! Activation(INIT_SIM_TICK)
       scheduler.expectMessageType[Completion]

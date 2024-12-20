@@ -31,18 +31,18 @@ trait ExtDataSupport[
     case (_, WrappedExternalMessage(extMsg)) =>
       val updatedStateData = handleDataMessage(extMsg)(stateData)
 
-      buffer.unstashAll(idleInternal(updatedStateData, constantData, buffer))
+      buffer.unstashAll(idle(updatedStateData, constantData, buffer))
 
     case (_, extResponseMsg: EvResponseMessage) =>
       val updatedStateData =
         handleDataResponseMessage(extResponseMsg)(stateData)
 
-      buffer.unstashAll(idleInternal(updatedStateData, constantData, buffer))
+      buffer.unstashAll(idle(updatedStateData, constantData, buffer))
 
     case (ctx, unsupported) =>
       ctx.log.warn(s"Received unsupported message: $unsupported!")
       buffer.stash(unsupported)
-      Behaviors.unhandled
+      buffer.unstashAll(idleInternal)
   }
 
   /** Handle a message from outside the simulation
