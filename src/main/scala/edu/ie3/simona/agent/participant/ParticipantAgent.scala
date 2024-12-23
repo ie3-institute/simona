@@ -173,6 +173,7 @@ abstract class ParticipantAgent[
           Activation(currentTick),
           modelBaseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
         ) =>
+      //log.info(s"Got Activation($currentTick) with ParticipantModelBaseStateData")
       /* An activation is sent, but I'm not sure yet, if secondary data will arrive. Figure out, if someone
        * is about to deliver new data and either go to HandleInformation, check and possibly wait for data provision
        * messages or directly go to Calculate and utilize what is already there */
@@ -185,6 +186,7 @@ abstract class ParticipantAgent[
           Activation(currentTick),
           fromOutsideBaseStateData: FromOutsideBaseStateData[M, PD],
         ) =>
+      //log.info(s"Got Activation($currentTick) with FromOutsideBaseStateData")
       /* An activation is sent, but I'm still expecting primary data. Go to HandleInformation and wait for
        * a data provision message */
       handleActivationAndGoToHandleInformation(
@@ -204,6 +206,7 @@ abstract class ParticipantAgent[
           RequestAssetPowerMessage(requestTick, eInPu, fInPu),
           baseStateData: BaseStateData[PD],
         ) =>
+      //log.info(s"RequestAssetPowerMessage($requestTick) -> Determine the reply and stay in this state, baseStateData")
       /* Determine the reply and stay in this state (or stash the message if the request cannot yet be answered) */
       answerPowerRequestAndStayWithUpdatedStateData(
         baseStateData,
@@ -224,6 +227,7 @@ abstract class ParticipantAgent[
           FlexActivation(tick),
           baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
         ) =>
+      //log.info(s"Got FlexActivation($tick) with ParticipantModelBaseStateData")
       val expectedSenders = baseStateData.foreseenDataTicks
         .collect {
           case (actorRef, Some(expectedTick)) if expectedTick == tick =>
@@ -250,10 +254,47 @@ abstract class ParticipantAgent[
       }
 
     case Event(
+      FlexActivation(tick),
+      baseStateData: FromOutsideBaseStateData[M, PD],
+    ) =>
+      //log.info(s"Got FlexActivation($tick) with FromOutsideBaseStateData")
+      val expectedSenders = baseStateData.foreseenDataTicks
+        .collect {
+          case (actorRef, Some(expectedTick)) if expectedTick == tick =>
+            actorRef -> None
+        }
+
+      // Unexpected data provisions (e.g. by ExtEvDataService) are not possible when EM-managed.
+      // These data have to be always provided _before_ flex request is received here.
+
+      if (expectedSenders.nonEmpty) {
+        val nextStateData = DataCollectionStateData(
+          baseStateData,
+          expectedSenders,
+          yetTriggered = true,
+        )
+
+        /* Do await provision messages in HandleInformation */
+        goto(HandleInformation) using nextStateData
+      } else {
+        /* I don't expect any data. Calculate right away */
+        //log.info(s"\u001b[0;31mKomme ich hier vorbei?! handleFlexRequestForOutside\u001b[0;0m")
+        val updatedStateData = handleFlexRequestForOutside(baseStateData, Map.empty, tick)
+
+        stay() using updatedStateData
+      }
+
+    case Event(
           flexCtrl: IssueFlexControl,
           baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
         ) =>
       handleFlexCtrl(baseStateData, flexCtrl, scheduler)
+
+    case Event(
+      flexCtrl: IssueFlexControl,
+      baseStateData: FromOutsideBaseStateData[M, PD],
+    ) =>
+      handleFlexCtrlForOutside(baseStateData, flexCtrl, scheduler)
   }
 
   when(HandleInformation) {
@@ -269,7 +310,7 @@ abstract class ParticipantAgent[
             resolution,
             requestVoltageDeviationThreshold,
             outputConfig,
-            _,
+            maybeEmAgent,
           ),
         ) =>
       log.debug("Will replay primary data")
@@ -283,6 +324,7 @@ abstract class ParticipantAgent[
         outputConfig,
         serviceRef -> maybeNextDataTick,
         scheduler,
+        maybeEmAgent,
       )
 
     /* Receive registration refuse from primary data service -> Set up actor for model calculation */
@@ -327,6 +369,7 @@ abstract class ParticipantAgent[
         ) =>
       /* The actor received an activation. Check, if there is everything at its place. If so, change state
        * accordingly, otherwise stay here and wait for the messages */
+      //log.info(s"Got Activation($currentTick) with DataCollectionStateData")
       holdTick(currentTick)
       checkForExpectedDataAndChangeState(
         stateData,
@@ -339,6 +382,7 @@ abstract class ParticipantAgent[
           FlexActivation(tick),
           stateData: DataCollectionStateData[PD],
         ) =>
+      //log.info(s"Got FlexActivation($tick) with DataCollectionStateData")
       checkForExpectedDataAndChangeState(
         stateData,
         isYetTriggered = true,
@@ -354,6 +398,7 @@ abstract class ParticipantAgent[
             isYetTriggered,
           ),
         ) =>
+      //log.info(s"Got ProvisionMessage $msg")
       if (data.contains(msg.serviceRef)) {
         /* Update the yet received information */
         val updatedData = data + (msg.serviceRef -> Some(msg.data))
@@ -517,6 +562,7 @@ abstract class ParticipantAgent[
       outputConfig: NotifierConfig,
       senderToMaybeTick: (ActorRef, Option[Long]),
       scheduler: ActorRef,
+      maybeEmAgent: Option[TypedActorRef[FlexResponse]],
   ): FSM.State[AgentState, ParticipantStateData[PD]]
 
   /** Abstract definition of initialization method, implementation in
@@ -748,6 +794,12 @@ abstract class ParticipantAgent[
       tick: Long,
   ): ParticipantModelBaseStateData[PD, CD, MS, M]
 
+  protected def handleFlexRequestForOutside(
+                                             baseStateData: FromOutsideBaseStateData[M, PD],
+                                             data: Map[ActorRef, Option[_ <: Data]],
+                                             tick: Long,
+                                           ): FromOutsideBaseStateData[M, PD]
+
   protected def calculateFlexOptions(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
       tick: Long,
@@ -763,6 +815,13 @@ abstract class ParticipantAgent[
       flexCtrl: IssueFlexControl,
       scheduler: ActorRef,
   ): State
+
+
+  protected def handleFlexCtrlForOutside(
+                                          baseStateData: FromOutsideBaseStateData[M, PD],
+                                          flexCtrl: IssueFlexControl,
+                                          scheduler: ActorRef
+                                        ): State
 
   /** Handle an active power change by flex control.
     * @param tick

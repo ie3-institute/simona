@@ -9,79 +9,37 @@ package edu.ie3.simona.agent.participant
 import breeze.numerics.{ceil, floor, pow, sqrt}
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.ResultEntity
-import edu.ie3.datamodel.models.result.system.{
-  FlexOptionsResult,
-  SystemParticipantResult,
-}
+import edu.ie3.datamodel.models.result.system.{FlexOptionsResult, SystemParticipantResult}
 import edu.ie3.datamodel.models.result.thermal.ThermalUnitResult
 import edu.ie3.simona.agent.ValueStore
-import edu.ie3.simona.agent.grid.GridAgentMessages.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-}
-import edu.ie3.simona.agent.participant.ParticipantAgent.StartCalculationTrigger
+import edu.ie3.simona.agent.grid.GridAgentMessages.{AssetPowerChangedMessage, AssetPowerUnchangedMessage}
+import edu.ie3.simona.agent.participant.ParticipantAgent.{StartCalculationTrigger, getAndCheckNodalVoltage}
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals.RelevantResultValues
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
-  ApparentPowerAndHeat,
-  EnrichableData,
-  PrimaryDataWithApparentPower,
-}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{ApparentPower, ApparentPowerAndHeat, EnrichableData, PrimaryDataWithApparentPower, ZERO_POWER}
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
-import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
-  FromOutsideBaseStateData,
-  ParticipantModelBaseStateData,
-}
-import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
-  CollectRegistrationConfirmMessages,
-  InputModelContainer,
-}
-import edu.ie3.simona.agent.participant.statedata.{
-  BaseStateData,
-  DataCollectionStateData,
-  ParticipantStateData,
-}
+import edu.ie3.simona.agent.participant.statedata.BaseStateData.{FlexControlledData, FromOutsideBaseStateData, ParticipantModelBaseStateData}
+import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{CollectRegistrationConfirmMessages, InputModelContainer}
+import edu.ie3.simona.agent.participant.statedata.{BaseStateData, DataCollectionStateData, ParticipantStateData}
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
-import edu.ie3.simona.agent.state.ParticipantAgentState.{
-  Calculate,
-  HandleInformation,
-}
+import edu.ie3.simona.agent.state.ParticipantAgentState.{Calculate, HandleInformation}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.event.ResultEvent.{
-  FlexOptionsResultEvent,
-  ParticipantResultEvent,
-  ThermalResultEvent,
-}
+import edu.ie3.simona.event.ResultEvent.{FlexOptionsResultEvent, ParticipantResultEvent, ThermalResultEvent}
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.exceptions.agent.{
-  ActorNotRegisteredException,
-  AgentInitializationException,
-  InconsistentStateException,
-  InvalidRequestException,
-}
+import edu.ie3.simona.exceptions.agent.{ActorNotRegisteredException, AgentInitializationException, InconsistentStateException, InvalidRequestException}
 import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.em.EmTools
-import edu.ie3.simona.model.participant.{
-  CalcRelevantData,
-  ModelState,
-  SystemParticipant,
-}
+import edu.ie3.simona.model.participant.ModelState.ConstantState
+import edu.ie3.simona.model.participant.{CalcRelevantData, FlexChangeIndicator, ModelState, SystemParticipant}
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
-  ProvisionMessage,
-  RegistrationResponseMessage,
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.{ProvisionMessage, RegistrationResponseMessage}
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
@@ -119,16 +77,25 @@ protected trait ParticipantAgentFundamentals[
   protected implicit val timeout: util.Timeout = Timeout(10, TimeUnit.SECONDS)
 
   override def initializeParticipantForPrimaryDataReplay(
-      inputModel: InputModelContainer[I],
-      modelConfig: MC,
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
-      resolution: Long,
-      requestVoltageDeviationThreshold: Double,
-      outputConfig: NotifierConfig,
-      senderToMaybeTick: (ActorRef, Option[Long]),
-      scheduler: ActorRef,
-  ): FSM.State[AgentState, ParticipantStateData[PD]] = {
+                                                          inputModel: InputModelContainer[I],
+                                                          modelConfig: MC,
+                                                          simulationStartDate: ZonedDateTime,
+                                                          simulationEndDate: ZonedDateTime,
+                                                          resolution: Long,
+                                                          requestVoltageDeviationThreshold: Double,
+                                                          outputConfig: NotifierConfig,
+                                                          senderToMaybeTick: (ActorRef, Option[Long]),
+                                                          scheduler: ActorRef,
+                                                          maybeEmAgent: Option[TypedActorRef[FlexResponse]],
+                                                        ): FSM.State[AgentState, ParticipantStateData[PD]] = {
+    // register with EM if applicable
+    maybeEmAgent.foreach { emAgent =>
+      emAgent ! RegisterParticipant(
+        inputModel.electricalInputModel.getUuid,
+        self.toTyped[FlexRequest],
+        inputModel.electricalInputModel,
+      )
+    }
     val stateData = determineFromOutsideBaseStateData(
       inputModel,
       modelConfig,
@@ -138,15 +105,32 @@ protected trait ParticipantAgentFundamentals[
       requestVoltageDeviationThreshold,
       outputConfig,
       senderToMaybeTick,
+      maybeEmAgent,
     )
 
     /* Confirm final initialization */
     releaseTick()
-    val msge = senderToMaybeTick._2.map { tick =>
-      val msg = Completion(self.toTyped, Some(tick))
-      scheduler ! msg
-      msg
+
+    val newTick = senderToMaybeTick._2
+
+    maybeEmAgent.foreach { emAgent =>
+      // flex is scheduled for tick 0, if no first tick available
+      emAgent ! ScheduleFlexRequest(
+        inputModel.electricalInputModel.getUuid,
+        newTick.getOrElse(0),
+      )
     }
+
+    val completionMsg = Completion(
+      self.toTyped,
+      newTick.filterNot(_ => stateData.isEmManaged),
+    )
+
+    //log.info(s"CompletionMsg = $completionMsg")
+
+    // important: if we are EM-managed, there is no new tick for the
+    // scheduler, since we are activated by the EmAgent from now on
+    scheduler ! completionMsg
     goto(Idle) using stateData
   }
 
@@ -182,6 +166,7 @@ protected trait ParticipantAgentFundamentals[
       requestVoltageDeviationThreshold: Double,
       outputConfig: NotifierConfig,
       senderToMaybeTick: (ActorRef, Option[Long]),
+      maybeEmAgent: Option[TypedActorRef[FlexResponse]],
   ): FromOutsideBaseStateData[M, PD] = {
     val model = buildModel(
       inputModel,
@@ -210,6 +195,7 @@ protected trait ParticipantAgentFundamentals[
       ),
       ValueStore.forResult[PD](resolution, 2),
       ValueStore(resolution),
+      maybeEmAgent.map(FlexControlledData(_, self.toTyped[FlexRequest])),
     )
   }
 
@@ -498,6 +484,7 @@ protected trait ParticipantAgentFundamentals[
       baseStateData: BaseStateData[PD],
       scheduler: ActorRef,
   ): FSM.State[AgentState, ParticipantStateData[PD]] = {
+    //log.info(s"[${msg.tick}] Got ProvisionMessage: $msg -> Go to HandleInformation")
     /* Figure out, who is going to send data in this tick */
     val expectedSenders = baseStateData.foreseenDataTicks
       .flatMap { case (actorRef, optTick) =>
@@ -571,50 +558,63 @@ protected trait ParticipantAgentFundamentals[
       /* We got everything we expect and we are yet triggered */
       stateData.baseStateData match {
         case fromOutsideBaseStateData: BaseStateData.FromOutsideBaseStateData[
-              M,
-              PD,
-            ] =>
-          /* Determine the way, the reactive power may be filled up */
-          val reactivePowerFunc =
-            getReactivePowerFunction(tick, fromOutsideBaseStateData)
+          M,
+          PD,
+        ] =>
+          if (fromOutsideBaseStateData.isEmManaged) {
+            //log.info(s"[$tick] checkForExpectedDataAndChangeState, fromOutsideBaseStateData.isEmManaged: ${stateData.data.values}")
+            // we don't go to calculate state, but return to idle directly
+            val updatedStateData = handleFlexRequestForOutside(
+              fromOutsideBaseStateData,
+              stateData.data,
+              tick,
+            )
+            goto(Idle) using updatedStateData
 
-          prepareData(stateData.data, reactivePowerFunc) match {
-            case Success(mostRecentData) =>
-              /* Add received information to base state data and reply, that everything is done */
+          } else {
+            //log.info(s"[$tick] FromOutsideBaseStateData, but not EmManaged")
+            /* Determine the way, the reactive power may be filled up */
+            val reactivePowerFunc =
+              getReactivePowerFunction(tick, fromOutsideBaseStateData)
 
-              /* Announce the result */
-              announceSimulationResult(
-                stateData.baseStateData,
-                tick,
-                AccompaniedSimulationResult(mostRecentData),
-              )
+            prepareData(stateData.data, reactivePowerFunc) match {
+              case Success(mostRecentData) =>
+                /* Add received information to base state data and reply, that everything is done */
 
-              val resultValueStore = fromOutsideBaseStateData.resultValueStore
-              val updatedResultValueStore = ValueStore.updateValueStore(
-                resultValueStore,
-                tick,
-                mostRecentData,
-              )
-              val baseStateDataWithUpdatedResults =
-                BaseStateData.updateBaseStateData(
+                /* Announce the result */
+                announceSimulationResult(
                   stateData.baseStateData,
-                  updatedResultValueStore,
-                  stateData.baseStateData.requestValueStore,
-                  stateData.baseStateData.voltageValueStore,
-                  stateData.baseStateData.additionalActivationTicks,
-                  stateData.baseStateData.foreseenDataTicks,
+                  tick,
+                  AccompaniedSimulationResult(mostRecentData),
                 )
 
-              goToIdleReplyCompletionAndScheduleTriggerForNextAction(
-                baseStateDataWithUpdatedResults,
-                scheduler,
-              )
-            case Failure(exception) =>
-              log.error(
-                "Was not able to extract received primary data correctly. Tear down the simulation. Failed with",
-                exception,
-              )
-              throw exception
+                val resultValueStore = fromOutsideBaseStateData.resultValueStore
+                val updatedResultValueStore = ValueStore.updateValueStore(
+                  resultValueStore,
+                  tick,
+                  mostRecentData,
+                )
+                val baseStateDataWithUpdatedResults =
+                  BaseStateData.updateBaseStateData(
+                    stateData.baseStateData,
+                    updatedResultValueStore,
+                    stateData.baseStateData.requestValueStore,
+                    stateData.baseStateData.voltageValueStore,
+                    stateData.baseStateData.additionalActivationTicks,
+                    stateData.baseStateData.foreseenDataTicks,
+                  )
+                //log.info(s"goToIdleReplyCompletionAndScheduleTriggerForNextAction, valueStore = ${baseStateDataWithUpdatedResults.resultValueStore}")
+                goToIdleReplyCompletionAndScheduleTriggerForNextAction(
+                  baseStateDataWithUpdatedResults,
+                  scheduler,
+                )
+              case Failure(exception) =>
+                log.error(
+                  "Was not able to extract received primary data correctly. Tear down the simulation. Failed with",
+                  exception,
+                )
+                throw exception
+            }
           }
 
         case modelStateData: BaseStateData.ParticipantModelBaseStateData[
@@ -679,6 +679,82 @@ protected trait ParticipantAgentFundamentals[
 
     updatedBaseStateData
   }
+
+
+  override protected def handleFlexRequestForOutside(
+                                                      baseStateData: FromOutsideBaseStateData[M, PD],
+                                                      data: Map[ActorRef, Option[_ <: Data]],
+                                                      tick: Long,
+                                                    ): FromOutsideBaseStateData[M, PD] = {
+    //log.info(s"handleFlexRequestForOutside($tick): resultValueStore:\n${baseStateData.resultValueStore}")
+    implicit val startDateTime: ZonedDateTime = baseStateData.startDate
+
+    val currentTime = tick.toDateTime(baseStateData.startDate)
+
+    val flexOptions = {
+      ProvideMinMaxFlexOptions.noFlexOption(
+        baseStateData.modelUuid,
+        calculateActivePowerWithPrimaryData(data, tick),
+      )
+    }
+    //log.info(s"handleFlexRequestForOutside")
+
+    // announce flex options (we can do this right away, since this
+    // does not include reactive power which could change later)
+    if (baseStateData.outputConfig.flexResult) {
+      val flexResult = flexOptions match {
+        case ProvideMinMaxFlexOptions(
+        modelUuid,
+        referencePower,
+        minPower,
+        maxPower,
+        ) =>
+          new FlexOptionsResult(
+            tick.toDateTime,
+            modelUuid,
+            referencePower.toMegawatts.asMegaWatt,
+            minPower.toMegawatts.asMegaWatt,
+            maxPower.toMegawatts.asMegaWatt,
+          )
+      }
+
+      notifyListener(FlexOptionsResultEvent(flexResult, tick))
+    }
+
+    val updatedBaseStateData = baseStateData.copy(
+      flexStateData = baseStateData.flexStateData.map(data =>
+        data.copy(lastFlexOptions = Some(flexOptions))
+      )
+    )
+
+    val updatedFlexData = updatedBaseStateData.flexStateData.getOrElse(
+      throw new InconsistentStateException("Flex state data is missing!")
+    )
+
+    val newestFlexOptions = updatedFlexData.lastFlexOptions
+      .getOrElse(
+        throw new RuntimeException(
+          s"Flex options have not been calculated by agent ${updatedBaseStateData.modelUuid}"
+        )
+      )
+
+    updatedFlexData.emAgent ! newestFlexOptions
+
+    updatedBaseStateData
+  }
+
+  private def calculateActivePowerWithPrimaryData(
+                                                   data: Map[ActorRef, Option[_ <: Data]],
+                                                   tick: Long,
+                                                 ): Power = {
+    data.values.headOption
+      .flatMap {
+        case Some(powerValue: ApparentPower) => Some(powerValue.p)
+        case _ => None
+      }
+      .getOrElse(ZERO_POWER.p)
+  }
+
 
   override protected def calculateFlexOptions(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
@@ -816,6 +892,122 @@ protected trait ParticipantAgentFundamentals[
     unstashAll()
     stay() using stateDataFinal
   }
+
+  override protected def handleFlexCtrlForOutside(
+                                                   baseStateData: FromOutsideBaseStateData[M, PD],
+                                                   flexCtrl: IssueFlexControl,
+                                                   scheduler: ActorRef
+                                                 ): State = {
+    /* Collect all needed information */
+    val flexStateData = baseStateData.flexStateData.getOrElse(
+      throw new IllegalStateException(
+        s"Received $flexCtrl, but participant agent is not in EM mode"
+      )
+    )
+
+    val lastState = ConstantState
+
+    val flexOptions = flexStateData.lastFlexOptions
+      .getOrElse(
+        throw new IllegalStateException(
+          "Flex options have not been calculated before."
+        )
+      )
+
+    val setPointActivePower =
+      EmTools.determineFlexPower(flexOptions, flexCtrl)
+
+    /* Calculate result */
+    val voltage = getAndCheckNodalVoltage(baseStateData, flexCtrl.tick)
+
+    val reactivePower = baseStateData.model.calculateReactivePower(
+      setPointActivePower,
+      voltage,
+    )
+
+    val primaryData = ApparentPower(
+      setPointActivePower,
+      reactivePower
+    ).asInstanceOf[PD]
+
+    val result = AccompaniedSimulationResult(
+      primaryData,
+      Seq.empty[ResultEntity],
+    )
+
+    /* Handle the request within the model */
+    val (updatedState, flexChangeIndicator) = (lastState, FlexChangeIndicator())
+
+    // sanity check, simulation would hang if this matches
+    flexChangeIndicator.changesAtTick match {
+      case Some(changeAtTick) if changeAtTick <= flexCtrl.tick =>
+        throw new CriticalFailureException(
+          s"Scheduling agent ${self.path} (${baseStateData.modelUuid}) for activation at tick $changeAtTick, although current tick is ${flexCtrl.tick}"
+        )
+      case _ =>
+    }
+
+    // store new state data
+    val updatedStateData: FromOutsideBaseStateData[M, PD] =
+      baseStateData
+        .copy(
+
+        )
+
+    // Send out results etc.
+    val stateDataWithResults = handlePrimaryDataResult(
+      updatedStateData,
+      result,
+      flexCtrl.tick,
+    )
+
+    // determine next tick
+    val expectedDataComesNext =
+      pollNextActivationTrigger(stateDataWithResults).exists { dataTick =>
+        flexChangeIndicator.changesAtTick.forall(_ >= dataTick)
+      }
+    val (nextActivation, stateDataFinal) = Option
+      .when(expectedDataComesNext)(
+        popNextActivationTrigger(stateDataWithResults)
+      )
+      .getOrElse((flexChangeIndicator.changesAtTick, stateDataWithResults))
+
+    flexStateData.emAgent ! FlexResult(
+      baseStateData.modelUuid,
+      result.primaryData.toApparentPower,
+    )
+
+    flexStateData.emAgent ! FlexCompletion(
+      baseStateData.modelUuid,
+      flexChangeIndicator.changesAtNextActivation,
+      nextActivation,
+    )
+
+    unstashAll()
+    stay() using stateDataFinal
+  }
+
+  protected def handlePrimaryDataResult(
+                                         baseStateData: FromOutsideBaseStateData[M, PD],
+                                         result: AccompaniedSimulationResult[PD],
+                                         currentTick: Long,
+                                       ): FromOutsideBaseStateData[M, PD] = {
+    // announce last result to listeners
+    announceSimulationResult(
+      baseStateData,
+      currentTick,
+      result,
+    )(baseStateData.outputConfig)
+
+    baseStateData.copy(
+      resultValueStore = ValueStore.updateValueStore(
+        baseStateData.resultValueStore,
+        currentTick,
+        result.primaryData,
+      )
+    )
+  }
+
 
   /** Additional actions on a new calculated simulation result. Typically: Send
     * out result to listeners and save result in corresponding ValueStore
