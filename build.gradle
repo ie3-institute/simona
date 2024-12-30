@@ -28,10 +28,10 @@ ext {
   pekkoVersion = '1.1.2'
   jtsVersion = '1.20.0'
   confluentKafkaVersion = '7.4.0'
-  tscfgVersion = '1.1.5'
+  tscfgVersion = '1.2.1'
   scapegoatVersion = '3.1.2'
 
-  testContainerVersion = '0.41.4'
+  testContainerVersion = '0.41.5'
 
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
 }
@@ -97,7 +97,7 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.5" // pekko scala logging
-  implementation "ch.qos.logback:logback-classic:1.5.12"
+  implementation "ch.qos.logback:logback-classic:1.5.15"
 
   /* testing */
   testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
