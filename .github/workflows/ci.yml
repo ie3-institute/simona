@@ -36,16 +36,18 @@ jobs:
       - name: Check Branch
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
-            branchName="${{ github.head_ref }}"
+            branch_name="${{ github.head_ref }}"
           else
-            branchName="${{ github.ref_name }}"
+            branch_name="${{ github.ref_name }}"
           fi
 
-          if [[ "$branchName" == refs/heads/* ]]; then
-            branchName="${branchName#refs/heads/}"
+          if [[ "$branch_name" == refs/heads/* ]]; then
+            branch_name="${branch_name#refs/heads/}"
           fi
-
-          ./gradlew checkBranchName -PbranchName="$branchName"
+          
+          echo "branch_name=$branch_name" >> $GITHUB_ENV
+          
+          ./gradlew checkBranchName -PbranchName="$branch_name"
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -67,16 +69,8 @@ jobs:
           ./gradlew sonar \
           -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
           -Dsonar.host.url=${{ vars.SONAR_HOST_URL }} \
-          -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-
-          SONAR_STATUS_URL="${{ vars.SONAR_HOST_URL }}/api/qualitygates/project_status?projectKey=${{ vars.SONAR_PROJECT_KEY }}"
-          QUALITY_GATE_STATUS=$(curl -s -u "${{ secrets.SONAR_TOKEN }}:" "$SONAR_STATUS_URL" | jq -r '.projectStatus.status')
-            
-          echo "Quality Gate Status: $QUALITY_GATE_STATUS"
-          if [ "$QUALITY_GATE_STATUS" != "OK" ]; then
-            echo "Quality Gate failed!"
-            exit 1
-          fi
+          -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
+          -Dsonar.qualitygate.wait=true
 
       #Deployment
       - name: Deploy
