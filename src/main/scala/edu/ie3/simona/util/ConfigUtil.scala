@@ -294,6 +294,7 @@ object ConfigUtil {
     val Hp: Value = Value("hp")
     val House: Value = Value("house")
     val CylindricalStorage: Value = Value("cylindricalstorage")
+    val DomesticHotWaterStorage: Value = Value("domestichotwaterstorage")
 
     /** All participant identifiers */
     def getParticipantIdentifiers: Set[Value] =
@@ -303,6 +304,7 @@ object ConfigUtil {
     def getThermalIdentifiers: Set[Value] = Set(
       NotifierIdentifier.House,
       NotifierIdentifier.CylindricalStorage,
+      NotifierIdentifier.DomesticHotWaterStorage,
     )
   }
 
