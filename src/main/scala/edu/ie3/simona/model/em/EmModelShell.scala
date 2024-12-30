@@ -116,7 +116,11 @@ object EmModelShell {
       modelConfig: EmRuntimeConfig,
   ): EmModelShell = {
 
-    val modelStrategy = modelStrategyName match {
+    val modelStrategy = ProportionalFlexStrat
+
+      /*
+
+      modelStrategyName match {
       case "PROPORTIONAL" => ProportionalFlexStrat
       case "PRIORITIZED" =>
         PrioritizedFlexStrat(modelConfig.curtailRegenerative)
@@ -125,8 +129,9 @@ object EmModelShell {
       case unknown =>
         throw new CriticalFailureException(s"Unknown model strategy $unknown")
     }
+     */
 
-    val aggregateFlex = modelConfig.aggregateFlex match {
+    val aggregateFlex = modelStrategyName match {
       case "SELF_OPT_EXCL_REG" => EmAggregateSelfOpt(false)
       case "SELF_OPT"          => EmAggregateSelfOpt(true)
       case "SIMPLE_SUM"        => EmAggregateSimpleSum
