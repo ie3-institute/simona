@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.em
 
 import edu.ie3.simona.agent.em.EmAgent.Actor
 import edu.ie3.simona.agent.em.FlexCorrespondenceStore.WithTime
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -163,7 +163,7 @@ object EmDataCore {
 
     /** Returns relevant results for all connected agents.
       */
-    def getResults: Iterable[ApparentPower] =
+    def getResults: Iterable[ComplexPower] =
       correspondences.store.values.flatMap(_.receivedResult.map(_.get))
 
   }
@@ -260,7 +260,7 @@ object EmDataCore {
           awaitedConnectedAgents.excl(flexOptions.modelUuid),
       )
 
-    /** Checks whether all awaited flex options have been received and we can
+    /** Checks whether all awaited flex options have been received, and we can
       * continue by calculating flex control. This method does not change the
       * state of the [[AwaitingFlexOptions]] data core.
       * @return

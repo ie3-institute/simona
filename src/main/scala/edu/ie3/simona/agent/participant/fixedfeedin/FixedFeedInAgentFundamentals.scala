@@ -16,7 +16,7 @@ import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
+  ComplexPower,
   ZERO_POWER,
 }
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
@@ -65,18 +65,18 @@ import scala.reflect.{ClassTag, classTag}
 
 protected trait FixedFeedInAgentFundamentals
     extends ParticipantAgentFundamentals[
-      ApparentPower,
+      ComplexPower,
       FixedRelevantData.type,
       ConstantState.type,
-      ParticipantStateData[ApparentPower],
+      ParticipantStateData[ComplexPower],
       FixedFeedInInput,
       FixedFeedInRuntimeConfig,
       FixedFeedInModel,
     ] {
   this: FixedFeedInAgent =>
-  override protected val pdClassTag: ClassTag[ApparentPower] =
-    classTag[ApparentPower]
-  override val alternativeResult: ApparentPower = ZERO_POWER
+  override protected val pdClassTag: ClassTag[ComplexPower] =
+    classTag[ComplexPower]
+  override val alternativeResult: ComplexPower = ZERO_POWER
 
   /** Determines the needed base state data in dependence of the foreseen
     * simulation mode of the agent.
@@ -92,7 +92,7 @@ protected trait FixedFeedInAgentFundamentals
     * @param simulationEndDate
     *   Real world time date time, when the simulation ends
     * @param resolution
-    *   Agents regular time bin it wants to be triggered e.g one hour
+    *   Agents regular time bin it wants to be triggered e.g. one hour
     * @param requestVoltageDeviationThreshold
     *   Threshold, after which two nodal voltage magnitudes from participant
     *   power requests for the same tick are considered to be different
@@ -113,7 +113,7 @@ protected trait FixedFeedInAgentFundamentals
       outputConfig: NotifierConfig,
       maybeEmAgent: Option[TypedActorRef[FlexResponse]],
   ): ParticipantModelBaseStateData[
-    ApparentPower,
+    ComplexPower,
     FixedRelevantData.type,
     ConstantState.type,
     FixedFeedInModel,
@@ -132,10 +132,10 @@ protected trait FixedFeedInAgentFundamentals
     val lastTickInSimulation = simulationEndDate.toTick(simulationStartDate)
     val dataTicks =
       /* As participant agents always return their last known operation point on request, it is sufficient
-       * to let a fixed fixed in model determine it's operation point on:
+       * to let a FixedFeedIn-Model determine its operation point on:
        *  1) The first tick of the simulation
-       *  2) The tick, it turns on (in time dependent operation)
-       *  3) The tick, it turns off (in time dependent operation)
+       *  2) The tick, it turns on (in time-dependent operation)
+       *  3) The tick, it turns off (in time-dependent operation)
        * Coinciding ticks are summarized and the last tick is removed, as the change in operation status
        * doesn't affect anything then */
       SortedSet[Long](
@@ -145,7 +145,7 @@ protected trait FixedFeedInAgentFundamentals
       ).filterNot(_ == lastTickInSimulation)
 
     ParticipantModelBaseStateData[
-      ApparentPower,
+      ComplexPower,
       FixedRelevantData.type,
       ConstantState.type,
       FixedFeedInModel,
@@ -190,7 +190,7 @@ protected trait FixedFeedInAgentFundamentals
 
   override protected def createInitialState(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         FixedRelevantData.type,
         ConstantState.type,
         FixedFeedInModel,
@@ -199,7 +199,7 @@ protected trait FixedFeedInAgentFundamentals
 
   override protected def createCalcRelevantData(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         FixedRelevantData.type,
         ConstantState.type,
         FixedFeedInModel,
@@ -225,7 +225,7 @@ protected trait FixedFeedInAgentFundamentals
   def handleControlledPowerChange(
       tick: Long,
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         FixedRelevantData.type,
         ConstantState.type,
         FixedFeedInModel,
@@ -235,7 +235,7 @@ protected trait FixedFeedInAgentFundamentals
       setPower: squants.Power,
   ): (
       ConstantState.type,
-      AccompaniedSimulationResult[ApparentPower],
+      AccompaniedSimulationResult[ComplexPower],
       FlexChangeIndicator,
   ) = {
     /* Calculate result */
@@ -246,7 +246,7 @@ protected trait FixedFeedInAgentFundamentals
       voltage,
     )
     val result = AccompaniedSimulationResult(
-      ApparentPower(setPower, reactivePower),
+      ComplexPower(setPower, reactivePower),
       Seq.empty[ResultEntity],
     )
 
@@ -259,17 +259,17 @@ protected trait FixedFeedInAgentFundamentals
   override val calculateModelPowerFunc: (
       Long,
       ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         FixedRelevantData.type,
         ConstantState.type,
         FixedFeedInModel,
       ],
       ConstantState.type,
       Dimensionless,
-  ) => ApparentPower = (
+  ) => ComplexPower = (
       currentTick: Long,
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         FixedRelevantData.type,
         ConstantState.type,
         FixedFeedInModel,
@@ -314,7 +314,7 @@ protected trait FixedFeedInAgentFundamentals
     */
   override def calculatePowerWithSecondaryDataAndGoToIdle(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         FixedRelevantData.type,
         ConstantState.type,
         FixedFeedInModel,
@@ -322,7 +322,7 @@ protected trait FixedFeedInAgentFundamentals
       lastModelState: ConstantState.type,
       currentTick: Long,
       scheduler: ActorRef,
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] =
+  ): FSM.State[AgentState, ParticipantStateData[ComplexPower]] =
     throw new InvalidRequestException(
       "Request to calculate power with secondary data cannot be processed in a fixed feed in agent."
     )
@@ -341,13 +341,13 @@ protected trait FixedFeedInAgentFundamentals
     *   The averaged result
     */
   override def averageResults(
-      tickToResults: Map[Long, ApparentPower],
+      tickToResults: Map[Long, ComplexPower],
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         Power => ReactivePower
       ] = None,
-  ): ApparentPower =
+  ): ComplexPower =
     ParticipantAgentFundamentals.averageApparentPower(
       tickToResults,
       windowStart,
@@ -370,7 +370,7 @@ protected trait FixedFeedInAgentFundamentals
   override protected def buildResult(
       uuid: UUID,
       dateTime: ZonedDateTime,
-      result: ApparentPower,
+      result: ComplexPower,
   ): SystemParticipantResult =
     new FixedFeedInResult(
       dateTime,

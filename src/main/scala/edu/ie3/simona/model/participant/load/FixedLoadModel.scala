@@ -17,8 +17,8 @@ import edu.ie3.simona.model.participant.load.LoadReference.{
 }
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants.Power
-import squants.energy.Kilowatts
 import squants.time.Days
 
 import java.util.UUID
@@ -28,7 +28,7 @@ import java.util.UUID
   * @param uuid
   *   unique identifier
   * @param id
-  *   human readable id
+  *   human-readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
   * @param qControl
@@ -45,7 +45,7 @@ final case class FixedLoadModel(
     id: String,
     operationInterval: OperationInterval,
     qControl: QControl,
-    sRated: Power,
+    sRated: ApparentPower,
     cosPhiRated: Double,
     reference: LoadReference,
 ) extends LoadModel[FixedLoadRelevantData.type](
@@ -95,9 +95,9 @@ object FixedLoadModel {
       scaledInput.getId,
       operationInterval,
       QControl(scaledInput.getqCharacteristics()),
-      Kilowatts(
+      Kilovoltamperes(
         scaledInput.getsRated
-          .to(PowerSystemUnits.KILOWATT)
+          .to(PowerSystemUnits.KILOVOLTAMPERE)
           .getValue
           .doubleValue
       ),

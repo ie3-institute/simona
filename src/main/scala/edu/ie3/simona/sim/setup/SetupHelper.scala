@@ -20,6 +20,7 @@ import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.result.ResultSinkType
+import edu.ie3.simona.logging.logback.LogbackConfiguration
 import edu.ie3.simona.model.grid.RefSystem
 import edu.ie3.simona.util.ConfigUtil.{GridOutputConfigUtil, OutputConfigUtil}
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
@@ -37,7 +38,7 @@ trait SetupHelper extends LazyLogging {
 
   /** Build the [[GridAgentInitData]]. This also includes the determination of a
     * mapping from [[SubGridGate]] to [[ActorRef]] of the representing
-    * [[edu.ie3.simona.agent.grid.GridAgent]] as well as the look up of the
+    * [[edu.ie3.simona.agent.grid.GridAgent]] as well as the look-up of the
     * [[RefSystem]] to use being defined in the config.
     *
     * @param subGridContainer
@@ -46,7 +47,7 @@ trait SetupHelper extends LazyLogging {
     *   Mapping from sub grid number to [[edu.ie3.simona.agent.grid.GridAgent]]
     *   's [[ActorRef]]
     * @param gridGates
-    *   [[Set]] of all [[SubGridGate]] s connecting this sub grid with it's
+    *   [[Set]] of all [[SubGridGate]] s connecting this sub grid with its
     *   ancestors and children
     * @param configRefSystems
     *   Collection of reference systems defined in config
@@ -143,7 +144,7 @@ trait SetupHelper extends LazyLogging {
     * @return
     *   The actor reference of the sub grid to look for
     */
-  def getActorRef(
+  private def getActorRef(
       subGridToActorRefMap: Map[Int, ActorRef[GridAgent.Request]],
       currentSubGrid: Int,
       queriedSubGrid: Int,
@@ -167,7 +168,7 @@ trait SetupHelper extends LazyLogging {
     * @return
     *   The reference system to use
     */
-  def getRefSystem(
+  private def getRefSystem(
       configRefSystems: ConfigRefSystems,
       subGridContainer: SubGridContainer,
   ): RefSystem = {
@@ -202,17 +203,13 @@ trait SetupHelper extends LazyLogging {
   /** Build the result file hierarchy based on the provided configuration file.
     * The provided type safe config must be able to be parsed as
     * [[SimonaConfig]], otherwise an exception is thrown
+    *
     * @param config
     *   the configuration file
-    * @param createDirs
-    *   if directories of the result file hierarchy should be created or not
     * @return
     *   the resulting result file hierarchy
     */
-  def buildResultFileHierarchy(
-      config: TypesafeConfig,
-      createDirs: Boolean = true,
-  ): ResultFileHierarchy = {
+  def buildResultFileHierarchy(config: TypesafeConfig): ResultFileHierarchy = {
 
     val simonaConfig = SimonaConfig(config)
 
@@ -220,7 +217,7 @@ trait SetupHelper extends LazyLogging {
     val modelsToWrite =
       SetupHelper.allResultEntitiesToWrite(simonaConfig.simona.output)
 
-    val resultFileHierarchy = ResultFileHierarchy(
+    ResultFileHierarchy(
       simonaConfig.simona.output.base.dir,
       simonaConfig.simona.simulationName,
       ResultEntityPathConfig(
@@ -230,15 +227,12 @@ trait SetupHelper extends LazyLogging {
           simonaConfig.simona.simulationName,
         ),
       ),
+      configureLogger =
+        LogbackConfiguration.default(simonaConfig.simona.output.log.level),
+      config = Some(config),
       addTimeStampToOutputDir =
         simonaConfig.simona.output.base.addTimestampToOutputDir,
-      createDirs = createDirs,
     )
-
-    // copy config data to output directory
-    ResultFileHierarchy.prepareDirectories(config, resultFileHierarchy)
-
-    resultFileHierarchy
   }
 }
 
@@ -252,7 +246,7 @@ object SetupHelper {
     * @return
     *   Set of [[ResultEntity]] classes
     */
-  def allResultEntitiesToWrite(
+  private def allResultEntitiesToWrite(
       outputConfig: SimonaConfig.Simona.Output
   ): Set[Class[_ <: ResultEntity]] =
     GridOutputConfigUtil(
