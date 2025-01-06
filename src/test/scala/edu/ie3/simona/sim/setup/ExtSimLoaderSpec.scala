@@ -102,7 +102,7 @@ class ExtSimLoaderSpec extends UnitSpec {
       }
     }
 
-    "load a proper jar correctly" ignore {
+    "load a proper jar correctly" in {
       val jar = getResource(workingJar)
       val jars = Iterable(jar)
       val extLinks = jars.flatMap(ExtSimLoader.loadExtLink)
@@ -113,7 +113,7 @@ class ExtSimLoaderSpec extends UnitSpec {
       extLinks.headOption.value shouldBe an[ExtLinkInterface]
     }
 
-    "load multiple proper jars correctly" ignore {
+    "load multiple proper jars correctly" in {
       val jarOne = getResource(workingJar)
       val jarTwo = getResource(workingJar2)
       val jars = Iterable(jarOne, jarTwo)
@@ -127,7 +127,7 @@ class ExtSimLoaderSpec extends UnitSpec {
       }
     }
 
-    "load a jar with multiple ExtLinks" ignore {
+    "load a jar with multiple ExtLinks" in {
       val jarOne = getResource(twoImplementationJar)
       val jars = Iterable(jarOne)
       val extLinks = jars.flatMap(ExtSimLoader.loadExtLink)
