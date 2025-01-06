@@ -54,4 +54,175 @@ trait PvInputTestData
     Quantities.getQuantity(10, StandardUnits.S_RATED),
     0.95,
   )
+
+  protected val pvSouth1 = new PvInput(
+    UUID.fromString("7ac5bb15-36ee-42b0-902b-9cd520e241b3"),
+    "pv_south_1",
+    new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
+    OperationTime.notLimited,
+    nodeInputPvModel3,
+    CosPhiFixed.CONSTANT_CHARACTERISTIC,
+    null,
+    0.9,
+    Quantities.getQuantity(16.09490984119475, StandardUnits.AZIMUTH),
+    Quantities.getQuantity(91.23978812713176, StandardUnits.EFFICIENCY),
+    Quantities
+      .getQuantity(51.75144341774285, StandardUnits.SOLAR_ELEVATION_ANGLE),
+    100,
+    0.95,
+    false,
+    Quantities.getQuantity(100, StandardUnits.S_RATED),
+    0.95,
+  )
+
+  protected val pvSouth2 = new PvInput(
+    UUID.fromString("939d254a-98b9-43d9-939d-dac9d91e7d73"),
+    "pv_south_2",
+    new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
+    OperationTime.notLimited(),
+    nodeInputPvModel2,
+    CosPhiFixed.CONSTANT_CHARACTERISTIC,
+    null,
+    0.9,
+    Quantities.getQuantity(-11.883286549709737, StandardUnits.AZIMUTH),
+    Quantities.getQuantity(93.55452200165019, StandardUnits.EFFICIENCY),
+    Quantities
+      .getQuantity(50.710754711180925, StandardUnits.SOLAR_ELEVATION_ANGLE),
+    100,
+    0.95,
+    false,
+    Quantities.getQuantity(100, StandardUnits.S_RATED),
+    0.95,
+  )
+
+  protected val pvSouth3 = new PvInput(
+    UUID.fromString("e3b34366-9a4b-4e8f-b46d-fccdd3c318b3"),
+    "pv_south_3",
+    new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
+    OperationTime.notLimited(),
+    nodeInputPvModel4,
+    CosPhiFixed.CONSTANT_CHARACTERISTIC,
+    null,
+    0.9,
+    Quantities.getQuantity(-3.6445723846554756, StandardUnits.AZIMUTH),
+    Quantities.getQuantity(90.07983175106347, StandardUnits.EFFICIENCY),
+    Quantities
+      .getQuantity(50.727743320167065, StandardUnits.SOLAR_ELEVATION_ANGLE),
+    100,
+    0.95,
+    false,
+    Quantities.getQuantity(100, StandardUnits.S_RATED),
+    0.95,
+  )
+
+  protected val pvSouth4 = new PvInput(
+    UUID.fromString("403a3d17-0b71-4631-bcc4-71416c6376ed"),
+    "pv_south_4",
+    new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
+    OperationTime.notLimited(),
+    nodeInputPvModel6,
+    CosPhiFixed.CONSTANT_CHARACTERISTIC,
+    null,
+    0.9,
+    Quantities.getQuantity(-16.249216510914266, StandardUnits.AZIMUTH),
+    Quantities.getQuantity(90.57719040894882, StandardUnits.EFFICIENCY),
+    Quantities
+      .getQuantity(53.588559702038765, StandardUnits.SOLAR_ELEVATION_ANGLE),
+    100,
+    0.95,
+    false,
+    Quantities.getQuantity(100, StandardUnits.S_RATED),
+    0.95,
+  )
+
+  protected val pvEast1 = new PvInput(
+    UUID.fromString("82925101-834d-4a43-b0b1-02d2156e8cd9"),
+    "pv_east_1",
+    new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
+    OperationTime.notLimited(),
+    nodeInputPvModel5,
+    CosPhiFixed.CONSTANT_CHARACTERISTIC,
+    null,
+    0.9,
+    Quantities.getQuantity(-32.24606798030436, StandardUnits.AZIMUTH),
+    Quantities.getQuantity(90.48722543753683, StandardUnits.EFFICIENCY),
+    Quantities
+      .getQuantity(48.813238479197025, StandardUnits.SOLAR_ELEVATION_ANGLE),
+    100,
+    0.95,
+    false,
+    Quantities.getQuantity(100, StandardUnits.S_RATED),
+    0.95,
+  )
+
+  protected val pvEast2 = new PvInput(
+    UUID.fromString("f9122147-bad0-48ed-9e14-2404fcf07d3c"),
+    "pv_east_2",
+    new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
+    OperationTime.notLimited(),
+    nodeInputPvModel1,
+    CosPhiFixed.CONSTANT_CHARACTERISTIC,
+    null,
+    0.9,
+    Quantities.getQuantity(-54.537164978682995, StandardUnits.AZIMUTH),
+    Quantities.getQuantity(94.0201214211993, StandardUnits.EFFICIENCY),
+    Quantities
+      .getQuantity(43.081511203199625, StandardUnits.SOLAR_ELEVATION_ANGLE),
+    100,
+    0.95,
+    false,
+    Quantities.getQuantity(100, StandardUnits.S_RATED),
+    0.95,
+  )
+
+  protected val pvWest1 = new PvInput(
+    UUID.fromString("da7bd11d-84d5-4db0-9f3f-2e5f1e7c77de"),
+    "pv_west_1",
+    new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
+    OperationTime.notLimited(),
+    nodeInputPvModel2,
+    CosPhiFixed.CONSTANT_CHARACTERISTIC,
+    null,
+    0.9,
+    Quantities.getQuantity(64.42003592383116, StandardUnits.AZIMUTH),
+    Quantities.getQuantity(90.72157185757533, StandardUnits.EFFICIENCY),
+    Quantities
+      .getQuantity(54.5845761615783, StandardUnits.SOLAR_ELEVATION_ANGLE),
+    100,
+    0.95,
+    false,
+    Quantities.getQuantity(100, StandardUnits.S_RATED),
+    0.95,
+  )
+
+  protected val pvWest2 = new PvInput(
+    UUID.fromString("6d7542a3-4921-437d-94cb-37c1a7e79f9f"),
+    "pv_west_2",
+    new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
+    OperationTime.notLimited(),
+    nodeInputPvModel4,
+    CosPhiFixed.CONSTANT_CHARACTERISTIC,
+    null,
+    0.9,
+    Quantities.getQuantity(41.11365003045648, StandardUnits.AZIMUTH),
+    Quantities.getQuantity(90.21663937252015, StandardUnits.EFFICIENCY),
+    Quantities
+      .getQuantity(52.37527455203235, StandardUnits.SOLAR_ELEVATION_ANGLE),
+    100,
+    0.95,
+    false,
+    Quantities.getQuantity(100, StandardUnits.S_RATED),
+    0.95,
+  )
+
+  protected val pvInputsTest: Set[PvInput] = Set(
+    pvSouth1,
+    pvSouth2,
+    pvSouth3,
+    pvSouth4,
+    pvEast1,
+    pvEast2,
+    pvWest1,
+    pvWest2,
+  )
 }

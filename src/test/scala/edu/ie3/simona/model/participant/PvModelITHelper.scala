@@ -6,148 +6,110 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
-import edu.ie3.datamodel.models.input.system.PvInput
-import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
-import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
-import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
+import edu.ie3.simona.test.common.input.PvInputTestData
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.apache.commons.csv.{CSVFormat, CSVRecord}
 import squants.energy.Megawatts
 import squants.motion.MetersPerSecond
-import squants.space.Degrees
-import squants.{Angle, Kelvin, Power}
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.quantity.Quantities.getQuantity
+import squants.{Kelvin, Power}
 
-import java.io.{BufferedReader, File, FileInputStream, InputStreamReader, Reader}
-import java.nio.file.{Files, Path}
+import java.io.{BufferedReader, File, FileInputStream, InputStreamReader}
+import java.nio.charset.StandardCharsets
 import java.time.ZonedDateTime
-import java.util.UUID
 import java.util.zip.GZIPInputStream
-import scala.collection.convert.ImplicitConversions.{`iterator asScala`, `map AsJavaMap`}
-import scala.collection.immutable.HashMap
-import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.collection.mutable
+import scala.jdk.CollectionConverters.IterableHasAsScala
 
-trait PvModelITHelper {
+trait PvModelITHelper extends PvInputTestData {
 
-  private val CSV_FORMAT = CSVFormat.DEFAULT.builder().setHeader().build()
-  implicit val angleTolerance: Angle = Degrees(1e-5)
+  private val CSV_FORMAT: CSVFormat =
+    CSVFormat.DEFAULT.builder().setHeader().build()
 
-  def getCsvRecords(fileName: String): java.util.Iterator[CSVRecord] = {
-    val resultsInputData = new File(this.getClass.getResource(fileName).getFile)
+  def getCsvRecords(fileName: String): Iterable[CSVRecord] = {
+    val resourcePath = getClass.getResource(fileName).getPath
+    val resultsInputData = new File(resourcePath)
     val fileStream = new FileInputStream(resultsInputData)
     val gzipStream = new GZIPInputStream(fileStream)
-    val decoder = new InputStreamReader(gzipStream, "UTF-8")
+    val decoder = new InputStreamReader(gzipStream, StandardCharsets.UTF_8)
     val br = new BufferedReader(decoder)
-    CSVFormat.DEFAULT.parse(br).iterator()
+
+    CSV_FORMAT.parse(br).asScala
   }
 
-  def parsePvInputCSV(line: String): Option[PvInput] = {
-    val nodeInput = new NodeInput(
-      UUID.fromString("85f8b517-8a2d-4c20-86c6-3ff3c5823e6d"),
-      "NodeInputModel for PvModel Test",
-      OperatorInput.NO_OPERATOR_ASSIGNED,
-      OperationTime.notLimited(),
-      getQuantity(1, PU),
-      false,
-      NodeInput.DEFAULT_GEO_POSITION,
-      GermanVoltageLevelUtils.MV_20KV,
-      11,
-    )
-
-    val fields = line.split(";")
-    if (fields.length >= 15) {
-      Some(new PvInput(
-        UUID.fromString(fields(0)),
-        fields(6),
-        new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
-        OperationTime.notLimited(),
-        nodeInput,
-        CosPhiFixed.CONSTANT_CHARACTERISTIC,
-        null,
-        fields(8).toInt,
-        Quantities.getQuantity(fields(2).toDouble, StandardUnits.AZIMUTH),
-        Quantities.getQuantity(fields(4).toDouble, StandardUnits.EFFICIENCY),
-        Quantities.getQuantity(
-          fields(5).toDouble,
-          StandardUnits.SOLAR_ELEVATION_ANGLE,
-        ),
-        fields(12).toDouble,
-        fields(7).toDouble,
-        fields(9).toBoolean,
-        Quantities.getQuantity(fields(12).toDouble, StandardUnits.S_RATED),
-        fields(3).toDouble,
-      ))
-    } else throw new RuntimeException("This should...")
-  }
-
-  def getCreatePvModels: Map[String, PvModel] = {
-
-    val csvPath = Path.of(getClass.getResource("_pv.it/grid_data").toURI)
-    val lines = Files.readAllLines(csvPath).asScala
-    val pvPlants: Set[PvInput] = lines.drop(1).flatMap(parsePvInputCSV).toSet
-    val simulationStartDate =
-      TimeUtil.withDefaults.toZonedDateTime("2011-01-01T00:00:00Z")
-    val simulationEndDate =
-      TimeUtil.withDefaults.toZonedDateTime("2012-01-01T00:00:00Z")
-
-    val pvModels : HashMap[String, PvModel] = HashMap.empty
-
-    pvPlants.foreach { inputModel =>
-      val model = PvModel(
+  def createPvModels(): Map[String, PvModel] = {
+    pvInputsTest.map { inputModel =>
+      inputModel.getId -> PvModel(
         inputModel,
-        1d,
-        simulationStartDate,
-        simulationEndDate,
+        1.0,
+        defaultSimulationStart,
+        defaultSimulationEnd,
       )
-      pvModels.put(inputModel.getId, model)
-    }
-    pvModels
+    }.toMap
   }
 
+  def getWeatherData
+      : Map[ZonedDateTime, Map[String, WeatherMessage.WeatherData]] = {
+    val fileName = "_pv/it/weather.tar.gz"
+    val csvRecords: Iterable[CSVRecord] = getCsvRecords(fileName)
 
-  def getWeatherData : Map[ZonedDateTime, Map[String, WeatherMessage.WeatherData]] = {
-    val filePath = Path.of("resources/_pv/it/weather.tar.gz")
-    val csvRecords = getCsvRecords(filePath.toString)
+    val weatherMap = mutable
+      .Map[ZonedDateTime, mutable.Map[String, WeatherMessage.WeatherData]]()
 
-    csvRecords.foldLeft(
-      Map.empty[ZonedDateTime, Map[String, WeatherMessage.WeatherData]]
-    ) { (weatherMap, row) =>
+    for (row <- csvRecords) {
       val time = TimeUtil.withDefaults.toZonedDateTime(row.get(0))
       val modelId = row.get(1)
+
+      val temp = 0.0
+      val windVel = 0.0
+
       val weather = WeatherMessage.WeatherData(
         WattsPerSquareMeter(row.get(22).replace("Wh/m²", "").toDouble),
         WattsPerSquareMeter(row.get(21).replace("Wh/m²", "").toDouble),
-        Kelvin(0),
-        MetersPerSecond(0),
+        Kelvin(temp),
+        MetersPerSecond(windVel),
       )
-      val modelToWeatherMap = weatherMap.getOrElse(
+
+      val modelToWeatherMap = weatherMap.getOrElseUpdate(
         time,
-        Map.empty[String, WeatherMessage.WeatherData],
+        mutable.Map[String, WeatherMessage.WeatherData](),
       )
-      weatherMap + (time -> (modelToWeatherMap + (modelId -> weather)))
+      modelToWeatherMap(modelId) = weather
     }
+
+    weatherMap.view.mapValues(_.toMap).toMap
   }
 
   def getResultsData: Map[ZonedDateTime, Map[String, Power]] = {
-    val filePath = Path.of("resources/_pv/it/results2.tar.gz")
-    val csvRecords = getCsvRecords(filePath.toString)
+    val fileName = "_pv/it/results2.tar.gz"
+    val csvRecords: Iterable[CSVRecord] = getCsvRecords(fileName)
 
-    csvRecords.foldLeft(Map.empty[ZonedDateTime, Map[String, Power]]) {
-      (resultsMap, row) =>
+    val headers = Array(
+      "Datetime",
+      "pv_east_1",
+      "pv_east_2",
+      "pv_south_1",
+      "pv_south_2",
+      "pv_south_3",
+      "pv_south_4",
+      "pv_west_1",
+      "pv_west_2",
+    )
+
+    val resultsMap = csvRecords
+      .filterNot(row => row.get(0).startsWith("\u0000"))
+      .map { row =>
         val time = TimeUtil.withDefaults.toZonedDateTime(row.get(0))
-
-        val powerData = (1 until row.size()).map { i =>
-          val modelId = s"pv_${i}"
-          val power = Megawatts(row.get(i).toDouble)
-          modelId -> power
+        val modelToPowerMap = headers.tail.zipWithIndex.collect {
+          case (modelId, i) =>
+            val rawValue = row.get(i + 1)
+            modelId -> Megawatts(rawValue.toDouble)
         }.toMap
+        time -> modelToPowerMap
+      }
+      .toMap
 
-        resultsMap + (time -> powerData)
-    }
+    resultsMap
   }
 }
