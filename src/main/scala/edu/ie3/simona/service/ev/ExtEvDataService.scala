@@ -232,27 +232,29 @@ private final class ExtEvDataService
 
     implicit val log: Logger = ctx.log
 
-    serviceStateData.extEvMessage.getOrElse(
-      throw ServiceException(
-        "ExtEvDataService was triggered without ExtEvMessage available"
-      )
-    ) match {
-      case _: RequestCurrentPrices =>
-        requestCurrentPrices()
-      case _: RequestEvcsFreeLots =>
-        requestFreeLots(tick)
-      case departingEvsRequest: RequestDepartingEvs =>
-        requestDepartingEvs(tick, asScala(departingEvsRequest.departures))
-      case arrivingEvsProvision: ProvideArrivingEvs =>
-        handleArrivingEvs(
-          tick,
-          asScala(arrivingEvsProvision.arrivals),
-          arrivingEvsProvision.maybeNextTick.toScala.map(Long2long),
-        )(
-          serviceStateData,
-          ctx,
+    serviceStateData.extEvMessage
+      .map {
+        case _: RequestCurrentPrices =>
+          requestCurrentPrices()
+        case _: RequestEvcsFreeLots =>
+          requestFreeLots(tick)
+        case departingEvsRequest: RequestDepartingEvs =>
+          requestDepartingEvs(tick, asScala(departingEvsRequest.departures))
+        case arrivingEvsProvision: ProvideArrivingEvs =>
+          handleArrivingEvs(
+            tick,
+            asScala(arrivingEvsProvision.arrivals),
+            arrivingEvsProvision.maybeNextTick.toScala.map(Long2long),
+          )(
+            serviceStateData,
+            ctx,
+          )
+      }
+      .getOrElse(
+        throw ServiceException(
+          "ExtEvDataService was triggered without ExtEvMessage available"
         )
-    }
+      )
   }
 
   private def requestCurrentPrices()(implicit

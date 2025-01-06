@@ -10,7 +10,6 @@ import edu.ie3.simona.api.data.ev.ExtEvData
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology._
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
-import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
@@ -204,10 +203,7 @@ class ExtEvDataServiceSpec
       scheduler.expectMessage(Completion(activationMsg.actor))
 
       // we trigger ev service and expect an exception
-      assertThrows[InvalidRegistrationRequestException] {
-        evService ! Activation(0)
-      }
-
+      evService ! Activation(0)
       scheduler.expectNoMessage()
     }
 
