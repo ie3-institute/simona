@@ -36,16 +36,18 @@ jobs:
       - name: Check Branch
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
-            branchName="${{ github.head_ref }}"
+            branch_name="${{ github.head_ref }}"
           else
-            branchName="${{ github.ref_name }}"
+            branch_name="${{ github.ref_name }}"
           fi
 
-          if [[ "$branchName" == refs/heads/* ]]; then
-            branchName="${branchName#refs/heads/}"
+          if [[ "$branch_name" == refs/heads/* ]]; then
+            branch_name="${branch_name#refs/heads/}"
           fi
-
-          ./gradlew checkBranchName -PbranchName="$branchName"
+          
+          echo "branch_name=$branch_name" >> $GITHUB_ENV
+          
+          ./gradlew checkBranchName -PbranchName="$branch_name"
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -67,23 +69,24 @@ jobs:
           ./gradlew sonar \
           -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
           -Dsonar.host.url=${{ vars.SONAR_HOST_URL }} \
-          -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+          -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
+          -Dsonar.qualitygate.wait=true
 
-          SONAR_STATUS_URL="${{ vars.SONAR_HOST_URL }}/api/qualitygates/project_status?projectKey=${{ vars.SONAR_PROJECT_KEY }}"
-          QUALITY_GATE_STATUS=$(curl -s -u "${{ secrets.SONAR_TOKEN }}:" "$SONAR_STATUS_URL" | jq -r '.projectStatus.status')
-            
-          echo "Quality Gate Status: $QUALITY_GATE_STATUS"
-          if [ "$QUALITY_GATE_STATUS" != "OK" ]; then
-            echo "Quality Gate failed!"
-            exit 1
-          fi
-
+      #Deployment
       - name: Deploy
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+        env:
+          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.MAVENCENTRAL_SIGNINGKEY }}
+          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.MAVENCENTRAL_SIGNINGPASS }}
+          ORG_GRADLE_PROJECT_user: ${{ secrets.MAVENCENTRAL_USER }}
+          ORG_GRADLE_PROJECT_password: ${{ secrets.MAVENCENTRAL_PASS }}
         run: |
-          ./gradlew publish\
-            -Puser=${{ secrets.MAVENCENTRAL_USER }} \
-            -Ppassword=${{ secrets.MAVENCENTRAL_PASS }} \
-            -Psigning.keyId=${{ secrets.MAVENCENTRAL_SIGNINGKEYID }} \
-            -Psigning.password=${{ secrets.MAVENCENTRAL_SIGNINGPASS }} \
-            -Psigning.secretKeyRingFile=${{ secrets.MAVENCENTRAL_SIGNINGKEY }}
+          if [ "${GITHUB_REF}" == "refs/heads/main" ]; then
+            currentVersion=$(./gradlew -q currentVersion)
+          else
+            currentVersion=$(./gradlew -q devVersion)
+          fi
+          
+          echo "currentVersion=$currentVersion"
+
+          ./gradlew publish -PdeployVersion=$currentVersion
