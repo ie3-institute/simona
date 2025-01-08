@@ -6,11 +6,13 @@
 
 package edu.ie3.simona.sim.setup
 
+import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import edu.ie3.simona.service.ev.ExtEvDataService
+import org.apache.pekko.actor.typed.ActorRef
 
 final case class ExtSimSetupData(
-    extSimAdapters: Iterable[ClassicRef],
+    extSimAdapters: Iterable[ActorRef[ControlResponseMessageFromExt]],
     extDataServices: Map[Class[_], ClassicRef],
 ) {
 

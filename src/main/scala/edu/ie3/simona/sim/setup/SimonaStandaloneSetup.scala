@@ -16,7 +16,6 @@ import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentMessages.CreateGridAgent
 import edu.ie3.simona.api.ExtSimAdapter
-import edu.ie3.simona.api.data.ExtDataConnection
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.config.{ArgsParser, RefSystemParser, SimonaConfig}
@@ -206,11 +205,18 @@ class SimonaStandaloneSetup(
       val (extSimAdapters, extDataServices) =
         extLinks.zipWithIndex.map { case (extLink, index) =>
           // external simulation always needs at least an ExtSimAdapter
-          val extSimAdapter = context.toClassic.simonaActorOf(
-            ExtSimAdapter.props(scheduler.toClassic),
+          val extSimAdapter = context.spawn(
+            ExtSimAdapter(scheduler),
             s"$index",
           )
-          val extSimAdapterData = new ExtSimAdapterData(extSimAdapter, args)
+
+          val extSimAdapterMsgAdapter = context.spawn(
+            ExtSimAdapter.adapter(extSimAdapter),
+            s"$index-message-adapter",
+          )
+
+          val extSimAdapterData =
+            new ExtSimAdapterData(extSimAdapterMsgAdapter.toClassic, args)
 
           // send init data right away, init activation is scheduled
           extSimAdapter ! ExtSimAdapter.Create(
@@ -230,7 +236,10 @@ class SimonaStandaloneSetup(
                   ExtEvDataService.props(scheduler.toClassic),
                   s"$index-$dIndex",
                 )
-                evConnection.setActorRefs(extEvDataService, extSimAdapter)
+                evConnection.setActorRefs(
+                  extEvDataService,
+                  extSimAdapterMsgAdapter.toClassic,
+                )
 
                 extEvDataService ! SimonaService.Create(
                   InitExtEvData(evConnection),

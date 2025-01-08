@@ -8,6 +8,7 @@ package edu.ie3.simona.sim
 
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.api.ExtSimAdapter
+import edu.ie3.simona.api.simulation.ontology.ControlResponseMessageFromExt
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{DelayedStopHelper, RuntimeEventListener}
 import edu.ie3.simona.main.RunSimona.SimonaEnded
@@ -17,7 +18,6 @@ import edu.ie3.util.scala.Scope
 import org.apache.pekko.actor.typed.scaladsl.adapter._
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop, Terminated}
-import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 /** Main entrance point to a simona simulation as the guardian actor. This actor
   * starts the initialization of all actors and waits for the simulation to end.
@@ -118,7 +118,7 @@ object SimonaSim {
         /* watch all actors */
         resultEventListeners.foreach(ctx.watch)
         ctx.watch(runtimeEventListener)
-        extSimulationData.extSimAdapters.map(_.toTyped).foreach(ctx.watch)
+        extSimulationData.extSimAdapters.foreach(ctx.watch)
         otherActors.foreach(ctx.watch)
 
         // Start simulation
@@ -267,7 +267,7 @@ object SimonaSim {
     */
   private final case class ActorData(
       starter: ActorRef[SimonaEnded],
-      extSimAdapters: Iterable[ClassicRef],
+      extSimAdapters: Iterable[ActorRef[ControlResponseMessageFromExt]],
       runtimeEventListener: ActorRef[RuntimeEventListener.Request],
       delayedStoppingActors: Seq[ActorRef[DelayedStopHelper.StoppingMsg]],
       otherActors: Iterable[ActorRef[_]],

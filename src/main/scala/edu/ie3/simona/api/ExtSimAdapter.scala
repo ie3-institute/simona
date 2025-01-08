@@ -6,36 +6,32 @@
 
 package edu.ie3.simona.api
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
-import edu.ie3.simona.api.ExtSimAdapter.{Create, ExtSimAdapterStateData, Stop}
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.api.simulation.ontology.{
   ActivationMessage,
+  ControlResponseMessageFromExt,
   TerminationCompleted,
   TerminationMessage,
   CompletionMessage => ExtCompletionMessage,
 }
-import edu.ie3.simona.logging.SimonaActorLogging
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
-import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 import scala.jdk.OptionConverters._
 
 object ExtSimAdapter {
 
-  def props(scheduler: ActorRef): Props =
-    Props(
-      new ExtSimAdapter(scheduler)
-    )
+  sealed trait AdapterMessage extends ControlResponseMessageFromExt
 
   /** The [[ExtSimAdapterData]] can only be constructed once the ExtSimAdapter
     * actor is created. Thus, we need an extra initialization message.
@@ -44,80 +40,109 @@ object ExtSimAdapter {
     *   The [[ExtSimAdapterData]] of the corresponding external simulation
     */
   final case class Create(extSimData: ExtSimAdapterData, unlockKey: ScheduleKey)
+      extends AdapterMessage
 
-  final case class Stop(simulationSuccessful: Boolean)
+  final case class Stop(simulationSuccessful: Boolean) extends AdapterMessage
 
   final case class ExtSimAdapterStateData(
       extSimData: ExtSimAdapterData,
       currentTick: Option[Long] = None,
-  )
-}
+  ) extends AdapterMessage
 
-final case class ExtSimAdapter(scheduler: ActorRef)
-    extends Actor
-    with SimonaActorLogging {
-  override def receive: Receive = { case Create(extSimAdapterData, unlockKey) =>
-    // triggering first time at init tick
-    scheduler ! ScheduleActivation(
-      self.toTyped,
-      INIT_SIM_TICK,
-      Some(unlockKey),
-    )
-    context become receiveIdle(
-      ExtSimAdapterStateData(extSimAdapterData)
-    )
+  final case class WrappedActivation(activation: Activation)
+      extends AdapterMessage
+  final case class WrappedScheduleDataServiceMessage(
+      msg: ScheduleDataServiceMessage
+  ) extends AdapterMessage
+
+  def adapter(
+      ref: ActorRef[ControlResponseMessageFromExt]
+  ): Behavior[ScheduleDataServiceMessage] = Behaviors.receiveMessagePartial {
+    extMsg =>
+      ref ! WrappedScheduleDataServiceMessage(extMsg)
+      Behaviors.same
   }
 
-  private def receiveIdle(implicit
-      stateData: ExtSimAdapterStateData
-  ): Receive = {
-    case Activation(tick) =>
+  def apply(
+      scheduler: ActorRef[SchedulerMessage]
+  ): Behavior[ControlResponseMessageFromExt] = Behaviors.setup { ctx =>
+    val activationAdapter = ctx.messageAdapter(WrappedActivation)
+    initialize(scheduler, activationAdapter)
+  }
+
+  private def initialize(implicit
+      scheduler: ActorRef[SchedulerMessage],
+      activationAdapter: ActorRef[Activation],
+  ): Behavior[ControlResponseMessageFromExt] = Behaviors.receiveMessage {
+    case Create(extSimData, unlockKey) =>
+      // triggering first time at init tick
+      scheduler ! ScheduleActivation(
+        activationAdapter,
+        INIT_SIM_TICK,
+        Some(unlockKey),
+      )
+
+      receiveIdle(ExtSimAdapterStateData(extSimData))
+  }
+
+  private[api] def receiveIdle(stateData: ExtSimAdapterStateData)(implicit
+      scheduler: ActorRef[SchedulerMessage],
+      activationAdapter: ActorRef[Activation],
+  ): Behavior[ControlResponseMessageFromExt] = Behaviors.receive {
+    case (ctx, WrappedActivation(Activation(tick))) =>
       stateData.extSimData.queueExtMsg(
         new ActivationMessage(tick)
       )
-      log.debug(
+      ctx.log.debug(
         "Tick {} has been activated in external simulation",
         tick,
       )
 
-      context become receiveIdle(
-        stateData.copy(currentTick = Some(tick))
-      )
+      receiveIdle(stateData.copy(currentTick = Some(tick)))
 
-    case extCompl: ExtCompletionMessage =>
+    case (ctx, extCompl: ExtCompletionMessage) =>
       // when multiple triggers have been sent, a completion message
       // always refers to the oldest tick
 
       val newTick = extCompl.nextActivation().toScala.map(Long2long)
 
-      scheduler ! Completion(self.toTyped, newTick)
-      log.debug(
+      scheduler ! Completion(activationAdapter, newTick)
+      ctx.log.debug(
         "Tick {} has been completed in external simulation",
         stateData.currentTick,
       )
 
-      context become receiveIdle(stateData.copy(currentTick = None))
+      receiveIdle(stateData.copy(currentTick = None))
 
-    case scheduleDataService: ScheduleDataServiceMessage =>
+    case (
+          ctx,
+          WrappedScheduleDataServiceMessage(
+            scheduleDataService: ScheduleDataServiceMessage
+          ),
+        ) =>
       val tick = stateData.currentTick.getOrElse(
         throw new RuntimeException("No tick has been triggered")
       )
-      val key = ScheduleLock.singleKey(context, scheduler.toTyped, tick)
+      val key = ScheduleLock.singleKey(ctx, scheduler, tick)
 
       scheduleDataService.getDataService ! ScheduleServiceActivation(
         tick,
         key,
       )
 
-    case Stop(simulationSuccessful) =>
+      Behaviors.same
+
+    case (_, Stop(simulationSuccessful)) =>
       // let external sim know that we have terminated
       stateData.extSimData.queueExtMsg(
         new TerminationMessage(simulationSuccessful)
       )
 
-    case _: TerminationCompleted =>
+      Behaviors.same
+
+    case (_, _: TerminationCompleted) =>
       // external simulation has terminated as well, we can exit
-      self ! PoisonPill
+      Behaviors.stopped
   }
 
 }
