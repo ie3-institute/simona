@@ -26,7 +26,10 @@ import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.grid.GridProvider
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.Create
-import edu.ie3.simona.ontology.messages.services.{PrimaryDataMessage, WeatherMessage}
+import edu.ie3.simona.ontology.messages.services.{
+  PrimaryDataMessage,
+  WeatherMessage,
+}
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.scheduler.{ScheduleLock, Scheduler, TimeAdvancer}
@@ -44,7 +47,11 @@ import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.typed.scaladsl.adapter.{ClassicActorRefOps, TypedActorContextOps, TypedActorRefOps}
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
+  ClassicActorRefOps,
+  TypedActorContextOps,
+  TypedActorRefOps,
+}
 
 import java.nio.file.Path
 import java.util.UUID
@@ -216,15 +223,17 @@ class SimonaStandaloneSetup(
           extLink.setup(extSimAdapterData)
           val extSim = extLink.getExtSimulation
 
-          val extDataInit
-              : Iterable[(Class[_], ActorRef[_])] =
+          val extDataInit: Iterable[(Class[_], ActorRef[_])] =
             extSim.getDataConnections.asScala.zipWithIndex.map {
               case (evConnection: ExtEvDataConnection, dIndex) =>
                 val extEvDataService = context.spawn(
                   ExtEvDataService(scheduler),
                   s"$index-$dIndex",
                 )
-                evConnection.setActorRefs(extEvDataService.toClassic, extSimAdapter)
+                evConnection.setActorRefs(
+                  extEvDataService.toClassic,
+                  extSimAdapter,
+                )
 
                 extEvDataService ! Create(
                   InitExtEvData(evConnection),
