@@ -8,44 +8,30 @@ package edu.ie3.simona.agent.em
 
 import edu.ie3.datamodel.models.input.EmInput
 import edu.ie3.datamodel.models.result.system.{EmResult, FlexOptionsResult}
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
-  ZERO_POWER,
-}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.FlexControlledData
+import edu.ie3.simona.api.data.ontology.DesaggFlexOptionsResult
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.event.ResultEvent.{
-  FlexOptionsResultEvent,
-  ParticipantResultEvent,
-}
+import edu.ie3.simona.event.ResultEvent.{FlexOptionsResultEvent, ParticipantResultEvent}
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.{EmModelShell, EmTools}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
-  IssueFlexControl,
-  _
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ExtEmDataServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.WrappedRegistrationSuccessfulMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{RegistrationSuccessfulMessage, WrappedRegistrationSuccessfulMessage}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.DefaultQuantities._
-import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
-import org.apache.pekko.actor.typed.scaladsl.adapter._
-import squants.Power
-import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
+import java.util.UUID
+import scala.jdk.CollectionConverters._
 
 /** Energy management agent that receives flex options from and issues control
   * messages to connected agents
@@ -356,6 +342,16 @@ object EmAgent {
         // send allFlexOptions to ExtResultDataProvider
         //ctx.log.info(s"EM Agent ${ctx.self} send out the flex options! $allFlexOptions")
         // TODO
+
+        val connectedFlexOptions: Map[String, FlexOptionsResult] =
+          allFlexOptions.map { case (uuid, options) =>
+            flexOptionToFlexOptionsResult(
+              options,
+              flexOptionsCore.activeTick.toDateTime(emData.simulationStartDate),
+              uuid,
+              modelShell
+            ) }.toMap
+
         val (ref, min, max) =
           modelShell.aggregateFlexOptions(allFlexOptions)
 
@@ -369,12 +365,18 @@ object EmAgent {
           max.toMegawatts.asMegaWatt,
         )
 
+        val flexResultWithConnectedResults = new DesaggFlexOptionsResult(
+          flexResult,
+          connectedFlexOptions.asJava
+        )
+
         emData.listener.foreach {
           _ ! FlexOptionsResultEvent(
-            flexResult,
+            flexResultWithConnectedResults,
             flexOptionsCore.activeTick,
           )
         }
+
 
         if (flexOptionsCore.currentSetPower.isDefined) {
           emData.parentData match {
@@ -490,6 +492,15 @@ object EmAgent {
 
         //ctx.log.info(s"[${flexOptionsCore.activeTick}] ${ctx.self}.awaitingFlexOptions.IssuePowerControl received all flex options, now send the aggregated flex options!")
 
+        val connectedFlexOptions: Map[String, FlexOptionsResult] =
+          allFlexOptions.map { case (uuid, options) =>
+            flexOptionToFlexOptionsResult(
+              options,
+              flexOptionsCore.activeTick.toDateTime(emData.simulationStartDate),
+              uuid,
+              modelShell
+          ) }.toMap
+
         val (ref, min, max) =
           modelShell.aggregateFlexOptions(allFlexOptions)
 
@@ -503,9 +514,14 @@ object EmAgent {
           max.toMegawatts.asMegaWatt,
         )
 
+        val flexResultWithConnectedResults = new DesaggFlexOptionsResult(
+          flexResult,
+          connectedFlexOptions.asJava
+        )
+
         emData.listener.foreach {
           _ ! FlexOptionsResultEvent(
-            flexResult,
+            flexResultWithConnectedResults,
             flexOptionsCore.activeTick,
           )
         }
@@ -524,29 +540,6 @@ object EmAgent {
         // always desire to come as close as possible to 0 kW -> maybe overwrite it if we get a set point
 
         //ctx.log.info(s"[${flexOptionsCore.activeTick}] ${ctx.self}.awaitingFlexOptions.IssuePowerControl received all flex options, now send the aggregated flex options!")
-
-        val (ref, min, max) =
-          modelShell.aggregateFlexOptions(allFlexOptions)
-
-        val flexResult = new FlexOptionsResult(
-          flexOptionsCore.activeTick.toDateTime(
-            emData.simulationStartDate
-          ),
-          modelShell.uuid,
-          ref.toMegawatts.asMegaWatt,
-          min.toMegawatts.asMegaWatt,
-          max.toMegawatts.asMegaWatt,
-        )
-
-        /*
-        emData.listener.foreach {
-          _ ! FlexOptionsResultEvent(
-            flexResult,
-            flexOptionsCore.activeTick,
-          )
-        }
-
-         */
 
         val setPower = flexCtrl.setPower
 
@@ -595,6 +588,37 @@ object EmAgent {
           flexOptionsCore,
         )
       }
+  }
+
+  private def flexOptionToFlexOptionsResult(
+                                           flexOptions: ProvideFlexOptions,
+                                           time: ZonedDateTime,
+                                           uuid: UUID,
+                                           modelShell: EmModelShell,
+                                           ): (String, FlexOptionsResult) = {
+    flexOptions match {
+      case flex: ProvideMinMaxFlexOptions =>
+        val assetInput = modelShell.modelToParticipantInput.getOrElse(
+          uuid,
+          throw new CriticalFailureException(
+            s"Asset input for model with UUID $uuid was not found."
+          ),
+        )
+        (
+          assetInput.getClass.getSimpleName,
+          new FlexOptionsResult(
+            time,
+            uuid,
+            flex.ref.toMegawatts.asMegaWatt,
+            flex.min.toMegawatts.asMegaWatt,
+            flex.max.toMegawatts.asMegaWatt,
+          )
+        )
+      case unsupported =>
+        throw new CriticalFailureException(
+          s"Received unsupported flex options $unsupported."
+        )
+    }
   }
 
   /** Behavior of an [[EmAgent]] waiting for a flex control message to be
