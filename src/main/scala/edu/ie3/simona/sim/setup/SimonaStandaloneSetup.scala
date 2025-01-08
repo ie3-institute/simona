@@ -16,9 +16,8 @@ import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentMessages.CreateGridAgent
 import edu.ie3.simona.api.ExtSimAdapter
-import edu.ie3.simona.api.data.ExtData
-import edu.ie3.simona.api.data.ev.{ExtEvData, ExtEvSimulation}
-import edu.ie3.simona.api.data.ontology.DataMessageFromExt
+import edu.ie3.simona.api.data.ExtDataConnection
+import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.config.{ArgsParser, RefSystemParser, SimonaConfig}
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
@@ -26,18 +25,12 @@ import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.grid.GridProvider
 import edu.ie3.simona.ontology.messages.SchedulerMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.{
-  Create,
-  WrappedExternalMessage,
-}
-import edu.ie3.simona.ontology.messages.services.{
-  EvMessage,
-  PrimaryDataMessage,
-  WeatherMessage,
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessageUniversal.Create
+import edu.ie3.simona.ontology.messages.services.{PrimaryDataMessage, WeatherMessage}
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.scheduler.{ScheduleLock, Scheduler, TimeAdvancer}
+import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
@@ -51,11 +44,7 @@ import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.typed.scaladsl.adapter.{
-  ClassicActorRefOps,
-  TypedActorContextOps,
-  TypedActorRefOps,
-}
+import org.apache.pekko.actor.typed.scaladsl.adapter.{ClassicActorRefOps, TypedActorContextOps, TypedActorRefOps}
 
 import java.nio.file.Path
 import java.util.UUID
@@ -224,27 +213,21 @@ class SimonaStandaloneSetup(
           )
 
           // setup data services that belong to this external simulation
-          val (extData, extDataInit): (
-              Iterable[ExtData],
-              Iterable[(Class[_], ActorRef[_])],
-          ) =
-            extLink.getExtDataSimulations.asScala.zipWithIndex.map {
-              case (_: ExtEvSimulation, dIndex) =>
+          extLink.setup(extSimAdapterData)
+          val extSim = extLink.getExtSimulation
+
+          val extDataInit
+              : Iterable[(Class[_], ActorRef[_])] =
+            extSim.getDataConnections.asScala.zipWithIndex.map {
+              case (evConnection: ExtEvDataConnection, dIndex) =>
                 val extEvDataService = context.spawn(
                   ExtEvDataService(scheduler),
                   s"$index-$dIndex",
                 )
-
-                val extEvServiceAdapter = context.spawn(
-                  ExtEvDataService.adapter(extEvDataService),
-                  s"$index-$dIndex-adapter",
-                )
-
-                val extEvData =
-                  new ExtEvData(extEvServiceAdapter.toClassic, extSimAdapter)
+                evConnection.setActorRefs(extEvDataService.toClassic, extSimAdapter)
 
                 extEvDataService ! Create(
-                  InitExtEvData(extEvData),
+                  InitExtEvData(evConnection),
                   ScheduleLock.singleKey(
                     context,
                     scheduler,
@@ -252,13 +235,8 @@ class SimonaStandaloneSetup(
                   ),
                 )
 
-                (extEvData, (classOf[ExtEvDataService.type], extEvDataService))
-            }.unzip
-
-          extLink.getExtSimulation.setup(
-            extSimAdapterData,
-            extData.toList.asJava,
-          )
+                (classOf[ExtEvDataService.type], extEvDataService)
+            }
 
           // starting external simulation
           new Thread(extLink.getExtSimulation, s"External simulation $index")

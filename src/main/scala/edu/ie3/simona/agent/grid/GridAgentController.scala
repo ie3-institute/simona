@@ -882,9 +882,7 @@ class GridAgentController(
         emInput,
         modelConfiguration,
         outputConfig,
-        maybeControllingEm
-          .map(_ => "PRIORITIZED")
-          .getOrElse("PROPORTIONAL"),
+        emInput.getControlStrategy,
         simulationStartDate,
         maybeControllingEm.toRight(
           environmentRefs.scheduler

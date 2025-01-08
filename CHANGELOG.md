@@ -113,6 +113,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed Deployment stage from Jenkinsfile [#1063](https://github.com/ie3-institute/simona/issues/1063)
 - Prepare 'ChpModelSpec' and 'CylindricalThermalStorageSpec' for Storage without storageVolumeLvlMin [#1012](https://github.com/ie3-institute/simona/issues/1012)
 - Fixed SonarQube quality gate using the correct parameter '-Dsonar.qualitygate.wait=true' [#1072](https://github.com/ie3-institute/simona/issues/1072)
+- Updated `simonaAPI` to version `0.6.0` [#1080](https://github.com/ie3-institute/simona/issues/1080)
 - Converted services to pekko typed [#1069](https://github.com/ie3-institute/simona/issues/1069)
 
 ### Fixed
@@ -156,6 +157,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Correct wrong use of term "wall clock time" [#727](https://github.com/ie3-institute/simona/issues/727)
 - Fixed Deployment of `simona` to `Maven Central` in new GHA Pipeline [#1029](https://github.com/ie3-institute/simona/issues/1029)
 - Fixed SonarQube quality gate using the right link for PRs or Branches [#1061](https://github.com/ie3-institute/simona/issues/1061)
+- Fixed ignored EM strategy [#1091](https://github.com/ie3-institute/simona/issues/1091)
 
 ## [3.0.0] - 2023-08-07
 

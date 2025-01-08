@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.service.ev
 
-import edu.ie3.simona.api.data.ev.ExtEvData
+import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology._
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
@@ -71,8 +71,8 @@ class ExtEvDataServiceSpec
 
       val evService = testKit.spawn(ExtEvDataService(scheduler.ref))
       val adapter = testKit.spawn(ExtEvDataService.adapter(evService))
-      val extEvData =
-        new ExtEvData(adapter.toClassic, extSimAdapter.ref.toClassic)
+      val extEvData = new ExtEvDataConnection()
+      extEvData.setActorRefs(adapter.toClassic, extSimAdapter.ref.toClassic)
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
@@ -95,8 +95,8 @@ class ExtEvDataServiceSpec
 
       val evService = testKit.spawn(ExtEvDataService(scheduler.ref))
       val adapter = testKit.spawn(ExtEvDataService.adapter(evService))
-      val extEvData =
-        new ExtEvData(adapter.toClassic, extSimAdapter.ref.toClassic)
+      val extEvData = new ExtEvDataConnection()
+      extEvData.setActorRefs(adapter.toClassic, extSimAdapter.ref.toClassic)
 
       val evcs1 = TestProbe[Any]("evcs1")
 
@@ -130,8 +130,8 @@ class ExtEvDataServiceSpec
 
       val evService = testKit.spawn(ExtEvDataService(scheduler.ref))
       val adapter = testKit.spawn(ExtEvDataService.adapter(evService))
-      val extEvData =
-        new ExtEvData(adapter.toClassic, extSimAdapter.ref.toClassic)
+      val extEvData = new ExtEvDataConnection()
+      extEvData.setActorRefs(adapter.toClassic, extSimAdapter.ref.toClassic)
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
@@ -185,8 +185,8 @@ class ExtEvDataServiceSpec
 
       val evService = testKit.spawn(ExtEvDataService(scheduler.ref))
       val adapter = testKit.spawn(ExtEvDataService.adapter(evService))
-      val extEvData =
-        new ExtEvData(adapter.toClassic, extSimAdapter.ref.toClassic)
+      val extEvData = new ExtEvDataConnection()
+      extEvData.setActorRefs(adapter.toClassic, extSimAdapter.ref.toClassic)
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
@@ -213,8 +213,8 @@ class ExtEvDataServiceSpec
 
       val evService = testKit.spawn(ExtEvDataService(scheduler.ref))
       val adapter = testKit.spawn(ExtEvDataService.adapter(evService))
-      val extEvData =
-        new ExtEvData(adapter.toClassic, extSimAdapter.ref.toClassic)
+      val extEvData = new ExtEvDataConnection()
+      extEvData.setActorRefs(adapter.toClassic, extSimAdapter.ref.toClassic)
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
@@ -312,8 +312,8 @@ class ExtEvDataServiceSpec
 
       val evService = testKit.spawn(ExtEvDataService(scheduler.ref))
       val adapter = testKit.spawn(ExtEvDataService.adapter(evService))
-      val extEvData =
-        new ExtEvData(adapter.toClassic, extSimAdapter.ref.toClassic)
+      val extEvData = new ExtEvDataConnection()
+      extEvData.setActorRefs(adapter.toClassic, extSimAdapter.ref.toClassic)
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
@@ -394,8 +394,8 @@ class ExtEvDataServiceSpec
 
       val evService = testKit.spawn(ExtEvDataService(scheduler.ref))
       val adapter = testKit.spawn(ExtEvDataService.adapter(evService))
-      val extEvData =
-        new ExtEvData(adapter.toClassic, extSimAdapter.ref.toClassic)
+      val extEvData = new ExtEvDataConnection()
+      extEvData.setActorRefs(adapter.toClassic, extSimAdapter.ref.toClassic)
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
@@ -439,8 +439,8 @@ class ExtEvDataServiceSpec
 
       val evService = testKit.spawn(ExtEvDataService(scheduler.ref))
       val adapter = testKit.spawn(ExtEvDataService.adapter(evService))
-      val extEvData =
-        new ExtEvData(adapter.toClassic, extSimAdapter.ref.toClassic)
+      val extEvData = new ExtEvDataConnection()
+      extEvData.setActorRefs(adapter.toClassic, extSimAdapter.ref.toClassic)
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
@@ -550,8 +550,8 @@ class ExtEvDataServiceSpec
 
       val evService = testKit.spawn(ExtEvDataService(scheduler.ref))
       val adapter = testKit.spawn(ExtEvDataService.adapter(evService))
-      val extEvData =
-        new ExtEvData(adapter.toClassic, extSimAdapter.ref.toClassic)
+      val extEvData = new ExtEvDataConnection()
+      extEvData.setActorRefs(adapter.toClassic, extSimAdapter.ref.toClassic)
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
@@ -598,8 +598,8 @@ class ExtEvDataServiceSpec
 
       val evService = testKit.spawn(ExtEvDataService(scheduler.ref))
       val adapter = testKit.spawn(ExtEvDataService.adapter(evService))
-      val extEvData =
-        new ExtEvData(adapter.toClassic, extSimAdapter.ref.toClassic)
+      val extEvData = new ExtEvDataConnection()
+      extEvData.setActorRefs(adapter.toClassic, extSimAdapter.ref.toClassic)
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
@@ -684,8 +684,8 @@ class ExtEvDataServiceSpec
 
       val evService = testKit.spawn(ExtEvDataService(scheduler.ref))
       val adapter = testKit.spawn(ExtEvDataService.adapter(evService))
-      val extEvData =
-        new ExtEvData(adapter.toClassic, extSimAdapter.ref.toClassic)
+      val extEvData = new ExtEvDataConnection()
+      extEvData.setActorRefs(adapter.toClassic, extSimAdapter.ref.toClassic)
 
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
