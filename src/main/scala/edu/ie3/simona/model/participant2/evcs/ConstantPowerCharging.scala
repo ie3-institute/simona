@@ -29,12 +29,9 @@ object ConstantPowerCharging extends EvcsChargingStrategy {
       val remainingParkingTime = Seconds(ev.departureTick - currentTick)
 
       val requiredEnergyUntilFull = ev.eStorage - ev.storedEnergy
-      val maxChargedEnergyUntilDeparture =
-        maxChargingPower * remainingParkingTime
-      val actualChargedEnergy =
-        requiredEnergyUntilFull.min(maxChargedEnergyUntilDeparture)
 
-      val chargingPower = actualChargedEnergy / remainingParkingTime
+      val chargingPower =
+        maxChargingPower.min(requiredEnergyUntilFull / remainingParkingTime)
 
       ev.uuid -> chargingPower
     }
