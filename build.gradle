@@ -144,7 +144,7 @@ dependencies {
   implementation "com.sksamuel.avro4s:avro4s-core_${scalaVersion}:4.1.2"
 
   implementation 'org.apache.commons:commons-math3:3.6.1' // apache commons math3
-  implementation 'org.apache.poi:poi-ooxml:5.3.0' // used for FilenameUtils
+  implementation 'org.apache.poi:poi-ooxml:5.4.0' // used for FilenameUtils
   implementation 'javax.measure:unit-api:2.2'
   implementation 'tech.units:indriya:2.2.2' // quantities
   implementation "org.typelevel:squants_${scalaVersion}:1.8.3"
