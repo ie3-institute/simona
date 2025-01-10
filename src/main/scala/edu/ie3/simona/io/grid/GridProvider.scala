@@ -69,7 +69,7 @@ object GridProvider extends LazyLogging {
 
             if (slackSubGrid.getRawGrid.getNodes.size() > 1) {
               throw new SourceException(
-                "There are too many nodes the the slack grid. This is currently not support."
+                "There are too many nodes in the slack grid. This is currently not support."
               )
             }
 
