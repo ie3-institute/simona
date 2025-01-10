@@ -945,17 +945,6 @@ final case class ThermalGrid(
 
     (storage, selectedState) match {
       case (
-            Some(thermalStorage: CylindricalThermalStorage),
-            Some(lastStorageState),
-          ) =>
-        val (newState, threshold) = thermalStorage.updateState(
-          relevantData.currentTick,
-          qDot,
-          lastStorageState,
-        )
-        (Some(newState), threshold)
-
-      case (
             Some(domesticHotWaterStorage: DomesticHotWaterStorage),
             Some(lastDomesticHotWaterStorageState),
           ) =>
@@ -1030,6 +1019,18 @@ final case class ThermalGrid(
           Some(updatedStorageState),
           nextThreshold,
         )
+
+      case (
+            Some(thermalStorage: CylindricalThermalStorage),
+            Some(lastStorageState),
+          ) =>
+        val (newState, threshold) = thermalStorage.updateState(
+          relevantData.currentTick,
+          qDot,
+          lastStorageState,
+        )
+        (Some(newState), threshold)
+
       case _ => (None, None)
     }
   }
@@ -1371,6 +1372,8 @@ object ThermalGrid {
       .heatStorages()
       .asScala
       .flatMap {
+        case _: DomesticHotWaterStorageInput =>
+          None
         case cylindricalInput: CylindricalStorageInput =>
           Some(CylindricalThermalStorage(cylindricalInput))
         case _ => None
@@ -1380,7 +1383,6 @@ object ThermalGrid {
       .domesticHotWaterStorages()
       .asScala
       .flatMap {
-
         case domesticHotWaterInput: DomesticHotWaterStorageInput =>
           Some(DomesticHotWaterStorage(domesticHotWaterInput))
         case _ => None
