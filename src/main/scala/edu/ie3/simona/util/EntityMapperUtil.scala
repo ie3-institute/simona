@@ -8,7 +8,11 @@ package edu.ie3.simona.util
 
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system._
-import edu.ie3.datamodel.models.result.thermal.{CylindricalStorageResult, DomesticHotWaterStorageResult, ThermalHouseResult}
+import edu.ie3.datamodel.models.result.thermal.{
+  CylindricalStorageResult,
+  DomesticHotWaterStorageResult,
+  ThermalHouseResult,
+}
 import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier
 import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier._
 
