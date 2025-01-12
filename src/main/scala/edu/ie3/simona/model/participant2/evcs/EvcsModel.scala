@@ -317,10 +317,10 @@ class EvcsModel private (
         (Seq.empty, applicableEvs)
 
     val (forcedSchedules, remainingPower) =
-      createScheduleWithSetPower(state.tick, forcedChargingEvs, setPower)
+      distributeChargingPower(state.tick, forcedChargingEvs, setPower)
 
     val (regularSchedules, _) =
-      createScheduleWithSetPower(state.tick, regularChargingEvs, remainingPower)
+      distributeChargingPower(state.tick, regularChargingEvs, remainingPower)
 
     val combinedSchedules = forcedSchedules ++ regularSchedules
 
@@ -355,7 +355,7 @@ class EvcsModel private (
     *   indicators, as well as the remaining power that could not be assigned to
     *   given EVs
     */
-  private def createScheduleWithSetPower(
+  private def distributeChargingPower(
       currentTick: Long,
       evs: Seq[EvModelWrapper],
       setPower: Power,
@@ -445,7 +445,7 @@ class EvcsModel private (
 
       // go into the next recursion step with the remaining power
       val (nextIterationResults, remainingAfterRecursion) =
-        createScheduleWithSetPower(
+        distributeChargingPower(
           currentTick,
           fittingPowerEvs,
           remainingAfterAllocation,
