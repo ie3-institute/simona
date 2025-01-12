@@ -22,13 +22,10 @@ import edu.ie3.simona.model.participant.StorageModel.RefTargetSocParams
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
+  FixedRelevantData,
   ModelState,
-  OperationRelevantData,
 }
-import edu.ie3.simona.model.participant2.StorageModel.{
-  StorageRelevantData,
-  StorageState,
-}
+import edu.ie3.simona.model.participant2.StorageModel.StorageState
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.service.ServiceType
@@ -55,7 +52,7 @@ class StorageModel private (
 ) extends ParticipantModel[
       ActivePowerOperatingPoint,
       StorageState,
-      StorageRelevantData,
+      FixedRelevantData.type,
     ] {
 
   private val minEnergy = zeroKWh
@@ -112,7 +109,7 @@ class StorageModel private (
 
   override def determineOperatingPoint(
       state: StorageState,
-      relevantData: StorageRelevantData,
+      relevantData: FixedRelevantData.type,
   ): (ActivePowerOperatingPoint, Option[Long]) =
     throw new CriticalFailureException(
       "Storage model cannot calculate operation point without flexibility control."
@@ -176,19 +173,12 @@ class StorageModel private (
       nodalVoltage: Dimensionless,
       tick: Long,
       simulationTime: ZonedDateTime,
-  ): StorageRelevantData = {
-    if (receivedData.nonEmpty) {
-      throw new CriticalFailureException(
-        s"Expected no received data, got $receivedData"
-      )
-    }
-
-    StorageRelevantData(tick)
-  }
+  ): FixedRelevantData.type =
+    FixedRelevantData
 
   override def calcFlexOptions(
       state: StorageState,
-      relevantData: StorageRelevantData,
+      relevantData: FixedRelevantData.type,
   ): FlexibilityMessage.ProvideFlexOptions = {
 
     val chargingPossible = !isFull(state.storedEnergy)
@@ -224,7 +214,7 @@ class StorageModel private (
 
   override def handlePowerControl(
       state: StorageState,
-      relevantData: StorageRelevantData,
+      relevantData: FixedRelevantData.type,
       flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,
   ): (ActivePowerOperatingPoint, ParticipantModel.OperationChangeIndicator) = {
@@ -319,9 +309,6 @@ class StorageModel private (
 }
 
 object StorageModel {
-  final case class StorageRelevantData(
-      currentTick: Long
-  ) extends OperationRelevantData
 
   /** @param storedEnergy
     *   The amount of currently stored energy

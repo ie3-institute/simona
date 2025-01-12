@@ -13,7 +13,10 @@ import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.config.SimonaConfig.StorageRuntimeConfig
-import edu.ie3.simona.model.participant2.ParticipantModel.ActivePowerOperatingPoint
+import edu.ie3.simona.model.participant2.ParticipantModel.{
+  ActivePowerOperatingPoint,
+  FixedRelevantData,
+}
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -180,8 +183,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
     "Calculate flex options" in {
       val storageModel = buildStorageModel()
       val tick = 3600L
-      // not used in calculation
-      val data = StorageModel.StorageRelevantData(tick)
 
       val testCases = Table(
         ("storedEnergy", "pRef", "pMin", "pMax"),
@@ -204,7 +205,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
             tick,
           )
 
-          storageModel.calcFlexOptions(state, data) match {
+          storageModel.calcFlexOptions(state, FixedRelevantData) match {
             case result: ProvideMinMaxFlexOptions =>
               result.ref should approximate(Kilowatts(pRef))
               result.min should approximate(Kilowatts(pMin))
@@ -218,8 +219,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
     "Calculate flex options with target SOC" in {
       val storageModel = buildStorageModel(Some(0.5d))
       val tick = 3600L
-      // not used in calculation
-      val data = StorageModel.StorageRelevantData(tick)
 
       val testCases = Table(
         ("storedEnergy", "pRef", "pMin", "pMax"),
@@ -248,7 +247,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
             tick,
           )
 
-          storageModel.calcFlexOptions(state, data) match {
+          storageModel.calcFlexOptions(state, FixedRelevantData) match {
             case result: ProvideMinMaxFlexOptions =>
               result.ref should approximate(Kilowatts(pRef))
               result.min should approximate(Kilowatts(pMin))
@@ -263,7 +262,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
       val storageModel = buildStorageModel()
       val tick = 3600L
       // not used in calculation
-      val data = StorageModel.StorageRelevantData(tick)
       val flexOptions =
         ProvideMinMaxFlexOptions.noFlexOption(inputModel.getUuid, zeroKW)
 
@@ -313,7 +311,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
           val (operatingPoint, changeIndicator) =
             storageModel.handlePowerControl(
               state,
-              data,
+              FixedRelevantData,
               flexOptions,
               Kilowatts(setPower),
             )
@@ -332,7 +330,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
       val storageModel = buildStorageModel(Some(0.5d))
       val tick = 3600L
       // not used in calculation
-      val data = StorageModel.StorageRelevantData(tick)
       val flexOptions =
         ProvideMinMaxFlexOptions.noFlexOption(inputModel.getUuid, zeroKW)
 
@@ -382,7 +379,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
           val (operatingPoint, changeIndicator) =
             storageModel.handlePowerControl(
               state,
-              data,
+              FixedRelevantData,
               flexOptions,
               Kilowatts(setPower),
             )
@@ -401,7 +398,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
       val storageModel = buildStorageModel()
       val tick = 1800L
       // not used in calculation
-      val data = StorageModel.StorageRelevantData(tick)
       val flexOptions =
         ProvideMinMaxFlexOptions.noFlexOption(inputModel.getUuid, zeroKW)
 
@@ -414,7 +410,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
       val (operatingPoint, changeIndicator) =
         storageModel.handlePowerControl(
           state,
-          data,
+          FixedRelevantData,
           flexOptions,
           Kilowatts(-5d),
         )
@@ -429,7 +425,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
       val storageModel = buildStorageModel()
       val tick = 1800L
       // not used in calculation
-      val data = StorageModel.StorageRelevantData(tick)
       val flexOptions =
         ProvideMinMaxFlexOptions.noFlexOption(inputModel.getUuid, zeroKW)
 
@@ -442,7 +437,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
       val (operatingPoint, changeIndicator) =
         storageModel.handlePowerControl(
           state,
-          data,
+          FixedRelevantData,
           flexOptions,
           Kilowatts(9d),
         )
@@ -457,7 +452,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
       val storageModel = buildStorageModel(Some(0.3d))
       val tick = 1800L
       // not used in calculation
-      val data = StorageModel.StorageRelevantData(tick)
       val flexOptions =
         ProvideMinMaxFlexOptions.noFlexOption(inputModel.getUuid, zeroKW)
 
@@ -470,7 +464,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
       val (operatingPoint, changeIndicator) =
         storageModel.handlePowerControl(
           state,
-          data,
+          FixedRelevantData,
           flexOptions,
           Kilowatts(-9d),
         )
@@ -487,7 +481,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
       val storageModel = buildStorageModel(Some(0.4d))
       val tick = 1800L
       // not used in calculation
-      val data = StorageModel.StorageRelevantData(tick)
       val flexOptions =
         ProvideMinMaxFlexOptions.noFlexOption(inputModel.getUuid, zeroKW)
 
@@ -500,7 +493,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
       val (operatingPoint, changeIndicator) =
         storageModel.handlePowerControl(
           state,
-          data,
+          FixedRelevantData,
           flexOptions,
           Kilowatts(5d),
         )
