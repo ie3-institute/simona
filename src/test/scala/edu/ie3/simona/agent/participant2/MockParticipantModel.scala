@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.participant2
 
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
-import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant2.MockParticipantModel._
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
@@ -23,7 +22,6 @@ import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import squants.Dimensionless
 import squants.energy.{Kilowatts, Power}
 import tech.units.indriya.ComparableQuantity
 
@@ -40,21 +38,33 @@ class MockParticipantModel(
     mockChangeAtNext: Set[Long] = Set.empty,
 ) extends ParticipantModel[
       ActivePowerOperatingPoint,
-      FixedState,
-      MockRelevantData,
-    ]
-    with ParticipantFixedState[
-      ActivePowerOperatingPoint,
-      MockRelevantData,
+      MockState,
     ] {
 
+  override val initialState: ModelInput => MockState = { input =>
+    val maybeAdditionalPower = input.receivedData.collectFirst {
+      case data: MockSecondaryData =>
+        data.additionalP
+    }
+
+    MockState(
+      maybeAdditionalPower,
+      input.currentTick,
+    )
+  }
+
+  override def determineState(
+      lastState: MockState,
+      operatingPoint: ActivePowerOperatingPoint,
+      input: ModelInput,
+  ): MockState = initialState(input)
+
   override def determineOperatingPoint(
-      state: FixedState,
-      relevantData: MockRelevantData,
+      state: MockState
   ): (ActivePowerOperatingPoint, Option[Long]) = {
     (
       ActivePowerOperatingPoint(
-        Kilowatts(6) + relevantData.additionalP.getOrElse(zeroKW)
+        Kilowatts(6) + state.additionalP.getOrElse(zeroKW)
       ),
       mockActivationTicks.get(state.tick),
     )
@@ -64,7 +74,7 @@ class MockParticipantModel(
     ActivePowerOperatingPoint.zero
 
   override def createResults(
-      state: FixedState,
+      state: MockState,
       lastOperatingPoint: Option[ActivePowerOperatingPoint],
       currentOperatingPoint: ActivePowerOperatingPoint,
       complexPower: PrimaryData.ComplexPower,
@@ -94,23 +104,10 @@ class MockParticipantModel(
   override def getRequiredSecondaryServices: Iterable[ServiceType] =
     throw new NotImplementedError() // Not tested
 
-  override def createRelevantData(
-      receivedData: Seq[Data],
-      nodalVoltage: Dimensionless,
-      tick: Long,
-      simulationTime: ZonedDateTime,
-  ): MockRelevantData =
-    MockRelevantData(
-      receivedData.collectFirst { case data: MockSecondaryData =>
-        data.additionalP
-      }
-    )
-
   override def calcFlexOptions(
-      state: FixedState,
-      relevantData: MockRelevantData,
+      state: MockState
   ): FlexibilityMessage.ProvideFlexOptions = {
-    val additionalP = relevantData.additionalP.getOrElse(zeroKW)
+    val additionalP = state.additionalP.getOrElse(zeroKW)
     ProvideMinMaxFlexOptions(
       uuid,
       Kilowatts(1) + additionalP,
@@ -120,8 +117,7 @@ class MockParticipantModel(
   }
 
   override def handlePowerControl(
-      state: FixedState,
-      relevantData: MockRelevantData,
+      state: MockState,
       flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,
   ): (ActivePowerOperatingPoint, OperationChangeIndicator) =
@@ -134,10 +130,10 @@ class MockParticipantModel(
     )
 
   override def handleRequest(
-      state: FixedState,
+      state: MockState,
       ctx: ActorContext[ParticipantAgent.Request],
       msg: ParticipantRequest,
-  ): FixedState = {
+  ): MockState = {
     msg match {
       case MockRequestMessage(_, replyTo) =>
         replyTo ! MockResponseMessage
@@ -145,9 +141,21 @@ class MockParticipantModel(
 
     state
   }
+
 }
 
 object MockParticipantModel {
+
+  /** Simple [[ModelState]] to test its usage in operation point calculations
+    *
+    * @param additionalP
+    *   Power value that is added to the power or flex options power for testing
+    *   purposes
+    */
+  final case class MockState(
+      additionalP: Option[Power],
+      override val tick: Long,
+  ) extends ModelState
 
   final case class MockResult(
       time: ZonedDateTime,
@@ -164,15 +172,5 @@ object MockParticipantModel {
   case object MockResponseMessage
 
   final case class MockSecondaryData(additionalP: Power) extends SecondaryData
-
-  /** Simple [[OperationRelevantData]] to test its usage in operation point
-    * calculations
-    *
-    * @param additionalP
-    *   Power value that is added to the power or flex options power for testing
-    *   purposes
-    */
-  final case class MockRelevantData(additionalP: Option[Power])
-      extends OperationRelevantData
 
 }

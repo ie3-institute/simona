@@ -11,7 +11,6 @@ import edu.ie3.datamodel.models.result.system.{
   FixedFeedInResult,
   SystemParticipantResult,
 }
-import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
@@ -21,14 +20,12 @@ import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpl
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
   FixedState,
-  FixedRelevantData,
   ParticipantFixedState,
 }
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
-import squants.Dimensionless
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -41,20 +38,12 @@ class FixedFeedInModel(
 ) extends ParticipantModel[
       ActivePowerOperatingPoint,
       FixedState,
-      FixedRelevantData.type,
     ]
-    with ParticipantFixedState[
-      ActivePowerOperatingPoint,
-      FixedRelevantData.type,
-    ]
-    with ParticipantSimpleFlexibility[
-      FixedState,
-      FixedRelevantData.type,
-    ] {
+    with ParticipantFixedState[ActivePowerOperatingPoint]
+    with ParticipantSimpleFlexibility[FixedState] {
 
   override def determineOperatingPoint(
-      state: ParticipantModel.FixedState,
-      relevantData: ParticipantModel.FixedRelevantData.type,
+      state: ParticipantModel.FixedState
   ): (ActivePowerOperatingPoint, Option[Long]) = {
     val power = pRated * -1
 
@@ -94,12 +83,6 @@ class FixedFeedInModel(
   override def getRequiredSecondaryServices: Iterable[ServiceType] =
     Iterable.empty
 
-  override def createRelevantData(
-      receivedData: Seq[Data],
-      nodalVoltage: Dimensionless,
-      tick: Long,
-      simulationTime: ZonedDateTime,
-  ): FixedRelevantData.type = FixedRelevantData
 }
 
 object FixedFeedInModel {

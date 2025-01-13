@@ -7,10 +7,7 @@
 package edu.ie3.simona.model.participant2
 
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant2.ParticipantModel.{
-  FixedRelevantData,
-  FixedState,
-}
+import edu.ie3.simona.model.participant2.ParticipantModel.FixedState
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.FixedFeedInputTestData
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -47,8 +44,7 @@ class FixedFeedInModelSpec extends UnitSpec with FixedFeedInputTestData {
       ).toActivePower(fixedFeedInput.getCosPhiRated)
 
       val (operatingPoint, nextTick) = model.determineOperatingPoint(
-        FixedState(0),
-        FixedRelevantData,
+        FixedState(0)
       )
       operatingPoint.activePower shouldBe expectedPower
       nextTick shouldBe None

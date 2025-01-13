@@ -8,7 +8,6 @@ package edu.ie3.simona.model.participant2.load
 
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.profile.StandardLoadProfile
-import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
@@ -16,13 +15,12 @@ import edu.ie3.simona.model.participant.load.profile.LoadProfileStore
 import edu.ie3.simona.model.participant2.ParticipantModel
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
-  DateTimeData,
+  DateTimeState,
+  ParticipantDateTimeState,
 }
 import edu.ie3.simona.util.TickUtil
 import edu.ie3.util.scala.quantities.ApparentPower
-import squants.Dimensionless
 
-import java.time.ZonedDateTime
 import java.util.UUID
 
 class ProfileLoadModel(
@@ -33,17 +31,17 @@ class ProfileLoadModel(
     private val loadProfileStore: LoadProfileStore,
     private val loadProfile: StandardLoadProfile,
     val referenceScalingFactor: Double,
-) extends LoadModel[DateTimeData] {
+) extends LoadModel[DateTimeState]
+    with ParticipantDateTimeState[ActivePowerOperatingPoint] {
 
   override def determineOperatingPoint(
-      state: ParticipantModel.FixedState,
-      relevantData: DateTimeData,
+      state: DateTimeState
   ): (ParticipantModel.ActivePowerOperatingPoint, Option[Long]) = {
     val resolution = LoadProfileStore.resolution.getSeconds
 
     val (modelTick, modelDateTime) = TickUtil.roundToResolution(
-      relevantData.tick,
-      relevantData.dateTime,
+      state.tick,
+      state.dateTime,
       resolution.toInt,
     )
 
@@ -55,13 +53,6 @@ class ProfileLoadModel(
       Some(nextTick),
     )
   }
-
-  override def createRelevantData(
-      receivedData: Seq[Data],
-      nodalVoltage: Dimensionless,
-      tick: Long,
-      simulationTime: ZonedDateTime,
-  ): DateTimeData = DateTimeData(tick, simulationTime)
 
 }
 

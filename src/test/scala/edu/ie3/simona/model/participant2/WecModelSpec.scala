@@ -15,6 +15,7 @@ import edu.ie3.datamodel.models.input.system.characteristic.{
 }
 import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
+import edu.ie3.simona.model.participant2.WecModel.WecState
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.quantities.PowerSystemUnits
 import squants.Each
@@ -125,16 +126,14 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
       )
 
       forAll(testCases) { (velocity: Double, expectedPower: Double) =>
-        val wecData = WecModel.WecRelevantData(
+        val state = WecState(
+          0L,
           MetersPerSecond(velocity),
           Celsius(20),
           Some(Pascals(101325d)),
         )
         val (operatingPoint, nextTick) =
-          wecModel.determineOperatingPoint(
-            ParticipantModel.FixedState(0),
-            wecData,
-          )
+          wecModel.determineOperatingPoint(state)
 
         operatingPoint.activePower shouldBe Watts(expectedPower)
         nextTick shouldBe None
@@ -180,16 +179,14 @@ class WecModelSpec extends UnitSpec with DefaultTestData {
       )
 
       forAll(testCases) { (temperature: Double, expectedPower: Double) =>
-        val wecData = WecModel.WecRelevantData(
+        val state = WecState(
+          0L,
           MetersPerSecond(3.0),
           Celsius(temperature),
           Some(Pascals(101325d)),
         )
         val (operatingPoint, nextTick) =
-          wecModel.determineOperatingPoint(
-            ParticipantModel.FixedState(0),
-            wecData,
-          )
+          wecModel.determineOperatingPoint(state)
 
         operatingPoint.activePower shouldBe Watts(expectedPower)
         nextTick shouldBe None

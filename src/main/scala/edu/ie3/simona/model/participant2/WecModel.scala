@@ -23,13 +23,12 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
-  FixedState,
-  OperationRelevantData,
-  ParticipantFixedState,
+  ModelInput,
+  ModelState,
 }
 import edu.ie3.simona.model.participant2.WecModel.{
   WecCharacteristic,
-  WecRelevantData,
+  WecState,
   molarMassAir,
   universalGasConstantR,
 }
@@ -62,35 +61,53 @@ class WecModel private (
     private val betzCurve: WecCharacteristic,
 ) extends ParticipantModel[
       ActivePowerOperatingPoint,
-      FixedState,
-      WecRelevantData,
+      WecState,
     ]
-    with ParticipantFixedState[ActivePowerOperatingPoint, WecRelevantData]
-    with ParticipantSimpleFlexibility[FixedState, WecRelevantData]
+    with ParticipantSimpleFlexibility[WecState]
     with LazyLogging {
 
-  /** Calculate the active power behaviour of the model
-    *
-    * @param data
-    *   Further needed, secondary data
-    * @return
-    *   Active power
-    */
+  override val initialState: ModelInput => WecState = { input =>
+    val weatherData = getWeatherData(input.receivedData)
+    WecState(
+      input.currentTick,
+      weatherData.windVel,
+      weatherData.temp,
+      None,
+    )
+  }
+
+  override def determineState(
+      lastState: WecState,
+      operatingPoint: ActivePowerOperatingPoint,
+      input: ModelInput,
+  ): WecState = initialState(input)
+
+  private def getWeatherData(receivedData: Seq[Data]): WeatherData = {
+    receivedData
+      .collectFirst { case weatherData: WeatherData =>
+        weatherData
+      }
+      .getOrElse {
+        throw new CriticalFailureException(
+          s"Expected WeatherData, got $receivedData"
+        )
+      }
+  }
+
   override def determineOperatingPoint(
-      modelState: FixedState,
-      data: WecRelevantData,
+      state: WecState
   ): (ActivePowerOperatingPoint, Option[Long]) = {
-    val betzCoefficient = determineBetzCoefficient(data.windVelocity)
+    val betzCoefficient = determineBetzCoefficient(state.windVelocity)
 
     /** air density in kg/m³
       */
     val airDensity =
       calculateAirDensity(
-        data.temperature,
-        data.airPressure,
+        state.temperature,
+        state.airPressure,
       ).toKilogramsPerCubicMeter
 
-    val v = data.windVelocity.toMetersPerSecond
+    val v = state.windVelocity.toMetersPerSecond
 
     /** cubed velocity in m³/s³
       */
@@ -166,7 +183,7 @@ class WecModel private (
     ActivePowerOperatingPoint.zero
 
   override def createResults(
-      state: ParticipantModel.FixedState,
+      state: WecState,
       lastOperatingPoint: Option[ActivePowerOperatingPoint],
       currentOperatingPoint: ActivePowerOperatingPoint,
       complexPower: ComplexPower,
@@ -195,27 +212,6 @@ class WecModel private (
   override def getRequiredSecondaryServices: Iterable[ServiceType] =
     Iterable(ServiceType.WeatherService)
 
-  override def createRelevantData(
-      receivedData: Seq[Data],
-      nodalVoltage: Dimensionless,
-      tick: Long,
-      simulationTime: ZonedDateTime,
-  ): WecRelevantData = {
-    receivedData
-      .collectFirst { case weatherData: WeatherData =>
-        WecRelevantData(
-          weatherData.windVel,
-          weatherData.temp,
-          None,
-        )
-      }
-      .getOrElse {
-        throw new CriticalFailureException(
-          s"Expected WeatherData, got $receivedData"
-        )
-      }
-  }
-
 }
 
 object WecModel {
@@ -228,7 +224,7 @@ object WecModel {
     */
   private val molarMassAir = Kilograms(0.0289647d)
 
-  /** Class that holds all relevant data for wec model calculation
+  /** Holds all relevant data for wec model calculation
     *
     * @param windVelocity
     *   current wind velocity
@@ -237,11 +233,12 @@ object WecModel {
     * @param airPressure
     *   current air pressure
     */
-  final case class WecRelevantData(
+  final case class WecState(
+      override val tick: Long,
       windVelocity: Velocity,
       temperature: Temperature,
       airPressure: Option[Pressure],
-  ) extends OperationRelevantData
+  ) extends ModelState
 
   /** This class is initialized with a [[WecCharacteristicInput]], which
     * contains the needed betz curve.

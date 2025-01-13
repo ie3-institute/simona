@@ -211,7 +211,7 @@ object ParticipantAgentInit {
   }
 
   private def waitingForServices(
-      modelShell: ParticipantModelShell[_, _, _],
+      modelShell: ParticipantModelShell[_, _],
       participantRefs: ParticipantRefs,
       expectedPowerRequestTick: Long,
       expectedRegistrations: Set[ClassicRef],
@@ -262,7 +262,7 @@ object ParticipantAgentInit {
     * [[ParticipantAgent]]
     */
   private def completeInitialization(
-      modelShell: ParticipantModelShell[_, _, _],
+      modelShell: ParticipantModelShell[_, _],
       expectedData: Map[ClassicRef, Long],
       participantRefs: ParticipantRefs,
       expectedPowerRequestTick: Long,

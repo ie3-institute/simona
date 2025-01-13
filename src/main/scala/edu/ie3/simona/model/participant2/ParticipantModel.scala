@@ -13,9 +13,9 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
 }
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.model.participant2.ParticipantModel.{
+  ModelInput,
   ModelState,
   OperatingPoint,
-  OperationRelevantData,
 }
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
@@ -33,17 +33,35 @@ import java.util.UUID
 abstract class ParticipantModel[
     OP <: OperatingPoint,
     S <: ModelState,
-    OR <: OperationRelevantData,
-] extends ParticipantFlexibility[OP, S, OR] {
+] extends ParticipantFlexibility[OP, S] {
 
   val uuid: UUID
   val sRated: ApparentPower
   val cosPhiRated: Double
   val qControl: QControl
 
-  val initialState: Long => S
-
   protected val pRated: Power = sRated.toActivePower(cosPhiRated)
+
+  val initialState: ModelInput => S
+
+  /** Determines the current state given the last state and the operating point
+    * that has been valid from the last state up until now.
+    *
+    * @param lastState
+    *   the last state
+    * @param operatingPoint
+    *   the operating point valid from the simulation time of the last state up
+    *   until now
+    * @param input
+    *   the model input data for the current tick
+    * @return
+    *   the current state
+    */
+  def determineState(
+      lastState: S,
+      operatingPoint: OP,
+      input: ModelInput,
+  ): S
 
   /** Get a partial function, that transfers the current active into reactive
     * power based on the participants properties and the given nodal voltage
@@ -60,11 +78,10 @@ abstract class ParticipantModel[
         nodalVoltage,
       )
 
-  /** With the given current state and the given operation-relevant data,
-    * determines the operating point that is currently valid until the next
-    * operating point is determined. Also, optionally returns a tick at which
-    * the state will change unless the operating point changes due to external
-    * influences beforehand.
+  /** Given the current state, this method determines the operating point that
+    * is currently valid until the next operating point is determined. Also,
+    * optionally returns a tick at which the state will change unless the
+    * operating point changes due to external influences beforehand.
     *
     * This method should be able to handle calls at arbitrary points in
     * simulation time (i.e. ticks), which are situated after the tick of the
@@ -77,29 +94,18 @@ abstract class ParticipantModel[
     *
     * @param state
     *   the current state
-    * @param relevantData
-    *   the relevant data for the current tick
     * @return
     *   the operating point and optionally a next activation tick
     */
-  def determineOperatingPoint(state: S, relevantData: OR): (OP, Option[Long])
+  def determineOperatingPoint(state: S): (OP, Option[Long])
 
-  def zeroPowerOperatingPoint: OP
-
-  /** Determines the current state given the last state and the operating point
-    * that has been valid from the last state up until now.
+  /** Operating point used when model is out of operation, thus
+    * producing/consuming no power.
     *
-    * @param lastState
-    *   the last state
-    * @param operatingPoint
-    *   the operating point valid from the simulation time of the last state up
-    *   until now
-    * @param currentTick
-    *   the current tick
     * @return
-    *   the current state
+    *   an operating point representing zero power
     */
-  def determineState(lastState: S, operatingPoint: OP, currentTick: Long): S
+  def zeroPowerOperatingPoint: OP
 
   /** @param state
     *   the current state
@@ -147,49 +153,31 @@ abstract class ParticipantModel[
     throw new NotImplementedError(s"Method not implemented by $getClass")
 
   /** @return
-    *   All secondary services required by the model for creating operation
-    *   relevant data [[OR]]
+    *   All secondary services required by the model
     */
   def getRequiredSecondaryServices: Iterable[ServiceType]
 
-  /** @param receivedData
-    *   The received primary or secondary data
-    * @param nodalVoltage
-    *   The voltage at the node that we're connected to
-    * @param tick
-    *   The current tick
-    * @param simulationTime
-    *   The current simulation time (matches the tick)
-    * @return
-    *   The operation relevant date for the current point in simulation time
-    * @throws edu.ie3.simona.exceptions.CriticalFailureException
-    *   if unexpected type of data was provided
-    */
-  def createRelevantData(
-      receivedData: Seq[Data],
-      nodalVoltage: Dimensionless,
-      tick: Long,
-      simulationTime: ZonedDateTime,
-  ): OR
 }
 
 object ParticipantModel {
 
-  trait OperationRelevantData
-
-  /** Passed to model calculation classes for each participant when no secondary
-    * data is required
-    */
-  case object FixedRelevantData extends OperationRelevantData
-
-  /** OperationRelevantData that just transports the current datetime and tick
-    * @param tick
+  /** Holds all potentially relevant input data for model calculation.
+    *
+    * @param receivedData
+    *   The received primary or secondary data
+    * @param nodalVoltage
+    *   The voltage at the node that we're connected to
+    * @param currentTick
     *   The current tick
-    * @param dateTime
-    *   The current datetime, corresponding to the current tick
+    * @param currentSimulationTime
+    *   The current simulation time (matches the tick)
     */
-  final case class DateTimeData(tick: Long, dateTime: ZonedDateTime)
-      extends OperationRelevantData
+  final case class ModelInput(
+      receivedData: Seq[Data],
+      nodalVoltage: Dimensionless,
+      currentTick: Long,
+      currentSimulationTime: ZonedDateTime,
+  )
 
   trait OperatingPoint {
 
@@ -217,18 +205,44 @@ object ParticipantModel {
   final case class FixedState(override val tick: Long) extends ModelState
 
   trait ParticipantFixedState[
-      OP <: OperatingPoint,
-      OR <: OperationRelevantData,
+      OP <: OperatingPoint
   ] {
-    this: ParticipantModel[OP, FixedState, OR] =>
+    this: ParticipantModel[OP, FixedState] =>
 
-    override val initialState: Long => FixedState = tick => FixedState(tick)
+    override val initialState: ModelInput => FixedState =
+      input => FixedState(input.currentTick)
 
     override def determineState(
         lastState: FixedState,
         operatingPoint: OP,
-        currentTick: Long,
-    ): FixedState = FixedState(currentTick)
+        input: ModelInput,
+    ): FixedState = FixedState(input.currentTick)
+
+  }
+
+  /** State that just holds the current datetime and tick
+    * @param tick
+    *   The current tick
+    * @param dateTime
+    *   The current datetime, corresponding to the current tick
+    */
+  final case class DateTimeState(tick: Long, dateTime: ZonedDateTime)
+      extends ModelState
+
+  trait ParticipantDateTimeState[
+      OP <: OperatingPoint
+  ] {
+    this: ParticipantModel[OP, DateTimeState] =>
+
+    override val initialState: ModelInput => DateTimeState = input =>
+      DateTimeState(input.currentTick, input.currentSimulationTime)
+
+    override def determineState(
+        lastState: DateTimeState,
+        operatingPoint: OP,
+        input: ModelInput,
+    ): DateTimeState =
+      DateTimeState(input.currentTick, input.currentSimulationTime)
 
   }
 

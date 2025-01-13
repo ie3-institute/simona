@@ -12,21 +12,20 @@ import edu.ie3.datamodel.models.result.system.{
   PvResult,
   SystemParticipantResult,
 }
+import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
 }
-import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpleFlexibility
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
-  FixedState,
-  OperationRelevantData,
-  ParticipantFixedState,
+  ModelInput,
+  ModelState,
 }
-import edu.ie3.simona.model.participant2.PvModel.PvRelevantData
+import edu.ie3.simona.model.participant2.PvModel.PvState
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -56,11 +55,9 @@ class PvModel private (
     private val moduleSurface: Area = SquareMeters(1d),
 ) extends ParticipantModel[
       ActivePowerOperatingPoint,
-      FixedState,
-      PvRelevantData,
+      PvState,
     ]
-    with ParticipantFixedState[ActivePowerOperatingPoint, PvRelevantData]
-    with ParticipantSimpleFlexibility[FixedState, PvRelevantData]
+    with ParticipantSimpleFlexibility[PvState]
     with LazyLogging {
 
   /** Override sMax as the power output of a pv unit could become easily up to
@@ -76,6 +73,35 @@ class PvModel private (
 
   private val activationThreshold = pMax * 0.001 * -1
 
+  override val initialState: ModelInput => PvState = { input =>
+    val weatherData = getWeatherData(input.receivedData)
+    PvState(
+      input.currentTick,
+      input.currentSimulationTime,
+      ???,
+      weatherData.diffIrr,
+      weatherData.dirIrr,
+    )
+  }
+
+  override def determineState(
+      lastState: PvState,
+      operatingPoint: ActivePowerOperatingPoint,
+      input: ModelInput,
+  ): PvState = initialState(input)
+
+  private def getWeatherData(receivedData: Seq[Data]): WeatherData = {
+    receivedData
+      .collectFirst { case weatherData: WeatherData =>
+        weatherData
+      }
+      .getOrElse {
+        throw new CriticalFailureException(
+          s"Expected WeatherData, got $receivedData"
+        )
+      }
+  }
+
   /** Calculate the active power behaviour of the model
     *
     * @param data
@@ -84,28 +110,27 @@ class PvModel private (
     *   Active power
     */
   override def determineOperatingPoint(
-      modelState: FixedState,
-      data: PvRelevantData,
+      state: PvState
   ): (ActivePowerOperatingPoint, Option[Long]) = {
     // === Weather Base Data  === //
     /* The pv model calculates the power in-feed based on the solar irradiance that is received over a specific
      * time frame (which actually is the solar irradiation). Hence, a multiplication with the time frame within
      * this irradiance is received is required. */
-    val duration: Time = Seconds(data.weatherDataFrameLength)
+    val duration: Time = Seconds(state.weatherDataFrameLength)
 
     // eBeamH and eDifH needs to be extract to their double values in some places
     // hence a conversion to watt-hour per square meter is required, to avoid
     // invalid double value extraction!
     val eBeamH =
-      data.dirIrradiance * duration
+      state.dirIrradiance * duration
     val eDifH =
-      data.diffIrradiance * duration
+      state.diffIrradiance * duration
 
     // === Beam Radiation Parameters  === //
-    val angleJ = calcAngleJ(data.dateTime)
+    val angleJ = calcAngleJ(state.dateTime)
     val delta = calcSunDeclinationDelta(angleJ)
 
-    val omega = calcHourAngleOmega(data.dateTime, angleJ, lon)
+    val omega = calcHourAngleOmega(state.dateTime, angleJ, lon)
 
     val omegaSS = calcSunsetAngleOmegaSS(lat, delta)
     val omegaSR = calcSunriseAngleOmegaSR(omegaSS)
@@ -152,7 +177,7 @@ class PvModel private (
     val irraditionSTC = yieldSTC * duration
     val power = calcOutput(
       eTotal,
-      data.dateTime,
+      state.dateTime,
       irraditionSTC,
     )
 
@@ -257,7 +282,7 @@ class PvModel private (
   /** Calculates the sunrise hour angle omegaSR given omegaSS.
     */
   private val calcSunriseAngleOmegaSR =
-    (omegaSS: Angle) => omegaSS * (-1)
+    (omegaSS: Angle) => omegaSS * -1
 
   /** Calculates the solar altitude angle alphaS which represents the angle
     * between the horizontal and the line to the sun, that is, the complement of
@@ -727,7 +752,7 @@ class PvModel private (
   }
 
   override def createResults(
-      state: ParticipantModel.FixedState,
+      state: PvState,
       lastOperatingPoint: Option[ActivePowerOperatingPoint],
       currentOperatingPoint: ActivePowerOperatingPoint,
       complexPower: ComplexPower,
@@ -756,34 +781,14 @@ class PvModel private (
   override def getRequiredSecondaryServices: Iterable[ServiceType] =
     Iterable(ServiceType.WeatherService)
 
-  override def createRelevantData(
-      receivedData: Seq[Data],
-      nodalVoltage: Dimensionless,
-      tick: Long,
-      simulationTime: ZonedDateTime,
-  ): PvRelevantData = {
-    receivedData
-      .collectFirst { case weatherData: WeatherData =>
-        PvRelevantData(
-          simulationTime,
-          ???,
-          weatherData.diffIrr,
-          weatherData.dirIrr,
-        )
-      }
-      .getOrElse {
-        throw new CriticalFailureException(
-          s"Expected WeatherData, got $receivedData"
-        )
-      }
-  }
-
 }
 
 object PvModel {
 
-  /** Class that holds all relevant data for a pv model calculation
+  /** Holds all relevant data for a pv model calculation
     *
+    * @param tick
+    *   The current tick
     * @param dateTime
     *   date and time of the <b>ending</b> of time frame to calculate
     * @param weatherDataFrameLength
@@ -794,12 +799,13 @@ object PvModel {
     * @param dirIrradiance
     *   direct solar irradiance
     */
-  final case class PvRelevantData(
+  final case class PvState(
+      override val tick: Long,
       dateTime: ZonedDateTime,
       weatherDataFrameLength: Long,
       diffIrradiance: Irradiance,
       dirIrradiance: Irradiance,
-  ) extends OperationRelevantData
+  ) extends ModelState
 
   def apply(
       inputModel: PvInput

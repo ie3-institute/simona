@@ -15,19 +15,21 @@ import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.config.SimonaConfig.StorageRuntimeConfig
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
-  FixedRelevantData,
+  ModelInput,
 }
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import org.scalatest.matchers.should.Matchers
 import squants.energy.{KilowattHours, Kilowatts}
-import squants.{Energy, Power}
+import squants.{Each, Energy, Power}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.quantity.Quantities.getQuantity
 
+import java.time.ZonedDateTime
 import java.util.UUID
 
 class StorageModelSpec extends UnitSpec with Matchers {
@@ -35,6 +37,9 @@ class StorageModelSpec extends UnitSpec with Matchers {
   final val inputModel: StorageInput = createStorageInput()
   implicit val powerTolerance: Power = Kilowatts(1e-10)
   implicit val energyTolerance: Energy = KilowattHours(1e-10)
+
+  private val dateTime: ZonedDateTime =
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-02T03:04:05Z")
 
   def createStorageInput(): StorageInput = {
     val nodeInput = new NodeInput(
@@ -169,10 +174,17 @@ class StorageModelSpec extends UnitSpec with Matchers {
 
           val currentTick = lastTick + duration
 
+          val input = ModelInput(
+            Seq.empty,
+            Each(1),
+            currentTick,
+            dateTime,
+          )
+
           val newState = storageModel.determineState(
             lastState,
             operatingPoint,
-            currentTick,
+            input,
           )
 
           newState.tick shouldBe currentTick
@@ -205,7 +217,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
             tick,
           )
 
-          storageModel.calcFlexOptions(state, FixedRelevantData) match {
+          storageModel.calcFlexOptions(state) match {
             case result: ProvideMinMaxFlexOptions =>
               result.ref should approximate(Kilowatts(pRef))
               result.min should approximate(Kilowatts(pMin))
@@ -247,7 +259,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
             tick,
           )
 
-          storageModel.calcFlexOptions(state, FixedRelevantData) match {
+          storageModel.calcFlexOptions(state) match {
             case result: ProvideMinMaxFlexOptions =>
               result.ref should approximate(Kilowatts(pRef))
               result.min should approximate(Kilowatts(pMin))
@@ -311,7 +323,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
           val (operatingPoint, changeIndicator) =
             storageModel.handlePowerControl(
               state,
-              FixedRelevantData,
               flexOptions,
               Kilowatts(setPower),
             )
@@ -379,7 +390,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
           val (operatingPoint, changeIndicator) =
             storageModel.handlePowerControl(
               state,
-              FixedRelevantData,
               flexOptions,
               Kilowatts(setPower),
             )
@@ -410,7 +420,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
       val (operatingPoint, changeIndicator) =
         storageModel.handlePowerControl(
           state,
-          FixedRelevantData,
           flexOptions,
           Kilowatts(-5d),
         )
@@ -437,7 +446,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
       val (operatingPoint, changeIndicator) =
         storageModel.handlePowerControl(
           state,
-          FixedRelevantData,
           flexOptions,
           Kilowatts(9d),
         )
@@ -464,7 +472,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
       val (operatingPoint, changeIndicator) =
         storageModel.handlePowerControl(
           state,
-          FixedRelevantData,
           flexOptions,
           Kilowatts(-9d),
         )
@@ -493,7 +500,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
       val (operatingPoint, changeIndicator) =
         storageModel.handlePowerControl(
           state,
-          FixedRelevantData,
           flexOptions,
           Kilowatts(5d),
         )

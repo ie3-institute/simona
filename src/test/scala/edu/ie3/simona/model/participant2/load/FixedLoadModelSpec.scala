@@ -7,10 +7,7 @@
 package edu.ie3.simona.model.participant2.load
 
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
-import edu.ie3.simona.model.participant2.ParticipantModel.{
-  FixedRelevantData,
-  FixedState,
-}
+import edu.ie3.simona.model.participant2.ParticipantModel.{FixedState}
 import edu.ie3.simona.test.common.input.LoadInputTestData
 import edu.ie3.simona.test.common.UnitSpec
 import squants.Power
@@ -46,8 +43,7 @@ class FixedLoadModelSpec extends UnitSpec with LoadInputTestData {
 
         (0 until 1000).foreach { tick =>
           val (operatingPoint, nextTick) = model.determineOperatingPoint(
-            FixedState(tick),
-            FixedRelevantData,
+            FixedState(tick)
           )
 
           operatingPoint.activePower should approximate(expectedPower)

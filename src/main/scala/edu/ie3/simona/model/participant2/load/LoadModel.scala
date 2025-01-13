@@ -21,9 +21,7 @@ import edu.ie3.simona.model.participant2.ParticipantFlexibility.ParticipantSimpl
 import edu.ie3.simona.model.participant2.ParticipantModel
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
-  FixedState,
-  OperationRelevantData,
-  ParticipantFixedState,
+  ModelState,
 }
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits.{KILOVOLTAMPERE, KILOWATTHOUR}
@@ -34,26 +32,18 @@ import squants.{Energy, Power}
 
 import java.time.ZonedDateTime
 
-abstract class LoadModel[OR <: OperationRelevantData]
+abstract class LoadModel[S <: ModelState]
     extends ParticipantModel[
       ActivePowerOperatingPoint,
-      FixedState,
-      OR,
+      S,
     ]
-    with ParticipantFixedState[
-      ActivePowerOperatingPoint,
-      OR,
-    ]
-    with ParticipantSimpleFlexibility[
-      FixedState,
-      OR,
-    ] {
+    with ParticipantSimpleFlexibility[S] {
 
   override def zeroPowerOperatingPoint: ActivePowerOperatingPoint =
     ActivePowerOperatingPoint.zero
 
   override def createResults(
-      state: ParticipantModel.FixedState,
+      state: S,
       lastOperatingPoint: Option[ActivePowerOperatingPoint],
       currentOperatingPoint: ActivePowerOperatingPoint,
       complexPower: ComplexPower,
@@ -141,7 +131,7 @@ object LoadModel {
   def apply(
       input: LoadInput,
       config: LoadRuntimeConfig,
-  ): LoadModel[_ <: OperationRelevantData] = {
+  ): LoadModel[_ <: ModelState] = {
     LoadModelBehaviour(config.modelBehaviour) match {
       case LoadModelBehaviour.FIX =>
         FixedLoadModel(input, config)

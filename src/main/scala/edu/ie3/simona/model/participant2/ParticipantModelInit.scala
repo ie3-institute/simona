@@ -20,7 +20,6 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ModelState,
   OperatingPoint,
-  OperationRelevantData,
 }
 import edu.ie3.simona.model.participant2.PrimaryDataParticipantModel.PrimaryResultFunc
 import edu.ie3.simona.model.participant2.evcs.EvcsModel
@@ -37,7 +36,6 @@ object ParticipantModelInit {
   ): ParticipantModel[
     _ <: OperatingPoint,
     _ <: ModelState,
-    _ <: OperationRelevantData,
   ] = {
 
     val scaledParticipantInput =
@@ -75,7 +73,6 @@ object ParticipantModelInit {
   ): ParticipantModel[
     _ <: OperatingPoint,
     _ <: ModelState,
-    _ <: OperationRelevantData,
   ] = {
     // Create a fitting physical model to extract parameters from
     val physicalModel = createModel(
@@ -90,12 +87,11 @@ object ParticipantModelInit {
   }
 
   def createPrimaryModel[P <: PrimaryData: ClassTag](
-      physicalModel: ParticipantModel[_, _, _],
+      physicalModel: ParticipantModel[_, _],
       primaryDataMeta: PrimaryDataMeta[P],
   ): ParticipantModel[
     _ <: OperatingPoint,
     _ <: ModelState,
-    _ <: OperationRelevantData,
   ] = {
     val primaryResultFunc = new PrimaryResultFunc {
       override def createResult(

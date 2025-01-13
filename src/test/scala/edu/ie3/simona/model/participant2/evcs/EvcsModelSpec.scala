@@ -12,10 +12,12 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
-import edu.ie3.simona.model.participant2.ParticipantModel.OperationChangeIndicator
+import edu.ie3.simona.model.participant2.ParticipantModel.{
+  ModelInput,
+  OperationChangeIndicator,
+}
 import edu.ie3.simona.model.participant2.evcs.EvcsModel.{
   EvcsOperatingPoint,
-  EvcsRelevantData,
   EvcsState,
 }
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
@@ -38,6 +40,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.apache.pekko.actor.typed.Behavior
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
+import squants.Each
 import squants.energy.{KilowattHours, Kilowatts}
 
 import java.time.ZonedDateTime
@@ -52,7 +55,7 @@ class EvcsModelSpec
   private implicit val energyTolerance: squants.Energy = KilowattHours(1e-10)
   private implicit val powerTolerance: squants.Power = Kilowatts(1e-10)
 
-  private val resultDateTime: ZonedDateTime =
+  private val dateTime: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-02T03:04:05Z")
 
   private def createModel(
@@ -93,11 +96,7 @@ class EvcsModelSpec
           EvcsState(
             Seq(evModel),
             3600L,
-          ),
-          EvcsRelevantData(
-            3600L,
-            Seq.empty,
-          ),
+          )
         )
 
         operatingPoint.evOperatingPoints shouldBe Map(
@@ -128,11 +127,7 @@ class EvcsModelSpec
           EvcsState(
             Seq(evModel),
             3600L,
-          ),
-          EvcsRelevantData(
-            3600L,
-            Seq.empty,
-          ),
+          )
         )
 
         operatingPoint.evOperatingPoints shouldBe Map(
@@ -199,10 +194,17 @@ class EvcsModelSpec
               Map(ev.uuid -> Kilowatts(power))
             )
 
+            val input = ModelInput(
+              Seq.empty, // todo test arrivals
+              Each(1),
+              currentTick,
+              dateTime,
+            )
+
             val newState = evcsModel.determineState(
               state,
               operatingPoint,
-              currentTick,
+              input,
             )
 
             newState.evs should have size 1
@@ -270,7 +272,7 @@ class EvcsModelSpec
           None,
           currentOperatingPoint,
           ComplexPower(Kilowatts(5), Kilovars(0.5)),
-          resultDateTime,
+          dateTime,
         )
 
         results should have size 3
@@ -279,7 +281,7 @@ class EvcsModelSpec
           .find(_.getInputModel == ev1.uuid)
           .getOrElse(fail(s"No results for EV ${ev1.uuid}.")) match {
           case evResult: EvResult =>
-            evResult.getTime shouldBe resultDateTime
+            evResult.getTime shouldBe dateTime
             evResult.getP should beEquivalentTo(3.0.asKiloWatt)
             evResult.getQ should beEquivalentTo(0.3.asKiloVar)
             evResult.getSoc should beEquivalentTo(50.0.asPercent)
@@ -291,7 +293,7 @@ class EvcsModelSpec
           .find(_.getInputModel == ev2.uuid)
           .getOrElse(fail(s"No results for EV ${ev2.uuid}.")) match {
           case evResult: EvResult =>
-            evResult.getTime shouldBe resultDateTime
+            evResult.getTime shouldBe dateTime
             evResult.getP should beEquivalentTo(2.0.asKiloWatt)
             evResult.getQ should beEquivalentTo(0.2.asKiloVar)
             evResult.getSoc should beEquivalentTo(75.0.asPercent)
@@ -303,7 +305,7 @@ class EvcsModelSpec
           .find(_.getInputModel == evcsModel.uuid)
           .getOrElse(fail(s"No results for EVCS.")) match {
           case evcsResult: EvcsResult =>
-            evcsResult.getTime shouldBe resultDateTime
+            evcsResult.getTime shouldBe dateTime
             evcsResult.getP should beEquivalentTo(5.0.asKiloWatt)
             evcsResult.getQ should beEquivalentTo(0.5.asKiloVar)
           case unexpected =>
@@ -344,7 +346,7 @@ class EvcsModelSpec
             Some(lastOperatingPoint),
             currentOperatingPoint,
             ComplexPower(Kilowatts(evcsP), Kilovars(evcsQ)),
-            resultDateTime,
+            dateTime,
           )
 
           val expectedResults = Iterable(ev1Res, ev2Res, evcsRes).map {
@@ -357,7 +359,7 @@ class EvcsModelSpec
           actualEv1Result.isDefined shouldBe ev1Res
           actualEv1Result.foreach {
             case evResult: EvResult =>
-              evResult.getTime shouldBe resultDateTime
+              evResult.getTime shouldBe dateTime
               evResult.getP should beEquivalentTo(ev1P.asKiloWatt)
               evResult.getQ should beEquivalentTo((ev1P / 10).asKiloVar)
               evResult.getSoc should beEquivalentTo(50.0.asPercent)
@@ -369,7 +371,7 @@ class EvcsModelSpec
           actualEv2Result.isDefined shouldBe ev2Res
           actualEv2Result.foreach {
             case evResult: EvResult =>
-              evResult.getTime shouldBe resultDateTime
+              evResult.getTime shouldBe dateTime
               evResult.getP should beEquivalentTo(ev2P.asKiloWatt)
               evResult.getQ should beEquivalentTo((ev2P / 10).asKiloVar)
               evResult.getSoc should beEquivalentTo(75.0.asPercent)
@@ -381,7 +383,7 @@ class EvcsModelSpec
           actualEvcsResult.isDefined shouldBe evcsRes
           actualEvcsResult.foreach {
             case evcsResult: EvcsResult =>
-              evcsResult.getTime shouldBe resultDateTime
+              evcsResult.getTime shouldBe dateTime
               evcsResult.getP should beEquivalentTo(evcsP.asKiloWatt)
               evcsResult.getQ should beEquivalentTo(evcsQ.asKiloVar)
             case unexpected =>
@@ -398,11 +400,6 @@ class EvcsModelSpec
         val evcsModel = createModel("constantpower")
 
         val currentTick = 7200L
-
-        val data = EvcsRelevantData(
-          currentTick,
-          Seq.empty,
-        )
 
         val cases = Table(
           (
@@ -496,8 +493,7 @@ class EvcsModelSpec
               EvcsState(
                 Seq(ev1, ev2),
                 currentTick,
-              ),
-              data,
+              )
             ) match {
               case ProvideMinMaxFlexOptions(
                     modelUuid,
@@ -518,11 +514,6 @@ class EvcsModelSpec
         val evcsModel = createModel("maxpower")
 
         val currentTick = 7200L
-
-        val data = EvcsRelevantData(
-          currentTick,
-          Seq.empty,
-        )
 
         val cases = Table(
           (
@@ -614,8 +605,7 @@ class EvcsModelSpec
               EvcsState(
                 Seq(ev1, ev2),
                 currentTick,
-              ),
-              data,
+              )
             ) match {
               case ProvideMinMaxFlexOptions(
                     modelUuid,
@@ -637,11 +627,6 @@ class EvcsModelSpec
 
         val currentTick = 7200L
 
-        val data = EvcsRelevantData(
-          currentTick,
-          Seq.empty,
-        )
-
         val ev1 = EvModelWrapper(
           new MockEvModel(
             UUID.randomUUID(),
@@ -658,8 +643,7 @@ class EvcsModelSpec
           EvcsState(
             Seq(ev1),
             currentTick,
-          ),
-          data,
+          )
         ) match {
           case ProvideMinMaxFlexOptions(
                 modelUuid,
@@ -682,11 +666,6 @@ class EvcsModelSpec
 
       "dealing with two evs" in {
         val currentTick = 3600L
-
-        val data = EvcsRelevantData(
-          currentTick,
-          Seq.empty,
-        )
 
         // not used
         val mockFlexOptions =
@@ -785,7 +764,6 @@ class EvcsModelSpec
                 Seq(ev1, ev2),
                 currentTick,
               ),
-              data,
               mockFlexOptions,
               Kilowatts(setPower),
             ) match {

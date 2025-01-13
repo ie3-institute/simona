@@ -7,7 +7,6 @@
 package edu.ie3.simona.model.participant2.load
 
 import edu.ie3.datamodel.models.input.system.LoadInput
-import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.LoadReference
@@ -15,17 +14,16 @@ import edu.ie3.simona.model.participant.load.LoadReference.{
   ActivePower,
   EnergyConsumption,
 }
-import edu.ie3.simona.model.participant2.ParticipantModel
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
-  FixedRelevantData,
+  FixedState,
+  ParticipantFixedState,
 }
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants.time.Days
-import squants.{Dimensionless, Power}
+import squants.Power
 
-import java.time.ZonedDateTime
 import java.util.UUID
 
 class FixedLoadModel(
@@ -34,20 +32,13 @@ class FixedLoadModel(
     override val cosPhiRated: Double,
     override val qControl: QControl,
     private val activePower: Power,
-) extends LoadModel[FixedRelevantData.type] {
+) extends LoadModel[FixedState]
+    with ParticipantFixedState[ActivePowerOperatingPoint] {
 
   override def determineOperatingPoint(
-      state: ParticipantModel.FixedState,
-      relevantData: ParticipantModel.FixedRelevantData.type,
+      state: FixedState
   ): (ActivePowerOperatingPoint, Option[Long]) =
     (ActivePowerOperatingPoint(activePower), None)
-
-  override def createRelevantData(
-      receivedData: Seq[Data],
-      nodalVoltage: Dimensionless,
-      tick: Long,
-      simulationTime: ZonedDateTime,
-  ): ParticipantModel.FixedRelevantData.type = FixedRelevantData
 
 }
 

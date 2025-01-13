@@ -18,10 +18,10 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.em.EmTools
 import edu.ie3.simona.model.participant2.ParticipantModel.{
+  ModelInput,
   ModelState,
   OperatingPoint,
   OperationChangeIndicator,
-  OperationRelevantData,
 }
 import edu.ie3.simona.model.participant2.ParticipantModelShell.ResultsContainer
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
@@ -53,14 +53,13 @@ import scala.reflect.ClassTag
 final case class ParticipantModelShell[
     OP <: OperatingPoint,
     S <: ModelState,
-    OR <: OperationRelevantData,
 ](
-    private val model: ParticipantModel[OP, S, OR]
-      with ParticipantFlexibility[OP, S, OR],
+    private val model: ParticipantModel[OP, S]
+      with ParticipantFlexibility[OP, S],
     private val operationInterval: OperationInterval,
     private val simulationStartDate: ZonedDateTime,
     private val _state: Option[S] = None,
-    private val _relevantData: Option[OR] = None,
+    private val _modelInput: Option[ModelInput] = None,
     private val _flexOptions: Option[ProvideFlexOptions] = None,
     private val _lastOperatingPoint: Option[OP] = None,
     private val _operatingPoint: Option[OP] = None,
@@ -91,8 +90,8 @@ final case class ParticipantModelShell[
     * @return
     *   the operation relevant data
     */
-  private def getRelevantData: OR =
-    _relevantData.getOrElse(
+  private def getModelInput: ModelInput =
+    _modelInput.getOrElse(
       throw new CriticalFailureException("No relevant data available!")
     )
 
@@ -124,21 +123,23 @@ final case class ParticipantModelShell[
       )
     )
 
-  def updateRelevantData(
+  def updateModelInput(
       receivedData: Seq[Data],
       nodalVoltage: Dimensionless,
       tick: Long,
-  ): ParticipantModelShell[OP, S, OR] = {
+  ): ParticipantModelShell[OP, S] = {
     val currentSimulationTime = tick.toDateTime(simulationStartDate)
-    val updatedRelevantData =
-      model.createRelevantData(
-        receivedData,
-        nodalVoltage,
-        tick,
-        currentSimulationTime,
-      )
 
-    copy(_relevantData = Some(updatedRelevantData))
+    copy(_modelInput =
+      Some(
+        ModelInput(
+          receivedData,
+          nodalVoltage,
+          tick,
+          currentSimulationTime,
+        )
+      )
+    )
   }
 
   /** Update operating point when the model is '''not''' em-controlled.
@@ -148,14 +149,12 @@ final case class ParticipantModelShell[
     */
   def updateOperatingPoint(
       currentTick: Long
-  ): ParticipantModelShell[OP, S, OR] = {
+  ): ParticipantModelShell[OP, S] = {
     val currentState = determineCurrentState(currentTick)
 
     def modelOperatingPoint(): (OP, OperationChangeIndicator) = {
-      val (modelOp, modelNextTick) = model.determineOperatingPoint(
-        currentState,
-        getRelevantData,
-      )
+      val (modelOp, modelNextTick) =
+        model.determineOperatingPoint(currentState)
       val modelIndicator =
         OperationChangeIndicator(changesAtTick = modelNextTick)
       (modelOp, modelIndicator)
@@ -199,15 +198,12 @@ final case class ParticipantModelShell[
     )
   }
 
-  def updateFlexOptions(currentTick: Long): ParticipantModelShell[OP, S, OR] = {
+  def updateFlexOptions(currentTick: Long): ParticipantModelShell[OP, S] = {
     val currentState = determineCurrentState(currentTick)
 
     val flexOptions =
       if (operationInterval.includes(currentTick)) {
-        model.calcFlexOptions(
-          currentState,
-          getRelevantData,
-        )
+        model.calcFlexOptions(currentState)
       } else {
         // Out of operation, there's no way to operate besides 0 kW
         ProvideMinMaxFlexOptions.noFlexOption(model.uuid, zeroKW)
@@ -224,7 +220,7 @@ final case class ParticipantModelShell[
     */
   def updateOperatingPoint(
       flexControl: IssueFlexControl
-  ): ParticipantModelShell[OP, S, OR] = {
+  ): ParticipantModelShell[OP, S] = {
     val currentState = determineCurrentState(flexControl.tick)
 
     val currentTick = flexControl.tick
@@ -241,7 +237,6 @@ final case class ParticipantModelShell[
 
       model.handlePowerControl(
         currentState,
-        getRelevantData,
         fo,
         setPointActivePower,
       )
@@ -304,7 +299,7 @@ final case class ParticipantModelShell[
   def handleRequest(
       ctx: ActorContext[ParticipantAgent.Request],
       request: ParticipantRequest,
-  ): ParticipantModelShell[OP, S, OR] = {
+  ): ParticipantModelShell[OP, S] = {
     val currentState = determineCurrentState(request.tick)
     val updatedState = model.handleRequest(currentState, ctx, request)
 
@@ -317,10 +312,10 @@ final case class ParticipantModelShell[
       .zip(_operatingPoint)
       .flatMap { case (st, op) =>
         Option.when(st.tick < currentTick) {
-          model.determineState(st, op, currentTick)
+          model.determineState(st, op, getModelInput)
         }
       }
-      .getOrElse(model.initialState(currentTick))
+      .getOrElse(model.initialState(getModelInput))
 
     if (state.tick != currentTick)
       throw new CriticalFailureException(
@@ -345,7 +340,7 @@ object ParticipantModelShell {
       primaryDataMeta: PrimaryDataMeta[P],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
-  ): ParticipantModelShell[_, _, _] = {
+  ): ParticipantModelShell[_, _] = {
     val model = ParticipantModelInit.createPrimaryModel(
       participantInput,
       config,
@@ -364,7 +359,7 @@ object ParticipantModelShell {
       config: BaseRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
-  ): ParticipantModelShell[_, _, _] = {
+  ): ParticipantModelShell[_, _] = {
     val model = ParticipantModelInit.createModel(
       participantInput,
       config,
@@ -380,13 +375,12 @@ object ParticipantModelShell {
   private def createShell[
       OP <: OperatingPoint,
       S <: ModelState,
-      OR <: OperationRelevantData,
   ](
-      model: ParticipantModel[OP, S, OR],
+      model: ParticipantModel[OP, S],
       participantInput: SystemParticipantInput,
       simulationEndDate: ZonedDateTime,
       simulationStartDate: ZonedDateTime,
-  ): ParticipantModelShell[OP, S, OR] = {
+  ): ParticipantModelShell[OP, S] = {
 
     val operationInterval: OperationInterval =
       SystemComponent.determineOperationInterval(

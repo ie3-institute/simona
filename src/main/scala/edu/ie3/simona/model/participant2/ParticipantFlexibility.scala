@@ -11,7 +11,6 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   OperationChangeIndicator,
   ModelState,
   OperatingPoint,
-  OperationRelevantData,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
@@ -21,16 +20,14 @@ import squants.energy.Power
 trait ParticipantFlexibility[
     OP <: OperatingPoint,
     S <: ModelState,
-    OR <: OperationRelevantData,
 ] {
 
-  this: ParticipantModel[OP, S, OR] =>
+  this: ParticipantModel[OP, S] =>
 
-  def calcFlexOptions(state: S, relevantData: OR): ProvideFlexOptions
+  def calcFlexOptions(state: S): ProvideFlexOptions
 
   def handlePowerControl(
       state: S,
-      relevantData: OR,
       flexOptions: ProvideFlexOptions, // TODO is this needed?
       setPower: Power,
   ): (OP, OperationChangeIndicator)
@@ -40,16 +37,14 @@ trait ParticipantFlexibility[
 object ParticipantFlexibility {
 
   trait ParticipantSimpleFlexibility[
-      S <: ModelState,
-      OR <: OperationRelevantData,
-  ] extends ParticipantFlexibility[ActivePowerOperatingPoint, S, OR] {
-    this: ParticipantModel[ActivePowerOperatingPoint, S, OR] =>
+      S <: ModelState
+  ] extends ParticipantFlexibility[ActivePowerOperatingPoint, S] {
+    this: ParticipantModel[ActivePowerOperatingPoint, S] =>
 
     override def calcFlexOptions(
-        state: S,
-        relevantData: OR,
+        state: S
     ): ProvideFlexOptions = {
-      val (operatingPoint, _) = determineOperatingPoint(state, relevantData)
+      val (operatingPoint, _) = determineOperatingPoint(state)
       val power = operatingPoint.activePower
 
       ProvideMinMaxFlexOptions(uuid, power, power, DefaultQuantities.zeroKW)
@@ -57,7 +52,6 @@ object ParticipantFlexibility {
 
     override def handlePowerControl(
         state: S,
-        relevantData: OR,
         flexOptions: ProvideFlexOptions,
         setPower: Power,
     ): (ActivePowerOperatingPoint, OperationChangeIndicator) = {

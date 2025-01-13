@@ -9,7 +9,6 @@ package edu.ie3.simona.model.participant2.load
 import de.lmu.ifi.dbs.elki.math.statistics.distribution.GeneralizedExtremeValueDistribution
 import de.lmu.ifi.dbs.elki.utilities.random.RandomFactory
 import edu.ie3.datamodel.models.input.system.LoadInput
-import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.load.DayType
@@ -17,13 +16,14 @@ import edu.ie3.simona.model.participant.load.random.RandomLoadParamStore
 import edu.ie3.simona.model.participant2.ParticipantModel
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
-  DateTimeData,
+  DateTimeState,
+  ParticipantDateTimeState,
 }
 import edu.ie3.simona.util.TickUtil
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.ApparentPower
+import squants.Power
 import squants.energy.{KilowattHours, Kilowatts, Watts}
-import squants.{Dimensionless, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -36,7 +36,8 @@ class RandomLoadModel(
     override val cosPhiRated: Double,
     override val qControl: QControl,
     val referenceScalingFactor: Double,
-) extends LoadModel[DateTimeData] {
+) extends LoadModel[DateTimeState]
+    with ParticipantDateTimeState[ActivePowerOperatingPoint] {
 
   private val randomLoadParamStore = RandomLoadParamStore()
 
@@ -45,14 +46,13 @@ class RandomLoadModel(
     mutable.Map.empty[GevKey, GeneralizedExtremeValueDistribution]
 
   override def determineOperatingPoint(
-      state: ParticipantModel.FixedState,
-      relevantData: DateTimeData,
+      state: DateTimeState
   ): (ParticipantModel.ActivePowerOperatingPoint, Option[Long]) = {
     val resolution = RandomLoadParamStore.resolution.getSeconds
 
     val (modelTick, modelDateTime) = TickUtil.roundToResolution(
-      relevantData.tick,
-      relevantData.dateTime,
+      state.tick,
+      state.dateTime,
       resolution.toInt,
     )
 
@@ -61,7 +61,7 @@ class RandomLoadModel(
     /* Get a next random power (in kW) */
     val randomPower = gev.nextRandom()
     if (randomPower < 0)
-      determineOperatingPoint(state, relevantData)
+      determineOperatingPoint(state)
     else {
       val nextTick = modelTick + resolution
       (
@@ -107,12 +107,6 @@ class RandomLoadModel(
     }
   }
 
-  override def createRelevantData(
-      receivedData: Seq[Data],
-      nodalVoltage: Dimensionless,
-      tick: Long,
-      simulationTime: ZonedDateTime,
-  ): DateTimeData = DateTimeData(tick, simulationTime)
 }
 
 object RandomLoadModel {

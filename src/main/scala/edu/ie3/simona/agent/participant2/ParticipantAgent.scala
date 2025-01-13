@@ -171,7 +171,7 @@ object ParticipantAgent {
   }
 
   def apply(
-      modelShell: ParticipantModelShell[_, _, _],
+      modelShell: ParticipantModelShell[_, _],
       inputHandler: ParticipantInputHandler,
       gridAdapter: ParticipantGridAdapter,
       resultListener: Iterable[ActorRef[ResultEvent]],
@@ -300,13 +300,13 @@ object ParticipantAgent {
     }
 
   private def maybeCalculate(
-      modelShell: ParticipantModelShell[_, _, _],
+      modelShell: ParticipantModelShell[_, _],
       inputHandler: ParticipantInputHandler,
       gridAdapter: ParticipantGridAdapter,
       listener: Iterable[ActorRef[ResultEvent]],
       parentData: Either[SchedulerData, FlexControlledData],
   ): (
-      ParticipantModelShell[_, _, _],
+      ParticipantModelShell[_, _],
       ParticipantInputHandler,
       ParticipantGridAdapter,
   ) = {
@@ -320,7 +320,7 @@ object ParticipantAgent {
 
       val (updatedShell, updatedGridAdapter) = Scope(modelShell)
         .map(
-          _.updateRelevantData(
+          _.updateModelInput(
             inputHandler.getData,
             gridAdapter.nodalVoltage,
             activation.tick,

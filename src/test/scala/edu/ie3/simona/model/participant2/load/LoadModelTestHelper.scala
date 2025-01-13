@@ -8,8 +8,7 @@ package edu.ie3.simona.model.participant2.load
 
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
-  DateTimeData,
-  FixedState,
+  DateTimeState,
 }
 import squants.{Dimensionless, Each, Energy, Power, Quantity}
 import squants.energy.KilowattHours
@@ -21,7 +20,7 @@ import java.time.temporal.ChronoUnit
 trait LoadModelTestHelper {
 
   protected def calculateEnergyDiffForYear(
-      model: LoadModel[DateTimeData],
+      model: LoadModel[DateTimeState],
       simulationStartDate: ZonedDateTime,
       expectedEnergy: Energy,
   ): Dimensionless = {
@@ -41,7 +40,7 @@ trait LoadModelTestHelper {
   }
 
   protected def calculatePowerForYear(
-      model: LoadModel[DateTimeData],
+      model: LoadModel[DateTimeState],
       simulationStartDate: ZonedDateTime,
   ): Iterable[Power] = {
     val quarterHoursInYear = 365L * 96L
@@ -49,16 +48,13 @@ trait LoadModelTestHelper {
     (0L until quarterHoursInYear)
       .map { quarterHour =>
         val tick = quarterHour * 15 * 60
-        val relevantData = DateTimeData(
+        val state = DateTimeState(
           tick,
           simulationStartDate.plus(quarterHour * 15, ChronoUnit.MINUTES),
         )
 
         model
-          .determineOperatingPoint(
-            FixedState(tick),
-            relevantData,
-          ) match {
+          .determineOperatingPoint(state) match {
           case (ActivePowerOperatingPoint(p), _) =>
             p
         }

@@ -17,18 +17,17 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantModel.{
-  FixedState,
-  OperationChangeIndicator,
+  ModelInput,
+  ModelState,
   OperatingPoint,
-  OperationRelevantData,
-  ParticipantFixedState,
+  OperationChangeIndicator,
 }
 import edu.ie3.simona.model.participant2.PrimaryDataParticipantModel._
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.scala.quantities.{ApparentPower, ReactivePower}
-import squants.{Dimensionless, Power}
+import squants.Power
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -45,25 +44,47 @@ final case class PrimaryDataParticipantModel[P <: PrimaryData: ClassTag](
     primaryDataMeta: PrimaryDataMeta[P],
 ) extends ParticipantModel[
       PrimaryOperatingPoint[P],
-      FixedState,
-      PrimaryOperationRelevantData[P],
-    ]
-    with ParticipantFixedState[
-      PrimaryOperatingPoint[P],
-      PrimaryOperationRelevantData[P],
+      PrimaryDataState[P],
     ] {
 
+  override val initialState: ModelInput => PrimaryDataState[P] = { input =>
+    val primaryData = getPrimaryData(input.receivedData)
+    PrimaryDataState(
+      primaryData,
+      input.currentTick,
+    )
+  }
+
+  override def determineState(
+      lastState: PrimaryDataState[P],
+      operatingPoint: PrimaryOperatingPoint[P],
+      input: ParticipantModel.ModelInput,
+  ): PrimaryDataState[P] = initialState(input)
+
+  private def getPrimaryData(receivedData: Seq[Data]): P = {
+    receivedData
+      .collectFirst { case data: P =>
+        data
+      }
+      .getOrElse {
+        throw new CriticalFailureException(
+          "Expected primary data of type " +
+            s"${implicitly[ClassTag[P]].runtimeClass.getSimpleName}, " +
+            s"got $receivedData"
+        )
+      }
+  }
+
   override def determineOperatingPoint(
-      state: FixedState,
-      relevantData: PrimaryOperationRelevantData[P],
+      state: PrimaryDataState[P]
   ): (PrimaryOperatingPoint[P], Option[Long]) =
-    (PrimaryOperatingPoint(relevantData.data), None)
+    (PrimaryOperatingPoint(state.data), None)
 
   override def zeroPowerOperatingPoint: PrimaryOperatingPoint[P] =
     PrimaryOperatingPoint(primaryDataMeta.zero)
 
   override def createResults(
-      state: FixedState,
+      state: PrimaryDataState[P],
       lastOperatingPoint: Option[PrimaryOperatingPoint[P]],
       currentOperatingPoint: PrimaryOperatingPoint[P],
       complexPower: ComplexPower,
@@ -92,41 +113,21 @@ final case class PrimaryDataParticipantModel[P <: PrimaryData: ClassTag](
     Iterable.empty
   }
 
-  override def createRelevantData(
-      receivedData: Seq[Data],
-      nodalVoltage: Dimensionless,
-      tick: Long,
-      simulationTime: ZonedDateTime,
-  ): PrimaryOperationRelevantData[P] =
-    receivedData
-      .collectFirst { case data: P =>
-        PrimaryOperationRelevantData(data)
-      }
-      .getOrElse {
-        throw new CriticalFailureException(
-          "Expected primary data of type " +
-            s"${implicitly[ClassTag[P]].runtimeClass.getSimpleName}, " +
-            s"got $receivedData"
-        )
-      }
-
   override def calcFlexOptions(
-      state: FixedState,
-      relevantData: PrimaryOperationRelevantData[P],
+      state: PrimaryDataState[P]
   ): FlexibilityMessage.ProvideFlexOptions = {
-    val (operatingPoint, _) = determineOperatingPoint(state, relevantData)
+    val (operatingPoint, _) = determineOperatingPoint(state)
 
     ProvideMinMaxFlexOptions.noFlexOption(uuid, operatingPoint.activePower)
   }
 
   override def handlePowerControl(
-      state: FixedState,
-      relevantData: PrimaryOperationRelevantData[P],
+      state: PrimaryDataState[P],
       flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,
   ): (PrimaryOperatingPoint[P], OperationChangeIndicator) = {
-    val factor = relevantData.data.p / setPower
-    val scaledData: P = primaryDataMeta.scale(relevantData.data, factor)
+    val factor = state.data.p / setPower
+    val scaledData: P = primaryDataMeta.scale(state.data, factor)
 
     (PrimaryOperatingPoint(scaledData), OperationChangeIndicator())
   }
@@ -135,8 +136,10 @@ final case class PrimaryDataParticipantModel[P <: PrimaryData: ClassTag](
 
 object PrimaryDataParticipantModel {
 
-  final case class PrimaryOperationRelevantData[+P <: PrimaryData](data: P)
-      extends OperationRelevantData
+  final case class PrimaryDataState[+P <: PrimaryData](
+      data: P,
+      override val tick: Long,
+  ) extends ModelState
 
   trait PrimaryOperatingPoint[+P <: PrimaryData] extends OperatingPoint {
     val data: P

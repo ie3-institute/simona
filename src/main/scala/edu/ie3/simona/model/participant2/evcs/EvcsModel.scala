@@ -23,14 +23,13 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.model.participant2.ParticipantModel.{
-  OperationChangeIndicator,
+  ModelInput,
   ModelState,
   OperatingPoint,
-  OperationRelevantData,
+  OperationChangeIndicator,
 }
 import edu.ie3.simona.model.participant2.evcs.EvcsModel.{
   EvcsOperatingPoint,
-  EvcsRelevantData,
   EvcsState,
 }
 import edu.ie3.simona.model.participant2.{ChargingHelper, ParticipantModel}
@@ -55,7 +54,7 @@ import edu.ie3.util.scala.quantities.{
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import squants.energy.{Kilowatts, Watts}
 import squants.time.Seconds
-import squants.{Dimensionless, Energy, Power}
+import squants.{Energy, Power}
 import tech.units.indriya.unit.Units.PERCENT
 
 import java.time.ZonedDateTime
@@ -74,16 +73,55 @@ class EvcsModel private (
 ) extends ParticipantModel[
       EvcsOperatingPoint,
       EvcsState,
-      EvcsRelevantData,
     ]
     with EvcsChargingProperties {
 
-  override val initialState: Long => EvcsState = tick =>
-    EvcsState(Seq.empty, tick)
+  override val initialState: ModelInput => EvcsState = { input =>
+    EvcsState(getArrivals(input.receivedData), input.currentTick)
+  }
+
+  override def determineState(
+      lastState: EvcsState,
+      operatingPoint: EvcsOperatingPoint,
+      input: ModelInput,
+  ): EvcsState = {
+
+    val updatedEvs = lastState.evs.map { ev =>
+      operatingPoint.evOperatingPoints
+        .get(ev.uuid)
+        .map { chargingPower =>
+          val currentEnergy = ChargingHelper.calcEnergy(
+            ev.storedEnergy,
+            chargingPower,
+            lastState.tick,
+            input.currentTick,
+            ev.eStorage,
+          )
+
+          ev.copy(storedEnergy = currentEnergy)
+        }
+        .getOrElse(ev)
+    }
+
+    val arrivals = getArrivals(input.receivedData)
+
+    EvcsState(updatedEvs ++ arrivals, input.currentTick)
+  }
+
+  private def getArrivals(receivedData: Seq[Data]): Seq[EvModelWrapper] = {
+    receivedData
+      .collectFirst { case evData: ArrivingEvs =>
+        evData.arrivals
+      }
+      .getOrElse {
+        throw new CriticalFailureException(
+          s"Expected ArrivingEvs, got $receivedData"
+        )
+      }
+  }
 
   override def determineOperatingPoint(
-      state: EvcsState,
-      relevantData: EvcsRelevantData,
+      state: EvcsState
   ): (EvcsOperatingPoint, Option[Long]) = {
     val chargingPowers =
       strategy.determineChargingPowers(state.evs, state.tick, this)
@@ -96,7 +134,7 @@ class EvcsModel private (
         determineNextEvent(
           ev,
           power,
-          relevantData.tick,
+          state.tick,
         )
       }
       .minOption
@@ -106,32 +144,6 @@ class EvcsModel private (
 
   override def zeroPowerOperatingPoint: EvcsOperatingPoint =
     EvcsOperatingPoint.zero
-
-  override def determineState(
-      lastState: EvcsState,
-      operatingPoint: EvcsOperatingPoint,
-      currentTick: Long,
-  ): EvcsState = {
-
-    val updatedEvs = lastState.evs.map { ev =>
-      operatingPoint.evOperatingPoints
-        .get(ev.uuid)
-        .map { chargingPower =>
-          val currentEnergy = ChargingHelper.calcEnergy(
-            ev.storedEnergy,
-            chargingPower,
-            lastState.tick,
-            currentTick,
-            ev.eStorage,
-          )
-
-          ev.copy(storedEnergy = currentEnergy)
-        }
-        .getOrElse(ev)
-    }
-
-    EvcsState(updatedEvs, currentTick)
-  }
 
   override def createResults(
       state: EvcsState,
@@ -209,26 +221,8 @@ class EvcsModel private (
       ServiceType.EvMovementService
     )
 
-  override def createRelevantData(
-      receivedData: Seq[Data],
-      nodalVoltage: Dimensionless,
-      tick: Long,
-      simulationTime: ZonedDateTime,
-  ): EvcsRelevantData = {
-    receivedData
-      .collectFirst { case evData: ArrivingEvs =>
-        EvcsRelevantData(tick, evData.arrivals)
-      }
-      .getOrElse {
-        throw new CriticalFailureException(
-          s"Expected ArrivingEvs, got $receivedData"
-        )
-      }
-  }
-
   override def calcFlexOptions(
-      state: EvcsState,
-      relevantData: EvcsRelevantData,
+      state: EvcsState
   ): FlexibilityMessage.ProvideFlexOptions = {
 
     val preferredPowers =
@@ -289,7 +283,6 @@ class EvcsModel private (
 
   override def handlePowerControl(
       state: EvcsState,
-      relevantData: EvcsRelevantData,
       flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,
   ): (EvcsOperatingPoint, OperationChangeIndicator) = {
@@ -607,11 +600,6 @@ object EvcsModel {
       evs: Seq[EvModelWrapper],
       override val tick: Long,
   ) extends ModelState
-
-  final case class EvcsRelevantData(
-      tick: Long,
-      arrivals: Seq[EvModelWrapper],
-  ) extends OperationRelevantData
 
   def apply(
       inputModel: EvcsInput,

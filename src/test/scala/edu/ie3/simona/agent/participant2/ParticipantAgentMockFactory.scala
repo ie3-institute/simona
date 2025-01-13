@@ -28,7 +28,7 @@ object ParticipantAgentMockFactory {
   /** Needed because activation adapter needs to be created and communicated
     */
   def create(
-      modelShell: ParticipantModelShell[_, _, _],
+      modelShell: ParticipantModelShell[_, _],
       inputHandler: ParticipantInputHandler,
       gridAdapter: ParticipantGridAdapter,
       resultListener: Iterable[ActorRef[ResultEvent]],
@@ -44,14 +44,12 @@ object ParticipantAgentMockFactory {
         FlexControlledData(em, flexAdapter)
       }
       .left
-      .map {
-        case (scheduler, adapterReply) => {
-          val activationAdapter = ctx.messageAdapter[Activation] { msg =>
-            ParticipantActivation(msg.tick)
-          }
-          adapterReply ! activationAdapter
-          SchedulerData(scheduler, activationAdapter)
+      .map { case (scheduler, adapterReply) =>
+        val activationAdapter = ctx.messageAdapter[Activation] { msg =>
+          ParticipantActivation(msg.tick)
         }
+        adapterReply ! activationAdapter
+        SchedulerData(scheduler, activationAdapter)
       }
 
     ParticipantAgent(

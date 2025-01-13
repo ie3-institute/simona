@@ -11,7 +11,6 @@ import edu.ie3.datamodel.models.result.system.{
   StorageResult,
   SystemParticipantResult,
 }
-import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
@@ -22,7 +21,7 @@ import edu.ie3.simona.model.participant.StorageModel.RefTargetSocParams
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant2.ParticipantModel.{
   ActivePowerOperatingPoint,
-  FixedRelevantData,
+  ModelInput,
   ModelState,
 }
 import edu.ie3.simona.model.participant2.StorageModel.StorageState
@@ -44,7 +43,7 @@ class StorageModel private (
     override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
-    override val initialState: Long => StorageState,
+    override val initialState: ModelInput => StorageState,
     eStorage: Energy,
     pMax: Power,
     eta: Dimensionless,
@@ -52,7 +51,6 @@ class StorageModel private (
 ) extends ParticipantModel[
       ActivePowerOperatingPoint,
       StorageState,
-      FixedRelevantData.type,
     ] {
 
   private val minEnergy = zeroKWh
@@ -107,9 +105,26 @@ class StorageModel private (
       )
   }
 
+  override def determineState(
+      lastState: StorageState,
+      operatingPoint: ActivePowerOperatingPoint,
+      input: ModelInput,
+  ): StorageState = {
+    val currentEnergy = ChargingHelper.calcEnergy(
+      lastState.storedEnergy,
+      operatingPoint.activePower,
+      lastState.tick,
+      input.currentTick,
+      eStorage,
+      minEnergy,
+      eta,
+    )
+
+    StorageState(currentEnergy, input.currentTick)
+  }
+
   override def determineOperatingPoint(
-      state: StorageState,
-      relevantData: FixedRelevantData.type,
+      state: StorageState
   ): (ActivePowerOperatingPoint, Option[Long]) =
     throw new CriticalFailureException(
       "Storage model cannot calculate operation point without flexibility control."
@@ -117,24 +132,6 @@ class StorageModel private (
 
   override def zeroPowerOperatingPoint: ActivePowerOperatingPoint =
     ActivePowerOperatingPoint.zero
-
-  override def determineState(
-      lastState: StorageState,
-      operatingPoint: ActivePowerOperatingPoint,
-      currentTick: Long,
-  ): StorageState = {
-    val currentEnergy = ChargingHelper.calcEnergy(
-      lastState.storedEnergy,
-      operatingPoint.activePower,
-      lastState.tick,
-      currentTick,
-      eStorage,
-      minEnergy,
-      eta,
-    )
-
-    StorageState(currentEnergy, currentTick)
-  }
 
   override def createResults(
       state: StorageState,
@@ -168,17 +165,8 @@ class StorageModel private (
   override def getRequiredSecondaryServices: Iterable[ServiceType] =
     Iterable.empty
 
-  override def createRelevantData(
-      receivedData: Seq[Data],
-      nodalVoltage: Dimensionless,
-      tick: Long,
-      simulationTime: ZonedDateTime,
-  ): FixedRelevantData.type =
-    FixedRelevantData
-
   override def calcFlexOptions(
-      state: StorageState,
-      relevantData: FixedRelevantData.type,
+      state: StorageState
   ): FlexibilityMessage.ProvideFlexOptions = {
 
     val chargingPossible = !isFull(state.storedEnergy)
@@ -214,7 +202,6 @@ class StorageModel private (
 
   override def handlePowerControl(
       state: StorageState,
-      relevantData: FixedRelevantData.type,
       flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,
   ): (ActivePowerOperatingPoint, ParticipantModel.OperationChangeIndicator) = {
@@ -331,10 +318,10 @@ object StorageModel {
         .doubleValue
     )
     def getInitialState(eStorage: Energy, config: StorageRuntimeConfig)(
-        tick: Long
+        input: ModelInput
     ): StorageState = {
       val initialStorage = eStorage * config.initialSoc
-      StorageState(storedEnergy = initialStorage, tick)
+      StorageState(storedEnergy = initialStorage, input.currentTick)
     }
 
     new StorageModel(
