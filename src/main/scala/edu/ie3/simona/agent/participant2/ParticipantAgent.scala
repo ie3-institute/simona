@@ -179,7 +179,13 @@ object ParticipantAgent {
   ): Behavior[Request] =
     Behaviors.receivePartial {
       case (ctx, request: ParticipantRequest) =>
-        val updatedShell = modelShell.handleRequest(ctx, request)
+        val updatedShell = modelShell
+          .updateModelInput(
+            inputHandler.getData,
+            gridAdapter.nodalVoltage,
+            request.tick,
+          )
+          .handleRequest(ctx, request)
 
         ParticipantAgent(
           updatedShell,

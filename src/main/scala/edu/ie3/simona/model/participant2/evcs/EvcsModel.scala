@@ -19,7 +19,6 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.config.SimonaConfig.EvcsRuntimeConfig
-import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.model.participant2.ParticipantModel.{
@@ -35,13 +34,7 @@ import edu.ie3.simona.model.participant2.evcs.EvcsModel.{
 import edu.ie3.simona.model.participant2.{ChargingHelper, ParticipantModel}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.simona.ontology.messages.services.EvMessage.{
-  ArrivingEvs,
-  DepartingEvsRequest,
-  DepartingEvsResponse,
-  EvFreeLotsRequest,
-  FreeLotsResponse,
-}
+import edu.ie3.simona.ontology.messages.services.EvMessage._
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.quantities.PowerSystemUnits.KILOVOLTAMPERE
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
@@ -113,11 +106,7 @@ class EvcsModel private (
       .collectFirst { case evData: ArrivingEvs =>
         evData.arrivals
       }
-      .getOrElse {
-        throw new CriticalFailureException(
-          s"Expected ArrivingEvs, got $receivedData"
-        )
-      }
+      .getOrElse(Seq.empty)
   }
 
   override def determineOperatingPoint(
