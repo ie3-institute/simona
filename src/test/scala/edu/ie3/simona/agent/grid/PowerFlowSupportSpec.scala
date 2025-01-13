@@ -6,14 +6,31 @@
 
 package edu.ie3.simona.agent.grid
 
+import edu.ie3.datamodel.models.input.MeasurementUnitInput
+import edu.ie3.datamodel.models.input.connector.{
+  SwitchInput,
+  Transformer2WInput,
+  Transformer3WInput,
+}
+import edu.ie3.datamodel.models.input.container.{
+  RawGridElements,
+  SubGridContainer,
+}
+import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
-import edu.ie3.simona.model.grid.GridModel
-import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.simona.test.common.model.grid.BasicGridWithSwitches
+import edu.ie3.simona.config.SimonaConfig.Simona
+import edu.ie3.simona.model.grid.{GridModel, RefSystem}
+import edu.ie3.simona.test.common.model.grid.{
+  BasicGridWithSwitches,
+  DbfsTestGrid,
+}
+import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
+import edu.ie3.simona.util.TestGridFactory
+import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.Megavars
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
@@ -24,10 +41,14 @@ import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.{Logger, LoggerFactory}
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
+import squants.{Dimensionless, Each}
 import tech.units.indriya.ComparableQuantity
 
-import java.time.ZonedDateTime
+import java.time.{Duration, ZonedDateTime}
+import java.util.UUID
 import javax.measure.quantity.Angle
+import scala.jdk.CollectionConverters.SetHasAsJava
+import scala.language.implicitConversions
 
 /** Tests power flow on a grid with switches on two branches, where depending on
   * whether switches are opened or closed, current flows through one or both of
@@ -366,4 +387,143 @@ class PowerFlowSupportSpec
     }
   }
 
+  "PowerFlowSupport" should {
+    implicit val tolerance: Dimensionless = Each(1e-12)
+
+    val powerFlowParams = PowerFlowParams(
+      1e-5,
+      Vector(1e-12),
+      50,
+      Duration.ofMinutes(30),
+      stopOnFailure = true,
+    )
+
+    "perform the power flow for the slack grid correctly" in {
+      val withMvPowerFlowResults: Map[UUID, Dimensionless] = {
+        val (gridModel, receivedValueStore) = TestData.withMv
+
+        val (operationPoint, slackNodeVoltages) = composeOperatingPoint(
+          gridModel.gridComponents.nodes,
+          gridModel.gridComponents.transformers,
+          gridModel.gridComponents.transformers3w,
+          gridModel.nodeUuidToIndexMap,
+          receivedValueStore,
+          gridModel.mainRefSystem,
+          targetVoltageFromReceivedData = false,
+        )
+
+        val pf = newtonRaphsonPF(
+          gridModel,
+          50,
+          operationPoint,
+          slackNodeVoltages,
+        )(Vector(1e-12)) match {
+          case result: PowerFlowResult.SuccessFullPowerFlowResult =>
+            result
+          case _: PowerFlowResult.FailedPowerFlowResult =>
+            fail()
+        }
+
+        val indexMap = gridModel.nodeUuidToIndexMap.map { case (uuid, i) =>
+          (i, uuid)
+        }
+        pf.nodeData.map(n => indexMap(n.index) -> Each(n.voltage.abs)).toMap
+      }
+
+      val onlyLvPowerFlowResults: Map[UUID, Dimensionless] = {
+        val (gridModel, receivedValueStore) = TestData.onlyLv
+
+        val pf = slackGridPF(
+          gridModel,
+          receivedValueStore,
+          powerFlowParams,
+        ) match {
+          case result: PowerFlowResult.SuccessFullPowerFlowResult =>
+            result
+          case _: PowerFlowResult.FailedPowerFlowResult =>
+            fail()
+        }
+
+        val indexMap = gridModel.nodeUuidToIndexMap.map { case (uuid, i) =>
+          (i, uuid)
+        }
+        pf.nodeData.map(n => indexMap(n.index) -> Each(n.voltage.abs)).toMap
+
+      }
+
+      onlyLvPowerFlowResults.foreach { case (uuid, result) =>
+        withMvPowerFlowResults(uuid) should approximate(result)(tolerance)
+      }
+    }
+  }
+
+  object TestData extends DbfsTestGrid with ConfigTestData {
+    val time: Simona.Time = simonaConfig.simona.time
+
+    implicit def toZoneDateTime(time: String): ZonedDateTime =
+      TimeUtil.withDefaults.toZonedDateTime(time)
+
+    implicit def toGridModel(
+        subGridContainer: SubGridContainer
+    ): GridModel =
+      GridModel(
+        subGridContainer,
+        RefSystem("2000 MVA", "110 kV"),
+        time.startDateTime,
+        time.endDateTime,
+        simonaConfig,
+      )
+
+    val withMv: (GridModel, ReceivedValuesStore) = {
+      val gridModel = TestGridFactory.createSubGrid(
+        gridName = "centerGrid",
+        subgrid = 1,
+        rawGridElements = new RawGridElements(
+          Set(supNodeA, node1, node2, node3, node4).asJava,
+          Set(line1To2, line2To3, line1To4).asJava,
+          Set(transformer1).asJava,
+          Set.empty[Transformer3WInput].asJava,
+          Set.empty[SwitchInput].asJava,
+          Set.empty[MeasurementUnitInput].asJava,
+        ),
+      )
+
+      val receivedValueStore = ReceivedValuesStore.empty(
+        Map.empty,
+        Map.empty,
+        Vector(supNodeA.getUuid),
+      )
+
+      (gridModel, receivedValueStore)
+    }
+
+    val onlyLv: (GridModel, ReceivedValuesStore) = {
+      val updatedNode1 =
+        node1.copy().slack(true).vTarget(0.9999984268502677.asPu).build()
+      val gridModel = TestGridFactory.createSubGrid(
+        gridName = "centerGrid",
+        subgrid = 1,
+        rawGridElements = new RawGridElements(
+          Set(updatedNode1, node2, node3, node4).asJava,
+          Set(
+            line1To2.copy().nodeA(updatedNode1).build(),
+            line2To3,
+            line1To4.copy().nodeB(updatedNode1).build(),
+          ).asJava,
+          Set.empty[Transformer2WInput].asJava,
+          Set.empty[Transformer3WInput].asJava,
+          Set.empty[SwitchInput].asJava,
+          Set.empty[MeasurementUnitInput].asJava,
+        ),
+      )
+
+      val receivedValueStore = ReceivedValuesStore.empty(
+        Map.empty,
+        Map.empty,
+        Vector.empty,
+      )
+
+      (gridModel, receivedValueStore)
+    }
+  }
 }

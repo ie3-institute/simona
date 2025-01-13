@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
+import breeze.linalg.DenseMatrix
 import breeze.math.Complex
 import edu.ie3.powerflow.NewtonRaphsonPF
 import edu.ie3.powerflow.model.NodeData.{PresetData, StateData}
@@ -609,6 +610,73 @@ trait PowerFlowSupport {
         throw new DBFSAlgorithmException(
           "ɛ is mandatory for a newton raphson power flow!"
         )
+    }
+  }
+
+  /** Calculates the power flow for the grid that contains the slack node.
+    * @param gridModel model of the slack grid
+    * @param receivedValueStore received values
+    * @param powerFlowParams parameters for the power flow calculation
+    * @param log for logging
+    * @return power flow results
+    */
+  protected final def slackGridPF(
+      gridModel: GridModel,
+      receivedValueStore: ReceivedValuesStore,
+      powerFlowParams: PowerFlowParams,
+  )(implicit log: Logger): PowerFlowResult = {
+    /* This is the highest grid agent, therefore no data is received for the slack node. Suppress, that it is looked
+     * up in the empty store. */
+    val (operationPoint, slackNodeVoltages) = composeOperatingPoint(
+      gridModel.gridComponents.nodes,
+      gridModel.gridComponents.transformers,
+      gridModel.gridComponents.transformers3w,
+      gridModel.nodeUuidToIndexMap,
+      receivedValueStore,
+      gridModel.mainRefSystem,
+      targetVoltageFromReceivedData = false,
+    )
+
+    def superiorPowerFlow: PowerFlowResult =
+      newtonRaphsonPF(
+        gridModel,
+        powerFlowParams.maxIterations,
+        operationPoint,
+        slackNodeVoltages,
+      )(powerFlowParams.epsilon) match {
+        case validPowerFlowResult: ValidNewtonRaphsonPFResult =>
+          log.debug(
+            "{}",
+            composeValidNewtonRaphsonPFResultVoltagesDebugString(
+              validPowerFlowResult,
+              gridModel,
+            ),
+          )
+          validPowerFlowResult
+        case result: PowerFlowResult.FailedPowerFlowResult =>
+          result
+      }
+
+    /* Regarding the power flow result of this grid, there are two cases. If this is the "highest" grid in a
+     * simulation without a three winding transformer, the grid consists of only one node, and we can mock the power
+     * flow results. If there is a three winding transformer apparent, we actually have to perform power flow
+     * calculations, as the high voltage branch of the transformer is modeled here. */
+    gridModel.gridComponents.transformers3w.isEmpty match {
+      case true if gridModel.gridComponents.nodes.size == 1 =>
+        val nodeData = operationPoint.map(StateData(_))
+        ValidNewtonRaphsonPFResult(-1, nodeData, DenseMatrix(0d, 0d))
+
+      case true =>
+        log.warn(
+          "This grid contains a more than just a slack node. Perform power flow calculations before assessing the power deviations."
+        )
+        superiorPowerFlow
+
+      case false =>
+        log.debug(
+          "This grid contains a three winding transformer. Perform power flow calculations before assessing the power deviations."
+        )
+        superiorPowerFlow
     }
   }
 }

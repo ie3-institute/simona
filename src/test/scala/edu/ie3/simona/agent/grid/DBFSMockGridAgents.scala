@@ -103,7 +103,7 @@ trait DBFSMockGridAgents extends UnitSpec {
     def expectSlackVoltageRequest(
         expectedSweepNo: Int
     ): ActorRef[GridAgent.Request] =
-      gaProbe.expectMessageType[GridAgent.Request] match {
+      gaProbe.expectMessageType[GridAgent.Request](10.seconds) match {
         case requestSlackVoltageMessage: SlackVoltageRequest =>
           requestSlackVoltageMessage.currentSweepNo shouldBe expectedSweepNo
           requestSlackVoltageMessage.nodeUuids should have size nodeUuids.size
