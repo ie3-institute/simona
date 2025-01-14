@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Create `CITATION.cff` [#1035](https://github.com/ie3-institute/simona/issues/1035)
 - Introduce ThermalDemandWrapper [#1049](https://github.com/ie3-institute/simona/issues/1049)
 - Added Marius Staudt to list of reviewers [#1057](https://github.com/ie3-institute/simona/issues/1057)
+- Throw exception if the slack node is not directly conected to a transformer. [#525](https://github.com/ie3-institute/simona/issues/525)
 - Added support for topologies without transformers and slack grids with multiple nodes [#1099](https://github.com/ie3-institute/simona/issues/1099)
 
 ### Changed
