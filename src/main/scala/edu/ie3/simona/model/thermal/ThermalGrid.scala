@@ -218,9 +218,15 @@ final case class ThermalGrid(
     val qDotStorageLastState =
       lastThermalGridState.storageState.map(_.qDot).getOrElse(zeroKW)
 
+    // We can use the qDots from lastState to keep continuity. If...
     if (
-      (qDotHouseLastState > zeroKW && (qDotStorageLastState >= zeroKW)) | (qDotStorageLastState > zeroKW && thermalDemands.heatStorageDemand.hasAdditionalDemand)
+      // ... house was heated in lastState but not from Storage and has still some demand.
+      ((qDotHouseLastState > zeroKW && (qDotStorageLastState >= zeroKW) && thermalDemands.houseDemand.hasAdditionalDemand) ||
+      // ... storage was filled up in the lastState and has still additional demand
+      // But only if the house not reached some requiredDemand.
+      qDotStorageLastState > zeroKW && thermalDemands.heatStorageDemand.hasAdditionalDemand && !thermalDemands.houseDemand.hasRequiredDemand)
     ) {
+      // We can continue for the house
       val (updatedHouseState, thermalHouseThreshold, remainingQDotHouse) =
         handleInfeedHouse(
           relevantData,
@@ -228,10 +234,11 @@ final case class ThermalGrid(
           lastThermalGridState,
           qDotHouseLastState,
         )
-      val (updatedStorageState, thermalStorageThreshold) =
-        if (
-          qDotStorageLastState >= zeroKW && remainingQDotHouse > qDotStorageLastState
-        ) {
+
+      // ...and for the storage
+      val (updatedStorageState, thermalStorageThreshold) = {
+        // In case the ThermalHouse could not handle the infeed it will be used for the storage.
+        if (remainingQDotHouse > qDotStorageLastState) {
           handleInfeedStorage(
             relevantData.currentTick,
             lastThermalGridState,
@@ -244,6 +251,7 @@ final case class ThermalGrid(
             qDotStorageLastState,
           )
         }
+      }
 
       val nextThreshold = determineMostRecentThreshold(
         thermalHouseThreshold,
