@@ -184,8 +184,12 @@ final case class ThermalGrid(
       qDot,
     )
 
-  /** Handles the case, when a grid has infeed. Depending on which entity has some
-    * heat demand the house or the storage will be heated up / filled up.
+  /** Handles the case, when a grid has infeed. Depending on which entity has
+    * some heat demand the house or the storage will be heated up / filled up.
+    * First the actions from lastState will be considered and checked if the
+    * behaviour should be continued. This might be the case, if we got activated
+    * by updated weather data. If this is not the case, all other cases will be
+    * handled by [[ThermalGrid.handleFinalInfeedCases]]
     *
     * @param relevantData
     *   data of heat pump including state of the heat pump
@@ -265,8 +269,9 @@ final case class ThermalGrid(
         nextThreshold,
       )
     }
-    // Handle edge case where house was heated from storage and HP will be activated in between
+    // Handle edge case where house was heated from storage...
     else if (qDotHouseLastState > zeroKW && qDotStorageLastState < zeroKW) {
+      // ...and HP gets activated in current tick
       if (isRunning) {
         handleCases(
           relevantData,
@@ -276,7 +281,7 @@ final case class ThermalGrid(
           zeroKW,
         )
       } else {
-
+        // ... or continue lastState's behaviour
         handleCases(
           relevantData,
           lastAmbientTemperature,
@@ -295,7 +300,9 @@ final case class ThermalGrid(
         qDot,
         -qDot,
       )
-    } else
+    }
+    // or finally check for all other cases.
+    else
       handleFinalInfeedCases(
         thermalDemands,
         relevantData,
