@@ -614,11 +614,16 @@ trait PowerFlowSupport {
   }
 
   /** Calculates the power flow for the grid that contains the slack node.
-    * @param gridModel model of the slack grid
-    * @param receivedValueStore received values
-    * @param powerFlowParams parameters for the power flow calculation
-    * @param log for logging
-    * @return power flow results
+    * @param gridModel
+    *   model of the slack grid
+    * @param receivedValueStore
+    *   received values
+    * @param powerFlowParams
+    *   parameters for the power flow calculation
+    * @param log
+    *   for logging
+    * @return
+    *   power flow results
     */
   protected final def slackGridPF(
       gridModel: GridModel,

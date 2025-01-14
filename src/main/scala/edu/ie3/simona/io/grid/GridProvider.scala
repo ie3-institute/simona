@@ -52,27 +52,6 @@ object GridProvider extends LazyLogging {
             // checks the grid container and throws exception if there is an error
             ValidationUtils.check(jointGridContainer)
 
-            // check slack node location
-            val slackSubGrid = jointGridContainer.getSubGridTopologyGraph
-              .vertexSet()
-              .asScala
-              .filter(_.getRawGrid.getNodes.asScala.exists(_.isSlack))
-              .maxByOption(
-                _.getPredominantVoltageLevel.getNominalVoltage.getValue
-                  .doubleValue()
-              )
-              .getOrElse(
-                throw new InvalidGridException(
-                  "There is no slack node present in the grid."
-                )
-              )
-
-            if (slackSubGrid.getRawGrid.getNodes.size() > 1) {
-              throw new SourceException(
-                "There are too many nodes in the slack grid. This is currently not support."
-              )
-            }
-
             jointGridContainer
           case None =>
             throw new RuntimeException(
