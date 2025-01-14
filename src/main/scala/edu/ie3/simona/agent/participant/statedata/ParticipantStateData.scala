@@ -265,7 +265,7 @@ object ParticipantStateData {
     *   [[BaseStateData]]
     */
   final case class CollectRegistrationConfirmMessages[
-      +PD <: PrimaryDataWithApparentPower[PD]
+      +PD <: PrimaryDataWithApparentPower
   ](
       baseStateData: BaseStateData[PD],
       pendingResponses: Iterable[ClassicActorRef],

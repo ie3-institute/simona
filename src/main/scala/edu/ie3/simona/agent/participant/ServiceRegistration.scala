@@ -28,7 +28,7 @@ import edu.ie3.simona.ontology.messages.services.EvMessage.RegisterForEvDataMess
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
 
 trait ServiceRegistration[
-    PD <: PrimaryDataWithApparentPower[PD],
+    PD <: PrimaryDataWithApparentPower,
     CD <: CalcRelevantData,
     MS <: ModelState,
     D <: ParticipantStateData[PD],

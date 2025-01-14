@@ -27,9 +27,7 @@ import scala.reflect.{ClassTag, classTag}
   *   Type of the [[PrimaryDataWithApparentPower]], that the model will produce
   *   or receive as primary data
   */
-final case class DataCollectionStateData[+PD <: PrimaryDataWithApparentPower[
-  PD
-]](
+final case class DataCollectionStateData[+PD <: PrimaryDataWithApparentPower](
     baseStateData: BaseStateData[PD],
     data: Map[ActorRef, Option[_ <: Data]],
     yetTriggered: Boolean,

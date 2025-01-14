@@ -17,6 +17,6 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApp
   * @tparam PD
   *   Type of primary data, that is carried
   */
-final case class AccompaniedSimulationResult[PD <: PrimaryDataWithApparentPower[
-  PD
-]](primaryData: PD, accompanyingResults: Seq[ResultEntity] = Seq.empty)
+final case class AccompaniedSimulationResult[
+    PD <: PrimaryDataWithApparentPower
+](primaryData: PD, accompanyingResults: Seq[ResultEntity] = Seq.empty)

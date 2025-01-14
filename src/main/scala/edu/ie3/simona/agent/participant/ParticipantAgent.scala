@@ -89,7 +89,7 @@ import scala.reflect.ClassTag
   * @since 2019-07-04
   */
 abstract class ParticipantAgent[
-    PD <: PrimaryDataWithApparentPower[PD],
+    PD <: PrimaryDataWithApparentPower,
     CD <: CalcRelevantData,
     MS <: ModelState,
     D <: ParticipantStateData[PD],

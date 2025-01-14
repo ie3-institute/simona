@@ -103,7 +103,7 @@ import scala.util.{Failure, Success, Try}
 /** Useful functions to use in [[ParticipantAgent]] s
   */
 protected trait ParticipantAgentFundamentals[
-    PD <: PrimaryDataWithApparentPower[PD],
+    PD <: PrimaryDataWithApparentPower,
     CD <: CalcRelevantData,
     MS <: ModelState,
     D <: ParticipantStateData[PD],

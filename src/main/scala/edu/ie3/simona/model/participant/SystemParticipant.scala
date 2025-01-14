@@ -44,7 +44,7 @@ import java.util.UUID
   */
 abstract class SystemParticipant[
     CD <: CalcRelevantData,
-    +PD <: PrimaryDataWithApparentPower[PD],
+    +PD <: PrimaryDataWithApparentPower,
     MS <: ModelState,
 ](
     uuid: UUID,

@@ -41,18 +41,16 @@ object Data {
 
   object PrimaryData {
 
-    sealed trait EnrichableData[E <: PrimaryDataWithApparentPower[E]] {
+    sealed trait EnrichableData[E <: PrimaryDataWithApparentPower] {
       def add(q: ReactivePower): E
     }
 
     /** Denoting all primary data, that carry apparent power
       */
-    sealed trait PrimaryDataWithApparentPower[
-        +T <: PrimaryDataWithApparentPower[T]
-    ] extends PrimaryData {
+    sealed trait PrimaryDataWithApparentPower extends PrimaryData {
       val q: ReactivePower
 
-      def withReactivePower(q: ReactivePower): T
+      def withReactivePower(q: ReactivePower): this.type
     }
 
     /** Adding thermal power
@@ -91,7 +89,7 @@ object Data {
     final case class ComplexPower(
         override val p: Power,
         override val q: ReactivePower,
-    ) extends PrimaryDataWithApparentPower[ComplexPower] {
+    ) extends PrimaryDataWithApparentPower {
       override def toComplexPower: ComplexPower = this
 
       override def withReactivePower(q: ReactivePower): ComplexPower =
@@ -134,7 +132,7 @@ object Data {
         override val p: Power,
         override val q: ReactivePower,
         override val qDot: Power,
-    ) extends PrimaryDataWithApparentPower[ComplexPowerAndHeat]
+    ) extends PrimaryDataWithApparentPower
         with Heat {
       override def toComplexPower: ComplexPower =
         ComplexPower(p, q)
