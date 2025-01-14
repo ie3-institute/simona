@@ -19,7 +19,6 @@ import edu.ie3.simona.agent.participant.statedata.BaseStateData.{FlexControlledD
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.participant.statedata.{BaseStateData, ParticipantStateData}
 import edu.ie3.simona.config.RuntimeConfig.{SimpleRuntimeConfig, StorageRuntimeConfig}
-import edu.ie3.simona.config.SimonaConfig.StorageRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{AgentInitializationException, InvalidRequestException}

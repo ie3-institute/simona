@@ -14,6 +14,7 @@ final case class OutputConfig(
     sink: OutputSinkConfig = OutputSinkConfig.csv,
     grid: GridOutputConfig,
     participant: ParticipantOutputConfig,
+    thermal: ThermalOutputConfig,
 )
 
 object OutputConfig {
@@ -66,5 +67,10 @@ object OutputConfig {
       simulationResult: Boolean,
       flexResult: Boolean,
   )
+
+  final case class ThermalOutputConfig(
+                                        defaultConfig: BaseOutputConfig,
+                                        individualConfigs: Seq[BaseOutputConfig],
+                                      )
 
 }

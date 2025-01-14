@@ -7,43 +7,14 @@
 package edu.ie3.simona.util
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.io.connectors.{
-  CouchbaseConnector,
-  InfluxDbConnector,
-  SqlConnector,
-}
-import edu.ie3.datamodel.models.result.connector.{
-  LineResult,
-  SwitchResult,
-  Transformer2WResult,
-  Transformer3WResult,
-}
-import edu.ie3.datamodel.io.connectors.{
-  CouchbaseConnector,
-  InfluxDbConnector,
-  SqlConnector,
-}
-import edu.ie3.datamodel.models.result.connector.{
-  LineResult,
-  SwitchResult,
-  Transformer2WResult,
-  Transformer3WResult,
-}
+import edu.ie3.datamodel.io.connectors.{CouchbaseConnector, InfluxDbConnector, SqlConnector}
+import edu.ie3.datamodel.models.result.connector.{LineResult, SwitchResult, Transformer2WResult, Transformer3WResult}
+import edu.ie3.datamodel.io.connectors.{CouchbaseConnector, InfluxDbConnector, SqlConnector}
+import edu.ie3.datamodel.models.result.connector.{LineResult, SwitchResult, Transformer2WResult, Transformer3WResult}
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
-import edu.ie3.simona.config.IoConfigUtils.{
-  BaseKafkaParams,
-  BaseSqlParams,
-  CouchbaseParams,
-  CsvParams,
-}
-import edu.ie3.simona.config.OutputConfig.{
-  GridOutputConfig,
-  ParticipantOutputConfig,
-}
-import edu.ie3.simona.config.RuntimeConfig.{
-  BaseRuntimeConfig,
-  RuntimeParticipantsConfig,
-}
+import edu.ie3.simona.config.IoConfigUtils.{BaseKafkaParams, BaseSqlParams, CouchbaseParams, CsvParams, SqlParams}
+import edu.ie3.simona.config.OutputConfig.{GridOutputConfig, ParticipantOutputConfig}
+import edu.ie3.simona.config.RuntimeConfig.{BaseRuntimeConfig, RuntimeParticipantsConfig}
 import edu.ie3.simona.config.{OutputConfig, SimonaConfig}
 import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.event.notifier.{Notifier, NotifierConfig}
@@ -262,7 +233,7 @@ object ConfigUtil {
     }
 
     def apply(
-        subConfig: SimonaConfig.Simona.Output.Thermal
+        subConfig: SimonaConfig.Output.Thermal
     ): OutputConfigUtil = {
       val defaultConfig = subConfig.defaultConfig match {
         case SimpleOutputConfig(_, simulationResult) =>
@@ -399,7 +370,7 @@ object ConfigUtil {
   object DatabaseConfigUtil extends LazyLogging {
 
     def checkSqlParams(
-        sql: BaseSqlParams
+        sql: SqlParams
     ): Unit = {
       if (!sql.jdbcUrl.trim.startsWith("jdbc:")) {
         throw new InvalidConfigParameterException(

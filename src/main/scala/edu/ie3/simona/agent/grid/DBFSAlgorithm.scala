@@ -49,8 +49,9 @@ import org.apache.pekko.util.{Timeout => PekkoTimeout}
 import org.slf4j.Logger
 import squants.Each
 
-import java.time.{ZonedDateTime, Duration => JavaDuration}
+import java.time.ZonedDateTime
 import java.util.UUID
+import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
@@ -197,7 +198,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               case None =>
                 // this happens if this agent is either a) the superior grid agent, because it will always get a request for
                 // the next sweep, as it triggers calculations for the next sweep or b) at all other
-                // (non last downstream grid agents) in sweep 0
+                // (non-last downstream grid agents) in sweep 0
                 ctx.log.debug(
                   "Unable to find slack voltage for nodes '{}' in sweep '{}'. Try to get voltage of previous sweep.",
                   nodeUuids,
@@ -386,7 +387,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
                   // update the sweep value store and clear all received maps
                   // note: normally it is expected that this has to be done after power flow calculations but for the sake
-                  // of having it only once in the code we put this here. Otherwise it would have to been put before EVERY
+                  // of having it only once in the code we put this here. Otherwise, it would have to be put before EVERY
                   // return with a valid power flow result (currently happens already in two situations)
                   val updatedGridAgentBaseData =
                     if (stillPendingRequestAnswers.isEmpty) {
@@ -737,7 +738,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                   gridAgentBaseData.powerFlowParams.sweepTimeout,
                 )(ctx)
 
-              // when we don't have inferior grids and no assets both methods return None and we can skip doing another power
+              // when we don't have inferior grids and no assets both methods return None, and we can skip doing another power
               // flow calculation otherwise we go back to simulate grid and wait for the answers
               if (!askForAssetPowersOpt && !askForInferiorGridPowersOpt) {
                 ctx.log.debug(
@@ -832,7 +833,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       )
 
       /* Regarding the power flow result of this grid, there are two cases. If this is the "highest" grid in a
-       * simulation without a three winding transformer, the grid consists of only one node and we can mock the power
+       * simulation without a three winding transformer, the grid consists of only one node, and we can mock the power
        * flow results. If there is a three winding transformer apparent, we actually have to perform power flow
        * calculations, as the high voltage branch of the transformer is modeled here. */
       (if (gridModel.gridComponents.transformers3w.isEmpty) {
@@ -955,13 +956,13 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       }
   }
 
-  /** Checks if all data has been received and if yes checks if the there are
-    * any failed power flow indications from inferior grids. If both == true,
-    * then no [[Behavior]] change is triggered but the sweep value store is
-    * updated with a [[FailedPowerFlow]] information as well, the now used data
-    * is set to [[PowerFlowDoneData]] and this is escalated to the superior
-    * grid(s). If there is no [[FailedPowerFlow]] in the [[GridAgentBaseData]] a
-    * behavior transition to [[handlePowerFlowCalculations]] is triggered.
+  /** Checks if all data has been received and if yes checks if there are any
+    * failed power flow indications from inferior grids. If both == true, then
+    * no [[Behavior]] change is triggered but the sweep value store is updated
+    * with a [[FailedPowerFlow]] information as well, the now used data is set
+    * to [[PowerFlowDoneData]] and this is escalated to the superior grid(s). If
+    * there is no [[FailedPowerFlow]] in the [[GridAgentBaseData]] a behavior
+    * transition to [[handlePowerFlowCalculations]] is triggered.
     *
     * If allReceived == false, no [[Behavior]] transition is triggered
     *
@@ -1023,11 +1024,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
   /** Normally only reached by the superior (dummy) agent!
     *
-    * Checks if all data has been received and if yes checks if the there are
-    * any failed power flow indications from inferior grids. If both == true,
-    * then a finish simulation is triggered and depending on the configuration
-    * this step is skipped and the simulation goes on or this leads to a
-    * termination of the simulation due to a failed power flow calculation.
+    * Checks if all data has been received and if yes checks if there are any
+    * failed power flow indications from inferior grids. If both == true, then a
+    * finish simulation is triggered and depending on the configuration this
+    * step is skipped and the simulation goes on or this leads to a termination
+    * of the simulation due to a failed power flow calculation.
     *
     * If there is no [[FailedPowerFlow]] in the [[GridAgentBaseData]] a
     * [[Behavior]] transition to [[checkPowerDifferences]] is triggered.
@@ -1153,7 +1154,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     * @param askTimeout
     *   a timeout for the request
     * @return
-    *   true if this grids contains assets or false if no request has been send
+    *   true if this grids contains assets or false if no request has been sent
     *   due to non-existence of assets
     */
   private def askForAssetPowers(
@@ -1161,11 +1162,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       sweepValueStore: Option[SweepValueStore],
       nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantMessage]]],
       refSystem: RefSystem,
-      askTimeout: JavaDuration,
+      askTimeout: FiniteDuration,
   )(implicit
       ctx: ActorContext[GridAgent.Request]
   ): Boolean = {
-    implicit val timeout: PekkoTimeout = PekkoTimeout.create(askTimeout)
+    implicit val timeout: PekkoTimeout = PekkoTimeout(askTimeout)
     implicit val ec: ExecutionContext = ctx.executionContext
 
     ctx.log.debug(s"asking assets for power values: {}", nodeToAssetAgents)
@@ -1239,12 +1240,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       currentSweepNo: Int,
       subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
       inferiorGridGates: Seq[SubGridGate],
-      askTimeout: JavaDuration,
+      askTimeout: FiniteDuration,
   )(implicit
       ctx: ActorContext[GridAgent.Request]
   ): Boolean = {
-    implicit val timeout: PekkoTimeout =
-      PekkoTimeout.create(JavaDuration.ofSeconds(askTimeout.toSeconds))
+    implicit val timeout: PekkoTimeout = PekkoTimeout(askTimeout)
     implicit val ec: ExecutionContext = ctx.executionContext
     implicit val scheduler: Scheduler = ctx.system.scheduler
 
@@ -1311,12 +1311,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       currentSweepNo: Int,
       subGridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Request]],
       superiorGridGates: Vector[SubGridGate],
-      askTimeout: JavaDuration,
+      askTimeout: FiniteDuration,
   )(implicit
       ctx: ActorContext[GridAgent.Request]
   ): Boolean = {
-    implicit val timeout: PekkoTimeout =
-      PekkoTimeout.create(JavaDuration.ofSeconds(askTimeout.toSeconds))
+    implicit val timeout: PekkoTimeout = PekkoTimeout(askTimeout)
     implicit val ec: ExecutionContext = ctx.executionContext
     implicit val scheduler: Scheduler = ctx.system.scheduler
 
@@ -1385,11 +1384,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
   }
 
   /** This method uses [[ActorContext.pipeToSelf()]] to send a future message to
-    * itself. If the future is a [[Success]] the message is send, else a
-    * [[WrappedFailure]] with the thrown error is send.
+    * itself. If the future is a [[Success]] the message is sent, else a
+    * [[WrappedFailure]] with the thrown error is sent.
     *
     * @param future
-    *   future message that should be send to the agent after it was processed
+    *   future message that should be sent to the agent after it was processed
     * @param ctx
     *   [[ActorContext]] of the receiving actor
     */

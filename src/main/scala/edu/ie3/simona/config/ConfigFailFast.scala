@@ -8,12 +8,10 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.{Config, ConfigException}
 import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.simona.config.InputConfig.{CoordinateSourceConfig, WeatherConfig, WeatherDataSourceConfig, WeatherSampleParams}
 import edu.ie3.simona.config.IoConfigUtils._
 import edu.ie3.simona.config.OutputConfig.BaseOutputConfig
-import edu.ie3.simona.config.RuntimeConfig.{
-  BaseRuntimeConfig,
-  RuntimeParticipantConfig,
-}
+import edu.ie3.simona.config.RuntimeConfig.{BaseRuntimeConfig, RuntimeParticipantConfig}
 import edu.ie3.simona.config.SimonaConfig.{RefSystemConfig, _}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.io.result.ResultSinkType
@@ -22,12 +20,7 @@ import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.weather.WeatherSource.WeatherScheme
 import edu.ie3.simona.util.CollectionUtils
 import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.checkBaseCsvParams
-import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
-  checkCouchbaseParams,
-  checkInfluxDb1xParams,
-  checkKafkaParams,
-  checkSqlParams,
-}
+import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{checkCouchbaseParams, checkInfluxDb1xParams, checkKafkaParams, checkSqlParams}
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
 import edu.ie3.util.scala.ReflectionTools
 import edu.ie3.util.{StringUtils, TimeUtil}
@@ -147,17 +140,17 @@ case object ConfigFailFast extends LazyLogging {
 
     /* Check all output configurations for thermal models */
     checkThermalOutputConfig(
-      simonaConfig.simona.output.thermal
+      simonaConfig.output.thermal
     )
 
     /* Check power flow resolution configuration */
     checkPowerFlowResolutionConfiguration(simonaConfig.powerflow)
 
     /* Check control scheme definitions */
-    simonaConfig.simona.control.foreach(checkControlSchemes)
+    simonaConfig.control.foreach(checkControlSchemes)
 
     /* Check correct parameterization of storages */
-    checkStoragesConfig(simonaConfig.simona.runtime.participant.storage)
+    checkStoragesConfig(simonaConfig.runtime.participant.storage)
   }
 
   /** Checks for valid sink configuration
@@ -591,7 +584,7 @@ case object ConfigFailFast extends LazyLogging {
     *   [[edu.ie3.datamodel.io.source.IdCoordinateSource]]
     */
   private def checkCoordinateSource(
-      coordinateSourceConfig: SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
+      coordinateSourceConfig: CoordinateSourceConfig
   ): String = {
     val supportedCoordinateSources = Set("csv", "sql", "sample")
     val definedCoordSources = Vector(
@@ -624,7 +617,7 @@ case object ConfigFailFast extends LazyLogging {
         checkSqlParams(sqlParams)
         "sql"
       case Some(
-            _: SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SampleParams
+            _: WeatherSampleParams
           ) =>
         "sample"
       case None | Some(_) =>
@@ -664,7 +657,7 @@ case object ConfigFailFast extends LazyLogging {
     *   Output sub config tree for participants
     */
   private def checkThermalOutputConfig(
-      subConfig: SimonaConfig.Simona.Output.Thermal
+      subConfig: SimonaConfig.Output.Thermal
   ): Unit = {
     implicit val elementType: String = "thermal"
     checkDefaultBaseOutputConfig(subConfig.defaultConfig)
