@@ -374,7 +374,7 @@ object ThermalHouse {
     * @param innerTemperature
     *   Inner temperature of the house
     * @param qDot
-    *   Continuous infeed of thermal energy since the given tick
+    *   Continuous external infeed of thermal energy since the given tick
     */
   final case class ThermalHouseState(
       tick: Long,
