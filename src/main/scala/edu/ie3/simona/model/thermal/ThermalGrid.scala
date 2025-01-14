@@ -7,24 +7,13 @@
 package edu.ie3.simona.model.thermal
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.input.thermal.{
-  CylindricalStorageInput,
-  DomesticHotWaterStorageInput,
-}
+import edu.ie3.datamodel.models.input.thermal.{CylindricalStorageInput, DomesticHotWaterStorageInput}
 import edu.ie3.datamodel.models.result.ResultEntity
-import edu.ie3.datamodel.models.result.thermal.{
-  CylindricalStorageResult,
-  DomesticHotWaterStorageResult,
-  ThermalHouseResult,
-}
+import edu.ie3.datamodel.models.result.thermal.{CylindricalStorageResult, DomesticHotWaterStorageResult, ThermalHouseResult}
 import edu.ie3.simona.exceptions.InvalidParameterException
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
-import edu.ie3.simona.model.thermal.ThermalGrid.{
-  ThermalDemandWrapper,
-  ThermalEnergyDemand,
-  ThermalGridState,
-}
+import edu.ie3.simona.model.thermal.ThermalGrid.{ThermalDemandWrapper, ThermalEnergyDemand, ThermalGridState}
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -288,7 +277,7 @@ final case class ThermalGrid(
     val (_, qDotHouseLastState, houseReachedBoundary, houseLeftBoundary) =
       updateStateGetLastThermalActionAndCheckIfCanContinueThermalHouse(
         relevantData,
-        state,
+        lastThermalGridState,
         lastAmbientTemperature,
       )
     val (
@@ -299,7 +288,7 @@ final case class ThermalGrid(
     ) =
       updateStateGetLastThermalActionAndCheckIfCanContinueThermalStorage(
         relevantData.currentTick,
-        state,
+        lastThermalGridState,
       )
     val (
       _,
@@ -309,10 +298,8 @@ final case class ThermalGrid(
     ) =
       updateStateGetLastThermalActionAndCheckIfCanContinueDomesticHotWaterStorage(
         relevantData.currentTick,
-        state,
+        lastThermalGridState,
       )
-    val houseDemand = thermalDemands.houseDemand
-    val heatStorageDemand = thermalDemands.heatStorageDemand
     val domesticHotWaterStorageDemand =
       thermalDemands.domesticHotWaterStorageDemand
 
@@ -324,7 +311,7 @@ final case class ThermalGrid(
       handleCases(
         relevantData,
         lastAmbientTemperature,
-        state,
+        lastThermalGridState,
         qDotHouseLastState.getOrElse(zeroKW),
         qDotStorageLastState.getOrElse(zeroKW),
         if (domesticHotWaterStorageDemand.hasRequiredDemand)
@@ -332,7 +319,7 @@ final case class ThermalGrid(
         else zeroKW,
       )
     } else {
-      handleFinaleInfeedCases(
+      handleFinalInfeedCases(
         thermalDemands,
         relevantData,
         lastAmbientTemperature,
@@ -421,7 +408,7 @@ final case class ThermalGrid(
             handleCases(
               relevantData,
               lastAmbientTemperature,
-              state,
+              gridState,
               heatStorage.map(_.getChargingPower).getOrElse(zeroKW),
               heatStorage.map(_.getChargingPower).getOrElse(zeroKW) * (-1),
               qDot,
@@ -430,7 +417,7 @@ final case class ThermalGrid(
             splitThermalHeatAndPushIntoHouseAndDomesticStorage(
               relevantData,
               lastAmbientTemperature,
-              state,
+              gridState,
               qDotHouseLastState,
               qDotDomesticWaterStorageLastState,
               qDot,
@@ -445,7 +432,7 @@ final case class ThermalGrid(
             handleCases(
               relevantData,
               lastAmbientTemperature,
-              state,
+              gridState,
               heatStorage.map(_.getChargingPower).getOrElse(zeroKW),
               heatStorage.map(_.getChargingPower).getOrElse(zeroKW) * (-1),
               zeroKW,
@@ -454,7 +441,7 @@ final case class ThermalGrid(
             pushThermalHeatIntoHouseOnly(
               relevantData,
               lastAmbientTemperature,
-              state,
+              gridState,
               qDot,
             )
         }
@@ -473,10 +460,10 @@ final case class ThermalGrid(
         pushThermalHeatIntoThermalStorageOnly(
           relevantData,
           lastAmbientTemperature,
-          state,
+          gridState,
           qDot,
         )
-      //  all cases for required demands are now handled
+      //  all cases for required demands are handled now
       // now take last action into account
       case _ =>
         // House and domestic hot water storage can only have additional demand now
@@ -485,7 +472,7 @@ final case class ThermalGrid(
             handleCases(
               relevantData,
               lastAmbientTemperature,
-              state,
+              gridState,
               qDotHouseLastState.getOrElse(zeroKW),
               qDotStorageLastState.getOrElse(zeroKW),
               zeroKW,
@@ -496,7 +483,7 @@ final case class ThermalGrid(
               handleCases(
                 relevantData,
                 lastAmbientTemperature,
-                state,
+                gridState,
                 zeroKW,
                 qDot,
                 zeroKW,
@@ -505,7 +492,7 @@ final case class ThermalGrid(
               handleCases(
                 relevantData,
                 lastAmbientTemperature,
-                state,
+                gridState,
                 qDot,
                 zeroKW,
                 zeroKW,
@@ -537,7 +524,7 @@ final case class ThermalGrid(
   ): (Option[ThermalHouseState], Option[Power], Boolean, Boolean) = {
     state match {
       case ThermalGridState(
-            Some(lastHouseState),
+            Some(_),
             _,
             _,
           ) =>
@@ -822,8 +809,8 @@ final case class ThermalGrid(
     * @param qDotHouse
     *   Infeed to the house
     * @param qDotHeatStorage
-   *     *   Infeed to the heat storage (positive: Storage is charging, negative:
-   *     *   Storage is discharging)
+   *    Infeed to the heat storage (positive: Storage is charging, negative:
+   *    Storage is discharging)
     * @param qDotDomesticHotWaterStorage
     *   Infeed to the domestic hot water storage
     * @return
@@ -992,7 +979,7 @@ final case class ThermalGrid(
               // Use qDot from Hp directly to cover hot water demand
               val threshold = Some(
                 SimpleThermalThreshold(
-                  (domesticHotWaterDemand.required / qDot).toSeconds.toLong
+                  (domesticHotWaterDemand.required / qDotStorage).toSeconds.toLong
                 )
               )
               (zeroKW, threshold)
@@ -1006,14 +993,14 @@ final case class ThermalGrid(
               // Storage got recharged in the last state
               // Threshold will be calculated later
               (lastDomesticHotWaterStorageState.qDot, None)
-            case demand if demand.required == zeroKWh & qDot == zeroKW =>
+            case demand if demand.required == zeroKWh & qDotStorage == zeroKW =>
               // Don't do anything with domestic hot water storage
               (zeroKW, None)
-            case demand if demand.required == zeroKWh & qDot > zeroKW =>
+            case demand if demand.required == zeroKWh & qDotStorage > zeroKW =>
               // Use qDot from Hp to recharge domestic hot water storage
               // Threshold will be calculated later
-              (qDot, None)
-            case demand if demand.required == zeroKWh & qDot < zeroKW =>
+              (qDotStorage, None)
+            case demand if demand.required == zeroKWh & qDotStorage < zeroKW =>
               // Storage was discharging but demand is now covered. Set output to zeroKw
               (zeroKW, None)
 
@@ -1138,7 +1125,7 @@ final case class ThermalGrid(
         qDot,
       )
 
-    heatStorage.zip(state.storageState).map { case (storage, storageState) =>
+    heatStorage.zip(lastThermalGridState.storageState).map { case (storage, storageState) =>
       storage.updateState(relevantData.currentTick, qDot, storageState)
     }
 
@@ -1146,7 +1133,7 @@ final case class ThermalGrid(
       .map(
         _.energyDemandDomesticHotWater(
           relevantData,
-          state.houseState,
+          lastThermalGridState.houseState,
         )
       )
       .getOrElse(ThermalEnergyDemand(zeroKWh, zeroKWh))
@@ -1162,7 +1149,7 @@ final case class ThermalGrid(
       domesticHotWaterStorageThreshold,
     ) = handleInfeedStorage(
       relevantData,
-      state,
+      lastThermalGridState,
       qDotDomesticHotWaterDemand,
       domesticHotWaterStorage,
     )
