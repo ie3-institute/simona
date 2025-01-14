@@ -184,7 +184,7 @@ final case class ThermalGrid(
       qDot,
     )
 
-  /** Handles the case, when a grid has infeed. Depending which entity has some
+  /** Handles the case, when a grid has infeed. Depending on which entity has some
     * heat demand the house or the storage will be heated up / filled up.
     *
     * @param relevantData
