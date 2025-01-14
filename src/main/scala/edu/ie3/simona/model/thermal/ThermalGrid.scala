@@ -185,8 +185,12 @@ final case class ThermalGrid(
       qDot,
     )
 
-  /** Handles the case, when a grid has infeed. Depending which entity has some
-    * heat demand the house or the storage will be heated up / filled up.
+  /** Handles the case, when a grid has infeed. Depending on which entity has
+    * some heat demand the house or the storage will be heated up / filled up.
+    * First the actions from lastState will be considered and checked if the
+    * behaviour should be continued. This might be the case, if we got activated
+    * by updated weather data. If this is not the case, all other cases will be
+    * handled by [[ThermalGrid.handleFinalInfeedCases]]
     *
     * @param relevantData
     *   data of heat pump including state of the heat pump
@@ -201,7 +205,7 @@ final case class ThermalGrid(
     * @param thermalDemands
     *   holds the thermal demands of the thermal units (house, storage)
     * @return
-    *   Updated thermal grid state
+    *   Updated thermal grid state and the thermalThreshold if there is one
     */
   private def handleInfeed(
       relevantData: HpRelevantData,
@@ -214,23 +218,20 @@ final case class ThermalGrid(
     // TODO: We would need to issue a storage result model here...
 
     /* Consider the action in the last state */
-    val (qDotHouseLastState, qDotStorageLastState) =
-      lastThermalGridState match {
-        case ThermalGridState(Some(houseState), Some(storageState)) =>
-          (houseState.qDot, storageState.qDot)
-        case ThermalGridState(Some(houseState), None) =>
-          (houseState.qDot, zeroKW)
-        case ThermalGridState(None, Some(storageState)) =>
-          (zeroKW, storageState.qDot)
-        case _ =>
-          throw new InconsistentStateException(
-            "There should be at least a house or a storage state."
-          )
-      }
+    val qDotHouseLastState =
+      lastThermalGridState.houseState.map(_.qDot).getOrElse(zeroKW)
+    val qDotStorageLastState =
+      lastThermalGridState.storageState.map(_.qDot).getOrElse(zeroKW)
 
+    // We can use the qDots from lastState to keep continuity. If...
     if (
-      (qDotHouseLastState > zeroKW && (qDotStorageLastState >= zeroKW)) | (qDotStorageLastState > zeroKW && thermalDemands.heatStorageDemand.hasAdditionalDemand)
+      // ... house was heated in lastState but not from Storage and has still some demand.
+      ((qDotHouseLastState > zeroKW && (qDotStorageLastState >= zeroKW) && thermalDemands.houseDemand.hasAdditionalDemand) ||
+      // ... storage was filled up in the lastState and has still additional demand
+      // But only if the house not reached some requiredDemand.
+      qDotStorageLastState > zeroKW && thermalDemands.heatStorageDemand.hasAdditionalDemand && !thermalDemands.houseDemand.hasRequiredDemand)
     ) {
+      // We can continue for the house
       val (updatedHouseState, thermalHouseThreshold, remainingQDotHouse) =
         handleInfeedHouse(
           relevantData,
@@ -238,10 +239,11 @@ final case class ThermalGrid(
           lastThermalGridState,
           qDotHouseLastState,
         )
-      val (updatedStorageState, thermalStorageThreshold) =
-        if (
-          qDotStorageLastState >= zeroKW && remainingQDotHouse > qDotStorageLastState
-        ) {
+
+      // ...and for the storage
+      val (updatedStorageState, thermalStorageThreshold) = {
+        // In case the ThermalHouse could not handle the infeed it will be used for the storage.
+        if (remainingQDotHouse > qDotStorageLastState) {
           handleInfeedStorage(
             relevantData.currentTick,
             lastThermalGridState,
@@ -254,6 +256,7 @@ final case class ThermalGrid(
             qDotStorageLastState,
           )
         }
+      }
 
       val nextThreshold = determineMostRecentThreshold(
         thermalHouseThreshold,
@@ -267,8 +270,9 @@ final case class ThermalGrid(
         nextThreshold,
       )
     }
-    // Handle edge case where house was heated from storage and HP will be activated in between
+    // Handle edge case where house was heated from storage...
     else if (qDotHouseLastState > zeroKW && qDotStorageLastState < zeroKW) {
+      // ...and HP gets activated in current tick
       if (isRunning) {
         handleCases(
           relevantData,
@@ -278,7 +282,7 @@ final case class ThermalGrid(
           zeroKW,
         )
       } else {
-
+        // ... or continue lastState's behaviour
         handleCases(
           relevantData,
           lastAmbientTemperature,
@@ -297,8 +301,10 @@ final case class ThermalGrid(
         qDot,
         -qDot,
       )
-    } else
-      handleFinaleInfeedCases(
+    }
+    // or finally check for all other cases.
+    else
+      handleFinalInfeedCases(
         thermalDemands,
         relevantData,
         lastAmbientTemperature,
@@ -337,12 +343,25 @@ final case class ThermalGrid(
     * | 3  | if(!house.reqD && !storage.reqD && storage.addD) => storage              | storage   |
     * | 4  | if(!house.reqD && house.addD && !storage.reqD && !storage.addD) => house | house     |
     * | 5  | if(all == false) => no output                                            | no output |
+    *
+    * @param thermalDemands
+    *   holds the thermal demands of the thermal units (house, storage)
+    * @param relevantData
+    *   data of heat pump including state of the heat pump
+    * @param lastAmbientTemperature
+    *   Ambient temperature valid up until (not including) the current tick
+    * @param gridState
+    *   Current state of the thermalGrid
+    * @param qDot
+    *   Infeed to the grid
+    * @return
+    *   Updated thermal grid state and the thermalThreshold if there is one
     */
-  private def handleFinaleInfeedCases(
+  private def handleFinalInfeedCases(
       thermalDemands: ThermalDemandWrapper,
       relevantData: HpRelevantData,
       lastAmbientTemperature: Temperature,
-      state: ThermalGridState,
+      gridState: ThermalGridState,
       qDot: Power,
   ): (ThermalGridState, Option[ThermalThreshold]) = {
     (
@@ -357,7 +376,7 @@ final case class ThermalGrid(
         handleCases(
           relevantData,
           lastAmbientTemperature,
-          state,
+          gridState,
           qDot,
           zeroKW,
         )
@@ -366,7 +385,7 @@ final case class ThermalGrid(
         handleCases(
           relevantData,
           lastAmbientTemperature,
-          state,
+          gridState,
           zeroKW,
           qDot,
         )
@@ -375,7 +394,7 @@ final case class ThermalGrid(
         handleCases(
           relevantData,
           lastAmbientTemperature,
-          state,
+          gridState,
           zeroKW,
           qDot,
         )
@@ -384,7 +403,7 @@ final case class ThermalGrid(
         handleCases(
           relevantData,
           lastAmbientTemperature,
-          state,
+          gridState,
           qDot,
           zeroKW,
         )
@@ -393,7 +412,7 @@ final case class ThermalGrid(
         handleCases(
           relevantData,
           lastAmbientTemperature,
-          state,
+          gridState,
           zeroKW,
           zeroKW,
         )
