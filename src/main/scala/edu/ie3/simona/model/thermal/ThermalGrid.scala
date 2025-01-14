@@ -213,19 +213,10 @@ final case class ThermalGrid(
     // TODO: We would need to issue a storage result model here...
 
     /* Consider the action in the last state */
-    val (qDotHouseLastState, qDotStorageLastState) =
-      lastThermalGridState match {
-        case ThermalGridState(Some(houseState), Some(storageState)) =>
-          (houseState.qDot, storageState.qDot)
-        case ThermalGridState(Some(houseState), None) =>
-          (houseState.qDot, zeroKW)
-        case ThermalGridState(None, Some(storageState)) =>
-          (zeroKW, storageState.qDot)
-        case _ =>
-          throw new InconsistentStateException(
-            "There should be at least a house or a storage state."
-          )
-      }
+    val qDotHouseLastState =
+      lastThermalGridState.houseState.map(_.qDot).getOrElse(zeroKW)
+    val qDotStorageLastState =
+      lastThermalGridState.storageState.map(_.qDot).getOrElse(zeroKW)
 
     if (
       (qDotHouseLastState > zeroKW && (qDotStorageLastState >= zeroKW)) | (qDotStorageLastState > zeroKW && thermalDemands.heatStorageDemand.hasAdditionalDemand)
