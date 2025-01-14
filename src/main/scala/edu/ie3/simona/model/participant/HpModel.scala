@@ -414,9 +414,9 @@ object HpModel {
     * @param ambientTemperature
     *   Optional ambient temperature, if available
     * @param activePower
-    *   result active power
+    *   result active power of heat pump
     * @param qDot
-    *   result heat power
+    *   result heat power of heat pump
     * @param thermalGridState
     *   applicable state of the thermal grid
     * @param maybeThermalThreshold
