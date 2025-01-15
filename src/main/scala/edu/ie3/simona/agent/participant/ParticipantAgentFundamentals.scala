@@ -967,7 +967,7 @@ protected trait ParticipantAgentFundamentals[
           .getOrElse(
             Each(1d)
           )
-      p: Power =>
+      (p: Power) =>
         baseStateData.model
           .activeToReactivePowerFunc(
             currentNodalVoltage
@@ -1398,7 +1398,7 @@ protected trait ParticipantAgentFundamentals[
               ValueStore.updateValueStore(
                 baseStateData.requestValueStore,
                 requestTick,
-                lastResult.withReactivePower(nextReactivePower),
+                lastResult.withReactivePower(nextReactivePower).asInstanceOf[PD],
               )
             val nextStateData =
               modelBaseStateData.copy(

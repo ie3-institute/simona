@@ -550,7 +550,7 @@ object ThermalGrid {
     * @param heatStorageDemand
     *   the demand of the thermal heat storage
     */
-  final case class ThermalDemandWrapper private (
+  final case class ThermalDemandWrapper(
       houseDemand: ThermalEnergyDemand,
       heatStorageDemand: ThermalEnergyDemand,
   )

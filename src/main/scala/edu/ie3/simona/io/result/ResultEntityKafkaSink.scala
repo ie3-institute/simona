@@ -69,13 +69,11 @@ object ResultEntityKafkaSink {
 
     tag.runtimeClass match {
       case NodeResClass =>
-        implicit val recordFormat: RecordFormat[PlainNodeResult] =
-          RecordFormat[PlainNodeResult]
         createSink(schemaRegistryUrl, props, topic, NodeResultWriter(simRunId))
     }
   }
 
-  private def createSink[F <: ResultEntity, P <: PlainResult: RecordFormat](
+  private def createSink[F <: ResultEntity, P <: PlainResult](
       schemaRegistryUrl: String,
       props: Properties,
       topic: String,

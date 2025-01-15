@@ -47,9 +47,10 @@ object WeatherService {
     Props(
       new WeatherService(
         scheduler,
-        startDateTime,
         simulationEnd,
         amountOfInterpolationCoordinates,
+      )(
+        startDateTime
       )
     )
 
@@ -97,9 +98,10 @@ object WeatherService {
   */
 final case class WeatherService(
     override val scheduler: ActorRef,
-    private implicit val simulationStart: ZonedDateTime,
     simulationEnd: ZonedDateTime,
     private val amountOfInterpolationCoords: Int,
+)(
+    private implicit val simulationStart: ZonedDateTime
 ) extends SimonaService[
       WeatherInitializedStateData
     ](scheduler) {

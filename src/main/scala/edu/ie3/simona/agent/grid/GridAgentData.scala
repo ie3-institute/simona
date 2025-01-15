@@ -43,7 +43,7 @@ object GridAgentData {
     * @param activationAdapter
     *   adapter for [[Activation]]
     */
-  final case class GridAgentConstantData private (
+  final case class GridAgentConstantData(
       environmentRefs: EnvironmentRefs,
       simonaConfig: SimonaConfig,
       listener: Iterable[ActorRef[ResultEvent]],
@@ -92,7 +92,7 @@ object GridAgentData {
     *   Set of subgrid numbers of [[GridAgent]]s that don't have their request
     *   answered, yet
     */
-  final case class PowerFlowDoneData private (
+  final case class PowerFlowDoneData(
       gridAgentBaseData: GridAgentBaseData,
       powerFlowResult: PowerFlowResult,
       pendingRequestAnswers: Set[Int],
@@ -205,7 +205,7 @@ object GridAgentData {
     * @param sweepValueStores
     *   a value store for sweep results
     */
-  final case class GridAgentBaseData private (
+  final case class GridAgentBaseData(
       gridEnv: GridEnvironment,
       powerFlowParams: PowerFlowParams,
       currentSweepNo: Int,

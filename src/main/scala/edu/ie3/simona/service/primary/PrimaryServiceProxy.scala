@@ -84,7 +84,8 @@ import scala.util.{Failure, Success, Try}
 case class PrimaryServiceProxy(
     scheduler: ActorRef,
     initStateData: InitPrimaryServiceProxyStateData,
-    private implicit val startDateTime: ZonedDateTime,
+)(
+    private implicit val startDateTime: ZonedDateTime
 ) extends Actor
     with SimonaActorLogging {
 
@@ -496,7 +497,7 @@ object PrimaryServiceProxy {
       initStateData: InitPrimaryServiceProxyStateData,
       startDateTime: ZonedDateTime,
   ): Props = Props(
-    new PrimaryServiceProxy(scheduler, initStateData, startDateTime)
+    new PrimaryServiceProxy(scheduler, initStateData)(startDateTime)
   )
 
   /** State data with needed information to initialize this primary service

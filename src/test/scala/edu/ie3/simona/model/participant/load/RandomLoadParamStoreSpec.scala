@@ -69,11 +69,7 @@ class RandomLoadParamStoreSpec
         this.getClass
           .getResourceAsStream("random_load_parameters_test.csv")
       )
-      val parameterMap =
-        RandomLoadParamStore(reader) invokePrivate PrivateMethod[
-          Map[DayType.Value, TypeDayParameters]
-        ](Symbol("parameterMap"))()
-      parameterMap.size shouldBe 3
+      RandomLoadParamStore(reader).size shouldBe 3
     }
 
     "return the correct parameters" in {

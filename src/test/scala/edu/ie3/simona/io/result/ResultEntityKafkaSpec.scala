@@ -47,8 +47,6 @@ class ResultEntityKafkaSpec
 
   private var testConsumer: KafkaConsumer[Bytes, PlainNodeResult] = _
 
-  private implicit lazy val resultFormat: RecordFormat[PlainNodeResult] =
-    RecordFormat[PlainNodeResult]
   private val deserializer: Deserializer[PlainNodeResult] =
     ScalaReflectionSerde.reflectionDeserializer4S[PlainNodeResult]
 

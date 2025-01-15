@@ -274,7 +274,7 @@ class ChpModelSpec
           val chpModel = buildChpModel(thermalStorage)
 
           chpModel.calculateNextState(chpData)
-          thermalStorage._storedEnergy.toKilowattHours should be(
+          thermalStorage.getStoredEnergy.toKilowattHours should be(
             expectedStoredEnergy
           )
       }

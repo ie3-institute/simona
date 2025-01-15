@@ -82,7 +82,7 @@ class RichValueSpec extends UnitSpec with TableDrivenPropertyChecks {
         ),
       )
 
-      forAll(table)({ maliciousValue: Value =>
+      forAll(table) { (maliciousValue: Value) =>
         maliciousValue.toPrimaryData match {
           case Failure(exception) =>
             exception.getMessage shouldBe s"Cannot convert '$maliciousValue' to primary data."
@@ -91,7 +91,7 @@ class RichValueSpec extends UnitSpec with TableDrivenPropertyChecks {
               s"Conversion from '$maliciousValue' to primary data was meant to fail, but succeeded with '$value'."
             )
         }
-      })
+      }
     }
 
     "transfer supported values correctly to primary data" in {

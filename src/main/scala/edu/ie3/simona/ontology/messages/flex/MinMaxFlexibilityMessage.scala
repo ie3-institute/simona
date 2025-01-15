@@ -35,7 +35,7 @@ object MinMaxFlexibilityMessage {
     *   The maximum active power that the flex options provider allows at the
     *   current tick
     */
-  final case class ProvideMinMaxFlexOptions private (
+  final case class ProvideMinMaxFlexOptions(
       override val modelUuid: UUID,
       ref: Power,
       min: Power,

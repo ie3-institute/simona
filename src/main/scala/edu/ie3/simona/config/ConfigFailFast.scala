@@ -9,13 +9,14 @@ package edu.ie3.simona.config
 import com.typesafe.config.{Config, ConfigException}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
+  CoordinateSource,
   CouchbaseParams,
   InfluxDb1xParams,
   SampleParams,
   SqlParams,
 }
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.InfluxDb1x
-import edu.ie3.simona.config.SimonaConfig._
+import edu.ie3.simona.config.SimonaConfig.*
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
@@ -194,7 +195,7 @@ object ConfigFailFast extends LazyLogging {
       )
 
     // failure if all sinks are not-configured
-    val sinkConfigs = ReflectionTools.classFieldToVal(sink).values.map {
+    val sinkConfigs = sink.productIterator.toSet.map {
       case o: Option[_] => o
       case _ =>
         throw new InvalidConfigParameterException(
@@ -598,8 +599,10 @@ object ConfigFailFast extends LazyLogging {
         checkCouchbaseParams(params)
       case Some(InfluxDb1xParams(database, _, url)) =>
         checkInfluxDb1xParams("WeatherSource", url, database)
-      case Some(params: SqlParams) =>
-        checkSqlParams(params)
+      case Some(
+            SqlParams(jdbcUrl, password, schemaName, tableName, userName)
+          ) =>
+        checkSqlParams(jdbcUrl, password, schemaName, tableName, userName)
       case Some(_: SampleParams) =>
         // sample weather, no check required
         // coordinate source must be sample coordinate source
@@ -658,11 +661,19 @@ object ConfigFailFast extends LazyLogging {
         }
 
         "csv"
-      case Some(sqlParams: SqlParams) =>
-        checkSqlParams(sqlParams)
+      case Some(
+            CoordinateSource.SqlParams(
+              jdbcUrl,
+              password,
+              schemaName,
+              tableName,
+              userName,
+            )
+          ) =>
+        checkSqlParams(jdbcUrl, password, schemaName, tableName, userName)
         "sql"
       case Some(
-            _: SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SampleParams
+            _: CoordinateSource.SampleParams
           ) =>
         "sample"
       case None | Some(_) =>

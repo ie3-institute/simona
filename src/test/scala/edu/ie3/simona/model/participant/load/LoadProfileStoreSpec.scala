@@ -100,10 +100,7 @@ class LoadProfileStoreSpec
 
     "have values, that lead to correct annual energy consumption" in {
       /* Collect all available load profiles */
-      val availableLoadProfiles: Set[StandardLoadProfile] =
-        (customStore invokePrivate PrivateMethod[
-          Map[LoadProfileKey, TypeDayProfile]
-        ](Symbol("profileMap"))()).keySet.map(_.standardLoadProfile)
+      val availableLoadProfiles: Set[StandardLoadProfile] = customStore.loadProfiles
 
       /* List the expected annual energy consumption */
       val expectedEnergyConsumption: Map[StandardLoadProfile, squants.Energy] =

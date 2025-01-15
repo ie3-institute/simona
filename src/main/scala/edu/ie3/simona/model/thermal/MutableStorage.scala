@@ -17,9 +17,7 @@ import squants.Energy
 trait MutableStorage {
   self: ThermalStorage =>
 
-  /** Current storage level
-    */
-  protected var _storedEnergy: Energy
+  def getStoredEnergy: Energy
 
   def isDemandCoveredByStorage(demand: Energy): Boolean =
     usableThermalEnergy >= demand

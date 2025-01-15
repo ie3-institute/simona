@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.grid
 
 import breeze.linalg.max
-import breeze.math.Complex
+import breeze.math.*
 import breeze.numerics.pow
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.exceptions.InvalidGridException
@@ -25,7 +25,7 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseC,
 }
 import edu.ie3.simona.util.SimonaConstants
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.OperationInterval
 import squants.electro.{Kilovolts, Ohms, Siemens}
 import squants.energy.Megawatts
@@ -503,7 +503,7 @@ case object Transformer3wModel extends LazyLogging {
     transformerModel.powerFlowCase match {
       case Transformer3wPowerFlowCase.PowerFlowCaseA =>
         BigDecimal
-          .apply(transformerModel.tapRatio.toString)
+          .apply(transformerModel.getTapRation.toString)
           .setScale(5, RoundingMode.HALF_UP)
       case Transformer3wPowerFlowCase.PowerFlowCaseB |
           Transformer3wPowerFlowCase.PowerFlowCaseC =>
@@ -535,7 +535,7 @@ case object Transformer3wModel extends LazyLogging {
         val bij = transformer3wModel.bij().value.doubleValue()
         val gii = transformer3wModel.g0().value.doubleValue()
         val bii = transformer3wModel.b0().value.doubleValue()
-        amount * ((1 - 1 / transformer3wModel.tapRatio) * Complex(
+        amount * ((1 - 1 / transformer3wModel.getTapRation) * Complex(
           gij,
           bij,
         ) + Complex(
@@ -564,7 +564,7 @@ case object Transformer3wModel extends LazyLogging {
     val bij = transformer3wModel.bij().value.doubleValue()
     transformer3wModel.powerFlowCase match {
       case PowerFlowCaseA =>
-        amount * Complex(gij, bij) / transformer3wModel.tapRatio
+        amount * Complex(gij, bij) / transformer3wModel.getTapRation
       case _ => amount * Complex(gij, bij)
     }
   }

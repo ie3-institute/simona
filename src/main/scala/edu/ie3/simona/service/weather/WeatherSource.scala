@@ -319,7 +319,7 @@ object WeatherSource {
           ),
         )
       case Some(
-            SqlParams(
+            CoordinateSource.SqlParams(
               jdbcUrl,
               userName,
               password,

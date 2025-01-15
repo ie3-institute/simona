@@ -63,7 +63,7 @@ final case class CylindricalThermalStorage(
     minEnergyThreshold: Energy,
     maxEnergyThreshold: Energy,
     chargingPower: Power,
-    override var _storedEnergy: Energy,
+    protected var _storedEnergy: Energy,
 ) extends ThermalStorage(
       uuid,
       id,
@@ -134,6 +134,9 @@ final case class CylindricalThermalStorage(
     getMinEnergyThreshold,
     zeroKW,
   )
+
+  @deprecated("Use thermal storage state instead")
+  override def getStoredEnergy: Energy = _storedEnergy
 
   @deprecated("Use thermal storage state instead")
   override def usableThermalEnergy: Energy =

@@ -241,7 +241,7 @@ class PrimaryServiceProxySpec
       simulationStart,
     )
   val proxyRef: TestActorRef[PrimaryServiceProxy] = TestActorRef(
-    new PrimaryServiceProxy(scheduler.ref, initStateData, simulationStart)
+    new PrimaryServiceProxy(scheduler.ref, initStateData)(simulationStart)
   )
   val proxy: PrimaryServiceProxy = proxyRef.underlyingActor
 
@@ -459,7 +459,8 @@ class PrimaryServiceProxySpec
           new PrimaryServiceProxy(
             scheduler.ref,
             initStateData,
-            simulationStart,
+          )(
+            simulationStart
           ) {
             override protected def classToWorkerRef[V <: Value](
                 valueClass: Class[V],
@@ -634,7 +635,8 @@ class PrimaryServiceProxySpec
           new PrimaryServiceProxy(
             scheduler.ref,
             initStateData,
-            simulationStart,
+          )(
+            simulationStart
           ) {
             override protected def initializeWorker(
                 metaInformation: IndividualTimeSeriesMetaInformation,
@@ -688,7 +690,8 @@ class PrimaryServiceProxySpec
           new PrimaryServiceProxy(
             scheduler.ref,
             initStateData,
-            simulationStart,
+          )(
+            simulationStart
           ) {
             override protected def initializeWorker(
                 metaInformation: IndividualTimeSeriesMetaInformation,

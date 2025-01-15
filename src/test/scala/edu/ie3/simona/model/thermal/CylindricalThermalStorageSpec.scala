@@ -83,17 +83,17 @@ class CylindricalThermalStorageSpec
   "CylindricalThermalStorage Model" should {
 
     "Check storage level operations:" in {
-      val storage = buildThermalStorage(storageInput, CubicMeters(70))
+      var storage = buildThermalStorage(storageInput, CubicMeters(70))
 
-      val initialLevel = storage._storedEnergy
-      storage._storedEnergy_=(vol2Energy(CubicMeters(50)))
-      val newLevel1 = storage._storedEnergy
+      val initialLevel = storage.getStoredEnergy
+      storage = storage.copy(_storedEnergy = vol2Energy(CubicMeters(50)))
+      val newLevel1 = storage.getStoredEnergy
       val surplus =
         storage.tryToStoreAndReturnRemainder(vol2Energy(CubicMeters(55)))
-      val newLevel2 = storage._storedEnergy
+      val newLevel2 = storage.getStoredEnergy
       val isCovering = storage.isDemandCoveredByStorage(KilowattHours(5))
       val lack = storage.tryToTakeAndReturnLack(vol2Energy(CubicMeters(115)))
-      val newLevel3 = storage._storedEnergy
+      val newLevel3 = storage.getStoredEnergy
       val notCovering = storage.isDemandCoveredByStorage(KilowattHours(1))
 
       initialLevel should approximate(vol2Energy(CubicMeters(70)))

@@ -40,6 +40,8 @@ object ReflectionTools {
     *
     * @param a
     *   the object that should be processed
+    * @param tt
+    *   the type tag of the objects class
     * @param ct
     *   the class tag of the objects class
     * @tparam A
@@ -48,7 +50,8 @@ object ReflectionTools {
     *   a map containing the field method, and it's value of the object instance
     */
   def classFieldToVal[A](a: A)(implicit
-      ct: ClassTag[A]
+      tt: TypeTag[A],
+      ct: ClassTag[A],
   ): Map[universe.MethodSymbol, Any] = {
     val members = tt.tpe.members.collect {
       case m if m.isMethod && m.asMethod.isCaseAccessor => m.asMethod

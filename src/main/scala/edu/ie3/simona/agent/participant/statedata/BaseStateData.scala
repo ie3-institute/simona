@@ -272,7 +272,7 @@ object BaseStateData {
     * @return
     *   A copy of the base data with updated value stores
     */
-  def updateBaseStateData[PD <: PrimaryDataWithApparentPower](
+  def updateBaseStateData[PD <: PrimaryDataWithApparentPower, MS <: ModelState](
       baseStateData: BaseStateData[PD],
       updatedResultValueStore: ValueStore[PD],
       updatedRequestValueStore: ValueStore[PD],
@@ -282,7 +282,7 @@ object BaseStateData {
   ): BaseStateData[PD] = {
     baseStateData match {
       case external: FromOutsideBaseStateData[
-            _ <: SystemParticipant[_ <: CalcRelevantData, PD, _],
+            _ <: SystemParticipant[_ <: CalcRelevantData, PD, MS],
             PD,
           ] =>
         external.copy(
@@ -295,8 +295,8 @@ object BaseStateData {
       case model: ParticipantModelBaseStateData[
             PD,
             _ <: CalcRelevantData,
-            _ <: ModelState,
-            _ <: SystemParticipant[_ <: CalcRelevantData, PD, _],
+            MS,
+            _ <: SystemParticipant[_ <: CalcRelevantData, PD, MS],
           ] =>
         model.copy(
           resultValueStore = updatedResultValueStore,

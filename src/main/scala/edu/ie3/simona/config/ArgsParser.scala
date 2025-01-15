@@ -223,7 +223,9 @@ object ArgsParser extends LazyLogging {
 
     val argsConfig =
       ConfigFactory.parseString(
-        s"""config = "${parsedArgs.configLocation.get.replace("\\", "\\\\")}"
+        s"""config = "${parsedArgs.configLocation
+            .getOrElse("")
+            .replace("\\", "\\\\")}"
            |simona.runtime_configuration {
            |  selected_subnets = [${parsedArgs.selectedSubnets.getOrElse("")}]
            |  selected_volt_lvls = [${parsedArgs.selectedVoltLvls

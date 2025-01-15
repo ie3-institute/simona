@@ -19,11 +19,15 @@ import org.apache.kafka.clients.producer.{
   ProducerConfig,
   ProducerRecord,
 }
-import org.apache.kafka.common.serialization.{Serdes, Serializer}
+import org.apache.kafka.common.serialization.{
+  Serdes,
+  Serializer,
+  StringSerializer,
+}
 import org.slf4j.Logger
 
 import java.util.{Properties, UUID}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Runtime event sink that sends events related to the simulation ending to a
   * kafka topic.
@@ -90,9 +94,6 @@ object RuntimeEventKafkaSink {
       ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG,
       true,
     ) // exactly once delivery
-
-    implicit val recordFormat: RecordFormat[SimonaEndMessage] =
-      RecordFormat[SimonaEndMessage]
 
     val keySerializer = Serdes.String().serializer()
     val valueSerializer: Serializer[SimonaEndMessage] =

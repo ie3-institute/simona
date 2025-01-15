@@ -22,6 +22,8 @@ final case class RandomLoadParamStore private (reader: Reader) {
   private val parameterMap: Map[DayType.Value, TypeDayParameters] =
     initializeDayTypeValues(reader)
 
+  def size: Int = parameterMap.size
+  
   /** Returns the random load parameters for given time.
     *
     * @param time

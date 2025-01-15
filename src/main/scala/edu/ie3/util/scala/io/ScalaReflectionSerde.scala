@@ -6,54 +6,37 @@
 
 package edu.ie3.util.scala.io
 
-import com.sksamuel.avro4s.RecordFormat
-import io.confluent.kafka.streams.serdes.avro.{
-  GenericAvroDeserializer,
-  GenericAvroSerializer,
-}
 import org.apache.kafka.common.serialization.{Deserializer, Serializer}
+
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream}
 
 /** As seen at
   * https://kafka-tutorials.confluent.io/produce-consume-lang/scala.html
   */
 object ScalaReflectionSerde {
 
-  def reflectionSerializer4S[T: RecordFormat]: Serializer[T] =
-    new Serializer[T] {
-      val inner = new GenericAvroSerializer()
+  def reflectionSerializer4S[T]: Serializer[T] =
+    (topic: String, maybeData: T) => Option(maybeData)
+      .map(data =>
+        val outputStream = new ByteArrayOutputStream()
+        val objectOutputStream = new ObjectOutputStream(outputStream)
+        objectOutputStream.writeObject(data)
+        objectOutputStream.close()
+        outputStream.toByteArray
+      )
+      .getOrElse(Array.emptyByteArray)
 
-      override def configure(
-          configs: java.util.Map[String, _],
-          isKey: Boolean,
-      ): Unit = inner.configure(configs, isKey)
-
-      override def serialize(topic: String, maybeData: T): Array[Byte] =
-        Option(maybeData)
-          .map(data =>
-            inner.serialize(topic, implicitly[RecordFormat[T]].to(data))
-          )
-          .getOrElse(Array.emptyByteArray)
-
-      override def close(): Unit = inner.close()
-    }
-
-  def reflectionDeserializer4S[T: RecordFormat]: Deserializer[T] =
-    new Deserializer[T] {
-      val inner = new GenericAvroDeserializer()
-
-      override def configure(
-          configs: java.util.Map[String, _],
-          isKey: Boolean,
-      ): Unit = inner.configure(configs, isKey)
-
-      override def deserialize(topic: String, maybeData: Array[Byte]): T =
-        Option(maybeData)
-          .filter(_.nonEmpty)
-          .map(data =>
-            implicitly[RecordFormat[T]].from(inner.deserialize(topic, data))
-          )
-          .getOrElse(null.asInstanceOf[T])
-
-      override def close(): Unit = inner.close()
-    }
+  def reflectionDeserializer4S[T]: Deserializer[T] =
+    (topic: String, maybeData: Array[Byte]) => Option(maybeData)
+      .filter(_.nonEmpty)
+      .map(data =>
+        val inputStream = new ObjectInputStream(new ByteArrayInputStream(data))
+        val value = inputStream.readObject() match {
+          case t: T =>
+            t
+        }
+        inputStream.close()
+        value
+      )
+      .getOrElse(null.asInstanceOf[T])
 }

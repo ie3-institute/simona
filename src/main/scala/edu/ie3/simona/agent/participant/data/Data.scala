@@ -6,11 +6,14 @@
 
 package edu.ie3.simona.agent.participant.data
 
-import edu.ie3.datamodel.models.value._
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
+import edu.ie3.datamodel.models.value.*
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
+  ComplexPower,
+  PrimaryDataWithApparentPower,
+}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.interfaces.EnergyPrice
-import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.{Kilovars, ReactivePower}
 import squants.energy.{Kilowatts, Power}
 import tech.units.indriya.ComparableQuantity
@@ -50,7 +53,7 @@ object Data {
     sealed trait PrimaryDataWithApparentPower extends PrimaryData {
       val q: ReactivePower
 
-      def withReactivePower(q: ReactivePower): this.type
+      def withReactivePower(q: ReactivePower): PrimaryDataWithApparentPower
     }
 
     /** Adding thermal power

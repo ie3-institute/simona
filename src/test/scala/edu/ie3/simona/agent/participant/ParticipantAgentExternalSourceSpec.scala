@@ -25,6 +25,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ActivePowerAndHeat,
   ComplexPower,
   ComplexPowerAndHeat,
+  PrimaryDataWithApparentPower,
 }
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.FromOutsideBaseStateData
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
@@ -265,21 +266,15 @@ class ParticipantAgentExternalSourceSpec
         )
       )
 
+      type MockStateData = FromOutsideBaseStateData[_ <: SystemParticipant[
+        FixedRelevantData.type,
+        ComplexPower,
+        ConstantState.type,
+      ], ComplexPower]
+
       inside(mockAgent.stateData) {
-        case FromOutsideBaseStateData(
-              _,
-              _,
-              _,
-              _,
-              _,
-              _,
-              _,
-              _,
-              _,
-              _,
-              requestValueStore,
-            ) =>
-          requestValueStore shouldBe ValueStore[ComplexPower](
+        case stateData: MockStateData =>
+          stateData.requestValueStore shouldBe ValueStore[ComplexPower](
             resolution,
             SortedMap(
               0L -> ComplexPower(

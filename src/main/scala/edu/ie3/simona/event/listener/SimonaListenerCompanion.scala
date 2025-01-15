@@ -13,7 +13,7 @@ import scala.reflect.ClassTag
 /** Companion trait to [[[[edu.ie3.simona.event.listener.SimonaListener]]
   */
 trait SimonaListenerCompanion {
-  def props[A <: SimonaListenerWithFilter: ClassTag](
+  def props[A <: SimonaListenerWithFilter](
       eventsToProcess: Option[List[String]] = None
   ): Props
 }
