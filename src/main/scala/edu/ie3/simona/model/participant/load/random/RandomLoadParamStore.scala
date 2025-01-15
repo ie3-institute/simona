@@ -23,7 +23,7 @@ final case class RandomLoadParamStore private (reader: Reader) {
     initializeDayTypeValues(reader)
 
   def size: Int = parameterMap.size
-  
+
   /** Returns the random load parameters for given time.
     *
     * @param time

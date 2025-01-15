@@ -44,7 +44,7 @@ class LoadProfileStore private (val reader: Reader) {
     initializeMaxConsumptionPerProfile(
       profileMap
     )
-    
+
   def loadProfiles: Set[StandardLoadProfile] = maxParamMap.keySet
 
   /** Returns the load profiles entry (average power consumption for the

@@ -37,7 +37,7 @@ class RuntimeEventListenerKafkaSpec
     with TableDrivenPropertyChecks
     with RuntimeTestData {
   private var testConsumer: KafkaConsumer[Bytes, SimonaEndMessage] = _
-  
+
   private val deserializer: Deserializer[SimonaEndMessage] =
     ScalaReflectionSerde.reflectionDeserializer4S[SimonaEndMessage]
 

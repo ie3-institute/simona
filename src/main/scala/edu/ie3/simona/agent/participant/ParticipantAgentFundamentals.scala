@@ -972,9 +972,10 @@ protected trait ParticipantAgentFundamentals[
           .activeToReactivePowerFunc(
             currentNodalVoltage
           )(p)
-    } else { _: Power =>
-      /* Use trivial reactive power */
-      zeroMVAr
+    } else {
+      _: Power =>
+        /* Use trivial reactive power */
+        zeroMVAr
     }
 
   /** Try to get and process the received data
