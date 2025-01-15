@@ -7,13 +7,24 @@
 package edu.ie3.simona.model.thermal
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.input.thermal.{CylindricalStorageInput, DomesticHotWaterStorageInput}
+import edu.ie3.datamodel.models.input.thermal.{
+  CylindricalStorageInput,
+  DomesticHotWaterStorageInput,
+}
 import edu.ie3.datamodel.models.result.ResultEntity
-import edu.ie3.datamodel.models.result.thermal.{CylindricalStorageResult, DomesticHotWaterStorageResult, ThermalHouseResult}
+import edu.ie3.datamodel.models.result.thermal.{
+  CylindricalStorageResult,
+  DomesticHotWaterStorageResult,
+  ThermalHouseResult,
+}
 import edu.ie3.simona.exceptions.InvalidParameterException
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
-import edu.ie3.simona.model.thermal.ThermalGrid.{ThermalDemandWrapper, ThermalEnergyDemand, ThermalGridState}
+import edu.ie3.simona.model.thermal.ThermalGrid.{
+  ThermalDemandWrapper,
+  ThermalEnergyDemand,
+  ThermalGridState,
+}
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.util.TickUtil.TickLong
@@ -809,8 +820,8 @@ final case class ThermalGrid(
     * @param qDotHouse
     *   Infeed to the house
     * @param qDotHeatStorage
-   *    Infeed to the heat storage (positive: Storage is charging, negative:
-   *    Storage is discharging)
+    *   Infeed to the heat storage (positive: Storage is charging, negative:
+    *   Storage is discharging)
     * @param qDotDomesticHotWaterStorage
     *   Infeed to the domestic hot water storage
     * @return
@@ -927,9 +938,9 @@ final case class ThermalGrid(
     *   data of heat pump including state of the heat pump
     * @param state
     *   Current state of the houses
-   * @param qDotStorage
-   *   Infeed to the storage (positive: Storage is charging, negative: Storage
-   *   is discharging)
+    * @param qDotStorage
+    *   Infeed to the storage (positive: Storage is charging, negative: Storage
+    *   is discharging)
     * @param storage
     *   the storage that should be handled
     * @return
@@ -1081,7 +1092,7 @@ final case class ThermalGrid(
     * @param lastThermalGridState
     *   state of the thermalGrid until this tick
     * @param qDot
-    *     Infeed to the grid from thermal generation (e.g. heat pump)
+    *   Infeed to the grid from thermal generation (e.g. heat pump)
     * @param simulationStartTime
     *   simulationStartDate as ZonedDateTime
     * @param houseInhabitants
@@ -1125,8 +1136,9 @@ final case class ThermalGrid(
         qDot,
       )
 
-    heatStorage.zip(lastThermalGridState.storageState).map { case (storage, storageState) =>
-      storage.updateState(relevantData.currentTick, qDot, storageState)
+    heatStorage.zip(lastThermalGridState.storageState).map {
+      case (storage, storageState) =>
+        storage.updateState(relevantData.currentTick, qDot, storageState)
     }
 
     val domesticHotWaterDemand = house
