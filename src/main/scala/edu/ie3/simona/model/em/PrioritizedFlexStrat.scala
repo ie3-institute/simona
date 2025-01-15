@@ -18,7 +18,7 @@ import edu.ie3.datamodel.models.input.system.{
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.EmModelStrat.tolerance
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.util.scala.quantities.DefaultQuantities.*
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.Power
 
 import java.util.UUID

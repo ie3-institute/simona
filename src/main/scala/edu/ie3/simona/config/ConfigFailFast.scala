@@ -16,7 +16,7 @@ import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
   SqlParams,
 }
 import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.InfluxDb1x
-import edu.ie3.simona.config.SimonaConfig.*
+import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
@@ -673,7 +673,7 @@ object ConfigFailFast extends LazyLogging {
         checkSqlParams(jdbcUrl, password, schemaName, tableName, userName)
         "sql"
       case Some(
-            _: CoordinateSource.SampleParams
+            _: SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SampleParams
           ) =>
         "sample"
       case None | Some(_) =>

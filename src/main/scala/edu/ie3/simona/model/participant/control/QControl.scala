@@ -12,15 +12,15 @@ import edu.ie3.simona.exceptions.QControlException
 import edu.ie3.simona.model.system.Characteristic
 import edu.ie3.simona.model.system.Characteristic.XYPair
 import edu.ie3.util.quantities.PowerSystemUnits.PU
-import edu.ie3.util.scala.quantities.DefaultQuantities.*
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{ApparentPower, Megavars, ReactivePower}
 import squants.{Dimensionless, Each, Power}
 import tech.units.indriya.AbstractUnit
 
 import scala.collection.SortedSet
 import scala.collection.immutable.TreeSet
-import scala.jdk.CollectionConverters.*
-import scala.math.*
+import scala.jdk.CollectionConverters._
+import scala.math._
 
 sealed trait QControl {
   protected val _cosPhiMultiplication: (Double, Power) => ReactivePower =
