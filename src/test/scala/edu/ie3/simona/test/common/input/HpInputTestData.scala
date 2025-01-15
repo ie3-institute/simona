@@ -10,6 +10,7 @@ import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.datamodel.models.input.system.`type`.HpTypeInput
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.thermal.{
+  DomesticHotWaterStorageInput,
   ThermalHouseInput,
   ThermalStorageInput,
 }
@@ -76,11 +77,14 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
     Quantities.getQuantity(21.0, StandardUnits.TEMPERATURE),
     Quantities.getQuantity(22.0, StandardUnits.TEMPERATURE),
     Quantities.getQuantity(20.0, StandardUnits.TEMPERATURE),
+    "house",
+    2.0,
   )
 
   protected val defaultThermalGrid = new container.ThermalGrid(
     thermalBusInput,
     Seq(defaultThermalHouse).asJava,
+    Seq.empty[ThermalStorageInput].asJava,
     Seq.empty[ThermalStorageInput].asJava,
   )
 
@@ -109,6 +113,8 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
       ),
       Quantities.getQuantity(upperTemperatureBoundary, Units.CELSIUS),
       Quantities.getQuantity(lowerTemperatureBoundary, Units.CELSIUS),
+      "house",
+      2.0,
     )
   )
 

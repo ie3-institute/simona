@@ -37,6 +37,7 @@ class CylindricalThermalStorageSpec
     getQuantity(30, StandardUnits.TEMPERATURE),
     getQuantity(40, StandardUnits.TEMPERATURE),
     getQuantity(1.15, StandardUnits.SPECIFIC_HEAT_CAPACITY),
+    getQuantity(50, PowerSystemUnits.KILOWATT),
   )
 
   def buildThermalStorage(

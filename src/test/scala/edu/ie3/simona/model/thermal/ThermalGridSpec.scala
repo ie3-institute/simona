@@ -109,6 +109,7 @@ class ThermalGridSpec
         thermalBusInput,
         Set(thermalHouseInput).asJava,
         Set.empty[ThermalStorageInput].asJava,
+        Set.empty[ThermalStorageInput].asJava,
       )
     )
 
@@ -123,6 +124,7 @@ class ThermalGridSpec
         thermalBusInput,
         Set(thermalHouseInput).asJava,
         Set[ThermalStorageInput](thermalStorageInput).asJava,
+        Set.empty[ThermalStorageInput].asJava,
       )
     )
 

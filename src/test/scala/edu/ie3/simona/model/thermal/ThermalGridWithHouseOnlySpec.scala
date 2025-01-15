@@ -35,6 +35,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
           thermalBusInput,
           Set(thermalHouseInput).asJava,
           Set.empty[ThermalStorageInput].asJava,
+          Set.empty[ThermalStorageInput].asJava,
         )
 
       ThermalGrid(thermalGridInput) match {
@@ -51,6 +52,7 @@ class ThermalGridWithHouseOnlySpec extends UnitSpec with ThermalHouseTestData {
       new edu.ie3.datamodel.models.input.container.ThermalGrid(
         thermalBusInput,
         Set(thermalHouseInput).asJava,
+        Set.empty[ThermalStorageInput].asJava,
         Set.empty[ThermalStorageInput].asJava,
       )
     )
