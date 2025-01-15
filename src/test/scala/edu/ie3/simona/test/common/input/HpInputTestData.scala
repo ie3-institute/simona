@@ -118,7 +118,6 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
     thermalBusInput,
-    KilowattHours(0d),
     KilowattHours(500d),
     Kilowatts(10d),
     KilowattHours(0d),
