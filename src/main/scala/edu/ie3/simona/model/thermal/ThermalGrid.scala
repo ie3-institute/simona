@@ -578,8 +578,7 @@ object ThermalGrid {
 
     def hasRequiredDemand: Boolean = required > zeroMWh
 
-    def hasAdditionalDemand: Boolean = possible > zeroMWh
-
+    def hasAdditionalDemand: Boolean = possible > required
   }
   object ThermalEnergyDemand {
 
