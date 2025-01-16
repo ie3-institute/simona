@@ -13,6 +13,7 @@ import edu.ie3.datamodel.models.result.thermal.{
   CylindricalStorageResult,
   ThermalHouseResult,
 }
+import edu.ie3.simona.exceptions.InvalidParameterException
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.thermal.ThermalGrid.{
@@ -30,6 +31,7 @@ import squants.{Energy, Power, Temperature}
 
 import java.time.ZonedDateTime
 import scala.jdk.CollectionConverters.SetHasAsScala
+import scala.language.postfixOps
 
 /** Calculation model for a thermal grid. It is assumed, that all elements are
   * connected directly with exactly one thermal bus
@@ -867,10 +869,19 @@ object ThermalGrid {
         required: Energy,
         possible: Energy,
     ): ThermalEnergyDemand = {
-      if (possible < required)
-        new ThermalEnergyDemand(possible, possible)
-      else
-        new ThermalEnergyDemand(required, possible)
+      if (
+        math.abs(possible.toKilowattHours) < math.abs(required.toKilowattHours)
+      )
+        throw new InvalidParameterException(
+          s"The possible amount of energy $possible is smaller than the required amount of energy $required. This is not supported."
+        )
+
+      if (possible.toKilowattHours < 0 || required.toKilowattHours < 0)
+        throw new InvalidParameterException(
+          s"The possible $possible or required $required amount of energy cannot be negative. This is not supported."
+        )
+
+      new ThermalEnergyDemand(required, possible)
     }
 
     def noDemand: ThermalEnergyDemand = ThermalEnergyDemand(
