@@ -7,6 +7,7 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
+import edu.ie3.simona.exceptions.InvalidParameterException
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalEnergyDemand
 import edu.ie3.simona.test.common.UnitSpec
 import squants.energy.{KilowattHours, MegawattHours, WattHours, Watts}
