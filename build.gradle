@@ -24,14 +24,14 @@ ext {
   javaVersion = JavaVersion.VERSION_17
 
   scalaVersion = '2.13'
-  scalaBinaryVersion = '2.13.15'
-  pekkoVersion = '1.1.2'
+  scalaBinaryVersion = '2.13.16'
+  pekkoVersion = '1.1.3'
   jtsVersion = '1.20.0'
   confluentKafkaVersion = '7.4.0'
-  tscfgVersion = '1.1.5'
-  scapegoatVersion = '3.1.2'
+  tscfgVersion = '1.2.1'
+  scapegoatVersion = '3.1.3'
 
-  testContainerVersion = '0.41.4'
+  testContainerVersion = '0.41.5'
 
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
 }
@@ -88,7 +88,7 @@ dependencies {
     exclude group: 'edu.ie3'
   }
 
-  implementation('com.github.ie3-institute:simonaAPI:0.5.0') {
+  implementation('com.github.ie3-institute:simonaAPI:0.6.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -97,12 +97,12 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.5" // pekko scala logging
-  implementation "ch.qos.logback:logback-classic:1.5.12"
+  implementation "ch.qos.logback:logback-classic:1.5.16"
 
   /* testing */
   testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
   testImplementation 'org.scalatestplus:mockito-3-4_2.13:3.2.10.0'
-  testImplementation 'org.mockito:mockito-core:5.14.2' // mocking framework
+  testImplementation 'org.mockito:mockito-core:5.15.2' // mocking framework
   testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.19"
   testRuntimeOnly 'com.vladsch.flexmark:flexmark-all:0.64.8' //scalatest html output
   testImplementation group: 'org.pegdown', name: 'pegdown', version: '1.6.0'
@@ -144,11 +144,11 @@ dependencies {
   implementation "com.sksamuel.avro4s:avro4s-core_${scalaVersion}:4.1.2"
 
   implementation 'org.apache.commons:commons-math3:3.6.1' // apache commons math3
-  implementation 'org.apache.poi:poi-ooxml:5.3.0' // used for FilenameUtils
+  implementation 'org.apache.poi:poi-ooxml:5.4.0' // used for FilenameUtils
   implementation 'javax.measure:unit-api:2.2'
-  implementation 'tech.units:indriya:2.2.1' // quantities
+  implementation 'tech.units:indriya:2.2.2' // quantities
   implementation "org.typelevel:squants_${scalaVersion}:1.8.3"
-  implementation 'org.apache.commons:commons-csv:1.12.0'
+  implementation 'org.apache.commons:commons-csv:1.13.0'
   implementation 'org.scalanlp:breeze_2.13:2.1.0' // scientific calculations (http://www.scalanlp.org/)
   implementation 'de.lmu.ifi.dbs.elki:elki:0.7.5' // Statistics (for random load model)
   implementation 'org.jgrapht:jgrapht-core:1.5.2'
