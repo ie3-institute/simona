@@ -6,45 +6,64 @@
 
 package edu.ie3.util.scala.io
 
-import org.apache.kafka.common.serialization.{Deserializer, Serializer}
-
-import java.io.{
-  ByteArrayInputStream,
-  ByteArrayOutputStream,
-  ObjectInputStream,
-  ObjectOutputStream,
+import com.sksamuel.avro4s.{
+  AvroSchema,
+  Decoder,
+  Encoder,
+  FromRecord,
+  RecordFormat,
+  SchemaFor,
+  ToRecord,
 }
+import io.confluent.kafka.streams.serdes.avro.{
+  GenericAvroDeserializer,
+  GenericAvroSerializer,
+}
+import org.apache.avro.Schema
+import org.apache.avro.generic.GenericRecord
+import org.apache.kafka.common.serialization.{Deserializer, Serializer}
 
 /** As seen at
   * https://kafka-tutorials.confluent.io/produce-consume-lang/scala.html
   */
 object ScalaReflectionSerde {
 
-  def reflectionSerializer4S[T]: Serializer[T] =
-    (topic: String, maybeData: T) =>
-      Option(maybeData)
-        .map(data =>
-          val outputStream = new ByteArrayOutputStream()
-          val objectOutputStream = new ObjectOutputStream(outputStream)
-          objectOutputStream.writeObject(data)
-          objectOutputStream.close()
-          outputStream.toByteArray
-        )
-        .getOrElse(Array.emptyByteArray)
+  def reflectionSerializer4S[T >: Null: SchemaFor: Encoder]: Serializer[T] =
+    new Serializer[T] {
+      val inner = new GenericAvroSerializer()
+      val schema: Schema = AvroSchema[T]
+      val toRecord: ToRecord[T] = ToRecord.apply[T](schema)
 
-  def reflectionDeserializer4S[T]: Deserializer[T] =
-    (topic: String, maybeData: Array[Byte]) =>
-      Option(maybeData)
-        .filter(_.nonEmpty)
-        .map(data =>
-          val inputStream =
-            new ObjectInputStream(new ByteArrayInputStream(data))
-          val value = inputStream.readObject() match {
-            case t: T =>
-              t
-          }
-          inputStream.close()
-          value
-        )
-        .getOrElse(null.asInstanceOf[T])
+      override def configure(
+          configs: java.util.Map[String, _],
+          isKey: Boolean,
+      ): Unit = inner.configure(configs, isKey)
+
+      override def serialize(topic: String, maybeData: T): Array[Byte] =
+        Option(maybeData)
+          .map(data => inner.serialize(topic, toRecord.to(data)))
+          .getOrElse(Array.emptyByteArray)
+
+      override def close(): Unit = inner.close()
+    }
+
+  def reflectionDeserializer4S[T >: Null: SchemaFor: Decoder]: Deserializer[T] =
+    new Deserializer[T] {
+      val inner = new GenericAvroDeserializer()
+      val schema: Schema = AvroSchema[T]
+      val fromRecord: FromRecord[T] = FromRecord.apply[T](schema)
+
+      override def configure(
+          configs: java.util.Map[String, _],
+          isKey: Boolean,
+      ): Unit = inner.configure(configs, isKey)
+
+      override def deserialize(topic: String, maybeData: Array[Byte]): T =
+        Option(maybeData)
+          .filter(_.nonEmpty)
+          .map(data => fromRecord.from(inner.deserialize(topic, data)))
+          .getOrElse(null.asInstanceOf[T])
+
+      override def close(): Unit = inner.close()
+    }
 }
