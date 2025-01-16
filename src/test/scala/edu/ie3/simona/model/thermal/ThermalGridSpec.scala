@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.thermal
 
-import edu.ie3.simona.exceptions.InvalidParameterException
 import edu.ie3.datamodel.models.input.thermal.ThermalStorageInput
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalEnergyDemand
 import edu.ie3.simona.test.common.UnitSpec
@@ -33,7 +32,7 @@ class ThermalGridSpec
 
         intercept[InvalidParameterException] {
           ThermalEnergyDemand(required, possible)
-        }.getMessage shouldBe s"The possible amount of energy {$possible} is smaller than the required amount of energy {$required}. This is not supported."
+        }.getMessage shouldBe s"The possible amount of energy $possible is smaller than the required amount of energy $required. This is not supported."
       }
 
       "set the correct values, if they are sensible" in {
@@ -80,7 +79,7 @@ class ThermalGridSpec
         val possible = MegawattHours(0d)
         intercept[InvalidParameterException] {
           ThermalEnergyDemand(required, possible)
-        }.getMessage shouldBe s"The possible amount of energy {$possible} is smaller than the required amount of energy {$required}. This is not supported."
+        }.getMessage shouldBe s"The possible amount of energy $possible is smaller than the required amount of energy $required. This is not supported."
       }
 
       "throw exception, if required demand is smaller than zero" in {
@@ -88,7 +87,7 @@ class ThermalGridSpec
         val possible = MegawattHours(5d)
         intercept[InvalidParameterException] {
           ThermalEnergyDemand(required, possible)
-        }.getMessage shouldBe s"The possible {$possible} or required {$required} amount of energy is smaller than zero. This is not supported."
+        }.getMessage shouldBe s"The possible $possible or required $required amount of energy cannot be negative. This is not supported."
       }
 
       "throw exception, if possible demand is smaller than zero" in {
@@ -96,7 +95,7 @@ class ThermalGridSpec
         val possible = MegawattHours(-5d)
         intercept[InvalidParameterException] {
           ThermalEnergyDemand(required, possible)
-        }.getMessage shouldBe s"The possible {$possible} or required {$required} amount of energy is smaller than zero. This is not supported."
+        }.getMessage shouldBe s"The possible $possible or required $required amount of energy cannot be negative. This is not supported."
       }
 
       "throw exception, if possible and required demand are smaller than zero" in {
@@ -104,7 +103,7 @@ class ThermalGridSpec
         val possible = MegawattHours(-5d)
         intercept[InvalidParameterException] {
           ThermalEnergyDemand(required, possible)
-        }.getMessage shouldBe s"The possible {$possible} or required {$required} amount of energy is smaller than zero. This is not supported."
+        }.getMessage shouldBe s"The possible $possible or required $required amount of energy cannot be negative. This is not supported."
       }
 
       "return proper information, if required and additional demand is apparent" in {
