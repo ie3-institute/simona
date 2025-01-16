@@ -851,7 +851,7 @@ object ThermalGrid {
 
     def hasRequiredDemand: Boolean = required > zeroMWh
 
-    def hasAdditionalDemand: Boolean = possible > zeroMWh
+    def hasAdditionalDemand: Boolean = possible > required
   }
   object ThermalEnergyDemand {
 
@@ -872,10 +872,15 @@ object ThermalGrid {
         math.abs(possible.toKilowattHours) < math.abs(required.toKilowattHours)
       )
         throw new InvalidParameterException(
-          s"The possible amount of energy {$possible} is smaller than the required amount of energy {$required}. This is not supported."
+          s"The possible amount of energy $possible is smaller than the required amount of energy $required. This is not supported."
         )
-      else
-        new ThermalEnergyDemand(required, possible)
+
+      if (possible.toKilowattHours < 0 || required.toKilowattHours < 0)
+        throw new InvalidParameterException(
+          s"The possible $possible or required $required amount of energy cannot be negative. This is not supported."
+        )
+
+      new ThermalEnergyDemand(required, possible)
     }
 
     def noDemand: ThermalEnergyDemand = ThermalEnergyDemand(
