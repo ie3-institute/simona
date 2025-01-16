@@ -16,9 +16,6 @@ import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATTHOUR, VOLTAMPERE}
 import tech.units.indriya.quantity.Quantities
 
 /** Trait that can be mixed into tests requiring some data to use [[LoadInput]]
-  *
-  * @version 0.1
-  * @since 23.06.20
   */
 trait LoadInputTestData extends NodeInputTestData {
   val loadInput =
