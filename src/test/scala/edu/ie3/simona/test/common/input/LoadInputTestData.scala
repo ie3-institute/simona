@@ -15,7 +15,7 @@ import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.util.quantities.PowerSystemUnits.{KILOWATTHOUR, VOLTAMPERE}
 import tech.units.indriya.quantity.Quantities
 
-/** //ToDo: Class Description
+/** Trait that can be mixed into tests requiring some data to use [[LoadInput]]
   *
   * @version 0.1
   * @since 23.06.20
