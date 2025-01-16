@@ -115,7 +115,6 @@ class ThermalGridSpec
         energyDemand.hasRequiredDemand shouldBe true
         energyDemand.hasAdditionalDemand shouldBe true
       }
-
     }
 
     "adding two demands" should {
