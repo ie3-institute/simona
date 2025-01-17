@@ -11,7 +11,6 @@ import com.sksamuel.avro4s.{
   Decoder,
   Encoder,
   FromRecord,
-  RecordFormat,
   SchemaFor,
   ToRecord,
 }
@@ -20,7 +19,6 @@ import io.confluent.kafka.streams.serdes.avro.{
   GenericAvroSerializer,
 }
 import org.apache.avro.Schema
-import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.common.serialization.{Deserializer, Serializer}
 
 /** As seen at
