@@ -107,9 +107,9 @@ case object ConfigFailFast extends LazyLogging {
     checkTimeConfig(simonaConfig.time)
 
     // check if the provided combinations of refSystems provided are valid
-    val refSystems = simonaConfig.gridConfig.refSystems
-    if (refSystems.isDefined)
-      refSystems.foreach(refsys => checkRefSystem(refsys))
+    val refSystems = List(simonaConfig.gridConfig.refSystems)
+    if (refSystems.nonEmpty)
+      refSystems.foreach(refsys => checkRefSystem(refsys.toList))
 
     /* Check all participant model configurations */
     checkParticipantRuntimeConfiguration(

@@ -182,7 +182,7 @@ object GridAgent extends DBFSAlgorithm {
           constantData.simonaConfig.powerflow.newtonraphson.epsilon.toVector.sorted,
           constantData.simonaConfig.powerflow.newtonraphson.iterations,
           constantData.simonaConfig.powerflow.sweepTimeOut,
-          constantData.simonaConfig.powerflow.resolution,
+          constantData.simonaConfig.time.stopOnFailedPowerFlow,
         ),
         SimonaActorNaming.actorName(ctx.self),
       )

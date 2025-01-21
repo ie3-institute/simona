@@ -10,14 +10,9 @@ import SimonaConfig._
 import edu.ie3.simona.config.OutputConfig.BaseOutputConfig
 import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
 
-import scala.concurrent.duration.{Duration, DurationInt}
+import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration}
 import pureconfig._
-import pureconfig.error.{
-  CannotParse,
-  CannotRead,
-  ConvertFailure,
-  ThrowableFailure,
-}
+import pureconfig.error.{CannotParse, CannotRead, ConvertFailure, ThrowableFailure}
 import pureconfig.generic.ProductHint
 import pureconfig.generic.auto._
 import tscfg.codeDefs.resources.ScalaDefs.$TsCfgValidator
@@ -97,15 +92,16 @@ object SimonaConfig {
       // TODO: remove  date time defaults ?
       startDateTime: String = "2011-05-01 00:00:00",
       endDateTime: String = "2011-05-01 01:00:00",
+      // fixme? : stopOnFailedPowerFlow in PowerFlowConfig?
       stopOnFailedPowerFlow: Boolean = false,
       schedulerReadyCheckWindow: Option[Int] = None,
   )
 
   final case class PowerFlowConfig(
       maxSweepPowerDeviation: Double,
-      sweepTimeOut: Duration = 30.second,
+      sweepTimeOut: FiniteDuration = 30.second,
       newtonraphson: NewtonRaphsonConfig,
-      resolution: Duration = 1.hour,
+      resolution: FiniteDuration = 1.hour,
   )
 
   final case class NewtonRaphsonConfig(
@@ -122,6 +118,13 @@ object SimonaConfig {
       vNom: String,
       voltLvls: Option[Seq[VoltLvlConfig]],
       gridIds: Option[Seq[String]],
+  )
+
+  final case class TransformerControlGroupConfig(
+    measurements: String,
+    transformers: [string],
+    vMax: Double
+    vMin: Double
   )
 
   final case class SimpleOutputConfig(
