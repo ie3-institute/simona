@@ -400,7 +400,7 @@ class PowerFlowSupportSpec
 
     "perform the power flow for the slack grid correctly" in {
       val withMvPowerFlowResults: Map[UUID, Dimensionless] = {
-        val (gridModel, receivedValueStore) = TestData.withMv
+        val (gridModel, receivedValueStore) = TestData.withEHV
 
         val (operationPoint, slackNodeVoltages) = composeOperatingPoint(
           gridModel.gridComponents.nodes,
@@ -430,8 +430,8 @@ class PowerFlowSupportSpec
         pf.nodeData.map(n => indexMap(n.index) -> Each(n.voltage.abs)).toMap
       }
 
-      val onlyLvPowerFlowResults: Map[UUID, Dimensionless] = {
-        val (gridModel, receivedValueStore) = TestData.onlyLv
+      val onlyHvPowerFlowResults: Map[UUID, Dimensionless] = {
+        val (gridModel, receivedValueStore) = TestData.onlyHV
 
         val pf = slackGridPF(
           gridModel,
@@ -451,7 +451,7 @@ class PowerFlowSupportSpec
 
       }
 
-      onlyLvPowerFlowResults.foreach { case (uuid, result) =>
+      onlyHvPowerFlowResults.foreach { case (uuid, result) =>
         withMvPowerFlowResults(uuid) should approximate(result)(tolerance)
       }
     }
@@ -474,7 +474,7 @@ class PowerFlowSupportSpec
         simonaConfig,
       )
 
-    val withMv: (GridModel, ReceivedValuesStore) = {
+    val withEHV: (GridModel, ReceivedValuesStore) = {
       val gridModel = TestGridFactory.createSubGrid(
         gridName = "centerGrid",
         subgrid = 1,
@@ -497,7 +497,7 @@ class PowerFlowSupportSpec
       (gridModel, receivedValueStore)
     }
 
-    val onlyLv: (GridModel, ReceivedValuesStore) = {
+    val onlyHV: (GridModel, ReceivedValuesStore) = {
       val updatedNode1 =
         node1.copy().slack(true).vTarget(0.9999984268502677.asPu).build()
       val gridModel = TestGridFactory.createSubGrid(
