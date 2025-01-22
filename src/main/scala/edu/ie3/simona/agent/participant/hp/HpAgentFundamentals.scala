@@ -11,10 +11,7 @@ import edu.ie3.datamodel.models.result.system.{
   HpResult,
   SystemParticipantResult,
 }
-import edu.ie3.datamodel.utils.validation.{
-  ThermalUnitValidationUtils,
-  ValidationUtils,
-}
+import edu.ie3.datamodel.utils.validation.ValidationUtils
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
@@ -460,7 +457,7 @@ trait HpAgentFundamentals
         s"Unable to initialize heat pump agent '${inputModel.electricalInputModel.getUuid}' without thermal grid model."
       )
     case WithHeatInputContainer(_, thermalGrid) =>
-      ThermalUnitValidationUtils.check(thermalGrid)
+      ValidationUtils.check(thermalGrid)
       /* Build the actual heat pump model */
       HpModel(
         inputModel.electricalInputModel,
