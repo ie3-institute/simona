@@ -9,6 +9,7 @@ package edu.ie3.simona.event.listener
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop}
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
+import edu.ie3.datamodel.models.result.system.EmResult
 import edu.ie3.datamodel.models.result.{ModelResultEntity, NodeResult, ResultEntity}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.event.ResultEvent.{FlexOptionsResultEvent, ParticipantResultEvent, PowerFlowResultEvent, ThermalResultEvent}
@@ -65,41 +66,48 @@ object ResultEventListener extends Transformer3wResultSupport {
       resultFileHierarchy: ResultFileHierarchy
   ): Iterable[Future[(Class[_], ResultEntitySink)]] = {
     resultFileHierarchy.resultSinkType match {
-      case _: ResultSinkType.Csv =>
-        resultFileHierarchy.resultEntitiesToConsider
-          .map(resultClass => {
-            resultFileHierarchy.rawOutputDataFilePaths
-              .get(resultClass)
-              .map(Future.successful)
-              .getOrElse(
-                Future.failed(
-                  new FileHierarchyException(
-                    s"Unable to get file path for result class '${resultClass.getSimpleName}' from output file hierarchy! " +
-                      s"Available file result file paths: ${resultFileHierarchy.rawOutputDataFilePaths}"
-                  )
+      case csv: ResultSinkType.Csv =>
+        val enableCompression = csv.compressOutputs
+
+        resultFileHierarchy.resultEntitiesToConsider.map { resultClass =>
+          val filePathOpt =
+            resultFileHierarchy.rawOutputDataFilePaths.get(resultClass)
+
+          val filePathFuture = filePathOpt match {
+            case Some(fileName) => Future.successful(fileName)
+            case None =>
+              Future.failed(
+                new FileHierarchyException(
+                  s"Unable to get file path for result class '${resultClass.getSimpleName}' from output file hierarchy! " +
+                    s"Available file result file paths: ${resultFileHierarchy.rawOutputDataFilePaths}"
                 )
               )
-              .flatMap { fileName =>
-                if (fileName.endsWith(".csv") || fileName.endsWith(".csv.gz")) {
-                  Future {
-                    (
-                      resultClass,
-                      ResultEntityCsvSink(
-                        fileName.replace(".gz", ""),
-                        new ResultEntityProcessor(resultClass),
-                        fileName.endsWith(".gz"),
-                      ),
-                    )
-                  }
-                } else {
-                  Future.failed(
-                    new ProcessResultEventException(
-                      s"Invalid output file format for file $fileName provided. Currently only '.csv' or '.csv.gz' is supported!"
-                    )
+          }
+
+          filePathFuture.map { fileName =>
+            val finalFileName =
+              fileName match {
+                case name if name.endsWith(".csv.gz") && enableCompression =>
+                  name.replace(".gz", "")
+                case name if name.endsWith(".csv") => name
+                case fileName =>
+                  throw new ProcessResultEventException(
+                    s"Invalid output file format for file $fileName provided or compression is not activated but filename indicates compression. Currently only '.csv' or '.csv.gz' is supported!"
                   )
-                }
               }
-          })
+
+            (
+              resultClass,
+              ResultEntityCsvSink(
+                finalFileName,
+                new ResultEntityProcessor(resultClass),
+                enableCompression,
+              ),
+            )
+
+          }
+        }
+
       case ResultSinkType.InfluxDb1x(url, database, scenario) =>
         // creates one connection per result entity that should be processed
         resultFileHierarchy.resultEntitiesToConsider
@@ -148,28 +156,28 @@ object ResultEventListener extends Transformer3wResultSupport {
   private def handleResult(
       resultEntity: ResultEntity,
       baseData: BaseData,
-      log: Logger
+      log: Logger,
   ): BaseData = {
-    //log.info("Got Result " + resultEntity)
+    // log.info("Got Result " + resultEntity)
     handOverToSink(resultEntity, baseData.classToSink, log)
     baseData
   }
 
   private def handleResultWithTick(
-                                    resultEntity: ResultEntity,
-                                    baseData: BaseData,
-                                    log: Logger,
-                                    tick: Long,
-                                    nextTick: Option[Long] = None
-                                  ): BaseData = {
-    //log.info("Got Result " + resultEntity)
+      resultEntity: ResultEntity,
+      baseData: BaseData,
+      log: Logger,
+      tick: Long,
+      nextTick: Option[Long] = None,
+  ): BaseData = {
+    // log.info("Got Result " + resultEntity)
     handOverToSink(resultEntity, baseData.classToSink, log)
     if (baseData.extResultDataService.isDefined) {
       handOverToExternalService(
         tick,
         resultEntity,
         baseData.extResultDataService,
-        nextTick
+        nextTick,
       )
     }
     baseData
@@ -247,17 +255,21 @@ object ResultEventListener extends Transformer3wResultSupport {
     }
 
   private def handOverToExternalService(
-                                         tick: Long,
-                                         resultEntity: ResultEntity,
-                                         extResultDataService: Option[ActorRef[ExtResultDataProvider.Request]],
-                                         nextTick: Option[Long] = None
+      tick: Long,
+      resultEntity: ResultEntity,
+      extResultDataService: Option[ActorRef[ExtResultDataProvider.Request]],
+      nextTick: Option[Long] = None,
   ): Unit = Try {
     val extResultDataServiceRef = extResultDataService.getOrElse(
       throw new Exception("No external data service registered!")
     )
     resultEntity match {
       case modelResultEntity: ModelResultEntity =>
-        extResultDataServiceRef ! ResultResponseMessage(modelResultEntity, tick, nextTick)
+        extResultDataServiceRef ! ResultResponseMessage(
+          modelResultEntity,
+          tick,
+          nextTick,
+        )
       case _ =>
         throw new Exception("Wrong data type!")
     }
@@ -265,7 +277,8 @@ object ResultEventListener extends Transformer3wResultSupport {
 
   def apply(
       resultFileHierarchy: ResultFileHierarchy,
-      extResultDataService: Option[ActorRef[ExtResultDataProvider.Request]] = Option.empty[ActorRef[ExtResultDataProvider.Request]],
+      extResultDataService: Option[ActorRef[ExtResultDataProvider.Request]] =
+        Option.empty[ActorRef[ExtResultDataProvider.Request]],
   ): Behavior[Request] = Behaviors.setup[Request] { ctx =>
     ctx.log.debug("Starting initialization!")
     resultFileHierarchy.resultSinkType match {
@@ -314,7 +327,13 @@ object ResultEventListener extends Transformer3wResultSupport {
   private def idle(baseData: BaseData): Behavior[Request] = Behaviors
     .receivePartial[Request] {
       case (ctx, ParticipantResultEvent(participantResult, tick, nextTick)) =>
-        val updatedBaseData = handleResultWithTick(participantResult, baseData, ctx.log, tick, nextTick)
+        val updatedBaseData = handleResultWithTick(
+          participantResult,
+          baseData,
+          ctx.log,
+          tick,
+          nextTick,
+        )
         idle(updatedBaseData)
 
       case (ctx, ThermalResultEvent(thermalResult)) =>
@@ -330,15 +349,21 @@ object ResultEventListener extends Transformer3wResultSupport {
               transformer2wResults,
               transformer3wResults,
               tick,
-              nextTick
+              nextTick,
             ),
           ) =>
         val updatedBaseData =
           (nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ transformer3wResults)
             .foldLeft(baseData) {
               case (currentBaseData, resultEntity: ResultEntity) =>
-                //ctx.log.info(s"resultEntity = $resultEntity, tick = $tick")
-                handleResultWithTick(resultEntity, currentBaseData, ctx.log, tick, Some(nextTick))
+                // ctx.log.info(s"resultEntity = $resultEntity, tick = $tick")
+                handleResultWithTick(
+                  resultEntity,
+                  currentBaseData,
+                  ctx.log,
+                  tick,
+                  Some(nextTick),
+                )
               case (
                     currentBaseData,
                     partialTransformerResult: PartialTransformer3wResult,
@@ -352,7 +377,8 @@ object ResultEventListener extends Transformer3wResultSupport {
         idle(updatedBaseData)
 
       case (ctx, FlexOptionsResultEvent(flexOptionsResult, tick)) =>
-        val updatedBaseData = handleResultWithTick(flexOptionsResult, baseData, ctx.log, tick)
+        val updatedBaseData =
+          handleResultWithTick(flexOptionsResult, baseData, ctx.log, tick, Some(tick+900L))
         idle(updatedBaseData)
 
       case (ctx, msg: DelayedStopHelper.StoppingMsg) =>

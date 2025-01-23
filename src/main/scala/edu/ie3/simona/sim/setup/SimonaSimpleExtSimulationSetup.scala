@@ -24,31 +24,32 @@ import java.util.concurrent.LinkedBlockingQueue
   * @since 01.07.20
   */
 class SimonaSimpleExtSimulationSetup(
-                                      override val typeSafeConfig: Config,
-                                      override val simonaConfig: SimonaConfig,
-                                      override val resultFileHierarchy: ResultFileHierarchy,
-                                      override val runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
-                                      override val args: Array[String],
+    override val typeSafeConfig: Config,
+    override val simonaConfig: SimonaConfig,
+    override val resultFileHierarchy: ResultFileHierarchy,
+    override val runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] =
+      None,
+    override val args: Array[String],
 ) extends SimonaExtSimSetup(
-  typeSafeConfig,
-  simonaConfig,
-  resultFileHierarchy,
-  runtimeEventQueue,
-  args
-) {
+      typeSafeConfig,
+      simonaConfig,
+      resultFileHierarchy,
+      runtimeEventQueue,
+      args,
+    ) {
 
   override def extSimulations(
-                               context: ActorContext[_],
-                               scheduler: ActorRef[SchedulerMessage],
-                             ): ExtSimSetupData = {
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
+  ): ExtSimSetupData = {
     //val simpleExtSim = new SimpleExtSimulationWithPowerFlow()
-    //val simpleExtSim = new SimpleExtSimulationWithEm()
-    //val simpleExtSim = new SimpleExtSimulationWithPrimaryData()
+    // val simpleExtSim = new SimpleExtSimulationWithEm()
+    // val simpleExtSim = new SimpleExtSimulationWithPrimaryData()
 
     extSimulationSetup(
       context,
       scheduler,
-      null
+      null,
     )
   }
 }

@@ -32,7 +32,7 @@ object ArgsParser extends LazyLogging {
       useLocalWorker: Option[Boolean] = None,
       tArgs: Map[String, String] = Map.empty,
       extAddress: Option[String] = None,
-      mappingPath: Option[String] = None
+      mappingPath: Option[String] = None,
   ) {
     val useCluster: Boolean = clusterType.isDefined
   }

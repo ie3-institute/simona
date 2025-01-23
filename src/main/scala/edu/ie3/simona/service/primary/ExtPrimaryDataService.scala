@@ -10,15 +10,24 @@ import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.RichValue
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryData
-import edu.ie3.simona.api.data.primarydata.ontology.{PrimaryDataMessageFromExt, ProvidePrimaryData}
+import edu.ie3.simona.api.data.primarydata.ontology.{
+  PrimaryDataMessageFromExt,
+  ProvidePrimaryData,
+}
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ExtPrimaryDataServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.{DataMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
-import edu.ie3.simona.service.primary.ExtPrimaryDataService.{ExtPrimaryDataStateData, InitExtPrimaryData}
+import edu.ie3.simona.service.ServiceStateData.{
+  InitializeServiceStateData,
+  ServiceBaseStateData,
+}
+import edu.ie3.simona.service.primary.ExtPrimaryDataService.{
+  ExtPrimaryDataStateData,
+  InitExtPrimaryData,
+}
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.ProvidePrimaryDataMessage
 import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
@@ -39,7 +48,8 @@ object ExtPrimaryDataService {
   final case class ExtPrimaryDataStateData(
       extPrimaryData: ExtPrimaryData,
       subscribers: List[UUID] = List.empty,
-      uuidToActorRef: Map[UUID, ActorRef] = Map.empty[UUID, ActorRef], // subscribers in SIMONA
+      uuidToActorRef: Map[UUID, ActorRef] =
+        Map.empty[UUID, ActorRef], // subscribers in SIMONA
       extPrimaryDataMessage: Option[PrimaryDataMessageFromExt] = None,
       maybeNextTick: Option[Long] = None,
   ) extends ServiceBaseStateData
@@ -79,18 +89,18 @@ final case class ExtPrimaryDataService(
   )(implicit
       serviceStateData: ExtPrimaryDataStateData
   ): Try[ExtPrimaryDataStateData] = registrationMessage match {
-      case ExtPrimaryDataServiceRegistrationMessage(
-            modelUuid,
-            requestingActor,
-          ) =>
-        Success(handleRegistrationRequest(requestingActor, modelUuid))
-      case invalidMessage =>
-        Failure(
-          InvalidRegistrationRequestException(
-            s"A primary service provider is not able to handle registration request '$invalidMessage'."
-          )
+    case ExtPrimaryDataServiceRegistrationMessage(
+          modelUuid,
+          requestingActor,
+        ) =>
+      Success(handleRegistrationRequest(requestingActor, modelUuid))
+    case invalidMessage =>
+      Failure(
+        InvalidRegistrationRequestException(
+          s"A primary service provider is not able to handle registration request '$invalidMessage'."
         )
-    }
+      )
+  }
 
   private def handleRegistrationRequest(
       agentToBeRegistered: ActorRef,
@@ -149,7 +159,7 @@ final case class ExtPrimaryDataService(
 
   private def processDataAndAnnounce(
       tick: Long,
-      primaryDataMessage: ProvidePrimaryData
+      primaryDataMessage: ProvidePrimaryData,
   )(implicit
       serviceStateData: ExtPrimaryDataStateData,
       ctx: ActorContext,
@@ -157,7 +167,7 @@ final case class ExtPrimaryDataService(
       ExtPrimaryDataStateData,
       Option[Long],
   ) = {
-    log.debug(s"Got activation to distribute primaryData = $primaryDataMessage")
+    log.info(s"Got activation to distribute primaryData = $primaryDataMessage")
     val actorToPrimaryData = primaryDataMessage.primaryData.asScala.flatMap {
       case (agent, primaryDataPerAgent) =>
         serviceStateData.uuidToActorRef
@@ -176,24 +186,23 @@ final case class ExtPrimaryDataService(
 
     // Distribute Primary Data
     if (actorToPrimaryData.nonEmpty) {
-      actorToPrimaryData.foreach {
-        case (actor, value) =>
-          value.toPrimaryData match {
-            case Success(primaryData) =>
-              actor ! ProvidePrimaryDataMessage(
-                tick,
-                self,
-                primaryData,
-                maybeNextTick,
-              )
-            case Failure(exception) =>
-              /* Processing of data failed */
-              log.warning(
-                "Unable to convert received value to primary data. Skipped that data." +
-                  "\nException: {}",
-                exception,
-              )
-          }
+      actorToPrimaryData.foreach { case (actor, value) =>
+        value.toPrimaryData match {
+          case Success(primaryData) =>
+            actor ! ProvidePrimaryDataMessage(
+              tick,
+              self,
+              primaryData,
+              maybeNextTick,
+            )
+          case Failure(exception) =>
+            /* Processing of data failed */
+            log.warning(
+              "Unable to convert received value to primary data. Skipped that data." +
+                "\nException: {}",
+              exception,
+            )
+        }
       }
     }
 

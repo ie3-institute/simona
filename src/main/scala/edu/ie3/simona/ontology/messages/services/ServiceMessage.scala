@@ -53,10 +53,10 @@ object ServiceMessage {
   ) extends ServiceRegistrationMessage
 
   final case class ExtEmDataServiceRegistrationMessage(
-                                                        modelUuid: UUID,
-                                                        requestingActor: ActorRef[EmAgent.Request],
-                                                        flexAdapter: ActorRef[FlexRequest]
-                                                      ) extends ServiceRegistrationMessage
+      modelUuid: UUID,
+      requestingActor: ActorRef[EmAgent.Request],
+      flexAdapter: ActorRef[FlexRequest],
+  ) extends ServiceRegistrationMessage
 
   sealed trait RegistrationResponseMessage extends ServiceMessage {
     val serviceRef: ClassicRef
@@ -72,8 +72,8 @@ object ServiceMessage {
     ) extends RegistrationResponseMessage
 
     final case class WrappedRegistrationSuccessfulMessage(
-                                                   registrationSuccessfulMessage: RegistrationSuccessfulMessage
-                                                  ) extends EmAgent.Request
+        registrationSuccessfulMessage: RegistrationSuccessfulMessage
+    ) extends EmAgent.Request
 
     /** Message, that is used to announce a failed registration
       */

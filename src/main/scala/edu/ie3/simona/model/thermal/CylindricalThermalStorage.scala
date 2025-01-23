@@ -63,7 +63,7 @@ final case class CylindricalThermalStorage(
     minEnergyThreshold: Energy,
     maxEnergyThreshold: Energy,
     chargingPower: Power,
-    override protected var _storedEnergy: Energy,
+    override var _storedEnergy: Energy,
 ) extends ThermalStorage(
       uuid,
       id,

@@ -36,9 +36,16 @@ import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.service.em.ExtEmDataService.InitExtEmData
 import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
-import edu.ie3.simona.service.primary.{ExtPrimaryDataService, PrimaryServiceProxy}
+import edu.ie3.simona.service.primary.{
+  ExtPrimaryDataService,
+  PrimaryServiceProxy,
+}
 import edu.ie3.simona.service.results.ExtResultDataProvider
-import edu.ie3.simona.service.results.ExtResultDataProvider.{InitExtResultData, RequestDataMessageAdapter, RequestScheduleActivationAdapter}
+import edu.ie3.simona.service.results.ExtResultDataProvider.{
+  InitExtResultData,
+  RequestDataMessageAdapter,
+  RequestScheduleActivationAdapter,
+}
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.sim.SimonaSim
@@ -48,7 +55,11 @@ import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.AskPattern._
-import org.apache.pekko.actor.typed.scaladsl.adapter.{ClassicActorRefOps, TypedActorContextOps, TypedActorRefOps}
+import org.apache.pekko.actor.typed.scaladsl.adapter.{
+  ClassicActorRefOps,
+  TypedActorContextOps,
+  TypedActorRefOps,
+}
 import org.apache.pekko.actor.typed.{ActorRef, Scheduler}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import org.apache.pekko.util.{Timeout => PekkoTimeout}
@@ -74,7 +85,7 @@ abstract class SimonaExtSimSetup(
     val simonaConfig: SimonaConfig,
     val resultFileHierarchy: ResultFileHierarchy,
     val runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
-    override val args: Array[String]
+    override val args: Array[String],
 ) extends SimonaSetup {
   override def logOutputDir: String = resultFileHierarchy.logOutputDir
 
@@ -168,7 +179,7 @@ abstract class SimonaExtSimSetup(
           simonaConfig.simona.input.primary,
           simulationStart,
           extSimSetupData.extPrimaryDataService,
-          extSimSetupData.extPrimaryData
+          extSimSetupData.extPrimaryData,
         ),
         simulationStart,
       ),
@@ -319,12 +330,11 @@ abstract class SimonaExtSimSetup(
       .toSeq
   }
 
-
   def extSimulationSetup(
-                          context: ActorContext[_],
-                          scheduler: ActorRef[SchedulerMessage],
-                          extSim: ExtSimulation
-                        ): ExtSimSetupData = {
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
+      extSim: ExtSimulation,
+  ): ExtSimSetupData = {
     // ExtSimAdapter
     val extSimAdapter = context.toClassic.simonaActorOf(
       ExtSimAdapter.props(scheduler.toClassic),
@@ -339,8 +349,11 @@ abstract class SimonaExtSimSetup(
       ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
     )
 
-    val extDataServicesMap: mutable.Map[Class[_], ClassicRef] = mutable.Map.empty
-    val extDataListenerMap: mutable.Map[Class[_], ActorRef[ExtResultDataProvider.Request]] = mutable.Map.empty
+    val extDataServicesMap: mutable.Map[Class[_], ClassicRef] =
+      mutable.Map.empty
+    val extDataListenerMap
+        : mutable.Map[Class[_], ActorRef[ExtResultDataProvider.Request]] =
+      mutable.Map.empty
 
     val dataConnections = extSim.getDataConnections
 
@@ -350,10 +363,11 @@ abstract class SimonaExtSimSetup(
           context,
           scheduler,
           extSimAdapterData,
-          extPrimaryData
+          extPrimaryData,
         )
-        extDataServicesMap += (classOf[ExtPrimaryDataService] -> extPrimaryDataService)
-
+        extDataServicesMap += (classOf[
+          ExtPrimaryDataService
+        ] -> extPrimaryDataService)
 
       case extResultData: ExtResultData =>
         val extResultDataProvider = extResultDataSimulationSetup(
@@ -366,17 +380,16 @@ abstract class SimonaExtSimSetup(
           ),
           simonaConfig.simona.powerflow.resolution.get(
             ChronoUnit.SECONDS
-          )
+          ),
         )
         extDataListenerMap += (ExtResultDataProvider.getClass -> extResultDataProvider)
-
 
       case extEmData: ExtEmData =>
         val extEmDataService = extEmDataSimulationSetup(
           context,
           scheduler,
           extSimAdapterData,
-          extEmData
+          extEmData,
         )
         extDataServicesMap += (classOf[ExtEmDataService] -> extEmDataService)
 
@@ -384,7 +397,7 @@ abstract class SimonaExtSimSetup(
     context.log.info("Set up all data connections!")
     extSim.setup(
       extSimAdapterData,
-      dataConnections
+      dataConnections,
     )
     new Thread(extSim, s"External simulation").start()
 
@@ -394,16 +407,16 @@ abstract class SimonaExtSimSetup(
       extSimAdapters,
       extDataServicesMap.toMap,
       extDataListenerMap.toMap,
-      dataConnections.asScala.toSet
+      dataConnections.asScala.toSet,
     )
   }
 
   private def extPrimaryDataSimulationSetup(
-                                     context: ActorContext[_],
-                                     scheduler: ActorRef[SchedulerMessage],
-                                     extSimAdapterData: ExtSimAdapterData,
-                                     extPrimaryData: ExtPrimaryData
-                                   ): ClassicRef = {
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
+      extSimAdapterData: ExtSimAdapterData,
+      extPrimaryData: ExtPrimaryData,
+  ): ClassicRef = {
     val extSimAdapter = extSimAdapterData.getAdapter
 
     val extPrimaryDataService = context.toClassic.simonaActorOf(
@@ -413,7 +426,7 @@ abstract class SimonaExtSimSetup(
 
     extPrimaryData.setActorRefs(
       extPrimaryDataService,
-      extSimAdapter
+      extSimAdapter,
     )
 
     extPrimaryDataService ! SimonaService.Create(
@@ -427,13 +440,12 @@ abstract class SimonaExtSimSetup(
     extPrimaryDataService
   }
 
-
   private def extEmDataSimulationSetup(
-                                context: ActorContext[_],
-                                scheduler: ActorRef[SchedulerMessage],
-                                extSimAdapterData: ExtSimAdapterData,
-                                extEmData: ExtEmData
-                              ): ClassicRef = {
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
+      extSimAdapterData: ExtSimAdapterData,
+      extEmData: ExtEmData,
+  ): ClassicRef = {
     val extSimAdapter = extSimAdapterData.getAdapter
 
     val extEmDataService = context.toClassic.simonaActorOf(
@@ -443,7 +455,7 @@ abstract class SimonaExtSimSetup(
 
     extEmData.setActorRefs(
       extEmDataService,
-      extSimAdapter
+      extSimAdapter,
     )
 
     extEmDataService ! SimonaService.Create(
@@ -457,15 +469,14 @@ abstract class SimonaExtSimSetup(
     extEmDataService
   }
 
-
   private def extResultDataSimulationSetup(
-                                    context: ActorContext[_],
-                                    scheduler: ActorRef[SchedulerMessage],
-                                    extSimAdapterData: ExtSimAdapterData,
-                                    extResultData: ExtResultData,
-                                    simulationStart: ZonedDateTime,
-                                    powerFlowResolution: Long
-                                  ): ActorRef[ExtResultDataProvider.Request] = {
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
+      extSimAdapterData: ExtSimAdapterData,
+      extResultData: ExtResultData,
+      simulationStart: ZonedDateTime,
+      powerFlowResolution: Long,
+  ): ActorRef[ExtResultDataProvider.Request] = {
     val extResultDataProvider = {
       context.spawn(
         ExtResultDataProvider(scheduler),
@@ -477,16 +488,24 @@ abstract class SimonaExtSimSetup(
     val scheduler2: Scheduler = context.system.scheduler
 
     val adapterRef = Await.result(
-      extResultDataProvider.ask[ActorRef[ResultDataMessageFromExt]](ref => RequestDataMessageAdapter(ref))(timeout, scheduler2), timeout.duration)
+      extResultDataProvider.ask[ActorRef[ResultDataMessageFromExt]](ref =>
+        RequestDataMessageAdapter(ref)
+      )(timeout, scheduler2),
+      timeout.duration,
+    )
     val adapterScheduleRef = Await.result(
-      extResultDataProvider.ask[ActorRef[ScheduleServiceActivation]](ref => RequestScheduleActivationAdapter(ref))(timeout, scheduler2), timeout.duration)
+      extResultDataProvider.ask[ActorRef[ScheduleServiceActivation]](ref =>
+        RequestScheduleActivationAdapter(ref)
+      )(timeout, scheduler2),
+      timeout.duration,
+    )
 
     val extSimAdapter = extSimAdapterData.getAdapter
 
     extResultData.setActorRefs(
       adapterRef.toClassic,
       adapterScheduleRef.toClassic,
-      extSimAdapter
+      extSimAdapter,
     )
 
     extResultDataProvider ! ExtResultDataProvider.Create(

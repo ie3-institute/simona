@@ -35,7 +35,7 @@ object ResultEvent {
   final case class ParticipantResultEvent(
       systemParticipantResult: SystemParticipantResult,
       tick: Long,
-      nextTick: Option[Long] = None
+      nextTick: Option[Long] = None,
   ) extends ResultEvent
 
   /** Event, that is triggered every time a thermal model has a new result
@@ -69,7 +69,7 @@ object ResultEvent {
       transformer2wResults: Iterable[Transformer2WResult],
       transformer3wResults: Iterable[PartialTransformer3wResult],
       tick: Long,
-      nextTick: Long
+      nextTick: Long,
   ) extends ResultEvent
 
   /** Event that holds the flexibility options result of a
@@ -80,7 +80,7 @@ object ResultEvent {
     */
   final case class FlexOptionsResultEvent(
       flexOptionsResult: FlexOptionsResult,
-      tick: Long
+      tick: Long,
   ) extends ResultEvent
 
 }

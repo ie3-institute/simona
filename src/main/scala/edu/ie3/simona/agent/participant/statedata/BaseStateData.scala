@@ -169,8 +169,10 @@ object BaseStateData {
       ],
       override val resultValueStore: ValueStore[P],
       override val requestValueStore: ValueStore[P],
+      flexStateData: Option[FlexControlledData],
   ) extends BaseStateData[P] {
     override val modelUuid: UUID = model.getUuid
+    def isEmManaged: Boolean = flexStateData.nonEmpty
   }
 
   /** The agent is supposed to carry out model calculations

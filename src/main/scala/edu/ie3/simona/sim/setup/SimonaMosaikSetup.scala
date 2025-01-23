@@ -25,24 +25,25 @@ import java.util.concurrent.LinkedBlockingQueue
   * @since 01.07.20
   */
 class SimonaMosaikSetup(
-                         override val typeSafeConfig: Config,
-                         override val simonaConfig: SimonaConfig,
-                         override val resultFileHierarchy: ResultFileHierarchy,
-                         override val runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
-                         override val args: Array[String],
-                         mosaikIP: Option[String] = None,
-                         mosaikMappingPath: Option[String] = None
+    override val typeSafeConfig: Config,
+    override val simonaConfig: SimonaConfig,
+    override val resultFileHierarchy: ResultFileHierarchy,
+    override val runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] =
+      None,
+    override val args: Array[String],
+    mosaikIP: Option[String] = None,
+    mosaikMappingPath: Option[String] = None,
 ) extends SimonaExtSimSetup(
-  typeSafeConfig,
-  simonaConfig,
-  resultFileHierarchy,
-  runtimeEventQueue,
-  args
-) {
+      typeSafeConfig,
+      simonaConfig,
+      resultFileHierarchy,
+      runtimeEventQueue,
+      args,
+    ) {
   override def extSimulations(
-                               context: ActorContext[_],
-                               scheduler: ActorRef[SchedulerMessage]
-                             ): ExtSimSetupData = {
+      context: ActorContext[_],
+      scheduler: ActorRef[SchedulerMessage],
+  ): ExtSimSetupData = {
     val mosaikAddress = mosaikIP.getOrElse("127.0.0.1:5678")
     val mosaikMapping = mosaikMappingPath.getOrElse(throw new RuntimeException("Cannot connect to Mosaik, because there is no mapping!"))
     //val mosaikExtSim = new MosaikElectrolyzerSimulation(mosaikAddress, Path.of(mosaikMapping))
@@ -66,7 +67,7 @@ object SimonaMosaikSetup extends LazyLogging with SetupHelper {
       runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
       mainArgs: Array[String] = Array.empty[String],
       mosaikIP: Option[String] = None,
-      mosaikMappingPath: Option[String] = None
+      mosaikMappingPath: Option[String] = None,
   ): SimonaMosaikSetup =
     new SimonaMosaikSetup(
       typeSafeConfig,
@@ -75,6 +76,6 @@ object SimonaMosaikSetup extends LazyLogging with SetupHelper {
       runtimeEventQueue,
       mainArgs,
       mosaikIP,
-      mosaikMappingPath
+      mosaikMappingPath,
     )
 }

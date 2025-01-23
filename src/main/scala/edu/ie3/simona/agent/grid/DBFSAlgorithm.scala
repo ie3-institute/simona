@@ -470,7 +470,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             gridAgentBaseData,
             currentTick.toDateTime(constantData.simStartTime),
             currentTick,
-            currentTick + constantData.resolution
+            currentTick + constantData.resolution,
           )(ctx.log, constantData)
 
           // do my cleanup stuff
@@ -1367,7 +1367,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       gridAgentBaseData: GridAgentBaseData,
       currentTimestamp: ZonedDateTime,
       currentTick: Long,
-      nextTick: Long
+      nextTick: Long,
   )(implicit
       log: Logger,
       constantData: GridAgentConstantData,

@@ -37,12 +37,15 @@ object FlexibilityMessage {
     val modelUuid: UUID
   }
 
-
   final case class SetPointFlexRequest(
-                                        tick: Long,
-                                        setPower: Power,
-                                        nextSetPointTick: Option[Long]
-                                      ) extends FlexRequest
+      tick: Long,
+      setPower: Power,
+      nextSetPointTick: Option[Long],
+  ) extends FlexRequest
+
+  final case class FlexOptionsRequest(
+                                     tick: Long
+                                     ) extends FlexRequest
 
   /** Message that registers a flex options provider with an
     * [[edu.ie3.simona.agent.em.EmAgent]].
@@ -91,7 +94,6 @@ object FlexibilityMessage {
     * [[FlexActivation]]
     */
   trait ProvideFlexOptions extends FlexResponse
-
 
   /** Message that issues flexibility control to a flex options provider, i.e. a
     * feasible set point is delivered that the flex options provider should
