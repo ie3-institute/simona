@@ -115,31 +115,47 @@ object EmModelShell {
       modelStrategyName: String,
       modelConfig: EmRuntimeConfig,
   ): EmModelShell = {
-
-    val modelStrategy = ProportionalFlexStrat
-
-      /*
-
+    val modelStrategy =
       modelStrategyName match {
-      case "PROPORTIONAL" => ProportionalFlexStrat
-      case "PRIORITIZED" =>
-        PrioritizedFlexStrat(modelConfig.curtailRegenerative)
-      case "self_optimization" => ProportionalFlexStrat
-      case "uncontrolled" => UncontrolledStrat(modelConfig.curtailRegenerative)
-      case unknown =>
-        throw new CriticalFailureException(s"Unknown model strategy $unknown")
+        case "PROPORTIONAL" => ProportionalFlexStrat
+        case "PRIORITIZED" =>
+          PrioritizedFlexStrat(modelConfig.curtailRegenerative)
+        case "optimization" => PrioritizedFlexStrat(true)
+        case "self_optimization" => PrioritizedFlexStrat(true)
+        case "peak_shave" => PrioritizedFlexStrat(true)
+        case "self_optimization_excl_reg" => PrioritizedFlexStrat(false)
+        case "self_opt_agg_false_disagg_true" => PrioritizedFlexStrat(true)
+        case "uncontrolled" => UncontrolledStrat(modelConfig.curtailRegenerative)
+        case unknown =>
+          throw new CriticalFailureException(s"Unknown model strategy $unknown")
     }
-     */
 
     val aggregateFlex = modelStrategyName match {
+      case "self_optimization_excl_reg"     => EmAggregateSelfOpt(false, true)
+      case "self_opt_agg_false_disagg_true" => EmAggregateSelfOpt(false, false)
+      case "optimization"                   => EmAggregateOpt()
+      case "self_optimization"              => EmAggregateSelfOpt(false, true)
+      case "peak_shave"                     => EmAggregatePeakShave(curtailRegenerative=false, includeStorageInMax=true)
+      case "SIMPLE_SUM"                     => EmAggregateSimpleSum
+      case unknown =>
+        throw new CriticalFailureException(
+          s"Unknown aggregate flex strategy $unknown"
+        )
+    }
+
+    /*
+    val aggregateFlex = modelConfig.aggregateFlex match {
       case "SELF_OPT_EXCL_REG" => EmAggregateSelfOpt(false)
-      case "SELF_OPT"          => EmAggregateSelfOpt(true)
+      case "SELF_OPT"          => EmAggregateOpt()
+      //case "SELF_OPT"          => EmAggregateSelfOpt(true)
       case "SIMPLE_SUM"        => EmAggregateSimpleSum
       case unknown =>
         throw new CriticalFailureException(
           s"Unknown aggregate flex strategy $unknown"
         )
     }
+
+     */
 
     EmModelShell(uuid, id, modelStrategy, aggregateFlex)
   }
