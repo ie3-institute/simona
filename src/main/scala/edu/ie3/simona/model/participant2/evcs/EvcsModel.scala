@@ -334,8 +334,8 @@ class EvcsModel private (
     )
   }
 
-  /** Distributes some set power value across given EVs, taking into
-    * consideration the maximum charging power of EVs and the charging station
+  /** Distributes some set power across given EVs, taking into consideration the
+    * maximum charging power of EVs and charging station
     *
     * @param currentTick
     *   The current tick
@@ -344,9 +344,8 @@ class EvcsModel private (
     * @param setPower
     *   The remaining power to assign to given EVs
     * @return
-    *   A set of EV model and possibly charging schedule and activation
-    *   indicators, as well as the remaining power that could not be assigned to
-    *   given EVs
+    *   A sequence of EV model and their charging power, as well as the
+    *   remaining power that could not be assigned to given EVs
     */
   private def distributeChargingPower(
       currentTick: Long,
