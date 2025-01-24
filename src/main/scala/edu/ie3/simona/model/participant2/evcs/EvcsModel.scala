@@ -306,20 +306,31 @@ class EvcsModel private (
 
     val combinedSchedules = forcedSchedules ++ regularSchedules
 
-    val allSchedules = combinedSchedules.map { case (ev, (power, _)) =>
-      ev -> power
+    // preparing results
+    val allSchedules = combinedSchedules.map { case (ev, power) =>
+      ev.uuid -> power
     }.toMap
 
-    val aggregatedChangeIndicator = combinedSchedules
-      .map { case (_, (_, indicator)) => indicator }
+    val aggregateIndicator = combinedSchedules
+      .map { case (ev, chargingPower) =>
+        val endTick = determineNextEvent(ev, chargingPower, state.tick)
+          .map(math.min(_, ev.departureTick))
+          .getOrElse(ev.departureTick)
+
+        OperationChangeIndicator(
+          changesAtNextActivation =
+            isFull(ev) || isEmpty(ev) || isInLowerMargin(ev),
+          changesAtTick = Some(endTick),
+        )
+      }
       .foldLeft(OperationChangeIndicator()) {
-        case (aggregateIndicator, otherIndicator) =>
-          aggregateIndicator | otherIndicator
+        case (aggregate, otherIndicator) =>
+          aggregate | otherIndicator
       }
 
     (
       EvcsOperatingPoint(allSchedules),
-      aggregatedChangeIndicator,
+      aggregateIndicator,
     )
   }
 
@@ -341,10 +352,7 @@ class EvcsModel private (
       currentTick: Long,
       evs: Seq[EvModelWrapper],
       setPower: Power,
-  ): (
-      Seq[(UUID, (Power, OperationChangeIndicator))],
-      Power,
-  ) = {
+  ): (Seq[(EvModelWrapper, Power)], Power) = {
 
     if (evs.isEmpty) return (Seq.empty, setPower)
 
@@ -366,21 +374,7 @@ class EvcsModel private (
       // end of recursion, rest of charging power fits to all
 
       val results = fittingPowerEvs.map { ev =>
-        val endTick = determineNextEvent(ev, proposedPower, currentTick)
-          .map(math.min(_, ev.departureTick))
-          .getOrElse(ev.departureTick)
-
-        (
-          ev.uuid,
-          (
-            proposedPower,
-            OperationChangeIndicator(
-              changesAtNextActivation =
-                isFull(ev) || isEmpty(ev) || isInLowerMargin(ev),
-              changesAtTick = Some(endTick),
-            ),
-          ),
-        )
+        (ev, proposedPower)
       }
 
       (results, zeroKW)
@@ -388,7 +382,7 @@ class EvcsModel private (
       // not all evs can be charged with proposed power
 
       // charge all exceeded evs with their respective maximum power
-      val maxCharged = exceedingPowerEvs.map { ev =>
+      val maxChargedResults = exceedingPowerEvs.map { ev =>
         val maxPower = getMaxAvailableChargingPower(ev)
         val power =
           if (setPower > zeroKW)
@@ -396,30 +390,12 @@ class EvcsModel private (
           else
             maxPower * -1
 
-        val endTick = determineNextEvent(ev, power, currentTick)
-          .map(math.min(_, ev.departureTick))
-          .getOrElse(ev.departureTick)
-
-        (ev, power, endTick)
-      }
-
-      val maxChargedResults = maxCharged.map { case (ev, power, endTick) =>
-        (
-          ev.uuid,
-          (
-            power,
-            OperationChangeIndicator(
-              changesAtNextActivation =
-                isFull(ev) || isEmpty(ev) || isInLowerMargin(ev),
-              changesAtTick = Some(endTick),
-            ),
-          ),
-        )
+        (ev, power)
       }
 
       // sum up allocated power
-      val chargingPowerSum = maxCharged.foldLeft(zeroKW) {
-        case (powerSum, (_, chargingPower, _)) =>
+      val chargingPowerSum = maxChargedResults.foldLeft(zeroKW) {
+        case (powerSum, (_, chargingPower)) =>
           powerSum + chargingPower
       }
 
