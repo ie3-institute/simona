@@ -51,7 +51,7 @@ import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 import tech.units.indriya.unit.Units.AMPERE
 
-import java.util.{Objects, UUID}
+import java.util.UUID
 import scala.math.{cos, sin}
 
 class GridResultsSupportSpec
@@ -258,7 +258,7 @@ class GridResultsSupportSpec
 
             /* Artificial time stamp */
             val time =
-              TimeUtil.withDefaults.toZonedDateTime("2020-06-05 19:54:00")
+              TimeUtil.withDefaults.toZonedDateTime("2020-06-05T19:54:00Z")
 
             /* Expected result */
             val expectedResult = new Transformer2WResult(
@@ -281,7 +281,6 @@ class GridResultsSupportSpec
             )
 
             /* === Examine the result === */
-            Objects.nonNull(actual.getUuid) shouldBe true
             actual.getInputModel shouldBe expectedResult.getInputModel
             QuantityUtil.isEquivalentAbs(
               actual.getiAMag(),
@@ -399,7 +398,7 @@ class GridResultsSupportSpec
         )
 
         val expectedResult: Transformer2WResult = new Transformer2WResult(
-          TimeUtil.withDefaults.toZonedDateTime("2020-06-08 09:03:00"),
+          TimeUtil.withDefaults.toZonedDateTime("2020-06-08T09:03:00Z"),
           transformerModel.uuid,
           ScalaQuantityUtil.zeroCompQuantity(AMPERE),
           ScalaQuantityUtil.zeroCompQuantity(DEGREE_GEOM),
@@ -416,7 +415,7 @@ class GridResultsSupportSpec
             Kilowatts(400d),
             Volts(400d),
           ).nominalCurrent,
-          TimeUtil.withDefaults.toZonedDateTime("2020-06-08 09:03:00"),
+          TimeUtil.withDefaults.toZonedDateTime("2020-06-08T09:03:00Z"),
         ) shouldBe expectedResult
       }
     }
@@ -464,7 +463,7 @@ class GridResultsSupportSpec
       val iNominal = Amperes(100d)
 
       val timeStamp =
-        TimeUtil.withDefaults.toZonedDateTime("2021-06-10 14:45:00")
+        TimeUtil.withDefaults.toZonedDateTime("2021-06-10T14:45:00Z")
       "assemble correct result for transformer at node A" in {
         val nodeStateData =
           StateData(0, NodeType.SL, Complex(1.0, 0.0), Complex.zero)

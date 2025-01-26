@@ -8,7 +8,7 @@ package edu.ie3.simona.model.participant
 
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
@@ -18,8 +18,8 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptio
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants.Power
-import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -29,11 +29,9 @@ import java.util.UUID
   * @param uuid
   *   the element's uuid
   * @param id
-  *   the element's human readable id
+  *   the element's human-readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
-  * @param scalingFactor
-  *   Scaling the output of the system
   * @param qControl
   *   Type of reactive power control
   * @param sRated
@@ -45,19 +43,17 @@ final case class FixedFeedInModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    override val scalingFactor: Double,
     qControl: QControl,
-    sRated: Power,
+    sRated: ApparentPower,
     cosPhiRated: Double,
 ) extends SystemParticipant[
       FixedRelevantData.type,
-      ApparentPower,
+      ComplexPower,
       ConstantState.type,
     ](
       uuid,
       id,
       operationInterval,
-      scalingFactor,
       qControl,
       sRated,
       cosPhiRated,
@@ -72,11 +68,10 @@ final case class FixedFeedInModel(
     * @return
     *   Active power
     */
-  override protected def calculateActivePower(
+  override def calculateActivePower(
       modelState: ConstantState.type,
       data: FixedRelevantData.type = FixedRelevantData,
-  ): Power =
-    sRated * (-1) * cosPhiRated
+  ): Power = sRated.toActivePower(cosPhiRated) * -1
 
   override def determineFlexOptions(
       data: FixedRelevantData.type,
@@ -102,28 +97,30 @@ object FixedFeedInModel extends LazyLogging {
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
   ): FixedFeedInModel = {
+    val scaledInput =
+      inputModel.copy().scale(modelConfiguration.scaling).build()
+
     /* Determine the operation interval */
     val operationInterval: OperationInterval =
       SystemComponent.determineOperationInterval(
         simulationStartDate,
         simulationEndDate,
-        inputModel.getOperationTime,
+        scaledInput.getOperationTime,
       )
 
     // build the fixed feed in model
     val model = FixedFeedInModel(
-      inputModel.getUuid,
-      inputModel.getId,
+      scaledInput.getUuid,
+      scaledInput.getId,
       operationInterval,
-      modelConfiguration.scaling,
-      QControl.apply(inputModel.getqCharacteristics),
-      Kilowatts(
-        inputModel.getsRated
-          .to(PowerSystemUnits.KILOWATT)
+      QControl.apply(scaledInput.getqCharacteristics),
+      Kilovoltamperes(
+        scaledInput.getsRated
+          .to(PowerSystemUnits.KILOVOLTAMPERE)
           .getValue
           .doubleValue
       ),
-      inputModel.getCosPhiRated,
+      scaledInput.getCosPhiRated,
     )
     model.enable()
     model

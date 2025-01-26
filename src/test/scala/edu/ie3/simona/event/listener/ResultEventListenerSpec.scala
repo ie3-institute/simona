@@ -20,11 +20,13 @@ import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent,
   PowerFlowResultEvent,
 }
+import edu.ie3.simona.io.result.ResultSinkType.Csv
 import edu.ie3.simona.io.result.{ResultEntitySink, ResultSinkType}
 import edu.ie3.simona.test.common.result.PowerFlowResultData
 import edu.ie3.simona.test.common.{IOTestCommons, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
+import edu.ie3.util.TimeUtil
 import edu.ie3.util.io.FileIOUtils
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ActorTestKit,
@@ -70,16 +72,20 @@ class ResultEventListenerSpec
       runId: Int,
       fileFormat: String,
       classes: Set[Class[_ <: ResultEntity]] = resultEntitiesToBeWritten,
-  ): ResultFileHierarchy =
+      compressResults: Boolean = false,
+  ): ResultFileHierarchy = {
+    val resultSinkType: ResultSinkType =
+      Csv(fileFormat, "", "", compressResults)
+
     ResultFileHierarchy(
       outputDir = testTmpDir + File.separator + runId,
       simulationName,
       ResultEntityPathConfig(
         classes,
-        ResultSinkType.Csv(fileFormat = fileFormat),
+        resultSinkType,
       ),
-      createDirs = true,
     )
+  }
 
   def createDir(
       resultFileHierarchy: ResultFileHierarchy
@@ -115,14 +121,14 @@ class ResultEventListenerSpec
         )
 
         // after the creation of the listener, it is expected that a corresponding raw result data file is present
-        val outputFile = new File(
-          fileHierarchy.rawOutputDataFilePaths.getOrElse(
+        val outputFile = fileHierarchy.rawOutputDataFilePaths
+          .getOrElse(
             classOf[PvResult],
             fail(
               s"Cannot get filepath for raw result file of class '${classOf[PvResult].getSimpleName}' from outputFileHierarchy!'"
             ),
           )
-        )
+          .toFile
 
         assert(outputFile.exists)
         assert(outputFile.isFile)
@@ -155,14 +161,14 @@ class ResultEventListenerSpec
 
         listenerRef ! ParticipantResultEvent(dummyPvResult)
 
-        val outputFile = new File(
-          specificOutputFileHierarchy.rawOutputDataFilePaths.getOrElse(
+        val outputFile = specificOutputFileHierarchy.rawOutputDataFilePaths
+          .getOrElse(
             classOf[PvResult],
             fail(
               s"Cannot get filepath for raw result file of class '${classOf[PvResult].getSimpleName}' from outputFileHierarchy!'"
             ),
           )
-        )
+          .toFile
 
         // wait until output file exists (headers are flushed out immediately):
         awaitCond(
@@ -212,39 +218,37 @@ class ResultEventListenerSpec
         )
 
         val outputFiles = Map(
-          dummyNodeResultString -> new File(
-            specificOutputFileHierarchy.rawOutputDataFilePaths.getOrElse(
+          dummyNodeResultString -> specificOutputFileHierarchy.rawOutputDataFilePaths
+            .getOrElse(
               classOf[NodeResult],
               fail(
                 s"Cannot get filepath for raw result file of class '${classOf[NodeResult].getSimpleName}' from outputFileHierarchy!'"
               ),
-            )
-          ),
-          dummySwitchResultString -> new File(
+            ),
+          dummySwitchResultString ->
             specificOutputFileHierarchy.rawOutputDataFilePaths.getOrElse(
               classOf[SwitchResult],
               fail(
                 s"Cannot get filepath for raw result file of class '${classOf[SwitchResult].getSimpleName}' from outputFileHierarchy!'"
               ),
-            )
-          ),
-          dummyLineResultDataString -> new File(
-            specificOutputFileHierarchy.rawOutputDataFilePaths.getOrElse(
+            ),
+          dummyLineResultDataString -> specificOutputFileHierarchy.rawOutputDataFilePaths
+            .getOrElse(
               classOf[LineResult],
               fail(
                 s"Cannot get filepath for raw result file of class '${classOf[LineResult].getSimpleName}' from outputFileHierarchy!'"
               ),
-            )
-          ),
-          dummyTrafo2wResultDataString -> new File(
-            specificOutputFileHierarchy.rawOutputDataFilePaths.getOrElse(
+            ),
+          dummyTrafo2wResultDataString -> specificOutputFileHierarchy.rawOutputDataFilePaths
+            .getOrElse(
               classOf[Transformer2WResult],
               fail(
                 s"Cannot get filepath for raw result file of class '${classOf[Transformer2WResult].getSimpleName}' from outputFileHierarchy!'"
               ),
-            )
-          ),
-        )
+            ),
+        ).map { case (dummyString, path) =>
+          (dummyString, path.toFile)
+        }
 
         // wait until all output files exist (headers are flushed out immediately):
         awaitCond(
@@ -301,15 +305,16 @@ class ResultEventListenerSpec
           )
         )
 
-        val outputFile = new File(
-          fileHierarchy.rawOutputDataFilePaths.getOrElse(
+        val outputFile = fileHierarchy.rawOutputDataFilePaths
+          .getOrElse(
             classOf[Transformer3WResult],
             fail(
               s"Cannot get filepath for raw result file of class '${classOf[Transformer3WResult].getSimpleName}' from outputFileHierarchy!'"
             ),
           )
-        )
-        /* The result file is created at start up and only contains a head line. */
+          .toFile
+
+        /* The result file is created at start up and only contains a headline. */
         awaitCond(
           outputFile.exists(),
           interval = 500.millis,
@@ -357,11 +362,8 @@ class ResultEventListenerSpec
           )
         )
 
-        ("[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12},2.0,1.0,4.0,3.0,6.0,5.0,40d02538-d8dd-421c-8e68-400f1da170c7,-5," + time.toString
-          .replaceAll("\\[", "\\\\["))
-          .replaceAll("\\.", "\\\\.")
-          .r
-          .matches(resultLine) shouldBe true
+        resultLine shouldBe "2.0,1.0,4.0,3.0,6.0,5.0,40d02538-d8dd-421c-8e68-400f1da170c7,-5," + TimeUtil.withDefaults
+          .toString(time)
 
         resultFileSource.close()
       }
@@ -369,7 +371,8 @@ class ResultEventListenerSpec
 
     "shutting down" should {
       "shutdown and compress the data when requested to do so without any errors" in {
-        val specificOutputFileHierarchy = resultFileHierarchy(6, ".csv.gz")
+        val specificOutputFileHierarchy =
+          resultFileHierarchy(6, ".csv.gz", compressResults = true)
         val listenerRef = spawn(
           ResultEventListener(
             specificOutputFileHierarchy
@@ -381,12 +384,14 @@ class ResultEventListenerSpec
 
         val outputFile = new File(
           ".gz$".r.replaceAllIn(
-            specificOutputFileHierarchy.rawOutputDataFilePaths.getOrElse(
-              classOf[PvResult],
-              fail(
-                s"Cannot get filepath for raw result file of class '${classOf[PvResult].getSimpleName}' from outputFileHierarchy!'"
-              ),
-            ),
+            specificOutputFileHierarchy.rawOutputDataFilePaths
+              .getOrElse(
+                classOf[PvResult],
+                fail(
+                  s"Cannot get filepath for raw result file of class '${classOf[PvResult].getSimpleName}' from outputFileHierarchy!'"
+                ),
+              )
+              .toString,
             "",
           )
         )
@@ -408,26 +413,29 @@ class ResultEventListenerSpec
 
         // wait until file exists
         awaitCond(
-          new File(
-            specificOutputFileHierarchy.rawOutputDataFilePaths.getOrElse(
+          specificOutputFileHierarchy.rawOutputDataFilePaths
+            .getOrElse(
               classOf[PvResult],
               fail(
                 s"Cannot get filepath for raw result file of class '${classOf[PvResult].getSimpleName}' from outputFileHierarchy!'"
               ),
             )
-          ).exists,
+            .toFile
+            .exists,
           timeoutDuration,
         )
 
         val resultFileSource = Source.fromInputStream(
           new GZIPInputStream(
             new FileInputStream(
-              specificOutputFileHierarchy.rawOutputDataFilePaths.getOrElse(
-                classOf[PvResult],
-                fail(
-                  s"Cannot get filepath for raw result file of class '${classOf[PvResult].getSimpleName}' from outputFileHierarchy!'"
-                ),
-              )
+              specificOutputFileHierarchy.rawOutputDataFilePaths
+                .getOrElse(
+                  classOf[PvResult],
+                  fail(
+                    s"Cannot get filepath for raw result file of class '${classOf[PvResult].getSimpleName}' from outputFileHierarchy!'"
+                  ),
+                )
+                .toFile
             )
           )
         )
@@ -438,7 +446,7 @@ class ResultEventListenerSpec
           fail(
             "Cannot get line that should have been written out by the listener!"
           )
-        ) shouldBe "7f404c4c-fc12-40de-95c9-b5827a40f18b,e5ac84d3-c7a5-4870-a42d-837920aec9bb,0.01,0.01,2020-01-30T17:26:44Z[UTC]"
+        ) shouldBe "e5ac84d3-c7a5-4870-a42d-837920aec9bb,0.01,0.01,2020-01-30T17:26:44Z"
 
         resultFileSource.close()
       }

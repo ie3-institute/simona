@@ -65,8 +65,8 @@ class WeatherServiceSpec
   // setup config for scheduler
   private val config = ConfigFactory
     .parseString(s"""
-            simona.time.startDateTime = "2011-01-01 00:00:00"
-            simona.time.endDateTime = "2011-01-01 01:00:00"
+            simona.time.startDateTime = "2011-01-01T00:00:00Z"
+            simona.time.endDateTime = "2011-01-01T01:00:00Z"
             simona.time.schedulerReadyCheckWindow = 900
             simona.input.grid.datasource.id = "csv"
             simona.input.grid.datasource.csvParams.folderPath = "netdata"
@@ -76,10 +76,8 @@ class WeatherServiceSpec
             simona.input.weather.datasource.coordinateSource.sampleParams.use = true
             simona.input.grid.datatarget.id = "csv"
             simona.powerflow.maxSweepPowerDeviation = 1E-5 // the maximum allowed deviation in power between two sweeps, before overall convergence is assumed
-            simona.powerflow.skipOnFailure = true
             simona.powerflow.newtonraphson.epsilon = [1E-12]
             simona.powerflow.newtonraphson.iterations = 50
-            simona.powerflow.resolution = "3600s"
             simona.simulationName = "ConfigTestDataSimulation"
             simona.gridConfig.refSystems = []
           """)

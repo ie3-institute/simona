@@ -18,7 +18,7 @@ import edu.ie3.datamodel.models.input.container.{
   JointGridContainer,
   RawGridElements,
 }
-import edu.ie3.simona.agent.grid.GridAgentMessage
+import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.GridInputTestData
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
@@ -36,8 +36,8 @@ class SetupHelperSpec
   private final object SetupHelperInstance extends SetupHelper
 
   "A setup helper" should {
-    val actorRef: ActorRef[GridAgentMessage] =
-      TestProbe[GridAgentMessage]("mock_grid_agent").ref
+    val actorRef: ActorRef[GridAgent.Request] =
+      TestProbe[GridAgent.Request]("mock_grid_agent").ref
 
     "reduce multiple SubGridGates between the same superior and inferior nodes to one unique SubGridGate" in {
 

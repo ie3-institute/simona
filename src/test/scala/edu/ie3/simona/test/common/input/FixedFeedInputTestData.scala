@@ -29,6 +29,7 @@ trait FixedFeedInputTestData extends NodeInputTestData {
       OperationTime.notLimited(),
       nodeInputNoSlackNs04KvA,
       new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
+      null,
       Quantities.getQuantity(282.74d, VOLTAMPERE),
       0.95,
     )

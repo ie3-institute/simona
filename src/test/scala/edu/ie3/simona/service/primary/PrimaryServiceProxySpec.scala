@@ -97,7 +97,7 @@ class PrimaryServiceProxySpec
           csvSep,
           baseDirectoryPath.toString,
           isHierarchic = false,
-          TimeUtil.withDefaults.getDtfPattern,
+          TimeUtil.withDefaults.getDateTimeFormatter.toString,
         )
       ),
       None,
@@ -111,7 +111,7 @@ class PrimaryServiceProxySpec
   val workerId: String = "PrimaryService_" + uuidPq
   val modelUuid: UUID = UUID.fromString("c7ebcc6c-55fc-479b-aa6b-6fa82ccac6b8")
   val simulationStart: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2021-03-17 13:14:00")
+    TimeUtil.withDefaults.toZonedDateTime("2021-03-17T13:14:00Z")
   val proxyStateData: PrimaryServiceStateData = PrimaryServiceStateData(
     Map(
       UUID.fromString("b86e95b0-e579-4a80-a534-37c7a470a409") -> uuidP,
@@ -404,7 +404,7 @@ class PrimaryServiceProxySpec
           classOf[FileNamingStrategy].isAssignableFrom(
             fileNamingStrategy.getClass
           ) shouldBe true
-          timePattern shouldBe TimeUtil.withDefaults.getDtfPattern
+          timePattern shouldBe TimeUtil.withDefaults.getDateTimeFormatter.toString
         case Success(wrongData) =>
           fail(s"Creation of init data lead to wrong init data '$wrongData'.")
         case Failure(exception) =>
@@ -518,7 +518,7 @@ class PrimaryServiceProxySpec
               classOf[FileNamingStrategy].isAssignableFrom(
                 fileNamingStrategy.getClass
               ) shouldBe true
-              timePattern shouldBe TimeUtil.withDefaults.getDtfPattern
+              timePattern shouldBe TimeUtil.withDefaults.getDateTimeFormatter.toString
           }
 
           // receiving schedule activation, don't know why but ok...

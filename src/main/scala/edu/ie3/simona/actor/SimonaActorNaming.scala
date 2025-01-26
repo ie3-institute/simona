@@ -10,7 +10,7 @@ import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import org.apache.pekko.actor.{ActorRefFactory, Props, ActorRef => ClassicRef}
 
-import java.util.UUID
+import scala.util.Random
 
 object SimonaActorNaming {
 
@@ -18,21 +18,20 @@ object SimonaActorNaming {
       extends AnyVal {
 
     def simonaActorOf(props: Props, actorId: String): ClassicRef =
-      refFactory.actorOf(props, actorName(props, actorId))
-
-    def simonaActorOf(props: Props): ClassicRef =
-      refFactory.actorOf(props, actorName(props, simonaActorUuid))
+      refFactory.actorOf(props, actorName(props, simonaActorId(actorId)))
   }
 
-  /** Constructs a uuid and cuts it down to 6 digits for convenience. Although
-    * this is dangerous as duplicates might be possible, it should be sufficient
-    * in our case as the uniqueness is only required in one actor system
+  /** Constructs an id for convenience actor naming. Although this is dangerous
+    * as duplicates might be possible, it should be sufficient in our case as
+    * the uniqueness is only required in one actor system
     *
     * @return
-    *   a shortened uuid string
+    *   an Id string
     */
-  private def simonaActorUuid: String =
-    UUID.randomUUID().toString.substring(0, 5)
+  private def simonaActorId(actorId: String): String = {
+    val randomNumber = Random.nextInt(1000).toString
+    s"$actorId-$randomNumber"
+  }
 
   /** Constructs an actor name based on the simona convention for actor names.
     * The provided combination of class and id has to be unique for the whole

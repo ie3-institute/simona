@@ -13,15 +13,16 @@ import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.StartData.WithForcedStartVoltages
 import edu.ie3.powerflow.model.enums.NodeType
-import edu.ie3.simona.agent.grid.ReceivedValues.ReceivedSlackVoltageValues
+import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangeVoltage
+import edu.ie3.simona.agent.grid.GridAgentMessages.{
+  ProvidedPowerResponse,
+  ReceivedSlackVoltageValues,
+}
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid._
-import edu.ie3.simona.ontology.messages.PowerMessage.ProvidePowerMessage
-import VoltageMessage.ProvideSlackVoltageMessage.ExchangeVoltage
-import edu.ie3.util.scala.quantities.Kilovars
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import org.slf4j.Logger
 import squants.electro.ElectricPotential
-import squants.energy.Kilowatts
 
 import java.util.UUID
 import scala.collection.mutable
@@ -91,7 +92,7 @@ trait PowerFlowSupport {
             val (p, q) = actorRefsWithPower
               .map { case (_, powerMsg) => powerMsg }
               .collect {
-                case Some(providePowerMessage: ProvidePowerMessage) =>
+                case Some(providePowerMessage: ProvidedPowerResponse) =>
                   providePowerMessage
                 case Some(message) =>
                   throw new RuntimeException(
@@ -104,8 +105,8 @@ trait PowerFlowSupport {
               }
               .foldLeft(
                 (
-                  Kilowatts(0d),
-                  Kilovars(0d),
+                  zeroKW,
+                  zeroKVAr,
                 )
               ) { case ((pSum, qSum), powerMessage) =>
                 (
@@ -202,7 +203,7 @@ trait PowerFlowSupport {
     * p/q values from the provided sweepDataValues and combines them with
     * updated receivedSlackValues. Normally used in a forward sweep phase of
     * [[DBFSAlgorithm]] as in this state only voltages are updated and a power
-    * flow with new voltages but old p/q values is executed afterwards
+    * flow with new voltages but old p/q values is executed afterward.
     *
     * @param receivedSlackValues
     *   new slack voltages provided by the superior grid
@@ -368,7 +369,7 @@ trait PowerFlowSupport {
     * from a [[ValidNewtonRaphsonPFResult]]
     *
     * @param validResult
-    *   the result that should be converted to a human readable debug string
+    *   the result that should be converted to a human-readable debug string
     * @param gridModel
     *   the grid model this result comes from
     * @return

@@ -43,10 +43,7 @@ sealed trait PlainWriter[F <: ResultEntity, P <: PlainResult] {
 }
 
 object PlainWriter {
-  private lazy val timeFormatter =
-    DateTimeFormatter
-      .ofPattern("yyyy-MM-dd HH:mm:ss")
-      .withZone(ZoneId.of("UTC"))
+  private lazy val timeFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
 
   /** Converts [[NodeResult]]s into [[PlainNodeResult]]s and vice versa
     * @param simRunId
@@ -59,7 +56,6 @@ object PlainWriter {
       PlainNodeResult(
         simRunId,
         createSimpleTimeStamp(full.getTime),
-        full.getUuid,
         full.getInputModel,
         full.getvMag.getValue.doubleValue(),
         full.getvAng.getValue.doubleValue(),
@@ -68,7 +64,6 @@ object PlainWriter {
 
     override def createFull(plain: PlainNodeResult): NodeResult = {
       new NodeResult(
-        plain.uuid,
         ZonedDateTime.parse(plain.time, timeFormatter),
         plain.inputModel,
         Quantities.getQuantity(plain.vMag, PowerSystemUnits.PU),

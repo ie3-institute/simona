@@ -26,6 +26,7 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
     OperationTime.notLimited(),
     nodeInputNoSlackNs04KvA,
     CosPhiFixed.CONSTANT_CHARACTERISTIC,
+    null,
     ChargingPointTypeUtils.ChargingStationType2,
     2,
     0.95,

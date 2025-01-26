@@ -6,15 +6,16 @@
 
 package edu.ie3.simona.agent.participant
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{ActorRef, ActorSystem}
-import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
-import org.apache.pekko.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.PvInput
 import edu.ie3.datamodel.models.input.system.characteristic.QV
 import edu.ie3.simona.agent.ValueStore
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.grid.GridAgentMessages.{
+  AssetPowerChangedMessage,
+  AssetPowerUnchangedMessage,
+}
+import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
@@ -27,11 +28,6 @@ import edu.ie3.simona.config.SimonaConfig.PvRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage,
-}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
@@ -54,6 +50,10 @@ import edu.ie3.util.scala.quantities.{
   Vars,
   WattsPerSquareMeter,
 }
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
+import org.apache.pekko.util.Timeout
 import squants.energy.{Kilowatts, Megawatts, Watts}
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
@@ -77,9 +77,9 @@ class PvAgentModelCalculationSpec
     with PvInputTestData {
 
   private implicit val simulationStartDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
   private val simulationEndDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 01:00:00")
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T01:00:00Z")
 
   implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
@@ -122,7 +122,7 @@ class PvAgentModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       PvInput,
       PvRuntimeConfig,
-      ApparentPower,
+      ComplexPower,
     ](
       inputModel = voltageSensitiveInput,
       modelConfig = modelConfig,
@@ -186,7 +186,7 @@ class PvAgentModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       PvInput,
       PvRuntimeConfig,
-      ApparentPower,
+      ComplexPower,
     ](
       inputModel = voltageSensitiveInput,
       modelConfig = modelConfig,
@@ -314,7 +314,7 @@ class PvAgentModelCalculationSpec
             SortedMap(0L -> Each(1.0)),
           )
           resultValueStore shouldBe ValueStore(resolution)
-          requestValueStore shouldBe ValueStore[ApparentPower](resolution)
+          requestValueStore shouldBe ValueStore[ComplexPower](resolution)
 
           /* Additional information */
           awaitRegistrationResponsesFrom shouldBe Iterable(weatherService.ref)
@@ -376,7 +376,7 @@ class PvAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
 
       pvAgent.stateName shouldBe Idle
@@ -397,11 +397,11 @@ class PvAgentModelCalculationSpec
       inside(pvAgent.stateData) {
         case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           baseStateData.requestValueStore shouldBe ValueStore[
-            ApparentPower
+            ComplexPower
           ](
             resolution,
             SortedMap(
-              0L -> ApparentPower(
+              0L -> ComplexPower(
                 Megawatts(0d),
                 Megavars(0d),
               )
@@ -439,7 +439,7 @@ class PvAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(pvAgent.stateName shouldBe Idle)
       /* State data is tested in another test */
@@ -509,7 +509,7 @@ class PvAgentModelCalculationSpec
                 0L,
                 fail("Expected a simulation result for tick 900."),
               ) match {
-                case ApparentPower(p, q) =>
+                case ComplexPower(p, q) =>
                   p should approximate(Megawatts(0.0))
                   q should approximate(Megavars(0.0))
               }
@@ -546,7 +546,7 @@ class PvAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(pvAgent.stateName shouldBe Idle)
 
@@ -613,7 +613,7 @@ class PvAgentModelCalculationSpec
                 0L,
                 fail("Expected a simulation result for tick 0."),
               ) match {
-                case ApparentPower(p, q) =>
+                case ComplexPower(p, q) =>
                   p should approximate(Megawatts(0.0))
                   q should approximate(Megavars(0.0))
               }
@@ -651,7 +651,7 @@ class PvAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(3600L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(pvAgent.stateName shouldBe Idle)
 
@@ -722,7 +722,7 @@ class PvAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(pvAgent.stateName shouldBe Idle)
 

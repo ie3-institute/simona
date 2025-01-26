@@ -11,6 +11,7 @@ import edu.ie3.simona.sim.setup.SimonaSetup
 import edu.ie3.util.scala.quantities.QuantityUtil
 import org.apache.pekko.util.Timeout
 
+import java.nio.file.Path
 import java.util.Locale
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Random
@@ -39,7 +40,7 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
 
     val successful = run(simonaSetup)
 
-    printGoodbye()
+    printGoodbye(successful, simonaSetup.logOutputDir)
 
     // prevents cutting of the log when having a fast simulation
     Thread.sleep(1000)
@@ -54,7 +55,10 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
     )
   }
 
-  private def printGoodbye(): Unit = {
+  private def printGoodbye(
+      successful: Boolean,
+      logOutputDir: Path,
+  ): Unit = {
     val myWords = Array(
       "\"Vielleicht ist heute ein besonders guter Tag zum Sterben.\" - Worf (in Star Trek: Der erste Kontakt)",
       "\"Assimiliert das!\" - Worf (in Star Trek: Der erste Kontakt)",
@@ -62,16 +66,28 @@ trait RunSimona[T <: SimonaSetup] extends LazyLogging {
       "\"Ich bin der Anfang, das Ende, die Eine, die Viele ist. Ich bin die Borg.\" - Borg-Königin (in Star Trek: Der erste Kontakt)",
       "\"A horse! A horse! My kingdom for a horse!\" - King Richard III (in Shakespeare's Richard III, 1594)",
       "\"Und wenn du lange in einen Abgrund blickst, blickt der Abgrund auch in dich hinein\" - F. Nietzsche",
+      "\"Before anything else, preparation is the key to success.\" - Alexander Graham Bell",
     )
 
     val rand = new Random
     val randIdx = rand.nextInt(myWords.length)
     logger.info(myWords(randIdx))
     logger.info("Goodbye!")
+
+    if (!successful) {
+      // to ensure that the link to the log is printed last
+      Thread.sleep(1000)
+
+      val path = logOutputDir.resolve("simona.log").toUri
+
+      logger.error(
+        s"Simulation stopped due to the occurrence of an error! The full log can be found here: $path"
+      )
+    }
   }
 
-  /** Method to be implemented to setup everything that is necessary for a
-    * simulations. This is by creating an instance of [[SimonaSetup]]
+  /** Method to be implemented to set up everything that is necessary for a
+    * simulation. This is by creating an instance of [[SimonaSetup]]
     * implementation
     *
     * @param args

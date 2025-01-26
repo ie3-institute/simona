@@ -6,15 +6,16 @@
 
 package edu.ie3.simona.agent.participant
 
-import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.testkit.TestFSMRef
-import org.apache.pekko.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.FixedFeedInInput
 import edu.ie3.datamodel.models.input.system.characteristic.QV
 import edu.ie3.simona.agent.ValueStore
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.grid.GridAgentMessages.{
+  AssetPowerChangedMessage,
+  AssetPowerUnchangedMessage,
+}
+import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.fixedfeedin.FixedFeedInAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
@@ -30,11 +31,6 @@ import edu.ie3.simona.config.SimonaConfig.FixedFeedInRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage,
-}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
@@ -44,6 +40,10 @@ import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.testkit.TestFSMRef
+import org.apache.pekko.util.Timeout
 import squants.Each
 import squants.energy.{Kilowatts, Megawatts, Watts}
 
@@ -73,9 +73,9 @@ class FixedFeedInAgentModelCalculationSpec
     .build()
 
   protected val simulationStartDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
   protected val simulationEndDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 01:00:00")
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T01:00:00Z")
 
   private implicit val powerTolerance: squants.Power = Watts(0.1)
   private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
@@ -105,7 +105,7 @@ class FixedFeedInAgentModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       FixedFeedInInput,
       FixedFeedInRuntimeConfig,
-      ApparentPower,
+      ComplexPower,
     ](
       inputModel = voltageSensitiveInput,
       modelConfig = modelConfig,
@@ -221,7 +221,7 @@ class FixedFeedInAgentModelCalculationSpec
             SortedMap(0L -> Each(1.0)),
           )
           resultValueStore shouldBe ValueStore(resolution)
-          requestValueStore shouldBe ValueStore[ApparentPower](
+          requestValueStore shouldBe ValueStore[ComplexPower](
             resolution
           )
         case _ =>
@@ -249,7 +249,7 @@ class FixedFeedInAgentModelCalculationSpec
         RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
 
       fixedFeedAgent.stateName shouldBe Idle
@@ -270,11 +270,11 @@ class FixedFeedInAgentModelCalculationSpec
       inside(fixedFeedAgent.stateData) {
         case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           baseStateData.requestValueStore shouldBe ValueStore[
-            ApparentPower
+            ComplexPower
           ](
             resolution,
             SortedMap(
-              0L -> ApparentPower(
+              0L -> ComplexPower(
                 Megawatts(0d),
                 Megavars(0d),
               )
@@ -305,7 +305,7 @@ class FixedFeedInAgentModelCalculationSpec
         RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
-      /* I am not interested in the CompletionMessage */
+      /* I am not interested in the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(fixedFeedAgent.stateName shouldBe Idle)
       /* State data is tested in another test */
@@ -324,7 +324,7 @@ class FixedFeedInAgentModelCalculationSpec
           baseStateData.resultValueStore.last(0L) match {
             case Some((tick, entry)) =>
               tick shouldBe 0L
-              inside(entry) { case ApparentPower(p, q) =>
+              inside(entry) { case ComplexPower(p, q) =>
                 p should approximate(Megawatts(-268.603e-6))
                 q should approximate(Megavars(0.0))
               }

@@ -77,8 +77,8 @@ class PrimaryServiceWorkerSpec
       filePath = Paths.get("its_p_" + uuidP),
       fileNamingStrategy = new FileNamingStrategy(),
       simulationStart =
-        TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
-      timePattern = "yyyy-MM-dd'T'HH:mm:ss'Z'",
+        TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z"),
+      timePattern = "yyyy-MM-dd'T'HH:mm:ssX",
     )
 
   private implicit val powerTolerance: squants.Power = Watts(0.1)
@@ -105,21 +105,50 @@ class PrimaryServiceWorkerSpec
       }
     }
 
+    "fail to init, if time series ends with delay before simulation start" in {
+      val initData = validInitData.copy(
+        simulationStart = validInitData.simulationStart.plusHours(1)
+      )
+
+      service.init(initData) match {
+        case Failure(exception) =>
+          exception.getMessage shouldBe "No appropriate data found within simulation time range in timeseries '9185b8c1-86ba-4a16-8dea-5ac898e8caa5'!"
+        case Success(_) =>
+          fail("Initialisation with unsupported init data is meant to fail.")
+      }
+    }
+
+    "fail to init, if time series starts with delay after simulation start" in {
+      val initData = validInitData.copy(
+        simulationStart = validInitData.simulationStart.minusHours(1)
+      )
+
+      service.init(initData) match {
+        case Failure(exception) =>
+          exception.getMessage shouldBe "The data for the timeseries '9185b8c1-86ba-4a16-8dea-5ac898e8caa5' starts after the start of this simulation (tick: 3600)! This is not allowed!"
+        case Success(_) =>
+          fail("Initialisation with unsupported init data is meant to fail.")
+      }
+    }
+
     "fail, if pointed to the wrong file" in {
+      // time series exists, but is malformed
+      val tsUuid = UUID.fromString("3fbfaa97-cff4-46d4-95ba-a95665e87c27")
+
       val maliciousInitData = CsvInitPrimaryServiceStateData(
-        timeSeriesUuid = uuidPq,
+        timeSeriesUuid = tsUuid,
         simulationStart =
-          TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
+          TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z"),
         csvSep = ";",
         directoryPath = baseDirectoryPath,
-        filePath = Paths.get("its_pq_" + uuidPq),
+        filePath = Paths.get("its_pq_" + tsUuid),
         fileNamingStrategy = new FileNamingStrategy(),
-        timePattern = TimeUtil.withDefaults.getDtfPattern,
+        timePattern = "yyyy-MM-dd'T'HH:mm:ssX",
       )
       service.init(maliciousInitData) match {
         case Failure(exception) =>
           exception.getClass shouldBe classOf[IllegalArgumentException]
-          exception.getMessage shouldBe "Unable to obtain time series with UUID '3fbfaa97-cff4-46d4-95ba-a95665e87c26'. Please check arguments!"
+          exception.getMessage shouldBe "Unable to obtain time series with UUID '3fbfaa97-cff4-46d4-95ba-a95665e87c27'. Please check arguments!"
         case Success(_) =>
           fail("Initialisation with unsupported init data is meant to fail.")
       }
@@ -248,13 +277,11 @@ class PrimaryServiceWorkerSpec
               actualServiceRef,
               actualData,
               actualNextDataTick,
-              unlockKey,
             ) =>
           actualTick shouldBe 0L
           actualServiceRef shouldBe serviceRef
           actualData shouldBe primaryData
           actualNextDataTick shouldBe Some(900L)
-          unlockKey shouldBe None
       }
     }
 
@@ -353,7 +380,6 @@ class PrimaryServiceWorkerSpec
               actualServiceRef,
               data,
               nextDataTick,
-              unlockKey,
             ) =>
           tick shouldBe 900L
           actualServiceRef shouldBe serviceRef
@@ -363,7 +389,6 @@ class PrimaryServiceWorkerSpec
             case _ => fail("Expected to get active power only.")
           }
           nextDataTick shouldBe None
-          unlockKey shouldBe None
       }
     }
   }

@@ -9,8 +9,15 @@ package edu.ie3.simona.agent.participant
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
-import edu.ie3.simona.agent.participant.ParticipantAgent.FinishParticipantSimulation
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.grid.GridAgentMessages.{
+  AssetPowerChangedMessage,
+  AssetPowerUnchangedMessage,
+}
+import edu.ie3.simona.agent.participant.ParticipantAgent.{
+  FinishParticipantSimulation,
+  RequestAssetPowerMessage,
+}
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
@@ -18,11 +25,6 @@ import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage,
-}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
@@ -85,12 +87,12 @@ class ParticipantAgent2ListenerSpec
     val initStateData: NotifierConfig => ParticipantInitializeStateData[
       SystemParticipantInput,
       BaseRuntimeConfig,
-      ApparentPower,
+      ComplexPower,
     ] = outputConfig =>
       ParticipantInitializeStateData[
         SystemParticipantInput,
         BaseRuntimeConfig,
-        ApparentPower,
+        ComplexPower,
       ](
         inputModel = mockInputModel,
         modelConfig = mock[BaseRuntimeConfig],
@@ -284,7 +286,7 @@ class ParticipantAgent2ListenerSpec
       /* Trigger the data generation in tick 0 */
       scheduler.send(mockAgent, Activation(0))
 
-      /* Appreciate the existence of two CompletionMessages */
+      /* Appreciate the existence of two Completion */
       scheduler.expectMsg(Completion(mockAgent.toTyped))
 
       /* Ask the agent for average power in tick 3000 */

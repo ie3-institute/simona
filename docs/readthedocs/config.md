@@ -12,15 +12,13 @@ To create the output directory name, the name of the simulation is used as a str
   `simona.simulationName = "vn_simona"`
 
 ### Time parameters
-Starting date and time of the simulation
-  - Format: "YYYY-MM-DD HH:MM:SS"
+Starting date and time of the simulation in ISO-8601 date and time format with offset
 
-  `simona.time.startDateTime = "2011-01-01 00:00:00"`
+  `simona.time.startDateTime = "2011-01-01T00:00:00Z"`
 
-Ending date and time of the simulation
-  - Format: "YYYY-MM-DD HH:MM:SS"
+Ending date and time of the simulation in ISO-8601 date and time format with offset
 
-  `simona.time.endDateTime = "2011-01-01 02:00:00"`
+  `simona.time.endDateTime = "2011-01-01T02:00:00Z"`
 
 The preset ReadyCheckWindow should be maintained 
 
@@ -39,7 +37,9 @@ Setting of the data source
 
   `simona.input.grid.datasource.id = "csv"`
 
-Specify the folder path containing the csv data of the grid components and the csv separator (e.g. "," or ";")
+Specify the folder path containing the csv data of the grid components and the csv separator (e.g. "," or ";").
+The directory structure is determined by the boolean `isHierarchic`. 
+If files are placed within [a specific set of subdirectories](https://powersystemdatamodel.readthedocs.io/en/latest/io/csvfiles.html#default-directory-hierarchy), `isHierarchic: true` needs to be set.
 
 ```
 simona.input.primary.csvParams = {  
@@ -94,8 +94,12 @@ simona.output.sink.csv {
   fileFormat = ".csv"
   filePrefix = ""
   fileSuffix = ""
+  compressOutputs = false
 }
 ```
+
+While using a csv sink, the raw data output files can be zipped directly when `compressOutputs = true` is used.
+
 
 #### Output configuration of the grid
 
@@ -147,6 +151,33 @@ simona.output.participant.individualConfigs = [
 ]
 ```
 
+#### Output configuration of thermal elements
+
+To use the default configuration the default notifier has to be used. By setting "simulationResult" to true, the thermal elements is enabled to return its results.
+
+```
+simona.output.thermal.defaultConfig = {
+  notifier = "default",
+  simulationResult = true
+}
+```
+
+The default configuration applies to all models except the ones with individual configurations assigned.
+If individual configurations have to be performed for certain thermal elements, these must be listed with the corresponding notifier as in the following example.
+
+```
+simona.output.thermal.individualConfigs = [
+  {
+    notifier = "house",
+    simulationResult = true
+  },
+  {
+    notifier = "cylindricalstorage",
+    simulationResult = true
+  }
+]
+```
+
 Further model classes which can be used to load the outcome of a system simulation are described in [PSDM](https://powersystemdatamodel.readthedocs.io/en/latest/models/models.html#result).
 Data sources and data sinks are explained in the [I/O-capabilities](https://powersystemdatamodel.readthedocs.io/en/latest/io/basiciousage.html) section of the PSDM.
 
@@ -181,7 +212,7 @@ Using the default configuration the universally unique identifier can be set to 
 
     uuids = ["default"]
 
-Choosing the scaling factor of the power output: 
+Choosing the scaling factor of relevant participant parameters such as rated power or annual power consumption: 
 
     scaling = 1.0
 
@@ -196,6 +227,16 @@ The load reference can scale the load model behaviour to reach the given annual 
 If an individual configuration is to be assigned, the default configuration parameters must be adjusted accordingly.
 Runtime configurations of other system participants are done similarly, except that model behavior and reference are not defined.
 
+### Storage runtime configuration
+
+The storage model takes parameters for the initial state of charge (SOC) and the target SOC for electrical energy storages, with 0.0 <= SOC <= 1.0.
+The initial SOC defaults to 0%, while the target SOC is optional. When no target SOC is set, the reference behavior (see flexibility messages) of storages is 0 kW. 
+
+    initialSoc = "0.0"
+    targetSoc = "1.0"
+
+Individual configuration can be assigned accordingly.
+
 ## Event configuration 
 
 Tba:
@@ -204,20 +245,28 @@ Tba:
 
 ## Grid configuration 
 
+The reference system contains a list of voltage levels. Each element includes the nominal apparent power, the nominal 
+voltage and the separate configuration of each voltage level. The voltage level configuration is composed of the identifier 
+and the nominal voltage.
+
+The configuration of a reference system is optional. If no configuration is provided by the user, the default
+[reference system](models/reference_system) that includes all common german voltage levels is used. For those users 
+who need other voltage levels than the common german voltage levels or different nominal apparent powers, they can configure
+their reference systems as shown below.
+
 The reference system can be configured as follows: 
 
 ```
 simona.gridConfig.refSystems = [
-  {sNom = "100 kVA", vNom = "0.4 kV", voltLvls = [{id = "NS", vNom = "0.4 kV"}]},
-  {sNom = "60 MVA", vNom = "20 kV", voltLvls = [{id = "MS", vNom = "20 kV"}]},
-  {sNom = "600 MVA", vNom = "110 kV", voltLvls = [{id = "HS", vNom = "110 kV"}]},
-  {sNom = "1000 MVA", vNom = "380 kV", voltLvls = [{id = "HoeS", vNom = "380 kV"}]}
+  {sNom = "100 kVA", vNom = "0.4 kV", voltLvls = [{id = "LV", vNom = "0.4 kV"}]},
+  {sNom = "60 MVA", vNom = "20 kV", voltLvls = [{id = "MV", vNom = "20 kV"}]},
+  {sNom = "600 MVA", vNom = "110 kV", voltLvls = [{id = "HV", vNom = "110 kV"}]},
+  {sNom = "1000 MVA", vNom = "380 kV", voltLvls = [{id = "EHV", vNom = "380 kV"}]}
 ]
 ```
 
-The reference system contains a list of voltage levels. Each element includes the nominal apparent power, the nominal voltage and the separate configuration of each voltage level. The voltage level configuration is composed of the identifier and the nominal voltage.
-
-Further typical voltage levels which can be used in the simulation and the configuration of individual reference systems are described in the documentation of [reference system](models/reference_system).
+Further typical voltage levels which can be used in the simulation and the configuration of individual reference systems
+are described in the documentation of [reference system](models/reference_system).
 
 ## Power flow configuration 
 

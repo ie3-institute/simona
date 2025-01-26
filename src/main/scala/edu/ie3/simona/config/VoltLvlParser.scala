@@ -12,7 +12,6 @@ import edu.ie3.datamodel.models.voltagelevels.{
   GermanVoltageLevelUtils,
   VoltageLevel,
 }
-import edu.ie3.simona.config.SimonaConfig.VoltLvlConfig
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.util.quantities.QuantityUtil
 import javax.measure.quantity.ElectricPotential

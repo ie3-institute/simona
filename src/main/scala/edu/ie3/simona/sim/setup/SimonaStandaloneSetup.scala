@@ -13,11 +13,11 @@ import edu.ie3.datamodel.models.input.container.{GridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.actor.SimonaActorNaming.RichActorRefFactory
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentMessage.CreateGridAgent
-import edu.ie3.simona.agent.grid.{GridAgent, GridAgentMessage}
+import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.agent.grid.GridAgentMessages.CreateGridAgent
 import edu.ie3.simona.api.ExtSimAdapter
-import edu.ie3.simona.api.data.ExtData
-import edu.ie3.simona.api.data.ev.{ExtEvData, ExtEvSimulation}
+import edu.ie3.simona.api.data.ExtDataConnection
+import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.config.{ArgsParser, RefSystemParser, SimonaConfig}
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
@@ -26,6 +26,8 @@ import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.io.grid.GridProvider
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
+import edu.ie3.simona.scheduler.core.Core.CoreFactory
+import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.scheduler.{ScheduleLock, Scheduler, TimeAdvancer}
 import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.ev.ExtEvDataService
@@ -48,6 +50,8 @@ import org.apache.pekko.actor.typed.scaladsl.adapter.{
 }
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
+import java.nio.file.Path
+import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
 import scala.jdk.CollectionConverters._
 
@@ -65,11 +69,13 @@ class SimonaStandaloneSetup(
     override val args: Array[String],
 ) extends SimonaSetup {
 
+  override def logOutputDir: Path = resultFileHierarchy.logOutputDir
+
   override def gridAgents(
       context: ActorContext[_],
       environmentRefs: EnvironmentRefs,
       resultEventListeners: Seq[ActorRef[ResultEvent]],
-  ): Iterable[ActorRef[GridAgentMessage]] = {
+  ): Iterable[ActorRef[GridAgent.Request]] = {
 
     /* get the grid */
     val subGridTopologyGraph = GridProvider
@@ -155,7 +161,8 @@ class SimonaStandaloneSetup(
           simulationStart,
         ),
         simulationStart,
-      )
+      ),
+      "primaryServiceProxyAgent",
     )
 
     scheduler ! ScheduleActivation(primaryServiceProxy.toTyped, INIT_SIM_TICK)
@@ -173,7 +180,8 @@ class SimonaStandaloneSetup(
           .toZonedDateTime(simonaConfig.simona.time.startDateTime),
         TimeUtil.withDefaults
           .toZonedDateTime(simonaConfig.simona.time.endDateTime),
-      )
+      ),
+      "weatherAgent",
     )
     weatherService ! SimonaService.Create(
       InitWeatherServiceStateData(
@@ -191,61 +199,65 @@ class SimonaStandaloneSetup(
   ): ExtSimSetupData = {
     val jars = ExtSimLoader.scanInputFolder()
 
-    val extLinks = jars.flatMap(ExtSimLoader.loadExtLink)
+    val extLinks = jars.flatMap(ExtSimLoader.loadExtLink).toSeq
 
-    val (extSimAdapters, extDataServices) =
-      extLinks.zipWithIndex.map { case (extLink, index) =>
-        // external simulation always needs at least an ExtSimAdapter
-        val extSimAdapter = context.toClassic.simonaActorOf(
-          ExtSimAdapter.props(scheduler.toClassic),
-          s"$index",
-        )
-        val extSimAdapterData = new ExtSimAdapterData(extSimAdapter, args)
+    if (extLinks.nonEmpty) {
 
-        // send init data right away, init activation is scheduled
-        extSimAdapter ! ExtSimAdapter.Create(
-          extSimAdapterData,
-          ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
-        )
+      val (extSimAdapters, extDataServices) =
+        extLinks.zipWithIndex.map { case (extLink, index) =>
+          // external simulation always needs at least an ExtSimAdapter
+          val extSimAdapter = context.toClassic.simonaActorOf(
+            ExtSimAdapter.props(scheduler.toClassic),
+            s"$index",
+          )
+          val extSimAdapterData = new ExtSimAdapterData(extSimAdapter, args)
 
-        // setup data services that belong to this external simulation
-        val (extData, extDataInit): (
-            Iterable[ExtData],
-            Iterable[(Class[_ <: SimonaService[_]], ClassicRef)],
-        ) =
-          extLink.getExtDataSimulations.asScala.zipWithIndex.map {
-            case (_: ExtEvSimulation, dIndex) =>
-              val extEvDataService = context.toClassic.simonaActorOf(
-                ExtEvDataService.props(scheduler.toClassic),
-                s"$index-$dIndex",
-              )
-              val extEvData = new ExtEvData(extEvDataService, extSimAdapter)
+          // send init data right away, init activation is scheduled
+          extSimAdapter ! ExtSimAdapter.Create(
+            extSimAdapterData,
+            ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
+          )
 
-              extEvDataService ! SimonaService.Create(
-                InitExtEvData(extEvData),
-                ScheduleLock.singleKey(
-                  context,
-                  scheduler,
-                  INIT_SIM_TICK,
-                ),
-              )
+          // setup data services that belong to this external simulation
+          extLink.setup(extSimAdapterData)
+          val extSim = extLink.getExtSimulation
 
-              (extEvData, (classOf[ExtEvDataService], extEvDataService))
-          }.unzip
+          val extDataInit
+              : Iterable[(Class[_ <: SimonaService[_]], ClassicRef)] =
+            extSim.getDataConnections.asScala.zipWithIndex.map {
+              case (evConnection: ExtEvDataConnection, dIndex) =>
+                val extEvDataService = context.toClassic.simonaActorOf(
+                  ExtEvDataService.props(scheduler.toClassic),
+                  s"$index-$dIndex",
+                )
+                evConnection.setActorRefs(extEvDataService, extSimAdapter)
 
-        extLink.getExtSimulation.setup(
-          extSimAdapterData,
-          extData.toList.asJava,
-        )
+                extEvDataService ! SimonaService.Create(
+                  InitExtEvData(evConnection),
+                  ScheduleLock.singleKey(
+                    context,
+                    scheduler,
+                    INIT_SIM_TICK,
+                  ),
+                )
 
-        // starting external simulation
-        new Thread(extLink.getExtSimulation, s"External simulation $index")
-          .start()
+                (classOf[ExtEvDataService], extEvDataService)
+            }
 
-        (extSimAdapter, extDataInit)
-      }.unzip
+          // starting external simulation
+          new Thread(extLink.getExtSimulation, s"External simulation $index")
+            .start()
 
-    ExtSimSetupData(extSimAdapters, extDataServices.flatten.toMap)
+          (extSimAdapter, extDataInit)
+        }.unzip
+
+      ExtSimSetupData(
+        extSimAdapters,
+        extDataServices.flatten.toMap,
+      )
+    } else {
+      ExtSimSetupData(Iterable.empty, Map.empty)
+    }
   }
 
   override def timeAdvancer(
@@ -273,12 +285,13 @@ class SimonaStandaloneSetup(
 
   override def scheduler(
       context: ActorContext[_],
-      timeAdvancer: ActorRef[TimeAdvancer.Request],
+      parent: ActorRef[SchedulerMessage],
+      coreFactory: CoreFactory = RegularSchedulerCore,
   ): ActorRef[SchedulerMessage] =
     context
       .spawn(
-        Scheduler(timeAdvancer),
-        Scheduler.getClass.getSimpleName,
+        Scheduler(parent, coreFactory),
+        s"${Scheduler.getClass.getSimpleName}_${coreFactory}_${UUID.randomUUID()}",
       )
 
   override def runtimeEventListener(
@@ -323,7 +336,7 @@ class SimonaStandaloneSetup(
       context: ActorContext[_],
       environmentRefs: EnvironmentRefs,
       resultEventListeners: Seq[ActorRef[ResultEvent]],
-  ): Map[Int, ActorRef[GridAgentMessage]] = {
+  ): Map[Int, ActorRef[GridAgent.Request]] = {
     subGridTopologyGraph
       .vertexSet()
       .asScala

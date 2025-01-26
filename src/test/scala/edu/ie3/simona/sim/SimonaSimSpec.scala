@@ -7,18 +7,20 @@
 package edu.ie3.simona.sim
 
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentMessage
+import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.api.ExtSimAdapter
-import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.event.listener.{
   DelayedStopHelper,
   ResultEventListener,
   RuntimeEventListener,
 }
+import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.main.RunSimona.SimonaEnded
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.scheduler.TimeAdvancer
+import edu.ie3.simona.scheduler.core.Core.CoreFactory
+import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.sim.SimonaSim.SimulationEnded
 import edu.ie3.simona.sim.SimonaSimSpec._
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
@@ -32,6 +34,7 @@ import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
+import java.nio.file.Path
 import java.util.UUID
 
 class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
@@ -121,7 +124,8 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
               override def scheduler(
                   context: ActorContext[_],
-                  timeAdvancer: ActorRef[TimeAdvancer.Request],
+                  timeAdvancer: ActorRef[SchedulerMessage],
+                  coreFactory: CoreFactory,
               ): ActorRef[SchedulerMessage] = {
                 val throwingActor = context
                   .spawn[SchedulerMessage](
@@ -186,7 +190,8 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
               override def scheduler(
                   context: ActorContext[_],
-                  timeAdvancer: ActorRef[TimeAdvancer.Request],
+                  timeAdvancer: ActorRef[SchedulerMessage],
+                  coreFactory: CoreFactory,
               ): ActorRef[SchedulerMessage] = {
                 val stoppingActor =
                   context.spawn[SchedulerMessage](
@@ -394,6 +399,8 @@ object SimonaSimSpec {
 
     override val args: Array[String] = Array.empty[String]
 
+    override def logOutputDir: Path = throw new NotImplementedError()
+
     override def runtimeEventListener(
         context: ActorContext[_]
     ): ActorRef[RuntimeEventListener.Request] = context.spawn(
@@ -434,7 +441,8 @@ object SimonaSimSpec {
 
     override def scheduler(
         context: ActorContext[_],
-        timeAdvancer: ActorRef[TimeAdvancer.Request],
+        timeAdvancer: ActorRef[SchedulerMessage],
+        coreFactory: CoreFactory = RegularSchedulerCore,
     ): ActorRef[SchedulerMessage] =
       context.spawn(empty, uniqueName("scheduler"))
 
@@ -442,7 +450,7 @@ object SimonaSimSpec {
         context: ActorContext[_],
         environmentRefs: EnvironmentRefs,
         resultEventListeners: Seq[ActorRef[ResultEvent]],
-    ): Iterable[ActorRef[GridAgentMessage]] = Iterable.empty
+    ): Iterable[ActorRef[GridAgent.Request]] = Iterable.empty
 
     override def extSimulations(
         context: ActorContext[_],

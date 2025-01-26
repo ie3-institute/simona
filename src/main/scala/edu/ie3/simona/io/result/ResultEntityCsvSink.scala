@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.io.result
 
-import org.apache.pekko.stream.IOResult
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.exceptions.EntityProcessorException
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
@@ -118,10 +117,8 @@ final case class ResultEntityCsvSink private (
           logger.debug(logPrefix(s"Compressed $outfileName."))
           FileIOUtils.deleteFileIfExists(outFileName).asScala
         case Failure(_) =>
-          Future.failed[IOResult](
-            new ProcessResultEventException(
-              s"Failed to zip file $outFileName!"
-            )
+          throw new ProcessResultEventException(
+            s"Failed to zip file $outFileName!"
           )
       }
   }

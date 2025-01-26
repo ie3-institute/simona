@@ -37,7 +37,7 @@ You can either delegate the job to your preferred IDE or build an executable jar
 In order to be able to execute SIMONA from a CLI, you need an executable fat jar. A fat jar contains all compiled classes and dependencies, ready for execution. For building one, you can use a Gradle task of the project.
 
 1. Open a CLI and change directories to the top level directory of the project.   
-2. Execute ``gradlew shadowJar`` within the CLI. This creates a fat jar of SIMONA inside of the directory ``build/libs``.   
+2. Execute ``gradlew shadowJar`` within the CLI. This creates a fat jar of SIMONA inside the directory ``build/libs``.   
 3. For executing a fat jar you need to specify the classpath of the entrypoint of your application. Assuming we are still in the top level directory of our project, the execution command would look as follows:
 
     
@@ -119,6 +119,13 @@ Besides a configuration and the actual grid and grid participants, SIMONA also e
 There is an option to use sample weather data, but if you want sensible results, definitely consider supplying suitable data.
 Information on the expected data format and different supported sources are given in the input parameters section of the {doc}`config` file.
 
+The following How-To's are available:
+```{toctree}
+---
+maxdepth: 1
+---
+howto/weatherDataHowToCopernicusERA5
+```
 
 ## Simulation Outputs
 

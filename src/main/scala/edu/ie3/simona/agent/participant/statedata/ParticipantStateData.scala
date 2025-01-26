@@ -29,7 +29,7 @@ object ParticipantStateData {
   /** Data for the state, in which the agent is not initialized, yet.
     * <p>IMPORTANT: Needs to be an empty case class due to typing</p>
     */
-  final class ParticipantUninitializedStateData[+PD <: PrimaryData]()
+  final class ParticipantUninitializedStateData[+PD <: PrimaryData]
       extends UninitializedStateData[PD]
 
   object ParticipantUninitializedStateData {

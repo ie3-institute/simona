@@ -7,17 +7,21 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.input.system.HpInput
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPowerAndHeat
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.thermal.ThermalGrid.ThermalGridState
+import edu.ie3.simona.model.thermal.ThermalGrid.{
+  ThermalDemandWrapper,
+  ThermalGridState,
+}
 import edu.ie3.simona.model.thermal.{ThermalGrid, ThermalThreshold}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.DefaultQuantities
+import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants.energy.Kilowatts
 import squants.{Power, Temperature}
 
@@ -31,11 +35,9 @@ import java.util.UUID
   * @param uuid
   *   the element's uuid
   * @param id
-  *   the element's human readable id
+  *   the element's human-readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
-  * @param scalingFactor
-  *   Scaling the output of the system
   * @param qControl
   *   Type of reactive power control
   * @param sRated
@@ -53,29 +55,26 @@ final case class HpModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    override val scalingFactor: Double,
     qControl: QControl,
-    sRated: Power,
+    sRated: ApparentPower,
     cosPhiRated: Double,
     pThermal: Power,
     thermalGrid: ThermalGrid,
 ) extends SystemParticipant[
       HpRelevantData,
-      ApparentPowerAndHeat,
+      ComplexPowerAndHeat,
       HpState,
     ](
       uuid,
       id,
       operationInterval,
-      scalingFactor,
       qControl,
       sRated,
       cosPhiRated,
     )
     with ApparentPowerAndHeatParticipant[HpRelevantData, HpState] {
 
-  private val pRated: Power =
-    sRated * cosPhiRated
+  private val pRated: Power = sRated.toActivePower(cosPhiRated)
 
   /** As this is a state-full model (with respect to the current operation
     * condition and inner temperature), the power calculation operates on the
@@ -83,7 +82,7 @@ final case class HpModel(
     * [[HpModel.determineState]]. This state then is fed into the power
     * calculation logic by [[HpState]].
     *
-    * @param modelState
+    * @param currentState
     *   Current state of the heat pump
     * @param relevantData
     *   data of heat pump including state of the heat pump
@@ -91,9 +90,9 @@ final case class HpModel(
     *   active power
     */
   override protected def calculateActivePower(
-      modelState: HpState,
+      currentState: HpState,
       relevantData: HpRelevantData,
-  ): Power = modelState.activePower
+  ): Power = currentState.activePower
 
   /** "Calculate" the heat output of the heat pump. The hp's state is already
     * updated, because the calculation of apparent power in
@@ -102,7 +101,7 @@ final case class HpModel(
     *
     * @param tick
     *   Current simulation time for the calculation
-    * @param modelState
+    * @param currentState
     *   Current state of the heat pump
     * @param data
     *   Relevant (external) data for calculation
@@ -111,27 +110,47 @@ final case class HpModel(
     */
   override def calculateHeat(
       tick: Long,
-      modelState: HpState,
+      currentState: HpState,
       data: HpRelevantData,
-  ): Power = modelState.qDot
+  ): Power = currentState.qDot
 
-  /** Given a [[HpRelevantData]] object and the current [[HpState]], this
-    * function calculates the heat pump's next state to get the actual active
-    * power of this state use [[calculateActivePower]] with the generated state
+  /** Given a [[HpRelevantData]] object and the last [[HpState]], this function
+    * calculates the heat pump's next state to get the actual active power of
+    * this state use [[calculateActivePower]] with the generated state
     *
-    * @param state
-    *   Current state of the heat pump
+    * @param lastHpState
+    *   Last state of the heat pump
     * @param relevantData
     *   data of heat pump including
     * @return
-    *   next [[HpState]]
+    *   Booleans if Hp can operate and can be out of operation plus the updated
+    *   [[HpState]]
     */
   def determineState(
-      state: HpState,
+      lastHpState: HpState,
       relevantData: HpRelevantData,
-  ): HpState = {
-    val turnOn = operatesInNextState(state, relevantData)
-    calcState(state, relevantData, turnOn)
+  ): (Boolean, Boolean, HpState) = {
+
+    // Use lastHpState and relevantData to update state of thermalGrid to the current tick
+    val (thermalDemandWrapper, currentThermalGridState) =
+      thermalGrid.energyDemandAndUpdatedState(
+        relevantData,
+        lastHpState,
+      )
+
+    // Determining the operation point and limitations at this tick
+    val (turnOn, canOperate, canBeOutOfOperation) =
+      operatesInNextState(
+        lastHpState,
+        currentThermalGridState,
+        relevantData,
+        thermalDemandWrapper,
+      )
+
+    // Updating the HpState
+    val updatedState =
+      calcState(lastHpState, relevantData, turnOn)
+    (canOperate, canBeOutOfOperation, updatedState)
   }
 
   /** Depending on the input, this function decides whether the heat pump will
@@ -140,31 +159,55 @@ final case class HpModel(
     * met or the heat pump currently is in operation and the grid is able to
     * handle additional energy
     *
-    * @param state
-    *   Current state of the heat pump
+    * @param lastState
+    *   last state of the heat pump
+    * @param currentThermalGridState
+    *   to current tick updated state of the thermalGrid
     * @param relevantData
     *   Relevant (external) data
+    * @param thermalDemands
+    *   ThermalEnergyDemand of the house and the thermal storage
     * @return
-    *   boolean defining if heat pump runs in next time step
+    *   boolean defining if heat pump runs in next time step, if it can be in
+    *   operation and can be out of operation
     */
   private def operatesInNextState(
-      state: HpState,
+      lastState: HpState,
+      currentThermalGridState: ThermalGridState,
       relevantData: HpRelevantData,
-  ): Boolean = {
-    val demand = thermalGrid.energyDemand(
-      relevantData.currentTick,
-      relevantData.ambientTemperature,
-      state.thermalGridState,
+      thermalDemands: ThermalDemandWrapper,
+  ): (Boolean, Boolean, Boolean) = {
+
+    val demandHouse = thermalDemands.houseDemand
+    val demandThermalStorage = thermalDemands.heatStorageDemand
+    val noThermalStorageOrThermalStorageIsEmpty =
+      currentThermalGridState.isThermalStorageEmpty
+
+    val turnHpOn =
+      (demandHouse.hasRequiredDemand && noThermalStorageOrThermalStorageIsEmpty) ||
+        (demandHouse.hasAdditionalDemand && lastState.isRunning) ||
+        demandThermalStorage.hasRequiredDemand ||
+        (demandThermalStorage.hasAdditionalDemand && lastState.isRunning)
+
+    val canOperate =
+      demandHouse.hasRequiredDemand || demandHouse.hasAdditionalDemand ||
+        demandThermalStorage.hasRequiredDemand || demandThermalStorage.hasAdditionalDemand
+    val canBeOutOfOperation =
+      !(demandHouse.hasRequiredDemand && noThermalStorageOrThermalStorageIsEmpty)
+
+    (
+      turnHpOn,
+      canOperate,
+      canBeOutOfOperation,
     )
-    demand.hasRequiredDemand || (state.isRunning && demand.hasAdditionalDemand)
   }
 
   /** Calculate state depending on whether heat pump is needed or not. Also
     * calculate inner temperature change of thermal house and update its inner
     * temperature.
     *
-    * @param state
-    *   Current state of the heat pump
+    * @param lastState
+    *   state of the heat pump until this tick
     * @param relevantData
     *   data of heat pump including state of the heat pump
     * @param isRunning
@@ -173,21 +216,27 @@ final case class HpModel(
     *   next [[HpState]]
     */
   private def calcState(
-      state: HpState,
+      lastState: HpState,
       relevantData: HpRelevantData,
       isRunning: Boolean,
   ): HpState = {
+    val lastStateStorageQDot = lastState.thermalGridState.storageState
+      .map(_.qDot)
+      .getOrElse(zeroKW)
+
     val (newActivePower, newThermalPower) =
       if (isRunning)
         (pRated, pThermal)
-      else (DefaultQuantities.zeroKW, DefaultQuantities.zeroKW)
+      else if (lastStateStorageQDot < zeroKW)
+        (zeroKW, lastStateStorageQDot * -1)
+      else (zeroKW, zeroKW)
 
     /* Push thermal energy to the thermal grid and get its updated state in return */
     val (thermalGridState, maybeThreshold) =
       thermalGrid.updateState(
-        relevantData.currentTick,
-        state.thermalGridState,
-        state.ambientTemperature.getOrElse(relevantData.ambientTemperature),
+        relevantData,
+        lastState.thermalGridState,
+        lastState.ambientTemperature.getOrElse(relevantData.ambientTemperature),
         newThermalPower,
       )
 
@@ -207,32 +256,23 @@ final case class HpModel(
       lastState: HpState,
   ): ProvideFlexOptions = {
     /* Determine the operating state in the given tick */
-    val updatedState = determineState(lastState, data)
-
-    /* Determine the options we have */
-    val thermalEnergyDemand = thermalGrid.energyDemand(
-      data.currentTick,
-      data.ambientTemperature,
-      lastState.thermalGridState,
-    )
-    val canOperate =
-      thermalEnergyDemand.hasRequiredDemand || thermalEnergyDemand.hasAdditionalDemand
-    val canBeOutOfOperation = !thermalEnergyDemand.hasRequiredDemand
+    val (canOperate, canBeOutOfOperation, updatedHpState)
+        : (Boolean, Boolean, HpState) = determineState(lastState, data)
 
     val lowerBoundary =
       if (canBeOutOfOperation)
-        Kilowatts(0d)
+        zeroKW
       else
-        updatedState.activePower
+        updatedHpState.activePower
     val upperBoundary =
       if (canOperate)
-        sRated * cosPhiRated
+        sRated.toActivePower(cosPhiRated)
       else
-        Kilowatts(0d)
+        zeroKW
 
     ProvideMinMaxFlexOptions(
       uuid,
-      updatedState.activePower,
+      updatedHpState.activePower,
       lowerBoundary,
       upperBoundary,
     )
@@ -260,15 +300,20 @@ final case class HpModel(
       lastState: HpState,
       setPower: Power,
   ): (HpState, FlexChangeIndicator) = {
-    /* If the setpoint value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
-    val turnOn = setPower > (sRated * cosPhiRated * 0.5)
-    val updatedState = calcState(lastState, data, turnOn)
+    /* If the set point value is above 50 % of the electrical power, turn on the heat pump otherwise turn it off */
+    val turnOn = setPower > (sRated.toActivePower(cosPhiRated) * 0.5)
+
+    val updatedHpState = calcState(
+      lastState,
+      data,
+      turnOn,
+    )
 
     (
-      updatedState,
+      updatedHpState,
       FlexChangeIndicator(
         changesAtNextActivation = true,
-        updatedState.maybeThermalThreshold.map(_.tick),
+        updatedHpState.maybeThermalThreshold.map(_.tick),
       ),
     )
   }
@@ -285,31 +330,32 @@ object HpModel {
       simulationEndDate: ZonedDateTime,
       thermalGrid: ThermalGrid,
   ): HpModel = {
+    val scaledInput = inputModel.copy().scale(scaling).build()
+
     /* Determine the operation interval */
     val operationInterval: OperationInterval =
       SystemComponent.determineOperationInterval(
         simulationStartDate,
         simulationEndDate,
-        inputModel.getOperationTime,
+        scaledInput.getOperationTime,
       )
 
-    val qControl = QControl(inputModel.getqCharacteristics())
+    val qControl = QControl(scaledInput.getqCharacteristics())
 
     val model = new HpModel(
-      inputModel.getUuid,
-      inputModel.getId,
+      scaledInput.getUuid,
+      scaledInput.getId,
       operationInterval,
-      scaling,
       qControl,
-      Kilowatts(
-        inputModel.getType.getsRated
-          .to(PowerSystemUnits.KILOWATT)
+      Kilovoltamperes(
+        scaledInput.getType.getsRated
+          .to(PowerSystemUnits.KILOVOLTAMPERE)
           .getValue
           .doubleValue
       ),
-      inputModel.getType.getCosPhiRated,
+      scaledInput.getType.getCosPhiRated,
       Kilowatts(
-        inputModel.getType.getpThermal
+        scaledInput.getType.getpThermal
           .to(PowerSystemUnits.KILOWATT)
           .getValue
           .doubleValue
@@ -326,9 +372,9 @@ object HpModel {
     * temperature.
     *
     * @param isRunning
-    *   indicates if CHP is turned on
-    * @param lastTimeTick
-    *   contains last time tick
+    *   indicates if HP is turned on
+    * @param tick
+    *   the time tick of the HpState
     * @param ambientTemperature
     *   Optional ambient temperature, if available
     * @param activePower
@@ -336,14 +382,14 @@ object HpModel {
     * @param qDot
     *   result heat power
     * @param thermalGridState
-    *   Currently applicable state of the thermal grid
+    *   applicable state of the thermal grid
     * @param maybeThermalThreshold
     *   An optional threshold of the thermal grid, indicating the next state
     *   change
     */
   final case class HpState(
       isRunning: Boolean,
-      lastTimeTick: Long,
+      tick: Long,
       ambientTemperature: Option[Temperature],
       activePower: Power,
       qDot: Power,
@@ -391,27 +437,28 @@ object HpModel {
       scalingFactor: Double,
       thermalGrid: ThermalGrid,
   ): HpModel = {
+    val scaledInput = hpInput.copy().scale(scalingFactor).build()
+
     val operationInterval = SystemComponent.determineOperationInterval(
       simulationStartDate,
       simulationEndDate,
-      hpInput.getOperationTime,
+      scaledInput.getOperationTime,
     )
 
     val model = new HpModel(
-      hpInput.getUuid,
-      hpInput.getId,
+      scaledInput.getUuid,
+      scaledInput.getId,
       operationInterval,
-      scalingFactor,
       qControl,
-      Kilowatts(
-        hpInput.getType.getsRated
-          .to(PowerSystemUnits.KILOWATT)
+      Kilovoltamperes(
+        scaledInput.getType.getsRated
+          .to(PowerSystemUnits.KILOVOLTAMPERE)
           .getValue
           .doubleValue
       ),
-      hpInput.getType.getCosPhiRated,
+      scaledInput.getType.getCosPhiRated,
       Kilowatts(
-        hpInput.getType.getpThermal
+        scaledInput.getType.getpThermal
           .to(PowerSystemUnits.KILOWATT)
           .getValue
           .doubleValue

@@ -7,8 +7,8 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.Energy
-import squants.energy.Kilowatts
 
 import scala.util.Random
 
@@ -24,7 +24,7 @@ trait RandomStorageState {
     ThermalStorageState(
       -1L,
       storedEnergy,
-      Kilowatts(0d),
+      zeroKW,
     )
   }
 }

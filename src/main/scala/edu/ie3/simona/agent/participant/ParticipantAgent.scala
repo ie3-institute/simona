@@ -9,6 +9,7 @@ package edu.ie3.simona.agent.participant
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.participant.ParticipantAgent.{
   FinishParticipantSimulation,
+  RequestAssetPowerMessage,
   StartCalculationTrigger,
   getAndCheckNodalVoltage,
 }
@@ -36,6 +37,7 @@ import edu.ie3.simona.agent.{SimonaAgent, ValueStore}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
+import edu.ie3.simona.io.result.AccompaniedSimulationResult
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.{
   CalcRelevantData,
@@ -44,12 +46,10 @@ import edu.ie3.simona.model.participant.{
   SystemParticipant,
 }
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexResponse,
   IssueFlexControl,
-  RequestFlexOptions,
+  FlexActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
@@ -59,7 +59,6 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.ReactivePower
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import org.apache.pekko.actor.{ActorRef, FSM}
 import squants.{Dimensionless, Power}
@@ -150,7 +149,7 @@ abstract class ParticipantAgent[
           Activation(tick),
           modelBaseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
         ) if modelBaseStateData.services.isEmpty =>
-      /* An activity start trigger is sent and no data is awaited (neither secondary nor primary). Therefore go straight
+      /* An activity start trigger is sent and no data is awaited (neither secondary nor primary). Therefore, go straight
        * ahead to calculations */
 
       /* Hold tick, as state transition is needed */
@@ -222,7 +221,7 @@ abstract class ParticipantAgent[
       finalizeTickAfterPF(baseStateData, tick)
 
     case Event(
-          RequestFlexOptions(tick),
+          FlexActivation(tick),
           baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
         ) =>
       val expectedSenders = baseStateData.foreseenDataTicks
@@ -337,7 +336,7 @@ abstract class ParticipantAgent[
       )(stateData.baseStateData.outputConfig)
 
     case Event(
-          RequestFlexOptions(tick),
+          FlexActivation(tick),
           stateData: DataCollectionStateData[PD],
         ) =>
       checkForExpectedDataAndChangeState(
@@ -355,28 +354,13 @@ abstract class ParticipantAgent[
             isYetTriggered,
           ),
         ) =>
-      /* We yet have received at least one data provision message. Handle all messages, that follow up for this tick, by
-       * adding the received data to the collection state data and checking, if everything is at its place */
-      val unexpectedSender = baseStateData.foreseenDataTicks.exists {
-        case (ref, None) => msg.serviceRef == ref
-        case _           => false
-      }
-
-      if (data.contains(msg.serviceRef) || unexpectedSender) {
+      if (data.contains(msg.serviceRef)) {
         /* Update the yet received information */
         val updatedData = data + (msg.serviceRef -> Some(msg.data))
 
-        /* If we have received unexpected data, we also have not been scheduled before */
-        if (unexpectedSender)
-          scheduler ! ScheduleActivation(
-            self.toTyped,
-            msg.tick,
-            msg.unlockKey,
-          )
-
         /* Depending on if a next data tick can be foreseen, either update the entry in the base state data or remove
          * it */
-        val foreSeenDataTicks =
+        val foreseenDataTicks =
           baseStateData.foreseenDataTicks + (msg.serviceRef -> msg.nextDataTick)
         val updatedBaseStateData = BaseStateData.updateBaseStateData(
           baseStateData,
@@ -384,7 +368,7 @@ abstract class ParticipantAgent[
           baseStateData.requestValueStore,
           baseStateData.voltageValueStore,
           baseStateData.additionalActivationTicks,
-          foreSeenDataTicks,
+          foreseenDataTicks,
         )
         val updatedStateData: DataCollectionStateData[PD] = stateData
           .copy(
@@ -452,16 +436,20 @@ abstract class ParticipantAgent[
             _,
           ),
         ) =>
-      val updatedReceivedSecondaryData = ValueStore.updateValueStore(
-        participantStateData.receivedSecondaryDataStore,
-        currentTick,
-        data.map { case (actorRef, Some(data: SecondaryData)) =>
-          actorRef -> data
-        },
-      )
+      val updatedReceivedSecondaryData = data match {
+        case nonEmptyData if nonEmptyData.nonEmpty =>
+          ValueStore.updateValueStore(
+            participantStateData.receivedSecondaryDataStore,
+            currentTick,
+            nonEmptyData.collect { case (actorRef, Some(data: SecondaryData)) =>
+              actorRef -> data
+            },
+          )
+        case _ => participantStateData.receivedSecondaryDataStore
+      }
 
-      /* At least parts of the needed data has been received or it is an additional activation, that has been triggered.
-       * Anyways, the calculation routine has also to take care of filling up missing data. */
+      /* At least parts of the needed data has been received, or it is an additional activation, that has been triggered.
+       * Anyway, the calculation routine has also to take care of filling up missing data. */
       val lastModelState =
         getLastOrInitialStateData(participantStateData, currentTick)
       calculatePowerWithSecondaryDataAndGoToIdle(
@@ -505,7 +493,7 @@ abstract class ParticipantAgent[
     * @param simulationEndDate
     *   Real world time date time, when the simulation ends
     * @param resolution
-    *   Agents regular time bin it wants to be triggered e.g one hour
+    *   Agents regular time bin it wants to be triggered e.g. one hour
     * @param requestVoltageDeviationThreshold
     *   Threshold, after which two nodal voltage magnitudes from participant
     *   power requests for the same tick are considered to be different
@@ -545,7 +533,7 @@ abstract class ParticipantAgent[
     * @param simulationEndDate
     *   Real world time date time, when the simulation ends
     * @param resolution
-    *   Agents regular time bin it wants to be triggered e.g one hour
+    *   Agents regular time bin it wants to be triggered e.g. one hour
     * @param requestVoltageDeviationThreshold
     *   Threshold, after which two nodal voltage magnitudes from participant
     *   power requests for the same tick are considered to be different
@@ -611,16 +599,13 @@ abstract class ParticipantAgent[
           actorRef -> None
       }
 
-    val unforeseenPossible =
-      baseStateData.foreseenDataTicks.exists(_._2.isEmpty)
-
     val nextStateData = DataCollectionStateData(
       baseStateData,
       expectedSenders,
       yetTriggered = true,
     )
 
-    if (expectedSenders.nonEmpty || unforeseenPossible) {
+    if (expectedSenders.nonEmpty) {
       /* Do await provision messages in HandleInformation */
       goto(HandleInformation) using nextStateData
     } else {
@@ -671,7 +656,7 @@ abstract class ParticipantAgent[
     * the agent is meant to replay external primary data: Announce result, add
     * content to result value store, go to [[Idle]] and answer the scheduler,
     * that the activity start trigger is fulfilled. 2.2) All secondary data is
-    * there, go to [[Calculate]] and ask the scheduler to trigger ourself for
+    * there, go to [[Calculate]] and ask the scheduler to trigger ourselves for
     * starting the model based calculation 3) Everything is at place and the
     * [[Activation]] has NOT yet been sent: Stay here and wait
     *
@@ -799,13 +784,11 @@ abstract class ParticipantAgent[
       data: CD,
       lastState: MS,
       setPower: squants.Power,
-  ): (MS, PD, FlexChangeIndicator)
+  ): (MS, AccompaniedSimulationResult[PD], FlexChangeIndicator)
 
-  /** Determining the reply to an
-    * [[edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage]],
-    * send this answer and stay in the current state. If no reply can be
-    * determined (because an activation or incoming data is expected), the
-    * message is stashed.
+  /** Determining the reply to an [[RequestAssetPowerMessage]], send this answer
+    * and stay in the current state. If no reply can be determined (because an
+    * activation or incoming data is expected), the message is stashed.
     *
     * This methods goal is to find a reply as fast as possible, therefore the
     * following options are checked in subsequent order: 1) This request (in
@@ -852,7 +835,7 @@ abstract class ParticipantAgent[
   )(implicit outputConfig: NotifierConfig): Unit
 
   /** Abstract definition to clean up agent value stores after power flow
-    * convergence. This is necessary for agents whose results are time dependent
+    * convergence. This is necessary for agents whose results are time-dependent
     * e.g. storage agents
     *
     * @param baseStateData
@@ -871,6 +854,22 @@ abstract class ParticipantAgent[
 object ParticipantAgent {
 
   trait ParticipantMessage
+
+  /** Request the power values for the requested tick from an AssetAgent and
+    * provide the latest nodal voltage
+    *
+    * @param currentTick
+    *   The tick that power values are requested for
+    * @param eInPu
+    *   Real part of the complex, dimensionless nodal voltage
+    * @param fInPu
+    *   Imaginary part of the complex, dimensionless nodal voltage
+    */
+  final case class RequestAssetPowerMessage(
+      currentTick: Long,
+      eInPu: Dimensionless,
+      fInPu: Dimensionless,
+  ) extends ParticipantMessage
 
   final case class FinishParticipantSimulation(tick: Long)
       extends ParticipantMessage

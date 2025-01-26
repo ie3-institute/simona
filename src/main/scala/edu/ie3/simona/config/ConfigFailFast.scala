@@ -8,23 +8,26 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.{Config, ConfigException}
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.InfluxDb1x
-import edu.ie3.simona.config.SimonaConfig.{
-  BaseOutputConfig,
-  RefSystemConfig,
-  ResultKafkaParams,
-  Simona,
-  TransformerControlGroup,
+import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.{
+  CouchbaseParams,
+  InfluxDb1xParams,
+  SampleParams,
+  SqlParams,
 }
+import edu.ie3.simona.config.SimonaConfig.Simona.Output.Sink.InfluxDb1x
+import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
-import edu.ie3.simona.service.weather.WeatherSource
+import edu.ie3.simona.service.weather.WeatherSource.WeatherScheme
 import edu.ie3.simona.util.CollectionUtils
+import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.checkBaseCsvParams
 import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
+  checkCouchbaseParams,
   checkInfluxDb1xParams,
   checkKafkaParams,
+  checkSqlParams,
 }
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
 import edu.ie3.util.scala.ReflectionTools
@@ -44,7 +47,7 @@ import scala.util.{Failure, Success, Try}
   * missing config parameters where at least one is needed or check for invalid
   * or contradicting parameters
   */
-case object ConfigFailFast extends LazyLogging {
+object ConfigFailFast extends LazyLogging {
 
   def check(typeSafeConfig: Config, simonaConfig: SimonaConfig): Unit = {
     check(typeSafeConfig)
@@ -114,7 +117,8 @@ case object ConfigFailFast extends LazyLogging {
 
     // check if the provided combinations of refSystems provided are valid
     val refSystems = simonaConfig.simona.gridConfig.refSystems
-    refSystems.foreach(checkRefSystem)
+    if (refSystems.isDefined)
+      refSystems.foreach(refsys => checkRefSystem(refsys))
 
     /* Check all participant model configurations */
     checkParticipantRuntimeConfiguration(
@@ -135,19 +139,38 @@ case object ConfigFailFast extends LazyLogging {
     /* Check if the provided combination of data source and parameters are valid */
     checkWeatherDataSource(simonaConfig.simona.input.weather.datasource)
 
-    /* check if at least one data sink is defined */
-    checkDataSink(simonaConfig.simona.output.sink)
-
-    /* Check all output configurations for participant models */
-    checkParticipantsOutputConfig(
-      simonaConfig.simona.output.participant
-    )
+    checkOutputConfig(simonaConfig.simona.output)
 
     /* Check power flow resolution configuration */
     checkPowerFlowResolutionConfiguration(simonaConfig.simona.powerflow)
 
     /* Check control scheme definitions */
     simonaConfig.simona.control.foreach(checkControlSchemes)
+
+    /* Check correct parameterization of storages */
+    checkStoragesConfig(simonaConfig.simona.runtime.participant.storage)
+  }
+
+  /** Checks for valid output configuration
+    *
+    * @param outputConfig
+    *   the output configuration that should be checked
+    */
+  private def checkOutputConfig(
+      outputConfig: SimonaConfig.Simona.Output
+  ): Unit = {
+
+    /* check if at least one data sink is defined */
+    checkDataSink(outputConfig.sink)
+
+    /* Check all output configurations for participant models */
+    checkParticipantsOutputConfig(outputConfig.participant)
+
+    /* Check all output configurations for thermal models */
+    checkThermalOutputConfig(outputConfig.thermal)
+
+    /* Check output configurations for log */
+    checkLogOutputConfig(outputConfig.log)
   }
 
   /** Checks for valid sink configuration
@@ -239,7 +262,7 @@ case object ConfigFailFast extends LazyLogging {
       case e: DateTimeParseException =>
         throw new InvalidConfigParameterException(
           s"Invalid dateTimeString: $dateTimeString." +
-            s"Please ensure that your date/time parameter match the following pattern: 'yyyy-MM-dd HH:mm:ss'",
+            s"Please ensure that your date/time parameter match the following pattern: 'yyyy-MM-dd'T'HH:mm:ss'Z''",
           e,
         )
     }
@@ -302,8 +325,8 @@ case object ConfigFailFast extends LazyLogging {
     )
   }
 
-  /** Check participants's basic runtime configurations, as well as in default
-    * as in individual configs. This comprises
+  /** Check participants' basic runtime configurations, as well as in default as
+    * in individual configs. This comprises
     * i.e. uuid and scaling factor
     */
   private def checkBaseRuntimeConfigs(
@@ -428,70 +451,74 @@ case object ConfigFailFast extends LazyLogging {
 
   /** Sanity checks for a [[SimonaConfig.RefSystemConfig]]
     *
-    * @param refSystem
-    *   the [[SimonaConfig.RefSystemConfig]] that should be checked
+    * @param refSystems
+    *   a list of [[SimonaConfig.RefSystemConfig]]s that should be checked
     */
-  private def checkRefSystem(refSystem: RefSystemConfig): Unit = {
 
-    val voltLvls =
-      refSystem.voltLvls.getOrElse(List.empty[SimonaConfig.VoltLvlConfig])
-    val gridIds = refSystem.gridIds.getOrElse(List.empty[String])
+  private def checkRefSystem(refSystems: List[RefSystemConfig]): Unit = {
+    refSystems.foreach { refSystem =>
+      {
+        val voltLvls =
+          refSystem.voltLvls.getOrElse(List.empty[SimonaConfig.VoltLvlConfig])
+        val gridIds = refSystem.gridIds.getOrElse(List.empty[String])
 
-    if (voltLvls.isEmpty && gridIds.isEmpty)
-      throw new InvalidConfigParameterException(
-        "The provided values for voltLvls and gridIds are empty! " +
-          s"At least one of these optional parameters has to be provided for a valid refSystem! " +
-          s"Provided refSystem is: $refSystem."
-      )
-
-    voltLvls.foreach { voltLvl =>
-      Try(Quantities.getQuantity(voltLvl.vNom)) match {
-        case Success(quantity) =>
-          if (!quantity.getUnit.isCompatible(Units.VOLT))
-            throw new InvalidConfigParameterException(
-              s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to electrical potential! Please provide the volt level with its unit, e.g. \"20 kV\""
-            )
-        case Failure(exception) =>
+        if (voltLvls.isEmpty && gridIds.isEmpty)
           throw new InvalidConfigParameterException(
-            s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to a quantity. Did you provide the volt level with it's unit (e.g. \"20 kV\")?",
-            exception,
+            "The provided values for voltLvls and gridIds are empty! " +
+              s"At least one of these optional parameters has to be provided for a valid refSystem! " +
+              s"Provided refSystem is: $refSystem."
+          )
+
+        voltLvls.foreach { voltLvl =>
+          Try(Quantities.getQuantity(voltLvl.vNom)) match {
+            case Success(quantity) =>
+              if (!quantity.getUnit.isCompatible(Units.VOLT))
+                throw new InvalidConfigParameterException(
+                  s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to electrical potential! Please provide the volt level with its unit, e.g. \"20 kV\""
+                )
+            case Failure(exception) =>
+              throw new InvalidConfigParameterException(
+                s"The given nominal voltage '${voltLvl.vNom}' cannot be parsed to a quantity. Did you provide the volt level with it's unit (e.g. \"20 kV\")?",
+                exception,
+              )
+          }
+        }
+
+        gridIds.foreach {
+          case gridIdRange @ ConfigConventions.gridIdDotRange(from, to) =>
+            rangeCheck(from.toInt, to.toInt, gridIdRange)
+          case gridIdRange @ ConfigConventions.gridIdMinusRange(from, to) =>
+            rangeCheck(from.toInt, to.toInt, gridIdRange)
+          case ConfigConventions.singleGridId(_) =>
+          case gridId =>
+            throw new InvalidConfigParameterException(
+              s"The provided gridId $gridId is malformed!"
+            )
+        }
+
+        refSystem.sNom match {
+          case ConfigConventions.refSystemQuantRegex(_) =>
+          case _ =>
+            throw new InvalidConfigParameterException(
+              s"Invalid value for sNom from provided refSystem $refSystem. Is a valid unit provided?"
+            )
+        }
+
+        refSystem.vNom match {
+          case ConfigConventions.refSystemQuantRegex(_) =>
+          case _ =>
+            throw new InvalidConfigParameterException(
+              s"Invalid value for vNom from provided refSystem $refSystem. Is a valid unit provided?"
+            )
+        }
+      }
+
+      def rangeCheck(from: Int, to: Int, gridIdRange: String): Unit = {
+        if (from >= to)
+          throw new InvalidConfigParameterException(
+            s"Invalid gridId Range $gridIdRange. Start $from cannot be equals or bigger than end $to."
           )
       }
-    }
-
-    gridIds.foreach {
-      case gridIdRange @ ConfigConventions.gridIdDotRange(from, to) =>
-        rangeCheck(from.toInt, to.toInt, gridIdRange)
-      case gridIdRange @ ConfigConventions.gridIdMinusRange(from, to) =>
-        rangeCheck(from.toInt, to.toInt, gridIdRange)
-      case ConfigConventions.singleGridId(_) =>
-      case gridId =>
-        throw new InvalidConfigParameterException(
-          s"The provided gridId $gridId is malformed!"
-        )
-    }
-
-    refSystem.sNom match {
-      case ConfigConventions.refSystemQuantRegex(_) =>
-      case _ =>
-        throw new InvalidConfigParameterException(
-          s"Invalid value for sNom from provided refSystem $refSystem. Is a valid unit provided?"
-        )
-    }
-
-    refSystem.vNom match {
-      case ConfigConventions.refSystemQuantRegex(_) =>
-      case _ =>
-        throw new InvalidConfigParameterException(
-          s"Invalid value for vNom from provided refSystem $refSystem. Is a valid unit provided?"
-        )
-    }
-
-    def rangeCheck(from: Int, to: Int, gridIdRange: String): Unit = {
-      if (from >= to)
-        throw new InvalidConfigParameterException(
-          s"Invalid gridId Range $gridIdRange. Start $from cannot be equals or bigger than end $to."
-        )
     }
   }
 
@@ -532,10 +559,122 @@ case object ConfigFailFast extends LazyLogging {
     PrimaryServiceProxy.checkConfig(primary)
 
   private def checkWeatherDataSource(
-      dataSourceConfig: SimonaConfig.Simona.Input.Weather.Datasource
-  ): Unit = WeatherSource.checkConfig(dataSourceConfig)
+      weatherDataSourceCfg: SimonaConfig.Simona.Input.Weather.Datasource
+  ): Unit = {
+    // check coordinate source
+    val definedCoordinateSource: String = checkCoordinateSource(
+      weatherDataSourceCfg.coordinateSource
+    )
 
-  /** Check the config sub tree for output parameterization
+    /* Check, if the column scheme is supported */
+    if (!WeatherScheme.isEligibleInput(weatherDataSourceCfg.scheme))
+      throw new InvalidConfigParameterException(
+        s"The weather data scheme '${weatherDataSourceCfg.scheme}' is not supported. Supported schemes:\n\t${WeatherScheme.values
+            .mkString("\n\t")}"
+      )
+
+    // check weather source parameters
+    val supportedWeatherSources =
+      Set("influxdb1x", "csv", "sql", "couchbase", "sample")
+    val definedWeatherSources = Vector(
+      weatherDataSourceCfg.sampleParams,
+      weatherDataSourceCfg.csvParams,
+      weatherDataSourceCfg.influxDb1xParams,
+      weatherDataSourceCfg.couchbaseParams,
+      weatherDataSourceCfg.sqlParams,
+    ).filter(_.isDefined)
+
+    // check that only one source is defined
+    if (definedWeatherSources.size > 1)
+      throw new InvalidConfigParameterException(
+        s"Multiple weather sources defined: '${definedWeatherSources.map(_.getClass.getSimpleName).mkString("\n\t")}'." +
+          s"Please define only one source!\nAvailable sources:\n\t${supportedWeatherSources.mkString("\n\t")}"
+      )
+
+    definedWeatherSources.headOption.flatten match {
+      case Some(baseCsvParams: BaseCsvParams) =>
+        checkBaseCsvParams(baseCsvParams, "WeatherSource")
+      case Some(params: CouchbaseParams) =>
+        checkCouchbaseParams(params)
+      case Some(InfluxDb1xParams(database, _, url)) =>
+        checkInfluxDb1xParams("WeatherSource", url, database)
+      case Some(params: SqlParams) =>
+        checkSqlParams(params)
+      case Some(_: SampleParams) =>
+        // sample weather, no check required
+        // coordinate source must be sample coordinate source
+        if (weatherDataSourceCfg.coordinateSource.sampleParams.isEmpty) {
+          // cannot use sample weather source with other combination of weather source than sample weather source
+          throw new InvalidConfigParameterException(
+            s"Invalid coordinate source " +
+              s"'$definedCoordinateSource' defined for SampleWeatherSource. " +
+              "Please adapt the configuration to use sample coordinate source for weather data!"
+          )
+        }
+      case None | Some(_) =>
+        throw new InvalidConfigParameterException(
+          s"No weather source defined! This is currently not supported! Please provide the config parameters for one " +
+            s"of the following weather sources:\n\t${supportedWeatherSources.mkString("\n\t")}"
+        )
+    }
+  }
+
+  /** Check the provided coordinate id data source configuration to ensure its
+    * validity. For any invalid configuration parameters exceptions are thrown.
+    *
+    * @param coordinateSourceConfig
+    *   the config to be checked
+    * @return
+    *   the name of the defined
+    *   [[edu.ie3.datamodel.io.source.IdCoordinateSource]]
+    */
+  private def checkCoordinateSource(
+      coordinateSourceConfig: SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource
+  ): String = {
+    val supportedCoordinateSources = Set("csv", "sql", "sample")
+    val definedCoordSources = Vector(
+      coordinateSourceConfig.sampleParams,
+      coordinateSourceConfig.csvParams,
+      coordinateSourceConfig.sqlParams,
+    ).filter(_.isDefined)
+
+    // check that only one source is defined
+    if (definedCoordSources.size > 1)
+      throw new InvalidConfigParameterException(
+        s"Multiple coordinate sources defined: '${definedCoordSources.map(_.getClass.getSimpleName).mkString("\n\t")}'." +
+          s"Please define only one source!\nAvailable sources:\n\t${supportedCoordinateSources.mkString("\n\t")}"
+      )
+
+    definedCoordSources.headOption.flatten match {
+      case Some(baseCsvParams: BaseCsvParams) =>
+        checkBaseCsvParams(baseCsvParams, "CoordinateSource")
+
+        // check the grid model configuration
+        val gridModel = coordinateSourceConfig.gridModel.toLowerCase
+        if (gridModel != "icon" && gridModel != "cosmo") {
+          throw new InvalidConfigParameterException(
+            s"Grid model '$gridModel' is not supported!"
+          )
+        }
+
+        "csv"
+      case Some(sqlParams: SqlParams) =>
+        checkSqlParams(sqlParams)
+        "sql"
+      case Some(
+            _: SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SampleParams
+          ) =>
+        "sample"
+      case None | Some(_) =>
+        throw new InvalidConfigParameterException(
+          s"No coordinate source defined! This is currently not supported! Please provide the config parameters for one " +
+            s"of the following coordinate sources:\n\t${supportedCoordinateSources.mkString("\n\t")}"
+        )
+    }
+
+  }
+
+  /** Check the config subtree for output parameterization
     *
     * @param subConfig
     *   Output sub config tree for participants
@@ -551,11 +690,38 @@ case object ConfigFailFast extends LazyLogging {
         )
     )
 
-    checkDefaultBaseOutputConfig(
-      subConfig.defaultConfig,
-      defaultString = "default",
-    )
-    checkIndividualParticipantsOutputConfigs(subConfig.individualConfigs)
+    implicit val elementType: String = "participant"
+
+    checkDefaultBaseOutputConfig(subConfig.defaultConfig)
+    checkIndividualOutputConfigs(subConfig.individualConfigs)
+  }
+
+  /** Check the config subtree for output parameterization
+    *
+    * @param subConfig
+    *   Output sub config tree for participants
+    */
+  private def checkThermalOutputConfig(
+      subConfig: SimonaConfig.Simona.Output.Thermal
+  ): Unit = {
+    implicit val elementType: String = "thermal"
+    checkDefaultBaseOutputConfig(subConfig.defaultConfig)
+    checkIndividualOutputConfigs(subConfig.individualConfigs)
+  }
+
+  /** Check the config subtree for log output parameterization
+    *
+    * @param subConfig
+    *   Output sub config tree for log
+    */
+  private def checkLogOutputConfig(
+      subConfig: SimonaConfig.Simona.Output.Log
+  ): Unit = {
+    val validLogLevels = Seq("TRACE", "DEBUG", "INFO", "WARN", "ERROR")
+    if (!validLogLevels.contains(subConfig.level))
+      throw new InvalidConfigParameterException(
+        s"Invalid log level \"${subConfig.level}\". Valid log levels: ${validLogLevels.mkString(", ")}"
+      )
   }
 
   /** Checks resolution of power flow calculation
@@ -643,6 +809,43 @@ case object ConfigFailFast extends LazyLogging {
     }
   }
 
+  /** Check the suitability of storage config parameters.
+    *
+    * @param storageRuntimeConfig
+    *   RuntimeConfig of Storages
+    */
+  private def checkStoragesConfig(
+      storageRuntimeConfig: SimonaConfig.Simona.Runtime.Participant.Storage
+  ): Unit = {
+    if (
+      storageRuntimeConfig.defaultConfig.initialSoc < 0.0 || storageRuntimeConfig.defaultConfig.initialSoc > 1.0
+    )
+      throw new RuntimeException(
+        s"StorageRuntimeConfig: Default initial SOC needs to be between 0.0 and 1.0."
+      )
+
+    if (
+      storageRuntimeConfig.defaultConfig.targetSoc.exists(
+        _ < 0.0
+      ) || storageRuntimeConfig.defaultConfig.targetSoc.exists(_ > 1.0)
+    )
+      throw new RuntimeException(
+        s"StorageRuntimeConfig: Default target SOC needs to be between 0.0 and 1.0."
+      )
+
+    storageRuntimeConfig.individualConfigs.foreach { config =>
+      if (config.initialSoc < 0.0 || config.initialSoc > 1.0)
+        throw new RuntimeException(
+          s"StorageRuntimeConfig: ${config.uuids} initial SOC needs to be between 0.0 and 1.0."
+        )
+
+      if (config.targetSoc.exists(_ < 0.0) || config.targetSoc.exists(_ > 1.0))
+        throw new RuntimeException(
+          s"StorageRuntimeConfig: ${config.uuids} target SOC needs to be between 0.0 and 1.0."
+        )
+    }
+  }
+
   /** Check the default config
     *
     * @param config
@@ -652,26 +855,26 @@ case object ConfigFailFast extends LazyLogging {
     */
   private def checkDefaultBaseOutputConfig(
       config: SimonaConfig.BaseOutputConfig,
-      defaultString: String,
-  ): Unit = {
+      defaultString: String = "default",
+  )(implicit elementType: String): Unit = {
     if (
       StringUtils
         .cleanString(config.notifier)
         .toLowerCase != StringUtils.cleanString(defaultString).toLowerCase
     )
       logger.warn(
-        s"You provided '${config.notifier}' as model type for the default participant output config. This will not be considered!"
+        s"You provided '${config.notifier}' as model type for the default $elementType output config. This will not be considered!"
       )
   }
 
-  /** Checks the participant output configurations on duplicates
+  /** Checks the given output configurations on duplicates
     *
     * @param configs
     *   List of individual config entries
     */
-  private def checkIndividualParticipantsOutputConfigs(
+  private def checkIndividualOutputConfigs(
       configs: List[SimonaConfig.BaseOutputConfig]
-  ): Unit = {
+  )(implicit elementType: String): Unit = {
     val duplicateKeys = configs
       .map(config => StringUtils.cleanString(config.notifier).toLowerCase())
       .groupMapReduce(identity)(_ => 1)(_ + _)
@@ -682,8 +885,20 @@ case object ConfigFailFast extends LazyLogging {
 
     if (duplicateKeys.nonEmpty)
       throw new InvalidConfigParameterException(
-        s"There are multiple output configurations for participant types '${duplicateKeys.mkString(",")}'."
+        s"There are multiple output configurations for $elementType types '${duplicateKeys.mkString(",")}'."
       )
+
+    implicit val exceptedNotifiers: Set[NotifierIdentifier.Value] =
+      elementType match {
+        case "participant" =>
+          NotifierIdentifier.getParticipantIdentifiers
+        case "thermal" =>
+          NotifierIdentifier.getThermalIdentifiers
+        case other =>
+          throw new InvalidConfigParameterException(
+            s"The output config for $other has no notifiers!"
+          )
+      }
 
     configs.foreach(checkBaseOutputConfig)
   }
@@ -692,23 +907,39 @@ case object ConfigFailFast extends LazyLogging {
     *
     * @param config
     *   to be checked
+    * @param exceptedNotifiers
+    *   a set of all valid identifiers
     */
-  private def checkBaseOutputConfig(config: BaseOutputConfig): Unit = {
-    checkNotifierIdentifier(config.notifier)
+  private def checkBaseOutputConfig(
+      config: BaseOutputConfig
+  )(implicit exceptedNotifiers: Set[NotifierIdentifier.Value]): Unit = {
+    checkNotifierIdentifier(config.notifier, exceptedNotifiers)
   }
 
   /** Check the validity of the identifier String
     *
     * @param id
     *   identifier String to check
+    * @param exceptedNotifiers
+    *   a set of all valid identifiers
     */
-  private def checkNotifierIdentifier(id: String): Unit = {
+  private def checkNotifierIdentifier(
+      id: String,
+      exceptedNotifiers: Set[NotifierIdentifier.Value],
+  ): Unit = {
     try {
-      NotifierIdentifier(id)
+      val notifier = NotifierIdentifier(id)
+
+      if (!exceptedNotifiers.contains(notifier)) {
+        throw new InvalidConfigParameterException(
+          s"The identifier '$id' you provided is not valid. Valid input: ${exceptedNotifiers.map(_.toString).mkString(",")}"
+        )
+      }
+
     } catch {
       case e: NoSuchElementException =>
         throw new InvalidConfigParameterException(
-          s"The identifier '$id' you provided is not valid. Valid input: ${NotifierIdentifier.values.map(_.toString).mkString(",")}",
+          s"The identifier '$id' you provided is not valid. Valid input: ${exceptedNotifiers.map(_.toString).mkString(",")}",
           e,
         )
     }

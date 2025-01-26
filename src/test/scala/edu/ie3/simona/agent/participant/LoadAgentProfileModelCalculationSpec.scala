@@ -6,15 +6,16 @@
 
 package edu.ie3.simona.agent.participant
 
-import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.testkit.TestFSMRef
-import org.apache.pekko.util.Timeout
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.input.system.characteristic.QV
 import edu.ie3.simona.agent.ValueStore
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.grid.GridAgentMessages.{
+  AssetPowerChangedMessage,
+  AssetPowerUnchangedMessage,
+}
+import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.load.LoadAgent.ProfileLoadAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
@@ -30,11 +31,6 @@ import edu.ie3.simona.config.SimonaConfig.LoadRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage,
-}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
@@ -43,6 +39,10 @@ import edu.ie3.simona.test.common.model.participant.LoadTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.testkit.TestFSMRef
+import org.apache.pekko.util.Timeout
 import org.scalatest.PrivateMethodTester
 import squants.Each
 import squants.energy.{Kilowatts, Megawatts, Watts}
@@ -99,7 +99,7 @@ class LoadAgentProfileModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       LoadInput,
       LoadRuntimeConfig,
-      ApparentPower,
+      ComplexPower,
     ](
       inputModel = voltageSensitiveInput,
       modelConfig = modelConfig,
@@ -215,7 +215,7 @@ class LoadAgentProfileModelCalculationSpec
             SortedMap(0L -> Each(1.0)),
           )
           resultValueStore shouldBe ValueStore(resolution)
-          requestValueStore shouldBe ValueStore[ApparentPower](
+          requestValueStore shouldBe ValueStore[ComplexPower](
             resolution
           )
         case _ =>
@@ -243,7 +243,7 @@ class LoadAgentProfileModelCalculationSpec
         RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
 
       loadAgent.stateName shouldBe Idle
@@ -264,11 +264,11 @@ class LoadAgentProfileModelCalculationSpec
       inside(loadAgent.stateData) {
         case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           baseStateData.requestValueStore shouldBe ValueStore[
-            ApparentPower
+            ComplexPower
           ](
             resolution,
             SortedMap(
-              0L -> ApparentPower(
+              0L -> ComplexPower(
                 Megawatts(0d),
                 Megavars(0d),
               )
@@ -299,7 +299,7 @@ class LoadAgentProfileModelCalculationSpec
         RegistrationFailedMessage(primaryServiceProxy.ref),
       )
 
-      /* I am not interested in the CompletionMessage */
+      /* I am not interested in the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(loadAgent.stateName shouldBe Idle)
       /* State data is tested in another test */
@@ -318,7 +318,7 @@ class LoadAgentProfileModelCalculationSpec
           baseStateData.resultValueStore.last(0L) match {
             case Some((tick, entry)) =>
               tick shouldBe 0L
-              inside(entry) { case ApparentPower(p, q) =>
+              inside(entry) { case ComplexPower(p, q) =>
                 p should approximate(Megawatts(84.000938e-6))
                 q should approximate(Megavars(0.0))
               }

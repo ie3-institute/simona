@@ -6,16 +6,12 @@
 
 package edu.ie3.simona.agent.participant
 
-import org.apache.pekko.actor.ActorRef.noSender
-import org.apache.pekko.actor.{ActorRef, ActorSystem}
-import org.apache.pekko.testkit.TestFSMRef
-import org.apache.pekko.util.Timeout
 import breeze.numerics.pow
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals.RelevantResultValues
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
@@ -27,8 +23,8 @@ import edu.ie3.simona.exceptions.agent.{
   InconsistentStateException,
 }
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
-import edu.ie3.simona.model.participant.SystemParticipant
 import edu.ie3.simona.model.participant.ModelState.ConstantState
+import edu.ie3.simona.model.participant.SystemParticipant
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
 import edu.ie3.simona.model.participant.load.FixedLoadModel.FixedLoadRelevantData
 import edu.ie3.simona.model.participant.load.{FixedLoadModel, LoadReference}
@@ -36,13 +32,22 @@ import edu.ie3.simona.test.common.AgentSpec
 import edu.ie3.simona.test.common.model.participant.LoadTestData
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
+import edu.ie3.util.scala.quantities.{
+  Kilovoltamperes,
+  Megavars,
+  ReactivePower,
+  Vars,
+}
+import org.apache.pekko.actor.ActorRef.noSender
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.testkit.TestFSMRef
+import org.apache.pekko.util.Timeout
 import org.mockito.Mockito.when
 import org.scalatest.PrivateMethodTester
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor3, TableFor5}
 import org.scalatestplus.mockito.MockitoSugar
-import squants.{Each, Power}
 import squants.energy.{Kilowatts, Megawatts, Watts}
+import squants.{Each, Power}
 
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -77,7 +82,7 @@ class ParticipantAgentFundamentalsSpec
 
   /* Get one instance of the mock for participant agent */
   private val mockAgentTestRef: TestFSMRef[AgentState, ParticipantStateData[
-    ApparentPower
+    ComplexPower
   ], ParticipantAgentMock] =
     TestFSMRef(
       new ParticipantAgentMock(
@@ -85,7 +90,7 @@ class ParticipantAgentFundamentalsSpec
         initStateData = mock[ParticipantInitializeStateData[
           SystemParticipantInput,
           BaseRuntimeConfig,
-          ApparentPower,
+          ComplexPower,
         ]],
       )
     )
@@ -93,35 +98,35 @@ class ParticipantAgentFundamentalsSpec
 
   private val powerValues =
     Map(
-      0L -> ApparentPower(
+      0L -> ComplexPower(
         Megawatts(1.0),
         Megavars(0.0),
       ),
-      1L -> ApparentPower(
+      1L -> ComplexPower(
         Megawatts(2.0),
         Megavars(1.0),
       ),
-      3L -> ApparentPower(
+      3L -> ComplexPower(
         Megawatts(3.0),
         Megavars(2.0),
       ),
-      4L -> ApparentPower(
+      4L -> ComplexPower(
         Megawatts(5.0),
         Megavars(4.0),
       ),
-      7L -> ApparentPower(
+      7L -> ComplexPower(
         Megawatts(3.0),
         Megavars(2.0),
       ),
-      8L -> ApparentPower(
+      8L -> ComplexPower(
         Megawatts(6.0),
         Megavars(5.0),
       ),
-      9L -> ApparentPower(
+      9L -> ComplexPower(
         Megawatts(6.0),
         Megavars(5.0),
       ),
-      10L -> ApparentPower(
+      10L -> ComplexPower(
         Megawatts(4.0),
         Megavars(3.0),
       ),
@@ -147,7 +152,7 @@ class ParticipantAgentFundamentalsSpec
   "Determining the activation ticks within operation time" should {
     "throw an exception, if an integer multiple of the resolution does not meet an hour" in {
       val simulationStart =
-        TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
+        TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
       val exception = intercept[AgentInitializationException] {
         mockAgent.firstFullResolutionInSimulation(simulationStart, 47L)
       }
@@ -157,11 +162,11 @@ class ParticipantAgentFundamentalsSpec
     "base on correct first information tick in simulation" in {
       val testData: TableFor3[String, Long, Long] = Table(
         ("simulationStartString", "resolution", "expectedFirstTick"),
-        ("2020-01-01 00:00:00", 900L, 0L),
-        ("2020-01-01 00:15:00", 900L, 0L),
-        ("2020-01-01 00:15:10", 900L, 890L),
-        ("2020-01-01 00:15:00", 1800L, 900L),
-        ("2020-01-01 00:14:10", 1800L, 950L),
+        ("2020-01-01T00:00:00Z", 900L, 0L),
+        ("2020-01-01T00:15:00Z", 900L, 0L),
+        ("2020-01-01T00:15:10Z", 900L, 890L),
+        ("2020-01-01T00:15:00Z", 1800L, 900L),
+        ("2020-01-01T00:14:10Z", 1800L, 950L),
       )
 
       forAll(testData) {
@@ -192,12 +197,12 @@ class ParticipantAgentFundamentalsSpec
           "operationEnd",
           "expectedTicks",
         ),
-        ("2020-01-01 00:00:00", 900L, 0L, 2700L, List(0L, 900L, 1800L, 2700L)),
-        ("2020-01-01 00:15:00", 900L, 0L, 2700L, List(0L, 900L, 1800L, 2700L)),
-        ("2020-01-01 00:15:00", 900L, 0L, 2699L, List(0L, 900L, 1800L)),
-        ("2020-01-01 00:12:00", 900L, 0L, 2700L, List(180L, 1080L, 1980L)),
+        ("2020-01-01T00:00:00Z", 900L, 0L, 2700L, List(0L, 900L, 1800L, 2700L)),
+        ("2020-01-01T00:15:00Z", 900L, 0L, 2700L, List(0L, 900L, 1800L, 2700L)),
+        ("2020-01-01T00:15:00Z", 900L, 0L, 2699L, List(0L, 900L, 1800L)),
+        ("2020-01-01T00:12:00Z", 900L, 0L, 2700L, List(180L, 1080L, 1980L)),
         (
-          "2020-01-01 00:12:00",
+          "2020-01-01T00:12:00Z",
           900L,
           0L,
           2880L,
@@ -321,7 +326,7 @@ class ParticipantAgentFundamentalsSpec
         None,
       )
       apparentPower match {
-        case ApparentPower(p, q) =>
+        case ComplexPower(p, q) =>
           p should approximate(Megawatts(0.8666666666666667))
           q should approximate(Megavars(0.5333333333333334))
       }
@@ -336,7 +341,7 @@ class ParticipantAgentFundamentalsSpec
           None,
         )
       apparentPower match {
-        case ApparentPower(p, q) =>
+        case ComplexPower(p, q) =>
           p should approximate(Megawatts(4.571428571428573))
           q should approximate(Megavars(3.571428571428571))
       }
@@ -351,7 +356,7 @@ class ParticipantAgentFundamentalsSpec
           None,
         )
       apparentPower match {
-        case ApparentPower(p, q) =>
+        case ComplexPower(p, q) =>
           p should approximate(Megawatts(4.571428571428573))
           q should approximate(Megavars(3.571428571428571))
       }
@@ -366,7 +371,7 @@ class ParticipantAgentFundamentalsSpec
           activeToReactivePowerFuncOpt,
         )
       apparentPower match {
-        case ApparentPower(p, q) =>
+        case ComplexPower(p, q) =>
           p should approximate(Megawatts(0.8666666666666667))
           q should approximate(Megavars(2.8666666666666667))
       }
@@ -381,7 +386,7 @@ class ParticipantAgentFundamentalsSpec
           activeToReactivePowerFuncOpt,
         )
       apparentPower match {
-        case ApparentPower(p, q) =>
+        case ComplexPower(p, q) =>
           p should approximate(Megawatts(4.571428571428573))
           q should approximate(Megavars(21.71428571428571))
       }
@@ -396,7 +401,7 @@ class ParticipantAgentFundamentalsSpec
           activeToReactivePowerFuncOpt,
         )
       apparentPower match {
-        case ApparentPower(p, q) =>
+        case ComplexPower(p, q) =>
           p should approximate(Megawatts(4.571428571428573))
           q should approximate(Megavars(21.71428571428571))
       }
@@ -409,27 +414,27 @@ class ParticipantAgentFundamentalsSpec
       val resultValueStore = ValueStore(
         900,
         SortedMap(
-          800L -> ApparentPower(
+          800L -> ComplexPower(
             Megawatts(0.0),
             Megavars(0.0),
           ),
-          1000L -> ApparentPower(
+          1000L -> ComplexPower(
             Megawatts(0.0),
             Megavars(0.0),
           ),
-          1200L -> ApparentPower(
+          1200L -> ComplexPower(
             Megawatts(0.0),
             Megavars(0.0),
           ),
-          1400L -> ApparentPower(
+          1400L -> ComplexPower(
             Megawatts(0.0),
             Megavars(0.0),
           ),
-          1600L -> ApparentPower(
+          1600L -> ComplexPower(
             Megawatts(0.0),
             Megavars(0.0),
           ),
-          1800L -> ApparentPower(
+          1800L -> ComplexPower(
             Megawatts(0.0),
             Megavars(0.0),
           ),
@@ -438,7 +443,7 @@ class ParticipantAgentFundamentalsSpec
       val requestValueStore = ValueStore(
         900,
         SortedMap(
-          900L -> ApparentPower(
+          900L -> ComplexPower(
             Megawatts(0.0),
             Megavars(0.0),
           )
@@ -454,27 +459,27 @@ class ParticipantAgentFundamentalsSpec
           900L,
           1800L,
           Map(
-            800L -> ApparentPower(
+            800L -> ComplexPower(
               Megawatts(0.0),
               Megavars(0.0),
             ),
-            1000L -> ApparentPower(
+            1000L -> ComplexPower(
               Megawatts(0.0),
               Megavars(0.0),
             ),
-            1200L -> ApparentPower(
+            1200L -> ComplexPower(
               Megawatts(0.0),
               Megavars(0.0),
             ),
-            1400L -> ApparentPower(
+            1400L -> ComplexPower(
               Megawatts(0.0),
               Megavars(0.0),
             ),
-            1600L -> ApparentPower(
+            1600L -> ComplexPower(
               Megawatts(0.0),
               Megavars(0.0),
             ),
-            1800L -> ApparentPower(
+            1800L -> ComplexPower(
               Megawatts(0.0),
               Megavars(0.0),
             ),
@@ -488,7 +493,7 @@ class ParticipantAgentFundamentalsSpec
       val resultValueStore = ValueStore(
         900,
         SortedMap(
-          800L -> ApparentPower(
+          800L -> ComplexPower(
             Megawatts(0.0),
             Megavars(0.0),
           )
@@ -497,7 +502,7 @@ class ParticipantAgentFundamentalsSpec
       val requestValueStore = ValueStore(
         900,
         SortedMap(
-          900L -> ApparentPower(
+          900L -> ComplexPower(
             Megawatts(0.0),
             Megavars(0.0),
           )
@@ -513,7 +518,7 @@ class ParticipantAgentFundamentalsSpec
           900L,
           1800L,
           Map(
-            800L -> ApparentPower(
+            800L -> ComplexPower(
               Megawatts(0.0),
               Megavars(0.0),
             )
@@ -526,7 +531,7 @@ class ParticipantAgentFundamentalsSpec
   "Determining the applicable nodal voltage" should {
     "deliver the correct voltage" in {
       val baseStateData = ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         FixedLoadRelevantData.type,
         ConstantState.type,
         FixedLoadModel,
@@ -537,9 +542,8 @@ class ParticipantAgentFundamentalsSpec
           UUID.randomUUID(),
           "test_load",
           OperationInterval(0L, 1800L),
-          1.0,
           CosPhiFixed(0.95),
-          Kilowatts(100.0),
+          Kilovoltamperes(100.0),
           0.95,
           LoadReference.ActivePower(Kilowatts(95.0)),
         ),
@@ -564,7 +568,7 @@ class ParticipantAgentFundamentalsSpec
 
     "throw an error, if no nodal voltage is available" in {
       val baseStateData = ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         FixedLoadRelevantData.type,
         ConstantState.type,
         FixedLoadModel,
@@ -575,9 +579,8 @@ class ParticipantAgentFundamentalsSpec
           UUID.randomUUID(),
           "test_load",
           OperationInterval(0L, 1800L),
-          1.0,
           CosPhiFixed(0.95),
-          Kilowatts(100.0),
+          Kilovoltamperes(100.0),
           0.95,
           LoadReference.ActivePower(Kilowatts(95.0)),
         ),
@@ -617,30 +620,30 @@ case object ParticipantAgentFundamentalsSpec extends MockitoSugar {
       additionalActivationTicks: SortedSet[Long],
       foreseenDataTicks: Map[ActorRef, Option[Long]],
   ): ParticipantModelBaseStateData[
-    ApparentPower,
+    ComplexPower,
     FixedRelevantData.type,
     ConstantState.type,
-    SystemParticipant[FixedRelevantData.type, ApparentPower, ConstantState.type],
+    SystemParticipant[FixedRelevantData.type, ComplexPower, ConstantState.type],
   ] = {
     val modelMock = mock[SystemParticipant[
       FixedRelevantData.type,
-      ApparentPower,
+      ComplexPower,
       ConstantState.type,
     ]]
     when(modelMock.getUuid).thenReturn(UUID.randomUUID())
 
     ParticipantModelBaseStateData[
-      ApparentPower,
+      ComplexPower,
       FixedRelevantData.type,
       ConstantState.type,
       SystemParticipant[
         FixedRelevantData.type,
-        ApparentPower,
+        ComplexPower,
         ConstantState.type,
       ],
     ](
-      TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00"),
-      TimeUtil.withDefaults.toZonedDateTime("2020-01-01 23:59:00"),
+      TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z"),
+      TimeUtil.withDefaults.toZonedDateTime("2020-01-01T23:59:00Z"),
       modelMock,
       None,
       NotifierConfig(

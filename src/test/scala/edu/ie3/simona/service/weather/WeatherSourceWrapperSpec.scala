@@ -318,6 +318,10 @@ object WeatherSourceWrapperSpec {
       ),
     )
 
+    override def getSourceFields: Optional[util.Set[String]] =
+      // only required for validation
+      Optional.empty()
+
     override def getWeather(
         timeInterval: ClosedInterval[ZonedDateTime]
     ): util.Map[Point, IndividualTimeSeries[WeatherValue]] = {

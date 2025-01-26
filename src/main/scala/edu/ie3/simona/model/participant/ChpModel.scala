@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.input.system.ChpInput
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.ChpModel._
 import edu.ie3.simona.model.participant.ModelState.ConstantState
@@ -17,13 +17,17 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptio
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.DefaultQuantities
+import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities.{
+  ApparentPower,
+  DefaultQuantities,
+  Kilovoltamperes,
+}
+import squants.energy.Kilowatts
 import squants.{Energy, Power, Seconds, Time}
-import squants.energy.{KilowattHours, Kilowatts}
-
-import java.util.UUID
 
 import java.time.ZonedDateTime
+import java.util.UUID
 
 /** Model of a combined heat and power plant (CHP) with a [[ThermalStorage]]
   * medium and its current [[ChpState]].
@@ -31,11 +35,9 @@ import java.time.ZonedDateTime
   * @param uuid
   *   the element's uuid
   * @param id
-  *   the element's human readable id
+  *   the element's human-readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
-  * @param scalingFactor
-  *   Scaling the output of the system
   * @param qControl
   *   Type of reactive power control
   * @param sRated
@@ -51,24 +53,22 @@ final case class ChpModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    override val scalingFactor: Double,
     qControl: QControl,
-    sRated: Power,
+    sRated: ApparentPower,
     cosPhiRated: Double,
     pThermal: Power,
     storage: ThermalStorage with MutableStorage,
-) extends SystemParticipant[ChpRelevantData, ApparentPower, ConstantState.type](
+) extends SystemParticipant[ChpRelevantData, ComplexPower, ConstantState.type](
       uuid,
       id,
       operationInterval,
-      scalingFactor,
       qControl,
       sRated,
       cosPhiRated,
     )
     with ApparentPowerParticipant[ChpRelevantData, ConstantState.type] {
 
-  val pRated: Power = sRated * cosPhiRated
+  val pRated: Power = sRated.toActivePower(cosPhiRated)
 
   /** As this is a state-full model (with respect to the current operation
     * condition and its thermal storage), the power calculation operates on the
@@ -122,7 +122,7 @@ final case class ChpModel(
       chpData: ChpRelevantData
   ): ChpRelevantData => ChpState = {
     val isRunning = chpData.chpState.isRunning
-    val hasDemand = chpData.heatDemand > DefaultQuantities.zeroKWH
+    val hasDemand = chpData.heatDemand > DefaultQuantities.zeroKWh
     val isCovered = isDemandCovered(chpData)
 
     (isRunning, hasDemand, isCovered) match {
@@ -149,7 +149,7 @@ final case class ChpModel(
       isRunning = false,
       chpData.currentTimeTick,
       DefaultQuantities.zeroKW,
-      DefaultQuantities.zeroKWH,
+      DefaultQuantities.zeroKWh,
     )
 
   /** The demand cannot be covered, therefore this function sets storage level
@@ -186,7 +186,7 @@ final case class ChpModel(
       isRunning = false,
       chpData.currentTimeTick,
       DefaultQuantities.zeroKW,
-      DefaultQuantities.zeroKWH,
+      DefaultQuantities.zeroKWh,
     )
   }
 
@@ -203,7 +203,7 @@ final case class ChpModel(
       chpData: ChpRelevantData
   ): ChpState = {
     val differenceEnergy = chpEnergy(chpData) - chpData.heatDemand
-    if (differenceEnergy < KilowattHours(0d)) {
+    if (differenceEnergy < zeroKWh) {
       // Returned lack is always zero, because demand is covered.
       storage.tryToTakeAndReturnLack(differenceEnergy * -1)
       calculateStateRunningSurplus(chpData)
@@ -378,27 +378,28 @@ object ChpModel {
       scalingFactor: Double,
       thermalStorage: ThermalStorage with MutableStorage,
   ): ChpModel = {
+    val scaledInput = chpInput.copy().scale(scalingFactor).build()
+
     val operationInterval = SystemComponent.determineOperationInterval(
       simulationStartDate,
       simulationEndDate,
-      chpInput.getOperationTime,
+      scaledInput.getOperationTime,
     )
 
     val model = new ChpModel(
-      chpInput.getUuid,
-      chpInput.getId,
+      scaledInput.getUuid,
+      scaledInput.getId,
       operationInterval,
-      scalingFactor,
       qControl,
-      Kilowatts(
-        chpInput.getType.getsRated
-          .to(PowerSystemUnits.KILOWATT)
+      Kilovoltamperes(
+        scaledInput.getType.getsRated
+          .to(PowerSystemUnits.KILOVOLTAMPERE)
           .getValue
           .doubleValue
       ),
-      chpInput.getType.getCosPhiRated,
+      scaledInput.getType.getCosPhiRated,
       Kilowatts(
-        chpInput.getType.getpThermal
+        scaledInput.getType.getpThermal
           .to(PowerSystemUnits.KILOWATT)
           .getValue
           .doubleValue

@@ -9,7 +9,12 @@ package edu.ie3.simona.agent.participant
 import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.system.HpInput
 import edu.ie3.simona.agent.ValueStore
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPowerAndHeat
+import edu.ie3.simona.agent.grid.GridAgentMessages.{
+  AssetPowerChangedMessage,
+  AssetPowerUnchangedMessage,
+}
+import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPowerAndHeat
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
@@ -24,11 +29,6 @@ import edu.ie3.simona.integration.common.IntegrationSpecCommon
 import edu.ie3.simona.model.participant.HpModel.HpState
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage,
-}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
@@ -41,7 +41,8 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
   WeatherData,
 }
 import edu.ie3.simona.test.ParticipantAgentSpec
-import edu.ie3.simona.test.common.model.participant.HpTestData
+import edu.ie3.simona.test.common.DefaultTestData
+import edu.ie3.simona.test.common.input.HpInputTestData
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.{
@@ -61,7 +62,6 @@ import squants.thermal.Celsius
 import squants.{Dimensionless, Each}
 
 import java.io.File
-import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
 import scala.collection.SortedMap
 
@@ -76,10 +76,11 @@ class HpAgentModelCalculationSpec
         """.stripMargin),
       )
     )
-    with HpTestData
+    with HpInputTestData
     with IntegrationSpecCommon
-    with PrivateMethodTester {
-  implicit val simulationStart: ZonedDateTime = defaultSimulationStart
+    with PrivateMethodTester
+    with DefaultTestData {
+
   implicit val receiveTimeOut: Timeout = Timeout(10, TimeUnit.SECONDS)
   implicit val noReceiveTimeOut: Timeout = Timeout(1, TimeUnit.SECONDS)
 
@@ -120,7 +121,7 @@ class HpAgentModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       HpInput,
       HpRuntimeConfig,
-      ApparentPowerAndHeat,
+      ComplexPowerAndHeat,
     ](
       inputModel = hpInput,
       modelConfig = modelConfig,
@@ -185,10 +186,10 @@ class HpAgentModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       HpInput,
       HpRuntimeConfig,
-      ApparentPowerAndHeat,
+      ComplexPowerAndHeat,
     ](
       inputModel = hpInput,
-      thermalGrid = thermalGrid,
+      thermalGrid = defaultThermalGrid,
       modelConfig = modelConfig,
       secondaryDataServices = services,
       simulationStartDate = defaultSimulationStart,
@@ -250,7 +251,10 @@ class HpAgentModelCalculationSpec
               outputConfig,
               _,
             ) =>
-          inputModel shouldBe WithHeatInputContainer(hpInput, thermalGrid)
+          inputModel shouldBe WithHeatInputContainer(
+            hpInput,
+            defaultThermalGrid,
+          )
           modelConfig shouldBe modelConfig
           secondaryDataServices shouldBe services
           defaultSimulationStart shouldBe this.defaultSimulationStart
@@ -270,7 +274,7 @@ class HpAgentModelCalculationSpec
 
       /* Expect a registration message */
       weatherService.expectMsg(
-        RegisterForWeatherMessage(51.4843281, 7.4116482)
+        RegisterForWeatherMessage(52.02083574, 7.40110716)
       )
 
       /* ... as well as corresponding state and state data */
@@ -314,7 +318,7 @@ class HpAgentModelCalculationSpec
             SortedMap(0L -> Each(1.0)),
           )
           resultValueStore shouldBe ValueStore(resolution)
-          requestValueStore shouldBe ValueStore[ApparentPowerAndHeat](
+          requestValueStore shouldBe ValueStore[ComplexPowerAndHeat](
             resolution
           )
 
@@ -371,14 +375,14 @@ class HpAgentModelCalculationSpec
 
       /* Expect a registration message */
       weatherService.expectMsg(
-        RegisterForWeatherMessage(51.4843281, 7.4116482)
+        RegisterForWeatherMessage(52.02083574, 7.40110716)
       )
       weatherService.send(
         hpAgent,
         RegistrationSuccessfulMessage(weatherService.ref, Some(900L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
 
       hpAgent.stateName shouldBe Idle
@@ -399,11 +403,11 @@ class HpAgentModelCalculationSpec
       inside(hpAgent.stateData) {
         case modelBaseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           modelBaseStateData.requestValueStore shouldBe ValueStore[
-            ApparentPowerAndHeat
+            ComplexPowerAndHeat
           ](
             resolution,
             SortedMap(
-              0L -> ApparentPowerAndHeat(
+              0L -> ComplexPowerAndHeat(
                 Megawatts(0.0),
                 Megavars(0.0),
                 Megawatts(0.0),
@@ -442,7 +446,7 @@ class HpAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(hpAgent.stateName shouldBe Idle)
       /* State data is tested in another test */
@@ -502,7 +506,7 @@ class HpAgentModelCalculationSpec
                     _,
                     HpState(
                       isRunning,
-                      lastTimeTick,
+                      tick,
                       _,
                       activePower,
                       qDot,
@@ -512,7 +516,7 @@ class HpAgentModelCalculationSpec
                   )
                 ) =>
               isRunning shouldBe false
-              lastTimeTick shouldBe 0L
+              tick shouldBe 0L
               activePower should approximate(Kilowatts(0.0))
               qDot should approximate(Kilowatts(0.0))
 
@@ -535,7 +539,7 @@ class HpAgentModelCalculationSpec
                 0L,
                 fail("Expected a simulation result for tick 900."),
               ) match {
-                case ApparentPowerAndHeat(p, q, qDot) =>
+                case ComplexPowerAndHeat(p, q, qDot) =>
                   p should approximate(Megawatts(0d))
                   q should approximate(Megavars(0d))
                   qDot should approximate(Megawatts(0d))
@@ -573,7 +577,7 @@ class HpAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(hpAgent.stateName shouldBe Idle)
 
@@ -630,7 +634,7 @@ class HpAgentModelCalculationSpec
                     _,
                     HpState(
                       isRunning,
-                      lastTimeTick,
+                      tick,
                       _,
                       activePower,
                       qDot,
@@ -640,7 +644,7 @@ class HpAgentModelCalculationSpec
                   )
                 ) =>
               isRunning shouldBe false
-              lastTimeTick shouldBe 0L
+              tick shouldBe 0L
               activePower should approximate(Kilowatts(0d))
               qDot should approximate(Kilowatts(0d))
 
@@ -663,7 +667,7 @@ class HpAgentModelCalculationSpec
                 0L,
                 fail("Expected a simulation result for tick 0."),
               ) match {
-                case ApparentPowerAndHeat(p, q, qDot) =>
+                case ComplexPowerAndHeat(p, q, qDot) =>
                   p should approximate(Megawatts(0d))
                   q should approximate(Megavars(0d))
                   qDot should approximate(Megawatts(0d))
@@ -702,7 +706,7 @@ class HpAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(3600L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(hpAgent.stateName shouldBe Idle)
 
@@ -773,7 +777,7 @@ class HpAgentModelCalculationSpec
         RegistrationSuccessfulMessage(weatherService.ref, Some(0L)),
       )
 
-      /* I'm not interested in the content of the CompletionMessage */
+      /* I'm not interested in the content of the Completion */
       scheduler.expectMsgType[Completion]
       awaitAssert(hpAgent.stateName shouldBe Idle)
 

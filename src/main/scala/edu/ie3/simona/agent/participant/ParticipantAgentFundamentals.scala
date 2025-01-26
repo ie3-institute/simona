@@ -15,12 +15,16 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.datamodel.models.result.thermal.ThermalUnitResult
 import edu.ie3.simona.agent.ValueStore
+import edu.ie3.simona.agent.grid.GridAgentMessages.{
+  AssetPowerChangedMessage,
+  AssetPowerUnchangedMessage,
+}
 import edu.ie3.simona.agent.participant.ParticipantAgent.StartCalculationTrigger
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals.RelevantResultValues
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
-  ApparentPowerAndHeat,
+  ComplexPower,
+  ComplexPowerAndHeat,
   EnrichableData,
   PrimaryDataWithApparentPower,
 }
@@ -68,14 +72,7 @@ import edu.ie3.simona.model.participant.{
   SystemParticipant,
 }
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
@@ -85,6 +82,7 @@ import edu.ie3.simona.ontology.messages.services.ServiceMessage.{
 import edu.ie3.simona.util.TickUtil._
 import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
+import edu.ie3.util.scala.quantities.DefaultQuantities._
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
@@ -141,9 +139,8 @@ protected trait ParticipantAgentFundamentals[
 
     /* Confirm final initialization */
     releaseTick()
-    senderToMaybeTick._2.foreach { tick =>
-      scheduler ! Completion(self.toTyped, Some(tick))
-    }
+    scheduler ! Completion(self.toTyped, senderToMaybeTick._2)
+
     goto(Idle) using stateData
   }
 
@@ -159,7 +156,7 @@ protected trait ParticipantAgentFundamentals[
     * @param simulationEndDate
     *   Real world time date time, when the simulation ends
     * @param resolution
-    *   Agents regular time bin it wants to be triggered e.g one hour
+    *   Agents regular time bin it wants to be triggered e.g. one hour
     * @param requestVoltageDeviationThreshold
     *   Threshold, after which two nodal voltage magnitudes from participant
     *   power requests for the same tick are considered to be different
@@ -217,9 +214,9 @@ protected trait ParticipantAgentFundamentals[
     * @param modelConfig
     *   Configuration for the model
     * @param simulationStartDate
-    *   Wall clock time of first instant in simulation
+    *   Simulation time of first instant in simulation
     * @param simulationEndDate
-    *   Wall clock time of last instant in simulation
+    *   Simulation time of last instant in simulation
     * @return
     */
   def buildModel(
@@ -246,7 +243,7 @@ protected trait ParticipantAgentFundamentals[
     * @param simulationEndDate
     *   Real world time date time, when the simulation ends
     * @param resolution
-    *   Agents regular time bin it wants to be triggered e.g one hour
+    *   Agents regular time bin it wants to be triggered e.g. one hour
     * @param requestVoltageDeviationThreshold
     *   Threshold, after which two nodal voltage magnitudes from participant
     *   power requests for the same tick are considered to be different
@@ -303,7 +300,7 @@ protected trait ParticipantAgentFundamentals[
           awaitRegistrationResponsesFrom,
         )
       } else {
-        /* Determine the next activation tick, create a ScheduleTriggerMessage and remove the recently triggered tick */
+        /* Determine the next activation tick, create a ScheduleActivation and remove the recently triggered tick */
         val (newTick, nextBaseStateData) = popNextActivationTrigger(
           baseStateData
         )
@@ -370,7 +367,7 @@ protected trait ParticipantAgentFundamentals[
       operationStart: Long,
       operationEnd: Long,
   ): SortedSet[Long] = {
-    /* The profile load model holds values in the specified resolution (e.g. for each full quarter hour (00:00,
+    /* The profile load model holds values in the specified resolution (e.g. for each full quarter-hour (00:00,
      * 00:15, ...)). As the simulation might not start at an integer multiple of the resolution, we have to
      * determine, what the first tick is, in which profile information do exist */
     val firstProfileTick =
@@ -390,7 +387,7 @@ protected trait ParticipantAgentFundamentals[
 
   /** Assume we have information, that are available in a fixed resolution after
     * each full hour (including the full hour), then we have to determine, at
-    * what first tick those information are available.
+    * what first tick this information are available.
     *
     * @param simulationStartDate
     *   Beginning of the simulation
@@ -513,41 +510,11 @@ protected trait ParticipantAgentFundamentals[
         }
       }
 
-    val unexpectedSender = baseStateData.foreseenDataTicks.exists {
-      case (ref, None) => msg.serviceRef == ref
-      case _           => false
-    }
-
-    /* If we have received unexpected data, we also have not been scheduled before */
-    if (unexpectedSender) {
-      baseStateData match {
-        case modelStateData: ParticipantModelBaseStateData[_, _, _, _] =>
-          val maybeEmAgent = modelStateData.flexStateData.map(_.emAgent)
-
-          maybeEmAgent match {
-            case Some(emAgent) =>
-              emAgent ! ScheduleFlexRequest(
-                modelStateData.model.getUuid,
-                msg.tick,
-                msg.unlockKey,
-              )
-            case None =>
-              scheduler ! ScheduleActivation(
-                self.toTyped,
-                msg.tick,
-                msg.unlockKey,
-              )
-          }
-        case _ =>
-          false
-      }
-    }
-
     /* If the sender announces a new next tick, add it to the list of expected ticks, else remove the current entry */
     val foreseenDataTicks =
       baseStateData.foreseenDataTicks + (msg.serviceRef -> msg.nextDataTick)
 
-    /* Go over to handling these information */
+    /* Go over to handling this information */
     val nextStateData = DataCollectionStateData(
       BaseStateData.updateBaseStateData(
         baseStateData,
@@ -570,8 +537,9 @@ protected trait ParticipantAgentFundamentals[
     * Announce result, add content to result value store, go to [[Idle]] and
     * answer the scheduler, that the activity start trigger is fulfilled. 2.2)
     * All secondary data is there, go to [[Calculate]] and ask the scheduler to
-    * trigger ourself for starting the model based calculation 3) Everything is
-    * at place and the [[Activation]] has NOT yet been sent: Stay here and wait
+    * trigger ourselves for starting the model based calculation 3) Everything
+    * is at place and the [[Activation]] has NOT yet been sent: Stay here and
+    * wait
     *
     * @param stateData
     *   Apparent state data
@@ -677,7 +645,7 @@ protected trait ParticipantAgentFundamentals[
           )
       }
     } else {
-      /* We sill have to wait - either for data or activation */
+      /* We still have to wait - either for data or activation */
       stay() using stateData
     }
   }
@@ -829,13 +797,18 @@ protected trait ParticipantAgentFundamentals[
       )
       .getOrElse((flexChangeIndicator.changesAtTick, stateDataWithResults))
 
-    flexStateData.emAgent ! FlexCtrlCompletion(
+    flexStateData.emAgent ! FlexResult(
       baseStateData.modelUuid,
-      result.toApparentPower,
+      result.primaryData.toComplexPower,
+    )
+
+    flexStateData.emAgent ! FlexCompletion(
+      baseStateData.modelUuid,
       flexChangeIndicator.changesAtNextActivation,
       nextActivation,
     )
 
+    unstashAll()
     stay() using stateDataFinal
   }
 
@@ -853,7 +826,7 @@ protected trait ParticipantAgentFundamentals[
     */
   protected def handleCalculatedResult(
       baseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
-      result: PD,
+      result: AccompaniedSimulationResult[PD],
       currentTick: Long,
   ): ParticipantModelBaseStateData[PD, CD, MS, M] = {
 
@@ -861,14 +834,14 @@ protected trait ParticipantAgentFundamentals[
     announceSimulationResult(
       baseStateData,
       currentTick,
-      AccompaniedSimulationResult(result),
+      result,
     )(baseStateData.outputConfig)
 
     baseStateData.copy(
       resultValueStore = ValueStore.updateValueStore(
         baseStateData.resultValueStore,
         currentTick,
-        result,
+        result.primaryData,
       )
     )
   }
@@ -934,7 +907,7 @@ protected trait ParticipantAgentFundamentals[
       updatedState,
     )
 
-    /* In this case, without secondary data, the agent has been triggered by an ActivityStartTrigger by itself,
+    /* In this case, without secondary data, the agent has been triggered by an Activation(tick) by itself,
      * therefore pop the next one */
     val baseStateDataWithUpdatedResultStore =
       baseStateData.copy(
@@ -1001,7 +974,7 @@ protected trait ParticipantAgentFundamentals[
           )(p)
     } else { _: Power =>
       /* Use trivial reactive power */
-      Megavars(0d)
+      zeroMVAr
     }
 
   /** Try to get and process the received data
@@ -1097,9 +1070,9 @@ protected trait ParticipantAgentFundamentals[
         false
     }
 
-    // Only for completing initialization:
-    // if we are EM-managed, there is no new tick for the
-    // scheduler, since we are activated by the EmAgent from now on
+    // If we're completing initialization, and we're EM-managed:
+    // There is no new tick for the scheduler,
+    // since we are activated by the EmAgent from now on
     scheduler ! Completion(
       self.toTyped,
       maybeNextTick.filterNot(_ => emManaged),
@@ -1108,7 +1081,7 @@ protected trait ParticipantAgentFundamentals[
     goto(Idle) using updatedBaseStateData
   }
 
-  def pollNextActivationTrigger(
+  private def pollNextActivationTrigger(
       baseStateData: BaseStateData[PD]
   ): Option[Long] = {
     /* Determine what comes next: An additional activation or new data - or both at once */
@@ -1168,7 +1141,7 @@ protected trait ParticipantAgentFundamentals[
           baseStateData,
         )
       case (Some(additionalTick), _) =>
-        /* The next activation is additional (either there is no foreseen data tick or it is after the additional tick.
+        /* The next activation is additional (either there is no foreseen data tick or it is after the additional tick).
          * Remove the tick from the list of additional activation ticks. */
         val upcomingActivationTicks =
           baseStateData.additionalActivationTicks.rangeFrom(additionalTick + 1)
@@ -1186,13 +1159,13 @@ protected trait ParticipantAgentFundamentals[
           updatedBaseStateData,
         )
       case (None, None) =>
-        /* We don't know nothing about either additional activation nor new incoming data */
+        /* We don't know anything about either additional activation nor new incoming data */
         (None, baseStateData)
     }
   }
 
   /** Determining the reply to an
-    * [[edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage]],
+    * [[edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage]],
     * send this answer and stay in the current state. If no reply can be
     * determined (because an activation or incoming data is expected), the
     * message is stashed.
@@ -1271,7 +1244,7 @@ protected trait ParticipantAgentFundamentals[
         nodalVoltage,
         lastNodalVoltage,
       ).getOrElse {
-        /* If a fast reply is not possible, determine it the old fashioned way */
+        /* If a fast reply is not possible, determine it the old-fashioned way */
         determineReply(
           requestTick,
           baseStateData,
@@ -1285,7 +1258,7 @@ protected trait ParticipantAgentFundamentals[
   }
 
   /** Checks, if a fast reply is possible, when the very same request (in terms
-    * of tick and nodal voltage) already has been answered. Then a Option on
+    * of tick and nodal voltage) already has been answered. Then an Option on
     * stay in the same state with sending an [[AssetPowerUnchangedMessage]] is
     * given back. If a fast reply is not possible, [[None]] is given back.
     * Additionally, the listener are informed about the result.
@@ -1305,7 +1278,7 @@ protected trait ParticipantAgentFundamentals[
     * @return
     *   Option on a possible fast state change
     */
-  final def determineFastReply(
+  private final def determineFastReply(
       baseStateData: BaseStateData[PD],
       mostRecentRequest: Option[(Long, PD)],
       requestTick: Long,
@@ -1319,7 +1292,7 @@ protected trait ParticipantAgentFundamentals[
       case Some((mostRecentRequestTick, latestProvidedValues))
           if mostRecentRequestTick == requestTick =>
         /* A request for this tick has already been answered. Check, if it has been the same request.
-         * if it has been the same request we wanna answer with the same values afterwards, this data MUST always
+         * if it has been the same request we want to answer with the same values afterwards, this data MUST always
          * be available when we already provided data for this tick */
         baseStateData match {
           case externalBaseStateData: FromOutsideBaseStateData[M, PD] =>
@@ -1373,7 +1346,7 @@ protected trait ParticipantAgentFundamentals[
   }
 
   /** Determine a reply on a
-    * [[edu.ie3.simona.ontology.messages.PowerMessage.RequestAssetPowerMessage]]
+    * [[edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage]]
     * by looking up the detailed simulation results, averaging them and
     * returning the equivalent state transition.
     *
@@ -1502,7 +1475,7 @@ protected trait ParticipantAgentFundamentals[
       determineTickWindow(requestTick, requestValueStore)
 
     /* All participants simulation results between the most recent simulation tick BEFORE or at the beginning of the
-     * averaging window and it's end (both including) are relevant for averaging the simulated primary data */
+     * averaging window, and it's end (both including) are relevant for averaging the simulated primary data */
     val firstRelevantTick = determineFirstRelevantTick(
       averagingWindowStart,
       resultValueStore,
@@ -1682,7 +1655,7 @@ protected trait ParticipantAgentFundamentals[
     * @return
     *   Averaged result
     */
-  def determineAverageResult(
+  private def determineAverageResult(
       baseStateData: BaseStateData[PD],
       tickToResult: Map[Long, PD],
       windowStartTick: Long,
@@ -1766,8 +1739,8 @@ protected trait ParticipantAgentFundamentals[
       baseStateData.foreseenDataTicks,
     )
 
-    averageResult.toApparentPower match {
-      case ApparentPower(p, q) =>
+    averageResult.toComplexPower match {
+      case ComplexPower(p, q) =>
         stay() using nextStateData replying AssetPowerChangedMessage(p, q)
     }
   }
@@ -1780,11 +1753,11 @@ protected trait ParticipantAgentFundamentals[
     * @param tick
     *   Tick, the result belongs to
     * @param result
-    *   The result to build a event for
+    *   The result to build an event for
     * @param outputConfig
     *   Configuration of the output behaviour
     */
-  protected def announceSimulationResult(
+  private def announceSimulationResult(
       baseStateData: BaseStateData[PD],
       tick: Long,
       result: AccompaniedSimulationResult[PD],
@@ -1878,7 +1851,7 @@ protected trait ParticipantAgentFundamentals[
     }
 
   /** To clean up agent value stores after power flow convergence. This is
-    * necessary for agents whose results are time dependent e.g. storage agents
+    * necessary for agents whose results are time-dependent e.g. storage agents
     *
     * @param baseStateData
     *   Basic state data
@@ -1915,7 +1888,7 @@ protected trait ParticipantAgentFundamentals[
     * @return
     *   The equivalent event
     */
-  def buildResultEvent(
+  private def buildResultEvent(
       baseStateData: BaseStateData[PD],
       tick: Long,
       result: PD,
@@ -1936,11 +1909,12 @@ protected trait ParticipantAgentFundamentals[
     * @return
     *   Optionally wrapped event
     */
-  def buildResultEvent[R <: ResultEntity](
+  private def buildResultEvent[R <: ResultEntity](
       result: R
   ): Option[ResultEvent] = result match {
-    case thermalResult: ThermalUnitResult =>
-      Some(ThermalResultEvent(thermalResult))
+    case thermalUnitResult: ThermalUnitResult =>
+      Some(ThermalResultEvent(thermalUnitResult))
+
     case unsupported =>
       log.debug(
         s"Results of class '${unsupported.getClass.getSimpleName}' are currently not supported."
@@ -2029,14 +2003,14 @@ object ParticipantAgentFundamentals {
     *   The averaged apparent power
     */
   def averageApparentPower(
-      tickToResults: Map[Long, ApparentPower],
+      tickToResults: Map[Long, ComplexPower],
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         Power => ReactivePower
       ] = None,
       log: LoggingAdapter,
-  ): ApparentPower = {
+  ): ComplexPower = {
     val p = QuantityUtil.average[Power, Energy](
       tickToResults.map { case (tick, pd) =>
         tick -> pd.p
@@ -2051,7 +2025,7 @@ object ParticipantAgentFundamentals {
           "Unable to determine average active power. Apply 0 instead. Cause:\n\t{}",
           exception,
         )
-        Megawatts(0d)
+        zeroMW
     }
 
     val q = QuantityUtil.average[Power, Energy](
@@ -2060,8 +2034,8 @@ object ParticipantAgentFundamentals {
           case Some(qFunc) =>
             // NOTE: The type conversion to Megawatts is done to satisfy the methods type constraints
             // and is undone after unpacking the results
-            tick -> Megawatts(qFunc(pd.toApparentPower.p).toMegavars)
-          case None => tick -> Megawatts(pd.toApparentPower.q.toMegavars)
+            tick -> Megawatts(qFunc(pd.toComplexPower.p).toMegavars)
+          case None => tick -> Megawatts(pd.toComplexPower.q.toMegavars)
         }
       },
       windowStart,
@@ -2074,10 +2048,10 @@ object ParticipantAgentFundamentals {
           "Unable to determine average reactive power. Apply 0 instead. Cause:\n\t{}",
           exception,
         )
-        Megavars(0d)
+        zeroMVAr
     }
 
-    ApparentPower(p, q)
+    ComplexPower(p, q)
   }
 
   /** Determine the average apparent power within the given tick window
@@ -2094,20 +2068,20 @@ object ParticipantAgentFundamentals {
     *   The averaged apparent power
     */
   def averageApparentPowerAndHeat(
-      tickToResults: Map[Long, ApparentPowerAndHeat],
+      tickToResults: Map[Long, ComplexPowerAndHeat],
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         Power => ReactivePower
       ] = None,
       log: LoggingAdapter,
-  ): ApparentPowerAndHeat = {
+  ): ComplexPowerAndHeat = {
 
-    val tickToResultsApparentPower: Map[Long, ApparentPower] =
+    val tickToResultsApparentPower: Map[Long, ComplexPower] =
       tickToResults.map { case (tick, pd) =>
         (
           tick,
-          ApparentPower(Megawatts(pd.p.toMegawatts), Megavars(pd.q.toMegavars)),
+          ComplexPower(Megawatts(pd.p.toMegawatts), Megavars(pd.q.toMegavars)),
         )
       }
 
@@ -2132,10 +2106,10 @@ object ParticipantAgentFundamentals {
           "Unable to determine average thermal power. Apply 0 instead. Cause:\n\t{}",
           exception,
         )
-        Megawatts(0d)
+        zeroMW
     }
 
-    ApparentPowerAndHeat(apparentPower.p, apparentPower.q, qDot)
+    ComplexPowerAndHeat(apparentPower.p, apparentPower.q, qDot)
   }
 
 }

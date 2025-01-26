@@ -152,7 +152,6 @@ class ResultEntityKafkaSpec
           PlainNodeResult(
             runId,
             PlainWriter.createSimpleTimeStamp(nodeRes1.getTime),
-            nodeRes1.getUuid,
             nodeRes1.getInputModel,
             nodeRes1.getvMag().getValue.doubleValue(),
             nodeRes1.getvAng().getValue.doubleValue(),
@@ -162,7 +161,6 @@ class ResultEntityKafkaSpec
           PlainNodeResult(
             runId,
             PlainWriter.createSimpleTimeStamp(nodeRes2.getTime),
-            nodeRes2.getUuid,
             nodeRes2.getInputModel,
             nodeRes2.getvMag().getValue.doubleValue(),
             nodeRes2.getvAng().getValue.doubleValue(),
@@ -172,7 +170,6 @@ class ResultEntityKafkaSpec
           PlainNodeResult(
             runId,
             PlainWriter.createSimpleTimeStamp(nodeRes3.getTime),
-            nodeRes3.getUuid,
             nodeRes3.getInputModel,
             nodeRes3.getvMag().getValue.doubleValue(),
             nodeRes3.getvAng().getValue.doubleValue(),

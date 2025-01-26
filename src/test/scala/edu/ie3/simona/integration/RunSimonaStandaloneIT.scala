@@ -49,11 +49,11 @@ class RunSimonaStandaloneIT
           )
           .withValue(
             "simona.time.startDateTime",
-            ConfigValueFactory.fromAnyRef("2011-01-01 00:00:00"),
+            ConfigValueFactory.fromAnyRef("2011-01-01T00:00:00Z"),
           )
           .withValue(
             "simona.time.endDateTime",
-            ConfigValueFactory.fromAnyRef("2011-01-01 02:00:00"),
+            ConfigValueFactory.fromAnyRef("2011-01-01T02:00:00Z"),
           )
           .withFallback(
             ConfigFactory
@@ -90,7 +90,7 @@ class RunSimonaStandaloneIT
 
       /* check the results */
       // check configs
-      val configOutputDir = new File(resultFileHierarchy.configOutputDir)
+      val configOutputDir = resultFileHierarchy.configOutputDir.toFile
 
       configOutputDir.isDirectory shouldBe true
       configOutputDir.listFiles.toVector.size shouldBe 1
@@ -118,10 +118,12 @@ class RunSimonaStandaloneIT
       entityClass: Class[_ <: ResultEntity],
   ): BufferedSource = {
     Source.fromFile(
-      resultFileHierarchy.rawOutputDataFilePaths.getOrElse(
-        entityClass,
-        fail(s"Unable to get output path for result entity: $entityClass"),
-      )
+      resultFileHierarchy.rawOutputDataFilePaths
+        .getOrElse(
+          entityClass,
+          fail(s"Unable to get output path for result entity: $entityClass"),
+        )
+        .toFile
     )
   }
 

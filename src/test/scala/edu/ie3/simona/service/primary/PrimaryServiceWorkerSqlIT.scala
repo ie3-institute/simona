@@ -15,7 +15,7 @@ import edu.ie3.datamodel.io.naming.DatabaseNamingStrategy
 import edu.ie3.datamodel.models.value.{HeatAndSValue, PValue}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ActivePower,
-  ApparentPowerAndHeat,
+  ComplexPowerAndHeat,
 }
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
 import edu.ie3.simona.ontology.messages.Activation
@@ -66,7 +66,7 @@ class PrimaryServiceWorkerSqlIT
   )
 
   private val simulationStart =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
 
   private val schemaName = "public"
 
@@ -107,7 +107,7 @@ class PrimaryServiceWorkerSqlIT
           ),
           uuidPqh,
           0L,
-          ApparentPowerAndHeat(
+          ComplexPowerAndHeat(
             Kilowatts(1000.0),
             Kilovars(329.0),
             Kilowatts(8000.0),
@@ -146,7 +146,7 @@ class PrimaryServiceWorkerSqlIT
               userName = container.username,
               password = container.password,
               schemaName = schemaName,
-              timePattern = "yyyy-MM-dd HH:mm:ss",
+              timePattern = "yyyy-MM-dd'T'HH:mm:ssX",
             ),
             new DatabaseNamingStrategy(),
           )

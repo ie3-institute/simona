@@ -17,6 +17,7 @@ import edu.ie3.simona.model.participant.load.random.RandomLoadModel.RandomReleva
 import edu.ie3.simona.model.participant.load.{DayType, LoadModel, LoadReference}
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.ApparentPower
 import squants.Power
 import squants.energy.{KilowattHours, Kilowatts, Watts}
 
@@ -33,11 +34,9 @@ import scala.util.Random
   * @param uuid
   *   unique identifier
   * @param id
-  *   human readable id
+  *   human-readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
-  * @param scalingFactor
-  *   Scaling the output of the system
   * @param qControl
   *   Type of reactive power control
   * @param sRated
@@ -51,16 +50,14 @@ final case class RandomLoadModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    override val scalingFactor: Double,
     qControl: QControl,
-    sRated: Power,
+    sRated: ApparentPower,
     cosPhiRated: Double,
     reference: LoadReference,
 ) extends LoadModel[RandomRelevantData](
       uuid,
       id,
       operationInterval,
-      scalingFactor,
       qControl,
       sRated,
       cosPhiRated,
@@ -77,7 +74,7 @@ final case class RandomLoadModel(
 
   private val randomLoadParamStore = RandomLoadParamStore()
 
-  type GevKey = (DayType.Value, Int)
+  private type GevKey = (DayType.Value, Int)
   private val gevStorage =
     mutable.Map.empty[GevKey, GeneralizedExtremeValueDistribution]
 
@@ -172,7 +169,7 @@ object RandomLoadModel {
     * active power.
     *
     * @return
-    *   Reference power to use for later model calculations
+    *   Reference active power to use for later model calculations
     */
   private val randomMaxPower: Power = Watts(159d)
 
@@ -182,41 +179,34 @@ object RandomLoadModel {
       scalingFactor: Double,
       reference: LoadReference,
   ): RandomLoadModel = {
-    val model = reference match {
-      case ActivePower(power) =>
-        val sRatedPowerScaled =
-          LoadModel.scaleSRatedActivePower(input, power, 1.1)
 
-        RandomLoadModel(
-          input.getUuid,
-          input.getId,
-          operationInterval,
-          scalingFactor,
-          QControl.apply(input.getqCharacteristics()),
-          sRatedPowerScaled,
-          input.getCosPhiRated,
-          reference,
-        )
+    val scaledReference = reference.scale(scalingFactor)
+    val scaledInput = input.copy().scale(scalingFactor).build()
+
+    val scaledSRated = scaledReference match {
+      case ActivePower(power) =>
+        LoadModel.scaleSRatedActivePower(scaledInput, power, 1.1)
+
       case EnergyConsumption(energyConsumption) =>
-        val sRatedEnergy = LoadModel.scaleSRatedEnergy(
-          input,
+        LoadModel.scaleSRatedEnergy(
+          scaledInput,
           energyConsumption,
           randomMaxPower,
           randomProfileEnergyScaling,
           1.1,
         )
-
-        RandomLoadModel(
-          input.getUuid,
-          input.getId,
-          operationInterval,
-          scalingFactor,
-          QControl.apply(input.getqCharacteristics()),
-          sRatedEnergy,
-          input.getCosPhiRated,
-          reference,
-        )
     }
+
+    val model = RandomLoadModel(
+      scaledInput.getUuid,
+      scaledInput.getId,
+      operationInterval,
+      QControl.apply(scaledInput.getqCharacteristics()),
+      scaledSRated,
+      scaledInput.getCosPhiRated,
+      scaledReference,
+    )
+
     model.enable()
     model
   }

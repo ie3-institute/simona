@@ -6,7 +6,7 @@ This page documents the functionality of the CHP Model (combined heat and power 
 
 ## Assumptions
 
-The CHP unit is able to operate either at full load or not at all. Uncovered heat demand of former time-steps is not considered in the following steps, as the CHP unit does not posses a memory. Losses of the heat storage are not considered.
+The CHP unit is able to operate either at full load or not at all. Uncovered heat demand of former time-steps is not considered in the following steps, as the CHP unit does not possess a memory. Losses of the heat storage are not considered.
 
 ## Parameters
 

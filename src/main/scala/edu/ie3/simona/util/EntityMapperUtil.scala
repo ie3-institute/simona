@@ -8,11 +8,14 @@ package edu.ie3.simona.util
 
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system._
-import edu.ie3.datamodel.models.result.thermal.ThermalHouseResult
+import edu.ie3.datamodel.models.result.thermal.{
+  CylindricalStorageResult,
+  ThermalHouseResult,
+}
 import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier
 import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier._
 
-case object EntityMapperUtil {
+object EntityMapperUtil {
   private val entityMapping
       : Map[NotifierIdentifier.Value, Class[_ <: ResultEntity]] = Map(
     PvPlant -> classOf[PvResult],
@@ -24,8 +27,10 @@ case object EntityMapperUtil {
     Evcs -> classOf[EvcsResult],
     ChpPlant -> classOf[ChpResult],
     Storage -> classOf[StorageResult],
+    Em -> classOf[EmResult],
     Hp -> classOf[HpResult],
     House -> classOf[ThermalHouseResult],
+    CylindricalStorage -> classOf[CylindricalStorageResult],
   )
 
   /** Get the classes of [[ResultEntity]], that are issued by the notifier, that

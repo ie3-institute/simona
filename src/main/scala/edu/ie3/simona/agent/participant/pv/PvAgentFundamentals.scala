@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent.participant.pv
 
 import edu.ie3.datamodel.models.input.system.PvInput
+import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.{
   PvResult,
   SystemParticipantResult,
@@ -15,7 +16,7 @@ import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
+  ComplexPower,
   ZERO_POWER,
 }
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
@@ -66,18 +67,18 @@ import scala.reflect.{ClassTag, classTag}
 
 protected trait PvAgentFundamentals
     extends ParticipantAgentFundamentals[
-      ApparentPower,
+      ComplexPower,
       PvRelevantData,
       ConstantState.type,
-      ParticipantStateData[ApparentPower],
+      ParticipantStateData[ComplexPower],
       PvInput,
       PvRuntimeConfig,
       PvModel,
     ] {
   this: PvAgent =>
-  override protected val pdClassTag: ClassTag[ApparentPower] =
-    classTag[ApparentPower]
-  override val alternativeResult: ApparentPower = ZERO_POWER
+  override protected val pdClassTag: ClassTag[ComplexPower] =
+    classTag[ComplexPower]
+  override val alternativeResult: ComplexPower = ZERO_POWER
 
   /** Determines the needed base state data in dependence of the foreseen
     * simulation mode of the agent.
@@ -93,7 +94,7 @@ protected trait PvAgentFundamentals
     * @param simulationEndDate
     *   Real world time date time, when the simulation ends
     * @param resolution
-    *   Agents regular time bin it wants to be triggered e.g one hour
+    *   Agents regular time bin it wants to be triggered e.g. one hour
     * @param requestVoltageDeviationThreshold
     *   Threshold, after which two nodal voltage magnitudes from participant
     *   power requests for the same tick are considered to be different
@@ -114,7 +115,7 @@ protected trait PvAgentFundamentals
       outputConfig: NotifierConfig,
       maybeEmAgent: Option[TypedActorRef[FlexResponse]],
   ): ParticipantModelBaseStateData[
-    ApparentPower,
+    ComplexPower,
     PvRelevantData,
     ConstantState.type,
     PvModel,
@@ -135,7 +136,7 @@ protected trait PvAgentFundamentals
       )
 
     ParticipantModelBaseStateData[
-      ApparentPower,
+      ComplexPower,
       PvRelevantData,
       ConstantState.type,
       PvModel,
@@ -180,7 +181,7 @@ protected trait PvAgentFundamentals
 
   override protected def createInitialState(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         PvRelevantData,
         ConstantState.type,
         PvModel,
@@ -190,7 +191,7 @@ protected trait PvAgentFundamentals
 
   override protected def createCalcRelevantData(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         PvRelevantData,
         ConstantState.type,
         PvModel,
@@ -209,7 +210,7 @@ protected trait PvAgentFundamentals
           tick - dataTick
         case _ =>
           /* At the first tick, we are not able to determine the tick interval from last tick
-           * (since there is none). Then we use a fall back pv stem distance. */
+           * (since there is none). Then we use a fallback pv stem distance. */
           FALLBACK_WEATHER_STEM_DISTANCE
       }
 
@@ -262,7 +263,7 @@ protected trait PvAgentFundamentals
   override def handleControlledPowerChange(
       tick: Long,
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         PvRelevantData,
         ConstantState.type,
         PvModel,
@@ -270,7 +271,11 @@ protected trait PvAgentFundamentals
       data: PvRelevantData,
       lastState: ConstantState.type,
       setPower: squants.Power,
-  ): (ConstantState.type, ApparentPower, FlexChangeIndicator) = {
+  ): (
+      ConstantState.type,
+      AccompaniedSimulationResult[ComplexPower],
+      FlexChangeIndicator,
+  ) = {
     /* Calculate result */
     val voltage = getAndCheckNodalVoltage(baseStateData, tick)
 
@@ -278,7 +283,10 @@ protected trait PvAgentFundamentals
       setPower,
       voltage,
     )
-    val result = ApparentPower(setPower, reactivePower)
+    val result = AccompaniedSimulationResult(
+      ComplexPower(setPower, reactivePower),
+      Seq.empty[ResultEntity],
+    )
 
     /* Handle the request within the model */
     val (updatedState, flexChangeIndicator) =
@@ -293,14 +301,14 @@ protected trait PvAgentFundamentals
   override val calculateModelPowerFunc: (
       Long,
       ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         PvRelevantData,
         ConstantState.type,
         PvModel,
       ],
       ConstantState.type,
       Dimensionless,
-  ) => ApparentPower =
+  ) => ComplexPower =
     (_, _, _, _) =>
       throw new InvalidRequestException(
         "Pv model cannot be run without secondary data."
@@ -329,7 +337,7 @@ protected trait PvAgentFundamentals
     */
   override def calculatePowerWithSecondaryDataAndGoToIdle(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         PvRelevantData,
         ConstantState.type,
         PvModel,
@@ -337,7 +345,7 @@ protected trait PvAgentFundamentals
       lastModelState: ConstantState.type,
       currentTick: Long,
       scheduler: ActorRef,
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
+  ): FSM.State[AgentState, ParticipantStateData[ComplexPower]] = {
     val voltage =
       getAndCheckNodalVoltage(baseStateData, currentTick)
 
@@ -376,13 +384,13 @@ protected trait PvAgentFundamentals
     *   The averaged result
     */
   override def averageResults(
-      tickToResults: Map[Long, ApparentPower],
+      tickToResults: Map[Long, ComplexPower],
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         Power => ReactivePower
       ] = None,
-  ): ApparentPower =
+  ): ComplexPower =
     ParticipantAgentFundamentals.averageApparentPower(
       tickToResults,
       windowStart,
@@ -405,7 +413,7 @@ protected trait PvAgentFundamentals
   override protected def buildResult(
       uuid: UUID,
       dateTime: ZonedDateTime,
-      result: ApparentPower,
+      result: ComplexPower,
   ): SystemParticipantResult =
     new PvResult(
       dateTime,

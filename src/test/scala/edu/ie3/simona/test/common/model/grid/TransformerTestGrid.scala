@@ -46,9 +46,9 @@ import scala.jdk.CollectionConverters._
   */
 trait TransformerTestGrid {
   val defaultSimulationStart: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2019-01-01 00:00:00")
+    TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")
   val defaultSimulationEnd: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2019-12-31 23:00:00")
+    TimeUtil.withDefaults.toZonedDateTime("2019-12-31T23:00:00Z")
 
   private val operationTimeBuilder = OperationTime.builder()
   operationTimeBuilder.withStart(defaultSimulationStart)

@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.input.system.PvInput
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.PvModel.PvRelevantData
@@ -18,7 +18,6 @@ import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities._
 import squants._
-import squants.energy.Kilowatts
 import squants.space.{Degrees, SquareMeters}
 import squants.time.Minutes
 import tech.units.indriya.unit.Units._
@@ -32,9 +31,8 @@ final case class PvModel private (
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    override val scalingFactor: Double,
     qControl: QControl,
-    sRated: Power,
+    sRated: ApparentPower,
     cosPhiRated: Double,
     private val lat: Angle,
     private val lon: Angle,
@@ -43,11 +41,10 @@ final case class PvModel private (
     private val alphaE: Angle,
     private val gammaE: Angle,
     private val moduleSurface: Area = SquareMeters(1d),
-) extends SystemParticipant[PvRelevantData, ApparentPower, ConstantState.type](
+) extends SystemParticipant[PvRelevantData, ComplexPower, ConstantState.type](
       uuid,
       id,
       operationInterval,
-      scalingFactor,
       qControl,
       sRated,
       cosPhiRated,
@@ -57,15 +54,16 @@ final case class PvModel private (
   /** Override sMax as the power output of a pv unit could become easily up to
     * 10% higher than the sRated value found in the technical sheets
     */
-  override protected val sMax: Power = sRated * 1.1
+  override val sMax: ApparentPower = sRated * 1.1
 
   /** Permissible maximum active power feed in (therefore negative) */
-  protected val pMax: Power = sMax * cosPhiRated * -1d
+  protected val pMax: Power = sMax.toActivePower(cosPhiRated) * -1d
 
   /** Reference yield at standard testing conditions (STC) */
   private val yieldSTC = WattsPerSquareMeter(1000d)
 
-  private val activationThreshold = sRated * cosPhiRated * 0.001 * -1d
+  private val activationThreshold =
+    sRated.toActivePower(cosPhiRated) * 0.001 * -1d
 
   /** Calculate the active power behaviour of the model
     *
@@ -156,7 +154,7 @@ final case class PvModel private (
     * @return
     *   day angle J
     */
-  private def calcAngleJ(time: ZonedDateTime): Angle = {
+  def calcAngleJ(time: ZonedDateTime): Angle = {
     val day = time.getDayOfYear // day of the year
     val j = 2d * Math.PI * ((day - 1d) / 365)
     Radians(j)
@@ -172,7 +170,7 @@ final case class PvModel private (
     * @return
     *   declination angle
     */
-  private def calcSunDeclinationDelta(
+  def calcSunDeclinationDelta(
       angleJ: Angle
   ): Angle = {
     val jInRad = angleJ.toRadians
@@ -200,7 +198,7 @@ final case class PvModel private (
     * @return
     *   hour angle omega
     */
-  private def calcHourAngleOmega(
+  def calcHourAngleOmega(
       time: ZonedDateTime,
       angleJ: Angle,
       longitude: Angle,
@@ -230,7 +228,7 @@ final case class PvModel private (
     * @return
     *   sunset angle omegaSS
     */
-  private def calcSunsetAngleOmegaSS(
+  def calcSunsetAngleOmegaSS(
       latitude: Angle,
       delta: Angle,
   ): Angle = {
@@ -243,7 +241,7 @@ final case class PvModel private (
   /** Calculates the sunrise hour angle omegaSR given omegaSS.
     */
   private val calcSunriseAngleOmegaSR =
-    (omegaSS: Angle) => omegaSS * (-1)
+    (omegaSS: Angle) => omegaSS * -1
 
   /** Calculates the solar altitude angle alphaS which represents the angle
     * between the horizontal and the line to the sun, that is, the complement of
@@ -258,7 +256,7 @@ final case class PvModel private (
     * @return
     *   solar altitude angle alphaS
     */
-  private def calcSolarAltitudeAngleAlphaS(
+  def calcSolarAltitudeAngleAlphaS(
       omega: Angle,
       delta: Angle,
       latitude: Angle,
@@ -287,7 +285,7 @@ final case class PvModel private (
     * @return
     *   the zenith angle
     */
-  private def calcZenithAngleThetaZ(
+  def calcZenithAngleThetaZ(
       alphaS: Angle
   ): Angle = {
     val alphaSInRad = alphaS.toRadians
@@ -305,7 +303,7 @@ final case class PvModel private (
     * @return
     *   air mass
     */
-  private def calcAirMass(thetaZ: Angle): Double = {
+  def calcAirMass(thetaZ: Angle): Double = {
     val thetaZInRad = thetaZ.toRadians
 
     // radius of the earth in kilometers
@@ -328,7 +326,7 @@ final case class PvModel private (
     * @return
     *   extraterrestrial radiation I0
     */
-  private def calcExtraterrestrialRadiationI0(
+  def calcExtraterrestrialRadiationI0(
       angleJ: Angle
   ): Irradiation = {
     val jInRad = angleJ.toRadians
@@ -363,7 +361,7 @@ final case class PvModel private (
     * @return
     *   angle of incidence thetaG
     */
-  private def calcAngleOfIncidenceThetaG(
+  def calcAngleOfIncidenceThetaG(
       delta: Angle,
       latitude: Angle,
       gammaE: Angle,
@@ -403,7 +401,7 @@ final case class PvModel private (
     *   omega1 and omega encapsulated in an Option, if applicable. None
     *   otherwise
     */
-  private def calculateBeamOmegas(
+  def calculateBeamOmegas(
       thetaG: Angle,
       omega: Angle,
       omegaSS: Angle,
@@ -464,7 +462,7 @@ final case class PvModel private (
     * @return
     *   the beam radiation on the sloped surface
     */
-  private def calcBeamRadiationOnSlopedSurface(
+  def calcBeamRadiationOnSlopedSurface(
       eBeamH: Irradiation,
       omegas: Option[(Angle, Angle)],
       delta: Angle,
@@ -533,7 +531,7 @@ final case class PvModel private (
     * @return
     *   the diffuse radiation on the sloped surface
     */
-  private def calcDiffuseRadiationOnSlopedSurfacePerez(
+  def calcDiffuseRadiationOnSlopedSurfacePerez(
       eDifH: Irradiation,
       eBeamH: Irradiation,
       airMass: Double,
@@ -670,7 +668,7 @@ final case class PvModel private (
     * @return
     *   the reflected radiation on the sloped surface eRefS
     */
-  private def calcReflectedRadiationOnSlopedSurface(
+  def calcReflectedRadiationOnSlopedSurface(
       eBeamH: Irradiation,
       eDifH: Irradiation,
       gammaE: Angle,
@@ -727,9 +725,8 @@ final case class PvModel private (
       eTotalInWhPerSM * moduleSurface.toSquareMeters * etaConv.toEach * (genCorr * tempCorr)
 
     /* Calculate the foreseen active power output without boundary condition adaptions */
-    val proposal = sRated * (-1) * (
-      actYield / irradiationSTC
-    ) * cosPhiRated
+    val proposal =
+      sRated.toActivePower(cosPhiRated) * -1 * (actYield / irradiationSTC)
 
     /* Do sanity check, if the proposed feed in is above the estimated maximum to be apparent active power of the plant */
     if (proposal < pMax)
@@ -790,45 +787,47 @@ object PvModel {
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
   ): PvModel = {
+
+    val scaledInput = inputModel.copy().scale(scalingFactor).build()
+
     /* Determine the operation interval */
     val operationInterval: OperationInterval =
       SystemComponent.determineOperationInterval(
         simulationStartDate,
         simulationEndDate,
-        inputModel.getOperationTime,
+        scaledInput.getOperationTime,
       )
 
     // moduleSurface and yieldSTC are left out for now
     val model = apply(
-      inputModel.getUuid,
-      inputModel.getId,
+      scaledInput.getUuid,
+      scaledInput.getId,
       operationInterval,
-      scalingFactor,
-      QControl(inputModel.getqCharacteristics),
-      Kilowatts(
-        inputModel.getsRated
-          .to(PowerSystemUnits.KILOWATT)
+      QControl(scaledInput.getqCharacteristics),
+      Kilovoltamperes(
+        scaledInput.getsRated
+          .to(PowerSystemUnits.KILOVOLTAMPERE)
           .getValue
           .doubleValue
       ),
-      inputModel.getCosPhiRated,
-      Degrees(inputModel.getNode.getGeoPosition.getY),
-      Degrees(inputModel.getNode.getGeoPosition.getX),
-      inputModel.getAlbedo,
+      scaledInput.getCosPhiRated,
+      Degrees(scaledInput.getNode.getGeoPosition.getY),
+      Degrees(scaledInput.getNode.getGeoPosition.getX),
+      scaledInput.getAlbedo,
       Each(
-        inputModel.getEtaConv
+        scaledInput.getEtaConv
           .to(PowerSystemUnits.PU)
           .getValue
           .doubleValue
       ),
       Radians(
-        inputModel.getAzimuth
+        scaledInput.getAzimuth
           .to(RADIAN)
           .getValue
           .doubleValue
       ),
       Radians(
-        inputModel.getElevationAngle
+        scaledInput.getElevationAngle
           .to(RADIAN)
           .getValue
           .doubleValue

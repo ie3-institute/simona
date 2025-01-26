@@ -20,7 +20,6 @@ import edu.ie3.datamodel.models.result.connector.{
 }
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource.SqlParams
 import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.simona.event.notifier.{Notifier, NotifierConfig}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
@@ -74,7 +73,7 @@ object ConfigUtil {
       * participants config for faster access.
       *
       * @param subConfig
-      *   Configuration sub tree for the behaviour of system participants
+      *   Configuration subtree for the behaviour of system participants
       * @return
       *   a matching config utility
       */
@@ -89,7 +88,9 @@ object ConfigUtil {
             subConfig.pv.individualConfigs,
             subConfig.evcs.individualConfigs,
             subConfig.wec.individualConfigs,
-          ).reduceOption(_ ++ _).getOrElse(Seq.empty)
+            subConfig.storage.individualConfigs,
+            subConfig.em.individualConfigs,
+          ).flatten
         ),
         Seq(
           subConfig.load.defaultConfig,
@@ -98,6 +99,8 @@ object ConfigUtil {
           subConfig.evcs.defaultConfig,
           subConfig.wec.defaultConfig,
           subConfig.hp.defaultConfig,
+          subConfig.storage.defaultConfig,
+          subConfig.em.defaultConfig,
         ).map { conf => conf.getClass -> conf }.toMap,
       )
     }
@@ -121,7 +124,7 @@ object ConfigUtil {
     * @param defaultConfig
     *   Default config to use, when there is no specific one
     * @param configs
-    *   Mapping from notifier identifier to it's notifier configuration
+    *   Mapping from notifier identifier to its notifier configuration
     */
   final case class OutputConfigUtil(
       private val defaultConfig: NotifierConfig,
@@ -141,10 +144,15 @@ object ConfigUtil {
       * @return
       *   A set of applicable notifiers
       */
-    def simulationResultIdentifiersToConsider: Set[NotifierIdentifier.Value] =
+    def simulationResultIdentifiersToConsider(
+        thermal: Boolean
+    ): Set[NotifierIdentifier.Value] = {
       if (defaultConfig.simulationResultInfo) {
+        val notifiers =
+          if (thermal) NotifierIdentifier.getThermalIdentifiers
+          else NotifierIdentifier.getParticipantIdentifiers
         /* Generally inform about all simulation results, but not on those, that are explicitly marked */
-        NotifierIdentifier.values -- configs.flatMap {
+        notifiers -- configs.flatMap {
           case (
                 notifierId,
                 NotifierConfig(resultInfo, _, _),
@@ -163,9 +171,12 @@ object ConfigUtil {
           case _ => None
         }.toSet
       }
+    }
 
-    def simulationResultEntitiesToConsider: Set[Class[_ <: ResultEntity]] =
-      simulationResultIdentifiersToConsider.map(notifierId =>
+    def simulationResultEntitiesToConsider(
+        thermal: Boolean
+    ): Set[Class[_ <: ResultEntity]] =
+      simulationResultIdentifiersToConsider(thermal).map(notifierId =>
         EntityMapperUtil.getResultEntityClass(notifierId)
       )
   }
@@ -272,6 +283,7 @@ object ConfigUtil {
   object NotifierIdentifier extends ParsableEnumeration {
     val BioMassPlant: Value = Value("bm")
     val ChpPlant: Value = Value("chp")
+    val Em: Value = Value("em")
     val Ev: Value = Value("ev")
     val Evcs: Value = Value("evcs")
     val FixedFeedIn: Value = Value("fixedfeedin")
@@ -281,6 +293,17 @@ object ConfigUtil {
     val Wec: Value = Value("wec")
     val Hp: Value = Value("hp")
     val House: Value = Value("house")
+    val CylindricalStorage: Value = Value("cylindricalstorage")
+
+    /** All participant identifiers */
+    def getParticipantIdentifiers: Set[Value] =
+      (NotifierIdentifier.values -- getThermalIdentifiers).toSet
+
+    /** All thermal identifiers */
+    def getThermalIdentifiers: Set[Value] = Set(
+      NotifierIdentifier.House,
+      NotifierIdentifier.CylindricalStorage,
+    )
   }
 
   object CsvConfigUtil {

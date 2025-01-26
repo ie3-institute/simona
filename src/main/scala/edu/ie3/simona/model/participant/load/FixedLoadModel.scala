@@ -17,8 +17,8 @@ import edu.ie3.simona.model.participant.load.LoadReference.{
 }
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants.Power
-import squants.energy.Kilowatts
 import squants.time.Days
 
 import java.util.UUID
@@ -28,11 +28,9 @@ import java.util.UUID
   * @param uuid
   *   unique identifier
   * @param id
-  *   human readable id
+  *   human-readable id
   * @param operationInterval
   *   Interval, in which the system is in operation
-  * @param scalingFactor
-  *   Scaling the output of the system
   * @param qControl
   *   Type of reactive power control
   * @param sRated
@@ -46,16 +44,14 @@ final case class FixedLoadModel(
     uuid: UUID,
     id: String,
     operationInterval: OperationInterval,
-    override val scalingFactor: Double,
     qControl: QControl,
-    sRated: Power,
+    sRated: ApparentPower,
     cosPhiRated: Double,
     reference: LoadReference,
 ) extends LoadModel[FixedLoadRelevantData.type](
       uuid,
       id,
       operationInterval,
-      scalingFactor,
       qControl,
       sRated,
       cosPhiRated,
@@ -76,7 +72,7 @@ final case class FixedLoadModel(
     * @return
     *   Active power
     */
-  override protected def calculateActivePower(
+  override def calculateActivePower(
       modelState: ConstantState.type,
       data: FixedLoadRelevantData.type = FixedLoadRelevantData,
   ): Power = activePower
@@ -91,19 +87,21 @@ object FixedLoadModel {
       operationInterval: OperationInterval,
       reference: LoadReference,
   ): FixedLoadModel = {
+
+    val scaledInput = input.copy().scale(scalingFactor).build()
+
     val model = FixedLoadModel(
-      input.getUuid,
-      input.getId,
+      scaledInput.getUuid,
+      scaledInput.getId,
       operationInterval,
-      scalingFactor,
-      QControl(input.getqCharacteristics()),
-      Kilowatts(
-        input.getsRated
-          .to(PowerSystemUnits.KILOWATT)
+      QControl(scaledInput.getqCharacteristics()),
+      Kilovoltamperes(
+        scaledInput.getsRated
+          .to(PowerSystemUnits.KILOVOLTAMPERE)
           .getValue
           .doubleValue
       ),
-      input.getCosPhiRated,
+      scaledInput.getCosPhiRated,
       reference,
     )
     model.enable()

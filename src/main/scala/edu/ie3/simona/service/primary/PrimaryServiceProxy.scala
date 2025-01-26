@@ -79,7 +79,7 @@ import scala.util.{Failure, Success, Try}
   * @param scheduler
   *   Reference to the scheduler of the simulation
   * @param startDateTime
-  *   Wall clock time of the first instant in simulation
+  *   Simulation time of the first instant in simulation
   */
 case class PrimaryServiceProxy(
     scheduler: ActorRef,
@@ -126,13 +126,13 @@ case class PrimaryServiceProxy(
   }
 
   /** Prepare the needed state data by building a
-    * [[edu.ie3.datamodel.io.source.TimeSeriesMappingSource]], obtain it's
+    * [[edu.ie3.datamodel.io.source.TimeSeriesMappingSource]], obtain its
     * information and compile them to state data
     *
     * @param primaryConfig
     *   Configuration for the primary source
     * @param simulationStart
-    *   Wall clock time of first instant in simulation
+    *   Simulation time of first instant in simulation
     * @return
     *   State data, containing the known model and time series identifiers
     */
@@ -269,7 +269,7 @@ case class PrimaryServiceProxy(
       unhandled(x)
   }
 
-  /** Handle the registration request for a covered model. First, try to get a
+  /** Handle the registration request for a covered model. First, try to get an
     * already existing worker for this time series, otherwise spin-off a new
     * one, remember it and forward the request
     *
@@ -385,7 +385,7 @@ case class PrimaryServiceProxy(
       timeSeriesUuid: String,
   ): ActorRef = {
     import edu.ie3.simona.actor.SimonaActorNaming._
-    context.system.simonaActorOf(
+    context.simonaActorOf(
       PrimaryServiceWorker.props(scheduler, valueClass),
       timeSeriesUuid,
     )
@@ -505,7 +505,7 @@ object PrimaryServiceProxy {
     * @param primaryConfig
     *   Configuration for the primary source
     * @param simulationStart
-    *   Wall clock time of the first instant in simulation
+    *   Simulation time of the first instant in simulation
     */
   final case class InitPrimaryServiceProxyStateData(
       primaryConfig: PrimaryConfig,
@@ -519,7 +519,7 @@ object PrimaryServiceProxy {
     * @param timeSeriesToSourceRef
     *   Mapping from time series identifier to [[SourceRef]]
     * @param simulationStart
-    *   Wall clock time of the first instant in simulation
+    *   Simulation time of the first instant in simulation
     * @param primaryConfig
     *   The configuration for the sources
     * @param mappingSource

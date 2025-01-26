@@ -26,15 +26,19 @@ import edu.ie3.simona.model.participant.load.random.{
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.scala.quantities.{
+  ApparentPower,
+  Kilovoltamperes,
+  Voltamperes,
+}
 import org.scalatest.prop.TableDrivenPropertyChecks
-import squants.Power
-import squants.energy.{KilowattHours, Kilowatts, Watts}
+import squants.energy.{KilowattHours, Watts}
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
 
 class RandomLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
-  implicit val tolerance: Power = Watts(1d)
+  implicit val tolerance: ApparentPower = Voltamperes(1d)
   "Having a random load model" when {
     val loadInput =
       new LoadInput(
@@ -54,6 +58,7 @@ class RandomLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
           -1,
         ),
         new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
+        null,
         BdewStandardLoadProfile.H0,
         false,
         Quantities.getQuantity(3000d, PowerSystemUnits.KILOWATTHOUR),
@@ -62,9 +67,9 @@ class RandomLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
       )
 
     val simulationStartDate =
-      TimeUtil.withDefaults.toZonedDateTime("2019-01-01 00:00:00")
+      TimeUtil.withDefaults.toZonedDateTime("2019-01-01T00:00:00Z")
     val simulationEndDate =
-      TimeUtil.withDefaults.toZonedDateTime("2019-12-31 23:59:00")
+      TimeUtil.withDefaults.toZonedDateTime("2019-12-31T23:59:00Z")
     val foreSeenOperationInterval =
       SystemComponent.determineOperationInterval(
         simulationStartDate,
@@ -77,11 +82,11 @@ class RandomLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
 
         val testData = Table(
           ("reference", "expectedSRated"),
-          (ActivePower(Watts(268.6)), Watts(311.0105263157895d)),
-          (EnergyConsumption(KilowattHours(2000d)), Watts(513.871737d)),
+          (ActivePower(Watts(268.6)), Voltamperes(311.0105263157895d)),
+          (EnergyConsumption(KilowattHours(2000d)), Voltamperes(513.871737d)),
         )
 
-        forAll(testData) { (reference, expectedSRated: Power) =>
+        forAll(testData) { (reference, expectedSRated: ApparentPower) =>
           val actual = RandomLoadModel(
             loadInput,
             foreSeenOperationInterval,
@@ -100,21 +105,20 @@ class RandomLoadModelSpec extends UnitSpec with TableDrivenPropertyChecks {
           loadInput.getUuid,
           loadInput.getId,
           foreSeenOperationInterval,
-          1.0,
           QControl.apply(loadInput.getqCharacteristics()),
-          Kilowatts(
+          Kilovoltamperes(
             loadInput
               .getsRated()
-              .to(PowerSystemUnits.KILOWATT)
+              .to(PowerSystemUnits.KILOVOLTAMPERE)
               .getValue
               .doubleValue()
           ),
           loadInput.getCosPhiRated,
           ActivePower(Watts(268.6)),
         )
-        /* Working day, 61th quarter hour */
+        /* Working day, 61st quarter-hour */
         val queryDate =
-          TimeUtil.withDefaults.toZonedDateTime("2019-07-19 15:21:00")
+          TimeUtil.withDefaults.toZonedDateTime("2019-07-19T15:21:00Z")
         val expectedParams = new RandomLoadParameters(
           0.405802458524704,
           0.0671483352780342,

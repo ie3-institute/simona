@@ -18,9 +18,9 @@ import edu.ie3.util.scala.OperationInterval
   */
 trait LoadTestData extends LoadInputTestData {
   protected implicit val simulationStartDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 00:00:00")
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
   protected val simulationEndDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01 01:00:00")
+    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T01:00:00Z")
   protected val operationTime: OperationTime = OperationTime
     .builder()
     .withStart(simulationStartDate)
