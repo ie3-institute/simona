@@ -407,7 +407,7 @@ object GridModel {
       noLines && noTransformers2w && noTransformers3w && (noOfNodes > noOfSlackNodes)
     )
       throw new InvalidGridException(
-        "The grid contains no basic branch elements (lines or transformers)."
+        f"The grid with subnet number ${gridModel.subnetNo} contains no basic branch elements (lines or transformers)."
       )
 
     // slack

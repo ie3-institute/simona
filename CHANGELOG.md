@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Introduce ThermalDemandWrapper [#1049](https://github.com/ie3-institute/simona/issues/1049)
 - Added Marius Staudt to list of reviewers [#1057](https://github.com/ie3-institute/simona/issues/1057)
 - Throw exception if the slack node is not directly conected to a transformer. [#525](https://github.com/ie3-institute/simona/issues/525)
+- Enhance exception message in case of InvalidGridException [#1124](https://github.com/ie3-institute/simona/issues/1124)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
