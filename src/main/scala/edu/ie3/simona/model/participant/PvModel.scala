@@ -582,11 +582,10 @@ final case class PvModel private (
         x = IntStream
           .range(0, discreteSkyClearnessCategories.length)
           .filter((i: Int) =>
-            (finalEpsilon - discreteSkyClearnessCategories(i)(
-              0
-            ) >= 0) && (finalEpsilon - discreteSkyClearnessCategories(
-              i
-            )(1) < 0)
+            (finalEpsilon -
+              discreteSkyClearnessCategories(i)(0) >= 0) &&
+              (finalEpsilon -
+                discreteSkyClearnessCategories(i)(1) < 0)
           )
           .findFirst
           .getAsInt + 1
@@ -612,46 +611,10 @@ final case class PvModel private (
 
     // finally calculate the diffuse radiation on an inclined surface
     eDifH * (
-      ((1 + cos(
-        gammaEInRad
-      )) / 2) * (1 - f1) + (f1 * (aPerez / bPerez)) + (f2 * sin(
-        gammaEInRad
-      ))
+      ((1 + cos(gammaEInRad)) / 2) * (1 - f1) +
+        (f1 * (aPerez / bPerez)) +
+        (f2 * sin(gammaEInRad))
     )
-  }
-
-  private def calcEpsilon(
-      eDifH: Irradiation,
-      eBeamH: Irradiation,
-      thetaZ: Angle,
-  ): Double = {
-    val thetaZInRad = thetaZ.toRadians
-
-    ((eDifH + eBeamH / cos(thetaZInRad)) / eDifH + (5.535d * 1.0e-6) * pow(
-      thetaZ.toDegrees,
-      3,
-    )) /
-      (1d + (5.535d * 1.0e-6) * pow(thetaZ.toDegrees, 3))
-  }
-
-  private def calcEpsilonOld(
-      eDifH: Irradiation,
-      eBeamH: Irradiation,
-      thetaZ: Angle,
-  ): Double = {
-    val thetaZInRad = thetaZ.toRadians
-
-    ((eDifH + eBeamH) / eDifH + (5.535d * 1.0e-6) * pow(thetaZ.toRadians, 3)) /
-      (1d + (5.535d * 1.0e-6) * pow(thetaZ.toRadians, 3))
-  }
-
-  private def firstFraction(
-      eDifH: Irradiation,
-      eBeamH: Irradiation,
-      thetaZ: Angle,
-  ): Double = {
-
-    (eDifH + eBeamH) / eDifH
   }
 
   /** Calculates the reflected radiation on a sloped surface
