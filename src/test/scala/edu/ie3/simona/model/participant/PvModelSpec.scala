@@ -13,18 +13,11 @@ import edu.ie3.datamodel.models.input.{NodeInput, OperatorInput}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.quantities.PowerSystemUnits._
-import edu.ie3.util.scala.quantities.{
-  ApparentPower,
-  Irradiation,
-  Kilovoltamperes,
-  Megavars,
-  ReactivePower,
-  WattHoursPerSquareMeter,
-}
+import edu.ie3.util.scala.quantities._
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import org.scalatest.GivenWhenThen
 import squants.Each
-import squants.energy.{Kilowatts, Power}
+import squants.energy.Kilowatts
 import squants.space.{Angle, Degrees, Radians}
 import tech.units.indriya.quantity.Quantities.getQuantity
 import tech.units.indriya.unit.Units._
@@ -97,7 +90,6 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
   private implicit val apparentPowerTolerance: ApparentPower = Kilovoltamperes(
     1e-10
   )
-  private implicit val powerTolerance: Power = Kilowatts(1e-10)
   private implicit val reactivePowerTolerance: ReactivePower = Megavars(1e-10)
 
   "A PV Model" should {
@@ -766,20 +758,22 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
     "calculate the estimate diffuse radiation eDifS correctly" in {
       val testCases = Table(
         ("thetaGDeg", "thetaZDeg", "gammaEDeg", "airMass", "I0", "eDifSSol"),
-        (37.0d, 62.2d, 60d, 2.13873080095658d, 1399.0077631849722d,
-          216.46615469650982d),
+        // Reference Duffie 4th ed., p.95
+        // I_0 = 5.025 MJ * 277.778 Wh/MJ = 1395.83445 Wh
+        // eDifSSol is 0.79607 MJ = 221.131 Wh if one only calculates the relevant terms
+        // from I_T on p. 96, but Duffie uses fixed f values, so the inaccuracy is fine
+        (37.0d, 62.2d, 60d, 2.144d, 1395.83445d, 225.5949007753d),
       )
 
       forAll(testCases) {
         (thetaGDeg, thetaZDeg, gammaEDeg, airMass, I0, eDifSSol) =>
-          // Reference p.95
-          // https://www.sku.ac.ir/Datafiles/BookLibrary/45/John%20A.%20Duffie,%20William%20A.%20Beckman(auth.)-Solar%20Engineering%20of%20Thermal%20Processes,%20Fourth%20Edition%20(2013).pdf
+          // Reference Duffie 4th ed., p.95
           Given("using the input data")
           // Beam Radiation on horizontal surface
           val eBeamH =
-            67.777778d // 1 MJ/m^2 = 277,778 Wh/m^2 -> 0.244 MJ/m^2 = 67.777778 Wh/m^2
+            67.777778d // 1 MJ/m^2 = 277.778 Wh/m^2 -> 0.244 MJ/m^2 = 67.777778 Wh/m^2
           // Diffuse Radiation on a horizontal surface
-          val eDifH = 213.61111d // 0.769 MJ/m^2 = 213,61111 Wh/m^2
+          val eDifH = 221.111288d // 0.796 MJ/m^2 = 221.111288 Wh/m^2
 
           When("the diffuse radiation is calculated")
           val eDifSCalc = pvModel.calcDiffuseRadiationOnSlopedSurfacePerez(
