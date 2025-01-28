@@ -302,10 +302,10 @@ The diffuse radiation is computed using the Perez model, which divides the radia
 A cloud index is defined by
 
 $$
-\epsilon = \frac{\frac{E_{\mathrm{dif},H} + E_{\mathrm{beam},H}}{E_{\mathrm{dif},H}} + 5.535 \cdot 10^{-6} \cdot \theta_{z}^3}{1 + 5.535 \cdot 10^{-6} \cdot \theta_{z}^3}
+\epsilon = \frac{\frac{E_{\mathrm{dif},H} + E_{\mathrm{beam},N}}{E_{\mathrm{dif},H}} + 5.535 \cdot 10^{-6} \cdot \theta_{z}^3}{1 + 5.535 \cdot 10^{-6} \cdot \theta_{z}^3}
 $$
 
-where the angle $theta_{z}$ is in **degrees**.
+with angle $\theta_z$ values in **degrees** ({cite:cts}`Duffie.2013` p. 94) and $E_{\mathrm{beam},N} = \frac{E_{\mathrm{beam},H}}{\cos (\theta_z)}$ ({cite:cts}`Duffie.2013` p. 95).
 
 Calculating a brightness index
 
@@ -401,6 +401,7 @@ $$
 **$I_{0}$** = Extraterrestrial Radiation\
 **$m$** = air mass\
 **$E_{\mathrm{beam},H}$** = beam radiation (horizontal surface)\
+**$E_{\mathrm{beam},N}$** = beam radiation (normal incidence, thus radiation on a plane normal to the direction of the beam)\
 **$E_{\mathrm{dif},H}$** = diffuse radiation (horizontal surface)
 
 **References:**

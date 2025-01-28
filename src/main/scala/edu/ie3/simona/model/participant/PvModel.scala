@@ -548,11 +548,16 @@ final case class PvModel private (
     val delta = eDifH * airMass / extraterrestrialRadiationI0
 
     // == cloud index epsilon  ==//
-    // if we have no clouds,  the epsilon bin is 8, as epsilon bin for an epsilon in [6.2, inf.[ = 8
+    // if we have no clouds, the epsilon bin is 8,
+    // as the epsilon bin for an epsilon in [6.2, inf.[ is 8
     var x = 8
 
     if (eDifH.value.doubleValue > 0) {
-      // if we have diffuse radiation on horizontal surface we have to check if we have another epsilon due to clouds get the epsilon
+      // if we have diffuse radiation on horizontal surface we have to consider
+      // the clearness parameter epsilon, which then gives us an epsilon bin x
+
+      // Beam radiation is required on a plane normal to the beam direction (normal incidence),
+      // thus dividing by cos theta_z
       var epsilon = ((eDifH + eBeamH / cos(thetaZInRad)) / eDifH +
         (5.535d * 1.0e-6) * pow(
           thetaZ.toDegrees,
