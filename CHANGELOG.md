@@ -160,6 +160,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Deployment of `simona` to `Maven Central` in new GHA Pipeline [#1029](https://github.com/ie3-institute/simona/issues/1029)
 - Fixed SonarQube quality gate using the right link for PRs or Branches [#1061](https://github.com/ie3-institute/simona/issues/1061)
 - Fixed ignored EM strategy [#1091](https://github.com/ie3-institute/simona/issues/1091)
+- EM should output flex option results even if it has no parent [#1112](https://github.com/ie3-institute/simona/issues/1112)
 
 ## [3.0.0] - 2023-08-07
 
