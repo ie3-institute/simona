@@ -399,7 +399,7 @@ class PowerFlowSupportSpec
     )
 
     "perform the power flow for the slack grid correctly" in {
-      val withMvPowerFlowResults: Map[UUID, Dimensionless] = {
+      val withEhvPowerFlowResults: Map[UUID, Dimensionless] = {
         val (gridModel, receivedValueStore) = TestData.withEHV
 
         val (operationPoint, slackNodeVoltages) = composeOperatingPoint(
@@ -452,7 +452,7 @@ class PowerFlowSupportSpec
       }
 
       onlyHvPowerFlowResults.foreach { case (uuid, result) =>
-        withMvPowerFlowResults(uuid) should approximate(result)(tolerance)
+        withEhvPowerFlowResults(uuid) should approximate(result)(tolerance)
       }
     }
   }
