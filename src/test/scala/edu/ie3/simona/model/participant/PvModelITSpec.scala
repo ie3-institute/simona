@@ -14,7 +14,7 @@ import squants.Each
   * model works as expected. It uses 8 pv models located in GER.
   */
 
-class PvModelIT extends Matchers with UnitSpec with PvModelITHelper {
+class PvModelITSpec extends Matchers with UnitSpec with PvModelITHelper {
 
   "The photovoltaic model" should {
     "match the expected results for all 8 PV panels over the whole year" in {

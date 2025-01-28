@@ -102,7 +102,7 @@ trait NodeInputTestData extends DefaultTestData {
   // PvModelITSpec node input models
   val geometryFactory = new GeometryFactory()
 
-  val p1: Point = geometryFactory.createPoint(new Coordinate(53.9209, 10.3837))
+  val p1: Point = geometryFactory.createPoint(new Coordinate(10.3837, 53.9209))
   protected val nodeInputPvModel1 =
     new NodeInput(
       UUID.fromString("19a4861e-cbf5-4dcc-bc1d-98611fda6eb5"),
@@ -110,74 +110,74 @@ trait NodeInputTestData extends DefaultTestData {
       OperatorInput.NO_OPERATOR_ASSIGNED,
       defaultOperationTime,
       Quantities.getQuantity(1.0, PU),
-      false,
+      true,
       p1,
       GermanVoltageLevelUtils.MV_10KV,
-      -1,
+      3,
     )
 
-  val p2: Point = geometryFactory.createPoint(new Coordinate(52.3393, 9.7342))
+  val p2: Point = geometryFactory.createPoint(new Coordinate(9.7342, 52.3393))
   protected val nodeInputPvModel2 = new NodeInput(
     UUID.fromString("9a2524f1-3639-4e90-a547-81a259712f8c"),
     "pvModelNode2",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     defaultOperationTime,
     Quantities.getQuantity(1d, PU),
-    false,
+    true,
     p2,
     GermanVoltageLevelUtils.MV_10KV,
-    -1,
+    2,
   )
 
-  val p3: Point = geometryFactory.createPoint(new Coordinate(52.1861, 10.1991))
+  val p3: Point = geometryFactory.createPoint(new Coordinate(10.1991, 52.1861))
   protected val nodeInputPvModel3 = new NodeInput(
     UUID.fromString("022a94c6-2d60-4400-875c-ab9db1ae2736"),
     "pvModelNode3",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     defaultOperationTime,
     Quantities.getQuantity(1d, PU),
-    false,
+    true,
     p3,
     GermanVoltageLevelUtils.MV_10KV,
-    -1,
+    1,
   )
 
-  val p4: Point = geometryFactory.createPoint(new Coordinate(53.6567, 10.8245))
+  val p4: Point = geometryFactory.createPoint(new Coordinate(10.8245, 53.6567))
   protected val nodeInputPvModel4 = new NodeInput(
     UUID.fromString("9354b02c-a4a9-4e9d-905a-e48110b04d88"),
     "pvModelNode4",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     defaultOperationTime,
     Quantities.getQuantity(1d, PU),
-    false,
+    true,
     p4,
     GermanVoltageLevelUtils.MV_10KV,
-    -1,
+    4,
   )
 
-  val p5: Point = geometryFactory.createPoint(new Coordinate(51.9644, 10.0134))
+  val p5: Point = geometryFactory.createPoint(new Coordinate(10.0134, 51.9644))
   protected val nodeInputPvModel5: NodeInput = new NodeInput(
     UUID.fromString("393eb0e3-7873-4d51-a830-2f1d98ff5a60"),
     "pvModelNode5",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     defaultOperationTime,
     Quantities.getQuantity(1d, PU),
-    false,
+    true,
     p5,
     GermanVoltageLevelUtils.MV_10KV,
-    -1,
+    16,
   )
 
-  val p6: Point = geometryFactory.createPoint(new Coordinate(53.6454, 10.4729))
+  val p6: Point = geometryFactory.createPoint(new Coordinate(10.4729, 53.6454))
   protected val nodeInputPvModel6 = new NodeInput(
     UUID.fromString("7607ca0b-959f-48b2-9c5c-1cf7c4ce0dc0"),
     "pvModelNode6",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     defaultOperationTime,
     Quantities.getQuantity(1d, PU),
-    false,
+    true,
     p6,
     GermanVoltageLevelUtils.MV_10KV,
-    -1,
+    17,
   )
 }
