@@ -127,7 +127,7 @@ $$
 **References:**
 
 * {cite:cts}`Maleki.2017`
-* {cite:cts}`Duffie.2013` p. 17 (1.16.10)
+* {cite:cts}`Duffie.2013` p. 17 (formula 1.6.10)
 
 
 ### Solar Altitude Angle
@@ -146,7 +146,7 @@ $$
 **References:**
 
 * {cite:cts}`Maleki.2017` p. 5
-* {cite:cts}`Duffie.2013` p. 15 (1.6.5) with $\sin (\alpha_s) = \cos (\theta_z)$
+* {cite:cts}`Duffie.2013` p. 15 (formula 1.6.5) with $\sin (\alpha_s) = \cos (\theta_z)$
 
 
 ### Zenith Angle
