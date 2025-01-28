@@ -24,7 +24,6 @@ import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import java.util.stream.IntStream
 import scala.math._
 
 final case class PvModel private (
