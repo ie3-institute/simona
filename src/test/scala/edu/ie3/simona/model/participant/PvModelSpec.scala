@@ -756,8 +756,9 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
     }
 
     "calculate the estimated diffuse radiation eDifS correctly" in {
-      def megaJoule2WattHours(megajoule: Double): Double=
-      {megajoule / (3.6/1000)}
+      def megaJoule2WattHours(megajoule: Double): Double = {
+        megajoule / (3.6 / 1000)
+      }
 
       val testCases = Table(
         ("thetaGDeg", "thetaZDeg", "gammaEDeg", "airMass", "I0", "eDifSSol"),
@@ -765,7 +766,14 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
         // I_0 = 5.025 MJ * 277.778 Wh/MJ = 1395.83445 Wh
         // eDifSSol is 0.79607 MJ (0.444 + 0.348 + 0.003) if one only calculates the relevant terms
         // from I_T on p. 96, but Duffie uses fixed f values, so the inaccuracy is fine (approx. 4.5 Wh/m^2 or 0.016 MJ/m^2)
-        (37.0d, 62.2d, 60d, 2.144d, megaJoule2WattHours(5.025), megaJoule2WattHours(0.812140993078191252)),
+        (
+          37.0d,
+          62.2d,
+          60d,
+          2.144d,
+          megaJoule2WattHours(5.025),
+          megaJoule2WattHours(0.812140993078191252),
+        ),
       )
 
       forAll(testCases) {
@@ -776,7 +784,8 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
           val eBeamH =
             megaJoule2WattHours(0.244) // 0.244 MJ/m^2 = 67.777778 Wh/m^2
           // Diffuse Radiation on a horizontal surface
-          val eDifH = megaJoule2WattHours(0.796) // 0.796 MJ/m^2 = 221.111111 Wh/m^2
+          val eDifH =
+            megaJoule2WattHours(0.796) // 0.796 MJ/m^2 = 221.111111 Wh/m^2
 
           When("the diffuse radiation is calculated")
           val eDifSCalc = pvModel.calcDiffuseRadiationOnSlopedSurfacePerez(
