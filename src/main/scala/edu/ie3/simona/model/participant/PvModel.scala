@@ -548,11 +548,7 @@ final case class PvModel private (
     val delta = eDifH * airMass / extraterrestrialRadiationI0
 
     // == cloud index epsilon  ==//
-    // if we have no clouds, the epsilon bin is 8,
-    // as the epsilon bin for an epsilon in [6.2, inf.[ is 8
-    var x = 8
-
-    if (eDifH.value.doubleValue > 0) {
+    val x = if (eDifH.value.doubleValue > 0) {
       // if we have diffuse radiation on horizontal surface we have to consider
       // the clearness parameter epsilon, which then gives us an epsilon bin x
 
@@ -584,17 +580,23 @@ final case class PvModel private (
         // get the corresponding bin
         val finalEpsilon = epsilon
 
-        x = IntStream
-          .range(0, discreteSkyClearnessCategories.length)
-          .filter((i: Int) =>
+        discreteSkyClearnessCategories.indices
+          .find { i =>
             (finalEpsilon -
               discreteSkyClearnessCategories(i)(0) >= 0) &&
-              (finalEpsilon -
-                discreteSkyClearnessCategories(i)(1) < 0)
-          )
-          .findFirst
-          .getAsInt + 1
+            (finalEpsilon -
+              discreteSkyClearnessCategories(i)(1) < 0)
+          }
+          .map(_ + 1)
+          .getOrElse(8)
+      } else {
+        // epsilon in [6.2, inf.[
+        8
       }
+    } else {
+      // if we have no clouds, the epsilon bin is 8,
+      // as the epsilon bin for an epsilon in [6.2, inf.[ is 8
+      8
     }
 
     // calculate the f_ij components based on the epsilon bin
