@@ -1,6 +1,7 @@
 import com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer
 
 plugins {
+  id 'groovy' // groovy support
   id 'java' // java support
   id 'scala' // scala support
   id 'signing'
@@ -99,6 +100,7 @@ dependencies {
   implementation "ch.qos.logback:logback-classic:1.5.16"
 
   /* testing */
+  testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
   testImplementation 'org.scalatestplus:mockito-3-4_2.13:3.2.10.0'
   testImplementation 'org.mockito:mockito-core:5.15.2' // mocking framework
   testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.19"
