@@ -65,7 +65,6 @@ object GridProvider extends LazyLogging {
                   s"The grid has $n slack nodes. This is currently not supported!"
                 )
               case 1 =>
-
             }
 
             jointGridContainer
