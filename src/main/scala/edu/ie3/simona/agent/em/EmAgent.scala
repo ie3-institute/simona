@@ -231,33 +231,33 @@ object EmAgent {
 
         val allFlexOptions = updatedCore.getFlexOptions
 
+        val (emRef, emMin, emMax) =
+          modelShell.aggregateFlexOptions(allFlexOptions)
+
+        if (emData.outputConfig.flexResult) {
+          val flexResult = new FlexOptionsResult(
+            flexOptionsCore.activeTick.toDateTime(
+              emData.simulationStartDate
+            ),
+            modelShell.uuid,
+            emRef.toMegawatts.asMegaWatt,
+            emMin.toMegawatts.asMegaWatt,
+            emMax.toMegawatts.asMegaWatt,
+          )
+
+          emData.listener.foreach {
+            _ ! FlexOptionsResultEvent(flexResult)
+          }
+        }
+
         emData.parentData match {
           case Right(flexStateData) =>
-            // aggregate flex options and provide to parent
-            val (ref, min, max) =
-              modelShell.aggregateFlexOptions(allFlexOptions)
-
-            if (emData.outputConfig.flexResult) {
-              val flexResult = new FlexOptionsResult(
-                flexOptionsCore.activeTick.toDateTime(
-                  emData.simulationStartDate
-                ),
-                modelShell.uuid,
-                ref.toMegawatts.asMegaWatt,
-                min.toMegawatts.asMegaWatt,
-                max.toMegawatts.asMegaWatt,
-              )
-
-              emData.listener.foreach {
-                _ ! FlexOptionsResultEvent(flexResult)
-              }
-            }
-
+            // provide aggregate flex options to parent
             val flexMessage = ProvideMinMaxFlexOptions(
               modelShell.uuid,
-              ref,
-              min,
-              max,
+              emRef,
+              emMin,
+              emMax,
             )
 
             flexStateData.emAgent ! flexMessage

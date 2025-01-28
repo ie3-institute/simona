@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Introduce ThermalDemandWrapper [#1049](https://github.com/ie3-institute/simona/issues/1049)
 - Added Marius Staudt to list of reviewers [#1057](https://github.com/ie3-institute/simona/issues/1057)
 - Throw exception if the slack node is not directly conected to a transformer. [#525](https://github.com/ie3-institute/simona/issues/525)
+- Added support for topologies without transformers and slack grids with multiple nodes [#1099](https://github.com/ie3-institute/simona/issues/1099)
 - Integration test for thermal grids [#878](https://github.com/ie3-institute/simona/issues/878)
 
 ### Changed
@@ -161,6 +162,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Deployment of `simona` to `Maven Central` in new GHA Pipeline [#1029](https://github.com/ie3-institute/simona/issues/1029)
 - Fixed SonarQube quality gate using the right link for PRs or Branches [#1061](https://github.com/ie3-institute/simona/issues/1061)
 - Fixed ignored EM strategy [#1091](https://github.com/ie3-institute/simona/issues/1091)
+- EM should output flex option results even if it has no parent [#1112](https://github.com/ie3-institute/simona/issues/1112)
 - Refactoring of `ThermalGrid.handleInfeed` to fix thermal storage recharge correctly when empty [#930](https://github.com/ie3-institute/simona/issues/930)
 
 ## [3.0.0] - 2023-08-07
