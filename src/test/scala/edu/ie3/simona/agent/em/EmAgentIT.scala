@@ -287,7 +287,7 @@ class EmAgentIT
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 0L.toDateTime
             emResult.getP should equalWithTolerance(
-              (-0.000416087825).asMegaWatt
+              -0.000416087825.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
         }
@@ -341,7 +341,7 @@ class EmAgentIT
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 13107L.toDateTime
             emResult.getP should equalWithTolerance(
-              (-0.0035281545552).asMegaWatt
+              -0.0035281545552.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
         }
@@ -588,7 +588,7 @@ class EmAgentIT
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 0.toDateTime
             emResult.getP should equalWithTolerance(
-              (-0.000566087824).asMegaWatt
+              -0.000566087824.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(0.001073120041.asMegaVar)
         }
