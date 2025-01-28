@@ -235,7 +235,7 @@ $$
 * {cite:cts}`Zheng.2017` p. 53, formula 2.3b
 * {cite:cts}`Iqbal.1983`
 * {cite:cts}`Spencer.1971`
-* {cite:cts}`Duffie.2013` (the fifth ed. seems to have a typo here)
+* {cite:cts}`Duffie.2013` (the fifth ed. seems to have a typo in formula (1.4.1b): factor $0.000719$ is missing a zero)
 
 
 ### Beam Radiation on Sloped Surface
