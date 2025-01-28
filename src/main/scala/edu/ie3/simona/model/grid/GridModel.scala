@@ -178,7 +178,7 @@ object GridModel {
 
     val _returnAdmittanceMatrixIfValid
         : DenseMatrix[Complex] => DenseMatrix[Complex] = {
-      admittanceMatrix: DenseMatrix[Complex] =>
+      (admittanceMatrix: DenseMatrix[Complex]) =>
         if (
           !breeze.linalg.all(
             { (entry: Complex) =>

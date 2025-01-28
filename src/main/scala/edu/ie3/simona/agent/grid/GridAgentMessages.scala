@@ -11,6 +11,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
+import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantMessage
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.util.scala.quantities.ReactivePower
@@ -95,7 +96,7 @@ object GridAgentMessages {
     (ActorRef[GridAgent.Request], SlackVoltageResponse)
 
   sealed trait ReceivedPowerValues extends ReceivedValues {
-    def values: Vector[PowerRequestResponse[_]]
+    def values: Vector[(ActorRef[_], PowerResponse)]
   }
 
   /** Wrapper for received asset power values (p, q)
@@ -104,7 +105,7 @@ object GridAgentMessages {
     *   the asset power values and their senders
     */
   final case class ReceivedAssetPowerValues(
-      values: Vector[PowerRequestResponse[_]]
+      values: Vector[PowerRequestResponse[ParticipantMessage]]
   ) extends ReceivedPowerValues
 
   /** Wrapper for received grid power values (p, q)
@@ -169,7 +170,7 @@ object GridAgentMessages {
   /** Indicate that the power flow calculation failed, as a reply to a
     * [[RequestGridPower]].
     */
-  final case object FailedPowerFlow extends PowerResponse
+  case object FailedPowerFlow extends PowerResponse
 
   /** Provide power values as a reply to a
     * [[edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage]]
