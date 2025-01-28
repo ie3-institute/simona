@@ -755,7 +755,7 @@ class PvModelSpec extends UnitSpec with GivenWhenThen with DefaultTestData {
       }
     }
 
-    "calculate the estimate diffuse radiation eDifS correctly" in {
+    "calculate the estimated diffuse radiation eDifS correctly" in {
       def megaJoule2WattHours(megajoule: Double): Double=
       {megajoule / (3.6/1000)}
 

@@ -603,7 +603,7 @@ final case class PvModel private (
     val f22 = 0.0012 * pow(x, 3) - 0.0067 * pow(x, 2) + 0.0091 * x - 0.0269
     val f23 = 0.0052 * pow(x, 3) - 0.0971 * pow(x, 2) + 0.2856 * x - 0.1389
 
-    // calculate circuumsolar brightness coefficient f1 and horizon brightness coefficient f2
+    // calculate circumsolar brightness coefficient f1 and horizon brightness coefficient f2
     val f1 = max(0, f11 + f12 * delta + f13 * thetaZInRad)
     val f2 = f21 + f22 * delta + f23 * thetaZInRad
     val aPerez = max(0, cos(thetaGInRad))
