@@ -545,7 +545,7 @@ final case class PvModel private (
     val gammaEInRad = gammaE.toRadians
 
     // == brightness index beta  ==//
-    val beta = eDifH * airMass / extraterrestrialRadiationI0
+    val delta = eDifH * airMass / extraterrestrialRadiationI0
 
     // == cloud index epsilon  ==//
     // if we have no clouds,  the epsilon bin is 8, as epsilon bin for an epsilon in [6.2, inf.[ = 8
@@ -604,8 +604,8 @@ final case class PvModel private (
     val f23 = 0.0052 * pow(x, 3) - 0.0971 * pow(x, 2) + 0.2856 * x - 0.1389
 
     // calculate circuumsolar brightness coefficient f1 and horizon brightness coefficient f2
-    val f1 = max(0, f11 + f12 * beta + f13 * thetaZInRad)
-    val f2 = f21 + f22 * beta + f23 * thetaZInRad
+    val f1 = max(0, f11 + f12 * delta + f13 * thetaZInRad)
+    val f2 = f21 + f22 * delta + f23 * thetaZInRad
     val aPerez = max(0, cos(thetaGInRad))
     val bPerez = max(cos(1.4835298641951802), cos(thetaZInRad))
 
