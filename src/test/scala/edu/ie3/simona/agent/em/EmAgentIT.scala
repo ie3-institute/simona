@@ -558,11 +558,11 @@ class EmAgentIT
         val weatherDependentAgents = Seq(pvAgent, heatPumpAgent)
 
         /* TICK 0
-         LOAD: 0.000269 MW
-         PV:  -0.005685 MW
+         LOAD: 0.269 kW
+         PV:  -5.617 kW
          Heat pump: off, can be turned on or stay off
          -> set point ~3.5 kW (bigger than 50 % rated apparent power): turned on
-         -> remaining -0.000566 MW
+         -> remaining -0.499 kW
          */
 
         emAgentActivation ! Activation(0)
@@ -572,7 +572,7 @@ class EmAgentIT
             0,
             weatherService.ref.toClassic,
             WeatherData(
-              WattsPerSquareMeter(400d),
+              WattsPerSquareMeter(540d),
               WattsPerSquareMeter(200d),
               Celsius(0d),
               MetersPerSecond(0d),
@@ -586,7 +586,7 @@ class EmAgentIT
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 0.toDateTime
             emResult.getP should equalWithTolerance(
-              -0.000566087824.asMegaWatt
+              -0.000498850118.asMegaWatt
             )
             emResult.getQ should equalWithTolerance(0.001073120041.asMegaVar)
         }
@@ -594,11 +594,11 @@ class EmAgentIT
         scheduler.expectMessage(Completion(emAgentActivation, Some(7200)))
 
         /* TICK 7200
-         LOAD: 0.000269 MW (unchanged)
-         PV:  -0.003797 MW
+         LOAD: 0.269 kW (unchanged)
+         PV:  -3.651 kW
          Heat pump: running (turned on from last request), can also be turned off
          -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
-         -> remaining 0 MW
+         -> remaining 1.468 kW
          */
 
         emAgentActivation ! Activation(7200)
@@ -621,17 +621,18 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 7200.toDateTime
-            emResult.getP should equalWithTolerance(0.00132184544484.asMegaWatt)
+            emResult.getP should equalWithTolerance(0.001467624526.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.001073120041.asMegaVar)
         }
 
         scheduler.expectMessage(Completion(emAgentActivation, Some(14400)))
 
         /* TICK 14400
-         LOAD: 0.000269 MW (unchanged)
-         PV:  -0.000066 MW
+         LOAD: 0.269 kW (unchanged)
+         PV:  -0.066 kW
          Heat pump: Is still running, can still be turned off
          -> flex signal is 0 MW: Heat pump is turned off
+         -> remaining 0.203 kW
          */
 
         emAgentActivation ! Activation(14400)
@@ -662,10 +663,11 @@ class EmAgentIT
         scheduler.expectMessage(Completion(emAgentActivation, Some(21600)))
 
         /* TICK 21600
-         LOAD: 0.000269 MW (unchanged)
-         PV:  -0.000032 MW
+         LOAD: 0.269 kW (unchanged)
+         PV:  -0.026 kW
          Heat pump: Is not running, can run or stay off
          -> flex signal is 0 MW: Heat pump is turned off
+         -> remaining 0.242 kW
          */
 
         emAgentActivation ! Activation(21600)
@@ -675,6 +677,7 @@ class EmAgentIT
             21600,
             weatherService.ref.toClassic,
             WeatherData(
+              // Same irradiation, but different angle of the sun
               WattsPerSquareMeter(5d),
               WattsPerSquareMeter(5d),
               Celsius(0d),
@@ -688,17 +691,18 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 21600.toDateTime
-            emResult.getP should equalWithTolerance(0.0002367679996.asMegaWatt)
+            emResult.getP should equalWithTolerance(0.000242284024.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.000088285537.asMegaVar)
         }
 
         scheduler.expectMessage(Completion(emAgentActivation, Some(28665)))
 
         /* TICK 28666
-         LOAD: 0.000269 MW (unchanged)
-         PV:  -0.000032 MW (unchanged)
+         LOAD: 0.269 kW (unchanged)
+         PV:  -0.026 kW (unchanged)
          Heat pump: Is turned on again and cannot be turned off
          -> flex signal is no control -> 0.00485 MW
+         -> remaining 5.092 kW
          */
 
         emAgentActivation ! Activation(28665)
@@ -707,7 +711,7 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 28665.toDateTime
-            emResult.getP should equalWithTolerance(0.0050867679996.asMegaWatt)
+            emResult.getP should equalWithTolerance(0.005092284024.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.001073120040.asMegaVar)
         }
 
