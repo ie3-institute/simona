@@ -54,8 +54,7 @@ trait PvModelITHelper extends PvInputTestData {
     val fileName = "_pv/it/weather.tar.gz"
     val csvRecords: Iterable[CSVRecord] = getCsvRecords(fileName)
 
-    val weatherMap = mutable
-      .Map[ZonedDateTime, mutable.Map[String, WeatherMessage.WeatherData]]()
+    val weatherMap = Map[ZonedDateTime, Map[String, WeatherMessage.WeatherData]]()
 
     for (row <- csvRecords) {
       val time = TimeUtil.withDefaults.toZonedDateTime(row.get(0))
