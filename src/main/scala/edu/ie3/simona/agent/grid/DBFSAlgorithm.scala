@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
-import breeze.linalg.{DenseMatrix, DenseVector}
+import breeze.linalg.DenseVector
 import breeze.math.Complex
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.powerflow.model.FailureCause.CalculationFailed
@@ -806,7 +806,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     * @return
     *   a [[Behavior]]
     */
-  private def checkPowerDifferences(
+  private[grid] def checkPowerDifferences(
       gridAgentBaseData: GridAgentBaseData
   )(implicit
       constantData: GridAgentConstantData,
@@ -817,50 +817,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       ctx.log.debug("Starting the power differences check ...")
       val currentSweepNo = gridAgentBaseData.currentSweepNo
 
-      val gridModel = gridAgentBaseData.gridEnv.gridModel
-
-      /* This is the highest grid agent, therefore no data is received for the slack node. Suppress, that it is looked
-       * up in the empty store. */
-      val (operationPoint, slackNodeVoltages) = composeOperatingPoint(
-        gridModel.gridComponents.nodes,
-        gridModel.gridComponents.transformers,
-        gridModel.gridComponents.transformers3w,
-        gridModel.nodeUuidToIndexMap,
+      slackGridPF(
+        gridAgentBaseData.gridEnv.gridModel,
         gridAgentBaseData.receivedValueStore,
-        gridModel.mainRefSystem,
-        targetVoltageFromReceivedData = false,
-      )
-
-      /* Regarding the power flow result of this grid, there are two cases. If this is the "highest" grid in a
-       * simulation without a three winding transformer, the grid consists of only one node, and we can mock the power
-       * flow results. If there is a three winding transformer apparent, we actually have to perform power flow
-       * calculations, as the high voltage branch of the transformer is modeled here. */
-      (if (gridModel.gridComponents.transformers3w.isEmpty) {
-         val nodeData = operationPoint.map(StateData(_))
-         ValidNewtonRaphsonPFResult(-1, nodeData, DenseMatrix(0d, 0d))
-       } else {
-         ctx.log.debug(
-           "This grid contains a three winding transformer. Perform power flow calculations before assessing the power deviations."
-         )
-         newtonRaphsonPF(
-           gridModel,
-           gridAgentBaseData.powerFlowParams.maxIterations,
-           operationPoint,
-           slackNodeVoltages,
-         )(gridAgentBaseData.powerFlowParams.epsilon)(ctx.log) match {
-           case validPowerFlowResult: ValidNewtonRaphsonPFResult =>
-             ctx.log.debug(
-               "{}",
-               composeValidNewtonRaphsonPFResultVoltagesDebugString(
-                 validPowerFlowResult,
-                 gridModel,
-               ),
-             )
-             validPowerFlowResult
-           case result: PowerFlowResult.FailedPowerFlowResult =>
-             result
-         }
-       }) match {
+        gridAgentBaseData.powerFlowParams,
+      )(ctx.log) match {
         case validResult: ValidNewtonRaphsonPFResult =>
           val updatedGridAgentBaseData: GridAgentBaseData =
             gridAgentBaseData

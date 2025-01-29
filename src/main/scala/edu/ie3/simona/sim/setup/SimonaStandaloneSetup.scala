@@ -108,9 +108,13 @@ class SimonaStandaloneSetup(
     )
 
     /* build the initialization data */
-    subGridTopologyGraph
+    val subGrids = subGridTopologyGraph
       .vertexSet()
       .asScala
+
+    val onlyOneSubGrid = subGrids.size == 1
+
+    subGrids
       .zip(keys)
       .map { case (subGridContainer, key) =>
         /* Get all connections to superior and inferior sub grids */
@@ -140,7 +144,11 @@ class SimonaStandaloneSetup(
           thermalGrids,
         )
 
-        currentActorRef ! CreateGridAgent(gridAgentInitData, key)
+        currentActorRef ! CreateGridAgent(
+          gridAgentInitData,
+          key,
+          onlyOneSubGrid,
+        )
 
         currentActorRef
       }
