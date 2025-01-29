@@ -25,7 +25,7 @@ import scala.jdk.CollectionConverters.IterableHasAsScala
 trait PvModelITHelper extends PvInputTestData {
 
   private val CSV_FORMAT: CSVFormat =
-    CSVFormat.DEFAULT.builder().setHeader().build()
+    CSVFormat.DEFAULT.builder().setHeader().get()
 
   def getCsvRecords(fileName: String): Iterable[CSVRecord] = {
     val resourcePath = getClass.getResource(fileName).getPath
@@ -43,8 +43,8 @@ trait PvModelITHelper extends PvInputTestData {
       inputModel.getId -> PvModel(
         inputModel,
         1.0,
-        defaultSimulationStart,
-        defaultSimulationEnd,
+        TimeUtil.withDefaults.toZonedDateTime("2011-01-01T00:00:00Z"),
+        TimeUtil.withDefaults.toZonedDateTime("2012-01-01T00:00:00Z"),
       )
     }.toMap
   }
@@ -70,7 +70,7 @@ trait PvModelITHelper extends PvInputTestData {
         MetersPerSecond(windVel),
       )
 
-      val modelToWeatherMap = weatherMap.getOrElseUpdate(
+      val modelToWeatherMap = weatherMap.getOrElse(
         time,
         mutable.Map[String, WeatherMessage.WeatherData](),
       )

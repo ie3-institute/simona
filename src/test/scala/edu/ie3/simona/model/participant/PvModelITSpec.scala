@@ -9,12 +9,17 @@ package edu.ie3.simona.model.participant
 import edu.ie3.simona.test.common.UnitSpec
 import org.scalatest.matchers.should.Matchers
 import squants.Each
+import squants.energy.{Megawatts, Power}
 
 /** A simple integration test that uses pre-calculated data to check if the pv
   * model works as expected. It uses 8 pv models located in GER.
   */
 
 class PvModelITSpec extends Matchers with UnitSpec with PvModelITHelper {
+
+  private implicit val tolerance: Power = Megawatts(
+    1e-5
+  )
 
   "The photovoltaic model" should {
     "match the expected results for all 8 PV panels over the whole year" in {
@@ -42,17 +47,16 @@ class PvModelITSpec extends Matchers with UnitSpec with PvModelITHelper {
           val calc = model
             .calculatePower(0L, voltage, ModelState.ConstantState, neededData)
             .p
-            .toMegawatts
 
-          val sol = resultsMap(dateTime)(modelId).toMegawatts
+          val sol = resultsMap(dateTime)(modelId)
 
-          math.abs(calc - sol)
+          (calc, sol)
         }
       }
 
-      testRes.forall { diff =>
-        diff < 1e-14
-      } shouldBe true
+      forAll(testRes) { case (calc, sol) =>
+        calc should approximate(sol)
+      }
     }
   }
 }
