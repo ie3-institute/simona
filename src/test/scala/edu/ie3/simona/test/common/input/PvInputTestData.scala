@@ -68,8 +68,8 @@ trait PvInputTestData
     Quantities.getQuantity(91.23978812713176, StandardUnits.EFFICIENCY),
     Quantities
       .getQuantity(51.75144341774285, StandardUnits.SOLAR_ELEVATION_ANGLE),
-    100,
     0.9,
+    1.0,
     false,
     Quantities.getQuantity(100, StandardUnits.S_RATED),
     0.95,
