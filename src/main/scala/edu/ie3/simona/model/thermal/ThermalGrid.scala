@@ -13,6 +13,7 @@ import edu.ie3.datamodel.models.result.thermal.{
   CylindricalStorageResult,
   ThermalHouseResult,
 }
+import edu.ie3.simona.exceptions.InvalidParameterException
 import edu.ie3.simona.exceptions.agent.InconsistentStateException
 import edu.ie3.simona.model.participant.HpModel.{HpRelevantData, HpState}
 import edu.ie3.simona.model.thermal.ThermalGrid.{
@@ -581,8 +582,7 @@ object ThermalGrid {
   object ThermalEnergyDemand {
 
     /** Builds a new instance of [[ThermalEnergyDemand]]. If the possible energy
-      * is less than the required energy, this is considered to be a bad state
-      * and the required energy is curtailed to the possible energy.
+      * is less than the required energy, this is considered to be a bad state.
       * @param required
       *   The absolutely required energy to reach target state
       * @param possible
@@ -594,10 +594,19 @@ object ThermalGrid {
         required: Energy,
         possible: Energy,
     ): ThermalEnergyDemand = {
-      if (possible < required)
-        new ThermalEnergyDemand(possible, possible)
-      else
-        new ThermalEnergyDemand(required, possible)
+      if (
+        math.abs(possible.toKilowattHours) < math.abs(required.toKilowattHours)
+      )
+        throw new InvalidParameterException(
+          s"The possible amount of energy $possible is smaller than the required amount of energy $required. This is not supported."
+        )
+
+      if (possible.toKilowattHours < 0 || required.toKilowattHours < 0)
+        throw new InvalidParameterException(
+          s"The possible $possible or required $required amount of energy cannot be negative. This is not supported."
+        )
+
+      new ThermalEnergyDemand(required, possible)
     }
 
     def noDemand: ThermalEnergyDemand = ThermalEnergyDemand(
