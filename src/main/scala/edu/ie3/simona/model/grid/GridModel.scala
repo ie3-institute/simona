@@ -633,30 +633,12 @@ object GridModel {
     */
   def updateUuidToIndexMap(gridModel: GridModel): Unit = {
 
-    val switches = gridModel.gridComponents.switches
+    val switches = gridModel.gridComponents.switches.filter(_.isClosed)
     val nodes = gridModel.gridComponents.nodes.distinct
 
-    // map for each node that is directly connected to a switch,
-    // to all nodes that are directly connected via switch
-    val nodeConnections: Map[UUID, Set[UUID]] =
-      switches.filter(_.isClosed).foldLeft(Map.empty[UUID, Set[UUID]]) {
-        (acc, switch) =>
-          acc
-            .updated(
-              switch.nodeAUuid,
-              acc.getOrElse(switch.nodeAUuid, Set.empty) + switch.nodeBUuid,
-            )
-            .updated(
-              switch.nodeBUuid,
-              acc.getOrElse(switch.nodeBUuid, Set.empty) + switch.nodeAUuid,
-            )
-      }
-
-    // create sets of nodes to be fused together and assign common indices
-    val switchConnectedNodes =
-      findConnectedNodes(nodeConnections).zipWithIndex.flatMap {
-        case (nodes, idx) => nodes.map(_ -> idx)
-      }.toMap
+    val switchConnectedNodes = groupNodes(switches).zipWithIndex.flatMap {
+      case (nodes, idx) => nodes.map(_ -> idx)
+    }.toMap
 
     // also account for all missing nodes (not connected to a switch)
     val offset = switchConnectedNodes.values.maxOption.map(_ + 1).getOrElse(0)
@@ -672,6 +654,28 @@ object GridModel {
       }
 
     gridModel._nodeUuidToIndexMap = updatedNodeToUuidMap
+  }
+
+  // todo: add scaladoc
+  def groupNodes(switches: Set[SwitchModel]): Seq[Seq[UUID]] = {
+
+    // map for each node that is directly connected to a switch,
+    // to all nodes that are directly connected via switch
+    val nodeConnections: Map[UUID, Set[UUID]] =
+      switches.foldLeft(Map.empty[UUID, Set[UUID]]) { (acc, switch) =>
+        acc
+          .updated(
+            switch.nodeAUuid,
+            acc.getOrElse(switch.nodeAUuid, Set.empty) + switch.nodeBUuid,
+          )
+          .updated(
+            switch.nodeBUuid,
+            acc.getOrElse(switch.nodeBUuid, Set.empty) + switch.nodeAUuid,
+          )
+      }
+
+    // create sets of nodes to be fused together and assign common indices
+    findConnectedNodes(nodeConnections)
   }
 
   /** Build sets of connected nodes via depth-first search
