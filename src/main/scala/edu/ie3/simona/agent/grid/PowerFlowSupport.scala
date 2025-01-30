@@ -320,9 +320,24 @@ trait PowerFlowSupport {
       a.index == b.index,
       "Preset Data should only be combined when they map to the same index.",
     )
+
+    // workaround if one of the two nodes is a slack node
+    if (a.nodeType == NodeType.SL && a.nodeType != b.nodeType) {
+      return combinePresetData(
+        a,
+        b.copy(nodeType = NodeType.SL, targetVoltage = a.targetVoltage),
+      )
+    }
+    if (b.nodeType == NodeType.SL && a.nodeType != b.nodeType) {
+      return combinePresetData(
+        a.copy(nodeType = NodeType.SL, targetVoltage = b.targetVoltage),
+        b,
+      )
+    }
+
     require(
       a.nodeType == b.nodeType,
-      "Preset Data combination is only supported for the same node types for now.",
+      s"Preset Data combination is only supported for the same node types for now. (Type a: ${a.nodeType}, type b: ${b.nodeType})",
     )
     require(
       math.abs(a.targetVoltage - b.targetVoltage) < 1e-6,

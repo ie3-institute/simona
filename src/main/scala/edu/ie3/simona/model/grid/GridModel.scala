@@ -397,6 +397,8 @@ object GridModel {
       throw new InvalidGridException("The grid contains no nodes.")
     val noLines =
       gridModel.gridComponents.lines == null || gridModel.gridComponents.lines.isEmpty
+    val noSwitches =
+      gridModel.gridComponents.switches == null || gridModel.gridComponents.switches.isEmpty
     val noTransformers2w =
       gridModel.gridComponents.transformers == null || gridModel.gridComponents.transformers.isEmpty
     val noTransformers3w =
@@ -404,7 +406,7 @@ object GridModel {
     val noOfNodes = gridModel.gridComponents.nodes.size
     val noOfSlackNodes = gridModel.slackNodesIndices.size
     if (
-      noLines && noTransformers2w && noTransformers3w && (noOfNodes > noOfSlackNodes)
+      noLines && noSwitches && noTransformers2w && noTransformers3w && (noOfNodes > noOfSlackNodes)
     )
       throw new InvalidGridException(
         "The grid contains no basic branch elements (lines or transformers)."

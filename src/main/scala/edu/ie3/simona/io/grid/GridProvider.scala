@@ -51,6 +51,19 @@ object GridProvider extends LazyLogging {
             // checks the grid container and throws exception if there is an error
             ValidationUtils.check(jointGridContainer)
 
+            // workaround to check connectivity with open switches
+            // todo: fix open switches in connectivity check
+            val rawGrid = jointGridContainer.getRawGrid
+            val rawGridWithoutOpenSwitches = rawGrid
+              .copy()
+              .switches(rawGrid.getSwitches.asScala.filter(_.isClosed).asJava)
+              .build()
+            val jointGridWithoutOpenSwitches = jointGridContainer
+              .copy()
+              .rawGrid(rawGridWithoutOpenSwitches)
+              .build()
+            ValidationUtils.check(jointGridWithoutOpenSwitches)
+
             // check number of slack nodes
             val numberOfSlack =
               jointGridContainer.getRawGrid.getNodes.asScala.filter(_.isSlack)
