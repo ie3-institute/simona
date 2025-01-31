@@ -134,9 +134,8 @@ final case class ThermalHouse(
   }
 
   /** Calculate the needed energy to change from start temperature to target
-    * temperature. Since we consider a temperatureTolerance in
-    * [[isInnerTemperatureTooHigh()]] we need to lower the startTemperature as
-    * well by this tolerance.
+    * temperature. In edge cases the temperatureDelta can be negative. Then the
+    * temperatureDelta is set to zero, resulting in an energy demand of zeroKWh.
     *
     * @param targetTemperature
     *   The target temperature to reach
@@ -149,9 +148,15 @@ final case class ThermalHouse(
       targetTemperature: Temperature,
       startTemperature: Temperature,
   ): Energy = {
-    ethCapa * Kelvin(
-      targetTemperature.toKelvinScale - (startTemperature - temperatureTolerance).toKelvinScale
-    )
+
+    val temperatureDelta =
+      targetTemperature.toKelvinScale - startTemperature.toKelvinScale
+    val temperatureDiff =
+      if (temperatureDelta < 0)
+        Kelvin(0)
+      else Kelvin(temperatureDelta)
+
+    ethCapa * temperatureDiff
   }
 
   /** Check if inner temperature is higher than preferred maximum temperature
