@@ -11,9 +11,11 @@ import edu.ie3.simona.config.OutputConfig._
 
 final case class OutputConfig(
     base: OutputBaseConfig,
-    sink: OutputSinkConfig = OutputSinkConfig.csv,
+    flex: Boolean,
     grid: GridOutputConfig,
+    log: LogOutputConfig,
     participant: ParticipantOutputConfig,
+    sink: OutputSinkConfig = OutputSinkConfig.csv,
     thermal: ThermalOutputConfig,
 )
 
@@ -62,10 +64,9 @@ object OutputConfig {
   )
 
   final case class SimpleOutputConfig(
-                                       override val notifier: java.lang.String,
-                                       override val simulationResult: Boolean,
-
-                                     ) extends BaseOutputConfig(notifier, simulationResult)
+      override val notifier: String,
+      override val simulationResult: Boolean,
+  ) extends BaseOutputConfig(notifier, simulationResult)
 
   sealed abstract class BaseOutputConfig(
       val notifier: String,
@@ -73,14 +74,18 @@ object OutputConfig {
   )
 
   final case class ThermalOutputConfig(
-                                        defaultConfig: SimpleOutputConfig,
-                                        individualConfigs: Seq[SimpleOutputConfig],
-                                      )
+      defaultConfig: SimpleOutputConfig,
+      individualConfigs: Seq[SimpleOutputConfig],
+  )
 
   case class ParticipantBaseOutputConfig(
-                                          override val notifier: java.lang.String,
-                                          override val simulationResult: Boolean,
-                                          flexResult: Boolean,
-                                          powerRequestReply: Boolean,
-                                        )extends BaseOutputConfig(notifier, simulationResult)
+      override val notifier: String,
+      override val simulationResult: Boolean,
+      flexResult: Boolean,
+      powerRequestReply: Boolean,
+  ) extends BaseOutputConfig(notifier, simulationResult)
+
+  final case class LogOutputConfig(
+      level: String
+  )
 }

@@ -6,17 +6,14 @@
 
 package edu.ie3.simona.config
 
+import com.typesafe.config.Config
 import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.util.TimeUtil
 import pureconfig._
-import pureconfig.error.{
-  CannotParse,
-  CannotRead,
-  ConvertFailure,
-  ThrowableFailure,
-}
+import pureconfig.error.{CannotParse, CannotRead, ConvertFailure, ThrowableFailure}
 import pureconfig.generic.ProductHint
 import pureconfig.generic.auto._
+import tscfg.codeDefs.resources.ScalaDefs.$TsCfgValidator
 
 import java.nio.file.{Files, Path}
 import java.time.ZonedDateTime
@@ -32,8 +29,9 @@ case class SimonaConfig(
     gridConfig: GridConfig,
     event: EventConfig = EventConfig(None),
     control: Option[ControlConfig] = None,
-)
+) {
 
+}
 
 object SimonaConfig {
   implicit def productHint[T]: ProductHint[T] =
@@ -73,12 +71,14 @@ object SimonaConfig {
   }
 
   case class TimeConfig(
-                         // TODO: remove  date time defaults ?
-                         startDateTime: ZonedDateTime = TimeUtil.withDefaults.toZonedDateTime("2011-05-01 00:00:00"),
-                         endDateTime: ZonedDateTime = TimeUtil.withDefaults.toZonedDateTime("2011-05-01 01:00:00"),
-                         // fixme? : stopOnFailedPowerFlow in PowerFlowConfig?
-                         stopOnFailedPowerFlow: Boolean = false,
-                         schedulerReadyCheckWindow: Option[Int] = None,
+      // TODO: remove  date time defaults ?
+      startDateTime: ZonedDateTime =
+        TimeUtil.withDefaults.toZonedDateTime("2011-05-01 00:00:00"),
+      endDateTime: ZonedDateTime =
+        TimeUtil.withDefaults.toZonedDateTime("2011-05-01 01:00:00"),
+      // fixme? : stopOnFailedPowerFlow in PowerFlowConfig?
+      stopOnFailedPowerFlow: Boolean = false,
+      schedulerReadyCheckWindow: Option[Int] = None,
   )
 
   final case class PowerFlowConfig(
@@ -94,7 +94,7 @@ object SimonaConfig {
   )
 
   final case class GridConfig(
-      refSystems: Seq[RefSystemConfig]
+      refSystems: Option[Seq[RefSystemConfig]]
   )
 
   final case class RefSystemConfig(
@@ -103,7 +103,6 @@ object SimonaConfig {
       voltLvls: Option[Seq[VoltLvlConfig]],
       gridIds: Option[Seq[String]],
   )
-
 
   final case class VoltLvlConfig(
       id: String,

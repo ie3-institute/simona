@@ -40,7 +40,6 @@ import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
-import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.adapter.{
@@ -84,7 +83,7 @@ class SimonaStandaloneSetup(
       )
       .getSubGridTopologyGraph
     val thermalGridsByThermalBus = GridProvider.getThermalGridsFromConfig(
-      simonaConfig.simona.input.grid.datasource
+      simonaConfig.input.grid.datasource
     )
 
     /* extract and prepare refSystem information from config */
@@ -149,9 +148,8 @@ class SimonaStandaloneSetup(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
   ): ClassicRef = {
-    val simulationStart = TimeUtil.withDefaults.toZonedDateTime(
-      simonaConfig.time.startDateTime
-    )
+    val simulationStart = simonaConfig.time.startDateTime
+
     val primaryServiceProxy = context.toClassic.simonaActorOf(
       PrimaryServiceProxy.props(
         scheduler.toClassic,
@@ -175,10 +173,8 @@ class SimonaStandaloneSetup(
     val weatherService = context.toClassic.simonaActorOf(
       WeatherService.props(
         scheduler.toClassic,
-        TimeUtil.withDefaults
-          .toZonedDateTime(simonaConfig.time.startDateTime),
-        TimeUtil.withDefaults
-          .toZonedDateTime(simonaConfig.time.endDateTime),
+        simonaConfig.time.startDateTime,
+        simonaConfig.time.endDateTime,
       ),
       "weatherAgent",
     )
@@ -268,18 +264,14 @@ class SimonaStandaloneSetup(
       simulation: ActorRef[SimonaSim.SimulationEnded.type],
       runtimeEventListener: ActorRef[RuntimeEvent],
   ): ActorRef[TimeAdvancer.Request] = {
-    val startDateTime = TimeUtil.withDefaults.toZonedDateTime(
-      simonaConfig.simona.time.startDateTime
-    )
-    val endDateTime = TimeUtil.withDefaults.toZonedDateTime(
-      simonaConfig.simona.time.endDateTime
-    )
+    val startDateTime = simonaConfig.time.startDateTime
+    val endDateTime = simonaConfig.time.endDateTime
 
     context.spawn(
       TimeAdvancer(
         simulation,
         Some(runtimeEventListener),
-        simonaConfig.simona.time.schedulerReadyCheckWindow,
+        simonaConfig.time.schedulerReadyCheckWindow,
         endDateTime.toTick(startDateTime),
       ),
       TimeAdvancer.getClass.getSimpleName,
@@ -303,9 +295,9 @@ class SimonaStandaloneSetup(
     context
       .spawn(
         RuntimeEventListener(
-          simonaConfig.simona.runtime.listener,
+          simonaConfig.runtime.listener,
           runtimeEventQueue,
-          startDateTimeString = simonaConfig.simona.time.startDateTime,
+          startDateTime = simonaConfig.time.startDateTime,
         ),
         RuntimeEventListener.getClass.getSimpleName,
       )
@@ -382,15 +374,15 @@ class SimonaStandaloneSetup(
 object SimonaStandaloneSetup extends LazyLogging with SetupHelper {
 
   def apply(
+      typeSafeConfig: Config,
       simonaConfig: SimonaConfig,
-      tscfg: Config,
       resultFileHierarchy: ResultFileHierarchy,
       runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
       mainArgs: Array[String] = Array.empty[String],
   ): SimonaStandaloneSetup =
     new SimonaStandaloneSetup(
       typeSafeConfig,
-      SimonaConfig(typeSafeConfig),
+      simonaConfig(typeSafeConfig),
       resultFileHierarchy,
       runtimeEventQueue,
       mainArgs,

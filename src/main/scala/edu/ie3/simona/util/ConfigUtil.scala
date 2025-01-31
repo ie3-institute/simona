@@ -7,16 +7,35 @@
 package edu.ie3.simona.util
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.io.connectors.{CouchbaseConnector, InfluxDbConnector, SqlConnector}
-import edu.ie3.datamodel.models.result.connector.{LineResult, SwitchResult, Transformer2WResult, Transformer3WResult}
-import edu.ie3.datamodel.io.connectors.{CouchbaseConnector, InfluxDbConnector, SqlConnector}
-import edu.ie3.datamodel.models.result.connector.{LineResult, SwitchResult, Transformer2WResult, Transformer3WResult}
+import edu.ie3.datamodel.io.connectors.{
+  CouchbaseConnector,
+  InfluxDbConnector,
+  SqlConnector,
+}
+import edu.ie3.datamodel.models.result.connector.{
+  LineResult,
+  SwitchResult,
+  Transformer2WResult,
+  Transformer3WResult,
+}
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
-import edu.ie3.simona.config.IoConfigUtils.{BaseKafkaParams, BaseSqlParams, CouchbaseParams, CsvParams, SqlParams}
-import edu.ie3.simona.config.OutputConfig.{GridOutputConfig, ParticipantOutputConfig, ThermalOutputConfig}
-import edu.ie3.simona.config.RuntimeConfig.{BaseRuntimeConfig, RuntimeParticipantsConfig}
-import edu.ie3.simona.config.{OutputConfig, SimonaConfig}
-import edu.ie3.simona.config.SimonaConfig._
+import edu.ie3.simona.config.IoConfigUtils.{
+  BaseKafkaParams,
+  CouchbaseParams,
+  CsvParams,
+  SqlParams,
+}
+import edu.ie3.simona.config.OutputConfig
+import edu.ie3.simona.config.OutputConfig.{
+  GridOutputConfig,
+  ParticipantOutputConfig,
+  SimpleOutputConfig,
+  ThermalOutputConfig,
+}
+import edu.ie3.simona.config.RuntimeConfig.{
+  BaseRuntimeConfig,
+  RuntimeParticipantsConfig,
+}
 import edu.ie3.simona.event.notifier.{Notifier, NotifierConfig}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import org.apache.kafka.clients.admin.AdminClient
@@ -76,19 +95,7 @@ object ConfigUtil {
     def apply(
         subConfig: RuntimeParticipantsConfig
     ): ParticipantConfigUtil = {
-      val default: Map[Class[_], BaseRuntimeConfig] =
-        subConfig.asSeq
-          .map(_.defaultConfig)
-          .map { conf => conf.getClass -> conf }
-          .toMap
-      val individual =
-        buildUuidMapping(
-          subConfig.asSeq.flatMap(_.individualConfigs)
-        )
       ParticipantConfigUtil(
-        individual,
-        default,
-        /*fixme mh different subConfigs added
         buildUuidMapping(
           Seq(
             subConfig.load.individualConfigs,
@@ -110,8 +117,6 @@ object ConfigUtil {
           subConfig.storage.defaultConfig,
           subConfig.em.defaultConfig,
         ).map { conf => conf.getClass -> conf }.toMap,
-
-         */
       )
     }
 
@@ -197,7 +202,7 @@ object ConfigUtil {
     ): OutputConfigUtil = {
       val defaultConfig = subConfig.defaultConfig match {
 
-        case OutputConfig.BaseOutputConfig(
+        case OutputConfig.ParticipantBaseOutputConfig(
               _,
               powerRequestReply,
               simulationResult,
@@ -208,7 +213,7 @@ object ConfigUtil {
       }
       val configMap = subConfig.individualConfigs.map {
 
-        case OutputConfig.BaseOutputConfig(
+        case OutputConfig.ParticipantBaseOutputConfig(
               notifier,
               powerRequestReply,
               simulationResult,

@@ -9,11 +9,21 @@ package edu.ie3.simona.config
 import com.typesafe.config.{Config, ConfigException}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.config.ControlConfig.TransformerControlGroup
-import edu.ie3.simona.config.InputConfig.{CoordinateSourceConfig, WeatherSampleParams}
+import edu.ie3.simona.config.InputConfig.{
+  CoordinateSourceConfig,
+  WeatherSampleParams,
+}
 import edu.ie3.simona.config.IoConfigUtils._
-import edu.ie3.simona.config.OutputConfig.{BaseOutputConfig, ThermalOutputConfig}
-import edu.ie3.simona.config.RuntimeConfig.{BaseRuntimeConfig, RuntimeParticipantConfig, StorageRuntimeConfig}
-import edu.ie3.simona.config.SimonaConfig.{RefSystemConfig, _}
+import edu.ie3.simona.config.OutputConfig.{
+  BaseOutputConfig,
+  ThermalOutputConfig,
+}
+import edu.ie3.simona.config.RuntimeConfig.{
+  BaseRuntimeConfig,
+  RuntimeParticipantConfig,
+  StorageRuntimeConfig,
+}
+import edu.ie3.simona.config.SimonaConfig.RefSystemConfig
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
@@ -21,15 +31,18 @@ import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.weather.WeatherSource.WeatherScheme
 import edu.ie3.simona.util.CollectionUtils
 import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.checkBaseCsvParams
-import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{checkCouchbaseParams, checkInfluxDb1xParams, checkKafkaParams, checkSqlParams}
+import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
+  checkCouchbaseParams,
+  checkInfluxDb1xParams,
+  checkKafkaParams,
+  checkSqlParams,
+}
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
+import edu.ie3.util.StringUtils
 import edu.ie3.util.scala.ReflectionTools
-import edu.ie3.util.{StringUtils, TimeUtil}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
-import java.time.ZonedDateTime
-import java.time.format.DateTimeParseException
 import java.util.UUID
 import scala.util.{Failure, Success, Try}
 
@@ -108,9 +121,9 @@ case object ConfigFailFast extends LazyLogging {
     checkTimeConfig(simonaConfig.time)
 
     // check if the provided combinations of refSystems provided are valid
-    val refSystems = List(simonaConfig.gridConfig.refSystems)
+    val refSystems = simonaConfig.gridConfig.refSystems
     if (refSystems.nonEmpty)
-      refSystems.foreach(refsys => checkRefSystem(refsys.toList))
+      refSystems.foreach(refSys => checkRefSystem(refSys.toList))
 
     /* Check all participant model configurations */
     checkParticipantRuntimeConfiguration(
@@ -227,8 +240,6 @@ case object ConfigFailFast extends LazyLogging {
           s"Please ensure that the start time of the simulation is before the end time."
       )
   }
-
-
 
   /** Checks all participant model runtime sub configuration trees
     *
@@ -392,12 +403,12 @@ case object ConfigFailFast extends LazyLogging {
     *   a list of [[SimonaConfig.RefSystemConfig]]s that should be checked
     */
 
-  private def checkRefSystem(refSystems: List[RefSystemConfig]): Unit = {
+  private def checkRefSystem(refSystems: Seq[RefSystemConfig]): Unit = {
     refSystems.foreach { refSystem =>
       {
         val voltLvls =
-          refSystem.voltLvls.getOrElse(List.empty[SimonaConfig.VoltLvlConfig])
-        val gridIds = refSystem.gridIds.getOrElse(List.empty[String])
+          refSystem.voltLvls.getOrElse(Seq.empty[SimonaConfig.VoltLvlConfig])
+        val gridIds = refSystem.gridIds.getOrElse(Seq.empty[String])
 
         if (voltLvls.isEmpty && gridIds.isEmpty)
           throw new InvalidConfigParameterException(

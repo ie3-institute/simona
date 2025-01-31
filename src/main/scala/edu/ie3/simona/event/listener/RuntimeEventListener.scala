@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.event.listener
 
-import edu.ie3.simona.config.{RuntimeConfig, SimonaConfig}
+import edu.ie3.simona.config.RuntimeConfig
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent.PowerFlowFailed
 import edu.ie3.simona.io.runtime.RuntimeEventSink.RuntimeStats
@@ -16,10 +16,10 @@ import edu.ie3.simona.io.runtime.{
   RuntimeEventQueueSink,
   RuntimeEventSink,
 }
-import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{Behavior, PostStop}
 
+import java.time.ZonedDateTime
 import java.util.concurrent.BlockingQueue
 
 /** Listener that handles all runtime events. Multiple sinks can be configured
@@ -36,7 +36,7 @@ object RuntimeEventListener {
     *   configuration that determines additional sinks and event filters
     * @param queue
     *   if present, received events are appended to this queue
-    * @param startDateTimeString
+    * @param startDateTime
     *   the simulation start time
     * @return
     *   the [[RuntimeEventListener]] behavior
@@ -44,12 +44,12 @@ object RuntimeEventListener {
   def apply(
       listenerConf: RuntimeConfig.RuntimeListenerConfig,
       queue: Option[BlockingQueue[RuntimeEvent]],
-      startDateTimeString: String,
+      startDateTime: ZonedDateTime,
   ): Behavior[Request] = Behaviors.setup { ctx =>
     val listeners = Iterable(
       Some(
         RuntimeEventLogSink(
-          TimeUtil.withDefaults.toZonedDateTime(startDateTimeString),
+          startDateTime,
           ctx.log,
         )
       ),
