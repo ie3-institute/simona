@@ -59,14 +59,11 @@ trait PvModelITHelper extends PvInputTestData {
       val time = TimeUtil.withDefaults.toZonedDateTime(row.get(0))
       val modelId = row.get(1)
 
-      val temp = 0.0
-      val windVel = 0.0
-
       val weather = WeatherMessage.WeatherData(
         WattsPerSquareMeter(row.get(22).replace("Wh/m²", "").toDouble),
         WattsPerSquareMeter(row.get(21).replace("Wh/m²", "").toDouble),
-        Kelvin(temp),
-        MetersPerSecond(windVel),
+        Kelvin(0.0),
+        MetersPerSecond(0.0),
       )
 
       val modelToWeatherMap = weatherDataMap.getOrElse(

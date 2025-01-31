@@ -30,7 +30,7 @@ class PvModelITSpec extends Matchers with UnitSpec with PvModelITHelper {
       val modelIds = pvModels.keys.toList.sorted
       val keyList = weatherMap.keys.toList.sorted
 
-      val testRes = keyList.flatMap { dateTime =>
+      keyList.foreach { dateTime =>
         val modelToWeatherMap = weatherMap(dateTime)
 
         modelIds.map { modelId =>
@@ -50,12 +50,8 @@ class PvModelITSpec extends Matchers with UnitSpec with PvModelITHelper {
 
           val sol = resultsMap(dateTime)(modelId)
 
-          (calc, sol)
+          calc should approximate(sol)
         }
-      }
-
-      forAll(testRes) { case (calc, sol) =>
-        calc should approximate(sol)
       }
     }
   }
