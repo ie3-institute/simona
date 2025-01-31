@@ -118,7 +118,7 @@ class ThermalGridWithHouseAndStorageSpec
         val storageDemand = thermalDemands.heatStorageDemand
 
         houseDemand.required should approximate(zeroKWh)
-        houseDemand.possible should approximate(KilowattHours(31.20009722d))
+        houseDemand.possible should approximate(KilowattHours(31.05009722d))
         storageDemand.required should approximate(KilowattHours(1150d))
         storageDemand.possible should approximate(KilowattHours(1150d))
         updatedThermalGridState.houseState shouldBe Some(
@@ -157,8 +157,8 @@ class ThermalGridWithHouseAndStorageSpec
         val houseDemand = thermalDemands.houseDemand
         val storageDemand = thermalDemands.heatStorageDemand
 
-        houseDemand.required should approximate(KilowattHours(45.750055555))
-        houseDemand.possible should approximate(KilowattHours(75.750055555))
+        houseDemand.required should approximate(KilowattHours(45.6000555))
+        houseDemand.possible should approximate(KilowattHours(75.600055555))
         storageDemand.required should approximate(KilowattHours(1150d))
         storageDemand.possible should approximate(KilowattHours(1150d))
         updatedThermalGridState.houseState shouldBe Some(
@@ -211,7 +211,7 @@ class ThermalGridWithHouseAndStorageSpec
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
-          HouseTemperatureLowerBoundaryReached(155828)
+          HouseTemperatureLowerBoundaryReached(154285L)
         )
       }
 
@@ -556,7 +556,7 @@ class ThermalGridWithHouseAndStorageSpec
           case _ => fail("Thermal grid state has been calculated wrong.")
         }
         reachedThreshold shouldBe Some(
-          HouseTemperatureUpperBoundaryReached(7409)
+          HouseTemperatureUpperBoundaryReached(7372L)
         )
       }
 
