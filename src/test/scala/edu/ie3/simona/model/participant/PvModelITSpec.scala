@@ -18,7 +18,7 @@ import squants.energy.{Megawatts, Power}
 class PvModelITSpec extends Matchers with UnitSpec with PvModelITHelper {
 
   private implicit val tolerance: Power = Megawatts(
-    1e-5
+    1e-14
   )
 
   "The photovoltaic model" should {
