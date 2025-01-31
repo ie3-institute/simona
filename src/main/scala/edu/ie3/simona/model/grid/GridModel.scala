@@ -528,18 +528,12 @@ object GridModel {
       subGridContainer.getRawGrid.getTransformer2Ws.asScala.map {
         transformer2wInput =>
           val (nodeA, _) = getConnectedNodes(transformer2wInput, nodes)
-          if (nodeA.isSlack) {
-            TransformerModel(
-              transformer2wInput,
-              refSystem,
-              startDate,
-              endDate,
-            )
-          } else {
-            throw new InvalidGridException(
-              s"NodeA: ${transformer2wInput.getNodeA.getUuid} for transformer ${transformer2wInput.getUuid} is not set as slack. This has to be corrected first!"
-            )
-          }
+          TransformerModel(
+            transformer2wInput,
+            refSystem,
+            startDate,
+            endDate,
+          )
       }.toSet
 
     // / transformers3w
