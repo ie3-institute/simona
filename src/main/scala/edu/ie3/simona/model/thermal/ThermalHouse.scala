@@ -149,7 +149,9 @@ final case class ThermalHouse(
       targetTemperature: Temperature,
       startTemperature: Temperature,
   ): Energy = {
-    ethCapa * Kelvin(targetTemperature.toKelvinScale - (startTemperature - temperatureTolerance).toKelvinScale)
+    ethCapa * Kelvin(
+      targetTemperature.toKelvinScale - (startTemperature - temperatureTolerance).toKelvinScale
+    )
   }
 
   /** Check if inner temperature is higher than preferred maximum temperature
