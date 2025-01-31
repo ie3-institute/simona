@@ -119,6 +119,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `simonaAPI` to version `0.6.0` [#1080](https://github.com/ie3-institute/simona/issues/1080)
 - Enhanced title in `CITATION.cff` [#1088](https://github.com/ie3-institute/simona/issues/1088)
 - Refactor ThermalEnergyDemand definitions [#917](https://github.com/ie3-institute/simona/issues/917)
+- Rewrote PvModelIT from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
