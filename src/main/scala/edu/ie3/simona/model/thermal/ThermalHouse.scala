@@ -119,7 +119,7 @@ final case class ThermalHouse(
           currentInnerTemp,
           temperatureToTriggerRequiredEnergy,
         )
-      ) energy(targetTemperature, currentInnerTemp)
+      ) energy(temperatureToTriggerRequiredEnergy, currentInnerTemp)
       else
         zeroMWh
 
@@ -174,9 +174,7 @@ final case class ThermalHouse(
       innerTemperature: Temperature,
       boundaryTemperature: Temperature = lowerBoundaryTemperature,
   ): Boolean =
-    innerTemperature < Kelvin(
-      boundaryTemperature.toKelvinScale + temperatureTolerance.toKelvinScale
-    )
+    innerTemperature < boundaryTemperature
 
   /** Calculate the new inner temperature of the thermal house.
     *
