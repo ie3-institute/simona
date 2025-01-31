@@ -40,7 +40,7 @@ object EmDataCore {
       FlexCorrespondenceStore(),
       None,
       extInitTick,
-      zeroKW,
+      new SetPowerAndControlSignal(None, false),
       None,
     )
 
@@ -68,7 +68,7 @@ object EmDataCore {
       private val correspondences: FlexCorrespondenceStore,
       private val lastActiveTick: Option[Long],
       nextSetPointTick: Option[Long],
-      lastSetPower: Power,
+      lastSetPower: SetPowerAndControlSignal,
       nextSetPointMessage: Option[SetPointFlexRequest],
   ) {
 
@@ -122,7 +122,7 @@ object EmDataCore {
         activeTick = newTick,
         nextSetPointTick = nextSetPointTick,
         lastSetPower = lastSetPower,
-        currentSetPower = None,
+        currentSetPower = new SetPowerAndControlSignal(None, false)
       )
     }
 
@@ -212,8 +212,8 @@ object EmDataCore {
       private val awaitedConnectedAgents: Set[UUID] = Set.empty,
       activeTick: Long,
       nextSetPointTick: Option[Long],
-      lastSetPower: Power,
-      currentSetPower: Option[Power],
+      lastSetPower: SetPowerAndControlSignal,
+      currentSetPower: SetPowerAndControlSignal,
   ) {
 
     def getCorrespondences: FlexCorrespondenceStore = correspondences
@@ -295,7 +295,7 @@ object EmDataCore {
     def isComplete: Boolean =
       awaitedConnectedAgents.isEmpty
 
-    def gotSetPoint: Boolean = currentSetPower.isDefined
+    def gotSetPoint: Boolean = currentSetPower.isUpToDate
 
     def isCompleteAndGotSetPoint: Boolean = isComplete & gotSetPoint
 
@@ -413,8 +413,7 @@ object EmDataCore {
           }.toSet,
           activeTick = activeTick,
           nextSetPointTick = nextSetPointTick,
-          currentSetPower =
-            currentSetPower.getOrElse(throw new RuntimeException("")),
+          currentSetPower = currentSetPower,
         ),
       )
     }
@@ -424,21 +423,23 @@ object EmDataCore {
     ): AwaitingFlexOptions = {
       copy(
         nextSetPointTick = setPointFlexRequest.nextSetPointTick,
-        currentSetPower = Some(setPointFlexRequest.setPower),
+        currentSetPower = new SetPowerAndControlSignal(Some(setPointFlexRequest.setPower), setPointFlexRequest.controlSignal),
       )
     }
 
+    /*
     def updateSetPoint(): AwaitingFlexOptions = {
       copy(
         nextSetPointTick = nextSetPointTick,
         currentSetPower = Some(lastSetPower)
       )
     }
+     */
 
     def handleNoSetPointExpected(): AwaitingFlexOptions = {
       copy(
         nextSetPointTick = nextSetPointTick,
-        currentSetPower = Some(lastSetPower)
+        currentSetPower = lastSetPower,
       )
     }
   }
@@ -471,7 +472,7 @@ object EmDataCore {
       private val awaitedCompletions: Set[UUID],
       activeTick: Long,
       nextSetPointTick: Option[Long] = Option.empty,
-      currentSetPower: Power = zeroKW,
+      currentSetPower: SetPowerAndControlSignal = new SetPowerAndControlSignal(None, false)
   ) {
 
     /** Handles a result by some connected agent for the currently active tick.
@@ -554,5 +555,18 @@ object EmDataCore {
           None,
         )
       }
+  }
+
+  final class SetPowerAndControlSignal(
+                                        setPower: Option[Power],
+                                        controlSignal: Boolean
+                                      ) {
+    def getSetPower: Option[Power] = setPower
+
+    def getControlSignal: Boolean = controlSignal
+
+    def isUpToDate: Boolean = {
+      setPower.isDefined
+    }
   }
 }

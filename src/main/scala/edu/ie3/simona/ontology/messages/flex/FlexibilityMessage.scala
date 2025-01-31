@@ -39,6 +39,7 @@ object FlexibilityMessage {
 
   final case class SetPointFlexRequest(
       tick: Long,
+      controlSignal: Boolean,
       setPower: Power,
       nextSetPointTick: Option[Long],
   ) extends FlexRequest

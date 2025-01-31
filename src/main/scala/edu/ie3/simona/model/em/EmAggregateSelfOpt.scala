@@ -7,10 +7,11 @@
 package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
-import edu.ie3.datamodel.models.input.system.{PvInput, WecInput}
+import edu.ie3.datamodel.models.input.system.{PvInput, StorageInput, WecInput}
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.Power
+import squants.energy.Kilowatts
 
 /** Aggregates flex reference power with the target of reaching 0kW, while
   * optionally excluding positive flex potential of PV/WEC from the calculation
@@ -19,7 +20,10 @@ import squants.Power
   *   Whether to include positive flexibility of PV/WEC in reference sum
   *   calculation
   */
-final case class EmAggregateSelfOpt(curtailRegenerative: Boolean)
+final case class EmAggregateSelfOpt(
+                                     curtailRegenerative: Boolean,
+                                     includeStorageInMax: Boolean
+                                   )
     extends EmAggregateFlex {
 
   override def aggregateFlexOptions(
@@ -51,6 +55,11 @@ final case class EmAggregateSelfOpt(curtailRegenerative: Boolean)
             inputModel match {
               case _: PvInput | _: WecInput =>
                 maxSumExclReg + addMin
+              case _: StorageInput =>
+                if (includeStorageInMax)
+                  maxSumExclReg + addMax
+                else
+                  maxSumExclReg
               case _ => maxSumExclReg + addMax
             }
         }

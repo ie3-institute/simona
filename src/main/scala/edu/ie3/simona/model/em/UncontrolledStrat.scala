@@ -57,6 +57,7 @@ final case class UncontrolledStrat(curtailRegenerative: Boolean)
         (_ <: AssetInput, ProvideMinMaxFlexOptions)
       ],
       target: Power,
+      controlSignal: Boolean
   ): Seq[(UUID, Power)] = Seq.empty
 
   override def adaptFlexOptions(
