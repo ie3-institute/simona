@@ -17,7 +17,11 @@ import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.control.{GridControls, TransformerControlGroupModel}
 import edu.ie3.simona.model.grid.GridModel.GridComponents
-import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{PowerFlowCaseA, PowerFlowCaseB, PowerFlowCaseC}
+import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
+  PowerFlowCaseA,
+  PowerFlowCaseB,
+  PowerFlowCaseC,
+}
 import edu.ie3.simona.util.CollectionUtils
 import org.jgrapht.Graph
 import org.jgrapht.alg.connectivity.ConnectivityInspector
@@ -447,8 +451,8 @@ object GridModel {
     *   Config of ControlGroup
     */
   private def validateControlGroups(
-                                     subGridContainer: SubGridContainer,
-                                     maybeControlConfig: Option[ControlConfig],
+      subGridContainer: SubGridContainer,
+      maybeControlConfig: Option[ControlConfig],
   ): Unit = {
     maybeControlConfig.foreach { control =>
       val measurementUnits =

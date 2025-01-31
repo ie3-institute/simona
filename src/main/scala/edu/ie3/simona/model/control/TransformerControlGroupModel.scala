@@ -77,8 +77,8 @@ object TransformerControlGroupModel {
     *   A set of control group business models
     */
   def buildControlGroups(
-                          measurementUnitInput: Set[MeasurementUnitInput],
-                          config: Iterable[ControlConfig.TransformerControlGroup],
+      measurementUnitInput: Set[MeasurementUnitInput],
+      config: Iterable[ControlConfig.TransformerControlGroup],
   ): Set[TransformerControlGroupModel] = config.map {
     case TransformerControlGroup(measurements, _, vMax, vMin) =>
       val nodeUuids =

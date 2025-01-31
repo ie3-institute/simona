@@ -24,16 +24,15 @@ object RuntimeConfig {
   )
 
   final case class RuntimeParticipantsConfig(
-      em:RuntimeParticipantConfig[EmRuntimeConfig],
+      em: RuntimeParticipantConfig[EmRuntimeConfig],
       evcs: RuntimeParticipantConfig[SimpleRuntimeConfig],
       fixedFeedIn: RuntimeParticipantConfig[SimpleRuntimeConfig],
-      hp:RuntimeParticipantConfig[SimpleRuntimeConfig],
+      hp: RuntimeParticipantConfig[SimpleRuntimeConfig],
       load: RuntimeParticipantConfig[LoadRuntimeConfig],
       pv: RuntimeParticipantConfig[SimpleRuntimeConfig],
       requestVoltageDeviationThreshold: Double = 1e-14,
       storage: RuntimeParticipantConfig[StorageRuntimeConfig],
       wec: RuntimeParticipantConfig[SimpleRuntimeConfig],
-
   ) {
     def asSeq: Seq[RuntimeParticipantConfig[_ <: BaseRuntimeConfig]] = {
       Seq(
