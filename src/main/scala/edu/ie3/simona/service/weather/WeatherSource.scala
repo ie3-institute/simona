@@ -8,36 +8,20 @@ package edu.ie3.simona.service.weather
 
 import edu.ie3.datamodel.exceptions.SourceException
 import edu.ie3.datamodel.io.connectors.SqlConnector
-import edu.ie3.datamodel.io.factory.timeseries.{
-  CosmoIdCoordinateFactory,
-  IconIdCoordinateFactory,
-  SqlIdCoordinateFactory,
-}
+import edu.ie3.datamodel.io.factory.timeseries.{CosmoIdCoordinateFactory, IconIdCoordinateFactory, SqlIdCoordinateFactory}
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.datamodel.io.source.csv.{CsvDataSource, CsvIdCoordinateSource}
 import edu.ie3.datamodel.io.source.sql.SqlIdCoordinateSource
 import edu.ie3.datamodel.models.value.WeatherValue
-import edu.ie3.simona.config.InputConfig.{
-  CoordinateSourceConfig,
-  WeatherDataSourceConfig,
-  WeatherSampleParams,
-}
-import edu.ie3.simona.config.{IoConfigUtils, SimonaConfig}
-import edu.ie3.simona.exceptions.{
-  InvalidConfigParameterException,
-  ServiceException,
-}
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.BaseCsvParams
-import edu.ie3.simona.config.SimonaConfig.Simona.Input.Weather.Datasource._
-import edu.ie3.simona.exceptions.ServiceException
+import edu.ie3.simona.config.InputConfig.{CoordinateSourceConfig, WeatherDataSourceConfig, WeatherSampleParams}
+import edu.ie3.simona.config.IoConfigUtils
+import edu.ie3.simona.exceptions.{InvalidConfigParameterException, ServiceException}
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
-import edu.ie3.simona.service.weather.WeatherSource.{
-  AgentCoordinates,
-  WeightedCoordinates,
-}
+import edu.ie3.simona.service.weather.WeatherSource.{AgentCoordinates, WeightedCoordinates}
 import edu.ie3.simona.service.weather.WeatherSourceWrapper.buildPSDMSource
+import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.checkBaseCsvParams
+import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{checkCouchbaseParams, checkInfluxDb1xParams, checkSqlParams}
 import edu.ie3.simona.util.ParsableEnumeration
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.PowerSystemUnits
@@ -257,27 +241,9 @@ trait WeatherSource {
 object WeatherSource {
 
   def apply(
-      dataSourceConfig: WeatherDataSourceConfig,
-      simulationStart: ZonedDateTime,
-  ): WeatherSource =
-    checkConfig(dataSourceConfig)(simulationStart)
-
-  /** Check the provided weather data source configuration to ensure its
-    * validity. If the configuration is valid, a function to build the
-    * corresponding [[WeatherSource]] instance is returned. For any invalid
-    * configuration parameters exceptions are thrown.
-    *
-    * @param weatherDataSourceCfg
-    *   the config to be checked
-    * @return
-    *   a function that can be used to actually build the configured weather
-    *   data source
-    */
-  def checkConfig(
-      weatherDataSourceCfg: WeatherDataSourceConfig
-  ): ZonedDateTime => WeatherSource = {
-
-    // check and get coordinate source
+             weatherDataSourceCfg: WeatherDataSourceConfig
+           )(implicit simulationStart: ZonedDateTime): WeatherSource = {
+    // get coordinate source
     implicit val coordinateSourceFunction: IdCoordinateSource =
       buildCoordinateSource(weatherDataSourceCfg.coordinateSource)
 
@@ -295,101 +261,13 @@ object WeatherSource {
         s"Expected a WeatherSource, but no source where defined in $weatherDataSourceCfg."
       )
     }
-    val timestampPattern: Option[String] = weatherDataSourceCfg.timeStampPattern
-    val scheme: String = weatherDataSourceCfg.scheme
-    val resolution: Option[Long] = weatherDataSourceCfg.resolution
-    val distance: ComparableQuantity[Length] =
+
+    implicit val resolution: Option[Long] = weatherDataSourceCfg.resolution
+    implicit val distance: ComparableQuantity[Length] =
       Quantities.getQuantity(
         weatherDataSourceCfg.maxCoordinateDistance,
         Units.METRE,
       )
-
-    // check that only one source is defined
-    if (definedWeatherSources.size > 1)
-      throw new InvalidConfigParameterException(
-        s"Multiple weather sources defined: '${definedWeatherSources.map(_.getClass.getSimpleName).mkString("\n\t")}'." +
-          s"Please define only one source!\nAvailable sources:\n\t${supportedWeatherSources.mkString("\n\t")}"
-      )
-    val weatherSourceFunction: ZonedDateTime => WeatherSource =
-      definedWeatherSources.headOption match {
-        case Some(
-              Some(
-                baseCsvParams @ IoConfigUtils.BaseCsvParams(
-                  directoryPath,
-                  csvSep,
-                )
-              )
-            ) =>
-          checkBaseCsvParams(baseCsvParams, "WeatherSource")
-          (simulationStart: ZonedDateTime) =>
-            WeatherSourceWrapper(
-              csvSep,
-              Paths.get(directoryPath),
-              coordinateSourceFunction,
-              timestampPattern,
-              scheme,
-              resolution,
-              distance,
-            )(simulationStart)
-        case Some(Some(params: IoConfigUtils.CouchbaseParams)) =>
-          checkCouchbaseParams(params)
-          (simulationStart: ZonedDateTime) =>
-            WeatherSourceWrapper(
-              params,
-              coordinateSourceFunction,
-              timestampPattern,
-              scheme,
-              resolution,
-              distance,
-            )(simulationStart)
-        case Some(
-              Some(params @ IoConfigUtils.InfluxDb1xParams(database, _, url))
-            ) =>
-          checkInfluxDb1xParams("WeatherSource", url, database)
-          (simulationStart: ZonedDateTime) =>
-            WeatherSourceWrapper(
-              params,
-              coordinateSourceFunction,
-              timestampPattern,
-              scheme,
-              resolution,
-              distance,
-            )(simulationStart)
-        case Some(Some(params: IoConfigUtils.BaseSqlParams)) =>
-          checkSqlParams(params)
-          (simulationStart: ZonedDateTime) =>
-            WeatherSourceWrapper(
-              params,
-              coordinateSourceFunction,
-              timestampPattern,
-              scheme,
-              resolution,
-              distance,
-            )(simulationStart)
-        case Some(Some(_: WeatherSampleParams)) =>
-          // sample weather, no check required
-          // coordinate source must be sample coordinate source
-          // calling the function here is not an issue as the sample coordinate source is already
-          // an object (= no overhead costs)
-          coordinateSourceFunction() match {
-            case _: SampleWeatherSource.SampleIdCoordinateSource.type =>
-              // all fine
-              (simulationStart: ZonedDateTime) =>
-                new SampleWeatherSource()(simulationStart)
-            case coordinateSource =>
-              // cannot use sample weather source with other combination of weather source than sample weather source
-              throw new InvalidConfigParameterException(
-                s"Invalid coordinate source " +
-                  s"'${coordinateSource.getClass.getSimpleName}' defined for SampleWeatherSource. " +
-                  "Please adapt the configuration to use sample coordinate source for weather data!"
-              )
-          }
-        case None | Some(_) =>
-          throw new InvalidConfigParameterException(
-            s"No weather source defined! This is currently not supported! Please provide the config parameters for one " +
-              s"of the following weather sources:\n\t${supportedWeatherSources.mkString("\n\t")}"
-          )
-      }
 
     buildPSDMSource(weatherDataSourceCfg, definedWeatherSources)
       .map(WeatherSourceWrapper.apply)

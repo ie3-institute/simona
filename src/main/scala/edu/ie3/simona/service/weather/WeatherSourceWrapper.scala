@@ -7,38 +7,21 @@
 package edu.ie3.simona.service.weather
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.io.connectors.{
-  CouchbaseConnector,
-  InfluxDbConnector,
-  SqlConnector,
-}
-import edu.ie3.datamodel.io.factory.timeseries.{
-  CosmoTimeBasedWeatherValueFactory,
-  IconTimeBasedWeatherValueFactory,
-}
+import edu.ie3.datamodel.io.connectors.{CouchbaseConnector, InfluxDbConnector, SqlConnector}
+import edu.ie3.datamodel.io.factory.timeseries.{CosmoTimeBasedWeatherValueFactory, IconTimeBasedWeatherValueFactory}
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.source.couchbase.CouchbaseWeatherSource
 import edu.ie3.datamodel.io.source.csv.CsvWeatherSource
 import edu.ie3.datamodel.io.source.influxdb.InfluxDbWeatherSource
 import edu.ie3.datamodel.io.source.sql.SqlWeatherSource
-import edu.ie3.datamodel.io.source.{
-  IdCoordinateSource,
-  WeatherSource => PsdmWeatherSource,
-}
-import edu.ie3.simona.config.IoConfigUtils.{
-  CouchbaseParams,
-  InfluxDb1xParams,
-  SqlParams,
-}
+import edu.ie3.datamodel.io.source.{IdCoordinateSource, WeatherSource => PsdmWeatherSource}
+import edu.ie3.simona.config.InputConfig.WeatherDataSourceConfig
+import edu.ie3.simona.config.IoConfigUtils.{BaseCsvParams, CouchbaseParams, InfluxDb1xParams, SqlParams}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.ontology.messages.services.WeatherMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.WeatherData
-import edu.ie3.simona.service.weather.WeatherSource.{
-  EMPTY_WEATHER_DATA,
-  WeatherScheme,
-  toWeatherData,
-}
+import edu.ie3.simona.service.weather.WeatherSource.{EMPTY_WEATHER_DATA, WeatherScheme, toWeatherData}
 import edu.ie3.simona.service.weather.WeatherSourceWrapper.WeightSum
 import edu.ie3.simona.service.weather.{WeatherSource => SimonaWeatherSource}
 import edu.ie3.simona.util.TickUtil
@@ -216,19 +199,19 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
   }
 
   private[weather] def buildPSDMSource(
-      cfgParams: SimonaConfig.Simona.Input.Weather.Datasource,
-      definedWeatherSources: Option[Serializable],
+                                        cfgParams: WeatherDataSourceConfig,
+                                        definedWeatherSources: Option[Serializable],
   )(implicit
       idCoordinateSource: IdCoordinateSource
   ): Option[PsdmWeatherSource] = {
     implicit val timestampPattern: Option[String] =
-      cfgParams.timestampPattern
+      cfgParams.timeStampPattern
     implicit val scheme: String = cfgParams.scheme
 
     val factory = buildFactory(scheme, timestampPattern)
 
     val source = definedWeatherSources.flatMap {
-      case BaseCsvParams(csvSep, directoryPath, _) =>
+      case BaseCsvParams(csvSep, directoryPath) =>
         // initializing a csv weather source
         Some(
           new CsvWeatherSource(
