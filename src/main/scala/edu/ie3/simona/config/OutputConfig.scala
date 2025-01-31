@@ -57,25 +57,30 @@ object OutputConfig {
   )
 
   final case class ParticipantOutputConfig(
-      defaultConfig: BaseOutputConfig,
-      individualConfigs: Seq[BaseOutputConfig],
+      defaultConfig: ParticipantBaseOutputConfig,
+      individualConfigs: Seq[ParticipantBaseOutputConfig],
   )
 
   final case class SimpleOutputConfig(
                                        override val notifier: java.lang.String,
-                                       override val simulationResult: scala.Boolean,
+                                       override val simulationResult: Boolean,
+
                                      ) extends BaseOutputConfig(notifier, simulationResult)
 
-  case class BaseOutputConfig(
-      notifier: String,
-      powerRequestReply: Boolean,
-      simulationResult: Boolean,
-      flexResult: Boolean,
+  sealed abstract class BaseOutputConfig(
+      val notifier: String,
+      val simulationResult: Boolean,
   )
 
   final case class ThermalOutputConfig(
-                                        defaultConfig: BaseOutputConfig,
-                                        individualConfigs: Seq[BaseOutputConfig],
+                                        defaultConfig: SimpleOutputConfig,
+                                        individualConfigs: Seq[SimpleOutputConfig],
                                       )
 
+  case class ParticipantBaseOutputConfig(
+                                          override val notifier: java.lang.String,
+                                          override val simulationResult: Boolean,
+                                          flexResult: Boolean,
+                                          powerRequestReply: Boolean,
+                                        )extends BaseOutputConfig(notifier, simulationResult)
 }

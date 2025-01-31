@@ -93,33 +93,33 @@ object RuntimeConfig {
   final case class HpRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean,
       override val scaling: Double,
-      override val uuids: List[java.lang.String],
+      override val uuids: List[String],
   ) extends BaseRuntimeConfig
 
   final case class StorageRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean,
       override val scaling: Double,
-      override val uuids: List[java.lang.String],
+      override val uuids: List[String],
       initialSoc: Double,
       targetSoc: Option[Double],
   ) extends BaseRuntimeConfig
 
   final case class FixedFeedInRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: scala.Boolean,
-      override val scaling: scala.Double,
-      override val uuids: scala.List[java.lang.String],
+      override val calculateMissingReactivePowerWithModel: Boolean,
+      override val scaling: Double,
+      override val uuids: List[String],
   ) extends BaseRuntimeConfig
 
   final case class PvRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: scala.Boolean,
-      override val scaling: scala.Double,
-      override val uuids: scala.List[java.lang.String],
+      override val calculateMissingReactivePowerWithModel: Boolean,
+      override val scaling: Double,
+      override val uuids: List[String],
   ) extends BaseRuntimeConfig
 
   final case class WecRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: scala.Boolean,
-      override val scaling: scala.Double,
-      override val uuids: scala.List[java.lang.String],
+      override val calculateMissingReactivePowerWithModel: Boolean,
+      override val scaling: Double,
+      override val uuids: List[String],
   ) extends BaseRuntimeConfig
 
 }

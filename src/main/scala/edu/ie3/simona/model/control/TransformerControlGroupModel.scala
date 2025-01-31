@@ -10,8 +10,8 @@ import breeze.math.Complex
 import edu.ie3.datamodel.models.input.MeasurementUnitInput
 import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.TransformerControlGroup
+import edu.ie3.simona.config.ControlConfig
+import edu.ie3.simona.config.ControlConfig.TransformerControlGroup
 import edu.ie3.simona.model.control.TransformerControlGroupModel.{
   RegulationCriterion,
   harmonizeRegulationNeeds,
@@ -77,8 +77,8 @@ object TransformerControlGroupModel {
     *   A set of control group business models
     */
   def buildControlGroups(
-      measurementUnitInput: Set[MeasurementUnitInput],
-      config: Iterable[SimonaConfig.TransformerControlGroup],
+                          measurementUnitInput: Set[MeasurementUnitInput],
+                          config: Iterable[ControlConfig.TransformerControlGroup],
   ): Set[TransformerControlGroupModel] = config.map {
     case TransformerControlGroup(measurements, _, vMax, vMin) =>
       val nodeUuids =
@@ -98,11 +98,11 @@ object TransformerControlGroupModel {
     */
   private def determineNodeUuids(
       measurementUnitInput: Set[MeasurementUnitInput],
-      measurementConfigs: Set[String],
+      measurementConfigs: Set[UUID],
   ): Set[UUID] =
     measurementUnitInput
       .filter(input =>
-        measurementConfigs.contains(input.getUuid.toString) && input.getVMag
+        measurementConfigs.contains(input.getUuid) && input.getVMag
       )
       .map(_.getNode.getUuid)
 
