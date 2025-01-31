@@ -174,7 +174,9 @@ final case class ThermalHouse(
       innerTemperature: Temperature,
       boundaryTemperature: Temperature = lowerBoundaryTemperature,
   ): Boolean =
-    innerTemperature < boundaryTemperature
+    innerTemperature < Kelvin(
+      boundaryTemperature.toKelvinScale + temperatureTolerance.toKelvinScale
+    )
 
   /** Calculate the new inner temperature of the thermal house.
     *
