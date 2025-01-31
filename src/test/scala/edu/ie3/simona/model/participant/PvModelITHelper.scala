@@ -19,7 +19,6 @@ import java.io.{BufferedReader, File, FileInputStream, InputStreamReader}
 import java.nio.charset.StandardCharsets
 import java.time.ZonedDateTime
 import java.util.zip.GZIPInputStream
-import scala.collection.mutable
 import scala.jdk.CollectionConverters.IterableHasAsScala
 
 trait PvModelITHelper extends PvInputTestData {
@@ -54,9 +53,9 @@ trait PvModelITHelper extends PvInputTestData {
     val fileName = "_pv/it/weather.tar.gz"
     val csvRecords: Iterable[CSVRecord] = getCsvRecords(fileName)
 
-    val weatherMap = Map[ZonedDateTime, Map[String, WeatherMessage.WeatherData]]()
-
-    for (row <- csvRecords) {
+    csvRecords.foldLeft(
+      Map.empty[ZonedDateTime, Map[String, WeatherMessage.WeatherData]]
+    ) { (weatherDataMap, row) =>
       val time = TimeUtil.withDefaults.toZonedDateTime(row.get(0))
       val modelId = row.get(1)
 
@@ -70,14 +69,12 @@ trait PvModelITHelper extends PvInputTestData {
         MetersPerSecond(windVel),
       )
 
-      val modelToWeatherMap = weatherMap.getOrElse(
+      val modelToWeatherMap = weatherDataMap.getOrElse(
         time,
-        mutable.Map[String, WeatherMessage.WeatherData](),
+        Map.empty[String, WeatherMessage.WeatherData],
       )
-      modelToWeatherMap(modelId) = weather
+      weatherDataMap.updated(time, modelToWeatherMap.updated(modelId, weather))
     }
-
-    weatherMap.view.mapValues(_.toMap).toMap
   }
 
   def getResultsData: Map[ZonedDateTime, Map[String, Power]] = {

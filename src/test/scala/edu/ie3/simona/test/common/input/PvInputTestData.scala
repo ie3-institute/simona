@@ -58,7 +58,7 @@ trait PvInputTestData
   protected val pvSouth1 = new PvInput(
     UUID.fromString("7ac5bb15-36ee-42b0-902b-9cd520e241b3"),
     "pv_south_1",
-OperatorInput.NO_OPERATOR_ASSIGNED,
+    OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited,
     nodeInputPvModel3,
     CosPhiFixed.CONSTANT_CHARACTERISTIC,
