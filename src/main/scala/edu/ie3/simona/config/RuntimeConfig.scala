@@ -24,20 +24,27 @@ object RuntimeConfig {
   )
 
   final case class RuntimeParticipantsConfig(
-      requestVoltageDeviationThreshold: Double = 1e-14,
+      em:RuntimeParticipantConfig[EmRuntimeConfig],
+      evcs: RuntimeParticipantConfig[SimpleRuntimeConfig],
+      fixedFeedIn: RuntimeParticipantConfig[SimpleRuntimeConfig],
+      hp:RuntimeParticipantConfig[SimpleRuntimeConfig],
       load: RuntimeParticipantConfig[LoadRuntimeConfig],
       pv: RuntimeParticipantConfig[SimpleRuntimeConfig],
-      fixedFeedIn: RuntimeParticipantConfig[SimpleRuntimeConfig],
+      requestVoltageDeviationThreshold: Double = 1e-14,
+      storage: RuntimeParticipantConfig[StorageRuntimeConfig],
       wec: RuntimeParticipantConfig[SimpleRuntimeConfig],
-      evcs: RuntimeParticipantConfig[SimpleRuntimeConfig],
+
   ) {
     def asSeq: Seq[RuntimeParticipantConfig[_ <: BaseRuntimeConfig]] = {
       Seq(
+        em,
+        evcs,
+        fixedFeedIn,
+        hp,
         load,
         pv,
-        fixedFeedIn,
         wec,
-        evcs,
+        storage,
       )
     }
   }
@@ -84,17 +91,17 @@ object RuntimeConfig {
   ) extends BaseRuntimeConfig
 
   final case class HpRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: scala.Boolean,
-      override val scaling: scala.Double,
-      override val uuids: scala.List[java.lang.String],
+      override val calculateMissingReactivePowerWithModel: Boolean,
+      override val scaling: Double,
+      override val uuids: List[java.lang.String],
   ) extends BaseRuntimeConfig
 
   final case class StorageRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: scala.Boolean,
-      override val scaling: scala.Double,
-      override val uuids: scala.List[java.lang.String],
-      initialSoc: scala.Double,
-      targetSoc: scala.Option[scala.Double],
+      override val calculateMissingReactivePowerWithModel: Boolean,
+      override val scaling: Double,
+      override val uuids: List[java.lang.String],
+      initialSoc: Double,
+      targetSoc: Option[Double],
   ) extends BaseRuntimeConfig
 
   final case class FixedFeedInRuntimeConfig(

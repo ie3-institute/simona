@@ -8,10 +8,11 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.{Config, ConfigException}
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.simona.config.InputConfig.{CoordinateSourceConfig, WeatherConfig, WeatherDataSourceConfig, WeatherSampleParams}
+import edu.ie3.simona.config.ControlConfig.TransformerControlGroup
+import edu.ie3.simona.config.InputConfig.{CoordinateSourceConfig, WeatherSampleParams}
 import edu.ie3.simona.config.IoConfigUtils._
-import edu.ie3.simona.config.OutputConfig.BaseOutputConfig
-import edu.ie3.simona.config.RuntimeConfig.{BaseRuntimeConfig, RuntimeParticipantConfig}
+import edu.ie3.simona.config.OutputConfig.{BaseOutputConfig, ThermalOutputConfig}
+import edu.ie3.simona.config.RuntimeConfig.{BaseRuntimeConfig, RuntimeParticipantConfig, StorageRuntimeConfig}
 import edu.ie3.simona.config.SimonaConfig.{RefSystemConfig, _}
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.io.result.ResultSinkType
@@ -217,8 +218,8 @@ case object ConfigFailFast extends LazyLogging {
       timeConfig: SimonaConfig.TimeConfig
   ): Unit = {
 
-    val startDate = createDateTime(timeConfig.startDateTime)
-    val endDate = createDateTime(timeConfig.endDateTime)
+    val startDate = timeConfig.startDateTime
+    val endDate = timeConfig.endDateTime
 
     if (startDate.isAfter(endDate))
       throw new InvalidConfigParameterException(
@@ -227,26 +228,7 @@ case object ConfigFailFast extends LazyLogging {
       )
   }
 
-  /** Creates a ZonedDateTime from String. If a faulty dateTime string is
-    * passed, an [[InvalidConfigParameterException]] is thrown
-    *
-    * @param dateTimeString
-    *   the dateTimeString that should be checked
-    */
-  private def createDateTime(
-      dateTimeString: String
-  ): ZonedDateTime = {
-    try {
-      TimeUtil.withDefaults.toZonedDateTime(dateTimeString)
-    } catch {
-      case e: DateTimeParseException =>
-        throw new InvalidConfigParameterException(
-          s"Invalid dateTimeString: $dateTimeString." +
-            s"Please ensure that your date/time parameter match the following pattern: 'yyyy-MM-dd'T'HH:mm:ss'Z''",
-          e,
-        )
-    }
-  }
+
 
   /** Checks all participant model runtime sub configuration trees
     *
@@ -555,7 +537,7 @@ case object ConfigFailFast extends LazyLogging {
         checkInfluxDb1xParams("WeatherSource", url, database)
       case Some(params: SqlParams) =>
         checkSqlParams(params)
-      case Some(_: SampleParams) =>
+      case Some(_: SampleParams.type) =>
         // sample weather, no check required
         // coordinate source must be sample coordinate source
         if (weatherDataSourceCfg.coordinateSource.sampleParams.isEmpty) {
@@ -657,7 +639,7 @@ case object ConfigFailFast extends LazyLogging {
     *   Output sub config tree for participants
     */
   private def checkThermalOutputConfig(
-      subConfig: SimonaConfig.Output.Thermal
+      subConfig: ThermalOutputConfig
   ): Unit = {
     implicit val elementType: String = "thermal"
     checkDefaultBaseOutputConfig(subConfig.defaultConfig)
@@ -687,7 +669,7 @@ case object ConfigFailFast extends LazyLogging {
     * @param control
     *   Control scheme definitions
     */
-  private def checkControlSchemes(control: Simona.Control): Unit = {
+  private def checkControlSchemes(control: ControlConfig): Unit = {
     control.transformer.foreach(checkTransformerControl)
   }
 
@@ -743,7 +725,7 @@ case object ConfigFailFast extends LazyLogging {
     *   RuntimeConfig of Storages
     */
   private def checkStoragesConfig(
-      storageConfig: SimonaConfig.Simona.Runtime.Participant.Storage
+      storageConfig: RuntimeParticipantConfig[StorageRuntimeConfig]
   ): Unit = {
     if (
       storageConfig.defaultConfig.initialSoc < 0.0 || storageConfig.defaultConfig.initialSoc > 1.0

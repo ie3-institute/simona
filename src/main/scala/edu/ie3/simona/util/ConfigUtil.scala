@@ -13,7 +13,7 @@ import edu.ie3.datamodel.io.connectors.{CouchbaseConnector, InfluxDbConnector, S
 import edu.ie3.datamodel.models.result.connector.{LineResult, SwitchResult, Transformer2WResult, Transformer3WResult}
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.config.IoConfigUtils.{BaseKafkaParams, BaseSqlParams, CouchbaseParams, CsvParams, SqlParams}
-import edu.ie3.simona.config.OutputConfig.{GridOutputConfig, ParticipantOutputConfig}
+import edu.ie3.simona.config.OutputConfig.{GridOutputConfig, ParticipantOutputConfig, ThermalOutputConfig}
 import edu.ie3.simona.config.RuntimeConfig.{BaseRuntimeConfig, RuntimeParticipantsConfig}
 import edu.ie3.simona.config.{OutputConfig, SimonaConfig}
 import edu.ie3.simona.config.SimonaConfig._
@@ -233,7 +233,7 @@ object ConfigUtil {
     }
 
     def apply(
-        subConfig: SimonaConfig.Output.Thermal
+        subConfig: ThermalOutputConfig
     ): OutputConfigUtil = {
       val defaultConfig = subConfig.defaultConfig match {
         case SimpleOutputConfig(_, simulationResult) =>

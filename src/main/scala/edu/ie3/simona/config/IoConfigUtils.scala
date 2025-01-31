@@ -45,6 +45,8 @@ object IoConfigUtils {
     val tableName: String
     val schemaName: String
   }
+  object SampleParams
+
   case class BaseSqlParams(
       jdbcUrl: String,
       userName: String,

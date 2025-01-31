@@ -61,7 +61,12 @@ object OutputConfig {
       individualConfigs: Seq[BaseOutputConfig],
   )
 
-  final case class BaseOutputConfig(
+  final case class SimpleOutputConfig(
+                                       override val notifier: java.lang.String,
+                                       override val simulationResult: scala.Boolean,
+                                     ) extends BaseOutputConfig(notifier, simulationResult)
+
+  case class BaseOutputConfig(
       notifier: String,
       powerRequestReply: Boolean,
       simulationResult: Boolean,

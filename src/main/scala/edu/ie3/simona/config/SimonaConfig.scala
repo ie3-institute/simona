@@ -6,18 +6,21 @@
 
 package edu.ie3.simona.config
 
-import SimonaConfig._
-import edu.ie3.simona.config.OutputConfig.BaseOutputConfig
-import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
-
-import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration}
+import edu.ie3.simona.config.SimonaConfig._
+import edu.ie3.util.TimeUtil
 import pureconfig._
-import pureconfig.error.{CannotParse, CannotRead, ConvertFailure, ThrowableFailure}
+import pureconfig.error.{
+  CannotParse,
+  CannotRead,
+  ConvertFailure,
+  ThrowableFailure,
+}
 import pureconfig.generic.ProductHint
 import pureconfig.generic.auto._
-import tscfg.codeDefs.resources.ScalaDefs.$TsCfgValidator
 
 import java.nio.file.{Files, Path}
+import java.time.ZonedDateTime
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 case class SimonaConfig(
     simulationName: String = "simona",
@@ -28,28 +31,9 @@ case class SimonaConfig(
     powerflow: PowerFlowConfig,
     gridConfig: GridConfig,
     event: EventConfig = EventConfig(None),
-) {
+    control: Option[ControlConfig] = None,
+)
 
-  object simona {
-
-    object input {
-
-      object grid {
-
-        object datasource
-      }
-    }
-
-    object time {
-
-      object startDateTime
-
-      object endDateTime
-
-      object schedulerReadyCheckWindow
-    }
-  }
-}
 
 object SimonaConfig {
   implicit def productHint[T]: ProductHint[T] =
@@ -89,12 +73,12 @@ object SimonaConfig {
   }
 
   case class TimeConfig(
-      // TODO: remove  date time defaults ?
-      startDateTime: String = "2011-05-01 00:00:00",
-      endDateTime: String = "2011-05-01 01:00:00",
-      // fixme? : stopOnFailedPowerFlow in PowerFlowConfig?
-      stopOnFailedPowerFlow: Boolean = false,
-      schedulerReadyCheckWindow: Option[Int] = None,
+                         // TODO: remove  date time defaults ?
+                         startDateTime: ZonedDateTime = TimeUtil.withDefaults.toZonedDateTime("2011-05-01 00:00:00"),
+                         endDateTime: ZonedDateTime = TimeUtil.withDefaults.toZonedDateTime("2011-05-01 01:00:00"),
+                         // fixme? : stopOnFailedPowerFlow in PowerFlowConfig?
+                         stopOnFailedPowerFlow: Boolean = false,
+                         schedulerReadyCheckWindow: Option[Int] = None,
   )
 
   final case class PowerFlowConfig(
@@ -120,162 +104,6 @@ object SimonaConfig {
       gridIds: Option[Seq[String]],
   )
 
-  final case class TransformerControlGroupConfig(
-    measurements: String,
-    transformers: [string],
-    vMax: Double
-    vMin: Double
-  )
-
-  final case class SimpleOutputConfig(
-      override val notifier: java.lang.String,
-      override val simulationResult: scala.Boolean,
-  ) extends BaseOutputConfig(notifier, simulationResult)
-
-  object SimpleOutputConfig {
-    def apply(
-        c: com.typesafe.config.Config,
-        parentPath: java.lang.String,
-        $tsCfgValidator: $TsCfgValidator,
-    ): SimonaConfig.SimpleOutputConfig = {
-      SimonaConfig.SimpleOutputConfig(
-        notifier = $_reqStr(parentPath, c, "notifier", $tsCfgValidator),
-        simulationResult =
-          $_reqBln(parentPath, c, "simulationResult", $tsCfgValidator),
-      )
-    }
-
-    private def $_reqBln(
-        parentPath: java.lang.String,
-        c: com.typesafe.config.Config,
-        path: java.lang.String,
-        $tsCfgValidator: $TsCfgValidator,
-    ): scala.Boolean = {
-      if (c == null) false
-      else
-        try c.getBoolean(path)
-        catch {
-          case e: com.typesafe.config.ConfigException =>
-            $tsCfgValidator.addBadPath(parentPath + path, e)
-            false
-        }
-    }
-
-    private def $_reqStr(
-        parentPath: java.lang.String,
-        c: com.typesafe.config.Config,
-        path: java.lang.String,
-        $tsCfgValidator: $TsCfgValidator,
-    ): java.lang.String = {
-      if (c == null) null
-      else
-        try c.getString(path)
-        catch {
-          case e: com.typesafe.config.ConfigException =>
-            $tsCfgValidator.addBadPath(parentPath + path, e)
-            null
-        }
-    }
-
-  }
-
-  object StorageRuntimeConfig {
-    def apply(
-        c: com.typesafe.config.Config,
-        parentPath: java.lang.String,
-        $tsCfgValidator: $TsCfgValidator,
-    ): SimonaConfig.StorageRuntimeConfig = {
-      SimonaConfig.StorageRuntimeConfig(
-        initialSoc =
-          if (c.hasPathOrNull("initialSoc")) c.getDouble("initialSoc") else 0,
-        targetSoc =
-          if (c.hasPathOrNull("targetSoc")) Some(c.getDouble("targetSoc"))
-          else None,
-        calculateMissingReactivePowerWithModel = $_reqBln(
-          parentPath,
-          c,
-          "calculateMissingReactivePowerWithModel",
-          $tsCfgValidator,
-        ),
-        scaling = $_reqDbl(parentPath, c, "scaling", $tsCfgValidator),
-        uuids = $_L$_str(c.getList("uuids"), parentPath, $tsCfgValidator),
-      )
-    }
-
-    private def $_reqBln(
-        parentPath: java.lang.String,
-        c: com.typesafe.config.Config,
-        path: java.lang.String,
-        $tsCfgValidator: $TsCfgValidator,
-    ): scala.Boolean = {
-      if (c == null) false
-      else
-        try c.getBoolean(path)
-        catch {
-          case e: com.typesafe.config.ConfigException =>
-            $tsCfgValidator.addBadPath(parentPath + path, e)
-            false
-        }
-    }
-
-    private def $_reqDbl(
-        parentPath: java.lang.String,
-        c: com.typesafe.config.Config,
-        path: java.lang.String,
-        $tsCfgValidator: $TsCfgValidator,
-    ): scala.Double = {
-      if (c == null) 0
-      else
-        try c.getDouble(path)
-        catch {
-          case e: com.typesafe.config.ConfigException =>
-            $tsCfgValidator.addBadPath(parentPath + path, e)
-            0
-        }
-    }
-
-  }
-
-  final case class TransformerControlGroup(
-      measurements: scala.List[java.lang.String],
-      transformers: scala.List[java.lang.String],
-      vMax: scala.Double,
-      vMin: scala.Double,
-  )
-
-  object TransformerControlGroup {
-    def apply(
-        c: com.typesafe.config.Config,
-        parentPath: java.lang.String,
-        $tsCfgValidator: $TsCfgValidator,
-    ): SimonaConfig.TransformerControlGroup = {
-      SimonaConfig.TransformerControlGroup(
-        measurements =
-          $_L$_str(c.getList("measurements"), parentPath, $tsCfgValidator),
-        transformers =
-          $_L$_str(c.getList("transformers"), parentPath, $tsCfgValidator),
-        vMax = $_reqDbl(parentPath, c, "vMax", $tsCfgValidator),
-        vMin = $_reqDbl(parentPath, c, "vMin", $tsCfgValidator),
-      )
-    }
-
-    private def $_reqDbl(
-        parentPath: java.lang.String,
-        c: com.typesafe.config.Config,
-        path: java.lang.String,
-        $tsCfgValidator: $TsCfgValidator,
-    ): scala.Double = {
-      if (c == null) 0
-      else
-        try c.getDouble(path)
-        catch {
-          case e: com.typesafe.config.ConfigException =>
-            $tsCfgValidator.addBadPath(parentPath + path, e)
-            0
-        }
-    }
-
-  }
 
   final case class VoltLvlConfig(
       id: String,
@@ -289,30 +117,6 @@ object SimonaConfig {
   final case class EventListenerConfig(
       fullClassPath: String,
       eventsToProcess: Seq[String],
-  )
-
-  final case class Simona(
-      control: scala.Option[SimonaConfig.Simona.Control],
-      event: SimonaConfig.Simona.Event,
-      gridConfig: SimonaConfig.Simona.GridConfig,
-      input: SimonaConfig.Simona.Input,
-      output: SimonaConfig.Simona.Output,
-      powerflow: SimonaConfig.Simona.Powerflow,
-      runtime: SimonaConfig.Simona.Runtime,
-      simulationName: java.lang.String,
-      time: SimonaConfig.Simona.Time,
-  )
-
-  object Simona {
-    final case class Control(
-        transformer: scala.List[SimonaConfig.TransformerControlGroup]
-    )
-  }
-  case class ParticipantBaseOutputConfig(
-      notifier: String,
-      powerRequestReply: Boolean,
-      simulationResult: Boolean,
-      flexResult: Boolean,
   )
 
 }

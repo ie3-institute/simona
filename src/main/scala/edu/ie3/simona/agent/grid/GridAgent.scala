@@ -59,8 +59,7 @@ object GridAgent extends DBFSAlgorithm {
       // val initialization
       val resolution: Long = simonaConfig.powerflow.resolution.toSeconds
 
-      val simStartTime: ZonedDateTime = TimeUtil.withDefaults
-        .toZonedDateTime(simonaConfig.time.startDateTime)
+      val simStartTime: ZonedDateTime = simonaConfig.time.startDateTime
 
       val agentValues = GridAgentConstantData(
         environmentRefs,
@@ -127,12 +126,8 @@ object GridAgent extends DBFSAlgorithm {
       val gridModel = GridModel(
         subGridContainer,
         refSystem,
-        TimeUtil.withDefaults.toZonedDateTime(
-          constantData.simonaConfig.time.startDateTime
-        ),
-        TimeUtil.withDefaults.toZonedDateTime(
-          constantData.simonaConfig.time.endDateTime
-        ),
+        constantData.simonaConfig.time.startDateTime,
+        constantData.simonaConfig.time.endDateTime,
         simonaConfig,
       )
 
@@ -141,8 +136,7 @@ object GridAgent extends DBFSAlgorithm {
           ctx,
           constantData.environmentRefs,
           constantData.simStartTime,
-          TimeUtil.withDefaults
-            .toZonedDateTime(constantData.simonaConfig.time.endDateTime),
+          constantData.simonaConfig.time.endDateTime,
           constantData.simonaConfig.runtime.participant,
           constantData.simonaConfig.output.participant,
           constantData.resolution,
