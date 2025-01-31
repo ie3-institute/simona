@@ -1,7 +1,6 @@
 import com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer
 
 plugins {
-  id 'groovy' // groovy support
   id 'java' // java support
   id 'scala' // scala support
   id 'signing'
@@ -13,7 +12,6 @@ plugins {
   id "com.github.johnrengelman.shadow" version "8.1.1" // fat jar
   id "org.sonarqube" version "6.0.1.5171" // sonarqube
   id "org.scoverage" version "8.1" // scala code coverage scoverage
-  id "com.github.maiflai.scalatest" version "0.32" // run scalatest without specific spec task
   id 'org.hidetake.ssh' version '2.11.2'
   id 'net.thauvin.erik.gradle.semver' version '1.0.4' // semantic versioning
   id "application"
@@ -100,13 +98,18 @@ dependencies {
   implementation "ch.qos.logback:logback-classic:1.5.16"
 
   /* testing */
-  testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
-  testImplementation 'org.scalatestplus:mockito-3-4_2.13:3.2.10.0'
-  testImplementation 'org.mockito:mockito-core:5.15.2' // mocking framework
+  // scalatest & junit
   testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.19"
-  testRuntimeOnly 'com.vladsch.flexmark:flexmark-all:0.64.8' //scalatest html output
-  testImplementation group: 'org.pegdown', name: 'pegdown', version: '1.6.0'
-  testImplementation "org.apache.pekko:pekko-testkit_${scalaVersion}:${pekkoVersion}" // pekko testkit
+  testImplementation "org.junit.platform:junit-platform-launcher:1.11.4"
+  testRuntimeOnly "org.junit.platform:junit-platform-engine:1.11.4"
+  testRuntimeOnly "org.scalatestplus:junit-5-11_${scalaVersion}:3.2.19.0"
+
+  // mocking framework
+  testImplementation 'org.mockito:mockito-core:5.15.2'
+  testImplementation "org.scalatestplus:mockito-3-4_${scalaVersion}:3.2.10.0"
+
+  // pekko
+  testImplementation "org.apache.pekko:pekko-testkit_${scalaVersion}:${pekkoVersion}"
   testImplementation "org.apache.pekko:pekko-actor-testkit-typed_${scalaVersion}:${pekkoVersion}"
 
   // testcontainers
@@ -149,7 +152,7 @@ dependencies {
   implementation 'tech.units:indriya:2.2.2' // quantities
   implementation "org.typelevel:squants_${scalaVersion}:1.8.3"
   implementation 'org.apache.commons:commons-csv:1.13.0'
-  implementation 'org.scalanlp:breeze_2.13:2.1.0' // scientific calculations (http://www.scalanlp.org/)
+  implementation "org.scalanlp:breeze_${scalaVersion}:2.1.0" // scientific calculations (http://www.scalanlp.org/)
   implementation 'de.lmu.ifi.dbs.elki:elki:0.7.5' // Statistics (for random load model)
   implementation 'org.jgrapht:jgrapht-core:1.5.2'
 }
