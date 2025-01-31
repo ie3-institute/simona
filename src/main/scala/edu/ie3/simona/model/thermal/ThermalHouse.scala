@@ -119,7 +119,7 @@ final case class ThermalHouse(
           currentInnerTemp,
           temperatureToTriggerRequiredEnergy,
         )
-      ) energy(temperatureToTriggerRequiredEnergy, currentInnerTemp)
+      ) energy(targetTemperature, currentInnerTemp)
       else
         zeroMWh
 
