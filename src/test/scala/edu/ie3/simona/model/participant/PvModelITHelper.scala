@@ -93,7 +93,7 @@ trait PvModelITHelper extends PvInputTestData {
       "pv_west_2",
     )
 
-    val resultsMap = csvRecords
+    csvRecords
       .filterNot(row => row.get(0).startsWith("\u0000"))
       .map { row =>
         val time = TimeUtil.withDefaults.toZonedDateTime(row.get(0))
@@ -105,7 +105,5 @@ trait PvModelITHelper extends PvInputTestData {
         time -> modelToPowerMap
       }
       .toMap
-
-    resultsMap
   }
 }
