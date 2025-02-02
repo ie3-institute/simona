@@ -9,7 +9,7 @@ package edu.ie3.simona.service.results
 import edu.ie3.datamodel.models.result.connector.LineResult
 import edu.ie3.datamodel.models.result.system.{FlexOptionsResult, SystemParticipantResult}
 import edu.ie3.datamodel.models.result.{ModelResultEntity, NodeResult}
-import edu.ie3.simona.api.data.results.ExtResultData
+import edu.ie3.simona.api.data.results.ExtResultDataConnection
 import edu.ie3.simona.api.data.results.ontology.{ProvideResultEntities, RequestResultEntities, ResultDataMessageFromExt}
 import edu.ie3.simona.event.listener.DelayedStopHelper
 import edu.ie3.simona.exceptions.ServiceException
@@ -394,7 +394,7 @@ object ExtResultDataProvider {
 
   // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
   final case class ExtResultStateData(
-      extResultData: ExtResultData,
+      extResultData: ExtResultDataConnection,
       currentTick: Long,
       extResultSchedule: ExtResultSchedule,
       nextRequestTick: Option[Long] = None,
@@ -410,7 +410,7 @@ object ExtResultDataProvider {
     }
   }
   final case class InitExtResultData(
-      extResultData: ExtResultData,
+      extResultData: ExtResultDataConnection,
       powerFlowResolution: Long,
   )
 

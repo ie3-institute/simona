@@ -8,7 +8,7 @@ package edu.ie3.simona.service.em
 
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.em.{ExtEmData, NoSetPointValue}
+import edu.ie3.simona.api.data.em.{ExtEmDataConnection, NoSetPointValue}
 import edu.ie3.simona.api.data.em.ontology.{EmDataMessageFromExt, ProvideEmSetPointData}
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
@@ -38,7 +38,7 @@ object ExtEmDataService {
     )
 
   final case class ExtEmDataStateData(
-      extEmData: ExtEmData,
+      extEmData: ExtEmDataConnection,
       subscribers: List[UUID] = List.empty,
       uuidToActorRef: Map[UUID, ActorRef[EmAgent.Request]] =
         Map.empty[UUID, ActorRef[EmAgent.Request]], // subscribers in SIMONA
@@ -48,7 +48,7 @@ object ExtEmDataService {
   ) extends ServiceBaseStateData
 
   case class InitExtEmData(
-      extEmData: ExtEmData
+      extEmData: ExtEmDataConnection
   ) extends InitializeServiceStateData
 
   final case class WrappedIssuePowerControl(

@@ -27,7 +27,7 @@ import edu.ie3.datamodel.io.source.{
   TimeSeriesMetaInformationSource,
 }
 import edu.ie3.datamodel.models.value.Value
-import edu.ie3.simona.api.data.primarydata.ExtPrimaryData
+import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
 import edu.ie3.simona.config.SimonaConfig.PrimaryDataCsvParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.Primary.SqlParams
 import edu.ie3.simona.config.SimonaConfig.Simona.Input.{
@@ -144,7 +144,7 @@ case class PrimaryServiceProxy(
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime,
       extSimulation: Option[ActorRef],
-      extPrimaryData: Option[ExtPrimaryData],
+      extPrimaryData: Option[ExtPrimaryDataConnection],
   ): Try[PrimaryServiceStateData] = {
     createSources(primaryConfig).map {
       case (mappingSource, metaInformationSource) =>
@@ -567,7 +567,7 @@ object PrimaryServiceProxy {
       primaryConfig: PrimaryConfig,
       simulationStart: ZonedDateTime,
       extSimulation: Option[ActorRef],
-      extPrimaryData: Option[ExtPrimaryData],
+      extPrimaryData: Option[ExtPrimaryDataConnection],
   ) extends InitializeServiceStateData
 
   /** Holding the state of an initialized proxy.

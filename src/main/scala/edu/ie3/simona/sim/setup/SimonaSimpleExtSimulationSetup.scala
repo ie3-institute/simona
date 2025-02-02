@@ -8,7 +8,6 @@ package edu.ie3.simona.sim.setup
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.simona.api.simpleextsim.SimpleExtSimulationWithEm
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.ontology.messages.SchedulerMessage
@@ -16,7 +15,6 @@ import edu.ie3.simona.util.ResultFileHierarchy
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
-import java.nio.file.Path
 import java.util.concurrent.LinkedBlockingQueue
 
 /** Sample implementation to run a standalone simulation of simona configured
@@ -46,7 +44,7 @@ class SimonaSimpleExtSimulationSetup(
       scheduler: ActorRef[SchedulerMessage],
   ): ExtSimSetupData = {
     val mapping = mappingPath.getOrElse(throw new RuntimeException("Cannot connect to ExtSim, because there is no mapping!"))
-    val simpleExtSim = new SimpleExtSimulationWithEm(Path.of(mapping))
+    val simpleExtSim = null
 
     extSimulationSetup(
       context,

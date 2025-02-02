@@ -6,31 +6,19 @@
 
 package edu.ie3.simona.service.primary
 
-import edu.ie3.datamodel.models.value.Value
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.RichValue
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
-import edu.ie3.simona.api.data.primarydata.ExtPrimaryData
-import edu.ie3.simona.api.data.primarydata.ontology.{
-  PrimaryDataMessageFromExt,
-  ProvidePrimaryData,
-}
+import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
+import edu.ie3.simona.api.data.primarydata.ontology.{PrimaryDataMessageFromExt, ProvidePrimaryData}
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ExtPrimaryDataServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationSuccessfulMessage
 import edu.ie3.simona.ontology.messages.services.{DataMessage, ServiceMessage}
-import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.service.ServiceStateData.{
-  InitializeServiceStateData,
-  ServiceBaseStateData,
-}
-import edu.ie3.simona.service.primary.ExtPrimaryDataService.{
-  ExtPrimaryDataStateData,
-  InitExtPrimaryData,
-}
+import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
+import edu.ie3.simona.service.primary.ExtPrimaryDataService.{ExtPrimaryDataStateData, InitExtPrimaryData}
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.ProvidePrimaryDataMessage
 import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 
 import java.util.UUID
@@ -46,16 +34,16 @@ object ExtPrimaryDataService {
     )
 
   final case class ExtPrimaryDataStateData(
-      extPrimaryData: ExtPrimaryData,
-      subscribers: List[UUID] = List.empty,
-      uuidToActorRef: Map[UUID, ActorRef] =
+                                            extPrimaryData: ExtPrimaryDataConnection,
+                                            subscribers: List[UUID] = List.empty,
+                                            uuidToActorRef: Map[UUID, ActorRef] =
         Map.empty[UUID, ActorRef], // subscribers in SIMONA
-      extPrimaryDataMessage: Option[PrimaryDataMessageFromExt] = None,
-      maybeNextTick: Option[Long] = None,
+                                            extPrimaryDataMessage: Option[PrimaryDataMessageFromExt] = None,
+                                            maybeNextTick: Option[Long] = None,
   ) extends ServiceBaseStateData
 
   case class InitExtPrimaryData(
-      extPrimaryData: ExtPrimaryData
+      extPrimaryData: ExtPrimaryDataConnection
   ) extends InitializeServiceStateData
 
 }

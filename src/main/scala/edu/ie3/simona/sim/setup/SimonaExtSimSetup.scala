@@ -15,9 +15,9 @@ import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentMessages.CreateGridAgent
 import edu.ie3.simona.api.ExtSimAdapter
-import edu.ie3.simona.api.data.em.ExtEmData
-import edu.ie3.simona.api.data.primarydata.ExtPrimaryData
-import edu.ie3.simona.api.data.results.ExtResultData
+import edu.ie3.simona.api.data.em.ExtEmDataConnection
+import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
+import edu.ie3.simona.api.data.results.ExtResultDataConnection
 import edu.ie3.simona.api.data.results.ontology.ResultDataMessageFromExt
 import edu.ie3.simona.api.simulation.{ExtSimAdapterData, ExtSimulation}
 import edu.ie3.simona.config.{ArgsParser, RefSystemParser, SimonaConfig}
@@ -36,16 +36,9 @@ import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.service.em.ExtEmDataService.InitExtEmData
 import edu.ie3.simona.service.primary.ExtPrimaryDataService.InitExtPrimaryData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
-import edu.ie3.simona.service.primary.{
-  ExtPrimaryDataService,
-  PrimaryServiceProxy,
-}
+import edu.ie3.simona.service.primary.{ExtPrimaryDataService, PrimaryServiceProxy}
 import edu.ie3.simona.service.results.ExtResultDataProvider
-import edu.ie3.simona.service.results.ExtResultDataProvider.{
-  InitExtResultData,
-  RequestDataMessageAdapter,
-  RequestScheduleActivationAdapter,
-}
+import edu.ie3.simona.service.results.ExtResultDataProvider.{InitExtResultData, RequestDataMessageAdapter, RequestScheduleActivationAdapter}
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.sim.SimonaSim
@@ -55,11 +48,7 @@ import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.AskPattern._
-import org.apache.pekko.actor.typed.scaladsl.adapter.{
-  ClassicActorRefOps,
-  TypedActorContextOps,
-  TypedActorRefOps,
-}
+import org.apache.pekko.actor.typed.scaladsl.adapter.{ClassicActorRefOps, TypedActorContextOps, TypedActorRefOps}
 import org.apache.pekko.actor.typed.{ActorRef, Scheduler}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import org.apache.pekko.util.{Timeout => PekkoTimeout}
@@ -358,7 +347,7 @@ abstract class SimonaExtSimSetup(
     val dataConnections = extSim.getDataConnections
 
     dataConnections.asScala.foreach {
-      case extPrimaryData: ExtPrimaryData =>
+      case extPrimaryData: ExtPrimaryDataConnection =>
         val extPrimaryDataService = extPrimaryDataSimulationSetup(
           context,
           scheduler,
@@ -369,7 +358,7 @@ abstract class SimonaExtSimSetup(
           ExtPrimaryDataService
         ] -> extPrimaryDataService)
 
-      case extResultData: ExtResultData =>
+      case extResultData: ExtResultDataConnection =>
         val extResultDataProvider = extResultDataSimulationSetup(
           context,
           scheduler,
@@ -384,7 +373,7 @@ abstract class SimonaExtSimSetup(
         )
         extDataListenerMap += (ExtResultDataProvider.getClass -> extResultDataProvider)
 
-      case extEmData: ExtEmData =>
+      case extEmData: ExtEmDataConnection =>
         val extEmDataService = extEmDataSimulationSetup(
           context,
           scheduler,
@@ -395,9 +384,8 @@ abstract class SimonaExtSimSetup(
 
     }
     context.log.info("Set up all data connections!")
-    extSim.setup(
-      extSimAdapterData,
-      dataConnections,
+    extSim.setAdapterData(
+      extSimAdapterData
     )
     new Thread(extSim, s"External simulation").start()
 
@@ -415,7 +403,7 @@ abstract class SimonaExtSimSetup(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
       extSimAdapterData: ExtSimAdapterData,
-      extPrimaryData: ExtPrimaryData,
+      extPrimaryData: ExtPrimaryDataConnection,
   ): ClassicRef = {
     val extSimAdapter = extSimAdapterData.getAdapter
 
@@ -444,7 +432,7 @@ abstract class SimonaExtSimSetup(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
       extSimAdapterData: ExtSimAdapterData,
-      extEmData: ExtEmData,
+      extEmData: ExtEmDataConnection,
   ): ClassicRef = {
     val extSimAdapter = extSimAdapterData.getAdapter
 
@@ -473,7 +461,7 @@ abstract class SimonaExtSimSetup(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
       extSimAdapterData: ExtSimAdapterData,
-      extResultData: ExtResultData,
+      extResultData: ExtResultDataConnection,
       simulationStart: ZonedDateTime,
       powerFlowResolution: Long,
   ): ActorRef[ExtResultDataProvider.Request] = {

@@ -260,7 +260,7 @@ object EmAgent {
                   )
                 } else {
                   throw new RuntimeException(
-                    "Set point for wrong tick arrived!"
+                    String.format("Set point for tick %d was received, but one for tick %d was expected!", msg.tick, setPointMsg.tick)
                   )
                 }
               case _ => // We still have to wait for a set point-
