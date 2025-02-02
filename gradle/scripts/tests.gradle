@@ -1,11 +1,11 @@
 test {
-  useJUnitPlatform()
-  testLogging {
-    events "skipped", "failed"
+  useJUnitPlatform {
+    includeEngines 'scalatest'
+    testLogging {
+      events("skipped", "failed")
+    }
   }
 }
-/* Register scala test with the overall test task */
-test.dependsOn(scalatest)
 
 // test task performance improvements, see -> https://docs.gradle.org/current/userguide/performance.html
 tasks.withType(Test).configureEach {

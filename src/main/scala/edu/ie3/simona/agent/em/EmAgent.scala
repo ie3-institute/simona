@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.em
 
 import edu.ie3.datamodel.models.input.EmInput
 import edu.ie3.datamodel.models.result.system.{EmResult, FlexOptionsResult}
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.FlexControlledData
 import edu.ie3.simona.api.data.ontology.DesaggFlexOptionsResult
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
@@ -349,7 +349,7 @@ object EmAgent {
               modelShell
             ) }.toMap
 
-        val (ref, min, max) =
+        val (emRef, emMin, emMax) =
           modelShell.aggregateFlexOptions(allFlexOptions)
 
         val flexResult = new FlexOptionsResult(
@@ -357,9 +357,9 @@ object EmAgent {
             emData.simulationStartDate
           ),
           modelShell.uuid,
-          ref.toMegawatts.asMegaWatt,
-          min.toMegawatts.asMegaWatt,
-          max.toMegawatts.asMegaWatt,
+          emRef.toMegawatts.asMegaWatt,
+          emMin.toMegawatts.asMegaWatt,
+          emMax.toMegawatts.asMegaWatt,
         )
 
         val flexResultWithConnectedResults = new DesaggFlexOptionsResult(
@@ -379,8 +379,8 @@ object EmAgent {
           emData.parentData match {
             case Right(flexStateData) =>
               // aggregate flex options and provide to parent
-              val (ref, min, max) =
-                modelShell.aggregateFlexOptions(allFlexOptions)
+              //val (emRef, emMin, emMax)=
+              //  modelShell.aggregateFlexOptions(allFlexOptions)
 
               if (emData.outputConfig.flexResult) {
                 val flexResult = new FlexOptionsResult(
@@ -388,9 +388,9 @@ object EmAgent {
                     emData.simulationStartDate
                   ),
                   modelShell.uuid,
-                  ref.toMegawatts.asMegaWatt,
-                  min.toMegawatts.asMegaWatt,
-                  max.toMegawatts.asMegaWatt,
+                  emRef.toMegawatts.asMegaWatt,
+                  emMin.toMegawatts.asMegaWatt,
+                  emMax.toMegawatts.asMegaWatt,
                 )
 
                 emData.listener.foreach {
@@ -403,9 +403,9 @@ object EmAgent {
 
               val flexMessage = ProvideMinMaxFlexOptions(
                 modelShell.uuid,
-                ref,
-                min,
-                max,
+                emRef,
+                emMin,
+                emMax,
               )
 
               flexStateData.emAgent ! flexMessage
@@ -470,7 +470,7 @@ object EmAgent {
 
 
     /* We do not need to handle ScheduleFlexRequests here, since active agents
-       can schedule themselves with there completions and inactive agents should
+       can schedule themselves with their completions and inactive agents should
        be sleeping right now
      */
     case (ctx, Flex(setPointMsg: SetPointFlexRequest)) =>
@@ -737,7 +737,7 @@ object EmAgent {
     // After initialization, there are no results yet.
     val maybeResult = inactiveCore.getResults
       .reduceOption { (power1, power2) =>
-        ApparentPower(power1.p + power2.p, power1.q + power2.q)
+        ComplexPower(power1.p + power2.p, power1.q + power2.q)
       }
 
     val nextActiveTick = EmTools.minOptionTicks(

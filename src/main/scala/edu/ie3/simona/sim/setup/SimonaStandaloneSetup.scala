@@ -44,13 +44,10 @@ import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.typed.scaladsl.adapter.{
-  ClassicActorRefOps,
-  TypedActorContextOps,
-  TypedActorRefOps,
-}
+import org.apache.pekko.actor.typed.scaladsl.adapter.{ClassicActorRefOps, TypedActorContextOps, TypedActorRefOps}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
+import java.nio.file.Path
 import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
 import scala.jdk.CollectionConverters._
@@ -69,7 +66,7 @@ class SimonaStandaloneSetup(
     override val args: Array[String],
 ) extends SimonaSetup {
 
-  override def logOutputDir: String = resultFileHierarchy.logOutputDir
+  override def logOutputDir: Path = resultFileHierarchy.logOutputDir
 
   override def gridAgents(
       context: ActorContext[_],
@@ -108,9 +105,13 @@ class SimonaStandaloneSetup(
     )
 
     /* build the initialization data */
-    subGridTopologyGraph
+    val subGrids = subGridTopologyGraph
       .vertexSet()
       .asScala
+
+    val onlyOneSubGrid = subGrids.size == 1
+
+    subGrids
       .zip(keys)
       .map { case (subGridContainer, key) =>
         /* Get all connections to superior and inferior sub grids */
@@ -140,7 +141,11 @@ class SimonaStandaloneSetup(
           thermalGrids,
         )
 
-        currentActorRef ! CreateGridAgent(gridAgentInitData, key)
+        currentActorRef ! CreateGridAgent(
+          gridAgentInitData,
+          key,
+          onlyOneSubGrid,
+        )
 
         currentActorRef
       }
@@ -161,7 +166,7 @@ class SimonaStandaloneSetup(
           simonaConfig.simona.input.primary,
           simulationStart,
           extSimSetupData.extPrimaryDataService,
-          extSimSetupData.extPrimaryData,
+          extSimSetupData.extPrimaryData
         ),
         simulationStart,
       ),
@@ -200,6 +205,73 @@ class SimonaStandaloneSetup(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
   ): ExtSimSetupData = {
+    val jars = ExtSimLoader.scanInputFolder()
+
+    val extLinks = jars.flatMap(ExtSimLoader.loadExtLink).toSeq
+
+      /*
+      val (extSimAdapters, extDatasAndServices) =
+        extLinks.zipWithIndex.map { case (extLink, index) =>
+          // external simulation always needs at least an ExtSimAdapter
+          val extSimAdapter = context.toClassic.simonaActorOf(
+            ExtSimAdapter.props(scheduler.toClassic),
+            s"$index",
+          )
+          val extSimAdapterData = new ExtSimAdapterData(extSimAdapter, args)
+
+          // send init data right away, init activation is scheduled
+          extSimAdapter ! ExtSimAdapter.Create(
+            extSimAdapterData,
+            ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
+          )
+
+          // setup data services that belong to this external simulation
+          val (extData, extDataServiceToRef): (
+              Iterable[ExtData],
+              Iterable[(Class[_], ClassicRef)],
+          ) =
+            extLink.getExtDataSimulations.asScala.zipWithIndex.map {
+              case (_: ExtEvSimulation, dIndex) =>
+                val extEvDataService = context.toClassic.simonaActorOf(
+                  ExtEvDataService.props(scheduler.toClassic),
+                  s"$index-$dIndex",
+                )
+                val extEvData = new ExtEvData(extEvDataService, extSimAdapter)
+
+                extEvDataService ! SimonaService.Create(
+                  InitExtEvData(extEvData),
+                  ScheduleLock.singleKey(
+                    context,
+                    scheduler,
+                    INIT_SIM_TICK,
+                  ),
+                )
+
+                (extEvData, (classOf[ExtEvDataService], extEvDataService))
+            }.unzip
+
+            extLink.getExtSimulation.setup(
+              extSimAdapterData,
+              extData.toList.asJava,
+            )
+
+            // starting external simulation
+            new Thread(extLink.getExtSimulation, s"External simulation $index")
+              .start()
+
+          (extSimAdapter, (extDataServiceToRef, extData))
+        }.unzip
+
+      val extDataServices = extDatasAndServices.map(_._1)
+      val extDatas = extDatasAndServices.flatMap(_._2).toSet
+
+      ExtSimSetupData(
+        extSimAdapters,
+        extDataServices.flatten.toMap,
+        Map.empty,
+        extDatas
+      )
+      */
     ExtSimSetupData(Iterable.empty, Map.empty, Map.empty, Set.empty)
   }
 

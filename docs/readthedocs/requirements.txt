@@ -3,5 +3,5 @@ sphinx-rtd-theme==3.0.2
 sphinxcontrib-plantuml==0.30
 myst-parser==4.0.0
 markdown-it-py==3.0.0
-sphinx-hoverxref==1.4.1
+sphinx-hoverxref==1.4.2
 sphinxcontrib-bibtex==2.6.3

@@ -15,8 +15,14 @@ import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits.MEGAVOLTAMPERE
+import edu.ie3.util.scala.quantities.{
+  ApparentPower,
+  Kilovoltamperes,
+  Megavoltamperes,
+  Voltamperes,
+}
 import org.scalatest.PrivateMethodTester
-import squants.energy.{Kilowatts, Megawatts, Watts}
+import squants.energy.Kilowatts
 
 class FixedFeedInModelSpec
     extends UnitSpec
@@ -24,9 +30,10 @@ class FixedFeedInModelSpec
     with DefaultTestData
     with PrivateMethodTester {
 
-  private implicit val powerTolerance: squants.Power = Watts(
+  // Equals to 1 VA power
+  private implicit val powerTolerance: ApparentPower = Voltamperes(
     1.0
-  ) // Equals to 1 W power
+  )
 
   "The fixed feed in model object" should {
 
@@ -63,7 +70,7 @@ class FixedFeedInModelSpec
           operationInterval shouldBe defaultOperationInterval
           qControl shouldBe QControl(fixedFeedInput.getqCharacteristics)
           sRated should approximate(
-            Megawatts(
+            Megavoltamperes(
               fixedFeedInput.getsRated().to(MEGAVOLTAMPERE).getValue.doubleValue
             )
           )
@@ -85,10 +92,10 @@ class FixedFeedInModelSpec
         fixedFeedInput.getId,
         defaultOperationInterval,
         QControl.apply(fixedFeedInput.getqCharacteristics()),
-        Kilowatts(
+        Kilovoltamperes(
           fixedFeedInput
             .getsRated()
-            .to(PowerSystemUnits.KILOWATT)
+            .to(PowerSystemUnits.KILOVOLTAMPERE)
             .getValue
             .doubleValue()
         ),

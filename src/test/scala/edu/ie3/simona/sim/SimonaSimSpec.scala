@@ -34,6 +34,7 @@ import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
+import java.nio.file.Path
 import java.util.UUID
 
 class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
@@ -399,7 +400,7 @@ object SimonaSimSpec {
 
     override val args: Array[String] = Array.empty[String]
 
-    override def logOutputDir: String = throw new NotImplementedError()
+    override def logOutputDir: Path = throw new NotImplementedError()
 
     override def runtimeEventListener(
         context: ActorContext[_]

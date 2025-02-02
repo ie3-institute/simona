@@ -53,6 +53,7 @@ import org.apache.pekko.actor.typed.{ActorRef, Scheduler}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 import org.apache.pekko.util.{Timeout => PekkoTimeout}
 
+import java.nio.file.Path
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
@@ -76,7 +77,7 @@ abstract class SimonaExtSimSetup(
     val runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
     override val args: Array[String],
 ) extends SimonaSetup {
-  override def logOutputDir: String = resultFileHierarchy.logOutputDir
+  override def logOutputDir: Path = resultFileHierarchy.logOutputDir
 
   override def gridAgents(
       context: ActorContext[_],
