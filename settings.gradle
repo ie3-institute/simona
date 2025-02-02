@@ -8,6 +8,3 @@
  */
 
 rootProject.name = 'simona_public'
-
-include(':simopsim')
-project(':simopsim').projectDir = file('../opsim_simona_demo_extern')
