@@ -30,10 +30,6 @@ import java.time.ZonedDateTime
 
 object ParticipantAgentInit {
 
-  // todo also register with GridAgent,
-  // wait for reply and then create
-  // GridAdapter
-
   /** Container class, that gather together reference to relevant entities, that
     * represent the environment in the simulation
     *
@@ -165,7 +161,6 @@ object ParticipantAgentInit {
         participantRefs,
         expectedPowerRequestTick,
         parentData,
-        firstDataTick,
       )
 
     case (_, RegistrationFailedMessage(_)) =>
@@ -179,16 +174,12 @@ object ParticipantAgentInit {
       val requiredServiceTypes = modelShell.requiredServices.toSet
 
       if (requiredServiceTypes.isEmpty) {
-        // Models that do not use secondary data always start at tick 0
-        val firstTick = 0L
-
         completeInitialization(
           modelShell,
           Map.empty,
           participantRefs,
           expectedPowerRequestTick,
           parentData,
-          firstTick,
         )
       } else {
         val requiredServices = requiredServiceTypes.map(serviceType =>
@@ -230,22 +221,12 @@ object ParticipantAgentInit {
           expectedFirstData.updated(serviceRef, nextDataTick)
 
         if (newExpectedRegistrations.isEmpty) {
-          val firstTick = expectedFirstData
-            .map { case (_, nextTick) =>
-              nextTick
-            }
-            .minOption
-            .getOrElse(
-              throw new CriticalFailureException("No expected data registered.")
-            )
-
           completeInitialization(
             modelShell,
             newExpectedFirstData,
             participantRefs,
             expectedPowerRequestTick,
             parentData,
-            firstTick,
           )
         } else
           waitingForServices(
@@ -267,25 +248,39 @@ object ParticipantAgentInit {
       participantRefs: ParticipantRefs,
       expectedPowerRequestTick: Long,
       parentData: Either[SchedulerData, FlexControlledData],
-      firstTick: Long,
   ): Behavior[Request] = {
+
+    val inputHandler = ParticipantInputHandler(expectedData)
+
+    // get first overall activation tick
+    val firstTick = modelShell
+      .getChangeIndicator(
+        currentTick = -1,
+        inputHandler.getNextActivationTick,
+      )
+      .changesAtTick
+
+    if (firstTick.isEmpty)
+      throw new CriticalFailureException(
+        s"No new first activation tick determined for model $modelShell with expected data $expectedData"
+      )
 
     parentData.fold(
       schedulerData =>
         schedulerData.scheduler ! Completion(
           schedulerData.activationAdapter,
-          Some(firstTick),
+          firstTick,
         ),
       _.emAgent ! FlexCompletion(
         modelShell.uuid,
         requestAtNextActivation = false,
-        Some(firstTick),
+        firstTick,
       ),
     )
 
     ParticipantAgent(
       modelShell,
-      ParticipantInputHandler(expectedData),
+      inputHandler,
       ParticipantGridAdapter(
         participantRefs.gridAgent,
         expectedPowerRequestTick,

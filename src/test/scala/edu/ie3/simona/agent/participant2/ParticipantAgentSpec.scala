@@ -22,8 +22,9 @@ import edu.ie3.simona.agent.participant2.MockParticipantModel.{
   MockSecondaryData,
 }
 import edu.ie3.simona.agent.participant2.ParticipantAgent.{
+  DataProvision,
   FinishParticipantSimulation,
-  ProvideData,
+  NoDataProvision,
   RequestAssetPowerMessage,
 }
 import edu.ie3.simona.event.ResultEvent
@@ -65,7 +66,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
     "not depending on external services" should {
 
-      "calculate operating point and results correctly with no additional ticks" in {
+      "calculate operating point and results correctly with no additional model activations" in {
 
         val scheduler = createTestProbe[SchedulerMessage]()
         val gridAgent = createTestProbe[GridAgent.Request]()
@@ -99,25 +100,6 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         )
         val activationRef =
           receiveAdapter.expectMessageType[ActorRef[Activation]]
-
-        // TICK 0: Outside of operation interval
-
-        participantAgent ! MockRequestMessage(0, responseReceiver.ref)
-        responseReceiver.expectMessage(MockResponseMessage)
-
-        activationRef ! Activation(0)
-
-        resultListener.expectMessageType[ParticipantResultEvent] match {
-          case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe simulationStartDate
-            result.getP should equalWithTolerance(0.0.asMegaWatt)
-            result.getQ should equalWithTolerance(0.0.asMegaVar)
-        }
-
-        scheduler.expectMessage(
-          Completion(activationRef, Some(operationInterval.start))
-        )
 
         // TICK 8 * 3600: Start of operation interval
 
@@ -212,7 +194,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
       }
 
-      "calculate operating point and results correctly with additional ticks" in {
+      "calculate operating point and results correctly with additional model activations" in {
 
         val scheduler = createTestProbe[SchedulerMessage]()
         val gridAgent = createTestProbe[GridAgent.Request]()
@@ -251,22 +233,6 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         )
         val activationRef =
           receiveAdapter.expectMessageType[ActorRef[Activation]]
-
-        // TICK 0: Outside of operation interval
-
-        activationRef ! Activation(0)
-
-        resultListener.expectMessageType[ParticipantResultEvent] match {
-          case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe simulationStartDate
-            result.getP should equalWithTolerance(0.0.asMegaWatt)
-            result.getQ should equalWithTolerance(0.0.asMegaVar)
-        }
-
-        scheduler.expectMessage(
-          Completion(activationRef, Some(operationInterval.start))
-        )
 
         // TICK 8 * 3600: Start of operation interval
 
@@ -347,7 +313,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
     "depending on secondary data" should {
 
-      "calculate operating point and results correctly with additional ticks" in {
+      "calculate operating point and results correctly with additional model activations" in {
 
         val scheduler = createTestProbe[SchedulerMessage]()
         val gridAgent = createTestProbe[GridAgent.Request]()
@@ -396,7 +362,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         resultListener.expectNoMessage()
         scheduler.expectNoMessage()
 
-        participantAgent ! ProvideData(
+        participantAgent ! DataProvision(
           0,
           service.ref.toClassic,
           MockSecondaryData(Kilowatts(1)),
@@ -420,7 +386,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 6 * 3600: Outside of operation interval, only data expected, no activation
 
-        participantAgent ! ProvideData(
+        participantAgent ! DataProvision(
           6 * 3600,
           service.ref.toClassic,
           MockSecondaryData(Kilowatts(3)),
@@ -447,7 +413,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           Completion(activationRef, Some(12 * 3600))
         )
 
-        // TICK 12 * 3600: Inside of operation interval, GridAgent requests power
+        // TICK 12 * 3600: Inside of operation interval, secondary data and GridAgent requests power
 
         activationRef ! Activation(12 * 3600)
 
@@ -466,11 +432,11 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         resultListener.expectNoMessage()
         scheduler.expectNoMessage()
 
-        participantAgent ! ProvideData(
+        participantAgent ! DataProvision(
           12 * 3600,
           service.ref.toClassic,
           MockSecondaryData(Kilowatts(6)),
-          Some(18 * 3600),
+          Some(15 * 3600),
         )
 
         // calculation should start now
@@ -481,6 +447,27 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             result.getP should equalWithTolerance(0.012.asMegaWatt)
             result.getQ should equalWithTolerance(0.005811865258.asMegaVar)
         }
+
+        // new data is expected at 18 hours
+        scheduler.expectMessage(
+          Completion(activationRef, Some(15 * 3600))
+        )
+
+        // TICK 15 * 3600: Inside of operation interval, but empty input data received
+
+        activationRef ! Activation(15 * 3600)
+
+        // nothing should happen, still waiting for secondary data...
+        scheduler.expectNoMessage()
+
+        participantAgent ! NoDataProvision(
+          15 * 3600,
+          service.ref.toClassic,
+          Some(18 * 3600),
+        )
+
+        // no-op activation, thus no result expected
+        resultListener.expectNoMessage()
 
         // new data is expected at 18 hours
         scheduler.expectMessage(
@@ -495,7 +482,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         resultListener.expectNoMessage()
         scheduler.expectNoMessage()
 
-        participantAgent ! ProvideData(
+        participantAgent ! DataProvision(
           18 * 3600,
           service.ref.toClassic,
           MockSecondaryData(Kilowatts(9)),
@@ -600,7 +587,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         resultListener.expectNoMessage()
         scheduler.expectNoMessage()
 
-        participantAgent ! ProvideData(
+        participantAgent ! DataProvision(
           0,
           service.ref.toClassic,
           ActivePower(Kilowatts(1)),
@@ -624,7 +611,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 6 * 3600: Outside of operation interval, only data expected, no activation
 
-        participantAgent ! ProvideData(
+        participantAgent ! DataProvision(
           6 * 3600,
           service.ref.toClassic,
           ActivePower(Kilowatts(3)),
@@ -670,7 +657,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         resultListener.expectNoMessage()
         scheduler.expectNoMessage()
 
-        participantAgent ! ProvideData(
+        participantAgent ! DataProvision(
           12 * 3600,
           service.ref.toClassic,
           ActivePower(Kilowatts(6)),
@@ -699,7 +686,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         resultListener.expectNoMessage()
         scheduler.expectNoMessage()
 
-        participantAgent ! ProvideData(
+        participantAgent ! DataProvision(
           18 * 3600,
           service.ref.toClassic,
           ActivePower(Kilowatts(3)),
@@ -760,7 +747,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
     "not depending on external services" should {
 
-      "calculate operating point and results correctly with no additional ticks" in {
+      "calculate operating point and results correctly with no additional model activations" in {
 
         val em = createTestProbe[FlexResponse]()
         val gridAgent = createTestProbe[GridAgent.Request]()
@@ -792,35 +779,6 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           )
         )
         val flexRef = receiveAdapter.expectMessageType[ActorRef[FlexRequest]]
-
-        // TICK 0: Outside of operation interval
-
-        flexRef ! FlexActivation(0)
-
-        em.expectMessageType[ProvideMinMaxFlexOptions] match {
-          case ProvideMinMaxFlexOptions(modelUuid, ref, min, max) =>
-            modelUuid shouldBe model.uuid
-            ref should approximate(Kilowatts(0))
-            min should approximate(Kilowatts(0))
-            max should approximate(Kilowatts(0))
-        }
-
-        flexRef ! IssueNoControl(0)
-
-        resultListener.expectMessageType[ParticipantResultEvent] match {
-          case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe simulationStartDate
-            result.getP should equalWithTolerance(0.0.asMegaWatt)
-            result.getQ should equalWithTolerance(0.0.asMegaVar)
-        }
-
-        em.expectMessage(
-          FlexCompletion(
-            model.uuid,
-            requestAtTick = Some(operationInterval.start),
-          )
-        )
 
         // TICK 8 * 3600: Start of operation interval
 
@@ -903,7 +861,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
       }
 
-      "calculate operating point and results correctly with additional ticks" in {
+      "calculate operating point and results correctly with additional model activations" in {
 
         val em = createTestProbe[FlexResponse]()
         val gridAgent = createTestProbe[GridAgent.Request]()
@@ -946,36 +904,6 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
           )
         )
         val flexRef = receiveAdapter.expectMessageType[ActorRef[FlexRequest]]
-
-        // TICK 0: Outside of operation interval
-
-        flexRef ! FlexActivation(0)
-
-        em.expectMessageType[ProvideMinMaxFlexOptions] match {
-          case ProvideMinMaxFlexOptions(modelUuid, ref, min, max) =>
-            modelUuid shouldBe model.uuid
-            ref should approximate(Kilowatts(0))
-            min should approximate(Kilowatts(0))
-            max should approximate(Kilowatts(0))
-        }
-
-        flexRef ! IssueNoControl(0)
-
-        resultListener.expectMessageType[ParticipantResultEvent] match {
-          case ParticipantResultEvent(result: MockResult) =>
-            result.getInputModel shouldBe model.uuid
-            result.getTime shouldBe simulationStartDate
-            result.getP should equalWithTolerance(0.0.asMegaWatt)
-            result.getQ should equalWithTolerance(0.0.asMegaVar)
-        }
-
-        // next model tick is ignored because we are outside of operation interval
-        em.expectMessage(
-          FlexCompletion(
-            model.uuid,
-            requestAtTick = Some(operationInterval.start),
-          )
-        )
 
         // TICK 8 * 3600: Start of operation interval
 
@@ -1093,7 +1021,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
     "depending on secondary data" should {
 
-      "calculate operating point and results correctly with additional ticks" in {
+      "calculate operating point and results correctly with additional model activations" in {
 
         val em = createTestProbe[FlexResponse]()
         val gridAgent = createTestProbe[GridAgent.Request]()
@@ -1146,7 +1074,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         resultListener.expectNoMessage()
         em.expectNoMessage()
 
-        participantAgent ! ProvideData(
+        participantAgent ! DataProvision(
           0,
           service.ref.toClassic,
           MockSecondaryData(Kilowatts(1)),
@@ -1183,7 +1111,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 6 * 3600: Outside of operation interval, only data expected, no activation
 
-        participantAgent ! ProvideData(
+        participantAgent ! DataProvision(
           6 * 3600,
           service.ref.toClassic,
           MockSecondaryData(Kilowatts(1)),
@@ -1242,7 +1170,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         resultListener.expectNoMessage()
         em.expectNoMessage()
 
-        participantAgent ! ProvideData(
+        participantAgent ! DataProvision(
           12 * 3600,
           service.ref.toClassic,
           MockSecondaryData(Kilowatts(2)),
@@ -1283,7 +1211,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         resultListener.expectNoMessage()
         em.expectNoMessage()
 
-        participantAgent ! ProvideData(
+        participantAgent ! DataProvision(
           18 * 3600,
           service.ref.toClassic,
           MockSecondaryData(Kilowatts(5)),
@@ -1411,7 +1339,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         resultListener.expectNoMessage()
         em.expectNoMessage()
 
-        participantAgent ! ProvideData(
+        participantAgent ! DataProvision(
           0,
           service.ref.toClassic,
           ActivePower(Kilowatts(1)),
@@ -1448,7 +1376,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         // TICK 6 * 3600: Outside of operation interval, only data expected, no activation
 
-        participantAgent ! ProvideData(
+        participantAgent ! DataProvision(
           6 * 3600,
           service.ref.toClassic,
           ActivePower(Kilowatts(3)),
@@ -1507,7 +1435,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         resultListener.expectNoMessage()
         em.expectNoMessage()
 
-        participantAgent ! ProvideData(
+        participantAgent ! DataProvision(
           12 * 3600,
           service.ref.toClassic,
           ActivePower(Kilowatts(6)),
@@ -1548,7 +1476,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         resultListener.expectNoMessage()
         em.expectNoMessage()
 
-        participantAgent ! ProvideData(
+        participantAgent ! DataProvision(
           18 * 3600,
           service.ref.toClassic,
           ActivePower(Kilowatts(3)),

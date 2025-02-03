@@ -84,11 +84,11 @@ final case class ParticipantModelShell[
     model.getRequiredSecondaryServices
 
   /** Returns the current relevant data, if present, or throws a
-    * [[CriticalFailureException]]. Only call this if you are certain the
-    * operation relevant data has been set.
+    * [[CriticalFailureException]]. Only call this if you are certain the model
+    * input data has been set.
     *
     * @return
-    *   the operation relevant data
+    *   the model input data
     */
   private def getModelInput: ModelInput =
     _modelInput.getOrElse(

@@ -88,23 +88,47 @@ object ParticipantAgent {
       override val serviceRef: ClassicRef
   ) extends RegistrationResponseMessage
 
-  /** @param tick
-    * @param serviceRef
-    * @param data
-    * @param nextDataTick
-    *   Next tick at which data could arrive. If None, no data is expected for
-    *   the rest of the simulation
-    *
-    * @tparam D
-    *
-    * TODO this should suffice as secondary data provision message
+  /** Data provision messages sent by data services.
     */
-  final case class ProvideData[D <: Data](
-      tick: Long,
-      serviceRef: ClassicRef,
+  sealed trait DataInputMessage extends Request {
+
+    /** The current tick
+      */
+    val tick: Long
+
+    /** The sending service actor ref
+      */
+    val serviceRef: ClassicRef
+
+    /** Next tick at which data could arrive. If None, no data is expected for
+      * the rest of the simulation
+      */
+    val nextDataTick: Option[Long]
+  }
+
+  /** Providing primary or secondary data to the participant.
+    *
+    * @param data
+    *   The data
+    * @tparam D
+    *   The type of the provided data
+    */
+  final case class DataProvision[D <: Data](
+      override val tick: Long,
+      override val serviceRef: ClassicRef,
       data: D,
-      nextDataTick: Option[Long],
-  ) extends Request
+      override val nextDataTick: Option[Long],
+  ) extends DataInputMessage
+
+  /** Providing the information that no data will be provided by the sending
+    * service for the current tick. The participant should thus act accordingly
+    * and set the next data tick.
+    */
+  final case class NoDataProvision(
+      override val tick: Long,
+      override val serviceRef: ClassicRef,
+      override val nextDataTick: Option[Long],
+  ) extends DataInputMessage
 
   /** Request the power values for the requested tick from an AssetAgent and
     * provide the latest nodal voltage
@@ -215,8 +239,8 @@ object ParticipantAgent {
           parentData,
         )
 
-      case (_, msg: ProvideData[Data]) =>
-        val inputHandlerWithData = inputHandler.handleDataProvision(msg)
+      case (_, msg: DataInputMessage) =>
+        val inputHandlerWithData = inputHandler.handleDataInputMessage(msg)
 
         val (updatedShell, updatedInputHandler, updatedGridAdapter) =
           maybeCalculate(
@@ -335,17 +359,23 @@ object ParticipantAgent {
         .map { shell =>
           activation match {
             case ParticipantActivation(tick) =>
-              val shellWithOP = shell.updateOperatingPoint(tick)
+              val (shellWithOP, gridAdapterWithResult) =
+                if (shouldRecalculate(shell, inputHandler)) {
+                  val newShell = shell.updateOperatingPoint(tick)
 
-              val results =
-                shellWithOP.determineResults(tick, gridAdapter.nodalVoltage)
+                  val results =
+                    newShell.determineResults(tick, gridAdapter.nodalVoltage)
 
-              results.modelResults.foreach { res =>
-                listener.foreach(_ ! ParticipantResultEvent(res))
-              }
+                  results.modelResults.foreach { res =>
+                    listener.foreach(_ ! ParticipantResultEvent(res))
+                  }
 
-              val gridAdapterWithResult =
-                gridAdapter.storePowerValue(results.totalPower, tick)
+                  val newGridAdapter =
+                    gridAdapter.storePowerValue(results.totalPower, tick)
+
+                  (newShell, newGridAdapter)
+                } else
+                  (shell, gridAdapter)
 
               val changeIndicator = shellWithOP.getChangeIndicator(
                 tick,
@@ -366,21 +396,26 @@ object ParticipantAgent {
               (shellWithOP, gridAdapterWithResult)
 
             case Flex(FlexActivation(tick)) =>
-              val modelWithFlex = shell.updateFlexOptions(tick)
+              val shellWithFlex =
+                if (shouldRecalculate(shell, inputHandler)) {
+                  shell.updateFlexOptions(tick)
+                } else
+                  shell
 
               parentData.fold(
                 _ =>
                   throw new CriticalFailureException(
                     "Received flex activation while not controlled by EM"
                   ),
-                _.emAgent ! modelWithFlex.flexOptions,
+                _.emAgent ! shellWithFlex.flexOptions,
               )
 
-              (modelWithFlex, gridAdapter)
+              (shellWithFlex, gridAdapter)
 
             case Flex(flexControl: IssueFlexControl) =>
               val shellWithOP = shell.updateOperatingPoint(flexControl)
 
+              // todo we determine results even if no new data arrived, and EM is also activated...
               val results =
                 shellWithOP.determineResults(
                   flexControl.tick,
@@ -419,7 +454,7 @@ object ParticipantAgent {
         }
         .get
 
-      (updatedShell, inputHandler.completeActivity(), updatedGridAdapter)
+      (updatedShell, inputHandler.completeActivation(), updatedGridAdapter)
     } else
       (modelShell, inputHandler, gridAdapter)
   }
@@ -443,10 +478,22 @@ object ParticipantAgent {
       inputHandler: ParticipantInputHandler,
       gridAdapter: ParticipantGridAdapter,
   ): Boolean = {
-    inputHandler.isComplete &&
+    inputHandler.allMessagesReceived &&
     inputHandler.activation.exists(activation =>
       !gridAdapter.isPowerRequestAwaited(activation.tick)
     )
   }
+
+  private def shouldRecalculate(
+      modelShell: ParticipantModelShell[_, _],
+      inputHandler: ParticipantInputHandler,
+  ): Boolean =
+    inputHandler.hasNewData ||
+      inputHandler.activation.exists(activation =>
+        modelShell
+          .getChangeIndicator(activation.tick - 1, None)
+          .changesAtTick
+          .contains(activation.tick)
+      )
 
 }
