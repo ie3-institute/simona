@@ -35,6 +35,7 @@ import squants.{Energy, Power, Seconds, Temperature}
 
 import java.time.ZonedDateTime
 import scala.jdk.CollectionConverters.SetHasAsScala
+import scala.language.postfixOps
 
 /** Calculation model for a thermal grid. It is assumed, that all elements are
   * connected directly with exactly one thermal bus
