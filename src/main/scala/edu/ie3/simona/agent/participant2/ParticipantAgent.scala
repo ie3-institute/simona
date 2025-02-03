@@ -428,7 +428,9 @@ object ParticipantAgent {
     *   - agent is activated (activation has been received and not completed
     *     yet)
     *   - all required data has been received
-    *   - the grid adapter is not waiting for power requests
+    *   - the grid adapter is not waiting for power requests (the new voltage
+    *     needs to be received before starting calculations for the current
+    *     tick)
     *
     * @param inputHandler
     *   The participant input handler
