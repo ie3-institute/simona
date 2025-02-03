@@ -17,6 +17,7 @@ import org.apache.pekko.util.Timeout
 import java.nio.file.Paths
 import scala.concurrent.Await
 import scala.concurrent.duration.{Duration, DurationInt}
+import scala.concurrent.duration.DurationInt
 
 /** Run a standalone simulation of simona
   *
@@ -31,19 +32,18 @@ object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
 
     // Note: We parse the config as tscfg separately, as it includes the akka configuration,
     // which is passed to the actor system
-    val (arguments, tscfg) = ArgsParser.prepareConfig(args)
-    val cfgPath = Paths.get(
-      arguments.configLocation.getOrElse(
-        throw new RuntimeException(
-          "Please provide a valid config file via --config <path-to-config-file>."
-        )
+    val (arguments, simonaConfig, tscfg) = ArgsParser.prepareConfig(args)
+
+    arguments.configLocation.orElse(
+      throw new RuntimeException(
+        "Please provide a valid config file via --config <path-to-config-file>."
       )
     )
-    val simonaConfig = SimonaConfig(cfgPath)
     ConfigFailFast.check(tscfg, simonaConfig)
 
     SimonaStandaloneSetup(
       tscfg,
+      simonaConfig,
       SimonaStandaloneSetup.buildResultFileHierarchy(tscfg, simonaConfig),
       mainArgs = arguments.mainArgs,
     )

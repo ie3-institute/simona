@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.service.ev
 
-import edu.ie3.simona.api.data.ev.ExtEvData
+import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.ev.model.EvModel
 import edu.ie3.simona.api.data.ev.ontology._
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
@@ -46,7 +46,7 @@ object ExtEvDataService {
     )
 
   final case class ExtEvStateData(
-      extEvData: ExtEvData,
+      extEvData: ExtEvDataConnection,
       uuidToActorRef: Map[UUID, ActorRef] = Map.empty[UUID, ActorRef],
       extEvMessage: Option[EvDataMessageFromExt] = None,
       freeLots: ReceiveDataMap[UUID, Int] = ReceiveDataMap.empty,
@@ -55,7 +55,7 @@ object ExtEvDataService {
   ) extends ServiceBaseStateData
 
   final case class InitExtEvData(
-      extEvData: ExtEvData
+      extEvData: ExtEvDataConnection
   ) extends InitializeServiceStateData
 
 }
@@ -170,7 +170,7 @@ class ExtEvDataService(override val scheduler: ActorRef)
     *   the current state data of this service
     * @return
     *   the service stata data that should be used in the next state (normally
-    *   with updated values) together with the completion message that is send
+    *   with updated values) together with the completion message that is sent
     *   in response to the trigger that was sent to start this announcement
     */
   override protected def announceInformation(

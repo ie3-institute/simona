@@ -16,7 +16,7 @@ import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.grid.GridAgentMessages.AssetPowerChangedMessage
 import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorExtEvDataService
@@ -73,17 +73,17 @@ import scala.reflect.{ClassTag, classTag}
 
 protected trait EvcsAgentFundamentals
     extends ParticipantAgentFundamentals[
-      ApparentPower,
+      ComplexPower,
       EvcsRelevantData,
       EvcsState,
-      ParticipantStateData[ApparentPower],
+      ParticipantStateData[ComplexPower],
       EvcsInput,
       SimpleRuntimeConfig,
       EvcsModel,
     ] {
   this: EvcsAgent =>
-  override protected val pdClassTag: ClassTag[ApparentPower] =
-    classTag[ApparentPower]
+  override protected val pdClassTag: ClassTag[ComplexPower] =
+    classTag[ComplexPower]
 
   /** Determines the needed base state data in dependence of the foreseen
     * simulation mode of the agent.
@@ -99,7 +99,7 @@ protected trait EvcsAgentFundamentals
     * @param simulationEndDate
     *   Real world time date time, when the simulation ends
     * @param resolution
-    *   Agents regular time bin it wants to be triggered e.g one hour
+    *   Agents regular time bin it wants to be triggered e.g. one hour
     * @param requestVoltageDeviationThreshold
     *   Threshold, after which two nodal voltage magnitudes from participant
     *   power requests for the same tick are considered to be different
@@ -120,7 +120,7 @@ protected trait EvcsAgentFundamentals
       outputConfig: NotifierConfig,
       maybeEmAgent: Option[TypedActorRef[FlexResponse]],
   ): ParticipantModelBaseStateData[
-    ApparentPower,
+    ComplexPower,
     EvcsRelevantData,
     EvcsState,
     EvcsModel,
@@ -141,7 +141,7 @@ protected trait EvcsAgentFundamentals
       )
 
     ParticipantModelBaseStateData[
-      ApparentPower,
+      ComplexPower,
       EvcsRelevantData,
       EvcsState,
       EvcsModel,
@@ -188,7 +188,7 @@ protected trait EvcsAgentFundamentals
 
   override protected def createInitialState(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         EvcsRelevantData,
         EvcsState,
         EvcsModel,
@@ -202,7 +202,7 @@ protected trait EvcsAgentFundamentals
 
   override protected def createCalcRelevantData(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         EvcsRelevantData,
         EvcsState,
         EvcsModel,
@@ -241,7 +241,7 @@ protected trait EvcsAgentFundamentals
   def handleControlledPowerChange(
       tick: Long,
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         EvcsRelevantData,
         EvcsState,
         EvcsModel,
@@ -251,7 +251,7 @@ protected trait EvcsAgentFundamentals
       setPower: Power,
   ): (
       EvcsState,
-      AccompaniedSimulationResult[ApparentPower],
+      AccompaniedSimulationResult[ComplexPower],
       FlexChangeIndicator,
   ) = {
     /* Calculate the power */
@@ -262,7 +262,7 @@ protected trait EvcsAgentFundamentals
       voltage,
     )
     val result = AccompaniedSimulationResult(
-      ApparentPower(setPower, reactivePower),
+      ComplexPower(setPower, reactivePower),
       Seq.empty[ResultEntity],
     )
 
@@ -279,14 +279,14 @@ protected trait EvcsAgentFundamentals
   override val calculateModelPowerFunc: (
       Long,
       ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         EvcsRelevantData,
         EvcsState,
         EvcsModel,
       ],
       EvcsState,
       Dimensionless,
-  ) => ApparentPower =
+  ) => ComplexPower =
     (_, _, _, _) =>
       throw new InvalidRequestException(
         "Evcs model cannot be run without secondary data."
@@ -315,7 +315,7 @@ protected trait EvcsAgentFundamentals
     */
   override def calculatePowerWithSecondaryDataAndGoToIdle(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         EvcsRelevantData,
         EvcsState,
         EvcsModel,
@@ -323,7 +323,7 @@ protected trait EvcsAgentFundamentals
       lastModelState: EvcsState,
       tick: Long,
       scheduler: ActorRef,
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
+  ): FSM.State[AgentState, ParticipantStateData[ComplexPower]] = {
     /* extract EV data from secondary data, which should have been requested and received before */
     baseStateData.receivedSecondaryDataStore
       .getOrElse(tick, Map.empty)
@@ -356,7 +356,7 @@ protected trait EvcsAgentFundamentals
   protected def handleFreeLotsRequest(
       tick: Long,
       modelBaseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         EvcsRelevantData,
         EvcsState,
         EvcsModel,
@@ -390,13 +390,13 @@ protected trait EvcsAgentFundamentals
       tick: Long,
       requestedDepartingEvs: Seq[UUID],
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         EvcsRelevantData,
         EvcsState,
         EvcsModel,
       ],
   ): ParticipantModelBaseStateData[
-    ApparentPower,
+    ComplexPower,
     EvcsRelevantData,
     EvcsState,
     EvcsModel,
@@ -487,12 +487,12 @@ protected trait EvcsAgentFundamentals
       tick: Long,
       scheduler: ActorRef,
       modelBaseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         EvcsRelevantData,
         EvcsState,
         EvcsModel,
       ],
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
+  ): FSM.State[AgentState, ParticipantStateData[ComplexPower]] = {
 
     val relevantData =
       createCalcRelevantData(modelBaseStateData, tick)
@@ -570,12 +570,12 @@ protected trait EvcsAgentFundamentals
     */
   override def determineReply(
       requestTick: Long,
-      baseStateData: BaseStateData[ApparentPower],
-      mostRecentRequest: Option[(Long, ApparentPower)],
+      baseStateData: BaseStateData[ComplexPower],
+      mostRecentRequest: Option[(Long, ComplexPower)],
       nodalVoltage: squants.Dimensionless,
       updatedVoltageValueStore: ValueStore[squants.Dimensionless],
-      alternativeResult: ApparentPower,
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] = {
+      alternativeResult: ComplexPower,
+  ): FSM.State[AgentState, ParticipantStateData[ComplexPower]] = {
     /* No fast reply possible --> Some calculations have to be made */
     mostRecentRequest match {
       case Some((lastRequestTick, _)) if lastRequestTick > requestTick =>
@@ -587,7 +587,7 @@ protected trait EvcsAgentFundamentals
         /* Repetitive request for the same tick, but with different voltage */
         baseStateData match {
           case modelBaseStateData: ParticipantModelBaseStateData[
-                ApparentPower,
+                ComplexPower,
                 EvcsRelevantData,
                 EvcsState,
                 EvcsModel,
@@ -631,7 +631,7 @@ protected trait EvcsAgentFundamentals
         val updatedBaseStateData =
           baseStateData match {
             case modelBaseStateData: ParticipantModelBaseStateData[
-                  ApparentPower,
+                  ComplexPower,
                   EvcsRelevantData,
                   EvcsState,
                   EvcsModel,
@@ -698,15 +698,15 @@ protected trait EvcsAgentFundamentals
     */
   override def handleCalculatedResult(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         EvcsRelevantData,
         EvcsState,
         EvcsModel,
       ],
-      result: AccompaniedSimulationResult[ApparentPower],
+      result: AccompaniedSimulationResult[ComplexPower],
       currentTick: Long,
   ): ParticipantModelBaseStateData[
-    ApparentPower,
+    ComplexPower,
     EvcsRelevantData,
     EvcsState,
     EvcsModel,
@@ -733,7 +733,7 @@ protected trait EvcsAgentFundamentals
             baseStateData.copy(
               resultValueStore = updatedResultValueStore
             ): ParticipantModelBaseStateData[
-              ApparentPower,
+              ComplexPower,
               EvcsRelevantData,
               EvcsState,
               EvcsModel,
@@ -760,12 +760,12 @@ protected trait EvcsAgentFundamentals
       lastState: EvcsState,
       currentTick: Long,
       modelBaseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         EvcsRelevantData,
         EvcsState,
         EvcsModel,
       ],
-  ): ValueStore[ApparentPower] = {
+  ): ValueStore[ComplexPower] = {
 
     val voltage = modelBaseStateData.voltageValueStore
       .last(currentTick)
@@ -797,7 +797,7 @@ protected trait EvcsAgentFundamentals
         ValueStore.updateValueStore(
           resultValueStore,
           result.getTime.toTick(modelBaseStateData.startDate),
-          ApparentPower(
+          ComplexPower(
             Megawatts(result.getP.to(MEGAWATT).getValue.doubleValue),
             Megavars(result.getQ.to(MEGAVAR).getValue.doubleValue),
           ),
@@ -819,7 +819,7 @@ protected trait EvcsAgentFundamentals
   override protected def buildResult(
       uuid: UUID,
       dateTime: ZonedDateTime,
-      result: ApparentPower,
+      result: ComplexPower,
   ): SystemParticipantResult =
     new EvcsResult(
       dateTime,

@@ -11,139 +11,142 @@ import java.nio.file.{Files, Path, Paths, StandardCopyOption}
 import java.text.SimpleDateFormat
 import com.typesafe.config.{ConfigRenderOptions, Config => TypesafeConfig}
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.io.naming.{
-  EntityPersistenceNamingStrategy,
-  FileNamingStrategy,
-}
+import edu.ie3.datamodel.io.naming.{EntityPersistenceNamingStrategy, FileNamingStrategy}
 import edu.ie3.datamodel.models.result.ResultEntity
+import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.FileHierarchyException
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.io.result.ResultSinkType.Csv
 import edu.ie3.simona.logging.logback.LogbackConfiguration
-import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
 import edu.ie3.util.io.FileIOUtils
 import org.apache.commons.io.FilenameUtils._
 
 import scala.jdk.OptionConverters.RichOptional
 
-/** Represents the output directory where the results will be materialized. If
-  * new directories are added please remember to add them to the dirsToBeCreated
-  * Vector if they should be created. Otherwise they will not be created!
-  *
-  * @version 0.1
-  * @since 12.01.20
+/** Represents the output directory where the results will be materialized.
   */
-final case class ResultFileHierarchy(
-    private val outputDir: String,
-    private val simulationName: String,
-    private val resultEntityPathConfig: ResultEntityPathConfig,
-    private val configureLogger: String => Unit = LogbackConfiguration.default,
-    private val addTimeStampToOutputDir: Boolean = true,
-    private val createDirs: Boolean = false,
-) extends LazyLogging {
+final case class ResultFileHierarchy private (
+    runOutputDir: Path,
+    rawOutputDataFilePaths: Map[Class[_ <: ResultEntity], Path],
+    configOutputDir: Path,
+    logOutputDir: Path,
+    tmpDir: Path,
+    resultSinkType: ResultSinkType,
+    resultEntitiesToConsider: Set[Class[_ <: ResultEntity]],
+)
 
-  private val fileSeparator: String = File.separator
+object ResultFileHierarchy extends LazyLogging {
 
-  val runStartTimeUTC: String =
-    new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new java.util.Date())
+  /** Creates the [[ResultFileHierarchy]] and relevant directories
+    */
+  def apply(
+      outputDir: String,
+      simulationName: String,
+      resultEntityPathConfig: ResultEntityPathConfig,
+      configureLogger: Path => Unit = LogbackConfiguration.default("INFO"),
+      config: Option[SimonaConfig] = None,
+      addTimeStampToOutputDir: Boolean = true,
+  ): ResultFileHierarchy = {
 
-  val baseOutputDir: String = buildBaseOutputDir
+    val runStartTimeUTC = Option.when(addTimeStampToOutputDir)(
+      new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new java.util.Date())
+    )
 
-  val runOutputDir: String = buildRunOutputDir
+    val baseOutputDir = buildBaseOutputDir(outputDir)
 
-  val configOutputDir: String =
-    runOutputDir.concat(fileSeparator).concat("configs")
+    val runOutputDir = buildRunOutputDir(
+      baseOutputDir,
+      simulationName,
+      runStartTimeUTC,
+    )
 
-  val rawOutputDataDir: String =
-    runOutputDir.concat(fileSeparator).concat("rawOutputData")
+    val configOutputDir = runOutputDir.resolve("configs")
+    val rawOutputDataDir = runOutputDir.resolve("rawOutputData")
+    val logOutputDir = runOutputDir.resolve("log")
+    val tmpDir = runOutputDir.resolve("tmp")
 
-  val logOutputDir: String =
-    runOutputDir.concat(fileSeparator).concat("log")
+    val resultSinkType: ResultSinkType = resultEntityPathConfig.resultSinkType
 
-  val resultSinkType: ResultSinkType = resultEntityPathConfig.resultSinkType
-
-  val resultEntitiesToConsider: Set[Class[_ <: ResultEntity]] =
-    resultEntityPathConfig.resultEntitiesToConsider
-
-  val rawOutputDataFilePaths: Map[Class[_ <: ResultEntity], String] = {
-    resultSinkType match {
-      case csv: Csv =>
-        resultEntityPathConfig.resultEntitiesToConsider
-          .map(resultEntityClass =>
-            (
-              resultEntityClass,
-              ResultFileHierarchy.buildRawOutputFilePath(
+    val rawOutputDataFilePaths: Map[Class[_ <: ResultEntity], Path] = {
+      resultSinkType match {
+        case csv: Csv =>
+          resultEntityPathConfig.resultEntitiesToConsider
+            .map(resultEntityClass =>
+              (
                 resultEntityClass,
-                csv,
-                rawOutputDataDir,
-                fileSeparator,
-              ),
+                ResultFileHierarchy.buildRawOutputFilePath(
+                  resultEntityClass,
+                  csv,
+                  rawOutputDataDir,
+                ),
+              )
             )
-          )
-          .toMap
-      case _ =>
-        Map.empty
+            .toMap
+        case _ =>
+          Map.empty
+      }
     }
+
+    val dirsToBeCreated = Seq(
+      baseOutputDir,
+      runOutputDir,
+      configOutputDir,
+      rawOutputDataDir,
+      logOutputDir,
+      tmpDir,
+    )
+
+    val resultFileHierarchy = ResultFileHierarchy(
+      runOutputDir,
+      rawOutputDataFilePaths,
+      configOutputDir,
+      logOutputDir,
+      tmpDir,
+      resultSinkType,
+      resultEntityPathConfig.resultEntitiesToConsider,
+    )
+    prepareDirectories(
+      baseOutputDir,
+      dirsToBeCreated,
+      resultFileHierarchy,
+      config,
+    )
+
+    // needs to be done after dir creation
+    configureLogger(logOutputDir)
+
+    resultFileHierarchy
   }
 
-  val graphOutputDir: String =
-    runOutputDir.concat(fileSeparator).concat("graphs")
-
-  val kpiOutputDir: String = runOutputDir.concat(fileSeparator).concat("kpi")
-
-  val tmpDir: String = runOutputDir.concat(fileSeparator).concat("tmp")
-
-  private val dirsToBeCreated: Vector[String] = Vector(
-    baseOutputDir,
-    runOutputDir,
-    configOutputDir,
-    rawOutputDataDir,
-    graphOutputDir,
-    kpiOutputDir,
-    tmpDir,
-    logOutputDir,
-  )
-
-  // needs to be the latest call because otherwise the values are null as they are not initialized yet
-  if (createDirs)
-    ResultFileHierarchy.createOutputDirectories(this)
-
-  // needs to be done after dir creation
-  configureLogger(logOutputDir)
-
-  /** Builds the base output directory string
+  /** Builds the base output directory
     *
     * @return
-    *   the filepath string to the directory
+    *   the filepath of the directory
     */
-  private def buildBaseOutputDir: String = {
-
+  private def buildBaseOutputDir(
+      outputDir: String
+  ): Path = {
     // clean file string if necessary
     val cleanedBaseOutputDir = {
       val normalizedOutputDir = normalize(outputDir)
-      (fileSeparator + "$").r.replaceAllIn(normalizedOutputDir, "")
+      (File.separator + "$").r.replaceAllIn(normalizedOutputDir, "")
     }
 
-    // create base output dir if non-existent
-    Paths.get(cleanedBaseOutputDir).toFile.getAbsolutePath
+    Paths.get(cleanedBaseOutputDir)
   }
 
-  /** Builds the output directory string for this specific run
-    *
-    * @return
+  /** Builds the output directory for this specific run
     */
-  private def buildRunOutputDir: String = {
+  private def buildRunOutputDir(
+      baseOutputDir: Path,
+      simulationName: String,
+      runStartTimeUTC: Option[String],
+  ): Path = {
     val optionalSuffix =
-      if (addTimeStampToOutputDir) s"_$runStartTimeUTC" else ""
-    baseOutputDir
-      .concat(fileSeparator)
-      .concat(simulationName)
-      .concat(optionalSuffix)
+      runStartTimeUTC.map(pattern => s"_$pattern").getOrElse("")
+
+    baseOutputDir.resolve(s"$simulationName$optionalSuffix")
   }
-
-}
-
-object ResultFileHierarchy extends LazyLogging {
 
   /** @param resultEntitiesToConsider
     *   [[ResultEntity]] s to consider to be written out
@@ -156,13 +159,11 @@ object ResultFileHierarchy extends LazyLogging {
   )
 
   /** @param modelClass
-    *   the model class a file path should be build for
+    *   the model class a file path should be built for
     * @param csvSink
     *   the csv sink type parameters
     * @param rawOutputDataDir
     *   the directory of the raw output data
-    * @param fileSeparator
-    *   the file separator to be used
     * @return
     *   an absolute file path as string for the provided model class incl. file
     *   name + extension
@@ -170,9 +171,8 @@ object ResultFileHierarchy extends LazyLogging {
   private def buildRawOutputFilePath(
       modelClass: Class[_ <: ResultEntity],
       csvSink: Csv,
-      rawOutputDataDir: String,
-      fileSeparator: String,
-  ): String = {
+      rawOutputDataDir: Path,
+  ): Path = {
     val fileEnding =
       if (csvSink.fileFormat.startsWith("."))
         csvSink.fileFormat
@@ -192,64 +192,71 @@ object ResultFileHierarchy extends LazyLogging {
           )
       }
 
-    rawOutputDataDir
-      .concat(fileSeparator)
-      .concat(filename.toString)
-      .concat(fileEnding)
+    rawOutputDataDir.resolve(s"${filename.toString}$fileEnding")
   }
 
   /** Prepares the output directories to be ready to hold the output data. This
     * includes creating the run directory with all subsequent directories as
     * well as copying the simulation configuration to the output dir
     *
-    * @param config
+    * @param baseOutputDir
+    *   The base output directory
+    * @param dirsToBeCreated
+    *   The directories that need to be created
+    * @param maybeConfig
     *   the config of the current simulation
     * @param resultFileHierarchy
     *   the output file hierarchy of the current simulation
     */
-  def prepareDirectories(
-      config: TypesafeConfig,
+  private def prepareDirectories(
+      baseOutputDir: Path,
+      dirsToBeCreated: Seq[Path],
       resultFileHierarchy: ResultFileHierarchy,
+      maybeConfig: Option[SimonaConfig],
   ): Unit = {
     // create output directories if they are not present yet
     if (!runOutputDirExists(resultFileHierarchy))
-      ResultFileHierarchy.createOutputDirectories(resultFileHierarchy)
+      createOutputDirectories(
+        baseOutputDir,
+        dirsToBeCreated,
+        resultFileHierarchy,
+      )
 
-    logger.info(
-      "Processing configs for simulation: {}.",
-      config.getString("simona.simulationName"),
-    )
+    maybeConfig.foreach { config =>
+      logger.info(
+        "Processing configs for simulation: {}.",
+        s"simona.${config.simulationName}",
+      )
 
-    val outFile =
-      Paths.get(resultFileHierarchy.configOutputDir, "vn_simona.conf").toFile
-    val bw = new BufferedWriter(new FileWriter(outFile))
-    bw.write(
-      config
-        .root()
-        .render(
-          ConfigRenderOptions
-            .defaults()
-            .setOriginComments(false)
-            .setComments(false)
-        )
-    )
-    bw.close()
-    logger.info("Config '{}' written to '{}'.", outFile.getPath, outFile)
+      val outFile =
+        resultFileHierarchy.configOutputDir.resolve("vn_simona.conf").toFile
+      val bw = new BufferedWriter(new FileWriter(outFile))
+      bw.write(
+        config
+          .render(
+            ConfigRenderOptions
+              .defaults()
+              .setOriginComments(false)
+              .setComments(false)
+          )
+      )
+      bw.close()
+      logger.info("Config '{}' written to '{}'.", outFile.getPath, outFile)
+    }
 
   }
 
   /** Checks if the directory of the current run already exists
     *
-    * @param outputFileHierarchy
+    * @param fileHierarchy
     *   the [[ResultFileHierarchy]] that holds information on the run directory
     *   path
     * @return
     *   true if it exists, false if not
     */
-  def runOutputDirExists(outputFileHierarchy: ResultFileHierarchy): Boolean = {
-    new File(outputFileHierarchy.runOutputDir).exists() && new File(
-      outputFileHierarchy.runOutputDir
-    ).listFiles().length > 0
+  def runOutputDirExists(fileHierarchy: ResultFileHierarchy): Boolean = {
+    val outputDir = fileHierarchy.runOutputDir.toFile
+    outputDir.exists() && outputDir.listFiles().length > 0
   }
 
   /** Creates all output directories of the provided [[ResultFileHierarchy]]
@@ -257,11 +264,12 @@ object ResultFileHierarchy extends LazyLogging {
     * @param outputFileHierarchy
     *   the [[ResultFileHierarchy]] the directories should be created for
     */
-  def createOutputDirectories(
-      outputFileHierarchy: ResultFileHierarchy
+  private def createOutputDirectories(
+      baseOutputDir: Path,
+      dirsToBeCreated: Seq[Path],
+      outputFileHierarchy: ResultFileHierarchy,
   ): Unit = {
     // try to create base output dir
-    val baseOutputDir = Paths.get(outputFileHierarchy.baseOutputDir)
     // / check for existence of the provided baseOutputDir, if not create it
     if (Files.exists(baseOutputDir) && baseOutputDir.toFile.isFile) {
       throw new FileHierarchyException(
@@ -270,17 +278,17 @@ object ResultFileHierarchy extends LazyLogging {
     }
 
     // check if there is data inside the runOutputDir taking into account the provided FileHandling
-    val runOutputDir = new File(outputFileHierarchy.runOutputDir)
+    val runOutputDir = outputFileHierarchy.runOutputDir.toFile
     if (runOutputDir.exists() && runOutputDir.listFiles().length > 0) {
       // files inside the runOutputDir -> fail
       throw new FileHierarchyException(
-        s"The runOutputDir ${outputFileHierarchy.runOutputDir} already exists and is NOT empty! " +
+        s"The runOutputDir ${outputFileHierarchy.runOutputDir.toString} already exists and is NOT empty! " +
           s"Please either delete or empty the directory."
       )
     }
 
     // create the output directories for the specific run
-    outputFileHierarchy.dirsToBeCreated.foreach(createDir)
+    dirsToBeCreated.foreach(createDir)
 
   }
 
@@ -289,8 +297,8 @@ object ResultFileHierarchy extends LazyLogging {
     * @param dir
     *   the full path where the directory should be created (incl. it's name)
     */
-  private def createDir(dir: String): Unit = {
-    val dirFile = new File(dir)
+  private def createDir(dir: Path): Unit = {
+    val dirFile = dir.toFile
     if (!dirFile.mkdirs() && !dirFile.exists())
       throw new FileHierarchyException(
         "The output directory path " + dir

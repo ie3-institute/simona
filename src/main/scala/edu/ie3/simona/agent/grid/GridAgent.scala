@@ -80,25 +80,30 @@ object GridAgent extends DBFSAlgorithm {
       simonaConfig: SimonaConfig,
   ): Behavior[Request] =
     Behaviors.receiveMessagePartial {
-      case CreateGridAgent(gridAgentInitData, unlockKey) =>
+      case CreateGridAgent(gridAgentInitData, unlockKey, onlyOneSubGrid) =>
         constantData.environmentRefs.scheduler ! ScheduleActivation(
           constantData.activationAdapter,
           INIT_SIM_TICK,
           Some(unlockKey),
         )
-        initializing(gridAgentInitData, simonaConfig)
+        initializing(gridAgentInitData, simonaConfig, onlyOneSubGrid)
     }
 
   private def initializing(
       gridAgentInitData: GridAgentInitData,
       simonaConfig: SimonaConfig,
+      onlyOneSubGrid: Boolean,
   )(implicit
       constantData: GridAgentConstantData,
       buffer: StashBuffer[Request],
   ): Behavior[Request] = Behaviors.receivePartial {
     case (ctx, WrappedActivation(Activation(INIT_SIM_TICK))) =>
       // fail fast sanity checks
-      failFast(gridAgentInitData, SimonaActorNaming.actorName(ctx.self))
+      failFast(
+        gridAgentInitData,
+        SimonaActorNaming.actorName(ctx.self),
+        onlyOneSubGrid,
+      )
 
       ctx.log.debug(
         s"Inferior Subnets: {}; Inferior Subnet Nodes: {}",
@@ -225,9 +230,10 @@ object GridAgent extends DBFSAlgorithm {
   private def failFast(
       gridAgentInitData: GridAgentInitData,
       actorName: String,
+      onlyOneSubGrid: Boolean,
   ): Unit = {
     if (
-      gridAgentInitData.superiorGridGates.isEmpty && gridAgentInitData.inferiorGridGates.isEmpty
+      gridAgentInitData.superiorGridGates.isEmpty && gridAgentInitData.inferiorGridGates.isEmpty && !onlyOneSubGrid
     )
       throw new GridAgentInitializationException(
         s"$actorName has neither superior nor inferior grids! This can either " +

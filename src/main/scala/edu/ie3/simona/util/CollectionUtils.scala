@@ -79,7 +79,7 @@ object CollectionUtils {
     *   otherwise
     */
   @tailrec
-  def isSorted[T](seq: Seq[T])(implicit ord: Ordering[T]): Boolean =
+  private def isSorted[T](seq: Seq[T])(implicit ord: Ordering[T]): Boolean =
     seq match {
       case Nil      => true // an empty list is sorted
       case _ :: Nil => true // a single-element list is sorted
@@ -98,7 +98,7 @@ object CollectionUtils {
     * smallest map key is provided.
     *
     * @param map
-    *   containing containing the (k,v) pairs (e.g. x,y pairs)
+    *   containing the (k,v) pairs (e.g. x,y pairs)
     * @param key
     *   the key values are needed for
     * @return

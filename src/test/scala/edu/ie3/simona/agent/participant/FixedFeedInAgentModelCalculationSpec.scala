@@ -15,7 +15,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerUnchangedMessage,
 }
 import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.fixedfeedin.FixedFeedInAgent
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
@@ -109,7 +109,7 @@ class FixedFeedInAgentModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       FixedFeedInInput,
       FixedFeedInRuntimeConfig,
-      ApparentPower,
+      ComplexPower,
     ](
       inputModel = voltageSensitiveInput,
       modelConfig = modelConfig,
@@ -225,7 +225,7 @@ class FixedFeedInAgentModelCalculationSpec
             SortedMap(0L -> Each(1.0)),
           )
           resultValueStore shouldBe ValueStore(resolution)
-          requestValueStore shouldBe ValueStore[ApparentPower](
+          requestValueStore shouldBe ValueStore[ComplexPower](
             resolution
           )
         case _ =>
@@ -274,11 +274,11 @@ class FixedFeedInAgentModelCalculationSpec
       inside(fixedFeedAgent.stateData) {
         case baseStateData: ParticipantModelBaseStateData[_, _, _, _] =>
           baseStateData.requestValueStore shouldBe ValueStore[
-            ApparentPower
+            ComplexPower
           ](
             resolution,
             SortedMap(
-              0L -> ApparentPower(
+              0L -> ComplexPower(
                 Megawatts(0d),
                 Megavars(0d),
               )
@@ -328,7 +328,7 @@ class FixedFeedInAgentModelCalculationSpec
           baseStateData.resultValueStore.last(0L) match {
             case Some((tick, entry)) =>
               tick shouldBe 0L
-              inside(entry) { case ApparentPower(p, q) =>
+              inside(entry) { case ComplexPower(p, q) =>
                 p should approximate(Megawatts(-268.603e-6))
                 q should approximate(Megavars(0.0))
               }

@@ -17,7 +17,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.getAndCheckNodalVoltage
 import edu.ie3.simona.agent.participant.ParticipantAgentFundamentals
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
+  ComplexPower,
   ZERO_POWER,
 }
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
@@ -68,19 +68,19 @@ import scala.reflect.{ClassTag, classTag}
 
 trait StorageAgentFundamentals
     extends ParticipantAgentFundamentals[
-      ApparentPower,
+      ComplexPower,
       StorageRelevantData,
       StorageState,
-      ParticipantStateData[ApparentPower],
+      ParticipantStateData[ComplexPower],
       StorageInput,
       SimpleRuntimeConfig,
       StorageModel,
     ] {
   this: StorageAgent =>
-  override val alternativeResult: ApparentPower = ZERO_POWER
+  override val alternativeResult: ComplexPower = ZERO_POWER
 
-  override protected val pdClassTag: ClassTag[ApparentPower] =
-    classTag[ApparentPower]
+  override protected val pdClassTag: ClassTag[ComplexPower] =
+    classTag[ComplexPower]
 
   /** Abstract definition, individual implementations found in individual agent
     * fundamental classes
@@ -96,7 +96,7 @@ trait StorageAgentFundamentals
       outputConfig: NotifierConfig,
       maybeEmAgent: Option[TypedActorRef[FlexResponse]],
   ): BaseStateData.ParticipantModelBaseStateData[
-    ApparentPower,
+    ComplexPower,
     StorageRelevantData,
     StorageState,
     StorageModel,
@@ -116,7 +116,7 @@ trait StorageAgentFundamentals
       )
 
     ParticipantModelBaseStateData[
-      ApparentPower,
+      ComplexPower,
       StorageRelevantData,
       StorageState,
       StorageModel,
@@ -165,7 +165,7 @@ trait StorageAgentFundamentals
 
   override protected def createInitialState(
       baseStateData: BaseStateData.ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         StorageRelevantData,
         StorageState,
         StorageModel,
@@ -178,7 +178,7 @@ trait StorageAgentFundamentals
 
   override protected def createCalcRelevantData(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         StorageRelevantData,
         StorageState,
         StorageModel,
@@ -190,14 +190,14 @@ trait StorageAgentFundamentals
   override val calculateModelPowerFunc: (
       Long,
       BaseStateData.ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         StorageRelevantData,
         StorageState,
         StorageModel,
       ],
       StorageState,
       Dimensionless,
-  ) => ApparentPower =
+  ) => ComplexPower =
     (_, _, _, _) =>
       throw new InvalidRequestException(
         "Storage model cannot be run without secondary data."
@@ -205,7 +205,7 @@ trait StorageAgentFundamentals
 
   override def calculatePowerWithSecondaryDataAndGoToIdle(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         StorageRelevantData,
         StorageState,
         StorageModel,
@@ -219,13 +219,13 @@ trait StorageAgentFundamentals
     )
 
   override def averageResults(
-      tickToResults: Map[Long, ApparentPower],
+      tickToResults: Map[Long, ComplexPower],
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         Power => ReactivePower
       ],
-  ): ApparentPower = ParticipantAgentFundamentals.averageApparentPower(
+  ): ComplexPower = ParticipantAgentFundamentals.averageApparentPower(
     tickToResults,
     windowStart,
     windowEnd,
@@ -236,7 +236,7 @@ trait StorageAgentFundamentals
   override protected def buildResult(
       uuid: UUID,
       dateTime: ZonedDateTime,
-      result: ApparentPower,
+      result: ComplexPower,
   ): SystemParticipantResult = new StorageResult(
     dateTime,
     uuid,
@@ -259,15 +259,15 @@ trait StorageAgentFundamentals
     */
   override protected def handleCalculatedResult(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         StorageRelevantData,
         StorageState,
         StorageModel,
       ],
-      result: AccompaniedSimulationResult[ApparentPower],
+      result: AccompaniedSimulationResult[ComplexPower],
       currentTick: Long,
   ): ParticipantModelBaseStateData[
-    ApparentPower,
+    ComplexPower,
     StorageRelevantData,
     StorageState,
     StorageModel,
@@ -328,7 +328,7 @@ trait StorageAgentFundamentals
   override def handleControlledPowerChange(
       tick: Long,
       baseStateData: BaseStateData.ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         StorageRelevantData,
         StorageState,
         StorageModel,
@@ -338,7 +338,7 @@ trait StorageAgentFundamentals
       setPower: Power,
   ): (
       StorageState,
-      AccompaniedSimulationResult[ApparentPower],
+      AccompaniedSimulationResult[ComplexPower],
       FlexChangeIndicator,
   ) = {
     val (updatedState, flexChangeIndicator) =
@@ -353,9 +353,9 @@ trait StorageAgentFundamentals
       voltage,
     )
 
-    val apparentPower = ApparentPower(updatedSetPower, reactivePower)
+    val apparentPower = ComplexPower(updatedSetPower, reactivePower)
 
-    val result: AccompaniedSimulationResult[ApparentPower] =
+    val result: AccompaniedSimulationResult[ComplexPower] =
       AccompaniedSimulationResult(apparentPower, Seq.empty[ResultEntity])
 
     (updatedState, result, flexChangeIndicator)

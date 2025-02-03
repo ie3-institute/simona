@@ -105,7 +105,7 @@ case object RandomLoadParamStore extends LazyLogging {
           } catch {
             case e: FileIOException =>
               throw new FileIOException(
-                s"Cannot determine random load parameters for day type '$dayType' and quarter hour '$quartHour'",
+                s"Cannot determine random load parameters for day type '$dayType' and quarter-hour '$quartHour'",
                 e,
               )
           }
@@ -115,7 +115,7 @@ case object RandomLoadParamStore extends LazyLogging {
         case (_, quarterHour, randomLoadParameters) =>
           (quarterHour, randomLoadParameters)
       } // Group entries by day type
-      .map { // For each day type, sort the parameters by quarter hour and build a type day parameter object from it
+      .map { // For each day type, sort the parameters by quarter-hour and build a type day parameter object from it
         case (dayType, quarterHourToParameters) =>
           dayType -> TypeDayParameters(
             quarterHourToParameters.sortBy(_._1).map(_._2).toArray
@@ -124,13 +124,13 @@ case object RandomLoadParamStore extends LazyLogging {
   }
 
   /** Builds a descriptor tree, which gives information what to find where in
-    * the file. Each head line element breaks down to encoded information about
+    * the file. Each headline element breaks down to encoded information about
     * the probability density function parameter and the addressed day type. All
-    * head line elements are treated this way and a mapping from day type to
+    * headline elements are treated this way and a mapping from day type to
     * column position of parameter is build.
     *
     * @param headerElements
-    *   List of head line elements
+    *   List of headline elements
     * @return
     *   Mapping from day type to a mapping from parameter to column index
     */

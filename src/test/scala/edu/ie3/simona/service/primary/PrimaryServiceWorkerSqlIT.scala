@@ -12,7 +12,7 @@ import edu.ie3.datamodel.io.naming.DatabaseNamingStrategy
 import edu.ie3.datamodel.models.value.{HeatAndSValue, PValue}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ActivePower,
-  ApparentPowerAndHeat,
+  ComplexPowerAndHeat,
 }
 import edu.ie3.simona.config.IoConfigUtils.TimeStampedSqlParams
 import edu.ie3.simona.ontology.messages.Activation
@@ -107,7 +107,7 @@ class PrimaryServiceWorkerSqlIT
           ),
           uuidPqh,
           0L,
-          ApparentPowerAndHeat(
+          ComplexPowerAndHeat(
             Kilowatts(1000.0),
             Kilovars(329.0),
             Kilowatts(8000.0),

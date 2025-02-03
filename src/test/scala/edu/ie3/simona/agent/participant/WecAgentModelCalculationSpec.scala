@@ -15,7 +15,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerUnchangedMessage,
 }
 import edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.ParticipantModelBaseStateData
 import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
@@ -162,7 +162,7 @@ class WecAgentModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       WecInput,
       WecRuntimeConfig,
-      ApparentPower,
+      ComplexPower,
     ](
       inputModel = voltageSensitiveInput,
       simulationStartDate = simulationStartDate,
@@ -230,7 +230,7 @@ class WecAgentModelCalculationSpec
     val initStateData = ParticipantInitializeStateData[
       WecInput,
       WecRuntimeConfig,
-      ApparentPower,
+      ComplexPower,
     ](
       inputModel = voltageSensitiveInput,
       modelConfig = modelConfig,
@@ -328,7 +328,7 @@ class WecAgentModelCalculationSpec
             SortedMap(0L -> Each(1.0)),
           )
           resultValueStore shouldBe ValueStore(resolution)
-          requestValueStore shouldBe ValueStore[ApparentPower](resolution)
+          requestValueStore shouldBe ValueStore[ComplexPower](resolution)
 
           /* Additional information */
           awaitRegistrationResponsesFrom shouldBe Iterable(weatherService.ref)
@@ -352,7 +352,7 @@ class WecAgentModelCalculationSpec
       wecAgent.stateName shouldBe Idle
       wecAgent.stateData match {
         case baseStateData: ParticipantModelBaseStateData[
-              ApparentPower,
+              ComplexPower,
               WecRelevantData,
               ConstantState.type,
               WecModel,
@@ -413,17 +413,17 @@ class WecAgentModelCalculationSpec
 
       inside(wecAgent.stateData) {
         case modelBaseStateData: ParticipantModelBaseStateData[
-              ApparentPower,
+              ComplexPower,
               WecRelevantData,
               ConstantState.type,
               WecModel,
             ] =>
           modelBaseStateData.requestValueStore shouldBe ValueStore[
-            ApparentPower
+            ComplexPower
           ](
             resolution,
             SortedMap(
-              0L -> ApparentPower(
+              0L -> ComplexPower(
                 Megawatts(0d),
                 Megavars(0d),
               )
@@ -489,7 +489,7 @@ class WecAgentModelCalculationSpec
       wecAgent.stateData match {
         case DataCollectionStateData(
               baseStateData: ParticipantModelBaseStateData[
-                ApparentPower,
+                ComplexPower,
                 WecRelevantData,
                 ConstantState.type,
                 WecModel,
@@ -525,7 +525,7 @@ class WecAgentModelCalculationSpec
       wecAgent.stateName shouldBe Idle
       wecAgent.stateData match {
         case baseStateData: ParticipantModelBaseStateData[
-              ApparentPower,
+              ComplexPower,
               WecRelevantData,
               ConstantState.type,
               WecModel,
@@ -546,7 +546,7 @@ class WecAgentModelCalculationSpec
                 900L,
                 fail("Expected a simulation result for tick 900."),
               ) match {
-                case ApparentPower(p, q) =>
+                case ComplexPower(p, q) =>
                   p should approximate(Megawatts(0.0))
                   q should approximate(Megavars(0.0))
               }
@@ -595,7 +595,7 @@ class WecAgentModelCalculationSpec
       wecAgent.stateData match {
         case DataCollectionStateData(
               baseStateData: ParticipantModelBaseStateData[
-                ApparentPower,
+                ComplexPower,
                 WecRelevantData,
                 ConstantState.type,
                 WecModel,
@@ -644,7 +644,7 @@ class WecAgentModelCalculationSpec
       wecAgent.stateName shouldBe Idle
       wecAgent.stateData match {
         case baseStateData: ParticipantModelBaseStateData[
-              ApparentPower,
+              ComplexPower,
               WecRelevantData,
               ConstantState.type,
               WecModel,
@@ -665,7 +665,7 @@ class WecAgentModelCalculationSpec
                 900L,
                 fail("Expected a simulation result for tick 900."),
               ) match {
-                case ApparentPower(p, q) =>
+                case ComplexPower(p, q) =>
                   p should approximate(Megawatts(0.0))
                   q should approximate(Megavars(0.0))
               }

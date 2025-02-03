@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.datamodel.models.input.system.StorageInput
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.participant.StorageModel.{
   RefTargetSocParams,
@@ -20,6 +20,7 @@ import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMin
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities._
+import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.{Dimensionless, Each, Energy, Power, Seconds}
 
@@ -31,14 +32,14 @@ final case class StorageModel(
     id: String,
     operationInterval: OperationInterval,
     qControl: QControl,
-    sRated: Power,
+    sRated: ApparentPower,
     cosPhiRated: Double,
     eStorage: Energy,
     pMax: Power,
     eta: Dimensionless,
     initialSoc: Double,
     targetSoc: Option[Double],
-) extends SystemParticipant[StorageRelevantData, ApparentPower, StorageState](
+) extends SystemParticipant[StorageRelevantData, ComplexPower, StorageState](
       uuid,
       id,
       operationInterval,
@@ -47,12 +48,12 @@ final case class StorageModel(
       cosPhiRated,
     ) {
 
-  private val minEnergy = zeroKWH
+  private val minEnergy = zeroKWh
 
   /** Tolerance for power comparisons. With very small (dis-)charging powers,
     * problems can occur when calculating the future tick at which storage is
     * full or empty. For sufficiently large time frames, the maximum Long value
-    * ([[Long.MaxValue]]) can be exceeded, thus the Long value overflows and we
+    * ([[Long.MaxValue]]) can be exceeded, thus the Long value overflows, and we
     * get undefined behavior.
     *
     * Thus, small (dis-)charging powers compared to storage capacity have to be
@@ -103,7 +104,7 @@ final case class StorageModel(
       voltage: Dimensionless,
       modelState: StorageState,
       data: StorageRelevantData,
-  ): ApparentPower =
+  ): ComplexPower =
     throw new NotImplementedError(
       "Storage model cannot calculate power without flexibility control."
     )
@@ -354,9 +355,9 @@ object StorageModel {
       scaledInput.getId,
       operationInterval,
       QControl.apply(scaledInput.getqCharacteristics),
-      Kilowatts(
+      Kilovoltamperes(
         scaledInput.getType.getsRated
-          .to(PowerSystemUnits.KILOWATT)
+          .to(PowerSystemUnits.KILOVOLTAMPERE)
           .getValue
           .doubleValue
       ),

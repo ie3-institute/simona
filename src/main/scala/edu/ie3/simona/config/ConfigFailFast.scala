@@ -16,6 +16,7 @@ import edu.ie3.simona.config.InputConfig.{
 import edu.ie3.simona.config.IoConfigUtils._
 import edu.ie3.simona.config.OutputConfig.{
   BaseOutputConfig,
+  LogOutputConfig,
   ThermalOutputConfig,
 }
 import edu.ie3.simona.config.RuntimeConfig.{
@@ -52,7 +53,7 @@ import scala.util.{Failure, Success, Try}
   * missing config parameters where at least one is needed or check for invalid
   * or contradicting parameters
   */
-case object ConfigFailFast extends LazyLogging {
+object ConfigFailFast extends LazyLogging {
 
   def check(typeSafeConfig: Config, simonaConfig: SimonaConfig): Unit = {
     check(typeSafeConfig)
@@ -144,18 +145,7 @@ case object ConfigFailFast extends LazyLogging {
     /* Check if the provided combination of data source and parameters are valid */
     checkWeatherDataSource(simonaConfig.input.weather.datasource)
 
-    /* check if at least one data sink is defined */
-    checkDataSink(simonaConfig.output.sink)
-
-    /* Check all output configurations for participant models */
-    checkParticipantsOutputConfig(
-      simonaConfig.output.participant
-    )
-
-    /* Check all output configurations for thermal models */
-    checkThermalOutputConfig(
-      simonaConfig.output.thermal
-    )
+    checkOutputConfig(simonaConfig.output)
 
     /* Check power flow resolution configuration */
     checkPowerFlowResolutionConfiguration(simonaConfig.powerflow)
@@ -165,6 +155,28 @@ case object ConfigFailFast extends LazyLogging {
 
     /* Check correct parameterization of storages */
     checkStoragesConfig(simonaConfig.runtime.participant.storage)
+  }
+
+  /** Checks for valid output configuration
+    *
+    * @param outputConfig
+    *   the output configuration that should be checked
+    */
+  private def checkOutputConfig(
+      outputConfig: OutputConfig
+  ): Unit = {
+
+    /* check if at least one data sink is defined */
+    checkDataSink(outputConfig.sink)
+
+    /* Check all output configurations for participant models */
+    checkParticipantsOutputConfig(outputConfig.participant)
+
+    /* Check all output configurations for thermal models */
+    checkThermalOutputConfig(outputConfig.thermal)
+
+    /* Check output configurations for log */
+    checkLogOutputConfig(outputConfig.log)
   }
 
   /** Checks for valid sink configuration
@@ -274,8 +286,8 @@ case object ConfigFailFast extends LazyLogging {
     )
   }
 
-  /** Check participants's basic runtime configurations, as well as in default
-    * as in individual configs. This comprises
+  /** Check participants' basic runtime configurations, as well as in default as
+    * in individual configs. This comprises
     * i.e. uuid and scaling factor
     */
   private def checkBaseRuntimeConfigs[T <: BaseRuntimeConfig](
@@ -622,7 +634,7 @@ case object ConfigFailFast extends LazyLogging {
 
   }
 
-  /** Check the config sub tree for output parameterization
+  /** Check the config subtree for output parameterization
     *
     * @param subConfig
     *   Output sub config tree for participants
@@ -644,7 +656,7 @@ case object ConfigFailFast extends LazyLogging {
     checkIndividualOutputConfigs(subConfig.individualConfigs)
   }
 
-  /** Check the config sub tree for output parameterization
+  /** Check the config subtree for output parameterization
     *
     * @param subConfig
     *   Output sub config tree for participants
@@ -655,6 +667,21 @@ case object ConfigFailFast extends LazyLogging {
     implicit val elementType: String = "thermal"
     checkDefaultBaseOutputConfig(subConfig.defaultConfig)
     checkIndividualOutputConfigs(subConfig.individualConfigs)
+  }
+
+  /** Check the config subtree for log output parameterization
+    *
+    * @param subConfig
+    *   Output sub config tree for log
+    */
+  private def checkLogOutputConfig(
+      subConfig: LogOutputConfig
+  ): Unit = {
+    val validLogLevels = Seq("TRACE", "DEBUG", "INFO", "WARN", "ERROR")
+    if (!validLogLevels.contains(subConfig.level))
+      throw new InvalidConfigParameterException(
+        s"Invalid log level \"${subConfig.level}\". Valid log levels: ${validLogLevels.mkString(", ")}"
+      )
   }
 
   /** Checks resolution of power flow calculation
@@ -732,29 +759,29 @@ case object ConfigFailFast extends LazyLogging {
 
   /** Check the suitability of storage config parameters.
     *
-    * @param StorageRuntimeConfig
+    * @param storageRuntimeConfig
     *   RuntimeConfig of Storages
     */
   private def checkStoragesConfig(
-      storageConfig: RuntimeParticipantConfig[StorageRuntimeConfig]
+      storageRuntimeConfig: RuntimeParticipantConfig[StorageRuntimeConfig]
   ): Unit = {
     if (
-      storageConfig.defaultConfig.initialSoc < 0.0 || storageConfig.defaultConfig.initialSoc > 1.0
+      storageRuntimeConfig.defaultConfig.initialSoc < 0.0 || storageRuntimeConfig.defaultConfig.initialSoc > 1.0
     )
       throw new RuntimeException(
         s"StorageRuntimeConfig: Default initial SOC needs to be between 0.0 and 1.0."
       )
 
     if (
-      storageConfig.defaultConfig.targetSoc.exists(
+      storageRuntimeConfig.defaultConfig.targetSoc.exists(
         _ < 0.0
-      ) || storageConfig.defaultConfig.targetSoc.exists(_ > 1.0)
+      ) || storageRuntimeConfig.defaultConfig.targetSoc.exists(_ > 1.0)
     )
       throw new RuntimeException(
         s"StorageRuntimeConfig: Default target SOC needs to be between 0.0 and 1.0."
       )
 
-    storageConfig.individualConfigs.foreach { config =>
+    storageRuntimeConfig.individualConfigs.foreach { config =>
       if (config.initialSoc < 0.0 || config.initialSoc > 1.0)
         throw new RuntimeException(
           s"StorageRuntimeConfig: ${config.uuids} initial SOC needs to be between 0.0 and 1.0."

@@ -6,14 +6,12 @@
 
 package edu.ie3.simona.agent.participant
 
-import org.apache.pekko.actor.{ActorRef, FSM, Props}
-import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.ValueStore
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
-  ApparentPower,
+  ComplexPower,
   ZERO_POWER,
 }
 import edu.ie3.simona.agent.participant.data.Data.SecondaryData
@@ -44,7 +42,14 @@ import edu.ie3.simona.model.participant.{
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.{Kilovars, Megavars, ReactivePower}
+import edu.ie3.util.scala.quantities.{
+  Kilovars,
+  Kilovoltamperes,
+  Megavars,
+  ReactivePower,
+}
+import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
+import org.apache.pekko.actor.{ActorRef, FSM, Props}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
 import org.mockito.Mockito.doReturn
@@ -67,38 +72,38 @@ class ParticipantAgentMock(
     initStateData: ParticipantInitializeStateData[
       SystemParticipantInput,
       BaseRuntimeConfig,
-      ApparentPower,
+      ComplexPower,
     ],
     override val listener: Iterable[ActorRef] = Iterable.empty[ActorRef],
 ) extends ParticipantAgent[
-      ApparentPower,
+      ComplexPower,
       FixedRelevantData.type,
       ConstantState.type,
-      ParticipantStateData[ApparentPower],
+      ParticipantStateData[ComplexPower],
       SystemParticipantInput,
       BaseRuntimeConfig,
       SystemParticipant[
         FixedRelevantData.type,
-        ApparentPower,
+        ComplexPower,
         ConstantState.type,
       ],
     ](scheduler, initStateData)
     with ParticipantAgentFundamentals[
-      ApparentPower,
+      ComplexPower,
       FixedRelevantData.type,
       ConstantState.type,
-      ParticipantStateData[ApparentPower],
+      ParticipantStateData[ComplexPower],
       SystemParticipantInput,
       BaseRuntimeConfig,
       SystemParticipant[
         FixedRelevantData.type,
-        ApparentPower,
+        ComplexPower,
         ConstantState.type,
       ],
     ] {
-  override protected val pdClassTag: ClassTag[ApparentPower] =
-    classTag[ApparentPower]
-  override val alternativeResult: ApparentPower = ZERO_POWER
+  override protected val pdClassTag: ClassTag[ComplexPower] =
+    classTag[ComplexPower]
+  override val alternativeResult: ComplexPower = ZERO_POWER
 
   /** Partial function, that is able to transfer
     * [[ParticipantModelBaseStateData]] (holding the actual calculation model)
@@ -107,20 +112,20 @@ class ParticipantAgentMock(
   override val calculateModelPowerFunc: (
       Long,
       ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         FixedRelevantData.type,
         ConstantState.type,
         SystemParticipant[
           FixedRelevantData.type,
-          ApparentPower,
+          ComplexPower,
           ConstantState.type,
         ],
       ],
       ConstantState.type,
       squants.Dimensionless,
-  ) => ApparentPower = (_, _, _, _) =>
+  ) => ComplexPower = (_, _, _, _) =>
     // output different from default (0, 0)
-    ApparentPower(
+    ComplexPower(
       Megawatts(2.0),
       Megavars(1.0),
     )
@@ -143,19 +148,19 @@ class ParticipantAgentMock(
     */
   override def calculatePowerWithSecondaryDataAndGoToIdle(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         FixedRelevantData.type,
         ConstantState.type,
         SystemParticipant[
           FixedRelevantData.type,
-          ApparentPower,
+          ComplexPower,
           ConstantState.type,
         ],
       ],
       modelState: ConstantState.type,
       currentTick: Long,
       scheduler: ActorRef,
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] =
+  ): FSM.State[AgentState, ParticipantStateData[ComplexPower]] =
     throw new InvalidRequestException(
       "Request to calculate power with secondary data cannot be processed for this mock agent."
     )
@@ -174,7 +179,7 @@ class ParticipantAgentMock(
     * @param simulationEndDate
     *   Real world time date time, when the simulation ends
     * @param resolution
-    *   Agents regular time bin it wants to be triggered e.g one hour
+    *   Agents regular time bin it wants to be triggered e.g. one hour
     * @param requestVoltageDeviationThreshold
     *   Threshold, after which two nodal voltage magnitudes from participant
     *   power requests for the same tick are considered to be different
@@ -195,35 +200,35 @@ class ParticipantAgentMock(
       outputConfig: NotifierConfig,
       maybeEmAgent: Option[TypedActorRef[FlexResponse]],
   ): ParticipantModelBaseStateData[
-    ApparentPower,
+    ComplexPower,
     FixedRelevantData.type,
     ConstantState.type,
-    SystemParticipant[FixedRelevantData.type, ApparentPower, ConstantState.type],
+    SystemParticipant[FixedRelevantData.type, ComplexPower, ConstantState.type],
   ] = {
     val func = CosPhiFixed(0.95).activeToReactivePowerFunc(
-      Kilowatts(0.0),
+      Kilovoltamperes(0.0),
       0.95d,
       Each(1.0),
     )
     val participant: SystemParticipant[
       FixedRelevantData.type,
-      ApparentPower,
+      ComplexPower,
       ConstantState.type,
     ] =
       mock[SystemParticipant[
         FixedRelevantData.type,
-        ApparentPower,
+        ComplexPower,
         ConstantState.type,
       ]]
     doReturn(func).when(participant).activeToReactivePowerFunc(any())
 
     ParticipantModelBaseStateData[
-      ApparentPower,
+      ComplexPower,
       FixedRelevantData.type,
       ConstantState.type,
       SystemParticipant[
         FixedRelevantData.type,
-        ApparentPower,
+        ComplexPower,
         ConstantState.type,
       ],
     ](
@@ -254,9 +259,9 @@ class ParticipantAgentMock(
     * @param modelConfig
     *   Configuration for the model
     * @param simulationStartDate
-    *   Wall clock time of first instant in simulation
+    *   The simulation time at which the simulation starts
     * @param simulationEndDate
-    *   Wall clock time of last instant in simulation
+    *   The simulation time at which the simulation ends
     * @return
     */
   override def buildModel(
@@ -266,13 +271,13 @@ class ParticipantAgentMock(
       simulationEndDate: ZonedDateTime,
   ): SystemParticipant[
     FixedRelevantData.type,
-    ApparentPower,
+    ComplexPower,
     ConstantState.type,
   ] = {
     val mockModel =
       mock[SystemParticipant[
         FixedRelevantData.type,
-        ApparentPower,
+        ComplexPower,
         ConstantState.type,
       ]]
     val uuid = inputModel.electricalInputModel.getUuid
@@ -282,12 +287,12 @@ class ParticipantAgentMock(
 
   override protected def createInitialState(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         FixedRelevantData.type,
         ConstantState.type,
         SystemParticipant[
           FixedRelevantData.type,
-          ApparentPower,
+          ComplexPower,
           ConstantState.type,
         ],
       ]
@@ -296,12 +301,12 @@ class ParticipantAgentMock(
 
   override protected def createCalcRelevantData(
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         FixedRelevantData.type,
         ConstantState.type,
         SystemParticipant[
           FixedRelevantData.type,
-          ApparentPower,
+          ComplexPower,
           ConstantState.type,
         ],
       ],
@@ -310,7 +315,7 @@ class ParticipantAgentMock(
     FixedRelevantData
 
   /** To clean up agent value stores after power flow convergence. This is
-    * necessary for agents whose results are time dependent e.g. storage agents
+    * necessary for agents whose results are time-dependent e.g. storage agents
     * @param baseStateData
     *   Basic state data
     * @param currentTick
@@ -319,9 +324,9 @@ class ParticipantAgentMock(
     *   [[Idle]] with updated result values
     */
   override def finalizeTickAfterPF(
-      baseStateData: BaseStateData[ApparentPower],
+      baseStateData: BaseStateData[ComplexPower],
       currentTick: Long,
-  ): FSM.State[AgentState, ParticipantStateData[ApparentPower]] =
+  ): FSM.State[AgentState, ParticipantStateData[ComplexPower]] =
     goto(Idle) using baseStateData
 
   /** Determine the average result within the given tick window
@@ -338,13 +343,13 @@ class ParticipantAgentMock(
     *   The averaged result
     */
   override def averageResults(
-      tickToResults: Map[Long, ApparentPower],
+      tickToResults: Map[Long, ComplexPower],
       windowStart: Long,
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         squants.Power => ReactivePower
       ] = None,
-  ): ApparentPower =
+  ): ComplexPower =
     ParticipantAgentFundamentals.averageApparentPower(
       tickToResults,
       windowStart,
@@ -367,7 +372,7 @@ class ParticipantAgentMock(
   override protected def buildResult(
       uuid: UUID,
       dateTime: ZonedDateTime,
-      result: ApparentPower,
+      result: ComplexPower,
   ): SystemParticipantResult =
     new SystemParticipantResult(
       dateTime,
@@ -394,12 +399,12 @@ class ParticipantAgentMock(
   override def handleControlledPowerChange(
       tick: Long,
       baseStateData: ParticipantModelBaseStateData[
-        ApparentPower,
+        ComplexPower,
         CalcRelevantData.FixedRelevantData.type,
         ModelState.ConstantState.type,
         SystemParticipant[
           CalcRelevantData.FixedRelevantData.type,
-          ApparentPower,
+          ComplexPower,
           ModelState.ConstantState.type,
         ],
       ],
@@ -408,12 +413,12 @@ class ParticipantAgentMock(
       setPower: squants.Power,
   ): (
       ModelState.ConstantState.type,
-      AccompaniedSimulationResult[ApparentPower],
+      AccompaniedSimulationResult[ComplexPower],
       FlexChangeIndicator,
   ) = (
     ConstantState,
     AccompaniedSimulationResult(
-      ApparentPower(
+      ComplexPower(
         Kilowatts(0.0),
         Kilovars(0.0),
       ),
@@ -445,10 +450,11 @@ class ParticipantAgentMock(
       nodalVoltage: squants.Dimensionless,
       model: SystemParticipant[
         CalcRelevantData.FixedRelevantData.type,
-        ApparentPower,
+        ComplexPower,
         ModelState.ConstantState.type,
       ],
   ): ModelState.ConstantState.type = modelState
+
 }
 
 object ParticipantAgentMock {
@@ -457,7 +463,7 @@ object ParticipantAgentMock {
       initStateData: ParticipantInitializeStateData[
         SystemParticipantInput,
         BaseRuntimeConfig,
-        ApparentPower,
+        ComplexPower,
       ],
   ): Props =
     Props(

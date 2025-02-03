@@ -153,7 +153,7 @@ abstract class ParticipantAgent[
           Activation(tick),
           modelBaseStateData: ParticipantModelBaseStateData[PD, CD, MS, M],
         ) if modelBaseStateData.services.isEmpty =>
-      /* An activity start trigger is sent and no data is awaited (neither secondary nor primary). Therefore go straight
+      /* An activity start trigger is sent and no data is awaited (neither secondary nor primary). Therefore, go straight
        * ahead to calculations */
 
       /* Hold tick, as state transition is needed */
@@ -452,8 +452,8 @@ abstract class ParticipantAgent[
         case _ => participantStateData.receivedSecondaryDataStore
       }
 
-      /* At least parts of the needed data has been received or it is an additional activation, that has been triggered.
-       * Anyways, the calculation routine has also to take care of filling up missing data. */
+      /* At least parts of the needed data has been received, or it is an additional activation, that has been triggered.
+       * Anyway, the calculation routine has also to take care of filling up missing data. */
       val lastModelState =
         getLastOrInitialStateData(participantStateData, currentTick)
       calculatePowerWithSecondaryDataAndGoToIdle(
@@ -497,7 +497,7 @@ abstract class ParticipantAgent[
     * @param simulationEndDate
     *   Real world time date time, when the simulation ends
     * @param resolution
-    *   Agents regular time bin it wants to be triggered e.g one hour
+    *   Agents regular time bin it wants to be triggered e.g. one hour
     * @param requestVoltageDeviationThreshold
     *   Threshold, after which two nodal voltage magnitudes from participant
     *   power requests for the same tick are considered to be different
@@ -537,7 +537,7 @@ abstract class ParticipantAgent[
     * @param simulationEndDate
     *   Real world time date time, when the simulation ends
     * @param resolution
-    *   Agents regular time bin it wants to be triggered e.g one hour
+    *   Agents regular time bin it wants to be triggered e.g. one hour
     * @param requestVoltageDeviationThreshold
     *   Threshold, after which two nodal voltage magnitudes from participant
     *   power requests for the same tick are considered to be different
@@ -660,7 +660,7 @@ abstract class ParticipantAgent[
     * the agent is meant to replay external primary data: Announce result, add
     * content to result value store, go to [[Idle]] and answer the scheduler,
     * that the activity start trigger is fulfilled. 2.2) All secondary data is
-    * there, go to [[Calculate]] and ask the scheduler to trigger ourself for
+    * there, go to [[Calculate]] and ask the scheduler to trigger ourselves for
     * starting the model based calculation 3) Everything is at place and the
     * [[Activation]] has NOT yet been sent: Stay here and wait
     *
@@ -839,7 +839,7 @@ abstract class ParticipantAgent[
   )(implicit outputConfig: NotifierConfig): Unit
 
   /** Abstract definition to clean up agent value stores after power flow
-    * convergence. This is necessary for agents whose results are time dependent
+    * convergence. This is necessary for agents whose results are time-dependent
     * e.g. storage agents
     *
     * @param baseStateData

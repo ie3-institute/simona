@@ -36,6 +36,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added option to directly zip the output files [#793](https://github.com/ie3-institute/simona/issues/793)
 - Added weatherData HowTo for Copernicus ERA5 data [#967](https://github.com/ie3-institute/simona/issues/967)
 - Add some quote to 'printGoodbye' [#997](https://github.com/ie3-institute/simona/issues/997)
+- Add unapply method for ThermalHouseResults [#934](https://github.com/ie3-institute/simona/issues/934)
+- Implemented GitHub Actions Pipeline [#939](https://github.com/ie3-institute/simona/issues/939)
+- Added `ApparentPower` to differentiate between different power types [#794](https://github.com/ie3-institute/simona/issues/794)
+- Update/enhance config documentation [#1013](https://github.com/ie3-institute/simona/issues/1013)
+- Create `CITATION.cff` [#1035](https://github.com/ie3-institute/simona/issues/1035)
+- Introduce ThermalDemandWrapper [#1049](https://github.com/ie3-institute/simona/issues/1049)
+- Added Marius Staudt to list of reviewers [#1057](https://github.com/ie3-institute/simona/issues/1057)
+- Throw exception if the slack node is not directly conected to a transformer. [#525](https://github.com/ie3-institute/simona/issues/525)
+- Added support for topologies without transformers and slack grids with multiple nodes [#1099](https://github.com/ie3-institute/simona/issues/1099)
+- Checking the number of slack nodes [#1122](https://github.com/ie3-institute/simona/issues/1122)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)
@@ -75,6 +85,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated dependabot reviewers [#888](https://github.com/ie3-institute/simona/issues/888)
 - Merged `HpModelTestData` with `HpTestData` to `HpInputTestData` [#872](https://github.com/ie3-institute/simona/issues/872)
 - Harmonised both methods that check the inner temperature of thermal house against the boundaries [#880](https://github.com/ie3-institute/simona/issues/880)
+- Changed implementation of actor naming for unique name generation [#103](https://github.com/ie3-institute/simona/issues/103)
 - Convert all `eval-rst` instances in rtd to myst syntax [#901](https://github.com/ie3-institute/simona/issues/901)
 - External simulation should provide information about next tick of MobSim [#776](https://github.com/ie3-institute/simona/issues/776)
 - Reverted temporary workaround in `spotless.gradle` [#681](https://github.com/ie3-institute/simona/issues/681)
@@ -90,8 +101,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reorganized Jenkins pipeline to separate build and test stages for better efficiency [#938](https://github.com/ie3-institute/simona/issues/938)
 - Rewrote SystemParticipantTest and MockParticipant from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Rewrote ChpModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Rewrote CylindricalThermalStorageTest Test from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Replace mutable var in ChpModelSpec [#1002](https://github.com/ie3-institute/simona/issues/1002)
+- Move compression of output files into `ResultEventListener`[#965](https://github.com/ie3-institute/simona/issues/965)
+- Rewrote StorageModelTest from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
+- Updated `ExtEvSimulationClasses` [#898](https://github.com/ie3-institute/simona/issues/898)
+- Refactoring of `ThermalGrid.energyGrid` to distinguish between demand of house and storage [#928](https://github.com/ie3-institute/simona/issues/928)
+- Refactoring to use zeroKW and zeroKWH in thermal grid unit tests [#1023](https://github.com/ie3-institute/simona/issues/1023)
+- Refactor `ResultFileHierarchy` [#1031](https://github.com/ie3-institute/simona/issues/1031)
+- Removing logs in `logs/simona` [#1017](https://github.com/ie3-institute/simona/issues/1017)
+- Fix implausible test cases of HpModelSpec [#1042](https://github.com/ie3-institute/simona/issues/1042)
+- Refactoring to only use 'lastHpState' and 'relevantData' for 'ThermalGrid' calculations [#916](https://github.com/ie3-institute/simona/issues/916)
+- Refactor thermal calcRelevantData [#1051](https://github.com/ie3-institute/simona/issues/1051)
+- Removed Deployment stage from Jenkinsfile [#1063](https://github.com/ie3-institute/simona/issues/1063)
+- Prepare 'ChpModelSpec' and 'CylindricalThermalStorageSpec' for Storage without storageVolumeLvlMin [#1012](https://github.com/ie3-institute/simona/issues/1012)
+- Fixed SonarQube quality gate using the correct parameter '-Dsonar.qualitygate.wait=true' [#1072](https://github.com/ie3-institute/simona/issues/1072)
+- Updated `simonaAPI` to version `0.6.0` [#1080](https://github.com/ie3-institute/simona/issues/1080)
+- Enhanced title in `CITATION.cff` [#1088](https://github.com/ie3-institute/simona/issues/1088)
+- Refactor ThermalEnergyDemand definitions [#917](https://github.com/ie3-institute/simona/issues/917)
+- Rewrote PvModelIT from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 
 ### Fixed
+- Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
 - Removed a repeated line in the documentation of vn_simona config [#658](https://github.com/ie3-institute/simona/issues/658)
 - Removed version number "2.0" from the logo printed to console [#642](https://github.com/ie3-institute/simona/issues/642)
 - Fixed PV Model documentation [#684](https://github.com/ie3-institute/simona/issues/684), [#686](https://github.com/ie3-institute/simona/issues/686)
@@ -121,6 +152,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix power flow calculation with em agents [#962](https://github.com/ie3-institute/simona/issues/962)
 - Fix scheduling at Evcs with more than one Ev at a time without Em [#787](https://github.com/ie3-institute/simona/issues/787)
 - Fix CheckWindow duration [#921](https://github.com/ie3-institute/simona/issues/921)
+- Fixed ThermalStorageResults having multiple entries [#924](https://github.com/ie3-institute/simona/issues/924)
+- Fix filter for thermal result checking for lastTick not for currentTick [#1008](https://github.com/ie3-institute/simona/issues/1008)
+- Fixed `CHANGELOG` entry for issue ([#103](https://github.com/ie3-institute/simona/issues/103)) [#941](https://github.com/ie3-institute/simona/issues/941)
+- Fix grammar and spelling in docs and comments [#1022](https://github.com/ie3-institute/simona/issues/1022)
+- Fix some minor issues and findings from inspections [#1019](https://github.com/ie3-institute/simona/issues/1019)
+- Fix initialisation freezing on empty primary data [#981](https://github.com/ie3-institute/simona/issues/981)
+- Shallow fetch in CI [#1041](https://github.com/ie3-institute/simona/issues/1041)
+- Correct wrong use of term "wall clock time" [#727](https://github.com/ie3-institute/simona/issues/727)
+- Fixed Deployment of `simona` to `Maven Central` in new GHA Pipeline [#1029](https://github.com/ie3-institute/simona/issues/1029)
+- Fixed SonarQube quality gate using the right link for PRs or Branches [#1061](https://github.com/ie3-institute/simona/issues/1061)
+- Fixed ignored EM strategy [#1091](https://github.com/ie3-institute/simona/issues/1091)
+- EM should output flex option results even if it has no parent [#1112](https://github.com/ie3-institute/simona/issues/1112)
 
 ## [3.0.0] - 2023-08-07
 
@@ -183,7 +226,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed format of example grid `vn_simona` [#216](https://github.com/ie3-institute/simona/issues/216)
 - Renamed ChpData to ChpRelevantData [#494](https://github.com/ie3-institute/simona/issues/494)
 - Updated gradle to 8.2.1, cleaned up `build.gradle` and `Jenkinsfile` [#572](https://github.com/ie3-institute/simona/issues/572)
-- Changed implementation of actor naming for unique name generation [#103](https://github.com/ie3-institute/simona/issues/103)
 
 ### Fixed
 - Location of `vn_simona` test grid (was partially in Berlin and Dortmund) [#72](https://github.com/ie3-institute/simona/issues/72)
@@ -214,12 +256,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for three winding transformers  [#63](https://github.com/ie3-institute/simona/issues/63)
   - Handle incoming slack voltage accordingly
   - Allow multiple sub grid gates at one node (also allows multiple two winding transformers at one node)
-  - Perform power flow calculation in highest grid, if a three winding transformer is apparent
+  - Perform power flow calculation in the highest grid, if a three winding transformer is apparent
   - Write out results
 - Fixed broken layout in RTD documentation [#500](https://github.com/ie3-institute/simona/issues/500)
 - Corrected tests in RefSystemTest [#560](https://github.com/ie3-institute/simona/issues/560)
 - Take log file event filters from `logback.xml` when defining the run log appender [#108](https://github.com/ie3-institute/simona/issues/108)
-- Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)
 
 ### Removed
 - Remove workaround for tscfg tmp directory [#178](https://github.com/ie3-institute/simona/issues/178)

@@ -108,9 +108,9 @@ final case class WeatherService(
   /** Initialize the concrete service implementation using the provided
     * initialization data. This method should perform all heavyweight tasks
     * before the actor becomes ready. The return values are a) the state data of
-    * the initialized service and b) optional triggers that should be send to
+    * the initialized service and b) optional triggers that should be sent to
     * the [[edu.ie3.simona.scheduler.Scheduler]] together with the completion
-    * message that is send in response to the trigger that is send to start the
+    * message that is sent in response to the trigger that is sent to start the
     * initialization process
     *
     * @param initServiceData
@@ -270,7 +270,7 @@ final case class WeatherService(
         serviceStateData
 
       case _ =>
-        // actor is not registered and we don't have data for it
+        // actor is not registered, and we don't have data for it
         // inform the agentToBeRegistered that the registration failed as we don't have data for it
         agentToBeRegistered ! RegistrationFailedMessage(self)
         serviceStateData
@@ -285,7 +285,7 @@ final case class WeatherService(
     *   the current state data of this service
     * @return
     *   the service stata data that should be used in the next state (normally
-    *   with updated values) together with the completion message that is send
+    *   with updated values) together with the completion message that is sent
     *   in response to the trigger that was sent to start this announcement
     */
   override protected def announceInformation(tick: Long)(implicit
@@ -304,7 +304,7 @@ final case class WeatherService(
 
     // get the weather and send it to the subscribed agents
     // no sanity check needed here as we can assume that we always have weather available
-    // when we announce it. Otherwise the registration would have failed already!
+    // when we announce it. Otherwise, the registration would have failed already!
     updatedStateData.weatherSource
       .getWeather(tick, updatedStateData.weightedWeatherCoordinates)
       .foreach { case coordinate -> weatherResult =>

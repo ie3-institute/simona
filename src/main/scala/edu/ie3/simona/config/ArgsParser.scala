@@ -11,6 +11,7 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.config.SimonaConfig.EventListenerConfig
 import edu.ie3.simona.event.listener.SimonaListenerCompanion
 import edu.ie3.util.scala.ReflectionTools
+import pureconfig.ConfigSource
 import scopt.{OptionParser => scoptOptionParser}
 
 import java.io.File
@@ -31,7 +32,7 @@ object ArgsParser extends LazyLogging {
       nodePort: Option[String] = None,
       seedAddress: Option[String] = None,
       useLocalWorker: Option[Boolean] = None,
-      tArgs: Map[String, String] = Map.empty,
+      tArgs: Map[String, String] = Map.empty, // TODO: can be removed?
   ) {
     val useCluster: Boolean = clusterType.isDefined
   }
@@ -149,11 +150,11 @@ object ArgsParser extends LazyLogging {
   // sealed trait for cluster type
   sealed trait ClusterType
 
-  case object MasterNode extends ClusterType {
+  private case object MasterNode extends ClusterType {
     override def toString = "master"
   }
 
-  case object SeedNode extends ClusterType {
+  private case object SeedNode extends ClusterType {
     override def toString = "worker"
   }
 
@@ -207,9 +208,11 @@ object ArgsParser extends LazyLogging {
     *   the provided arguments
     * @return
     *   a tuple of the parsed arguments and the result of parsing the provided
-    *   config as [[TypesafeConfig]]
+    *   config as [[SimonaConfig]]
     */
-  def prepareConfig(args: Array[String]): (Arguments, TypesafeConfig) = {
+  def prepareConfig(
+      args: Array[String]
+  ): (Arguments, SimonaConfig, TypesafeConfig) = {
 
     val parsedArgs = parse(args) match {
       case Some(pArgs) => pArgs
@@ -230,6 +233,7 @@ object ArgsParser extends LazyLogging {
     }
 
     // TODO: IMPORTANT find out what to with the overrides and remove them here
+    // currently not used with pureconfig
     val argsConfig =
       ConfigFactory.parseString(
         s"""config = "${parsedArgs.configLocation.get.replace("\\", "\\\\")}"
@@ -241,6 +245,7 @@ object ArgsParser extends LazyLogging {
            |""".stripMargin
       )
 
+    // currently not used with pureconfig
     val tArgsSubstitution = ConfigFactory.parseMap(parsedArgs.tArgs.asJava)
 
     // note: this overrides the default config values provided in the config file!
@@ -252,7 +257,14 @@ object ArgsParser extends LazyLogging {
       .withFallback(parsedArgsConfig)
       .resolve()
 
-    (parsedArgs, config)
+    val (simonaConfig, typeSafeConfig) = SimonaConfig(
+      parsedArgs.configLocation
+        .map(_.replace("\\", "\\\\"))
+        .map(Paths.get(_))
+        .get
+    )
+
+    (parsedArgs, simonaConfig, typeSafeConfig)
   }
 
 }

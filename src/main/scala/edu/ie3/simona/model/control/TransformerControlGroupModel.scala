@@ -134,7 +134,7 @@ object TransformerControlGroupModel {
     *   Array of all regulation requests
     * @return
     *   None in case of contrary requests, else the highest or lowest voltage
-    *   depending of the direction for regulation
+    *   depending on the direction for regulation
     */
   private def harmonizeRegulationNeeds(
       regulationRequests: Array[Dimensionless]
