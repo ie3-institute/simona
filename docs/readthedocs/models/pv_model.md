@@ -127,7 +127,7 @@ $$
 **References:**
 
 * {cite:cts}`Maleki.2017`
-* {cite:cts}`Itaca_Sun`
+* {cite:cts}`Duffie.2013` p. 17 (formula 1.6.10)
 
 
 ### Solar Altitude Angle
@@ -146,7 +146,7 @@ $$
 **References:**
 
 * {cite:cts}`Maleki.2017` p. 5
-* {cite:cts}`Itaca_Sun`
+* {cite:cts}`Duffie.2013` p. 15 (formula 1.6.5) with $\sin (\alpha_s) = \cos (\theta_z)$
 
 
 ### Zenith Angle
@@ -198,11 +198,11 @@ $$
 Calculating the air mass ratio by dividing the radius of the earth with approx. effective height of the atmosphere (each in kilometer)
 
 $$
-airmassratio = (\frac{6371 km}{9 km}) = 707.8\overline{8}
+\mathrm{airmassratio} = (\frac{6371 km}{9 km}) = 707.8\overline{8}
 $$
 
 $$
-airmass = \sqrt{(707.8\overline{8} \cdot \cos({\theta_z}))^2 +2 \cdot 707.8\overline{8} +1)} - 707.8\overline{8} \cdot \cos{(\theta_z)})
+\mathrm{airmass} = \sqrt{(707.8\overline{8} \cdot \cos({\theta_z}))^2 +2 \cdot 707.8\overline{8} +1)} - 707.8\overline{8} \cdot \cos{(\theta_z)})
 $$
 
 **References:**
@@ -234,6 +234,8 @@ $$
 
 * {cite:cts}`Zheng.2017` p. 53, formula 2.3b
 * {cite:cts}`Iqbal.1983`
+* {cite:cts}`Spencer.1971`
+* {cite:cts}`Duffie.2013` (the fifth ed. seems to have a typo in formula (1.4.1b): factor $0.000719$ is missing a zero)
 
 
 ### Beam Radiation on Sloped Surface
@@ -274,7 +276,7 @@ b = (\cos(\phi) \cdot \cos(\delta)) \cdot (\sin(\omega_{2}) - \sin(\omega_{1})) 
 $$
 
 $$
-E_{beam,S} = E_{beam,H} \cdot \frac{a}{b}
+E_{\mathrm{beam},S} = E_{\mathrm{beam},H} \cdot \frac{a}{b}
 $$
 
 **Please note:** $\frac{1}{180}\pi$ is omitted from these formulas, as we are already working with data in *radians*.
@@ -286,7 +288,7 @@ $$
 **$\omega_1$** = hour angle $\omega$\
 **$\omega_2$** = hour angle $\omega$ + 1 hour\
 **$\alpha_e$** = surface azimuth angle\
-**$E_{beam,H}$** = beam radiation (horizontal surface)
+**$E_{\mathrm{beam},H}$** = beam radiation (horizontal surface)
 
 **Reference:**
 
@@ -300,13 +302,15 @@ The diffuse radiation is computed using the Perez model, which divides the radia
 A cloud index is defined by
 
 $$
-\epsilon = \frac{\frac{E_{dif,H} + E_{beam,H}}{E_{dif,H}} + 5.535 \cdot 10^{-6} \cdot \theta_{z}^3}{1 + 5.535 \cdot 10^{-6} \cdot \theta_{z}^3}
+\epsilon = \frac{\frac{E_{\mathrm{dif},H} + E_{\mathrm{beam},N}}{E_{\mathrm{dif},H}} + 5.535 \cdot 10^{-6} \cdot \theta_{z}^3}{1 + 5.535 \cdot 10^{-6} \cdot \theta_{z}^3}
 $$
+
+with angle $\theta_z$ values in **degrees** ({cite:cts}`Duffie.2013` p. 94) and $E_{\mathrm{beam},N} = \frac{E_{\mathrm{beam},H}}{\cos (\theta_z)}$ ({cite:cts}`Duffie.2013` p. 95).
 
 Calculating a brightness index
 
 $$
-\Delta = m \cdot \frac{E_{dif,H}}{I_{0}}
+\Delta = m \cdot \frac{E_{\mathrm{dif},H}}{I_{0}}
 $$
 
 **Perez Fij coefficients (Myers 2017):**
@@ -384,7 +388,7 @@ $$
 the diffuse radiation can be calculated:
 
 $$
-E_{dif,S} = E_{dif,H} \cdot (\frac{1}{2} \cdot (1 +
+E_{\mathrm{dif},S} = E_{\mathrm{dif},H} \cdot (\frac{1}{2} \cdot (1 +
 cos(\gamma_{e})) \cdot (1- F_{1}) + \frac{a}{b} \cdot F_{1} +
 F_{2} \cdot \sin(\gamma_{e}))
 $$
@@ -396,25 +400,27 @@ $$
 **$\gamma_{e}$** = slope angle of the surface\
 **$I_{0}$** = Extraterrestrial Radiation\
 **$m$** = air mass\
-**$E_{beam,H}$** = beam radiation (horizontal surface)\
-**$E_{dif,H}$** = diffuse radiation (horizontal surface)
+**$E_{\mathrm{beam},H}$** = beam radiation (horizontal surface)\
+**$E_{\mathrm{beam},N}$** = beam radiation (normal incidence, thus radiation on a plane normal to the direction of the beam)\
+**$E_{\mathrm{dif},H}$** = diffuse radiation (horizontal surface)
 
 **References:**
 
 * {cite:cts}`Perez.1987`
 * {cite:cts}`Perez.1990`
 * {cite:cts}`Myers.2017` p. 96f
+* {cite:cts}`Duffie.2013` p. 95f
 
 
 ### Reflected Radiation on Sloped Surface
 
 $$
-E_{ref,S} = E_{Ges,H} \cdot \frac{\rho}{2} \cdot (1-
+E_{\mathrm{ref},S} = E_{\mathrm{Ges},H} \cdot \frac{\rho}{2} \cdot (1-
 \cos(\gamma_{e}))
 $$
 
 *with*\
-**$E_{Ges,H}$** = total horizontal radiation ($E_{beam,H} + E_{dif,H})$\
+**$E_{\mathrm{Ges},H}$** = total horizontal radiation ($E_{\mathrm{beam},H} + E_{\mathrm{dif},H})$\
 **$\gamma_e$** = slope angle of the surface\
 **$\rho$** = albedo
 
@@ -428,13 +434,13 @@ $$
 Received energy is calculated as the sum of all three types of irradiation.
 
 $$
-E_{total} = E_{beam,S} + E_{dif,S} + E_{ref,S}
+E_{\mathrm{total}} = E_{\mathrm{beam},S} + E_{\mathrm{dif},S} + E_{\mathrm{ref},S}
 $$
 
 *with*\
-**$E_{beam,S}$** = Beam radiation\
-**$E_{dif,S}$** = Diffuse radiation\
-**$E_{ref,S}$** = Reflected radiation
+**$E_{\mathrm{beam},S}$** = Beam radiation\
+**$E_{\mathrm{dif},S}$** = Diffuse radiation\
+**$E_{\mathrm{ref},S}$** = Reflected radiation
 
 A generator correction factor (depending on month surface slope $\gamma_{e}$) and a temperature correction factor (depending on month) multiplied on top.
 
