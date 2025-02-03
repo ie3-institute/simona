@@ -134,8 +134,11 @@ final case class ThermalHouse(
   }
 
   /** Calculate the needed energy to change from start temperature to target
-    * temperature. In edge cases the temperatureDelta can be negative. Then the
-    * temperatureDelta is set to zero, resulting in an energy demand of zeroKWh.
+    * temperature.
+    *
+    * In edge cases, i.e. within the tolerance margin of target temperatures,
+    * the temperature difference can be negative. For these cases we set the
+    * temperature difference to zero, resulting in an energy demand of 0 kWh.
     *
     * @param targetTemperature
     *   The target temperature to reach
