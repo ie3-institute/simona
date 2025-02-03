@@ -10,10 +10,9 @@ import com.typesafe.config.{Config, ConfigRenderOptions}
 import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.util.TimeUtil
 import pureconfig._
-import pureconfig.error.{CannotParse, CannotRead, ConfigReaderFailure, ConfigReaderFailures, ConvertFailure, ThrowableFailure}
+import pureconfig.error._
 import pureconfig.generic.ProductHint
 import pureconfig.generic.auto._
-import tscfg.codeDefs.resources.ScalaDefs.$TsCfgValidator
 
 import java.nio.file.{Files, Path}
 import java.time.ZonedDateTime
@@ -31,7 +30,8 @@ case class SimonaConfig(
     event: EventConfig = EventConfig(None),
     control: Option[ControlConfig] = None,
 ) {
-  def render(options: ConfigRenderOptions): String = SimonaConfig.render(this, options)
+  def render(options: ConfigRenderOptions): String =
+    SimonaConfig.render(this, options)
 
 }
 
@@ -73,13 +73,20 @@ object SimonaConfig {
         case Right(conf) => conf
       }
 
+    implicit val reader: ConfigReader[SimonaConfig] = ConfigReader[SimonaConfig]
+
     val config: Config = confSrc.config()
     val simonaConfig: SimonaConfig = confSrc.at("simona").load[SimonaConfig]
 
     (simonaConfig, config)
   }
 
-  def render(simonaConfig: SimonaConfig, options: ConfigRenderOptions): String = {
+  def render(
+      simonaConfig: SimonaConfig,
+      options: ConfigRenderOptions,
+  ): String = {
+    implicit val writer: ConfigWriter[SimonaConfig] = ConfigWriter[SimonaConfig]
+
     ConfigWriter[SimonaConfig].to(simonaConfig).render(options)
   }
 
