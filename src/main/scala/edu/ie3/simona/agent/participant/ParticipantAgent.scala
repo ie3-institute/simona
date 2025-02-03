@@ -266,7 +266,7 @@ abstract class ParticipantAgent[
           RegistrationSuccessfulMessage(serviceRef, maybeNextDataTick),
           ParticipantInitializingStateData(
             inputModel: InputModelContainer[I],
-            modelConfig: SimpleRuntimeConfig,
+            modelConfig: MC,
             _,
             simulationStartDate,
             simulationEndDate,
@@ -294,7 +294,7 @@ abstract class ParticipantAgent[
           RegistrationResponseMessage.RegistrationFailedMessage(_),
           ParticipantInitializingStateData(
             inputModel: InputModelContainer[I],
-            modelConfig: SimpleRuntimeConfig,
+            modelConfig: MC,
             secondaryDataServices,
             simulationStartDate,
             simulationEndDate,
@@ -513,7 +513,7 @@ abstract class ParticipantAgent[
     */
   def initializeParticipantForPrimaryDataReplay(
       inputModel: InputModelContainer[I],
-      modelConfig: SimpleRuntimeConfig,
+      modelConfig: MC,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -550,7 +550,7 @@ abstract class ParticipantAgent[
     */
   def initializeParticipantForModelCalculation(
       inputModel: InputModelContainer[I],
-      modelConfig: SimpleRuntimeConfig,
+      modelConfig: MC,
       services: Iterable[SecondaryDataService[_ <: SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,

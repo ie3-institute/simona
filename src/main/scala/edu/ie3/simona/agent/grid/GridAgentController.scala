@@ -355,7 +355,7 @@ class GridAgentController(
     case input: PvInput =>
       buildPv(
         input,
-        participantConfigUtil.getOrDefault[SimpleRuntimeConfig](
+        participantConfigUtil.getOrDefault[PvRuntimeConfig](
           input.getUuid
         ),
         environmentRefs.primaryServiceProxy,
@@ -370,7 +370,7 @@ class GridAgentController(
     case input: WecInput =>
       buildWec(
         input,
-        participantConfigUtil.getOrDefault[SimpleRuntimeConfig](
+        participantConfigUtil.getOrDefault[WecRuntimeConfig](
           input.getUuid
         ),
         environmentRefs.primaryServiceProxy,
@@ -385,7 +385,7 @@ class GridAgentController(
     case input: EvcsInput =>
       buildEvcs(
         input,
-        participantConfigUtil.getOrDefault[SimpleRuntimeConfig](
+        participantConfigUtil.getOrDefault[EvcsRuntimeConfig](
           input.getUuid
         ),
         environmentRefs.primaryServiceProxy,
@@ -407,7 +407,7 @@ class GridAgentController(
           buildHp(
             hpInput,
             thermalGrid,
-            participantConfigUtil.getOrDefault[SimpleRuntimeConfig](
+            participantConfigUtil.getOrDefault[HpRuntimeConfig](
               hpInput.getUuid
             ),
             environmentRefs.primaryServiceProxy,
@@ -424,7 +424,7 @@ class GridAgentController(
     case input: StorageInput =>
       buildStorage(
         input,
-        participantConfigUtil.getOrDefault[SimpleRuntimeConfig](
+        participantConfigUtil.getOrDefault[StorageRuntimeConfig](
           input.getUuid
         ),
         environmentRefs.primaryServiceProxy,
@@ -587,7 +587,7 @@ class GridAgentController(
     */
   private def buildPv(
       pvInput: PvInput,
-      modelConfiguration: SimpleRuntimeConfig,
+      modelConfiguration: PvRuntimeConfig,
       primaryServiceProxy: ClassicRef,
       weatherService: ClassicRef,
       simulationStartDate: ZonedDateTime,
@@ -647,7 +647,7 @@ class GridAgentController(
     */
   private def buildEvcs(
       evcsInput: EvcsInput,
-      modelConfiguration: SimpleRuntimeConfig,
+      modelConfiguration: EvcsRuntimeConfig,
       primaryServiceProxy: ClassicRef,
       evMovementsService: ClassicRef,
       simulationStartDate: ZonedDateTime,
@@ -707,7 +707,7 @@ class GridAgentController(
   private def buildHp(
       hpInput: HpInput,
       thermalGrid: ThermalGrid,
-      modelConfiguration: SimpleRuntimeConfig,
+      modelConfiguration: HpRuntimeConfig,
       primaryServiceProxy: ClassicRef,
       weatherService: ClassicRef,
       requestVoltageDeviationThreshold: Double,
@@ -765,7 +765,7 @@ class GridAgentController(
     */
   private def buildWec(
       wecInput: WecInput,
-      modelConfiguration: SimpleRuntimeConfig,
+      modelConfiguration: WecRuntimeConfig,
       primaryServiceProxy: ClassicRef,
       weatherService: ClassicRef,
       simulationStartDate: ZonedDateTime,
@@ -823,7 +823,7 @@ class GridAgentController(
     */
   private def buildStorage(
       storageInput: StorageInput,
-      modelConfiguration: SimpleRuntimeConfig,
+      modelConfiguration: StorageRuntimeConfig,
       primaryServiceProxy: ClassicRef,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,

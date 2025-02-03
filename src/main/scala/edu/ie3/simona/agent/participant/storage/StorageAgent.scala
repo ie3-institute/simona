@@ -27,7 +27,7 @@ object StorageAgent {
       scheduler: ActorRef,
       initStateData: ParticipantInitializeStateData[
         StorageInput,
-        SimpleRuntimeConfig,
+        StorageRuntimeConfig,
         ComplexPower,
       ],
       listener: Iterable[ActorRef],
@@ -52,7 +52,7 @@ class StorageAgent(
     scheduler: ActorRef,
     initStateData: ParticipantInitializeStateData[
       StorageInput,
-      SimpleRuntimeConfig,
+      StorageRuntimeConfig,
       ComplexPower,
     ],
     override val listener: Iterable[ActorRef],
@@ -62,7 +62,7 @@ class StorageAgent(
       StorageState,
       ParticipantStateData[ComplexPower],
       StorageInput,
-      SimpleRuntimeConfig,
+      StorageRuntimeConfig,
       StorageModel,
     ](
       scheduler,

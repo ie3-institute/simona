@@ -26,10 +26,7 @@ import edu.ie3.simona.agent.participant.{
 }
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
-import edu.ie3.simona.config.RuntimeConfig.{
-  EvcsRuntimeConfig,
-  SimpleRuntimeConfig,
-}
+import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.participant.evcs.EvcsModel
 import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsRelevantData,
@@ -48,7 +45,7 @@ object EvcsAgent {
       scheduler: ActorRef,
       initStateData: ParticipantInitializeStateData[
         EvcsInput,
-        SimpleRuntimeConfig,
+        EvcsRuntimeConfig,
         ComplexPower,
       ],
       listener: Iterable[ActorRef],
@@ -70,7 +67,7 @@ class EvcsAgent(
     scheduler: ActorRef,
     initStateData: ParticipantInitializeStateData[
       EvcsInput,
-      SimpleRuntimeConfig,
+      EvcsRuntimeConfig,
       ComplexPower,
     ],
     override val listener: Iterable[ActorRef],
@@ -80,7 +77,7 @@ class EvcsAgent(
       EvcsState,
       ParticipantStateData[ComplexPower],
       EvcsInput,
-      SimpleRuntimeConfig,
+      EvcsRuntimeConfig,
       EvcsModel,
     ](scheduler, initStateData)
     with EvcsAgentFundamentals {

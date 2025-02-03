@@ -120,7 +120,7 @@ protected trait ParticipantAgentFundamentals[
 
   override def initializeParticipantForPrimaryDataReplay(
       inputModel: InputModelContainer[I],
-      modelConfig: SimpleRuntimeConfig,
+      modelConfig: MC,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -172,7 +172,7 @@ protected trait ParticipantAgentFundamentals[
     */
   private def determineFromOutsideBaseStateData(
       inputModel: InputModelContainer[I],
-      modelConfig: SimpleRuntimeConfig,
+      modelConfig: MC,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
       resolution: Long,
@@ -224,7 +224,7 @@ protected trait ParticipantAgentFundamentals[
     */
   def buildModel(
       inputModel: InputModelContainer[I],
-      modelConfig: BaseRuntimeConfig,
+      modelConfig: MC,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
   ): M
@@ -259,7 +259,7 @@ protected trait ParticipantAgentFundamentals[
     */
   override def initializeParticipantForModelCalculation(
       inputModel: InputModelContainer[I],
-      modelConfig: SimpleRuntimeConfig,
+      modelConfig: MC,
       services: Iterable[SecondaryDataService[_ <: SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
@@ -339,7 +339,7 @@ protected trait ParticipantAgentFundamentals[
     */
   def determineModelBaseStateData(
       inputModel: InputModelContainer[I],
-      modelConfig: BaseRuntimeConfig,
+      modelConfig: MC,
       services: Iterable[SecondaryDataService[_ <: SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,

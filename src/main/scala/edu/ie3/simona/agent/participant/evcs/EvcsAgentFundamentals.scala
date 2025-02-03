@@ -32,10 +32,7 @@ import edu.ie3.simona.agent.participant.statedata.{
 }
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
-import edu.ie3.simona.config.RuntimeConfig.{
-  EvcsRuntimeConfig,
-  SimpleRuntimeConfig,
-}
+import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
@@ -78,7 +75,7 @@ protected trait EvcsAgentFundamentals
       EvcsState,
       ParticipantStateData[ComplexPower],
       EvcsInput,
-      SimpleRuntimeConfig,
+      EvcsRuntimeConfig,
       EvcsModel,
     ] {
   this: EvcsAgent =>
@@ -111,7 +108,7 @@ protected trait EvcsAgentFundamentals
     */
   override def determineModelBaseStateData(
       inputModel: InputModelContainer[EvcsInput],
-      modelConfig: SimpleRuntimeConfig,
+      modelConfig: EvcsRuntimeConfig,
       services: Iterable[SecondaryDataService[_ <: SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,

@@ -44,7 +44,7 @@ object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
     SimonaStandaloneSetup(
       tscfg,
       simonaConfig,
-      SimonaStandaloneSetup.buildResultFileHierarchy(tscfg, simonaConfig),
+      SimonaStandaloneSetup.buildResultFileHierarchy(simonaConfig),
       mainArgs = arguments.mainArgs,
     )
   }

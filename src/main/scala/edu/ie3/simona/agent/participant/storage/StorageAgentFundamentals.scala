@@ -30,10 +30,7 @@ import edu.ie3.simona.agent.participant.statedata.{
   BaseStateData,
   ParticipantStateData,
 }
-import edu.ie3.simona.config.RuntimeConfig.{
-  SimpleRuntimeConfig,
-  StorageRuntimeConfig,
-}
+import edu.ie3.simona.config.RuntimeConfig.StorageRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
@@ -73,7 +70,7 @@ trait StorageAgentFundamentals
       StorageState,
       ParticipantStateData[ComplexPower],
       StorageInput,
-      SimpleRuntimeConfig,
+      StorageRuntimeConfig,
       StorageModel,
     ] {
   this: StorageAgent =>
@@ -87,7 +84,7 @@ trait StorageAgentFundamentals
     */
   override def determineModelBaseStateData(
       inputModel: ParticipantStateData.InputModelContainer[StorageInput],
-      modelConfig: SimpleRuntimeConfig,
+      modelConfig: StorageRuntimeConfig,
       services: Iterable[SecondaryDataService[_ <: Data.SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,

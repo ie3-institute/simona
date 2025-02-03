@@ -29,10 +29,7 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
-import edu.ie3.simona.config.RuntimeConfig.{
-  FixedFeedInRuntimeConfig,
-  SimpleRuntimeConfig,
-}
+import edu.ie3.simona.config.RuntimeConfig.FixedFeedInRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   InconsistentStateException,
@@ -107,7 +104,7 @@ protected trait FixedFeedInAgentFundamentals
     */
   override def determineModelBaseStateData(
       inputModel: InputModelContainer[FixedFeedInInput],
-      modelConfig: SimpleRuntimeConfig,
+      modelConfig: FixedFeedInRuntimeConfig,
       services: Iterable[SecondaryDataService[_ <: SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
@@ -181,7 +178,7 @@ protected trait FixedFeedInAgentFundamentals
 
   override def buildModel(
       inputModel: InputModelContainer[FixedFeedInInput],
-      modelConfig: SimpleRuntimeConfig,
+      modelConfig: FixedFeedInRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
   ): FixedFeedInModel = FixedFeedInModel(
