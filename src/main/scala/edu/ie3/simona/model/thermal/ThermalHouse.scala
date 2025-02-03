@@ -134,7 +134,11 @@ final case class ThermalHouse(
   }
 
   /** Calculate the needed energy to change from start temperature to target
-    * temperature
+    * temperature.
+    *
+    * In edge cases, i.e. within the tolerance margin of target temperatures,
+    * the temperature difference can be negative. For these cases we set the
+    * temperature difference to zero, resulting in an energy demand of 0 kWh.
     *
     * @param targetTemperature
     *   The target temperature to reach
@@ -147,9 +151,11 @@ final case class ThermalHouse(
       targetTemperature: Temperature,
       startTemperature: Temperature,
   ): Energy = {
-    ethCapa * Kelvin(
-      targetTemperature.toKelvinScale - startTemperature.toKelvinScale
-    )
+    val temperatureDiff =
+      Kelvin(targetTemperature.toKelvinScale - startTemperature.toKelvinScale)
+        .max(Kelvin(0))
+
+    ethCapa * temperatureDiff
   }
 
   /** Check if inner temperature is higher than preferred maximum temperature
