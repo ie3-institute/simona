@@ -501,7 +501,7 @@ final case class ThermalGrid(
   }
 
   /** Handles the cases, when the storage has heat demand and will be filled up
-    * here (positive qDot) or will be return its stored energy into the thermal
+    * here (positive qDot) or will return its stored energy into the thermal
     * grid (negative qDot).
     * @param tick
     *   Current tick
