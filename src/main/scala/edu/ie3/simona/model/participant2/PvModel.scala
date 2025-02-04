@@ -625,8 +625,8 @@ class PvModel private (
           .find { i =>
             (finalEpsilon -
               discreteSkyClearnessCategories(i)(0) >= 0) &&
-              (finalEpsilon -
-                discreteSkyClearnessCategories(i)(1) < 0)
+            (finalEpsilon -
+              discreteSkyClearnessCategories(i)(1) < 0)
           }
           .map(_ + 1)
           .getOrElse(8)
