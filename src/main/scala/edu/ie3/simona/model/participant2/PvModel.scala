@@ -38,7 +38,6 @@ import tech.units.indriya.unit.Units._
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import java.util.stream.IntStream
 import scala.math._
 
 class PvModel private (
@@ -104,8 +103,8 @@ class PvModel private (
 
   /** Calculate the active power behaviour of the model
     *
-    * @param data
-    *   Further needed, secondary data
+    * @param state
+    *   The current state including weather data
     * @return
     *   Active power
     */
@@ -585,21 +584,23 @@ class PvModel private (
     val thetaGInRad = thetaG.toRadians
     val gammaEInRad = gammaE.toRadians
 
-    // == brightness index beta  ==//
-    val beta = eDifH * airMass / extraterrestrialRadiationI0
+    // == brightness index delta  ==//
+    val delta = eDifH * airMass / extraterrestrialRadiationI0
 
     // == cloud index epsilon  ==//
     // if we have no clouds,  the epsilon bin is 8, as epsilon bin for an epsilon in [6.2, inf.[ = 8
-    var x = 8
+    val x = if (eDifH.value.doubleValue > 0) {
+      // if we have diffuse radiation on horizontal surface we have to consider
+      // the clearness parameter epsilon, which then gives us an epsilon bin x
 
-    if (eDifH.value.doubleValue > 0) {
-      // if we have diffuse radiation on horizontal surface we have to check if we have another epsilon due to clouds get the epsilon
-      var epsilon = ((eDifH + eBeamH) / eDifH +
+      // Beam radiation is required on a plane normal to the beam direction (normal incidence),
+      // thus dividing by cos theta_z
+      var epsilon = ((eDifH + eBeamH / cos(thetaZInRad)) / eDifH +
         (5.535d * 1.0e-6) * pow(
-          thetaZInRad,
+          thetaZ.toDegrees,
           3,
         )) / (1d + (5.535d * 1.0e-6) * pow(
-        thetaZInRad,
+        thetaZ.toDegrees,
         3,
       ))
 
@@ -620,18 +621,23 @@ class PvModel private (
         // get the corresponding bin
         val finalEpsilon = epsilon
 
-        x = IntStream
-          .range(0, discreteSkyClearnessCategories.length)
-          .filter((i: Int) =>
-            (finalEpsilon - discreteSkyClearnessCategories(i)(
-              0
-            ) >= 0) && (finalEpsilon - discreteSkyClearnessCategories(
-              i
-            )(1) < 0)
-          )
-          .findFirst
-          .getAsInt + 1
+        discreteSkyClearnessCategories.indices
+          .find { i =>
+            (finalEpsilon -
+              discreteSkyClearnessCategories(i)(0) >= 0) &&
+              (finalEpsilon -
+                discreteSkyClearnessCategories(i)(1) < 0)
+          }
+          .map(_ + 1)
+          .getOrElse(8)
+      } else {
+        // epsilon in [6.2, inf.[
+        8
       }
+    } else {
+      // if we have no clouds, the epsilon bin is 8,
+      // as the epsilon bin for an epsilon in [6.2, inf.[ is 8
+      8
     }
 
     // calculate the f_ij components based on the epsilon bin
@@ -645,19 +651,17 @@ class PvModel private (
     val f22 = 0.0012 * pow(x, 3) - 0.0067 * pow(x, 2) + 0.0091 * x - 0.0269
     val f23 = 0.0052 * pow(x, 3) - 0.0971 * pow(x, 2) + 0.2856 * x - 0.1389
 
-    // calculate circuumsolar brightness coefficient f1 and horizon brightness coefficient f2
-    val f1 = max(0, f11 + f12 * beta + f13 * thetaZInRad)
-    val f2 = f21 + f22 * beta + f23 * thetaZInRad
+    // calculate circumsolar brightness coefficient f1 and horizon brightness coefficient f2
+    val f1 = max(0, f11 + f12 * delta + f13 * thetaZInRad)
+    val f2 = f21 + f22 * delta + f23 * thetaZInRad
     val aPerez = max(0, cos(thetaGInRad))
     val bPerez = max(cos(1.4835298641951802), cos(thetaZInRad))
 
     // finally calculate the diffuse radiation on an inclined surface
     eDifH * (
-      ((1 + cos(
-        gammaEInRad
-      )) / 2) * (1 - f1) + (f1 * (aPerez / bPerez)) + (f2 * sin(
-        gammaEInRad
-      ))
+      ((1 + cos(gammaEInRad)) / 2) * (1 - f1) +
+        (f1 * (aPerez / bPerez)) +
+        (f2 * sin(gammaEInRad))
     )
   }
 
