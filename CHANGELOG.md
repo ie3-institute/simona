@@ -121,6 +121,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactor ThermalEnergyDemand definitions [#917](https://github.com/ie3-institute/simona/issues/917)
 - Rewrote PvModelIT from groovy to scala [#646](https://github.com/ie3-institute/simona/issues/646)
 - Fix negative required energy demand for thermalHouse [#1127](https://github.com/ie3-institute/simona/issues/1127)
+- Enhance EmAggregate of SelfOpt to cope with other targetLimits [#1131](https://github.com/ie3-institute/simona/issues/1131)
 
 ### Fixed
 - Fix rendering of references in documentation [#505](https://github.com/ie3-institute/simona/issues/505)

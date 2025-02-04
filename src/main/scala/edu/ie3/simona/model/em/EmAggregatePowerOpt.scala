@@ -12,29 +12,38 @@ import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMin
 import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.Power
 
-/** Aggregates flex reference power with the target of reaching 0kW, while
-  * optionally excluding positive flex potential of PV/WEC from the calculation
+import java.lang.Math.signum
+
+/** Aggregates flex reference power with the goal of not exceed a defined target
+  * limit, while optionally excluding positive flex potential of PV/WEC from the
+  * calculation. If the target limit can't be met, the closes possible operation
+  * point should be chosen.
   *
+  * @param targetPower
+  *   power limit that should be not be exceeded
   * @param curtailRegenerative
   *   Whether to include positive flexibility of PV/WEC in reference sum
   *   calculation
   */
-final case class EmAggregateSelfOpt(curtailRegenerative: Boolean)
-    extends EmAggregateFlex {
+final case class EmAggregatePowerOpt(
+    targetPower: Power = zeroKW,
+    curtailRegenerative: Boolean,
+) extends EmAggregateFlex {
 
   override def aggregateFlexOptions(
       flexOptions: Iterable[
         (_ <: AssetInput, ProvideMinMaxFlexOptions)
       ]
   ): (Power, Power, Power) = {
-    val (minSum, maxSum) =
-      flexOptions.foldLeft((zeroKW, zeroKW)) {
+    val (minSum, refSum, maxSum) =
+      flexOptions.foldLeft((zeroKW, zeroKW, zeroKW)) {
         case (
-              (sumMin, sumMax),
-              (_, ProvideMinMaxFlexOptions(_, _, addMin, addMax)),
+              (sumMin, sumRef, sumMax),
+              (_, ProvideMinMaxFlexOptions(_, addRef, addMin, addMax)),
             ) =>
           (
             sumMin + addMin,
+            sumRef + addRef,
             sumMax + addMax,
           )
       }
@@ -55,8 +64,11 @@ final case class EmAggregateSelfOpt(curtailRegenerative: Boolean)
             }
         }
 
-    // take the closest power possible to zero
-    val refAgg = minSum.max(maxRefSum.min(zeroKW))
+    val target = if (targetPower.abs < refSum.abs) {
+      targetPower * signum(refSum.toKilowatts)
+    } else refSum
+
+    val refAgg = minSum.max(maxRefSum.min(target))
 
     (refAgg, minSum, maxSum)
   }

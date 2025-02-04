@@ -11,7 +11,9 @@ import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import squants.Power
+import squants.energy.Kilowatts
 
 import java.util.UUID
 
@@ -126,9 +128,29 @@ object EmModelShell {
     }
 
     val aggregateFlex = modelConfig.aggregateFlex match {
-      case "SELF_OPT_EXCL_REG" => EmAggregateSelfOpt(false)
-      case "SELF_OPT"          => EmAggregateSelfOpt(true)
+      case "SELF_OPT_EXCL_REG" => EmAggregatePowerOpt(zeroKW, false)
+      case "SELF_OPT"          => EmAggregatePowerOpt(zeroKW, true)
       case "SIMPLE_SUM"        => EmAggregateSimpleSum
+
+      case powerLimitString if powerLimitString.startsWith("SELF_POWER_") =>
+        val pattern = """SELF_POWER_([\d.]+)(_EXCL_REG)?""".r
+        powerLimitString match {
+          case pattern(value, exclReg) =>
+            try {
+              val powerLimit = BigDecimal(value)
+              val isExclReg = exclReg != null
+              EmAggregatePowerOpt(Kilowatts(powerLimit), !isExclReg)
+            } catch {
+              case _: NumberFormatException =>
+                throw new CriticalFailureException(
+                  s"Invalid numeric value in aggregate flex strategy: $powerLimitString"
+                )
+            }
+          case _ =>
+            throw new CriticalFailureException(
+              s"Invalid format for aggregate flex strategy: $powerLimitString"
+            )
+        }
       case unknown =>
         throw new CriticalFailureException(
           s"Unknown aggregate flex strategy $unknown"
