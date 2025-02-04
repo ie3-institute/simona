@@ -15,6 +15,49 @@ import squants.energy.Kilowatts
 import java.util.UUID
 
 class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
+  "The aggregating strategy overall" should {
+    val strat = EmAggregatePowerOpt(curtailRegenerative = true)
+    "work with single flex options" in {
+      val flexOptions1 = ProvideMinMaxFlexOptions(
+        modelUuid = UUID.randomUUID(),
+        ref = Kilowatts(2.0),
+        min = Kilowatts(-1.0),
+        max = Kilowatts(4.0),
+      )
+
+      val actualResult = strat.aggregateFlexOptions(
+        Iterable(
+          (mock[SystemParticipantInput], flexOptions1)
+        )
+      )
+
+      actualResult shouldBe (
+        Kilowatts(2.0),
+        Kilowatts(-1.0),
+        Kilowatts(4.0)
+      )
+    }
+    "work as expected at zero flexibility" in {
+      val flexOptions1 = ProvideMinMaxFlexOptions(
+        modelUuid = UUID.randomUUID(),
+        ref = Kilowatts(5.0),
+        min = Kilowatts(5.0),
+        max = Kilowatts(5.0),
+      )
+
+      val actualResult = strat.aggregateFlexOptions(
+        Iterable(
+          (mock[SystemParticipantInput], flexOptions1)
+        )
+      )
+
+      actualResult shouldBe (
+        Kilowatts(5.0),
+        Kilowatts(5.0),
+        Kilowatts(5.0)
+      )
+    }
+  }
 
   "The self-optimizing aggregating strategy with PV flex" should {
     val strat = EmAggregatePowerOpt(curtailRegenerative = true)
