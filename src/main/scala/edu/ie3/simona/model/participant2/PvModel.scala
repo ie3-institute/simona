@@ -70,7 +70,8 @@ class PvModel private (
   /** Reference yield at standard testing conditions (STC) */
   private val yieldSTC = WattsPerSquareMeter(1000d)
 
-  private val activationThreshold = pMax * 0.001 * -1
+  private val activationThreshold =
+    sRated.toActivePower(cosPhiRated) * 0.001 * -1
 
   override val initialState: ModelInput => PvState = { input =>
     val weatherData = getWeatherData(input.receivedData)
