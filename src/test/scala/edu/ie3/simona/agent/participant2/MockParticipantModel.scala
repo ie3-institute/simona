@@ -31,6 +31,7 @@ import javax.measure.quantity.{Power => QuantPower}
 
 class MockParticipantModel(
     override val uuid: UUID = UUID.fromString("0-0-0-0-1"),
+    override val id: String = "MockParticipant 1",
     override val sRated: ApparentPower = Kilovoltamperes(10),
     override val cosPhiRated: Double = 0.9,
     override val qControl: QControl = CosPhiFixed(0.9),
