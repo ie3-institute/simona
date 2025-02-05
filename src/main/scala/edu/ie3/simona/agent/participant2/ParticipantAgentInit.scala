@@ -298,12 +298,11 @@ object ParticipantAgentInit {
     val inputHandler = ParticipantInputHandler(expectedData)
 
     // get first overall activation tick
-    val firstTick = modelShell
-      .getChangeIndicator(
-        currentTick = -1,
-        inputHandler.getNextActivationTick,
-      )
-      .changesAtTick
+    val firstTick = inputHandler.getLastActivationTick.orElse(
+      modelShell
+        .getChangeIndicator(currentTick = -1, None)
+        .changesAtTick
+    )
 
     if (firstTick.isEmpty)
       throw new CriticalFailureException(

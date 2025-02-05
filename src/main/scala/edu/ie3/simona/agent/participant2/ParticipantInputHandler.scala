@@ -98,6 +98,15 @@ final case class ParticipantInputHandler(
   def getNextActivationTick: Option[Long] =
     expectedData.values.minOption
 
+  /** Useful for the first calculation after initialization, when all data needs
+    * to be present before first calculation
+    *
+    * @return
+    *   The last tick at which data is expected currently
+    */
+  def getLastActivationTick: Option[Long] =
+    expectedData.values.maxOption
+
   def getData: Seq[Data] =
     receivedData.values.flatten.map(_.data).toSeq
 
