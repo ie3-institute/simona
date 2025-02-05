@@ -10,6 +10,7 @@ import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.connector.Transformer3WInput
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.ontology.messages.SchedulerMessage
@@ -33,6 +34,8 @@ import java.nio.file.Path
   * @since 01.07.20
   */
 trait SimonaSetup {
+
+  val simonaConfig: SimonaConfig
 
   /** Main arguments of the executable. May be used to pass additional
     * configuration parameters to the setup e.g. for external simulation
@@ -59,11 +62,15 @@ trait SimonaSetup {
     *
     * @param context
     *   Actor context to use
+    * @param extSimSetupData
+    *   that can contain external
+    *   [[edu.ie3.simona.api.data.results.ExtResultDataConnection]]
     * @return
     *   A sequence of actor references to result event listeners
     */
   def resultEventListener(
-      context: ActorContext[_]
+      context: ActorContext[_],
+      extSimSetupData: ExtSimSetupData,
   ): Seq[ActorRef[ResultEventListener.Request]]
 
   /** Creates a primary service proxy. The proxy is the first instance to ask
@@ -74,12 +81,16 @@ trait SimonaSetup {
     *   Actor context to use
     * @param scheduler
     *   Actor reference to it's according scheduler to use
+    * @param extSimSetupData
+    *   that can contain external
+    *   [[edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection]]
     * @return
     *   An actor reference to the service
     */
   def primaryServiceProxy(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
+      extSimSetupData: ExtSimSetupData,
   ): ClassicRef
 
   /** Creates a weather service
@@ -103,12 +114,15 @@ trait SimonaSetup {
     *   Actor context to use
     * @param scheduler
     *   Actor reference to the scheduler to use
+    * @param extSimPath
+    *   option for a directory with external simulations
     * @return
     *   External simulations and their init data
     */
   def extSimulations(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
+      extSimPath: Option[Path],
   ): ExtSimSetupData
 
   /** Creates the time advancer

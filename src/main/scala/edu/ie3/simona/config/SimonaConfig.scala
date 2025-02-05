@@ -1243,6 +1243,7 @@ object SimonaConfig {
     }
 
     final case class Input(
+        extSimDir: scala.Option[java.lang.String],
         grid: SimonaConfig.Simona.Input.Grid,
         primary: SimonaConfig.Simona.Input.Primary,
         weather: SimonaConfig.Simona.Input.Weather,
@@ -1931,6 +1932,9 @@ object SimonaConfig {
           $tsCfgValidator: $TsCfgValidator,
       ): SimonaConfig.Simona.Input = {
         SimonaConfig.Simona.Input(
+          extSimDir =
+            if (c.hasPathOrNull("extSimDir")) Some(c.getString("extSimDir"))
+            else None,
           grid = SimonaConfig.Simona.Input.Grid(
             if (c.hasPathOrNull("grid")) c.getConfig("grid")
             else com.typesafe.config.ConfigFactory.parseString("grid{}"),

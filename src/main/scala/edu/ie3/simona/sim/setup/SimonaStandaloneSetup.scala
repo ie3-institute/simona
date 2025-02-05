@@ -15,10 +15,6 @@ import edu.ie3.simona.actor.SimonaActorNaming.RichActorRefFactory
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentMessages.CreateGridAgent
-import edu.ie3.simona.api.ExtSimAdapter
-import edu.ie3.simona.api.data.ExtDataConnection
-import edu.ie3.simona.api.data.ev.ExtEvDataConnection
-import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.config.{ArgsParser, RefSystemParser, SimonaConfig}
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
@@ -30,13 +26,12 @@ import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.scheduler.{ScheduleLock, Scheduler, TimeAdvancer}
 import edu.ie3.simona.service.SimonaService
-import edu.ie3.simona.service.ev.ExtEvDataService
-import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.sim.SimonaSim
+import edu.ie3.simona.sim.setup.ExtSimSetup.setupExtSim
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
@@ -63,7 +58,7 @@ import scala.jdk.CollectionConverters._
   */
 class SimonaStandaloneSetup(
     val typeSafeConfig: Config,
-    simonaConfig: SimonaConfig,
+    override val simonaConfig: SimonaConfig,
     resultFileHierarchy: ResultFileHierarchy,
     runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
     override val args: Array[String],
@@ -157,6 +152,7 @@ class SimonaStandaloneSetup(
   override def primaryServiceProxy(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
+      extSimSetupData: ExtSimSetupData,
   ): ClassicRef = {
     val simulationStart = TimeUtil.withDefaults.toZonedDateTime(
       simonaConfig.simona.time.startDateTime
@@ -204,68 +200,16 @@ class SimonaStandaloneSetup(
   override def extSimulations(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
+      extSimPath: Option[Path],
   ): ExtSimSetupData = {
-    val jars = ExtSimLoader.scanInputFolder()
+    val jars = ExtSimLoader.scanInputFolder(extSimPath)
+    val extLinks = jars.flatMap(ExtSimLoader.loadExtLink).toList
 
-    val extLinks = jars.flatMap(ExtSimLoader.loadExtLink).toSeq
-
-    if (extLinks.nonEmpty) {
-
-      val (extSimAdapters, extDataServices) =
-        extLinks.zipWithIndex.map { case (extLink, index) =>
-          // external simulation always needs at least an ExtSimAdapter
-          val extSimAdapter = context.toClassic.simonaActorOf(
-            ExtSimAdapter.props(scheduler.toClassic),
-            s"$index",
-          )
-          val extSimAdapterData = new ExtSimAdapterData(extSimAdapter, args)
-
-          // send init data right away, init activation is scheduled
-          extSimAdapter ! ExtSimAdapter.Create(
-            extSimAdapterData,
-            ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
-          )
-
-          // setup data services that belong to this external simulation
-          extLink.setup(extSimAdapterData)
-          val extSim = extLink.getExtSimulation
-
-          val extDataInit
-              : Iterable[(Class[_ <: SimonaService[_]], ClassicRef)] =
-            extSim.getDataConnections.asScala.zipWithIndex.map {
-              case (evConnection: ExtEvDataConnection, dIndex) =>
-                val extEvDataService = context.toClassic.simonaActorOf(
-                  ExtEvDataService.props(scheduler.toClassic),
-                  s"$index-$dIndex",
-                )
-                evConnection.setActorRefs(extEvDataService, extSimAdapter)
-
-                extEvDataService ! SimonaService.Create(
-                  InitExtEvData(evConnection),
-                  ScheduleLock.singleKey(
-                    context,
-                    scheduler,
-                    INIT_SIM_TICK,
-                  ),
-                )
-
-                (classOf[ExtEvDataService], extEvDataService)
-            }
-
-          // starting external simulation
-          new Thread(extLink.getExtSimulation, s"External simulation $index")
-            .start()
-
-          (extSimAdapter, extDataInit)
-        }.unzip
-
-      ExtSimSetupData(
-        extSimAdapters,
-        extDataServices.flatten.toMap,
-      )
-    } else {
-      ExtSimSetupData(Iterable.empty, Map.empty)
-    }
+    setupExtSim(extLinks, args)(
+      context,
+      scheduler,
+      simonaConfig,
+    )
   }
 
   override def timeAdvancer(
@@ -316,7 +260,8 @@ class SimonaStandaloneSetup(
       )
 
   override def resultEventListener(
-      context: ActorContext[_]
+      context: ActorContext[_],
+      extSimSetupData: ExtSimSetupData,
   ): Seq[ActorRef[ResultEventListener.Request]] = {
     // append ResultEventListener as well to write raw output files
     ArgsParser
