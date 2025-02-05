@@ -113,11 +113,7 @@ final case class HpModel(
       currentState: HpState,
       data: HpRelevantData,
   ): Power =
-    // only if Hp is running qDot will be from Hp, else qDot results from other source, e.g. some storage
-    if (currentState.isRunning)
-      currentState.qDot
-    else
-      zeroKW
+    currentState.qDot
 
   /** Given a [[HpRelevantData]] object and the last [[HpState]], this function
     * calculates the heat pump's next state to get the actual active power of
@@ -153,9 +149,9 @@ final case class HpModel(
       )
 
     // Updating the HpState
-    val updatedState =
+    val updatedHpState =
       calcState(lastHpState, relevantData, turnOn, thermalDemandWrapper)
-    (canOperate, canBeOutOfOperation, updatedState)
+    (canOperate, canBeOutOfOperation, updatedHpState)
   }
 
   /** Depending on the input, this function decides whether the heat pump will
@@ -232,19 +228,20 @@ final case class HpModel(
       .map(_.qDot)
       .getOrElse(zeroKW)
 
-    val (newActivePower, newThermalPower) = {
+    val (newActivePowerHp, newThermalPowerHp, qDotIntoGrid) = {
       if (isRunning)
-        (pRated, pThermal)
+        (pRated, pThermal, pThermal)
       else if (lastStateStorageQDot < zeroKW)
-        (zeroKW, lastStateStorageQDot * (-1))
+        (zeroKW, zeroKW, lastStateStorageQDot * (-1))
       else if (
         lastStateStorageQDot == zeroKW && (demandWrapper.houseDemand.hasRequiredDemand || demandWrapper.heatStorageDemand.hasRequiredDemand)
       )
         (
           zeroKW,
+          zeroKW,
           thermalGrid.storage.map(_.getChargingPower: squants.Power).get,
         )
-      else (zeroKW, zeroKW)
+      else (zeroKW, zeroKW, zeroKW)
     }
 
     /* Push thermal energy to the thermal grid and get its updated state in return */
@@ -254,7 +251,7 @@ final case class HpModel(
         lastState.thermalGridState,
         lastState.ambientTemperature.getOrElse(relevantData.ambientTemperature),
         isRunning,
-        newThermalPower,
+        qDotIntoGrid,
         demandWrapper,
       )
 
@@ -262,8 +259,8 @@ final case class HpModel(
       isRunning,
       relevantData.currentTick,
       Some(relevantData.ambientTemperature),
-      newActivePower,
-      newThermalPower,
+      newActivePowerHp,
+      newThermalPowerHp,
       thermalGridState,
       maybeThreshold,
     )

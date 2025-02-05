@@ -156,7 +156,8 @@ final case class ThermalGrid(
     * @param isRunning
     *   determines whether the heat pump is running or not
     * @param qDot
-    *   Infeed to the grid from thermal generation (e.g. heat pump)
+    *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
+    *   storages
     * @param thermalDemands
     *   holds the thermal demands of the thermal units (house, storage)
     * @return
@@ -202,7 +203,8 @@ final case class ThermalGrid(
     * @param isRunning
     *   determines whether the heat pump is running or not
     * @param qDot
-    *   Infeed to the grid from thermal generation (e.g. heat pump)
+    *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
+    *   storages
     * @param thermalDemands
     *   holds the thermal demands of the thermal units (house, storage)
     * @return
@@ -245,13 +247,13 @@ final case class ThermalGrid(
       val (updatedStorageState, thermalStorageThreshold) = {
         // In case the ThermalHouse could not handle the infeed it will be used for the storage.
         if (remainingQDotHouse > qDotStorageLastState) {
-          handleInfeedStorage(
+          handleStorageCases(
             relevantData.currentTick,
             lastThermalGridState,
             remainingQDotHouse,
           )
         } else {
-          handleInfeedStorage(
+          handleStorageCases(
             relevantData.currentTick,
             lastThermalGridState,
             qDotStorageLastState,
@@ -336,14 +338,13 @@ final case class ThermalGrid(
     * | false             | false             | false               | true                | false         | true            |
     * | false             | false             | false               | false               | false         | false           |
     *
-    * This can be simplified to five cases
-    * | No | Conditions                                                               | Result    |
-    * |:---|:-------------------------------------------------------------------------|:----------|
-    * | 1  | if(house.reqD) => house                                                  | house     |
-    * | 2  | if(!house.reqD && !storage.reqD) => storage                              | storage   |
-    * | 3  | if(!house.reqD && !storage.reqD && storage.addD) => storage              | storage   |
-    * | 4  | if(!house.reqD && house.addD && !storage.reqD && !storage.addD) => house | house     |
-    * | 5  | if(all == false) => no output                                            | no output |
+    * This can be simplified to four cases
+    * | No | Conditions                           | Result    |
+    * |:---|:-------------------------------------|:----------|
+    * | 1  | if house.reqD                        | house     |
+    * | 2  | else if storage.reqD OR storage.addD | storage   |
+    * | 3  | else if house.addD                   | house     |
+    * | 4  | else                                 | no output |
     *
     * @param thermalDemands
     *   holds the thermal demands of the thermal units (house, storage)
@@ -354,7 +355,8 @@ final case class ThermalGrid(
     * @param gridState
     *   Current state of the thermalGrid
     * @param qDot
-    *   Infeed to the grid from thermal generation (e.g. heat pump)
+    *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
+    *   storages
     * @return
     *   Updated thermal grid state and the thermalThreshold if there is one
     */
@@ -365,63 +367,42 @@ final case class ThermalGrid(
       gridState: ThermalGridState,
       qDot: Power,
   ): (ThermalGridState, Option[ThermalThreshold]) = {
-    (
-      thermalDemands.houseDemand.hasRequiredDemand,
-      thermalDemands.houseDemand.hasAdditionalDemand,
-      thermalDemands.heatStorageDemand.hasRequiredDemand,
-      thermalDemands.heatStorageDemand.hasAdditionalDemand,
-    ) match {
 
-      case (true, _, _, _) =>
-        // house first
-        handleCases(
-          relevantData,
-          lastAmbientTemperature,
-          gridState,
-          qDot,
-          zeroKW,
-        )
-      // then heatStorage after heating House
-      case (_, _, true, _) =>
-        handleCases(
-          relevantData,
-          lastAmbientTemperature,
-          gridState,
-          zeroKW,
-          qDot,
-        )
-      // charge storage if house has no requiredDemand
-      case (false, _, false, true) =>
-        handleCases(
-          relevantData,
-          lastAmbientTemperature,
-          gridState,
-          zeroKW,
-          qDot,
-        )
-      // heat house if storage has no additionalDemand
-      case (_, true, false, false) =>
-        handleCases(
-          relevantData,
-          lastAmbientTemperature,
-          gridState,
-          qDot,
-          zeroKW,
-        )
-      // if there is no demand, don't heat anything
-      case (false, false, false, false) =>
-        handleCases(
-          relevantData,
-          lastAmbientTemperature,
-          gridState,
-          zeroKW,
-          zeroKW,
-        )
-      case _ =>
-        throw new InconsistentStateException(
-          "There should be at least a house or a storage state."
-        )
-    }
+    if (thermalDemands.houseDemand.hasRequiredDemand)
+      handleCases(
+        relevantData,
+        lastAmbientTemperature,
+        gridState,
+        qDot,
+        zeroKW,
+      )
+    else if (
+      thermalDemands.heatStorageDemand.hasRequiredDemand || thermalDemands.heatStorageDemand.hasAdditionalDemand
+    )
+      handleCases(
+        relevantData,
+        lastAmbientTemperature,
+        gridState,
+        zeroKW,
+        qDot,
+      )
+    else if (thermalDemands.houseDemand.hasAdditionalDemand)
+      handleCases(
+        relevantData,
+        lastAmbientTemperature,
+        gridState,
+        qDot,
+        zeroKW,
+      )
+    else
+      handleCases(
+        relevantData,
+        lastAmbientTemperature,
+        gridState,
+        zeroKW,
+        zeroKW,
+      )
+
   }
 
   /** Handles the different cases, of thermal flows from and into the thermal
@@ -457,7 +438,7 @@ final case class ThermalGrid(
       )
 
     val (updatedStorageState, thermalStorageThreshold) =
-      handleInfeedStorage(relevantData.currentTick, state, qDotHeatStorage)
+      handleStorageCases(relevantData.currentTick, state, qDotHeatStorage)
 
     val nextThreshold = determineMostRecentThreshold(
       thermalHouseThreshold,
@@ -523,7 +504,7 @@ final case class ThermalGrid(
   }
 
   /** Handles the cases, when the storage has heat demand and will be filled up
-    * here (positive qDot) or will be return its stored energy into the thermal
+    * here (positive qDot) or will return its stored energy into the thermal
     * grid (negative qDot).
     * @param tick
     *   Current tick
@@ -535,7 +516,7 @@ final case class ThermalGrid(
     * @return
     *   Updated thermal grid state
     */
-  private def handleInfeedStorage(
+  private def handleStorageCases(
       tick: Long,
       state: ThermalGridState,
       qDotStorage: Power,
@@ -585,7 +566,8 @@ final case class ThermalGrid(
     * @param lastThermalGridState
     *   state of the thermalGrid until this tick
     * @param qDot
-    *   Infeed to the grid from thermal generation (e.g. heat pump)
+    *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
+    *   storages
     * @return
     *   Updated thermal grid state
     */
@@ -657,7 +639,8 @@ final case class ThermalGrid(
     * @param lastAmbientTemperature
     *   Ambient temperature valid up until (not including) the current tick
     * @param qDot
-    *   Infeed to the grid from thermal generation (e.g. heat pump)
+    *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
+    *   storages
     * @return
     *   Options to revised thermal house and storage state
     */
@@ -837,7 +820,11 @@ object ThermalGrid {
     * than or equal to the absolutely required energy. Thus, this class can only
     * be instantiated via factory.
     * @param required
-    *   The absolutely required energy to reach target state
+    *   The absolutely required energy to reach target state. For
+    *   [[ThermalHouse]] this would be the energy demand to reach the boundary
+    *   or targetTemperature. For [[ThermalStorage]] this would be the amount of
+    *   energy to get fully charged when empty. If the [[ThermalStorage]] is not
+    *   empty, the required energy is zero.
     * @param possible
     *   The maximum possible energy, that can be handled
     */
