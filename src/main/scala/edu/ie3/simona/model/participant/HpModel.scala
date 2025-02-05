@@ -149,9 +149,9 @@ final case class HpModel(
       )
 
     // Updating the HpState
-    val updatedState =
+    val updatedHpState =
       calcState(lastHpState, relevantData, turnOn, thermalDemandWrapper)
-    (canOperate, canBeOutOfOperation, updatedState)
+    (canOperate, canBeOutOfOperation, updatedHpState)
   }
 
   /** Depending on the input, this function decides whether the heat pump will
