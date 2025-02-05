@@ -54,6 +54,7 @@ import scala.collection.SortedSet
 
 class WecModel private (
     override val uuid: UUID,
+    override val id: String,
     override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
@@ -269,19 +270,20 @@ object WecModel {
   }
 
   def apply(
-      inputModel: WecInput
+      input: WecInput
   ): WecModel =
     new WecModel(
-      inputModel.getUuid,
+      input.getUuid,
+      input.getId,
       Kilovoltamperes(
-        inputModel.getType.getsRated.to(KILOVOLTAMPERE).getValue.doubleValue
+        input.getType.getsRated.to(KILOVOLTAMPERE).getValue.doubleValue
       ),
-      inputModel.getType.getCosPhiRated,
-      QControl(inputModel.getqCharacteristics),
+      input.getType.getCosPhiRated,
+      QControl(input.getqCharacteristics),
       SquareMeters(
-        inputModel.getType.getRotorArea.to(SQUARE_METRE).getValue.doubleValue
+        input.getType.getRotorArea.to(SQUARE_METRE).getValue.doubleValue
       ),
-      WecCharacteristic(inputModel.getType.getCpCharacteristic),
+      WecCharacteristic(input.getType.getCpCharacteristic),
     )
 
 }

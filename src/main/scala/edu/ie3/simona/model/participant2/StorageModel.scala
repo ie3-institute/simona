@@ -40,6 +40,7 @@ import java.util.UUID
 
 class StorageModel private (
     override val uuid: UUID,
+    override val id: String,
     override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
@@ -308,11 +309,11 @@ object StorageModel {
   ) extends ModelState
 
   def apply(
-      inputModel: StorageInput,
+      input: StorageInput,
       config: StorageRuntimeConfig,
   ): StorageModel = {
     val eStorage = KilowattHours(
-      inputModel.getType.geteStorage
+      input.getType.geteStorage
         .to(PowerSystemUnits.KILOWATTHOUR)
         .getValue
         .doubleValue
@@ -325,25 +326,26 @@ object StorageModel {
     }
 
     new StorageModel(
-      inputModel.getUuid,
+      input.getUuid,
+      input.getId,
       Kilovoltamperes(
-        inputModel.getType.getsRated
+        input.getType.getsRated
           .to(PowerSystemUnits.KILOVOLTAMPERE)
           .getValue
           .doubleValue
       ),
-      inputModel.getType.getCosPhiRated,
-      QControl.apply(inputModel.getqCharacteristics),
+      input.getType.getCosPhiRated,
+      QControl.apply(input.getqCharacteristics),
       getInitialState(eStorage, config),
       eStorage,
       Kilowatts(
-        inputModel.getType.getpMax
+        input.getType.getpMax
           .to(PowerSystemUnits.KILOWATT)
           .getValue
           .doubleValue
       ),
       Each(
-        inputModel.getType.getEta.to(PowerSystemUnits.PU).getValue.doubleValue
+        input.getType.getEta.to(PowerSystemUnits.PU).getValue.doubleValue
       ),
       config.targetSoc,
     )

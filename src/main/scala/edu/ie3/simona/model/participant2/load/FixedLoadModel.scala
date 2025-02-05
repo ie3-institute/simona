@@ -28,6 +28,7 @@ import java.util.UUID
 
 class FixedLoadModel(
     override val uuid: UUID,
+    override val id: String,
     override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
@@ -44,10 +45,10 @@ class FixedLoadModel(
 
 object FixedLoadModel {
   def apply(
-      inputModel: LoadInput,
+      input: LoadInput,
       config: LoadRuntimeConfig,
   ): FixedLoadModel = {
-    val reference = LoadReference(inputModel, config)
+    val reference = LoadReference(input, config)
 
     val activePower: Power = reference match {
       case ActivePower(power) => power
@@ -57,15 +58,16 @@ object FixedLoadModel {
     }
 
     new FixedLoadModel(
-      inputModel.getUuid,
+      input.getUuid,
+      input.getId,
       Kilovoltamperes(
-        inputModel.getsRated
+        input.getsRated
           .to(PowerSystemUnits.KILOVOLTAMPERE)
           .getValue
           .doubleValue
       ),
-      inputModel.getCosPhiRated,
-      QControl.apply(inputModel.getqCharacteristics),
+      input.getCosPhiRated,
+      QControl.apply(input.getqCharacteristics),
       activePower,
     )
   }

@@ -36,6 +36,7 @@ abstract class ParticipantModel[
 ] extends ParticipantFlexibility[OP, S] {
 
   val uuid: UUID
+  val id: String
   val sRated: ApparentPower
   val cosPhiRated: Double
   val qControl: QControl

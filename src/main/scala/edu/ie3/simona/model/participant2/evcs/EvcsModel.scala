@@ -55,6 +55,7 @@ import java.util.UUID
 
 class EvcsModel private (
     override val uuid: UUID,
+    override val id: String,
     override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
@@ -566,21 +567,22 @@ object EvcsModel {
   ) extends ModelState
 
   def apply(
-      inputModel: EvcsInput,
+      input: EvcsInput,
       modelConfig: EvcsRuntimeConfig,
   ): EvcsModel =
     new EvcsModel(
-      inputModel.getUuid,
+      input.getUuid,
+      input.getId,
       Kilovoltamperes(
-        inputModel.getType.getsRated.to(KILOVOLTAMPERE).getValue.doubleValue
+        input.getType.getsRated.to(KILOVOLTAMPERE).getValue.doubleValue
       ),
-      inputModel.getCosPhiRated,
-      QControl(inputModel.getqCharacteristics),
+      input.getCosPhiRated,
+      QControl(input.getqCharacteristics),
       EvcsChargingStrategy(modelConfig.chargingStrategy),
-      inputModel.getType.getElectricCurrentType,
+      input.getType.getElectricCurrentType,
       modelConfig.lowestEvSoc,
-      inputModel.getChargingPoints,
-      inputModel.getV2gSupport,
+      input.getChargingPoints,
+      input.getV2gSupport,
     )
 
 }

@@ -25,6 +25,7 @@ import java.util.UUID
 
 class ProfileLoadModel(
     override val uuid: UUID,
+    override val id: String,
     override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
@@ -83,6 +84,7 @@ object ProfileLoadModel {
 
     new ProfileLoadModel(
       input.getUuid,
+      input.getId,
       scaledSRated,
       input.getCosPhiRated,
       QControl.apply(input.getqCharacteristics()),

@@ -67,6 +67,16 @@ final case class ParticipantModelShell[
       OperationChangeIndicator(),
 ) {
 
+  /** Returns a unique identifier for the model held by this model shell,
+    * including the type, UUID and id of the model, for the purpose of log or
+    * exception messaging
+    *
+    * @return
+    *   a unique identifier for the model
+    */
+  def identifier: String =
+    s"${model.getClass.getSimpleName}[${model.id}/$uuid]"
+
   /** Returns the model UUID.
     *
     * @return

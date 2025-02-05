@@ -32,6 +32,7 @@ import java.util.UUID
 
 class FixedFeedInModel(
     override val uuid: UUID,
+    override val id: String,
     override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
@@ -87,18 +88,19 @@ class FixedFeedInModel(
 
 object FixedFeedInModel {
   def apply(
-      inputModel: FixedFeedInInput
+      input: FixedFeedInInput
   ): FixedFeedInModel = {
     new FixedFeedInModel(
-      inputModel.getUuid,
+      input.getUuid,
+      input.getId,
       Kilovoltamperes(
-        inputModel.getsRated
+        input.getsRated
           .to(PowerSystemUnits.KILOVOLTAMPERE)
           .getValue
           .doubleValue
       ),
-      inputModel.getCosPhiRated,
-      QControl.apply(inputModel.getqCharacteristics),
+      input.getCosPhiRated,
+      QControl.apply(input.getqCharacteristics),
     )
   }
 }

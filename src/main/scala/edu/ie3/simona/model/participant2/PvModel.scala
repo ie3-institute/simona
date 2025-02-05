@@ -42,6 +42,7 @@ import scala.math._
 
 class PvModel private (
     override val uuid: UUID,
+    override val id: String,
     override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
@@ -813,35 +814,36 @@ object PvModel {
   ) extends ModelState
 
   def apply(
-      inputModel: PvInput
+      input: PvInput
   ): PvModel =
     new PvModel(
-      inputModel.getUuid,
+      input.getUuid,
+      input.getId,
       Kilovoltamperes(
-        inputModel.getsRated
+        input.getsRated
           .to(PowerSystemUnits.KILOVOLTAMPERE)
           .getValue
           .doubleValue
       ),
-      inputModel.getCosPhiRated,
-      QControl(inputModel.getqCharacteristics),
-      Degrees(inputModel.getNode.getGeoPosition.getY),
-      Degrees(inputModel.getNode.getGeoPosition.getX),
-      inputModel.getAlbedo,
+      input.getCosPhiRated,
+      QControl(input.getqCharacteristics),
+      Degrees(input.getNode.getGeoPosition.getY),
+      Degrees(input.getNode.getGeoPosition.getX),
+      input.getAlbedo,
       Each(
-        inputModel.getEtaConv
+        input.getEtaConv
           .to(PowerSystemUnits.PU)
           .getValue
           .doubleValue
       ),
       Radians(
-        inputModel.getAzimuth
+        input.getAzimuth
           .to(RADIAN)
           .getValue
           .doubleValue
       ),
       Radians(
-        inputModel.getElevationAngle
+        input.getElevationAngle
           .to(RADIAN)
           .getValue
           .doubleValue

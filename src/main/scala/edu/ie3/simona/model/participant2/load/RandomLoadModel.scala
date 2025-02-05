@@ -32,6 +32,7 @@ import scala.util.Random
 
 class RandomLoadModel(
     override val uuid: UUID,
+    override val id: String,
     override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
@@ -148,6 +149,7 @@ object RandomLoadModel {
 
     new RandomLoadModel(
       input.getUuid,
+      input.getId,
       scaledSRated * safetyFactor,
       input.getCosPhiRated,
       QControl.apply(input.getqCharacteristics()),

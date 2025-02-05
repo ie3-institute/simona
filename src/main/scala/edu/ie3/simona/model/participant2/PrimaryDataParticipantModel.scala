@@ -37,6 +37,7 @@ import scala.reflect.ClassTag
   */
 final case class PrimaryDataParticipantModel[P <: PrimaryData: ClassTag](
     override val uuid: UUID,
+    override val id: String,
     override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,

@@ -103,6 +103,7 @@ object ParticipantModelInit {
 
     new PrimaryDataParticipantModel(
       physicalModel.uuid,
+      physicalModel.id,
       physicalModel.sRated,
       physicalModel.cosPhiRated,
       physicalModel.qControl,
