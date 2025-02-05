@@ -350,33 +350,17 @@ final case class ThermalGrid(
   }
 
   /** Handles the last cases of [[ThermalGrid.handleInfeed]], where the thermal
-    * infeed should be determined. FIXME adapt whole table
-    * | house req. demand | house add. demand | storage req. demand | storage add. demand | qDot to house | qDot to storage |
-    * |:------------------|:------------------|:--------------------|:--------------------|:--------------|:----------------|
-    * | true              | true              | true                | true                | true          | false           |
-    * | true              | true              | true                | false               | true          | false           |
-    * | true              | true              | false               | true                | true          | false           |
-    * | true              | true              | false               | false               | true          | false           |
-    * | true              | false             | true                | true                | true          | false           |
-    * | true              | false             | true                | false               | true          | false           |
-    * | true              | false             | false               | true                | true          | false           |
-    * | true              | false             | false               | false               | true          | false           |
-    * | false             | true              | true                | true                | false         | true            |
-    * | false             | true              | true                | false               | false         | true            |
-    * | false             | true              | false               | true                | false         | true            |
-    * | false             | true              | false               | false               | true          | false           |
-    * | false             | false             | true                | true                | false         | true            |
-    * | false             | false             | true                | false               | false         | true            |
-    * | false             | false             | false               | true                | false         | true            |
-    * | false             | false             | false               | false               | false         | false           |
-    *
-   * This can be simplified to five cases FIXME adapt whole table
-   * | No | Conditions                         | Result    |
-    * |:---|:-------------------------------------|:----------|
-    * | 1  | if house.reqD                        | house     |
-    * | 2  | else if storage.reqD OR storage.addD | storage   |
-    * | 3  | else if house.addD                   | house     |
-    * | 4  | else                                 | no output |
+    * infeed should be determined. *
+    * | No | Conditions                      | Result                                                                                       |
+    * |:---|:--------------------------------|:---------------------------------------------------------------------------------------------|
+    * | 1  | if WStorage.reqD AND house.reqD | if HStorage !empty: qDot to WStorage + HStorage to House else split qDot to WStorage + House |
+    * | 2  | if house.reqD                   | if HStorage !empty: HStorage to House else qDot to House                                     |
+    * | 3  | if WStorage.reqD                | qDot to WStorage                                                                             |
+    * | 4  | if HStorage.reqD                | qDot to HStorage                                                                             |
+    * | 5  | else only additionalDemands     |                                                                                              |
+    * | 5a | continue as before              | qDot as in lastState                                                                         |
+    * | 5b | if HStorage.addD                | qDot to HStorage                                                                             |
+    * | 5c | else                            | qDot to House                                                                                |
     *
     * @param thermalDemands
     *   holds the thermal demands of the thermal units (house, storage)
@@ -389,6 +373,7 @@ final case class ThermalGrid(
     * @param qDot
     *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
     *   storages
+   *   TODO Complete ScalaDoc
     * @return
     *   Updated thermal grid state and the thermalThreshold if there is one
     */
@@ -415,7 +400,7 @@ final case class ThermalGrid(
     ) match {
       case (true, _, _, _, true, _) =>
         updatedHeatStorageState match {
-          // if heatStorage is not empty, house and hot water storage can handleDemand
+          // if heatStorage is not empty, house and hot water storage have reqDemand
           // take qDot to recharge domesticHotWaterStorage and
           // cover thermal demand of house by heatStorage
           case Some(storageState) if storageState.storedEnergy > zeroKWh =>
@@ -427,6 +412,7 @@ final case class ThermalGrid(
               heatStorage.map(_.getChargingPower).getOrElse(zeroKW) * (-1),
               qDot,
             )
+          // else split qDot into house and domesticHotWaterStorage
           case _ =>
             splitThermalHeatAndPushIntoHouseAndDomesticStorage(
               relevantData,
@@ -459,7 +445,6 @@ final case class ThermalGrid(
               qDot,
             )
         }
-
       // Prioritize domestic hot water storage
       // Same case if there is Some(heatStorageDemand) or not
       case (false, _, _, _, true, _) =>
@@ -470,6 +455,7 @@ final case class ThermalGrid(
           qDot,
         )
 
+      // No reqDemand of house or domestic hot water storage but of thermal storage
       case (false, _, true, _, false, _) =>
         pushThermalHeatIntoThermalStorageOnly(
           relevantData,
@@ -848,7 +834,6 @@ final case class ThermalGrid(
       )
 
     val (updatedStorageState, thermalStorageThreshold) =
-
       handleStorageCases(relevantData, state, qDotHeatStorage, heatStorage)
 
     val (
@@ -946,7 +931,7 @@ final case class ThermalGrid(
     *   Updated thermal grid state
     */
   private def handleStorageCases(
-                                  relevantData: HpRelevantData,
+      relevantData: HpRelevantData,
       state: ThermalGridState,
       qDotStorage: Power,
       storage: Option[ThermalStorage],
