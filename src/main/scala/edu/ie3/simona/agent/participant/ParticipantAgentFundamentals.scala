@@ -26,7 +26,7 @@ import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPower,
   ComplexPowerAndHeat,
   EnrichableData,
-  PrimaryDataWithApparentPower,
+  PrimaryDataWithComplexPower,
 }
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
@@ -103,7 +103,7 @@ import scala.util.{Failure, Success, Try}
 /** Useful functions to use in [[ParticipantAgent]] s
   */
 protected trait ParticipantAgentFundamentals[
-    PD <: PrimaryDataWithApparentPower[PD],
+    PD <: PrimaryDataWithComplexPower[PD],
     CD <: CalcRelevantData,
     MS <: ModelState,
     D <: ParticipantStateData[PD],
