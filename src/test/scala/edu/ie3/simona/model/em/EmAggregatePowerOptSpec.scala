@@ -32,7 +32,7 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
       )
 
       actualResult shouldBe (
-        Kilowatts(2.0),
+        Kilowatts(0.0),
         Kilowatts(-1.0),
         Kilowatts(4.0)
       )
