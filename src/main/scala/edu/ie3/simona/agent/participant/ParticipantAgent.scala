@@ -14,7 +14,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.{
   getAndCheckNodalVoltage,
 }
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithComplexPower
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.{
@@ -89,7 +89,7 @@ import scala.reflect.ClassTag
   * @since 2019-07-04
   */
 abstract class ParticipantAgent[
-    PD <: PrimaryDataWithApparentPower[PD],
+    PD <: PrimaryDataWithComplexPower[PD],
     CD <: CalcRelevantData,
     MS <: ModelState,
     D <: ParticipantStateData[PD],
