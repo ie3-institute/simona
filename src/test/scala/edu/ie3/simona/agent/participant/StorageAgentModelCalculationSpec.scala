@@ -174,11 +174,7 @@ class StorageAgentModelCalculationSpec
       )
 
       emAgent.expectMsg(
-        RegisterControlledAsset(
-          storageInputQv.getUuid,
-          storageAgent.toTyped,
-          storageInputQv,
-        )
+        RegisterControlledAsset(storageAgent.toTyped, storageInputQv)
       )
       emAgent.expectMsg(
         ScheduleFlexActivation(storageInputQv.getUuid, 0)
@@ -570,7 +566,7 @@ class StorageAgentModelCalculationSpec
         case ParticipantResultEvent(result: StorageResult) =>
           result.getInputModel shouldBe storageInputQv.getUuid
           result.getTime shouldBe 81099.toDateTime(simulationStartDate)
-          result.getP should beEquivalentTo((-12d).asKiloWatt)
+          result.getP should beEquivalentTo(-12d.asKiloWatt)
           result.getQ should beEquivalentTo(0d.asMegaVar)
           result.getSoc should beEquivalentTo(100d.asPercent)
       }

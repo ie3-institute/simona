@@ -109,7 +109,6 @@ object EmAgent {
           val flexAdapter = ctx.messageAdapter[FlexRequest](Flex)
 
           parentEm ! RegisterControlledAsset(
-            inputModel.getUuid,
             flexAdapter,
             inputModel,
           )
@@ -151,9 +150,9 @@ object EmAgent {
       core: EmDataCore.Inactive,
   ): Behavior[Request] = Behaviors.receivePartial {
 
-    case (_, RegisterControlledAsset(model, actor, spi)) =>
-      val updatedModelShell = modelShell.addParticipant(model, spi)
-      val updatedCore = core.addParticipant(actor, model)
+    case (_, RegisterControlledAsset(actor, spi)) =>
+      val updatedModelShell = modelShell.addParticipant(spi.getUuid, spi)
+      val updatedCore = core.addParticipant(actor, spi.getUuid)
       inactive(emData, updatedModelShell, updatedCore)
 
     case (_, ScheduleFlexActivation(participant, newTick, scheduleKey)) =>

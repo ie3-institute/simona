@@ -756,7 +756,7 @@ class EvcsAgentModelCalculationSpec
       /* Send out public evcs request */
       evService.send(
         evcsAgent,
-        EvFreeLotsRequest(0L, evService.ref),
+        EvFreeLotsRequest(0L),
       )
 
       evService.expectMsg(
@@ -788,7 +788,7 @@ class EvcsAgentModelCalculationSpec
       /* Ask for public evcs lot count again with a later tick */
       evService.send(
         evcsAgent,
-        EvFreeLotsRequest(3600, evService.ref),
+        EvFreeLotsRequest(3600),
       )
 
       // this time, only one is still free
@@ -933,7 +933,7 @@ class EvcsAgentModelCalculationSpec
       // departures first
       evService.send(
         evcsAgent,
-        DepartingEvsRequest(3600, Seq(evA.getUuid), evService.ref),
+        DepartingEvsRequest(3600, Seq(evA.getUuid)),
       )
       evService.expectMsgType[DepartingEvsResponse] match {
         case DepartingEvsResponse(evcs, evModels) =>
@@ -968,7 +968,7 @@ class EvcsAgentModelCalculationSpec
       // departures first
       evService.send(
         evcsAgent,
-        DepartingEvsRequest(7200, Seq(evB.getUuid), evService.ref),
+        DepartingEvsRequest(7200, Seq(evB.getUuid)),
       )
       evService.expectMsgType[DepartingEvsResponse] match {
         case DepartingEvsResponse(evcs, evModels) =>
@@ -1116,11 +1116,7 @@ class EvcsAgentModelCalculationSpec
       )
 
       emAgent.expectMsg(
-        RegisterControlledAsset(
-          evcsInputModelQv.getUuid,
-          evcsAgent.toTyped,
-          evcsInputModelQv,
-        )
+        RegisterControlledAsset(evcsAgent.toTyped, evcsInputModelQv)
       )
       // only receive registration message. ScheduleFlexRequest after secondary service initialized
       emAgent.expectNoMessage()
@@ -1258,11 +1254,7 @@ class EvcsAgentModelCalculationSpec
       )
 
       emAgent.expectMsg(
-        RegisterControlledAsset(
-          evcsInputModelQv.getUuid,
-          evcsAgent.toTyped,
-          evcsInputModelQv,
-        )
+        RegisterControlledAsset(evcsAgent.toTyped, evcsInputModelQv)
       )
       emAgent.expectNoMessage()
 
@@ -1410,7 +1402,7 @@ class EvcsAgentModelCalculationSpec
       // departure first
       evService.send(
         evcsAgent,
-        DepartingEvsRequest(4500, Seq(ev900.uuid), evService.ref),
+        DepartingEvsRequest(4500, Seq(ev900.uuid)),
       )
 
       evService.expectMsgPF() { case DepartingEvsResponse(uuid, evs) =>
@@ -1907,7 +1899,7 @@ class EvcsAgentModelCalculationSpec
       // departure first
       evService.send(
         evcsAgent,
-        DepartingEvsRequest(36000, Seq(ev900.uuid), evService.ref),
+        DepartingEvsRequest(36000, Seq(ev900.uuid)),
       )
 
       evService.expectMsgPF() { case DepartingEvsResponse(uuid, evs) =>
@@ -2228,7 +2220,7 @@ class EvcsAgentModelCalculationSpec
       // TICK 3600: ev900 leaves
       evService.send(
         evcsAgent,
-        DepartingEvsRequest(3600, Seq(ev900.uuid), evService.ref),
+        DepartingEvsRequest(3600, Seq(ev900.uuid)),
       )
 
       evService.expectMsgType[DepartingEvsResponse] match {
@@ -2282,7 +2274,7 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        DepartingEvsRequest(4500, Seq(ev1800.uuid), evService.ref),
+        DepartingEvsRequest(4500, Seq(ev1800.uuid)),
       )
 
       evService.expectMsgType[DepartingEvsResponse] match {
@@ -2331,7 +2323,7 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        DepartingEvsRequest(5400, Seq(ev2700.uuid), evService.ref),
+        DepartingEvsRequest(5400, Seq(ev2700.uuid)),
       )
 
       evService.expectMsgType[DepartingEvsResponse] match {

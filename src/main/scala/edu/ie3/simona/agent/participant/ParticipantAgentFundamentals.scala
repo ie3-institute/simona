@@ -274,7 +274,6 @@ protected trait ParticipantAgentFundamentals[
       // register with EM if applicable
       maybeEmAgent.foreach { emAgent =>
         emAgent ! RegisterControlledAsset(
-          inputModel.electricalInputModel.getUuid,
           self.toTyped[FlexRequest],
           inputModel.electricalInputModel,
         )

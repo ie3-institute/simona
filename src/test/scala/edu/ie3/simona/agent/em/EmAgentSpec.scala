@@ -88,7 +88,7 @@ class EmAgentSpec
       )
 
       val pvAgent = TestProbe[FlexRequest]("PvAgent")
-      emAgent ! RegisterControlledAsset(pvInput.getUuid, pvAgent.ref, pvInput)
+      emAgent ! RegisterControlledAsset(pvAgent.ref, pvInput)
       emAgent ! ScheduleFlexActivation(pvInput.getUuid, INIT_SIM_TICK)
 
       val sa1 = scheduler.expectMessageType[ScheduleActivation]
@@ -97,11 +97,7 @@ class EmAgentSpec
       val emAgentActivation = sa1.actor
 
       val evcsAgent = TestProbe[FlexRequest]("EvcsAgent")
-      emAgent ! RegisterControlledAsset(
-        evcsInput.getUuid,
-        evcsAgent.ref,
-        evcsInput,
-      )
+      emAgent ! RegisterControlledAsset(evcsAgent.ref, evcsInput)
       emAgent ! ScheduleFlexActivation(evcsInput.getUuid, INIT_SIM_TICK)
 
       // no additional scheduling message, since tick -1 has already been scheduled
@@ -277,7 +273,7 @@ class EmAgentSpec
       )
 
       val pvAgent = TestProbe[FlexRequest]("PvAgent")
-      emAgent ! RegisterControlledAsset(pvInput.getUuid, pvAgent.ref, pvInput)
+      emAgent ! RegisterControlledAsset(pvAgent.ref, pvInput)
       emAgent ! ScheduleFlexActivation(pvInput.getUuid, 0)
 
       val sa1 = scheduler.expectMessageType[ScheduleActivation]
@@ -286,11 +282,7 @@ class EmAgentSpec
       val emAgentActivation = sa1.actor
 
       val evcsAgent = TestProbe[FlexRequest]("EvcsAgent")
-      emAgent ! RegisterControlledAsset(
-        evcsInput.getUuid,
-        evcsAgent.ref,
-        evcsInput,
-      )
+      emAgent ! RegisterControlledAsset(evcsAgent.ref, evcsInput)
       emAgent ! ScheduleFlexActivation(evcsInput.getUuid, 0)
 
       // no additional scheduling message, since tick 0 has already been scheduled
@@ -461,7 +453,7 @@ class EmAgentSpec
       )
 
       val pvAgent = TestProbe[FlexRequest]("PvAgent")
-      emAgent ! RegisterControlledAsset(pvInput.getUuid, pvAgent.ref, pvInput)
+      emAgent ! RegisterControlledAsset(pvAgent.ref, pvInput)
       emAgent ! ScheduleFlexActivation(pvInput.getUuid, 0)
 
       val sa1 = scheduler.expectMessageType[ScheduleActivation]
@@ -470,11 +462,7 @@ class EmAgentSpec
       val emAgentActivation = sa1.actor
 
       val evcsAgent = TestProbe[FlexRequest]("EvcsAgent")
-      emAgent ! RegisterControlledAsset(
-        evcsInput.getUuid,
-        evcsAgent.ref,
-        evcsInput,
-      )
+      emAgent ! RegisterControlledAsset(evcsAgent.ref, evcsInput)
       emAgent ! ScheduleFlexActivation(evcsInput.getUuid, 0)
 
       // no additional scheduling message, since tick 0 has already been scheduled
@@ -655,13 +643,12 @@ class EmAgentSpec
       )
 
       val pvAgent = TestProbe[FlexRequest]("PvAgent")
-      emAgent ! RegisterControlledAsset(pvInput.getUuid, pvAgent.ref, pvInput)
+      emAgent ! RegisterControlledAsset(pvAgent.ref, pvInput)
       emAgent ! ScheduleFlexActivation(pvInput.getUuid, INIT_SIM_TICK)
 
       val emAgentFlex =
         parentEmAgent.expectMessageType[RegisterControlledAsset] match {
-          case RegisterControlledAsset(modelUuid, participant, inputModel) =>
-            modelUuid shouldBe emInput.getUuid
+          case RegisterControlledAsset(participant, inputModel) =>
             inputModel shouldBe emInput
             participant
         }
@@ -670,11 +657,7 @@ class EmAgentSpec
       )
 
       val evcsAgent = TestProbe[FlexRequest]("EvcsAgent")
-      emAgent ! RegisterControlledAsset(
-        evcsInput.getUuid,
-        evcsAgent.ref,
-        evcsInput,
-      )
+      emAgent ! RegisterControlledAsset(evcsAgent.ref, evcsInput)
       emAgent ! ScheduleFlexActivation(evcsInput.getUuid, INIT_SIM_TICK)
 
       // no additional scheduling message, since tick -1 has already been scheduled

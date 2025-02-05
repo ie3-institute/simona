@@ -65,7 +65,6 @@ object ParticipantAgentInit {
         val flexAdapter = ctx.messageAdapter[FlexRequest](Flex)
 
         em ! RegisterControlledAsset(
-          participantInput.getUuid,
           flexAdapter,
           participantInput,
         )
