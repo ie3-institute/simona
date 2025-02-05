@@ -273,8 +273,7 @@ protected trait ParticipantAgentFundamentals[
 
       // register with EM if applicable
       maybeEmAgent.foreach { emAgent =>
-        emAgent ! RegisterParticipant(
-          inputModel.electricalInputModel.getUuid,
+        emAgent ! RegisterControlledAsset(
           self.toTyped[FlexRequest],
           inputModel.electricalInputModel,
         )
@@ -308,7 +307,7 @@ protected trait ParticipantAgentFundamentals[
 
         maybeEmAgent.foreach { emAgent =>
           // flex is scheduled for tick 0, if no first tick available
-          emAgent ! ScheduleFlexRequest(
+          emAgent ! ScheduleFlexActivation(
             inputModel.electricalInputModel.getUuid,
             newTick.getOrElse(0),
           )
@@ -1059,7 +1058,7 @@ protected trait ParticipantAgentFundamentals[
         val maybeEmAgent = modelStateData.flexStateData.map(_.emAgent)
 
         maybeEmAgent.foreach {
-          _ ! ScheduleFlexRequest(
+          _ ! ScheduleFlexActivation(
             modelStateData.model.getUuid,
             maybeNextTick.getOrElse(0),
           )
