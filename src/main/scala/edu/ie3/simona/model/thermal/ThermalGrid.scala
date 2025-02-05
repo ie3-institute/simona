@@ -223,7 +223,8 @@ final case class ThermalGrid(
     * @param isRunning
     *   determines whether the heat pump is running or not
     * @param qDot
-    *   Infeed to the grid from thermal generation (e.g. heat pump)
+    *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
+    *   storages
     * @param thermalDemands
     *   holds the thermal demands of the thermal units (house, storage)
     * @return
@@ -269,7 +270,8 @@ final case class ThermalGrid(
     * @param isRunning
     *   determines whether the heat pump is running or not
     * @param qDot
-    *   Infeed to the grid from thermal generation (e.g. heat pump)
+    *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
+    *   storages
     * @param thermalDemands
     *   holds the thermal demands of the thermal units (house, storage)
     * @return
@@ -368,14 +370,13 @@ final case class ThermalGrid(
     * | false             | false             | false               | true                | false         | true            |
     * | false             | false             | false               | false               | false         | false           |
     *
-    * This can be simplified to five cases FIXME adapt whole table
-    * | No | Conditions                                                               | Result    |
-    * |:---|:-------------------------------------------------------------------------|:----------|
-    * | 1  | if(house.reqD) => house                                                  | house     |
-    * | 2  | if(!house.reqD && !storage.reqD) => storage                              | storage   |
-    * | 3  | if(!house.reqD && !storage.reqD && storage.addD) => storage              | storage   |
-    * | 4  | if(!house.reqD && house.addD && !storage.reqD && !storage.addD) => house | house     |
-    * | 5  | if(all == false) => no output                                            | no output |
+   * This can be simplified to five cases FIXME adapt whole table
+   * | No | Conditions                         | Result    |
+    * |:---|:-------------------------------------|:----------|
+    * | 1  | if house.reqD                        | house     |
+    * | 2  | else if storage.reqD OR storage.addD | storage   |
+    * | 3  | else if house.addD                   | house     |
+    * | 4  | else                                 | no output |
     *
     * @param thermalDemands
     *   holds the thermal demands of the thermal units (house, storage)
@@ -386,7 +387,8 @@ final case class ThermalGrid(
     * @param gridState
     *   Current state of the thermalGrid
     * @param qDot
-    *   Infeed to the grid from thermal generation (e.g. heat pump)
+    *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
+    *   storages
     * @return
     *   Updated thermal grid state and the thermalThreshold if there is one
     */
@@ -846,18 +848,14 @@ final case class ThermalGrid(
       )
 
     val (updatedStorageState, thermalStorageThreshold) =
-      handleInfeedStorage(
-        relevantData,
-        state,
-        qDotHeatStorage,
-        heatStorage,
-      )
+
+      handleStorageCases(relevantData.currentTick, state, qDotHeatStorage)
 
     val (
       updatedDomesticHotWaterStorageState,
       domesticHotWaterStorageThreshold,
     ) = handleInfeedStorage(
-      relevantData,
+      relevantData.currentTick,
       state,
       qDotDomesticHotWaterStorage,
       domesticHotWaterStorage,
@@ -931,7 +929,7 @@ final case class ThermalGrid(
   }
 
   /** Handles the cases, when the storage has heat demand and will be filled up
-    * here (positive qDot) or will be return its stored energy into the thermal
+    * here (positive qDot) or will return its stored energy into the thermal
     * grid (negative qDot). Same if the storage is used for domestic hot water.
     * Positive qDot will fill the storage, negative will cover the demand.
     *
@@ -947,8 +945,8 @@ final case class ThermalGrid(
     * @return
     *   Updated thermal grid state
     */
-  private def handleInfeedStorage(
-      relevantData: HpRelevantData,
+  private def handleStorageCases(
+                                  relevantData: HpRelevantData,
       state: ThermalGridState,
       qDotStorage: Power,
       storage: Option[ThermalStorage],
@@ -1093,7 +1091,8 @@ final case class ThermalGrid(
     * @param lastThermalGridState
     *   state of the thermalGrid until this tick
     * @param qDot
-    *   Infeed to the grid from thermal generation (e.g. heat pump)
+    *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
+    *   storages
     * @param simulationStartTime
     *   simulationStartDate as ZonedDateTime
     * @param houseInhabitants
@@ -1249,7 +1248,8 @@ final case class ThermalGrid(
     * @param lastAmbientTemperature
     *   Ambient temperature valid up until (not including) the current tick
     * @param qDot
-    *   Infeed to the grid from thermal generation (e.g. heat pump)
+    *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
+    *   storages
     * @return
     *   Options to revised thermal house and storage state
     */
@@ -1470,7 +1470,11 @@ object ThermalGrid {
     * than or equal to the absolutely required energy. Thus, this class can only
     * be instantiated via factory.
     * @param required
-    *   The absolutely required energy to reach target state
+    *   The absolutely required energy to reach target state. For
+    *   [[ThermalHouse]] this would be the energy demand to reach the boundary
+    *   or targetTemperature. For [[ThermalStorage]] this would be the amount of
+    *   energy to get fully charged when empty. If the [[ThermalStorage]] is not
+    *   empty, the required energy is zero.
     * @param possible
     *   The maximum possible energy, that can be handled
     */
