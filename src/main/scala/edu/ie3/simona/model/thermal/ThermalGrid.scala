@@ -849,13 +849,13 @@ final case class ThermalGrid(
 
     val (updatedStorageState, thermalStorageThreshold) =
 
-      handleStorageCases(relevantData.currentTick, state, qDotHeatStorage)
+      handleStorageCases(relevantData, state, qDotHeatStorage, heatStorage)
 
     val (
       updatedDomesticHotWaterStorageState,
       domesticHotWaterStorageThreshold,
-    ) = handleInfeedStorage(
-      relevantData.currentTick,
+    ) = handleStorageCases(
+      relevantData,
       state,
       qDotDomesticHotWaterStorage,
       domesticHotWaterStorage,
@@ -1159,7 +1159,7 @@ final case class ThermalGrid(
     val (
       updatedDomesticHotWaterStorageState,
       domesticHotWaterStorageThreshold,
-    ) = handleInfeedStorage(
+    ) = handleStorageCases(
       relevantData,
       lastThermalGridState,
       qDotDomesticHotWaterDemand,

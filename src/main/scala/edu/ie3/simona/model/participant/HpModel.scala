@@ -260,7 +260,7 @@ final case class HpModel(
         lastState.ambientTemperature.getOrElse(relevantData.ambientTemperature),
         isRunning,
         qDotIntoGrid,
-        demandWrapper,
+        thermalDemands,
       )
 
     HpState(
