@@ -402,6 +402,9 @@ class ResultEventListenerSpec
           max = timeoutDuration,
         )
 
+        // Debug: Check if the file exists
+        assert(outputFile.exists(), "Output file does not exist")
+
         // stopping the actor should wait until existing messages within an actor are fully processed
         // otherwise it might happen, that the shutdown is triggered even before the just send ParticipantResultEvent
         // reached the listener
@@ -425,18 +428,20 @@ class ResultEventListenerSpec
           timeoutDuration,
         )
 
+        // Debug: Check if the compressed file exists
+        val compressedFile = specificOutputFileHierarchy.rawOutputDataFilePaths
+          .getOrElse(
+            classOf[PvResult],
+            fail(
+              s"Cannot get filepath for raw result file of class '${classOf[PvResult].getSimpleName}' from outputFileHierarchy!'"
+            ),
+          )
+          .toFile
+        assert(compressedFile.exists(), "Compressed file does not exist")
+
         val resultFileSource = Source.fromInputStream(
           new GZIPInputStream(
-            new FileInputStream(
-              specificOutputFileHierarchy.rawOutputDataFilePaths
-                .getOrElse(
-                  classOf[PvResult],
-                  fail(
-                    s"Cannot get filepath for raw result file of class '${classOf[PvResult].getSimpleName}' from outputFileHierarchy!'"
-                  ),
-                )
-                .toFile
-            )
+            new FileInputStream(compressedFile)
           )
         )
 
