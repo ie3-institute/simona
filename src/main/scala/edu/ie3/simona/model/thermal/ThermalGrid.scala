@@ -156,7 +156,8 @@ final case class ThermalGrid(
     * @param isRunning
     *   determines whether the heat pump is running or not
     * @param qDot
-    *   Infeed to the grid from thermal generation (e.g. heat pump)
+    *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
+    *   storages
     * @param thermalDemands
     *   holds the thermal demands of the thermal units (house, storage)
     * @return
@@ -202,7 +203,8 @@ final case class ThermalGrid(
     * @param isRunning
     *   determines whether the heat pump is running or not
     * @param qDot
-    *   Infeed to the grid from thermal generation (e.g. heat pump)
+    *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
+    *   storages
     * @param thermalDemands
     *   holds the thermal demands of the thermal units (house, storage)
     * @return
@@ -353,7 +355,8 @@ final case class ThermalGrid(
     * @param gridState
     *   Current state of the thermalGrid
     * @param qDot
-    *   Infeed to the grid from thermal generation (e.g. heat pump)
+    *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
+    *   storages
     * @return
     *   Updated thermal grid state and the thermalThreshold if there is one
     */
@@ -563,7 +566,8 @@ final case class ThermalGrid(
     * @param lastThermalGridState
     *   state of the thermalGrid until this tick
     * @param qDot
-    *   Infeed to the grid from thermal generation (e.g. heat pump)
+    *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
+    *   storages
     * @return
     *   Updated thermal grid state
     */
@@ -635,7 +639,8 @@ final case class ThermalGrid(
     * @param lastAmbientTemperature
     *   Ambient temperature valid up until (not including) the current tick
     * @param qDot
-    *   Infeed to the grid from thermal generation (e.g. heat pump)
+    *   Infeed to the grid from thermal generation (e.g. heat pump) or thermal
+    *   storages
     * @return
     *   Options to revised thermal house and storage state
     */
