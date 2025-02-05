@@ -25,8 +25,8 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexActivation,
   FlexCompletion,
   FlexResponse,
-  RegisterParticipant,
-  ScheduleFlexRequest,
+  RegisterControlledAsset,
+  ScheduleFlexActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.WeatherMessage.RegisterForWeatherMessage
@@ -198,12 +198,14 @@ class ParticipantAgentInitSpec
           )
         )
 
-        val emRegistrationMsg = em.expectMessageType[RegisterParticipant]
+        val emRegistrationMsg = em.expectMessageType[RegisterControlledAsset]
         emRegistrationMsg.modelUuid shouldBe mockInput.getUuid
         emRegistrationMsg.inputModel shouldBe mockInput
         val activationRef = emRegistrationMsg.participant
 
-        em.expectMessage(ScheduleFlexRequest(mockInput.getUuid, INIT_SIM_TICK))
+        em.expectMessage(
+          ScheduleFlexActivation(mockInput.getUuid, INIT_SIM_TICK)
+        )
 
         activationRef ! FlexActivation(INIT_SIM_TICK)
 
@@ -251,12 +253,14 @@ class ParticipantAgentInitSpec
           )
         )
 
-        val emRegistrationMsg = em.expectMessageType[RegisterParticipant]
+        val emRegistrationMsg = em.expectMessageType[RegisterControlledAsset]
         emRegistrationMsg.modelUuid shouldBe mockInput.getUuid
         emRegistrationMsg.inputModel shouldBe mockInput
         val activationRef = emRegistrationMsg.participant
 
-        em.expectMessage(ScheduleFlexRequest(mockInput.getUuid, INIT_SIM_TICK))
+        em.expectMessage(
+          ScheduleFlexActivation(mockInput.getUuid, INIT_SIM_TICK)
+        )
 
         activationRef ! FlexActivation(INIT_SIM_TICK)
 
@@ -441,12 +445,14 @@ class ParticipantAgentInitSpec
           )
         )
 
-        val emRegistrationMsg = em.expectMessageType[RegisterParticipant]
+        val emRegistrationMsg = em.expectMessageType[RegisterControlledAsset]
         emRegistrationMsg.modelUuid shouldBe mockInput.getUuid
         emRegistrationMsg.inputModel shouldBe mockInput
         val activationRef = emRegistrationMsg.participant
 
-        em.expectMessage(ScheduleFlexRequest(mockInput.getUuid, INIT_SIM_TICK))
+        em.expectMessage(
+          ScheduleFlexActivation(mockInput.getUuid, INIT_SIM_TICK)
+        )
 
         activationRef ! FlexActivation(INIT_SIM_TICK)
 
@@ -503,12 +509,14 @@ class ParticipantAgentInitSpec
           )
         )
 
-        val emRegistrationMsg = em.expectMessageType[RegisterParticipant]
+        val emRegistrationMsg = em.expectMessageType[RegisterControlledAsset]
         emRegistrationMsg.modelUuid shouldBe mockInput.getUuid
         emRegistrationMsg.inputModel shouldBe mockInput
         val activationRef = emRegistrationMsg.participant
 
-        em.expectMessage(ScheduleFlexRequest(mockInput.getUuid, INIT_SIM_TICK))
+        em.expectMessage(
+          ScheduleFlexActivation(mockInput.getUuid, INIT_SIM_TICK)
+        )
 
         activationRef ! FlexActivation(INIT_SIM_TICK)
 

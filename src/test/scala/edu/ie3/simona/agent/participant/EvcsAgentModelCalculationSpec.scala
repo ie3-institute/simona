@@ -1116,7 +1116,7 @@ class EvcsAgentModelCalculationSpec
       )
 
       emAgent.expectMsg(
-        RegisterParticipant(
+        RegisterControlledAsset(
           evcsInputModelQv.getUuid,
           evcsAgent.toTyped,
           evcsInputModelQv,
@@ -1132,7 +1132,7 @@ class EvcsAgentModelCalculationSpec
       )
 
       emAgent.expectMsg(
-        ScheduleFlexRequest(evcsInputModelQv.getUuid, 0)
+        ScheduleFlexActivation(evcsInputModelQv.getUuid, 0)
       )
 
       scheduler.expectMsg(Completion(evcsAgent.toTyped))
@@ -1258,7 +1258,7 @@ class EvcsAgentModelCalculationSpec
       )
 
       emAgent.expectMsg(
-        RegisterParticipant(
+        RegisterControlledAsset(
           evcsInputModelQv.getUuid,
           evcsAgent.toTyped,
           evcsInputModelQv,
@@ -1273,7 +1273,7 @@ class EvcsAgentModelCalculationSpec
       )
 
       emAgent.expectMsg(
-        ScheduleFlexRequest(evcsInputModelQv.getUuid, 900)
+        ScheduleFlexActivation(evcsInputModelQv.getUuid, 900)
       )
 
       scheduler.expectMsg(Completion(evcsAgent.toTyped))

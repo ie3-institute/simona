@@ -47,7 +47,7 @@ object FlexibilityMessage {
     * @param inputModel
     *   The asset input model of the flex options provider
     */
-  final case class RegisterParticipant(
+  final case class RegisterControlledAsset(
       override val modelUuid: UUID,
       participant: ActorRef[FlexRequest],
       inputModel: AssetInput,
@@ -64,7 +64,7 @@ object FlexibilityMessage {
     *   Optionally a schedule key that unlocks the scheduler once the scheduling
     *   chain is completed
     */
-  final case class ScheduleFlexRequest(
+  final case class ScheduleFlexActivation(
       override val modelUuid: UUID,
       tick: Long,
       scheduleKey: Option[ScheduleKey] = None,

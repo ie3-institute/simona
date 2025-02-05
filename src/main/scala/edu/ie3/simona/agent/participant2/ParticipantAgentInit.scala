@@ -64,13 +64,13 @@ object ParticipantAgentInit {
       .map { em =>
         val flexAdapter = ctx.messageAdapter[FlexRequest](Flex)
 
-        em ! RegisterParticipant(
+        em ! RegisterControlledAsset(
           participantInput.getUuid,
           flexAdapter,
           participantInput,
         )
 
-        em ! ScheduleFlexRequest(
+        em ! ScheduleFlexActivation(
           participantInput.getUuid,
           INIT_SIM_TICK,
         )
