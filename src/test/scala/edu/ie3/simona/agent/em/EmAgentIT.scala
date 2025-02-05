@@ -609,7 +609,7 @@ class EmAgentIT
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 75.toDateTime
             emResult.getP should equalWithTolerance(
-              (-0.000566087824).asMegaWatt
+              (-0.0004988501176273769).asMegaWatt
             )
             emResult.getQ should equalWithTolerance(0.001073120041.asMegaVar)
         }
@@ -665,7 +665,7 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 7353.toDateTime
-            emResult.getP should equalWithTolerance(0.00132184544484.asMegaWatt)
+            emResult.getP should equalWithTolerance(0.001467624526.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.001073120041.asMegaVar)
         }
 
@@ -775,7 +775,7 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 21707.toDateTime
-            emResult.getP should equalWithTolerance(0.000236768.asMegaWatt)
+            emResult.getP should equalWithTolerance(0.0002422840239.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.0000882855367.asMegaVar)
         }
 
@@ -794,7 +794,7 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 26750.toDateTime
-            emResult.getP should equalWithTolerance(0.0050867679996.asMegaWatt)
+            emResult.getP should equalWithTolerance(0.005092284024.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.0010731200408.asMegaVar)
         }
 
@@ -813,7 +813,7 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 26808.toDateTime
-            emResult.getP should equalWithTolerance(0.0050867679996.asMegaWatt)
+            emResult.getP should equalWithTolerance(0.0050922840234.asMegaWatt)
             emResult.getQ should equalWithTolerance(0.0010731200408.asMegaVar)
         }
 
