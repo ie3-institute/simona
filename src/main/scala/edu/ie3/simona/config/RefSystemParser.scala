@@ -10,11 +10,10 @@ import edu.ie3.datamodel.models.voltagelevels.{
   GermanVoltageLevelUtils,
   VoltageLevel,
 }
-import edu.ie3.simona.exceptions.InvalidConfigParameterException
+import edu.ie3.simona.config.GridConfigParser.{GridConfig, parseWithDefaults}
+import edu.ie3.simona.config.SimonaConfig.RefSystemConfig
 import edu.ie3.simona.model.grid.RefSystem
-import edu.ie3.simona.util.CollectionUtils
-import edu.ie3.util.quantities.PowerSystemUnits
-import squants.electro.{Kilovolts, Volts}
+import squants.electro.Kilovolts
 import squants.energy.{Kilowatts, Megawatts}
 
 /** Parser to parse [[RefSystem]] provided via [[SimonaConfig]]
@@ -23,27 +22,7 @@ object RefSystemParser {
   final case class ConfigRefSystems(
       private val gridIdRefSystems: Map[Int, RefSystem],
       private val voltLvLRefSystems: Map[VoltageLevel, RefSystem],
-  ) {
-
-    /** Returns a [[RefSystem]] based on the provided gridId or the voltLvl as
-      * fallback if available
-      *
-      * @param gridId
-      *   the gridId the refSystem is wanted for
-      * @param voltLvl
-      *   the voltLvL that is valid for the grid that is wanted
-      * @return
-      *   Some(refSystem) if available or None if unavailable
-      */
-    def find(
-        gridId: Int,
-        voltLvl: Option[VoltageLevel] = None,
-    ): Option[RefSystem] =
-      gridIdRefSystems
-        .get(gridId)
-        .orElse(voltLvl.flatMap(voltLvLRefSystems.get))
-
-  }
+  ) extends GridConfig[RefSystem](gridIdRefSystems, voltLvLRefSystems)
 
   /** Parses the configuration based [[RefSystem]] information based on a list
     * of [[SimonaConfig.RefSystemConfig]]
@@ -85,76 +64,13 @@ object RefSystemParser {
       ),
     )
 
-    configRefSystems match {
-      case Some(refSystems) if refSystems.nonEmpty =>
-        // units for parsing are not initialized by default
-        // hence we call them manually
-        new PowerSystemUnits
-
-        val parsedRefSystems = refSystems.flatMap { configRefSystem =>
-          val refSystem = RefSystem(configRefSystem.sNom, configRefSystem.vNom)
-
-          configRefSystem.gridIds.getOrElse(Seq.empty).flatMap {
-            case ConfigConventions.gridIdDotRange(from, to) =>
-              (from.toInt to to.toInt)
-                .map(gridId => (gridId, refSystem))
-            case ConfigConventions.gridIdMinusRange(from, to) =>
-              (from.toInt to to.toInt)
-                .map(gridId => (gridId, refSystem))
-            case ConfigConventions.singleGridId(singleGridId) =>
-              Seq((singleGridId.toInt, refSystem))
-            case unknownGridIdFormat =>
-              throw new InvalidConfigParameterException(
-                s"Unknown gridId format $unknownGridIdFormat provided for refSystem $configRefSystem"
-              )
-          } ++ configRefSystem.voltLvls.getOrElse(Seq.empty).map { voltLvlDef =>
-            (VoltLvlParser.from(voltLvlDef), refSystem)
-          }
-        }
-
-        val gridIdRefSystemsList: List[(Int, RefSystem)] =
-          parsedRefSystems.flatMap {
-            case (gridId: Int, refSystems) =>
-              refSystems match {
-                case refSystem: RefSystem => Some(gridId -> refSystem)
-                case _                    => None
-              }
-            case _ => None
-          }
-
-        val gridIdRefSystems: Map[Int, RefSystem] =
-          gridIdRefSystemsList.toMap
-
-        if (CollectionUtils.listHasDuplicates(gridIdRefSystemsList)) {
-          throw new InvalidConfigParameterException(
-            "The provided gridIds in simona.gridConfig.refSystems contain duplicates. " +
-              "Please check if there are either duplicate entries or overlapping ranges!"
-          )
-        }
-
-        val voltLvLRefSystemsList: List[(VoltageLevel, RefSystem)] =
-          parsedRefSystems.flatMap {
-            case (voltLvl: VoltageLevel, refSystems) =>
-              refSystems match {
-                case refSystem: RefSystem => Some(voltLvl -> refSystem)
-                case _                    => None
-              }
-            case _ => None
-          }
-
-        if (CollectionUtils.listHasDuplicates(voltLvLRefSystemsList))
-          throw new InvalidConfigParameterException(
-            "The provided voltLvls in simona.gridConfig.refSystems contain duplicates. " +
-              "Please check your configuration for duplicates in voltLvl entries!"
-          )
-
-        val voltLvLRefSys: Map[VoltageLevel, RefSystem] =
-          parsedRefSystems.collect { case (voltLvl: VoltageLevel, values) =>
-            (voltLvl, values)
-          }.toMap
-
-        ConfigRefSystems(gridIdRefSystems, voltLvLRefSys)
-      case _ => defaultRefSystems
-    }
+    parseWithDefaults[RefSystemConfig, RefSystem, ConfigRefSystems](
+      configRefSystems,
+      refSystem => refSystem.gridIds,
+      refSystem => refSystem.voltLvls,
+      refSystem => RefSystem(refSystem.sNom, refSystem.vNom),
+      (gridIds, voltLvls) => ConfigRefSystems(gridIds, voltLvls),
+      defaultRefSystems,
+    )("refSystem")
   }
 }

@@ -23,7 +23,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangeVoltage,
 }
 import edu.ie3.simona.config.SimonaConfig.Simona
-import edu.ie3.simona.model.grid.{GridModel, RefSystem}
+import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.test.common.model.grid.{
   BasicGridWithSwitches,
   DbfsTestGrid,
@@ -469,6 +469,7 @@ class PowerFlowSupportSpec
       GridModel(
         subGridContainer,
         RefSystem("2000 MVA", "110 kV"),
+        VoltageLimits(0.9, 1.1),
         time.startDateTime,
         time.endDateTime,
         simonaConfig,

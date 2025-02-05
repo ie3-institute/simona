@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Throw exception if the slack node is not directly conected to a transformer. [#525](https://github.com/ie3-institute/simona/issues/525)
 - Added support for topologies without transformers and slack grids with multiple nodes [#1099](https://github.com/ie3-institute/simona/issues/1099)
 - Checking the number of slack nodes [#1122](https://github.com/ie3-institute/simona/issues/1122)
+- Added `VoltageLimits` [#1133](https://github.com/ie3-institute/simona/issues/1133)
 
 ### Changed
 - Adapted to changed data source in PSDM [#435](https://github.com/ie3-institute/simona/issues/435)

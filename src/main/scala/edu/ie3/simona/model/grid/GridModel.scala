@@ -39,6 +39,7 @@ final case class GridModel(
     subnetNo: Int,
     mainRefSystem: RefSystem,
     gridComponents: GridComponents,
+    voltageLimits: VoltageLimits,
     gridControls: GridControls,
 ) {
 
@@ -66,12 +67,14 @@ object GridModel {
   def apply(
       subGridContainer: SubGridContainer,
       refSystem: RefSystem,
+      voltageLimits: VoltageLimits,
       startDate: ZonedDateTime,
       endDate: ZonedDateTime,
       simonaConfig: SimonaConfig,
   ): GridModel = buildAndValidate(
     subGridContainer,
     refSystem,
+    voltageLimits,
     startDate,
     endDate,
     simonaConfig,
@@ -500,6 +503,7 @@ object GridModel {
   private def buildAndValidate(
       subGridContainer: SubGridContainer,
       refSystem: RefSystem,
+      voltageLimits: VoltageLimits,
       startDate: ZonedDateTime,
       endDate: ZonedDateTime,
       simonaConfig: SimonaConfig,
@@ -600,6 +604,7 @@ object GridModel {
       subGridContainer.getSubnet,
       refSystem,
       gridComponents,
+      voltageLimits,
       GridControls(transformerControlGroups),
     )
 
