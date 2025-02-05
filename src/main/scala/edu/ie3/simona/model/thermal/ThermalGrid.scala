@@ -245,13 +245,13 @@ final case class ThermalGrid(
       val (updatedStorageState, thermalStorageThreshold) = {
         // In case the ThermalHouse could not handle the infeed it will be used for the storage.
         if (remainingQDotHouse > qDotStorageLastState) {
-          handleInfeedStorage(
+          handleStorageCases(
             relevantData.currentTick,
             lastThermalGridState,
             remainingQDotHouse,
           )
         } else {
-          handleInfeedStorage(
+          handleStorageCases(
             relevantData.currentTick,
             lastThermalGridState,
             qDotStorageLastState,
@@ -457,7 +457,7 @@ final case class ThermalGrid(
       )
 
     val (updatedStorageState, thermalStorageThreshold) =
-      handleInfeedStorage(relevantData.currentTick, state, qDotHeatStorage)
+      handleStorageCases(relevantData.currentTick, state, qDotHeatStorage)
 
     val nextThreshold = determineMostRecentThreshold(
       thermalHouseThreshold,
@@ -535,7 +535,7 @@ final case class ThermalGrid(
     * @return
     *   Updated thermal grid state
     */
-  private def handleInfeedStorage(
+  private def handleStorageCases(
       tick: Long,
       state: ThermalGridState,
       qDotStorage: Power,
