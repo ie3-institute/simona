@@ -820,7 +820,11 @@ object ThermalGrid {
     * than or equal to the absolutely required energy. Thus, this class can only
     * be instantiated via factory.
     * @param required
-    *   The absolutely required energy to reach target state
+    *   The absolutely required energy to reach target state. For
+    *   [[ThermalHouse]] this would be the energy demand to reach the boundary
+    *   or targetTemperature. For [[ThermalStorage]] this would be the amount of
+    *   energy to get fully charged when empty. If the [[ThermalStorage]] is not
+    *   empty, the required energy is zero.
     * @param possible
     *   The maximum possible energy, that can be handled
     */
