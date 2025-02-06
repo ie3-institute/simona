@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.api
 
-import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
-import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
 import edu.ie3.simona.api.ExtSimAdapter.{Create, ExtSimAdapterStateData, Stop}
 import edu.ie3.simona.api.data.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
@@ -18,15 +16,17 @@ import edu.ie3.simona.api.simulation.ontology.{
   CompletionMessage => ExtCompletionMessage,
 }
 import edu.ie3.simona.logging.SimonaActorLogging
+import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ScheduleServiceActivation
-import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{Actor, ActorRef, PoisonPill, Props}
 
 import scala.jdk.OptionConverters._
 
