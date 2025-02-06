@@ -265,7 +265,7 @@ class HpModelSpec
               (95.0, 95.0, 95.0),
             ),
             // 2. Same as before but heat storage is NOT empty
-            // should be possible to keep hp off
+            // should be possible to turn hp on
             (
               ThermalGridState(
                 Some(ThermalHouseState(0L, Celsius(15), Kilowatts(0))),
