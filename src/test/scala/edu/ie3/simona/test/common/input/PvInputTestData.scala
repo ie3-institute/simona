@@ -55,6 +55,25 @@ trait PvInputTestData
     0.95,
   )
 
+  protected val pvInput2 = new PvInput(
+    UUID.randomUUID(),
+    "Dummy_PvModel",
+    new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
+    OperationTime.notLimited(),
+    nodeInputNoSlackNs04KvA,
+    CosPhiFixed.CONSTANT_CHARACTERISTIC,
+    null,
+    0.2,
+    Quantities.getQuantity(12, StandardUnits.AZIMUTH),
+    Quantities.getQuantity(90, StandardUnits.EFFICIENCY),
+    Quantities.getQuantity(45, StandardUnits.SOLAR_ELEVATION_ANGLE),
+    0.9,
+    1.0,
+    false,
+    Quantities.getQuantity(10, StandardUnits.S_RATED),
+    0.95,
+  )
+
   protected val pvSouth1 = new PvInput(
     UUID.fromString("7ac5bb15-36ee-42b0-902b-9cd520e241b3"),
     "pv_south_1",
