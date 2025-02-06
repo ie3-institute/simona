@@ -8,40 +8,30 @@ package edu.ie3.simona.sim.setup
 
 import edu.ie3.simona.actor.SimonaActorNaming.RichActorRefFactory
 import edu.ie3.simona.api.data.ExtInputDataConnection
-import edu.ie3.simona.api.data.em.ExtEmDataConnection
 import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
-import edu.ie3.simona.api.data.results.ExtResultDataConnection
-import edu.ie3.simona.api.data.results.ontology.ResultDataMessageFromExt
 import edu.ie3.simona.api.simulation.{ExtSimAdapterData, ExtSimulation}
 import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.ontology.messages.SchedulerMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.ScheduleServiceActivation
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.SimonaService
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.typed.scaladsl.AskPattern._
 import org.apache.pekko.actor.typed.scaladsl.adapter.{
   TypedActorContextOps,
   TypedActorRefOps,
 }
-import org.apache.pekko.actor.typed.{ActorRef, Scheduler}
 import org.apache.pekko.actor.{Props, ActorRef => ClassicRef}
-import org.apache.pekko.util.{Timeout => PekkoTimeout}
 import org.slf4j.{Logger, LoggerFactory}
 
-import java.time.temporal.ChronoUnit
 import java.util.UUID
-import scala.concurrent.Await
-import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters.{ListHasAsScala, SetHasAsScala}
-import scala.jdk.DurationConverters._
 import scala.util.{Failure, Success, Try}
 
 object ExtSimSetup {
@@ -153,19 +143,20 @@ object ExtSimSetup {
       case (setupData, connection) =>
         connection match {
           case extEvDataConnection: ExtEvDataConnection =>
-            if (setupData.extEvDataConnection.nonEmpty) {
+            if (setupData.evDataConnection.nonEmpty) {
               throw ServiceException(
                 s"Trying to connect another EvDataConnection. Currently only one is allowed."
               )
             }
 
-            setupInputService(
-              extSimSetupData,
+            val serviceRef = setupInputService(
               extEvDataConnection,
               ExtEvDataService.props,
               "ExtEvDataService",
               InitExtEvData,
             )
+
+            extSimSetupData.update(extEvDataConnection, serviceRef)
 
           case otherConnection =>
             log.warn(
@@ -182,8 +173,6 @@ object ExtSimSetup {
   }
 
   /** Method for setting up an external service, that provides input data.
-    * @param extSimSetupData
-    *   that contains information about all external simulations
     * @param extInputDataConnection
     *   the data connection
     * @param props
@@ -196,15 +185,14 @@ object ExtSimSetup {
     *   the actor context of this actor system
     * @param scheduler
     *   the scheduler of simona
-    * @param extSimAdapterData
-    *   the adapter data for the external simulation
+    * @param extSimAdapter
+    *   the adapter for the external simulation
     * @tparam T
     *   type of [[ExtInputDataConnection]]
     * @return
-    *   an updated [[ExtSimSetupData]]
+    *   the reference to the service
     */
   private[setup] def setupInputService[T <: ExtInputDataConnection](
-      extSimSetupData: ExtSimSetupData,
       extInputDataConnection: T,
       props: ClassicRef => Props,
       name: String,
@@ -212,8 +200,8 @@ object ExtSimSetup {
   )(implicit
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
-      extSimAdapterData: ExtSimAdapterData,
-  ): ExtSimSetupData = {
+      extSimAdapter: ClassicRef,
+  ): ClassicRef = {
 
     val extDataService = context.toClassic.simonaActorOf(
       props(scheduler.toClassic),
@@ -231,10 +219,10 @@ object ExtSimSetup {
 
     extInputDataConnection.setActorRefs(
       extDataService,
-      extSimAdapterData.getAdapter,
+      extSimAdapter,
     )
 
-    extSimSetupData.update(extInputDataConnection, extDataService)
+    extDataService
   }
 
   /** Method for validating the external primary data connections.
@@ -245,14 +233,15 @@ object ExtSimSetup {
       extPrimaryDataConnection: Set[ExtPrimaryDataConnection]
   ): Unit = {
     // check primary data for duplicate assets
-    val assetUuids: List[UUID] =
-      extPrimaryDataConnection.toList.flatMap(_.getPrimaryDataAssets.asScala)
+    val duplicateAssets: Iterable[UUID] =
+      extPrimaryDataConnection.toSeq
+        .flatMap(_.getPrimaryDataAssets.asScala)
+        .groupBy(identity)
+        .collect { case (uuid, Seq(_, _, _*)) => uuid }
 
-    if (assetUuids.size != assetUuids.toSet.size) {
-      val duplicateAssets =
-        assetUuids.groupBy(identity).filter(_._2.size > 1).mkString(",")
+    if (duplicateAssets.nonEmpty) {
       throw ServiceException(
-        s"Multiple data connections provide primary data for assets: $duplicateAssets"
+        s"Multiple data connections provide primary data for assets: ${duplicateAssets.mkString(",")}"
       )
     }
   }
