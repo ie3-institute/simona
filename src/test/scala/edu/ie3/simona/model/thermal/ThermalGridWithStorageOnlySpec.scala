@@ -212,7 +212,9 @@ class ThermalGridWithStorageOnlySpec
             relevantData,
             testGridAmbientTemperature,
             gridState,
+            isRunning,
             testGridQDotInfeed,
+            onlyThermalDemandOfHeatStorage,
           )
 
         updatedGridState match {
@@ -227,6 +229,44 @@ class ThermalGridWithStorageOnlySpec
         }
         reachedThreshold shouldBe Some(StorageFull(276000L))
       }
+
+      "properly take energy from storage" in {
+        val relevantData = HpRelevantData(0, testGridAmbientTemperature)
+        val gridState = ThermalGrid
+          .startingState(thermalGrid)
+          .copy(storageState =
+            Some(
+              ThermalStorageState(
+                0L,
+                KilowattHours(150d),
+                zeroKW,
+              )
+            )
+          )
+
+        val (updatedGridState, reachedThreshold) =
+          thermalGrid invokePrivate handleInfeed(
+            relevantData,
+            testGridAmbientTemperature,
+            gridState,
+            isNotRunning,
+            testGridQDotInfeed,
+            onlyThermalDemandOfHeatStorage,
+          )
+
+        updatedGridState match {
+          case ThermalGridState(
+                None,
+                Some(ThermalStorageState(tick, storedEnergy, qDot)),
+              ) =>
+            tick shouldBe 0L
+            storedEnergy should approximate(KilowattHours(150d))
+            qDot should approximate(testGridQDotInfeed * (-1))
+          case _ => fail("Thermal grid state has been calculated wrong.")
+        }
+        reachedThreshold shouldBe Some(StorageEmpty(36000L))
+      }
+
     }
 
     "updating the grid state dependent on the given thermal infeed" should {
@@ -236,7 +276,9 @@ class ThermalGridWithStorageOnlySpec
           relevantData,
           ThermalGrid.startingState(thermalGrid),
           testGridAmbientTemperature,
+          isRunning,
           testGridQDotInfeed,
+          onlyThermalDemandOfHeatStorage,
         )
 
         nextThreshold shouldBe Some(StorageFull(276000L))
@@ -268,7 +310,9 @@ class ThermalGridWithStorageOnlySpec
               )
             ),
           testGridAmbientTemperature,
+          isRunning,
           testGridQDotConsumptionHigh,
+          onlyThermalDemandOfHouse,
         ) match {
           case (
                 ThermalGridState(
@@ -290,7 +334,9 @@ class ThermalGridWithStorageOnlySpec
           relevantData,
           ThermalGrid.startingState(thermalGrid),
           testGridAmbientTemperature,
+          isRunning,
           zeroKW,
+          noThermalDemand,
         )
         updatedState match {
           case (
