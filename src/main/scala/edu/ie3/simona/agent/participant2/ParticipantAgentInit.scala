@@ -27,13 +27,13 @@ import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
+import squants.Dimensionless
 
 import java.time.ZonedDateTime
 
 object ParticipantAgentInit {
 
-  /** Container class, that gather together reference to relevant entities, that
-    * represent the environment in the simulation
+  /** Container class that gathers references to relevant actors
     *
     * @param gridAgent
     *   Reference to the grid agent
@@ -51,13 +51,31 @@ object ParticipantAgentInit {
       resultListener: Iterable[ActorRef[ResultEvent]],
   )
 
+  /** Container class that holds parameters related to the simulation
+    *
+    * @param expectedPowerRequestTick
+    *   The tick at which the first power request message is expected from
+    *   [[GridAgent]]
+    * @param requestVoltageDeviationTolerance
+    *   The voltage request deviation tolerance, outside of which reactive power
+    *   has to be recalculated
+    * @param simulationStartDate
+    *   The simulation start date and time
+    * @param simulationEndDate
+    *   The simulation end date and time
+    */
+  final case class SimulationParameters(
+      expectedPowerRequestTick: Long,
+      requestVoltageDeviationTolerance: Dimensionless,
+      simulationStartDate: ZonedDateTime,
+      simulationEndDate: ZonedDateTime,
+  )
+
   def apply(
       participantInput: SystemParticipantInput,
       config: BaseRuntimeConfig,
       participantRefs: ParticipantRefs,
-      expectedPowerRequestTick: Long,
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
+      simulationParams: SimulationParameters,
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
   ): Behavior[Request] = Behaviors.setup { ctx =>
     val parentData = parent
@@ -96,9 +114,7 @@ object ParticipantAgentInit {
       participantInput,
       config,
       participantRefs,
-      expectedPowerRequestTick,
-      simulationStartDate,
-      simulationEndDate,
+      simulationParams,
       parentData,
     )
   }
@@ -107,9 +123,7 @@ object ParticipantAgentInit {
       participantInput: SystemParticipantInput,
       config: BaseRuntimeConfig,
       participantRefs: ParticipantRefs,
-      expectedPowerRequestTick: Long,
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
+      simulationParams: SimulationParameters,
       parentData: Either[SchedulerData, FlexControlledData],
   ): Behavior[Request] = Behaviors.receiveMessagePartial {
 
@@ -122,9 +136,7 @@ object ParticipantAgentInit {
         participantInput,
         config,
         participantRefs,
-        expectedPowerRequestTick,
-        simulationStartDate,
-        simulationEndDate,
+        simulationParams,
         parentData,
       )
 
@@ -134,9 +146,7 @@ object ParticipantAgentInit {
       participantInput: SystemParticipantInput,
       config: BaseRuntimeConfig,
       participantRefs: ParticipantRefs,
-      expectedPowerRequestTick: Long,
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
+      simulationParams: SimulationParameters,
       parentData: Either[SchedulerData, FlexControlledData],
   ): Behavior[Request] = Behaviors.receivePartial {
 
@@ -155,12 +165,12 @@ object ParticipantAgentInit {
           participantInput,
           config,
           primaryDataMeta,
-          simulationStartDate,
-          simulationEndDate,
+          simulationParams.simulationStartDate,
+          simulationParams.simulationEndDate,
         ),
         expectedFirstData,
         participantRefs,
-        expectedPowerRequestTick,
+        simulationParams,
         parentData,
       )
 
@@ -168,8 +178,8 @@ object ParticipantAgentInit {
       val modelShell = ParticipantModelShell.createForModel(
         participantInput,
         config,
-        simulationStartDate,
-        simulationEndDate,
+        simulationParams.simulationStartDate,
+        simulationParams.simulationEndDate,
       )
 
       val requiredServiceTypes = modelShell.requiredServices.toSet
@@ -179,7 +189,7 @@ object ParticipantAgentInit {
           modelShell,
           Map.empty,
           participantRefs,
-          expectedPowerRequestTick,
+          simulationParams,
           parentData,
         )
       } else {
@@ -207,7 +217,7 @@ object ParticipantAgentInit {
         waitingForServices(
           modelShell,
           participantRefs,
-          expectedPowerRequestTick,
+          simulationParams,
           requiredServices.values.toSet,
           parentData = parentData,
         )
@@ -248,7 +258,7 @@ object ParticipantAgentInit {
   private def waitingForServices(
       modelShell: ParticipantModelShell[_, _],
       participantRefs: ParticipantRefs,
-      expectedPowerRequestTick: Long,
+      simulationParams: SimulationParameters,
       expectedRegistrations: Set[ClassicRef],
       expectedFirstData: Map[ClassicRef, Long] = Map.empty,
       parentData: Either[SchedulerData, FlexControlledData],
@@ -269,14 +279,14 @@ object ParticipantAgentInit {
             modelShell,
             newExpectedFirstData,
             participantRefs,
-            expectedPowerRequestTick,
+            simulationParams,
             parentData,
           )
         } else
           waitingForServices(
             modelShell,
             participantRefs,
-            expectedPowerRequestTick,
+            simulationParams,
             newExpectedRegistrations,
             newExpectedFirstData,
             parentData,
@@ -290,7 +300,7 @@ object ParticipantAgentInit {
       modelShell: ParticipantModelShell[_, _],
       expectedData: Map[ClassicRef, Long],
       participantRefs: ParticipantRefs,
-      expectedPowerRequestTick: Long,
+      simulationParams: SimulationParameters,
       parentData: Either[SchedulerData, FlexControlledData],
   ): Behavior[Request] = {
 
@@ -326,7 +336,8 @@ object ParticipantAgentInit {
       inputHandler,
       ParticipantGridAdapter(
         participantRefs.gridAgent,
-        expectedPowerRequestTick,
+        simulationParams.expectedPowerRequestTick,
+        simulationParams.requestVoltageDeviationTolerance,
       ),
       participantRefs.resultListener,
       parentData,

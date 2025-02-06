@@ -39,6 +39,7 @@ final case class ParticipantGridAdapter(
     expectedRequestTick: Long,
     tickToPower: SortedMap[Long, ComplexPower],
     avgPowerResult: Option[AvgPowerResult],
+    implicit val requestVoltageDeviationTolerance: Dimensionless,
 ) {
 
   /** Whether a power request is expected and has not yet arrived, thus is
@@ -71,10 +72,6 @@ final case class ParticipantGridAdapter(
       throw new CriticalFailureException(
         s"Power request expected for $expectedRequestTick, but not for current tick $currentTick"
       )
-
-    implicit val voltageTolerance: Dimensionless = Each(
-      1e-3
-    ) // todo requestVoltageDeviationThreshold
 
     val result = (avgPowerResult match {
       case Some(cache @ AvgPowerResult(windowStart, windowEnd, voltage, _, _))
@@ -140,6 +137,7 @@ object ParticipantGridAdapter {
   def apply(
       gridAgentRef: ActorRef[GridAgent.Request],
       expectedRequestTick: Long,
+      requestVoltageDeviationTolerance: Dimensionless,
   ): ParticipantGridAdapter =
     new ParticipantGridAdapter(
       gridAgent = gridAgentRef,
@@ -147,6 +145,7 @@ object ParticipantGridAdapter {
       expectedRequestTick = expectedRequestTick,
       tickToPower = SortedMap.empty,
       avgPowerResult = None,
+      requestVoltageDeviationTolerance = requestVoltageDeviationTolerance,
     )
 
   private def reduceTickToPowerMap(

@@ -92,7 +92,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             ),
             ParticipantGridAdapter(
               gridAgent.ref,
-              12 * 3600,
+              expectedRequestTick = 12 * 3600,
+              requestVoltageDeviationTolerance = Each(1e-14),
             ),
             Iterable(resultListener.ref),
             Left(scheduler.ref, receiveAdapter.ref),
@@ -225,7 +226,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             ),
             ParticipantGridAdapter(
               gridAgent.ref,
-              12 * 3600,
+              expectedRequestTick = 12 * 3600,
+              requestVoltageDeviationTolerance = Each(1e-14),
             ),
             Iterable(resultListener.ref),
             Left(scheduler.ref, receiveAdapter.ref),
@@ -345,7 +347,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             ),
             ParticipantGridAdapter(
               gridAgent.ref,
-              12 * 3600,
+              expectedRequestTick = 12 * 3600,
+              requestVoltageDeviationTolerance = Each(1e-14),
             ),
             Iterable(resultListener.ref),
             Left(scheduler.ref, receiveAdapter.ref),
@@ -570,7 +573,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             ),
             ParticipantGridAdapter(
               gridAgent.ref,
-              12 * 3600,
+              expectedRequestTick = 12 * 3600,
+              requestVoltageDeviationTolerance = Each(1e-14),
             ),
             Iterable(resultListener.ref),
             Left(scheduler.ref, receiveAdapter.ref),
@@ -772,7 +776,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             ),
             ParticipantGridAdapter(
               gridAgent.ref,
-              12 * 3600,
+              expectedRequestTick = 12 * 3600,
+              requestVoltageDeviationTolerance = Each(1e-14),
             ),
             Iterable(resultListener.ref),
             Right(em.ref, receiveAdapter.ref),
@@ -897,7 +902,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             ),
             ParticipantGridAdapter(
               gridAgent.ref,
-              12 * 3600,
+              expectedRequestTick = 12 * 3600,
+              requestVoltageDeviationTolerance = Each(1e-14),
             ),
             Iterable(resultListener.ref),
             Right(em.ref, receiveAdapter.ref),
@@ -1058,7 +1064,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             ),
             ParticipantGridAdapter(
               gridAgent.ref,
-              12 * 3600,
+              expectedRequestTick = 12 * 3600,
+              requestVoltageDeviationTolerance = Each(1e-14),
             ),
             Iterable(resultListener.ref),
             Right(em.ref, receiveAdapter.ref),
@@ -1323,7 +1330,8 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             ),
             ParticipantGridAdapter(
               gridAgent.ref,
-              12 * 3600,
+              expectedRequestTick = 12 * 3600,
+              requestVoltageDeviationTolerance = Each(1e-14),
             ),
             Iterable(resultListener.ref),
             Right(em.ref, receiveAdapter.ref),

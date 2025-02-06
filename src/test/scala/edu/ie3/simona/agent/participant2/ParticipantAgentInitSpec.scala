@@ -14,7 +14,10 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
 }
-import edu.ie3.simona.agent.participant2.ParticipantAgentInit.ParticipantRefs
+import edu.ie3.simona.agent.participant2.ParticipantAgentInit.{
+  ParticipantRefs,
+  SimulationParameters,
+}
 import edu.ie3.simona.config.SimonaConfig.{LoadRuntimeConfig, PvRuntimeConfig}
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
@@ -39,6 +42,7 @@ import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
+import squants.Each
 
 import java.time.ZonedDateTime
 
@@ -50,8 +54,13 @@ class ParticipantAgentInitSpec
 
   private implicit val simulationStart: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2025-01-01T00:00:00Z")
-  private val simulationEnd: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2025-03-01T00:00:00Z")
+
+  private val simulationParams = SimulationParameters(
+    3600,
+    Each(1e-14),
+    simulationStart,
+    TimeUtil.withDefaults.toZonedDateTime("2025-03-01T00:00:00Z"),
+  )
 
   "A ParticipantAgent that is not depending on external services" when {
 
@@ -95,9 +104,7 @@ class ParticipantAgentInitSpec
             mockInput,
             config,
             refs,
-            3600,
-            simulationStart,
-            simulationEnd,
+            simulationParams,
             Left(scheduler.ref),
           )
         )
@@ -140,9 +147,7 @@ class ParticipantAgentInitSpec
             mockInput,
             config,
             refs,
-            3600,
-            simulationStart,
-            simulationEnd,
+            simulationParams,
             Left(scheduler.ref),
           )
         )
@@ -191,9 +196,7 @@ class ParticipantAgentInitSpec
             mockInput,
             config,
             refs,
-            3600,
-            simulationStart,
-            simulationEnd,
+            simulationParams,
             Right(em.ref),
           )
         )
@@ -246,9 +249,7 @@ class ParticipantAgentInitSpec
             mockInput,
             config,
             refs,
-            3600,
-            simulationStart,
-            simulationEnd,
+            simulationParams,
             Right(em.ref),
           )
         )
@@ -324,9 +325,7 @@ class ParticipantAgentInitSpec
             mockInput,
             config,
             refs,
-            3600,
-            simulationStart,
-            simulationEnd,
+            simulationParams,
             Left(scheduler.ref),
           )
         )
@@ -382,9 +381,7 @@ class ParticipantAgentInitSpec
             mockInput,
             config,
             refs,
-            3600,
-            simulationStart,
-            simulationEnd,
+            simulationParams,
             Left(scheduler.ref),
           )
         )
@@ -438,9 +435,7 @@ class ParticipantAgentInitSpec
             mockInput,
             config,
             refs,
-            3600,
-            simulationStart,
-            simulationEnd,
+            simulationParams,
             Right(em.ref),
           )
         )
@@ -502,9 +497,7 @@ class ParticipantAgentInitSpec
             mockInput,
             config,
             refs,
-            3600,
-            simulationStart,
-            simulationEnd,
+            simulationParams,
             Right(em.ref),
           )
         )
