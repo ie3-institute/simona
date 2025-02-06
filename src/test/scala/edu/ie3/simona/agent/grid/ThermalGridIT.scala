@@ -56,10 +56,6 @@ class ThermalGridIT
     with MockitoSugar
     with DefaultTestData {
   private implicit val classicSystem: ActorSystem = system.toClassic
-  protected implicit val simulationStartDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
-  protected val simulationEndDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-02T02:00:00Z")
 
   private val resolution =
     simonaConfig.simona.powerflow.resolution.getSeconds
@@ -82,6 +78,10 @@ class ThermalGridIT
 
   "A Thermal Grid with thermal house, storage and heat pump not under the control of an energy management" should {
     "be initialized correctly and run through some activations" in {
+      implicit val simulationStartDate: ZonedDateTime =
+        TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
+      val simulationEndDate: ZonedDateTime =
+        TimeUtil.withDefaults.toZonedDateTime("2020-01-02T02:00:00Z")
       val heatPumpAgent = TestActorRef(
         new HpAgent(
           scheduler = scheduler.ref.toClassic,
@@ -861,13 +861,18 @@ class ThermalGridIT
 
   "A Thermal Grid with thermal house, thermal storage and heat pump that is controlled by an energy management" should {
     "be initialized correctly and run through some activations" in {
+      implicit val simulationStartWithPv: ZonedDateTime =
+        TimeUtil.withDefaults.toZonedDateTime("2020-06-01T10:00:00Z")
+      val simulationEndWithPv: ZonedDateTime =
+        TimeUtil.withDefaults.toZonedDateTime("2020-06-02T10:00:00Z")
+
       val emAgent = spawn(
         EmAgent(
           emInput,
           modelConfig,
           outputConfigOn,
           "PRIORITIZED",
-          simulationStartDate,
+          simulationStartWithPv,
           parent = Left(scheduler.ref),
           listener = Iterable(resultListener.ref),
         ),
@@ -885,8 +890,8 @@ class ThermalGridIT
             ),
             primaryServiceProxy.ref.toClassic,
             Iterable(ActorWeatherService(weatherService.ref.toClassic)),
-            simulationStartDate,
-            simulationEndDate,
+            simulationStartWithPv,
+            simulationEndWithPv,
             resolution,
             simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
             outputConfigOff,
@@ -911,8 +916,8 @@ class ThermalGridIT
             ),
             primaryServiceProxy.ref.toClassic,
             None,
-            simulationStartDate,
-            simulationEndDate,
+            simulationStartWithPv,
+            simulationEndWithPv,
             resolution,
             simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
             outputConfigOff,
@@ -936,8 +941,8 @@ class ThermalGridIT
             ),
             primaryServiceProxy.ref.toClassic,
             Iterable(ActorWeatherService(weatherService.ref.toClassic)),
-            simulationStartDate,
-            simulationEndDate,
+            simulationStartWithPv,
+            simulationEndWithPv,
             resolution,
             simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
             outputConfigOn,
@@ -985,15 +990,15 @@ class ThermalGridIT
       pvAgent ! Activation(INIT_SIM_TICK)
 
       primaryServiceProxy.expectMessage(
-        PrimaryServiceRegistrationMessage(pvInput.getUuid)
+        PrimaryServiceRegistrationMessage(pvInput2.getUuid)
       )
       pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref.toClassic)
 
       // deal with weather service registration
       weatherService.expectMessage(
         RegisterForWeatherMessage(
-          pvInput.getNode.getGeoPosition.getY,
-          pvInput.getNode.getGeoPosition.getX,
+          pvInput2.getNode.getGeoPosition.getY,
+          pvInput2.getNode.getGeoPosition.getX,
         )
       )
 
