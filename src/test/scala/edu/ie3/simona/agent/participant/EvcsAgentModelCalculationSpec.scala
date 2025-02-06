@@ -756,7 +756,7 @@ class EvcsAgentModelCalculationSpec
       /* Send out public evcs request */
       evService.send(
         evcsAgent,
-        EvFreeLotsRequest(0L),
+        EvFreeLotsRequest(0L, evService.ref),
       )
 
       evService.expectMsg(
@@ -788,7 +788,7 @@ class EvcsAgentModelCalculationSpec
       /* Ask for public evcs lot count again with a later tick */
       evService.send(
         evcsAgent,
-        EvFreeLotsRequest(3600),
+        EvFreeLotsRequest(3600, evService.ref),
       )
 
       // this time, only one is still free
@@ -933,7 +933,7 @@ class EvcsAgentModelCalculationSpec
       // departures first
       evService.send(
         evcsAgent,
-        DepartingEvsRequest(3600, Seq(evA.getUuid)),
+        DepartingEvsRequest(3600, Seq(evA.getUuid), evService.ref),
       )
       evService.expectMsgType[DepartingEvsResponse] match {
         case DepartingEvsResponse(evcs, evModels) =>
@@ -968,7 +968,7 @@ class EvcsAgentModelCalculationSpec
       // departures first
       evService.send(
         evcsAgent,
-        DepartingEvsRequest(7200, Seq(evB.getUuid)),
+        DepartingEvsRequest(7200, Seq(evB.getUuid), evService.ref),
       )
       evService.expectMsgType[DepartingEvsResponse] match {
         case DepartingEvsResponse(evcs, evModels) =>
@@ -1402,7 +1402,7 @@ class EvcsAgentModelCalculationSpec
       // departure first
       evService.send(
         evcsAgent,
-        DepartingEvsRequest(4500, Seq(ev900.uuid)),
+        DepartingEvsRequest(4500, Seq(ev900.uuid), evService.ref),
       )
 
       evService.expectMsgPF() { case DepartingEvsResponse(uuid, evs) =>
@@ -1800,13 +1800,13 @@ class EvcsAgentModelCalculationSpec
           case ParticipantResultEvent(result: EvResult)
               if result.getInputModel == ev4500.uuid =>
             result.getTime shouldBe 18000.toDateTime
-            result.getP should beEquivalentTo((-10d).asKiloWatt)
+            result.getP should beEquivalentTo(-10d.asKiloWatt)
             result.getQ should beEquivalentTo(0d.asMegaVar)
             result.getSoc should beEquivalentTo(44.3194d.asPercent, 1e-2)
           case ParticipantResultEvent(result: EvResult)
               if result.getInputModel == ev11700.uuid =>
             result.getTime shouldBe 18000.toDateTime
-            result.getP should beEquivalentTo((-10d).asKiloWatt)
+            result.getP should beEquivalentTo(-10d.asKiloWatt)
             result.getQ should beEquivalentTo(0d.asMegaVar)
             result.getSoc should beEquivalentTo(44.137931034d.asPercent, 1e-6)
         }
@@ -1815,7 +1815,7 @@ class EvcsAgentModelCalculationSpec
         case ParticipantResultEvent(result: EvcsResult) =>
           result.getInputModel shouldBe evcsInputModelQv.getUuid
           result.getTime shouldBe 18000.toDateTime
-          result.getP should beEquivalentTo((-20d).asKiloWatt)
+          result.getP should beEquivalentTo(-20d.asKiloWatt)
           result.getQ should beEquivalentTo(0d.asMegaVar)
       }
 
@@ -1872,7 +1872,7 @@ class EvcsAgentModelCalculationSpec
           case ParticipantResultEvent(result: EvResult)
               if result.getInputModel == ev4500.uuid =>
             result.getTime shouldBe 23040.toDateTime
-            result.getP should beEquivalentTo((-10d).asKiloWatt)
+            result.getP should beEquivalentTo(-10d.asKiloWatt)
             result.getQ should beEquivalentTo(0d.asMegaVar)
             result.getSoc should beEquivalentTo(26.819445d.asPercent, 1e-2)
           case ParticipantResultEvent(result: EvResult)
@@ -1887,7 +1887,7 @@ class EvcsAgentModelCalculationSpec
         case ParticipantResultEvent(result: EvcsResult) =>
           result.getInputModel shouldBe evcsInputModelQv.getUuid
           result.getTime shouldBe 23040.toDateTime
-          result.getP should beEquivalentTo((-10d).asKiloWatt)
+          result.getP should beEquivalentTo(-10d.asKiloWatt)
           result.getQ should beEquivalentTo(0d.asMegaVar)
       }
 
@@ -1899,7 +1899,7 @@ class EvcsAgentModelCalculationSpec
       // departure first
       evService.send(
         evcsAgent,
-        DepartingEvsRequest(36000, Seq(ev900.uuid)),
+        DepartingEvsRequest(36000, Seq(ev900.uuid), evService.ref),
       )
 
       evService.expectMsgPF() { case DepartingEvsResponse(uuid, evs) =>
@@ -2220,7 +2220,7 @@ class EvcsAgentModelCalculationSpec
       // TICK 3600: ev900 leaves
       evService.send(
         evcsAgent,
-        DepartingEvsRequest(3600, Seq(ev900.uuid)),
+        DepartingEvsRequest(3600, Seq(ev900.uuid), evService.ref),
       )
 
       evService.expectMsgType[DepartingEvsResponse] match {
@@ -2274,7 +2274,7 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        DepartingEvsRequest(4500, Seq(ev1800.uuid)),
+        DepartingEvsRequest(4500, Seq(ev1800.uuid), evService.ref),
       )
 
       evService.expectMsgType[DepartingEvsResponse] match {
@@ -2323,7 +2323,7 @@ class EvcsAgentModelCalculationSpec
 
       evService.send(
         evcsAgent,
-        DepartingEvsRequest(5400, Seq(ev2700.uuid)),
+        DepartingEvsRequest(5400, Seq(ev2700.uuid), evService.ref),
       )
 
       evService.expectMsgType[DepartingEvsResponse] match {
