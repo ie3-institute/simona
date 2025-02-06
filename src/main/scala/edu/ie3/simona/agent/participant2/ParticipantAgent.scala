@@ -28,19 +28,23 @@ import squants.{Dimensionless, Each}
 
 import scala.reflect.ClassTag
 
+/** Agent that represents and acts on behalf of any system participant model,
+  * which is defined as a subclass of
+  * [[edu.ie3.simona.model.participant2.ParticipantModel]].
+  */
 object ParticipantAgent {
 
   sealed trait Request
 
-  /** Extended by all requests that activate an [[ParticipantAgent]], i.e.
-    * activations, flex requests and control messages
+  /** This is extended by all requests that activate an [[ParticipantAgent]],
+    * i.e. activations, flex requests and control messages
     */
   private[participant2] sealed trait ActivationRequest extends Request {
     val tick: Long
   }
 
-  /** Wrapper for an [[Activation]] for usage by an adapter. Activations can
-    * only be received if this agent is not EM-controlled.
+  /** Wrapper for an [[Activation]] to be received by an adapter. Activations
+    * can only be received if this agent is not EM-controlled.
     *
     * @param tick
     *   The tick to activate
@@ -49,8 +53,8 @@ object ParticipantAgent {
       override val tick: Long
   ) extends ActivationRequest
 
-  /** Wrapper for [[FlexRequest]] messages for usage by an adapter (if this
-    * [[ParticipantAgent]] is EM-controlled itself)
+  /** Wrapper for [[FlexRequest]] messages to be received by an adapter (if this
+    * [[ParticipantAgent]] is EM-controlled).
     *
     * @param msg
     *   The wrapped flex request
@@ -60,19 +64,27 @@ object ParticipantAgent {
     override val tick: Long = msg.tick
   }
 
+  /** Messages that are sent by services as responses to registration requests
+    */
   sealed trait RegistrationResponseMessage extends Request {
     val serviceRef: ClassicRef
   }
 
-  /** Message, that is used to confirm a successful registration
+  /** Message confirming a successful registration with a secondary service
     */
   final case class RegistrationSuccessfulMessage(
       override val serviceRef: ClassicRef,
       firstDataTick: Long,
   ) extends RegistrationResponseMessage
 
-  /** Message, that is used to confirm a successful registration with primary
-    * service
+  /** Message confirming a successful registration with the primary service
+    *
+    * @param firstDataTick
+    *   The first tick at which data will be sent
+    * @param primaryDataMeta
+    *   The primary data meta class that can be used for the data to be received
+    * @tparam P
+    *   The type of primary data to be received
     */
   final case class PrimaryRegistrationSuccessfulMessage[
       P <: PrimaryData: ClassTag
@@ -82,7 +94,7 @@ object ParticipantAgent {
       primaryDataMeta: PrimaryDataMeta[P],
   ) extends RegistrationResponseMessage
 
-  /** Message, that is used to announce a failed registration
+  /** Message announcing a failed registration
     */
   final case class RegistrationFailedMessage(
       override val serviceRef: ClassicRef
@@ -106,7 +118,7 @@ object ParticipantAgent {
     val nextDataTick: Option[Long]
   }
 
-  /** Providing primary or secondary data to the participant.
+  /** Providing primary or secondary data to the [[ParticipantAgent]].
     *
     * @param data
     *   The data
@@ -121,8 +133,9 @@ object ParticipantAgent {
   ) extends DataInputMessage
 
   /** Providing the information that no data will be provided by the sending
-    * service for the current tick. The participant should thus act accordingly
-    * and set the next data tick.
+    * service for the current tick. The participant could thus potentially skip
+    * calculations for the current tick and reschedule calculation for the next
+    * data tick.
     */
   final case class NoDataProvision(
       override val tick: Long,
@@ -130,33 +143,41 @@ object ParticipantAgent {
       override val nextDataTick: Option[Long],
   ) extends DataInputMessage
 
-  /** Request the power values for the requested tick from an AssetAgent and
-    * provide the latest nodal voltage
+  /** This message, sent by the [[edu.ie3.simona.agent.grid.GridAgent]],
+    * requests the power values for the requested tick from this
+    * [[ParticipantAgent]] and provides the latest nodal voltage.
     *
-    * @param currentTick
-    *   The tick that power values are requested for
+    * @param tick
+    *   The current tick
     * @param eInPu
     *   Real part of the complex, dimensionless nodal voltage
     * @param fInPu
     *   Imaginary part of the complex, dimensionless nodal voltage
     */
   final case class RequestAssetPowerMessage(
-      currentTick: Long,
+      tick: Long,
       eInPu: Dimensionless,
       fInPu: Dimensionless,
   ) extends Request
 
-  /** @param currentTick
+  /** Message announcing that calculations by the
+    * [[edu.ie3.simona.agent.grid.GridAgent]] have come to an end and regular
+    * participant activities can continue.
+    *
+    * @param tick
+    *   The current tick
     * @param nextRequestTick
+    *   The next tick at which asset power is requested via
+    *   [[RequestAssetPowerMessage]]
     */
   final case class FinishParticipantSimulation(
-      currentTick: Long,
+      tick: Long,
       nextRequestTick: Long,
   ) extends Request
 
-  /** The existence of this data object indicates that the corresponding agent
-    * is not EM-controlled, but activated by a
-    * [[edu.ie3.simona.scheduler.Scheduler]]
+  /** Data object that holds the actor reference to the
+    * [[edu.ie3.simona.scheduler.Scheduler]] activating this agent, indicating
+    * that this [[ParticipantAgent]] is not EM-controlled
     *
     * @param scheduler
     *   The scheduler that is activating this agent
@@ -168,8 +189,9 @@ object ParticipantAgent {
       activationAdapter: ActorRef[Activation],
   )
 
-  /** The existence of this data object indicates that the corresponding agent
-    * is EM-controlled (by [[emAgent]]).
+  /** Data object that holds the actor reference to the corresponding
+    * [[edu.ie3.simona.agent.em.EmAgent]], indicating that this
+    * [[ParticipantAgent]] is not EM-controlled
     *
     * @param emAgent
     *   The parent EmAgent that is controlling this agent.
@@ -184,8 +206,8 @@ object ParticipantAgent {
       lastFlexOptions: Option[ProvideFlexOptions] = None,
   )
 
-  /** A request to the participant agent that is not covered by the standard
-    * ways of interacting with the agent
+  /** A request to the [[edu.ie3.simona.model.participant2.ParticipantModel]]
+    * outside of regular requests related to participant operation
     */
   trait ParticipantRequest extends Request {
 
@@ -340,7 +362,7 @@ object ParticipantAgent {
       ParticipantInputHandler,
       ParticipantGridAdapter,
   ) = {
-    if (isReadyForCalculation(inputHandler, gridAdapter)) {
+    if (expectedMessagesReceived(inputHandler, gridAdapter)) {
 
       val activation = inputHandler.activation.getOrElse(
         throw new CriticalFailureException(
@@ -360,7 +382,7 @@ object ParticipantAgent {
           activation match {
             case ParticipantActivation(tick) =>
               val (shellWithOP, gridAdapterWithResult) =
-                if (shouldRecalculate(shell, inputHandler)) {
+                if (isCalculationRequired(shell, inputHandler)) {
                   val newShell = shell.updateOperatingPoint(tick)
 
                   val results =
@@ -397,7 +419,7 @@ object ParticipantAgent {
 
             case Flex(FlexActivation(tick)) =>
               val shellWithFlex =
-                if (shouldRecalculate(shell, inputHandler)) {
+                if (isCalculationRequired(shell, inputHandler)) {
                   shell.updateFlexOptions(tick)
                 } else
                   shell
@@ -459,7 +481,8 @@ object ParticipantAgent {
       (modelShell, inputHandler, gridAdapter)
   }
 
-  /** Checks if all requirements for calculation have been met. These are:
+  /** Checks if all required messages needed for calculation have been received.
+    * These are:
     *   - agent is activated (activation has been received and not completed
     *     yet)
     *   - all required data has been received
@@ -474,7 +497,7 @@ object ParticipantAgent {
     * @return
     *   Whether power can be calculated or not.
     */
-  private def isReadyForCalculation(
+  private def expectedMessagesReceived(
       inputHandler: ParticipantInputHandler,
       gridAdapter: ParticipantGridAdapter,
   ): Boolean = {
@@ -484,7 +507,18 @@ object ParticipantAgent {
     )
   }
 
-  private def shouldRecalculate(
+  /** Checks if conditions for recalculation (i.e. determination of operating
+    * point, flex options etc.) are present. This is not the case if all
+    * registered services have delivered [[NoDataProvision]] messages only, but
+    * can still be the case if the model itself requested recalculation.
+    *
+    * @param modelShell
+    *   The model shell
+    * @param inputHandler
+    *   The participant input handler
+    * @return
+    */
+  private def isCalculationRequired(
       modelShell: ParticipantModelShell[_, _],
       inputHandler: ParticipantInputHandler,
   ): Boolean =
