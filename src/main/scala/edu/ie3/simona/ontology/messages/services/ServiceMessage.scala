@@ -60,11 +60,12 @@ object ServiceMessage {
         override val serviceRef: ActorRef
     ) extends RegistrationResponseMessage
 
-    final case class ScheduleServiceActivation(
-        tick: Long,
-        unlockKey: ScheduleKey,
-    )
   }
+
+  final case class ScheduleServiceActivation(
+      tick: Long,
+      unlockKey: ScheduleKey,
+  )
 
   /** Actual provision of data
     *
