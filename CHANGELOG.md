@@ -169,6 +169,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed ignored EM strategy [#1091](https://github.com/ie3-institute/simona/issues/1091)
 - EM should output flex option results even if it has no parent [#1112](https://github.com/ie3-institute/simona/issues/1112)
 - Rename `PrimaryDataWithApparentPower` to `PrimaryDataWithComplexPower` [#1140](https://github.com/ie3-institute/simona/issues/1140)
+- Refactoring of `ThermalGrid.handleInfeed` to fix thermal storage recharge correctly when empty [#930](https://github.com/ie3-institute/simona/issues/930)
 
 ## [3.0.0] - 2023-08-07
 
