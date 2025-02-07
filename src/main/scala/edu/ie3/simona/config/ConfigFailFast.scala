@@ -493,7 +493,7 @@ object ConfigFailFast extends LazyLogging {
     */
   private def checkVoltageLimits(
       voltageLimits: List[VoltageLimitsConfig]
-  ): Unit =
+  ): Unit = {
     voltageLimits.foreach { limit =>
       checkVoltageLvlsAndGridIds(
         limit.voltLvls,
@@ -501,7 +501,14 @@ object ConfigFailFast extends LazyLogging {
         limit,
         "voltage limit",
       )
+
+      if (limit.vMin > limit.vMax) {
+        throw new InvalidConfigParameterException(
+          s"Invalid value for vMin and vMax from provided voltage limit $limit. Is vMin smaller than vMax?"
+        )
+      }
     }
+  }
 
   /** Method to check the common elements of a
     * [[SimonaConfig.Simona.GridConfig]].
