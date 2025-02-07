@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.participant.statedata
 
 import org.apache.pekko.actor.ActorRef
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.PrimaryDataWithComplexPower
 
 import scala.reflect.{ClassTag, classTag}
 
@@ -24,10 +24,10 @@ import scala.reflect.{ClassTag, classTag}
   *   True, if an [[edu.ie3.simona.ontology.messages.Activation]] has already
   *   arrived
   * @tparam PD
-  *   Type of the [[PrimaryDataWithApparentPower]], that the model will produce
+  *   Type of the [[PrimaryDataWithComplexPower]], that the model will produce
   *   or receive as primary data
   */
-final case class DataCollectionStateData[+PD <: PrimaryDataWithApparentPower[
+final case class DataCollectionStateData[+PD <: PrimaryDataWithComplexPower[
   PD
 ]](
     baseStateData: BaseStateData[PD],
