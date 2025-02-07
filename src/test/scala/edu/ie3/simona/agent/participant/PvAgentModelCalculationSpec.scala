@@ -23,7 +23,7 @@ import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData._
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
-import edu.ie3.simona.config.RuntimeConfig.SimpleRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.PvRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
@@ -106,7 +106,7 @@ class PvAgentModelCalculationSpec
   private val configUtil = ConfigUtil.ParticipantConfigUtil(
     simonaConfig.runtime.participant
   )
-  private val modelConfig = configUtil.getOrDefault[SimpleRuntimeConfig](
+  private val modelConfig = configUtil.getOrDefault[PvRuntimeConfig](
     voltageSensitiveInput.getUuid
   )
   private val noServices = Iterable.empty
@@ -121,7 +121,7 @@ class PvAgentModelCalculationSpec
   "A pv agent with model calculation depending on no secondary data service" should {
     val initStateData = ParticipantInitializeStateData[
       PvInput,
-      SimpleRuntimeConfig,
+      PvRuntimeConfig,
       ComplexPower,
     ](
       inputModel = voltageSensitiveInput,
@@ -185,7 +185,7 @@ class PvAgentModelCalculationSpec
   "A pv agent with model calculation depending on one secondary data service" should {
     val initStateData = ParticipantInitializeStateData[
       PvInput,
-      SimpleRuntimeConfig,
+      PvRuntimeConfig,
       ComplexPower,
     ](
       inputModel = voltageSensitiveInput,

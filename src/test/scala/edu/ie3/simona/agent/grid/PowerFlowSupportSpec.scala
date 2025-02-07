@@ -22,7 +22,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
-import edu.ie3.simona.config.SimonaConfig.Simona
+import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.grid.{GridModel, RefSystem}
 import edu.ie3.simona.test.common.model.grid.{
   BasicGridWithSwitches,
@@ -44,9 +44,10 @@ import squants.energy.Megawatts
 import squants.{Dimensionless, Each}
 import tech.units.indriya.ComparableQuantity
 
-import java.time.{Duration, ZonedDateTime}
+import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.Angle
+import scala.concurrent.duration.{FiniteDuration, MINUTES}
 import scala.jdk.CollectionConverters.SetHasAsJava
 import scala.language.implicitConversions
 
@@ -394,7 +395,7 @@ class PowerFlowSupportSpec
       1e-5,
       Vector(1e-12),
       50,
-      Duration.ofMinutes(30),
+      FiniteDuration(30, MINUTES),
       stopOnFailure = true,
     )
 
@@ -458,7 +459,7 @@ class PowerFlowSupportSpec
   }
 
   object TestData extends DbfsTestGrid with ConfigTestData {
-    val time: Simona.Time = simonaConfig.simona.time
+    val time: SimonaConfig.TimeConfig = simonaConfig.time
 
     implicit def toZoneDateTime(time: String): ZonedDateTime =
       TimeUtil.withDefaults.toZonedDateTime(time)

@@ -22,8 +22,8 @@ import edu.ie3.simona.agent.participant.statedata.DataCollectionStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData._
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
+import edu.ie3.simona.config.RuntimeConfig.HpRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.integration.common.IntegrationSpecCommon
 import edu.ie3.simona.model.participant.HpModel.HpState
@@ -56,6 +56,7 @@ import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
 import org.apache.pekko.util.Timeout
 import org.scalatest.PrivateMethodTester
+import pureconfig.ConfigSource
 import squants.energy.{Kilowatts, Megawatts, Watts}
 import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
@@ -93,19 +94,18 @@ class HpAgentModelCalculationSpec
   /* Alter the input model to have a voltage sensitive reactive power calculation */
   val hpInput: HpInput = hpInputModel
 
-  private val simonaConfig: SimonaConfig = SimonaConfig(
-    ConfigFactory
-      .empty()
-      .withFallback(ConfigFactory.parseFile(new File(configFile)))
-      .resolve()
-  )
+  private val simonaConfig: SimonaConfig =
+    ConfigSource
+      .empty
+      .withFallback(ConfigSource.file(new File(configFile)))
+
   private val defaultOutputConfig = NotifierConfig(
-    simonaConfig.simona.output.participant.defaultConfig.simulationResult,
-    simonaConfig.simona.output.participant.defaultConfig.powerRequestReply,
-    simonaConfig.simona.output.participant.defaultConfig.flexResult,
+    simonaConfig.output.participant.defaultConfig.simulationResult,
+    simonaConfig.output.participant.defaultConfig.powerRequestReply,
+    simonaConfig.output.participant.defaultConfig.flexResult,
   )
   private val participantConfigUtil = ConfigUtil.ParticipantConfigUtil(
-    simonaConfig.simona.runtime.participant
+    simonaConfig.runtime.participant
   )
   private val modelConfig =
     participantConfigUtil.getOrDefault[HpRuntimeConfig](
@@ -115,7 +115,7 @@ class HpAgentModelCalculationSpec
   private val services = Iterable(
     ActorWeatherService(weatherService.ref)
   )
-  private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
+  private val resolution = simonaConfig.powerflow.resolution.toSeconds
 
   "A heat pump agent depending on no services" should {
     val initStateData = ParticipantInitializeStateData[
@@ -130,7 +130,7 @@ class HpAgentModelCalculationSpec
       simulationEndDate = defaultSimulationEnd,
       resolution = resolution,
       requestVoltageDeviationThreshold =
-        simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+        simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
       primaryServiceProxy = primaryServiceProxy.ref,
       maybeEmAgent = None,
@@ -196,7 +196,7 @@ class HpAgentModelCalculationSpec
       simulationEndDate = defaultSimulationEnd,
       resolution = resolution,
       requestVoltageDeviationThreshold =
-        simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+        simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
       primaryServiceProxy = primaryServiceProxy.ref,
       maybeEmAgent = None,
@@ -260,7 +260,7 @@ class HpAgentModelCalculationSpec
           defaultSimulationStart shouldBe this.defaultSimulationStart
           defaultSimulationEnd shouldBe this.defaultSimulationEnd
           resolution shouldBe this.resolution
-          requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
+          requestVoltageDeviationThreshold shouldBe simonaConfig.runtime.participant.requestVoltageDeviationThreshold
           outputConfig shouldBe defaultOutputConfig
         case unsuitableStateData =>
           fail(s"Agent has unsuitable state data '$unsuitableStateData'.")

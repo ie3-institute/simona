@@ -149,7 +149,7 @@ trait ConfigTestData {
       |simona.gridConfig.refSystems = []
       |""".stripMargin
   )
-  protected val simonaConfig: SimonaConfig = SimonaConfig(confSrc)
+  protected val (simonaConfig, typesafeConfig) = SimonaConfig(confSrc)
 
   protected val listener: Iterable[ActorRef] = Iterable.empty[ActorRef]
   protected val listenerSingletonCompanions = {
@@ -157,6 +157,6 @@ trait ConfigTestData {
   }
 
   def read_conf_with_fallback(confStr: String): SimonaConfig = {
-    SimonaConfig(ConfigSource.string(confStr).withFallback(confSrc))
+    ConfigSource.string(confStr).withFallback(confSrc)
   }
 }

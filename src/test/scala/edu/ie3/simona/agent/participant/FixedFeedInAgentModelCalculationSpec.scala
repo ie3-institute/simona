@@ -26,7 +26,10 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
 }
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
-import edu.ie3.simona.config.RuntimeConfig.SimpleRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.{
+  FixedFeedInRuntimeConfig,
+  SimpleRuntimeConfig,
+}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
@@ -34,10 +37,6 @@ import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeParticipantAgentTrigger,
-}
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.FixedFeedInputTestData
 import edu.ie3.simona.util.ConfigUtil
@@ -92,7 +91,7 @@ class FixedFeedInAgentModelCalculationSpec
   private val defaultOutputConfig = NotifierConfig(
     simonaConfig.output.participant.defaultConfig.simulationResult,
     simonaConfig.output.participant.defaultConfig.powerRequestReply,
-    simonaConfig.simona.output.participant.defaultConfig.flexResult,
+    simonaConfig.output.participant.defaultConfig.flexResult,
   )
 
   private val fixedFeedConfigUtil = ConfigUtil.ParticipantConfigUtil(
@@ -118,7 +117,7 @@ class FixedFeedInAgentModelCalculationSpec
       simulationEndDate = simulationEndDate,
       resolution = resolution,
       requestVoltageDeviationThreshold =
-        simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+        simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = defaultOutputConfig,
       primaryServiceProxy = primaryServiceProxy.ref,
     )

@@ -116,14 +116,13 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             ConfigFailFast invokePrivate checkPowerFlowResolutionConfiguration(
               PowerFlowConfig(
                 10,
-                3600.seconds,
                 NewtonRaphsonConfig(
                   List(10, 30),
                   100,
                 ),
-                3600.nanos,
                 3600.seconds,
                 stopOnFailure = false,
+                3600.nanos,
               )
             )
           }.getMessage shouldBe "Invalid time resolution. Please ensure, that the time resolution for power flow calculation is at least rounded to a full second!"

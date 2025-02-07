@@ -23,8 +23,8 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
 import edu.ie3.simona.agent.participant.storage.StorageAgent
 import edu.ie3.simona.agent.state.AgentState.Idle
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
+import edu.ie3.simona.config.RuntimeConfig.StorageRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.StorageRuntimeConfig
 import edu.ie3.simona.event.ResultEvent.{
   FlexOptionsResultEvent,
   ParticipantResultEvent,
@@ -32,9 +32,9 @@ import edu.ie3.simona.event.ResultEvent.{
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage._
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
-import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.RegistrationFailedMessage
 import edu.ie3.simona.test.ParticipantAgentSpec
@@ -49,8 +49,8 @@ import edu.ie3.util.scala.quantities.{Megavars, ReactivePower, Vars}
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.{ActorRef, ActorSystem}
 import org.apache.pekko.testkit.{TestFSMRef, TestProbe}
-import squants.{Each, Power}
 import squants.energy.{Kilowatts, Megawatts, Watts}
+import squants.{Each, Power}
 
 import java.time.ZonedDateTime
 import scala.collection.SortedMap
@@ -93,13 +93,13 @@ class StorageAgentModelCalculationSpec
     flexResult = true,
   )
   private val configUtil = ConfigUtil.ParticipantConfigUtil(
-    simonaConfig.simona.runtime.participant
+    simonaConfig.runtime.participant
   )
   private val modelConfig = configUtil.getOrDefault[StorageRuntimeConfig](
     storageInputQv.getUuid
   )
   private val services = Iterable.empty
-  private val resolution = simonaConfig.simona.powerflow.resolution.getSeconds
+  private val resolution = simonaConfig.powerflow.resolution.toSeconds
 
   private implicit val powerTolerance: Power = Watts(0.1)
   private implicit val reactivePowerTolerance: ReactivePower = Vars(0.1)
@@ -119,7 +119,7 @@ class StorageAgentModelCalculationSpec
       simulationEndDate = simulationEndDate,
       resolution = resolution,
       requestVoltageDeviationThreshold =
-        simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+        simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
       outputConfig = outputConfig,
       primaryServiceProxy = primaryServiceProxy.ref,
       maybeEmAgent = Some(emAgent.ref.toTyped),
@@ -160,7 +160,7 @@ class StorageAgentModelCalculationSpec
           simulationStartDate shouldBe simulationStartDate
           simulationEndDate shouldBe simulationEndDate
           resolution shouldBe resolution
-          requestVoltageDeviationThreshold shouldBe simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold
+          requestVoltageDeviationThreshold shouldBe simonaConfig.runtime.participant.requestVoltageDeviationThreshold
           outputConfig shouldBe outputConfig
           maybeEmAgent shouldBe Some(emAgent.ref.toTyped)
         case unsuitableStateData =>

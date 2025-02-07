@@ -13,7 +13,7 @@ import edu.ie3.simona.agent.participant.load.LoadAgent.FixedLoadAgent
 import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.agent.participant.storage.StorageAgent
-import edu.ie3.simona.config.SimonaConfig._
+import edu.ie3.simona.config.RuntimeConfig._
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
@@ -70,7 +70,7 @@ class EmAgentIT
     TimeUtil.withDefaults.toZonedDateTime("2020-01-02T02:00:00Z")
 
   private val resolution =
-    simonaConfig.simona.powerflow.resolution.getSeconds
+    simonaConfig.powerflow.resolution.toSeconds
 
   private val outputConfigOn = NotifierConfig(
     simulationResultInfo = true,
@@ -135,7 +135,7 @@ class EmAgentIT
               simulationStartDate,
               simulationEndDate,
               resolution,
-              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+              simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfigOff,
               Some(emAgent),
             ),
@@ -158,7 +158,7 @@ class EmAgentIT
               simulationStartDate,
               simulationEndDate,
               resolution,
-              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+              simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfigOff,
               Some(emAgent),
             ),
@@ -183,7 +183,7 @@ class EmAgentIT
               simulationStartDate,
               simulationEndDate,
               resolution,
-              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+              simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfigOff,
               Some(emAgent),
             ),
@@ -421,7 +421,7 @@ class EmAgentIT
               simulationStartDate,
               simulationEndDate,
               resolution,
-              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+              simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfigOff,
               Some(emAgent),
             ),
@@ -444,7 +444,7 @@ class EmAgentIT
               simulationStartDate,
               simulationEndDate,
               resolution,
-              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+              simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfigOff,
               Some(emAgent),
             ),
@@ -468,7 +468,7 @@ class EmAgentIT
               simulationStartDate,
               simulationEndDate,
               resolution,
-              simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+              simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
               outputConfigOff,
               Some(emAgent),
             ),

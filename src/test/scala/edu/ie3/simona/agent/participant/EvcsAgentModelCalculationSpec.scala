@@ -101,10 +101,6 @@ class EvcsAgentModelCalculationSpec
       lowestEvSoc = 0.2,
     )
 
-  protected implicit val simulationStartDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
-  protected val simulationEndDate: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2020-01-01T02:00:00Z")
 
   /* Alter the input model to have a voltage sensitive reactive power calculation */
   private val evcsInputModelQv = evcsInputModel

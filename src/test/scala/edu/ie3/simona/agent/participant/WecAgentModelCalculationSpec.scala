@@ -27,7 +27,10 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.{
 import edu.ie3.simona.agent.participant.wec.WecAgent
 import edu.ie3.simona.agent.state.AgentState.{Idle, Uninitialized}
 import edu.ie3.simona.agent.state.ParticipantAgentState.HandleInformation
-import edu.ie3.simona.config.RuntimeConfig.SimpleRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.{
+  SimpleRuntimeConfig,
+  WecRuntimeConfig,
+}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.ModelState.ConstantState
@@ -36,17 +39,6 @@ import edu.ie3.simona.model.participant.WecModel.WecRelevantData
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
-import edu.ie3.simona.ontology.messages.PowerMessage.{
-  AssetPowerChangedMessage,
-  AssetPowerUnchangedMessage,
-  RequestAssetPowerMessage,
-}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  CompletionMessage,
-  IllegalTriggerMessage,
-  ScheduleTriggerMessage,
-  TriggerWithIdMessage,
-}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
   RegistrationFailedMessage,
@@ -56,32 +48,6 @@ import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
   ProvideWeatherMessage,
   RegisterForWeatherMessage,
   WeatherData,
-}
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeParticipantAgentTrigger,
-}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-}
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
-  ProvideWeatherMessage,
-  RegisterForWeatherMessage,
-  WeatherData,
-}
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-}
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
-  ProvideWeatherMessage,
-  RegisterForWeatherMessage,
-  WeatherData,
-}
-import edu.ie3.simona.ontology.trigger.Trigger.{
-  ActivityStartTrigger,
-  InitializeParticipantAgentTrigger,
 }
 import edu.ie3.simona.test.ParticipantAgentSpec
 import edu.ie3.simona.test.common.input.WecInputTestData
@@ -147,7 +113,7 @@ class WecAgentModelCalculationSpec
     simonaConfig.runtime.participant
   )
   private val modelConfig =
-    configUtil.getOrDefault[SimpleRuntimeConfig](
+    configUtil.getOrDefault[WecRuntimeConfig](
       voltageSensitiveInput.getUuid
     )
 
@@ -167,9 +133,9 @@ class WecAgentModelCalculationSpec
       inputModel = voltageSensitiveInput,
       simulationStartDate = simulationStartDate,
       simulationEndDate = simulationEndDate,
-      resolution = simonaConfig.simona.powerflow.resolution.getSeconds,
+      resolution = simonaConfig.powerflow.resolution.toSeconds,
       requestVoltageDeviationThreshold =
-        simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+        simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
       modelConfig = modelConfig,
       primaryServiceProxy = primaryServiceProxy.ref,
       secondaryDataServices = Iterable.empty,
@@ -238,7 +204,7 @@ class WecAgentModelCalculationSpec
       simulationEndDate = simulationEndDate,
       resolution = resolution,
       requestVoltageDeviationThreshold =
-        simonaConfig.simona.runtime.participant.requestVoltageDeviationThreshold,
+        simonaConfig.runtime.participant.requestVoltageDeviationThreshold,
       primaryServiceProxy = primaryServiceProxy.ref,
       secondaryDataServices = withServices,
       outputConfig = NotifierConfig(

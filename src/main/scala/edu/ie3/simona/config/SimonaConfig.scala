@@ -39,6 +39,9 @@ object SimonaConfig {
   implicit def productHint[T]: ProductHint[T] =
     ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
 
+  private implicit val reader: ConfigReader[SimonaConfig] = ConfigReader[SimonaConfig]
+  private implicit val writer: ConfigWriter[SimonaConfig] = ConfigWriter[SimonaConfig]
+
   def apply(filePath: Path): (SimonaConfig, Config) = {
     if (!Files.isReadable(filePath)) {
       throw new IllegalArgumentException(
@@ -73,7 +76,7 @@ object SimonaConfig {
         case Right(conf) => conf
       }
 
-    implicit val reader: ConfigReader[SimonaConfig] = ConfigReader[SimonaConfig]
+
 
     val config: Config = confSrc.config()
     val simonaConfig: SimonaConfig = confSrc.at("simona").load[SimonaConfig]
@@ -81,14 +84,25 @@ object SimonaConfig {
     (simonaConfig, config)
   }
 
+
+  /**
+   * Only used to read [[SimonaConfig]] without [[Config]].
+   * <p>Example: `val simonaConfig: SimonaConfig = confSrc`
+   * @param confSrc
+   * @return
+   */
+  implicit def readWithoutTypeSafeConfig(confSrc: ConfigObjectSource) : SimonaConfig = {
+    val (simonaConfig,_) = SimonaConfig(confSrc)
+    simonaConfig
+  }
+
   def render(
       simonaConfig: SimonaConfig,
       options: ConfigRenderOptions,
   ): String = {
-    implicit val writer: ConfigWriter[SimonaConfig] = ConfigWriter[SimonaConfig]
-
     ConfigWriter[SimonaConfig].to(simonaConfig).render(options)
   }
+
 
   case class TimeConfig(
       // TODO: remove  date time defaults ?
@@ -103,9 +117,10 @@ object SimonaConfig {
 
   final case class PowerFlowConfig(
       maxSweepPowerDeviation: Double,
-      sweepTimeOut: FiniteDuration = 30.second,
       newtonraphson: NewtonRaphsonConfig,
       resolution: FiniteDuration = 1.hour,
+      stopOnFailure: Boolean,
+      sweepTimeOut: FiniteDuration = 30.second,
   )
 
   final case class NewtonRaphsonConfig(

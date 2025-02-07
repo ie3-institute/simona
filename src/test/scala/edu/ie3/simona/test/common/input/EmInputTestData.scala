@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.test.common.input
 
-import edu.ie3.datamodel.models.input.{EmInput, OperatorInput}
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.datamodel.models.input.system.`type`.chargingpoint.ChargingPointTypeUtils
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
@@ -23,8 +22,9 @@ import edu.ie3.datamodel.models.input.thermal.{
   ThermalHouseInput,
   ThermalStorageInput,
 }
+import edu.ie3.datamodel.models.input.{EmInput, OperatorInput}
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.{RuntimeConfig, SimonaConfig}
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.participant.load.{LoadModelBehaviour, LoadReference}
 import edu.ie3.simona.util.ConfigUtil
@@ -98,18 +98,18 @@ trait EmInputTestData
     )
 
   private val configUtil = ConfigUtil.ParticipantConfigUtil(
-    simonaConfig.simona.runtime.participant
+    simonaConfig.runtime.participant
   )
 
   protected val defaultOutputConfig: NotifierConfig =
     NotifierConfig(
-      simonaConfig.simona.output.participant.defaultConfig.simulationResult,
-      simonaConfig.simona.output.participant.defaultConfig.powerRequestReply,
-      simonaConfig.simona.output.participant.defaultConfig.flexResult,
+      simonaConfig.output.participant.defaultConfig.simulationResult,
+      simonaConfig.output.participant.defaultConfig.powerRequestReply,
+      simonaConfig.output.participant.defaultConfig.flexResult,
     )
 
-  protected val modelConfig: SimonaConfig.EmRuntimeConfig =
-    configUtil.getOrDefault[SimonaConfig.EmRuntimeConfig](
+  protected val modelConfig: RuntimeConfig.EmRuntimeConfig =
+    configUtil.getOrDefault[RuntimeConfig.EmRuntimeConfig](
       emInput.getUuid
     )
 
@@ -140,7 +140,7 @@ trait EmInputTestData
     UUID.fromString("91940626-bdd0-41cf-96dd-47c94c86b20e"),
     "thermal house",
     thermalBusInput,
-    Quantities.getQuantity(0.325, StandardUnits.THERMAL_TRANSMISSION),
+    Quantities.getQuantity(0.15, StandardUnits.THERMAL_TRANSMISSION),
     Quantities.getQuantity(75, StandardUnits.HEAT_CAPACITY),
     Quantities.getQuantity(20.3, StandardUnits.TEMPERATURE),
     Quantities.getQuantity(22.0, StandardUnits.TEMPERATURE),
