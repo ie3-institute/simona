@@ -489,7 +489,7 @@ class EvcsModelSpec
               )
             )
 
-            evcsModel.calcFlexOptions(
+            evcsModel.determineFlexOptions(
               EvcsState(
                 Seq(ev1, ev2),
                 currentTick,
@@ -601,7 +601,7 @@ class EvcsModelSpec
               )
             )
 
-            evcsModel.calcFlexOptions(
+            evcsModel.determineFlexOptions(
               EvcsState(
                 Seq(ev1, ev2),
                 currentTick,
@@ -639,7 +639,7 @@ class EvcsModelSpec
           )
         )
 
-        evcsModel.calcFlexOptions(
+        evcsModel.determineFlexOptions(
           EvcsState(
             Seq(ev1),
             currentTick,
@@ -759,7 +759,7 @@ class EvcsModelSpec
               )
             )
 
-            evcsModel.handlePowerControl(
+            evcsModel.determineOperatingPoint(
               EvcsState(
                 Seq(ev1, ev2),
                 currentTick,

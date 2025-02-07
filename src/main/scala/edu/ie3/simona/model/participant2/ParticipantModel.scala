@@ -30,33 +30,60 @@ import squants.energy.Power
 import java.time.ZonedDateTime
 import java.util.UUID
 
+/** Abstract model of a system participant that provides methods for determining
+  * state and operating point.
+  *
+  * @tparam OP
+  *   The type of operating point
+  * @tparam S
+  *   The type of model state
+  */
 abstract class ParticipantModel[
     OP <: OperatingPoint,
     S <: ModelState,
 ] extends ParticipantFlexibility[OP, S] {
 
+  /** The UUID identifying the system participant
+    */
   val uuid: UUID
+
+  /** A human-readable id identifying the system participant
+    */
   val id: String
+
+  /** The rated apparent power of the system participant
+    */
   val sRated: ApparentPower
+
+  /** The power factory of the system participant
+    */
   val cosPhiRated: Double
+
+  /** The reactive power control definition
+    */
   val qControl: QControl
 
+  /** The rated active power according to the rated apparent power and rated
+    * power factor
+    */
   protected val pRated: Power = sRated.toActivePower(cosPhiRated)
 
+  /** Determines the initial state given an initial model input
+    */
   val initialState: ModelInput => S
 
   /** Determines the current state given the last state and the operating point
     * that has been valid from the last state up until now.
     *
     * @param lastState
-    *   the last state
+    *   The last state
     * @param operatingPoint
-    *   the operating point valid from the simulation time of the last state up
+    *   The operating point valid from the simulation time of the last state up
     *   until now
     * @param input
-    *   the model input data for the current tick
+    *   The model input data for the current tick
     * @return
-    *   the current state
+    *   The current state
     */
   def determineState(
       lastState: S,
@@ -64,14 +91,14 @@ abstract class ParticipantModel[
       input: ModelInput,
   ): S
 
-  /** Get a partial function, that transfers the current active into reactive
-    * power based on the participants properties and the given nodal voltage
+  /** Returns a partial function that transfers the current nodal voltage and
+    * active power into reactive power based on the participants properties
     *
     * @return
     *   A [[PartialFunction]] from [[Power]] and voltage ([[Dimensionless]]) to
     *   [[ReactivePower]]
     */
-  def activeToReactivePowerFunc: Dimensionless => Power => ReactivePower =
+  def reactivePowerFunc: Dimensionless => Power => ReactivePower =
     nodalVoltage =>
       qControl.activeToReactivePowerFunc(
         sRated,
@@ -85,13 +112,13 @@ abstract class ParticipantModel[
     * operating point changes due to external influences beforehand.
     *
     * This method should be able to handle calls at arbitrary points in
-    * simulation time (i.e. ticks), which are situated after the tick of the
-    * last state.
+    * simulation time (i.e. ticks), which have to be situated after the tick of
+    * the last state though.
     *
     * This method is only called if the participant is '''not''' em-controlled.
     * If the participant '''is''' em-controlled,
-    * [[ParticipantFlexibility.handlePowerControl()]] determines the operating
-    * point instead.
+    * [[ParticipantFlexibility.determineOperatingPoint]] determines the
+    * operating point instead.
     *
     * @param state
     *   the current state
@@ -135,7 +162,9 @@ abstract class ParticipantModel[
       dateTime: ZonedDateTime,
   ): SystemParticipantResult
 
-  /** Handling requests that are not part of the standard participant protocol
+  /** Handling requests that are specific to the respective [[ParticipantModel]]
+    * and not part of the standard participant protocol. The model state can be
+    * updated.
     *
     * @param state
     *   The current state

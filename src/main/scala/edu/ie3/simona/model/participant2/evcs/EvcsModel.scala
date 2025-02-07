@@ -211,7 +211,7 @@ class EvcsModel private (
       ServiceType.EvMovementService
     )
 
-  override def calcFlexOptions(
+  override def determineFlexOptions(
       state: EvcsState
   ): FlexibilityMessage.ProvideFlexOptions = {
 
@@ -271,7 +271,7 @@ class EvcsModel private (
     )
   }
 
-  override def handlePowerControl(
+  override def determineOperatingPoint(
       state: EvcsState,
       flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,

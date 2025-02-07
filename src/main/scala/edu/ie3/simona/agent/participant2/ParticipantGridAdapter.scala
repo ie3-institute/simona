@@ -20,26 +20,39 @@ import squants.{Dimensionless, Each, Energy, Power}
 import scala.collection.immutable.SortedMap
 import scala.util.{Failure, Success}
 
-/** Provides (average) power values to grid agent
+/** Stores resulting power values from the participant model and provides
+  * averaged values to the [[GridAgent]]. Also receives the resulting nodal
+  * voltage, which might be used for model calculations.
+  *
+  * When the power value is requested by the [[GridAgent]], an average (weighted
+  * by time) of the recent registered power values (from the time of the last
+  * request on) is determined. This is done in consideration of the voltage
+  * value calculated by the [[GridAgent]], which is valid for the past time
+  * frame. For the new time frame starting with the current tick, the voltage is
+  * preliminarily used, until the next communication with the grid establishes a
+  * proper new voltage valid for the new time frame.
   *
   * @param gridAgent
-  *   The ActorRef for the [[GridAgent]]
+  *   The actor reference to the [[GridAgent]]
   * @param expectedRequestTick
-  *   Tick at which next power request is expected
+  *   The tick at which next power request is expected
   * @param nodalVoltage
-  *   The currently valid nodal voltage in p.u.
+  *   The most recent nodal voltage in p.u.
   * @param tickToPower
-  *   power values
+  *   Map storing the power values from which averages can be derived
   * @param avgPowerResult
   *   The calculated average power for the current request window
+  * @param requestVoltageDeviationTolerance
+  *   The tolerance for differences in voltage when deciding whether to
+  *   recalculate reactive power
   */
 final case class ParticipantGridAdapter(
     gridAgent: ActorRef[GridAgent.Request],
     nodalVoltage: Dimensionless,
-    expectedRequestTick: Long,
-    tickToPower: SortedMap[Long, ComplexPower],
+    private val expectedRequestTick: Long,
+    private val tickToPower: SortedMap[Long, ComplexPower],
     avgPowerResult: Option[AvgPowerResult],
-    implicit val requestVoltageDeviationTolerance: Dimensionless,
+    private implicit val requestVoltageDeviationTolerance: Dimensionless,
 ) {
 
   /** Whether a power request is expected and has not yet arrived, thus is
@@ -54,16 +67,43 @@ final case class ParticipantGridAdapter(
     expectedRequestTick == currentTick
   }
 
+  /** Store a power value that has been determined by the model for the given
+    * tick
+    *
+    * @param power
+    *   The power value determined by the model
+    * @param tick
+    *   The current tick
+    * @return
+    *   An adapted [[ParticipantGridAdapter]] that stores given value
+    */
   def storePowerValue(
       power: ComplexPower,
       tick: Long,
   ): ParticipantGridAdapter =
     copy(tickToPower = tickToPower.updated(tick, power))
 
+  /** Handles a power request by making sure an average power value has been
+    * calculated, taking into account the new voltage value
+    *
+    * @param newVoltage
+    *   The updated voltage valid for the recent time window ending at the
+    *   current tick
+    * @param currentTick
+    *   The current tick
+    * @param reactivePowerFuncOpt
+    *   A model function that determines reactive power given nodal voltage and
+    *   active power
+    * @param log
+    *   A logger
+    * @return
+    *   An adapted [[ParticipantGridAdapter]] that holds the determined average
+    *   power
+    */
   def handlePowerRequest(
       newVoltage: Dimensionless,
       currentTick: Long,
-      activeToReactivePowerFuncOpt: Option[
+      reactivePowerFuncOpt: Option[
         Dimensionless => Power => ReactivePower
       ],
       log: Logger,
@@ -97,7 +137,7 @@ final case class ParticipantGridAdapter(
           tickToPower,
           windowStart,
           windowEnd,
-          activeToReactivePowerFuncOpt.map(_.apply(newVoltage)),
+          reactivePowerFuncOpt.map(_.apply(newVoltage)),
           log,
         )
         AvgPowerResult(
@@ -119,6 +159,12 @@ final case class ParticipantGridAdapter(
     )
   }
 
+  /** Updates this grid adapter with the given next request tick
+    * @param nextRequestTick
+    *   The next tick at which power is requested
+    * @return
+    *   The updated grid adapter
+    */
   def updateNextRequestTick(nextRequestTick: Long): ParticipantGridAdapter =
     copy(expectedRequestTick = nextRequestTick)
 
@@ -126,6 +172,20 @@ final case class ParticipantGridAdapter(
 
 object ParticipantGridAdapter {
 
+  /** Result of an average power calculation
+    *
+    * @param windowStart
+    *   The tick at which the time frame starts
+    * @param windowEnd
+    *   The tick at which the time frame ends
+    * @param voltage
+    *   The voltage used for calculating the average power
+    * @param avgPower
+    *   The calculated average power
+    * @param newResult
+    *   Whether the calculated power has been calculated anew or reused from
+    *   past calculation
+    */
   final case class AvgPowerResult(
       windowStart: Long,
       windowEnd: Long,
@@ -163,18 +223,18 @@ object ParticipantGridAdapter {
     lastTickBeforeWindowStart.map(reducedMap + _).getOrElse(reducedMap)
   }
 
-  /** Determine the average apparent power within the given tick window
+  /** Determine the average apparent power within the given time frame
     *
     * @param tickToPower
-    *   Mapping from data tick to actual data
+    *   Mapping from tick to power value
     * @param windowStart
-    *   First, included tick of the time window
+    *   First tick (inclusive) of the time frame
     * @param windowEnd
-    *   Last, included tick of the time window
+    *   Last tick (exclusive) of the time frame
     * @param activeToReactivePowerFuncOpt
-    *   An Option on a function, that transfers the active into reactive power
+    *   The optional function determining reactive power given an active power
     * @return
-    *   The averaged apparent power
+    *   The averaged complex power
     */
   private def averageApparentPower(
       tickToPower: Map[Long, ComplexPower],

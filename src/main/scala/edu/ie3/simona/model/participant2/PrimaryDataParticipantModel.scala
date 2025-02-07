@@ -114,7 +114,7 @@ final case class PrimaryDataParticipantModel[P <: PrimaryData: ClassTag](
     Iterable.empty
   }
 
-  override def calcFlexOptions(
+  override def determineFlexOptions(
       state: PrimaryDataState[P]
   ): FlexibilityMessage.ProvideFlexOptions = {
     val (operatingPoint, _) = determineOperatingPoint(state)
@@ -122,7 +122,7 @@ final case class PrimaryDataParticipantModel[P <: PrimaryData: ClassTag](
     ProvideMinMaxFlexOptions.noFlexOption(uuid, operatingPoint.activePower)
   }
 
-  override def handlePowerControl(
+  override def determineOperatingPoint(
       state: PrimaryDataState[P],
       flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,

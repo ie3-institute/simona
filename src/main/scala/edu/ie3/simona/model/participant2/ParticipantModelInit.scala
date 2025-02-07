@@ -28,9 +28,23 @@ import edu.ie3.simona.model.participant2.load.LoadModel
 import java.time.ZonedDateTime
 import scala.reflect.ClassTag
 
+/** Helper object for constructing all types of [[ParticipantModel]]s, including
+  * [[PrimaryDataParticipantModel]].
+  */
 object ParticipantModelInit {
 
-  def createModel(
+  /** Constructs the matching [[ParticipantModel]] for the given
+    * [[SystemParticipantInput]]. The given [[BaseRuntimeConfig]] has to match
+    * the participant input.
+    *
+    * @param participantInput
+    *   The system participant model input
+    * @param modelConfig
+    *   The model runtime config
+    * @return
+    *   The [[ParticipantModel]]
+    */
+  def createPhysicalModel(
       participantInput: SystemParticipantInput,
       modelConfig: BaseRuntimeConfig,
   ): ParticipantModel[
@@ -66,16 +80,26 @@ object ParticipantModelInit {
     }
   }
 
-  def createPrimaryModel[P <: PrimaryData: ClassTag](
+  /** Constructs a [[PrimaryDataParticipantModel]] for the given
+    * [[SystemParticipantInput]] and the given primary data. The given
+    * [[BaseRuntimeConfig]] has to match the participant input.
+    *
+    * @param participantInput
+    *   The system participant model input
+    * @param modelConfig
+    *   The model runtime config
+    * @param primaryDataMeta
+    *   The primary data meta class that can be used for the data to be received
+    * @return
+    *   The [[PrimaryDataParticipantModel]]
+    */
+  def createPrimaryModel[PD <: PrimaryData: ClassTag](
       participantInput: SystemParticipantInput,
       modelConfig: BaseRuntimeConfig,
-      primaryDataMeta: PrimaryDataMeta[P],
-  ): ParticipantModel[
-    _ <: OperatingPoint,
-    _ <: ModelState,
-  ] = {
+      primaryDataMeta: PrimaryDataMeta[PD],
+  ): PrimaryDataParticipantModel[PD] = {
     // Create a fitting physical model to extract parameters from
-    val physicalModel = createModel(
+    val physicalModel = createPhysicalModel(
       participantInput,
       modelConfig,
     )
@@ -86,13 +110,21 @@ object ParticipantModelInit {
     )
   }
 
-  def createPrimaryModel[P <: PrimaryData: ClassTag](
+  /** Constructs a [[PrimaryDataParticipantModel]] for the given physical
+    * [[ParticipantModel]] and the given primary data. The given
+    * [[BaseRuntimeConfig]] has to match the participant input.
+    *
+    * @param physicalModel
+    *   The physical participant model
+    * @param primaryDataMeta
+    *   The primary data meta class that can be used for the data to be received
+    * @return
+    *   The [[PrimaryDataParticipantModel]]
+    */
+  def createPrimaryModel[PD <: PrimaryData: ClassTag](
       physicalModel: ParticipantModel[_, _],
-      primaryDataMeta: PrimaryDataMeta[P],
-  ): ParticipantModel[
-    _ <: OperatingPoint,
-    _ <: ModelState,
-  ] = {
+      primaryDataMeta: PrimaryDataMeta[PD],
+  ): PrimaryDataParticipantModel[PD] = {
     val primaryResultFunc = new PrimaryResultFunc {
       override def createResult(
           data: PrimaryData.PrimaryDataWithComplexPower[_],

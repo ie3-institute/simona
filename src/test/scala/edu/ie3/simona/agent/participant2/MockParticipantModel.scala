@@ -105,7 +105,7 @@ class MockParticipantModel(
   override def getRequiredSecondaryServices: Iterable[ServiceType] =
     throw new NotImplementedError() // Not tested
 
-  override def calcFlexOptions(
+  override def determineFlexOptions(
       state: MockState
   ): FlexibilityMessage.ProvideFlexOptions = {
     val additionalP = state.additionalP.getOrElse(zeroKW)
@@ -117,7 +117,7 @@ class MockParticipantModel(
     )
   }
 
-  override def handlePowerControl(
+  override def determineOperatingPoint(
       state: MockState,
       flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,

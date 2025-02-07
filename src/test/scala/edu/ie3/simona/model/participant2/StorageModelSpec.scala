@@ -217,7 +217,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
             tick,
           )
 
-          storageModel.calcFlexOptions(state) match {
+          storageModel.determineFlexOptions(state) match {
             case result: ProvideMinMaxFlexOptions =>
               result.ref should approximate(Kilowatts(pRef))
               result.min should approximate(Kilowatts(pMin))
@@ -259,7 +259,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
             tick,
           )
 
-          storageModel.calcFlexOptions(state) match {
+          storageModel.determineFlexOptions(state) match {
             case result: ProvideMinMaxFlexOptions =>
               result.ref should approximate(Kilowatts(pRef))
               result.min should approximate(Kilowatts(pMin))
@@ -321,7 +321,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
           )
 
           val (operatingPoint, changeIndicator) =
-            storageModel.handlePowerControl(
+            storageModel.determineOperatingPoint(
               state,
               flexOptions,
               Kilowatts(setPower),
@@ -388,7 +388,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
           )
 
           val (operatingPoint, changeIndicator) =
-            storageModel.handlePowerControl(
+            storageModel.determineOperatingPoint(
               state,
               flexOptions,
               Kilowatts(setPower),
@@ -418,7 +418,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
       )
 
       val (operatingPoint, changeIndicator) =
-        storageModel.handlePowerControl(
+        storageModel.determineOperatingPoint(
           state,
           flexOptions,
           Kilowatts(-5d),
@@ -444,7 +444,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
       )
 
       val (operatingPoint, changeIndicator) =
-        storageModel.handlePowerControl(
+        storageModel.determineOperatingPoint(
           state,
           flexOptions,
           Kilowatts(9d),
@@ -470,7 +470,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
       )
 
       val (operatingPoint, changeIndicator) =
-        storageModel.handlePowerControl(
+        storageModel.determineOperatingPoint(
           state,
           flexOptions,
           Kilowatts(-9d),
@@ -498,7 +498,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
       )
 
       val (operatingPoint, changeIndicator) =
-        storageModel.handlePowerControl(
+        storageModel.determineOperatingPoint(
           state,
           flexOptions,
           Kilowatts(5d),

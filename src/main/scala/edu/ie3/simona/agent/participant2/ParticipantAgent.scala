@@ -285,7 +285,7 @@ object ParticipantAgent {
         // we do not have to wait for the resulting power of the current tick,
         // since the current power is irrelevant for the average power up until now
 
-        val activeToReactivePowerFunc = modelShell.activeToReactivePowerFunc
+        val reactivePowerFunc = modelShell.reactivePowerFunc
 
         val nodalVoltage = Each(
           sqrt(
@@ -298,7 +298,7 @@ object ParticipantAgent {
           .handlePowerRequest(
             nodalVoltage,
             currentTick,
-            Some(activeToReactivePowerFunc),
+            Some(reactivePowerFunc),
             ctx.log,
           )
 
@@ -401,7 +401,7 @@ object ParticipantAgent {
 
               val changeIndicator = shellWithOP.getChangeIndicator(
                 tick,
-                inputHandler.getNextActivationTick,
+                inputHandler.getNextDataTick,
               )
 
               parentData.fold(
@@ -456,7 +456,7 @@ object ParticipantAgent {
 
               val changeIndicator = shellWithOP.getChangeIndicator(
                 flexControl.tick,
-                inputHandler.getNextActivationTick,
+                inputHandler.getNextDataTick,
               )
 
               parentData.fold(

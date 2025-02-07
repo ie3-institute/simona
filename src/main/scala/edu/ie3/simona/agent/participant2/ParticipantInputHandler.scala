@@ -16,15 +16,16 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent.{
 }
 import edu.ie3.simona.agent.participant2.ParticipantInputHandler.ReceivedData
 
-/** Holds active tick and received data, knows what data is expected and can
-  * thus decide whether all input requirements have been fulfilled
+/** This class holds received data, knows what data is expected and can thus
+  * decide whether all input requirements have been fulfilled
   *
   * @param expectedData
   *   Map of service actor reference to the tick at which data is expected next.
   *   When data is received, the next tick is updated here.
   * @param receivedData
   *   Map of service actor reference to received data. Here, the most recent
-  *   received data is saved, which might have been received at past ticks.
+  *   received data is saved, which might not always be data received at the
+  *   current tick.
   * @param activation
   *   The activation message with which the participant agent was activated, if
   *   applicable. This is emptied after each tick is completed.
@@ -35,14 +36,34 @@ final case class ParticipantInputHandler(
     activation: Option[ActivationRequest],
 ) {
 
+  /** Handles a received [[ActivationRequest]] by storing the message.
+    *
+    * @param activation
+    *   The activation
+    * @return
+    *   An updated input handler
+    */
   def handleActivation(
       activation: ActivationRequest
   ): ParticipantInputHandler =
     copy(activation = Some(activation))
 
+  /** Completes an activation by clearing out the stored activation message.
+    *
+    * @return
+    *   An updated input handler
+    */
   def completeActivation(): ParticipantInputHandler =
     copy(activation = None)
 
+  /** Handles a received [[DataInputMessage]] by storing the message and
+    * updating the expected data that remains to be received.
+    *
+    * @param msg
+    *   The received data message
+    * @return
+    *   An updated input handler
+    */
   def handleDataInputMessage(
       msg: DataInputMessage
   ): ParticipantInputHandler = {
@@ -83,7 +104,8 @@ final case class ParticipantInputHandler(
   }
 
   /** Determines whether there has been new data received for the current
-    * activation, which would mean that recalculation should happen
+    * activation, which would mean that re-determination of model parameters
+    * should happen
     *
     * @return
     *   Whether there's new data for the current tick or not
@@ -95,18 +117,29 @@ final case class ParticipantInputHandler(
       )
     }
 
-  def getNextActivationTick: Option[Long] =
-    expectedData.values.minOption
-
-  /** Useful for the first calculation after initialization, when all data needs
-    * to be present before first calculation
+  /** Returns the next tick at which input data is expected
     *
     * @return
-    *   The last tick at which data is expected currently
+    *   The next data tick
     */
-  def getLastActivationTick: Option[Long] =
+  def getNextDataTick: Option[Long] =
+    expectedData.values.minOption
+
+  /** Returns the tick at which all input data has been updated. Useful for the
+    * first calculation after initialization, when all data needs to be present
+    * before first calculation
+    *
+    * @return
+    *   The tick at which all data has been updated once
+    */
+  def getDataCompletedTick: Option[Long] =
     expectedData.values.maxOption
 
+  /** Returns all received input data
+    *
+    * @return
+    *   The received data
+    */
   def getData: Seq[Data] =
     receivedData.values.flatten.map(_.data).toSeq
 
@@ -114,6 +147,8 @@ final case class ParticipantInputHandler(
 
 object ParticipantInputHandler {
 
+  /** Holds received data in combination with the tick at which it was received
+    */
   final case class ReceivedData(data: Data, tick: Long)
 
   def apply(expectedData: Map[ClassicRef, Long]): ParticipantInputHandler =

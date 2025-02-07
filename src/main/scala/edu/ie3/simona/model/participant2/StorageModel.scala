@@ -166,7 +166,7 @@ class StorageModel private (
   override def getRequiredSecondaryServices: Iterable[ServiceType] =
     Iterable.empty
 
-  override def calcFlexOptions(
+  override def determineFlexOptions(
       state: StorageState
   ): FlexibilityMessage.ProvideFlexOptions = {
 
@@ -201,7 +201,7 @@ class StorageModel private (
     )
   }
 
-  override def handlePowerControl(
+  override def determineOperatingPoint(
       state: StorageState,
       flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,

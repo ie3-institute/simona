@@ -31,6 +31,9 @@ import squants.Dimensionless
 
 import java.time.ZonedDateTime
 
+/** This class helps collect all information required for the initialization of
+  * a [[ParticipantAgent]].
+  */
 object ParticipantAgentInit {
 
   /** Container class that gathers references to relevant actors
@@ -59,18 +62,35 @@ object ParticipantAgentInit {
     * @param requestVoltageDeviationTolerance
     *   The voltage request deviation tolerance, outside of which reactive power
     *   has to be recalculated
-    * @param simulationStartDate
+    * @param simulationStart
     *   The simulation start date and time
-    * @param simulationEndDate
+    * @param simulationEnd
     *   The simulation end date and time
     */
   final case class SimulationParameters(
       expectedPowerRequestTick: Long,
       requestVoltageDeviationTolerance: Dimensionless,
-      simulationStartDate: ZonedDateTime,
-      simulationEndDate: ZonedDateTime,
+      simulationStart: ZonedDateTime,
+      simulationEnd: ZonedDateTime,
   )
 
+  /** Starts the initialization process of a [[ParticipantAgent]].
+    *
+    * @param participantInput
+    *   The system participant model input that represents the physical model at
+    *   the core of the agent
+    * @param config
+    *   Runtime configuration that has to match the participant type
+    * @param participantRefs
+    *   A collection of actor references to actors required for initialization
+    *   and operation
+    * @param simulationParams
+    *   Some parameters required for simulation
+    * @param parent
+    *   The parent actor scheduling or controlling this participant, i.e. either
+    *   a [[edu.ie3.simona.scheduler.Scheduler]] or an
+    *   [[edu.ie3.simona.agent.em.EmAgent]]
+    */
   def apply(
       participantInput: SystemParticipantInput,
       config: BaseRuntimeConfig,
@@ -128,6 +148,7 @@ object ParticipantAgentInit {
   ): Behavior[Request] = Behaviors.receiveMessagePartial {
 
     case activation: ActivationRequest if activation.tick == INIT_SIM_TICK =>
+      // first, check whether we're just supposed to replay primary data time series
       participantRefs.primaryServiceProxy ! PrimaryServiceRegistrationMessage(
         participantInput.getUuid
       )
@@ -158,6 +179,7 @@ object ParticipantAgentInit {
             primaryDataMeta,
           ),
         ) =>
+      // we're supposed to replay primary data, initialize accordingly
       val expectedFirstData = Map(serviceRef -> firstDataTick)
 
       completeInitialization(
@@ -165,8 +187,8 @@ object ParticipantAgentInit {
           participantInput,
           config,
           primaryDataMeta,
-          simulationParams.simulationStartDate,
-          simulationParams.simulationEndDate,
+          simulationParams.simulationStart,
+          simulationParams.simulationEnd,
         ),
         expectedFirstData,
         participantRefs,
@@ -175,16 +197,18 @@ object ParticipantAgentInit {
       )
 
     case (_, RegistrationFailedMessage(_)) =>
-      val modelShell = ParticipantModelShell.createForModel(
+      // we're _not_ supposed to replay primary data, thus initialize the physical model
+      val modelShell = ParticipantModelShell.createForPhysicalModel(
         participantInput,
         config,
-        simulationParams.simulationStartDate,
-        simulationParams.simulationEndDate,
+        simulationParams.simulationStart,
+        simulationParams.simulationEnd,
       )
 
       val requiredServiceTypes = modelShell.requiredServices.toSet
 
       if (requiredServiceTypes.isEmpty) {
+        // not requiring any secondary services, thus we're ready to go
         completeInitialization(
           modelShell,
           Map.empty,
@@ -193,7 +217,7 @@ object ParticipantAgentInit {
           parentData,
         )
       } else {
-
+        // requiring at least one secondary service, thus send out registrations and wait for replies
         val requiredServices = requiredServiceTypes
           .map(serviceType =>
             serviceType -> participantRefs.services.getOrElse(
@@ -265,6 +289,7 @@ object ParticipantAgentInit {
   ): Behavior[Request] =
     Behaviors.receivePartial {
       case (_, RegistrationSuccessfulMessage(serviceRef, nextDataTick)) =>
+        // received registration success message from secondary service
         if (!expectedRegistrations.contains(serviceRef))
           throw new CriticalFailureException(
             s"${modelShell.identifier}: Registration response from $serviceRef was not expected!"
@@ -274,7 +299,8 @@ object ParticipantAgentInit {
         val newExpectedFirstData =
           expectedFirstData.updated(serviceRef, nextDataTick)
 
-        if (newExpectedRegistrations.isEmpty) {
+        if (newExpectedRegistrations.isEmpty)
+          // all secondary services set up, ready to go
           completeInitialization(
             modelShell,
             newExpectedFirstData,
@@ -282,7 +308,8 @@ object ParticipantAgentInit {
             simulationParams,
             parentData,
           )
-        } else
+        else
+          // there's at least one more service to go, let's wait for confirmation
           waitingForServices(
             modelShell,
             participantRefs,
@@ -293,7 +320,7 @@ object ParticipantAgentInit {
           )
     }
 
-  /** Completes initialization activation and creates actual
+  /** Completes initialization, sends a completion message and creates actual
     * [[ParticipantAgent]]
     */
   private def completeInitialization(
@@ -307,7 +334,7 @@ object ParticipantAgentInit {
     val inputHandler = ParticipantInputHandler(expectedData)
 
     // get first overall activation tick
-    val firstTick = inputHandler.getLastActivationTick.orElse(
+    val firstTick = inputHandler.getDataCompletedTick.orElse(
       modelShell
         .getChangeIndicator(currentTick = -1, None)
         .changesAtTick
