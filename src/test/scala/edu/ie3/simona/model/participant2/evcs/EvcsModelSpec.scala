@@ -667,10 +667,6 @@ class EvcsModelSpec
       "dealing with two evs" in {
         val currentTick = 3600L
 
-        // not used
-        val mockFlexOptions =
-          ProvideMinMaxFlexOptions.noFlexOption(evcsModel.uuid, zeroKW)
-
         val cases = Table(
           (
             "stored1",
@@ -764,7 +760,6 @@ class EvcsModelSpec
                 Seq(ev1, ev2),
                 currentTick,
               ),
-              mockFlexOptions,
               Kilowatts(setPower),
             ) match {
               case (

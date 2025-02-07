@@ -66,7 +66,6 @@ trait ParticipantFlexibility[
     */
   def determineOperatingPoint(
       state: S,
-      flexOptions: ProvideFlexOptions, // TODO is this needed?
       setPower: Power,
   ): (OP, OperationChangeIndicator)
 
@@ -97,7 +96,6 @@ object ParticipantFlexibility {
 
     override def determineOperatingPoint(
         state: S,
-        flexOptions: ProvideFlexOptions,
         setPower: Power,
     ): (ActivePowerOperatingPoint, OperationChangeIndicator) = {
       (ActivePowerOperatingPoint(setPower), OperationChangeIndicator())

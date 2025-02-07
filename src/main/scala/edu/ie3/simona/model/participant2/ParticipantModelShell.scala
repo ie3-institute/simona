@@ -313,7 +313,6 @@ final case class ParticipantModelShell[
 
       model.determineOperatingPoint(
         currentState,
-        fo,
         setPointActivePower,
       )
     }

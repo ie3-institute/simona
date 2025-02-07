@@ -124,7 +124,6 @@ final case class PrimaryDataParticipantModel[P <: PrimaryData: ClassTag](
 
   override def determineOperatingPoint(
       state: PrimaryDataState[P],
-      flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,
   ): (PrimaryOperatingPoint[P], OperationChangeIndicator) = {
     val factor = state.data.p / setPower

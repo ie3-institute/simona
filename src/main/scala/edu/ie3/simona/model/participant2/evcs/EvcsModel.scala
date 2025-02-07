@@ -273,7 +273,6 @@ class EvcsModel private (
 
   override def determineOperatingPoint(
       state: EvcsState,
-      flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,
   ): (EvcsOperatingPoint, OperationChangeIndicator) = {
     if (setPower == zeroKW)

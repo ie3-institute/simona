@@ -203,7 +203,6 @@ class StorageModel private (
 
   override def determineOperatingPoint(
       state: StorageState,
-      flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,
   ): (ActivePowerOperatingPoint, ParticipantModel.OperationChangeIndicator) = {
     val adaptedSetPower =

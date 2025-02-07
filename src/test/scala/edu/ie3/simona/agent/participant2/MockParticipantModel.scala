@@ -119,7 +119,6 @@ class MockParticipantModel(
 
   override def determineOperatingPoint(
       state: MockState,
-      flexOptions: FlexibilityMessage.ProvideFlexOptions,
       setPower: Power,
   ): (ActivePowerOperatingPoint, OperationChangeIndicator) =
     (

@@ -273,9 +273,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
     "Handle controlled power change" in {
       val storageModel = buildStorageModel()
       val tick = 3600L
-      // not used in calculation
-      val flexOptions =
-        ProvideMinMaxFlexOptions.noFlexOption(inputModel.getUuid, zeroKW)
 
       val testCases = Table(
         (
@@ -323,7 +320,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
           val (operatingPoint, changeIndicator) =
             storageModel.determineOperatingPoint(
               state,
-              flexOptions,
               Kilowatts(setPower),
             )
 
@@ -340,9 +336,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
     "Handle controlled power change with ref target SOC" in {
       val storageModel = buildStorageModel(Some(0.5d))
       val tick = 3600L
-      // not used in calculation
-      val flexOptions =
-        ProvideMinMaxFlexOptions.noFlexOption(inputModel.getUuid, zeroKW)
 
       val testCases = Table(
         (
@@ -390,7 +383,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
           val (operatingPoint, changeIndicator) =
             storageModel.determineOperatingPoint(
               state,
-              flexOptions,
               Kilowatts(setPower),
             )
 
@@ -407,9 +399,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
     "Handle the edge case of discharging in tolerance margins" in {
       val storageModel = buildStorageModel()
       val tick = 1800L
-      // not used in calculation
-      val flexOptions =
-        ProvideMinMaxFlexOptions.noFlexOption(inputModel.getUuid, zeroKW)
 
       // margin is at ~ 0.0030864 kWh
       val state = StorageModel.StorageState(
@@ -420,7 +409,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
       val (operatingPoint, changeIndicator) =
         storageModel.determineOperatingPoint(
           state,
-          flexOptions,
           Kilowatts(-5d),
         )
 
@@ -433,9 +421,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
     "Handle the edge case of charging in tolerance margins" in {
       val storageModel = buildStorageModel()
       val tick = 1800L
-      // not used in calculation
-      val flexOptions =
-        ProvideMinMaxFlexOptions.noFlexOption(inputModel.getUuid, zeroKW)
 
       // margin is at ~ 99.9975 kWh
       val state = StorageModel.StorageState(
@@ -446,7 +431,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
       val (operatingPoint, changeIndicator) =
         storageModel.determineOperatingPoint(
           state,
-          flexOptions,
           Kilowatts(9d),
         )
 
@@ -459,9 +443,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
     "Handle the edge case of discharging in positive target margin" in {
       val storageModel = buildStorageModel(Some(0.3d))
       val tick = 1800L
-      // not used in calculation
-      val flexOptions =
-        ProvideMinMaxFlexOptions.noFlexOption(inputModel.getUuid, zeroKW)
 
       // margin is at ~ 30.0025 kWh
       val state = StorageModel.StorageState(
@@ -472,7 +453,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
       val (operatingPoint, changeIndicator) =
         storageModel.determineOperatingPoint(
           state,
-          flexOptions,
           Kilowatts(-9d),
         )
 
@@ -487,9 +467,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
     "Handle the edge case of charging in negative target margin" in {
       val storageModel = buildStorageModel(Some(0.4d))
       val tick = 1800L
-      // not used in calculation
-      val flexOptions =
-        ProvideMinMaxFlexOptions.noFlexOption(inputModel.getUuid, zeroKW)
 
       // margin is at ~ 39.9975 kWh
       val state = StorageModel.StorageState(
@@ -500,7 +477,6 @@ class StorageModelSpec extends UnitSpec with Matchers {
       val (operatingPoint, changeIndicator) =
         storageModel.determineOperatingPoint(
           state,
-          flexOptions,
           Kilowatts(5d),
         )
 
