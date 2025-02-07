@@ -138,8 +138,8 @@ object EmModelShell {
           case pattern(value, exclReg) =>
             try {
               val powerTarget = BigDecimal(value)
-              val isExclReg = exclReg != null
-              EmAggregatePowerOpt(Kilowatts(powerTarget), !isExclReg)
+              val curtailRegenerative = exclReg == null
+              EmAggregatePowerOpt(Kilowatts(powerTarget), curtailRegenerative)
             } catch {
               case _: NumberFormatException =>
                 throw new CriticalFailureException(
