@@ -9,10 +9,7 @@ package edu.ie3.simona.main
 import edu.ie3.simona.config.{ArgsParser, ConfigFailFast, SimonaConfig}
 import edu.ie3.simona.main.RunSimona._
 import edu.ie3.simona.sim.SimonaSim
-import edu.ie3.simona.sim.setup.{
-  SimonaSimpleExtSimulationSetup,
-  SimonaStandaloneSetup,
-}
+import edu.ie3.simona.sim.setup.SimonaSimpleExtSimulationSetup
 import org.apache.pekko.actor.typed.scaladsl.AskPattern._
 import org.apache.pekko.actor.typed.{ActorSystem, Scheduler}
 import org.apache.pekko.util.Timeout
@@ -41,6 +38,7 @@ object RunSimonaWithSimpleExtSimulation
       parsedConfig,
       SimonaSimpleExtSimulationSetup.buildResultFileHierarchy(parsedConfig),
       mainArgs = arguments.mainArgs,
+      mappingPath = arguments.mappingPath
     )
   }
 

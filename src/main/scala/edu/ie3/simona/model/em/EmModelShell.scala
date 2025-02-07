@@ -67,6 +67,7 @@ final case class EmModelShell(
   def determineFlexControl(
       allFlexOptions: Iterable[(UUID, ProvideFlexOptions)],
       target: Power,
+      controlSignal: Boolean,
   ): Iterable[(UUID, Power)] = {
 
     val minMaxFlexOptions = allFlexOptions.toMap.view.mapValues {
@@ -89,7 +90,9 @@ final case class EmModelShell(
     }
 
     val setPoints =
-      modelStrategy.determineFlexControl(uuidToFlexOptions, target)
+      modelStrategy.determineFlexControl(uuidToFlexOptions, target, controlSignal)
+
+    //println(s"${this.id}: Determined Flexcontrol $setPoints")
 
     setPoints.map { case (model, power) =>
       val flexOptions =
@@ -115,6 +118,7 @@ object EmModelShell {
       modelStrategyName: String,
       modelConfig: EmRuntimeConfig,
   ): EmModelShell = {
+
     val modelStrategy =
       modelStrategyName match {
         case "PROPORTIONAL" => ProportionalFlexStrat
@@ -128,7 +132,7 @@ object EmModelShell {
         case "uncontrolled" => UncontrolledStrat(modelConfig.curtailRegenerative)
         case unknown =>
           throw new CriticalFailureException(s"Unknown model strategy $unknown")
-    }
+      }
 
     val aggregateFlex = modelStrategyName match {
       case "self_optimization_excl_reg"     => EmAggregateSelfOpt(false, true)
@@ -146,16 +150,13 @@ object EmModelShell {
     /*
     val aggregateFlex = modelConfig.aggregateFlex match {
       case "SELF_OPT_EXCL_REG" => EmAggregateSelfOpt(false)
-      case "SELF_OPT"          => EmAggregateOpt()
-      //case "SELF_OPT"          => EmAggregateSelfOpt(true)
+      case "SELF_OPT"          => EmAggregateSelfOpt(true)
       case "SIMPLE_SUM"        => EmAggregateSimpleSum
       case unknown =>
         throw new CriticalFailureException(
           s"Unknown aggregate flex strategy $unknown"
         )
     }
-
-     */
 
     EmModelShell(uuid, id, modelStrategy, aggregateFlex)
   }

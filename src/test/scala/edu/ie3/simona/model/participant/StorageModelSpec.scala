@@ -104,7 +104,7 @@ class StorageModelSpec extends UnitSpec with Matchers {
         // CHANGED STATE
         // discharged to empty
         (10.0, -9.0, 3600, 0.0, 0.0, 10.0),
-        // almost discharged to lowest allowed charge
+        // almost discharged to the lowest allowed charge
         (10.0, -9.0, 3590, 0.0, -10.0, 10.0),
         // charged to mid-level charge
         (41.0, 10.0, 3600, 0.0, -10.0, 10.0),

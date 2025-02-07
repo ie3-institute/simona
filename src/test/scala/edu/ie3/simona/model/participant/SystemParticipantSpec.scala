@@ -15,7 +15,12 @@ import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.MockParticipant
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.{Kilovars, Megavars, ReactivePower}
+import edu.ie3.util.scala.quantities.{
+  Kilovars,
+  Kilovoltamperes,
+  Megavars,
+  ReactivePower,
+}
 import org.scalatest.matchers.should.Matchers
 import squants._
 import squants.energy._
@@ -52,7 +57,7 @@ class SystemParticipantSpec extends UnitSpec with Matchers {
           "System participant calculateQ Test",
           OperationInterval(0L, 86400L),
           QControl(new CosPhiFixed(varCharacteristicString)),
-          Kilowatts(200),
+          Kilovoltamperes(200),
           1d,
         )
         val power = Kilowatts(pVal)
@@ -92,7 +97,7 @@ class SystemParticipantSpec extends UnitSpec with Matchers {
         QControl(
           new CosPhiP(varCharacteristicString)
         ),
-        Kilowatts(102),
+        Kilovoltamperes(102),
         1d,
       )
       val power = Kilowatts(pVal)
@@ -130,13 +135,12 @@ class SystemParticipantSpec extends UnitSpec with Matchers {
         QControl(
           new CosPhiP(varCharacteristicString)
         ),
-        Kilowatts(101),
+        Kilovoltamperes(101),
         1d,
       )
       val power = Kilowatts(pVal)
       val qCalc = loadMock.calculateReactivePower(power, adjustedVoltage)
       qCalc should approximate(qSol)
-
     }
   }
 
@@ -146,7 +150,7 @@ class SystemParticipantSpec extends UnitSpec with Matchers {
       "System participant calculateQ Test",
       OperationInterval(0L, 86400L),
       QControl(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
-      Kilowatts(200),
+      Kilovoltamperes(200),
       0.98,
     )
 
@@ -177,7 +181,7 @@ class SystemParticipantSpec extends UnitSpec with Matchers {
       "System participant calculateQ Test",
       OperationInterval(0L, 86400L),
       QControl(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
-      Kilowatts(200),
+      Kilovoltamperes(200),
       1d,
     )
 
@@ -208,7 +212,7 @@ class SystemParticipantSpec extends UnitSpec with Matchers {
       "System participant calculateQ Test",
       OperationInterval(0L, 86400L),
       QControl(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
-      Kilowatts(200),
+      Kilovoltamperes(200),
       0.95,
     )
 
@@ -240,7 +244,7 @@ class SystemParticipantSpec extends UnitSpec with Matchers {
       "System participant calculateQ Test",
       OperationInterval(0L, 86400L),
       QControl(new QV("qV:{(0.93,-1),(0.97,0),(1,0),(1.03,0),(1.07,1)}")),
-      Kilowatts(200),
+      Kilovoltamperes(200),
       0.95,
     )
 

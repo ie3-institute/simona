@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.em
 
 import edu.ie3.datamodel.models.input.EmInput
 import edu.ie3.datamodel.models.result.system.{EmResult, FlexOptionsResult}
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.statedata.BaseStateData.FlexControlledData
 import edu.ie3.simona.api.data.ontology.DesaggFlexOptionsResult
 import edu.ie3.simona.config.SimonaConfig.EmRuntimeConfig
@@ -149,7 +149,7 @@ object EmAgent {
       modelConfig,
     )
 
-    //////// ////ctx.log.info(s"EMAgent ${modelShell.uuid} with $modelShell")
+    //////// //// ctx.log.info(s"EMAgent ${modelShell.uuid} with $modelShell")
 
     inactive(
       constantData,
@@ -167,7 +167,7 @@ object EmAgent {
       core: EmDataCore.Inactive,
   ): Behavior[Request] = Behaviors.receivePartial {
     case (ctx, RegisterParticipant(model, actor, spi)) =>
-      // ////ctx.log.info(s"EM Agent ${modelShell.uuid} RegisterParticipant model $model")
+      // //// ctx.log.info(s"EM Agent ${modelShell.uuid} RegisterParticipant model $model")
       val updatedModelShell = modelShell.addParticipant(model, spi)
       val updatedCore = core.addParticipant(actor, model)
       inactive(emData, updatedModelShell, updatedCore)
@@ -178,7 +178,7 @@ object EmAgent {
             RegistrationSuccessfulMessage(serviceRef, nextDataTick)
           ),
         ) =>
-      // ////ctx.log.info(s"EM Agent ${ctx.self} will use external set points!")
+      // //// ctx.log.info(s"EM Agent ${ctx.self} will use external set points!")
       /*
       val flexAdapter = ctx.messageAdapter[FlexRequest](Flex)
       val updatedEmData = emData.copy(
@@ -188,13 +188,13 @@ object EmAgent {
       inactive(emData, modelShell, core)
 
     case (ctx, ScheduleFlexRequest(participant, newTick, scheduleKey)) =>
-      ////ctx.log.info(s"EM Agent ${modelShell.uuid} got ScheduleFlexRequest for participant = $participant, newTick = $newTick ! ")
+      //// ctx.log.info(s"EM Agent ${modelShell.uuid} got ScheduleFlexRequest for participant = $participant, newTick = $newTick ! ")
       val (maybeSchedule, newCore) = core
         .handleSchedule(participant, newTick)
 
       maybeSchedule match {
         case Some(scheduleTick) =>
-          // ////ctx.log.info(s"EM Agent ${modelShell.uuid} -> parentData = ${emData.parentData}")
+          // //// ctx.log.info(s"EM Agent ${modelShell.uuid} -> parentData = ${emData.parentData}")
           // also potentially schedule with parent if the new earliest tick is
           // different from the old earliest tick (including if nothing had
           // been scheduled before)
@@ -221,14 +221,14 @@ object EmAgent {
       inactive(emData, modelShell, newCore)
 
     case (ctx, msg: ActivationRequest) =>
-      //ctx.log.info(s"\u001b[0;34m[${msg.tick}] ${ctx.self}.inactive got ActivationRequest = $msg, dataProvisionMessage = ${core.nextSetPointMessage}, ActivationRequestnextSetPointTick = ${core.nextSetPointTick}, nextActiveTick = ${core.nextActiveTick}\u001b[0;0m")
+      // ctx.log.info(s"\u001b[0;34m[${msg.tick}] ${ctx.self}.inactive got ActivationRequest = $msg, dataProvisionMessage = ${core.nextSetPointMessage}, ActivationRequestnextSetPointTick = ${core.nextSetPointTick}, nextActiveTick = ${core.nextActiveTick}\u001b[0;0m")
 
       val flexOptionsCore = core.activate(msg.tick)
 
       msg match {
         case Flex(_: FlexActivation) | EmActivation(_) =>
           // Check if there will be a new set point for this tick -> We can't start processing flex options before we know what's the set point for this tick
-          //ctx.log.info(s"\u001b[0;34m ${ctx.self} got Activation nextSetPointTick = ${core.nextSetPointTick}\u001b[0;0m")
+          // ctx.log.info(s"\u001b[0;34m ${ctx.self} got Activation nextSetPointTick = ${core.nextSetPointTick}\u001b[0;0m")
           if (core.nextSetPointTick.contains(msg.tick)) {
             // We expect a new set point for this tick
             core.nextSetPointMessage match {
@@ -236,21 +236,18 @@ object EmAgent {
                     setPointMsg
                   ) => // We already got a set point, check if the set point is for the right tick
                 if (setPointMsg.tick == msg.tick) { // yes, it's for the right tick -> we can activate our connected agents and do the normal stuff
-
-
                   val inbetweenCore = flexOptionsCore.handleSetPoint(setPointMsg)
-                  ////ctx.log.info(s"\u001b[0;34m [inbetweenCore] ${ctx.self} activeTick = ${inbetweenCore.activeTick}, nextTick = ${inbetweenCore.nextSetPointTick} \u001b[0;0m")
+                  //// ctx.log.info(s"\u001b[0;34m [inbetweenCore] ${ctx.self} activeTick = ${inbetweenCore.activeTick}, nextTick = ${inbetweenCore.nextSetPointTick} \u001b[0;0m")
 
-                  val (toActivate, newCore) = inbetweenCore
-                    .takeNewFlexRequests()
-                  ////ctx.log.info(s"${ctx.self} expects and received set point for this tick!")
-                  //ctx.log.info(s"\u001b[0;34m[${flexOptionsCore.activeTick}] ${ctx.self}.inactive expects and received set point for this tick\n -> activate connected agents $toActivate\n -> newCore = ${newCore} \u001b[0;0m")
+                  val (toActivate, newCore) = inbetweenCore.takeNewFlexRequests()
+                  //// ctx.log.info(s"${ctx.self} expects and received set point for this tick!")
+                  // ctx.log.info(s"\u001b[0;34m[${flexOptionsCore.activeTick}] ${ctx.self}.inactive expects and received set point for this tick\n -> activate connected agents $toActivate\n -> newCore = ${newCore} \u001b[0;0m")
                   toActivate.foreach {
                     _ ! FlexActivation(msg.tick)
                   }
-                  if (true) {
-                    //ctx.log.info(s"\u001b[0;34m ${ctx.self} got a set point ${setPointMsg.setPower} for tick ${flexOptionsCore.activeTick}\u001b[0;0m")
-                  }
+
+                  // ctx.log.info(s"\u001b[0;34m ${ctx.self} got a set point ${setPointMsg.setPower} for tick ${flexOptionsCore.activeTick}\u001b[0;0m")
+
                   ctx.self ! Flex(
                     IssuePowerControl(
                       flexOptionsCore.activeTick,
@@ -263,18 +260,18 @@ object EmAgent {
                   )
                 } else {
                   throw new RuntimeException(
-                    "Set point for wrong tick arrived!"
+                    String.format("Set point for tick %d was received, but one for tick %d was expected!", msg.tick, setPointMsg.tick)
                   )
                 }
               case _ => // We still have to wait for a set point-
                 val (toActivate, newCore) =
                   flexOptionsCore.takeNewFlexRequests()
-                //ctx.log.info(s"\u001b[0;34m[${flexOptionsCore.activeTick}] ${ctx.self}.inactive expects set point for this tick, but I have to wait..., but I can already activate:\n$toActivate\u001b[0;0m")
+                // ctx.log.info(s"\u001b[0;34m[${flexOptionsCore.activeTick}] ${ctx.self}.inactive expects set point for this tick, but I have to wait..., but I can already activate:\n$toActivate\u001b[0;0m")
                 toActivate.foreach {
                   _ ! FlexActivation(msg.tick)
                 }
                 if (toActivate.isEmpty) {
-                  //ctx.log.info(s"\u001b[0;34m[${flexOptionsCore.activeTick}] ${ctx.self}.inactive nothing to activate, so send just a flex options request to myself!\u001b[0;0m")
+                  // ctx.log.info(s"\u001b[0;34m[${flexOptionsCore.activeTick}] ${ctx.self}.inactive nothing to activate, so send just a flex options request to myself!\u001b[0;0m")
                   ctx.self ! Flex(
                     FlexOptionsRequest(flexOptionsCore.activeTick)
                   )
@@ -287,7 +284,7 @@ object EmAgent {
           } else { // We don't expect a new set point -> we can do our normal stuff, because we are activated because at least one connected agent should provide flex options
             val (toActivate, newCore) =
               flexOptionsCore.handleNoSetPointExpected().takeNewFlexRequests()
-            //ctx.log.info(s"\u001b[0;34m[${flexOptionsCore.activeTick}] ${ctx.self}.inactive doesn't expect a set point for this tick\n -> activate connected agents $toActivate\n -> newCore = $newCore \u001b[0;0m")
+            // ctx.log.info(s"\u001b[0;34m[${flexOptionsCore.activeTick}] ${ctx.self}.inactive doesn't expect a set point for this tick\n -> activate connected agents $toActivate\n -> newCore = $newCore \u001b[0;0m")
             toActivate.foreach {
               _ ! FlexActivation(msg.tick)
             }
@@ -308,14 +305,14 @@ object EmAgent {
           // Thus, we just jump to the appropriate place and forward the
           // control message there
           val flexOptionsCore = core.activate(msg.tick)
-          //ctx.log.info(s"\u001b[0;34m[${flexOptionsCore.activeTick}] ${ctx.self}.inactive send $msg to himself \u001b[0;0m")
+          // ctx.log.info(s"\u001b[0;34m[${flexOptionsCore.activeTick}] ${ctx.self}.inactive send $msg to himself \u001b[0;0m")
           ctx.self ! msg
 
           awaitingFlexCtrl(emData, modelShell, flexOptionsCore)
 
         case Flex(msg: SetPointFlexRequest) =>
           // We didn't get an activation yet, but a set point arrived -> save message and wait for an activation
-          //ctx.log.info(s"(${core.getLastActiveTick}) ${ctx.self}.inactive got external set point = $msg before activation -> save message and wait...")
+          // ctx.log.info(s"(${core.getLastActiveTick}) ${ctx.self}.inactive got external set point = $msg before activation -> save message and wait...")
           val newCore = core.handleSetPointMessage(msg)
 
           inactive(emData, modelShell, newCore)
@@ -332,15 +329,15 @@ object EmAgent {
       flexOptionsCore: EmDataCore.AwaitingFlexOptions,
   ): Behavior[Request] = Behaviors.receivePartial {
     case (ctx, flexOptions: ProvideFlexOptions) =>
-      //ctx.log.info(s"\u001b[0;34m[${flexOptionsCore.activeTick}] ${ctx.self}.awaitingFlexOptions got flex options = $flexOptions\n core = $flexOptionsCore\u001b[0;0m")
+      // // ctx.log.info(s"\u001b[0;34m[${flexOptionsCore.activeTick}] ${ctx.self}.awaitingFlexOptions got flex options = $flexOptions\n core = $flexOptionsCore\u001b[0;0m")
       val updatedCore = flexOptionsCore.handleFlexOptions(flexOptions)
-      ////ctx.log.info(s"\u001b[0;34m[${flexOptionsCore.activeTick}] ${ctx.self}.awaitingFlexOptions $updatedCore\u001b[0;0m")
+      // // ctx.log.info(s"\u001b[0;34m[${flexOptionsCore.activeTick}] ${ctx.self}.awaitingFlexOptions $updatedCore\u001b[0;0m")
 
       if (updatedCore.isComplete) {
         val allFlexOptions = updatedCore.getFlexOptions
 
         // send allFlexOptions to ExtResultDataProvider
-        //ctx.log.info(s"EM Agent ${ctx.self} send out the flex options! $allFlexOptions")
+        // ctx.log.info(s"EM Agent ${ctx.self} send out the flex options! $allFlexOptions")
         // TODO
 
         val connectedFlexOptions: Map[String, FlexOptionsResult] =
@@ -352,7 +349,7 @@ object EmAgent {
               modelShell
             ) }.toMap
 
-        val (ref, min, max) =
+        val (emRef, emMin, emMax) =
           modelShell.aggregateFlexOptions(allFlexOptions)
 
         val flexResult = new FlexOptionsResult(
@@ -360,9 +357,9 @@ object EmAgent {
             emData.simulationStartDate
           ),
           modelShell.uuid,
-          ref.toMegawatts.asMegaWatt,
-          min.toMegawatts.asMegaWatt,
-          max.toMegawatts.asMegaWatt,
+          emRef.toMegawatts.asMegaWatt,
+          emMin.toMegawatts.asMegaWatt,
+          emMax.toMegawatts.asMegaWatt,
         )
 
         val flexResultWithConnectedResults = new DesaggFlexOptionsResult(
@@ -378,12 +375,12 @@ object EmAgent {
         }
 
 
-        if (flexOptionsCore.currentSetPower.isDefined) {
+        if (flexOptionsCore.currentSetPower.isUpToDate) {
           emData.parentData match {
             case Right(flexStateData) =>
               // aggregate flex options and provide to parent
-              val (ref, min, max) =
-                modelShell.aggregateFlexOptions(allFlexOptions)
+              //val (emRef, emMin, emMax)=
+              //  modelShell.aggregateFlexOptions(allFlexOptions)
 
               if (emData.outputConfig.flexResult) {
                 val flexResult = new FlexOptionsResult(
@@ -391,9 +388,9 @@ object EmAgent {
                     emData.simulationStartDate
                   ),
                   modelShell.uuid,
-                  ref.toMegawatts.asMegaWatt,
-                  min.toMegawatts.asMegaWatt,
-                  max.toMegawatts.asMegaWatt,
+                  emRef.toMegawatts.asMegaWatt,
+                  emMin.toMegawatts.asMegaWatt,
+                  emMax.toMegawatts.asMegaWatt,
                 )
 
                 emData.listener.foreach {
@@ -406,9 +403,9 @@ object EmAgent {
 
               val flexMessage = ProvideMinMaxFlexOptions(
                 modelShell.uuid,
-                ref,
-                min,
-                max,
+                emRef,
+                emMin,
+                emMax,
               )
 
               flexStateData.emAgent ! flexMessage
@@ -426,13 +423,18 @@ object EmAgent {
             case Left(_) =>
               // We're not em-controlled ourselves,
               // always desire to come as close as possible to 0 kW -> maybe overwrite it if we get a set point
-              val setPower = updatedCore.currentSetPower.getOrElse(
+              val setPower = updatedCore.currentSetPower.getSetPower.getOrElse(
                 throw new CriticalFailureException(
                   "Uncontrolled agent is requested to provide flex options without a set point!"
                 )
               )
+              val controlSignal = updatedCore.currentSetPower.getControlSignal
+
               val flexControl =
-                modelShell.determineFlexControl(allFlexOptions, setPower)
+                modelShell.determineFlexControl(allFlexOptions, setPower, controlSignal)
+
+              // ctx.log.info(s"${ctx.self} calculated flexControl = $flexControl")
+
 
               val (allFlexMsgs, newCore) = updatedCore
                 .handleFlexCtrl(flexControl)
@@ -443,12 +445,12 @@ object EmAgent {
                 actor ! msg
               }
 
-              //ctx.log.info(s"${ctx.self} will try to fulfill setPower = $setPower")
+              // ctx.log.info(s"${ctx.self} will try to fulfill setPower = $setPower")
 
               awaitingCompletions(emData, modelShell, newCore)
           }
         } else {
-          //ctx.log.info(s"\u001b[0;34m[${flexOptionsCore.activeTick}] ${ctx.self}.awaitingFlexOptions still waiting a set point!\u001b[0;0m")
+          // ctx.log.info(s"\u001b[0;34m[${flexOptionsCore.activeTick}] ${ctx.self}.awaitingFlexOptions still waiting a set point!\u001b[0;0m")
           // we didn't got a set point yet, so we have to wait for the calculated set point
           awaitingFlexOptions(
             emData,
@@ -457,7 +459,7 @@ object EmAgent {
           )
         }
       } else {
-        //ctx.log.info(s"\u001b[0;34m[${flexOptionsCore.activeTick}] ${ctx.self}.awaitingFlexOptions still waiting for some flex options!\u001b[0;0m")
+        // ctx.log.info(s"\u001b[0;34m[${flexOptionsCore.activeTick}] ${ctx.self}.awaitingFlexOptions still waiting for some flex options!\u001b[0;0m")
         // more flex options expected
         awaitingFlexOptions(
           emData,
@@ -468,12 +470,12 @@ object EmAgent {
 
 
     /* We do not need to handle ScheduleFlexRequests here, since active agents
-       can schedule themselves with there completions and inactive agents should
+       can schedule themselves with their completions and inactive agents should
        be sleeping right now
      */
     case (ctx, Flex(setPointMsg: SetPointFlexRequest)) =>
       // We got a set point after Activation -> Check, if setPower changed (yes) we have to calculate new set points for our connected agents (no) activate core and do the updates
-      //ctx.log.info(s"\u001b[0;36m[${flexOptionsCore.activeTick}] ${ctx.self}.awaitingFlexOptions got external set point = $setPointMsg\u001b[0;0m")
+      // ctx.log.info(s"\u001b[0;36m[${flexOptionsCore.activeTick}] ${ctx.self}.awaitingFlexOptions got external set point = $setPointMsg\u001b[0;0m")
       val updatedCore = flexOptionsCore.handleSetPoint(setPointMsg)
       ctx.self ! Flex(
         IssuePowerControl(flexOptionsCore.activeTick, setPointMsg.setPower)
@@ -483,14 +485,14 @@ object EmAgent {
     case (ctx, Flex(flexOptionMsg: FlexOptionsRequest)) =>
       val updatedCore = flexOptionsCore
       // We got an external request to provide flex options to calculate set points externally
-      //ctx.log.info(s"\u001b[0;36m[${flexOptionsCore.activeTick}] ${ctx.self}.awaitingFlexOptions got a FlexOptionsRequest = $flexOptionMsg\u001b[0;0m")
+      // ctx.log.info(s"\u001b[0;36m[${flexOptionsCore.activeTick}] ${ctx.self}.awaitingFlexOptions got a FlexOptionsRequest = $flexOptionMsg\u001b[0;0m")
       if (flexOptionsCore.isComplete) {
-        ////ctx.log.info(s"[${flexOptionsCore.activeTick}] ${ctx.self}.awaitingFlexOptions.IssuePowerControl core is already complete")
+        //// ctx.log.info(s"[${flexOptionsCore.activeTick}] ${ctx.self}.awaitingFlexOptions.IssuePowerControl core is already complete")
         val allFlexOptions = flexOptionsCore.getFlexOptions
         // We're not em-controlled ourselves,
         // always desire to come as close as possible to 0 kW -> maybe overwrite it if we get a set point
 
-        //ctx.log.info(s"[${flexOptionsCore.activeTick}] ${ctx.self}.awaitingFlexOptions.IssuePowerControl received all flex options, now send the aggregated flex options!")
+        // ctx.log.info(s"[${flexOptionsCore.activeTick}] ${ctx.self}.awaitingFlexOptions.IssuePowerControl received all flex options, now send the aggregated flex options!")
 
         val connectedFlexOptions: Map[String, FlexOptionsResult] =
           allFlexOptions.map { case (uuid, options) =>
@@ -532,19 +534,21 @@ object EmAgent {
       }
 
     case (ctx, Flex(flexCtrl: IssuePowerControl)) =>
-      //ctx.log.info(s"[${flexOptionsCore.activeTick}] ${ctx.self}.awaitingFlexOptions.IssuePowerControl received IssuePowerControl $flexCtrl")
+      // ctx.log.info(s"[${flexOptionsCore.activeTick}] ${ctx.self}.awaitingFlexOptions.IssuePowerControl received IssuePowerControl $flexCtrl")
       if (flexOptionsCore.isCompleteAndGotSetPoint) {
-        ////ctx.log.info(s"[${flexOptionsCore.activeTick}] ${ctx.self}.awaitingFlexOptions.IssuePowerControl core is already complete")
+        // ctx.log.info(s"[${flexOptionsCore.activeTick}] ${ctx.self}.awaitingFlexOptions.IssuePowerControl core is already complete")
         val allFlexOptions = flexOptionsCore.getFlexOptions
         // We're not em-controlled ourselves,
         // always desire to come as close as possible to 0 kW -> maybe overwrite it if we get a set point
 
-        //ctx.log.info(s"[${flexOptionsCore.activeTick}] ${ctx.self}.awaitingFlexOptions.IssuePowerControl received all flex options, now send the aggregated flex options!")
+        // ctx.log.info(s"[${flexOptionsCore.activeTick}] ${ctx.self}.awaitingFlexOptions.IssuePowerControl received all flex options, now send the aggregated flex options!")
 
         val setPower = flexCtrl.setPower
 
         val flexControl =
-          modelShell.determineFlexControl(allFlexOptions, setPower)
+          modelShell.determineFlexControl(allFlexOptions, setPower, flexOptionsCore.currentSetPower.getControlSignal)
+
+        // ctx.log.info(s"${ctx.self} after IssuePowerControl calculated flexControl = $flexControl")
 
         val (allFlexMsgs, newCore) = flexOptionsCore
           .handleFlexCtrl(flexControl)
@@ -581,7 +585,7 @@ object EmAgent {
         }
 
       } else {
-        //////// ////ctx.log.info(s"[${flexOptionsCore.activeTick}] ${ctx.self}.awaitingFlexOptions.IssuePowerControl there are still missing ProvideFlexOptions -> we have to wait...")
+        // ctx.log.info(s"[${flexOptionsCore.activeTick}] ${ctx.self}.awaitingFlexOptions.IssuePowerControl there are still missing ProvideFlexOptions -> we have to wait...")
         awaitingFlexOptions(
           emData,
           modelShell,
@@ -631,7 +635,7 @@ object EmAgent {
       flexOptionsCore: EmDataCore.AwaitingFlexOptions,
   ): Behavior[Request] = Behaviors.receivePartial {
     case (ctx, Flex(flexCtrl: IssueFlexControl)) =>
-      //////// ////ctx.log.info(s"Received $flexCtrl")
+      //////// //// ctx.log.info(s"Received $flexCtrl")
       val flexData = emData.parentData.getOrElse(
         throw new CriticalFailureException(s"EmAgent is not EM-controlled.")
       )
@@ -655,7 +659,11 @@ object EmAgent {
         modelShell.determineFlexControl(
           receivedFlexOptions,
           setPointActivePower,
+          true
         )
+
+
+      // ctx.log.info(s"${ctx.self} calculated ctrlSetPoints = $ctrlSetPoints")
 
       val (allFlexMsgs, newCore) = flexOptionsCore
         .handleFlexCtrl(ctrlSetPoints)
@@ -687,10 +695,10 @@ object EmAgent {
       )
 
     case (ctx, completion: FlexCompletion) =>
-      ////ctx.log.info(s"\u001b[0;36m[${core.activeTick}] ${ctx.self}.awaitingCompletions got FlexComption = $completion, core.nextSetPointTick=${core.nextSetPointTick} \u001b[0;0m")
+      //// ctx.log.info(s"\u001b[0;36m[${core.activeTick}] ${ctx.self}.awaitingCompletions got FlexComption = $completion, core.nextSetPointTick=${core.nextSetPointTick} \u001b[0;0m")
 
       val updatedCore = core.handleCompletion(completion)
-      ////ctx.log.info(s"\u001b[0;36m[${updatedCore.activeTick}] ${ctx.self}.awaitingCompletions nextSetPointTick = ${updatedCore.nextSetPointTick}, \u001b[0;0m")
+      //// ctx.log.info(s"\u001b[0;36m[${updatedCore.activeTick}] ${ctx.self}.awaitingCompletions nextSetPointTick = ${updatedCore.nextSetPointTick}, \u001b[0;0m")
 
       updatedCore
         .maybeComplete()
@@ -729,7 +737,7 @@ object EmAgent {
     // After initialization, there are no results yet.
     val maybeResult = inactiveCore.getResults
       .reduceOption { (power1, power2) =>
-        ApparentPower(power1.p + power2.p, power1.q + power2.q)
+        ComplexPower(power1.p + power2.p, power1.q + power2.q)
       }
 
     val nextActiveTick = EmTools.minOptionTicks(

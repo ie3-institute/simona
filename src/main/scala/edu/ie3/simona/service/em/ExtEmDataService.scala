@@ -8,33 +8,17 @@ package edu.ie3.simona.service.em
 
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.api.data.em.ExtEmData
-import edu.ie3.simona.api.data.em.ontology.{
-  EmDataMessageFromExt,
-  ProvideEmSetPointData,
-}
+import edu.ie3.simona.api.data.em.{ExtEmDataConnection, NoSetPointValue}
+import edu.ie3.simona.api.data.em.ontology.{EmDataMessageFromExt, ProvideEmSetPointData}
 import edu.ie3.simona.api.data.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
-  FlexRequest,
-  IssuePowerControl,
-  SetPointFlexRequest,
-}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{FlexRequest, IssuePowerControl, SetPointFlexRequest}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.ExtEmDataServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
-  RegistrationSuccessfulMessage,
-  WrappedRegistrationSuccessfulMessage,
-}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{RegistrationSuccessfulMessage, WrappedRegistrationSuccessfulMessage}
 import edu.ie3.simona.ontology.messages.services.{DataMessage, ServiceMessage}
-import edu.ie3.simona.service.ServiceStateData.{
-  InitializeServiceStateData,
-  ServiceBaseStateData,
-}
-import edu.ie3.simona.service.em.ExtEmDataService.{
-  ExtEmDataStateData,
-  InitExtEmData,
-}
+import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
+import edu.ie3.simona.service.em.ExtEmDataService.{ExtEmDataStateData, InitExtEmData}
 import edu.ie3.simona.service.{ExtDataSupport, SimonaService}
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.{ActorContext, Props, ActorRef => ClassicRef}
@@ -54,7 +38,7 @@ object ExtEmDataService {
     )
 
   final case class ExtEmDataStateData(
-      extEmData: ExtEmData,
+      extEmData: ExtEmDataConnection,
       subscribers: List[UUID] = List.empty,
       uuidToActorRef: Map[UUID, ActorRef[EmAgent.Request]] =
         Map.empty[UUID, ActorRef[EmAgent.Request]], // subscribers in SIMONA
@@ -64,7 +48,7 @@ object ExtEmDataService {
   ) extends ServiceBaseStateData
 
   case class InitExtEmData(
-      extEmData: ExtEmData
+      extEmData: ExtEmDataConnection
   ) extends InitializeServiceStateData
 
   final case class WrappedIssuePowerControl(
@@ -219,7 +203,8 @@ final case class ExtEmDataService(
       actorToEmData.foreach { case (actor, setPoint) =>
         actor ! SetPointFlexRequest(
           tick,
-          setPoint,
+          setPoint._1,
+          setPoint._2,
           maybeNextTick,
         )
       }
@@ -232,8 +217,11 @@ final case class ExtEmDataService(
 
   private def convertToSetPoint(
       value: PValue
-  ): Power = {
-    Kilowatts(value.getP.get.getValue.doubleValue())
+  ): (Boolean, Power) = {
+    value match {
+      case noSetPoint: NoSetPointValue => (false, Kilowatts(0.0))
+      case _ => (true, Kilowatts(value.getP.get.getValue.doubleValue()))
+    }
   }
 
   /** Handle a message from outside the simulation

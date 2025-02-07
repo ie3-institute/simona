@@ -30,6 +30,7 @@ class SimonaSimpleExtSimulationSetup(
     override val runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] =
       None,
     override val args: Array[String],
+    mappingPath: Option[String] = None,
 ) extends SimonaExtSimSetup(
       typeSafeConfig,
       simonaConfig,
@@ -42,14 +43,13 @@ class SimonaSimpleExtSimulationSetup(
       context: ActorContext[_],
       scheduler: ActorRef[SchedulerMessage],
   ): ExtSimSetupData = {
-    //val simpleExtSim = new SimpleExtSimulationWithPowerFlow()
-    // val simpleExtSim = new SimpleExtSimulationWithEm()
-    // val simpleExtSim = new SimpleExtSimulationWithPrimaryData()
+    val mapping = mappingPath.getOrElse(throw new RuntimeException("Cannot connect to ExtSim, because there is no mapping!"))
+    val simpleExtSim = null
 
     extSimulationSetup(
       context,
       scheduler,
-      null,
+      simpleExtSim,
     )
   }
 }
@@ -64,6 +64,7 @@ object SimonaSimpleExtSimulationSetup extends LazyLogging with SetupHelper {
       resultFileHierarchy: ResultFileHierarchy,
       runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
       mainArgs: Array[String] = Array.empty[String],
+      mappingPath: Option[String] = None,
   ): SimonaSimpleExtSimulationSetup =
     new SimonaSimpleExtSimulationSetup(
       typeSafeConfig,
@@ -71,5 +72,6 @@ object SimonaSimpleExtSimulationSetup extends LazyLogging with SetupHelper {
       resultFileHierarchy,
       runtimeEventQueue,
       mainArgs,
+      mappingPath
     )
 }

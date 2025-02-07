@@ -35,6 +35,7 @@ trait EmModelStrat {
         (_ <: AssetInput, ProvideMinMaxFlexOptions)
       ],
       target: Power,
+      controlSignal: Boolean
   ): Iterable[(UUID, Power)]
 
   /** Depending on the model strategy used, not all flex options provided by

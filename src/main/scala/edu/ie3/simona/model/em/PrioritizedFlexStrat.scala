@@ -7,13 +7,7 @@
 package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
-import edu.ie3.datamodel.models.input.system.{
-  EvcsInput,
-  HpInput,
-  PvInput,
-  StorageInput,
-  WecInput,
-}
+import edu.ie3.datamodel.models.input.system.{EvcsInput, HpInput, PvInput, StorageInput, WecInput}
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.EmModelStrat.tolerance
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
@@ -21,6 +15,7 @@ import edu.ie3.util.scala.quantities.DefaultQuantities._
 import squants.Power
 
 import java.util.UUID
+import scala.util.Random
 
 /** Determines flex control for connected agents by adhering to a priority
   * hierarchy, with some devices not controlled at all.
@@ -38,6 +33,8 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
     Seq(classOf[HpInput], classOf[StorageInput], classOf[EvcsInput]) ++ Option
       .when(curtailRegenerative)(Seq(classOf[PvInput], classOf[WecInput]))
       .getOrElse(Seq.empty)
+
+  private var curtailReg: Boolean = curtailRegenerative
 
   /** Determine the power of controllable devices by using flexibility according
     * to a prioritized list of device types. This means that e.g. flexibility of
@@ -57,7 +54,13 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
         (_ <: AssetInput, ProvideMinMaxFlexOptions)
       ],
       target: Power,
+      controlSignal: Boolean
   ): Seq[(UUID, Power)] = {
+    if (controlSignal) {
+      curtailReg = true
+    } else {
+      curtailReg = curtailRegenerative
+    }
 
     val totalRefPower =
       flexOptions
@@ -72,8 +75,22 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
             "No flexibilities have been provided"
           )
         )
+    var realTarget = target
+    //println(s"[$randomNumber] controlSignal = $controlSignal, totalRefPower = $totalRefPower, target = $realTarget")
+    /*
+    if (controlSignal) {
+      //println(s"[$randomNumber] controlSignal = $controlSignal, Target = $target")
+      realTarget = target
+    } else {
+      //println(s"[$randomNumber] controlSignal = $controlSignal, Refpower = $totalRefPower")
+      realTarget = totalRefPower
+    }
 
-    val targetDelta = totalRefPower - target
+     */
+
+
+    val targetDelta = totalRefPower - realTarget
+    //println(s"[$randomNumber] controlSignal = $controlSignal, totalRefPower = $totalRefPower, target = $realTarget, targetDelta = $targetDelta")
 
     val evcsOpt = flexOptions.collectFirst { case flex @ (_: EvcsInput, _) =>
       flex
@@ -88,16 +105,18 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
       .collectFirst { case flex @ (_: PvInput, _) =>
         flex
       }
-      .filter(_ => curtailRegenerative) // only if enabled
+      .filter(_ => curtailReg) // only if enabled
+    //println(s"[$randomNumber] controlSignal = $controlSignal, targetDelta = $targetDelta, pvOpt = $pvOpt")
     val wecOpt = flexOptions
       .collectFirst { case flex @ (_: WecInput, _) =>
         flex
       }
-      .filter(_ => curtailRegenerative) // only if enabled
+      .filter(_ => curtailReg) // only if enabled
 
     if (zeroKW.~=(targetDelta)(tolerance)) {
       Seq.empty
     } else if (targetDelta < zeroKW) {
+      //println(s"[$randomNumber] targetDelta = $targetDelta, suggested power too low, try to store difference/increase load")
       // suggested power too low, try to store difference/increase load
 
       val orderedParticipants =
@@ -113,6 +132,7 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
           // potential for decreasing feed-in/increasing load (negative)
           val flexPotential =
             flexOption.ref - flexOption.max
+          //println(s"[$randomNumber] remainingExcessPower = $remainingExcessPower, flexPotential = $flexPotential")
 
           if (zeroKW.~=(remainingExcessPower)(tolerance)) {
             // we're already there (besides rounding error)
@@ -122,7 +142,7 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
             (issueCtrlMsgs, Some(remainingExcessPower))
           } else if (remainingExcessPower < flexPotential) {
             // we cannot cover the excess feed-in with just this flexibility,
-            // thus use all of the available flexibility and continue
+            // thus use all the available flexibility and continue
             (
               issueCtrlMsgs :+ (inputModel.getUuid, flexOption.max),
               Some(remainingExcessPower - flexPotential),
@@ -148,6 +168,7 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
       }
 
     } else {
+      //println(s"[$randomNumber] targetDelta = $targetDelta, excess load, try to cover it with stored energy/by reducing load")
       // excess load, try to cover it with stored energy/by reducing load
 
       val orderedParticipants = Seq(storageOpt, evcsOpt, heatPumpOpt).flatten
@@ -162,6 +183,7 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
           // potential for decreasing load/increasing feed-in
           val flexPotential =
             flexOption.ref - flexOption.min
+          //println(s"[$randomNumber] remainingExcessPower = $remainingExcessPower, flexPotential = $flexPotential")
 
           if (zeroKW.~=(remainingExcessPower)(tolerance)) {
             // we're already there (besides rounding error)
@@ -171,7 +193,7 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
             (issueCtrlMsgs, Some(remainingExcessPower))
           } else if (remainingExcessPower > flexPotential) {
             // we cannot cover the excess load with just this flexibility,
-            // thus use all of the available flexibility and continue
+            // thus use all the available flexibility and continue
             (
               issueCtrlMsgs :+ (inputModel.getUuid, flexOption.min),
               Some(remainingExcessPower - flexPotential),
@@ -203,7 +225,7 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
       assetInput: AssetInput,
       flexOptions: ProvideMinMaxFlexOptions,
   ): ProvideMinMaxFlexOptions = {
-    if (controllableAssets.contains(assetInput.getClass))
+    if (getControllableAssets.contains(assetInput.getClass))
       flexOptions
     else {
       // device is not controllable by this EmAgent
@@ -213,4 +235,8 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
       )
     }
   }
+  private def getControllableAssets: Seq[Class[_ <: AssetInput]] =
+    Seq(classOf[HpInput], classOf[StorageInput], classOf[EvcsInput]) ++ Option
+      .when(curtailReg)(Seq(classOf[PvInput], classOf[WecInput]))
+      .getOrElse(Seq.empty)
 }

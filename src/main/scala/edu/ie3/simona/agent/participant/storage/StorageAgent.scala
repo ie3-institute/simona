@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.participant.storage
 
 import edu.ie3.datamodel.models.input.system.StorageInput
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ApparentPower
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.SimonaConfig.StorageRuntimeConfig
@@ -25,7 +25,7 @@ object StorageAgent {
       initStateData: ParticipantInitializeStateData[
         StorageInput,
         StorageRuntimeConfig,
-        ApparentPower,
+        ComplexPower,
       ],
       listener: Iterable[ActorRef],
   ): Props =
@@ -50,14 +50,14 @@ class StorageAgent(
     initStateData: ParticipantInitializeStateData[
       StorageInput,
       StorageRuntimeConfig,
-      ApparentPower,
+      ComplexPower,
     ],
     override val listener: Iterable[ActorRef],
 ) extends ParticipantAgent[
-      ApparentPower,
+      ComplexPower,
       StorageRelevantData,
       StorageState,
-      ParticipantStateData[ApparentPower],
+      ParticipantStateData[ComplexPower],
       StorageInput,
       StorageRuntimeConfig,
       StorageModel,

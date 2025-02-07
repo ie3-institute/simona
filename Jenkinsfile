@@ -111,7 +111,7 @@ node {
 
         sh 'java -version'
 
-        gradle('--refresh-dependencies spotlessCheck pmdMain pmdTest', projectName)
+        gradle('--refresh-dependencies spotlessCheck test', projectName)
 
         sh(script: """set +x && cd $projectName""" + ''' set +x; ./gradlew javadoc''', returnStdout: true)
       }
@@ -129,52 +129,6 @@ node {
           def qg = waitForQualityGate() // Reuse taskId previously collected by withSonarQubeEnv
           if (qg.status != 'OK') {
             error "Pipeline aborted due to quality gate failure: ${qg.status}"
-          }
-        }
-      }
-
-      // deploy stage only if branch is main or dev
-      if (env.BRANCH_NAME == "main" || env.BRANCH_NAME == "dev") {
-        stage('deploy') {
-          // determine project version
-          String projectVersion = sh(returnStdout: true, script: "set +x && cd ${projectName}; ./gradlew -q " +
-          "${(env.BRANCH_NAME == "dev") ? "devVersion" : "currentVersion"}").toString().trim()
-
-          // get the sonatype credentials stored in the jenkins secure keychain
-          withCredentials([
-            usernamePassword(credentialsId: mavenCentralCredentialsId, usernameVariable: 'MAVENCENTRAL_USER', passwordVariable: 'MAVENCENTRAL_PASS'),
-            file(credentialsId: mavenCentralSignKeyFileId, variable: 'MAVENCENTRAL_KEYFILE'),
-            usernamePassword(credentialsId: mavenCentralSignKeyId, usernameVariable: 'MAVENCENTRAL_SIGNINGKEYID', passwordVariable: 'MAVENCENTRAL_SIGNINGPASS')
-          ]) {
-
-            /*
-             * IMPORTANT: Do not issue 'clean' in the following task
-             */
-            sh(
-                script: """set +x && cd $projectName""" +
-                ''' set +x; ./gradlew javadoc''',
-                returnStdout: true
-                )
-
-            String deployGradleTasks = '--refresh-dependencies test ' +
-                'publish -Puser=${MAVENCENTRAL_USER} ' +
-                '-Ppassword=${MAVENCENTRAL_PASS} ' +
-                '-Psigning.keyId=${MAVENCENTRAL_SIGNINGKEYID} ' +
-                '-Psigning.password=${MAVENCENTRAL_SIGNINGPASS} ' +
-                '-Psigning.secretKeyRingFile=${MAVENCENTRAL_KEYFILE} ' +
-                "-PdeployVersion='$projectVersion'"
-
-            gradle(deployGradleTasks, projectName)
-          }
-
-          if (env.BRANCH_NAME == "main") {
-            // create tag on main and push it to origin
-            createAndPushTagOnMain(projectName, sshCredentialsId)
-
-            // todo JH create github release
-
-            // deploy java docs
-            deployJavaDocs(projectName, sshCredentialsId, gitCheckoutUrl)
           }
         }
       }
@@ -419,13 +373,9 @@ def determineDisplayName(String currentBranchName, String commitHash, String org
 
 def publishReports(String relativeProjectDir) {
   // publish test reports
-  publishHTML([allowMissing: true, alwaysLinkToLastBuild: true, escapeUnderscores: false, keepAll: true, reportDir: relativeProjectDir + '/build/reports/tests/allTests', reportFiles: 'index.html', reportName: "${relativeProjectDir}_java_tests_report", reportTitles: ''])
-
-  // publish pmd report for main project only
-  publishHTML([allowMissing: true, alwaysLinkToLastBuild: true, escapeUnderscores: false, keepAll: true, reportDir: relativeProjectDir + '/build/reports/pmd', reportFiles: 'main.html', reportName: "${relativeProjectDir}_pmd_report", reportTitles: ''])
 
   // publish scalatest reports for main project only (currently the only one with scala sources!)
-  publishHTML([allowMissing: false, alwaysLinkToLastBuild: true, escapeUnderscores: false, keepAll: true, reportDir: relativeProjectDir + '/build/reports/tests/scalatest', reportFiles: 'index.html', reportName: "${relativeProjectDir}_scala_tests_report", reportTitles: ''])
+  publishHTML([allowMissing: false, alwaysLinkToLastBuild: true, escapeUnderscores: false, keepAll: true, reportDir: relativeProjectDir + '/build/reports/tests/test', reportFiles: 'index.html', reportName: "${relativeProjectDir}_scala_tests_report", reportTitles: ''])
 
   // publish scapegoat src report for main project only
   publishHTML([allowMissing: false, alwaysLinkToLastBuild: true, escapeUnderscores: false, keepAll: true, reportDir: relativeProjectDir + '/build/reports/scapegoat/src', reportFiles: 'scapegoat.html', reportName: "${relativeProjectDir}_scapegoat_src_report", reportTitles: ''])

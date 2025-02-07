@@ -6,11 +6,11 @@
 
 package edu.ie3.simona.sim.setup
 
-import edu.ie3.simona.api.data.ExtData
-import edu.ie3.simona.api.data.em.ExtEmData
-import edu.ie3.simona.api.data.ev.ExtEvData
-import edu.ie3.simona.api.data.primarydata.ExtPrimaryData
-import edu.ie3.simona.api.data.results.ExtResultData
+import edu.ie3.simona.api.data.ExtDataConnection
+import edu.ie3.simona.api.data.em.ExtEmDataConnection
+import edu.ie3.simona.api.data.ev.ExtEvDataConnection
+import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
+import edu.ie3.simona.api.data.results.ExtResultDataConnection
 import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.primary.ExtPrimaryDataService
@@ -19,10 +19,10 @@ import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
 final case class ExtSimSetupData(
-    extSimAdapters: Iterable[ClassicRef],
-    extDataServices: Map[Class[_], ClassicRef],
-    extDataListener: Map[Class[_], ActorRef[ExtResultDataProvider.Request]],
-    extDatas: Set[ExtData],
+                                  extSimAdapters: Iterable[ClassicRef],
+                                  extDataServices: Map[Class[_], ClassicRef],
+                                  extDataListener: Map[Class[_], ActorRef[ExtResultDataProvider.Request]],
+                                  extDatas: Set[ExtDataConnection],
 ) {
 
   def evDataService: Option[ClassicRef] =
@@ -37,19 +37,19 @@ final case class ExtSimSetupData(
   def extResultDataService: Option[ActorRef[ExtResultDataProvider.Request]] =
     extDataListener.get(ExtResultDataProvider.getClass)
 
-  def extEvData: Option[ExtEvData] = {
-    extDatas.collectFirst { case extData: ExtEvData => extData }
+  def extEvData: Option[ExtEvDataConnection] = {
+    extDatas.collectFirst { case extData: ExtEvDataConnection => extData }
   }
-  def extPrimaryData: Option[ExtPrimaryData] = {
-    extDatas.collectFirst { case extData: ExtPrimaryData => extData }
-  }
-
-  def extEmData: Option[ExtEmData] = {
-    extDatas.collectFirst { case extData: ExtEmData => extData }
+  def extPrimaryData: Option[ExtPrimaryDataConnection] = {
+    extDatas.collectFirst { case extData: ExtPrimaryDataConnection => extData }
   }
 
-  def extResultData: Option[ExtResultData] = {
-    extDatas.collectFirst { case extData: ExtResultData => extData }
+  def extEmData: Option[ExtEmDataConnection] = {
+    extDatas.collectFirst { case extData: ExtEmDataConnection => extData }
+  }
+
+  def extResultData: Option[ExtResultDataConnection] = {
+    extDatas.collectFirst { case extData: ExtResultDataConnection => extData }
   }
 
 }

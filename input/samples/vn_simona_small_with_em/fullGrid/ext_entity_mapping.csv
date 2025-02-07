@@ -1,0 +1,5 @@
+uuid,id,columnScheme,dataType
+fd1a8de9-722a-4304-8799-e1e976d9979c,EM_NS_Node_3,p,result_participant
+ff0b995a-86ff-4f4d-987e-e475a64f2180,EM_NS_Node_4,p,result_participant
+fd1a8de9-722a-4304-8799-e1e976d9979c,EM_NS_Node_3,p,input
+ff0b995a-86ff-4f4d-987e-e475a64f2180,EM_NS_Node_4,p,input

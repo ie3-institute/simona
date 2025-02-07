@@ -16,8 +16,8 @@ import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentMessages.CreateGridAgent
 import edu.ie3.simona.api.ExtSimAdapter
-import edu.ie3.simona.api.data.ExtData
-import edu.ie3.simona.api.data.ev.{ExtEvData, ExtEvSimulation}
+import edu.ie3.simona.api.data.ExtDataConnection
+import edu.ie3.simona.api.data.ev.ExtEvDataConnection
 import edu.ie3.simona.api.simulation.ExtSimAdapterData
 import edu.ie3.simona.config.{ArgsParser, RefSystemParser, SimonaConfig}
 import edu.ie3.simona.event.listener.{ResultEventListener, RuntimeEventListener}
@@ -44,13 +44,10 @@ import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.typed.scaladsl.adapter.{
-  ClassicActorRefOps,
-  TypedActorContextOps,
-  TypedActorRefOps,
-}
+import org.apache.pekko.actor.typed.scaladsl.adapter.{ClassicActorRefOps, TypedActorContextOps, TypedActorRefOps}
 import org.apache.pekko.actor.{ActorRef => ClassicRef}
 
+import java.nio.file.Path
 import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
 import scala.jdk.CollectionConverters._
@@ -69,7 +66,7 @@ class SimonaStandaloneSetup(
     override val args: Array[String],
 ) extends SimonaSetup {
 
-  override def logOutputDir: String = resultFileHierarchy.logOutputDir
+  override def logOutputDir: Path = resultFileHierarchy.logOutputDir
 
   override def gridAgents(
       context: ActorContext[_],
@@ -108,9 +105,13 @@ class SimonaStandaloneSetup(
     )
 
     /* build the initialization data */
-    subGridTopologyGraph
+    val subGrids = subGridTopologyGraph
       .vertexSet()
       .asScala
+
+    val onlyOneSubGrid = subGrids.size == 1
+
+    subGrids
       .zip(keys)
       .map { case (subGridContainer, key) =>
         /* Get all connections to superior and inferior sub grids */
@@ -140,7 +141,11 @@ class SimonaStandaloneSetup(
           thermalGrids,
         )
 
-        currentActorRef ! CreateGridAgent(gridAgentInitData, key)
+        currentActorRef ! CreateGridAgent(
+          gridAgentInitData,
+          key,
+          onlyOneSubGrid,
+        )
 
         currentActorRef
       }
@@ -161,7 +166,7 @@ class SimonaStandaloneSetup(
           simonaConfig.simona.input.primary,
           simulationStart,
           extSimSetupData.extPrimaryDataService,
-          extSimSetupData.extPrimaryData,
+          extSimSetupData.extPrimaryData
         ),
         simulationStart,
       ),
@@ -204,7 +209,7 @@ class SimonaStandaloneSetup(
 
     val extLinks = jars.flatMap(ExtSimLoader.loadExtLink).toSeq
 
-    if (extLinks.nonEmpty) {
+      /*
       val (extSimAdapters, extDatasAndServices) =
         extLinks.zipWithIndex.map { case (extLink, index) =>
           // external simulation always needs at least an ExtSimAdapter
@@ -245,14 +250,14 @@ class SimonaStandaloneSetup(
                 (extEvData, (classOf[ExtEvDataService], extEvDataService))
             }.unzip
 
-          extLink.getExtSimulation.setup(
-            extSimAdapterData,
-            extData.toList.asJava,
-          )
+            extLink.getExtSimulation.setup(
+              extSimAdapterData,
+              extData.toList.asJava,
+            )
 
-          // starting external simulation
-          new Thread(extLink.getExtSimulation, s"External simulation $index")
-            .start()
+            // starting external simulation
+            new Thread(extLink.getExtSimulation, s"External simulation $index")
+              .start()
 
           (extSimAdapter, (extDataServiceToRef, extData))
         }.unzip
@@ -264,11 +269,10 @@ class SimonaStandaloneSetup(
         extSimAdapters,
         extDataServices.flatten.toMap,
         Map.empty,
-        extDatas,
+        extDatas
       )
-    } else {
-      ExtSimSetupData(Iterable.empty, Map.empty, Map.empty, Set.empty)
-    }
+      */
+    ExtSimSetupData(Iterable.empty, Map.empty, Map.empty, Set.empty)
   }
 
   override def timeAdvancer(

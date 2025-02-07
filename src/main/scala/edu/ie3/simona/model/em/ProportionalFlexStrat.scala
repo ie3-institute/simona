@@ -35,6 +35,7 @@ object ProportionalFlexStrat extends EmModelStrat {
         (_ <: AssetInput, ProvideMinMaxFlexOptions)
       ],
       target: Power,
+      controlSignal: Boolean
   ): Iterable[(UUID, Power)] = {
 
     // Input models are not needed here

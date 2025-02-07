@@ -34,6 +34,7 @@ object GridAgentMessages {
   final case class CreateGridAgent(
       gridAgentInitData: GridAgentInitData,
       unlockKey: ScheduleKey,
+      onlyOneSubGrid: Boolean = false,
   ) extends GridAgent.InternalRequest
 
   /** Trigger used inside of [[edu.ie3.simona.agent.grid.DBFSAlgorithm]] to
@@ -186,7 +187,7 @@ object GridAgentMessages {
   /** Provide values as a reply to a
     * [[edu.ie3.simona.agent.participant.ParticipantAgent.RequestAssetPowerMessage]].
     * In contrast to [[AssetPowerChangedMessage]], this message indicates that
-    * the same values for [[p]] and [[q]] has been send again as in the previous
+    * the same values for [[p]] and [[q]] has been sent again as in the previous
     * request
     *
     * @param p
