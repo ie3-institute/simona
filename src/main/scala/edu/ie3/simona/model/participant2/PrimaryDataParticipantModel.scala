@@ -33,22 +33,34 @@ import java.time.ZonedDateTime
 import java.util.UUID
 import scala.reflect.ClassTag
 
-/** Just "replaying" primary data
+/** A [[ParticipantModel]] that does not do any physical calculations, but just
+  * "replays" the primary data that it received via model input. It is used in
+  * place of a physical [[ParticipantModel]] and thus needs to produce the same
+  * type of results.
+  *
+  * @param primaryDataResultFunc
+  *   Function that can create the typical result objects produced by the
+  *   physical [[ParticipantModel]]
+  * @param primaryDataMeta
+  *   The primary data meta class used to scale the primary data and provide
+  *   zero values
+  * @tparam PD
+  *   The type of primary data
   */
-final case class PrimaryDataParticipantModel[P <: PrimaryData: ClassTag](
+final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
     override val uuid: UUID,
     override val id: String,
     override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
-    primaryDataResultFunc: PrimaryResultFunc,
-    primaryDataMeta: PrimaryDataMeta[P],
+    private val primaryDataResultFunc: PrimaryResultFunc,
+    private val primaryDataMeta: PrimaryDataMeta[PD],
 ) extends ParticipantModel[
-      PrimaryOperatingPoint[P],
-      PrimaryDataState[P],
+      PrimaryOperatingPoint[PD],
+      PrimaryDataState[PD],
     ] {
 
-  override val initialState: ModelInput => PrimaryDataState[P] = { input =>
+  override val initialState: ModelInput => PrimaryDataState[PD] = { input =>
     val primaryData = getPrimaryData(input.receivedData)
     PrimaryDataState(
       primaryData,
@@ -57,37 +69,37 @@ final case class PrimaryDataParticipantModel[P <: PrimaryData: ClassTag](
   }
 
   override def determineState(
-      lastState: PrimaryDataState[P],
-      operatingPoint: PrimaryOperatingPoint[P],
-      input: ParticipantModel.ModelInput,
-  ): PrimaryDataState[P] = initialState(input)
+      lastState: PrimaryDataState[PD],
+      operatingPoint: PrimaryOperatingPoint[PD],
+      input: ModelInput,
+  ): PrimaryDataState[PD] = initialState(input)
 
-  private def getPrimaryData(receivedData: Seq[Data]): P = {
+  private def getPrimaryData(receivedData: Seq[Data]): PD = {
     receivedData
-      .collectFirst { case data: P =>
+      .collectFirst { case data: PD =>
         data
       }
       .getOrElse {
         throw new CriticalFailureException(
           "Expected primary data of type " +
-            s"${implicitly[ClassTag[P]].runtimeClass.getSimpleName}, " +
+            s"${implicitly[ClassTag[PD]].runtimeClass.getSimpleName}, " +
             s"got $receivedData"
         )
       }
   }
 
   override def determineOperatingPoint(
-      state: PrimaryDataState[P]
-  ): (PrimaryOperatingPoint[P], Option[Long]) =
+      state: PrimaryDataState[PD]
+  ): (PrimaryOperatingPoint[PD], Option[Long]) =
     (PrimaryOperatingPoint(state.data), None)
 
-  override def zeroPowerOperatingPoint: PrimaryOperatingPoint[P] =
+  override def zeroPowerOperatingPoint: PrimaryOperatingPoint[PD] =
     PrimaryOperatingPoint(primaryDataMeta.zero)
 
   override def createResults(
-      state: PrimaryDataState[P],
-      lastOperatingPoint: Option[PrimaryOperatingPoint[P]],
-      currentOperatingPoint: PrimaryOperatingPoint[P],
+      state: PrimaryDataState[PD],
+      lastOperatingPoint: Option[PrimaryOperatingPoint[PD]],
+      currentOperatingPoint: PrimaryOperatingPoint[PD],
       complexPower: ComplexPower,
       dateTime: ZonedDateTime,
   ): Iterable[SystemParticipantResult] = {
@@ -115,7 +127,7 @@ final case class PrimaryDataParticipantModel[P <: PrimaryData: ClassTag](
   }
 
   override def determineFlexOptions(
-      state: PrimaryDataState[P]
+      state: PrimaryDataState[PD]
   ): FlexibilityMessage.ProvideFlexOptions = {
     val (operatingPoint, _) = determineOperatingPoint(state)
 
@@ -123,11 +135,13 @@ final case class PrimaryDataParticipantModel[P <: PrimaryData: ClassTag](
   }
 
   override def determineOperatingPoint(
-      state: PrimaryDataState[P],
+      state: PrimaryDataState[PD],
       setPower: Power,
-  ): (PrimaryOperatingPoint[P], OperationChangeIndicator) = {
+  ): (PrimaryOperatingPoint[PD], OperationChangeIndicator) = {
+    // scale the whole primary data by the same factor that
+    // the active power set point was scaled by
     val factor = state.data.p / setPower
-    val scaledData: P = primaryDataMeta.scale(state.data, factor)
+    val scaledData: PD = primaryDataMeta.scale(state.data, factor)
 
     (PrimaryOperatingPoint(scaledData), OperationChangeIndicator())
   }
@@ -136,33 +150,33 @@ final case class PrimaryDataParticipantModel[P <: PrimaryData: ClassTag](
 
 object PrimaryDataParticipantModel {
 
-  final case class PrimaryDataState[+P <: PrimaryData](
-      data: P,
+  final case class PrimaryDataState[+PD <: PrimaryData](
+      data: PD,
       override val tick: Long,
   ) extends ModelState
 
-  trait PrimaryOperatingPoint[+P <: PrimaryData] extends OperatingPoint {
-    val data: P
+  trait PrimaryOperatingPoint[+PD <: PrimaryData] extends OperatingPoint {
+    val data: PD
 
     override val activePower: Power = data.p
   }
 
   private object PrimaryOperatingPoint {
-    def apply[P <: PrimaryData: ClassTag](
-        data: P
-    ): PrimaryOperatingPoint[P] =
+    def apply[PD <: PrimaryData: ClassTag](
+        data: PD
+    ): PrimaryOperatingPoint[PD] =
       data match {
-        case apparentPowerData: P with PrimaryDataWithComplexPower[_] =>
+        case apparentPowerData: PD with PrimaryDataWithComplexPower[_] =>
           PrimaryApparentPowerOperatingPoint(apparentPowerData)
-        case other: P with EnrichableData[_] =>
+        case other: PD with EnrichableData[_] =>
           PrimaryActivePowerOperatingPoint(other)
       }
   }
 
   private final case class PrimaryApparentPowerOperatingPoint[
-      P <: PrimaryDataWithComplexPower[_]
-  ](override val data: P)
-      extends PrimaryOperatingPoint[P] {
+      PD <: PrimaryDataWithComplexPower[_]
+  ](override val data: PD)
+      extends PrimaryOperatingPoint[PD] {
     override val reactivePower: Option[ReactivePower] = Some(data.q)
   }
 
@@ -174,7 +188,11 @@ object PrimaryDataParticipantModel {
     override val reactivePower: Option[ReactivePower] = None
   }
 
-  /** Function needs to be packaged to be store it in a val
+  /** Trait that provides functionality that can create the same result objects
+    * as the corresponding physical object.
+    *
+    * The function needs to be packaged in a trait in order to be stored in a
+    * val.
     */
   trait PrimaryResultFunc {
     def createResult(

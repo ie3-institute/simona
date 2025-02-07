@@ -52,7 +52,8 @@ import squants.{Each, Power}
 import java.time.ZonedDateTime
 
 /** Test for [[ParticipantAgent]] and [[ParticipantModelShell]] using a mock
-  * participant [[MockParticipantModel]]
+  * participant [[MockParticipantModel]]. Primary and secondary data handling is
+  * tested here.
   */
 class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 

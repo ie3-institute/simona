@@ -38,9 +38,27 @@ object Data {
     def toComplexPower: ComplexPower
   }
 
+  /** Class that provides some static functionality for primary data, such as
+    * producing zero values and scaling the data.
+    *
+    * @tparam T
+    *   The type of primary data
+    */
   sealed trait PrimaryDataMeta[T <: PrimaryData] {
+
+    /** Returns a zero value of the desired type
+      */
     def zero: T
 
+    /** Scales given primary data by the given factor
+      *
+      * @param data
+      *   The primary data to scale
+      * @param factor
+      *   The factor to scale by
+      * @return
+      *   The scaled primary data
+      */
     def scale(data: T, factor: Double): T
   }
 
