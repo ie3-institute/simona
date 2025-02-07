@@ -212,11 +212,11 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
     }
   }
 
-  "The power limit aggregating strategy with PV flex" should {
-    val powerLimit = Kilowatts(3d)
-    val strat = EmAggregatePowerOpt(powerLimit, curtailRegenerative = true)
+  "The power target aggregating strategy with PV flex" should {
+    val powerTarget = Kilowatts(3d)
+    val strat = EmAggregatePowerOpt(powerTarget, curtailRegenerative = true)
 
-    "pick closed possible power if power limit is not possible" in {
+    "pick closed possible power if power target is not possible" in {
       val flexOptions1 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
         ref = Kilowatts(5.0),
@@ -245,7 +245,7 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
       )
     }
 
-    "use min flex of to stay inside inside power limit" in {
+    "use min flex of to stay inside inside power target limits" in {
       val flexOptions1 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
         ref = Kilowatts(10.0),
@@ -274,7 +274,7 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
       )
     }
 
-    "use ref and stay inside inside power limit" in {
+    "use ref and stay inside inside power target limits" in {
       val flexOptions1 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
         ref = Kilowatts(8.0),
@@ -303,7 +303,7 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
       )
     }
 
-    "pick power limit if possible" in {
+    "pick power target if possible" in {
       val flexOptions1 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
         ref = Kilowatts(9.0),
@@ -332,7 +332,7 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
       )
     }
 
-    "pick reference inside power limit if possible" in {
+    "pick reference inside power target limits if possible" in {
       val flexOptions1 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
         ref = Kilowatts(9.0),
@@ -361,7 +361,7 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
       )
     }
 
-    "stay inside inside power limit and not reduce renewable generation" in {
+    "stay inside inside power target limits and not reduce renewable generation" in {
       val flexOptions1 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
         ref = Kilowatts(9.0),
@@ -390,7 +390,7 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
       )
     }
 
-    "use max flex of to stay inside inside power limit and not reduce renewable generation" in {
+    "use max flex of to stay inside inside power target limits and not reduce renewable generation" in {
       val flexOptions1 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
         ref = Kilowatts(1.0),
@@ -477,7 +477,7 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
       )
     }
 
-    "pick (reference power (positive) if inside the power limit" in {
+    "pick reference power (positive) if inside the power target limits" in {
       val flexOptions1 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
         ref = Kilowatts(8.0),
@@ -506,7 +506,7 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
       )
     }
 
-    "pick (negative) reference power if inside the power limit" in {
+    "pick (negative) reference power if inside the power target limits" in {
       val flexOptions1 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
         ref = Kilowatts(4.0),
@@ -594,11 +594,11 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
     }
   }
 
-  "The power limit aggregating strategy without PV flex" should {
-    val powerLimit = Kilowatts(3d)
-    val strat = EmAggregatePowerOpt(powerLimit, curtailRegenerative = false)
+  "The power target aggregating strategy without PV flex" should {
+    val powerTarget = Kilowatts(3d)
+    val strat = EmAggregatePowerOpt(powerTarget, curtailRegenerative = false)
 
-    "pick min power to get closed possible to power limit if it cannot reached" in {
+    "pick min power to get closed possible to power target if it cannot reached" in {
       val flexOptions1 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
         ref = Kilowatts(11.0),
@@ -627,7 +627,7 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
       )
     }
 
-    "pick reference power if power limit can be reached" in {
+    "pick reference power if power target can be reached" in {
       val flexOptions1 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
         ref = Kilowatts(9.0),
@@ -656,7 +656,7 @@ class EmAggregatePowerOptSpec extends UnitSpec with MockitoSugar {
       )
     }
 
-    "pick max power to get closed possible to power limit if it cannot reached" in {
+    "pick max power to get closed possible to power target if it cannot reached" in {
       val flexOptions1 = ProvideMinMaxFlexOptions(
         modelUuid = UUID.randomUUID(),
         ref = Kilowatts(1.0),

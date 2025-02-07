@@ -20,7 +20,7 @@ import java.lang.Math.signum
   * point should be chosen.
   *
   * @param targetPower
-  *   power limit that should be not be exceeded
+  *   power target that should be not be exceeded
   * @param curtailRegenerative
   *   Whether to include positive flexibility of PV/WEC in reference sum
   *   calculation
