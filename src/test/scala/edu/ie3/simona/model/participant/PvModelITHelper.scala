@@ -75,7 +75,7 @@ trait PvModelITHelper extends PvInputTestData {
   }
 
   def getResultsData: Map[ZonedDateTime, Map[String, Power]] = {
-    val fileName = "_pv/it/results2.tar.gz"
+    val fileName = "_pv/it/results.tar.gz"
     val csvRecords: Iterable[CSVRecord] = getCsvRecords(fileName)
 
     val headers = Array(

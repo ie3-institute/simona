@@ -1110,11 +1110,7 @@ class EvcsAgentModelCalculationSpec
       )
 
       emAgent.expectMsg(
-        RegisterParticipant(
-          evcsInputModelQv.getUuid,
-          evcsAgent.toTyped,
-          evcsInputModelQv,
-        )
+        RegisterControlledAsset(evcsAgent.toTyped, evcsInputModelQv)
       )
       // only receive registration message. ScheduleFlexRequest after secondary service initialized
       emAgent.expectNoMessage()
@@ -1126,7 +1122,7 @@ class EvcsAgentModelCalculationSpec
       )
 
       emAgent.expectMsg(
-        ScheduleFlexRequest(evcsInputModelQv.getUuid, 0)
+        ScheduleFlexActivation(evcsInputModelQv.getUuid, 0)
       )
 
       scheduler.expectMsg(Completion(evcsAgent.toTyped))
@@ -1252,11 +1248,7 @@ class EvcsAgentModelCalculationSpec
       )
 
       emAgent.expectMsg(
-        RegisterParticipant(
-          evcsInputModelQv.getUuid,
-          evcsAgent.toTyped,
-          evcsInputModelQv,
-        )
+        RegisterControlledAsset(evcsAgent.toTyped, evcsInputModelQv)
       )
       emAgent.expectNoMessage()
 
@@ -1267,7 +1259,7 @@ class EvcsAgentModelCalculationSpec
       )
 
       emAgent.expectMsg(
-        ScheduleFlexRequest(evcsInputModelQv.getUuid, 900)
+        ScheduleFlexActivation(evcsInputModelQv.getUuid, 900)
       )
 
       scheduler.expectMsg(Completion(evcsAgent.toTyped))
