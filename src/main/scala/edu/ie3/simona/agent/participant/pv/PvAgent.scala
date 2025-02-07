@@ -13,7 +13,7 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
-import edu.ie3.simona.config.RuntimeConfig.PvRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.SimpleRuntimeConfig
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.PvModel
 import edu.ie3.simona.model.participant.PvModel.PvRelevantData
@@ -24,7 +24,7 @@ object PvAgent {
       scheduler: ActorRef,
       initStateData: ParticipantInitializeStateData[
         PvInput,
-        PvRuntimeConfig,
+        SimpleRuntimeConfig,
         ComplexPower,
       ],
       listener: Iterable[ActorRef],
@@ -53,7 +53,7 @@ class PvAgent(
     scheduler: ActorRef,
     initStateData: ParticipantInitializeStateData[
       PvInput,
-      PvRuntimeConfig,
+      SimpleRuntimeConfig,
       ComplexPower,
     ],
     override val listener: Iterable[ActorRef],
@@ -63,7 +63,7 @@ class PvAgent(
       ConstantState.type,
       ParticipantStateData[ComplexPower],
       PvInput,
-      PvRuntimeConfig,
+      SimpleRuntimeConfig,
       PvModel,
     ](
       scheduler,

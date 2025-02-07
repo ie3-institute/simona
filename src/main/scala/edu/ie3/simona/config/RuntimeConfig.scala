@@ -9,6 +9,8 @@ package edu.ie3.simona.config
 import edu.ie3.simona.config.IoConfigUtils.RuntimeKafkaParams
 import edu.ie3.simona.config.RuntimeConfig._
 import edu.ie3.simona.config.SimonaConfig._
+import pureconfig.generic.semiauto.{deriveReader, deriveWriter}
+import pureconfig.{ConfigReader, ConfigWriter}
 
 final case class RuntimeConfig(
     selectedSubgrids: Option[Seq[Int]],
@@ -18,6 +20,27 @@ final case class RuntimeConfig(
 )
 
 object RuntimeConfig {
+  // necessary to prevent StackOverFlowErrors during compilation
+  implicit val loadRuntimeReader: ConfigReader[LoadRuntimeConfig] =
+    deriveReader[LoadRuntimeConfig]
+  implicit val loadRuntimeWriter: ConfigWriter[LoadRuntimeConfig] =
+    deriveWriter[LoadRuntimeConfig]
+
+  implicit val evcsRuntimeReader: ConfigReader[EvcsRuntimeConfig] =
+    deriveReader[EvcsRuntimeConfig]
+  implicit val evcsRuntimeWriter: ConfigWriter[EvcsRuntimeConfig] =
+    deriveWriter[EvcsRuntimeConfig]
+
+  implicit val emRuntimeReader: ConfigReader[EmRuntimeConfig] =
+    deriveReader[EmRuntimeConfig]
+  implicit val emRuntimeWriter: ConfigWriter[EmRuntimeConfig] =
+    deriveWriter[EmRuntimeConfig]
+
+  implicit val storageRuntimeReader: ConfigReader[StorageRuntimeConfig] =
+    deriveReader[StorageRuntimeConfig]
+  implicit val storageRuntimeWriter: ConfigWriter[StorageRuntimeConfig] =
+    deriveWriter[StorageRuntimeConfig]
+
   final case class RuntimeListenerConfig(
       eventsToProcess: Option[Seq[String]],
       kafka: Option[RuntimeKafkaParams],
@@ -60,65 +83,40 @@ object RuntimeConfig {
   }
 
   final case class SimpleRuntimeConfig(
-      uuids: Seq[String],
-      scaling: Double,
-      calculateMissingReactivePowerWithModel: Boolean,
+      override val calculateMissingReactivePowerWithModel: Boolean,
+      override val scaling: Double,
+      override val uuids: List[String],
   ) extends BaseRuntimeConfig
 
   final case class LoadRuntimeConfig(
-      uuids: Seq[String],
-      scaling: Double,
-      calculateMissingReactivePowerWithModel: Boolean,
+      override val calculateMissingReactivePowerWithModel: Boolean,
+      override val scaling: Double,
+      override val uuids: List[String],
       modelBehaviour: String,
       reference: String,
   ) extends BaseRuntimeConfig
 
   final case class EvcsRuntimeConfig(
-      uuids: Seq[String],
-      scaling: Double,
-      calculateMissingReactivePowerWithModel: Boolean,
-      chargingStrategy: String,
-      lowestEvSoc: Double,
-  ) extends BaseRuntimeConfig
-
-  final case class EmRuntimeConfig(
-      uuids: Seq[String],
-      scaling: Double,
-      calculateMissingReactivePowerWithModel: Boolean,
-      curtailRegenerative: Boolean,
-      aggregateFlex: String,
-  ) extends BaseRuntimeConfig
-
-  final case class HpRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean,
       override val scaling: Double,
       override val uuids: List[String],
+      chargingStrategy: String = "maxPower",
+      lowestEvSoc: Double = 0.2,
+  ) extends BaseRuntimeConfig
+
+  final case class EmRuntimeConfig(
+      override val calculateMissingReactivePowerWithModel: Boolean,
+      override val scaling: Double,
+      override val uuids: List[String],
+      curtailRegenerative: Boolean = false,
+      aggregateFlex: String = "SELF_OPT_EXCL_REG",
   ) extends BaseRuntimeConfig
 
   final case class StorageRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean,
       override val scaling: Double,
       override val uuids: List[String],
-      initialSoc: Double,
-      targetSoc: Option[Double],
+      initialSoc: Double = 0.0,
+      targetSoc: Option[Double] = None,
   ) extends BaseRuntimeConfig
-
-  final case class FixedFeedInRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: Boolean,
-      override val scaling: Double,
-      override val uuids: List[String],
-  ) extends BaseRuntimeConfig
-
-  final case class PvRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: Boolean,
-      override val scaling: Double,
-      override val uuids: List[String],
-  ) extends BaseRuntimeConfig
-
-  final case class WecRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: Boolean,
-      override val scaling: Double,
-      override val uuids: List[String],
-  ) extends BaseRuntimeConfig
-
 }

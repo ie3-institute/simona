@@ -14,20 +14,20 @@ object IoConfigUtils {
   }
 
   case class BaseCsvParams(
-      directoryPath: String,
       csvSep: String,
+      directoryPath: String,
   ) extends CsvParams
 
   case class PsdmCsvParams(
-      directoryPath: String,
       csvSep: String,
+      directoryPath: String,
       isHierarchic: Boolean,
   ) extends CsvParams
 
   case class TimeStampedDataCsvParams(
-      directoryPath: String,
       csvSep: String,
-      timePattern: String = "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]'Z'",
+      directoryPath: String,
+      timePattern: String = "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X",
   ) extends CsvParams
 
   case class InfluxDb1xParams(

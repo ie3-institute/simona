@@ -9,15 +9,19 @@ package edu.ie3.simona.config
 import com.typesafe.config.{Config, ConfigRenderOptions}
 import edu.ie3.simona.config.SimonaConfig._
 import edu.ie3.util.TimeUtil
+import pureconfig.ConfigConvert.viaStringTry
 import pureconfig._
+import pureconfig.configurable.zonedDateTimeConfigConvert
 import pureconfig.error._
 import pureconfig.generic.ProductHint
 import pureconfig.generic.auto._
 
 import java.nio.file.{Files, Path}
 import java.time.ZonedDateTime
+import java.util.UUID
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.language.implicitConversions
+import scala.util.Try
 
 case class SimonaConfig(
     simulationName: String = "simona",
@@ -39,8 +43,10 @@ object SimonaConfig {
   implicit def productHint[T]: ProductHint[T] =
     ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
 
-  private implicit val reader: ConfigReader[SimonaConfig] = ConfigReader[SimonaConfig]
-  private implicit val writer: ConfigWriter[SimonaConfig] = ConfigWriter[SimonaConfig]
+  implicit val dateTimeConverter: ConfigConvert[ZonedDateTime] =
+    zonedDateTimeConfigConvert(TimeUtil.withDefaults.getDateTimeFormatter)
+  implicit val uuidConverter: ConfigConvert[UUID] =
+    viaStringTry(str => Try(UUID.fromString(str)), uuid => uuid.toString)
 
   def apply(filePath: Path): (SimonaConfig, Config) = {
     if (!Files.isReadable(filePath)) {
@@ -76,40 +82,34 @@ object SimonaConfig {
         case Right(conf) => conf
       }
 
-
-
     val config: Config = confSrc.config()
     val simonaConfig: SimonaConfig = confSrc.at("simona").load[SimonaConfig]
 
     (simonaConfig, config)
   }
 
-
-  /**
-   * Only used to read [[SimonaConfig]] without [[Config]].
-   * <p>Example: `val simonaConfig: SimonaConfig = confSrc`
-   * @param confSrc
-   * @return
-   */
-  implicit def readWithoutTypeSafeConfig(confSrc: ConfigObjectSource) : SimonaConfig = {
-    val (simonaConfig,_) = SimonaConfig(confSrc)
+  /** Only used to read [[SimonaConfig]] without [[Config]]. <p>Example: val simonaConfig: SimonaConfig = confSrc
+    * @param confSrc
+    * @return
+    */
+  implicit def readWithoutTypeSafeConfig(
+      confSrc: ConfigObjectSource
+  ): SimonaConfig = {
+    val (simonaConfig, _) = SimonaConfig(confSrc)
     simonaConfig
   }
 
   def render(
       simonaConfig: SimonaConfig,
       options: ConfigRenderOptions,
-  ): String = {
-    ConfigWriter[SimonaConfig].to(simonaConfig).render(options)
-  }
-
+  ): String = ConfigWriter[SimonaConfig].to(simonaConfig).render(options)
 
   case class TimeConfig(
       // TODO: remove  date time defaults ?
       startDateTime: ZonedDateTime =
-        TimeUtil.withDefaults.toZonedDateTime("2011-05-01 00:00:00"),
+        TimeUtil.withDefaults.toZonedDateTime("2011-05-01T00:00:00Z"),
       endDateTime: ZonedDateTime =
-        TimeUtil.withDefaults.toZonedDateTime("2011-05-01 01:00:00"),
+        TimeUtil.withDefaults.toZonedDateTime("2011-05-01T01:00:00Z"),
       // fixme? : stopOnFailedPowerFlow in PowerFlowConfig?
       stopOnFailedPowerFlow: Boolean = false,
       schedulerReadyCheckWindow: Option[Int] = None,

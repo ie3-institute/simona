@@ -314,9 +314,7 @@ object WeatherSource {
 
     definedCoordSources match {
       case Some(
-            Some(
-              baseCsvParams @ IoConfigUtils.BaseCsvParams(directoryPath, csvSep)
-            )
+            baseCsvParams @ IoConfigUtils.BaseCsvParams(directoryPath, csvSep)
           ) =>
         val idCoordinateFactory =
           coordinateSourceConfig.gridModel.toLowerCase match {
@@ -333,14 +331,12 @@ object WeatherSource {
           ),
         )
       case Some(
-            Some(
-              sqlParams @ IoConfigUtils.BaseSqlParams(
-                jdbcUrl,
-                userName,
-                password,
-                schemaName,
-                tableName,
-              )
+            sqlParams @ IoConfigUtils.BaseSqlParams(
+              jdbcUrl,
+              userName,
+              password,
+              schemaName,
+              tableName,
             )
           ) =>
         new SqlIdCoordinateSource(
@@ -350,9 +346,7 @@ object WeatherSource {
           new SqlIdCoordinateFactory(),
         )
       case Some(
-            Some(
-              _: WeatherSampleParams
-            )
+            _: WeatherSampleParams
           ) =>
         // sample coordinates, no check required
         SampleWeatherSource.SampleIdCoordinateSource

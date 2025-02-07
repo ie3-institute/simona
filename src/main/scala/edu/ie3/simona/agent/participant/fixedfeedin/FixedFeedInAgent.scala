@@ -11,11 +11,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
-import edu.ie3.simona.config.RuntimeConfig.{
-  FixedFeedInRuntimeConfig,
-  LoadRuntimeConfig,
-  SimpleRuntimeConfig,
-}
+import edu.ie3.simona.config.RuntimeConfig.SimpleRuntimeConfig
 import edu.ie3.simona.model.participant.CalcRelevantData.FixedRelevantData
 import edu.ie3.simona.model.participant.FixedFeedInModel
 import edu.ie3.simona.model.participant.ModelState.ConstantState
@@ -26,7 +22,7 @@ object FixedFeedInAgent {
       scheduler: ActorRef,
       initStateData: ParticipantInitializeStateData[
         FixedFeedInInput,
-        FixedFeedInRuntimeConfig,
+        SimpleRuntimeConfig,
         ComplexPower,
       ],
       listener: Iterable[ActorRef],
@@ -45,7 +41,7 @@ class FixedFeedInAgent(
     scheduler: ActorRef,
     initStateData: ParticipantInitializeStateData[
       FixedFeedInInput,
-      FixedFeedInRuntimeConfig,
+      SimpleRuntimeConfig,
       ComplexPower,
     ],
     override val listener: Iterable[ActorRef],
@@ -55,7 +51,7 @@ class FixedFeedInAgent(
       ConstantState.type,
       ParticipantStateData[ComplexPower],
       FixedFeedInInput,
-      FixedFeedInRuntimeConfig,
+      SimpleRuntimeConfig,
       FixedFeedInModel,
     ](scheduler, initStateData)
     with FixedFeedInAgentFundamentals {

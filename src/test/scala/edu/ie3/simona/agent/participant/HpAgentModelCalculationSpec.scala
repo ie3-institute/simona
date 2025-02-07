@@ -95,8 +95,7 @@ class HpAgentModelCalculationSpec
   val hpInput: HpInput = hpInputModel
 
   private val simonaConfig: SimonaConfig =
-    ConfigSource
-      .empty
+    ConfigSource.empty
       .withFallback(ConfigSource.file(new File(configFile)))
 
   private val defaultOutputConfig = NotifierConfig(

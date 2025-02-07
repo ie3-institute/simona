@@ -32,7 +32,7 @@ import edu.ie3.simona.agent.participant.statedata.{
 }
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
-import edu.ie3.simona.config.RuntimeConfig.HpRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.SimpleRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   AgentInitializationException,
@@ -69,7 +69,7 @@ trait HpAgentFundamentals
       HpState,
       ParticipantStateData[ComplexPowerAndHeat],
       HpInput,
-      HpRuntimeConfig,
+      SimpleRuntimeConfig,
       HpModel,
     ] {
   this: HpAgent =>
@@ -322,7 +322,7 @@ trait HpAgentFundamentals
     */
   override def determineModelBaseStateData(
       inputModel: InputModelContainer[HpInput],
-      modelConfig: HpRuntimeConfig,
+      modelConfig: SimpleRuntimeConfig,
       services: Iterable[SecondaryDataService[_ <: Data.SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
@@ -447,7 +447,7 @@ trait HpAgentFundamentals
     */
   override def buildModel(
       inputModel: InputModelContainer[HpInput],
-      modelConfig: HpRuntimeConfig,
+      modelConfig: SimpleRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
   ): HpModel = inputModel match {

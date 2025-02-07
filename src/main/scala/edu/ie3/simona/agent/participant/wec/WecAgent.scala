@@ -13,7 +13,7 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService
 import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.ActorWeatherService
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
-import edu.ie3.simona.config.RuntimeConfig.{SimpleRuntimeConfig, WecRuntimeConfig}
+import edu.ie3.simona.config.RuntimeConfig.SimpleRuntimeConfig
 import edu.ie3.simona.model.participant.ModelState.ConstantState
 import edu.ie3.simona.model.participant.WecModel
 import edu.ie3.simona.model.participant.WecModel._
@@ -24,7 +24,7 @@ object WecAgent {
       scheduler: ActorRef,
       initStateData: ParticipantInitializeStateData[
         WecInput,
-        WecRuntimeConfig,
+        SimpleRuntimeConfig,
         ComplexPower,
       ],
       listener: Iterable[ActorRef],
@@ -53,7 +53,7 @@ class WecAgent(
     scheduler: ActorRef,
     initStateData: ParticipantInitializeStateData[
       WecInput,
-      WecRuntimeConfig,
+      SimpleRuntimeConfig,
       ComplexPower,
     ],
     override val listener: Iterable[ActorRef],
@@ -63,7 +63,7 @@ class WecAgent(
       ConstantState.type,
       ParticipantStateData[ComplexPower],
       WecInput,
-      WecRuntimeConfig,
+      SimpleRuntimeConfig,
       WecModel,
     ](scheduler, initStateData)
     with WecAgentFundamentals {

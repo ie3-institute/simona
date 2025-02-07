@@ -204,9 +204,9 @@ object ConfigUtil {
 
         case OutputConfig.ParticipantBaseOutputConfig(
               _,
-              powerRequestReply,
               simulationResult,
               flexResult,
+              powerRequestReply,
             ) =>
           NotifierConfig(simulationResult, powerRequestReply, flexResult)
 
@@ -215,9 +215,9 @@ object ConfigUtil {
 
         case OutputConfig.ParticipantBaseOutputConfig(
               notifier,
-              powerRequestReply,
               simulationResult,
               flexResult,
+              powerRequestReply,
             ) =>
           try {
             val id = NotifierIdentifier(notifier)

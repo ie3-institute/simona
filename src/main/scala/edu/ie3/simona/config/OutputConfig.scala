@@ -11,7 +11,7 @@ import edu.ie3.simona.config.OutputConfig._
 
 final case class OutputConfig(
     base: OutputBaseConfig,
-    flex: Boolean,
+    flex: Boolean = false,
     grid: GridOutputConfig,
     log: LogOutputConfig,
     participant: ParticipantOutputConfig,
@@ -81,7 +81,7 @@ object OutputConfig {
   case class ParticipantBaseOutputConfig(
       override val notifier: String,
       override val simulationResult: Boolean,
-      flexResult: Boolean,
+      flexResult: Boolean = false,
       powerRequestReply: Boolean,
   ) extends BaseOutputConfig(notifier, simulationResult)
 

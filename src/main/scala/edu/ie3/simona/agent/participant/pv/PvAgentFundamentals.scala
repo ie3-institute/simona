@@ -30,7 +30,7 @@ import edu.ie3.simona.agent.participant.statedata.ParticipantStateData
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.InputModelContainer
 import edu.ie3.simona.agent.state.AgentState
 import edu.ie3.simona.agent.state.AgentState.Idle
-import edu.ie3.simona.config.RuntimeConfig.PvRuntimeConfig
+import edu.ie3.simona.config.RuntimeConfig.SimpleRuntimeConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.agent.{
   AgentInitializationException,
@@ -72,7 +72,7 @@ protected trait PvAgentFundamentals
       ConstantState.type,
       ParticipantStateData[ComplexPower],
       PvInput,
-      PvRuntimeConfig,
+      SimpleRuntimeConfig,
       PvModel,
     ] {
   this: PvAgent =>
@@ -106,7 +106,7 @@ protected trait PvAgentFundamentals
     */
   override def determineModelBaseStateData(
       inputModel: InputModelContainer[PvInput],
-      modelConfig: PvRuntimeConfig,
+      modelConfig: SimpleRuntimeConfig,
       services: Iterable[SecondaryDataService[_ <: SecondaryData]],
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
@@ -169,7 +169,7 @@ protected trait PvAgentFundamentals
 
   override def buildModel(
       inputModel: InputModelContainer[PvInput],
-      modelConfig: PvRuntimeConfig,
+      modelConfig: SimpleRuntimeConfig,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
   ): PvModel = PvModel(

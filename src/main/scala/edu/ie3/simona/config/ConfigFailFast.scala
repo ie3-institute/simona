@@ -560,7 +560,7 @@ object ConfigFailFast extends LazyLogging {
         checkInfluxDb1xParams("WeatherSource", url, database)
       case Some(params: SqlParams) =>
         checkSqlParams(params)
-      case Some(_: SampleParams.type) =>
+      case Some(_: WeatherSampleParams) =>
         // sample weather, no check required
         // coordinate source must be sample coordinate source
         if (weatherDataSourceCfg.coordinateSource.sampleParams.isEmpty) {

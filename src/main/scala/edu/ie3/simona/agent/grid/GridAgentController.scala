@@ -327,7 +327,7 @@ class GridAgentController(
     case input: FixedFeedInInput =>
       buildFixedFeedIn(
         input,
-        participantConfigUtil.getOrDefault[FixedFeedInRuntimeConfig](
+        participantConfigUtil.getOrDefault[SimpleRuntimeConfig](
           input.getUuid
         ),
         environmentRefs.primaryServiceProxy,
@@ -355,7 +355,7 @@ class GridAgentController(
     case input: PvInput =>
       buildPv(
         input,
-        participantConfigUtil.getOrDefault[PvRuntimeConfig](
+        participantConfigUtil.getOrDefault[SimpleRuntimeConfig](
           input.getUuid
         ),
         environmentRefs.primaryServiceProxy,
@@ -370,7 +370,7 @@ class GridAgentController(
     case input: WecInput =>
       buildWec(
         input,
-        participantConfigUtil.getOrDefault[WecRuntimeConfig](
+        participantConfigUtil.getOrDefault[SimpleRuntimeConfig](
           input.getUuid
         ),
         environmentRefs.primaryServiceProxy,
@@ -407,7 +407,7 @@ class GridAgentController(
           buildHp(
             hpInput,
             thermalGrid,
-            participantConfigUtil.getOrDefault[HpRuntimeConfig](
+            participantConfigUtil.getOrDefault[SimpleRuntimeConfig](
               hpInput.getUuid
             ),
             environmentRefs.primaryServiceProxy,
@@ -471,7 +471,7 @@ class GridAgentController(
     */
   private def buildFixedFeedIn(
       fixedFeedInInput: FixedFeedInInput,
-      modelConfiguration: FixedFeedInRuntimeConfig,
+      modelConfiguration: SimpleRuntimeConfig,
       primaryServiceProxy: ClassicRef,
       simulationStartDate: ZonedDateTime,
       simulationEndDate: ZonedDateTime,
@@ -565,7 +565,7 @@ class GridAgentController(
     * @param pvInput
     *   Pv input model to derive information from
     * @param modelConfiguration
-    *   User-provided configuration for this specific load model
+    *   User-provided configuration for this specific pv model
     * @param primaryServiceProxy
     *   Reference to the primary data service proxy
     * @param weatherService
@@ -587,7 +587,7 @@ class GridAgentController(
     */
   private def buildPv(
       pvInput: PvInput,
-      modelConfiguration: PvRuntimeConfig,
+      modelConfiguration: SimpleRuntimeConfig,
       primaryServiceProxy: ClassicRef,
       weatherService: ClassicRef,
       simulationStartDate: ZonedDateTime,
@@ -707,7 +707,7 @@ class GridAgentController(
   private def buildHp(
       hpInput: HpInput,
       thermalGrid: ThermalGrid,
-      modelConfiguration: HpRuntimeConfig,
+      modelConfiguration: SimpleRuntimeConfig,
       primaryServiceProxy: ClassicRef,
       weatherService: ClassicRef,
       requestVoltageDeviationThreshold: Double,
@@ -765,7 +765,7 @@ class GridAgentController(
     */
   private def buildWec(
       wecInput: WecInput,
-      modelConfiguration: WecRuntimeConfig,
+      modelConfiguration: SimpleRuntimeConfig,
       primaryServiceProxy: ClassicRef,
       weatherService: ClassicRef,
       simulationStartDate: ZonedDateTime,

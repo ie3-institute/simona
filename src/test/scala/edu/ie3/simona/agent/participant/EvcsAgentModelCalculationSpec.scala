@@ -101,7 +101,6 @@ class EvcsAgentModelCalculationSpec
       lowestEvSoc = 0.2,
     )
 
-
   /* Alter the input model to have a voltage sensitive reactive power calculation */
   private val evcsInputModelQv = evcsInputModel
     .copy()
