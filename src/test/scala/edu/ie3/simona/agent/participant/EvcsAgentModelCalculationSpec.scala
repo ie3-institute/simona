@@ -1556,8 +1556,6 @@ class EvcsAgentModelCalculationSpec
           result.getSoc should beEquivalentTo(0d.asPercent)
       }
 
-
-
       /* TICK 11700
          - ev11700 arrives
          - charging with 16 kW
