@@ -56,11 +56,11 @@ import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.quantities.PowerSystemUnits.{MEGAVAR, MEGAWATT, PU}
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
-import edu.ie3.util.scala.quantities.Megavars
+import edu.ie3.util.scala.quantities.{Kilovars, Megavars}
 import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
 import org.apache.pekko.actor.{ActorRef, FSM}
-import squants.energy.Megawatts
+import squants.energy.{Kilowatts, Megawatts}
 import squants.{Dimensionless, Each, Power}
 
 import java.time.ZonedDateTime
@@ -427,20 +427,23 @@ protected trait EvcsAgentFundamentals
     }
 
     // send back departing EVs
-    if (requestedDepartingEvs.nonEmpty) {
+    val updatedResultValueStore = if (requestedDepartingEvs.nonEmpty) {
       evServiceRef ! DepartingEvsResponse(
         baseStateData.modelUuid,
         departingEvs,
       )
-    }
 
-    /* Calculate evcs power for interval since last update, save for updating value store, and inform listeners */
-    val updatedResultValueStore =
+      /* Calculate evcs power for interval since last update, save for updating value store, and inform listeners */
+
       determineResultsAnnounceUpdateValueStore(
         lastState,
         tick,
         baseStateData,
       )
+
+    } else {
+      baseStateData.resultValueStore
+    }
 
     val stayingSchedules =
       lastState.schedule
@@ -519,6 +522,14 @@ protected trait EvcsAgentFundamentals
           newState,
         )
 
+        // if the lastState's tick is the same as the actual tick the results have already been determined and announced when we handled the departedEvs
+        if (lastState.tick != tick) {
+          determineResultsAnnounceUpdateValueStore(
+            lastState,
+            currentTick,
+            modelBaseStateData,
+          )
+        }
         /* Update the base state data with the updated state data store */
         modelBaseStateData.copy(
           stateDataStore = updatedStateDataStore
@@ -527,15 +538,6 @@ protected trait EvcsAgentFundamentals
         // Empty arrivals means that there is no data for this EVCS at the current tick,
         // thus we just return and wait for the next activation
         modelBaseStateData
-    }
-
-    // if the lastState's tick is the same as the actual tick the results have already been determined and announced when we handled the departedEvs
-    if (lastState.tick != tick) {
-      determineResultsAnnounceUpdateValueStore(
-        lastState,
-        currentTick,
-        modelBaseStateData,
-      )
     }
 
     // We're only here if we're not flex-controlled, thus sending a Completion is always right
@@ -784,8 +786,27 @@ protected trait EvcsAgentFundamentals
 
     evcsResults.foldLeft(modelBaseStateData.resultValueStore) {
       case (resultValueStore, result) =>
+        //   if p and q values of the result and the last result in ValueStore are equal we will not announce the result
+        val pEqual = Megawatts(
+          result.getP.to(MEGAWATT).getValue.doubleValue()
+        ) == resultValueStore
+          .last()
+          .getOrElse(-1, ComplexPower(Kilowatts(-1), Kilovars(-1)))
+          ._2
+          .p
+        val qEqual = Megavars(
+          result.getQ.to(MEGAVAR).getValue.doubleValue()
+        ) == resultValueStore
+          .last()
+          .getOrElse(-1, ComplexPower(Kilowatts(-1), Kilovars(-1)))
+          ._2
+          .q
+        val announceToResultToListeners = !(pEqual && qEqual)
+
         /* Inform the listeners about new result */
-        if (modelBaseStateData.outputConfig.simulationResultInfo)
+        if (
+          modelBaseStateData.outputConfig.simulationResultInfo && announceToResultToListeners
+        )
           notifyListener(
             ParticipantResultEvent(result)
           )

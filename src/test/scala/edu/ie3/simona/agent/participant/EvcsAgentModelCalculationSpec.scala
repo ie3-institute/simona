@@ -1556,13 +1556,7 @@ class EvcsAgentModelCalculationSpec
           result.getSoc should beEquivalentTo(0d.asPercent)
       }
 
-      resultListener.expectMsgPF() {
-        case ParticipantResultEvent(result: EvcsResult) =>
-          result.getInputModel shouldBe evcsInputModelQv.getUuid
-          result.getTime shouldBe 4500.toDateTime
-          result.getP should beEquivalentTo(11d.asKiloWatt)
-          result.getQ should beEquivalentTo(0d.asMegaVar)
-      }
+
 
       /* TICK 11700
          - ev11700 arrives
