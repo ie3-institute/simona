@@ -569,6 +569,7 @@ protected trait ParticipantAgentFundamentals[
               stateData.data,
               tick,
             )
+            unstashAll()
             goto(Idle) using updatedStateData
 
           } else {
