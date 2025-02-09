@@ -15,6 +15,7 @@ import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.collection.mutable.PriorityMultiBiSet
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import squants.Power
+import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -216,6 +217,8 @@ object EmDataCore {
       currentSetPower: SetPowerAndControlSignal,
   ) {
 
+    def getAwaitedConnectedAgents: Set[UUID] = awaitedConnectedAgents
+
     def getCorrespondences: FlexCorrespondenceStore = correspondences
 
     /** Removes and returns flex requests scheduled for the current tick, which
@@ -298,6 +301,8 @@ object EmDataCore {
     def gotSetPoint: Boolean = currentSetPower.isUpToDate
 
     def isCompleteAndGotSetPoint: Boolean = isComplete & gotSetPoint
+
+    def expectNoSetPointOrGotSetPoint: Boolean = nextSetPointTick.isEmpty | currentSetPower.isUpToDate
 
     /** Returns all flex options that are currently relevant, which can include
       * flex options received at an earlier tick
@@ -561,12 +566,16 @@ object EmDataCore {
                                         setPower: Option[Power],
                                         controlSignal: Boolean
                                       ) {
-    def getSetPower: Option[Power] = setPower
+    def getSetPowerOrZero: Power = setPower.getOrElse(zeroKW)
 
     def getControlSignal: Boolean = controlSignal
 
     def isUpToDate: Boolean = {
       setPower.isDefined
+    }
+
+    override def toString: String = {
+      s"[SetPowerAndControlSignal] { setPower = $setPower, controlSignal = $controlSignal }"
     }
   }
 }

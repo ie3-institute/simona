@@ -307,7 +307,7 @@ object ExtResultDataProvider {
                   // //ctx.log.info(s"[hDRM] updatedResultStorage = $updatedResultStorage")
 
                   if (updatedReceiveDataMap.nonComplete) { // There are still results missing...
-                    //ctx.log.info(s"[${serviceStateData.currentTick}] There are still results missing...")
+                    //ctx.log.info(s"[${serviceStateData.currentTick}] There are still results missing...: ${updatedReceiveDataMap.getExpectedKeys}")
                     idle(
                       serviceStateData.copy(
                         receiveDataMap = Some(updatedReceiveDataMap),

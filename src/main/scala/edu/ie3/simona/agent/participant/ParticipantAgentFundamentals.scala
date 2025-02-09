@@ -638,6 +638,7 @@ protected trait ParticipantAgentFundamentals[
             ),
             tick,
           )
+          unstashAll()
           goto(Idle) using updatedStateData
 
         case _: BaseStateData.ModelBaseStateData[_, _, _, _] =>
