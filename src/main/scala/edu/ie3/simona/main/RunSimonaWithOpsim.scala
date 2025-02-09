@@ -9,7 +9,7 @@ package edu.ie3.simona.main
 import edu.ie3.simona.config.{ArgsParser, ConfigFailFast, SimonaConfig}
 import edu.ie3.simona.main.RunSimona._
 import edu.ie3.simona.sim.SimonaSim
-import edu.ie3.simona.sim.setup.SimonaMosaikSetup
+import edu.ie3.simona.sim.setup.{SimonaOpsimSetup, SimonaSimpleExtSimulationSetup, SimonaStandaloneSetup}
 import org.apache.pekko.actor.typed.scaladsl.AskPattern._
 import org.apache.pekko.actor.typed.{ActorSystem, Scheduler}
 import org.apache.pekko.util.Timeout
@@ -21,11 +21,11 @@ import scala.concurrent.duration.DurationInt
   *
   * @since 01.07.20
   */
-object RunSimonaWithMosaik extends RunSimona[SimonaMosaikSetup] {
+object RunSimonaWithOpsim extends RunSimona[SimonaOpsimSetup] {
 
   override implicit val timeout: Timeout = Timeout(12.hours)
 
-  override def setup(args: Array[String]): SimonaMosaikSetup = {
+  override def setup(args: Array[String]): SimonaOpsimSetup = {
     // get the config and prepare it with the provided args
     val (arguments, parsedConfig) = ArgsParser.prepareConfig(args)
 
@@ -33,16 +33,16 @@ object RunSimonaWithMosaik extends RunSimona[SimonaMosaikSetup] {
     val simonaConfig = SimonaConfig(parsedConfig)
     ConfigFailFast.check(parsedConfig, simonaConfig)
 
-    SimonaMosaikSetup(
+    SimonaOpsimSetup(
       parsedConfig,
-      SimonaMosaikSetup.buildResultFileHierarchy(parsedConfig),
+      SimonaOpsimSetup.buildResultFileHierarchy(parsedConfig),
       mainArgs = arguments.mainArgs,
-      mosaikIP = arguments.extAddress,
-      mosaikMappingPath = arguments.mappingPath,
+      opsimIP = arguments.extAddress,
+      opsimMapping = arguments.mappingPath
     )
   }
 
-  override def run(simonaSetup: SimonaMosaikSetup): Boolean = {
+  override def run(simonaSetup: SimonaOpsimSetup): Boolean = {
     val simonaSim = ActorSystem(
       SimonaSim(simonaSetup),
       name = "Simona",
