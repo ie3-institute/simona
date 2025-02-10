@@ -12,7 +12,10 @@ import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, PrimaryDataMeta}
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.participant2.ParticipantModel.{ModelState, OperatingPoint}
+import edu.ie3.simona.model.participant2.ParticipantModel.{
+  ModelState,
+  OperatingPoint,
+}
 import edu.ie3.simona.model.participant2.PrimaryDataParticipantModel.PrimaryResultFunc
 
 import java.time.ZonedDateTime
