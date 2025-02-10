@@ -17,6 +17,7 @@ import edu.ie3.simona.model.participant2.ParticipantModel.{
   OperatingPoint,
 }
 import edu.ie3.simona.model.participant2.PrimaryDataParticipantModel.PrimaryResultFunc
+import edu.ie3.simona.model.participant2.load.LoadModel
 
 import java.time.ZonedDateTime
 import scala.reflect.ClassTag
@@ -52,6 +53,10 @@ object ParticipantModelInit {
       }).build()
 
     (scaledParticipantInput, modelConfig) match {
+      case (input: LoadInput, _) =>
+        LoadModel(input)
+      case (input: PvInput, _) =>
+        PvModel(input)
       case (input, config) =>
         throw new CriticalFailureException(
           s"Handling the input model ${input.getClass.getSimpleName} or " +
