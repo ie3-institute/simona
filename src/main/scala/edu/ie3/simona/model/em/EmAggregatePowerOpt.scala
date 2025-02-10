@@ -19,14 +19,14 @@ import java.lang.Math.signum
   * calculation. If the target limit can't be met, the closes possible operation
   * point should be chosen.
   *
-  * @param targetPower
-  *   power target that should be not be exceeded
+  * @param targetPowerAbs
+  *   absolute power target value that should be not be exceeded
   * @param curtailRegenerative
   *   Whether to include positive flexibility of PV/WEC in reference sum
   *   calculation
   */
 final case class EmAggregatePowerOpt(
-    targetPower: Power = zeroKW,
+    targetPowerAbs: Power = zeroKW,
     curtailRegenerative: Boolean,
 ) extends EmAggregateFlex {
 
@@ -64,11 +64,11 @@ final case class EmAggregatePowerOpt(
             }
         }
 
-    val target = if (targetPower.abs < refSum.abs) {
-      targetPower * signum(refSum.toKilowatts)
+    val targetAbs = if (targetPowerAbs.abs < refSum.abs) {
+      targetPowerAbs * signum(refSum.toKilowatts)
     } else refSum
 
-    val refAgg = minSum.max(maxRefSum.min(target))
+    val refAgg = minSum.max(maxRefSum.min(targetAbs))
 
     (refAgg, minSum, maxSum)
   }

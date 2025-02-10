@@ -132,23 +132,27 @@ object EmModelShell {
       case "SELF_OPT"          => EmAggregatePowerOpt(zeroKW, true)
       case "SIMPLE_SUM"        => EmAggregateSimpleSum
 
-      case powerTargetString if powerTargetString.startsWith("SELF_POWER_") =>
+      case powerTargetAbsString
+          if powerTargetAbsString.startsWith("SELF_POWER_") =>
         val pattern = """SELF_POWER_([\d.]+)(_EXCL_REG)?""".r
-        powerTargetString match {
+        powerTargetAbsString match {
           case pattern(value, exclReg) =>
             try {
-              val powerTarget = BigDecimal(value)
+              val powerTargetAbs = BigDecimal(value)
               val curtailRegenerative = exclReg == null
-              EmAggregatePowerOpt(Kilowatts(powerTarget), curtailRegenerative)
+              EmAggregatePowerOpt(
+                Kilowatts(powerTargetAbs),
+                curtailRegenerative,
+              )
             } catch {
               case _: NumberFormatException =>
                 throw new CriticalFailureException(
-                  s"Invalid numeric value in aggregate flex strategy: $powerTargetString"
+                  s"Invalid numeric value in aggregate flex strategy: $powerTargetAbsString"
                 )
             }
           case _ =>
             throw new CriticalFailureException(
-              s"Invalid format for aggregate flex strategy: $powerTargetString"
+              s"Invalid format for aggregate flex strategy: $powerTargetAbsString"
             )
         }
       case unknown =>
