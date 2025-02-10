@@ -175,9 +175,7 @@ class ThermalGridIT
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 0.toDateTime
           hpResult.getP should equalWithTolerance(pRunningHp)
-          hpResult.getQ should equalWithTolerance(
-            qRunningHp
-          )
+          hpResult.getQ should equalWithTolerance(qRunningHp)
       }
 
       Range(0, 2)
