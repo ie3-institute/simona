@@ -221,7 +221,7 @@ class ThermalGridIT
       Storage is fully heated up
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 17.37 kWh
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-      Heat pump: stays on since it was on and the house as additional demand
+      Heat pump: stays on since it was on and the house has possible demand
        */
 
       heatPumpAgent ! Activation(3417)
@@ -278,7 +278,7 @@ class ThermalGridIT
       New weather data (unchanged) incoming
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 8.41 kWh
       ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-      Heat pump: stays on
+      Heat pump: stays on, we got triggered by incoming weather data. So we continue with same behaviour as before
        */
 
       heatPumpAgent ! Activation(7200L)
