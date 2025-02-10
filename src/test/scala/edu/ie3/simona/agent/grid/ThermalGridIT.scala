@@ -768,10 +768,9 @@ class ThermalGridIT
 
       /* TICK 61673
       Storage will be fully charged
-      House demand heating : requiredDemand = ?0.00 kWh, possibleDemand = 0.00 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-      DomesticWaterStorage : tba
-      Heat pump: stays on to refill the storage now
+      House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
+      ThermalStorage       : requiredDemand = 0.00 kWh, possibleDemand = 0.00 kWh
+      Heat pump: turned off
        */
 
       heatPumpAgent ! Activation(61673)
