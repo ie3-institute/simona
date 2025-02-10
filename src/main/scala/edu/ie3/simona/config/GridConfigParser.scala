@@ -37,14 +37,14 @@ object GridConfigParser {
         .orElse(voltLvl.flatMap(voltLvlMap.get))
   }
 
-  def parseWithDefaults[C, E, GC](
+  def parseWithDefaults[C, E, GridConfig](
       configs: Option[List[C]],
       gridIds: C => Option[List[String]],
       voltLvls: C => Option[List[VoltLvlConfig]],
       elementFcn: C => E,
-      builder: (Map[Int, E], Map[VoltageLevel, E]) => GC,
-      defaults: GC,
-  )(implicit gridConfigType: String): GC = configs match {
+      builder: (Map[Int, E], Map[VoltageLevel, E]) => GridConfig,
+      defaults: GridConfig,
+  )(implicit gridConfigType: String): GridConfig = configs match {
     case Some(configElements) if configElements.nonEmpty =>
       // units for parsing are not initialized by default
       // hence we call them manually
