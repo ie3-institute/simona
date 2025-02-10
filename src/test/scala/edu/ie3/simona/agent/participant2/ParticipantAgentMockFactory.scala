@@ -25,7 +25,9 @@ import org.apache.pekko.actor.typed.scaladsl.Behaviors
 
 object ParticipantAgentMockFactory {
 
-  /** Needed because activation adapter needs to be created and communicated
+  /** Creates a [[ParticipantAgent]] behavior with given parameters. This detour
+    * is needed because normally, [[ParticipantAgentInit]] creates adapters that
+    * are handed over to [[ParticipantAgent]].
     */
   def create(
       modelShell: ParticipantModelShell[_, _],

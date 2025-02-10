@@ -32,7 +32,10 @@ import squants.Dimensionless
 import java.time.ZonedDateTime
 
 /** This class helps collect all information required for the initialization of
-  * a [[ParticipantAgent]].
+  * a [[ParticipantAgent]]. When initialization succeeds, a [[ParticipantAgent]]
+  * behavior is returned, having the first simulation activation already
+  * scheduled with the corresponding [[edu.ie3.simona.scheduler.Scheduler]] or
+  * [[edu.ie3.simona.agent.em.EmAgent]].
   */
 object ParticipantAgentInit {
 

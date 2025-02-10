@@ -46,6 +46,9 @@ import squants.Each
 
 import java.time.ZonedDateTime
 
+/** Testing [[ParticipantAgentInit]], which means testing the complete
+  * initialization process of [[ParticipantAgent]] up until the first tick
+  */
 class ParticipantAgentInitSpec
     extends ScalaTestWithActorTestKit
     with UnitSpec

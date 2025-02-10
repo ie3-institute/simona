@@ -29,6 +29,16 @@ import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Power => QuantPower}
 
+/** Mock [[ParticipantModel]] to test various functionality of
+  * [[edu.ie3.simona.model.participant2.ParticipantModelShell]] and
+  * [[ParticipantAgent]].
+  *
+  * @param mockActivationTicks
+  *   Map where a current tick maps to the next activation tick
+  * @param mockChangeAtNext
+  *   Set of current ticks when an activation at the next tick is desired (used
+  *   with flexibility)
+  */
 class MockParticipantModel(
     override val uuid: UUID = UUID.fromString("0-0-0-0-1"),
     override val id: String = "MockParticipant 1",
