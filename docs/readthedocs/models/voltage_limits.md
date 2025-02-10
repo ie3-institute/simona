@@ -3,7 +3,7 @@
 # Voltage Limits
 
 The voltage limits are built up by specifying the included voltage levels. The following table describes typical network
-levels and the corresponding parameterization. They are primarily used for the optional congestion management.
+levels and their parameterization. They are primarily used for the optional congestion management.
 
 ## Default voltage limits
 
@@ -48,8 +48,8 @@ levels and the corresponding parameterization. They are primarily used for the o
 ## Configuration of the voltage limits
 
 To configure the voltage limits, the voltage levels listed in the table above must be selected and integrated into the
-config. The individual voltage level configuration (voltLvls) according to the example below. Each voltage level is composed
-of the identifier and the nominal voltage.
+config. The individual voltage level configuration (voltLvls) according to the example below. Each voltage level consists
+of an identifier and the nominal voltage.
 
 ```
 simona.gridConfig.voltageLimits = [

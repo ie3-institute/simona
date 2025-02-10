@@ -13,25 +13,25 @@ import edu.ie3.simona.util.CollectionUtils
 import edu.ie3.util.quantities.PowerSystemUnits
 
 object GridConfigParser {
-  abstract class GridConfig[GC](
-      protected val gridIdMap: Map[Int, GC],
-      protected val voltLvlMap: Map[VoltageLevel, GC],
+  abstract class GridConfig[GridConfig](
+      protected val gridIdMap: Map[Int, GridConfig],
+      protected val voltLvlMap: Map[VoltageLevel, GridConfig],
   ) {
 
-    /** Returns a [[GC]] based on the provided gridId or the voltLvl as fallback
-      * if available
+    /** Returns a [[GridConfig]] based on the provided gridId or the voltLvl as
+      * fallback if available
       *
       * @param gridId
       *   the gridId the refSystem is wanted for
       * @param voltLvl
-      *   the voltLvL that is valid for the grid that is wanted
+      *   the voltLvL that is valid for this grid
       * @return
       *   Some(refSystem) if available or None if unavailable
       */
     final def find(
         gridId: Int,
         voltLvl: Option[VoltageLevel] = None,
-    ): Option[GC] =
+    ): Option[GridConfig] =
       gridIdMap
         .get(gridId)
         .orElse(voltLvl.flatMap(voltLvlMap.get))

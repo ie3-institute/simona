@@ -72,7 +72,7 @@ object GridAgentData {
     * @param refSystem
     *   of the grid
     * @param voltageLimits
-    *   of the grid
+    *   of the grid, used to evaluate voltage congestion
     */
   final case class GridAgentInitData(
       subGridContainer: SubGridContainer,

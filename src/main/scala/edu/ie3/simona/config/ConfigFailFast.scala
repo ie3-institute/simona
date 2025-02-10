@@ -502,7 +502,7 @@ object ConfigFailFast extends LazyLogging {
         "voltage limit",
       )
 
-      if (limit.vMin > limit.vMax) {
+      if (limit.vMin >= limit.vMax) {
         throw new InvalidConfigParameterException(
           s"Invalid value for vMin and vMax from provided voltage limit $limit. Is vMin smaller than vMax?"
         )
