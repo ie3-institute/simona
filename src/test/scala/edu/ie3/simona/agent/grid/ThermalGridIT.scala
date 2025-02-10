@@ -277,7 +277,6 @@ class ThermalGridIT
           }
         }
 
-      // FIXME? Why next tick 3417?
       scheduler.expectMessage(Completion(heatPumpAgent, Some(3417)))
 
       /* TICK 7200
@@ -350,7 +349,6 @@ class ThermalGridIT
           }
         }
 
-      // FIXME? Why next tick 7200?
       scheduler.expectMessage(Completion(heatPumpAgent, Some(7200L)))
 
       /* TICK 10798
@@ -407,7 +405,6 @@ class ThermalGridIT
           }
         }
 
-      // FIXME? Why next tick 10798?
       scheduler.expectMessage(Completion(heatPumpAgent, Some(10798)))
 
       /* TICK 28800

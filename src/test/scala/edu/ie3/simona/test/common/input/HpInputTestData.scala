@@ -32,7 +32,7 @@ import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
 import java.util.UUID
-import scala.jdk.CollectionConverters.{SeqHasAsJava, _}
+import scala.jdk.CollectionConverters._
 
 trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
 
