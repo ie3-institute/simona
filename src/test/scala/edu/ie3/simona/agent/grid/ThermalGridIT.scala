@@ -10,13 +10,13 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.Acto
 import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
+import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.{
   CylindricalThermalStorageResult,
   ParticipantResultEvent,
   ThermalHouseResult,
 }
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.model.thermal.ThermalHouseTestData
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
@@ -145,6 +145,8 @@ class ThermalGridIT
       )
       val weatherDependentAgents = Seq(heatPumpAgent)
 
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(0)))
+
       /* TICK 0
       Start of Simulation
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand ~ 15 kWh
@@ -213,7 +215,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(0L)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(3417L)))
 
       /* TICK 3417
       Storage is fully heated up
@@ -270,7 +272,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(3417)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(7200)))
 
       /* TICK 7200
       New weather data (unchanged) incoming
@@ -340,7 +342,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(7200L)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(10798)))
 
       /* TICK 10798
       House reaches upper temperature boundary
@@ -394,7 +396,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(10798)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(28800)))
 
       /* TICK 28800
       House would reach lowerTempBoundary at tick 50797
@@ -464,7 +466,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(28800L)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(41940)))
 
       /* TICK 41940
       House reach lowerTemperatureBoundary
@@ -520,7 +522,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(41940)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(45000)))
 
       /* TICK 45000
       Storage will be empty at tick 45540
@@ -592,7 +594,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(45000)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(45540)))
 
       /* TICK 45540
      Storage will be empty
@@ -650,7 +652,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(45540)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(57600)))
 
       /* TICK 57600
       New weather data: it's getting warmer again
@@ -717,7 +719,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(57600)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(58256)))
 
       /* TICK 58256
       House will reach the upperTemperatureBoundary
@@ -770,7 +772,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(58256)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(61673)))
 
       /* TICK 61673
      Storage will be fully charged
@@ -824,7 +826,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(61673)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(122555)))
 
     }
   }
