@@ -38,6 +38,30 @@ object Data {
     def toComplexPower: ComplexPower
   }
 
+  /** Class that provides some static functionality for primary data, such as
+    * producing zero values and scaling the data.
+    *
+    * @tparam T
+    *   The type of primary data
+    */
+  sealed trait PrimaryDataMeta[T <: PrimaryData] {
+
+    /** Returns a zero value of the desired type
+      */
+    def zero: T
+
+    /** Scales given primary data by the given factor
+      *
+      * @param data
+      *   The primary data to scale
+      * @param factor
+      *   The factor to scale by
+      * @return
+      *   The scaled primary data
+      */
+    def scale(data: T, factor: Double): T
+  }
+
   object PrimaryData {
 
     sealed trait EnrichableData[E <: PrimaryDataWithComplexPower[E]] {
@@ -80,6 +104,13 @@ object Data {
         ComplexPower(p, q)
     }
 
+    object ActivePowerMeta extends PrimaryDataMeta[ActivePower] {
+      override def zero: ActivePower = ActivePower(zeroKW)
+
+      override def scale(data: ActivePower, factor: Double): ActivePower =
+        ActivePower(data.p * factor)
+    }
+
     /** Active and Reactive power as participant simulation result
       *
       * @param p
@@ -95,6 +126,13 @@ object Data {
 
       override def withReactivePower(q: ReactivePower): ComplexPower =
         copy(q = q)
+    }
+
+    object ComplexPowerMeta extends PrimaryDataMeta[ComplexPower] {
+      override def zero: ComplexPower = ComplexPower(zeroKW, zeroKVAr)
+
+      override def scale(data: ComplexPower, factor: Double): ComplexPower =
+        ComplexPower(data.p * factor, data.q * factor)
     }
 
     /** Active power and heat demand as participant simulation result
@@ -120,6 +158,16 @@ object Data {
         ComplexPowerAndHeat(p, q, qDot)
     }
 
+    object ActivePowerAndHeatMeta extends PrimaryDataMeta[ActivePowerAndHeat] {
+      override def zero: ActivePowerAndHeat = ActivePowerAndHeat(zeroKW, zeroKW)
+
+      override def scale(
+          data: ActivePowerAndHeat,
+          factor: Double,
+      ): ActivePowerAndHeat =
+        ActivePowerAndHeat(data.p * factor, data.qDot * factor)
+    }
+
     /** Apparent power and heat demand as participant simulation result
       *
       * @param p
@@ -140,6 +188,22 @@ object Data {
 
       override def withReactivePower(q: ReactivePower): ComplexPowerAndHeat =
         copy(q = q)
+    }
+
+    object ComplexPowerAndHeatMeta
+        extends PrimaryDataMeta[ComplexPowerAndHeat] {
+      override def zero: ComplexPowerAndHeat =
+        ComplexPowerAndHeat(zeroKW, zeroKVAr, zeroKW)
+
+      override def scale(
+          data: ComplexPowerAndHeat,
+          factor: Double,
+      ): ComplexPowerAndHeat =
+        ComplexPowerAndHeat(
+          data.p * factor,
+          data.q * factor,
+          data.qDot * factor,
+        )
     }
 
     implicit class RichValue(private val value: Value) {
