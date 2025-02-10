@@ -12,16 +12,37 @@ import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.load.LoadAgent.FixedLoadAgent
 import edu.ie3.simona.agent.participant.pv.PvAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
-import edu.ie3.simona.config.SimonaConfig.{EmRuntimeConfig, HpRuntimeConfig, LoadRuntimeConfig, PvRuntimeConfig}
+import edu.ie3.simona.config.SimonaConfig.{
+  EmRuntimeConfig,
+  HpRuntimeConfig,
+  LoadRuntimeConfig,
+  PvRuntimeConfig,
+}
 import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.event.ResultEvent.{CylindricalThermalStorageResult, EmResult, HpResult, ParticipantResultEvent, ThermalHouseResult}
+import edu.ie3.simona.event.ResultEvent.{
+  CylindricalThermalStorageResult,
+  EmResult,
+  HpResult,
+  ParticipantResultEvent,
+  ThermalHouseResult,
+}
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.thermal.ThermalHouseTestData
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  Completion,
+  ScheduleActivation,
+}
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
 import edu.ie3.simona.ontology.messages.services.ServiceMessage.PrimaryServiceRegistrationMessage
-import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{RegistrationFailedMessage, RegistrationSuccessfulMessage}
-import edu.ie3.simona.ontology.messages.services.WeatherMessage.{ProvideWeatherMessage, RegisterForWeatherMessage, WeatherData}
+import edu.ie3.simona.ontology.messages.services.ServiceMessage.RegistrationResponseMessage.{
+  RegistrationFailedMessage,
+  RegistrationSuccessfulMessage,
+}
+import edu.ie3.simona.ontology.messages.services.WeatherMessage.{
+  ProvideWeatherMessage,
+  RegisterForWeatherMessage,
+  WeatherData,
+}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.simona.test.common.input.EmInputTestData
@@ -32,7 +53,10 @@ import edu.ie3.util.quantities.QuantityMatchers.equalWithTolerance
 import edu.ie3.util.quantities.QuantityUtils.RichQuantityDouble
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ScalaTestWithActorTestKit,
+  TestProbe,
+}
 import org.apache.pekko.actor.typed.scaladsl.adapter.{TypedActorRefOps, _}
 import org.apache.pekko.testkit.TestActorRef
 import org.scalatest.matchers.should
@@ -66,8 +90,19 @@ class ThermalGridIT
     flexResult = false,
   )
 
+  private val outputConfigOff = NotifierConfig(
+    simulationResultInfo = false,
+    powerRequestReply = false,
+    flexResult = false,
+  )
+
   "A Thermal Grid with thermal house, storage and heat pump not under the control of energy management" should {
     "be initialized correctly and run through some activations" in {
+      implicit val simulationStartDate: ZonedDateTime =
+        TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
+      val simulationEndDate: ZonedDateTime =
+        TimeUtil.withDefaults.toZonedDateTime("2020-01-02T02:00:00Z")
+
       val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
       val primaryServiceProxy =
         TestProbe[ServiceMessage]("PrimaryServiceProxy")
@@ -807,27 +842,28 @@ class ThermalGridIT
     }
   }
 
-
-  private val outputConfigOff = NotifierConfig(
-    simulationResultInfo = false,
-    powerRequestReply = false,
-    flexResult = false,
-  )
-
-  override protected val modelConfig: EmRuntimeConfig = EmRuntimeConfig(
-    calculateMissingReactivePowerWithModel = false,
-    scaling = 1d,
-    uuids = List("default"),
-    aggregateFlex = "SELF_OPT",
-    curtailRegenerative = false,
-  )
-
   "A Thermal Grid with thermal house, thermal storage and heat pump that is controlled by an energy management" should {
     "be initialized correctly and run through some activations" in {
       implicit val simulationStartWithPv: ZonedDateTime =
         TimeUtil.withDefaults.toZonedDateTime("2020-06-01T10:00:00Z")
       val simulationEndWithPv: ZonedDateTime =
         TimeUtil.withDefaults.toZonedDateTime("2020-06-02T10:00:00Z")
+
+      val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
+      val primaryServiceProxy =
+        TestProbe[ServiceMessage]("PrimaryServiceProxy")
+
+      val weatherService = TestProbe[ServiceMessage]("WeatherService")
+
+      val resultListener: TestProbe[ResultEvent] = TestProbe("resultListener")
+
+      val modelConfig: EmRuntimeConfig = EmRuntimeConfig(
+        calculateMissingReactivePowerWithModel = false,
+        scaling = 1d,
+        uuids = List("default"),
+        aggregateFlex = "SELF_OPT",
+        curtailRegenerative = false,
+      )
 
       val emAgent = spawn(
         EmAgent(
@@ -1054,11 +1090,11 @@ class ThermalGridIT
         .foreach { case ResultEvent.ThermalResultEvent(thermalUnitResult) =>
           thermalUnitResult match {
             case ThermalHouseResult(
-            time,
-            inputModel,
-            qDot,
-            indoorTemperature,
-            ) =>
+                  time,
+                  inputModel,
+                  qDot,
+                  indoorTemperature,
+                ) =>
               inputModel shouldBe typicalThermalHouse.getUuid
               time shouldBe 0.toDateTime
               qDot should equalWithTolerance(0.0.asMegaWatt)
@@ -1066,11 +1102,11 @@ class ThermalGridIT
                 19.9999074074074.asDegreeCelsius
               )
             case CylindricalThermalStorageResult(
-            time,
-            inputModel,
-            qDot,
-            energy,
-            ) =>
+                  time,
+                  inputModel,
+                  qDot,
+                  energy,
+                ) =>
               inputModel shouldBe typicalThermalStorage.getUuid
               time shouldBe 0.toDateTime
               qDot should equalWithTolerance(0.011.asMegaWatt)
@@ -1125,11 +1161,11 @@ class ThermalGridIT
         .foreach { case ResultEvent.ThermalResultEvent(thermalUnitResult) =>
           thermalUnitResult match {
             case ThermalHouseResult(
-            time,
-            inputModel,
-            qDot,
-            indoorTemperature,
-            ) =>
+                  time,
+                  inputModel,
+                  qDot,
+                  indoorTemperature,
+                ) =>
               inputModel shouldBe typicalThermalHouse.getUuid
               time shouldBe 3417.toDateTime
               qDot should equalWithTolerance(0.011.asMegaWatt)
@@ -1138,11 +1174,11 @@ class ThermalGridIT
               )
 
             case CylindricalThermalStorageResult(
-            time,
-            inputModel,
-            qDot,
-            energy,
-            ) =>
+                  time,
+                  inputModel,
+                  qDot,
+                  energy,
+                ) =>
               inputModel shouldBe typicalThermalStorage.getUuid
               time shouldBe 3417.toDateTime
               qDot should equalWithTolerance(0.asMegaWatt)
@@ -1211,11 +1247,11 @@ class ThermalGridIT
         .foreach { case ResultEvent.ThermalResultEvent(thermalUnitResult) =>
           thermalUnitResult match {
             case ThermalHouseResult(
-            time,
-            inputModel,
-            qDot,
-            indoorTemperature,
-            ) =>
+                  time,
+                  inputModel,
+                  qDot,
+                  indoorTemperature,
+                ) =>
               inputModel shouldBe typicalThermalHouse.getUuid
               time shouldBe 7200.toDateTime
               qDot should equalWithTolerance(0.011.asMegaWatt)
@@ -1223,11 +1259,11 @@ class ThermalGridIT
                 20.8788983755569.asDegreeCelsius
               )
             case CylindricalThermalStorageResult(
-            time,
-            inputModel,
-            qDot,
-            energy,
-            ) =>
+                  time,
+                  inputModel,
+                  qDot,
+                  energy,
+                ) =>
               inputModel shouldBe typicalThermalStorage.getUuid
               time shouldBe 7200.toDateTime
               qDot should equalWithTolerance(0.asMegaWatt)
@@ -1267,11 +1303,11 @@ class ThermalGridIT
         .foreach { case ResultEvent.ThermalResultEvent(thermalUnitResult) =>
           thermalUnitResult match {
             case ThermalHouseResult(
-            time,
-            inputModel,
-            qDot,
-            indoorTemperature,
-            ) =>
+                  time,
+                  inputModel,
+                  qDot,
+                  indoorTemperature,
+                ) =>
               inputModel shouldBe typicalThermalHouse.getUuid
               time shouldBe 10798.toDateTime
               qDot should equalWithTolerance(0.asMegaWatt)
@@ -1279,11 +1315,11 @@ class ThermalGridIT
                 21.9998899446115.asDegreeCelsius
               )
             case CylindricalThermalStorageResult(
-            time,
-            inputModel,
-            qDot,
-            energy,
-            ) =>
+                  time,
+                  inputModel,
+                  qDot,
+                  energy,
+                ) =>
               inputModel shouldBe typicalThermalStorage.getUuid
               time shouldBe 10798.toDateTime
               qDot should equalWithTolerance(0.asMegaWatt)
@@ -1297,5 +1333,6 @@ class ThermalGridIT
 
       scheduler.expectMessage(Completion(heatPumpAgent, Some(10798)))
 
-}
     }
+  }
+}
