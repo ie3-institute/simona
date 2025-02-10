@@ -91,7 +91,7 @@ class ThermalGridIT
 
   val resultListener: TestProbe[ResultEvent] = TestProbe("resultListener")
 
-  "A Thermal Grid with thermal house, storage and heat pump not under the control of an energy management" should {
+  "A Thermal Grid with thermal house, storage and heat pump not under the control of energy management" should {
     "be initialized correctly and run through some activations" in {
       val heatPumpAgent = TestActorRef(
         new HpAgent(
