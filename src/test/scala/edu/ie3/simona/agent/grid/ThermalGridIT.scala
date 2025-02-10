@@ -141,7 +141,7 @@ class ThermalGridIT
 
       heatPumpAgent ! RegistrationSuccessfulMessage(
         weatherService.ref.toClassic,
-        Some(0L),
+        Some(0),
       )
       val weatherDependentAgents = Seq(heatPumpAgent)
 
@@ -154,7 +154,7 @@ class ThermalGridIT
       Heat pump: turned on - to serve the storage demand
        */
 
-      heatPumpAgent ! Activation(0L)
+      heatPumpAgent ! Activation(0)
 
       weatherDependentAgents.foreach {
         _ ! ProvideWeatherMessage(
@@ -213,7 +213,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(3417L)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(3417)))
 
       /* TICK 3417
       Storage is fully heated up
@@ -279,11 +279,11 @@ class ThermalGridIT
       Heat pump: stays on, we got triggered by incoming weather data. So we continue with same behaviour as before
        */
 
-      heatPumpAgent ! Activation(7200L)
+      heatPumpAgent ! Activation(7200)
 
       weatherDependentAgents.foreach {
         _ ! ProvideWeatherMessage(
-          7200L,
+          7200,
           weatherService.ref.toClassic,
           WeatherData(
             WattsPerSquareMeter(1d),
@@ -291,7 +291,7 @@ class ThermalGridIT
             Celsius(-5d),
             MetersPerSecond(0d),
           ),
-          Some(28800L),
+          Some(28800),
         )
       }
 
@@ -404,11 +404,11 @@ class ThermalGridIT
       Heat pump: stays off
        */
 
-      heatPumpAgent ! Activation(28800L)
+      heatPumpAgent ! Activation(28800)
 
       weatherDependentAgents.foreach {
         _ ! ProvideWeatherMessage(
-          28800L,
+          28800,
           weatherService.ref.toClassic,
           WeatherData(
             WattsPerSquareMeter(2d),
@@ -416,7 +416,7 @@ class ThermalGridIT
             Celsius(-25d),
             MetersPerSecond(0d),
           ),
-          Some(45000L),
+          Some(45000),
         )
       }
 
@@ -480,9 +480,7 @@ class ThermalGridIT
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 41940.toDateTime
           hpResult.getP should equalWithTolerance(0.0.asMegaWatt)
-          hpResult.getQ should equalWithTolerance(
-            0.0.asMegaVar
-          )
+          hpResult.getQ should equalWithTolerance(0.0.asMegaVar)
       }
 
       Range(0, 2)
@@ -511,7 +509,7 @@ class ThermalGridIT
                 ) =>
               inputModel shouldBe typicalThermalStorage.getUuid
               time shouldBe 41940.toDateTime
-              qDot should equalWithTolerance((-0.01044).asMegaWatt)
+              qDot should equalWithTolerance(-0.01044.asMegaWatt)
               energy should equalWithTolerance(0.01044.asMegaWattHour)
             case _ =>
               fail(
@@ -581,7 +579,7 @@ class ThermalGridIT
                 ) =>
               inputModel shouldBe typicalThermalStorage.getUuid
               time shouldBe 45000.toDateTime
-              qDot should equalWithTolerance((-0.01044).asMegaWatt)
+              qDot should equalWithTolerance(-0.01044.asMegaWatt)
               energy should equalWithTolerance(
                 0.00156599999999999.asMegaWattHour
               )
@@ -595,11 +593,11 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(heatPumpAgent, Some(45540)))
 
       /* TICK 45540
-     Storage will be empty
-     House demand heating : requiredDemand = 8.87kWh, possibleDemand = 23.87 kWh
-     ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
-     DomesticWaterStorage : tba
-     Heat pump: will be turned on - to serve the remaining heat demand of house (and refill storage later)
+      Storage will be empty
+      House demand heating : requiredDemand = 8.87kWh, possibleDemand = 23.87 kWh
+      ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+      DomesticWaterStorage : tba
+      Heat pump: will be turned on - to serve the remaining heat demand of house (and refill storage later)
        */
 
       heatPumpAgent ! Activation(45540)
@@ -609,9 +607,7 @@ class ThermalGridIT
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 45540.toDateTime
           hpResult.getP should equalWithTolerance(pRunningHp)
-          hpResult.getQ should equalWithTolerance(
-            qRunningHp
-          )
+          hpResult.getQ should equalWithTolerance(qRunningHp)
       }
 
       Range(0, 2)
@@ -711,9 +707,7 @@ class ThermalGridIT
               inputModel shouldBe typicalThermalStorage.getUuid
               time shouldBe 57600.toDateTime
               qDot should equalWithTolerance(0.asMegaWatt)
-              energy should equalWithTolerance(
-                0.asMegaWattHour
-              )
+              energy should equalWithTolerance(0.asMegaWattHour)
           }
         }
 
@@ -773,11 +767,11 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(heatPumpAgent, Some(61673)))
 
       /* TICK 61673
-     Storage will be fully charged
-     House demand heating : requiredDemand = ?0.00 kWh, possibleDemand = 0.00 kWh
-     ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
-     DomesticWaterStorage : tba
-     Heat pump: stays on to refill the storage now
+      Storage will be fully charged
+      House demand heating : requiredDemand = ?0.00 kWh, possibleDemand = 0.00 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      DomesticWaterStorage : tba
+      Heat pump: stays on to refill the storage now
        */
 
       heatPumpAgent ! Activation(61673)
