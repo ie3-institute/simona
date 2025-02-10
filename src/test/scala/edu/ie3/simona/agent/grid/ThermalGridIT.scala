@@ -81,18 +81,16 @@ class ThermalGridIT
     flexResult = false,
   )
 
-  val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
-  val runtimeEvents: TestProbe[RuntimeEvent] =
-    TestProbe("runtimeEvents")
-  val primaryServiceProxy =
-    TestProbe[ServiceMessage]("PrimaryServiceProxy")
-
-  val weatherService = TestProbe[ServiceMessage]("WeatherService")
-
-  val resultListener: TestProbe[ResultEvent] = TestProbe("resultListener")
-
   "A Thermal Grid with thermal house, storage and heat pump not under the control of energy management" should {
     "be initialized correctly and run through some activations" in {
+      val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
+      val primaryServiceProxy =
+        TestProbe[ServiceMessage]("PrimaryServiceProxy")
+
+      val weatherService = TestProbe[ServiceMessage]("WeatherService")
+
+      val resultListener: TestProbe[ResultEvent] = TestProbe("resultListener")
+
       val heatPumpAgent = TestActorRef(
         new HpAgent(
           scheduler = scheduler.ref.toClassic,
