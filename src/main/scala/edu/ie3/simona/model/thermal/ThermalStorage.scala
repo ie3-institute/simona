@@ -80,7 +80,6 @@ object ThermalStorage {
     *   Infeed to the heat storage (positive: Storage is charging, negative:
     *   Storage is discharging)
     */
-
   final case class ThermalStorageState(
       tick: Long,
       storedEnergy: Energy,

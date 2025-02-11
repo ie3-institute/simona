@@ -10,6 +10,7 @@ import edu.ie3.simona.agent.participant.data.secondary.SecondaryDataService.Acto
 import edu.ie3.simona.agent.participant.hp.HpAgent
 import edu.ie3.simona.agent.participant.statedata.ParticipantStateData.ParticipantInitializeStateData
 import edu.ie3.simona.config.SimonaConfig.HpRuntimeConfig
+import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.{
   CylindricalThermalStorageResult,
   DomesticHotWaterStorageResult,
@@ -17,7 +18,6 @@ import edu.ie3.simona.event.ResultEvent.{
   ThermalHouseResult,
 }
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.model.thermal.ThermalHouseTestData
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.services.ServiceMessage
@@ -82,18 +82,16 @@ class ThermalGridIT
     flexResult = false,
   )
 
-  val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
-  val runtimeEvents: TestProbe[RuntimeEvent] =
-    TestProbe("runtimeEvents")
-  val primaryServiceProxy =
-    TestProbe[ServiceMessage]("PrimaryServiceProxy")
-
-  val weatherService = TestProbe[ServiceMessage]("WeatherService")
-
-  val resultListener: TestProbe[ResultEvent] = TestProbe("resultListener")
-
-  "A Thermal Grid with thermal house, storage and heat pump not under the control of an energy management" should {
+  "A Thermal Grid with thermal house, storage and heat pump not under the control of energy management" should {
     "be initialized correctly and run through some activations" in {
+      val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
+      val primaryServiceProxy =
+        TestProbe[ServiceMessage]("PrimaryServiceProxy")
+
+      val weatherService = TestProbe[ServiceMessage]("WeatherService")
+
+      val resultListener: TestProbe[ResultEvent] = TestProbe("resultListener")
+
       val heatPumpAgent = TestActorRef(
         new HpAgent(
           scheduler = scheduler.ref.toClassic,
@@ -125,7 +123,6 @@ class ThermalGridIT
       scheduler.expectNoMessage()
 
       /* INIT */
-
       // heat pump
       heatPumpAgent ! Activation(INIT_SIM_TICK)
 
@@ -145,9 +142,11 @@ class ThermalGridIT
 
       heatPumpAgent ! RegistrationSuccessfulMessage(
         weatherService.ref.toClassic,
-        Some(0L),
+        Some(0),
       )
       val weatherDependentAgents = Seq(heatPumpAgent)
+
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(0)))
 
       /* TICK 0
       Start of Simulation
@@ -158,7 +157,7 @@ class ThermalGridIT
       Heat pump: turned on - to serve the storage demand
        */
 
-      heatPumpAgent ! Activation(0L)
+      heatPumpAgent ! Activation(0)
 
       weatherDependentAgents.foreach {
         _ ! ProvideWeatherMessage(
@@ -179,9 +178,7 @@ class ThermalGridIT
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 0.toDateTime
           hpResult.getP should equalWithTolerance(pRunningHp)
-          hpResult.getQ should equalWithTolerance(
-            qRunningHp
-          )
+          hpResult.getQ should equalWithTolerance(qRunningHp)
       }
 
       Range(0, 3)
@@ -232,7 +229,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(0L)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(3417)))
 
       /* TICK 23
       Domestic hot water storage stops discharging
@@ -371,8 +368,7 @@ class ThermalGridIT
           }
         }
 
-      // FIXME? Why next tick 3417?
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(3417)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(7200)))
 
       /* TICK 7200
       New weather data (unchanged) incoming + Domestic hot water storage will cover hot water demand
@@ -380,14 +376,14 @@ class ThermalGridIT
       House demand water   : requiredDemand = 0.06 kWh, additionalDemand = 0.06 kWh
       ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
       DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      Heat pump: stays on
+      Heat pump: stays on, we got triggered by incoming weather data. So we continue with same behaviour as before
        */
 
-      heatPumpAgent ! Activation(7200L)
+      heatPumpAgent ! Activation(7200)
 
       weatherDependentAgents.foreach {
         _ ! ProvideWeatherMessage(
-          7200L,
+          7200,
           weatherService.ref.toClassic,
           WeatherData(
             WattsPerSquareMeter(1d),
@@ -395,7 +391,7 @@ class ThermalGridIT
             Celsius(-5d),
             MetersPerSecond(0d),
           ),
-          Some(28800L),
+          Some(28800),
         )
       }
 
@@ -454,8 +450,7 @@ class ThermalGridIT
           }
         }
 
-      // FIXME? Why next tick 7200?
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(7200L)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(10798)))
 
       /* TICK 7220
       Domestic hot water storage stops discharging
@@ -607,11 +602,11 @@ class ThermalGridIT
       Heat pump: stays off
        */
 
-      heatPumpAgent ! Activation(28800L)
+      heatPumpAgent ! Activation(28800)
 
       weatherDependentAgents.foreach {
         _ ! ProvideWeatherMessage(
-          28800L,
+          28800,
           weatherService.ref.toClassic,
           WeatherData(
             WattsPerSquareMeter(2d),
@@ -619,7 +614,7 @@ class ThermalGridIT
             Celsius(-25d),
             MetersPerSecond(0d),
           ),
-          Some(45000L),
+          Some(45000),
         )
       }
 
@@ -679,7 +674,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(28800L)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(41940)))
 
       /* TICK 28987
       Domestic hot water storage will stop discharging
@@ -768,9 +763,7 @@ class ThermalGridIT
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 41951.toDateTime
           hpResult.getP should equalWithTolerance(0.0.asMegaWatt)
-          hpResult.getQ should equalWithTolerance(
-            0.0.asMegaVar
-          )
+          hpResult.getQ should equalWithTolerance(0.0.asMegaVar)
       }
 
       Range(0, 3)
@@ -1041,7 +1034,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(45000)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(45540)))
 
       /* TICK 45078
      DomesticWaterStorage will stop discharging to cover water demand
@@ -1059,9 +1052,7 @@ class ThermalGridIT
           hpResult.getInputModel shouldBe typicalHpInputModel.getUuid
           hpResult.getTime shouldBe 45078.toDateTime
           hpResult.getP should equalWithTolerance(pRunningHp)
-          hpResult.getQ should equalWithTolerance(
-            qRunningHp
-          )
+          hpResult.getQ should equalWithTolerance(qRunningHp)
       }
 
       Range(0, 3)
@@ -1189,7 +1180,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(57600)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(58256)))
 
       /* TICK 57848
       DomesticWaterStorage will stop discharging to cover water demand
