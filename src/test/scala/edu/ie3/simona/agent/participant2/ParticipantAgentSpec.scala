@@ -23,7 +23,7 @@ import edu.ie3.simona.agent.participant2.MockParticipantModel.{
 }
 import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   DataProvision,
-  FinishParticipantSimulation,
+  GridSimulationFinished,
   NoDataProvision,
   RequestAssetPowerMessage,
 }
@@ -160,7 +160,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             q should approximate(Kilovars(0.968644209676))
         }
 
-        participantAgent ! FinishParticipantSimulation(12 * 3600, 24 * 3600)
+        participantAgent ! GridSimulationFinished(12 * 3600, 24 * 3600)
 
         // TICK 20 * 3600: Outside of operation interval (last tick)
 
@@ -192,7 +192,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             q should approximate(Kilovars(1.93728841935))
         }
 
-        participantAgent ! FinishParticipantSimulation(24 * 3600, 36 * 3600)
+        participantAgent ! GridSimulationFinished(24 * 3600, 36 * 3600)
 
       }
 
@@ -269,7 +269,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         resultListener.expectNoMessage()
         scheduler.expectNoMessage()
 
-        participantAgent ! FinishParticipantSimulation(12 * 3600, 24 * 3600)
+        participantAgent ! GridSimulationFinished(12 * 3600, 24 * 3600)
 
         // calculation should start now
         resultListener.expectMessageType[ParticipantResultEvent] match {
@@ -308,7 +308,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             q should approximate(Kilovars(1.93728841935))
         }
 
-        participantAgent ! FinishParticipantSimulation(24 * 3600, 36 * 3600)
+        participantAgent ! GridSimulationFinished(24 * 3600, 36 * 3600)
 
       }
 
@@ -430,7 +430,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             q should approximate(Kilovars(1.452966314514))
         }
 
-        participantAgent ! FinishParticipantSimulation(12 * 3600, 24 * 3600)
+        participantAgent ! GridSimulationFinished(12 * 3600, 24 * 3600)
 
         // nothing should happen, still waiting for secondary data...
         resultListener.expectNoMessage()
@@ -532,7 +532,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             q should approximate(Kilovars(4.116737891123))
         }
 
-        participantAgent ! FinishParticipantSimulation(24 * 3600, 36 * 3600)
+        participantAgent ! GridSimulationFinished(24 * 3600, 36 * 3600)
 
         resultListener.expectNoMessage()
         scheduler.expectNoMessage()
@@ -656,7 +656,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             q should approximate(Kilovars(0.48432210484))
         }
 
-        participantAgent ! FinishParticipantSimulation(12 * 3600, 24 * 3600)
+        participantAgent ! GridSimulationFinished(12 * 3600, 24 * 3600)
 
         // nothing should happen, still waiting for primary data...
         resultListener.expectNoMessage()
@@ -737,7 +737,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             q should approximate(Kilovars(1.695127366932))
         }
 
-        participantAgent ! FinishParticipantSimulation(24 * 3600, 36 * 3600)
+        participantAgent ! GridSimulationFinished(24 * 3600, 36 * 3600)
 
         resultListener.expectNoMessage()
         scheduler.expectNoMessage()
@@ -826,7 +826,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             q should approximate(Kilovars(0.48432210483))
         }
 
-        participantAgent ! FinishParticipantSimulation(12 * 3600, 24 * 3600)
+        participantAgent ! GridSimulationFinished(12 * 3600, 24 * 3600)
 
         // TICK 20 * 3600: Outside of operation interval (last tick)
 
@@ -863,7 +863,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             q should approximate(Kilovars(0.96864420966))
         }
 
-        participantAgent ! FinishParticipantSimulation(24 * 3600, 36 * 3600)
+        participantAgent ! GridSimulationFinished(24 * 3600, 36 * 3600)
 
       }
 
@@ -956,7 +956,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         resultListener.expectNoMessage()
         em.expectNoMessage()
 
-        participantAgent ! FinishParticipantSimulation(12 * 3600, 24 * 3600)
+        participantAgent ! GridSimulationFinished(12 * 3600, 24 * 3600)
 
         // calculation should start now
         em.expectMessageType[ProvideMinMaxFlexOptions] match {
@@ -1020,7 +1020,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             q should approximate(Kilovars(0.32288140322))
         }
 
-        participantAgent ! FinishParticipantSimulation(24 * 3600, 36 * 3600)
+        participantAgent ! GridSimulationFinished(24 * 3600, 36 * 3600)
 
       }
 
@@ -1172,7 +1172,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             q should approximate(Kilovars(0.48432210483))
         }
 
-        participantAgent ! FinishParticipantSimulation(12 * 3600, 24 * 3600)
+        participantAgent ! GridSimulationFinished(12 * 3600, 24 * 3600)
 
         // nothing should happen, still waiting for secondary data...
         resultListener.expectNoMessage()
@@ -1289,7 +1289,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             q should approximate(Kilovars(1.210805262))
         }
 
-        participantAgent ! FinishParticipantSimulation(24 * 3600, 36 * 3600)
+        participantAgent ! GridSimulationFinished(24 * 3600, 36 * 3600)
 
         resultListener.expectNoMessage()
         em.expectNoMessage()
@@ -1438,7 +1438,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             q should approximate(Kilovars(0.48432210483))
         }
 
-        participantAgent ! FinishParticipantSimulation(12 * 3600, 24 * 3600)
+        participantAgent ! GridSimulationFinished(12 * 3600, 24 * 3600)
 
         // nothing should happen, still waiting for primary data...
         resultListener.expectNoMessage()
@@ -1554,7 +1554,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
             q should approximate(Kilovars(1.695127366932))
         }
 
-        participantAgent ! FinishParticipantSimulation(24 * 3600, 36 * 3600)
+        participantAgent ! GridSimulationFinished(24 * 3600, 36 * 3600)
 
         resultListener.expectNoMessage()
         em.expectNoMessage()

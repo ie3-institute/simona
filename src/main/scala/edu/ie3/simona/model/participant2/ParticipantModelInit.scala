@@ -38,11 +38,11 @@ object ParticipantModelInit {
     * the participant input.
     *
     * @param participantInput
-    *   The system participant model input
+    *   The system participant model input.
     * @param modelConfig
-    *   The model runtime config
+    *   The model runtime config.
     * @return
-    *   The [[ParticipantModel]]
+    *   The [[ParticipantModel]].
     */
   def createPhysicalModel(
       participantInput: SystemParticipantInput,
@@ -85,13 +85,14 @@ object ParticipantModelInit {
     * [[BaseRuntimeConfig]] has to match the participant input.
     *
     * @param participantInput
-    *   The system participant model input
+    *   The system participant model input.
     * @param modelConfig
-    *   The model runtime config
+    *   The model runtime config.
     * @param primaryDataMeta
-    *   The primary data meta class that can be used for the data to be received
+    *   The primary data meta class that can be used for the data to be
+    *   received.
     * @return
-    *   The [[PrimaryDataParticipantModel]]
+    *   The [[PrimaryDataParticipantModel]].
     */
   def createPrimaryModel[PD <: PrimaryData: ClassTag](
       participantInput: SystemParticipantInput,
@@ -115,11 +116,12 @@ object ParticipantModelInit {
     * [[BaseRuntimeConfig]] has to match the participant input.
     *
     * @param physicalModel
-    *   The physical participant model
+    *   The physical participant model.
     * @param primaryDataMeta
-    *   The primary data meta class that can be used for the data to be received
+    *   The primary data meta class that can be used for the data to be
+    *   received.
     * @return
-    *   The [[PrimaryDataParticipantModel]]
+    *   The [[PrimaryDataParticipantModel]].
     */
   def createPrimaryModel[PD <: PrimaryData: ClassTag](
       physicalModel: ParticipantModel[_, _],

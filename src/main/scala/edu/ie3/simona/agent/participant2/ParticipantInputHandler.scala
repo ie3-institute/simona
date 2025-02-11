@@ -17,7 +17,7 @@ import edu.ie3.simona.agent.participant2.ParticipantAgent.{
 import edu.ie3.simona.agent.participant2.ParticipantInputHandler.ReceivedData
 
 /** This class holds received data, knows what data is expected and can thus
-  * decide whether all input requirements have been fulfilled
+  * decide whether all input requirements have been fulfilled.
   *
   * @param expectedData
   *   Map of service actor reference to the tick at which data is expected next.
@@ -39,9 +39,9 @@ final case class ParticipantInputHandler(
   /** Handles a received [[ActivationRequest]] by storing the message.
     *
     * @param activation
-    *   The activation
+    *   The activation.
     * @return
-    *   An updated input handler
+    *   An updated input handler.
     */
   def handleActivation(
       activation: ActivationRequest
@@ -51,7 +51,7 @@ final case class ParticipantInputHandler(
   /** Completes an activation by clearing out the stored activation message.
     *
     * @return
-    *   An updated input handler
+    *   An updated input handler.
     */
   def completeActivation(): ParticipantInputHandler =
     copy(activation = None)
@@ -60,9 +60,9 @@ final case class ParticipantInputHandler(
     * updating the expected data that remains to be received.
     *
     * @param msg
-    *   The received data message
+    *   The received data message.
     * @return
-    *   An updated input handler
+    *   An updated input handler.
     */
   def handleDataInputMessage(
       msg: DataInputMessage
@@ -95,7 +95,7 @@ final case class ParticipantInputHandler(
     * and data input messages) have been received.
     *
     * @return
-    *   Whether all expected messages were received for the current tick
+    *   Whether all expected messages were received for the current tick.
     */
   def allMessagesReceived: Boolean = activation.exists { activationMsg =>
     expectedData.forall { case (_, nextTick) =>
@@ -105,10 +105,10 @@ final case class ParticipantInputHandler(
 
   /** Determines whether there has been new data received for the current
     * activation, which would mean that re-determination of model parameters
-    * should happen
+    * should happen.
     *
     * @return
-    *   Whether there's new data for the current tick or not
+    *   Whether there's new data for the current tick or not.
     */
   def hasNewData: Boolean =
     activation.exists { activationMsg =>
@@ -117,28 +117,28 @@ final case class ParticipantInputHandler(
       )
     }
 
-  /** Returns the next tick at which input data is expected
+  /** Returns the next tick at which input data is expected.
     *
     * @return
-    *   The next data tick
+    *   The next data tick.
     */
   def getNextDataTick: Option[Long] =
     expectedData.values.minOption
 
   /** Returns the tick at which all input data has been updated. Useful for the
     * first calculation after initialization, when all data needs to be present
-    * before first calculation
+    * before first calculation.
     *
     * @return
-    *   The tick at which all data has been updated once
+    *   The tick at which all data has been updated once.
     */
   def getDataCompletedTick: Option[Long] =
     expectedData.values.maxOption
 
-  /** Returns all received input data
+  /** Returns all received input data.
     *
     * @return
-    *   The received data
+    *   The received data.
     */
   def getData: Seq[Data] =
     receivedData.values.flatten.map(_.data).toSeq
@@ -147,10 +147,19 @@ final case class ParticipantInputHandler(
 
 object ParticipantInputHandler {
 
-  /** Holds received data in combination with the tick at which it was received
+  /** Holds received data in combination with the tick at which it was received.
     */
   final case class ReceivedData(data: Data, tick: Long)
 
+  /** Creates a new [[ParticipantInputHandler]] with the given expected data and
+    * empty received data and activation fields.
+    *
+    * @param expectedData
+    *   Map of service actor reference to the tick at which data is expected
+    *   next.
+    * @return
+    *   A new [[ParticipantInputHandler]].
+    */
   def apply(expectedData: Map[ClassicRef, Long]): ParticipantInputHandler =
     new ParticipantInputHandler(
       expectedData = expectedData,
