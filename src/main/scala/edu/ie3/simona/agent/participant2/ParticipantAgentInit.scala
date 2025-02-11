@@ -184,7 +184,7 @@ object ParticipantAgentInit {
           PrimaryRegistrationSuccessfulMessage(
             serviceRef,
             firstDataTick,
-            primaryDataMeta,
+            primaryDataExtra,
           ),
         ) =>
       // we're supposed to replay primary data, initialize accordingly
@@ -194,7 +194,7 @@ object ParticipantAgentInit {
         ParticipantModelShell.createForPrimaryData(
           participantInput,
           config,
-          primaryDataMeta,
+          primaryDataExtra,
           simulationParams.simulationStart,
           simulationParams.simulationEnd,
         ),

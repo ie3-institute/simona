@@ -12,7 +12,10 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerUnchangedMessage,
 }
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, PrimaryDataMeta}
+import edu.ie3.simona.agent.participant.data.Data.{
+  PrimaryData,
+  PrimaryDataExtra,
+}
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.ParticipantResultEvent
 import edu.ie3.simona.exceptions.CriticalFailureException
@@ -81,9 +84,8 @@ object ParticipantAgent {
     *
     * @param firstDataTick
     *   The first tick at which data will be sent.
-    * @param primaryDataMeta
-    *   The primary data meta class that can be used for the data to be
-    *   received.
+    * @param primaryDataExtra
+    *   Extra functionality specific to the primary data class.
     * @tparam P
     *   The type of primary data to be received.
     */
@@ -92,7 +94,7 @@ object ParticipantAgent {
   ](
       override val serviceRef: ClassicRef,
       firstDataTick: Long,
-      primaryDataMeta: PrimaryDataMeta[P],
+      primaryDataExtra: PrimaryDataExtra[P],
   ) extends RegistrationResponseMessage
 
   /** Message announcing a failed registration.

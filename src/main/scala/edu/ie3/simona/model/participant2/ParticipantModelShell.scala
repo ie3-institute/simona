@@ -10,7 +10,10 @@ import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.data.Data
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ComplexPower
-import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, PrimaryDataMeta}
+import edu.ie3.simona.agent.participant.data.Data.{
+  PrimaryData,
+  PrimaryDataExtra,
+}
 import edu.ie3.simona.agent.participant2.ParticipantAgent
 import edu.ie3.simona.agent.participant2.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
@@ -461,9 +464,8 @@ object ParticipantModelShell {
     *   The physical participant model.
     * @param config
     *   Runtime configuration that has to match the participant type.
-    * @param primaryDataMeta
-    *   The primary data meta class that can be used for the data to be
-    *   received.
+    * @param primaryDataExtra
+    *   Extra functionality specific to the primary data class.
     * @param simulationStart
     *   The simulation start date and time.
     * @param simulationEnd
@@ -476,14 +478,14 @@ object ParticipantModelShell {
   def createForPrimaryData[PD <: PrimaryData: ClassTag](
       participantInput: SystemParticipantInput,
       config: BaseRuntimeConfig,
-      primaryDataMeta: PrimaryDataMeta[PD],
+      primaryDataExtra: PrimaryDataExtra[PD],
       simulationStart: ZonedDateTime,
       simulationEnd: ZonedDateTime,
   ): ParticipantModelShell[_, _] = {
     val model = ParticipantModelInit.createPrimaryModel(
       participantInput,
       config,
-      primaryDataMeta,
+      primaryDataExtra,
     )
     createShell(
       model,
