@@ -15,6 +15,7 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalDemandWrapper,
   ThermalGridState,
 }
+import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal.{ThermalGrid, ThermalThreshold}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.ProvideFlexOptions
 import edu.ie3.simona.ontology.messages.flex.MinMaxFlexibilityMessage.ProvideMinMaxFlexOptions
@@ -223,17 +224,18 @@ final case class HpModel(
       isRunning: Boolean,
       demandWrapper: ThermalDemandWrapper,
   ): HpState = {
-    val lastStateStorageQDot = lastState.thermalGridState.storageState
-      .map(_.qDot)
-      .getOrElse(zeroKW)
+    val lastStateStorage = lastState.thermalGridState.storageState
+      // Todo: Maybe throw exception would be a better option here?
+      .getOrElse(ThermalStorageState(-1, zeroKWh, zeroKW))
 
     val (newActivePowerHp, newThermalPowerHp, qDotIntoGrid) = {
       if (isRunning)
         (pRated, pThermal, pThermal)
-      else if (lastStateStorageQDot < zeroKW)
-        (zeroKW, zeroKW, lastStateStorageQDot * (-1))
+      else if (lastStateStorage.qDot < zeroKW)
+        (zeroKW, zeroKW, lastStateStorage.qDot * (-1))
       else if (
-        lastStateStorageQDot == zeroKW && (demandWrapper.houseDemand.hasRequiredDemand || demandWrapper.heatStorageDemand.hasRequiredDemand)
+        // lastStateStorage is zero, so storedEnergy hasn't changed. Only if Storage isn't empty, it can heat the house
+        lastStateStorage.qDot == zeroKW && lastStateStorage.storedEnergy > zeroKWh && demandWrapper.houseDemand.hasRequiredDemand
       )
         (
           zeroKW,
