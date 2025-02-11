@@ -298,7 +298,7 @@ final case class ParticipantModelShell[
       flexControl: IssueFlexControl
   ): ParticipantModelShell[OP, S] = {
     val currentTick = flexControl.tick
-    
+
     val currentState = determineCurrentState(currentTick)
 
     def modelOperatingPoint(): (OP, OperationChangeIndicator) = {
