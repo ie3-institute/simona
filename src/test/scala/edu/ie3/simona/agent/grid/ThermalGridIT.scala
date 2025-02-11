@@ -229,7 +229,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(3417)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(23)))
 
       /* TICK 23
       Domestic hot water storage stops discharging
@@ -298,8 +298,7 @@ class ThermalGridIT
 
         }
 
-      // FIXME? Why next tick 23?
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(23)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(3417)))
 
       /* TICK 3417
       ThermalStorage is fully heated up
@@ -450,7 +449,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(10798)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(7220)))
 
       /* TICK 7220
       Domestic hot water storage stops discharging
@@ -520,8 +519,7 @@ class ThermalGridIT
           }
         }
 
-      // FIXME? Why next tick 7220?
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(7220L)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(10799)))
 
       /* TICK 10799
       House reaches upper temperature boundary
@@ -589,8 +587,7 @@ class ThermalGridIT
           }
         }
 
-      // FIXME? Why next tick 10799?
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(10799)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(28800)))
 
       /* TICK 28800
       House would reach lowerTempBoundary at tick 50797
@@ -674,7 +671,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(41940)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(28987)))
 
       /* TICK 28987
       Domestic hot water storage will stop discharging
@@ -745,7 +742,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(28987)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(41951)))
 
       /* TICK 41951
       House reach lowerTemperatureBoundary
@@ -813,7 +810,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(41951)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(42171)))
 
       /* TICK 42171
       Domestic hot water storage will stop discharging, and its SOC will be less than 20%, thus it need to be recharged,
@@ -882,7 +879,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(42171)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(42619)))
 
       /* TICK 42619
       Domestic hot water storage will be full
@@ -948,7 +945,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(42619)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(45000)))
 
       /* TICK 45000
       Additional trigger caused by (unchanged) weather data should any behaviour,
@@ -1034,7 +1031,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(45540)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(45078)))
 
       /* TICK 45078
      DomesticWaterStorage will stop discharging to cover water demand
@@ -1101,7 +1098,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(45078)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(57600)))
 
       /* TICK 57600
       New weather data: it's getting warmer again
@@ -1180,7 +1177,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(58256)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(57848)))
 
       /* TICK 57848
       DomesticWaterStorage will stop discharging to cover water demand
@@ -1244,7 +1241,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(57848)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(58048)))
 
       /* TICK 58048
       House will reach the upperTemperatureBoundary
@@ -1309,7 +1306,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(58048)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(58716)))
 
       /* TICK 58716
      Storage will be fully charged
@@ -1374,7 +1371,7 @@ class ThermalGridIT
           }
         }
 
-      scheduler.expectMessage(Completion(heatPumpAgent, Some(58716)))
+      scheduler.expectMessage(Completion(heatPumpAgent, Some(121734)))
     }
   }
 }
