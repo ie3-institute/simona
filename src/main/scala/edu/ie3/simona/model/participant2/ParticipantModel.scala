@@ -55,7 +55,7 @@ abstract class ParticipantModel[
     */
   val sRated: ApparentPower
 
-  /** The power factory of the system participant
+  /** The power factor of the system participant
     */
   val cosPhiRated: Double
 
