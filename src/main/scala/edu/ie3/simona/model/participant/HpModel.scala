@@ -225,7 +225,6 @@ final case class HpModel(
       demandWrapper: ThermalDemandWrapper,
   ): HpState = {
     val lastStateStorage = lastState.thermalGridState.storageState
-      // Todo: Maybe throw exception would be a better option here?
       .getOrElse(ThermalStorageState(-1, zeroKWh, zeroKW))
 
     val (newActivePowerHp, newThermalPowerHp, qDotIntoGrid) = {
