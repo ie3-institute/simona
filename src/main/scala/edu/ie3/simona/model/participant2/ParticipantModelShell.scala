@@ -52,12 +52,12 @@ import scala.reflect.ClassTag
   * current state.
   *
   * @param model
-  *   The [[ParticipantModel]] that determines operating parameters
+  *   The [[ParticipantModel]] that determines operating parameters.
   * @param operationInterval
   *   The operation interval in which the participant model is active. Outside
   *   the interval, no power is produced or consumed.
   * @param simulationStartDate
-  *   The date and time at which simulation started
+  *   The date and time at which simulation started.
   * @param _state
   *   The most recent model state, if one has been calculated already.
   * @param _input
@@ -69,14 +69,14 @@ import scala.reflect.ClassTag
   *   The operating point valid before the current [[_operatingPoint]], if
   *   applicable.
   * @param _operatingPoint
-  *   The most recent operating point, if one has been calculated already
+  *   The most recent operating point, if one has been calculated already.
   * @param _operationChange
   *   The operation change indicator, which indicates until when the current
-  *   results are valid
+  *   results are valid.
   * @tparam OP
-  *   The type of operating point used by the [[ParticipantModel]]
+  *   The type of operating point used by the [[ParticipantModel]].
   * @tparam S
-  *   The type of state used by the [[ParticipantModel]]
+  *   The type of state used by the [[ParticipantModel]].
   */
 final case class ParticipantModelShell[
     OP <: OperatingPoint,
@@ -108,7 +108,7 @@ final case class ParticipantModelShell[
   /** Returns the model UUID.
     *
     * @return
-    *   The UUID of the model
+    *   The UUID of the model.
     */
   def uuid: UUID = model.uuid
 
@@ -116,7 +116,7 @@ final case class ParticipantModelShell[
     * function.
     *
     * @return
-    *   The types of secondary services required
+    *   The types of secondary services required.
     */
   def requiredServices: Iterable[ServiceType] =
     model.getRequiredSecondaryServices
@@ -126,9 +126,9 @@ final case class ParticipantModelShell[
     * input data has been set.
     *
     * @return
-    *   The model input data
+    *   The model input data.
     */
-  private def getModelInput: ModelInput =
+  private def modelInput: ModelInput =
     _input.getOrElse(
       throw new CriticalFailureException("No relevant data available!")
     )
@@ -138,7 +138,7 @@ final case class ParticipantModelShell[
     * operating point has been set.
     *
     * @return
-    *   The operating point
+    *   The operating point.
     */
   private def operatingPoint: OP = {
     _operatingPoint
@@ -152,7 +152,7 @@ final case class ParticipantModelShell[
     * options have been set.
     *
     * @return
-    *   The flex options
+    *   The flex options.
     */
   def flexOptions: ProvideFlexOptions =
     _flexOptions.getOrElse(
@@ -162,25 +162,25 @@ final case class ParticipantModelShell[
     )
 
   /** Returns the reactive power function that takes a nodal voltage value and
-    * an active power as input
+    * an active power as input.
     *
     * @return
-    *   The reactive power function
+    *   The reactive power function.
     */
   def reactivePowerFunc: Dimensionless => Power => ReactivePower =
     model.reactivePowerFunc
 
   /** Updates the model input according to the received data, the current nodal
-    * voltage and the current tick
+    * voltage and the current tick.
     *
     * @param receivedData
-    *   The received input data
+    *   The received input data.
     * @param nodalVoltage
-    *   The current nodal voltage
+    *   The current nodal voltage.
     * @param tick
-    *   The current tick
+    *   The current tick.
     * @return
-    *   An updated [[ParticipantModelShell]]
+    *   An updated [[ParticipantModelShell]].
     */
   def updateModelInput(
       receivedData: Seq[Data],
@@ -204,9 +204,9 @@ final case class ParticipantModelShell[
   /** Update operating point when the model is '''not''' em-controlled.
     *
     * @param tick
-    *   The current tick
+    *   The current tick.
     * @return
-    *   An updated [[ParticipantModelShell]]
+    *   An updated [[ParticipantModelShell]].
     */
   def updateOperatingPoint(
       tick: Long
@@ -235,11 +235,11 @@ final case class ParticipantModelShell[
   /** Determines and returns results of the current operating point.
     *
     * @param tick
-    *   The current tick
+    *   The current tick.
     * @param nodalVoltage
-    *   The current nodal voltage
+    *   The current nodal voltage.
     * @return
-    *   An updated [[ParticipantModelShell]]
+    *   An updated [[ParticipantModelShell]].
     */
   def determineResults(
       tick: Long,
@@ -268,9 +268,9 @@ final case class ParticipantModelShell[
   /** Updates the flex options on basis of the current state
     *
     * @param tick
-    *   The current tick
+    *   The current tick.
     * @return
-    *   An updated [[ParticipantModelShell]]
+    *   An updated [[ParticipantModelShell]].
     */
   def updateFlexOptions(tick: Long): ParticipantModelShell[OP, S] = {
     val currentState = determineCurrentState(tick)
@@ -290,9 +290,9 @@ final case class ParticipantModelShell[
     * model is em-controlled.
     *
     * @param flexControl
-    *   The received flex control message
+    *   The received flex control message.
     * @return
-    *   An updated [[ParticipantModelShell]]
+    *   An updated [[ParticipantModelShell]].
     */
   def updateOperatingPoint(
       flexControl: IssueFlexControl
@@ -328,6 +328,17 @@ final case class ParticipantModelShell[
     )
   }
 
+  /** Determines the operating point by taking into account the operation
+    * interval of the model.
+    *
+    * @param modelOperatingPoint
+    *   A function determining the operating point if we're inside the operation
+    *   interval.
+    * @param currentTick
+    *   The current tick.
+    * @return
+    *   A new [[OperatingPoint]] and an [[OperationChangeIndicator]].
+    */
   private def determineOperatingPoint(
       modelOperatingPoint: () => (OP, OperationChangeIndicator),
       currentTick: Long,
@@ -345,11 +356,11 @@ final case class ParticipantModelShell[
     * interval and given next data tick.
     *
     * @param currentTick
-    *   The current tick
+    *   The current tick.
     * @param nextDataTick
-    *   The next tick at which data is expected, if any
+    *   The next tick at which data is expected, if any.
     * @return
-    *   The [[OperationChangeIndicator]] indicating the next activation
+    *   The [[OperationChangeIndicator]] indicating the next activation.
     */
   def getChangeIndicator(
       currentTick: Long,
@@ -383,11 +394,11 @@ final case class ParticipantModelShell[
     * the model state, which is then stored within the shell.
     *
     * @param ctx
-    *   The [[ActorContext]] used for sending replies
+    *   The [[ActorContext]] used for sending replies.
     * @param request
-    *   The received request
+    *   The received request.
     * @return
-    *   An updated [[ParticipantModelShell]]
+    *   An updated [[ParticipantModelShell]].
     */
   def handleRequest(
       ctx: ActorContext[ParticipantAgent.Request],
@@ -403,9 +414,9 @@ final case class ParticipantModelShell[
     * the former state, the operating point and the current tick.
     *
     * @param tick
-    *   The current tick
+    *   The current tick.
     * @return
-    *   The current state
+    *   The current state.
     */
   private def determineCurrentState(tick: Long): S = {
     // new state is only calculated if there's an old state and an operating point
@@ -413,10 +424,10 @@ final case class ParticipantModelShell[
       .zip(_operatingPoint)
       .flatMap { case (st, op) =>
         Option.when(st.tick < tick) {
-          model.determineState(st, op, getModelInput)
+          model.determineState(st, op, modelInput)
         }
       }
-      .getOrElse(model.initialState(getModelInput))
+      .getOrElse(model.initialState(modelInput))
 
     if (state.tick != tick)
       throw new CriticalFailureException(
@@ -434,9 +445,9 @@ object ParticipantModelShell {
     * [[SystemParticipantResult]] specific to the [[ParticipantModel]].
     *
     * @param totalPower
-    *   The total complex power produced or consumed
+    *   The total complex power produced or consumed.
     * @param modelResults
-    *   The model results
+    *   The model results.
     */
   final case class ResultsContainer(
       totalPower: ComplexPower,
@@ -447,19 +458,20 @@ object ParticipantModelShell {
     * input.
     *
     * @param participantInput
-    *   The physical participant model
+    *   The physical participant model.
     * @param config
-    *   Runtime configuration that has to match the participant type
+    *   Runtime configuration that has to match the participant type.
     * @param primaryDataMeta
-    *   The primary data meta class that can be used for the data to be received
+    *   The primary data meta class that can be used for the data to be
+    *   received.
     * @param simulationStart
-    *   The simulation start date and time
+    *   The simulation start date and time.
     * @param simulationEnd
-    *   The simulation end date and time
+    *   The simulation end date and time.
     * @tparam PD
-    *   The type of primary data to be received
+    *   The type of primary data to be received.
     * @return
-    *   The constructed [[ParticipantModelShell]] with a primary data model
+    *   The constructed [[ParticipantModelShell]] with a primary data model.
     */
   def createForPrimaryData[PD <: PrimaryData: ClassTag](
       participantInput: SystemParticipantInput,
@@ -485,15 +497,15 @@ object ParticipantModelShell {
     * input.
     *
     * @param participantInput
-    *   The physical participant model
+    *   The physical participant model.
     * @param config
-    *   Runtime configuration that has to match the participant type
+    *   Runtime configuration that has to match the participant type.
     * @param simulationStart
-    *   The simulation start date and time
+    *   The simulation start date and time.
     * @param simulationEnd
-    *   The simulation end date and time
+    *   The simulation end date and time.
     * @return
-    *   The constructed [[ParticipantModelShell]] with a physical model
+    *   The constructed [[ParticipantModelShell]] with a physical model.
     */
   def createForPhysicalModel(
       participantInput: SystemParticipantInput,

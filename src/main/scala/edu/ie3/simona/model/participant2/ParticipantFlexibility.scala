@@ -19,9 +19,9 @@ import squants.energy.Power
 /** Trait for [[ParticipantModel]] to define methods related to flexibility.
   *
   * @tparam OP
-  *   The type of operating point
+  *   The type of operating point.
   * @tparam S
-  *   The type of model state
+  *   The type of model state.
   */
 trait ParticipantFlexibility[
     OP <: OperatingPoint,
@@ -36,9 +36,9 @@ trait ParticipantFlexibility[
     * [[ProvideFlexOptions]] message.
     *
     * @param state
-    *   The current state
+    *   The current state.
     * @return
-    *   The flexibility options
+    *   The flexibility options.
     */
   def determineFlexOptions(state: S): ProvideFlexOptions
 
@@ -58,11 +58,11 @@ trait ParticipantFlexibility[
     * point instead.
     *
     * @param state
-    *   The current state
+    *   The current state.
     * @param setPower
-    *   The power set point determined by EM
+    *   The power set point determined by EM.
     * @return
-    *   The operating point and optionally a next activation tick
+    *   The operating point and optionally a next activation tick.
     */
   def determineOperatingPoint(
       state: S,
@@ -78,7 +78,7 @@ object ParticipantFlexibility {
     * is provided.
     *
     * @tparam S
-    *   The type of model state
+    *   The type of model state.
     */
   trait ParticipantSimpleFlexibility[
       S <: ModelState

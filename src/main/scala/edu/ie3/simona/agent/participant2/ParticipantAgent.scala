@@ -37,7 +37,7 @@ object ParticipantAgent {
   sealed trait Request
 
   /** This is extended by all requests that activate an [[ParticipantAgent]],
-    * i.e. activations, flex requests and control messages
+    * i.e. activations, flex requests and control messages.
     */
   private[participant2] sealed trait ActivationRequest extends Request {
     val tick: Long
@@ -47,7 +47,7 @@ object ParticipantAgent {
     * can only be received if this agent is not EM-controlled.
     *
     * @param tick
-    *   The tick to activate
+    *   The tick to activate.
     */
   private[participant2] final case class ParticipantActivation(
       override val tick: Long
@@ -57,34 +57,35 @@ object ParticipantAgent {
     * [[ParticipantAgent]] is EM-controlled).
     *
     * @param msg
-    *   The wrapped flex request
+    *   The wrapped flex request.
     */
   private[participant2] final case class Flex(msg: FlexRequest)
       extends ActivationRequest {
     override val tick: Long = msg.tick
   }
 
-  /** Messages that are sent by services as responses to registration requests
+  /** Messages that are sent by services as responses to registration requests.
     */
   sealed trait RegistrationResponseMessage extends Request {
     val serviceRef: ClassicRef
   }
 
-  /** Message confirming a successful registration with a secondary service
+  /** Message confirming a successful registration with a secondary service.
     */
   final case class RegistrationSuccessfulMessage(
       override val serviceRef: ClassicRef,
       firstDataTick: Long,
   ) extends RegistrationResponseMessage
 
-  /** Message confirming a successful registration with the primary service
+  /** Message confirming a successful registration with the primary service.
     *
     * @param firstDataTick
-    *   The first tick at which data will be sent
+    *   The first tick at which data will be sent.
     * @param primaryDataMeta
-    *   The primary data meta class that can be used for the data to be received
+    *   The primary data meta class that can be used for the data to be
+    *   received.
     * @tparam P
-    *   The type of primary data to be received
+    *   The type of primary data to be received.
     */
   final case class PrimaryRegistrationSuccessfulMessage[
       P <: PrimaryData: ClassTag
@@ -94,7 +95,7 @@ object ParticipantAgent {
       primaryDataMeta: PrimaryDataMeta[P],
   ) extends RegistrationResponseMessage
 
-  /** Message announcing a failed registration
+  /** Message announcing a failed registration.
     */
   final case class RegistrationFailedMessage(
       override val serviceRef: ClassicRef
@@ -104,16 +105,16 @@ object ParticipantAgent {
     */
   sealed trait DataInputMessage extends Request {
 
-    /** The current tick
+    /** The current tick.
       */
     val tick: Long
 
-    /** The sending service actor ref
+    /** The sending service actor ref.
       */
     val serviceRef: ClassicRef
 
     /** Next tick at which data could arrive. If None, no data is expected for
-      * the rest of the simulation
+      * the rest of the simulation.
       */
     val nextDataTick: Option[Long]
   }
@@ -121,9 +122,9 @@ object ParticipantAgent {
   /** Providing primary or secondary data to the [[ParticipantAgent]].
     *
     * @param data
-    *   The data
+    *   The data.
     * @tparam D
-    *   The type of the provided data
+    *   The type of the provided data.
     */
   final case class DataProvision[D <: Data](
       override val tick: Long,
@@ -148,11 +149,11 @@ object ParticipantAgent {
     * [[ParticipantAgent]] and provides the latest nodal voltage.
     *
     * @param tick
-    *   The current tick
+    *   The current tick.
     * @param eInPu
-    *   Real part of the complex, dimensionless nodal voltage
+    *   Real part of the complex, dimensionless nodal voltage.
     * @param fInPu
-    *   Imaginary part of the complex, dimensionless nodal voltage
+    *   Imaginary part of the complex, dimensionless nodal voltage.
     */
   final case class RequestAssetPowerMessage(
       tick: Long,
@@ -165,24 +166,24 @@ object ParticipantAgent {
     * participant activities can continue.
     *
     * @param tick
-    *   The current tick
+    *   The current tick.
     * @param nextRequestTick
     *   The next tick at which asset power is requested via
-    *   [[RequestAssetPowerMessage]]
+    *   [[RequestAssetPowerMessage]].
     */
-  final case class FinishParticipantSimulation(
+  final case class GridSimulationFinished(
       tick: Long,
       nextRequestTick: Long,
   ) extends Request
 
   /** Data object that holds the actor reference to the
     * [[edu.ie3.simona.scheduler.Scheduler]] activating this agent, indicating
-    * that this [[ParticipantAgent]] is not EM-controlled
+    * that this [[ParticipantAgent]] is not EM-controlled.
     *
     * @param scheduler
-    *   The scheduler that is activating this agent
+    *   The scheduler that is activating this agent.
     * @param activationAdapter
-    *   The activation adapter handling [[Activation]] messages
+    *   The activation adapter handling [[Activation]] messages.
     */
   final case class SchedulerData(
       scheduler: ActorRef[SchedulerMessage],
@@ -191,12 +192,12 @@ object ParticipantAgent {
 
   /** Data object that holds the actor reference to the corresponding
     * [[edu.ie3.simona.agent.em.EmAgent]], indicating that this
-    * [[ParticipantAgent]] is not EM-controlled
+    * [[ParticipantAgent]] is not EM-controlled.
     *
     * @param emAgent
     *   The parent EmAgent that is controlling this agent.
     * @param flexAdapter
-    *   The flex adapter handling [[FlexRequest]] messages
+    *   The flex adapter handling [[FlexRequest]] messages.
     * @param lastFlexOptions
     *   Last flex options that have been calculated for this agent.
     */
@@ -207,11 +208,11 @@ object ParticipantAgent {
   )
 
   /** A request to the [[edu.ie3.simona.model.participant2.ParticipantModel]]
-    * outside of regular requests related to participant operation
+    * outside of regular requests related to participant operation.
     */
   trait ParticipantRequest extends Request {
 
-    /** The tick for which the request is valid, which is the current tick
+    /** The tick for which the request is valid, which is the current tick.
       */
     val tick: Long
   }
@@ -328,7 +329,7 @@ object ParticipantAgent {
           parentData,
         )
 
-      case (_, FinishParticipantSimulation(_, nextRequestTick)) =>
+      case (_, GridSimulationFinished(_, nextRequestTick)) =>
         val gridAdapterFinished =
           gridAdapter.updateNextRequestTick(nextRequestTick)
 
@@ -351,6 +352,26 @@ object ParticipantAgent {
         )
     }
 
+  /** Starts a model calculation if all requirements have been met. A model
+    * calculation could be the determination of flex options and operating point
+    * when EM-controlled, and only flex options when not EM-controlled.
+    * Requirements include all necessary data having been received and power
+    * flow calculation having finished, if applicable.
+    *
+    * @param modelShell
+    *   The [[ParticipantModelShell]].
+    * @param inputHandler
+    *   The [[ParticipantInputHandler]].
+    * @param gridAdapter
+    *   The [[ParticipantGridAdapter]].
+    * @param listener
+    *   The result listeners.
+    * @param parentData
+    *   The parent of this [[ParticipantAgent]].
+    * @return
+    *   An updated [[ParticipantModelShell]], [[ParticipantInputHandler]] and
+    *   [[ParticipantGridAdapter]].
+    */
   private def maybeCalculate(
       modelShell: ParticipantModelShell[_, _],
       inputHandler: ParticipantInputHandler,
@@ -484,16 +505,16 @@ object ParticipantAgent {
   /** Checks if all required messages needed for calculation have been received.
     * These are:
     *   - agent is activated (activation has been received and not completed
-    *     yet)
-    *   - all required data has been received
+    *     yet).
+    *   - all required data has been received.
     *   - the grid adapter is not waiting for power requests (the new voltage
     *     needs to be received before starting calculations for the current
-    *     tick)
+    *     tick).
     *
     * @param inputHandler
-    *   The participant input handler
+    *   The participant input handler.
     * @param gridAdapter
-    *   The participant grid adapter
+    *   The participant grid adapter.
     * @return
     *   Whether power can be calculated or not.
     */
@@ -513,9 +534,9 @@ object ParticipantAgent {
     * can still be the case if the model itself requested recalculation.
     *
     * @param modelShell
-    *   The model shell
+    *   The model shell.
     * @param inputHandler
-    *   The participant input handler
+    *   The participant input handler.
     * @return
     */
   private def isCalculationRequired(

@@ -40,12 +40,12 @@ import scala.reflect.ClassTag
   *
   * @param primaryDataResultFunc
   *   Function that can create the typical result objects produced by the
-  *   physical [[ParticipantModel]]
+  *   physical [[ParticipantModel]].
   * @param primaryDataMeta
   *   The primary data meta class used to scale the primary data and provide
-  *   zero values
+  *   zero values.
   * @tparam PD
-  *   The type of primary data
+  *   The type of primary data.
   */
 final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
     override val uuid: UUID,

@@ -39,12 +39,12 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.{LoadInputTestData, PvInputTestData}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.TickLong
-import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
 import squants.Each
 
 import java.time.ZonedDateTime
+import java.time.temporal.ChronoUnit
 
 /** Testing [[ParticipantAgentInit]], which means testing the complete
   * initialization process of [[ParticipantAgent]] up until the first tick
@@ -55,14 +55,13 @@ class ParticipantAgentInitSpec
     with LoadInputTestData
     with PvInputTestData {
 
-  private implicit val simulationStart: ZonedDateTime =
-    TimeUtil.withDefaults.toZonedDateTime("2025-01-01T00:00:00Z")
+  private implicit val simulationStart: ZonedDateTime = defaultSimulationStart
 
   private val simulationParams = SimulationParameters(
     3600,
     Each(1e-14),
     simulationStart,
-    TimeUtil.withDefaults.toZonedDateTime("2025-03-01T00:00:00Z"),
+    defaultSimulationStart.plus(2, ChronoUnit.DAYS),
   )
 
   "A ParticipantAgent that is not depending on external services" when {

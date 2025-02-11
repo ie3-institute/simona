@@ -39,16 +39,16 @@ import java.time.ZonedDateTime
   */
 object ParticipantAgentInit {
 
-  /** Container class that gathers references to relevant actors
+  /** Container class that gathers references to relevant actors.
     *
     * @param gridAgent
-    *   Reference to the grid agent
+    *   Reference to the grid agent.
     * @param primaryServiceProxy
-    *   Reference to the primary service proxy
+    *   Reference to the primary service proxy.
     * @param services
-    *   References to services by service type
+    *   References to services by service type.
     * @param resultListener
-    *   Reference to the result listeners
+    *   Reference to the result listeners.
     */
   final case class ParticipantRefs(
       gridAgent: ActorRef[GridAgent.Request],
@@ -57,18 +57,18 @@ object ParticipantAgentInit {
       resultListener: Iterable[ActorRef[ResultEvent]],
   )
 
-  /** Container class that holds parameters related to the simulation
+  /** Container class that holds parameters related to the simulation.
     *
     * @param expectedPowerRequestTick
     *   The tick at which the first power request message is expected from
-    *   [[GridAgent]]
+    *   [[GridAgent]].
     * @param requestVoltageDeviationTolerance
-    *   The voltage request deviation tolerance, outside of which reactive power
-    *   has to be recalculated
+    *   The voltage request deviation tolerance, outside which reactive power
+    *   has to be recalculated.
     * @param simulationStart
-    *   The simulation start date and time
+    *   The simulation start date and time.
     * @param simulationEnd
-    *   The simulation end date and time
+    *   The simulation end date and time.
     */
   final case class SimulationParameters(
       expectedPowerRequestTick: Long,
@@ -81,18 +81,18 @@ object ParticipantAgentInit {
     *
     * @param participantInput
     *   The system participant model input that represents the physical model at
-    *   the core of the agent
+    *   the core of the agent.
     * @param config
-    *   Runtime configuration that has to match the participant type
+    *   Runtime configuration that has to match the participant type.
     * @param participantRefs
     *   A collection of actor references to actors required for initialization
-    *   and operation
+    *   and operation.
     * @param simulationParams
-    *   Some parameters required for simulation
+    *   Some parameters required for simulation.
     * @param parent
     *   The parent actor scheduling or controlling this participant, i.e. either
     *   a [[edu.ie3.simona.scheduler.Scheduler]] or an
-    *   [[edu.ie3.simona.agent.em.EmAgent]]
+    *   [[edu.ie3.simona.agent.em.EmAgent]].
     */
   def apply(
       participantInput: SystemParticipantInput,
@@ -142,6 +142,8 @@ object ParticipantAgentInit {
     )
   }
 
+  /** Waiting for an [[Activation]] message to start the initialization.
+    */
   private def uninitialized(
       participantInput: SystemParticipantInput,
       config: BaseRuntimeConfig,
@@ -166,6 +168,9 @@ object ParticipantAgentInit {
 
   }
 
+  /** Waits for the primary proxy to respond, which decides whether this
+    * participant uses model calculations or just replays primary data.
+    */
   private def waitingForPrimaryProxy(
       participantInput: SystemParticipantInput,
       config: BaseRuntimeConfig,
@@ -282,6 +287,9 @@ object ParticipantAgentInit {
         serviceRef ! RegisterForEvDataMessage(modelShell.uuid)
     }
 
+  /** Waiting for replies from secondary services. If all replies have been
+    * received, we complete the initialization.
+    */
   private def waitingForServices(
       modelShell: ParticipantModelShell[_, _],
       participantRefs: ParticipantRefs,

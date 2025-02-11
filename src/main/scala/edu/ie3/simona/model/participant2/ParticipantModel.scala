@@ -34,41 +34,41 @@ import java.util.UUID
   * state and operating point.
   *
   * @tparam OP
-  *   The type of operating point
+  *   The type of operating point.
   * @tparam S
-  *   The type of model state
+  *   The type of model state.
   */
 abstract class ParticipantModel[
     OP <: OperatingPoint,
     S <: ModelState,
 ] extends ParticipantFlexibility[OP, S] {
 
-  /** The UUID identifying the system participant
+  /** The UUID identifying the system participant.
     */
   val uuid: UUID
 
-  /** A human-readable id identifying the system participant
+  /** A human-readable id identifying the system participant.
     */
   val id: String
 
-  /** The rated apparent power of the system participant
+  /** The rated apparent power of the system participant.
     */
   val sRated: ApparentPower
 
-  /** The power factor of the system participant
+  /** The power factor of the system participant.
     */
   val cosPhiRated: Double
 
-  /** The reactive power control definition
+  /** The reactive power control definition.
     */
   val qControl: QControl
 
   /** The rated active power according to the rated apparent power and rated
-    * power factor
+    * power factor.
     */
   protected val pRated: Power = sRated.toActivePower(cosPhiRated)
 
-  /** Determines the initial state given an initial model input
+  /** Determines the initial state given an initial model input.
     */
   val initialState: ModelInput => S
 
@@ -76,14 +76,14 @@ abstract class ParticipantModel[
     * that has been valid from the last state up until now.
     *
     * @param lastState
-    *   The last state
+    *   The last state.
     * @param operatingPoint
     *   The operating point valid from the simulation time of the last state up
-    *   until now
+    *   until now.
     * @param input
-    *   The model input data for the current tick
+    *   The model input data for the current tick.
     * @return
-    *   The current state
+    *   The current state.
     */
   def determineState(
       lastState: S,
@@ -92,11 +92,11 @@ abstract class ParticipantModel[
   ): S
 
   /** Returns a partial function that transfers the current nodal voltage and
-    * active power into reactive power based on the participants properties
+    * active power into reactive power based on the participants properties.
     *
     * @return
     *   A [[PartialFunction]] from [[Power]] and voltage ([[Dimensionless]]) to
-    *   [[ReactivePower]]
+    *   [[ReactivePower]].
     */
   def reactivePowerFunc: Dimensionless => Power => ReactivePower =
     nodalVoltage =>
@@ -121,9 +121,9 @@ abstract class ParticipantModel[
     * operating point instead.
     *
     * @param state
-    *   the current state
+    *   the current state.
     * @return
-    *   the operating point and optionally a next activation tick
+    *   the operating point and optionally a next activation tick.
     */
   def determineOperatingPoint(state: S): (OP, Option[Long])
 
@@ -131,22 +131,22 @@ abstract class ParticipantModel[
     * producing/consuming no power.
     *
     * @return
-    *   an operating point representing zero power
+    *   an operating point representing zero power.
     */
   def zeroPowerOperatingPoint: OP
 
   /** @param state
-    *   the current state
+    *   the current state.
     * @param lastOperatingPoint
     *   the last operating point before the current one, i.e. the one valid up
-    *   until the last state, if applicable
+    *   until the last state, if applicable.
     * @param currentOperatingPoint
     *   the operating point valid from the simulation time of the last state up
-    *   until now
+    *   until now.
     * @param complexPower
-    *   the total complex power derived from the current operating point
+    *   the total complex power derived from the current operating point.
     * @param dateTime
-    *   the current simulation date and time
+    *   the current simulation date and time.
     * @return
     */
   def createResults(
@@ -167,13 +167,13 @@ abstract class ParticipantModel[
     * updated.
     *
     * @param state
-    *   The current state
+    *   The current state.
     * @param ctx
-    *   The actor context that can be used to send replies
+    *   The actor context that can be used to send replies.
     * @param msg
-    *   The received request
+    *   The received request.
     * @return
-    *   An updated state, or the same state provided as parameter
+    *   An updated state, or the same state provided as parameter.
     */
   def handleRequest(
       state: S,
@@ -183,7 +183,7 @@ abstract class ParticipantModel[
     throw new NotImplementedError(s"Method not implemented by $getClass")
 
   /** @return
-    *   All secondary services required by the model
+    *   All secondary services required by the model.
     */
   def getRequiredSecondaryServices: Iterable[ServiceType]
 
@@ -194,13 +194,13 @@ object ParticipantModel {
   /** Holds all potentially relevant input data for model calculation.
     *
     * @param receivedData
-    *   The received primary or secondary data
+    *   The received primary or secondary data.
     * @param nodalVoltage
-    *   The voltage at the node that we're connected to
+    *   The voltage at the node that we're connected to.
     * @param currentTick
-    *   The current tick
+    *   The current tick.
     * @param currentSimulationTime
-    *   The current simulation time (matches the tick)
+    *   The current simulation time (matches the tick).
     */
   final case class ModelInput(
       receivedData: Seq[Data],
@@ -250,11 +250,11 @@ object ParticipantModel {
 
   }
 
-  /** State that just holds the current datetime and tick
+  /** State that just holds the current datetime and tick.
     * @param tick
-    *   The current tick
+    *   The current tick.
     * @param dateTime
-    *   The current datetime, corresponding to the current tick
+    *   The current datetime, corresponding to the current tick.
     */
   final case class DateTimeState(tick: Long, dateTime: ZonedDateTime)
       extends ModelState
@@ -301,9 +301,9 @@ object ParticipantModel {
       * of both changesAtTick values.
       *
       * @param otherIndicator
-      *   The other [[OperationChangeIndicator]] to combine with this one
+      *   The other [[OperationChangeIndicator]] to combine with this one.
       * @return
-      *   An aggregated [[OperationChangeIndicator]]
+      *   An aggregated [[OperationChangeIndicator]].
       */
     def |(
         otherIndicator: OperationChangeIndicator
