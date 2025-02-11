@@ -150,10 +150,10 @@ class ThermalGridIT
 
       /* TICK 0
       Start of Simulation
-      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 15.02 kWh
-      House demand water   : requiredDemand ~ 0.0674 kWh, additional Demand ~ 0.067 kWh
-      ThermalStorage       : requiredDemand = 10.44 kWh, additionalDemand = 10.44 kWh
-      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 15.02 kWh
+      House demand water   : requiredDemand ~ 0.0674 kWh, possibleDemand ~ 0.067 kWh
+      ThermalStorage       : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: turned on - to serve the storage demand
        */
 
@@ -233,11 +233,11 @@ class ThermalGridIT
 
       /* TICK 23
       Domestic hot water storage stops discharging
-      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 15.02 kWh
-      House demand water   : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 10.37 kWh
-      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      Heat pump: stays on since it was on and the house as additional demand
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 15.02 kWh
+      House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 10.37 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      Heat pump: stays on since it was on and the house has possible demand
        */
 
       heatPumpAgent ! Activation(23)
@@ -303,11 +303,11 @@ class ThermalGridIT
 
       /* TICK 3417
       ThermalStorage is fully heated up
-      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 17.37 kWh
-      House demand water   : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      Heat pump: stays on since it was on and the house as additional demand
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 17.37 kWh
+      House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      Heat pump: stays on since it was on and the house has possible demand
        */
 
       heatPumpAgent ! Activation(3417)
@@ -372,10 +372,10 @@ class ThermalGridIT
 
       /* TICK 7200
       New weather data (unchanged) incoming + Domestic hot water storage will cover hot water demand
-      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 8.41 kWh
-      House demand water   : requiredDemand = 0.06 kWh, additionalDemand = 0.06 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 8.41 kWh
+      House demand water   : requiredDemand = 0.06 kWh, possibleDemand = 0.06 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: stays on, we got triggered by incoming weather data. So we continue with same behaviour as before
        */
 
@@ -454,10 +454,10 @@ class ThermalGridIT
 
       /* TICK 7220
       Domestic hot water storage stops discharging
-      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 8.41 kWh
-      House demand water   : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 8.41 kWh
+      House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: stays on
        */
 
@@ -525,10 +525,10 @@ class ThermalGridIT
 
       /* TICK 10799
       House reaches upper temperature boundary
-      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      House demand water   : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: turned off
        */
 
@@ -595,10 +595,10 @@ class ThermalGridIT
       /* TICK 28800
       House would reach lowerTempBoundary at tick 50797
       but now it's getting colder which should decrease inner temp of house faster
-      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      House demand water   : requiredDemand = 0.57 kWh, additionalDemand = 0.57 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      House demand water   : requiredDemand = 0.57 kWh, possibleDemand = 0.57 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: stays off
        */
 
@@ -678,10 +678,10 @@ class ThermalGridIT
 
       /* TICK 28987
       Domestic hot water storage will stop discharging
-      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.00 kWh
-      House demand water   : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.00 kWh
+      House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: stays off
        */
 
@@ -749,10 +749,10 @@ class ThermalGridIT
 
       /* TICK 41951
       House reach lowerTemperatureBoundary
-      House demand heating : requiredDemand = 15.0 kWh, additionalDemand = 30.00 kWh
-      House demand water   : requiredDemand = 0.67 kWh, additionalDemand = 0.67 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      House demand heating : requiredDemand = 15.0 kWh, possibleDemand = 30.00 kWh
+      House demand water   : requiredDemand = 0.67 kWh, possibleDemand = 0.67 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: stays off, demand should be covered by storage
        */
 
@@ -818,10 +818,10 @@ class ThermalGridIT
       /* TICK 42171
       Domestic hot water storage will stop discharging, and its SOC will be less than 20%, thus it need to be recharged,
       heat demand of house will still be covered from thermal storage
-      House demand heating : requiredDemand = 14.59 kWh, additionalDemand = 29.59 kWh
-      House demand water   : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.67 kWh
-      DomesticWaterStorage : requiredDemand = 1.37 kWh, additionalDemand = 1.37 kWh
+      House demand heating : requiredDemand = 14.59 kWh, possibleDemand = 29.59 kWh
+      House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.67 kWh
+      DomesticWaterStorage : requiredDemand = 1.37 kWh, possibleDemand = 1.37 kWh
       Heat pump: turns on to cover demand of domestic hot water storage
        */
 
@@ -886,10 +886,10 @@ class ThermalGridIT
 
       /* TICK 42619
       Domestic hot water storage will be full
-      House demand heating : requiredDemand = 13.76 kWh, additionalDemand = 28.76 kWh
-      House demand water   : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 2.04 kWh
-      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      House demand heating : requiredDemand = 13.76 kWh, possibleDemand = 28.76 kWh
+      House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 2.04 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: Since Hp is running, it will kept running to heat house and recharge thermal storage
        */
 
@@ -953,10 +953,10 @@ class ThermalGridIT
       /* TICK 45000
       Additional trigger caused by (unchanged) weather data should any behaviour,
       since tick is at full hour, heat demand for water will be covered from storage
-      House demand heating : requiredDemand = 9.34 kWh, additionalDemand = 24.34 kWh
-      House demand water   : requiredDemand = 0.24 kWh, additionalDemand = 0.24 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 2.04 kWh
-      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      House demand heating : requiredDemand = 9.34 kWh, possibleDemand = 24.34 kWh
+      House demand water   : requiredDemand = 0.24 kWh, possibleDemand = 0.24 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 2.04 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: stays on to cover heat demand of house and recharge thermal storage
        */
 
@@ -1038,10 +1038,10 @@ class ThermalGridIT
 
       /* TICK 45078
      DomesticWaterStorage will stop discharging to cover water demand
-     House demand heating : requiredDemand = 9.19kWh, additionalDemand = 24.19 kWh
-     House demand water   : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-     ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 2.04 kWh
-     DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+     House demand heating : requiredDemand = 9.19kWh, possibleDemand = 24.19 kWh
+     House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+     ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 2.04 kWh
+     DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
      Heat pump: kept running - to serve the remaining heat demand of house (and refill storage later)
        */
 
@@ -1106,10 +1106,10 @@ class ThermalGridIT
       /* TICK 57600
       New weather data: it's getting warmer again
       since tick is at full hour, heat demand for water will be covered from storage
-      House demand heating : requiredDemand = 0.00 kWh, additionalDemand = 1.15 kWh
-      House demand water   : requiredDemand = 0.76 kWh, additionalDemand = 0.76 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 2.04 kWh
-      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 1.15 kWh
+      House demand water   : requiredDemand = 0.76 kWh, possibleDemand = 0.76 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 2.04 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: kept running - to serve the remaining heat demand of house (and refill storage later)
        */
 
@@ -1184,10 +1184,10 @@ class ThermalGridIT
 
       /* TICK 57848
       DomesticWaterStorage will stop discharging to cover water demand
-      House demand heating : requiredDemand = 0.00 kWh, additionalDemand = 0.52 kWh
-      House demand water   : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 2.04 kWh
-      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      House demand heating : requiredDemand = 0.00 kWh, possibleDemand = 0.52 kWh
+      House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 2.04 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: ?
        */
 
@@ -1248,10 +1248,10 @@ class ThermalGridIT
 
       /* TICK 58048
       House will reach the upperTemperatureBoundary
-      House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      House demand water   : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-      ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 2.04 kWh
-      DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+      ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 2.04 kWh
+      DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       Heat pump: stays on to refill the storage now
        */
 
@@ -1313,10 +1313,10 @@ class ThermalGridIT
 
       /* TICK 58716
      Storage will be fully charged
-     House demand heating : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-     House demand water   : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-     ThermalStorage       : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
-     DomesticWaterStorage : requiredDemand = 0.0 kWh, additionalDemand = 0.0 kWh
+     House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+     House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+     ThermalStorage       : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
+     DomesticWaterStorage : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
      Heat pump: turns off, all demands are covered
        */
 
