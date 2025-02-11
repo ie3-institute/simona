@@ -13,7 +13,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
 }
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ActivePower,
-  ActivePowerMeta,
+  ActivePowerExtra,
 }
 import edu.ie3.simona.agent.participant2.MockParticipantModel.{
   MockRequestMessage,
@@ -558,7 +558,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         val model = ParticipantModelInit.createPrimaryModel(
           physicalModel,
-          ActivePowerMeta,
+          ActivePowerExtra,
         )
         val operationInterval = OperationInterval(8 * 3600, 20 * 3600)
 
@@ -1315,7 +1315,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
         val model = ParticipantModelInit.createPrimaryModel(
           physicalModel,
-          ActivePowerMeta,
+          ActivePowerExtra,
         )
         val operationInterval = OperationInterval(8 * 3600, 20 * 3600)
 

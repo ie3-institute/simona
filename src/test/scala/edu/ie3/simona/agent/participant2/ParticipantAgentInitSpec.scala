@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.participant2
 
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ActivePowerMeta
+import edu.ie3.simona.agent.participant.data.Data.PrimaryData.ActivePowerExtra
 import edu.ie3.simona.agent.participant2.ParticipantAgent.{
   PrimaryRegistrationSuccessfulMessage,
   RegistrationFailedMessage,
@@ -167,7 +167,7 @@ class ParticipantAgentInitSpec
         participantAgent ! PrimaryRegistrationSuccessfulMessage(
           primaryService.ref.toClassic,
           15 * 3600L,
-          ActivePowerMeta,
+          ActivePowerExtra,
         )
 
         scheduler.expectMessage(Completion(activationRef, Some(15 * 3600L)))
@@ -274,7 +274,7 @@ class ParticipantAgentInitSpec
         participantAgent ! PrimaryRegistrationSuccessfulMessage(
           primaryService.ref.toClassic,
           15 * 3600L,
-          ActivePowerMeta,
+          ActivePowerExtra,
         )
 
         em.expectMessage(
@@ -403,7 +403,7 @@ class ParticipantAgentInitSpec
           // no activation expected for this tick, since it is
           // outside the operation interval
           15 * 3600L,
-          ActivePowerMeta,
+          ActivePowerExtra,
         )
 
         scheduler.expectMessage(Completion(activationRef, Some(15 * 3600L)))
@@ -524,7 +524,7 @@ class ParticipantAgentInitSpec
           // no activation expected for this tick, since it is
           // outside the operation interval
           15 * 3600L,
-          ActivePowerMeta,
+          ActivePowerExtra,
         )
 
         em.expectMessage(

@@ -9,7 +9,10 @@ package edu.ie3.simona.model.participant2
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput.SystemParticipantInputCopyBuilder
 import edu.ie3.datamodel.models.input.system._
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
-import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, PrimaryDataMeta}
+import edu.ie3.simona.agent.participant.data.Data.{
+  PrimaryData,
+  PrimaryDataExtra,
+}
 import edu.ie3.simona.config.SimonaConfig.BaseRuntimeConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant2.ParticipantModel.{
@@ -74,16 +77,15 @@ object ParticipantModelInit {
     *   The system participant model input.
     * @param modelConfig
     *   The model runtime config.
-    * @param primaryDataMeta
-    *   The primary data meta class that can be used for the data to be
-    *   received.
+    * @param primaryDataExtra
+    *   Extra functionality specific to the primary data class.
     * @return
     *   The [[PrimaryDataParticipantModel]].
     */
   def createPrimaryModel[PD <: PrimaryData: ClassTag](
       participantInput: SystemParticipantInput,
       modelConfig: BaseRuntimeConfig,
-      primaryDataMeta: PrimaryDataMeta[PD],
+      primaryDataExtra: PrimaryDataExtra[PD],
   ): PrimaryDataParticipantModel[PD] = {
     // Create a fitting physical model to extract parameters from
     val physicalModel = createPhysicalModel(
@@ -93,7 +95,7 @@ object ParticipantModelInit {
 
     createPrimaryModel(
       physicalModel,
-      primaryDataMeta,
+      primaryDataExtra,
     )
   }
 
@@ -103,15 +105,14 @@ object ParticipantModelInit {
     *
     * @param physicalModel
     *   The physical participant model.
-    * @param primaryDataMeta
-    *   The primary data meta class that can be used for the data to be
-    *   received.
+    * @param primaryDataExtra
+    *   Extra functionality specific to the primary data class.
     * @return
     *   The [[PrimaryDataParticipantModel]].
     */
   def createPrimaryModel[PD <: PrimaryData: ClassTag](
       physicalModel: ParticipantModel[_, _],
-      primaryDataMeta: PrimaryDataMeta[PD],
+      primaryDataExtra: PrimaryDataExtra[PD],
   ): PrimaryDataParticipantModel[PD] = {
     val primaryResultFunc = new PrimaryResultFunc {
       override def createResult(
@@ -128,7 +129,7 @@ object ParticipantModelInit {
       physicalModel.cosPhiRated,
       physicalModel.qControl,
       primaryResultFunc,
-      primaryDataMeta,
+      primaryDataExtra,
     )
   }
 

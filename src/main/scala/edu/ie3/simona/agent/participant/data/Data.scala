@@ -44,7 +44,7 @@ object Data {
     * @tparam T
     *   The type of primary data
     */
-  sealed trait PrimaryDataMeta[T <: PrimaryData] {
+  sealed trait PrimaryDataExtra[T <: PrimaryData] {
 
     /** Returns a zero value of the desired type
       */
@@ -104,7 +104,7 @@ object Data {
         ComplexPower(p, q)
     }
 
-    object ActivePowerMeta extends PrimaryDataMeta[ActivePower] {
+    object ActivePowerExtra extends PrimaryDataExtra[ActivePower] {
       override def zero: ActivePower = ActivePower(zeroKW)
 
       override def scale(data: ActivePower, factor: Double): ActivePower =
@@ -128,7 +128,7 @@ object Data {
         copy(q = q)
     }
 
-    object ComplexPowerMeta extends PrimaryDataMeta[ComplexPower] {
+    object ComplexPowerExtra extends PrimaryDataExtra[ComplexPower] {
       override def zero: ComplexPower = ComplexPower(zeroKW, zeroKVAr)
 
       override def scale(data: ComplexPower, factor: Double): ComplexPower =
@@ -158,7 +158,8 @@ object Data {
         ComplexPowerAndHeat(p, q, qDot)
     }
 
-    object ActivePowerAndHeatMeta extends PrimaryDataMeta[ActivePowerAndHeat] {
+    object ActivePowerAndHeatExtra
+        extends PrimaryDataExtra[ActivePowerAndHeat] {
       override def zero: ActivePowerAndHeat = ActivePowerAndHeat(zeroKW, zeroKW)
 
       override def scale(
@@ -190,8 +191,8 @@ object Data {
         copy(q = q)
     }
 
-    object ComplexPowerAndHeatMeta
-        extends PrimaryDataMeta[ComplexPowerAndHeat] {
+    object ComplexPowerAndHeatExtra
+        extends PrimaryDataExtra[ComplexPowerAndHeat] {
       override def zero: ComplexPowerAndHeat =
         ComplexPowerAndHeat(zeroKW, zeroKVAr, zeroKW)
 

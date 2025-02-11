@@ -8,7 +8,10 @@ package edu.ie3.simona.model.participant2
 
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.data.Data
-import edu.ie3.simona.agent.participant.data.Data.{PrimaryData, PrimaryDataMeta}
+import edu.ie3.simona.agent.participant.data.Data.{
+  PrimaryData,
+  PrimaryDataExtra,
+}
 import edu.ie3.simona.agent.participant.data.Data.PrimaryData.{
   ComplexPower,
   EnrichableData,
@@ -41,9 +44,8 @@ import scala.reflect.ClassTag
   * @param primaryDataResultFunc
   *   Function that can create the typical result objects produced by the
   *   physical [[ParticipantModel]].
-  * @param primaryDataMeta
-  *   The primary data meta class used to scale the primary data and provide
-  *   zero values.
+  * @param primaryDataExtra
+  *   Extra functionality specific to the primary data class.
   * @tparam PD
   *   The type of primary data.
   */
@@ -54,7 +56,7 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
     override val cosPhiRated: Double,
     override val qControl: QControl,
     private val primaryDataResultFunc: PrimaryResultFunc,
-    private val primaryDataMeta: PrimaryDataMeta[PD],
+    private val primaryDataExtra: PrimaryDataExtra[PD],
 ) extends ParticipantModel[
       PrimaryOperatingPoint[PD],
       PrimaryDataState[PD],
@@ -94,7 +96,7 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
     (PrimaryOperatingPoint(state.data), None)
 
   override def zeroPowerOperatingPoint: PrimaryOperatingPoint[PD] =
-    PrimaryOperatingPoint(primaryDataMeta.zero)
+    PrimaryOperatingPoint(primaryDataExtra.zero)
 
   override def createResults(
       state: PrimaryDataState[PD],
@@ -141,7 +143,7 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
     // scale the whole primary data by the same factor that
     // the active power set point was scaled by
     val factor = state.data.p / setPower
-    val scaledData: PD = primaryDataMeta.scale(state.data, factor)
+    val scaledData: PD = primaryDataExtra.scale(state.data, factor)
 
     (PrimaryOperatingPoint(scaledData), OperationChangeIndicator())
   }
