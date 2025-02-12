@@ -6,10 +6,108 @@
 
 package edu.ie3.simona.config
 
+import com.typesafe.config.{Config, ConfigRenderOptions}
+import pureconfig.error.{
+  CannotParse,
+  CannotRead,
+  ConfigReaderFailures,
+  ConvertFailure,
+  ThrowableFailure,
+}
+import pureconfig.{
+  CamelCase,
+  ConfigConvert,
+  ConfigFieldMapping,
+  ConfigObjectSource,
+  ConfigReader,
+  ConfigSource,
+  ConfigWriter,
+}
+import pureconfig.generic.ProductHint
+import pureconfig.generic.auto._
+import pureconfig.generic.semiauto.{deriveReader, deriveWriter}
+
+import java.time.Duration
+import scala.language.implicitConversions
+import scala.util.Try
+
 final case class SimonaConfig(
     simona: SimonaConfig.Simona
-)
+) {
+  def render(options: ConfigRenderOptions): String =
+    SimonaConfig.render(this, options)
+}
+
 object SimonaConfig {
+  // pure config start
+  implicit def productHint[T]: ProductHint[T] =
+    ProductHint[T](ConfigFieldMapping(CamelCase, CamelCase))
+
+  // TODO: replace with finite duration
+  implicit def durationConvert: ConfigConvert[Duration] =
+    ConfigConvert.viaStringTry(
+      str => Try(Duration.parse(("PT" + str).toUpperCase)),
+      x => x.toString,
+    )
+
+  // necessary to prevent StackOverFlowErrors during compilation
+  implicit val baseRuntimeReader: ConfigReader[BaseRuntimeConfig] =
+    deriveReader[BaseRuntimeConfig]
+  implicit val loadRuntimeReader: ConfigReader[LoadRuntimeConfig] =
+    deriveReader[LoadRuntimeConfig]
+  implicit val evcsRuntimeReader: ConfigReader[EvcsRuntimeConfig] =
+    deriveReader[EvcsRuntimeConfig]
+  implicit val emRuntimeReader: ConfigReader[EmRuntimeConfig] =
+    deriveReader[EmRuntimeConfig]
+  implicit val storageRuntimeReader: ConfigReader[StorageRuntimeConfig] =
+    deriveReader[StorageRuntimeConfig]
+
+  /** Method to extract a config from a [[pureconfig.ConfigReader.Result]]
+    * @param either
+    *   that may contain a config
+    * @tparam T
+    *   type of config
+    * @return
+    *   the config, or throws an exception
+    */
+  protected implicit def extract[T](
+      either: Either[ConfigReaderFailures, T]
+  ): T =
+    either match {
+      case Left(readerFailures) =>
+        val detailedErrors = readerFailures.toList
+          .map {
+            case CannotParse(msg, origin) =>
+              f"CannotParse => $msg, Origin: $origin \n"
+            case _: CannotRead =>
+              f"CannotRead => Can not read config source} \n"
+            case ConvertFailure(reason, _, path) =>
+              f"ConvertFailure => Path: $path, Description: ${reason.description} \n"
+            case ThrowableFailure(throwable, origin) =>
+              f"ThrowableFailure => ${throwable.getMessage}, Origin: $origin \n"
+            case failure =>
+              f"Unknown failure type => ${failure.toString} \n"
+          }
+          .mkString("\n")
+        throw new RuntimeException(
+          s"Unable to load config due to following failures:\n$detailedErrors"
+        )
+      case Right(conf) => conf
+    }
+
+  def apply(typeSafeConfig: Config): SimonaConfig =
+    apply(ConfigSource.fromConfig(typeSafeConfig))
+
+  def apply(confSrc: ConfigObjectSource): SimonaConfig =
+    confSrc.load[SimonaConfig]
+
+  def render(
+      simonaConfig: SimonaConfig,
+      options: ConfigRenderOptions,
+  ): String = ConfigWriter[SimonaConfig].to(simonaConfig).render(options)
+
+  // pure config end
+
   final case class BaseCsvParams(
       override val csvSep: java.lang.String,
       override val directoryPath: java.lang.String,
@@ -80,11 +178,11 @@ object SimonaConfig {
   )
 
   final case class EmRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: scala.Boolean,
-      override val scaling: scala.Double,
-      override val uuids: scala.List[java.lang.String],
-      aggregateFlex: java.lang.String,
-      curtailRegenerative: scala.Boolean,
+      override val calculateMissingReactivePowerWithModel: Boolean,
+      override val scaling: Double,
+      override val uuids: List[String],
+      aggregateFlex: String = "SELF_OPT_EXCL_REG",
+      curtailRegenerative: Boolean = false,
   ) extends BaseRuntimeConfig(
         calculateMissingReactivePowerWithModel,
         scaling,
@@ -149,11 +247,11 @@ object SimonaConfig {
   }
 
   final case class EvcsRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: scala.Boolean,
-      override val scaling: scala.Double,
-      override val uuids: scala.List[java.lang.String],
-      chargingStrategy: java.lang.String,
-      lowestEvSoc: scala.Double,
+      override val calculateMissingReactivePowerWithModel: Boolean,
+      override val scaling: Double,
+      override val uuids: List[String],
+      chargingStrategy: String = "maxPower",
+      lowestEvSoc: Double = 0.2,
   ) extends BaseRuntimeConfig(
         calculateMissingReactivePowerWithModel,
         scaling,
@@ -278,12 +376,12 @@ object SimonaConfig {
   }
 
   final case class GridOutputConfig(
-      lines: scala.Boolean,
-      nodes: scala.Boolean,
-      notifier: java.lang.String,
-      switches: scala.Boolean,
-      transformers2w: scala.Boolean,
-      transformers3w: scala.Boolean,
+      lines: Boolean = false,
+      nodes: Boolean = false,
+      notifier: String,
+      switches: Boolean = false,
+      transformers2w: Boolean = false,
+      transformers3w: Boolean = false,
   )
   object GridOutputConfig {
     def apply(
@@ -469,10 +567,10 @@ object SimonaConfig {
   }
 
   final case class ParticipantBaseOutputConfig(
-      override val notifier: java.lang.String,
-      override val simulationResult: scala.Boolean,
-      flexResult: scala.Boolean,
-      powerRequestReply: scala.Boolean,
+      override val notifier: String,
+      override val simulationResult: Boolean,
+      flexResult: Boolean = false,
+      powerRequestReply: Boolean,
   ) extends BaseOutputConfig(notifier, simulationResult)
   object ParticipantBaseOutputConfig {
     def apply(
@@ -525,10 +623,10 @@ object SimonaConfig {
   }
 
   final case class PrimaryDataCsvParams(
-      override val csvSep: java.lang.String,
-      override val directoryPath: java.lang.String,
-      override val isHierarchic: scala.Boolean,
-      timePattern: java.lang.String,
+      override val csvSep: String,
+      override val directoryPath: String,
+      override val isHierarchic: Boolean,
+      timePattern: String = "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X",
   ) extends CsvParams(csvSep, directoryPath, isHierarchic)
   object PrimaryDataCsvParams {
     def apply(
@@ -872,11 +970,11 @@ object SimonaConfig {
   }
 
   final case class StorageRuntimeConfig(
-      override val calculateMissingReactivePowerWithModel: scala.Boolean,
-      override val scaling: scala.Double,
-      override val uuids: scala.List[java.lang.String],
-      initialSoc: scala.Double,
-      targetSoc: scala.Option[scala.Double],
+      override val calculateMissingReactivePowerWithModel: Boolean,
+      override val scaling: Double,
+      override val uuids: List[String],
+      initialSoc: Double = 0d,
+      targetSoc: Option[Double],
   ) extends BaseRuntimeConfig(
         calculateMissingReactivePowerWithModel,
         scaling,
@@ -1323,13 +1421,13 @@ object SimonaConfig {
       )
       object Primary {
         final case class CouchbaseParams(
-            bucketName: java.lang.String,
-            coordinateColumnName: java.lang.String,
-            keyPrefix: java.lang.String,
-            password: java.lang.String,
-            timePattern: java.lang.String,
-            url: java.lang.String,
-            userName: java.lang.String,
+            bucketName: String,
+            coordinateColumnName: String,
+            keyPrefix: String,
+            password: String,
+            timePattern: String = "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X",
+            url: String,
+            userName: String,
         )
         object CouchbaseParams {
           def apply(
@@ -1374,10 +1472,10 @@ object SimonaConfig {
         }
 
         final case class InfluxDb1xParams(
-            database: java.lang.String,
-            port: scala.Int,
-            timePattern: java.lang.String,
-            url: java.lang.String,
+            database: String,
+            port: Int,
+            timePattern: String = "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X",
+            url: String,
         )
         object InfluxDb1xParams {
           def apply(
@@ -1429,11 +1527,11 @@ object SimonaConfig {
         }
 
         final case class SqlParams(
-            jdbcUrl: java.lang.String,
-            password: java.lang.String,
-            schemaName: java.lang.String,
-            timePattern: java.lang.String,
-            userName: java.lang.String,
+            jdbcUrl: String,
+            password: String,
+            schemaName: String = "public",
+            timePattern: String = "yyyy-MM-dd'T'HH:mm:ss[.S[S][S]]X",
+            userName: String,
         )
         object SqlParams {
           def apply(
@@ -1534,12 +1632,12 @@ object SimonaConfig {
             influxDb1xParams: scala.Option[
               SimonaConfig.Simona.Input.Weather.Datasource.InfluxDb1xParams
             ],
-            maxCoordinateDistance: scala.Double,
+            maxCoordinateDistance: Double = 50000,
             resolution: scala.Option[scala.Long],
             sampleParams: scala.Option[
               SimonaConfig.Simona.Input.Weather.Datasource.SampleParams
             ],
-            scheme: java.lang.String,
+            scheme: String = "icon",
             sqlParams: scala.Option[
               SimonaConfig.Simona.Input.Weather.Datasource.SqlParams
             ],
@@ -1548,7 +1646,7 @@ object SimonaConfig {
         object Datasource {
           final case class CoordinateSource(
               csvParams: scala.Option[SimonaConfig.BaseCsvParams],
-              gridModel: java.lang.String,
+              gridModel: String = "icon",
               sampleParams: scala.Option[
                 SimonaConfig.Simona.Input.Weather.Datasource.CoordinateSource.SampleParams
               ],
@@ -1558,7 +1656,7 @@ object SimonaConfig {
           )
           object CoordinateSource {
             final case class SampleParams(
-                use: scala.Boolean
+                use: Boolean = true
             )
             object SampleParams {
               def apply(
@@ -1576,7 +1674,7 @@ object SimonaConfig {
             final case class SqlParams(
                 jdbcUrl: java.lang.String,
                 password: java.lang.String,
-                schemaName: java.lang.String,
+                schemaName: String = "public",
                 tableName: java.lang.String,
                 userName: java.lang.String,
             )
@@ -1765,7 +1863,7 @@ object SimonaConfig {
           }
 
           final case class SampleParams(
-              use: scala.Boolean
+              use: Boolean = true
           )
           object SampleParams {
             def apply(
@@ -1782,7 +1880,7 @@ object SimonaConfig {
           final case class SqlParams(
               jdbcUrl: java.lang.String,
               password: java.lang.String,
-              schemaName: java.lang.String,
+              schemaName: String = "public",
               tableName: java.lang.String,
               userName: java.lang.String,
           )
@@ -1955,7 +2053,7 @@ object SimonaConfig {
 
     final case class Output(
         base: SimonaConfig.Simona.Output.Base,
-        flex: scala.Boolean,
+        flex: Boolean = false,
         grid: SimonaConfig.GridOutputConfig,
         log: SimonaConfig.Simona.Output.Log,
         participant: SimonaConfig.Simona.Output.Participant,
@@ -1964,7 +2062,7 @@ object SimonaConfig {
     )
     object Output {
       final case class Base(
-          addTimestampToOutputDir: scala.Boolean,
+          addTimestampToOutputDir: Boolean = true,
           dir: java.lang.String,
       )
       object Base {
@@ -1999,7 +2097,7 @@ object SimonaConfig {
       }
 
       final case class Log(
-          level: java.lang.String
+          level: String = "INFO"
       )
       object Log {
         def apply(
@@ -2067,11 +2165,11 @@ object SimonaConfig {
       )
       object Sink {
         final case class Csv(
-            compressOutputs: scala.Boolean,
-            fileFormat: java.lang.String,
-            filePrefix: java.lang.String,
-            fileSuffix: java.lang.String,
-            isHierarchic: scala.Boolean,
+            compressOutputs: Boolean = false,
+            fileFormat: String = ".csv",
+            filePrefix: String = "",
+            fileSuffix: String = "",
+            isHierarchic: Boolean = false,
         )
         object Csv {
           def apply(
@@ -2284,9 +2382,9 @@ object SimonaConfig {
     final case class Powerflow(
         maxSweepPowerDeviation: scala.Double,
         newtonraphson: SimonaConfig.Simona.Powerflow.Newtonraphson,
-        resolution: java.time.Duration,
-        stopOnFailure: scala.Boolean,
-        sweepTimeout: java.time.Duration,
+        resolution: Duration = Duration.ofHours(1),
+        stopOnFailure: Boolean = false,
+        sweepTimeout: Duration = Duration.ofSeconds(30),
     )
     object Powerflow {
       final case class Newtonraphson(
@@ -2367,15 +2465,16 @@ object SimonaConfig {
     }
 
     final case class Runtime(
-        listener: SimonaConfig.Simona.Runtime.Listener,
+        listener: SimonaConfig.Simona.Runtime.Listener =
+          SimonaConfig.Simona.Runtime.Listener(),
         participant: SimonaConfig.Simona.Runtime.Participant,
-        selected_subgrids: scala.Option[scala.List[scala.Int]],
-        selected_volt_lvls: scala.Option[scala.List[SimonaConfig.VoltLvlConfig]],
+        selected_subgrids: Option[List[Int]],
+        selected_volt_lvls: Option[List[SimonaConfig.VoltLvlConfig]],
     )
     object Runtime {
       final case class Listener(
-          eventsToProcess: scala.Option[scala.List[java.lang.String]],
-          kafka: scala.Option[SimonaConfig.RuntimeKafkaParams],
+          eventsToProcess: Option[List[String]] = None,
+          kafka: Option[SimonaConfig.RuntimeKafkaParams] = None,
       )
       object Listener {
         def apply(
@@ -2415,7 +2514,7 @@ object SimonaConfig {
           hp: SimonaConfig.Simona.Runtime.Participant.Hp,
           load: SimonaConfig.Simona.Runtime.Participant.Load,
           pv: SimonaConfig.Simona.Runtime.Participant.Pv,
-          requestVoltageDeviationThreshold: scala.Double,
+          requestVoltageDeviationThreshold: Double = 1e-14,
           storage: SimonaConfig.Simona.Runtime.Participant.Storage,
           wec: SimonaConfig.Simona.Runtime.Participant.Wec,
       )
@@ -2927,68 +3026,6 @@ object SimonaConfig {
       }
     }
 
-    def apply(
-        c: com.typesafe.config.Config,
-        parentPath: java.lang.String,
-        $tsCfgValidator: $TsCfgValidator,
-    ): SimonaConfig.Simona = {
-      SimonaConfig.Simona(
-        control =
-          if (c.hasPathOrNull("control"))
-            scala.Some(
-              SimonaConfig.Simona.Control(
-                c.getConfig("control"),
-                parentPath + "control.",
-                $tsCfgValidator,
-              )
-            )
-          else None,
-        event = SimonaConfig.Simona.Event(
-          if (c.hasPathOrNull("event")) c.getConfig("event")
-          else com.typesafe.config.ConfigFactory.parseString("event{}"),
-          parentPath + "event.",
-          $tsCfgValidator,
-        ),
-        gridConfig = SimonaConfig.Simona.GridConfig(
-          if (c.hasPathOrNull("gridConfig")) c.getConfig("gridConfig")
-          else com.typesafe.config.ConfigFactory.parseString("gridConfig{}"),
-          parentPath + "gridConfig.",
-          $tsCfgValidator,
-        ),
-        input = SimonaConfig.Simona.Input(
-          if (c.hasPathOrNull("input")) c.getConfig("input")
-          else com.typesafe.config.ConfigFactory.parseString("input{}"),
-          parentPath + "input.",
-          $tsCfgValidator,
-        ),
-        output = SimonaConfig.Simona.Output(
-          if (c.hasPathOrNull("output")) c.getConfig("output")
-          else com.typesafe.config.ConfigFactory.parseString("output{}"),
-          parentPath + "output.",
-          $tsCfgValidator,
-        ),
-        powerflow = SimonaConfig.Simona.Powerflow(
-          if (c.hasPathOrNull("powerflow")) c.getConfig("powerflow")
-          else com.typesafe.config.ConfigFactory.parseString("powerflow{}"),
-          parentPath + "powerflow.",
-          $tsCfgValidator,
-        ),
-        runtime = SimonaConfig.Simona.Runtime(
-          if (c.hasPathOrNull("runtime")) c.getConfig("runtime")
-          else com.typesafe.config.ConfigFactory.parseString("runtime{}"),
-          parentPath + "runtime.",
-          $tsCfgValidator,
-        ),
-        simulationName =
-          $_reqStr(parentPath, c, "simulationName", $tsCfgValidator),
-        time = SimonaConfig.Simona.Time(
-          if (c.hasPathOrNull("time")) c.getConfig("time")
-          else com.typesafe.config.ConfigFactory.parseString("time{}"),
-          parentPath + "time.",
-          $tsCfgValidator,
-        ),
-      )
-    }
     private def $_reqStr(
         parentPath: java.lang.String,
         c: com.typesafe.config.Config,
@@ -3005,21 +3042,6 @@ object SimonaConfig {
         }
     }
 
-  }
-
-  def apply(c: com.typesafe.config.Config): SimonaConfig = {
-    val $tsCfgValidator: $TsCfgValidator = new $TsCfgValidator()
-    val parentPath: java.lang.String = ""
-    val $result = SimonaConfig(
-      simona = SimonaConfig.Simona(
-        if (c.hasPathOrNull("simona")) c.getConfig("simona")
-        else com.typesafe.config.ConfigFactory.parseString("simona{}"),
-        parentPath + "simona.",
-        $tsCfgValidator,
-      )
-    )
-    $tsCfgValidator.validate()
-    $result
   }
 
   private def $_L$_dbl(

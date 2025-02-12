@@ -26,7 +26,7 @@ ext {
   pekkoVersion = '1.1.3'
   jtsVersion = '1.20.0'
   confluentKafkaVersion = '7.4.0'
-  tscfgVersion = '1.2.4'
+  pureConfigVersion = '0.17.8'
   scapegoatVersion = '3.1.4'
 
   testContainerVersion = '0.41.8'
@@ -44,7 +44,6 @@ java {
 
 apply from: scriptsLocation + 'spotless.gradle'
 apply from: scriptsLocation + 'checkJavaVersion.gradle'
-apply from: scriptsLocation + 'tscfg.gradle' // config tasks
 apply from: scriptsLocation + 'documentation.gradle' // documentation tasks + configuration
 apply from: scriptsLocation + 'tests.gradle' // tasks for tests
 apply from: scriptsLocation + 'sonarqube.gradle' // sonarqube config
@@ -128,8 +127,9 @@ dependencies {
 
   /* config */
   implementation 'com.typesafe:config:1.4.3'
-  implementation "com.github.carueda:tscfg_2.13:$tscfgVersion"
   implementation "com.github.scopt:scopt_${scalaVersion}:4.1.0" // cmd args parser
+  implementation "com.github.pureconfig:pureconfig_${scalaVersion}:${pureConfigVersion}"
+  implementation "com.github.pureconfig:pureconfig-pekko_${scalaVersion}:${pureConfigVersion}"
 
   // JTS
   implementation ("org.locationtech.jts:jts-core:${jtsVersion}"){
